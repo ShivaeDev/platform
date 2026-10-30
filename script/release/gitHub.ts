@@ -1,65 +1,67 @@
-import { execFileSync } from "node:child_process";
+import { Effect, Schema } from "effect";
+import { read, write } from "@shivaedev/github/GitHub.ts";
 import { type ReleaseCiRun, releaseHoldReason } from "./holdReason.ts";
 
-export type GitHubRequest = (endpoint: string, method: string, body?: Readonly<Record<string, unknown>>) => string;
-
-interface SnapshotResponse {
-	data: {
-		repository: {
-			pullRequests: {
-				nodes: { number: number; state: string; headRefOid: string; isCrossRepository: boolean; mergeQueueEntry: { id: string } | null }[];
-			};
-			ref: { target: { oid: string } } | null;
-		};
-	};
-}
+const Snapshot = Schema.Struct({
+	data: Schema.Struct({
+		repository: Schema.Struct({
+			pullRequests: Schema.Struct({
+				nodes: Schema.Array(
+					Schema.Struct({
+						headRefOid: Schema.String,
+						isCrossRepository: Schema.Boolean,
+						mergeQueueEntry: Schema.NullOr(Schema.Struct({ id: Schema.String })),
+						number: Schema.Number,
+						state: Schema.String,
+					}),
+				),
+			}),
+			ref: Schema.NullOr(Schema.Struct({ target: Schema.Struct({ oid: Schema.String }) })),
+		}),
+	}),
+});
+const Runs = Schema.Struct({
+	workflowRuns: Schema.Array(
+		Schema.Struct({
+			conclusion: Schema.NullOr(Schema.String),
+			headSha: Schema.String,
+			status: Schema.String,
+		}).pipe(Schema.encodeKeys({ headSha: "head_sha" })),
+	),
+}).pipe(Schema.encodeKeys({ workflowRuns: "workflow_runs" }));
+const Pull = Schema.Struct({ number: Schema.Number });
 
 const QUERY = `query($owner: String!, $name: String!) {
-	repository(owner: $owner, name: $name) {
-		ref(qualifiedName: "refs/heads/release/next") { target { oid } }
-		pullRequests(first: 100, headRefName: "release/next", baseRefName: "main", states: OPEN) {
-			nodes { number state headRefOid isCrossRepository mergeQueueEntry { id } }
-		}
-	}
+ repository(owner: $owner, name: $name) {
+  ref(qualifiedName: "refs/heads/release/next") { target { oid } }
+  pullRequests(first: 100, headRefName: "release/next", baseRefName: "main", states: OPEN) {
+   nodes { number state headRefOid isCrossRepository mergeQueueEntry { id } }
+  }
+ }
 }`;
 
-const request: GitHubRequest = (endpoint, method, body) =>
-	execFileSync("gh", ["api", endpoint, "--method", method, ...(body === undefined ? [] : ["--input", "-"])], {
-		encoding: "utf8",
-		input: body === undefined ? undefined : JSON.stringify(body),
-		stdio: ["pipe", "pipe", "inherit"],
-	});
-
-export function releaseGitHub(repository: string, api: GitHubRequest = request) {
+export function releaseGitHub(repository: string) {
 	const [owner, name] = repository.split("/");
-	const pulls = `repos/${repository}/pulls`;
+	const pulls = `/repos/${repository}/pulls`;
 	return {
-		close: (number: number) => api(`${pulls}/${number}`, "PATCH", { state: "closed" }),
+		close: (number: number) => write("PATCH", `${pulls}/${number}`, { state: "closed" }, Pull),
 		save: (number: number | undefined, title: string, body: string) =>
 			number === undefined
-				? api(pulls, "POST", { base: "main", body, head: "release/next", title })
-				: api(`${pulls}/${number}`, "PATCH", { body, title }),
-		snapshot: () => {
-			const result: SnapshotResponse = JSON.parse(
-				api("graphql", "POST", {
-					query: QUERY,
-					variables: { name, owner },
-				}),
-			);
+				? write("POST", pulls, { base: "main", body, head: "release/next", title }, Pull)
+				: write("PATCH", `${pulls}/${number}`, { body, title }, Pull),
+		snapshot: Effect.fn("ReleaseGitHub.snapshot")(function* () {
+			const result = yield* write("POST", "/graphql", { query: QUERY, variables: { name, owner } }, Snapshot);
 			const current = result.data.repository;
 			const pull = current.pullRequests.nodes.find((candidate) => !candidate.isCrossRepository);
 			let run: ReleaseCiRun | undefined;
 			if (pull !== undefined && pull.mergeQueueEntry === null) {
-				const runs: { "workflow_runs": ReleaseCiRun[] } = JSON.parse(
-					api(`repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${pull.headRefOid}&per_page=1`, "GET"),
+				const runs = yield* read(
+					`/repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${pull.headRefOid}&per_page=1`,
+					Runs,
 				);
-				run = runs.workflow_runs[0];
+				run = runs.workflowRuns[0];
 			}
-			return {
-				head: current.ref?.target.oid ?? "",
-				hold: releaseHoldReason(pull, run),
-				pull,
-			};
-		},
+			return { head: current.ref?.target.oid ?? "", hold: releaseHoldReason(pull, run), pull };
+		}),
 	};
 }

@@ -50,14 +50,14 @@ export function JobRecord({ job, retry }: { readonly job: AdminJob; readonly ret
 				<pre className="bg-muted overflow-auto rounded-md p-3 text-xs">{JSON.stringify(job.data, null, 2)}</pre>
 				<h3 className="font-medium">Output</h3>
 				<pre className="bg-muted overflow-auto rounded-md p-3 text-xs">{JSON.stringify(job.output, null, 2)}</pre>
-				{job.sourceId !== undefined && (
+				{"sourceId" in job && (
 					<>
 						<h3 className="font-medium">Dead-letter source</h3>
 						<p className="text-sm break-all">{Option.getOrElse(job.sourceId, () => "Unknown original")}</p>
 						<pre className="bg-muted overflow-auto rounded-md p-3 text-xs">{JSON.stringify(job.sourceOutput, null, 2)}</pre>
 					</>
 				)}
-				{retry !== undefined && job.state === "failed" && job.sourceId === undefined && <RetryControl job={job} retry={retry} />}
+				{retry !== undefined && job.state === "failed" && !("sourceId" in job) && <RetryControl job={job} retry={retry} />}
 			</CardContent>
 		</Card>
 	);

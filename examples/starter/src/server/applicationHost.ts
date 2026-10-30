@@ -2,6 +2,7 @@ import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
 import { JobsPermission, UsersPermission } from "@shivaedev/admin/permissions.ts";
 import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
@@ -10,6 +11,7 @@ import { StatisticsPermission } from "#appPermissions.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { JobsClientFactory } from "./JobsClientFactory.ts";
+import { jobsLayer } from "./jobsLayer.ts";
 import { serverModules } from "./modules.ts";
 import type { PoolSizes } from "./PoolSizes.ts";
 
@@ -23,11 +25,13 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
+			const publicOrigin = yield* Config.URL("PUBLIC_URL").pipe(Config.option, Effect.map(Option.map((url) => url.origin)));
+			const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
 			const pool = yield* authDatabase(databaseUrl, { max: config?.poolSizes?.auth });
 			const database = databaseOptions(pool, databaseUrl, "check", config?.poolSizes?.sql);
 			const replacements = config?.replacements ?? Layer.empty;
-			const services = serverModules
-				.services(databaseUrl, config?.poolSizes?.jobs)
+			const services = serverModules.services
+				.pipe(Layer.provide(jobsLayer(databaseUrl, config?.poolSizes?.jobs)))
 				.pipe(Layer.provideMerge(Layer.merge(JobsClientFactory.layer, replacements)), Layer.merge(replacements));
 			return appHost({
 				...database,
@@ -40,12 +44,13 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 						{ roles: AppAccess },
 					);
 					const modules = serverModules;
-					const publicUrl = yield* Config.URL("PUBLIC_URL").pipe(Config.option);
 					const sessions = {
 						...authSessions,
-						origin: ({ headers }: { readonly headers: Readonly<Record<string, string>> }) =>
-							headers.origin === undefined
-							|| headers.origin === Option.match(publicUrl, { onNone: () => `http://${headers.host}`, onSome: (url) => url.origin }),
+						origin: trustedOrigins({
+							allow: Option.toArray(publicOrigin),
+							missing: "allow",
+							...(Option.isNone(publicOrigin) ? { sameOrigin: { trustedProxy } } : {}),
+						}),
 					};
 
 					return {

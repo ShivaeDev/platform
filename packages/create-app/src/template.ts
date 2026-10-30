@@ -46,7 +46,7 @@ const Manifest = Schema.Struct({
 	type: Schema.String,
 	version: Schema.String,
 });
-const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest));
+export const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest));
 // Decoding does not keep input key order, so the generated manifest lists its fields in package.json order.
 const manifestOrder = [
 	"name",
@@ -60,6 +60,10 @@ const manifestOrder = [
 	"packageManager",
 	"engines",
 ] as const satisfies ReadonlyArray<keyof typeof Manifest.Type>;
+
+export function manifestJson(manifest: typeof Manifest.Type) {
+	return `${JSON.stringify(Object.fromEntries(manifestOrder.map((key) => [key, manifest[key]])), null, "\t")}\n`;
+}
 
 export function registryDependencies(dependencies: Readonly<Record<string, string>>, versions: Readonly<Record<string, string>>) {
 	return Object.fromEntries(
@@ -88,7 +92,7 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 		devDependencies: registryDependencies(manifest.devDependencies, versions),
 		scripts: Object.fromEntries(Object.entries(scripts).map(([name, script]) => [name, script.replaceAll("--conditions=source ", "")])),
 	};
-	return `${JSON.stringify(Object.fromEntries(manifestOrder.map((key) => [key, prepared[key]])), null, "\t")}\n`;
+	return manifestJson(prepared);
 }
 
 export function prepareFile(path: string, content: Buffer, versions: Readonly<Record<string, string>>) {
@@ -99,7 +103,7 @@ export function prepareFile(path: string, content: Buffer, versions: Readonly<Re
 		return Buffer.from(prepareManifest(content.toString(), versions));
 	}
 	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"].includes(path)) {
-		return Buffer.from(content.toString().replaceAll('"source", ', "").replaceAll('["source"]', "[]"));
+		return Buffer.from(content.toString().replaceAll('["source"]', "[]"));
 	}
 	return content;
 }

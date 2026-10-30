@@ -8,6 +8,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#database.ts";
+import { databaseId } from "#internal/databaseOwner.ts";
 import { cleanupRole, cleanupVerbs } from "./cleanupVerbs.ts";
 import { createDatabaseEngine, type DatabaseEngine } from "./databaseEngine.ts";
 import { limitedRole } from "./limitedRole.ts";
@@ -70,7 +71,7 @@ export const limitedCleanupRole = cleanup.trait(
 
 export const unownedLeftover = cleanup.trait("configuration", "an earlier run left a database in the older unowned naming format", function* (state) {
 	const admin = state.engine.admin;
-	state.leftover = `effect_test_${crypto.randomUUID().replaceAll("-", "")}`;
+	state.leftover = `effect_test_${yield* databaseId}`;
 	yield* admin`create database ${admin(state.leftover)}`;
 	yield* dropOnStoryEnd(state, state.leftover);
 });
@@ -81,7 +82,7 @@ export const otherHostDatabase = cleanup.trait(
 	function* (state) {
 		const admin = state.engine.admin;
 		const { stdout: pid } = yield* Effect.promise(() => run(process.execPath, ["--eval", "process.stdout.write(String(process.pid))"]));
-		state.otherHost = `effect_test_00000000_${pid}_${crypto.randomUUID().replaceAll("-", "")}`;
+		state.otherHost = `effect_test_00000000_${pid}_${yield* databaseId}`;
 		yield* admin`create database ${admin(state.otherHost)}`;
 		yield* dropOnStoryEnd(state, state.otherHost);
 	},

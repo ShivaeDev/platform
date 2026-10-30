@@ -82,6 +82,7 @@ export function migratedHost<
 	TSession extends SessionShape,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
 >(
 	options: HostOptions<
 		TRpcs,
@@ -95,9 +96,9 @@ export function migratedHost<
 		TRouteRequirements
 	> &
 		HostPolicy<TSession> & {
-			readonly migrations: MigrationOptions<TMigrations>;
+			readonly migrations: MigrationOptions<TMigrations, TMigrationError>;
 		},
-	database: ReturnType<typeof databaseLayer<TMigrations>>,
+	database: ReturnType<typeof databaseLayer<TMigrations, TMigrationError>>,
 	changesService: typeof AppChanges,
 ) {
 	const services = Layer.mergeAll(options.services ?? Layer.empty);
@@ -118,6 +119,7 @@ export function deferredHost<
 	TApplicationRequirements,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
 >(
 	application: Effect.Effect<
 		AppHttpHostOptions<
@@ -138,7 +140,7 @@ export function deferredHost<
 		TApplicationError,
 		TApplicationRequirements
 	>,
-	database: ReturnType<typeof databaseLayer<TMigrations>>,
+	database: ReturnType<typeof databaseLayer<TMigrations, TMigrationError>>,
 	changesService: typeof AppChanges,
 ) {
 	return Layer.unwrap(Effect.map(application, (options) => appHostHttp(options, changesService))).pipe(Layer.provideMerge(database));

@@ -26,6 +26,7 @@ export interface LooseDefinition {
 	readonly layer?: AnyTestLayer;
 	readonly name: string;
 	readonly outbound?: Readonly<Record<string, string>>;
+	readonly outboundPassthrough?: boolean;
 	readonly run?: LooseRunHooks<unknown>;
 	readonly runIf?: boolean;
 	readonly stages: readonly string[];

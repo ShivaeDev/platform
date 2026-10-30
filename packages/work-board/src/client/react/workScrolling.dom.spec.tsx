@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { observedBrowserMotion } from "#test/browserMotion.ts";
 import { nowAsksFixture } from "#test/nowAsksFixture.ts";
 import { nowScreen } from "#test/nowScreen.tsx";

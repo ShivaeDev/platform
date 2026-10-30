@@ -1,38 +1,62 @@
-import { expect } from "vitest";
-import { PartialRow } from "#test/partialConflicts.ts";
-import { hasPartialConflicts } from "#test/repositoryTraits.ts";
-import { postgres } from "#test/sqlStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { queries } from "#test/queries.ts";
+import { PartialRow } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
-postgres.it(
-	"large tuple lists reach PostgreSQL as bound parameters in reads, selects and deletes",
-	[hasPartialConflicts()],
-	function* ({ partialConflicts, sql }) {
-		const { rows, observe, statements } = partialConflicts();
-		const quoted = "one') OR true --";
-		yield* rows.insertMany([
-			{ a: quoted, b: 1, kind: "X", value: 10 },
-			{ a: "other", b: 1, kind: "X", value: 20 },
-		]);
-		const listSize = 10_000;
-		const tuples = Array.from({ length: listSize }, (_, index): readonly [string, number] => [
-			index === listSize - 1 ? quoted : `missing-${index}`,
-			1,
-		]);
-		const where = tupleIn(PartialRow, ["a", "b"], tuples);
-		expect(yield* observe(rows.findMany({ select: ["a", "b"], where }))).toEqual([{ a: quoted, b: 1 }]);
-		const selected = yield* rows.select({ select: ["a"], where }).statement;
-		expect(yield* observe(sql`${selected}`)).toEqual([{ a: quoted }]);
-		yield* observe(rows.delete(where));
-		expect(yield* rows.findMany({ select: ["a"] })).toEqual([{ a: "other" }]);
-		expect(statements.map(([query]) => query)).toEqual([
-			expect.stringMatching(/^select/u),
-			expect.stringMatching(/^select/u),
-			expect.stringMatching(/^delete/u),
-		]);
-		for (const [query, parameters] of statements) {
-			expect(parameters).toEqual(tuples.flatMap(([a, b]) => [a, String(b)]));
-			expect(query).not.toContain(quoted);
-		}
+const QUOTED = "one') OR true --";
+const LIST_SIZE = 10_000;
+const tuples = Array.from({ length: LIST_SIZE }, (_, index): readonly [string, number] => [index === LIST_SIZE - 1 ? QUOTED : `missing-${index}`, 1]);
+const where = tupleIn(PartialRow, ["a", "b"], tuples);
+const boundTuples = tuples.flatMap(([a, b]) => [a, String(b)]);
+const savedRows = [
+	{ a: QUOTED, b: 1, kind: "X", value: 10 },
+	{ a: "other", b: 1, kind: "X", value: 20 },
+];
+
+queries.it(
+	`findMany sends a ${LIST_SIZE}-tuple list, whose last tuple holds a quote and a SQL comment, as bound parameters and reads only that row`,
+	[],
+	function* ({ boundParameters, findPartialRows, lastResult, savePartialRows, sqlTextContains }) {
+		yield* savePartialRows(savedRows);
+
+		yield* findPartialRows({ select: ["a", "b"], where });
+
+		yield* outcomes({
+			"bound parameters": [boundParameters(), [boundTuples]],
+			"found rows": [lastResult(), [{ a: QUOTED, b: 1 }]],
+			"quote written into the SQL": [sqlTextContains(QUOTED), false],
+		});
+	},
+);
+
+queries.it(
+	`a select copies the ${LIST_SIZE}-tuple list into its statement as bound parameters`,
+	[],
+	function* ({ boundParameters, selectPartialRows, lastResult, savePartialRows, sqlTextContains }) {
+		yield* savePartialRows(savedRows);
+
+		yield* selectPartialRows({ select: ["a"], where });
+
+		yield* outcomes({
+			"bound parameters": [boundParameters(), [boundTuples]],
+			"quote written into the SQL": [sqlTextContains(QUOTED), false],
+			"selected rows": [lastResult(), [{ a: QUOTED }]],
+		});
+	},
+);
+
+queries.it(
+	`delete sends the ${LIST_SIZE}-tuple list as bound parameters and removes only the matching row`,
+	[],
+	function* ({ boundParameters, deletePartialRows, partialRows, savePartialRows, sqlTextContains }) {
+		yield* savePartialRows(savedRows);
+
+		yield* deletePartialRows(where);
+
+		yield* outcomes({
+			"bound parameters": [boundParameters(), [boundTuples]],
+			"quote written into the SQL": [sqlTextContains(QUOTED), false],
+			"stored rows": [partialRows(), [{ a: "other", b: 1 }]],
+		});
 	},
 );

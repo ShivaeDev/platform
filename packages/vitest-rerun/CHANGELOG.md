@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 - 2026-10-30
+
+### Added
+
+- Export every engine module through the package's existing `.ts` wildcard, including modules under `internal/` in `test` and `vitest-rerun` and `server/internal/` in `test-story` and `test-sql`, so downstream kits can reuse them directly. Importing the rerun worker leaves test execution to its direct launch.
+
+### Fixed
+
+- Decode snapshots and timed JSON reports before using them, reporting malformed files as typed errors that name the file. Read and write timed reports through Effect FileSystem.
+- A rerun that collects a test the attempt before it did not have, or no longer collects one it had, now fails the run with a `vitest-rerun:` message instead of crashing the attempt with an unhandled rejection. The final reports keep the results of the attempt before it.
+- A run no longer leaves its internal `tests.attempt-<n>.bin` snapshots in the output directory.
+
 ## 0.1.3 - 2026-10-30
 
 ### Changed

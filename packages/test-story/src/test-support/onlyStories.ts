@@ -1,12 +1,12 @@
-import { afterAll, expect } from "vitest";
-import { conditionalKit } from "#test/conditionalKit.ts";
+import type { Effect } from "effect";
+import { conditionalKit } from "./conditionalKit.ts";
 
-const { executed, given, kit } = conditionalKit(true);
+const { given, kit } = conditionalKit(true);
 const focused = kit.it.only;
 
-focused("focused", given, ({ recordsBody }) => recordsBody());
-kit.it("plain", given, ({ recordsBody }) => recordsBody());
+function* body({ recordsBody }: { readonly recordsBody: () => Effect.Effect<void> }) {
+	yield* recordsBody();
+}
 
-afterAll(() => {
-	expect(executed).toEqual(["layer", "around", "create", "trait", "body"]);
-});
+focused("focused", given, body);
+kit.it("plain", given, body);

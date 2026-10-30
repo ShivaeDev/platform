@@ -1,7 +1,7 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { Deferred, Effect } from "effect";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Rendered } from "#client/testing.ts";
 import { routerApp } from "./routerApp.ts";
 import { type NoteMissing, type NotFound, routerClient } from "./routerClient.ts";
 import { clickButton, screenWarnings, typeInput } from "./Screen.ts";

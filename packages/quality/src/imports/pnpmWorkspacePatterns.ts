@@ -1,3 +1,5 @@
+import { Schema } from "effect";
+
 function keyPattern(key: string): RegExp {
 	return new RegExp(`^(?:${key}|"${key}"|'${key}')\\s*:`, "u");
 }
@@ -31,7 +33,7 @@ function scalar(raw: string, key: string): string {
 	const value = raw.trim();
 	if (value.startsWith('"') && value.endsWith('"') && value.length > 1) {
 		try {
-			return String(JSON.parse(value));
+			return Schema.decodeUnknownSync(Schema.fromJsonString(Schema.String))(value);
 		} catch (error) {
 			throw failure(`cannot read "${value}" in ${key}`, error);
 		}

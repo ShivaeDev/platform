@@ -1,5 +1,7 @@
 import { Effect, FileSystem } from "effect";
-import { CORE, changeset as changesetText, FEATURE_NOTE, git, HISTORY, runCli, write } from "./fixture.ts";
+import { ChangesetError } from "#error.ts";
+import { git } from "#git.ts";
+import { CORE, changeset as changesetText, FEATURE_NOTE, HISTORY, runCli, write } from "./fixture.ts";
 import { editManifest, manifestOf, manifests, rangeOn } from "./manifests.ts";
 import { workspace } from "./workspace.ts";
 
@@ -7,6 +9,20 @@ type Bumps = Readonly<Record<string, string>>;
 
 const CONFIG = ".changeset/changesets.config.ts";
 const changesetError = new URL("../error.ts", import.meta.url).href;
+
+export const withoutGit = workspace.trait("changed", "the workspace is outside a git repository", function* ({ root }) {
+	yield* (yield* FileSystem.FileSystem).remove(`${root}/.git`, { recursive: true });
+});
+
+export const unrelatedOriginMain = workspace.trait(
+	"main",
+	"origin/main has no common ancestor with HEAD while local main shares its history",
+	function* ({ root }) {
+		const tree = (yield* git(root, ["rev-parse", "HEAD^{tree}"])).trim();
+		const head = (yield* git(root, ["commit-tree", tree, "-m", "Unrelated main history"])).trim();
+		yield* git(root, ["update-ref", "refs/remotes/origin/main", head]);
+	},
+);
 
 function asking(packages: Bumps, body: string) {
 	const bumps = Object.entries(packages).map(([name, bump]) => `${name} ${bump}`);
@@ -65,10 +81,10 @@ export const directoryInstructions = workspace.trait("pending", ".changeset/READ
 );
 
 export const onMain = workspace.trait("main", "the work so far is merged into main, the base the check compares against", ({ root }) =>
-	Effect.sync(() => {
-		git(root, ["add", "."]);
-		git(root, ["commit", "--allow-empty", "-m", "Work on main"]);
-		git(root, ["branch", "-f", "main", "HEAD"]);
+	Effect.gen(function* () {
+		yield* git(root, ["add", "."]);
+		yield* git(root, ["commit", "--allow-empty", "-m", "Work on main"]);
+		yield* git(root, ["branch", "-f", "main", "HEAD"]);
 	}),
 );
 
@@ -78,38 +94,38 @@ export function mergingReleaseFromMain({ withAnotherBranch }: { readonly withAno
 		`after the branch committed its own work, main released ${CORE} 0.2.4, and the branch is merging main${withAnotherBranch ? " and another branch" : ""} without committing yet`,
 		function* ({ root }) {
 			yield* write(root, "feature-work.md", "Feature branch work.\n");
-			yield* Effect.sync(() => {
-				git(root, ["add", "."]);
-				git(root, ["commit", "-m", "Feature work"]);
+			yield* Effect.gen(function* () {
+				yield* git(root, ["add", "."]);
+				yield* git(root, ["commit", "-m", "Feature work"]);
 			});
 			if (withAnotherBranch) {
-				yield* Effect.sync(() => git(root, ["switch", "-c", "another-change", "main"]));
+				yield* git(root, ["switch", "-c", "another-change", "main"]);
 				yield* write(root, "another-work.md", "Another branch's work.\n");
-				yield* Effect.sync(() => {
-					git(root, ["add", "."]);
-					git(root, ["commit", "-m", "Another change"]);
+				yield* Effect.gen(function* () {
+					yield* git(root, ["add", "."]);
+					yield* git(root, ["commit", "-m", "Another change"]);
 				});
 			}
-			yield* Effect.sync(() => git(root, ["switch", "main"]));
+			yield* git(root, ["switch", "main"]);
 			yield* editManifest(root, CORE, ({ json }) => ({ ...json, version: "0.2.4" }));
 			yield* editChangelog(root, CORE, (text) =>
 				text.replace("# Changelog\n", "# Changelog\n\n## 0.2.4 - 2026-10-18\n\n### Fixed\n\n- Released on main.\n"),
 			);
-			yield* Effect.sync(() => {
-				git(root, ["add", "."]);
-				git(root, ["commit", "-m", "Release on main"]);
-				git(root, ["switch", "feature"]);
-				git(root, ["merge", "--no-commit", ...(withAnotherBranch ? ["another-change", "main"] : ["main"])]);
+			yield* Effect.gen(function* () {
+				yield* git(root, ["add", "."]);
+				yield* git(root, ["commit", "-m", "Release on main"]);
+				yield* git(root, ["switch", "feature"]);
+				yield* git(root, ["merge", "--no-commit", ...(withAnotherBranch ? ["another-change", "main"] : ["main"])]);
 			});
 		},
 	);
 }
 
 export const applied = workspace.trait("changed", "releases apply has applied the pending changesets on the branch", ({ root }) =>
-	Effect.sync(() => {
-		const result = runCli(root, ["apply"]);
-		if (result.status !== 0) {
-			throw new Error(`Could not apply the release precondition: ${result.stderr}`);
+	Effect.gen(function* () {
+		const result = yield* runCli(root, ["apply"]);
+		if (result.exitCode !== 0) {
+			return yield* new ChangesetError({ cause: result, message: `Could not apply the release precondition: ${result.stderr}` });
 		}
 	}),
 );

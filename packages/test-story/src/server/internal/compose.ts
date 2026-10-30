@@ -27,6 +27,7 @@ export function compose(name: string, kits: KitList): LooseDefinition {
 		layer: definitions.reduce<AnyTestLayer>((layer, definition) => Layer.merge(layer, definition.layer ?? Layer.empty), Layer.empty),
 		name,
 		outbound: Object.assign({}, ...definitions.map((definition) => definition.outbound)),
+		outboundPassthrough: definitions.some((definition) => definition.outboundPassthrough === true),
 		runIf: definitions.every((definition) => definition.runIf !== false),
 		stages: definitions.flatMap((definition) => definition.stages),
 		verbs: (engine, story) => {

@@ -11,12 +11,10 @@ const RegistryEntry = Schema.Struct({
 
 export type RegistryEntry = typeof RegistryEntry.Type;
 
-const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(Schema.Array(RegistryEntry)), {
-	parseOptions: { errors: "all", onExcessProperty: "error" },
-});
+const RegistryFile = Schema.fromJsonString(Schema.Array(RegistryEntry));
 
 export function decodeRegistry(raw: string | undefined): Promise<Decoded<readonly RegistryEntry[]>> {
-	return raw === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(standard, raw);
+	return raw === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(RegistryFile, raw);
 }
 
 export interface StaleRegistryEntry {

@@ -1,10 +1,14 @@
 import { Effect } from "effect";
-import { asPath, keySelector, retainedPath } from "./paths.ts";
-import { FieldFailure, type Holder } from "./shape.ts";
+import { asPath, type Key, retainedPath } from "./paths.ts";
+import { type ArrayKeys, FieldFailure, type Fields, type Holder } from "./shape.ts";
 import type { statusOf } from "./statusOf.ts";
 
-export function trackRejections(values: Holder, selectors: Readonly<Record<string, unknown>> | undefined, status: ReturnType<typeof statusOf>) {
-	const keys = new Map(Object.entries(selectors ?? {}).map(([name, select]) => [name, keySelector(select)]));
+export function trackRejections<TFields extends Fields>(
+	values: Holder,
+	selectors: ArrayKeys<TFields> | undefined,
+	status: ReturnType<typeof statusOf>,
+) {
+	const keys: ReadonlyMap<string, Key> = new Map(Object.entries(selectors ?? {}));
 	let previous = values.value;
 	values.subscribe((next) => {
 		status.rebase(previous, next, keys);

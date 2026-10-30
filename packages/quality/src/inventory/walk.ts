@@ -1,6 +1,8 @@
 import { dirname, join, relative, sep } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { FilesystemFailure, orWhenAbsent, readOptionalText } from "./filesystem.ts";
+import type { SetupFailure } from "#failure.ts";
+import type { RuleServices } from "#rule.ts";
+import { type FilesystemFailure, orWhenAbsent, readOptionalText } from "./filesystem.ts";
 import { emptyScope, type IgnoreScope, insideKept, verdictFor, withIgnoreFile } from "./ignoreScope.ts";
 import { ignoredPaths, trackedPaths } from "./trackedPaths.ts";
 
@@ -21,11 +23,8 @@ export function ignoreScopeAt(
 export const scopeAbove = Effect.fnUntraced(function* (
 	root: string,
 	dir: string,
-): Effect.fn.Return<IgnoreScope, FilesystemFailure, FileSystem.FileSystem> {
-	const ignored = yield* Effect.tryPromise({
-		catch: (cause) => new FilesystemFailure({ message: `cannot list ignored files in ${dir}: ${String(cause)}`, path: dir }),
-		try: () => ignoredPaths(dir),
-	});
+): Effect.fn.Return<IgnoreScope, FilesystemFailure | SetupFailure, RuleServices> {
+	const ignored = yield* ignoredPaths(dir);
 	if (ignored !== undefined) {
 		return { ...emptyScope, ignored: new Set(ignored) };
 	}
@@ -43,15 +42,12 @@ export const scopeAbove = Effect.fnUntraced(function* (
 export const walk = Effect.fnUntraced(function* (
 	dir: string,
 	inherited?: IgnoreScope,
-): Effect.fn.Return<readonly string[], FilesystemFailure, FileSystem.FileSystem> {
+): Effect.fn.Return<readonly string[], FilesystemFailure | SetupFailure, RuleServices> {
 	const fs = yield* FileSystem.FileSystem;
 	if ((yield* orWhenAbsent<FileSystem.File.Info | undefined>(dir, fs.stat(dir), undefined)) === undefined) {
 		return [];
 	}
-	const paths = yield* Effect.tryPromise({
-		catch: (cause) => new FilesystemFailure({ message: `cannot list tracked files in ${dir}: ${String(cause)}`, path: dir }),
-		try: () => trackedPaths(dir),
-	});
+	const paths = yield* trackedPaths(dir);
 	const tracked = new Set(paths);
 	for (const path of paths) {
 		for (let folder = dirname(path); folder !== dir && folder !== dirname(folder); folder = dirname(folder)) {

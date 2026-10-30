@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { CreateAppError } from "./CreateAppError.ts";
+import { CreateAppError } from "#CreateAppError.ts";
 
 function git(cwd: string, args: readonly string[], inherit = false) {
 	return Effect.flatMap(ChildProcessSpawner.ChildProcessSpawner, (spawner) =>
@@ -8,10 +8,16 @@ function git(cwd: string, args: readonly string[], inherit = false) {
 	);
 }
 
-const checkedGit = Effect.fn("CreateApp.checkedGit")(function* (cwd: string, args: readonly string[]) {
-	const code = yield* git(cwd, args, true);
+function shellWord(word: string) {
+	return /^[\w./=@:-]+$/u.test(word) ? word : `'${word.replaceAll("'", "'\"'\"'")}'`;
+}
+
+const checkedGit = Effect.fn("CreateApp.checkedGit")(function* (cwd: string, args: readonly string[], config: readonly string[] = []) {
+	const code = yield* git(cwd, [...config, ...args], true);
 	if (code !== 0) {
-		return yield* new CreateAppError({ message: `git ${args.join(" ")} failed (exit ${code}). The generated files remain in ${cwd}.` });
+		return yield* new CreateAppError({
+			message: `git ${args.map(shellWord).join(" ")} failed (exit ${code}). The generated files remain in ${cwd}.`,
+		});
 	}
 });
 
@@ -31,5 +37,5 @@ export const commitGit = Effect.fn("CreateApp.commitGit")(function* (cwd: string
 	const identity = yield* git(cwd, ["-c", "user.useConfigOnly=true", "var", "GIT_AUTHOR_IDENT"]);
 	const fallback = identity === 0 ? [] : ["-c", "user.name=Create App", "-c", "user.email=create-app@localhost"];
 	yield* checkedGit(cwd, ["add", "--all"]);
-	yield* checkedGit(cwd, [...fallback, "commit", "-m", "Initialize a generated app"]);
+	yield* checkedGit(cwd, ["commit", "-m", "Initialize a generated app"], fallback);
 });

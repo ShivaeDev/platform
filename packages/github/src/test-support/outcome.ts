@@ -8,6 +8,7 @@ import {
 	GitHubConversationLocked,
 	GitHubPermissionDenied,
 	GitHubRateLimited,
+	GitHubTokenError,
 	GitHubTransportError,
 	GitHubWebhookSignatureError,
 } from "#errors.ts";
@@ -30,6 +31,7 @@ const phrases = [
 	on(GitHubRateLimited, ({ resource, retryAt }) => `rate limited on ${resource} until ${clockTime(retryAt)}`),
 	on(GitHubPermissionDenied, ({ path }) => `permission denied at ${path}`),
 	on(GitHubConversationLocked, ({ path }) => `conversation locked at ${path}`),
+	on(GitHubTokenError, ({ reason }) => `authentication ${reason} failed`),
 	on(GitHubTransportError, ({ path }) => `transport failure at ${path}`),
 	on(GitHubAppError, ({ reason, status }) => {
 		if (reason === "sign") {

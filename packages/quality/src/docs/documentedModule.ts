@@ -3,7 +3,7 @@ import ts from "typescript";
 import { exportEntry, exportTargets } from "#imports/packageExports.ts";
 import type { WorkspacePackage } from "#imports/workspace.ts";
 
-export type DocumentedModule = { readonly kind: "missing" } | { readonly kind: "private" } | { readonly kind: "source"; readonly path: string };
+export type DocumentedModule = { readonly kind: "missing" } | { readonly kind: "source"; readonly path: string };
 
 const BUILT = /^\.\/dist\/(?<path>.+?)(?:\.d)?\.[cm]?[jt]s$/u;
 
@@ -30,9 +30,6 @@ export function documentedModule(root: string, owner: WorkspacePackage, exports:
 	const entry = exportEntry(typeof exports === "string" || Array.isArray(exports) ? { ".": exports } : exports, subpath);
 	if (entry === undefined) {
 		return MISSING;
-	}
-	if (entry[1] === null) {
-		return { kind: "private" };
 	}
 	const [prefix = "", suffix = ""] = entry[0].split("*");
 	const star = subpath.slice(prefix.length, subpath.length - suffix.length);

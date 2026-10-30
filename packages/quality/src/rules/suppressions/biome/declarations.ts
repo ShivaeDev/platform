@@ -11,12 +11,10 @@ export type Declaration = typeof Declaration.Type;
 
 export const PRESET_DECLARATIONS = "declarations.json";
 
-const shipped = Schema.toStandardSchemaV1(Schema.fromJsonString(Schema.Array(Declaration)), {
-	parseOptions: { errors: "all", onExcessProperty: "error" },
-});
+const ShippedDeclarations = Schema.fromJsonString(Schema.Array(Declaration));
 
 export function decodeShipped(text: string | undefined): Promise<Decoded<readonly Declaration[]>> {
-	return text === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(shipped, text);
+	return text === undefined ? Promise.resolve({ _tag: "Valid", value: [] }) : decodeWith(ShippedDeclarations, text);
 }
 
 export interface Scoped {

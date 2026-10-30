@@ -1,3 +1,4 @@
+import { Effect, Schedule } from "effect";
 import type { Queue } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { PgBossQueueOptionsError } from "#error.ts";
@@ -8,40 +9,37 @@ const CREATE_QUEUE_ATTEMPTS = 6;
 
 // A partitioned queue attaches its table to pg-boss's job table, which can deadlock with job traffic on other queues.
 // PostgreSQL rolls the whole creation back, so trying it again is safe.
-async function createQueue(client: PgBossClient, name: string, options?: Omit<Queue, "name">): Promise<void> {
-	for (let attempt = 1; ; attempt += 1) {
-		try {
-			return await client.createQueue(name, options);
-		} catch (error) {
-			if (attempt === CREATE_QUEUE_ATTEMPTS || !(error instanceof Error) || Reflect.get(error, "code") !== DEADLOCK_DETECTED) {
-				throw error;
-			}
-			await new Promise((resolve) => setTimeout(resolve, 25 * 2 ** (attempt - 1)));
-		}
-	}
+function createQueue(client: PgBossClient, name: string, options?: Omit<Queue, "name">) {
+	return Effect.tryPromise({ catch: (error) => error, try: () => client.createQueue(name, options) }).pipe(
+		Effect.retry({
+			schedule: Schedule.exponential(25).pipe(Schedule.upTo({ times: CREATE_QUEUE_ATTEMPTS - 1 })),
+			while: (error) => error instanceof Error && Reflect.get(error, "code") === DEADLOCK_DETECTED,
+		}),
+	);
 }
 
-export async function ensureQueue(client: PgBossClient, name: string, options: Omit<Queue, "name" | "deadLetter">): Promise<void> {
+export const ensureQueue = Effect.fnUntraced(function* (client: PgBossClient, name: string, options: Omit<Queue, "name" | "deadLetter">) {
 	const deadLetter = deadLetterQueueName(name);
 	const desired = { retryBackoff: true, retryLimit: 3, ...options, deadLetter };
-	await createQueue(client, deadLetter);
-	await createQueue(client, name, desired);
-	const existing = await client.getQueue(name);
+	yield* createQueue(client, deadLetter);
+	yield* createQueue(client, name, desired);
+	const existing = yield* Effect.tryPromise({ catch: (error) => error, try: () => client.getQueue(name) });
 	if (existing === null) {
 		return;
 	}
 	const immutable = (["partition", "policy"] as const).filter((key) => desired[key] !== undefined && desired[key] !== existing[key]);
 	if (immutable.length > 0) {
-		throw new PgBossQueueOptionsError({ options: immutable, queue: name });
+		return yield* new PgBossQueueOptionsError({ options: immutable, queue: name });
 	}
+	const updateQueue = client.updateQueue?.bind(client);
 	const { partition: _partition, policy: _policy, ...mutable } = desired;
 	const changed = Object.entries(mutable).some(([key, value]) => value !== undefined && value !== Reflect.get(existing, key));
 	if (!changed) {
 		return;
 	}
-	if (client.updateQueue === undefined) {
-		throw new TypeError("This pg-boss client does not support updateQueue");
+	if (updateQueue === undefined) {
+		return yield* Effect.fail(new TypeError("This pg-boss client does not support updateQueue"));
 	}
 	// pg-boss validates retryDelayMax against retryBackoff in the same update.
-	await client.updateQueue(name, mutable);
-}
+	yield* Effect.tryPromise({ catch: (error) => error, try: () => updateQueue(name, mutable) });
+});

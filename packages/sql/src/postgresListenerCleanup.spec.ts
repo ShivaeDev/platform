@@ -1,67 +1,48 @@
-import { Effect, Fiber } from "effect";
-import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
-import { withLive } from "@shivaedev/test/withLive.ts";
-import { onSqlError } from "#test/postgresTransact.ts";
-import { postgres } from "#test/sqlStory.ts";
-import { listeningForChanges } from "#test/sqlTraits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { changeFeed, feedListens, listenerCleanupStalls } from "#test/changeFeed.ts";
 
-postgres.it(
-	"stalled listener cleanup cannot delay resync, a new listener or scope release",
-	[
-		listeningForChanges(
-			{
-				heartbeatInterval: "1 hour",
-				heartbeatTimeout: "150 millis",
-				retryDelay: "20 millis",
-			},
-			true,
-		),
-	],
-	function* ({ sql, transact, invalidateOnCommit, notifications, watchChanges, recordedLogs }) {
-		const { state, close, release, nextMutedHeartbeat, nextListener, nextCleanup } = notifications();
-		const changes = yield* watchChanges(["orders:1"]);
-		try {
-			const listeners = sql<{
-				pid: number;
-			}>`select pid from pg_stat_activity where query = ${`LISTEN "${state.channel}"`}`;
-			const originalListeners = yield* listeners;
-			expect(originalListeners).toEqual([{ pid: expect.any(Number) }]);
-			state.muted = true;
-			yield* TestClock.adjust("1 hour");
-			yield* nextMutedHeartbeat;
-			yield* TestClock.adjust("150 millis");
-			yield* withLive(eventually(Effect.try(() => expect(state.resyncEvents).toEqual(["resync", "resync"]))).pipe(Effect.timeout("5 seconds")));
-			yield* nextCleanup;
-			expect(state.listenerOperations).toEqual(["listen", "cleanup"]);
-			state.muted = false;
-			yield* TestClock.adjust("150 millis");
-			yield* withLive(
-				eventually(
-					Effect.try(() =>
-						expect(recordedLogs()).toMatchObject([{ level: "Warn", message: ["PostgreSQL change listener lost; resynchronizing live streams"] }]),
-					),
-				).pipe(Effect.timeout("5 seconds")),
-			);
-			yield* TestClock.adjust("20 millis");
-			yield* nextListener;
-			yield* TestClock.adjust("50 millis");
-			yield* withLive(
-				eventually(Effect.try(() => expect(state.resyncEvents).toEqual(["resync", "resync", "resync"]))).pipe(Effect.timeout("5 seconds")),
-			);
-			expect(state.listenerOperations).toEqual(["listen", "cleanup", "listen"]);
-			expect(yield* listeners).toEqual([{ pid: expect.any(Number) }]);
-			yield* invalidateOnCommit(["orders:1"]).pipe(transact({ onSqlError }));
-			yield* withLive(eventually(Effect.try(() => expect(changes).toEqual(["orders:1"]))).pipe(Effect.timeout("5 seconds")));
-			const closingScope = yield* Effect.forkScoped(close);
-			yield* nextCleanup;
-			yield* TestClock.adjust("150 millis");
-			yield* Fiber.join(closingScope);
-			expect(state.listenerOperations).toEqual(["listen", "cleanup", "listen", "cleanup"]);
-		} finally {
-			release();
-		}
+const QUICK = { heartbeatInterval: "1 hour", heartbeatTimeout: "150 millis", retryDelay: "20 millis" } as const;
+
+changeFeed.it(
+	"a lost listener whose cleanup stalls still resyncs live streams before its cleanup finishes",
+	[listenerCleanupStalls(), feedListens(QUICK)],
+	function* ({ heartbeatGoesUnanswered, listenerHistory, liveStreamResyncs, openLiveStream }) {
+		yield* openLiveStream("orders board");
+
+		yield* heartbeatGoesUnanswered();
+
+		yield* outcomes({
+			"listener history": [listenerHistory(), ["listen", "cleanup"]],
+			"live stream resyncs": [liveStreamResyncs(), { "orders board": 1 }],
+		});
 	},
-	{ clock: "test" },
+);
+
+changeFeed.it(
+	"a lost listener whose cleanup stalls listens again once the heartbeat timeout bounds the cleanup, and its old connection is released",
+	[listenerCleanupStalls(), feedListens(QUICK)],
+	function* ({ deliveryResumes, heartbeatGoesUnanswered, listenerCleanupDeadlinePasses, listenerConnections, listenerHistory, listenerReconnects }) {
+		expect(yield* listenerConnections()).toEqual(["listening on the feed channel"]);
+		yield* heartbeatGoesUnanswered();
+		yield* deliveryResumes();
+
+		yield* listenerCleanupDeadlinePasses();
+		yield* listenerReconnects();
+
+		yield* outcomes({
+			"listener connections": [listenerConnections(), ["listening on the feed channel"]],
+			"listener history": [listenerHistory(), ["listen", "cleanup", "listen"]],
+		});
+	},
+);
+
+changeFeed.it(
+	"closing the change feed while a listener cleanup stalls finishes once the heartbeat timeout passes",
+	[listenerCleanupStalls(), feedListens(QUICK)],
+	function* ({ closeFeed }) {
+		const ending = yield* closeFeed();
+
+		expect(ending).toBe("closed");
+	},
 );

@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { eventually } from "@shivaedev/react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { requireSetup } from "#modules/notes/test-support/requireSetup.ts";
@@ -19,7 +18,11 @@ import { notesUiVerbs } from "./uiVerbs.ts";
 export const screens = storyKit({
 	clock: "live",
 	create: createScreen,
-	inspect: (engine) => ({ calls: engine.client.calls, route: engine.router?.state.location.pathname, text: engine.view?.container.textContent }),
+	inspect: (engine) => ({
+		reads: engine.client.observed.reads(),
+		route: engine.router?.state.location.pathname,
+		text: engine.view?.container.textContent,
+	}),
 	name: "app screen",
 	stages: ["list", "screen", "elsewhere"],
 	verbs: (engine, story) => ({
@@ -42,11 +45,9 @@ export function heldNotesList() {
 
 export function editingNote() {
 	return screens.trait("screen", "the first note is open in the editor", function* (engine) {
-		engine.client = notesClient([{ id: 1, title: "First note", version: 0, wordCount: null }]);
+		engine.client = yield* notesClient([{ id: 1, title: "First note", version: 0, wordCount: null }]);
 		yield* openRoute(engine, "/notes/1");
-		yield* eventually(() =>
-			requireSetup(screenView(engine).container.querySelector("input")?.value === "First note", "The editor did not load First note"),
-		);
+		yield* requireSetup(screenView(engine).container.querySelector("input")?.value === "First note", "The editor did not load First note");
 	});
 }
 
@@ -96,4 +97,10 @@ export function aliceSession() {
 
 export function codePreviewScreen(lines: readonly CodePreviewLine[]) {
 	return screens.trait("screen", "a code preview is open", (engine) => openCodePreview(engine, lines));
+}
+
+export function malformedSession() {
+	return screens.trait("screen", "the auth provider returns malformed session permissions", (engine) =>
+		openApp(engine, "/", { baseUrl: "http://malformed.story.test", malformedSession: true, signedIn: true }),
+	);
 }

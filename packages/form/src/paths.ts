@@ -1,17 +1,12 @@
 import { Equal } from "effect";
 import type { Path } from "./shape.ts";
 
-type Key = (element: unknown) => PropertyKey;
+export type Key = (element: unknown) => PropertyKey;
 export type KeySelectors = ReadonlyMap<string, Key>;
 
 export interface PathMessage {
 	readonly message: string;
 	readonly path: Path;
-}
-
-export function keySelector(selector: unknown): Key;
-export function keySelector(selector: unknown): unknown {
-	return selector;
 }
 
 export function asPath(path: string | Path): Path {

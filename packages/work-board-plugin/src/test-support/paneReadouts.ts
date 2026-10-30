@@ -26,7 +26,7 @@ function flightRows(container: Element): Element[] {
 }
 
 function flightTitle(row: Element): string {
-	return textOf(row.firstElementChild?.children[0]);
+	return textOf(row.firstElementChild?.children[1]);
 }
 
 export function inFlightShown(container: Element): string | FlightGroupShown[] {
@@ -42,10 +42,24 @@ export function agentsShown(container: Element, title: string, { turns }: Shown)
 	if (!row) {
 		throw new Error(`In flight shows no ${title}`);
 	}
-	return [...row.children].slice(1).map((agent) => {
+	return [...(row.querySelector(":scope > div:last-child")?.children ?? [])].slice(1).map((agent) => {
 		const [activity = "", turn] = [...agent.children].map(textOf);
 		return turns && turn !== undefined ? `${activity} · ${turn}` : activity;
 	});
+}
+
+export function flightLinesShown(container: Element) {
+	return [...sectionBody(container, "In flight").children].map((group) => ({
+		goal: textOf(group.firstElementChild),
+		tasks: [...group.children].slice(1).map((row) =>
+			[...row.children].map((line) =>
+				[...line.children]
+					.map((part) => [...part.children].map(textOf).join(" ") || textOf(part))
+					.filter(Boolean)
+					.join("   "),
+			),
+		),
+	}));
 }
 
 function goalsBody(container: Element): Element {

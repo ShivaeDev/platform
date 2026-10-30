@@ -1,4 +1,7 @@
+import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
@@ -85,3 +88,21 @@ releasePullRequest.it("merging a release leaves no pending plan and closes a sta
 	const received = yield* readGitHub();
 	expect(received.open).toBe(false);
 });
+
+for (const [body, status, tag] of [
+	[{ message: "unavailable" }, HttpStatus.fromLiteral("ServiceUnavailable"), "RemoteHttpError"],
+	[{ data: { repository: null } }, HttpStatus.fromLiteral("OK"), "SchemaError"],
+] as const) {
+	releasePullRequest.it(
+		`keeps ${tag} visible instead of treating an unreadable snapshot as an empty release`,
+		[],
+		function* ({ replyToSnapshot, failedRun, readGitHub }) {
+			yield* replyToSnapshot(body, status);
+			const failure = yield* failedRun();
+			yield* outcomes({
+				"pull request writes": [readGitHub().pipe(Effect.map(({ requests }) => requests)), []],
+				"release failure": [Effect.succeed(failure), tag],
+			});
+		},
+	);
+}

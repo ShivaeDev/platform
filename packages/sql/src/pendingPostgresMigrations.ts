@@ -1,30 +1,35 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import type { PostgresMigrationOptions } from "./migrations.ts";
 import { postgresRelease } from "./postgresRelease.ts";
-import { runSchemaComponent } from "./SchemaComponent.ts";
+import { runSchemaComponent, type SchemaComponent } from "./SchemaComponent.ts";
 
 export interface PendingPostgresMigrations {
 	readonly components: readonly { readonly name: string; readonly detail: string }[];
 	readonly migrations: readonly { readonly id: number; readonly name: string }[];
 }
 
-export const pendingPostgresMigrations = Effect.fn("EffectSql.pendingPostgresMigrations")(function* <R>({
+export const pendingPostgresMigrations = Effect.fn("EffectSql.pendingPostgresMigrations")(function* <R, E = never>({
 	loader,
 	components = [],
 	table = "effect_sql_migrations",
 	release,
-}: Pick<PostgresMigrationOptions<R>, "loader" | "table" | "components" | "release">) {
+}: Pick<PostgresMigrationOptions<R, E>, "loader" | "table" | "components" | "release">) {
 	const expected = yield* loader;
 	const migrations: { id: number; name: string }[] = [];
 	if (expected.length > 0) {
 		const sql = yield* SqlClient.SqlClient;
 		const identifier = sql`${sql(table)}`.compile()[0];
-		const [ledger] = yield* sql<{ name: string | null }>`select to_regclass(${identifier})::text as name`.withoutTransform;
+		const [ledger] = yield* sql`select to_regclass(${identifier})::text as name`.withoutTransform.pipe(
+			Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) })))),
+		);
 		const applied =
 			ledger === undefined || ledger.name === null
 				? []
-				: yield* sql<{ id: number; name: string }>`select migration_id as id, name from ${sql(table)}`.withoutTransform;
+				: yield* sql`select migration_id as id, name from ${sql(table)}`.withoutTransform.pipe(
+						Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ id: Schema.Int, name: Schema.String })))),
+					);
 		for (const [id, name] of expected) {
 			if (!applied.some((row) => row.id === id && row.name === name)) {
 				migrations.push({ id, name });
@@ -32,7 +37,11 @@ export const pendingPostgresMigrations = Effect.fn("EffectSql.pendingPostgresMig
 		}
 	}
 	const pendingComponents: { name: string; detail: string }[] = [];
-	for (const component of [...components, ...(release === undefined ? [] : [postgresRelease(release, table)])]) {
+	const schemaComponents: readonly SchemaComponent<R, E | SqlError | Schema.SchemaError>[] = [
+		...components,
+		...(release === undefined ? [] : [postgresRelease(release, table)]),
+	];
+	for (const component of schemaComponents) {
 		const detail = yield* runSchemaComponent(component.name, component.pending);
 		if (detail !== undefined) {
 			pendingComponents.push({ detail, name: component.name });

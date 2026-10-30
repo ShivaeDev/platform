@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export interface PackageLayout {
@@ -14,17 +15,6 @@ const SOURCE_FOLDER = "src";
 const RUNNABLE = /\.[cm]?[jt]sx?$/u;
 
 const BUILT = /^dist\/(?<entry>.+)\.[cm]?js$/u;
-
-function parsed(text: string | undefined): unknown {
-	if (text === undefined) {
-		return undefined;
-	}
-	try {
-		return JSON.parse(text);
-	} catch {
-		return undefined;
-	}
-}
 
 function field(value: unknown, key: string): unknown {
 	return typeof value === "object" && value !== null && key in value ? Reflect.get(value, key) : undefined;
@@ -57,7 +47,7 @@ export async function packageLayout({ files, readText }: Pick<RuleInputs, "files
 	const manifests = await Promise.all(
 		[...new Set(directories)].map(async (directory) => ({
 			directory: directory === "." ? "" : directory,
-			manifest: parsed(await readText(directory === "" ? MANIFEST : `${directory}/${MANIFEST}`)),
+			manifest: await readPackageManifest(readText, directory === "" ? MANIFEST : `${directory}/${MANIFEST}`),
 		})),
 	);
 	const present = manifests.filter((entry) => entry.manifest !== undefined);

@@ -1,31 +1,25 @@
 import { join } from "node:path";
-import { Console, Effect, Schema } from "effect";
+import { Console, Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { manifestReader } from "#adapters/manifestReader.ts";
 import { lint } from "#cli/lint.ts";
 import { loadConfig } from "#config/load.ts";
-import { decodeWith, validOrFail } from "#decoded.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
-import { readOptionalText } from "#inventory/filesystem.ts";
 
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";
 
-const Manifest = Schema.toStandardSchemaV1(
-	Schema.fromJsonString(
-		Schema.Struct({
-			packageManager: Schema.optionalKey(Schema.String),
-			scripts: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
-		}),
-	),
-);
-
 const commitScripts = Effect.fnUntraced(function* (root: string) {
 	const file = join(root, "package.json");
-	const text = yield* readOptionalText(file).pipe(Effect.mapError((error) => new SetupFailure({ message: error.message })));
-	if (text === undefined) {
+	const readText = yield* manifestReader(root);
+	const manifest = yield* Effect.tryPromise({
+		catch: (cause) => new SetupFailure({ cause, message: `${file} is invalid: ${cause instanceof Error ? cause.message : String(cause)}` }),
+		try: () => readPackageManifest(readText, file),
+	});
+	if (manifest === undefined) {
 		return { manager: "npm", scripts: [] };
 	}
-	const manifest = yield* validOrFail(file, yield* Effect.promise(() => decodeWith(Manifest, text)));
 	const manager = manifest.packageManager?.split("@")[0] ?? "npm";
 	if (!["npm", "pnpm", "yarn", "bun"].includes(manager)) {
 		return yield* new SetupFailure({ message: `${file}: unsupported packageManager "${manager}". Use npm, pnpm, yarn or bun.` });
@@ -42,7 +36,7 @@ const runScript = Effect.fnUntraced(
 		return Number(yield* child.exitCode);
 	},
 	Effect.scoped,
-	Effect.mapError((error) => new SetupFailure({ message: `cannot run a pre-commit script: ${error.message}` })),
+	Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot run a pre-commit script: ${error.message}` })),
 );
 
 export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: string, path: string | undefined) {

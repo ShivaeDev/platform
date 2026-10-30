@@ -8,17 +8,18 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as NetAddress from "effect/net/NetAddress";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { SessionUserSchema } from "#identity.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
-import { databaseUrl, postgres } from "./postgres.ts";
 
 type Person = "alice" | "bob";
 
-const SessionBody = Schema.NullOr(Schema.Struct({ user: Schema.Struct({ name: Schema.String }) }));
+const SessionBody = Schema.NullOr(Schema.Struct({ user: SessionUserSchema }));
 
 interface MintedAccount {
 	readonly headers: Headers;

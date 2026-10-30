@@ -67,18 +67,40 @@ export const sharedLists = storyKit({
 	},
 	name: "member screen",
 	stages: ["members"],
-	verbs: (engine, story) => ({
-		...engine.members.verbs(story.tell),
-		attachedRoots: () => [...engine.mounted.values()].filter(({ root }) => root.isConnected).map(({ name }) => name),
-		closeMembers: () => Scope.close(engine.scope, Exit.void),
-		readDraft: (name: string) => {
-			const member = engine.mounted.get(name);
-			if (!member) {
-				throw new Error(`No member ${name}`);
-			}
-			return member.registry.get(draft);
-		},
-	}),
+	verbs: (engine, story) => {
+		const members = engine.members.verbs(story.tell);
+		return {
+			...members,
+			addsItem: (name: string, title: string) =>
+				members
+					.as(name)
+					.enter("input", title)
+					.pipe(Effect.andThen(members.as(name).submit()), Effect.andThen(members.as(name).settle())),
+			attachedRoots: () => Effect.sync(() => [...engine.mounted.values()].filter(({ root }) => root.isConnected).map(({ name }) => name)),
+			closesMembers: () => Scope.close(engine.scope, Exit.void),
+			draft: (name: string) =>
+				Effect.sync(() => {
+					try {
+						return engine.mounted.get(name)?.registry.get(draft) ?? `no member ${name}`;
+					} catch (error) {
+						const message = error instanceof Error ? error.message : String(error);
+						return message.endsWith("registry is disposed") ? "its registry is disposed" : `unreadable: ${message}`;
+					}
+				}),
+			list: (name: string) => Effect.sync(() => members.as(name).text("output")),
+			refreshes: (name: string) =>
+				members
+					.as(name)
+					.click({ name: "Refresh", role: "button" })
+					.pipe(Effect.andThen(members.as(name).settle())),
+			signsOut: (name: string) =>
+				members
+					.as(name)
+					.click({ name: "Sign out", role: "button" })
+					.pipe(Effect.andThen(members.as(name).settle())),
+			typesDraft: (name: string, title: string) => members.as(name).enter("input", title),
+		};
+	},
 });
 
 export function signedInMembers(...names: readonly string[]) {

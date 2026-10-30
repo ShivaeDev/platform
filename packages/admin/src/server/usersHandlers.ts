@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { roleSet } from "@shivaedev/access/roleSet.ts";
+import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
 import { AssignRoles } from "#permissions.ts";
@@ -8,7 +8,7 @@ import type { usersPage } from "#users/page.ts";
 
 export function usersHandlers<const TRole extends string>(
 	page: ReturnType<typeof usersPage<TRole>>,
-	access: Pick<ReturnType<typeof roleSet<TRole>>, "Role" | "hasPermission">,
+	access: Pick<AccessPolicy<TRole>, "Role" | "hasPermission">,
 ) {
 	return page.contract.application.toLayer({
 		"admin.users.changeRole": (input) => changeUserRole(access, input),

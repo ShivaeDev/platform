@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import type { BoardSnapshot } from "#board/readPass.ts";
+import { warnSnapshotProblems } from "#board/warnSnapshotProblems.ts";
 import type { BoardFailure } from "#policy.ts";
 
 type Read = Effect.Effect<BoardSnapshot, BoardFailure>;
@@ -14,7 +15,12 @@ export const sharedRead = Effect.fnUntraced(function* (root: string, read: Read,
 		yield* Effect.exit(running).pipe(Effect.asVoid);
 		return yield* sharedRead(root, read);
 	}
-	const next = yield* Effect.cached(read.pipe(Effect.ensuring(Effect.sync(() => pending.delete(root)))));
+	const next = yield* Effect.cached(
+		read.pipe(
+			Effect.tap((snapshot) => warnSnapshotProblems(root, snapshot)),
+			Effect.ensuring(Effect.sync(() => pending.delete(root))),
+		),
+	);
 	const shared = pending.get(root) ?? next;
 	pending.set(root, shared);
 	return yield* shared;

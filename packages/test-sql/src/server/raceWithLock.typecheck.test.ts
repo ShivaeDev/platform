@@ -1,11 +1,18 @@
-import { type Cause, Context, Effect, type Result, Scope } from "effect";
+import { type Cause, Effect, type Result, Scope } from "effect";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { raceWithLock } from "#raceWithLock.ts";
 
-class Dependency extends Context.Service<Dependency, string>()("RaceDependency") {}
+const Dependency = defineService({
+	id: "RaceDependency",
+	initialize: Effect.void,
+	methods: () => ({}),
+	requires: [],
+});
+type Dependency = typeof Dependency.Identifier;
 
 const race = raceWithLock({
 	effects: [

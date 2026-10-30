@@ -1,10 +1,17 @@
 import { Schema } from "effect";
 import type { EventKind } from "#events.ts";
-export class WatchError extends Schema.TaggedError<WatchError>()("WatchError", {
+
+const WatchFailure = Schema.Struct({
 	message: Schema.String,
+	reason: Schema.Literals(["arguments", "response", "state", "cooldown", "outage", "output"]),
 	retryAt: Schema.optionalKey(Schema.Number),
-	retryable: Schema.optionalKey(Schema.Boolean),
-}) {}
+});
+export class WatchError extends Schema.TaggedError<WatchError>()("WatchError", WatchFailure) {
+	constructor(fields: typeof WatchFailure.Type, options?: ErrorOptions) {
+		super(fields);
+		Object.defineProperty(this, "cause", { value: options?.cause });
+	}
+}
 export const Snapshot = Schema.Struct({
 	autoMerge: Schema.Boolean,
 	branch: Schema.String,

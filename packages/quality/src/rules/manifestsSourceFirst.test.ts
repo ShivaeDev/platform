@@ -1,3 +1,4 @@
+import { Schema } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { quality } from "#test/cli.ts";
 import { git } from "#test/git.ts";
@@ -11,7 +12,7 @@ const TYPES_FIRST = '{ "types": "./dist/*.d.ts", "source": "./src/*.ts", "defaul
 
 function manifest(exports: string, imports = "{}"): string {
 	const text = `{ "name": "sample", "imports": ${imports}, "exports": ${exports} }`;
-	return `${JSON.stringify(JSON.parse(text), null, "\t")}\n`;
+	return `${JSON.stringify(Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(text), null, "\t")}\n`;
 }
 
 function repository(...files: readonly SeedFile[]): string {

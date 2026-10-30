@@ -1,10 +1,10 @@
 import { Effect, FileSystem } from "effect";
 import { BadRequest, Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Document } from "#browser/document/schema.ts";
+import { archivedReading, documentPath, readingFiles } from "#server/archive/reading.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import { briefDiagnostic } from "#server/document/briefDiagnostic.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
-import { markdownPath } from "#server/files/markdownPath.ts";
 import { areaDiagnostics } from "#server/metadata/areaDiagnostics.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
@@ -68,10 +68,11 @@ function referenceDetails(
 }
 
 export function readDocument({ changes, fleetPort, home, pullRequests = Effect.succeed(undefined), root, realRoot, writable }: WorkspaceSettings) {
-	return Effect.fn("WorkBoard.document")(function* (url: string, snapshot: Snapshot) {
-		const files = yield* changes.files;
+	return Effect.fn("WorkBoard.document")(function* (url: string, indexed: Snapshot) {
+		const snapshot = yield* archivedReading(indexed, url);
+		const files = readingFiles(yield* changes.files, snapshot);
 		const { file, item } = yield* selected(url, snapshot, files, home);
-		const real = yield* markdownPath(root, realRoot, file.path);
+		const real = yield* documentPath(root, realRoot, file.path, item);
 		if (!real) {
 			return yield* Effect.fail(new NotFound({ message: "The document is missing." }));
 		}

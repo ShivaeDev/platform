@@ -1,14 +1,15 @@
 import { relative } from "node:path";
-import { Console, Effect, type FileSystem } from "effect";
+import { Console, Effect } from "effect";
 import { evaluate, passes } from "#engine/evaluate.ts";
 import { openSession } from "#engine/session.ts";
 import { GateFailed, type SetupFailure } from "#failure.ts";
 import { render } from "#report/render.ts";
+import type { RuleServices } from "#rule.ts";
 
 export const lint = Effect.fn("Cli.lint")(function* (
 	cwd: string,
 	config: string | undefined,
-): Effect.fn.Return<void, SetupFailure | GateFailed, FileSystem.FileSystem> {
+): Effect.fn.Return<void, SetupFailure | GateFailed, RuleServices> {
 	const session = yield* openSession(cwd, config);
 	const outcome = evaluate(session.violations, session.registry, session.baseline.entries, session.config);
 	yield* Console.log(

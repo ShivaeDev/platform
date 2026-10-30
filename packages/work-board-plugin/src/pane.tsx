@@ -42,7 +42,7 @@ export function paneView(t: Table, view: PaneView): RenderElement {
 	const { asks, flights, goals } = view.board;
 
 	return (
-		<Box flexDirection="column" gap={1}>
+		<Box flexDirection="column" gap={2}>
 			{header}
 			{section(t, titled(t, "Needs you", asks), asks, "Nothing waits on you.", (items) => askRows(t, items, view))}
 			{section(t, flightHeading(t, flights) ?? titled(t, "In flight", flights), flights, "Nothing in flight.", (items) =>

@@ -5,22 +5,27 @@ import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { authOptions } from "#server/authOptions.ts";
-import { type RunningHost, secret } from "./host.ts";
+import { secret } from "./host.ts";
 
-export const sessionPrecondition = Effect.fn("AppStory.sessionPrecondition")(function* (host: Pick<RunningHost, "origin">) {
+interface SessionHost {
+	readonly origin: string;
+	readonly secureCookies?: boolean;
+}
+
+export const sessionPrecondition = Effect.fn("AppStory.sessionPrecondition")(function* (host: SessionHost) {
 	const database = yield* PostgresTestDatabase;
 	const pool = yield* authDatabase(database.url);
 	const options = authOptions(pool);
 	return betterAuth({
 		...options,
-		advanced: { ...options.advanced, useSecureCookies: host.origin.startsWith("https:") },
+		advanced: { ...options.advanced, useSecureCookies: host.secureCookies ?? host.origin.startsWith("https:") },
 		"baseURL": host.origin,
 		plugins: [...options.plugins, testUtils()],
 		secret: Redacted.value(secret),
 	});
 });
 
-export const mintUser = Effect.fn("AppStory.mintUser")(function* (host: Pick<RunningHost, "origin">, name: string, role?: string) {
+export const mintUser = Effect.fn("AppStory.mintUser")(function* (host: SessionHost, name: string, role?: string) {
 	const auth = yield* sessionPrecondition(host);
 	return yield* Effect.promise(() => signedInUser(auth, { email: `${name}@app.test`, name, ...(role === undefined ? {} : { role }) }));
 });

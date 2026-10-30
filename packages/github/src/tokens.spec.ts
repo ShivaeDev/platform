@@ -54,3 +54,53 @@ github.it("a read GitHub answers 401 for the configured token is not retried", [
 
 	expect(yield* requests()).toEqual(["GET /repos/acme/widgets/pulls/1 401"]);
 });
+
+for (const [variables, credential] of [
+	[{}, "gh credential"],
+	[{ "GH_TOKEN": "gh-token-value", "GITHUB_TOKEN": "github-token-value" }, "GH_TOKEN"],
+	[{ "GITHUB_TOKEN": "github-token-value" }, "GITHUB_TOKEN"],
+] as const) {
+	github.it(`the CLI token provider sends ${credential} to GitHub`, [], function* ({ credentialsSent, readWithCliToken }) {
+		yield* readWithCliToken("cli-token", variables);
+
+		expect(yield* credentialsSent()).toEqual([credential]);
+	});
+}
+
+github.it(
+	"a signed-out gh fails authentication with its cause hidden from serialization",
+	[],
+	function* ({ failureCauseStorage, readWithCliToken, requests }) {
+		const result = yield* readWithCliToken(undefined);
+
+		expect(result).toBe("authentication refused failed");
+		yield* outcomes({
+			"cause storage": [failureCauseStorage(), [{ enumerable: false, failure: "GitHubTokenError", hasCause: true }]],
+			"requests": [requests(), []],
+		});
+	},
+);
+
+github.it(
+	"an unavailable gh fails authentication with a command failure and its cause hidden from serialization",
+	[],
+	function* ({ failureCauseStorage, readWithMissingGh, requests }) {
+		const result = yield* readWithMissingGh();
+
+		expect(result).toBe("authentication command failed");
+		yield* outcomes({
+			"cause storage": [failureCauseStorage(), [{ enumerable: false, failure: "GitHubTokenError", hasCause: true }]],
+			"requests": [requests(), []],
+		});
+	},
+);
+
+github.it(
+	"a dropped connection retains its transport cause without serializing it",
+	[connectionDrops],
+	function* ({ failureCauseStorage, readPull }) {
+		yield* readPull();
+
+		expect(yield* failureCauseStorage()).toEqual([{ enumerable: false, failure: "GitHubTransportError", hasCause: true }]);
+	},
+);

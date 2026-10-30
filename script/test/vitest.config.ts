@@ -1,6 +1,6 @@
 import { fileURLToPath, pathToFileURL } from "node:url";
 import type { TestProjectConfiguration } from "vitest/config";
-import type { testProjects } from "@shivaedev/quality/testProjects.ts";
+import type { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
 import { TestSequencer } from "#ci/TestSequencer.ts";
 import { testPackages } from "#ci/testPackages.ts";
 

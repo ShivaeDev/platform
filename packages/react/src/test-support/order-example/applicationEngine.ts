@@ -1,72 +1,39 @@
 import { NodeHttpClient } from "@effect/platform-node";
-import { Context, Deferred, Effect, Layer } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
+import { Context, Deferred, Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SqlClient } from "effect/sql";
-import { makeClient } from "@shivaedev/contract/bind.ts";
-import { type Order, Orders } from "./contract.ts";
-import { listenServer } from "./listenServer.ts";
-import { StoryDatabase } from "./postgres.ts";
-import { orderWebHandler } from "./runtime.ts";
-import { makeOrdersRepository, OrderService, OrdersRepository } from "./service.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import type { ScreenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import type { Order } from "./contract.ts";
+import { makeClient } from "./makeClient.ts";
+import { signedInSessions, startHost } from "./startHost.ts";
 
 function client(url: string, token?: string) {
-	return makeClient(Orders, {
-		live: false,
-		protocol: RpcClient.layerProtocolHttp({
-			transformClient: (http) =>
-				token === undefined ? http : HttpClient.mapRequest(http, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
-			url,
-		}).pipe(Layer.provide([NodeHttpClient.layerNodeHttp, RpcSerialization.layerJson])),
-		url,
-	}).client;
+	return makeClient({ httpClient: NodeHttpClient.layerNodeHttp, token, url }).client;
 }
 
 export interface Screen {
-	readonly close: () => Promise<void>;
 	readonly container: HTMLElement;
+	readonly driver: ScreenDriver;
 }
 
 export const createApplication = Effect.gen(function* () {
-	const database = yield* StoryDatabase;
-	const databaseSetup = {
-		migrations: yield* database.observer`select migration_id from effect_sql_migrations`,
-		orders: yield* database.observer`select id from orders`,
-	};
-	const reactivity = Context.get(yield* Layer.build(Reactivity.layer), Reactivity.Reactivity);
+	const database = yield* PostgresTestDatabase;
+	const sql = yield* SqlClient.SqlClient;
+	const sessions = signedInSessions();
+	const saves = { entered: yield* Deferred.make<void>(), held: false, released: yield* Deferred.make<void>() };
+	const gets = new Map<number, number>();
+	const server = yield* startHost(database.url, sessions, {
+		beforeGet: (id) =>
+			Effect.sync(() => {
+				gets.set(id, (gets.get(id) ?? 0) + 1);
+			}),
+		beforeSave: () => (saves.held ? Deferred.succeed(saves.entered, undefined).pipe(Effect.andThen(Deferred.await(saves.released))) : Effect.void),
+	});
+	const reactivity = Context.get(server.context, Reactivity.Reactivity);
 	const changes: unknown[] = [];
 	const unregister = reactivity.registerUnsafe(["orders"], () => changes.push("orders"));
 	yield* Effect.addFinalizer(() => Effect.sync(unregister));
-	const serviceLayer = OrderService.layer.pipe(
-		Layer.provide(Layer.effect(OrdersRepository, makeOrdersRepository)),
-		Layer.provide(Layer.succeed(SqlClient.SqlClient, database.sql)),
-		Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity)),
-	);
-	const service = Context.get(yield* Layer.build(serviceLayer), OrderService);
-	const sessions = new Map([
-		["alice-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" }],
-		["bob-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
-		["expired-session", { expiresAt: 0, userId: "alice" }],
-	]);
-	const saves = { entered: yield* Deferred.make<void>(), held: false, released: yield* Deferred.make<void>() };
-	const gets = new Map<number, number>();
-	const server = yield* Effect.acquireRelease(
-		Effect.promise(() =>
-			listenServer(
-				orderWebHandler(Layer.succeed(OrderService, service), {
-					beforeGet: (id) =>
-						Effect.sync(() => {
-							gets.set(id, (gets.get(id) ?? 0) + 1);
-						}),
-					beforeSave: () =>
-						saves.held ? Deferred.succeed(saves.entered, undefined).pipe(Effect.andThen(Deferred.await(saves.released))) : Effect.void,
-					sessions,
-				}),
-			),
-		),
-		(listener) => Effect.promise(listener.close),
-	);
 	yield* Effect.addFinalizer(() => Deferred.succeed(saves.released, undefined));
 	const alice = yield* client(server.url, "alice-session");
 	const bob = yield* client(server.url, "bob-session");
@@ -75,14 +42,12 @@ export const createApplication = Effect.gen(function* () {
 		bob,
 		changes,
 		connect: (token?: string) => client(server.url, token),
-		database,
-		databaseSetup,
 		gets,
 		orders: new Map<string, Order>(),
 		saves,
 		screens: new Map<string, Screen>(),
-		service,
 		sessions,
+		sql,
 		url: server.url,
 	};
 });

@@ -12,7 +12,7 @@ const outsideTransaction = Effect.fnUntraced(function* (sql: SqlClient.SqlClient
 	}
 });
 
-export const migrationSteps = Effect.fn("PostgresTest.migrationSteps")(function* <R>(migrations: PostgresMigrationOptions<R>) {
+export const migrationSteps = Effect.fn("PostgresTest.migrationSteps")(function* <R, E = never>(migrations: PostgresMigrationOptions<R, E>) {
 	const sql = yield* SqlClient.SqlClient;
 	const context = yield* Effect.context<R | SqlClient.SqlClient>();
 	yield* sql.onDialectOrElse({ orElse: () => invalid("Migration steps require PostgreSQL."), pg: () => Effect.void });

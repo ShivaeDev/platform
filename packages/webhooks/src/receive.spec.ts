@@ -4,17 +4,18 @@ import type { Delivery } from "#test/requests.ts";
 import { auditEnqueueFails, delivered, firstReceiptUpdateFails, inbox } from "#test/story.ts";
 
 const issue42Jobs = ["webhook-audit for issue 42", "webhook-issue for issue 42"];
-const queuedReceipt = { delivery: "delivery-1", event: "issues", jobs: issue42Jobs, outcome: "queued", source: "github" };
+const queuedReceipt = { delivery: "delivery-1", event: "issues", jobs: issue42Jobs, outcome: "queued" as const, source: "github" };
 
 inbox.it(
 	"the signed issue 42 delivery is answered queued, stores a queued receipt naming its jobs and hands issue 42 to both workers",
 	[],
-	function* ({ answer, deliver, handledJobs, storedReceipts }) {
+	function* ({ answer, deliver, handledJobs, spanNames, storedReceipts }) {
 		yield* deliver("the signed issue 42 delivery");
 
 		yield* outcomes({
 			"answer": [answer(), "202 Accepted: queued"],
 			"handled jobs": [handledJobs(), issue42Jobs],
+			"spans recorded": [spanNames(), expect.arrayContaining(["POST", "Webhooks.receive"])],
 			"stored receipts": [storedReceipts(), [queuedReceipt]],
 		});
 	},

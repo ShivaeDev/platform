@@ -1,12 +1,16 @@
-import { Effect } from "effect";
+import { Effect, Result, Schema, SchemaIssue } from "effect";
 import { SetupFailure } from "./failure.ts";
-import { describeIssue, type StandardSchemaV1 } from "./standardSchema.ts";
+import { describeIssue } from "./standardSchema.ts";
 
 export type Decoded<TValue> = { readonly _tag: "Valid"; readonly value: TValue } | { readonly _tag: "Invalid"; readonly issues: readonly string[] };
 
-export async function decodeWith<TOutput>(schema: StandardSchemaV1<unknown, TOutput>, value: unknown): Promise<Decoded<TOutput>> {
-	const result = await schema["~standard"].validate(value);
-	return result.issues === undefined ? { _tag: "Valid", value: result.value } : { _tag: "Invalid", issues: result.issues.map(describeIssue) };
+export function decodeWith<TSchema extends Schema.ConstraintDecoder<unknown>>(schema: TSchema, value: unknown): Promise<Decoded<TSchema["Type"]>> {
+	const result = Schema.decodeUnknownResult(schema, { errors: "all", onExcessProperty: "error" })(value);
+	return Promise.resolve(
+		Result.isSuccess(result)
+			? { _tag: "Valid", value: result.success }
+			: { _tag: "Invalid", issues: SchemaIssue.makeFormatterStandardSchemaV1()(result.failure.issue).issues.map(describeIssue) },
+	);
 }
 
 export function validOrFail<TValue>(file: string, decoded: Decoded<TValue>): Effect.Effect<TValue, SetupFailure> {

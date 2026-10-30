@@ -1,10 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { Effect, Schema } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
-import { removeSeededTrees, seedTree } from "#test/tree.ts";
+import { run as execute } from "#test/run.ts";
+import { linkPackage, removeSeededTrees, seedTree } from "#test/tree.ts";
 import { exceptionConfig, withExceptionConfig } from "./exceptionConfig.ts";
 
 afterEach(removeSeededTrees);
+
+const IncludedFiles = Schema.fromJsonString(Schema.Struct({ files: Schema.Struct({ includes: Schema.Array(Schema.String) }) }));
 
 const REASON = "The external format requires it.";
 
@@ -37,17 +41,20 @@ describe("Biome exception config", () => {
 			] as const;
 			expect(exceptionConfig(declarations).includes).toEqual(["**", "!**/generated", "!**/fixtures"]);
 			const root = seedTree([{ content: JSON.stringify({ files: { includes: previous } }), path: "biome.json" }]);
-			await withExceptionConfig(root, declarations, (args) => {
-				const path = args[0]?.slice("--config-path=".length) ?? "";
-				expect(JSON.parse(readFileSync(path, "utf8")).files.includes).toEqual([
-					...(previous ?? ["**"]),
-					"!**/generated",
-					"!**/fixtures",
-					"!.worktrees",
-					`!${path.slice(root.length + 1)}`,
-				]);
-				return Promise.resolve();
-			});
+			await execute(
+				withExceptionConfig(root, declarations, (args) =>
+					Effect.sync(() => {
+						const path = args[0]?.slice("--config-path=".length) ?? "";
+						expect(Schema.decodeUnknownSync(IncludedFiles)(readFileSync(path, "utf8")).files.includes).toEqual([
+							...(previous ?? ["**"]),
+							"!**/generated",
+							"!**/fixtures",
+							"!.worktrees",
+							"!.quality-biome-*",
+						]);
+					}),
+				),
+			);
 		},
 	);
 
@@ -56,8 +63,10 @@ describe("Biome exception config", () => {
 		async (native) => {
 			const root = seedTree([{ content: JSON.stringify(native), path: "biome.json" }]);
 			await expect(
-				withExceptionConfig(root, [{ files: ["src/parse.ts"], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny"] }], () =>
-					Promise.reject(new Error("must not run")),
+				execute(
+					withExceptionConfig(root, [{ files: ["src/parse.ts"], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny"] }], () =>
+						Effect.die(new Error("must not run")),
+					),
 				),
 			).rejects.toThrow("Cannot merge exceptions into invalid biome.json");
 			expect(readdirSync(root)).toEqual(["biome.json"]);
@@ -73,27 +82,34 @@ describe("Biome exception config", () => {
 		};
 		const text = `// Repository config\n${JSON.stringify(native)}\n`;
 		const root = seedTree([{ content: text, path: "biome.jsonc" }]);
+		linkPackage(root);
 		let generated = "";
-		const run = withExceptionConfig(root, [{ files: ["src/parse.ts"], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny"] }], (args) => {
-			generated = args[0]?.slice("--config-path=".length) ?? "";
-			expect(generated).toContain(root);
-			expect(JSON.parse(readFileSync(generated, "utf8"))).toMatchObject({
-				...native,
-				files: { includes: expect.arrayContaining(["**"]) },
-				overrides: expect.arrayContaining(native.overrides),
-			});
-			expect(readFileSync(join(root, "biome.jsonc"), "utf8")).toBe(text);
-			if (fail) {
-				return Promise.reject(new Error("stopped"));
-			}
-			return Promise.resolve("done");
-		});
+		const run = execute(
+			withExceptionConfig(root, [{ files: ["src/parse.ts"], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny"] }], (args) =>
+				Effect.gen(function* () {
+					generated = args[0]?.slice("--config-path=".length) ?? "";
+					expect(generated).toContain(`${root}/.quality-biome-`);
+					expect(Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(readFileSync(generated, "utf8"))).toMatchObject({
+						...native,
+						extends: [expect.stringContaining("quality-biome-")],
+						files: { includes: expect.arrayContaining(["**"]) },
+						overrides: expect.arrayContaining([{ formatter: { lineWidth: 100 }, includes: ["src/other.ts"] }]),
+						plugins: [join(root, "imports.grit")],
+					});
+					expect(readFileSync(join(root, "biome.jsonc"), "utf8")).toBe(text);
+					if (fail) {
+						return yield* Effect.die(new Error("stopped"));
+					}
+					return "done";
+				}),
+			),
+		);
 		if (fail) {
 			await expect(run).rejects.toThrow("stopped");
 		} else {
 			await expect(run).resolves.toBe("done");
 		}
 		expect(existsSync(generated)).toBe(false);
-		expect(readdirSync(root)).toEqual(["biome.jsonc"]);
+		expect(readdirSync(root)).toEqual(["biome.jsonc", "node_modules"]);
 	});
 });

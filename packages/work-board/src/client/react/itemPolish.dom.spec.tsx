@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/react/client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { itemPolishFixture } from "#test/itemPolishFixture.ts";
 import { QueryDocument } from "#test/QueryDocument.tsx";
 import { screenStory } from "#test/screenStory.ts";

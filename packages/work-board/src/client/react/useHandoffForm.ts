@@ -26,7 +26,7 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 		revision: "",
 		source: source.source,
 	}));
-	const draft = formDraft("handoff", source.item);
+	const draft = formDraft(client.now, "handoff", source.item);
 	const created = useCreate({
 		create: client.handoffs.prepareHandoff.run,
 		fields: HandoffInput,

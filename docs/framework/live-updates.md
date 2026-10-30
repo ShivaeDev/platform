@@ -69,11 +69,33 @@ const Mine = query("mine", {
 });
 ```
 
-A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Mark bucket fields on the stored model with `bucket` from `@shivaedev/changes/buckets.ts`, for example `userId: bucket(Schema.String)`. Repository writes derive the record and affected old and new bucket keys inside the write's transaction. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. It reruns whenever any row in that bucket changes, including a row excluded by the filter. See [commit-bound changes](./changes.md) for the automatic write path and raw SQL limits.
+A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Mark bucket fields on the stored model with `bucket` from `@shivaedev/changes/buckets.ts`, for example `userId: bucket(Schema.String)`. Repository writes derive the record and affected old and new bucket keys inside the write's transaction. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. A matching bucket change triggers the query’s configured live behavior, including when the changed row is excluded by the filter. See [commit-bound changes](./changes.md) for the automatic write path and raw SQL limits.
 
 The same query policy guards running the query and subscribing to it. A subscription names query references, never arbitrary record or bucket keys. The entire subscription is refused with `QueryReadDenied` if any referenced query is denied. Without `readPolicy`, a query has no authorized live subscription: `MissingReadPolicy` tells its author to declare one. Ordinary non-live reads remain available. Reads outside a declared query acquire no automatic subscription.
 
-The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering a hint, the stream rechecks the owning query's policy without memoization. A denied session or policy recheck ends that subscription with `QueryReadDenied`; it never silently drops the hint. Automatic bound queries then rerun their authorized read, exposing its denial in the query result. Render that failure before retained data. Further changes cannot reach the ended subscription. A client refresh runs the same authorized query that produced its first value; hints carry no row values.
+The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering a hint, the stream rechecks the owning query's policy without memoization. A denied session or policy recheck ends that subscription with `QueryReadDenied`; it never silently drops the hint. Automatic bound queries expose that denial in the query result; hinted queries rerun their authorized read to do so. Render that failure before retained data. Further changes cannot reach the ended subscription. The default hint-and-refetch path runs the same authorized query that produced its first value; hints carry no row values.
+
+## Rerun-and-compare queries
+
+Set `live: "rerun-and-compare"` on a query to receive results only when its encoded value changes:
+
+```ts
+const Mine = query("mine", {
+	live: "rerun-and-compare",
+	payload: { title: Schema.String },
+	success: Schema.Array(Schema.String),
+	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
+});
+```
+
+The host registers the subscription before running its initial authorized read as the subscribed viewer. On each matching change or Resync, it runs that same query handler through `authorizeReads`, encodes the value with the query’s JSON codec, and compares its SHA-256 hash with the last result sent on that subscription. An unchanged result sends no hint, key, hash or result for that query. A filtered-out change therefore reveals nothing through that query’s deliveries. Queries sharing a subscription retain their own delivery behavior.
+
+The contract’s `$changes` schema includes typed `Result` messages for opted-in queries, naming the query and its index in the requested references. `bind` and `makeClient` place those decoded results in the bound query without a client refetch. The initial value also comes from the subscription. Refresh, resume and unpause reopen the subscription to read current values. A denied policy check ends the stream with `QueryReadDenied`; declared query failures remain typed stream failures. Queries without this option keep hints and ordinary client refetches.
+
+A custom host calls `makeLiveServer.subscribe(subscription, keyContext, authorizedRunner)` and supplies Effect’s `Crypto` service. The runner executes the referenced query through its authorized read with the captured request identity. Missing a runner for an opted-in query fails the stream. Platform’s application host supplies both automatically.
+
+Comparison suppresses deliveries, not server reads: each matching change still incurs a policy check, query execution, encoding and hashing per subscribed query. Use deterministic read ordering when order is part of the result. Hashes belong to one connection; reconnects send a fresh initial result. The existing queue bound and reconciliation behavior apply, and this option adds no replay or durable delivery guarantee.
 
 ## Command declarations
 
@@ -97,7 +119,32 @@ Set `paused` through the registry. The stream keeps consuming hints while automa
 
 `@shivaedev/react/resumeSignal.ts` delegates to the shared implementation.
 
-An ended or failed stream enters `reconnecting` and retries after one second by default. `retryDelay` lets the consumer choose a positive native Duration for its deployment. Typed stream failures remain in `status.failure`; first successful delivery clears them. The runtime's initialization failure remains in the `connection` atom's native AsyncResult. Read failures remain in each query's AsyncResult, which retains its previous success. Connection state and query freshness are separate: `needsResync: false` means invalidation was issued, not that every query completed or the source is accepted.
+An ended or failed stream enters `reconnecting` and retries with a random delay between 80% and 120% of one second by default. `retryDelay` sets the base delay using a positive native Duration; each retry draws fresh jitter. The default shared WebSocket transport also jitters its exponential reconnect backoff, starting at a 500 ms base, growing by 1.5 and capping the base at 5 seconds. Its actual delays range from 80% to 120% of that base. After a host restart, each new subscription reconciles its mounted query through the normal authorized read. Jitter spreads recovery work but does not impose a server-wide request rate limit. Custom transports own their connection retry policy.
+
+Typed stream failures remain in `status.failure`; first successful delivery clears them. The runtime's initialization failure remains in the `connection` atom's native AsyncResult. Read failures remain in each query's AsyncResult, which retains its previous success. Connection state and query freshness are separate: `needsResync: false` means invalidation was issued, not that every query completed or the source is accepted.
+
+## PostgreSQL listener connections
+
+LISTEN requires a direct or session-mode PostgreSQL connection. If `DATABASE_URL` uses a transaction pooler, set `LISTEN_DATABASE_URL` to a direct connection to the same database, or supply `config.listenDatabaseUrl` as an Effect `Redacted<string>` to `appHost` or `appDatabase`. The config value takes precedence over the environment. Without either setting, the listener uses the application pool and URL. Writes, migrations and heartbeat publication stay on the application pool; a separate listener reserves one additional connection.
+
+Before host startup completes, the listener must receive its own heartbeat within `config.changes.heartbeatTimeout` (10 seconds by default). A timeout fails startup with `PostgresListenerError`, naming the selected setting and requiring a direct or session-mode connection. SQL errors remain typed SQL failures. After successful startup, a lost listener still reconnects and resynchronizes live streams; a permanently broken connection after startup can therefore continue to cause repeated Resyncs until its configuration is corrected.
+
+## Session revalidation and write budget
+
+A hosted WebSocket owns one session revalidation timer, shared by all its authenticated streams. Session rechecks using the same provider join a batch on the next event-loop turn and share its in-flight lookup. Once it finishes, the next batch performs a fresh lookup; there is no session TTL cache. Origin admission, role resolution and each subscription's read policy still run independently. Different sockets and different session providers do not share session results.
+
+Each interval checks every registered stream through that shared lookup. An expired or replaced session ends every affected stream with `Unauthorized`; an unavailable session provider leaves them open until a later check. A hint-time session denial ends its subscription with `QueryReadDenied`. Ordinary query reads authenticate independently and keep their typed result and authorization path. Custom RPC hosts can provide `SocketSession` from `makeSocketSession(interval)` in the connection's scope; without that service, identity middleware keeps its per-stream timer. Closing a stream removes its check, and closing the socket releases the timer.
+
+The subscriber fan-out budget for one committed write is at most S hint-time session lookups plus N authenticated read lookups, 3N read-policy checks, and N query reruns, where S sockets each watch N/S queries in one shared bucket. The hosted read currently checks the policy in both identity middleware and the host guard, in addition to the hint-time check. Policy checks and query SQL therefore still grow with query count. Separate hint batches, concurrent writes, reconnects and slow readers can add work; this is a single-write fan-out budget, not a process-wide rate limit.
+
+A loopback measurement against real PostgreSQL, with 12 signed-in viewers, one socket per viewer, native RPC query subscriptions and an authorized typed read after each hint, records:
+
+| Queries per socket | Total queries | Per-stream session lookups (comparison) | Shared session lookups | Read-policy checks | Query reruns |
+| ------------------ | ------------- | --------------------------------------- | ---------------------- | ------------------ | ------------ |
+| 1                  | 12            | 24                                      | 24                     | 36                 | 12           |
+| 8                  | 96            | 192                                     | 108                    | 288                | 96           |
+
+The write uses the repository's model-derived bucket keys and no command invalidations. Counts exclude initial connection/subscription reads and the command's own authorization and write SQL, and include the complete subscriber fan-out. These counts measure the host and identity composition, not browser rendering, provider-specific session SQL, deployment latency or a host restart. Run the PostgreSQL load story with `PLATFORM_SQL_TEST_DATABASE_URL` set: `pnpm --filter @shivaedev/server test src/liveCost.spec.ts`. It asserts delivery and the shared-session budget at both query counts. The shared idle-session story also asserts one lookup for four stream middleware variants at one interval and revocation of all four at the next interval.
 
 ## Limits
 

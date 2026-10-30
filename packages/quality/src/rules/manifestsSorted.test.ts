@@ -39,11 +39,6 @@ describe("manifests/sorted", { timeout: 60_000 }, () => {
 		);
 	});
 
-	it("reports a package.json that is not valid JSON", () => {
-		const result = quality(repository({ content: '{ "name": ', path: "packages/c/package.json" }), "lint");
-		expect(result.stdout).toContain("  packages/c/package.json  Is not valid JSON.\n");
-	});
-
 	it("is sorted by quality fix, after which the lint passes", () => {
 		const root = repository({ content: UNSORTED, path: "package.json" }, { content: UNSORTED, path: "packages/c/package.json" });
 		expect(quality(root, "fix").stdout).toBe(

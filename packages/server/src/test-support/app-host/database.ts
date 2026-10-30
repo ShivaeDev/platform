@@ -1,8 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { appDatabase, appHost } from "#appHost.ts";
-import { databaseProxy } from "./databaseProxy.ts";
 import { Api, feature, handlers, sessions } from "./fixture.ts";
 import { Ping } from "./ping.ts";
 import { host } from "./story.ts";
@@ -67,9 +67,8 @@ export const failedMigration = host.trait("configured", "a failed migration prev
 export function databaseHealth(source: "migrations" | "services") {
 	return host.trait("configured", `health uses PostgreSQL from ${source}`, function* (state) {
 		const destination = yield* Config.String("PLATFORM_SQL_TEST_DATABASE_URL");
-		const proxy = yield* Effect.promise(() => databaseProxy(destination));
+		const proxy = yield* disconnectProxy(destination);
 		state.proxy = proxy;
-		state.cleanup.push(proxy.close);
 		const config = { ...state.config, databaseUrl: Redacted.make(proxy.url) };
 		const migrations = { loader: Migrator.fromRecord({}) };
 		function build() {

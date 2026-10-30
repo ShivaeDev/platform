@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
@@ -9,23 +9,23 @@ import { boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 import { until } from "#test/cloudRestart.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { questionPublicationVerbs } from "#test/questionPublicationVerbs.ts";
+import { storedBoardPath, storedBoardResponses, storedBoardSource } from "#test/storedBoard.ts";
 
 export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
 		awaitBoardResponse: (ready: (source: string) => boolean) => {
 			tell("wait for a closing Board response");
-			const directory = join(engine.fixture.host.boardDir, "responses");
 			function read() {
-				return (existsSync(directory) ? readdirSync(directory) : [])
+				return storedBoardResponses(engine.fixture.host.boardDir)
 					.filter((file) => file.startsWith("response."))
-					.map((file) => readFileSync(join(directory, file), "utf8"))
+					.map((file) => storedBoardSource(engine.fixture.host.boardDir, `responses/${file}`))
 					.find(ready);
 			}
 			return until(() => Effect.sync(() => read() !== undefined)).pipe(Effect.map(read));
 		},
 		awaitBoardSource: (file: string, ready: (source: string) => boolean) => {
 			tell(`wait for the generated Board source ${file}`);
-			const path = join(engine.fixture.host.boardDir, file);
+			const path = storedBoardPath(engine.fixture.host.boardDir, file);
 			return until(() => Effect.sync(() => existsSync(path) && ready(readFileSync(path, "utf8")))).pipe(Effect.map(() => readFileSync(path, "utf8")));
 		},
 		publishBoardDecision: (workId: string, decision: Decision) => {
@@ -47,7 +47,7 @@ export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => 
 		},
 		question: (board: Effect.Success<ReturnType<typeof boardHttp>>, item: string, request: string) =>
 			Effect.tryPromise(() => board.client.run(board.client.responses.question.run({ item, request }))),
-		readBoard: (file: string) => readFileSync(join(engine.fixture.host.boardDir, file), "utf8"),
+		readBoard: (file: string) => storedBoardSource(engine.fixture.host.boardDir, file),
 		receiptFiles: () => boardHttpFiles(engine.fixture.host.boardDir).receipts(),
 		recordAnswer: (decision: Decision, action: "retry" | "release", text: string) => {
 			if (decision.published === undefined) {
@@ -63,7 +63,7 @@ export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			Effect.tryPromise(() =>
 				fetch(`${board.url}/_board/respond?item=${encodeURIComponent(item)}&request=${encodeURIComponent(request)}`, { redirect: "manual" }),
 			),
-		responseFiles: () => readdirSync(join(engine.fixture.host.boardDir, "responses")).filter((file) => file.startsWith("response.")),
+		responseFiles: () => storedBoardResponses(engine.fixture.host.boardDir).filter((file) => file.startsWith("response.")),
 		writeBoard: (file: string, source: string) => {
 			tell(`write Board source ${file}`);
 			engine.fixture.write(file, source);

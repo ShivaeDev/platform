@@ -33,7 +33,7 @@ export function runtimeRoutes(state: HostState) {
 		HttpRouter.add(
 			"GET",
 			"/runtime/development",
-			Effect.promise(async () => HttpServerResponse.text(String(await sharedDevelopmentRuntime(state)))),
+			Effect.promise(async () => HttpServerResponse.text(await sharedDevelopmentRuntime(state))),
 		),
 	);
 }

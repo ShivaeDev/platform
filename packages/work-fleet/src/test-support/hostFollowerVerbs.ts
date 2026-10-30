@@ -14,6 +14,7 @@ export function hostFollowerVerbs(engine: HostStoryEngine, tell: (line: string) 
 	return {
 		awaitOutput: (name: string, text: string) => untilOutput(follower(name), text),
 		awaitSnapshot: () => Effect.promise(() => engine.subscribed).pipe(Effect.timeout("5 seconds")),
+		awaitSnapshotAfter: (count: number) => Effect.promise(() => engine.observations.nextSnapshot(count)).pipe(Effect.timeout("5 seconds")),
 		follow: (name: string, command: "wait" | "watch", workIds: readonly string[], options: FollowOptions = {}) =>
 			Effect.gen(function* () {
 				if (engine.followers.has(name)) {
@@ -26,6 +27,7 @@ export function hostFollowerVerbs(engine: HostStoryEngine, tell: (line: string) 
 		followerExit: (name: string) => Effect.promise(() => follower(name).done).pipe(Effect.timeout("10 seconds")),
 		followerOutput: (name: string) => follower(name).output(),
 		followerRunning: (name: string) => follower(name).isRunning(),
+		snapshotCount: () => engine.observations.snapshotCount(),
 		snapshots: () => [...engine.snapshots],
 		subscribe: (workIds: readonly string[]) =>
 			Effect.gen(function* () {

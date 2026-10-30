@@ -11,8 +11,12 @@ export function refusal(error: unknown, jobName: (id: string) => string = (id) =
 	switch (error._tag) {
 		case "Unauthorized":
 			return "unauthorized";
+		case "QueryReadDenied":
+			return "read denied";
 		case "Forbidden":
 			return "forbidden";
+		case "BadRequest":
+			return "bad input";
 		case "NotFound":
 			return "not found";
 		case "LastRoleAssigner":

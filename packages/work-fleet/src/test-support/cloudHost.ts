@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Option, Stream } from "effect";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import type { HostConfig } from "#host/config.ts";
@@ -35,6 +35,23 @@ export function cloudHostVerbs(engine: HostStoryEngine) {
 		});
 	}
 	return {
+		awaitProcessRecord: (client: Effect.Success<ReturnType<typeof daemonClient>>, workId: string, ready: (record: FleetRecord) => boolean) => {
+			let last: FleetRecord | undefined;
+			return client("daemon.watch", { workIds: [workId] }).pipe(
+				Stream.mapEffect(() => client("fleet.get", { workId }).pipe(Effect.catchTag("NotFound", () => Effect.succeed(undefined)))),
+				Stream.filter((record): record is FleetRecord => record !== undefined),
+				Stream.tap((record) =>
+					Effect.sync(() => {
+						last = record;
+					}),
+				),
+				Stream.filter(ready),
+				Stream.runHead,
+				Effect.map(Option.getOrThrow),
+				Effect.timeout("15 seconds"),
+				Effect.mapError((cause) => new Error(`Process work did not settle: ${JSON.stringify(last)}`, { cause })),
+			);
+		},
 		cloudReconcile: (workId: string, noChange = false) =>
 			Effect.flatMap(Fleet, (fleet) => fleet.reconcile(workId)).pipe(Effect.provide(runtime(noChange))),
 		cloudRecords: () => Effect.flatMap(Fleet, (fleet) => fleet.list()).pipe(Effect.provide(runtime())),
@@ -48,7 +65,9 @@ export function cloudHostVerbs(engine: HostStoryEngine) {
 			Effect.flatMap(Fleet, (fleet) =>
 				fleet.prepare({ cwd: record.cwd, preparation: record.preparation, prompt: record.prompt, workId: record.workId }),
 			).pipe(Effect.provide(runtime()), Effect.result),
+		spawnBoardProcess: () => hostProcess(engine.fixture.configFile, false, false, new URL("./boardProcess.ts", import.meta.url)),
 		spawnHost: () => hostProcess(engine.fixture.configFile),
+		spawnRestartHost: (pausePublication = false) => hostProcess(engine.fixture.configFile, pausePublication, true),
 		useCloudProvider: () => {
 			engine.parts = { ...engine.parts, provider: hostProvider(engine.fixture.host) };
 		},

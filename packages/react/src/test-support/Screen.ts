@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { act, type ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
 import { beforeEach, vi } from "vitest";
-import { eventually, expectNoReactWarnings, type Rendered, render } from "#client/testing.ts";
+import { eventually, expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 export const screenWarnings = expectNoReactWarnings();

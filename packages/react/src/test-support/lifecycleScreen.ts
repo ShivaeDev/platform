@@ -1,4 +1,4 @@
-import type { Rendered } from "#client/testing.ts";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 

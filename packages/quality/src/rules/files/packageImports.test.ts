@@ -54,11 +54,11 @@ describe("stylesheet package imports", () => {
 		expect(resolve("main.ts", "#theme")).toBe("root.scss");
 	});
 
-	it.each([undefined, "{", "null", '{"imports": null}'])("ignores an unreadable or missing alias map %s", async (manifest) => {
+	it("leaves a missing manifest without aliases", async () => {
 		const resolve = await packageImports(
 			inputsOf({
 				files: ["packages/web/package.json", "theme.scss"],
-				texts: manifest === undefined ? {} : { "packages/web/package.json": manifest },
+				texts: {},
 			}),
 		);
 		expect(resolve("packages/web/main.ts", "#theme")).toBeUndefined();

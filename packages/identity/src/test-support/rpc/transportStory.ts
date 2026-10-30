@@ -3,8 +3,9 @@ import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { localRpcGuard, loopbackOnly, sameOrigin, trustedProxyRanges } from "#server/local.ts";
+import { localRpcGuard, loopbackOnly, sameOrigin } from "#server/local.ts";
 import { transportHeaders } from "#server/transportHeaders.ts";
+import { trustedProxyRanges } from "#server/trustedProxyRanges.ts";
 
 const forwarded = {
 	"content-type": "application/ndjson",

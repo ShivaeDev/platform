@@ -1,18 +1,11 @@
-import { type Context, Effect, Redacted, Schema, type Scope } from "effect";
-import type { Job } from "pg-boss";
+import { type Context, Effect, type Scope } from "effect";
 import type { PgBossClient } from "#client.ts";
-import {
-	type JobRegistration,
-	jobContext,
-	type QueueDefinition,
-	type QueueWorker,
-	type ScheduleDefinition,
-	type ScheduledWorker,
-} from "#definition.ts";
-import { PgBossError, PgBossPayloadError, PgBossQueueOptionsError, toPgBossError } from "#error.ts";
+import type { JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#definition.ts";
+import { PgBossQueueOptionsError, toPgBossError } from "#error.ts";
+import type { PgBossRunner } from "#internal/batchHandler.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
 import { registerWorker } from "#internal/registerWorker.ts";
-import { payloadOf } from "#internal/tracing.ts";
+import { runQueueWorker } from "#internal/runQueueWorker.ts";
 
 function isQueueWorker(registration: JobRegistration): registration is QueueWorker {
 	return registration._tag === "QueueWorker";
@@ -43,21 +36,19 @@ export function registrationName(registration: JobRegistration): string {
 	return registrationDefinition(registration).name;
 }
 
-async function prepareQueues(client: PgBossClient, registrations: readonly JobRegistration[], replaceWorkers: boolean): Promise<void> {
+const prepareQueues = Effect.fnUntraced(function* (client: PgBossClient, registrations: readonly JobRegistration[], replaceWorkers: boolean) {
 	for (const registration of registrations) {
 		if (replaceWorkers && !isQueueDefinition(registration)) {
-			await client.offWork(registrationName(registration));
+			yield* Effect.tryPromise({ catch: (error) => toPgBossError("register", error), try: () => client.offWork(registrationName(registration)) });
 		}
 	}
 	for (const registration of registrations) {
 		const definition = registrationDefinition(registration);
-		try {
-			await ensureQueue(client, definition.name, definition.queueOptions);
-		} catch (error) {
-			throw error instanceof PgBossQueueOptionsError ? error : toPgBossError("register", error, definition.name);
-		}
+		yield* ensureQueue(client, definition.name, definition.queueOptions).pipe(
+			Effect.mapError((error) => (error instanceof PgBossQueueOptionsError ? error : toPgBossError("register", error, definition.name))),
+		);
 	}
-}
+});
 
 // The layer requires RegistrationRequirements of its jobs, so its context provides every registered worker.
 function workerContext<R>(context: Context.Context<R>): Context.Context<unknown>;
@@ -65,46 +56,61 @@ function workerContext(context: unknown): unknown {
 	return context;
 }
 
-function runQueueWorker(worker: QueueWorker, job: Job<unknown>) {
-	return Schema.decodeUnknownEffect(worker.queue.schema)(payloadOf(job.data)).pipe(
-		Effect.mapError(
-			(error) =>
-				new PgBossPayloadError({
-					direction: "decode",
-					original: Redacted.make(error),
-					queue: worker.queue.name,
-				}),
-		),
-		Effect.flatMap((payload) => worker.handler(payload, jobContext(job))),
-	);
-}
-
-async function registerQueue(
+const registerQueue = Effect.fnUntraced(function* (
 	client: PgBossClient,
 	registration: QueueWorker | QueueDefinition,
 	context: Context.Context<unknown>,
 	scope: Scope.Scope,
 	schema: string,
-): Promise<void> {
+	execute: PgBossRunner,
+	graceful: boolean,
+) {
 	const queue = registration._tag === "QueueWorker" ? registration.queue : registration;
 	const name = queue.name;
 	if (registration._tag === "QueueDefinition") {
 		return;
 	}
-	await registerWorker(client, name, queue.workerOptions, (job) => runQueueWorker(registration, job), scope, schema, queue.maxDeferrals, context);
-}
+	yield* registerWorker(
+		client,
+		name,
+		queue.workerOptions,
+		(job) => runQueueWorker(registration, job),
+		scope,
+		schema,
+		queue.maxDeferrals,
+		context,
+		execute,
+		graceful,
+	);
+});
 
-async function registerSchedule(
+const registerSchedule = Effect.fnUntraced(function* (
 	client: PgBossClient,
 	worker: ScheduledWorker,
 	context: Context.Context<unknown>,
 	scope: Scope.Scope,
 	schema: string,
-): Promise<void> {
+	execute: PgBossRunner,
+	graceful: boolean,
+) {
 	const { schedule } = worker;
-	await registerWorker(client, schedule.name, schedule.workerOptions, () => worker.effect, scope, schema, schedule.maxDeferrals, context);
-	await client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions);
-}
+	yield* registerWorker(
+		client,
+		schedule.name,
+		schedule.workerOptions,
+		() => worker.effect,
+		scope,
+		schema,
+		schedule.maxDeferrals,
+		context,
+		execute,
+		graceful,
+	);
+	yield* Effect.tryPromise({
+		catch: (error) => toPgBossError("register", error, schedule.name),
+		try: () => client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions),
+	});
+});
 
 export function registrationNames(registrations: readonly JobRegistration[]): readonly string[] {
 	const names = registrations.map(registrationName);
@@ -114,32 +120,28 @@ export function registrationNames(registrations: readonly JobRegistration[]): re
 	return names;
 }
 
-export function registerJobs<R>(
+export const registerJobs = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,
 	registrations: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
+	execute: PgBossRunner,
 	schema = "pgboss",
 	startWorkers = true,
-): Effect.Effect<void, PgBossError | PgBossQueueOptionsError, Scope.Scope> {
-	return Effect.flatMap(Effect.scope, (scope) =>
-		Effect.tryPromise({
-			catch: (error) => (error instanceof PgBossQueueOptionsError || error instanceof PgBossError ? error : toPgBossError("register", error)),
-			try: async () => {
-				registrationNames(registrations);
-				await prepareQueues(client, registrations, replaceWorkers);
-				if (!startWorkers) {
-					return;
-				}
-				const provided = workerContext(context);
-				for (const registration of registrations) {
-					if (isQueueWorker(registration) || isQueueDefinition(registration)) {
-						await registerQueue(client, registration, provided, scope, schema);
-					} else if (isScheduledWorker(registration)) {
-						await registerSchedule(client, registration, provided, scope, schema);
-					}
-				}
-			},
-		}),
-	);
-}
+	graceful = true,
+) {
+	const scope = yield* Effect.scope;
+	yield* Effect.try({ catch: (error) => toPgBossError("register", error), try: () => registrationNames(registrations) });
+	yield* prepareQueues(client, registrations, replaceWorkers);
+	if (!startWorkers) {
+		return;
+	}
+	const provided = workerContext(context);
+	for (const registration of registrations) {
+		if (isQueueWorker(registration) || isQueueDefinition(registration)) {
+			yield* registerQueue(client, registration, provided, scope, schema, execute, graceful);
+		} else if (isScheduledWorker(registration)) {
+			yield* registerSchedule(client, registration, provided, scope, schema, execute, graceful);
+		}
+	}
+});

@@ -28,16 +28,16 @@ export function withFollower<A, E, R>(
 		: run(options.port);
 }
 
-export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (follower: Follower, text: string) {
-	yield* untilText(follower.output, text);
+export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (follower: Follower, text: string, timeoutMs?: number) {
+	yield* untilText(follower.output, text, timeoutMs);
 });
 
 export const untilError = Effect.fn("FollowerTest.untilError")(function* (follower: Follower, text: string, offset = 0) {
 	yield* untilText(() => follower.errors().slice(offset), text);
 });
 
-const untilText = Effect.fn("FollowerTest.untilText")(function* (output: () => string, text: string) {
-	for (let attempt = 0; attempt < 1000; attempt += 1) {
+const untilText = Effect.fn("FollowerTest.untilText")(function* (output: () => string, text: string, timeoutMs = 10_000) {
+	for (let attempt = 0; attempt < timeoutMs / 10; attempt += 1) {
 		if (output().includes(text)) {
 			return;
 		}

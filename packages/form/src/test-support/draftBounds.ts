@@ -1,5 +1,6 @@
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { TestClock } from "effect/testing";
 import type { draftStorage } from "./draftStorage.ts";
 import { formStories } from "./formStories.ts";
 
@@ -44,8 +45,6 @@ export function storedDraftPaddedTo(bytes: number) {
 	);
 }
 
-export function storedDraftWrittenAgo(line: string, ms: number) {
-	return draftNames.step(`the stored draft was written ${line} ago`, (_driver, engine) =>
-		rewriteStoredDraft(engine.storage, (record) => ({ ...record, updatedAt: Number(record.updatedAt) - ms })),
-	);
+export function draftAged(line: string, ms: number) {
+	return draftNames.step(`the draft ages by ${line}`, () => TestClock.adjust(ms));
 }

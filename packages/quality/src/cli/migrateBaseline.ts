@@ -9,15 +9,16 @@ import { readInput } from "#engine/baselineFile.ts";
 import { scan } from "#engine/session.ts";
 import { SetupFailure } from "#failure.ts";
 import { plural } from "#report/plural.ts";
+import type { RuleServices } from "#rule.ts";
 
 export const migrateBaseline = Effect.fn("Cli.migrateBaseline")(function* (
 	cwd: string,
 	configPath: string | undefined,
 	from: string | undefined,
-): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem> {
+): Effect.fn.Return<void, SetupFailure, RuleServices> {
 	const config = yield* loadConfig(cwd, configPath);
 	const source = from ?? LEGACY_BASELINE;
-	const paths = yield* shardPaths(config).pipe(Effect.mapError((error) => new SetupFailure({ message: error.message })));
+	const paths = yield* shardPaths(config).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: error.message })));
 	const existing = yield* Effect.forEach(paths, (path) => readInput(config.root, path));
 	if (source === config.baseline || existing.some((text) => text !== undefined)) {
 		return yield* new SetupFailure({ message: `${config.baseline} already exists. Migrate into a baseline file that does not exist yet.` });
@@ -32,7 +33,7 @@ export const migrateBaseline = Effect.fn("Cli.migrateBaseline")(function* (
 	const entries = source.endsWith(".jsonl") ? legacy : convertLegacy(legacy, (yield* scan(config)).violations);
 	const fs = yield* FileSystem.FileSystem;
 	const written = Effect.andThen(saveShards(config, new Map(), entries), fs.remove(join(config.root, source)));
-	yield* Effect.mapError(written, (failure) => new SetupFailure({ message: failure.message }));
+	yield* Effect.mapError(written, (failure) => new SetupFailure({ cause: failure, message: failure.message }));
 	const fixed = legacy.length - entries.length;
 	const dropped = fixed > 0 ? `, dropping ${plural(fixed, "fixed entry", "fixed entries")}` : "";
 	yield* Console.log(`quality: moved ${plural(entries.length, "entry", "entries")} from ${source} to ${config.baseline}${dropped}.`);

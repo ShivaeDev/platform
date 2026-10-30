@@ -1,26 +1,33 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import type { BetterAuthOptions } from "better-auth";
+import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
+import { testUtils } from "better-auth/plugins";
 import { type Cause, ConfigProvider, Effect, Layer, type Redacted, Schema } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/http";
+import { FetchHttpClient, Headers, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { Identity } from "#identity.ts";
-import { Authenticated } from "#middleware.ts";
-import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
+import { Authenticated, RequestTracing } from "#middleware.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
-import { authenticatedLayer } from "#server/session.ts";
+import { signedInUser } from "#server/better-auth/testing.ts";
+import { authenticatedLayer, authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
+import { requestTracingLayer } from "#server/tracing.ts";
+import { ProviderAccounts, providerAccountHandlers, readProviderAccounts } from "#test/better-auth/providerAccounts.ts";
+import { recorder } from "#test/rpc/harness.ts";
+import { storedPolicy } from "./stored.ts";
 
-const Api = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String })).middleware(Authenticated);
+const Api = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String }))
+	.middleware(Authenticated)
+	.middleware(RequestTracing);
 const handlers = Api.toLayer({ Whoami: () => Effect.map(Identity, ({ id }) => id) });
 
 export const policyHost = Effect.fnUntraced(function* (
 	databaseUrl: Redacted.Redacted<string>,
 	env: Record<string, string>,
 	signIn: SignInPolicy<Cause.UnknownError> | undefined,
-	app: { readonly sessionsOpen: boolean },
+	app: { readonly sessionsOpen: boolean; readonly providerAccounts?: boolean },
 ) {
 	const pool = yield* authDatabase(databaseUrl);
 	const options = {
@@ -28,6 +35,7 @@ export const policyHost = Effect.fnUntraced(function* (
 		databaseHooks: { session: { create: { before: async (session) => (app.sessionsOpen ? { data: session } : false) } } },
 		emailAndPassword: { enabled: true },
 		logger: { disabled: true },
+		plugins: [testUtils()],
 		secret: "sign-in-policy-story-secret-with-32-characters",
 		session: { cookieCache: { enabled: false } },
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
@@ -36,16 +44,39 @@ export const policyHost = Effect.fnUntraced(function* (
 		await (await getMigrations(options)).runMigrations();
 	});
 	const mounted = yield* betterAuthMount(options, { signIn }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
+	let accountLookups = 0;
+	const accounts = app.providerAccounts
+		? mounted.admittedSessions(
+				(headers) => mounted.auth.api.getSession({ headers }),
+				(headers) => {
+					accountLookups += 1;
+					return mounted.auth.api.listUserAccounts({ headers });
+				},
+			)
+		: undefined;
 	const sessions = {
 		origin: () => true,
-		provider: betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers }))),
+		provider: accounts ?? mounted.sessions.provider,
 	};
+	const accountRpc =
+		accounts === undefined
+			? Layer.empty
+			: RpcServer.layerHttp({ group: ProviderAccounts, path: "/accounts", protocol: "http" }).pipe(
+					Layer.provide([
+						providerAccountHandlers,
+						authenticatedUserWithProviderAccountsLayer({ ...sessions, provider: accounts }),
+						RpcSerialization.layerNdjson,
+					]),
+				);
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, authenticatedLayer(sessions), RpcSerialization.layerJson]),
+		Layer.provide([handlers, authenticatedLayer(sessions), requestTracingLayer(), RpcSerialization.layerJson]),
 	);
+	const recorded = recorder();
 	const context = yield* Layer.build(
-		HttpRouter.serve(Layer.merge(mounted.routes, rpc), { disableLogger: true }).pipe(
+		HttpRouter.serve(Layer.mergeAll(mounted.routes, rpc, accountRpc), { disableLogger: true }).pipe(
 			Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),
+			Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))),
+			Layer.provide(recorded.layer),
 		),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
@@ -60,54 +91,48 @@ export const policyHost = Effect.fnUntraced(function* (
 		}).pipe(
 			Effect.provide(
 				RpcClient.layerProtocolHttp({
-					transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie, origin: baseUrl })),
+					transformClient: (client) =>
+						HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie, origin: baseUrl, "x-request-id": "policy-request" })),
 					url: `${baseUrl}/rpc`,
 				}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
 			),
 			Effect.scoped,
 		);
 	}
-	async function storedUsers() {
-		const { internalAdapter } = await mounted.auth.$context;
-		const users = await internalAdapter.listUsers(1000, 0, { direction: "asc", field: "email" });
-		return users.map(({ email }) => email);
+	function resolveSession(cookie: string) {
+		return sessions.provider
+			.get(Headers.fromInput({ cookie, host: new URL(baseUrl).host }))
+			.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
 	}
-	async function sessionDevices(email: string) {
-		const { internalAdapter } = await mounted.auth.$context;
-		const user = await internalAdapter.findUserByEmail(email);
-		if (user === null) {
-			return [];
-		}
-		const held = await internalAdapter.listSessions(user.user.id);
-		return held.map(({ userAgent }) => userAgent ?? "").sort();
-	}
-	async function seedGitHubUsers(count: number, now: Date) {
-		const { adapter } = await mounted.auth.$context;
-		for (let index = 0; index < count; index += 1) {
-			const user = await adapter.create<{ readonly id: string }>({
-				data: { createdAt: now, email: `seeded-${index}@github.test`, emailVerified: true, name: `seeded ${index}`, updatedAt: now },
-				model: "user",
-			});
-			await adapter.create({
-				data: { accountId: String(5000 + index), createdAt: now, providerId: "github", updatedAt: now, userId: user.id },
-				model: "account",
-			});
-			await adapter.create({
-				data: { createdAt: now, expiresAt: new Date(now.getTime() + 3_600_000), token: `seeded-${index}`, updatedAt: now, userId: user.id },
-				model: "session",
-			});
-		}
-	}
-	async function sessionHolders() {
-		const { adapter } = await mounted.auth.$context;
-		const held = await adapter.findMany<{ readonly userId: string }>({ limit: 1000, model: "session" });
-		const users = await adapter.findMany<{ readonly email: string }>({
-			model: "user",
-			where: [{ field: "id", operator: "in", value: held.map(({ userId }) => userId) }],
-		});
-		return users.map(({ email }) => email).sort();
-	}
-	return { baseUrl, revokeUnadmitted: mounted.revokeUnadmitted, seedGitHubUsers, sessionDevices, sessionHolders, storedUsers, whoami };
+	return {
+		...storedPolicy(mounted.auth),
+		accountLookups: () => accountLookups,
+		baseUrl,
+		logs: recorded.logs,
+		mintSession: (person: string, accountId: string) =>
+			Effect.promise(() =>
+				signedInUser(betterAuth(options), {
+					email: `${person}@github.test`,
+					name: person,
+					providerAccounts: [{ accountId, providerId: "github" }],
+				}),
+			),
+		providerAccounts: (cookie: string) =>
+			readProviderAccounts(
+				baseUrl,
+				(input, init) => {
+					const request = new Request(input, init);
+					request.headers.set("cookie", cookie);
+					return fetch(request);
+				},
+				"providerAccounts",
+				"/accounts",
+			),
+		resolveSession,
+		revokeUnadmitted: mounted.revokeUnadmitted.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
+		spans: recorded.spans,
+		whoami,
+	};
 });
 
 export type PolicyHost = Effect.Success<ReturnType<typeof policyHost>>;

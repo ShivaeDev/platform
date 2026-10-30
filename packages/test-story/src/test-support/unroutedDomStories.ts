@@ -25,3 +25,17 @@ app.it("refuses an unrouted redirect destination", [], function* () {
 	});
 	yield* Effect.promise(() => window.fetch(url).catch(() => undefined));
 });
+
+const networkEnabled = storyKit({
+	clock: "live",
+	create: () => ({}),
+	name: "network enabled DOM",
+	outbound: {},
+	outboundPassthrough: true,
+	stages: [],
+	verbs: () => ({}),
+});
+
+networkEnabled.it("refuses Node-only network passthrough", [], function* () {
+	yield* Effect.promise(() => fetch("https://unrouted-opt-in.test/user").catch(() => undefined));
+});

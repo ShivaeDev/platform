@@ -1,34 +1,39 @@
-import { Cause, Exit, Result } from "effect";
-import { Migrator } from "effect/sql";
-import { expect } from "vitest";
-import { migrationHost } from "#test/app-host/migrationStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { migrated, migrationHost } from "#test/app-host/migrationStory.ts";
 
-migrationHost.it("web checks serve requests without requiring the configured release marker", [], function* ({ start, migrate, lifecycle }) {
-	expect(yield* migrate()).toBe(0);
-	const host = yield* start({ mode: "check", release: "unrecorded" });
-	expect(yield* host.next).toEqual({ _tag: "Ready" });
-	expect(yield* host.ping).toBe("pong");
-	expect(lifecycle()).toEqual(["started"]);
-	expect(host.migrationLogs()).toEqual([]);
-});
+migrationHost.it(
+	"check mode serves requests without the configured release marker and logs no wait",
+	[migrated],
+	function* ({ applicationLifecycle, bootStep, hostStarts, migrationLogMessages, pingHost }) {
+		yield* hostStarts({ mode: "check", release: "unrecorded" });
 
-migrationHost.it("bounds startup waiting for a release marker by the migration polling budget", [], function* ({ start, migrate, lifecycle }) {
-	expect(yield* migrate()).toBe(0);
-	const host = yield* start({ release: "next", waitTimeout: "25 millis" });
-	for (const millis of [10, 10, 10]) {
-		expect(yield* host.next).toEqual({ _tag: "Sleeping", millis });
-		yield* host.advance(millis);
-	}
-	const exit = yield* host.exit;
-	expect(Exit.isFailure(exit)).toBe(true);
-	if (Exit.isFailure(exit)) {
-		const failure = Cause.findError(exit.cause);
-		expect(Result.isSuccess(failure) && failure.success).toBeInstanceOf(Migrator.MigrationError);
-	}
-	expect(host.migrationLogs().at(-1)).toEqual({
-		annotations: { pendingComponents: [{ detail: "Expected release next; recorded none", name: "database release" }], pendingMigrations: [] },
-		level: "Info",
-		message: ["Timed out waiting for database migrations"],
-	});
-	expect(lifecycle()).toEqual([]);
-});
+		yield* outcomes({
+			"application lifecycle": [applicationLifecycle(), ["started"]],
+			"boot step": [bootStep(), "ready"],
+			"migration logs": [migrationLogMessages(), []],
+			ping: [pingHost(), "pong"],
+		});
+	},
+);
+
+migrationHost.it(
+	"waiting for an unrecorded release fails startup with a migration error when the poll budget expires, logging the missing release",
+	[migrated],
+	function* ({ applicationLifecycle, hostEnding, hostStarts, migrationLog, pollBudgetExpires }) {
+		yield* hostStarts({ release: "next", waitTimeout: "25 millis" });
+
+		yield* pollBudgetExpires();
+
+		yield* outcomes({
+			"application lifecycle": [applicationLifecycle(), []],
+			"host ending": [hostEnding(), "failed with migration error"],
+			"timeout log": [
+				migrationLog("Timed out waiting for database migrations"),
+				{
+					annotations: { pendingComponents: [{ detail: "Expected release next; recorded none", name: "database release" }], pendingMigrations: [] },
+					level: "Info",
+				},
+			],
+		});
+	},
+);

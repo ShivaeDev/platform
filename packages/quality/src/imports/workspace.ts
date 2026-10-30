@@ -1,7 +1,5 @@
 import { posix } from "node:path";
-import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
-import { Effect } from "effect";
-import { manifestsIn } from "#manifests/sorted.ts";
+import { manifestFiles, readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 import { globMatcher } from "./globMatcher.ts";
 import { pnpmWorkspacePatterns } from "./pnpmWorkspacePatterns.ts";
@@ -23,17 +21,6 @@ const LEADING_DOT = /^\.\//u;
 
 const TRAILING_SLASHES = /\/+$/u;
 
-function parsed(text: string | undefined): unknown {
-	if (text === undefined) {
-		return undefined;
-	}
-	try {
-		return JSON.parse(text);
-	} catch {
-		return undefined;
-	}
-}
-
 function field(value: unknown, key: string): unknown {
 	return typeof value === "object" && value !== null && key in value ? Reflect.get(value, key) : undefined;
 }
@@ -42,8 +29,8 @@ function strings(value: unknown): readonly string[] {
 	return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 }
 
-function npmPatterns(text: string | undefined): readonly string[] {
-	const workspaces = field(parsed(text), "workspaces");
+function npmPatterns(manifest: unknown): readonly string[] {
+	const workspaces = field(manifest, "workspaces");
 	return Array.isArray(workspaces) ? strings(workspaces) : strings(field(workspaces, "packages"));
 }
 
@@ -53,7 +40,7 @@ function normalized(pattern: string): string {
 
 async function memberOf(inputs: Reader): Promise<(directory: string) => boolean> {
 	const pnpm = await inputs.readText(PNPM_WORKSPACE);
-	const patterns = [...(pnpm === undefined ? [] : pnpmWorkspacePatterns(pnpm)), ...npmPatterns(await inputs.readText(MANIFEST))];
+	const patterns = [...(pnpm === undefined ? [] : pnpmWorkspacePatterns(pnpm)), ...npmPatterns(await readPackageManifest(inputs.readText, MANIFEST))];
 	const included = patterns.filter((pattern) => !pattern.startsWith(NEGATION)).map((pattern) => globMatcher(normalized(pattern)));
 	const excluded = patterns
 		.filter((pattern) => pattern.startsWith(NEGATION))
@@ -63,14 +50,16 @@ async function memberOf(inputs: Reader): Promise<(directory: string) => boolean>
 
 export async function workspacePackages(inputs: Reader): Promise<readonly WorkspacePackage[]> {
 	const member = await memberOf(inputs);
-	const manifests =
-		inputs.root === undefined ? inputs.files : await Effect.runPromise(manifestsIn(inputs.root).pipe(Effect.provide(NodeFileSystem.layer)));
+	const manifests = manifestFiles(inputs);
 	const directories = manifests
 		.filter((file) => posix.basename(file) === MANIFEST && file !== MANIFEST)
 		.map((manifest) => posix.dirname(manifest))
 		.filter(member);
 	const named = await Promise.all(
-		directories.map(async (directory) => ({ directory, name: field(parsed(await inputs.readText(posix.join(directory, MANIFEST))), "name") })),
+		directories.map(async (directory) => ({
+			directory,
+			name: field(await readPackageManifest(inputs.readText, posix.join(directory, MANIFEST)), "name"),
+		})),
 	);
 	return named.flatMap(({ directory, name }) => (typeof name === "string" ? [{ directory, name }] : []));
 }

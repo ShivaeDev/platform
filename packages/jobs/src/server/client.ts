@@ -23,7 +23,7 @@ export interface PgBossClient {
 	readonly getWipData?: PgBoss["getWipData"];
 	readonly notifyWorker?: PgBoss["notifyWorker"];
 	readonly off: (event: "error", listener: (error: Error) => void) => unknown;
-	readonly offWork: (name: string) => Promise<void>;
+	readonly offWork: PgBoss["offWork"];
 	readonly on: (event: "error", listener: (error: Error) => void) => unknown;
 	readonly retry?: PgBoss["retry"];
 	readonly schedule: (name: string, cron: string, data?: object | null, options?: ScheduleOptions) => Promise<void>;

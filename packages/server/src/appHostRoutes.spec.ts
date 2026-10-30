@@ -3,42 +3,33 @@ import { expect } from "vitest";
 import { applicationRoutes } from "#test/app-host/applicationRoutes.ts";
 import { host } from "#test/app-host/story.ts";
 
-host.it("serves an HTTP route using an application service", [applicationRoutes()], function* ({ request }) {
-	const response = yield* request("/.well-known/app");
-	expect(response).toMatchObject({ body: "Public application metadata", status: HttpStatus.fromLiteral("OK") });
+host.it("an application HTTP route answers from an application service", [applicationRoutes()], function* ({ request }) {
+	expect(yield* request("/.well-known/app")).toMatchObject({ body: "Public application metadata", status: HttpStatus.fromLiteral("OK") });
 });
 
-host.it("lets an application route answer a foreign-origin preflight with native CORS", [applicationRoutes()], function* ({ request }) {
-	const response = yield* request("/.well-known/app", {
-		headers: { "access-control-request-method": "GET", origin: "https://reader.example" },
-		method: "OPTIONS",
+host.it("an application route answers a foreign-origin preflight with its own CORS policy", [applicationRoutes()], function* ({ preflight }) {
+	expect(yield* preflight("/.well-known/app", "GET")).toEqual({
+		allowedMethods: "GET",
+		allowedOrigin: "*",
+		status: HttpStatus.fromLiteral("NoContent"),
 	});
-	expect(response.status).toBe(HttpStatus.fromLiteral("NoContent"));
-	expect(response.headers.get("access-control-allow-origin")).toBe("*");
-	expect(response.headers.get("access-control-allow-methods")).toBe("GET");
 });
 
-for (const nativeOrigins of [undefined, ["capacitor://localhost"]]) {
+for (const [nativeOrigins, listed] of [
+	[undefined, "no native origins"],
+	[["capacitor://localhost"], "native origins"],
+] as const) {
 	for (const path of ["/rpc", "/api/auth", "/api/auth/get-session"]) {
 		host.it(
-			`refuses foreign-origin preflight on ${path} with ${nativeOrigins ? "native origins" : "no native origins"}`,
+			`a foreign-origin preflight to ${path} is forbidden without CORS headers with ${listed} listed`,
 			[applicationRoutes(nativeOrigins === undefined ? {} : { nativeOrigins })],
-			function* ({ request }) {
-				const response = yield* request(path, {
-					headers: { "access-control-request-method": "POST", origin: "https://reader.example" },
-					method: "OPTIONS",
-				});
-				expect(response.status).toBe(HttpStatus.fromLiteral("Forbidden"));
-				expect(response.headers.get("access-control-allow-origin")).toBeNull();
+			function* ({ preflight }) {
+				expect(yield* preflight(path, "POST")).toEqual({ allowedMethods: null, allowedOrigin: null, status: HttpStatus.fromLiteral("Forbidden") });
 			},
 		);
 	}
 }
 
-host.it("protects a configured RPC path", [applicationRoutes({ rpcPath: "/api/rpc" })], function* ({ request }) {
-	const response = yield* request("/api/rpc", {
-		headers: { "access-control-request-method": "POST", origin: "https://reader.example" },
-		method: "OPTIONS",
-	});
-	expect(response.status).toBe(HttpStatus.fromLiteral("Forbidden"));
+host.it("a foreign-origin preflight to a configured RPC path is forbidden", [applicationRoutes({ rpcPath: "/api/rpc" })], function* ({ preflight }) {
+	expect(yield* preflight("/api/rpc", "POST")).toMatchObject({ status: HttpStatus.fromLiteral("Forbidden") });
 });

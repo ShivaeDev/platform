@@ -1,3 +1,2 @@
 {"path":"packages/test/src/anyTestLayer.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/test/src/internal/runEffectTest.ts","rule":"effect/boundary","count":1}
 {"path":"packages/test/src/makeEffectIt.ts","rule":"effect/boundary","count":5}

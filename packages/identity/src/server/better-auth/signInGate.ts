@@ -1,7 +1,7 @@
 import { Cache, type Config, Duration, Effect, Exit } from "effect";
-import { redact } from "@shivaedev/errors/redact.ts";
-import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#identity.ts";
+import { providerFailure } from "#server/providerFailure.ts";
 
 export interface SignInPolicy<E = never, R = never> {
 	readonly accounts?: Config.Config<readonly ProviderAccountValue[]> | undefined;
@@ -33,14 +33,7 @@ export interface SignInGate<E> {
 const RULE_CACHE_CAPACITY = 10_000;
 
 export function fromStorage<A>(read: () => Promise<A>) {
-	return Effect.tryPromise(read).pipe(
-		Effect.catch((error) =>
-			Effect.andThen(
-				Effect.logError("Sign-in policy storage failed", redact(error.cause)),
-				Effect.fail(new AuthUnavailable({ message: "Authentication is temporarily unavailable" })),
-			),
-		),
-	);
+	return Effect.tryPromise(read).pipe(Effect.catch((error) => providerFailure(error.cause)));
 }
 
 function sameAccount(left: ProviderAccountValue, right: ProviderAccountValue) {

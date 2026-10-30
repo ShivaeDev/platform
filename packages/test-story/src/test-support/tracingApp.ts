@@ -1,15 +1,10 @@
 import { Effect, Layer } from "effect";
 import { HttpEffect, HttpServerResponse } from "effect/http";
 import { storyKit } from "#storyKit.ts";
-import { Recording, recording } from "#test/spanRecording.ts";
+import { Recording, recording, spanReadouts, tracedAsTheStory } from "#test/spanRecording.ts";
 
 export const tracingApp = storyKit({
-	around: (effect) =>
-		Effect.gen(function* () {
-			const { spans, tracer } = yield* Recording;
-			spans.length = 0;
-			return yield* effect.pipe(Effect.withSpan("story"), Effect.withTracer(tracer));
-		}),
+	around: (effect) => tracedAsTheStory(effect),
 	*create() {
 		const { spans } = yield* Recording;
 		const context = yield* Effect.context<never>();
@@ -29,14 +24,13 @@ export const tracingApp = storyKit({
 	},
 	stages: ["ready"],
 	verbs: (engine, story) => ({
-		request: (headers?: HeadersInit) =>
+		...spanReadouts(engine.spans),
+		sendsRequest: (headers?: HeadersInit) =>
 			Effect.promise(async () => {
 				story.tell("a caller sends a request");
-				const response = await engine.handler(new Request("http://app.test/", { headers: headers ?? {} }));
-				return response.text();
+				await (await engine.handler(new Request("http://app.test/", { headers: headers ?? {} }))).text();
 			}),
-		spans: engine.spans,
-		step: () => story.runUntil((current) => current.steps === 1),
+		takesOneStep: () => story.runUntil((current) => current.steps === 1),
 	}),
 });
 

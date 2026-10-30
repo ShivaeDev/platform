@@ -5,6 +5,7 @@ interface Printed {
 	readonly at?: string;
 	readonly branch?: string;
 	readonly delayMs?: number;
+	readonly errorTag?: string;
 	readonly event: string;
 	readonly message?: string;
 	readonly nextPollAt?: string;

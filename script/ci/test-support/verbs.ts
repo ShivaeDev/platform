@@ -28,7 +28,12 @@ export function verbs(engine: Workspace) {
 		mergeTests: (reports: readonly string[], targetMs: number, count = reports.length) =>
 			mergeTestTimings(reports, { count, jobs: engine.jobs, runId: "42", sha: "main-sha", targetMs }),
 		parseShard,
-		planMain: () => mainShardPlan("owner/repo", engine.github),
+		planMain: () => {
+			if (engine.githubLayer === undefined) {
+				throw new Error("Declare measuredMain before planning snapshots");
+			}
+			return mainShardPlan("owner/repo", engine.github).pipe(Effect.scoped, Effect.provide(engine.githubLayer));
+		},
 		planMeasured: (names: readonly string[], count: number, snapshot: TimingSnapshot) => {
 			const estimates = durationEstimates(snapshot);
 			return balancedShards(
@@ -38,6 +43,7 @@ export function verbs(engine: Workspace) {
 				(name) => estimates[name] ?? 6000,
 			);
 		},
+		planningLogs: () => engine.logs.flat().join("\n"),
 		planShards: (items: readonly { name: string; seconds: number }[], count: number) =>
 			balancedShards(
 				items,

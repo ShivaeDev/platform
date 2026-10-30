@@ -3,10 +3,10 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, 
 import { Effect } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, type ReactNode, useContext, useState } from "react";
+import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { expectNoReactWarnings, render } from "#client/testing.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { loadQuery } from "#loadQuery.ts";
 import { loaderHost } from "./loaderHost.ts";

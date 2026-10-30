@@ -1,53 +1,77 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { encodedFailures } from "#test/app-host/encodedFailures.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-host.it("masks a sensitive Error message in a schema-encoded failure stack", [encodedFailures], function* ({ postNdjson }) {
-	const payload = { value: "private failure detail" };
-	const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "errorStack" })}\n`, false);
-	expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(response.body).toContain('"_tag":"Fail"');
-	expect(response.body).toContain('"message":"<redacted>"');
-	expect(response.body).toContain('"stack":"<redacted>"');
-	expect(response.body).not.toContain(payload.value);
-});
+const renamed = { visible: "<redacted>", wireValue: "<redacted>" };
 
-host.it("masks encoded fields when a value-dependent transform cannot preserve field provenance", [encodedFailures], function* ({ postNdjson }) {
-	const payload = { value: "private computed detail" };
-	const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "computedFailure" })}\n`, false);
-	expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(response.body).toContain('"_tag":"Fail"');
-	expect(response.body).toContain('"computedWire":"<redacted>"');
-	expect(response.body).not.toContain(payload.value.toUpperCase());
-});
+host.it(
+	"a schema-encoded Error failure reaches the client with its sensitive message and stack masked",
+	[encodedFailures],
+	function* ({ answerMentions, callRpc, wireAnswers }) {
+		yield* callRpc("errorStack", { value: "private failure detail" });
+
+		yield* outcomes({
+			"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ message: "<redacted>", stack: "<redacted>" }) } }],
+			"leaked into the answer": [answerMentions("private failure detail"), []],
+		});
+	},
+);
+
+host.it(
+	"a value-dependent transform that loses field provenance masks the whole encoded field",
+	[encodedFailures],
+	function* ({ answerMentions, callRpc, wireAnswers }) {
+		yield* callRpc("computedFailure", { value: "private computed detail" });
+
+		yield* outcomes({
+			"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ computedWire: "<redacted>" }) } }],
+			"leaked into the answer": [answerMentions("PRIVATE COMPUTED DETAIL"), []],
+		});
+	},
+);
+
+host.it(
+	"schema sensitivity follows renamed keys into the client failure and the diagnostic log",
+	[encodedFailures],
+	function* ({ answerMentions, callRpc, diagnosticLog, wireAnswers }) {
+		yield* callRpc("renamedFailure", { value: "private sealed detail" });
+
+		yield* outcomes({
+			"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ ...renamed, _tag: "<redacted>" }) } }],
+			"diagnostic log": [diagnosticLog("encoded failure"), expect.objectContaining({ ...renamed, control: "public control", sealed: "<redacted>" })],
+			"leaked into the answer": [answerMentions("private sealed detail"), []],
+		});
+	},
+);
+
+host.it(
+	"a password field stays masked when its schema renames it to an ordinary wire key",
+	[encodedFailures],
+	function* ({ answerMentions, callRpc, wireAnswers }) {
+		yield* callRpc("renamedPassword", { value: "private password detail" });
+
+		yield* outcomes({
+			"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ wireCode: "<redacted>" }) } }],
+			"leaked into the answer": [answerMentions("private password detail"), []],
+		});
+	},
+);
 
 for (const protocol of ["http/json", "http/protobuf"]) {
 	host.it(
-		`carries schema sensitivity to renamed keys in failures, logs and ${protocol} spans`,
+		`schema sensitivity follows renamed keys into ${protocol} span attributes`,
 		[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol } }), encodedFailures],
-		function* ({ postNdjson, logs, close, exportedSpans }) {
-			const payload = { value: "private sealed detail" };
-			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "renamedFailure" })}\n`, false);
-			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(response.body).toContain('"_tag":"Fail"');
-			expect(response.body).toContain('"_tag":"<redacted>"');
-			expect(response.body).toContain('"wireValue":"<redacted>"');
-			expect(response.body).toContain('"visible":"<redacted>"');
-			expect(response.body).not.toContain(payload.value);
-			const log = logs().find((entry) => Array.isArray(entry.message) && entry.message.includes("encoded failure"));
-			expect(log?.annotations).toMatchObject({ control: "public control", sealed: "<redacted>", visible: "<redacted>", wireValue: "<redacted>" });
+		function* ({ callRpc, close, exportMentions, spanAttributes }) {
+			yield* callRpc("renamedFailure", { value: "private sealed detail" });
+
 			yield* close();
-			const span = exportedSpans().find((value) => value.name === "renamedFailure");
-			expect(span?.attributes).toEqual(
-				expect.arrayContaining([
-					{ key: "wireValue", value: { stringValue: "<redacted>" } },
-					{ key: "visible", value: { stringValue: "<redacted>" } },
-					{ key: "control", value: { stringValue: "public control" } },
-				]),
-			);
-			expect(JSON.stringify(exportedSpans())).not.toContain(payload.value);
+
+			yield* outcomes({
+				"leaked into exports": [exportMentions("private sealed detail"), []],
+				"span attributes": [spanAttributes("renamedFailure"), [expect.objectContaining({ ...renamed, control: "public control" })]],
+			});
 		},
 	);
 }

@@ -1,7 +1,7 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 import { Note } from "./App.tsx";
 import { connect } from "./connect.ts";
 

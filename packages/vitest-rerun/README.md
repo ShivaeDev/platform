@@ -34,6 +34,8 @@ The final JUnit and JSON reports still describe the whole run, so CI, coverage a
 
 An unhandled error, such as an exception thrown after a test finished, cannot be fixed by running a test again, so a run with one is not rerun and fails.
 
+A rerun must collect the same tests as the attempt before it. When a rerun collects a test that attempt did not have, or no longer collects one it had, for example because a test's name changes between runs, `vitest-rerun` refuses to merge it: it prints a `vitest-rerun:` message naming the test or file, the run fails with exit code `1`, and the final reports keep the results of the attempt before it.
+
 ### Options
 
 ```sh
@@ -79,6 +81,8 @@ const flaky = Schema.decodeUnknownSync(Schema.fromJsonString(FlakyTests))(conten
 ```
 
 ### From Effect
+
+Every source module is available through its `.ts` subpath, including modules under `internal/`.
 
 The command line is a thin wrapper over two Effect functions. `parseOptions(args, cwd)` from `@shivaedev/vitest-rerun/options.ts` turns command-line arguments into `RerunOptions`, with the output directory resolved against `cwd`, the directory every attempt runs in, failing with a `VitestRerunError` from `/error.ts` for an invalid rerun count. `rerun(options)` from `/rerun.ts` performs the run and succeeds with its exit code; it needs `FileSystem` and `ChildProcessSpawner`, which `NodeServices.layer` from `@effect/platform-node` provides.
 

@@ -7,13 +7,13 @@ export interface PostgresColumn {
 	readonly type: string;
 }
 
-export interface MigrationUpgradeOptions<R = never> {
-	readonly migrations: PostgresMigrationOptions<R>;
+export interface MigrationUpgradeOptions<R = never, E = never> {
+	readonly migrations: PostgresMigrationOptions<R, E>;
 	readonly table: string;
 	readonly upTo: number;
 }
 
-export const migrationUpgrade = Effect.fn("PostgresTest.migrationUpgrade")(function* <R>(options: MigrationUpgradeOptions<R>) {
+export const migrationUpgrade = Effect.fn("PostgresTest.migrationUpgrade")(function* <R, E = never>(options: MigrationUpgradeOptions<R, E>) {
 	const sql = yield* SqlClient.SqlClient;
 	function invalid(message: string) {
 		return Effect.fail(new Migrator.MigrationError({ kind: "BadState", message }));

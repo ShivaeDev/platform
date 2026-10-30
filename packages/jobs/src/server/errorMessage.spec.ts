@@ -1,22 +1,24 @@
-import { Effect, Redacted, Schema } from "effect";
-import { expect } from "vitest";
+import { Schema } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
-import { PgBossError } from "#error.ts";
-import { boss } from "#test/boss.ts";
-import { scriptedClient } from "#test/scriptedClient.ts";
+import { queueCreationFails, runtime } from "#test/runtime/kit.ts";
+import { worker } from "#test/workers.ts";
 
-boss.it("names the queue and PostgreSQL code of failed registration without its original message", [], function* ({ boot }) {
-	class DatabaseError extends Error {
-		readonly code = "53300";
-	}
-	const failure = new DatabaseError("too many connections for postgresql://jobs:secret@db/jobs");
-	const client = scriptedClient({ createQueue: () => Promise.reject(failure) });
-	const Queue = defineQueue({ name: "crowded", schema: Schema.Struct({}) });
-	const error = yield* Effect.flip(boot([Queue.handle(() => Effect.void)], { clientFactory: () => client }));
-	if (!(error instanceof PgBossError)) {
-		throw error;
-	}
-	expect(error).toMatchObject({ operation: "register", queue: "crowded" });
-	expect(error.message).toBe("pg-boss register for queue crowded failed: DatabaseError 53300");
-	expect(Redacted.value(error.original)).toBe(failure);
-});
+class DatabaseError extends Error {
+	readonly code = "53300";
+}
+
+const Crowded = defineQueue({ name: "crowded", schema: Schema.Struct({}) });
+
+runtime.it(
+	"a failed queue registration names its operation, queue, error class and PostgreSQL code but not the original message, which it keeps",
+	[queueCreationFails("PostgreSQL refuses the connection", new DatabaseError("too many connections for postgresql://jobs:secret@db/jobs"))],
+	function* ({ failureMessage, start, startup }) {
+		yield* start("app", [worker(Crowded, "succeeds")]);
+
+		yield* outcomes({
+			"failure message": [failureMessage("app"), "pg-boss register for queue crowded failed: DatabaseError 53300"],
+			"kept original": [startup("app"), "register crowded failed with too many connections for postgresql://jobs:secret@db/jobs"],
+		});
+	},
+);

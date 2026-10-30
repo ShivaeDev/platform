@@ -27,7 +27,7 @@ export const DEFAULT_STEP_BUDGET = 60;
 
 const MOST_SACKS = 5;
 
-const DOUGH_PER_BOWL = 3;
+export const DOUGH_PER_BOWL = 3;
 
 export class Supplier extends Context.Service<Supplier, { readonly deliver: (sacks: number) => Effect.Effect<void, SupplierShort> }>()(
 	"@shivaedev/test-story/server/Supplier",
@@ -99,10 +99,18 @@ export const bakery = storyKit({
 				state.dough += count;
 			},
 		},
+		kitchen: {
+			capacity: () => state.capacity,
+		},
 		oven: {
 			bakesEverything: (maxSteps?: number): Effect.Effect<void, BurntLoaf> => story.runUntil((current) => current.dough === 0, { maxSteps }),
 			loaves: () => state.loaves,
 			minutes: () => state.minute,
+		},
+		pantry: {
+			dough: () => state.dough,
+			flour: () => state.flour,
+			orders: () => [...state.orders],
 		},
 	}),
 });

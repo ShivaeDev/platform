@@ -12,7 +12,7 @@ function repository(): string {
 		{
 			content: JSON.stringify({
 				dependencies: { effect: "*" },
-				devDependencies: { "@shivaedev/quality": "*" },
+				devDependencies: { "@shivaedev/quality": "*", vitest: "*" },
 				name: "policy-fixture",
 				private: true,
 				type: "module",
@@ -23,8 +23,10 @@ function repository(): string {
 		{ content: "export function value() { return 1; }", path: "src/value.ts" },
 		{ content: "export function value() { return 1; }", path: "tooling/value.ts" },
 	]);
-	const effect = dirname(createRequire(import.meta.url).resolve("effect/package.json"));
-	symlinkSync(effect, join(root, "node_modules/effect"), "dir");
+	for (const name of ["effect", "vitest"]) {
+		const directory = dirname(createRequire(import.meta.url).resolve(`${name}/package.json`));
+		symlinkSync(directory, join(root, `node_modules/${name}`), "dir");
+	}
 	return root;
 }
 

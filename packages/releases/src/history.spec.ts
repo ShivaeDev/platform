@@ -9,6 +9,7 @@ import {
 	pending,
 	privateWithoutChangelog,
 	released,
+	unrelatedOriginMain,
 	versionSet,
 } from "#test/traits.ts";
 import { workspace } from "#test/workspace.ts";
@@ -63,5 +64,11 @@ for (const [description, change] of [
 workspace.it("check names a missing base and the fetch command", [], function* ({ check }) {
 	expect(yield* check("missing-ref")).toBe(
 		"refused: Cannot resolve changeset base missing-ref; run git fetch origin main or pass an existing base-ref with full history.",
+	);
+});
+
+workspace.it("check refuses an origin/main without common history instead of checking local main", [unrelatedOriginMain], function* ({ check }) {
+	expect(yield* check()).toBe(
+		"refused: Cannot resolve changeset base origin/main; run git fetch origin main or pass an existing base-ref with full history.",
 	);
 });

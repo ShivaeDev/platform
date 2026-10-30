@@ -31,8 +31,8 @@ export function artifacts(
 					const path = `/repos/${encodeURIComponent(options.owner)}/${encodeURIComponent(options.repo)}/actions/artifacts/${options.artifactId}/zip`;
 					const redirect = yield* send(HttpClientRequest.get(new URL(path, apiUrl).href, { accept: "application/vnd.github+json" }), "manual").pipe(
 						Effect.catchTags({
-							RemoteGone: (error) => Effect.fail(new GitHubArtifactError({ stage: "redirect", status: error.status })),
-							RemoteNotFound: (error) => Effect.fail(new GitHubArtifactError({ stage: "redirect", status: error.status })),
+							RemoteGone: (error) => Effect.fail(new GitHubArtifactError({ stage: "redirect", status: error.status }, { cause: error })),
+							RemoteNotFound: (error) => Effect.fail(new GitHubArtifactError({ stage: "redirect", status: error.status }, { cause: error })),
 						}),
 					);
 					const location = redirect.headers.location;
@@ -41,15 +41,15 @@ export function artifacts(
 					}
 					const response = yield* download.get(location).pipe(
 						Effect.provideService(FetchHttpClient.RequestInit, { credentials: "omit", redirect: "manual" }),
-						Effect.mapError(() => new GitHubTransportError({ path })),
+						Effect.mapError((cause) => new GitHubTransportError({ path }, { cause })),
 					);
 					if (response.status < HttpStatus.fromLiteral("OK") || response.status >= HttpStatus.fromLiteral("MultipleChoices")) {
 						return yield* new GitHubArtifactError({ stage: "download", status: response.status });
 					}
 					return yield* readBoundedBody(response, options.byteLimit).pipe(
 						Effect.catchTags({
-							HttpClientError: () => Effect.fail(new GitHubTransportError({ path })),
-							ResponseBodyTooLarge: ({ limit }) => Effect.fail(new GitHubArtifactTooLarge({ limit })),
+							HttpClientError: (cause) => Effect.fail(new GitHubTransportError({ path }, { cause })),
+							ResponseBodyTooLarge: (cause) => Effect.fail(new GitHubArtifactTooLarge({ limit: cause.limit }, { cause })),
 						}),
 					);
 				}),

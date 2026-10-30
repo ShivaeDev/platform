@@ -1,9 +1,10 @@
 import { Config, Effect, Layer, Option, Redacted, Tracer } from "effect";
+import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { eventually } from "#client/testing.ts";
 import { clickButton, Screen } from "#test/Screen.ts";
 import { connect } from "./connect.ts";
 import { Jobs, migrations, Work } from "./feature.ts";
@@ -60,10 +61,9 @@ export const actions = storyKit({
 					story.tell("a separate worker consumes the durable jobs");
 					const database = yield* PostgresTestDatabase;
 					yield* Layer.build(
-						Jobs.layer({
-							connectionString: Redacted.value(database.url),
-							jobs: [Work.handle(() => Effect.void)],
-						}).pipe(Layer.provide(Layer.succeed(Tracer.Tracer, engine.tracer))),
+						Jobs.layer({ jobs: [Work.handle(() => Effect.void)] })
+							.pipe(Layer.provide(pgBossLayer({ connectionString: database.url })))
+							.pipe(Layer.provide(Layer.succeed(Tracer.Tracer, engine.tracer))),
 					);
 				}),
 		};

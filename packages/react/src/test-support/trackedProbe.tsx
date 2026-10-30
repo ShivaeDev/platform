@@ -1,7 +1,7 @@
 import * as Atom from "effect/reactivity/Atom";
 import { Activity, act } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 import { TrackedProbe } from "./sessionProbes.ts";
 export function trackedProbe(view: Rendered) {
 	const built: number[] = [];

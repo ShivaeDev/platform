@@ -2,8 +2,8 @@ import { CatchBoundary } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type { ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
+import { captureReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { captureReactWarnings, render } from "#client/testing.ts";
 import { BrokenScreen } from "./BrokenScreen.tsx";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

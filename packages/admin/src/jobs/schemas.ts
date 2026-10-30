@@ -1,4 +1,6 @@
 import { Schema } from "effect";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 
 export interface JobsQueue {
 	readonly name: string;
@@ -17,7 +19,7 @@ export class JobsQueueUnregistered extends Schema.TaggedError<JobsQueueUnregiste
 	queue: Schema.String,
 }) {}
 
-export const JobsFailures = { JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable };
+export const JobsFailures = { BadRequest, JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable };
 
 export const QueueCounts = Schema.Struct({
 	activeCount: Schema.Number,
@@ -49,7 +51,7 @@ export const JobFields = {
 	completedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromString),
 	createdOn: Schema.DateTimeUtcFromString,
 	id: Schema.String,
-	output: Schema.Unknown,
+	output: Schema.NullOr(JobFailure),
 	retryCount: Schema.Number,
 	retryLimit: Schema.Number,
 	startedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromString),
@@ -69,7 +71,7 @@ export function deadLetteredSchema<TPayload extends Schema.Top>(queue: { readonl
 		data: queue.schema,
 		queue: Schema.Literal(name),
 		sourceId: Schema.OptionFromNullOr(Schema.String),
-		sourceOutput: Schema.Unknown,
+		sourceOutput: Schema.NullOr(JobFailure),
 	});
 }
 

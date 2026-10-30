@@ -49,7 +49,7 @@ const invalidInputs = {
 	missingSource: [config('{ sources: ["srcc"] }')],
 	throwingRule: [
 		config(
-			'{ local: [{ id: "local/boom", description: "Throws.", configure: async () => ({ _tag: "Ready", check: async () => { throw new Error("boom"); } }) }] }',
+			'{ local: [{ id: "local/boom", description: "Throws.", configure: async () => ({ _tag: "Ready", check: () => { throw new Error("boom"); } }) }] }',
 		),
 	],
 	unreadableBaseline: [config("{}"), { content: "[]", path: "quality-baseline.jsonl" }],

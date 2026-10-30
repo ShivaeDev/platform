@@ -11,12 +11,12 @@ import type { HostCoreOptions, HostPolicy, HostRouteRequirements, HostRoutes } f
 import type { MigrationOptions } from "#MigrationOptions.ts";
 
 export class AppChanges extends Context.Service<AppChanges, Effect.Success<typeof makeLiveServer>>()("@shivaedev/server/AppChanges") {}
-export interface AppDatabaseOptions<R = never> {
+export interface AppDatabaseOptions<R = never, E = never> {
 	readonly config?: DatabaseConfig;
-	readonly migrations: MigrationOptions<R>;
+	readonly migrations: MigrationOptions<R, E>;
 }
 
-export function appDatabase<R>(options: AppDatabaseOptions<R>) {
+export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 	return databaseLayer(options, AppChanges);
 }
 
@@ -35,10 +35,11 @@ export type AppHostOptions<
 	TPreflightRequirements = never,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
 	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
 	HostRoutes<TRouteError, TRouteRequirements> & {
-		readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
+		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
 		readonly policy?: undefined;
 		readonly sessions: SessionPolicy<TSession>;
 	};
@@ -57,10 +58,11 @@ export type AppLocalHostOptions<
 	TPreflightRequirements = never,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
 	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
 	HostRoutes<TRouteError, TRouteRequirements> & {
-		readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
+		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
 		readonly policy: "loopback";
 		readonly sessions?: never;
 	};
@@ -100,6 +102,7 @@ export const appHost: AppHostFactory = <
 	TPreflightRequirements = never,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
 >(
 	options: AppHostInput<
 		TRpcs,
@@ -117,7 +120,8 @@ export const appHost: AppHostFactory = <
 		TPreflightError,
 		TPreflightRequirements,
 		TRouteError,
-		TRouteRequirements
+		TRouteRequirements,
+		TMigrationError
 	>,
 ) => {
 	if ("application" in options) {

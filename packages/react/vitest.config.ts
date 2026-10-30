@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { testProjects } from "@shivaedev/quality/testProjects.ts";
+import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
 
 const test = testProjects();
 for (const project of test.projects ?? []) {

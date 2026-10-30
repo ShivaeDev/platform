@@ -1,6 +1,6 @@
-import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
 import { afterEach, expect, it } from "vitest";
+import { services } from "#cli/runMain.ts";
 import { resolveRules } from "#config/resolve.ts";
 import { evaluate, passes } from "#engine/evaluate.ts";
 import { runRules } from "#engine/runRules.ts";
@@ -9,6 +9,7 @@ import { render } from "#report/render.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { browserFence, fenceDiscovery, replaceBoundary } from "#test/fenceDiscovery.ts";
 import { findingsIn, scanned } from "#test/imports.ts";
+import { run } from "#test/run.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -17,7 +18,7 @@ it("discovers a package boundary outside the source inventory and reports its tr
 	const root = fenceDiscovery();
 	const inputs = await scanned(root);
 	const inventory = await Effect.runPromise(
-		collectInventory(root, { exclude: [], extensions: [".ts"], sources: ["packages/ui/src"] }).pipe(Effect.provide(NodeFileSystem.layer)),
+		collectInventory(root, { exclude: [], extensions: [".ts"], sources: ["packages/ui/src"] }).pipe(Effect.provide(services)),
 	);
 	expect(inventory.files).not.toContain("packages/ui/quality.fences.config.ts");
 	const resolved = await Effect.runPromise(resolveRules({}));
@@ -25,7 +26,7 @@ it("discovers a package boundary outside the source inventory and reports its tr
 		throw new Error(resolved.issues.join("\n"));
 	}
 	const rules = resolved.value;
-	const violations = await Effect.runPromise(
+	const violations = await run(
 		runRules(
 			rules.active.filter((rule) => rule.id === "imports/fences"),
 			{ ...inputs, ...inventory },

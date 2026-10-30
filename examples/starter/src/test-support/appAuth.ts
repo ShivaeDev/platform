@@ -5,6 +5,7 @@ export function appAuth(options: {
 	readonly baseUrl: string;
 	readonly signedIn?: boolean;
 	readonly sessionFailure?: boolean;
+	readonly malformedSession?: boolean;
 	readonly signOutFailure?: string;
 	readonly onSessionChange?: (signedIn: boolean) => void;
 }) {
@@ -29,7 +30,10 @@ export function appAuth(options: {
 			updatedAt: date,
 		},
 	};
-	let session = options.signedIn ? signedInSession : null;
+	const initialSession = options.malformedSession
+		? { ...signedInSession, user: { ...signedInSession.user, permissions: "invalid" } }
+		: signedInSession;
+	let session = options.signedIn ? initialSession : null;
 	const auth = makeAuth({
 		baseUrl: options.baseUrl,
 		fetchOptions: {

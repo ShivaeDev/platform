@@ -1,4 +1,6 @@
 import { relative } from "node:path";
+import { Effect } from "effect";
+import { VitestRerunError } from "#error.ts";
 import { type FlakyTest, failureMessage, testcases } from "#flakyTests.ts";
 import { junitClassname } from "#internal/junit.ts";
 import { type FailureHistory, type Files, type Snapshot, type Task, tests } from "#internal/snapshot.ts";
@@ -27,7 +29,7 @@ function restorePassed(original: Task[], rerun: Task[]) {
 	for (const task of rerun) {
 		const first = original.find((item) => item.id === task.id);
 		if (first === undefined) {
-			throw new Error(`Rerun collected an unexpected test: ${task.name}`);
+			continue;
 		}
 		if (task.type === "suite" && first.type === "suite") {
 			restorePassed(first.tasks, task.tasks);
@@ -70,9 +72,6 @@ function recordAttempts(file: File, retried: Task[], outcome: Outcome) {
 function mergeFile(file: File, next: File, outcome: Outcome) {
 	const original = tests(file.tasks);
 	const retried = tests(next.tasks);
-	if (original.some((test) => !retried.some((item) => item.id === test.id))) {
-		throw new Error(`Rerun did not collect every original test in ${file.filepath}`);
-	}
 	const ranTests = retried.some(
 		(test) => ["pass", "fail"].includes(test.result?.state ?? "") && original.some((item) => item.id === test.id && item.result?.state !== "pass"),
 	);
@@ -85,13 +84,54 @@ function mergeFile(file: File, next: File, outcome: Outcome) {
 	finishFile(file, next, ranTests);
 }
 
-export interface Merged {
+interface Merged {
 	readonly failures: Readonly<Record<string, FailureHistory>>;
 	readonly files: Files;
 	readonly flaky: readonly FlakyTest[];
 }
 
-export function mergeAttempt(previous: Snapshot, rerun: Files, root: string, summary: (line: string) => void): Merged {
+function unexpectedTask(original: readonly Task[], rerun: readonly Task[]): Task | undefined {
+	for (const task of rerun) {
+		const first = original.find((item) => item.id === task.id);
+		if (first === undefined) {
+			return task;
+		}
+		const unexpected = first.type === "suite" && task.type === "suite" ? unexpectedTask(first.tasks, task.tasks) : undefined;
+		if (unexpected !== undefined) {
+			return unexpected;
+		}
+	}
+	return undefined;
+}
+
+function refusal(previous: Snapshot, rerun: Files, root: string): string | undefined {
+	for (const file of previous.files) {
+		const next = rerun.find((item) => item.id === file.id);
+		if (next === undefined) {
+			continue;
+		}
+		const original = tests(file.tasks);
+		if (original.some((test) => !tests(next.tasks).some((item) => item.id === test.id))) {
+			return `Rerun did not collect every original test in ${relative(root, file.filepath)}`;
+		}
+		const unexpected = original.length === 0 ? undefined : unexpectedTask(file.tasks, next.tasks);
+		if (unexpected !== undefined) {
+			return `Rerun collected an unexpected test: ${unexpected.name}`;
+		}
+	}
+	return undefined;
+}
+
+export const mergeAttempt = Effect.fn("VitestRerun.mergeAttempt")(function* (
+	previous: Snapshot,
+	rerun: Files,
+	root: string,
+	summary: (line: string) => void,
+) {
+	const refused = refusal(previous, rerun, root);
+	if (refused !== undefined) {
+		return yield* new VitestRerunError({ message: refused });
+	}
 	const outcome: Outcome = { failures: { ...previous.failures }, flaky: [...previous.flaky], root, summary };
 	const files = previous.files.map((file) => {
 		const next = rerun.find((item) => item.id === file.id);
@@ -101,5 +141,6 @@ export function mergeAttempt(previous: Snapshot, rerun: Files, root: string, sum
 		mergeFile(file, next, outcome);
 		return next;
 	});
-	return { failures: outcome.failures, files, flaky: outcome.flaky };
-}
+	const merged: Merged = { failures: outcome.failures, files, flaky: outcome.flaky };
+	return merged;
+});

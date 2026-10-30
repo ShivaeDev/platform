@@ -8,7 +8,7 @@ const Line = Schema.Struct({
 	rule: Schema.NonEmptyString,
 });
 
-const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(Line), { parseOptions: { errors: "all", onExcessProperty: "error" } });
+const BaselineLine = Schema.fromJsonString(Line);
 
 export interface BaselineEntry {
 	readonly count: number;
@@ -36,7 +36,7 @@ export async function decodeBaseline(raw: string | undefined): Promise<Decoded<r
 	const entries: BaselineEntry[] = [];
 	const seen = new Set<string>();
 	for (const { line, text } of linesOf(raw)) {
-		const decoded = await decodeWith(standard, text);
+		const decoded = await decodeWith(BaselineLine, text);
 		if (decoded._tag === "Invalid") {
 			issues.push(...decoded.issues.map((issue) => `line ${line}: ${issue}`));
 			continue;

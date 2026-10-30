@@ -1,4 +1,8 @@
+import { Schema } from "effect";
 import type { PgBoss } from "pg-boss";
+
+const IndexBuilds = Schema.Array(Schema.Struct({ command: Schema.String, id: Schema.String }));
+const IndexValidity = Schema.Array(Schema.Struct({ invalid: Schema.Boolean }));
 
 const BUILD_PREFIX = "effect-pg-boss-schema:";
 
@@ -30,11 +34,11 @@ export async function resumeSchemaIndexes(client: PgBoss, schema: string): Promi
 		`SELECT id, command FROM ${schema}.bam WHERE starts_with(name, $1) AND status <> 'completed' ORDER BY created_on, name`,
 		[BUILD_PREFIX],
 	);
-	for (const row of rows) {
+	for (const row of Schema.decodeUnknownSync(IndexBuilds)(rows)) {
 		const name = indexName(row.command);
 		if (/^\s*CREATE /mu.test(row.command)) {
 			const probe = await db.executeSql("SELECT NOT indisvalid AS invalid FROM pg_index WHERE indexrelid = to_regclass($1)", [`${schema}.${name}`]);
-			if (probe.rows[0]?.invalid === true) {
+			if (Schema.decodeUnknownSync(IndexValidity)(probe.rows)[0]?.invalid === true) {
 				await db.executeSql(`DROP INDEX CONCURRENTLY IF EXISTS ${schema}."${name}"`);
 			}
 		}

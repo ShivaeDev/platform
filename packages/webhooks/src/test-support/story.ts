@@ -1,21 +1,14 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { Receipt } from "#server/internal/Receipt.ts";
 import { auditQueue } from "#test/fixture.ts";
 import { type HandledJob, type InboxState, inboxState, startHost } from "#test/host.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
 import { raceVerbs } from "#test/raceVerbs.ts";
 import { type Delivery, deliver } from "#test/requests.ts";
 import { requestOutcomes, secretsSeenIn, spanNames } from "#test/telemetry.ts";
-
-interface ReceiptRow {
-	readonly "delivery_id": string;
-	readonly event: string;
-	readonly "job_ids": readonly string[];
-	readonly outcome: string;
-	readonly source: string;
-}
 
 function testingOf(state: InboxState) {
 	return state.testing === undefined ? Effect.die(new Error("The host has not started its jobs client")) : Effect.succeed(state.testing);
@@ -59,13 +52,13 @@ export const inbox = storyKit({
 		storedReceipts: () =>
 			Effect.gen(function* () {
 				yield* workersIdle(state);
-				const rows = yield* SqlClient.SqlClient.use(
-					(sql) => sql<ReceiptRow>`select * from webhook_receipts order by source, delivery_id`.withoutTransform,
+				const rows = yield* SqlClient.SqlClient.use((sql) => sql`select * from webhook_receipts order by source, delivery_id`.withoutTransform).pipe(
+					Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Receipt))),
 				);
 				return rows.map((row) => ({
-					delivery: row.delivery_id,
+					delivery: row.deliveryId,
 					event: row.event,
-					jobs: row.job_ids.map((id) => receiptJobName(state, id)).toSorted(),
+					jobs: row.jobIds.map((id) => receiptJobName(state, id)).toSorted(),
 					outcome: row.outcome,
 					source: row.source,
 				}));
@@ -88,3 +81,15 @@ export const receiptsTableGone = inbox.trait("inbox", "the database can no longe
 export const firstReceiptUpdateFails = inbox.trait("inbox", "the first copy to update its receipt fails", (state) => {
 	state.firstReceiptUpdateFails = true;
 });
+
+export function senderOptIn(expiry: "future" | "past") {
+	return inbox.trait("inbox", `the sender's opt-in expires in the ${expiry}`, function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`create table webhook_senders (sender text primary key, allowed_until timestamptz not null)`;
+		yield* sql`insert into webhook_senders values ('alice', now() + ${expiry === "future" ? "1 day" : "-1 day"}::interval)`;
+	});
+}
+
+export const senderPreferencesGone = inbox.trait("inbox", "the sender preferences table is unavailable", () =>
+	SqlClient.SqlClient.use((sql) => sql`drop table webhook_senders`),
+);

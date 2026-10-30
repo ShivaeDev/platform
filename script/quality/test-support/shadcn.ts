@@ -1,6 +1,6 @@
 import { rmSync } from "node:fs";
-import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
+import { services } from "@shivaedev/quality/cli/runMain.ts";
 import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
 import type { Violation } from "@shivaedev/quality/engine/violation.ts";
@@ -21,7 +21,7 @@ export const shadcn = storyKit({
 			Effect.sync((): Repository => ({ inventory: undefined, root: seedTree([]), violations: [] })),
 			({ root }) => Effect.sync(() => rmSync(root, { force: true, recursive: true })),
 		),
-	layer: NodeFileSystem.layer,
+	layer: services,
 	name: "shadcn source ownership",
 	stages: ["configured"],
 	verbs: (engine) => ({

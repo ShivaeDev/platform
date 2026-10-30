@@ -38,6 +38,8 @@ await Effect.runPromise(program.pipe(Effect.provide(github)));
 
 `GitHubToken.fromEnv` reads `GH_TOKEN`, then `GITHUB_TOKEN`, through Effect Config. If neither is set, requests are unauthenticated. To supply a token directly, provide `GitHubToken` with `Option.some(Redacted.make(token))`; use `Option.none()` for anonymous access. Requests send `Accept: application/vnd.github+json` and `X-GitHub-Api-Version: 2022-11-28`.
 
+`GitHubToken.fromEnvOrCli` uses the same environment precedence, then runs `gh auth token` through Effect `ChildProcessSpawner` when neither variable is set. Provide the spawner with this Layer. Authentication failure is a typed `GitHubTokenError` with a string `reason` (`config`, `command` or `refused`) and a non-enumerable `cause`.
+
 The default base URL is `https://api.github.com`. Provide `GitHubConfig` from `@shivaedev/github/GitHubConfig.ts` with `{ apiUrl }` for another GitHub API endpoint.
 
 `read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST` or `PATCH` and decodes its response. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to these helpers for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.

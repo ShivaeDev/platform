@@ -1,10 +1,11 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { act } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
-import { eventually } from "@shivaedev/react/client/testing.ts";
 import { loadQuery } from "@shivaedev/react/loadQuery.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { App } from "#client/App.tsx";
 import { appRouter } from "#client/appRouter.tsx";
 import type { AuthActions, Credentials } from "#client/auth.ts";
@@ -20,6 +21,7 @@ import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen } from "#test-support/screenState.ts";
 import { notesClient } from "./client.ts";
 import type { Screen } from "./screenState.ts";
+import { settleQuery } from "./settleQuery.ts";
 
 export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: Screen, route: string, signedIn = true) {
 	engine.client.session.signedIn = signedIn;
@@ -32,9 +34,12 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 			engine.client.api.get.query({ id: 1 });
 		}
 		view.registry.mount(engine.client.api[LiveConnection].connection);
-		yield* eventually(() =>
-			requireSetup(view.registry.get(engine.client.api[LiveConnection].status).connection === "live", "The fixture live connection did not open"),
-		);
+		yield* screenDriver({
+			act,
+			pending: () => view.registry.get(engine.client.api[LiveConnection].status).connection !== "live",
+			root: view.container,
+			tell: () => undefined,
+		}).settle();
 	}
 	const router = appRouter(
 		view.registry,
@@ -45,7 +50,7 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
 	if (signedIn) {
-		yield* eventually(() => requireSetup(engine.client.calls.includes(route === "/" ? "list" : "get"), "The route did not load its query"));
+		yield* settleQuery(engine, route === "/" ? "list" : "get");
 	}
 });
 
@@ -85,6 +90,9 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 	yield* Effect.promise(() =>
 		view.render(<App auth={fixture.auth} connect={() => connectModules([notesRegistration(engine.client)])} history={history} />),
 	);
+	const session = fixture.auth.client.$store.atoms.session;
+	yield* requireSetup(session !== undefined, "The auth client has no session atom");
+	yield* screenDriver({ act, pending: () => session?.get().isPending ?? false, root: view.container, tell: () => undefined }).settle();
 });
 
 export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: Screen, signOutFailure?: string) {
@@ -101,17 +109,20 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 				});
 	engine.client.api.list.query();
 	view.registry.mount(engine.client.api[LiveConnection].connection);
-	yield* eventually(() =>
-		requireSetup(view.registry.get(engine.client.api[LiveConnection].status).connection === "live", "The fixture live connection did not open"),
-	);
+	yield* screenDriver({
+		act,
+		pending: () => view.registry.get(engine.client.api[LiveConnection].status).connection !== "live",
+		root: view.container,
+		tell: () => undefined,
+	}).settle();
 	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
 	yield* Effect.promise(() => view.render(<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />));
-	yield* eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load"));
+	yield* settleQuery(engine, "list");
 });
 
 export const openSession = Effect.fn("ScreenStory.openSession")(function* (engine: Screen) {
 	const alice = engine.client;
-	const bob = notesClient();
+	const bob = yield* notesClient();
 	function connection({ id }: { readonly id: string }) {
 		return id === "alice" ? alice : bob;
 	}
@@ -132,10 +143,10 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 				sessionId={id}
 			/>,
 		);
-		await Effect.runPromise(eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load")));
 	}
 	engine.switchSession = switchSession;
 	yield* Effect.promise(() => switchSession("alice"));
+	yield* settleQuery(engine, "list");
 });
 
 export const openCodePreview = Effect.fn("ScreenStory.openCodePreview")(function* (engine: Screen, lines: readonly CodePreviewLine[]) {

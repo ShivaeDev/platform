@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test-sql",
-	"version": "0.11.0",
+	"version": "0.14.0",
 	"description": "PostgreSQL rollback and real-commit test isolation for Effect",
 	"keywords": [
 		"effect"
@@ -31,8 +31,7 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./package.json": "./package.json",
-		"./server/internal/*": null
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",
@@ -55,7 +54,9 @@
 	"devDependencies": {
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
+		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/service": "workspace:*",
 		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

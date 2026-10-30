@@ -25,7 +25,7 @@ export function authenticatedRequest<R>(
 			const sent = client.execute(withCredential(input, current));
 			return (
 				mode === "manual" ? sent.pipe(Effect.provideService(FetchHttpClient.RequestInit, { credentials: "omit", redirect: "manual" })) : sent
-			).pipe(Effect.mapError(() => new GitHubTransportError({ path })));
+			).pipe(Effect.mapError((cause) => new GitHubTransportError({ path }, { cause })));
 		}
 		const credential = yield* accessToken;
 		let response = yield* send(credential);
@@ -36,7 +36,7 @@ export function authenticatedRequest<R>(
 		const observedResource = rates.observe(response);
 		if (!((mode === "revalidate" && isUnchanged(response)) || (mode === "manual" && response.status === HttpStatus.fromLiteral("Found")))) {
 			yield* checkStatus(response, observedResource, rates.failures.get(observedResource) ?? 0).pipe(
-				Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path }))),
+				Effect.catchTag("HttpClientError", (cause) => Effect.fail(new GitHubTransportError({ path }, { cause }))),
 				Effect.catchTag("GitHubRateLimited", (error) => {
 					rates.blocked.set(error.resource, error);
 					rates.failures.set(error.resource, (rates.failures.get(error.resource) ?? 0) + 1);

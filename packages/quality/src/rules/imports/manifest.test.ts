@@ -98,6 +98,6 @@ describe("imports/manifest", () => {
 
 	it("fails closed on unreadable dependency policy", async () => {
 		const root = manifestTree([shipped, { content: '{"name":"@acme/app","dependencies":[]}', path: "modules/app/package.json" }]);
-		await expect(findingsIn(importsManifest, undefined, root)).rejects.toThrow("cannot read dependency policy at modules/app/package.json");
+		await expect(findingsIn(importsManifest, undefined, root)).rejects.toThrow("Invalid package manifest");
 	});
 });

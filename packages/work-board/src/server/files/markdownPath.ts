@@ -1,31 +1,58 @@
-import { Effect, FileSystem, Option, Path } from "effect";
+import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
 import { isMarkdown, within } from "./list.ts";
+import { readPaths } from "./readPaths.ts";
 
-export const markdownPath = Effect.fn("WorkBoard.markdownPath")(function* (root: string, realRoot: string, relative: string) {
-	if (!isMarkdown(relative) || relative.split("/").some((segment) => segment === "" || segment === "..")) {
-		return undefined;
-	}
+export const markdownPaths = Effect.fn("WorkBoard.markdownPaths")(function* (realRoot: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const segments = relative.split("/");
-	const ancestors = new Set([realRoot]);
-	let boundary = realRoot;
-	for (let index = 0; index < segments.length; index += 1) {
-		const real = yield* Effect.option(fs.realPath(path.join(root, ...segments.slice(0, index + 1))));
-		if (Option.isNone(real)) {
-			return undefined;
-		}
-		if (index === segments.length - 1) {
-			return within(boundary, path.sep, real.value) ? real.value : undefined;
-		}
-		const info = yield* Effect.option(fs.stat(real.value));
-		if (Option.isNone(info) || info.value.type !== "Directory" || ancestors.has(real.value) || within(real.value, path.sep, realRoot)) {
-			return undefined;
-		}
-		ancestors.add(real.value);
-		if (!within(boundary, path.sep, real.value)) {
-			boundary = real.value;
-		}
+	const resolve = yield* readPaths(realRoot);
+	interface Directory {
+		readonly ancestors: ReadonlySet<string>;
+		readonly boundary: string;
 	}
-	return undefined;
+	type Checked = Effect.Effect<Directory | undefined, PlatformError.PlatformError>;
+	const directories = new Map<string, Checked>([["", Effect.succeed({ ancestors: new Set([realRoot]), boundary: realRoot })]]);
+	function directory(relative: string): Checked {
+		return Effect.gen(function* () {
+			const hit = directories.get(relative);
+			if (hit) {
+				return yield* hit;
+			}
+			const checked = yield* Effect.cached(
+				Effect.gen(function* () {
+					const parent = yield* directory(relative.slice(0, Math.max(0, relative.lastIndexOf("/"))));
+					if (!parent) {
+						return undefined;
+					}
+					const real = yield* resolve(relative);
+					const info = yield* fs.stat(real);
+					if (info.type !== "Directory" || parent.ancestors.has(real) || within(real, path.sep, realRoot)) {
+						return undefined;
+					}
+					return {
+						ancestors: new Set([...parent.ancestors, real]),
+						boundary: within(parent.boundary, path.sep, real) ? parent.boundary : real,
+					};
+				}),
+			);
+			directories.set(relative, checked);
+			return yield* checked;
+		});
+	}
+	return (relative: string): Effect.Effect<string | undefined> =>
+		Effect.gen(function* () {
+			if (!isMarkdown(relative) || relative.split("/").some((segment) => segment === "" || segment === "..")) {
+				return undefined;
+			}
+			const parent = yield* Effect.option(directory(relative.slice(0, Math.max(0, relative.lastIndexOf("/")))));
+			if (Option.isNone(parent) || !parent.value) {
+				return undefined;
+			}
+			const real = yield* Effect.option(resolve(relative));
+			return Option.isSome(real) && within(parent.value.boundary, path.sep, real.value) ? real.value : undefined;
+		});
+});
+
+export const markdownPath = Effect.fn("WorkBoard.markdownPath")(function* (_root: string, realRoot: string, relative: string) {
+	return yield* (yield* markdownPaths(realRoot))(relative);
 });

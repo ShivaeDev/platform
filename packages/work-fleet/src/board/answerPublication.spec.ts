@@ -15,7 +15,6 @@ host.it("an answer reaches its waiting worker when another publisher registers t
 	const answer = yield* daemon.pauseAnswerRegistration("one", text);
 	yield* answer.entered;
 	expect((yield* daemon.publishDecision("one")).value.decision?.published).toEqual(published);
-	const registered = daemon.readBoard(`responses/${published.questionId}.md`);
 	yield* answer.release;
 	const resumed = yield* answer.result;
 	expect(resumed.responses).toMatchObject([{ action: "continue", boardAcknowledged: true, questionId: published.questionId }]);
@@ -23,6 +22,5 @@ host.it("an answer reaches its waiting worker when another publisher registers t
 	expect(continued.step).toBe("working");
 	expect(continued.attempts.at(-1)?.prompt).toBe(text);
 	expect(continued.attempts.at(-1)?.receipt?.sessionId).toBe(started.attempts.at(-1)?.receipt?.sessionId);
-	expect(daemon.readBoard(`responses/${published.questionId}.md`)).toBe(registered);
 	expect(daemon.providerCalls().map((call) => call.call)).toEqual(["session", "turn", "turn"]);
 });

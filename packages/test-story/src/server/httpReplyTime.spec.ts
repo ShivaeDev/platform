@@ -1,59 +1,58 @@
-import * as HttpStatus from "effect/http/HttpStatus";
-import { expect } from "vitest";
-import { timedHttpApp } from "#test/httpFaultApp.ts";
+import { outcomes } from "#outcomes.ts";
+import { rateLimited, timedHttpApp } from "#test/httpFaultApp.ts";
 
-for (const control of ["failOnce", "replyOnce", "scriptFault", "afterFault"] as const) {
+for (const phase of ["before", "after"] as const) {
 	timedHttpApp.it(
-		`builds a ${control} reply at arrival on its creation clock`,
+		`builds a one-shot fault's reply ${phase} the route's reply when the request arrives, at the story clock's time`,
 		[],
-		function* ({ failOnce, replyOnce, scriptFault, advanceTime, request, requests }) {
-			function reply(incoming: { path: string; query: URLSearchParams }, now: number) {
-				return {
-					body: { path: incoming.path, value: incoming.query.get("value") },
-					headers: { "x-ratelimit-reset": String(now + 60_000) },
-					status: HttpStatus.fromLiteral("TooManyRequests"),
-				};
-			}
-			if (control === "scriptFault" || control === "afterFault") {
-				yield* scriptFault("data", { kind: "status", reply }, { phase: control === "afterFault" ? "after" : "before", repeat: true });
-			} else {
-				yield* { failOnce, replyOnce }[control]("data", reply);
-			}
-			yield* advanceTime(12_000);
-			const first = yield* request("/data?value=first");
-			expect(yield* first.headers).toMatchObject({ headers: { "x-ratelimit-reset": "72000" }, status: HttpStatus.fromLiteral("TooManyRequests") });
-			expect(yield* first.finished).toEqual({ bytes: Buffer.from('{"path":"/data?value=first","value":"first"}'), kind: "complete" });
-			yield* advanceTime(3000);
-			const second = yield* request("/data?value=second");
-			expect(yield* second.headers).toMatchObject(
-				control === "scriptFault" || control === "afterFault"
-					? { headers: { "x-ratelimit-reset": "75000" }, status: HttpStatus.fromLiteral("TooManyRequests") }
-					: { status: HttpStatus.fromLiteral("OK") },
-			);
-			yield* second.finished;
-			expect(requests()).toEqual([
-				"GET /data?value=first 429",
-				`GET /data?value=second ${control === "scriptFault" || control === "afterFault" ? HttpStatus.fromLiteral("TooManyRequests") : HttpStatus.fromLiteral("OK")}`,
-			]);
+		function* ({ answer, header, scriptFault, sends, timePasses }) {
+			yield* scriptFault("data", { kind: "status", reply: rateLimited }, { phase });
+			yield* timePasses(12_000);
+
+			yield* sends("client", "/data?value=first");
+
+			yield* outcomes({
+				answer: [answer("client"), 'HTTP 429 {"value":"first"}'],
+				"rate limit reset": [header("client", "x-ratelimit-reset"), "72000"],
+			});
 		},
 	);
 }
 
-timedHttpApp.it("builds an immediate fault from the held request at refusal time", [], function* ({ hold, advanceTime, request, fault, requests }) {
-	const paused = yield* hold("data");
-	const client = yield* request("/data?value=held");
-	yield* paused.waiting;
-	expect(requests()).toEqual(["GET /data?value=held pending"]);
-	yield* advanceTime(42_000);
-	yield* fault("data", {
-		kind: "status",
-		reply: (incoming, now) => ({
-			body: { value: incoming.query.get("value") },
-			headers: { "x-ratelimit-reset": String(now + 60_000) },
-			status: HttpStatus.fromLiteral("TooManyRequests"),
-		}),
-	});
-	expect(yield* client.headers).toMatchObject({ headers: { "x-ratelimit-reset": "102000" }, status: HttpStatus.fromLiteral("TooManyRequests") });
-	expect(yield* client.finished).toEqual({ bytes: Buffer.from('{"value":"held"}'), kind: "complete" });
-	expect(requests()).toEqual(["GET /data?value=held 429"]);
-});
+for (const phase of ["before", "after"] as const) {
+	timedHttpApp.it(
+		`builds a repeated fault's reply ${phase} the route's reply again for each arrival`,
+		[],
+		function* ({ answer, asks, header, scriptFault, sends, timePasses }) {
+			yield* scriptFault("data", { kind: "status", reply: rateLimited }, { phase, repeat: true });
+			yield* timePasses(12_000);
+			yield* asks("/data?value=first");
+			yield* timePasses(3000);
+
+			yield* sends("second", "/data?value=second");
+
+			yield* outcomes({
+				answer: [answer("second"), 'HTTP 429 {"value":"second"}'],
+				"rate limit reset": [header("second", "x-ratelimit-reset"), "75000"],
+			});
+		},
+	);
+}
+
+timedHttpApp.it(
+	"builds an immediate fault's reply from the waiting request at the time of the fault",
+	[],
+	function* ({ answer, fault, header, hold, sends, timePasses }) {
+		const paused = yield* hold("data");
+		yield* sends("client", "/data?value=held");
+		yield* paused.waiting;
+		yield* timePasses(42_000);
+
+		yield* fault("data", { kind: "status", reply: rateLimited });
+
+		yield* outcomes({
+			answer: [answer("client"), 'HTTP 429 {"value":"held"}'],
+			"rate limit reset": [header("client", "x-ratelimit-reset"), "102000"],
+		});
+	},
+);

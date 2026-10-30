@@ -1,30 +1,36 @@
 #!/usr/bin/env node
-import process from "node:process";
-import { Effect, Logger } from "effect";
+import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import { Cause, Console, Effect, Logger, Stdio, Stream } from "effect";
+import { CliError, Command } from "effect/cli";
+import { GitHubTokenError } from "@shivaedev/github/errors.ts";
 import { WatchError } from "#model.ts";
-import { program } from "#program.ts";
+import packageInfo from "#package.json" with { type: "json" };
+import { watchCommand } from "#program.ts";
+import { requestFailure } from "#requestFailure.ts";
 import { watcherLayer } from "#watcherLayer.ts";
 
-function write(stream: NodeJS.WriteStream) {
-	return (line: string) =>
-		Effect.tryPromise({
-			catch: () => new WatchError({ message: "Output stream failed" }),
-			try: () => new Promise<void>((resolve, reject) => stream.write(`${line}\n`, (error) => (error ? reject(error) : resolve()))),
-		});
-}
-const abort = new AbortController();
-process.once("SIGINT", () => abort.abort());
-process.once("SIGTERM", () => abort.abort());
-try {
-	await Effect.runPromise(
-		program(process.argv.slice(2), write(process.stdout), write(process.stderr)).pipe(Effect.provide(watcherLayer), Effect.provide(Logger.layer([]))),
-		{
-			signal: abort.signal,
-		},
-	);
-} catch (cause) {
-	if (!abort.signal.aborted) {
-		process.stderr.write(`${cause instanceof Error ? cause.message : "Watcher failed"}\n`);
-		process.exitCode = 1;
+const main = Effect.gen(function* () {
+	const stdio = yield* Stdio.Stdio;
+	function emit(line: string) {
+		return Stream.make(`${line}\n`).pipe(
+			Stream.run(stdio.stdout({ endOnDone: false })),
+			Effect.mapError((cause) => new WatchError({ message: "Output stream failed", reason: "output" }, { cause })),
+		);
 	}
-}
+	function diagnostic(line: string) {
+		return Stream.make(`${line}\n`).pipe(
+			Stream.run(stdio.stderr({ endOnDone: false })),
+			Effect.mapError((cause) => new WatchError({ message: "Output stream failed", reason: "output" }, { cause })),
+		);
+	}
+	yield* Command.run(watchCommand(emit, diagnostic).pipe(Command.provide(watcherLayer)), { version: packageInfo.version });
+}).pipe(
+	Effect.tapError((error) =>
+		CliError.isCliError(error) ? Effect.void : Console.error(error instanceof GitHubTokenError ? error.message : requestFailure(error).message),
+	),
+	Effect.tapCause((cause) => (Cause.hasDies(cause) ? Console.error(Cause.pretty(cause)) : Effect.void)),
+	Effect.provide(NodeServices.layer),
+	Effect.provide(Logger.layer([])),
+);
+
+NodeRuntime.runMain(main, { disableErrorReporting: true });

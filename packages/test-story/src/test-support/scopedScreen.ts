@@ -24,8 +24,16 @@ export const scopedScreen = storyKit({
 	},
 	name: "scoped screen",
 	stages: [],
-	verbs: ({ root }, story) => ({
-		...screenDriver({ pending: () => false, root, tell: story.tell }),
-		delivery: () => root.querySelector<HTMLElement>('[aria-label="Delivery"]') ?? root,
-	}),
+	verbs: ({ root }, story) => {
+		const driver = screenDriver({ pending: () => false, root, tell: story.tell });
+		function section(name: "Billing" | "Delivery") {
+			return driver.within(`[aria-label="${name}"]`);
+		}
+		return {
+			...driver,
+			deliverySection: () => root.querySelector<HTMLElement>('[aria-label="Delivery"]') ?? root,
+			enteredCity: (name: "Billing" | "Delivery") => Effect.sync(() => section(name).value("input")),
+			savedCity: (name: "Billing" | "Delivery") => Effect.sync(() => section(name).text("output")),
+		};
+	},
 });

@@ -33,7 +33,7 @@ export function makeValidate(state: EngineState) {
 function repairChecks(state: EngineState, stored: Versioned<FleetRecord>, checks: Checks) {
 	const exhausted = exhaustedCheckRepairs(stored.value, checks.failedChecks ?? []);
 	return exhausted.length === 0
-		? state.save(stored, { ...stored.value, blocker: undefined, step: "repairing" })
+		? state.save(stored, { ...stored.value, areaQueuedAt: state.policy.now(), blocker: undefined, step: "repairing" })
 		: state.decision(
 				stored,
 				"checks-repair-exhausted",

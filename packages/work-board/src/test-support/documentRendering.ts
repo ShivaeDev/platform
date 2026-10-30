@@ -1,6 +1,6 @@
 import { Clock, Effect } from "effect";
 import { act, createElement } from "react";
-import { render } from "@shivaedev/react/client/testing.ts";
+import { render } from "@shivaedev/test-story/client/react.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentView } from "#client/document/View.ts";
 import { metadataParse } from "#server/metadata/parse.ts";

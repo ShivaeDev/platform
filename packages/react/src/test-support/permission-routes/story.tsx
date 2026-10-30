@@ -1,6 +1,6 @@
 import { Effect, Predicate } from "effect";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Rendered } from "#client/testing.ts";
 import { clickButton, screenWarnings } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { permissionApp } from "./app.tsx";
@@ -37,8 +37,7 @@ export function visitor(role: Role | undefined, initial = "/notes/first", server
 		state.host = host;
 		const session = role === undefined ? undefined : yield* host.payload(role);
 		const denied =
-			(initial.startsWith("/notes/") && role !== undefined && role !== "reader")
-			|| ((initial === "/query" || initial.startsWith("/notes/")) && serverRole !== undefined && serverRole !== "reader");
+			(initial.startsWith("/notes/") && role === "guest") || ((initial === "/query" || initial.startsWith("/notes/")) && serverRole === "guest");
 		const unavailable = initial === "/notes/offline";
 		const view = yield* screen.open(
 			null,

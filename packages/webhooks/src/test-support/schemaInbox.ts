@@ -1,10 +1,13 @@
-import { Cause, Deferred, Effect, Exit, Fiber, Layer } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Layer, Schema } from "effect";
+import { SqlClient } from "effect/sql";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { Receipt } from "#server/internal/Receipt.ts";
+import createReceipts from "#server/migrations/0001_create_receipts.ts";
+import { webhookReceipts } from "#server/webhookReceipts.ts";
 import { hostLayer, inboxState, startHost } from "#test/host.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
-import { webhookReceipts } from "#webhookReceipts.ts";
 
 function startup(exit: Exit.Exit<unknown, unknown>) {
 	if (Exit.isSuccess(exit)) {
@@ -41,11 +44,24 @@ export const schemaInbox = storyKit({
 				return startup(yield* Fiber.await(state.host));
 			}),
 		pending: () => Effect.map(webhookReceipts.pending, (pending) => pending ?? "nothing pending"),
+		receiptJobIdsType: () => SqlClient.SqlClient.use((sql) => sql`select pg_typeof(job_ids)::text as type from webhook_receipts limit 1`),
+		receipts: () =>
+			SqlClient.SqlClient.use((sql) => sql`select * from webhook_receipts order by delivery_id`.withoutTransform).pipe(
+				Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Receipt))),
+			),
 		startInCheckMode: () => {
 			story.tell("the host starts in check mode");
 			return Layer.build(hostLayer(state)).pipe(Effect.scoped, Effect.exit, Effect.map(startup));
 		},
 	}),
+});
+
+export const legacyReceipts = schemaInbox.trait("database", "receipts were recorded before the receipts migration ledger existed", function* () {
+	yield* createReceipts;
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`insert into webhook_receipts (source, delivery_id, event, received_at, outcome, job_ids) values
+		('github', 'delivery-1', 'issues', '2026-10-01T12:00:00Z', 'queued', '["second-job", "first-job"]'::jsonb),
+		('github', 'delivery-2', 'ping', '2026-10-01T12:00:01Z', 'ignored', '[]'::jsonb)`;
 });
 
 export const jobsSchemaInstalled = schemaInbox.trait(

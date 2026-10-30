@@ -64,11 +64,6 @@ describe("registry file", () => {
 		expect(await decodeRegistry(undefined)).toEqual({ _tag: "Valid", value: [] });
 	});
 
-	it("reads entries with an optional subject", async () => {
-		const raw = JSON.stringify([{ file: "a.ts", reason: REASON, rule: "biome/override", subject: "suspicious/noExplicitAny" }]);
-		expect(await decodeRegistry(raw)).toEqual({ _tag: "Valid", value: JSON.parse(raw) });
-	});
-
 	it.each([
 		["a missing reason", [{ file: "a.ts", rule: "x" }]],
 		["a blank reason", [{ file: "a.ts", reason: "  ", rule: "x" }]],

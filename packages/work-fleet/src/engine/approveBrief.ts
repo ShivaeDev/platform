@@ -31,6 +31,7 @@ export function approveBrief(state: EngineState) {
 		const updated: FleetRecord = {
 			...record,
 			...approvedDecision(record, state.policy.now(), preserveDecision),
+			areaQueuedAt: record.step === "queued" ? state.policy.now() : record.areaQueuedAt,
 			areas: work.areas,
 			attempts: record.attempts.map((attempt) =>
 				attempt.role === "reviewer" && attempt.reviewRevision === undefined

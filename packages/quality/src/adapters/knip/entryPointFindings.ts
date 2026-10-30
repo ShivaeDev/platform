@@ -1,4 +1,5 @@
 import { join, posix } from "node:path";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { ambientModules } from "#imports/ambient.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
@@ -24,7 +25,7 @@ export async function entryPointFindings(inputs: RuleInputs, findings: Findings)
 	const policies = new Map(
 		await Promise.all(
 			directories.map(async (directory) => {
-				const manifest: unknown = JSON.parse((await inputs.readText(posix.join(directory, "package.json"))) ?? "{}");
+				const manifest = await readPackageManifest(inputs.readText, posix.join(directory, "package.json"));
 				return [directory, isApplication(manifest) ? await entryPointsOf(inputs, directory, manifest, workspace) : []] as const;
 			}),
 		),

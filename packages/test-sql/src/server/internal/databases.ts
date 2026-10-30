@@ -35,7 +35,7 @@ export const database = Effect.fn("PostgresTest.database")(function* (
 	release: (name: string) => Effect.Effect<unknown>,
 	template = "template0",
 ) {
-	const name = databaseName();
+	const name = yield* databaseName;
 	const target = new URL(Redacted.value(url));
 	target.pathname = `/${name}`;
 	target.searchParams.delete("database");

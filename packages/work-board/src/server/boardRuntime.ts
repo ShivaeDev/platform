@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Path, type PlatformError, Schedule, Stream, SubscriptionRef } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, Stream, SubscriptionRef } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
@@ -9,21 +9,22 @@ import { index as indexKeys } from "#rpc/keys.ts";
 import type { BoardOptions } from "#server/board.ts";
 import { boardServices } from "#server/boardServices.ts";
 import { daemonDiagnostics } from "#server/diagnostics/daemon.ts";
-import { watchChanges } from "#server/files/changes.ts";
 import { homeIn } from "#server/files/home.ts";
 import { repositoryPulls } from "#server/files/repository.ts";
 import { checkBrowserAssets, mermaidRoot } from "#server/http/assets.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
 import { publishChanges } from "#server/rpc/publishChanges.ts";
-import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
+import { IndexProgress } from "#server/search/IndexProgress.ts";
+import { watchIndex } from "#server/search/watchIndex.ts";
 import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
 
 export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (options: BoardOptions, server?: HandlerOptions["server"]) {
 	const home = yield* homeIn(options.root, options.home);
 	const mermaid = yield* mermaidRoot();
 	yield* checkBrowserAssets();
-	const changes = yield* watchChanges(options.root);
+	const indexing = yield* SubscriptionRef.make<Indexing | undefined>(undefined);
+	const { changes, read: index } = yield* watchIndex(options.root, home, options.maintainer).pipe(Effect.provideService(IndexProgress, indexing));
 	const liveContext = yield* Layer.build(Layer.effect(AppChanges, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer)));
 	const live = Layer.succeedContext(liveContext);
 	const path = yield* Path.Path;
@@ -32,14 +33,6 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 		Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),
 	);
 	const pullRequests = yield* Effect.cached(Effect.provideContext(repositoryPulls(options.root), platform));
-	const indexing = yield* SubscriptionRef.make<Indexing | undefined>(undefined);
-	const index: Effect.Effect<Snapshot, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> = yield* searchSnapshot(
-		options.root,
-		home,
-		changes,
-		options.maintainer,
-		indexing,
-	);
 
 	yield* SubscriptionRef.changes(indexing).pipe(
 		Stream.runForEach(() => Context.get(liveContext, Reactivity.Reactivity).invalidate(invalidationKeys([indexKeys.item("progress")]))),
@@ -53,7 +46,6 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 			Effect.andThen(pullRequests),
 		),
 	);
-	yield* index.pipe(Effect.ignore, Effect.repeat(Schedule.spaced("1 hour")), Effect.forkScoped);
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);
 	const services = yield* Layer.build(
 		boardServices({

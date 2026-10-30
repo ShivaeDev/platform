@@ -24,7 +24,10 @@ const registeredQuestion = Effect.fn("WorkBoard.registeredQuestion")(function* (
 });
 export function readResponses(snapshot: Effect.Effect<Snapshot, ResponseRejection>) {
 	return Effect.fn("WorkBoard.read")(function* (id: string) {
-		const data = yield* snapshot;
+		const current = yield* snapshot;
+		const data = yield* (current.archived?.(id) ?? Effect.succeed(current)).pipe(
+			Effect.mapError(() => new ServiceUnavailable({ message: "Archived response history could not be read." })),
+		);
 		if (data.unavailable.length > 0) {
 			return yield* Effect.fail(new ServiceUnavailable({ message: "The workspace index is incomplete; no response can be selected safely." }));
 		}

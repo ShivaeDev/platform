@@ -18,20 +18,20 @@ bakery.it("prints the story when the bakery breaks", [hasDough(1)], function* ({
 	yield* oven.bakesEverything();
 });
 
-mill.it("prints what the kit's inspect shows", [sailsAreTurning()], ({ miller, story }) => {
+mill.it("prints what the kit's inspect shows", [sailsAreTurning()], ({ miller, wind }) => {
 	miller.grinds(2);
 
-	expect(story.engine.wind, "wind").toBe(1);
+	expect(wind(), "wind").toBe(1);
 });
 
-mill.it("marks a failure before the story told a line", [], ({ story }) => {
-	expect(story.engine.sacks, "sacks").toBe(1);
+mill.it("marks a failure before the story told a line", [], ({ sacks }) => {
+	expect(sacks(), "sacks").toBe(1);
 });
 
-bakery.it("writes a bakery too large to print to a file", [hasOrders(60)], ({ story }) => {
-	expect(story.engine.orders, "orders").toHaveLength(0);
+bakery.it("writes a bakery too large to print to a file", [hasOrders(60)], ({ pantry }) => {
+	expect(pantry.orders(), "orders").toHaveLength(0);
 });
 
-mill.it("splits the rerun command when a long test name would carry it past the width of a terminal", [], ({ story }) => {
-	expect(story.engine.sacks, "sacks").toBe(1);
+mill.it("splits the rerun command when a long test name would carry it past the width of a terminal", [], ({ sacks }) => {
+	expect(sacks(), "sacks").toBe(1);
 });

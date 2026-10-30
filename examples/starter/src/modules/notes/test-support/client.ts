@@ -1,16 +1,13 @@
 import { Deferred, Effect, Layer, PubSub, Stream } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
-import { Create, type Note, Notes, notes, Update } from "#modules/notes/notes.ts";
+import { Create, type Note, NoteReadAccess, Notes, notes, Update } from "#modules/notes/notes.ts";
+import { notesClientHost } from "./clientHost.ts";
 
-export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
+export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initial: readonly (typeof Note.Type)[] = []) {
 	const rows = [...initial];
-	const calls: string[] = [];
 	const hints = Effect.runSync(PubSub.unbounded<LiveHint>());
 	const session = { signedIn: true };
 	let listGate: Deferred.Deferred<void> | undefined;
@@ -44,17 +41,15 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	const handlers = Notes.toLayer({
 		"notes.$changes": () => Stream.concat(Stream.make({ _tag: "Resync" } as const), Stream.fromPubSub(hints)),
 		"notes.create": ({ title }) =>
-			title.trim() === "reserved"
+			title === "reserved"
 				? Create.reject.Invalid({ field: "title", message: "Choose another title" })
 				: Effect.sync(() => {
-						calls.push("create");
-						const row = { id: rows.length + 1, title: title.trim(), version: 0, wordCount: null };
+						const row = { id: rows.length + 1, title, version: 0, wordCount: null };
 						rows.unshift(row);
 						return row;
 					}),
 		"notes.delete": (input) =>
 			Effect.gen(function* () {
-				calls.push("delete");
 				const row = yield* get(input.id);
 				if (row.version !== input.version) {
 					return yield* Effect.fail(conflict());
@@ -64,16 +59,10 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 					1,
 				);
 			}),
-		"notes.get": ({ id }) =>
-			Effect.tap(get(id), () =>
-				Effect.sync(() => {
-					calls.push("get");
-				}),
-			),
+		"notes.get": ({ id }) => get(id),
 		"notes.import": () => Effect.die("Import is exercised through the application host kit"),
 		"notes.list": () =>
 			Effect.gen(function* () {
-				calls.push("list");
 				if (listGate !== undefined) {
 					yield* Deferred.await(listGate);
 				}
@@ -81,26 +70,19 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 			}),
 		"notes.update": (input) =>
 			Effect.gen(function* () {
-				calls.push("update");
 				const row = yield* get(input.id);
 				if (row.version !== input.version) {
 					return yield* Effect.fail(conflict());
 				}
-				if (input.title.trim() === "reserved") {
+				if (input.title === "reserved") {
 					return yield* Update.reject.Invalid({ field: "title", message: "Choose another title" });
 				}
-				const saved = { ...row, title: input.title.trim(), version: row.version + 1, wordCount: null };
+				const saved = { ...row, title: input.title, version: row.version + 1, wordCount: null };
 				rows[rows.findIndex((note) => note.id === row.id)] = saved;
 				return saved;
 			}),
-		"notes.whoami": () => Effect.map(SessionUser, (user) => user),
 	});
-	class Client extends AtomRpc.Service<Client>()("notes/Client", {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: handlers.pipe(Layer.provideMerge(authentication)),
-	}) {}
-	const api = bind(Notes, Client);
+	const client = yield* notesClientHost(handlers.pipe(Layer.provide(Layer.succeed(NoteReadAccess, () => Effect.succeed(true)))), authentication);
 	function finishNote(id: number, wordCount: number) {
 		const index = rows.findIndex((note) => note.id === id);
 		const row = rows[index];
@@ -119,5 +101,5 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 		rows[index] = { ...row, title, version: row.version + 1 };
 		return notify ? Effect.runPromise(PubSub.publish(hints, { _tag: "Changed", keys: [notes.item(id)] })).then(() => undefined) : Promise.resolve();
 	}
-	return { api, calls, finishNote, holdList, releaseList, reviseNote, runtime: Client.runtime, session };
-}
+	return { ...client, finishNote, holdList, listHeld: () => listGate !== undefined, releaseList, reviseNote, session };
+});

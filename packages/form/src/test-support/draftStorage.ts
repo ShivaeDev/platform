@@ -1,6 +1,6 @@
 import type { DraftStorage } from "#persistence.ts";
 
-export function draftStorage() {
+export function draftStorage(now: () => number) {
 	const saved = new Map<string, string>();
 	const storage: DraftStorage = {
 		getItem: (key) => saved.get(key) ?? null,
@@ -11,5 +11,5 @@ export function draftStorage() {
 			saved.set(key, value);
 		},
 	};
-	return { config: { key: "draft", storage: () => storage }, saved };
+	return { config: { key: "draft", now, storage: () => storage }, saved };
 }

@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
 import { biomeReport } from "@shivaedev/quality/biome/report.ts";
+import { services } from "@shivaedev/quality/cli/runMain.ts";
 import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
 import type { Violation } from "@shivaedev/quality/engine/violation.ts";
@@ -19,7 +19,7 @@ interface Repository {
 export const migrationFiles = storyKit({
 	clock: "live",
 	create: (): Repository => ({ defaultExports: [], root: seedTree([]), violations: [] }),
-	layer: NodeFileSystem.layer,
+	layer: services,
 	name: "tool-owned migration files",
 	stages: ["authored"],
 	verbs: (engine, story) => ({
@@ -35,7 +35,7 @@ export const migrationFiles = storyKit({
 		defaultExports: () => engine.defaultExports,
 		lintDefaultExports: Effect.fn("MigrationFiles.lintDefaultExports")(function* () {
 			story.tell("lint default exports with Quality's Biome preset");
-			const report = yield* Effect.promise(() => biomeReport(engine.root, ["lint"]));
+			const report = yield* biomeReport(engine.root, ["lint"]);
 			engine.defaultExports = report.diagnostics
 				.filter((diagnostic) => diagnostic.category === "lint/style/noDefaultExport")
 				.flatMap((diagnostic) => diagnostic.location.path ?? [])

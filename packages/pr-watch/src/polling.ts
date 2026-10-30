@@ -1,14 +1,15 @@
 import { Effect } from "effect";
-import type { Emit, makeOutput } from "#health.ts";
-import type { Options } from "#model.ts";
+import type { makeOutput } from "#health.ts";
+import type { Options, WatchError } from "#model.ts";
 import { pollRetries } from "#pollRetries.ts";
+import { requestFailure } from "#requestFailure.ts";
 import { Watcher } from "#Watcher.ts";
 
 export const polling = Effect.fn("PrWatch.polling")(function* (
 	options: Options,
 	once: boolean,
 	output: Effect.Success<ReturnType<typeof makeOutput>>,
-	report: { error: Emit; reset: () => void },
+	report: { error: (failure: unknown) => Effect.Effect<void, WatchError>; reset: () => void },
 ) {
 	const watcher = yield* Watcher;
 	let state = yield* watcher.load(options);
@@ -18,14 +19,14 @@ export const polling = Effect.fn("PrWatch.polling")(function* (
 		report.reset();
 		const result = yield* Effect.result(watcher.poll(options, state, output.emit, report.error));
 		if (result._tag === "Failure") {
-			const error = result.failure;
+			const error = requestFailure(result.failure);
 			if (once || error.retryable !== true) {
-				return yield* error;
+				return yield* Effect.fail(result.failure);
 			}
-			yield* report.error(error.message);
+			yield* report.error(result.failure);
 			state = yield* watcher.load(options);
 			const pacing = yield* watcher.pacing(options.interval);
-			const delay = yield* retries.delay(error, pacing.delay);
+			const delay = yield* retries.delay(result.failure, pacing.delay);
 			const reason = pacing.delay > options.interval ? `; ${pacing.message}` : "";
 			yield* output.waitForPoll(options.interval, delay, `Retrying: ${error.message}${reason}`);
 			continue;

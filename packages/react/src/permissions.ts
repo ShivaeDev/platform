@@ -1,4 +1,4 @@
-import type { Permission } from "@shivaedev/access/permission.ts";
+import { hasPermission, type Permission } from "@shivaedev/access/permission.ts";
 
 export interface PermissionSession {
 	readonly user: {
@@ -7,5 +7,5 @@ export interface PermissionSession {
 }
 
 export function can(session: PermissionSession | null | undefined, permission: Permission): boolean {
-	return session?.user.permissions?.some((grant) => grant.name === permission.name && grant.strength === permission.strength) ?? false;
+	return hasPermission(session?.user.permissions, permission);
 }

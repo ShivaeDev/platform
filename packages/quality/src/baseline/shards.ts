@@ -56,5 +56,5 @@ export const saveShards = Effect.fn("Baseline.saveShards")(
 			}
 		}
 	},
-	Effect.mapError((failure) => new SetupFailure({ message: failure.message })),
+	Effect.mapError((failure) => new SetupFailure({ cause: failure, message: failure.message })),
 );

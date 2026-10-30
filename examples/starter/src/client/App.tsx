@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Result, Schema } from "effect";
 import { useCallback } from "react";
 import { type Auth, SessionAccess } from "./auth.ts";
 import { SessionApp } from "./SessionApp.tsx";
@@ -29,7 +29,8 @@ function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pi
 			</p>
 		);
 	}
-	if (session.error !== null) {
+	const decoded = session.data === null ? Result.succeed(null) : Schema.decodeUnknownResult(SessionAccess)(session.data);
+	if (session.error !== null || Result.isFailure(decoded)) {
 		return (
 			<main className="space-y-4 p-8">
 				<p role="alert">Could not check your session.</p>
@@ -45,8 +46,8 @@ function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pi
 			connect={connect}
 			history={history}
 			recheck={recheck}
-			session={session.data === null ? null : Schema.decodeUnknownSync(SessionAccess)(session.data)}
-			sessionId={session.data?.session.id ?? "anonymous"}
+			session={decoded.success}
+			sessionId={decoded.success?.session.id ?? "anonymous"}
 		/>
 	);
 }

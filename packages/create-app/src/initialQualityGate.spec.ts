@@ -48,10 +48,7 @@ application.it(
 		yield* createApp("my-app");
 
 		yield* outcomes({
-			answer: [
-				answer(),
-				"create-app: git -c user.name=Create App -c user.email=create-app@localhost commit -m Initialize a generated app failed (exit 1). The generated files remain in <workspace>/my-app.",
-			],
+			answer: [answer(), "create-app: git commit -m 'Initialize a generated app' failed (exit 1). The generated files remain in <workspace>/my-app."],
 			commits: [commits(), []],
 			"the gate saw staged": [qualityGateSaw(), STAGED_FOR_THE_GATE],
 		});

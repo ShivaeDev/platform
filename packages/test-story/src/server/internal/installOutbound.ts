@@ -13,7 +13,7 @@ function isDispatcher(value: unknown): value is Dispatcher {
 	return typeof value === "object" && value !== null && "dispatch" in value && typeof value.dispatch === "function";
 }
 
-export async function installOutbound(routes: Readonly<Record<string, string>>, strict = false) {
+export async function installOutbound(routes: Readonly<Record<string, string>>, strict = true) {
 	const origins = new Map(Object.entries(routes).map(([hostname, target]) => [hostname, new URL(target).origin]));
 	let refused: Error | undefined;
 	// A data URL initializes Node's bundled Undici without sending an HTTP request.

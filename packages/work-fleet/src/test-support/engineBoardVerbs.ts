@@ -1,9 +1,10 @@
-import { mkdirSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
+import { mkdirSync, renameSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
 import type { EngineFixture } from "#test/engine.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
+import { storedBoardResponses } from "#test/storedBoard.ts";
 import { upgradeMergedDeliveries } from "#test/upgradeMergedDeliveries.ts";
 
 export function engineBoardVerbs(state: EngineStory, tell: (line: string) => void) {
@@ -29,7 +30,7 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 		boardBrief: () => state.source,
 		boardDecisionFiles: () => {
 			files();
-			return readdirSync(join(state.root, "responses")).filter((file) => file.startsWith("decision."));
+			return storedBoardResponses(state.root).filter((file) => file.startsWith("decision."));
 		},
 		boardFileIdentity: (path = "one.md") => {
 			files();
@@ -55,11 +56,11 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 		},
 		readBoardPublication: (path: string) => {
 			files();
-			return metadataParse(readFileSync(join(state.root, path), "utf8"));
+			return metadataParse(files().read(path));
 		},
 		readBoardWork: (path = "one.md") => {
 			files();
-			return readFileSync(join(state.root, path), "utf8");
+			return files().read(path);
 		},
 		replaceStoredRecord: (...args: Parameters<EngineFixture["replaceRecord"]>) => {
 			tell(`write the legacy Fleet record for ${args[0].workId}`);

@@ -1,58 +1,89 @@
-import { Effect, SubscriptionRef } from "effect";
+import { Effect } from "effect";
 import { expect } from "vitest";
-import { documents } from "#test/read-policy/fixture.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { readPolicyHost } from "#test/read-policy/host.ts";
 
-readPolicyHost.it("a declared denial without identity middleware refuses the native RPC before its handler runs", [], function* (test) {
-	expect(yield* test.plainRead().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "QueryReadDenied" } });
-	expect(test.handledReads()).toEqual([]);
-	expect(test.checks()).toEqual([{ key: documents.item("private"), viewer: undefined }]);
-	expect(test.lookups()).toEqual([]);
+readPolicyHost.it(
+	"a read denied by its policy without identity middleware fails with query read denied before its handler or any session lookup runs",
+	[],
+	function* ({ handledReads, plainRead, policyChecks, sessionLookups }) {
+		const answer = yield* plainRead();
+
+		yield* outcomes({
+			"answer": [Effect.succeed(answer), "failed with query read denied"],
+			"handled reads": [handledReads(), []],
+			"policy checks": [policyChecks(), ["document private for no viewer"]],
+			"session lookups": [sessionLookups(), []],
+		});
+	},
+);
+
+for (const boundary of ["account.get", "profile.get"] as const) {
+	readPolicyHost.it(
+		`through ${boundary}, alice reads her document after its policy checks alice's session`,
+		[],
+		function* ({ policyChecks, read, sessionLookups }) {
+			const answer = yield* read(boundary, "alice", "alice");
+
+			yield* outcomes({
+				"answer": [Effect.succeed(answer), "Alice's document"],
+				"policy checks": [policyChecks(), ["document alice for alice", "document alice for alice"]],
+				"session lookups": [sessionLookups(), ["alice"]],
+			});
+		},
+	);
+
+	readPolicyHost.it(
+		`through ${boundary}, bob reading alice's document fails with query read denied after its policy checks bob's session`,
+		[],
+		function* ({ policyChecks, read }) {
+			const answer = yield* read(boundary, "bob", "alice");
+
+			yield* outcomes({
+				"answer": [Effect.succeed(answer), "failed with query read denied"],
+				"policy checks": [policyChecks(), ["document alice for bob"]],
+			});
+		},
+	);
+}
+
+readPolicyHost.it("a public read without a session reaches its policy with no viewer", [], function* ({ policyChecks, publicRead }) {
+	const answer = yield* publicRead();
+
+	yield* outcomes({
+		"answer": [Effect.succeed(answer), "Public documents"],
+		"policy checks": [policyChecks(), ["the document list for no viewer", "the document list for no viewer"]],
+	});
 });
 
-readPolicyHost.it("the host checks reads inside each existing session middleware with the resolved viewer", [], function* (test) {
-	for (const boundary of ["account.get", "profile.get"] as const) {
-		expect(yield* test.read(boundary, "alice", "alice")).toBe("Alice's document");
-		expect(yield* test.read(boundary, "bob", "alice").pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "QueryReadDenied" } });
-	}
-	expect(test.checks()).toEqual(["alice", "alice", "bob", "alice", "alice", "bob"].map((id) => ({ key: documents.item("alice"), viewer: { id } })));
-	expect(test.lookups()).toEqual(["alice", "bob", "alice", "bob"]);
+readPolicyHost.it("a public read with alice's session reaches its policy with alice as viewer", [], function* ({ policyChecks, publicRead }) {
+	const answer = yield* publicRead("alice");
+
+	yield* outcomes({
+		"answer": [Effect.succeed(answer), "Public documents"],
+		"policy checks": [policyChecks(), ["the document list for alice", "the document list for alice"]],
+	});
 });
 
-readPolicyHost.it("optional sessions pass their viewer or none to the same policy", [], function* (test) {
-	expect(yield* test.publicRead()).toBe("Public documents");
-	expect(yield* test.publicRead("alice")).toBe("Public documents");
-	expect(test.checks()).toEqual([
-		{ key: documents.list, viewer: undefined },
-		{ key: documents.list, viewer: undefined },
-		{ key: documents.list, viewer: { id: "alice" } },
-		{ key: documents.list, viewer: { id: "alice" } },
-	]);
-});
+readPolicyHost.it("alice's socket subscription hears only the change to her own document", [], function* ({ listen, nextHint, publish }) {
+	yield* listen("alice");
 
-readPolicyHost.it("the host's live streams filter hints with that request's viewer", [], function* (test) {
-	const listener = yield* test.listen("alice");
-	yield* test.publish();
-	expect(yield* test.heard(listener, [documents.item("alice")])).toBe(true);
-	expect(yield* SubscriptionRef.get(listener.hints)).toMatchObject([{ _tag: "Resync" }, { _tag: "Changed", keys: [documents.item("alice")] }]);
+	yield* publish();
+
+	expect(yield* nextHint("alice")).toBe("changed alice");
 });
 
 for (const revoke of ["revokeRead", "revokeSession"] as const) {
 	readPolicyHost.it(
-		`a per-hint ${revoke === "revokeRead" ? "read policy" : "session"} denial ends the open subscription as read denied without further hints`,
+		`when ${revoke === "revokeRead" ? "the read policy" : "the session"} denies alice, her subscription fails with query read denied on the next change without a hint`,
 		[],
-		function* (test) {
-			const listener = yield* test.listen("alice");
-			expect(yield* SubscriptionRef.get(listener.hints)).toEqual([{ _tag: "Resync" }]);
+		function* (verbs) {
+			yield* verbs.listen("alice");
 
-			yield* test[revoke]("alice");
-			yield* test.publish();
+			yield* verbs[revoke]("alice");
+			yield* verbs.publish();
 
-			expect(yield* test.subscriptionEnd(listener)).toBe("read denied");
-
-			yield* test.publish();
-
-			expect(yield* SubscriptionRef.get(listener.hints)).toEqual([{ _tag: "Resync" }]);
+			expect(yield* verbs.subscriptionOutcome("alice")).toEqual({ ending: "failed with query read denied", hints: ["resync"] });
 		},
 	);
 }

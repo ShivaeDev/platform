@@ -1,7 +1,7 @@
 import { expect } from "vitest";
+import { storyEngine } from "@shivaedev/quality/rules/stories/engine.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 import { factoryFiles, kitFiles, spec } from "#quality-fixtures/storySpecFiles.ts";
-import { storyEngine } from "#quality-internal/rules/stories/engine.ts";
 
 for (const registration of [
 	'orders.it("adds", [], () => { expect(add(1, 2)).toBe(3); });',

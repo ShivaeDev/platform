@@ -20,19 +20,19 @@ export const GitHubHttp = defineService({
 					const budget = observations.find((entry) => entry.remaining === 0 && quotaRetryAt([entry]) === retryAt);
 					return yield* new WatchError({
 						message: budget === undefined ? "GitHub retry-after cooldown" : `GitHub quota cooldown (${quotaMessage(budget)})`,
+						reason: "cooldown",
 						retryAt,
-						retryable: true,
 					});
 				}
 				return yield* operation;
 			}).pipe(
 				Effect.scoped,
 				Effect.timeout("30 seconds"),
-				Effect.catch((cause) => Effect.flatMap(state.github.observations(), (observations) => Effect.fail(requestFailure(cause, observations)))),
 				Effect.tapError((error) =>
 					Effect.sync(() => {
-						if (error.retryAt !== undefined) {
-							state.retryAt = error.retryAt;
+						const { retryAt } = requestFailure(error);
+						if (retryAt !== undefined) {
+							state.retryAt = retryAt;
 						}
 					}),
 				),

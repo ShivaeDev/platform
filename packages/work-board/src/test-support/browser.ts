@@ -33,6 +33,7 @@ export interface OpenPage {
 	readonly close: () => Promise<void>;
 	readonly document: BrowserWindow["document"];
 	readonly mermaid: MermaidControl;
+	readonly mermaidRequested: Promise<void>;
 	readonly mermaidRequests: readonly string[];
 	readonly pageRequests: PageRequests;
 	readonly prefer: (scheme: "light" | "dark") => void;
@@ -51,6 +52,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 ) {
 	const chunkRequests: string[] = [];
 	const mermaidRequests: string[] = [];
+	const mermaidRequested = Promise.withResolvers<void>();
 	const pageRequests: PageRequests = { answered: 0, calls: [], count: 0, held: holds, methods: [] };
 	const streams: RpcStream[] = [];
 	const response = yield* rawGet(board, path);
@@ -63,7 +65,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		settings: {
 			"enableCSSFileLoading": true,
 			enableJavaScriptEvaluation: true,
-			fetch: { interceptor: pageFetch({ chunkRequests, mermaidRequests, theme }) },
+			fetch: { interceptor: pageFetch({ chunkRequests, mermaidRequests, onMermaidRequest: mermaidRequested.resolve, theme }) },
 			suppressInsecureJavaScriptEnvironmentWarning: true,
 		},
 	});
@@ -109,7 +111,18 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		browser.settings.device.prefersColorScheme = scheme;
 		window.dispatchEvent(new window.Event("resize"));
 	}
-	return { chunkRequests, close, document: window.document, mermaid, mermaidRequests, pageRequests, prefer, streams, window };
+	return {
+		chunkRequests,
+		close,
+		document: window.document,
+		mermaid,
+		mermaidRequested: mermaidRequested.promise,
+		mermaidRequests,
+		pageRequests,
+		prefer,
+		streams,
+		window,
+	};
 });
 
 export function held(): { readonly gate: Promise<void>; readonly release: () => void } {

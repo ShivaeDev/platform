@@ -1,6 +1,6 @@
 import { createElement } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Rendered } from "#client/testing.ts";
 import { clickButton, typeInput } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { CreateSubmitView, EditorSubmitView, type SubmitState } from "./submitViews.tsx";

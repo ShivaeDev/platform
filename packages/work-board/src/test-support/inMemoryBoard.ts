@@ -1,4 +1,4 @@
-import { ByteSize, Effect, FileSystem, Layer, Option, Path, type PlatformError, PubSub, Ref } from "effect";
+import { ByteSize, Effect, FileSystem, Layer, Option, Path, PlatformError, PubSub, Ref } from "effect";
 import { stringify } from "yaml";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
@@ -123,25 +123,32 @@ function fleetFiles(files: Readonly<Record<string, string>>, fleet?: FleetItemsP
 }
 
 function fixtureFileSystem(memory: { readonly root: string; readonly files: () => Readonly<Record<string, string>> }) {
+	function stat(): Effect.Effect<FileSystem.File.Info> {
+		return Effect.succeed({
+			atime: Option.none(),
+			birthtime: Option.none(),
+			blksize: Option.none(),
+			blocks: Option.none(),
+			dev: 0n,
+			gid: Option.none(),
+			ino: Option.none(),
+			mode: 0,
+			mtime: Option.none(),
+			nlink: Option.none(),
+			rdev: Option.none(),
+			size: ByteSize.zero,
+			type: "Directory",
+			uid: Option.none(),
+		});
+	}
 	return FileSystem.layerNoop({
+		exists: (path) => Effect.sync(() => path.slice(memory.root.length + 1) in memory.files()),
+		lstat: (path) =>
+			path.endsWith(".md") && !(path.slice(memory.root.length + 1) in memory.files())
+				? Effect.fail(PlatformError.systemError({ _tag: "NotFound", method: "lstat", module: "FileSystem" }))
+				: stat(),
 		readFileString: (path) => Effect.succeed(memory.files()[path.slice(memory.root.length + 1)] ?? ""),
 		realPath: (path) => Effect.succeed(path),
-		stat: () =>
-			Effect.succeed({
-				atime: Option.none(),
-				birthtime: Option.none(),
-				blksize: Option.none(),
-				blocks: Option.none(),
-				dev: 0n,
-				gid: Option.none(),
-				ino: Option.none(),
-				mode: 0,
-				mtime: Option.none(),
-				nlink: Option.none(),
-				rdev: Option.none(),
-				size: ByteSize.zero,
-				type: "Directory",
-				uid: Option.none(),
-			}),
+		stat,
 	});
 }

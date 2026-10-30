@@ -1,65 +1,60 @@
-import { Cause } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { nativeStackDiagnostics, publicStackDiagnostics } from "#test/app-host/nativeStackDiagnostics.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-const INTERRUPTING_FIBER_ID = 123;
+const kept = { publicReasonNote: "public reason detail" };
 
 for (const protocol of ["http/json", "http/protobuf"]) {
 	host.it(
-		`deep public native stack chains still reach reporters and ${protocol} traces`,
+		`when stacks are public, a ten-frame native stack chain reaches the reported cause and the ${protocol} export`,
 		[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol } }), publicStackDiagnostics],
-		function* ({ postNdjson, reportedCauses, close, exportedSpans }) {
-			const response = yield* postNdjson(
-				`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { depth: 10, kind: "interruption", marker: "public-frame" }, tag: "nativeStack" })}\n`,
-				false,
-			);
-			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(reportedCauses()).toEqual([expect.objectContaining({ reasons: expect.any(Array) })]);
-			expect(
-				reportedCauses()
-					.map((cause) => Cause.pretty(cause))
-					.join("\n"),
-			).toContain("public-frame-9");
-			expect(
-				reportedCauses()
-					.map((cause) => Cause.pretty(cause))
-					.join("\n"),
-			).toContain("public-frame-2");
+		function* ({ callRpc, close, exportMentions, reportMentions }) {
+			yield* callRpc("nativeStack", { depth: 10, kind: "interruption", marker: "public-frame" });
+
 			yield* close();
-			const span = exportedSpans().find((value) => value.name === "nativeStack");
-			const exception = span?.events.find((event) => event.name === "exception");
-			expect(exception?.attributes.find((attribute) => attribute.key === "exception.stacktrace")?.value.stringValue).toContain("public-frame-9");
-			expect(exception?.attributes.find((attribute) => attribute.key === "exception.stacktrace")?.value.stringValue).toContain("public-frame-2");
+
+			yield* outcomes({
+				"exported frames": [exportMentions("public-frame-9", "public-frame-2"), ["public-frame-9", "public-frame-2"]],
+				"reported frames": [reportMentions("public-frame-9", "public-frame-2"), ["public-frame-9", "public-frame-2"]],
+			});
 		},
 	);
-	for (const kind of ["defect", "interruption"] as const) {
+}
+
+for (const [kind, reasons] of [
+	["defect", [{ annotations: kept, reason: "defect" }]],
+	[
+		"interruption",
+		[
+			{ annotations: kept, reason: "defect" },
+			{ annotations: kept, reason: "interruption by fiber 123" },
+		],
+	],
+] as const) {
+	host.it(
+		`a sensitive stack drops the native stack annotations from a reported ${kind} but keeps its reasons and public notes`,
+		[nativeStackDiagnostics],
+		function* ({ callRpc, reportedReasons }) {
+			yield* callRpc("nativeStack", { fiberId: 123, kind, marker: "private-native-stack-marker" });
+
+			expect(yield* reportedReasons()).toEqual(reasons);
+		},
+	);
+	for (const protocol of ["http/json", "http/protobuf"]) {
 		host.it(
-			`removes native ${kind} stack annotations from reporters and ${protocol} traces`,
+			`a sensitive stack keeps the ${protocol} exception event of a ${kind} without its native frames`,
 			[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol } }), nativeStackDiagnostics],
-			function* ({ postNdjson, reportedCauses, close, exportedSpans }) {
-				const marker = "private-native-stack-marker";
-				const response = yield* postNdjson(
-					`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { fiberId: INTERRUPTING_FIBER_ID, kind, marker }, tag: "nativeStack" })}\n`,
-					false,
-				);
-				expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-				const reasons = reportedCauses().flatMap((cause) => cause.reasons);
-				expect(reasons.map((reason) => reason._tag)).toEqual(kind === "defect" ? ["Die"] : ["Die", "Interrupt"]);
-				if (kind === "interruption") {
-					expect(reasons.find(Cause.isInterruptReason)?.fiberId).toBe(INTERRUPTING_FIBER_ID);
-				}
-				for (const reason of reasons) {
-					expect(reason.annotations.has(Cause.StackTrace.key)).toBe(false);
-					expect(reason.annotations.has(Cause.InterruptorStackTrace.key)).toBe(false);
-					expect(reason.annotations.get("publicReasonNote")).toBe("public reason detail");
-				}
+			function* ({ callRpc, close, exceptionStack, exportMentions }) {
+				yield* callRpc("nativeStack", { fiberId: 123, kind, marker: "private-native-stack-marker" });
+
 				yield* close();
-				const span = exportedSpans().find((value) => value.name === "nativeStack");
-				expect(span?.events).toEqual(expect.arrayContaining([expect.objectContaining({ name: "exception" })]));
-				expect(JSON.stringify(exportedSpans())).not.toContain(marker);
+
+				yield* outcomes({
+					"exception stack": [exceptionStack("nativeStack"), expect.stringContaining("public defect")],
+					"leaked frames": [exportMentions("private-native-stack-marker"), []],
+				});
 			},
 		);
 	}

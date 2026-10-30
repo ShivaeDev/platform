@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { format } from "node:util";
@@ -46,7 +46,7 @@ function isolateGit(): () => void {
 	};
 }
 
-interface Output {
+export interface Output {
 	stderr: string;
 	stdout: string;
 }
@@ -61,7 +61,7 @@ function unsupported(): never {
 	throw new Error("The captured Console copies only the output methods; capture this one too before quality calls it.");
 }
 
-function capturing(output: Output): Console.Console {
+export function capturing(output: Output): Console.Console {
 	const stdout = writer(output, "stdout");
 	const stderr = writer(output, "stderr");
 	return {
@@ -104,37 +104,6 @@ export async function runQuality(root: string, ...args: readonly string[]): Prom
 export function quality(root: string, ...args: readonly string[]): Run {
 	const result = spawnSync("node", qualityArgs(args), { cwd: root, encoding: "utf8", env: ISOLATED_ENV });
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
-}
-
-export function interruptedQuality(root: string): Promise<Run> {
-	return new Promise((resolve, reject) => {
-		const child = spawn("node", qualityArgs(["lint"]), { cwd: root, env: ISOLATED_ENV });
-		const output = { stderr: "", stdout: "" };
-		let interrupted = false;
-		child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
-			output.stdout += chunk;
-			if (!interrupted && output.stdout.includes("checking remote\n")) {
-				interrupted = true;
-				child.kill("SIGINT");
-			}
-		});
-		child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
-			output.stderr += chunk;
-		});
-		const timer = setTimeout(() => {
-			child.kill("SIGKILL");
-			reject(new Error("quality did not begin its remote check before interruption"));
-		}, 10_000);
-		child.on("error", reject);
-		child.on("close", (status) => {
-			clearTimeout(timer);
-			if (!interrupted) {
-				reject(new Error(`quality exited before interruption: ${JSON.stringify({ status, ...output })}`));
-				return;
-			}
-			resolve({ status, ...output });
-		});
-	});
 }
 
 export const CLI_EXIT = { invalid: 2, passed: 0, rejected: 1 } as const;

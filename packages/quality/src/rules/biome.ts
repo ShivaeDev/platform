@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { biomeReport, type Diagnostic, FAILING } from "#biome/report.ts";
 import { withoutEntryPointImports } from "#biome/withoutEntryPointImports.ts";
 import { defineRule, type Finding, type Rule, type RuleInputs } from "#rule.ts";
@@ -42,11 +43,14 @@ async function presetFinding(readText: RuleInputs["readText"]): Promise<readonly
 }
 
 const bridge = defineRule({
-	check: async ({ exceptions, readText, root }) => {
-		const [preset, report] = await Promise.all([presetFinding(readText), biomeReport(root, ["check"], exceptions)]);
-		const failing = report.diagnostics.filter((diagnostic) => FAILING.has(diagnostic.severity));
-		return [...preset, ...(await withoutEntryPointImports(readText, failing)).map(findingOf)];
-	},
+	check: ({ exceptions, readText, root }) =>
+		Effect.gen(function* () {
+			const [preset, report] = yield* Effect.all([Effect.promise(() => presetFinding(readText)), biomeReport(root, ["check"], exceptions)], {
+				concurrency: "unbounded",
+			});
+			const failing = report.diagnostics.filter((diagnostic) => FAILING.has(diagnostic.severity));
+			return [...preset, ...(yield* Effect.promise(() => withoutEntryPointImports(readText, failing))).map(findingOf)];
+		}),
 	description:
 		"Biome's lint, format and assist findings under the shared preset, except undeclared-dependency findings for a piece that an application's entry point brings. `quality fix` applies Biome's lint fixes, unsafe ones included, its assist actions and formatting.",
 	id: "biome",

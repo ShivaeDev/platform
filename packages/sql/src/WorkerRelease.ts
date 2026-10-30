@@ -1,11 +1,6 @@
-import { Context, Effect, type Scope, Semaphore } from "effect";
-
-export class WorkerRelease extends Context.Service<
-	WorkerRelease,
-	{
-		readonly register: <E>(control: (active: boolean) => Effect.Effect<void, E>) => Effect.Effect<void, E, Scope.Scope>;
-	}
->()("@shivaedev/sql/WorkerRelease") {}
+import { Effect, Semaphore } from "effect";
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 
 export const makeWorkerRelease = Effect.fn("EffectSql.makeWorkerRelease")(function* () {
 	const mutex = Semaphore.makeUnsafe(1);
@@ -23,7 +18,7 @@ export const makeWorkerRelease = Effect.fn("EffectSql.makeWorkerRelease")(functi
 		return Effect.acquireRelease(locked(attach), () => locked(detach));
 	}
 	return {
-		service: WorkerRelease.of({ register }),
+		service: { register },
 		setActive: (next: boolean) =>
 			locked(
 				Effect.gen(function* () {
@@ -35,4 +30,11 @@ export const makeWorkerRelease = Effect.fn("EffectSql.makeWorkerRelease")(functi
 				}),
 			).pipe(Effect.uninterruptible),
 	};
+});
+
+export const WorkerRelease = defineService({
+	id: "@shivaedev/sql/WorkerRelease",
+	initialize: makeWorkerRelease(),
+	methods: ({ service }) => ({ register: genericMethod(service.register) }),
+	requires: [],
 });

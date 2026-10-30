@@ -60,7 +60,7 @@ export const migrateExceptions = Effect.fnUntraced(function* (
 	yield* validOrFail(config.file, yield* Effect.promise(() => decodeExceptions(entries)));
 	const text = yield* readInput("", config.file);
 	const next = yield* Effect.try({
-		catch: (cause) => new SetupFailure({ message: String(cause) }),
+		catch: (cause) => new SetupFailure({ cause, message: String(cause) }),
 		try: () => migrateConfig(text, config.file, entries, config.biomeDeclarations.length > 0),
 	});
 	const updates: Array<{ readonly path: string; readonly text: string }> = [{ path: config.file, text: next }];
@@ -69,7 +69,7 @@ export const migrateExceptions = Effect.fnUntraced(function* (
 			const biome = yield* readInput(config.root, file);
 			if (biome !== undefined) {
 				const updated = yield* Effect.try({
-					catch: (cause) => new SetupFailure({ message: String(cause) }),
+					catch: (cause) => new SetupFailure({ cause, message: String(cause) }),
 					try: () => migrateBiome(biome, file, config.biomeDeclarations),
 				});
 				updates.push({ path: join(config.root, file), text: updated });
@@ -77,11 +77,13 @@ export const migrateExceptions = Effect.fnUntraced(function* (
 		}
 	}
 	for (const update of updates) {
-		yield* writeText(update.path, update.text).pipe(Effect.mapError((failure) => new SetupFailure({ message: failure.message })));
+		yield* writeText(update.path, update.text).pipe(Effect.mapError((failure) => new SetupFailure({ cause: failure, message: failure.message })));
 	}
 	if (raw !== undefined) {
 		const fs = yield* FileSystem.FileSystem;
-		yield* fs.remove(join(config.root, registryPath)).pipe(Effect.mapError((failure) => new SetupFailure({ message: failure.message })));
+		yield* fs
+			.remove(join(config.root, registryPath))
+			.pipe(Effect.mapError((failure) => new SetupFailure({ cause: failure, message: failure.message })));
 	}
 	yield* Console.log(`quality: moved exceptions to ${config.file}. Run quality fix and review the changes; remove unused declaration imports.`);
 });

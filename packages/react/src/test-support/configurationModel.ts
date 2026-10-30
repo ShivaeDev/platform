@@ -17,6 +17,7 @@ export interface ConfigurationProps {
 	readonly held: { current?: Current };
 	readonly kind: "create" | "editor";
 	readonly mapping: boolean;
+	readonly now: () => number;
 	readonly pending: boolean;
 	readonly rejected: boolean;
 	readonly revision: string;

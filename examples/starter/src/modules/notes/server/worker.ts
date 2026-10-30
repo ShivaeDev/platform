@@ -1,5 +1,4 @@
-import { Effect, Redacted } from "effect";
-import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
+import { Effect } from "effect";
 import { transact } from "@shivaedev/sql/transact.ts";
 import { CountWords, NoteJobs } from "./jobs.ts";
 import { makeNotesRepository } from "./makeRepository.ts";
@@ -14,14 +13,6 @@ const countWords = CountWords.handle(({ noteId }) =>
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
 );
 
-export function notesWorker(url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory, max?: number, clientCacheKey?: symbol) {
-	return NoteJobs.layer({
-		...(max === undefined ? {} : { max }),
-		...(clientFactory === undefined ? {} : { clientFactory }),
-		...(clientCacheKey === undefined ? {} : { clientCacheKey }),
-		connectionString: Redacted.value(url),
-		jobs: [countWords],
-		migrate: false,
-		stop: { graceful: true, timeout: 65_000 },
-	});
-}
+export const notesWorker = NoteJobs.layer({
+	jobs: [countWords],
+});

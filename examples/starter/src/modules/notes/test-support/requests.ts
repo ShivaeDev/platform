@@ -30,7 +30,6 @@ export function requests(host: RunningHost, tell: (line: string) => void) {
 			list: () => call("list notes", client["notes.list"]()),
 			update: (input: Parameters<(typeof client)["notes.update"]>[0]) =>
 				call(`edit note ${input.id} at version ${input.version}`, client["notes.update"](input)),
-			whoami: () => call("read the signed-in profile", client["notes.whoami"]()),
 		};
 	});
 	const foreignRequest = Effect.fn("AppStory.foreignRequest")(function* (cookie: string) {

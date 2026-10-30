@@ -2,17 +2,19 @@ import { Cause, Clock, Effect, Exit, Result } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { TestClock } from "effect/testing";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { ProviderAccountValue } from "#identity.ts";
 import { allowedAccounts } from "#server/better-auth/allowedAccounts.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
-import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
+import { accountVerbs } from "./accountVerbs.ts";
 import { type RequestAnswer, type Revocation, requestFailures, revocationOf, type SignInAnswer, signInRefusals } from "./answers.ts";
 import { emailSignUp, gitHubSignIn } from "./flows.ts";
 import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
 import { type PolicyHost, policyHost } from "./host.ts";
+import { policyProbe, requestWork } from "./requestWork.ts";
 
 const people = { alice: "1001", bob: "1002", carol: "1003" } as const;
 export type Person = keyof typeof people;
@@ -24,7 +26,7 @@ export type MalformedList = keyof typeof malformedLists;
 
 interface Engine {
 	readonly accounts: Map<string, GitHubAccount>;
-	readonly app: { sessionsOpen: boolean };
+	readonly app: { sessionsOpen: boolean; providerAccounts?: boolean; readonly policy: Effect.Success<typeof policyProbe> };
 	readonly cookies: Map<Person, string>;
 	readonly env: Record<string, string>;
 	readonly github: Effect.Success<ReturnType<typeof fakeGitHub>>;
@@ -94,7 +96,7 @@ export const signInPolicy = storyKit({
 		yield* routeOutbound({ "api.github.com": github.url, "github.com": github.url });
 		const engine: Engine = {
 			accounts,
-			app: { sessionsOpen: true },
+			app: { policy: yield* policyProbe, sessionsOpen: true },
 			cookies: new Map(),
 			env: { "AUTH_RATE_LIMIT_ENABLED": "false" },
 			github,
@@ -113,6 +115,8 @@ export const signInPolicy = storyKit({
 	verbs: (engine, story) => {
 		engine.github.narrate(story.tell);
 		return {
+			...requestWork(engine.app.policy, engine.cookies, () => host(engine), story.tell),
+			...accountVerbs(() => host(engine), engine.cookies, story.tell),
 			corruptList: (kind: MalformedList) =>
 				Effect.sync(() => {
 					story.tell(`the operator sets AUTH_ALLOWED_ACCOUNTS to ${JSON.stringify(malformedLists[kind])}, ${kind}`);
@@ -229,6 +233,17 @@ export const signInPolicy = storyKit({
 	},
 });
 
+export const withProviderAccounts = signInPolicy.trait("policy", "the app supplies Better Auth's provider-account lookup", (engine) => {
+	engine.app.providerAccounts = true;
+});
+
+export function mintedSession(person: Person) {
+	return signInPolicy.trait("sessions", `${person} starts with a minted session and linked GitHub account`, function* (engine) {
+		const session = yield* host(engine).mintSession(person, people[person]);
+		engine.cookies.set(person, session.headers.get("cookie") ?? "");
+	});
+}
+
 export function allowed(...listed: Person[]) {
 	return signInPolicy.trait("policy", `AUTH_ALLOWED_ACCOUNTS lists ${listed.join(" and ")}'s GitHub accounts`, (engine) => {
 		engine.env.AUTH_ALLOWED_ACCOUNTS = entriesOf(listed);
@@ -240,7 +255,11 @@ export const organizationRule = signInPolicy.trait(
 	"policy",
 	`the application admits members of ${ORGANIZATION}, rechecked every ${RECHECK_INTERVAL}`,
 	(engine) => {
-		engine.policy = { ...engine.policy, recheckInterval: RECHECK_INTERVAL, rule: membershipRule };
+		engine.policy = {
+			...engine.policy,
+			recheckInterval: RECHECK_INTERVAL,
+			rule: (account) => engine.app.policy.check(membershipRule(account)),
+		};
 	},
 );
 
@@ -275,3 +294,7 @@ export const applicationRefusesNewSessions = signInPolicy.trait(
 		engine.app.sessionsOpen = false;
 	},
 );
+
+export const policyWaits = signInPolicy.trait("conditions", "the membership check waits for its provider", (engine) => {
+	engine.app.policy.waiting = true;
+});

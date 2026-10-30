@@ -5,7 +5,7 @@ import { defineService } from "@shivaedev/service/defineService.ts";
 import { State, WatchError } from "./model.ts";
 
 function failure(cause: unknown) {
-	return new WatchError({ message: cause instanceof Error ? cause.message : "State file operation failed" });
+	return new WatchError({ message: cause instanceof Error ? cause.message : "State file operation failed", reason: "state" }, { cause });
 }
 export const StateFile = defineService({
 	id: "@shivaedev/pr-watch/StateFile",
@@ -22,7 +22,7 @@ export const StateFile = defineService({
 				}
 				const state = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(State))(text).pipe(Effect.mapError(failure));
 				if (state.repository !== repository) {
-					return yield* Effect.fail(new WatchError({ message: "State file belongs to a different repository" }));
+					return yield* Effect.fail(new WatchError({ message: "State file belongs to a different repository", reason: "state" }));
 				}
 				return state;
 			}),

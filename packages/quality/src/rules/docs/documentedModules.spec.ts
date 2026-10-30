@@ -44,7 +44,7 @@ ruleKit.it(
 				4,
 				'"@acme/lib/repository.ts" does not export missingName. Name an export of packages/lib/src/repository.ts, or the module that exports missingName.',
 			],
-			[5, '"@acme/lib/internal/secret.ts" is private: the package.json "exports" of @acme/lib blocks it. Document a module the package exports.'],
+			[5, '"@acme/lib/internal/secret.ts" names no module of @acme/lib. Use the path of a module its package.json "exports" maps.'],
 			[10, '"@acme/lib/gone.ts" names no module of @acme/lib. Use the path of a module its package.json "exports" maps.'],
 			[
 				10,

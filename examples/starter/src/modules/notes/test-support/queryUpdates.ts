@@ -7,16 +7,16 @@ export const queryUpdates = Effect.fn("AppStory.queryUpdates")(function* <A, E>(
 	registry: AtomRegistry.AtomRegistry,
 	query: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
 ) {
-	const updates = yield* Queue.unbounded<A>();
-	let previous: AsyncResult.Success<A, E> | undefined;
+	const updates = yield* Queue.unbounded<AsyncResult.AsyncResult<A, E>>();
+	let previous: AsyncResult.AsyncResult<A, E> | undefined;
 	yield* Effect.acquireRelease(
 		Effect.sync(() =>
 			registry.subscribe(
 				query,
 				(result) => {
-					if (AsyncResult.isSuccess(result) && !result.waiting && result !== previous) {
+					if (!(AsyncResult.isInitial(result) || result.waiting) && result !== previous) {
 						previous = result;
-						Queue.offerUnsafe(updates, result.value);
+						Queue.offerUnsafe(updates, result);
 					}
 				},
 				{ immediate: true },
@@ -26,6 +26,6 @@ export const queryUpdates = Effect.fn("AppStory.queryUpdates")(function* <A, E>(
 	);
 	return {
 		current: () => AsyncResult.getOrElse(registry.get(query), () => undefined),
-		next: () => Queue.take(updates),
+		next: () => Effect.flatMap(Queue.take(updates), AsyncResult.toExit),
 	};
 });

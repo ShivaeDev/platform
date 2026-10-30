@@ -1,45 +1,59 @@
-import { Config, Effect, Fiber } from "effect";
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { pool, poolCapacity } from "#test/app-host/pool.ts";
-
-const database = Effect.runSync(Config.String("PLATFORM_SQL_TEST_DATABASE_URL").pipe(Config.option));
 
 for (const mode of ["database", "host"] as const) {
 	for (const limit of [2, 3]) {
-		pool.it.runIf(database._tag === "Some")(
-			`${mode} queues work at maxConnections ${limit} and resumes it when a transaction releases its connection`,
+		pool.it(
+			`at maxConnections ${limit}, the ${mode} pool queues a query until a held transaction releases its connection, which then answers it`,
 			[poolCapacity(mode, limit)],
-			function* ({ holdConnection, query, releaseConnection }) {
-				const held: number[] = [];
-				for (let index = 0; index < limit - 1; index += 1) {
-					held.push(yield* holdConnection());
-				}
-				expect(new Set(held).size).toBe(limit - 1);
-				const queued = yield* query().pipe(Effect.forkChild);
-				expect(yield* Fiber.join(queued).pipe(Effect.timeoutOption("50 millis"))).toMatchObject({ _tag: "None" });
-				const released = held[0];
-				if (released === undefined) {
-					throw new Error("The story must hold a connection");
-				}
-				yield* releaseConnection(released);
-				expect(yield* Fiber.join(queued)).toEqual([{ pid: released }]);
+			function* ({ heldConnectionsFillThePool, queryWaitsForRelease }) {
+				const heldBackends = yield* heldConnectionsFillThePool();
+
+				const queuedQuery = yield* queryWaitsForRelease();
+
+				yield* outcomes({
+					"held backends": [Effect.succeed(heldBackends), limit - 1],
+					"queued query": [Effect.succeed(queuedQuery), "answered by the released backend"],
+				});
 			},
 		);
 	}
 }
 
-pool.it.runIf(database._tag === "Some")(
-	"recovers an idle connection and preserves active query failures",
+pool.it(
+	"the host's native pool service lends the same connection the application queries through",
 	[poolCapacity("host", 2)],
-	function* ({ query, terminate, nativeQueryFailure }) {
-		const [previous] = yield* query();
-		if (previous === undefined) {
-			throw new Error("The application pool returned no backend");
-		}
-		yield* terminate(previous.pid);
-		const [recovered] = yield* query();
-		expect(recovered?.pid).not.toBe(previous.pid);
-		expect(yield* nativeQueryFailure()).toMatchObject({ _tag: "SqlError" });
-		expect(yield* query()).toEqual([{ pid: expect.any(Number) }]);
+	function* ({ nativePoolBackend, queryBackend }) {
+		const backend = yield* queryBackend();
+
+		expect(yield* nativePoolBackend()).toBe(backend);
+	},
+);
+
+pool.it(
+	"after an administrator terminates the idle connection, the next query runs on a new backend",
+	[poolCapacity("host", 2)],
+	function* ({ queryBackend, theIdleBackendIsTerminated }) {
+		const terminated = yield* queryBackend();
+
+		yield* theIdleBackendIsTerminated(terminated);
+
+		expect(yield* queryBackend()).not.toBe(terminated);
+	},
+);
+
+pool.it("a query that terminates its own backend fails with a SQL error", [poolCapacity("host", 2)], function* ({ selfTerminatingQuery }) {
+	expect(yield* selfTerminatingQuery()).toBe("failed with sql error");
+});
+
+pool.it(
+	"after a query terminates its own backend, the pool answers the next query",
+	[poolCapacity("host", 2)],
+	function* ({ queryBackend, selfTerminatingQuery }) {
+		yield* selfTerminatingQuery();
+
+		expect(yield* queryBackend()).toEqual(expect.any(Number));
 	},
 );

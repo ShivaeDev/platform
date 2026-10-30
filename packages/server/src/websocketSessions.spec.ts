@@ -1,47 +1,65 @@
-import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { sessionKeys } from "#test/rpc/sessionKeys.ts";
-import { type Boundary, Preferences } from "#test/rpc/sessionKeysApi.ts";
+import type { Boundary } from "#test/rpc/sessionKeysApi.ts";
 
-sessionKeys.it("one cookie-authenticated socket carries reads, commands and subscriptions across hosts", [], function* (test) {
-	yield* test.save("alice", "First");
-	const listener = yield* test.subscribe("alice");
-	expect(yield* listener.next).toEqual({ _tag: "Resync" });
-	expect(yield* test.read("alice")).toBe("First");
-	expect(test.connections().writer).toEqual([test.rpcUrl()]);
-	yield* test.save("second", "From another host");
-	expect(yield* listener.next).toMatchObject({ _tag: "Changed", keys: [Preferences.item("theme"), Preferences.list] });
-	expect(yield* test.read("alice")).toBe("From another host");
-	expect(test.connections().writer).toEqual([test.rpcUrl()]);
-});
+sessionKeys.it(
+	"alice's subscription, save and read all travel over one socket to her host",
+	[],
+	function* ({ read, save, socketsOpened, subscribe }) {
+		yield* subscribe("alice");
 
-sessionKeys.it("RPC message headers cannot replace the socket's session cookie", [], function* (test) {
-	yield* test.save("alice", "Alice's preference");
-	yield* test.save("bob", "Bob's preference");
-	expect(yield* test.readWithCookie()).toBe("Alice's preference");
+		yield* save("alice", "First");
+		yield* read("alice");
+
+		expect(yield* socketsOpened()).toEqual({ reader: [], writer: ["the host's RPC socket"] });
+	},
+);
+
+sessionKeys.it("bob's cookie in the RPC message headers still reads alice's theme on her socket", [], function* ({ readWithBobsCookie, save }) {
+	yield* save("alice", "Alice's theme");
+	yield* save("bob", "Bob's theme");
+
+	expect(yield* readWithBobsCookie()).toBe("Alice's theme");
 });
 
 for (const boundary of ["account", "profile", "providers", "admin", "owner", "custom"] satisfies Boundary[]) {
-	sessionKeys.it(`a revoked ${boundary} session ends its subscription without hints from another host's committed write`, [], function* (test) {
-		const listener = yield* test.subscribe("alice", boundary);
-		expect(yield* listener.next).toEqual({ _tag: "Resync" });
-		yield* test.revoke();
-		yield* test.save("second", "Private after revocation");
-		expect(yield* listener.ended).toMatchObject({ _tag: "Failure", failure: { _tag: "QueryReadDenied" } });
-		expect(listener.hints).toEqual([{ _tag: "Resync" }]);
-		expect(yield* test.read("alice", boundary).pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+	sessionKeys.it(
+		`after alice signs out, her ${boundary} subscription fails with query read denied on the next write without a hint`,
+		[],
+		function* ({ aliceSignsOut, save, subscribe, subscriptionOutcome }) {
+			yield* subscribe("alice", boundary);
+
+			yield* aliceSignsOut();
+			yield* save("second", "Private after sign-out", { boundary });
+
+			expect(yield* subscriptionOutcome("alice")).toEqual({ ending: "failed with query read denied", hints: ["resync"] });
+		},
+	);
+
+	sessionKeys.it(`after alice signs out, her ${boundary} reads fail with unauthorized`, [], function* ({ aliceSignsOut, read }) {
+		expect(yield* read("alice", boundary)).toBe("unset");
+
+		yield* aliceSignsOut();
+
+		expect(yield* read("alice", boundary)).toBe("failed with unauthorized");
 	});
 }
 
-sessionKeys.it("the upgrade rejects foreign origins and accepts forwarded origins only from the trusted proxy", [], function* (test) {
-	expect(yield* test.upgrade({ origin: "https://attacker.example" })).toBe(HttpStatus.fromLiteral("Forbidden"));
-	const forwarded = { host: "internal.example", origin: "https://app.example", "x-forwarded-host": "app.example", "x-forwarded-proto": "https" };
-	expect(yield* test.upgrade(forwarded, "127.0.0.2")).toBe(HttpStatus.fromLiteral("Forbidden"));
-	expect(yield* test.upgrade(forwarded, "127.0.0.1")).toBe(HttpStatus.fromLiteral("SwitchingProtocols"));
+const forwarded = { host: "internal.example", origin: "https://app.example", "x-forwarded-host": "app.example", "x-forwarded-proto": "https" };
+
+sessionKeys.it("a WebSocket upgrade from a foreign origin is forbidden", [], function* ({ upgrade }) {
+	expect(yield* upgrade({ origin: "https://attacker.example" })).toBe(HttpStatus.fromLiteral("Forbidden"));
 });
 
-sessionKeys.it("the reserved changes stream is unavailable over POST", [], function* (test) {
-	yield* test.save("alice", "First");
-	expect(yield* test.postSubscription()).toContain("Unknown request tag: account.$changes");
+sessionKeys.it("a forwarded WebSocket upgrade from a peer that is not the trusted proxy is forbidden", [], function* ({ upgrade }) {
+	expect(yield* upgrade(forwarded, "127.0.0.2")).toBe(HttpStatus.fromLiteral("Forbidden"));
+});
+
+sessionKeys.it("a forwarded WebSocket upgrade from the trusted proxy switches protocols", [], function* ({ upgrade }) {
+	expect(yield* upgrade(forwarded, "127.0.0.1")).toBe(HttpStatus.fromLiteral("SwitchingProtocols"));
+});
+
+sessionKeys.it("the reserved changes stream over POST dies as an unknown request tag", [], function* ({ postSubscription }) {
+	expect(yield* postSubscription()).toBe("died with Unknown request tag: account.$changes");
 });

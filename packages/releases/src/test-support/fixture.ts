@@ -1,7 +1,8 @@
-import { execFileSync, spawnSync } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Path } from "effect";
+import { git } from "#git.ts";
+import { runCommand } from "#runCommand.ts";
 
 export const CORE = "@test/core";
 export const HISTORY = "# Changelog\n\n## 0.2.3 - 2026-01-01\n\n### Fixed\n\n- Released history.\n";
@@ -17,12 +18,7 @@ export function changeset(packages: Readonly<Record<string, string>>, body = FEA
 }
 
 export function runCli(root: string, args: readonly string[]) {
-	const result = spawnSync(process.execPath, ["--conditions=source", cli, ...args], { cwd: root, encoding: "utf8" });
-	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
-}
-
-export function git(root: string, args: readonly string[]) {
-	return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+	return runCommand(root, process.execPath, ["--conditions=source", cli, ...args]);
 }
 
 export const write = Effect.fn("ReleasesFixture.write")(function* (root: string, file: string, text: string) {
@@ -49,15 +45,15 @@ export const makeFixture = Effect.fn("ReleasesFixture.makeFixture")(function* ()
 		yield* write(root, `${directory}/CHANGELOG.md`, HISTORY).pipe(Effect.orDie);
 	}
 	yield* write(root, "package.json", '{"private":true,"type":"module"}\n').pipe(Effect.orDie);
-	yield* Effect.sync(() => {
-		git(root, ["init", "-b", "main"]);
+	yield* Effect.gen(function* () {
+		yield* git(root, ["init", "-b", "main"]);
 		// The fixture's commits must not run the hooks of the machine's global git config.
-		git(root, ["config", "--local", "core.hooksPath", ".git/hooks"]);
-		git(root, ["config", "user.email", "stories@example.test"]);
-		git(root, ["config", "user.name", "Release Stories"]);
-		git(root, ["add", "."]);
-		git(root, ["commit", "-m", "Initial workspace"]);
-		git(root, ["switch", "-c", "feature"]);
+		yield* git(root, ["config", "--local", "core.hooksPath", ".git/hooks"]);
+		yield* git(root, ["config", "user.email", "stories@example.test"]);
+		yield* git(root, ["config", "user.name", "Release Stories"]);
+		yield* git(root, ["add", "."]);
+		yield* git(root, ["commit", "-m", "Initial workspace"]);
+		yield* git(root, ["switch", "-c", "feature"]);
 	});
 	yield* fs.writeFileString(`${root}/.git/info/exclude`, "node_modules/\n").pipe(Effect.orDie);
 	// Config modules and hooks import effect by its bare name, as they do in a real repository.

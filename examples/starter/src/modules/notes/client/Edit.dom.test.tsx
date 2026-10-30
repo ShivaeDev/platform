@@ -1,14 +1,16 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/react/client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { editingNote, noteRevisedElsewhere, screens } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
 	"shares the typed detail route's query and retains an edit through a live refresh",
 	[editingNote()],
-	function* ({ closeScreen, consoleErrors, noteCalls, enter, reviseNote, cachedTitle, queryCount, draft, screenText }) {
-		yield* eventually(() => expect(noteCalls()).toEqual(["get"]));
+	function* ({ closeScreen, consoleErrors, enter, reviseNote, cachedTitle, queryCount, watchHints, draft, screenText }) {
+		expect(queryCount("get")).toBe(1);
+		const hints = yield* watchHints();
 		yield* enter("Keep my draft");
 		yield* reviseNote("Changed elsewhere");
+		expect(yield* hints.next).toMatchObject({ _tag: "Changed" });
 		yield* eventually(() => expect(cachedTitle()).toBe("Changed elsewhere"));
 		yield* eventually(() => expect(queryCount("get")).toBeGreaterThan(1));
 		yield* eventually(() => expect(draft()).toBe("Keep my draft"));
@@ -21,13 +23,14 @@ screens.it(
 screens.it(
 	"shows a stale edit conflict, keeps the input, then refreshes and saves the reviewed draft",
 	[editingNote(), noteRevisedElsewhere("Saved elsewhere")],
-	function* ({ closeScreen, consoleErrors, enter, click, alert, draft, queryCount, screenText }) {
+	function* ({ closeScreen, consoleErrors, enter, click, alert, draft, queryCount, settleQuery, screenText }) {
 		yield* enter("  My draft  ");
 		yield* click("Save note");
 		yield* eventually(() => expect(alert()).toContain("This note changed"));
 		yield* eventually(() => expect(draft()).toBe("  My draft  "));
 		yield* click("Refresh");
-		yield* eventually(() => expect(queryCount("get")).toBe(2));
+		yield* settleQuery("get");
+		expect(queryCount("get")).toBe(2);
 		yield* eventually(() => expect(draft()).toBe("  My draft  "));
 		yield* click("Save note");
 		yield* eventually(() => expect(draft()).toBe("My draft"));
@@ -50,20 +53,7 @@ screens.it("retains a field rejection while editing", [editingNote()], function*
 screens.it(
 	"deletes a note and returns to the refreshed list without it",
 	[editingNote()],
-	function* ({
-		closeScreen,
-		consoleErrors,
-		visitNotes,
-		noteLink,
-		openListedNote,
-		draft,
-		click,
-		route,
-		screenText,
-		savedNote,
-		noteCalls,
-		queryCount,
-	}) {
+	function* ({ closeScreen, consoleErrors, visitNotes, noteLink, openListedNote, draft, click, route, screenText, savedNote, queryCount }) {
 		yield* visitNotes();
 		yield* eventually(() => expect(noteLink()).toBe("First note"));
 		yield* openListedNote();
@@ -72,7 +62,6 @@ screens.it(
 		yield* eventually(() => expect(route()).toBe("/"));
 		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
 		yield* eventually(() => expect(savedNote()).toBeNull());
-		yield* eventually(() => expect(noteCalls()).toContain("delete"));
 		yield* eventually(() => expect(queryCount("list")).toBeGreaterThan(1));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);

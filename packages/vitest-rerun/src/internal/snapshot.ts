@@ -1,7 +1,9 @@
 import { deserialize, serialize } from "node:v8";
 import { Effect, FileSystem, Schema } from "effect";
 import type { Vitest } from "vitest/node";
-import type { FlakyTest } from "#flakyTests.ts";
+import { failWith } from "#error.ts";
+import { FlakyTest } from "#flakyTests.ts";
+import { SnapshotFiles } from "./SnapshotFiles.ts";
 
 export type Files = ReturnType<Vitest["state"]["getFiles"]>;
 export type Task = Files[number]["tasks"][number];
@@ -11,19 +13,23 @@ export interface FailureHistory {
 	readonly messages: readonly string[];
 }
 
-export interface Snapshot {
-	readonly errors: readonly unknown[];
-	readonly failures: Readonly<Record<string, FailureHistory>>;
-	readonly files: Files;
-	readonly flaky: readonly FlakyTest[];
-}
+const SnapshotSchema = Schema.Struct({
+	errors: Schema.Array(Schema.Unknown),
+	failures: Schema.Record(Schema.String, Schema.Struct({ attempts: Schema.Number, messages: Schema.Array(Schema.String) })),
+	files: SnapshotFiles,
+	flaky: Schema.Array(FlakyTest),
+});
+export type Snapshot = typeof SnapshotSchema.Type;
+
+const decodeSnapshot = Schema.decodeUnknownEffect(SnapshotSchema);
 
 const Report = Schema.Struct({ testResults: Schema.Array(Schema.Struct({ name: Schema.String, status: Schema.Literals(["failed", "passed"]) })) });
 const decodeReport = Schema.decodeUnknownEffect(Schema.fromJsonString(Report));
 
 export const failedFiles = Effect.fn("VitestRerun.failedFiles")(function* (path: string) {
 	const fs = yield* FileSystem.FileSystem;
-	const report = yield* decodeReport(yield* fs.readFileString(path));
+	const contents = yield* fs.readFileString(path);
+	const report = yield* decodeReport(contents).pipe(Effect.mapError(failWith(`Could not decode report ${path}`)));
 	return [...new Set(report.testResults.filter((file) => file.status === "failed").map((file) => file.name))];
 });
 
@@ -38,6 +44,9 @@ export const saveSnapshot = Effect.fn("VitestRerun.saveSnapshot")(function* (pat
 
 export const readSnapshot = Effect.fn("VitestRerun.readSnapshot")(function* (path: string) {
 	const fs = yield* FileSystem.FileSystem;
-	const snapshot: Snapshot = deserialize(yield* fs.readFile(path));
-	return snapshot;
+	const bytes = yield* fs.readFile(path);
+	return yield* Effect.try({ catch: (cause) => cause, try: (): unknown => deserialize(bytes) }).pipe(
+		Effect.flatMap(decodeSnapshot),
+		Effect.mapError(failWith(`Could not decode snapshot ${path}`)),
+	);
 });

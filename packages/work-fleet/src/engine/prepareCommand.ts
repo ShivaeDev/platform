@@ -27,6 +27,7 @@ export function prepareCommand(state: EngineState) {
 			return yield* Effect.fail(new BadRequest({ message: "Preparation needs fixed prompt and owned paths" }));
 		}
 		const current: FleetRecord = {
+			areaQueuedAt: state.policy.now(),
 			areas: work.areas,
 			attempts: [],
 			boardContext: work.context,
@@ -49,7 +50,7 @@ export function prepareCommand(state: EngineState) {
 		}
 		existing = yield* observeReleasedDeliveries(state, existing);
 		if (unusedPreparation(existing.value)) {
-			return yield* save(existing, { ...current, dispatchNow: existing.value.dispatchNow, history: existing.value.history });
+			return yield* save(existing, queuedPreparation(current, existing.value, work));
 		}
 		if (refreshablePreparation(existing.value, work, input)) {
 			return yield* save(existing, {
@@ -62,6 +63,14 @@ export function prepareCommand(state: EngineState) {
 		}
 		return yield* renewPreparation(state, existing, current, work);
 	});
+}
+function queuedPreparation(current: FleetRecord, previous: FleetRecord, work: BoardWork): FleetRecord {
+	return {
+		...current,
+		areaQueuedAt: briefChanged(previous, work) ? current.areaQueuedAt : previous.areaQueuedAt,
+		dispatchNow: previous.dispatchNow,
+		history: previous.history,
+	};
 }
 function unusedPreparation(record: FleetRecord): boolean {
 	return record.step === "queued" && record.attempts.length === 0 && record.decision === undefined && (record.responses?.length ?? 0) === 0;

@@ -17,7 +17,7 @@ import {
 	passing,
 	unhandledError,
 } from "./specFiles.ts";
-import { createSuite, listFiles, mergeRerun, REPORTS, readFile, recordAttempt, runProgram, spawnCli, writeFile } from "./suite.ts";
+import { createSuite, listFiles, REPORTS, readFile, runProgram, spawnCli, writeFile } from "./suite.ts";
 
 function withArgs(args: readonly string[]): string {
 	return args.length === 0 ? "" : ` with ${args.join(" ")}`;
@@ -36,15 +36,6 @@ export const rerunStory = storyKit({
 	stages: ["configuration", "tests"],
 	verbs: (suite, story) => ({
 		...reportReadouts(suite),
-		mergeRerun: () =>
-			Effect.sync(() => {
-				story.tell("the rerun merges into the first attempt");
-				return mergeRerun(suite);
-			}),
-		recordAttempt: () => {
-			story.tell("an attempt runs every test");
-			return recordAttempt(suite);
-		},
 		run: (...args: string[]) => {
 			story.tell(`vitest-rerun runs${withArgs(args)}`);
 			return runProgram(suite, args);
@@ -131,7 +122,7 @@ export function failsThenSkipped() {
 export function gainsTest() {
 	return rerunStory.trait(
 		"tests",
-		'in gaining.spec.ts, "fails first" fails in the first attempt, and the next attempt collects a new test, "appears in the rerun"',
+		'in gaining.spec.ts, "fails first" fails in the first attempt, and the rerun collects a new test, "appears in the rerun"',
 		(suite) => writeFile(suite, "gaining.spec.ts", gainingTest),
 	);
 }
@@ -139,7 +130,7 @@ export function gainsTest() {
 export function losesTest() {
 	return rerunStory.trait(
 		"tests",
-		'in losing.spec.ts, "disappears in the rerun" fails in the first attempt and the next attempt no longer collects it',
+		'in losing.spec.ts, "disappears in the rerun" fails in the first attempt and the rerun no longer collects it, beside "stays", which passes',
 		(suite) => writeFile(suite, "losing.spec.ts", losingTest),
 	);
 }

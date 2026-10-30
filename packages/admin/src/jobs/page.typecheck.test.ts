@@ -2,6 +2,7 @@ import { Context, Effect, type Layer, type Option, Schema, SchemaGetter } from "
 import type { RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import type { Bound } from "@shivaedev/contract/bind.ts";
+import type { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 import { defineSchedule } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { adminRegistry } from "#registry.ts";
@@ -32,6 +33,8 @@ expectTypeOf<JobRpc["successSchema"]["EncodingServices"]>().toEqualTypeOf<Encode
 expectTypeOf<JobRpc["successSchema"]["DecodingServices"]>().toEqualTypeOf<DecodePayload>();
 type Job = JobRpc["successSchema"]["Type"] extends Option.Option<infer A> ? A : never;
 expectTypeOf<Job["data"]>().toEqualTypeOf<{ readonly id: string } | { readonly count: number }>();
+
+expectTypeOf<Job["output"]>().toEqualTypeOf<JobFailure | null>();
 
 const retryPage = jobsPageWithRetry(...page.queues);
 const retryRegistration = registerAdmin(adminRegistry(retryPage), { jobs: jobsHandlersWithRetry(retryPage, Jobs) });

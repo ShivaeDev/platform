@@ -30,6 +30,7 @@ export interface AppHostFactory {
 		TPreflightRequirements = never,
 		TRouteError = never,
 		TRouteRequirements = HostRouteRequirements,
+		TMigrationError = never,
 	>(
 		options: AppHostInput<
 			TRpcs,
@@ -47,8 +48,9 @@ export interface AppHostFactory {
 			TPreflightError,
 			TPreflightRequirements,
 			TRouteError,
-			TRouteRequirements
-		> & { readonly migrations: AppDatabaseOptions<TMigrations>["migrations"] },
+			TRouteRequirements,
+			TMigrationError
+		> & { readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"] },
 	): PreflightHost<
 		ReturnType<
 			typeof deferredHost<
@@ -64,7 +66,8 @@ export interface AppHostFactory {
 				TApplicationError,
 				TApplicationRequirements,
 				TRouteError,
-				TRouteRequirements
+				TRouteRequirements,
+				TMigrationError
 			>
 		>,
 		NoInfer<TPreflight>,

@@ -1,6 +1,7 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { signedOut } from "#test/authentication.ts";
 import { reads, replies } from "#test/github.ts";
 import { budget, githubAnswers, heartbeatsOff, openPr, watching } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -134,8 +135,11 @@ watch.it(
 	},
 );
 
-watch.it("--help prints the usage", [], function* ({ asksForHelp, printed }) {
-	yield* asksForHelp();
+watch.it("--help prints the available watch settings without authentication", [signedOut], function* ({ cliExit, cliStdout, runCli }) {
+	yield* runCli("--help");
 
-	expect((yield* printed()).join("\n")).toContain("pr-watch --repo OWNER/REPO [--fleet | PR_NUMBER ...]");
+	yield* outcomes({
+		"exit": [cliExit(), "exit code 0"],
+		"help": [cliStdout(), expect.stringContaining("--repo")],
+	});
 });

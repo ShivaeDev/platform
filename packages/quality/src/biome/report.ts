@@ -1,9 +1,10 @@
 import { relative, sep } from "node:path";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
+import { type BiomeRun, runBiome } from "#adapters/biome/run.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
+import { SetupFailure } from "#failure.ts";
 import { ignoredTrackedPaths } from "#inventory/trackedPaths.ts";
 import { recognizeDiagnostics } from "./recognizeDiagnostics.ts";
-import { type BiomeRun, runBiome } from "./run.ts";
 
 const Position = Schema.Struct({ column: Schema.optionalKey(Schema.Int), line: Schema.Int });
 
@@ -27,8 +28,8 @@ const decodeReport = Schema.decodeUnknownOption(Schema.fromJsonString(Report));
 
 export const FAILING: ReadonlySet<string> = new Set(["error", "fatal"]);
 
-function failure(args: readonly string[], run: BiomeRun, missing: string, output: string): Error {
-	return new Error(`biome ${args.join(" ")} exited ${run.code} without ${missing}:\n${output.trim()}`);
+function failure(args: readonly string[], run: BiomeRun, missing: string, output: string): SetupFailure {
+	return new SetupFailure({ message: `biome ${args.join(" ")} exited ${run.code} without ${missing}:\n${output.trim()}` });
 }
 
 // Biome exits with an error but prints an empty report when no file was processed, so only a failing diagnostic explains a failed run.
@@ -36,35 +37,41 @@ function unexplained(run: BiomeRun, report: Report): boolean {
 	return run.code !== 0 && !report.diagnostics.some((diagnostic) => FAILING.has(diagnostic.severity));
 }
 
-async function reportFor(
+const reportFor = Effect.fn("Biome.reportFor")(function* (
 	root: string,
 	args: readonly string[],
 	paths: readonly string[],
 	exceptions: readonly ExceptionDeclaration[],
-): Promise<Report> {
+) {
 	const command = [...args, "--reporter=json", "--max-diagnostics=none", ...paths];
-	const run = await runBiome(root, command, exceptions);
+	const run = yield* runBiome(root, command, exceptions);
 	const report = decodeReport(run.stdout.trim());
 	if (report._tag === "None") {
-		throw failure(command, run, "a report", [run.stdout, run.stderr].join("\n"));
+		return yield* Effect.fail(failure(command, run, "a report", [run.stdout, run.stderr].join("\n")));
 	}
 	if (unexplained(run, report.value)) {
-		throw failure(command, run, "a failing diagnostic", run.stderr);
+		return yield* Effect.fail(failure(command, run, "a failing diagnostic", run.stderr));
 	}
 	return report.value;
-}
+});
 
-export async function biomeReport(root: string, args: readonly string[], exceptions: readonly ExceptionDeclaration[] = []): Promise<Report> {
-	const [report, tracked] = await Promise.all([reportFor(root, args, ["."], exceptions), ignoredTrackedPaths(root)]);
+export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
+	root: string,
+	args: readonly string[],
+	exceptions: readonly ExceptionDeclaration[] = [],
+) {
+	const [report, tracked] = yield* Effect.all([reportFor(root, args, ["."], exceptions), ignoredTrackedPaths(root)], {
+		concurrency: "unbounded",
+	});
 	const paths = tracked
 		.map((path) => relative(root, path))
 		.filter((path) => !path.split(sep).some((part) => part === ".git" || part === ".worktrees" || part === "node_modules"));
 	const extra =
-		paths.length === 0 ? undefined : await reportFor(root, [...args, "--vcs-enabled=false", "--no-errors-on-unmatched"], paths, exceptions);
+		paths.length === 0 ? undefined : yield* reportFor(root, [...args, "--vcs-enabled=false", "--no-errors-on-unmatched"], paths, exceptions);
 	const diagnostics = [...report.diagnostics, ...(extra?.diagnostics ?? [])];
 	const unique = [...new Map(diagnostics.map((diagnostic) => [JSON.stringify(diagnostic), diagnostic])).values()];
 	return {
 		diagnostics: recognizeDiagnostics(root, unique),
 		summary: { changed: report.summary.changed + (extra?.summary.changed ?? 0) },
 	};
-}
+});

@@ -1,7 +1,5 @@
 import { Buffer } from "node:buffer";
-import { Schema } from "effect";
-
-const decodeManifest = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)));
+import { decodeManifest, manifestJson } from "#template.ts";
 
 export function databaseName(name: string) {
 	return name
@@ -12,7 +10,7 @@ export function databaseName(name: string) {
 
 export function appFile(path: string, content: Buffer, name: string) {
 	if (path === "package.json") {
-		return Buffer.from(`${JSON.stringify({ ...decodeManifest(content.toString()), name }, null, "\t")}\n`);
+		return Buffer.from(manifestJson({ ...decodeManifest(content.toString()), name }));
 	}
 	if (path === ".env.example") {
 		return Buffer.from(

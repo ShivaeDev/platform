@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/react/client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { screenStory } from "#test/screenStory.ts";

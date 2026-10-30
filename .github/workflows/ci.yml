@@ -133,25 +133,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version-file: .node-version
-          package-manager-cache: false
+      - uses: ./.github/actions/setup
       - name: Pin main snapshots and independent shard counts
         id: timings
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          node --input-type=module <<'JS'
+          node --conditions=source --input-type=module <<'JS'
           import { execFileSync } from 'node:child_process';
           import { appendFileSync } from 'node:fs';
+          import { Effect } from 'effect';
+          import { githubLayer } from './script/lib/githubLayer.ts';
           import { mainShardPlan } from './script/ci/mainShardPlan.ts';
           const deadline = performance.now() + 15000;
-          const plan = mainShardPlan(process.env.GITHUB_REPOSITORY, args => {
+          const plan = await Effect.runPromise(mainShardPlan(process.env.GITHUB_REPOSITORY, args => {
             const remaining = deadline - performance.now();
             if (remaining <= 0) throw new Error('Main snapshot lookup timed out');
             return execFileSync('gh', args, { encoding: 'utf8', timeout: Math.min(10000, Math.ceil(remaining)), stdio: ['ignore', 'pipe', 'pipe'] });
-          });
+          }).pipe(Effect.scoped, Effect.provide(githubLayer)));
           for (const [kind, value] of Object.entries(plan)) {
             console.log(`${kind}: ${value.count} shards; main timing run ${value.runId || 'none'}`);
             const shards = Array.from({ length: value.count }, (_, index) => index + 1);
@@ -313,7 +312,7 @@ jobs:
       contents: read
       actions: read
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 1
+    timeout-minutes: 5
     steps:
       - name: Require every CI job to succeed
         env:
@@ -330,11 +329,8 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+      - uses: ./.github/actions/setup
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        with:
-          node-version-file: .node-version
-          package-manager-cache: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
@@ -344,7 +340,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest&per_page=100" > .ci/main-jobs.json
+        run: node --conditions=source script/ci/mainJobs.ts > .ci/main-jobs.json
       - name: Merge successful main consumer timings
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: >-

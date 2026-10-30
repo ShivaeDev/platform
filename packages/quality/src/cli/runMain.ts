@@ -5,8 +5,8 @@ import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Cause, Console, Effect, Exit, type FileSystem, Layer, Runtime } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import { SetupFailure } from "#failure.ts";
-import type { Git } from "#git/command.ts";
 
 const INTERRUPTED = 130;
 const COULD_NOT_RUN = 2;
@@ -54,7 +54,9 @@ export function explained<TValue, TError, TRequirements>(
 	return Effect.tapCause(program, (cause) => (Cause.hasInterruptsOnly(cause) ? Effect.void : explain(cause)));
 }
 
-export function runMain<TValue, TError>(program: Effect.Effect<TValue, TError, FileSystem.FileSystem | Git>): void {
+export function runMain<TValue, TError>(
+	program: Effect.Effect<TValue, TError, FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner>,
+): void {
 	quietOnClosedPipe(process.stdout);
 	quietOnClosedPipe(process.stderr);
 	NodeRuntime.runMain(Effect.provide(explained(program), services), { disableErrorReporting: true, teardown });

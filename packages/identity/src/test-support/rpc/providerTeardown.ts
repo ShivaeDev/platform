@@ -1,9 +1,9 @@
 import { Effect, Exit, Fiber, Redacted, Scope } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authDatabase } from "#server/better-auth/mount.ts";
-import { disconnectGate } from "#test/disconnectGate.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
 
 interface Engine {
@@ -15,10 +15,7 @@ interface Engine {
 
 const openGate = Effect.fnUntraced(function* () {
 	const database = yield* PostgresTestDatabase;
-	const gate = yield* Effect.acquireRelease(
-		Effect.promise(() => disconnectGate(Redacted.value(database.url))),
-		(resource) => Effect.promise(resource.close),
-	);
+	const gate = yield* disconnectProxy(Redacted.value(database.url), { holdDisconnects: true });
 	yield* Effect.addFinalizer(() => Effect.sync(gate.release));
 	return gate;
 });

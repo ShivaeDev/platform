@@ -3,6 +3,9 @@ import { RpcMiddleware } from "effect/rpc";
 import { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { Identity, OptionalIdentity, RequestId, SessionUser, SessionUserWithProviderAccounts } from "./identity.ts";
+export const IdentityFailures = Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]);
+export type IdentityFailures = typeof IdentityFailures.Type;
+
 export class RequestTracing extends RpcMiddleware.Service<
 	RequestTracing,
 	{
@@ -15,7 +18,7 @@ export class Authenticated extends RpcMiddleware.Service<
 		provides: Identity;
 	}
 >()("@shivaedev/identity/Authenticated", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
+	error: IdentityFailures,
 }) {}
 export class MaybeAuthenticated extends RpcMiddleware.Service<
 	MaybeAuthenticated,
@@ -23,7 +26,7 @@ export class MaybeAuthenticated extends RpcMiddleware.Service<
 		provides: OptionalIdentity;
 	}
 >()("@shivaedev/identity/MaybeAuthenticated", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
+	error: IdentityFailures,
 }) {}
 export class AuthenticatedUser extends RpcMiddleware.Service<
 	AuthenticatedUser,
@@ -31,11 +34,11 @@ export class AuthenticatedUser extends RpcMiddleware.Service<
 		provides: Identity | SessionUser;
 	}
 >()("@shivaedev/identity/AuthenticatedUser", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
+	error: IdentityFailures,
 }) {}
 export class AuthenticatedUserWithProviderAccounts extends RpcMiddleware.Service<
 	AuthenticatedUserWithProviderAccounts,
 	{ provides: Identity | SessionUser | SessionUserWithProviderAccounts }
 >()("@shivaedev/identity/AuthenticatedUserWithProviderAccounts", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
+	error: IdentityFailures,
 }) {}

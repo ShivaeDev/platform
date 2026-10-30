@@ -25,9 +25,10 @@ export type AppHostInput<
 	TPreflightRequirements = never,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
+	TMigrationError = never,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
 	(
-		| (AppDatabaseOptions<TMigrations> & {
+		| (AppDatabaseOptions<TMigrations, TMigrationError> & {
 				readonly application: Effect.Effect<
 					AppHttpHostOptions<
 						TRpcs,
@@ -62,7 +63,8 @@ export type AppHostInput<
 				TPreflightError,
 				TPreflightRequirements,
 				TRouteError,
-				TRouteRequirements
+				TRouteRequirements,
+				TMigrationError
 		  >
 		| AppLocalHostOptions<
 				TRpcs,
@@ -77,7 +79,8 @@ export type AppHostInput<
 				TPreflightError,
 				TPreflightRequirements,
 				TRouteError,
-				TRouteRequirements
+				TRouteRequirements,
+				TMigrationError
 		  >
 		| AppHttpHostOptions<
 				TRpcs,

@@ -1,6 +1,7 @@
 import { Effect } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import type { SetupFailure } from "#failure.ts";
-import { type Git, gitOrFail } from "./command.ts";
+import { gitOrFail } from "./command.ts";
 
 export interface Changes {
 	readonly files: ReadonlySet<string>;
@@ -27,7 +28,10 @@ function parse(output: string): Changes {
 }
 
 // Paths are relative to the root, and only tracked files count: a move is seen once both of its sides are staged.
-export function changesSince(root: string, revision: readonly string[]): Effect.Effect<Changes, SetupFailure, Git> {
+export function changesSince(
+	root: string,
+	revision: readonly string[],
+): Effect.Effect<Changes, SetupFailure, ChildProcessSpawner.ChildProcessSpawner> {
 	return Effect.map(
 		gitOrFail(root, ["diff", "--no-color", "--no-ext-diff", "--find-renames", "--name-status", "-z", "--relative", ...revision, "--"]),
 		parse,

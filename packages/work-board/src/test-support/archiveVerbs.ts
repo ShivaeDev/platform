@@ -1,7 +1,8 @@
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
+import { promisify } from "node:util";
 import { Effect } from "effect";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
@@ -15,6 +16,20 @@ export function archiveVerbs(engine: BoardEngine, tell: (line: string) => void) 
 				}),
 			);
 		},
+		archiveConcurrently: () =>
+			Effect.promise(async () => {
+				tell("Board and Fleet archive the same workspace concurrently");
+				await Promise.all(
+					[1, 2].map(() =>
+						promisify(execFile)(process.execPath, [
+							"--conditions=source",
+							new URL("../server/cli.ts", import.meta.url).pathname,
+							"archive",
+							engine.notes.root,
+						]),
+					),
+				);
+			}),
 		fileExists: (file: string) => existsSync(join(engine.notes.root, file)),
 		fileSource: (file: string) => readFileSync(join(engine.notes.root, file), "utf8"),
 		readGoals: () =>

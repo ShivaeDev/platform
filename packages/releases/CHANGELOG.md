@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.6.0 - 2026-10-30
+
+### Added
+
+- Print a release migration checklist from `releases apply`, grouped by package with every Breaking entry, followed by new or stricter rules declared under `### Quality rules`. Each quality entry names its rule id and explains how consumers record or fix findings. Releases without either say so in one line.
+- Export `collectMigrationNotes` and `collectReleaseNotes` from `releaseNotes.ts` so release PRs and GitHub releases can lead with the same checklist without a tracked migration document.
+
+### Breaking
+
+- `Section` and `Entry.section` from `sections.ts` now include `"Quality rules"` alongside the previous four sections. Add a `"Quality rules"` case to exhaustive section switches and records; keep each rule's id and adoption instructions in that section.
+
+## 0.5.0 - 2026-10-30
+
+### Fixed
+
+- Keep release validation failures in the typed error channel, preserve original failures as non-enumerable causes, and report unsuccessful git commands as string-tagged `GitError` failures. Run git history reads through interruptible child processes and files through the Effect filesystem. Refuse a resolved base without common history instead of falling back to a different branch. Parse CLI commands with Effect CLI and reject unknown arguments with usage text while preserving plan output.
+- The pre-1.0 major refusal names its changeset file, and the package-pattern refusal starts with the config path like the other config refusals.
+
+### Breaking
+
+- Return Effects from `parseChangeset`, `parseBody`, `computePlan`, `collectChangelog`, `decodePackage`, `planDiff` and `validateDiff`; yield these functions in an Effect program instead of calling them synchronously. Remove `requireThat` and `attempt`; fail directly with `ChangesetError` and use native Effect or Schema operations for fallible work. Provide `ChildProcessSpawner` alongside `FileSystem` for `readHistory` and `checkRepository`, or supply `NodeServices.layer` in Node applications.
+
 ## 0.4.1 - 2026-10-30
 
 ### Changed

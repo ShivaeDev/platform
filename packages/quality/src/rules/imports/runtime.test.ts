@@ -5,6 +5,7 @@ import { importFences } from "#rules/imports/fences.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { quality } from "#test/cli.ts";
 import { findingsIn, linkWorkspace, scanned } from "#test/imports.ts";
+import { run } from "#test/run.ts";
 import { runtimeFolders } from "#test/runtimeFolders.ts";
 import { config, defaultTree, removeSeededTrees, seedTree } from "#test/tree.ts";
 
@@ -76,7 +77,7 @@ describe("folder runtime boundaries", () => {
 			throw new Error("runtime rule must configure without options");
 		}
 		const sources = inputs.sources.filter(({ path }) => path.startsWith("modules/app/"));
-		expect(await configured.check({ ...inputs, files: sources.map(({ path }) => path), sources })).toEqual([
+		expect(await run(configured.check({ ...inputs, files: sources.map(({ path }) => path), sources }))).toEqual([
 			expect.objectContaining({ file: "modules/app/src/client/app.ts", subject: "#db" }),
 		]);
 	});

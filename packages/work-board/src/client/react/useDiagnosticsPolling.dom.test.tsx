@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { pollingScreen } from "#test/pollingScreen.tsx";
 import { intervalClock } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";

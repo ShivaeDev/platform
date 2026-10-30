@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/webhooks",
-	"version": "0.1.3",
+	"version": "0.3.0",
 	"description": "Verified webhook receipts and transactional job delivery over Effect HTTP",
 	"keywords": [
 		"effect"
@@ -31,8 +31,7 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./package.json": "./package.json",
-		"./internal/*": null
+		"./package.json": "./package.json"
 	},
 	"files": [
 		"dist",

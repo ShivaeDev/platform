@@ -45,6 +45,7 @@ export const makeEngine = Effect.gen(function* () {
 	const cli: CliRun = { stderr: "", stdout: "" };
 	const cliEnvironment: NodeJS.ProcessEnv = { "GH_TOKEN": "test-token" };
 	const diagnostics: string[] = [];
+	const observation: { failure?: unknown } = {};
 	const lines: string[] = [];
 	const settings: { heartbeat?: number } = {};
 	return {
@@ -57,6 +58,7 @@ export const makeEngine = Effect.gen(function* () {
 		lastPoll: "not polled",
 		layer,
 		lines,
+		observation,
 		options,
 		process,
 		roundStart: 0,

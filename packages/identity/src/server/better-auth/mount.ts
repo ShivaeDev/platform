@@ -2,15 +2,14 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { Pool, type PoolClient, type PoolConfig } from "pg";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
-import type { GetSession } from "#server/adapters/betterAuthSessions.ts";
-import { type BearerSessionsOptions, sessionHeaders, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
+import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
 import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
 import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
-import { type RevokeUnadmitted, revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
+import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
-import type { SessionShape } from "#server/session.ts";
+import { admittedSessions } from "./admittedSessions.ts";
 import { mountedSessions } from "./mountedSessions.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
@@ -75,40 +74,11 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		roles: mount.roles,
 		trustedProxy,
 	});
-	function admittedSessions<TSession extends SessionShape>(getSession: GetSession<TSession>): GetSession<TSession> {
-		if (!gate.active && mount.bearerSessions === undefined) {
-			return getSession;
-		}
-		return (headers) =>
-			run(
-				Effect.gen(function* () {
-					const { authCookies } = yield* Effect.promise(() => auth.$context);
-					const selected = mount.bearerSessions === undefined ? headers : sessionHeaders(headers, authCookies.sessionToken.name);
-					const session = yield* Effect.tryPromise(() => getSession(selected));
-					if (!gate.active || session === null) {
-						return session;
-					}
-					const storage = yield* Effect.tryPromise(() => auth.$context);
-					if (yield* gate.admitsUser(storage, session.user.id)) {
-						return session;
-					}
-					yield* Effect.tryPromise(() => storage.internalAdapter.deleteUserSessions(session.user.id));
-					yield* Effect.logInfo("The sign-in policy revoked a user's sessions").pipe(Effect.annotateLogs({ userId: session.user.id }));
-					return null;
-				}),
-			);
-	}
-	const revoke: RevokeUnadmitted<E> = Effect.provideContext(
-		revokeUnadmitted(gate, () => auth.$context),
-		context,
-	);
-	const lookupSession = Reflect.get(auth.api, "getSession");
-	const sessions = mountedSessions(
-		(headers) => lookupSession({ asResponse: false, headers, query: { disableCookieCache: true }, returnHeaders: false }),
-		admittedSessions,
-		mount.roles,
-	);
-	return { admittedSessions, auth, revokeUnadmitted: revoke, routes: authRoutes, sessions };
+	const admit = admittedSessions(gate, () => auth.$context, mount.bearerSessions);
+	const revoke = revokeUnadmitted(gate, () => auth.$context);
+	const lookupSession: unknown = Reflect.get(auth.api, "getSession");
+	const sessions = mountedSessions(lookupSession, admit, mount.roles);
+	return { admittedSessions: admit, auth, revokeUnadmitted: revoke, routes: authRoutes, sessions };
 });
 
 export const authDatabase = Effect.fn("Platform.authDatabase")(function* (

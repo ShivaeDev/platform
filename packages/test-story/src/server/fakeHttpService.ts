@@ -75,15 +75,13 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 	const controls = fakeHttpControls(tell, () => clock.currentTimeMillisUnsafe());
 	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell));
 	const url = yield* loopbackServer(server);
-	yield* Effect.addFinalizer(() => Effect.sync(controls.close));
+	yield* Effect.addFinalizer(controls.close);
 	function checkRoute(route: string) {
 		if (!Object.hasOwn(options.routes, route)) {
 			throw new Error(`Unknown fake HTTP route "${route}".\nhelp: Use a name from fakeHttpService's routes when scripting a reply or hold.`);
 		}
 	}
 	return {
-		failOnce: (route: string, reply: FakeHttpReplySource, scope?: FakeHttpScope) =>
-			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply, scope))),
 		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
 			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.fault(route, fault, scope))),
 		hold: (route: string, holdOptions?: FakeHttpHoldOptions) =>
@@ -96,8 +94,6 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 				checkRoute(route);
 				checkRoute(arrival);
 			}).pipe(Effect.andThen(controls.releaseOnArrival(route, arrival, scope))),
-		replyOnce: (route: string, reply: FakeHttpReplySource, scope?: FakeHttpScope) =>
-			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply, scope))),
 		get requests(): readonly FakeHttpRequestRecord[] {
 			return requests.slice();
 		},

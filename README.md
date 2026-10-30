@@ -42,7 +42,7 @@ Every package has a README for people and agents using it and a short `AGENTS.md
 - [`@shivaedev/work-fleet`](./packages/work-fleet): Launches approved Work Board items, schedules workers and keeps execution receipts in PostgreSQL.
 - [Work Board plugin](./packages/work-board-plugin): The Work Board inside Claude Code, installed with `/plugin install workboard --marketplace ShivaeDev/platform` from this repository's plugin marketplace.
 
-No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder, and a `null` entry such as `"./internal/*": null` keeps an internal folder or browser bundle sources private. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
+No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder. The test, test-story, test-sql and vitest-rerun packages also export their `internal/` modules. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
 
 ## Development
 
@@ -79,7 +79,7 @@ Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The sh
 
 ```sh
 PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
-PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/postgres.spec.ts
+PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/repositoryCrud.spec.ts
 ```
 
 CI runs each workspace test shard through [`@shivaedev/vitest-rerun`](./packages/vitest-rerun) with Vitest retries disabled. On pull requests, pushes and in the merge queue alike, the failed tests run once more in a fresh Vitest process; the shard fails if that rerun fails, and recovered tests appear in the job summary and in `.ci/flaky-tests.json`, where flaky-test tracking picks them up. The final reports in `.ci` keep the whole shard, and the raw report of each attempt stays in the timing artifact. A recovered test does not fail `verify`: the shard timings it merges on `main` leave out a recovered file's failed first attempt.

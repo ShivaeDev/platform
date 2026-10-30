@@ -1,5 +1,6 @@
 import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
 import { isMarkdown as markdown } from "#path/isMarkdown.ts";
+import { readPaths } from "./readPaths.ts";
 
 export interface MarkdownFile {
 	readonly modified: number;
@@ -26,13 +27,14 @@ const SCAN_CONCURRENCY = 16;
 
 type Listing = Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
 
-export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (root: string, realRoot: string, from = "") {
+export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (_root: string, realRoot: string, from = "") {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
+	const resolve = yield* readPaths(realRoot);
 	const roots: Array<{ readonly real: string; readonly relative: string }> = [{ real: realRoot, relative: "" }];
 	function entry(relative: string, boundary: string, ancestors: ReadonlySet<string>, parent: string): Listing {
 		return Effect.gen(function* () {
-			const real = yield* Effect.option(fs.realPath(path.join(root, relative)));
+			const real = yield* Effect.option(resolve(relative));
 			if (Option.isNone(real)) {
 				return [];
 			}

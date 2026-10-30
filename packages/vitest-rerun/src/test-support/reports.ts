@@ -10,24 +10,30 @@ export interface Testcase {
 	readonly result: "failed" | "passed" | "skipped";
 }
 
-interface JsonReport {
-	readonly testResults: readonly {
-		readonly assertionResults: readonly {
-			readonly ancestorTitles: readonly string[];
-			readonly duration?: number;
-			readonly status: string;
-			readonly title: string;
-		}[];
-		readonly durationMs?: number;
-		readonly name: string;
-	}[];
-}
+const JsonReport = Schema.Struct({
+	testResults: Schema.Array(
+		Schema.Struct({
+			assertionResults: Schema.Array(
+				Schema.Struct({
+					ancestorTitles: Schema.Array(Schema.String),
+					duration: Schema.optional(Schema.NullOr(Schema.Number)),
+					status: Schema.String,
+					title: Schema.String,
+				}),
+			),
+			durationMs: Schema.optional(Schema.Number),
+			name: Schema.String,
+		}),
+	),
+});
+type JsonReport = typeof JsonReport.Type;
+const decodeJsonReport = Schema.decodeUnknownSync(Schema.fromJsonString(JsonReport));
 
 const TESTCASE = /<testcase (?<attributes>[^>]*?)(?<selfClosing>\/?)>(?<body>[\s\S]*?)(?:<\/testcase>|(?=<testcase )|(?=<\/testsuite>))/gu;
 const ATTRIBUTE = /(?<key>\w+)="(?<value>[^"]*)"/gu;
 const ENTITIES: Readonly<Record<string, string>> = { "&amp;": "&", "&apos;": "'", "&gt;": ">", "&lt;": "<", "&quot;": '"' };
 const RESULT_ELEMENTS = { failed: "failure", skipped: "skipped" } as const;
-const REPORT_FILE = /^[^/]+\.(?:json|xml)$/u;
+const REPORT_FILE = /^[^/]+\.(?:bin|json|xml)$/u;
 const COVERED_FUNCTION = /^FNDA:(?<count>\d+),(?<name>\w+)$/gmu;
 const RESULTS_CACHE = /^(?<cache>.+)\/vitest\/\w+\/results\.json$/u;
 
@@ -67,7 +73,7 @@ export function reportReadouts(suite: Suite) {
 		return contents;
 	}
 	function json(name: string): JsonReport {
-		return JSON.parse(reportText(name));
+		return decodeJsonReport(reportText(name));
 	}
 	function durations(entry: string, durationIn: (written: JsonReport) => number | undefined) {
 		function from(name: string): number {
@@ -98,7 +104,7 @@ export function reportReadouts(suite: Suite) {
 				Object.fromEntries(json(name).testResults.flatMap((file) => file.assertionResults.map((test) => [testName(test), test.status]))),
 			),
 		junitResults: (name = "tests.junit.xml") => Effect.sync(() => testcases(reportText(name))),
-		optionError: () => Effect.sync(() => /^vitest-rerun: (?<message>.+)$/mu.exec(lastRun(suite).output)?.groups?.message ?? "nothing"),
+		printedError: () => Effect.sync(() => /^vitest-rerun: (?<message>.+)$/mu.exec(lastRun(suite).output)?.groups?.message ?? "nothing"),
 		reports: () => Effect.sync(() => listFiles(suite, REPORTS).filter((path) => REPORT_FILE.test(path))),
 		resultsCaches: () =>
 			Effect.sync(() =>
@@ -110,7 +116,8 @@ export function reportReadouts(suite: Suite) {
 		testDurations: (test: string) =>
 			durations(
 				test,
-				(written) => written.testResults.flatMap((result) => result.assertionResults).find((result) => testName(result) === test)?.duration,
+				(written) =>
+					written.testResults.flatMap((result) => result.assertionResults).find((result) => testName(result) === test)?.duration ?? undefined,
 			),
 		timesRan: () =>
 			Effect.sync(() => {

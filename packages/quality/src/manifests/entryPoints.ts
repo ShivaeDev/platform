@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export const SHIPPED_FIELDS = ["dependencies", "peerDependencies", "optionalDependencies"] as const;
@@ -24,17 +25,6 @@ export function dependencyNames(manifest: unknown, field: string): readonly stri
 	return typeof value === "object" && value !== null && !Array.isArray(value) ? Object.keys(value) : [];
 }
 
-function parsed(text: string | undefined): unknown {
-	if (text === undefined) {
-		return undefined;
-	}
-	try {
-		return JSON.parse(text);
-	} catch {
-		return undefined;
-	}
-}
-
 async function installedManifest(inputs: Pick<RuleInputs, "readText">, directory: string, name: string, workspace: ReadonlyMap<string, string>) {
 	const candidates = [
 		...(workspace.has(name) ? [posix.join(workspace.get(name) ?? ".", "package.json")] : []),
@@ -42,7 +32,7 @@ async function installedManifest(inputs: Pick<RuleInputs, "readText">, directory
 		posix.join("node_modules", name, "package.json"),
 	];
 	for (const candidate of candidates) {
-		const manifest = parsed(await inputs.readText(candidate));
+		const manifest = await readPackageManifest(inputs.readText, candidate);
 		if (manifest !== undefined) {
 			return manifest;
 		}

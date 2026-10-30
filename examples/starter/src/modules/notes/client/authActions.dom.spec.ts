@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/react/client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { aliceAccount, authScreen, notesApp, signInResponseHeld } from "#modules/notes/test-support/app.tsx";
 
 notesApp.it(

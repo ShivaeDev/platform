@@ -11,6 +11,7 @@ interface Report {
 		readonly assertionResults: readonly {
 			readonly title: string;
 			readonly status: string;
+			readonly duration: number;
 			readonly failureMessages: readonly string[];
 		}[];
 	}[];

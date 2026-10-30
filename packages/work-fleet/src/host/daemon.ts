@@ -9,6 +9,7 @@ import { ClientContract, DaemonContract, RPC_PATH } from "#host/daemonContract.t
 import { daemonHandlers } from "#host/daemonHandlers.ts";
 import { publishDaemonPort } from "#host/daemonPort.ts";
 import { watchedConfig } from "#host/liveConfig.ts";
+import { waitForPostgres } from "#host/waitForPostgres.ts";
 import { fleetHandlers } from "#operations.ts";
 
 const { DAEMON_PORT: DEFAULT_DAEMON_PORT } = diagnosticsApi;
@@ -27,7 +28,7 @@ export function daemonHostOptions(host: FleetHost, parts: HostParts = production
 		policy: "loopback" as const,
 		routes: HttpRouter.use((router) => router.add("GET", "/live", HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NoContent") }))),
 		rpcPath: RPC_PATH,
-		services: hostLayer(host, parts, watchedConfig(host), true),
+		services: hostLayer(host, parts, watchedConfig(host), true).pipe(Layer.provide(Layer.effectDiscard(waitForPostgres(host)))),
 	};
 }
 

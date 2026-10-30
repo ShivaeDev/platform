@@ -1,7 +1,7 @@
 import type { Auth } from "better-auth";
 import { Effect } from "effect";
-import { redact } from "@shivaedev/errors/redact.ts";
-import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { providerFailure } from "#server/providerFailure.ts";
 
 export interface UserProfile {
 	readonly id: string;
@@ -25,13 +25,6 @@ export const userProfiles = Effect.fn("Platform.userProfiles")(function* (
 			select: ["id", "name", "image"],
 			where: [{ field: "id", operator: "in", value: ids }],
 		});
-	}).pipe(
-		Effect.catch((error) =>
-			Effect.andThen(
-				Effect.logError("Authentication provider failed", redact(error.cause)),
-				Effect.fail(new AuthUnavailable({ message: "Authentication is temporarily unavailable" })),
-			),
-		),
-	);
+	}).pipe(Effect.catch((error) => providerFailure(error.cause)));
 	return users.map(({ id, name, image }) => ({ id, image: image ?? null, name }));
 });

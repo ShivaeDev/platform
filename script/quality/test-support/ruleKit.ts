@@ -5,6 +5,7 @@ import { Effect } from "effect";
 import type { Findings, Rule } from "@shivaedev/quality/rule.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { scanned } from "#quality-fixtures/imports.ts";
+import { run } from "#quality-fixtures/run.ts";
 import type { SeedFile } from "#quality-fixtures/tree.ts";
 
 interface RuleEngine {
@@ -30,7 +31,7 @@ export const ruleKit = storyKit({
 				if (configured._tag === "Invalid") {
 					throw new Error(configured.issues.join("; "));
 				}
-				engine.findings = await configured.check(await scanned(engine.root));
+				engine.findings = await run(configured.check(await scanned(engine.root)));
 				return engine.findings;
 			}),
 		writes: (...files: readonly SeedFile[]) =>

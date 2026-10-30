@@ -1,43 +1,37 @@
-import { Effect, Option } from "effect";
 import { expect } from "vitest";
 import { afterTracingApp } from "#test/afterTracingApp.ts";
+import { storyRunner } from "#test/storyRunner.ts";
 
-afterTracingApp.it("hosts booted after deployment start independent request traces", [], function* ({ request, spans }) {
-	const storySpan = yield* Effect.currentSpan;
-	expect(yield* request()).toBe("ok");
-	expect(yield* request()).toBe("ok");
-	const requests = spans.filter((span) => span.kind === "server");
-	expect(requests).toMatchObject([{ kind: "server" }, { kind: "server" }]);
-	expect(requests[0]?.traceId).not.toBe(requests[1]?.traceId);
-	for (const span of requests) {
-		expect(span.parent).toEqual(Option.none());
-		expect(span.traceId).not.toBe(storySpan.traceId);
-		expect(span.status._tag).toBe("Ended");
-		expect(spans.find((child) => child.name === "request work" && child.traceId === span.traceId)?.parent).toEqual(Option.some(span));
-	}
-	expect(spans.filter((span) => span.name === "request verb").map((span) => span.parent)).toEqual([Option.some(storySpan), Option.some(storySpan)]);
-	expect(yield* Effect.currentSpan).toBe(storySpan);
+afterTracingApp.it(
+	"starts each request to a host booted after the deployment in a root span of its own",
+	[],
+	function* ({ sendsRequest, serverSpans }) {
+		yield* sendsRequest();
+		yield* sendsRequest();
+
+		expect(yield* serverSpans()).toEqual(["a root span, ended", "a root span, ended"]);
+	},
+);
+
+afterTracingApp.it("runs the story's request verb under the story's span", [], function* ({ sendsRequest, spansNamed }) {
+	yield* sendsRequest();
+
+	expect(yield* spansNamed("request verb")).toEqual(['under "story", ended']);
 });
 
-afterTracingApp.it("creation and every after hook boot outside the story trace", [], function* ({ spans }) {
-	const storySpan = yield* Effect.currentSpan;
-	for (const name of ["engine startup", "host startup", "host ready", "ready ensuring"]) {
-		const span = spans.find((candidate) => candidate.name === name);
-		expect(span).toBeDefined();
-		expect(span?.parent).toEqual(Option.none());
-		expect(span?.traceId).not.toBe(storySpan.traceId);
-	}
-});
-
-afterTracingApp.it("hook finalizers and teardown retain their detached context", [], function* ({ spans }, context) {
-	const storySpan = yield* Effect.currentSpan;
-	context.onTestFinished(() => {
-		for (const name of ["engine finalizer", "deployment finalizer", "ready finalizer", "host teardown"]) {
-			const span = spans.find((candidate) => candidate.name === name);
-			expect(span).toBeDefined();
-			expect(span?.parent).toEqual(Option.none());
-			expect(span?.traceId).not.toBe(storySpan.traceId);
-			expect(span?.status._tag).toBe("Ended");
-		}
+for (const name of ["engine startup", "host startup", "host ready", "ready ensuring"]) {
+	afterTracingApp.it(`runs the ${name} span of creation and after hooks outside the story's span`, [], function* ({ spansNamed }) {
+		expect(yield* spansNamed(name)).toEqual(["a root span, ended"]);
 	});
+}
+
+storyRunner.it("runs hook finalizers and host teardown outside the story's span once the story ends", [], function* ({ lifetime, runStory }) {
+	yield* runStory("tracingStories", "After Tracing App Story: boots and tears down a host");
+
+	expect(yield* lifetime()).toEqual([
+		"engine finalizer: a root span, ended",
+		"deployment finalizer: a root span, ended",
+		"ready finalizer: a root span, ended",
+		"host teardown: a root span, ended",
+	]);
 });

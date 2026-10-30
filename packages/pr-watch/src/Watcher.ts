@@ -3,6 +3,7 @@ import { defineService } from "@shivaedev/service/defineService.ts";
 import { events } from "#events.ts";
 import { GitHub } from "#GitHub.ts";
 import type { Options, Snapshot, State, WatchError } from "#model.ts";
+import { requestFailure } from "#requestFailure.ts";
 import { StateFile } from "#StateFile.ts";
 
 function activeNumbers(options: Options, state: State) {
@@ -11,8 +12,10 @@ function activeNumbers(options: Options, state: State) {
 		return saved === undefined || (saved.state === "open" && !saved.merged);
 	});
 }
-function prioritizeFailure(previous: WatchError | undefined, next: WatchError) {
-	return previous === undefined || previous.retryable === true ? next : previous;
+type ObservationFailure = Effect.Error<ReturnType<typeof GitHub.Service.snapshot>>;
+
+function prioritizeFailure(previous: ObservationFailure | undefined, next: ObservationFailure) {
+	return previous === undefined || requestFailure(previous).retryable ? next : previous;
 }
 export const Watcher = defineService({
 	id: "@shivaedev/pr-watch/Watcher",
@@ -73,18 +76,18 @@ export const Watcher = defineService({
 				options: Options,
 				previous: State,
 				emit: (line: string) => Effect.Effect<void, WatchError>,
-				diagnostic: (message: string) => Effect.Effect<void, WatchError>,
+				diagnostic: (failure: ObservationFailure) => Effect.Effect<void, WatchError>,
 			) =>
 				Effect.gen(function* () {
 					let state: State = { ...previous, prs: { ...previous.prs } };
 					const targetsForRound = yield* targets(options, state);
 					const { numbers, queue } = targetsForRound;
 					state = targetsForRound.state;
-					let failure: WatchError | undefined;
+					let failure: ObservationFailure | undefined;
 					for (const number of numbers) {
 						const result = yield* Effect.result(observe(options, number, queue, state.prs[String(number)]));
 						if (result._tag === "Failure") {
-							yield* diagnostic(result.failure.message);
+							yield* diagnostic(result.failure);
 							failure = prioritizeFailure(failure, result.failure);
 							continue;
 						}
