@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { eventually } from "@shivaedev/test/eventually.ts";
 
+// This deployment story asserts worker readiness and ledger state while schema creation remains blocked.
 export const holdSchemaCreation = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const connection = yield* sql.reserve;

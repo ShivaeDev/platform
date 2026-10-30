@@ -1,11 +1,9 @@
-import { Deferred, Effect, Fiber } from "effect";
+import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
 import { mapped } from "#test/clientNames.ts";
 import { PullRequest, pull, syncOptions } from "#test/pullRequests.ts";
 import { hasPullRequests } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
-import { transaction } from "#test/transaction.ts";
 
 postgres.it("a missing pull request inserts and reports a decoded row", [hasPullRequests()], function* ({ pullRequests }) {
 	const { rows } = pullRequests();
@@ -39,33 +37,19 @@ for (const hour of [11, 12]) {
 	);
 }
 
-postgres.it(
-	"a writer waiting on a newer uncommitted revision cannot overwrite it",
-	[hasPullRequests()],
-	function* ({ pullRequests, sql, waitingOn }) {
-		const { rows } = pullRequests();
-		yield* rows.insert(pull(10));
-		const held = yield* Deferred.make<number>();
-		const release = yield* Deferred.make<void>();
-		const newer = yield* transaction(
-			Effect.gen(function* () {
-				const pids = yield* sql<{ pid: number }>`select pg_backend_pid() as pid`;
-				const pid = pids[0]?.pid ?? 0;
-				const result = yield* rows.upsert(pull(13), syncOptions);
-				yield* Deferred.succeed(held, pid);
-				yield* Deferred.await(release);
-				return result;
-			}),
-		).pipe(Effect.forkChild);
-		const pid = yield* Deferred.await(held);
-		const older = yield* rows.upsert(pull(11), syncOptions).pipe(Effect.forkChild);
-		yield* eventually(Effect.flatMap(waitingOn(pid), (waiting) => Effect.try(() => expect(waiting).toBe(true))));
-		yield* Deferred.succeed(release, undefined);
-		expect(yield* Fiber.join(newer)).toEqual({ _tag: "Updated", inserted: false, row: pull(13) });
-		expect(yield* Fiber.join(older)).toEqual({ _tag: "Unchanged" });
-		expect(yield* rows.findById(1)).toEqual(pull(13));
-	},
-);
+postgres.it("a writer waiting on a newer uncommitted revision cannot overwrite it", [hasPullRequests()], function* ({ pullRequests, raceWithLock }) {
+	const { rows } = pullRequests();
+	yield* rows.insert(pull(10));
+
+	const results = yield* raceWithLock({
+		effects: [rows.upsert(pull(11), syncOptions)],
+		lock: rows.upsert(pull(13), syncOptions),
+		release: "commit",
+	});
+
+	expect(yield* Effect.forEach(results, Effect.fromResult)).toEqual([{ _tag: "Unchanged" }]);
+	expect(yield* rows.findById(1)).toEqual(pull(13));
+});
 
 postgres.it("a conditional batch reports each inserted, updated and unchanged input in order", [hasPullRequests()], function* ({ pullRequests }) {
 	const { rows } = pullRequests();

@@ -78,6 +78,7 @@ export function cleanupVerbs(state: CleanupState) {
 				yield* Effect.addFinalizer(() => Effect.orDie(admin`alter role ${admin(role())} connection limit 2`));
 				yield* admin`alter role ${admin(role())} connection limit 0`;
 			}),
+		// Cleanup stories close scopes and inspect background drops while this catalog lock remains held.
 		holdDrops: () =>
 			Effect.gen(function* () {
 				const ready = yield* Deferred.make<void>();

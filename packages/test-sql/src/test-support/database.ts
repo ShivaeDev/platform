@@ -11,6 +11,7 @@ import { lifecycleVerbs } from "./lifecycleVerbs.ts";
 import { limitVerbs } from "./limitVerbs.ts";
 import { poolVerbs } from "./poolVerbs.ts";
 import { adminUrl, configured } from "./postgres.ts";
+import { raceVerbs } from "./raceVerbs.ts";
 import { rowLockVerbs } from "./rowLockVerbs.ts";
 import { transactionVerbs } from "./transactionVerbs.ts";
 import { vitestVerbs } from "./vitestVerbs.ts";
@@ -36,5 +37,6 @@ export const database = storyKit({
 		...poolVerbs(engine),
 		...idleVerbs(engine),
 		...rowLockVerbs(engine),
+		...raceVerbs(engine),
 	}),
 });

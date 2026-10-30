@@ -1,5 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+// The timeout story must keep a real migration running until its competing runner fails.
 export const heldSeed = Effect.fnUntraced(function* (orders: string) {
 	const sql = yield* SqlClient.SqlClient;
 	const entered = yield* Deferred.make<number>();

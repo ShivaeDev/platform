@@ -1460,6 +1460,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story

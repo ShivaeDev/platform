@@ -154,6 +154,23 @@ The clone starts from the template, including the original fixtures, even if the
 
 Inside an isolated block, `PostgresTestDatabase.url` names that clone. Use it to acquire additional native PostgreSQL connections in the block's scope. Native SQL services are replaced in the block's Context; application services acquired earlier retain the client they captured. Build application service Layers inside the isolated block when they acquire SQL clients; use `Layer.fresh` when reusing a Layer definition already acquired by the worker. Keep servers and background fibers in that scope so they finish before the database is dropped. Separate databases isolate database contents; external services and server capacity need separate planning.
 
+### Race stories
+
+Use `raceWithLock` with a live story clock inside an isolated database, outside a wrapping transaction. Supply the native SQL Effect that takes a row, table or transaction advisory lock, and one Effect per competing call. The helper holds the lock in a separate transaction, starts the calls, and waits for PostgreSQL's blocker graph to contain every contender before releasing the holder. Keep other lock-taking work out of that database during the race, and allow at least `effects.length + 1` pool connections. Contenders keep their own transaction and service conventions.
+
+```ts
+import { raceWithLock } from "@shivaedev/test-sql/server/raceWithLock.ts";
+
+const results = yield* raceWithLock({
+	lock: sql`lock table items in share mode`,
+	effects: [claimLastPlace(), claimLastPlace(), claimLastPlace()],
+});
+expect(results.filter(Result.isSuccess)).toHaveLength(1);
+expect(results.filter(Result.isFailure).map((result) => result.failure)).toEqual(["full", "full"]);
+```
+
+`claimLastPlace` is the application's guarded write, failing with the typed `"full"` value when no place remains; `Result` is Effect's native `Result` module. Results stay in input order, including each call's typed failure. The holder rolls back by default, discarding any writes in `lock`; set `release: "commit"` when a contender must observe the holder's committed write. The default timeout is five seconds; `timeout` accepts an Effect duration. Defects and interruption retain their native failure kind, and the helper's scope owns the holder and competing fibers.
+
 ### Choose an empty database per story or trait
 
 The default clone is migrated. A first-deploy or upgrade block can select the empty template from the same Layer:
