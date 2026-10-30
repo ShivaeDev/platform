@@ -6,6 +6,7 @@ export async function openDisconnectProxy(destination: string, options: Disconne
 	const target = new URL(destination);
 	const address = { host: target.hostname, port: Number(target.port || 5432) };
 	const sockets = new Set<Socket>();
+	const clients = new Set<Socket>();
 	const pending = new Set<Socket>();
 	const disconnecting = Promise.withResolvers<void>();
 	const allHeld = Promise.withResolvers<void>();
@@ -31,6 +32,7 @@ export async function openDisconnectProxy(destination: string, options: Disconne
 			return;
 		}
 		const upstream = createConnection(address);
+		clients.add(client);
 		upstreams += 1;
 		for (const socket of [client, upstream]) {
 			sockets.add(socket);
@@ -43,7 +45,11 @@ export async function openDisconnectProxy(destination: string, options: Disconne
 		client.pipe(upstream, { end: false });
 		const incoming = options.dropNotifications === true ? upstream.pipe(notificationFilter(dropped.resolve)) : upstream;
 		incoming.pipe(client, { end: false });
-		client.on("end", () => upstream.end());
+		client.on("end", () => {
+			clients.delete(client);
+			upstream.end();
+		});
+		client.on("close", () => clients.delete(client));
 		upstream.on("end", () => {
 			pending.add(client);
 			disconnecting.resolve();
@@ -81,6 +87,7 @@ export async function openDisconnectProxy(destination: string, options: Disconne
 		disconnect,
 		disconnecting: disconnecting.promise,
 		dropped: dropped.promise,
+		openClients: () => clients.size,
 		release,
 		setReachable: (value: boolean) => {
 			reachable = value;

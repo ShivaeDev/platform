@@ -1,4 +1,5 @@
-import { Effect, Fiber, Queue, Stream } from "effect";
+import { Effect, Fiber, Predicate, Queue, Stream } from "effect";
+import { answered } from "@shivaedev/test/answers.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -13,6 +14,30 @@ interface State {
 	host?: Host;
 	nativeOrigins?: readonly string[];
 }
+
+export type ForgedBearer = "missing" | "unsigned" | "prefixed" | "tampered" | "malformed" | "invented";
+
+export interface Caller {
+	readonly bearer?: string;
+	readonly cookie?: string;
+	readonly cookieValueAsBearer?: string;
+	readonly forged?: readonly [ForgedBearer, string];
+	readonly origin?: string;
+	readonly tokenAsBearer?: string;
+}
+
+function forgedAuthorization(kind: ForgedBearer, credential: string) {
+	const [payload = ""] = credential.split(".");
+	return {
+		invented: "Bearer invalid.signature",
+		malformed: "Bearer %broken",
+		missing: "",
+		prefixed: `Bearer x${credential}`,
+		tampered: `Bearer ${payload}.tampered`,
+		unsigned: `Bearer ${payload}`,
+	}[kind];
+}
+
 export const nativeSessions = storyKit({
 	after: {
 		*configured(state) {
@@ -32,6 +57,7 @@ export const nativeSessions = storyKit({
 		if (host === undefined) {
 			throw new Error("The native session host has not started");
 		}
+		let subscription: Fiber.Fiber<unknown, unknown> | undefined;
 		function account(name: string) {
 			const value = state.accounts.get(name);
 			if (value === undefined) {
@@ -39,58 +65,147 @@ export const nativeSessions = storyKit({
 			}
 			return value;
 		}
-		function bearer(name: string) {
-			return { authorization: `Bearer ${account(name).credential}` };
+		function headersOf(caller: Caller): Record<string, string> {
+			const headers: Record<string, string> = {};
+			if (caller.origin !== undefined) {
+				headers.origin = caller.origin;
+			}
+			if (caller.bearer !== undefined) {
+				headers.authorization = `Bearer ${account(caller.bearer).credential}`;
+			}
+			if (caller.forged !== undefined) {
+				headers.authorization = forgedAuthorization(caller.forged[0], account(caller.forged[1]).credential ?? "");
+			}
+			if (caller.tokenAsBearer !== undefined) {
+				headers.authorization = `Bearer ${account(caller.tokenAsBearer).token}`;
+			}
+			if (caller.cookieValueAsBearer !== undefined) {
+				headers.authorization = `Bearer ${account(caller.cookieValueAsBearer).cookie.split("=")[1]}`;
+			}
+			if (caller.cookie !== undefined) {
+				headers.cookie = account(caller.cookie).cookie;
+			}
+			return headers;
+		}
+		function nameOf(id: unknown) {
+			return [...state.accounts].find(([, value]) => value.user.id === id)?.[0];
+		}
+		function callerWords(caller: Caller) {
+			return Object.entries(caller)
+				.map(([key, value]) => `${key} ${String(value)}`)
+				.join(", ");
 		}
 		return {
-			account,
-			bearer,
-			browserLogin: (name: string) => login(host, name, true),
-			diagnostics: () => ({ logs: JSON.stringify(host.logs), spans: JSON.stringify(host.receiver.spans) }),
-			expire: () => authTestDatabase(host.pool).expireSessions(),
-			getSession: (headers: Record<string, string>) =>
-				Effect.gen(function* () {
-					story.tell("read the session through the mounted auth route");
-					const response = yield* authRequest(host, "get-session", headers);
-					return { body: yield* Effect.promise(() => response.json()), credential: response.headers.get("set-auth-token"), status: response.status };
+			browserSignsIn: (name: string) => {
+				story.tell(`${name} signs in from the browser`);
+				return Effect.map(login(host, name, true), (session) => {
+					state.accounts.set(`${name} in the browser`, session);
+					return {
+						bearerCredential: session.credential === null ? "none" : "issued",
+						cookie:
+							session.httpOnly && session.cookie.includes("better-auth.session_token=") ? "HttpOnly session cookie" : "no HttpOnly session cookie",
+						exposedHeaders: (session.exposed ?? "").includes("set-auth-token") ? "exposes the auth token" : "no auth token",
+						responseToken: session.token === undefined ? "none" : "returned",
+					};
+				});
+			},
+			credentialLeaks: (name: string) =>
+				Effect.sync(() => {
+					const { credential, token } = account(name);
+					const secrets = { credential, "encoded credential": encodeURIComponent(credential ?? ""), token };
+					const outputs = { logs: JSON.stringify(host.logs), spans: JSON.stringify(host.receiver.spans) };
+					return Object.entries(outputs).flatMap(([output, text]) =>
+						Object.entries(secrets)
+							.filter(([, secret]) => secret !== undefined && secret !== null && secret !== "" && text.includes(secret))
+							.map(([secret]) => `${secret} in ${output}`),
+					);
 				}),
-			profile: (name: string, headers: Record<string, string> = bearer(name), owner = name) =>
+			diagnosticMentions: (text: string) =>
+				Effect.sync(() =>
+					Object.entries({ logs: JSON.stringify(host.logs), spans: JSON.stringify(host.receiver.spans) })
+						.filter(([, output]) => output.includes(text))
+						.map(([output]) => output),
+				),
+			exposedHeaders: (name: string) => Effect.sync(() => account(name).exposed ?? "none"),
+			hostStops: () => {
+				story.tell("the host stops and flushes its diagnostics");
+				return host.stop;
+			},
+			issuedCredential: (name: string) =>
+				Effect.sync(() => {
+					const { credential } = account(name);
+					if (credential === null) {
+						return "none";
+					}
+					return credential?.includes(".") ? "signed" : "unsigned";
+				}),
+			profile: (caller: Caller, owner: string) =>
 				Effect.gen(function* () {
-					story.tell("read a protected profile through RPC over HTTP");
-					const rpc = yield* client(host, headers);
-					return yield* rpc("native.profile", { owner: account(owner).user.id }).pipe(Effect.result);
+					story.tell(`a client with ${callerWords(caller)} reads ${owner}'s protected profile through RPC over HTTP`);
+					const rpc = yield* client(host, headersOf(caller));
+					const answer = yield* answered(rpc("native.profile", { owner: account(owner).user.id }));
+					return Predicate.hasProperty(answer, "id") ? `${nameOf(answer.id) ?? "an unknown user"}'s profile` : answer;
 				}),
 			recordDiagnostics: (name: string) =>
 				Effect.gen(function* () {
-					story.tell("the HTTP route records the bearer in diagnostics");
-					const response = yield* Effect.promise(() => fetch(`${host.baseUrl}/diagnostic`, { headers: bearer(name) }));
+					story.tell(`an HTTP route records ${name}'s bearer in its diagnostics`);
+					const response = yield* Effect.promise(() => fetch(`${host.baseUrl}/diagnostic`, { headers: headersOf({ bearer: name }) }));
 					yield* Effect.promise(() => response.text());
 				}),
-			replace: (name: string) => login(host, name, false, bearer(name)),
+			sessionExpires: () => {
+				story.tell("every stored session expires");
+				return authTestDatabase(host.pool).expireSessions();
+			},
+			sessionTokens: (caller: Caller) =>
+				Effect.gen(function* () {
+					const response = yield* authRequest(host, "get-session", headersOf(caller));
+					const body: unknown = yield* Effect.promise(() => response.json());
+					const session = Predicate.hasProperty(body, "session") ? body.session : undefined;
+					return {
+						bearerCredential: response.headers.get("set-auth-token") === null ? "none" : "issued",
+						sessionToken: Predicate.hasProperty(session, "token") ? "returned" : "none",
+					};
+				}),
+			sessionUser: (caller: Caller) =>
+				Effect.gen(function* () {
+					story.tell(`a client with ${callerWords(caller)} reads the session through the mounted auth route`);
+					const response = yield* authRequest(host, "get-session", headersOf(caller));
+					const body: unknown = yield* Effect.promise(() => response.json());
+					return Predicate.hasProperty(body, "user") && Predicate.hasProperty(body.user, "id")
+						? (nameOf(body.user.id) ?? "an unknown user")
+						: "no session";
+				}),
 			signIn: (name: string) =>
 				Effect.map(login(host, name), (session) => {
 					state.accounts.set(name, session);
 				}),
-			signout: (name: string, headers = bearer(name)) =>
+			signsInAgain: (name: string) => {
+				story.tell(`${name} signs in again with her current bearer, replacing the session`);
+				return Effect.map(login(host, name, false, headersOf({ bearer: name })), (session) => {
+					state.accounts.set(`${name}'s replacement`, session);
+				});
+			},
+			signsOut: (caller: Caller) =>
 				Effect.gen(function* () {
-					story.tell("sign out through the mounted auth route");
-					const response = yield* authRequest(host, "sign-out", { origin: NATIVE_ORIGIN, ...headers }, {});
+					story.tell(`a client with ${callerWords(caller)} signs out through the mounted auth route`);
+					const response = yield* authRequest(host, "sign-out", { origin: NATIVE_ORIGIN, ...headersOf(caller) }, {});
 					yield* Effect.promise(() => response.text());
-					return response.status;
+					if (!response.ok) {
+						return yield* Effect.die(`Sign-out answered ${response.status}`);
+					}
 				}),
-			stopHost: () => host.stop,
-			subscribe: (name: string) =>
+			subscribes: (name: string) =>
 				Effect.gen(function* () {
-					story.tell("open the session-scoped socket changes subscription");
-					const rpc = yield* client(host, bearer(name), true);
+					story.tell(`${name} opens the session-scoped socket changes subscription and receives its first event`);
+					const rpc = yield* client(host, headersOf({ bearer: name }), true);
 					const events = yield* Queue.unbounded<unknown>();
-					const fiber = yield* rpc("native.$changes", { queries: [] }).pipe(
+					subscription = yield* rpc("native.$changes", { queries: [] }).pipe(
 						Stream.runForEach((event) => Queue.offer(events, event)),
-						Effect.result,
 						Effect.forkScoped,
 					);
-					return { ended: Fiber.join(fiber), next: Queue.take(events) };
+					yield* Queue.take(events);
 				}),
+			subscriptionEnding: () => (subscription === undefined ? Effect.succeed("no subscription") : answered(Fiber.join(subscription))),
 		};
 	},
 });

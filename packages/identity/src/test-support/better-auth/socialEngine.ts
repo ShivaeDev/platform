@@ -19,5 +19,5 @@ export const socialEngine = Effect.fn("SocialStory.socialEngine")(function* () {
 	);
 	const fetch = domFetch(host.baseUrl);
 	const client = createAuthClient({ "baseURL": host.baseUrl, fetchOptions: { customFetchImpl: fetch } });
-	return { ...host, client, fetch, provider };
+	return { ...host, client, fetch, minted: new Map<string, string>(), provider };
 });

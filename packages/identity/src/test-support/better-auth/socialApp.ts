@@ -20,8 +20,9 @@ const definition = {
 
 export const socialApp = storyKit({ ...definition, create: () => socialEngine() });
 export function mintedSocialSession(providerAccounts: NonNullable<Parameters<typeof signedInUser>[1]["providerAccounts"]> = []) {
-	return socialApp.trait("account", "Bob starts signed in with a minted session", function* ({ auth }) {
-		const { cookies } = yield* Effect.promise(() => signedInUser(auth, { email: "bob@social.test", name: "Bob", providerAccounts }));
+	return socialApp.trait("account", "Bob starts signed in with a minted session", function* ({ auth, minted }) {
+		const { cookies, user } = yield* Effect.promise(() => signedInUser(auth, { email: "bob@social.test", name: "Bob", providerAccounts }));
+		minted.set("Bob", user.id);
 		yield* seedCookies(cookies);
 	});
 }

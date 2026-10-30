@@ -908,6 +908,9 @@ importers:
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql

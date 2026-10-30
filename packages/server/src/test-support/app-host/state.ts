@@ -12,6 +12,7 @@ export interface HostState {
 	address: unknown;
 	adminSession: { role: string; unavailable: boolean };
 	agent?: Agent;
+	applicationName?: string;
 	assets?: { root: string; spa: boolean };
 	bindAddress: string;
 	bootFailure?: import("effect").Cause.Cause<unknown>;
@@ -24,6 +25,7 @@ export interface HostState {
 	expectBootFailure: boolean;
 	lifecycle: string[];
 	logs: { level: string; attempt: number; annotations: Record<string, unknown>; message: unknown; spans?: Readonly<Record<string, number>> }[];
+	logWaiters: (() => void)[];
 	lookups: string[];
 	loopback: boolean;
 	minimumLogLevel: LogLevel.LogLevel;
@@ -31,6 +33,12 @@ export interface HostState {
 	proxy?: Effect.Success<ReturnType<typeof disconnectProxy>>;
 	receiver?: Awaited<ReturnType<typeof otlpReceiver>>;
 	reported: Cause.Cause<unknown>[];
+	response?: {
+		readonly answers?: Readonly<Record<string, string>>;
+		readonly body?: string;
+		readonly cacheControl: string | null;
+		readonly status: number;
+	};
 	routes: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;
 	rpcPath: HttpRouter.PathInput;
 	runtime?: PlatformRuntime<HttpServer.HttpServer, unknown>;
@@ -52,6 +60,7 @@ export function emptyHost(): HostState {
 		expectBootFailure: false,
 		lifecycle: [],
 		logs: [],
+		logWaiters: [],
 		lookups: [],
 		loopback: true,
 		minimumLogLevel: "Info",
@@ -72,4 +81,26 @@ export function runtimeOf(state: HostState) {
 }
 export function io<A>(action: () => Promise<A>) {
 	return Effect.tryPromise({ catch: (error) => error, try: action });
+}
+
+export function logged(state: HostState, condition: () => boolean): Promise<void> {
+	return new Promise((resolve) => {
+		function check() {
+			if (condition()) {
+				resolve();
+			} else {
+				state.logWaiters.push(check);
+			}
+		}
+		check();
+	});
+}
+
+export function recordLog(state: HostState, entry: HostState["logs"][number]) {
+	state.logs.push(entry);
+	queueMicrotask(() => {
+		for (const waiter of state.logWaiters.splice(0)) {
+			waiter();
+		}
+	});
 }

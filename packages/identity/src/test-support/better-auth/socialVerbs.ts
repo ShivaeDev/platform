@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { answered } from "@shivaedev/test/answers.ts";
 import { domNavigate } from "@shivaedev/test-story/server/domNavigate.ts";
 import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
@@ -7,72 +8,89 @@ import { signedInUser, storedProviderAccounts } from "#server/better-auth/testin
 import { readProviderAccounts } from "./providerAccounts.ts";
 import type { socialEngine } from "./socialEngine.ts";
 
-export function socialVerbs(
-	{
-		auth,
-		baseUrl,
-		fetch,
-		pool,
-		provider,
-		client,
-		failAccountLookup,
-		accountLookups,
-		accountRequests,
-		expireBeforeAccountLookup,
-	}: Effect.Success<ReturnType<typeof socialEngine>>,
-	story: Story<Effect.Success<ReturnType<typeof socialEngine>>>,
-) {
+type SocialEngine = Effect.Success<ReturnType<typeof socialEngine>>;
+
+export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
+	const { auth, baseUrl, fetch, pool, provider, client, minted } = engine;
 	provider.narrate(story.tell);
+	function signInWithGitHub() {
+		return Effect.promise(async () => {
+			const result = await client.signIn.social({ "callbackURL": `${baseUrl}/signed-in`, provider: "github" });
+			if (result.error !== null) {
+				throw new Error(`Social sign-in failed: ${JSON.stringify(result.error)}`);
+			}
+		});
+	}
+	function currentSession() {
+		return Effect.promise(
+			async (): Promise<{ readonly user?: { readonly email: string; readonly id: string } } | null> => (await fetch("/api/auth/get-session")).json(),
+		);
+	}
+	function accountLookupUser(cookie: string) {
+		return auth.api
+			.getSession({ headers: new Headers({ cookie, host: new URL(baseUrl).host }) })
+			.then((session) => session?.user.name ?? "an expired session");
+	}
+	function providerCalls() {
+		return provider.requests.map(({ body, headers, method, path }) => ({
+			body: body.toString(),
+			cookie: headers.cookie,
+			route: `${method} ${new URL(path, provider.url).pathname}`,
+		}));
+	}
 	return {
-		accountLookups,
-		accountRequests,
-		cookie: () => {
-			story.tell("read the document's visible cookies");
-			return document.cookie;
+		accountLookupUsers: () => Effect.promise(() => Promise.all(engine.accountRequests().map(accountLookupUser))),
+		aliceSignsInWithGitHub: () => {
+			story.tell("Alice signs in with GitHub and the browser follows GitHub's redirect back");
+			return Effect.andThen(
+				signInWithGitHub(),
+				Effect.promise(() => domNavigate()),
+			);
 		},
-		expireBeforeAccountLookup: () => Effect.sync(expireBeforeAccountLookup),
-		failAccountLookup: () => Effect.sync(failAccountLookup),
-		followRedirect: () =>
-			Effect.promise(() => {
-				story.tell("follow the provider redirect");
-				return domNavigate();
+		codeExchange: () =>
+			Effect.sync(() => {
+				const exchange = providerCalls().find(({ route }) => route === "POST /login/oauth/access_token");
+				if (exchange === undefined) {
+					return "no token request";
+				}
+				return exchange.body.includes("code=story-code") ? "sent the callback code" : "sent no callback code";
 			}),
-		heading: () => document.querySelector("h1")?.textContent,
-		identityOnly: () => readProviderAccounts(baseUrl, fetch, "identityOnly"),
-		location: () => {
-			story.tell(`read the page location: ${window.location.href}`);
-			return window.location.href;
+		expireBeforeAccountLookup: () => {
+			story.tell("the session expires between identity resolution and the account lookup");
+			return Effect.sync(engine.expireBeforeAccountLookup);
 		},
-		mintSession: (email: string) =>
+		failAccountLookup: () => {
+			story.tell("the account lookup storage becomes unavailable");
+			return Effect.sync(engine.failAccountLookup);
+		},
+		identityOnly: () => {
+			story.tell("the signed-in user calls an identity-only RPC");
+			return answered(readProviderAccounts(baseUrl, fetch, "identityOnly"));
+		},
+		mintSession: (name: string) =>
 			Effect.gen(function* () {
-				story.tell(`the browser starts with a minted session for ${email}`);
-				const { cookies } = yield* Effect.promise(() => signedInUser(auth, { email, name: email }));
+				story.tell(`the browser switches to a minted session for ${name}`);
+				const { cookies, user } = yield* Effect.promise(() => signedInUser(auth, { email: `${name.toLowerCase()}@social.test`, name }));
+				minted.set(name, user.id);
 				yield* seedCookies(cookies);
 			}),
+		narrationMentions: (...texts: readonly string[]) => Effect.sync(() => texts.filter((text) => story.lines.join("\n").includes(text))),
+		pageHeading: () => Effect.sync(() => document.querySelector("h1")?.textContent ?? "no heading"),
+		pageHost: () => Effect.sync(() => new URL(window.location.href).hostname),
+		pagePath: () => Effect.sync(() => new URL(window.location.href).pathname),
 		providerAccounts: () => {
 			story.tell("the signed-in user reads provider account IDs through native RPC");
-			return readProviderAccounts(baseUrl, fetch);
+			return answered(readProviderAccounts(baseUrl, fetch));
 		},
-		providerRequests: () =>
-			provider.requests.map(({ body, headers, method, path }) => ({
-				body: body.toString(),
-				cookie: headers.cookie,
-				method,
-				path: new URL(path, provider.url).pathname,
-			})),
-		session: () =>
-			Effect.promise(async () => {
-				story.tell("read the cookie session through the auth endpoint");
-				return (await fetch("/api/auth/get-session")).json();
-			}),
-		signInWithGitHub: () =>
-			Effect.promise(async () => {
-				story.tell("sign in with the GitHub provider");
-				const result = await client.signIn.social({ "callbackURL": `${baseUrl}/signed-in`, provider: "github" });
-				if (result.error !== null) {
-					throw new Error(`Social sign-in failed: ${JSON.stringify(result.error)}`);
-				}
-			}),
+		providerCookiesSent: () => Effect.sync(() => providerCalls().filter(({ cookie }) => cookie !== undefined).length),
+		providerRoutes: () => Effect.sync(() => providerCalls().map(({ route }) => route)),
+		sessionCookieVisibility: () =>
+			Effect.sync(() => (document.cookie.includes("session_token") ? "visible to page scripts" : "hidden from page scripts")),
+		sessionEmail: () => Effect.map(currentSession(), (session) => session?.user?.email ?? "signed out"),
+		signInWithGitHub: () => {
+			story.tell("Alice starts signing in with GitHub");
+			return signInWithGitHub();
+		},
 		signOut: () =>
 			Effect.promise(async () => {
 				story.tell("the signed-in user signs out");
@@ -85,12 +103,15 @@ export function socialVerbs(
 					throw new Error(`Sign-out failed: ${response.status}`);
 				}
 			}),
-		storedProviderAccounts: (userId: string) =>
-			Effect.promise(() => {
-				story.tell("read which credentials the user's provider accounts store");
-				return storedProviderAccounts(auth, userId);
-			}),
-		storedSessions: () => authTestDatabase(pool).sessions.pipe(Effect.map((sessions) => [{ count: sessions.length }])),
-		storedUsers: () => authTestDatabase(pool).users.pipe(Effect.map((users) => users.map(({ email }) => ({ email })))),
+		storedProviderAccounts: () =>
+			Effect.flatMap(currentSession(), (session) =>
+				Effect.promise(() => {
+					story.tell("read which credentials the signed-in user's provider accounts store");
+					return storedProviderAccounts(auth, session?.user?.id ?? "");
+				}),
+			),
+		storedSessionCount: () => authTestDatabase(pool).sessions.pipe(Effect.map((sessions) => sessions.length)),
+		storedUserEmails: () => authTestDatabase(pool).users.pipe(Effect.map((users) => users.map(({ email }) => email))),
+		userIdOf: (name: string) => Effect.sync(() => minted.get(name) ?? `no minted session for ${name}`),
 	};
 }
