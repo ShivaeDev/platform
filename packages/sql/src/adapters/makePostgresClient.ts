@@ -32,7 +32,8 @@ export const makePostgresClient = Effect.fn("Sql.makePostgresClient")(function* 
 		config,
 		json: (value: unknown) => Statement.fragment([json(value)]),
 		listen: (channel: string) => Effect.flatMap(pool.reserve, (connection) => connection.listen(channel)),
-		notify: (channel: string, payload: string) => client`select pg_notify(${channel}, ${payload})`.pipe(Effect.asVoid),
+		notify: (channel: string, payload: string) =>
+			pool.use((connection) => connection.query("SELECT pg_notify($1, $2)", [channel, payload])).pipe(Effect.asVoid),
 	}) satisfies PgClient.PgClient;
 });
 

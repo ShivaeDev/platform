@@ -1,8 +1,10 @@
+import * as PgClient from "@effect/sql-pg/PgClient";
 import * as PgPool from "@effect/sql-pg/PgPool";
-import { Effect, Exit, Fiber, Scope } from "effect";
+import { Effect, Exit, Fiber, Queue, Random, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { postgresOptions } from "#test/postgres.ts";
+import { Rejected } from "#test/postgresTransact.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { hasTransactionTables } from "#test/sqlTraits.ts";
 
@@ -46,3 +48,19 @@ postgres.it(
 		expect((yield* observer.query(query)).rows).toEqual([{ id: 1 }]);
 	},
 );
+
+postgres.it("native notifications use their own pool checkout outside the client's open transaction", [], function* ({ sql }) {
+	const pg = yield* PgClient.PgClient;
+	const channel = `pool_${yield* Random.nextIntBetween(0, 1_000_000_000)}`;
+	const notifications = yield* pg.listen(channel);
+	const failure = yield* sql
+		.withTransaction(
+			Effect.gen(function* () {
+				yield* pg.notify(channel, "delivered");
+				expect(yield* Queue.take(notifications).pipe(Effect.timeout("3 seconds"))).toMatchObject({ channel, payload: "delivered" });
+				return yield* new Rejected();
+			}),
+		)
+		.pipe(Effect.flip);
+	expect(failure).toBeInstanceOf(Rejected);
+});
