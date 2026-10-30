@@ -3,11 +3,11 @@ import type { CliOptions, Vitest } from "vitest/node";
 import * as VitestNode from "vitest/node";
 import { failWith } from "#error.ts";
 import { writeFlakyTests } from "#flakyTests.ts";
+import { TimedJsonReporter } from "#internal/adapters/TimedJsonReporter.ts";
 import { RerunJunitReporter } from "#internal/junit.ts";
 import { mergeAttempt } from "#internal/mergeAttempt.ts";
 import { attemptPaths, reportPaths } from "#internal/reportPaths.ts";
 import { failedFiles, readSnapshot, type Snapshot, saveSnapshot, tests } from "#internal/snapshot.ts";
-import { TimedJsonReporter } from "#internal/TimedJsonReporter.ts";
 
 export interface Attempt {
 	readonly attempt: number;
