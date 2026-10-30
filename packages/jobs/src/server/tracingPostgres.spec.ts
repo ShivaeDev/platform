@@ -71,3 +71,16 @@ database.it(
 		]);
 	},
 );
+
+database.it(
+	"a handler's log line carries its job span and the log annotations its worker started under",
+	[enqueuedEarlier(Traced, { id: 42 }, { as: "job 42" })],
+	function* ({ logContext, start, untilJob }) {
+		expect(yield* logContext("Handled traced job")).toBe("not logged");
+
+		yield* start("worker", [worker(Traced, { logs: "Handled traced job" })], { startsUnderLogAnnotations: { worker: "traced-worker" } });
+		yield* untilJob("job 42", "completed");
+
+		expect(yield* logContext("Handled traced job")).toEqual({ annotations: { worker: "traced-worker" }, span: "the tracing span" });
+	},
+);

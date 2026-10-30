@@ -1,21 +1,14 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { Receipt } from "#server/internal/Receipt.ts";
 import { auditQueue } from "#test/fixture.ts";
 import { type HandledJob, type InboxState, inboxState, startHost } from "#test/host.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
 import { raceVerbs } from "#test/raceVerbs.ts";
 import { type Delivery, deliver } from "#test/requests.ts";
-import { secretsSeenIn, spanNames } from "#test/telemetry.ts";
-
-interface ReceiptRow {
-	readonly "delivery_id": string;
-	readonly event: string;
-	readonly "job_ids": readonly string[];
-	readonly outcome: string;
-	readonly source: string;
-}
+import { requestOutcomes, secretsSeenIn, spanNames } from "#test/telemetry.ts";
 
 function testingOf(state: InboxState) {
 	return state.testing === undefined ? Effect.die(new Error("The host has not started its jobs client")) : Effect.succeed(state.testing);
@@ -51,19 +44,21 @@ export const inbox = storyKit({
 			story.tell(`github sends ${delivery}`);
 			return deliver(state, delivery);
 		},
+		errorLogs: () => Effect.sync(() => state.logs.filter(({ level }) => level === "Error")),
 		handledJobs: () => Effect.map(workersIdle(state), () => state.handled.map(jobName).toSorted()),
+		requestOutcomes: () => Effect.sync(() => requestOutcomes(state)),
 		secretsSeenIn: () => Effect.sync(() => secretsSeenIn(state)),
 		spanNames: () => Effect.sync(() => spanNames(state)),
 		storedReceipts: () =>
 			Effect.gen(function* () {
 				yield* workersIdle(state);
-				const rows = yield* SqlClient.SqlClient.use(
-					(sql) => sql<ReceiptRow>`select * from webhook_receipts order by source, delivery_id`.withoutTransform,
+				const rows = yield* SqlClient.SqlClient.use((sql) => sql`select * from webhook_receipts order by source, delivery_id`.withoutTransform).pipe(
+					Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Receipt))),
 				);
 				return rows.map((row) => ({
-					delivery: row.delivery_id,
+					delivery: row.deliveryId,
 					event: row.event,
-					jobs: row.job_ids.map((id) => receiptJobName(state, id)).toSorted(),
+					jobs: row.jobIds.map((id) => receiptJobName(state, id)).toSorted(),
 					outcome: row.outcome,
 					source: row.source,
 				}));

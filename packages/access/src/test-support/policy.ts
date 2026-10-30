@@ -12,3 +12,6 @@ export const Reader = role("reader", [ReadUsers, ReadJobs]);
 export const Manager = role("manager", [ReadAllUsers, AssignRoles]);
 export const Guest = role("guest", []);
 export const Access = roleSet(Reader, Manager, Guest);
+
+const RuntimeReaderName: string = "reader";
+export const AccessWithReaderTwice = roleSet(Reader, Manager, Guest, role(RuntimeReaderName, [AssignRoles]));

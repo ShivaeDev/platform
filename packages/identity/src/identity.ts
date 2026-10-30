@@ -1,5 +1,4 @@
-import { Context, type Effect, type Option } from "effect";
-import type { Permission } from "@shivaedev/access/permission.ts";
+import { Context, type Effect, type Option, Schema } from "effect";
 import type { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 export class RequestId extends Context.Service<RequestId, string>()("@shivaedev/identity/RequestId") {}
 export interface IdentityValue {
@@ -11,12 +10,14 @@ export interface ProviderAccountValue {
 	readonly accountId: string;
 	readonly providerId: string;
 }
-export interface SessionUserValue extends IdentityValue {
-	readonly email: string;
-	readonly name: string;
-	readonly permissions?: readonly Permission[];
-	readonly role?: string | null | undefined;
-}
+export const SessionUserSchema = Schema.Struct({
+	email: Schema.String,
+	id: Schema.String,
+	name: Schema.String,
+	permissions: Schema.optionalKey(Schema.Array(Schema.Struct({ name: Schema.String, strength: Schema.Literals(["own", "any"]) }))),
+	role: Schema.optional(Schema.NullOr(Schema.String)),
+});
+export type SessionUserValue = typeof SessionUserSchema.Type;
 export class SessionUser extends Context.Service<SessionUser, SessionUserValue>()("@shivaedev/identity/SessionUser") {}
 export interface SessionUserWithProviderAccountsValue extends SessionUserValue {
 	readonly providerAccounts: Effect.Effect<readonly ProviderAccountValue[], AuthUnavailable | Unauthorized>;

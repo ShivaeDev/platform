@@ -1,10 +1,19 @@
-import { Effect } from "effect";
-import { SqlClient } from "effect/sql";
-import { PostgresTestDatabase } from "#database.ts";
+import { Effect, Exit, Scope } from "effect";
+import { Migrator, SqlClient } from "effect/sql";
+import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrationSteps } from "#migrationSteps.ts";
 import { withTestTransaction } from "#withTestTransaction.ts";
-import { emails, migrations, seedContacts } from "./migrationSteps.ts";
-import { secondClient } from "./postgres.ts";
+import { tableNames } from "./cloneStory.ts";
+import { migrations } from "./migrationSteps.ts";
+import { attempt, timesOf } from "./outcome.ts";
+
+export interface StepsEngine {
+	readonly counts: { loads: number };
+	loaderResource: "not acquired" | "open" | "closed";
+	migration: string;
+	steps: Effect.Success<ReturnType<typeof migrationSteps<never>>>;
+	stepsScope: Scope.Closeable | undefined;
+}
 
 export const createSteps = Effect.gen(function* () {
 	const counts = { loads: 0 };
@@ -15,33 +24,63 @@ export const createSteps = Effect.gen(function* () {
 			return resolved;
 		}),
 	});
-	const engine: { counts: typeof counts; steps: typeof steps; target: string | number } = { counts, steps, target: "missing_backfill" };
+	const engine: StepsEngine = { counts, loaderResource: "not acquired", migration: "not attempted", steps, stepsScope: undefined };
 	return engine;
 });
 
-type Engine = Effect.Success<typeof createSteps>;
+export const ledger = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	if (!(yield* tableNames).includes(migrations.table)) {
+		return [];
+	}
+	const rows = yield* sql<{ id: number }>`select migration_id as id from ${sql(migrations.table)} order by migration_id`;
+	return rows.map(({ id }) => id);
+});
 
-export function stepsVerbs(engine: Engine) {
+export function stepsVerbs(engine: StepsEngine, story: Story<StepsEngine>) {
 	return {
-		acquireInTransaction: () => withTestTransaction(migrationSteps(migrations)),
-		backfill: () => engine.steps.migrateToLatest,
-		migrateInTransaction: () => withTestTransaction(engine.steps.migrateToLatest),
-		migrateTo: (target: string | number = engine.target) => engine.steps.migrateTo(target),
-		openObserver: () => Effect.flatMap(PostgresTestDatabase, (database) => secondClient(database.url)),
-		readAddresses: () => Effect.flatMap(SqlClient.SqlClient, (sql) => sql`select address from emails`),
-		readContacts: () => Effect.flatMap(SqlClient.SqlClient, (sql) => sql`select email from contacts order by id`),
-		readEmails: () => emails,
-		readLedger: () => Effect.flatMap(SqlClient.SqlClient, (sql) => sql`select migration_id from ${sql(migrations.table)} order by migration_id`),
-		readLoads: () => Effect.sync(() => engine.counts.loads),
-		readTable: (table: "contacts" | "ledger") =>
-			Effect.flatMap(SqlClient.SqlClient, (sql) => {
-				const name = table === "contacts" ? "contacts" : sql`${sql(migrations.table)}`.compile()[0];
-				return sql`select to_regclass(${name}) as name`;
+		acquireStepsInRollbackTest: () => {
+			story.tell("a rollback test acquires migration steps");
+			return attempt(withTestTransaction(migrationSteps(migrations)));
+		},
+		acquireStepsWithFailingLoader: () => {
+			story.tell("the caller acquires migration steps from a loader that fails with ImportError");
+			const failure = new Migrator.MigrationError({ kind: "ImportError", message: "loader refused" });
+			return attempt(Effect.scoped(migrationSteps({ ...migrations, loader: Effect.fail(failure) })));
+		},
+		appliedMigrations: () => ledger,
+		backfill: () => {
+			story.tell("the steps migrate to the latest migration");
+			return engine.steps.migrateToLatest;
+		},
+		closeStepsScope: () =>
+			Effect.suspend(() => {
+				story.tell("the caller closes the scope that acquired the steps");
+				return engine.stepsScope === undefined
+					? Effect.die(new Error("Declare scopedLoader before closing its scope."))
+					: Scope.close(engine.stepsScope, Exit.void);
 			}),
-		resume: () =>
+		contactEmails: () =>
+			Effect.flatMap(SqlClient.SqlClient, (sql) =>
+				Effect.map(sql<{ email: string }>`select email from contacts order by id`, (rows) => rows.map(({ email }) => email)),
+			),
+		emailAddresses: () =>
+			Effect.flatMap(
+				SqlClient.SqlClient,
+				(sql) => sql<{ address: string; contactId: number }>`select contact_id as "contactId", address from emails order by contact_id`,
+			),
+		loaderResolutions: () => Effect.sync(() => timesOf(engine.counts.loads)),
+		loaderResource: () => Effect.sync(() => engine.loaderResource),
+		migrateInRollbackTest: () => {
+			story.tell("a rollback test migrates with steps acquired outside it");
+			return attempt(withTestTransaction(engine.steps.migrateToLatest));
+		},
+		migrateTo: (target: string | number) =>
 			Effect.gen(function* () {
-				engine.steps = yield* migrationSteps(migrations);
+				story.tell(`the steps migrate to ${JSON.stringify(target)}`);
+				engine.migration = yield* attempt(engine.steps.migrateTo(target));
 			}),
-		seedContacts: () => seedContacts,
+		migration: () => Effect.sync(() => engine.migration),
+		tables: () => tableNames,
 	};
 }

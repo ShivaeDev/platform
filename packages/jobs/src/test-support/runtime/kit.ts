@@ -1,4 +1,5 @@
 import { Clock, Effect, Fiber } from "effect";
+import { TestClock } from "effect/testing";
 import type { Job } from "pg-boss";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PgBossClient } from "#client.ts";
@@ -7,7 +8,7 @@ import { failureOf } from "#test/failureOf.ts";
 import { FakeClient } from "#test/fakeClient.ts";
 import { scriptedClient } from "#test/runtime/scriptedClient.ts";
 import { spanTree } from "#test/spanTree.ts";
-import type { Registration } from "#test/workers.ts";
+import { type Registration, untilWork } from "#test/workers.ts";
 import { described, type Fetched, type Options, provided, type RuntimeEngine, runningIn, runtimeEngine, startRuntime } from "./engine.ts";
 
 export const runtime = storyKit({
@@ -34,42 +35,20 @@ export const runtime = storyKit({
 		claimReads: () => Effect.sync(() => engine.client.claimReads),
 		clientCalls: () => Effect.sync(() => [...engine.client.calls]),
 		clientsConstructed: () => Effect.sync(() => engine.clientsConstructed),
+		clockPasses: (millis: number) => {
+			story.tell(`${millis}ms pass on the runtime clock`);
+			return TestClock.adjust(millis);
+		},
 		createdQueues: () => Effect.sync(() => engine.client.created.map(({ name, options }) => ({ name, options }))),
 		deliver: (queue: string, jobs: readonly Fetched[], { pgBossAborts }: { readonly pgBossAborts?: string } = {}) => {
 			story.tell(
 				`pg-boss delivers ${jobs.map((job) => job.id).join(", ")} to the ${queue} worker${pgBossAborts === undefined ? "" : ` and aborts ${pgBossAborts} once it starts`}`,
 			);
-			return Effect.gen(function* () {
-				const worker = engine.client.workers.findLast((entry) => entry.name === queue);
-				if (worker === undefined) {
-					return yield* Effect.die(new Error(`No worker is registered for ${queue}`));
-				}
-				const now = yield* Clock.currentTimeMillis;
-				const aborts = new Map(jobs.map((job) => [job.id, new AbortController()]));
-				const batch = jobs.map((job): Job<unknown> & { readonly startedOn: Date } => ({
-					data: job.data ?? {},
-					expireInSeconds: job.expireInSeconds ?? 900,
-					heartbeatSeconds: null,
-					id: job.id,
-					name: queue,
-					retryCount: job.retryCount ?? 0,
-					signal: aborts.get(job.id)?.signal ?? new AbortController().signal,
-					startedOn: new Date(now - (job.startedMillisAgo ?? 0)),
-				}));
-				function abort() {
-					if (pgBossAborts !== undefined && engine.work.started.some((attempt) => attempt.id === pgBossAborts)) {
-						engine.work.changed.delete(abort);
-						aborts.get(pgBossAborts)?.abort();
-					}
-				}
-				engine.work.changed.add(abort);
-				engine.batchAnswer = yield* Effect.tryPromise(() => worker.run(batch)).pipe(
-					Effect.match({ onFailure: (error) => `rejected with ${failureOf(error.cause)}`, onSuccess: () => "returned" }),
-					Effect.ensuring(Effect.sync(() => engine.work.changed.delete(abort))),
-				);
-				const deadline = Math.max(...batch.map((job) => job.startedOn.getTime() + job.expireInSeconds * 1000));
-				engine.returnedAfterDeadline = (yield* Clock.currentTimeMillis) - deadline;
-			});
+			return delivered(engine, queue, jobs, pgBossAborts);
+		},
+		deliveryFinishes: () => {
+			story.tell("the delivered batch finishes");
+			return finished(engine);
 		},
 		deliveryReturned: () =>
 			Effect.sync(
@@ -87,9 +66,7 @@ export const runtime = storyKit({
 			story.tell(`the shared client's start fails with "${message}"`);
 			return Effect.gen(function* () {
 				engine.releaseStart?.(new Error(message));
-				for (const pending of engine.pending.splice(0)) {
-					yield* pending;
-				}
+				yield* finished(engine);
 			});
 		},
 		failureMessage: (name: string) => Effect.sync(() => engine.failureMessages.get(name) ?? "no failure"),
@@ -106,6 +83,22 @@ export const runtime = storyKit({
 			return startRuntime(engine, name, jobs, options);
 		},
 		startedAttempts: () => Effect.sync(() => engine.work.started.map(({ budget, id }) => ({ budget, id }))),
+		startsDelivering: (queue: string, job: Fetched) => {
+			story.tell(`pg-boss delivers ${job.id} to the ${queue} worker, and its handler starts`);
+			return Effect.gen(function* () {
+				const fiber = yield* delivered(engine, queue, [job], undefined).pipe(Effect.forkChild({ startImmediately: true }));
+				engine.pending.push(Fiber.join(fiber));
+				yield* untilWork(engine.work, () => (engine.work.started.some((attempt) => attempt.id === job.id) ? true : undefined));
+			});
+		},
+		startsInBackground: (name: string, jobs: readonly Registration[]) => {
+			story.tell(`${name} starts the jobs runtime without waiting for it`);
+			return Effect.gen(function* () {
+				engine.startups.set(name, "still starting");
+				const fiber = yield* startRuntime(engine, name, jobs).pipe(Effect.forkChild({ startImmediately: true }));
+				engine.pending.push(Fiber.join(fiber));
+			});
+		},
 		startTogether: (...names: readonly string[]) => {
 			story.tell(`${names.join(" and ")} start the jobs runtime while the shared client is still starting`);
 			return Effect.forEach(names, (name) =>
@@ -116,6 +109,10 @@ export const runtime = storyKit({
 			);
 		},
 		startup: (name: string) => Effect.sync(() => engine.startups.get(name) ?? "never started"),
+		startupFinishes: (name: string) => {
+			story.tell(`${name}'s startup finishes`);
+			return finished(engine);
+		},
 		stop: (name: string) => {
 			story.tell(`${name} stops`);
 			return Effect.suspend(() => runningIn(engine, name).stop).pipe(Effect.tap(() => Effect.sync(() => engine.runtimes.delete(name))));
@@ -124,6 +121,44 @@ export const runtime = storyKit({
 		workerCalls: () => Effect.sync(() => engine.client.calls.filter((call) => call.startsWith("work ") || call.startsWith("stop working "))),
 		workerOptions: () => Effect.sync(() => engine.client.workers.map(({ name, options }) => ({ name, options }))),
 	}),
+});
+
+const finished = Effect.fnUntraced(function* (engine: RuntimeEngine) {
+	for (const pending of engine.pending.splice(0)) {
+		yield* pending;
+	}
+});
+
+const delivered = Effect.fnUntraced(function* (engine: RuntimeEngine, queue: string, jobs: readonly Fetched[], pgBossAborts: string | undefined) {
+	const worker = engine.client.workers.findLast((entry) => entry.name === queue);
+	if (worker === undefined) {
+		return yield* Effect.die(new Error(`No worker is registered for ${queue}`));
+	}
+	const now = yield* Clock.currentTimeMillis;
+	const aborts = new Map(jobs.map((job) => [job.id, new AbortController()]));
+	const batch = jobs.map((job): Job<unknown> & { readonly startedOn: Date } => ({
+		data: job.data ?? {},
+		expireInSeconds: job.expireInSeconds ?? 900,
+		heartbeatSeconds: null,
+		id: job.id,
+		name: queue,
+		retryCount: job.retryCount ?? 0,
+		signal: aborts.get(job.id)?.signal ?? new AbortController().signal,
+		startedOn: new Date(now - (job.startedMillisAgo ?? 0)),
+	}));
+	function abort() {
+		if (pgBossAborts !== undefined && engine.work.started.some((attempt) => attempt.id === pgBossAborts)) {
+			engine.work.changed.delete(abort);
+			aborts.get(pgBossAborts)?.abort();
+		}
+	}
+	engine.work.changed.add(abort);
+	engine.batchAnswer = yield* Effect.tryPromise(() => worker.run(batch)).pipe(
+		Effect.match({ onFailure: (error) => `rejected with ${failureOf(error.cause)}`, onSuccess: () => "returned" }),
+		Effect.ensuring(Effect.sync(() => engine.work.changed.delete(abort))),
+	);
+	const deadline = Math.max(...batch.map((job) => job.startedOn.getTime() + job.expireInSeconds * 1000));
+	engine.returnedAfterDeadline = (yield* Clock.currentTimeMillis) - deadline;
 });
 
 const started = Effect.fnUntraced(function* (engine: RuntimeEngine, name: string, jobs: readonly Registration[], options?: Options) {
@@ -221,6 +256,15 @@ export function storedJob(job: Parameters<FakeClient["stored"]["set"]>[1]) {
 	});
 }
 
+export const deferralWritesFail = runtime.trait("client", "the deferral store rejects every write", (engine) => {
+	Object.assign(engine.client, {
+		getDb: () => ({
+			executeSql: (text: string) =>
+				text.includes("WITH claimed AS MATERIALIZED") ? Promise.reject(new Error("deferral storage unavailable")) : Promise.resolve({ rows: [] }),
+		}),
+	});
+});
+
 export const claimReadsStall = runtime.trait("client", "pg-boss never answers reads of a claimed job", (engine) => {
 	engine.client.stallsClaimReads = true;
 });
@@ -249,5 +293,5 @@ export const errorsReported = runtime.trait("client", "the application reports p
 });
 
 export function connectionTerminated(): Error {
-	return Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" });
+	return Object.assign(new Error("terminating connection due to administrator command: password=client-secret"), { code: "57P01" });
 }

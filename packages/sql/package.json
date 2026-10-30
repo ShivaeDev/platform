@@ -49,14 +49,14 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/changes": "workspace:*"
+		"@shivaedev/changes": "workspace:*",
+		"@shivaedev/service": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/sql-sqlite-node": "catalog:",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/service": "workspace:*",
 		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",

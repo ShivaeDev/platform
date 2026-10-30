@@ -1,5 +1,5 @@
-import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, References, Scope } from "effect";
-import { type Job, PgBoss, type WorkOptions } from "pg-boss";
+import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, References, Scope, Tracer } from "effect";
+import { PgBoss } from "pg-boss";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import { defaultClientFactory, type PgBossClient } from "#client.ts";
 import { PgBossError } from "#error.ts";
@@ -8,24 +8,39 @@ import type { PgBossLayerOptions } from "#service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
 import { makePgBossTesting, testRetryPolicy } from "#testing.ts";
+import { observeStops, observeWakes, pauseCompletion, sortBatches } from "./clientObservers.ts";
 import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
 export type StartOptions = Omit<Partial<PgBossLayerOptions<readonly [], never>>, "jobs" | "onError"> & {
 	readonly controller?: "production retries" | "test retries" | "none";
+	readonly finalizesInParallel?: true;
 	readonly handsBatchesOver?: "by priority";
 	readonly pausesCompletionAt?: string;
 	readonly reportsErrors?: true;
+	readonly jobLookupsFailWith?: string;
+	readonly startsUnderLogAnnotations?: Readonly<Record<string, string>>;
 };
 
-function logMessage(message: unknown): unknown {
+function logMessage(message: unknown, cause: Cause.Cause<unknown>): unknown {
+	if (Array.isArray(message) && message.length === 0 && cause.reasons.length > 0) {
+		const error = Cause.squash(cause);
+		return error instanceof Error ? error.message : String(error);
+	}
 	const single = Array.isArray(message) && message.length === 1 ? message[0] : message;
 	return single instanceof PgBossError ? failureOf(single) : single;
 }
 
 export function provided<A, E, R>(engine: DatabaseEngine, runtime: string, effect: Effect.Effect<A, E, R>) {
-	const logger = Logger.make(({ logLevel, message }) => {
-		const logged = logMessage(message);
-		engine.logs.push({ level: logLevel, message: logged, runtime });
+	const logger = Logger.make(({ cause, fiber, logLevel, message }) => {
+		const logged = logMessage(message, cause);
+		const span = Context.getOption(fiber.context, Tracer.ParentSpan);
+		engine.logs.push({
+			annotations: fiber.getRef(References.CurrentLogAnnotations),
+			level: logLevel,
+			message: logged,
+			runtime,
+			spanId: Option.isSome(span) ? span.value.spanId : undefined,
+		});
 		engine.timeline.push(`${runtime}: ${String(logged)}`);
 		notifyWork(engine.work);
 	});
@@ -37,63 +52,6 @@ export function provided<A, E, R>(engine: DatabaseEngine, runtime: string, effec
 		Effect.withTracer(engine.trace.tracer),
 	);
 	return release === undefined ? logged : Effect.provideService(logged, WorkerRelease, release.service);
-}
-
-function observeWakes(engine: DatabaseEngine, runtime: string, client: PgBossClient): PgBossClient {
-	const notify = client.notifyWorker;
-	if (notify === undefined) {
-		return client;
-	}
-	const wakes: string[] = [];
-	engine.wakes.set(runtime, wakes);
-	engine.pollers.set(runtime, notify);
-	Object.defineProperty(client, "notifyWorker", {
-		configurable: true,
-		value: (id: string) => {
-			const busy = (client.getWipData?.().find((worker) => worker.id === id)?.count ?? 0) > 0;
-			wakes.push(busy ? "busy worker" : "idle worker");
-			return notify(id);
-		},
-	});
-	return client;
-}
-
-// pg-boss returns a claimed batch in no particular order, so stories that name the job a batch reaches first sort it.
-function sortBatches(client: PgBossClient): PgBossClient {
-	const sorted = {
-		work(this: PgBoss, name: string, options: WorkOptions, handler: (jobs: Job<unknown>[]) => Promise<unknown>) {
-			return PgBoss.prototype.work.call(this, name, options, (jobs: Job<unknown>[]) =>
-				handler([...jobs].sort((left, right) => priorityOf(right) - priorityOf(left))),
-			);
-		},
-	};
-	Object.defineProperty(client, "work", { configurable: true, value: sorted.work });
-	return client;
-}
-
-function priorityOf(job: Job<unknown>): number {
-	return "priority" in job && typeof job.priority === "number" ? job.priority : 0;
-}
-
-function pauseCompletion(engine: DatabaseEngine, client: PgBossClient, gate: string) {
-	const db = client.getDb?.();
-	if (db === undefined) {
-		throw new TypeError("This pg-boss client exposes no database to pause");
-	}
-	const executeSql = db.executeSql.bind(db);
-	let paused = false;
-	db.executeSql = async (text, values) => {
-		if (!paused && /SET completed_on = \S+, state = 'completed'/u.test(text.replace(/\s+/gu, " "))) {
-			paused = true;
-			const { entered, opened, passed } = engine.work.gate(gate);
-			Deferred.doneUnsafe(entered, Effect.void);
-			await Effect.runPromise(Deferred.await(opened));
-			const result = await executeSql(text, values);
-			Deferred.doneUnsafe(passed, Effect.void);
-			return result;
-		}
-		return executeSql(text, values);
-	};
 }
 
 export function testingFor(controller: StartOptions["controller"]) {
@@ -109,8 +67,18 @@ export const startRuntime = Effect.fnUntraced(function* (
 	jobs: readonly Registration[],
 	options: StartOptions = {},
 ) {
-	const { controller, handsBatchesOver, pausesCompletionAt, reportsErrors, ...layerOptions } = options;
-	const scope = yield* Scope.fork(yield* Scope.Scope);
+	const {
+		controller,
+		finalizesInParallel,
+		handsBatchesOver,
+		pausesCompletionAt,
+		reportsErrors,
+		jobLookupsFailWith,
+		startsUnderLogAnnotations,
+		...layerOptions
+	} = options;
+	const story = yield* Scope.Scope;
+	const scope = yield* Scope.fork(story, finalizesInParallel === true ? "parallel" : "sequential");
 	const testing = testingFor(controller);
 	const factory = layerOptions.clientFactory ?? testing?.clientFactory ?? defaultClientFactory;
 	let client: PgBossClient | undefined;
@@ -119,10 +87,16 @@ export const startRuntime = Effect.fnUntraced(function* (
 		connectionString: engine.url,
 		...layerOptions,
 		clientFactory: (construct) => {
-			const created = observeWakes(engine, name, factory(construct));
+			const created = observeStops(engine, observeWakes(engine, name, factory(construct)));
 			client = handsBatchesOver === undefined ? created : sortBatches(created);
 			if (pausesCompletionAt !== undefined) {
 				pauseCompletion(engine, client, pausesCompletionAt);
+			}
+			if (jobLookupsFailWith !== undefined) {
+				Object.defineProperty(client, "findJobs", { configurable: true, value: () => Promise.reject(new Error(jobLookupsFailWith)) });
+			}
+			if (layerOptions.clientCacheKey !== undefined) {
+				engine.sharedClients.set(layerOptions.clientCacheKey, client);
 			}
 			return client;
 		},
@@ -130,14 +104,19 @@ export const startRuntime = Effect.fnUntraced(function* (
 		...(reportsErrors === true ? { onError: (error: Error) => Effect.sync(() => engine.reported.push(error.message)) } : {}),
 	});
 	const startedAt = yield* Clock.currentTimeMillis;
-	const built = yield* provided(engine, name, Layer.buildWithScope(layer, scope)).pipe(Effect.exit);
+	const built = yield* provided(engine, name, Layer.buildWithScope(layer, scope)).pipe(
+		Effect.annotateLogs(startsUnderLogAnnotations ?? {}),
+		Effect.exit,
+	);
+	client ??= layerOptions.clientCacheKey === undefined ? undefined : engine.sharedClients.get(layerOptions.clientCacheKey);
 	if (Exit.isFailure(built) || client === undefined) {
 		const error = Exit.isFailure(built) ? Option.getOrUndefined(Cause.findErrorOption(built.cause)) : undefined;
 		engine.startups.set(name, error === undefined ? "died" : failureOf(error));
 		return;
 	}
+	// Held work is let go when the story ends, not when the runtime stops, so a story can watch a stop wait for it.
 	yield* Scope.addFinalizer(
-		scope,
+		story,
 		Effect.forEach(engine.work.gates.values(), ({ opened }) => Deferred.succeed(opened, undefined), { discard: true }),
 	);
 	if (testing !== undefined) {
@@ -176,7 +155,9 @@ export const admin = Effect.fnUntraced(function* (engine: DatabaseEngine, schema
 		return existing;
 	}
 	const client = new PgBoss({ connectionString: engine.url, schedule: false, schema, supervise: false });
-	client.on("error", (error) => engine.logs.push({ level: "Error", message: error.message, runtime: "administrator" }));
+	client.on("error", (error) =>
+		engine.logs.push({ annotations: {}, level: "Error", message: error.message, runtime: "administrator", spanId: undefined }),
+	);
 	engine.admins.set(schema, client);
 	yield* Effect.acquireRelease(
 		Effect.promise(() => client.start()),
@@ -242,7 +223,7 @@ export function errorOf(output: unknown): string {
 	const tag = fields.get("_tag");
 	const detail = fields.get("message") ?? fields.get("reason");
 	if (typeof tag === "string") {
-		return `${tag}: ${String(detail)}`;
+		return typeof detail === "string" && detail !== "" ? `${tag}: ${detail}` : tag;
 	}
 	if (typeof detail === "string") {
 		return detail;

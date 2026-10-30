@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { eventually } from "#client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { type LiveEngine, rejectedSave, view } from "./liveEngine.ts";
 import { makeClient } from "./makeClient.ts";
 import { call } from "./view.tsx";

@@ -52,6 +52,18 @@ Run `pnpm run setup` after cloning the generated repository to install dependenc
 
 Run `pnpm dlx @shivaedev/create-app@latest update` in a generated app with a clean Git working tree to take later starter changes. The command reads `.create-app.json`, downloads the recorded generator’s starter and uses Git’s three-way merge to replay its changes against the current starter; app edits survive, deleted files stay deleted, and conflicts are listed and left for you to resolve. A successful merge records the current generator version; review the changes, run `pnpm install` and commit them yourself. An update adds the admin Users registration and route to an app that lacks them, and lists conflicts where the app customized those parts.
 
+### Reuse the generator
+
+Generator modules are available through `@shivaedev/create-app/*.ts`. Compose their Effects with your application’s services when you need scaffolding outside the CLI:
+
+```ts
+import { packTemplate } from "@shivaedev/create-app/packTemplate.ts";
+
+const template = packTemplate("/path/to/starter", "/path/to/template.json");
+```
+
+`packTemplate` reads its filesystem service from the Effect environment. Node integrations need `@effect/platform-node` and `@effect/platform-node-shared`; the CLI bundles them. Test-support files stay outside the published archive.
+
 ### Requirements
 
 Use Node 24 or newer and pnpm. See the [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for the starter's application and deployment workflow.

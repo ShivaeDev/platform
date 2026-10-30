@@ -10,6 +10,14 @@ export const WEBHOOK_SECRET = "webhook-secret";
 export const WRONG_SECRET = "wrong-webhook-secret";
 export const WORKFLOW_BODY = Buffer.from('{"action":"completed","workflow_run":{"id":42,"conclusion":"success"}}');
 
+export const unencodableScope = {
+	repositories: Object.assign(["widgets"], {
+		"toJSON": () => {
+			throw new Error("repository scope cannot be encoded");
+		},
+	}),
+};
+
 const Claims = Schema.fromJsonString(Schema.Struct({ exp: Schema.Number, iat: Schema.Number, iss: Schema.String }));
 const Header = Schema.fromJsonString(Schema.Struct({ alg: Schema.String, typ: Schema.String }));
 

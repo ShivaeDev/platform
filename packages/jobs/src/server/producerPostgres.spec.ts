@@ -42,7 +42,7 @@ database.it(
 		yield* outcomes({
 			"attempts": [attempts(Producer), ["job 42", "job 42", "job 42"]],
 			"dead-lettered": [deadLettered(Producer), ["job 42"]],
-			"job 42": [job("job 42"), expect.objectContaining({ error: "Retry this job", retryCount: 2, state: "failed" })],
+			"job 42": [job("job 42"), expect.objectContaining({ error: "Error: Retry this job", retryCount: 2, state: "failed" })],
 		});
 	},
 );

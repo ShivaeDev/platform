@@ -1,6 +1,6 @@
 import { relative } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
-import { biomeReport, type Report } from "#biome/report.ts";
+import { biomeReport } from "#biome/report.ts";
 import { loadConfig } from "#config/load.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
@@ -8,15 +8,9 @@ import { posix } from "#inventory/ignoreScope.ts";
 import { walk } from "#inventory/walk.ts";
 import { sortManifests } from "#manifests/sorted.ts";
 import { plural } from "#report/plural.ts";
+import type { RuleServices } from "#rule.ts";
 
 export const MAX_FIX_ROUNDS = 5;
-
-function biome(root: string, args: readonly string[], exceptions: readonly ExceptionDeclaration[]): Effect.Effect<Report, SetupFailure> {
-	return Effect.tryPromise({
-		catch: (cause) => new SetupFailure({ message: cause instanceof Error ? cause.message : String(cause) }),
-		try: () => biomeReport(root, args, exceptions),
-	});
-}
 
 function isBinary(bytes: Uint8Array): boolean {
 	return bytes.includes(0);
@@ -31,7 +25,7 @@ export function snapshotOf(root: string): Effect.Effect<ReadonlyMap<string, stri
 			Effect.map(fs.readFile(path), (bytes) => (isBinary(bytes) ? [] : [[posix(relative(root, path)), decoder.decode(bytes)] as const])),
 		);
 		return new Map(texts.flat());
-	}).pipe(Effect.mapError((failure) => new SetupFailure({ message: failure.message })));
+	}).pipe(Effect.mapError((failure) => new SetupFailure({ cause: failure, message: failure.message })));
 }
 
 export interface Pass<TFailure, TRequirements> {
@@ -44,11 +38,18 @@ export interface Settling<TFailure, TRequirements> {
 	readonly snapshot: Effect.Effect<ReadonlyMap<string, string>, TFailure, TRequirements>;
 }
 
-function changedBy(root: string, args: readonly string[], exceptions: readonly ExceptionDeclaration[]): Effect.Effect<number, SetupFailure> {
-	return Effect.map(biome(root, args, exceptions), (report) => report.summary.changed);
+function changedBy(
+	root: string,
+	args: readonly string[],
+	exceptions: readonly ExceptionDeclaration[],
+): Effect.Effect<number, SetupFailure, RuleServices> {
+	return Effect.map(
+		biomeReport(root, args, exceptions).pipe(Effect.mapError((cause) => new SetupFailure({ cause, message: cause.message }))),
+		(report) => report.summary.changed,
+	);
 }
 
-function biomePasses(root: string, exceptions: readonly ExceptionDeclaration[]): readonly Pass<SetupFailure, never>[] {
+function biomePasses(root: string, exceptions: readonly ExceptionDeclaration[]): readonly Pass<SetupFailure, RuleServices>[] {
 	return [
 		{
 			label: "with fixes",
@@ -121,12 +122,9 @@ export const settle = Effect.fn("Cli.settle")(function* <TFailure, TRequirements
 	return yield* unsettled(changed);
 });
 
-export const fix = Effect.fn("Cli.fix")(function* (
-	cwd: string,
-	config: string | undefined,
-): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem> {
+export const fix = Effect.fn("Cli.fix")(function* (cwd: string, config: string | undefined): Effect.fn.Return<void, SetupFailure, RuleServices> {
 	const { root, exceptions } = yield* loadConfig(cwd, config);
-	const sorted = yield* Effect.mapError(sortManifests(root), (failure) => new SetupFailure({ message: failure.message }));
+	const sorted = yield* Effect.mapError(sortManifests(root), (failure) => new SetupFailure({ cause: failure, message: failure.message }));
 	yield* Console.log(`quality: sort-package-json rewrote ${plural(sorted, "manifest")}.`);
 	yield* settle({ passes: biomePasses(root, exceptions), snapshot: snapshotOf(root) });
 });

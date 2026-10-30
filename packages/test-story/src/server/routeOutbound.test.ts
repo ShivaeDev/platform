@@ -9,7 +9,7 @@ it.each([false, true])("routes and restores both installed dispatcher slots when
 			Effect.exit(
 				Effect.scoped(
 					Effect.gen(function* () {
-						yield* routeOutbound({ "github.com": "http://127.0.0.1:4321" });
+						yield* routeOutbound({ "github.com": "http://127.0.0.1:4321" }, { passthrough: true });
 						for (const record of records) {
 							record.dispatch("https://github.com");
 							record.dispatch("https://example.com");

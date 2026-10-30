@@ -45,13 +45,21 @@ export interface DatabaseEngine {
 	readonly idleWaits: Map<string, Fiber.Fiber<void, unknown>>;
 	readonly jobs: Map<string, Labelled>;
 	readonly labels: Map<string, string>;
-	readonly logs: { readonly level: string; readonly message: unknown; readonly runtime: string }[];
+	readonly logs: {
+		readonly annotations: Readonly<Record<string, unknown>>;
+		readonly level: string;
+		readonly message: unknown;
+		readonly runtime: string;
+		readonly spanId: string | undefined;
+	}[];
+	readonly pgBossStops: string[];
 	readonly pollers: Map<string, (workerId: string) => void>;
 	release: Release | undefined;
 	readonly reported: string[];
 	readonly revisionMarks: Map<string, number>;
 	readonly runtimes: Map<string, Runtime>;
 	seenBeforeCommit: unknown;
+	readonly sharedClients: Map<string | symbol, PgBossClient>;
 	readonly sql: SqlClient.SqlClient;
 	readonly startups: Map<string, string>;
 	readonly stopping: Map<string, Fiber.Fiber<void>>;
@@ -85,12 +93,14 @@ export function databaseEngine(url: string, sql: SqlClient.SqlClient): DatabaseE
 		jobs: new Map(),
 		labels,
 		logs: [],
+		pgBossStops: [],
 		pollers: new Map(),
 		release: undefined,
 		reported: [],
 		revisionMarks: new Map(),
 		runtimes: new Map(),
 		seenBeforeCommit: undefined,
+		sharedClients: new Map(),
 		sql,
 		startups: new Map(),
 		stopping: new Map(),

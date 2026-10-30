@@ -69,6 +69,7 @@ export function connects(engine: Engine, name: string) {
 
 export function clientVerbs(engine: Engine, tell: (line: string) => void) {
 	return {
+		bearerFailureLogs: () => Effect.sync(() => engine.jwks.logs.filter(([message]) => message === "MCP authentication verification failed")),
 		call: (name: string, tool: string) =>
 			Effect.suspend(() => {
 				tell(`${name}'s client calls ${tool}`);
@@ -107,5 +108,6 @@ export function clientVerbs(engine: Engine, tell: (line: string) => void) {
 				Effect.map((tools): readonly string[] | string => tools.map((tool) => tool.name)),
 				Effect.catch((error) => Effect.succeed(failureOf(engine, error))),
 			),
+		oauthChallenge: () => Effect.sync(() => engine.refusal?.challenge ?? "no challenge"),
 	};
 }

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { Schema } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { CLI_EXIT, quality, runQuality } from "#test/cli.ts";
 import { qualityTree } from "#test/qualityTree.ts";
@@ -109,7 +110,9 @@ describe("quality exceptions", { timeout: 60_000 }, () => {
 			stderr: expect.stringContaining("Cannot migrate"),
 		});
 		expect(readFileSync(join(root, "custom.config.ts"), "utf8")).toBe(before);
-		expect(JSON.parse(readFileSync(join(root, "quality/registry.json"), "utf8"))).toEqual(JSON.parse(registry));
+		expect(Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(readFileSync(join(root, "quality/registry.json"), "utf8"))).toEqual(
+			Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(registry),
+		);
 	});
 
 	it("retains legacy registry compatibility and reports stale config exceptions", async () => {

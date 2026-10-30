@@ -1,5 +1,5 @@
 import { Redacted } from "effect";
-import { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueOptionsError, PgBossTestingError } from "#error.ts";
+import { PgBossError, PgBossPayloadError, PgBossTestingError } from "#error.ts";
 
 function originalOf(original: Redacted.Redacted<unknown>): string {
 	const value = Redacted.value(original);
@@ -16,8 +16,20 @@ export function failureOf(error: unknown): string {
 	if (error instanceof PgBossTestingError) {
 		return `testing ${error.operation}${error.queue === undefined ? "" : ` ${error.queue}`} failed with ${originalOf(error.original)}`;
 	}
-	if (error instanceof PgBossClientOptionsError || error instanceof PgBossQueueOptionsError) {
+	if (error instanceof Error) {
 		return error.message;
 	}
-	return error instanceof Error ? error.message : String(error);
+	return taggedOf(error) ?? String(error);
+}
+
+function taggedOf(error: unknown): string | undefined {
+	if (typeof error !== "object" || error === null) {
+		return undefined;
+	}
+	const tag = Reflect.get(error, "_tag");
+	const message = Reflect.get(error, "message");
+	if (typeof tag !== "string") {
+		return undefined;
+	}
+	return typeof message === "string" && message !== "" ? `${tag}: ${message}` : tag;
 }

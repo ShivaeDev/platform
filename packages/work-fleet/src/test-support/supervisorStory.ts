@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
@@ -66,6 +66,7 @@ export const fleetSupervisor = storyKit({
 		inbox: (port: number) => supervisorBoardCall(port, (client) => client("work-board.inbox", undefined)),
 		lockExists: () => existsSync(join(engine.fixture.boardDir, ".work-up.json")),
 		log: () => engine.log(),
+		logBackup: (index: number) => readFileSync(join(engine.fixture.boardDir, `.work-up.log.${index}`), "utf8"),
 		navigation: (port: number) => supervisorBoardCall(port, (client) => client("work-board.navigation", { current: "" })),
 		preview: (port: number) =>
 			supervisorBoardCall(port, (client) => client("work-board-responses.question", { item: "decision.operator", request: "direction" })),
@@ -93,6 +94,11 @@ export const fleetSupervisor = storyKit({
 					return pid === undefined || pid === null ? Effect.die(new Error(`Expected a running ${name}`)) : Effect.succeed(pid);
 				}),
 			),
+		seedLog: (text: string) =>
+			Effect.sync(() => {
+				story.tell("leave an existing supervisor log before startup");
+				writeFileSync(join(engine.fixture.boardDir, ".work-up.log"), text);
+			}),
 		serverInfo: (port: number) => supervisorBoardCall(port, (client) => client("work-board.server", undefined)),
 		socketServerInfo: () => supervisorSocketCall(join(engine.fixture.boardDir, "board.sock")),
 		stalePid: () => engine.stalePid,

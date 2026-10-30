@@ -28,7 +28,7 @@ The provider's Promise API is wrapped once with `Effect.tryPromise`. A missing o
 
 ## Sign-in policy
 
-An application that admits only some provider accounts passes a sign-in policy to `betterAuthMount` and wraps its lookup as `betterAuthSessions(mounted.admittedSessions((headers) => auth.api.getSession({ headers })))`; see [deciding who may sign in](../../packages/identity/README.md#decide-who-may-sign-in). The list of allowed accounts comes from Effect Config and the optional rule is an application Effect, such as an organization membership check through the provider.
+An application that admits only some provider accounts passes a sign-in policy to `betterAuthMount` and wraps its lookup as `mounted.admittedSessions((headers) => auth.api.getSession({ headers }))`; see [deciding who may sign in](../../packages/identity/README.md#decide-who-may-sign-in). The list of allowed accounts comes from Effect Config and the optional rule is an application Effect, such as an organization membership check through the provider.
 
 ```text
 OAuth callback → validateUserInfo: provider account on the list and admitted by the rule?

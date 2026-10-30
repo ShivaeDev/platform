@@ -57,6 +57,14 @@ export function enqueued<const TPayload extends StoryPayload>(
 	});
 }
 
+export function failedByAnOlderWriter(as: string, output: object) {
+	return database.trait("jobs", `an older pg-boss writer failed ${as} with its own failure output`, function* (engine) {
+		const client = yield* admin(engine);
+		const { id, queue } = idOf(engine, as);
+		yield* Effect.promise(() => client.fail(queue.name, id, output));
+	});
+}
+
 export function enqueuedUntil<const TPayload extends StoryPayload>(
 	queue: QueueDefinition<string, TPayload>,
 	payload: Schema.Schema.Type<TPayload>,

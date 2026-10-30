@@ -30,13 +30,6 @@ function idsOf(target: JobAttempt | string | JobAttempt[] | string[]): string[] 
 	return (Array.isArray(target) ? target : [target]).map((entry) => (typeof entry === "string" ? entry : entry.id));
 }
 
-function messageOf(error: unknown): string {
-	if (error instanceof Error) {
-		return failureOf(error);
-	}
-	return typeof error === "object" && error !== null ? String(Reflect.get(error, "message")) : String(error);
-}
-
 export class FakeClient implements PgBossClient {
 	readonly calls: string[] = [];
 	readonly created: Array<{ readonly name: string; readonly options?: Omit<Queue, "name"> | undefined }> = [];
@@ -68,7 +61,7 @@ export class FakeClient implements PgBossClient {
 	}
 	fail(name: string, target: JobAttempt | string | JobAttempt[] | string[], error: unknown) {
 		for (const id of idsOf(target)) {
-			this.settled.push(`${id} failed with ${messageOf(error)}`);
+			this.settled.push(`${id} failed with ${failureOf(error)}`);
 		}
 		this.calls.push(`fail ${name}`);
 		return Promise.resolve({ affected: 1, jobs: [], requested: 1 });

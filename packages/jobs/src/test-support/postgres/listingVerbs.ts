@@ -1,4 +1,4 @@
-import { DateTime, Effect, Option } from "effect";
+import { DateTime, Effect, Option, type Schema } from "effect";
 import type { DeadLetteredJob, JobPage, ListedJob } from "#health.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { errorOf, labelOf, provided, runningIn } from "./engine.ts";
@@ -7,7 +7,7 @@ type Listing = "failed" | "dead-lettered";
 type Listed = ListedJob<unknown> | DeadLetteredJob<unknown>;
 interface ListedQueue {
 	readonly name: string;
-	readonly schema: StoryPayload;
+	readonly schema: StoryPayload | typeof Schema.Null;
 }
 
 function nameOf(engine: DatabaseEngine, job: Listed): string {
@@ -77,6 +77,8 @@ export function listingVerbs(engine: DatabaseEngine, tell: (line: string) => voi
 			})),
 		listedNames: (name: string, listing: Listing, queue: ListedQueue) =>
 			Effect.map(page(name, listing, queue, 100, Option.none()), ({ jobs }) => jobs.map((job) => nameOf(engine, job))),
+		listedOutputs: (name: string, listing: Listing, queue: ListedQueue) =>
+			Effect.map(page(name, listing, queue, 100, Option.none()), ({ jobs }) => jobs.map((job) => job.output)),
 		remainingPages: () => {
 			tell("the remaining pages are read from the first page's cursor");
 			return remaining;

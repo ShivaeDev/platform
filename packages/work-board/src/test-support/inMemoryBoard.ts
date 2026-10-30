@@ -123,25 +123,28 @@ function fleetFiles(files: Readonly<Record<string, string>>, fleet?: FleetItemsP
 }
 
 function fixtureFileSystem(memory: { readonly root: string; readonly files: () => Readonly<Record<string, string>> }) {
+	function stat(): Effect.Effect<FileSystem.File.Info> {
+		return Effect.succeed({
+			atime: Option.none(),
+			birthtime: Option.none(),
+			blksize: Option.none(),
+			blocks: Option.none(),
+			dev: 0n,
+			gid: Option.none(),
+			ino: Option.none(),
+			mode: 0,
+			mtime: Option.none(),
+			nlink: Option.none(),
+			rdev: Option.none(),
+			size: ByteSize.zero,
+			type: "Directory",
+			uid: Option.none(),
+		});
+	}
 	return FileSystem.layerNoop({
+		lstat: stat,
 		readFileString: (path) => Effect.succeed(memory.files()[path.slice(memory.root.length + 1)] ?? ""),
 		realPath: (path) => Effect.succeed(path),
-		stat: () =>
-			Effect.succeed({
-				atime: Option.none(),
-				birthtime: Option.none(),
-				blksize: Option.none(),
-				blocks: Option.none(),
-				dev: 0n,
-				gid: Option.none(),
-				ino: Option.none(),
-				mode: 0,
-				mtime: Option.none(),
-				nlink: Option.none(),
-				rdev: Option.none(),
-				size: ByteSize.zero,
-				type: "Directory",
-				uid: Option.none(),
-			}),
+		stat,
 	});
 }

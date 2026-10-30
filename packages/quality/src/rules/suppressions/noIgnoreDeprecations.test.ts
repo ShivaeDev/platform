@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RuleInputs } from "#rule.ts";
 import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
+import { run } from "#test/run.ts";
 import { removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -28,7 +29,7 @@ async function findingsIn(...files: readonly SeedFile[]) {
 		root,
 		sources: [],
 	};
-	return configured.check(inputs);
+	return run(configured.check(inputs));
 }
 
 describe("suppressions/no-ignore-deprecations", () => {

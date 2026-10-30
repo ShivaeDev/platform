@@ -1,7 +1,7 @@
 import { Effect, Fiber } from "effect";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import type { DisconnectGate } from "./disconnectGate.ts";
-import { runningIn } from "./engine.ts";
+import { runningIn, until } from "./engine.ts";
 
 type Tell = (line: string) => void;
 
@@ -44,6 +44,14 @@ export function teardownVerbs(engine: DatabaseEngine, tell: Tell) {
 		untilDisconnectsHeld: () => {
 			tell("wait until the disconnect gate holds every acknowledgement from PostgreSQL");
 			return Effect.promise(() => gateOf(engine).allHeld).pipe(Effect.timeout("20 seconds"));
+		},
+		untilPgBossStopsWorking: () => {
+			tell("wait until pg-boss is asked to stop working");
+			return until(
+				engine,
+				"pg-boss is asked to stop working",
+				Effect.sync(() => (engine.pgBossStops.length > 0 ? true : undefined)),
+			);
 		},
 		untilStopped: (name: string) => {
 			tell(`wait until ${name} has stopped`);

@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { makeRoot, roots } from "./inventoryRepository.ts";
 import { removeSeededTrees, seedTree } from "./tree.ts";
@@ -44,4 +44,10 @@ export function unicodePathsRepository(): string {
 		"src/B.ts",
 	];
 	return seedTree(paths.map((path) => ({ content: path, path })));
+}
+
+export function manifestUnderFile(): string {
+	const root = makeRoot();
+	writeFileSync(join(root, "occupied"), "file");
+	return join(root, "occupied", "package.json");
 }

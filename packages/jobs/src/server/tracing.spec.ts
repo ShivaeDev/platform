@@ -33,7 +33,7 @@ runtime.it(
 				spans().pipe(Effect.map((all) => all.map(({ name, outcome }) => ({ name, outcome })))),
 				[{ name: "nightly", outcome: "failed with Scheduled failure" }],
 			],
-			"settlements": [settlements(), ["nightly-run failed with Scheduled failure"]],
+			"settlements": [settlements(), ["nightly-run failed with Error: Scheduled failure"]],
 		});
 	},
 );

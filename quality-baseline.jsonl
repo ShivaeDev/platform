@@ -64,7 +64,6 @@
 {"path":"examples/starter/src/server/migrations/0001_auth.ts","rule":"effect/boundary","count":3}
 {"path":"package.json","rule":"code/unused","count":1}
 {"path":"script/ci/TestSequencer.ts","rule":"effect/boundary","count":2}
-{"path":"script/ci/mainShardPlan.ts","rule":"effect/boundary","count":2}
 {"path":"script/ci/mainTimingRun.ts","rule":"effect/boundary","count":1}
 {"path":"script/ci/mergeTestTimings.ts","rule":"effect/boundary","count":2}
 {"path":"script/ci/shard.ts","rule":"effect/boundary","count":2}
@@ -107,7 +106,6 @@
 {"path":"script/quality/workspaceSection.unit.test.ts","rule":"effect/boundary","count":5}
 {"path":"script/release/appliedRelease.slow.spec.ts","rule":"effect/boundary","count":1}
 {"path":"script/release/compare.ts","rule":"effect/boundary","count":1}
-{"path":"script/release/prSummary.ts","rule":"effect/boundary","count":1}
 {"path":"script/release/pullRequest.spec.ts","rule":"tests/grouped-outcomes","count":5}
 {"path":"script/release/pullRequestHold.spec.ts","rule":"tests/grouped-outcomes","count":6}
 {"path":"script/release/pullRequestStability.spec.ts","rule":"tests/grouped-outcomes","count":8}

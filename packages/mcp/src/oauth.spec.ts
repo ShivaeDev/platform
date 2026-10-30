@@ -1,6 +1,18 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { mcp } from "#test/mcp.ts";
-import { holdsToken, REFUSED_TOKENS, signedIn } from "#test/traits.ts";
+import { holdsToken, jwksUnavailable, jwksUnreachable, REFUSED_TOKENS, signedIn } from "#test/traits.ts";
+
+mcp.it(
+	"an unreachable JWKS endpoint answers 503 without an OAuth restart challenge",
+	[signedIn("alice", "user"), holdsToken("alice"), jwksUnreachable],
+	function* ({ connects, oauthChallenge }) {
+		const answer = yield* connects("alice");
+
+		expect(answer).toBe("auth unavailable");
+		expect(yield* oauthChallenge()).toBe("no challenge");
+	},
+);
 
 mcp.it(
 	"alice's client, authorized by alice through OAuth, connects with its token and whoami answers it with alice",
@@ -51,3 +63,20 @@ for (const kind of REFUSED_TOKENS) {
 		},
 	);
 }
+
+mcp.it(
+	"a JWKS outage answers 503 without an OAuth restart challenge and logs the failure with secrets redacted",
+	[signedIn("alice", "user"), holdsToken("alice"), jwksUnavailable],
+	function* ({ bearerFailureLogs, connects, oauthChallenge }) {
+		const answer = yield* connects("alice");
+
+		expect(answer).toBe("auth unavailable");
+		yield* outcomes({
+			"OAuth restart challenge": [oauthChallenge(), "no challenge"],
+			"recorded bearer failure": [
+				bearerFailureLogs(),
+				[["MCP authentication verification failed", expect.objectContaining({ message: "Jwks failed: JWKS unavailable token=<redacted>" })]],
+			],
+		});
+	},
+);

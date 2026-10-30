@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { Deferred, Effect, Layer } from "effect";
-import { type Options, WatchError } from "@shivaedev/pr-watch/model.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { Options } from "@shivaedev/pr-watch/model.ts";
 import { watch } from "@shivaedev/pr-watch/program.ts";
 import { watchPrLayer } from "#host/watchPrLayer.ts";
 import type { WatchState } from "#host/watchState.ts";
@@ -11,7 +12,7 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 	emit: (event: { readonly kind: string; readonly [key: string]: unknown }) => Effect.Effect<void>,
 ) {
 	const scope = yield* Effect.scope;
-	const failed = yield* Deferred.make<never, WatchError>();
+	const failed = yield* Deferred.make<never, Effect.Error<ReturnType<typeof watch>> | Layer.Error<ReturnType<typeof watchPrLayer>>>();
 	const repositories = new Map<string, Map<number, string>>();
 	const start = Effect.fnUntraced(function* (repository: string, work: Map<number, string>) {
 		const settings: Options = {
@@ -42,13 +43,10 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 					),
 				),
 			),
-			Effect.catch((error) =>
-				error instanceof WatchError
-					? Deferred.fail(failed, error)
-					: emit({ kind: "pr-error", message: error.message, repository }).pipe(
-							Effect.andThen(Deferred.fail(failed, new WatchError({ message: error.message }))),
-						),
+			Effect.tapError((error) =>
+				error instanceof ServiceUnavailable ? emit({ kind: "pr-error", message: error.message, repository }) : Effect.void,
 			),
+			Effect.catch((error) => Deferred.fail(failed, error)),
 			Effect.forkIn(scope),
 		);
 	});

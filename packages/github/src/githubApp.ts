@@ -77,12 +77,14 @@ function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
 			headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${Redacted.value(jwt)}`, "X-GitHub-Api-Version": "2022-11-28" },
 		});
 		if (body !== undefined) {
-			input = yield* HttpClientRequest.bodyJson(input, body).pipe(Effect.mapError(() => new GitHubAppError({ stage: "exchange" })));
+			input = yield* HttpClientRequest.bodyJson(input, body).pipe(Effect.mapError((cause) => new GitHubAppError({ reason: "encode" }, { cause })));
 		}
-		const response = yield* client.execute(input).pipe(Effect.mapError(() => new GitHubAppError({ stage: "exchange" })));
+		const response = yield* client.execute(input).pipe(Effect.mapError((cause) => new GitHubAppError({ reason: "transport" }, { cause })));
 		if (response.status < HttpStatus.fromLiteral("OK") || response.status >= HttpStatus.fromLiteral("MultipleChoices")) {
-			return yield* new GitHubAppError({ stage: "exchange", status: response.status });
+			return yield* new GitHubAppError({ reason: "status", status: response.status });
 		}
-		return yield* readBoundedJson(response, 64 * 1024, schema).pipe(Effect.mapError(() => new GitHubAppError({ stage: "exchange" })));
+		return yield* readBoundedJson(response, 64 * 1024, schema).pipe(
+			Effect.mapError((cause) => new GitHubAppError({ reason: cause._tag === "HttpClientError" ? "transport" : "response" }, { cause })),
+		);
 	});
 }

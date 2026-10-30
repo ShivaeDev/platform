@@ -1,10 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
-import { Console, Effect, FileSystem, Option, Path } from "effect";
+import { Effect, FileSystem, Option, Path } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { checkSkills } from "#checkSkills.ts";
-import { syncSkills } from "#syncSkills.ts";
 import { runCli } from "./cli.ts";
 import { type Fixture, makeFixture } from "./fixture.ts";
+import { operations } from "./operations.ts";
 import { pushedCommit, runStep, workflow } from "./workflow.ts";
 
 export const MANIFEST = ".agents/skills/.shivaedev-skills.json";
@@ -13,34 +12,13 @@ export function outOfSync(...problems: readonly string[]) {
 	return `failed: The shared skills are out of sync:\n${problems.map((problem) => `- ${problem}`).join("\n")}\nRun \`shivaedev-skills sync\` and commit the result.`;
 }
 
-export const printedOrFailed = Effect.fn("SkillsStory.printedOrFailed")(function* (
-	repo: string,
-	operation: Effect.Effect<void, { readonly message: string }, FileSystem.FileSystem | Path.Path>,
-) {
-	const console = yield* Console.Console;
-	const printed: string[] = [];
-	const captured: Console.Console = {
-		...console,
-		log: (...parts) => {
-			printed.push(parts.join(" "));
-		},
-	};
-	return yield* operation.pipe(
-		Effect.provideService(Console.Console, captured),
-		Effect.match({
-			onFailure: (error) => `failed: ${error.message.replaceAll(repo, "<repository>")}`,
-			onSuccess: () => printed.join("\n"),
-		}),
-	);
-});
-
 const entryOf = Effect.fn("SkillsStory.entryOf")(function* (file: string) {
 	const fs = yield* FileSystem.FileSystem;
-	const target = yield* Effect.option(fs.readLink(file));
-	if (Option.isSome(target)) {
-		return `link to ${target.value}`;
+	const info = yield* fs.lstat(file);
+	if (info.type === "SymbolicLink") {
+		return `link to ${yield* fs.readLink(file)}`;
 	}
-	return (yield* fs.stat(file)).type === "File" ? yield* fs.readFileString(file) : undefined;
+	return info.type === "File" ? yield* fs.readFileString(file) : undefined;
 });
 
 const namesIn = Effect.fn("SkillsStory.namesIn")(function* (folder: string) {
@@ -56,11 +34,17 @@ function verbs(engine: Fixture, tell: (line: string) => void) {
 		const fs = yield* FileSystem.FileSystem;
 		const path = yield* Path.Path;
 		const root = yield* resolve(relative);
-		const top = yield* Effect.option(fs.readLink(root));
-		if (Option.isSome(top)) {
-			return `link to ${top.value}`;
+		const top = yield* fs.lstat(root).pipe(
+			Effect.map(Option.some),
+			Effect.catchIf(
+				(error) => error.reason._tag === "NotFound",
+				() => Effect.succeed(Option.none()),
+			),
+		);
+		if (Option.isSome(top) && top.value.type === "SymbolicLink") {
+			return `link to ${yield* fs.readLink(root)}`;
 		}
-		if (!(yield* fs.exists(root))) {
+		if (Option.isNone(top)) {
 			return "missing";
 		}
 		const files: Record<string, string> = {};
@@ -79,10 +63,7 @@ function verbs(engine: Fixture, tell: (line: string) => void) {
 		return engine.remote;
 	}
 	return {
-		check: () => {
-			tell("the repository checks its shared skills");
-			return printedOrFailed(engine.repo, checkSkills(engine.repo, engine.installed));
-		},
+		...operations(engine, tell),
 		cli: {
 			check: () =>
 				Effect.sync(() => {
@@ -108,10 +89,6 @@ function verbs(engine: Fixture, tell: (line: string) => void) {
 				".claude/skills": yield* namesIn(yield* resolve(".claude/skills")),
 			};
 		}),
-		sync: () => {
-			tell("the repository syncs its selection");
-			return printedOrFailed(engine.repo, syncSkills(engine.repo, engine.installed));
-		},
 		workflow: {
 			...workflow,
 			pushedCommit: () => Effect.sync(() => pushedCommit(remote())),

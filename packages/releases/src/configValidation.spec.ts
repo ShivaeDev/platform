@@ -13,7 +13,7 @@ for (const { config, description, refusal } of [
 	{
 		config: '{ packages: ["packages/**"] }',
 		description: "selects packages with the glob packages/**",
-		refusal: "Invalid package pattern packages/**; use a relative directory or parent/*.",
+		refusal: ".changeset/changesets.config.ts: package pattern packages/** is invalid; use a relative directory or parent/*.",
 	},
 	{
 		config: '{ hooks: ["echo hello"] }',

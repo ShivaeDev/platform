@@ -42,7 +42,7 @@ Every package has a README for people and agents using it and a short `AGENTS.md
 - [`@shivaedev/work-fleet`](./packages/work-fleet): Launches approved Work Board items, schedules workers and keeps execution receipts in PostgreSQL.
 - [Work Board plugin](./packages/work-board-plugin): The Work Board inside Claude Code, installed with `/plugin install workboard --marketplace ShivaeDev/platform` from this repository's plugin marketplace.
 
-No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder, and a `null` entry such as `"./internal/*": null` keeps an internal folder or browser bundle sources private. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
+No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder. The test, test-story, test-sql and vitest-rerun packages also export their `internal/` modules. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
 
 ## Development
 

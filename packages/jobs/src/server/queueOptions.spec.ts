@@ -70,6 +70,33 @@ runtime.it(
 );
 
 runtime.it(
+	"after each deadlock, queue creation waits on the runtime clock, 25ms after the first and 50ms after the second",
+	[queueCreationFails("PostgreSQL picks queue creation as a deadlock victim twice", deadlock(), deadlock())],
+	function* ({ clockPasses, queueCreationAttempts, startsInBackground, startup, startupFinishes }) {
+		yield* startsInBackground("app", [Contended]);
+		yield* clockPasses(24);
+		yield* outcomes({ "creation attempts": [queueCreationAttempts(), 1] });
+
+		yield* clockPasses(1);
+		yield* outcomes({ "creation attempts": [queueCreationAttempts(), 2] });
+
+		yield* clockPasses(49);
+		yield* outcomes({
+			"app runtime": [startup("app"), "still starting"],
+			"creation attempts": [queueCreationAttempts(), 2],
+		});
+
+		yield* clockPasses(1);
+		yield* startupFinishes("app");
+		yield* outcomes({
+			"app runtime": [startup("app"), "started"],
+			"creation attempts": [queueCreationAttempts(), 4],
+		});
+	},
+	{ clock: "test" },
+);
+
+runtime.it(
 	"queue creation gives up after six deadlocks and fails registration with the last one",
 	[queueCreationFails("PostgreSQL picks queue creation as a deadlock victim seven times", ...Array.from({ length: 7 }, deadlock))],
 	function* ({ queueCreationAttempts, start, startup }) {

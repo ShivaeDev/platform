@@ -1,36 +1,59 @@
 #!/usr/bin/env node
 import process from "node:process";
-import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
-import { Console, Effect } from "effect";
+import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import { Cause, Console, Effect, Option } from "effect";
+import { Argument, CliError, Command, Flag } from "effect/cli";
+import manifest from "@shivaedev/releases/package.json" with { type: "json" };
 import { applyRelease } from "#applyRelease.ts";
 import { checkRepository } from "#check.ts";
-import { ChangesetError } from "#error.ts";
 import { planRelease, summarizePlan } from "#planner.ts";
 import { loadConfig } from "#workspace.ts";
 
-const program = Effect.gen(function* () {
-	const [command, argument, ...extra] = process.argv.slice(2);
-	if (
-		!["plan", "apply", "check"].includes(command ?? "")
-		|| extra.length > 0
-		|| (argument !== undefined && command !== "check" && !(command === "plan" && argument === "--json"))
-	) {
-		return yield* new ChangesetError({ message: "Use releases plan [--json], releases apply, or releases check [base-ref]." });
-	}
-	const root = process.cwd();
-	const config = yield* loadConfig(root);
-	if (command === "check") {
-		yield* checkRepository(root, config, argument);
+const plan = Command.make(
+	"plan",
+	{ json: Flag.Boolean("json").pipe(Flag.withDefault(false)) },
+	Effect.fn("Changesets.planCommand")(function* ({ json }) {
+		const root = process.cwd();
+		const result = yield* planRelease(root, yield* loadConfig(root));
+		yield* Console.log(json ? JSON.stringify(result, null, 2) : summarizePlan(result));
+	}),
+);
+const apply = Command.make(
+	"apply",
+	{},
+	Effect.fn("Changesets.applyCommand")(function* () {
+		const root = process.cwd();
+		yield* Console.log(summarizePlan(yield* applyRelease(root, yield* loadConfig(root))));
+	}),
+);
+const check = Command.make(
+	"check",
+	{ base: Argument.String("base-ref").pipe(Argument.optional) },
+	Effect.fn("Changesets.checkCommand")(function* ({ base }) {
+		const root = process.cwd();
+		yield* checkRepository(root, yield* loadConfig(root), Option.getOrUndefined(base));
 		yield* Console.log("Changesets and release notes are valid.");
-	} else {
-		const plan = yield* command === "apply" ? applyRelease(root, config) : planRelease(root, config);
-		yield* Console.log(argument === "--json" ? JSON.stringify(plan, null, 2) : summarizePlan(plan));
-	}
-});
+	}),
+);
+
 NodeRuntime.runMain(
-	program.pipe(
-		Effect.tapError((error) => Console.error(error.message)),
-		Effect.provide(NodeFileSystem.layer),
+	Command.make("releases").pipe(
+		Command.withSubcommands([plan, apply, check]),
+		Command.run({ version: manifest.version }),
+		Effect.tapCause((cause) => {
+			if (Cause.hasInterruptsOnly(cause)) {
+				return Effect.void;
+			}
+			const error = Cause.squash(cause);
+			if (CliError.isCliError(error)) {
+				return Effect.void;
+			}
+			if (Cause.hasDies(cause)) {
+				return Console.error(Cause.pretty(cause));
+			}
+			return Console.error(error instanceof Error ? error.message : String(error));
+		}),
+		Effect.provide(NodeServices.layer),
 	),
 	{ disableErrorReporting: true },
 );

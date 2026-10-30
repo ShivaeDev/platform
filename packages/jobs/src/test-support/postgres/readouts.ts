@@ -58,6 +58,15 @@ export function readouts(engine: DatabaseEngine) {
 				}),
 			),
 		job: (as: string) => Effect.map(lookup(engine, as), (job) => (Option.isSome(job) ? summary(engine, job.value) : "missing")),
+		logContext: (line: string) =>
+			Effect.sync(() => {
+				const entry = engine.logs.find(({ message }) => message === line);
+				if (entry === undefined) {
+					return "not logged";
+				}
+				const span = engine.trace.spans.find(({ spanId }) => spanId === entry.spanId);
+				return { annotations: entry.annotations, span: span === undefined ? "no recorded span" : `the ${span.name} span` };
+			}),
 		logged: (runtime?: string) =>
 			Effect.sync(() =>
 				engine.logs.filter((entry) => runtime === undefined || entry.runtime === runtime).map(({ level, message }) => ({ level, message })),
@@ -85,6 +94,7 @@ export function readouts(engine: DatabaseEngine) {
 				const client = yield* admin(engine);
 				return (yield* Effect.promise(() => client.findJobs(queue))).map((job) => summary(engine, job));
 			}),
+		storedOutput: (as: string) => Effect.map(lookup(engine, as), (job) => (Option.isSome(job) ? job.value.output : "missing")),
 		storedPayloads: <const TPayload extends StoryPayload>(queue: QueueDefinition<string, TPayload>) =>
 			Effect.gen(function* () {
 				const client = yield* admin(engine);

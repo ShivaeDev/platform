@@ -74,7 +74,7 @@ runtime.it(
 
 		yield* outcomes({
 			"handled payloads": [handled("typed"), []],
-			"settlements": [settlements(), ['job-1 failed with decode typed payload failed with Expected number\n  at ["count"]']],
+			"settlements": [settlements(), ["job-1 failed with PgBossPayloadError"]],
 		});
 	},
 );

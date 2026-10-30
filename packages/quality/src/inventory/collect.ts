@@ -1,6 +1,7 @@
 import { join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
 import ignore from "ignore";
+import { manifestsIn } from "#manifests/sorted.ts";
 import type { SourceFile } from "#rule.ts";
 import { FilesystemFailure, orWhenAbsent, readRequiredText } from "./filesystem.ts";
 import { posix } from "./ignoreScope.ts";
@@ -16,6 +17,7 @@ export interface InventoryScope {
 
 export interface Inventory {
 	readonly files: readonly string[];
+	readonly manifestFiles: readonly string[];
 	readonly sources: readonly SourceFile[];
 }
 
@@ -60,5 +62,5 @@ export const collectInventory = Effect.fn("Inventory.collectInventory")(function
 		});
 	const sourcePaths = files.filter((path) => scope.extensions.some((extension) => path.endsWith(extension)));
 	const sources = yield* Effect.forEach(sourcePaths, (path) => readSource(root, path), { concurrency: READ_CONCURRENCY });
-	return { files, sources };
+	return { files, manifestFiles: yield* manifestsIn(root), sources };
 });

@@ -17,11 +17,11 @@ import { scheduled, worker } from "#test/workers.ts";
 
 const terminationLogged = {
 	level: "Debug",
-	message: { event: "pg_boss_error", message: "terminating connection due to administrator command" },
+	message: { event: "pg_boss_error", message: "terminating connection due to administrator command: password=<redacted>" },
 };
 
 runtime.it(
-	"a connection termination while the client starts is logged at debug level",
+	"a connection termination while the client starts is logged at debug level with its secrets redacted",
 	[connectionTerminatedDuring("startup")],
 	function* ({ logged, start }) {
 		yield* start("app", []);

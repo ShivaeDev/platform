@@ -11,6 +11,7 @@ import { budgetHeaders } from "./budgetHeaders.ts";
 import { type FakeRepository, fakeRepository, SECONDARY_LIMIT } from "./fakeRepository.ts";
 import { FIXTURE_TOKEN, PRIVATE_QUERY, PullRequest } from "./fixtures.ts";
 import { answered, clockTime } from "./outcome.ts";
+import { readWithCliToken } from "./readWithCliToken.ts";
 import { environmentToken, readWithEnvironment, type TokenVariable } from "./readWithEnvironment.ts";
 import { telemetry } from "./telemetry.ts";
 import { rateLimitEvents, rateLimitLogs, seenIn } from "./telemetryReadouts.ts";
@@ -22,6 +23,7 @@ const credentialNames = new Map<string | undefined, string>([
 	[`Bearer ${environmentToken("GH_TOKEN")}`, "GH_TOKEN"],
 	[`Bearer ${environmentToken("GITHUB_TOKEN")}`, "GITHUB_TOKEN"],
 	[undefined, "no credential"],
+	["Bearer cli-token", "gh credential"],
 ]);
 
 function credentialOf(authorization: string | undefined) {
@@ -92,6 +94,14 @@ export const github = storyKit({
 					`the client downloads artifact 7 within ${byteLimit} bytes`,
 					Effect.flatMap(GitHub, (service) => service.downloadArtifactArchive({ artifactId: 7, byteLimit, owner: "acme", repo: "widgets" })),
 				),
+			failureCauseStorage: () =>
+				Effect.sync(() =>
+					failures.map((failure) => ({
+						enumerable: Object.prototype.propertyIsEnumerable.call(failure, "cause"),
+						failure: failure instanceof Error ? failure.name : "unknown",
+						hasCause: failure instanceof Error && failure.cause !== undefined,
+					})),
+				),
 			headersSent: () =>
 				Effect.sync(() =>
 					server.requests.map(({ headers }) => ({
@@ -145,10 +155,20 @@ export const github = storyKit({
 				attempt(`the client reads pull request 1 within ${byteLimit} bytes`, read("/repos/acme/widgets/pulls/1", PullRequest, byteLimit)),
 			readPullWithPrivateQuery: () =>
 				attempt("the client reads pull request 1 with a private query", read(`/repos/acme/widgets/pulls/1?ref=${PRIVATE_QUERY}`, PullRequest)),
+			readWithCliToken: (token: string | undefined, variables?: Record<string, string>) =>
+				Effect.suspend(() => {
+					story.tell("a client reads with environment credentials or gh authentication");
+					return answered(readWithCliToken(server.url, token, variables), failures);
+				}),
 			readWithEnvironment: (variables: readonly TokenVariable[]) =>
 				Effect.suspend(() => {
 					story.tell(`a client built from an environment with ${variables.join(" and ") || "no token variable"} reads pull request 1`);
 					return answered(readWithEnvironment(server.url, variables));
+				}),
+			readWithMissingGh: () =>
+				Effect.suspend(() => {
+					story.tell("a client reads without token variables or an installed gh command");
+					return answered(readWithCliToken(server.url, undefined, {}, false), failures);
 				}),
 			requests: () => Effect.sync(() => server.requests.map(({ method, path, status }) => `${method} ${path} ${status}`)),
 			resourceOf: (path: string) => Effect.flatMap(GitHub, (service) => service.resource(path)).pipe(Effect.provide(context)),

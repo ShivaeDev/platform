@@ -31,8 +31,6 @@ const FenceInput: Schema.Codec<Fence> = Schema.Struct({
 
 export const Declarations = Schema.Array(FenceInput);
 
-const standard = Schema.toStandardSchemaV1(Declarations, { parseOptions: { errors: "all", onExcessProperty: "error" } });
-
 export function decodeDeclarations(value: unknown) {
-	return decodeWith(standard, value);
+	return decodeWith(Declarations, value);
 }

@@ -1,5 +1,5 @@
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Rendered } from "#client/testing.ts";
 import { ConfigurationView } from "./ConfigurationView.tsx";
 import { type ConfigurationProps, firstRuntime, Name, NormalizedName, secondRuntime } from "./configurationModel.ts";
 import { draftStorage } from "./draftStorage.ts";

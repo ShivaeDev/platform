@@ -7,6 +7,7 @@ import { readOptionalText, readRequiredText } from "#inventory/filesystem.ts";
 import { walk } from "#inventory/walk.ts";
 import {
 	blockedInventoryDirectory,
+	manifestUnderFile,
 	removeInventoryRepositories,
 	unicodePathsRepository,
 	unreadableManifestRepository,
@@ -21,6 +22,13 @@ const asRoot = process.getuid?.() === 0;
 effectIt.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
 	it.effect("treats a missing optional file as absent", function* () {
 		expect(yield* readOptionalText(join(makeRoot(), ".gitignore"))).toBeUndefined();
+	});
+
+	it.effect("reports an optional manifest whose parent is a file", function* () {
+		const path = manifestUnderFile();
+		const text = yield* failureText(readOptionalText(path));
+		expect(text).toContain("cannot read");
+		expect(text).toContain(path);
 	});
 
 	it.effect("fails distinctly when a required file is missing", function* () {

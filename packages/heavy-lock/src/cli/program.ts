@@ -1,11 +1,9 @@
-import { Cause, Console, Effect, Option, Queue } from "effect";
+import { Cause, Console, Effect, Queue } from "effect";
 import { acquireHeavyLock } from "#acquire.ts";
 import { HeavyLockError } from "#error.ts";
-import { type CommandLine, parseCommandLine, USAGE } from "./args.ts";
-import { runCommand } from "./runCommand.ts";
+import { type CommandLine, runCommand } from "./runCommand.ts";
 import { type ForwardedSignal, receiveSignals, signalExitCode } from "./signals.ts";
 
-const USAGE_ERROR = 2;
 const FAILED = 1;
 
 type Waited =
@@ -31,10 +29,6 @@ function report(cause: Cause.Cause<unknown>) {
 	return Console.error(error instanceof HeavyLockError ? `heavy-lock: ${error.message}` : `heavy-lock: ${Cause.pretty(cause)}`);
 }
 
-export function program(args: readonly string[]) {
-	const commandLine = parseCommandLine(args);
-	if (Option.isNone(commandLine)) {
-		return Effect.as(Console.error(USAGE), USAGE_ERROR);
-	}
-	return underLock(commandLine.value).pipe(Effect.catchCause((cause) => Effect.as(report(cause), FAILED)));
+export function program(commandLine: CommandLine) {
+	return underLock(commandLine).pipe(Effect.catchCause((cause) => Effect.as(report(cause), FAILED)));
 }

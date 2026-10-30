@@ -1,9 +1,10 @@
 import { posix } from "node:path";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
 import { builtinName } from "#imports/packageName.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
-import { type EntryPoint, entryPointsOf, isApplication, provider, SHIPPED_FIELDS } from "#manifests/entryPoints.ts";
+import { dependencyNames, type EntryPoint, entryPointsOf, isApplication, provider, SHIPPED_FIELDS } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule, type RuleInputs } from "#rule.ts";
 import { bundleInputs } from "./bundleInputs.ts";
@@ -31,17 +32,6 @@ interface ManifestDependencies {
 	readonly shipped: ReadonlySet<string>;
 }
 
-function names(manifest: object, field: string): readonly string[] {
-	const value: unknown = Reflect.get(manifest, field);
-	if (value === undefined) {
-		return [];
-	}
-	if (typeof value !== "object" || value === null || Array.isArray(value)) {
-		throw new Error(`${field} must be an object`);
-	}
-	return Object.keys(value);
-}
-
 async function manifestDependencies(
 	inputs: RuleInputs,
 	owner: WorkspacePackage,
@@ -49,26 +39,18 @@ async function manifestDependencies(
 	workspace: ReadonlyMap<string, string>,
 ): Promise<ManifestDependencies> {
 	const path = posix.join(owner.directory, "package.json");
-	try {
-		const text = await inputs.readText(path);
-		if (text === undefined) {
-			throw new Error("the manifest is missing");
-		}
-		const manifest: unknown = JSON.parse(text);
-		if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
-			throw new Error("the manifest must be an object");
-		}
-		return {
-			...bundleInputs(graph, owner, manifest, (candidate) => developmentFile(owner, candidate)),
-			application: isApplication(manifest),
-			development: new Set(names(manifest, "devDependencies")),
-			entryPoints: await entryPointsOf(inputs, owner.directory, manifest, workspace),
-			private: Reflect.get(manifest, "private") === true,
-			shipped: new Set(SHIPPED_FIELDS.flatMap((field) => names(manifest, field))),
-		};
-	} catch (cause) {
-		throw new Error(`cannot read dependency policy at ${path}: ${cause instanceof Error ? cause.message : String(cause)}`, { cause });
+	const manifest = await readPackageManifest(inputs.readText, path);
+	if (manifest === undefined) {
+		throw new Error("the manifest is missing");
 	}
+	return {
+		...bundleInputs(graph, owner, manifest, (candidate) => developmentFile(owner, candidate)),
+		application: isApplication(manifest),
+		development: new Set(dependencyNames(manifest, "devDependencies")),
+		entryPoints: await entryPointsOf(inputs, owner.directory, manifest, workspace),
+		private: Reflect.get(manifest, "private") === true,
+		shipped: new Set(SHIPPED_FIELDS.flatMap((field) => dependencyNames(manifest, field))),
+	};
 }
 
 function developmentFile(owner: WorkspacePackage, path: string): boolean {
@@ -105,7 +87,8 @@ function undeclared(owner: WorkspacePackage, policy: ManifestDependencies | unde
 export const importsManifest = defineRule({
 	check: async (inputs) => {
 		const graph = await importGraph(inputs);
-		const root: WorkspacePackage | undefined = (await inputs.readText("package.json")) === undefined ? undefined : { directory: ".", name: "." };
+		const root: WorkspacePackage | undefined =
+			(await readPackageManifest(inputs.readText, "package.json")) === undefined ? undefined : { directory: ".", name: "." };
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
 		const workspace = new Map(graph.packages.map((owner) => [owner.name, owner.directory]));
 		const policies = new Map(

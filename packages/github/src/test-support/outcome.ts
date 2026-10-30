@@ -8,6 +8,7 @@ import {
 	GitHubConversationLocked,
 	GitHubPermissionDenied,
 	GitHubRateLimited,
+	GitHubTokenError,
 	GitHubTransportError,
 	GitHubWebhookSignatureError,
 } from "#errors.ts";
@@ -30,12 +31,13 @@ const phrases = [
 	on(GitHubRateLimited, ({ resource, retryAt }) => `rate limited on ${resource} until ${clockTime(retryAt)}`),
 	on(GitHubPermissionDenied, ({ path }) => `permission denied at ${path}`),
 	on(GitHubConversationLocked, ({ path }) => `conversation locked at ${path}`),
+	on(GitHubTokenError, ({ reason }) => `authentication ${reason} failed`),
 	on(GitHubTransportError, ({ path }) => `transport failure at ${path}`),
-	on(GitHubAppError, ({ stage, status }) => {
-		if (stage === "sign") {
+	on(GitHubAppError, ({ reason, status }) => {
+		if (reason === "sign") {
 			return "App JWT signing failed";
 		}
-		return status === undefined ? "token exchange failed" : `token exchange refused with HTTP ${status}`;
+		return reason === "status" ? `token exchange refused with HTTP ${status}` : `token exchange ${reason} failed`;
 	}),
 	on(GitHubArtifactError, ({ stage, status }) => `artifact ${stage} answered HTTP ${status}`),
 	on(GitHubArtifactTooLarge, ({ limit }) => `archive over ${size(limit)}`),

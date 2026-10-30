@@ -68,3 +68,37 @@ runtime.it(
 		expect(yield* logged()).toEqual([{ level: "Error", message: "stop failed with external client teardown failed" }]);
 	},
 );
+
+const Sleepy = defineQueue({ name: "sleepy", schema: Schema.Struct({}) });
+
+runtime.it(
+	"a handler's sleep runs on the worker runtime's clock",
+	[running("app", [worker(Sleepy, { sleeps: 100 })])],
+	function* ({ clockPasses, deliveryFinishes, settlements, startsDelivering }) {
+		yield* startsDelivering("sleepy", { id: "job-1" });
+		yield* clockPasses(99);
+		expect(yield* settlements()).toEqual([]);
+
+		yield* clockPasses(1);
+		yield* deliveryFinishes();
+
+		expect(yield* settlements()).toEqual(["job-1 completed"]);
+	},
+	{ clock: "test" },
+);
+
+runtime.it(
+	"stopping the runtime interrupts a running handler and settles nothing",
+	[running("app", [worker(Sleepy, "hangs")])],
+	function* ({ deliveryFinishes, interrupted, settlements, startsDelivering, stop }) {
+		yield* startsDelivering("sleepy", { id: "job-1" });
+
+		yield* stop("app");
+		yield* deliveryFinishes();
+
+		yield* outcomes({
+			"interrupted": [interrupted(), ["job-1"]],
+			"settlements": [settlements(), []],
+		});
+	},
+);

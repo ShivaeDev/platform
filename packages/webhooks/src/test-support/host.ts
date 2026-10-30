@@ -6,10 +6,10 @@ import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { makePgBossTesting, type PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { webhookRoute } from "#route.ts";
+import { webhookRoute } from "#server/route.ts";
+import { webhookReceipts } from "#server/webhookReceipts.ts";
 import { auditQueue, issueQueue, Jobs, MAX_BODY_BYTES, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
-import { webhookReceipts } from "#webhookReceipts.ts";
 
 export interface HandledJob {
 	readonly id: string;
@@ -27,9 +27,10 @@ export interface InboxState {
 	firstReceiptUpdateFails: boolean;
 	readonly handled: HandledJob[];
 	host: Fiber.Fiber<void, unknown> | undefined;
-	readonly logs: Array<{ readonly annotations: unknown; readonly cause: string; readonly message: unknown }>;
+	readonly logs: Array<{ readonly annotations: unknown; readonly cause: string; readonly level: string; readonly message: unknown }>;
 	mode: "check" | "wait" | undefined;
 	readonly sent: Sent[];
+	signingKey: string | undefined;
 	readonly telemetry: ReturnType<typeof recordingTracer>;
 	testing: PgBossTesting | undefined;
 	url: string;
@@ -45,6 +46,7 @@ export function inboxState(mode: InboxState["mode"]): InboxState {
 		logs: [],
 		mode,
 		sent: [],
+		signingKey: WEBHOOK_SECRET,
 		telemetry: recordingTracer(),
 		testing: undefined,
 		url: "",
@@ -58,9 +60,9 @@ function pendingNames(annotations: Readonly<Record<string, unknown>>) {
 }
 
 function hostLogger(state: InboxState) {
-	return Logger.make(({ cause, fiber, message }) => {
+	return Logger.make(({ cause, fiber, logLevel, message }) => {
 		const annotations = fiber.getRef(References.CurrentLogAnnotations);
-		state.logs.push({ annotations, cause: Cause.pretty(cause), message });
+		state.logs.push({ annotations, cause: Cause.pretty(cause), level: logLevel, message });
 		if (JSON.stringify(message).includes("Waiting for database migrations")) {
 			Deferred.doneUnsafe(state.waiting, Effect.succeed(pendingNames(annotations)));
 		}
@@ -100,7 +102,6 @@ export function hostLayer(state: InboxState) {
 						routes: webhookRoute({ basePath: "/hooks", jobs: Jobs, sources }).pipe(
 							Layer.provide(jobs),
 							Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
-							Layer.orDie,
 						),
 						services: jobs,
 					};
@@ -113,7 +114,9 @@ export function hostLayer(state: InboxState) {
 					...(state.mode === "wait" ? { pollInterval: "10 millis" } : {}),
 				},
 			}).pipe(
-				Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "WEBHOOK_SECRET": WEBHOOK_SECRET } }))),
+				Layer.provide(
+					ConfigProvider.layer(ConfigProvider.fromEnv({ env: state.signingKey === undefined ? {} : { "WEBHOOK_SECRET": state.signingKey } })),
+				),
 				Layer.provide(Layer.succeed(Tracer.Tracer, state.telemetry.tracer)),
 				Layer.provide(Logger.layer([hostLogger(state)])),
 			);

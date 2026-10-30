@@ -63,4 +63,4 @@
 {"path":"packages/server/src/schemaRedaction.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/schemaRedaction.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/server/src/websocketSessions.spec.ts","rule":"tests/domain-outcomes","count":2}
-{"path":"packages/server/src/websocketSessions.spec.ts","rule":"tests/grouped-outcomes","count":4}
+{"path":"packages/server/src/websocketSessions.spec.ts","rule":"tests/grouped-outcomes","count":3}

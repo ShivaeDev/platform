@@ -1,17 +1,18 @@
-import { Effect, ManagedRuntime, Option, Stream } from "effect";
+import { Effect, Layer, ManagedRuntime, Option, Stream } from "effect";
 import { Cookies, type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
-import { queryKeys } from "@shivaedev/contract/serverMetadata.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
+import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { Notes, notes } from "./notes.ts";
+import { Notes, notes, ReadAccess } from "./notes.ts";
 
 export async function openHost() {
-	const state: { active: string[]; lookups: number; reads: number; session: string | undefined; title: string } = {
+	const state: { active: string[]; allowed: boolean; lookups: number; reads: number; session: string | undefined; title: string } = {
 		active: [],
+		allowed: true,
 		lookups: 0,
 		reads: 0,
 		session: "alice",
@@ -41,6 +42,10 @@ export async function openHost() {
 				}),
 		);
 	}
+	const rpc = Notes.requests.get("liveSession.$changes");
+	if (rpc === undefined) {
+		throw new Error("Missing liveSession.$changes");
+	}
 	const handlers = Notes.toLayer(
 		Effect.gen(function* () {
 			const live = yield* makeLiveServer;
@@ -50,8 +55,8 @@ export async function openHost() {
 						Effect.gen(function* () {
 							const { id } = yield* Identity;
 							yield* connected(id);
-							const keys = yield* queryKeys(Notes.declaration.queries, queries);
-							return live.stream(keys, { scope: id });
+							const { subscription, context } = yield* resolveChanges(rpc, queries);
+							return live.subscribe(subscription, context);
 						}),
 					),
 				"liveSession.get": () =>
@@ -67,7 +72,10 @@ export async function openHost() {
 			config: { port: 0 },
 			group: Notes,
 			handlers,
-			services: Reactivity.layer,
+			services: Layer.merge(
+				Reactivity.layer,
+				Layer.succeed(ReadAccess, () => state.allowed),
+			),
 			sessions: {
 				origin: () => true,
 				provider: { get: resolveSession },

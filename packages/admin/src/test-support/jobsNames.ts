@@ -38,8 +38,8 @@ function rejection(output: unknown) {
 	if (output === null || output === undefined) {
 		return "no output";
 	}
-	return Predicate.isTagged(output, "WorkerRejected") && Predicate.hasProperty(output, "id")
-		? `the worker rejected ${String(output.id)}`
+	return Predicate.isTagged(output, "WorkerRejected") && Predicate.hasProperty(output, "message")
+		? String(output.message).split(":")[0]
 		: `unrecognised output ${JSON.stringify(output)}`;
 }
 

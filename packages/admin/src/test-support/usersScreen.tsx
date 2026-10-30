@@ -5,7 +5,7 @@ import { act } from "react";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
-import { render } from "@shivaedev/react/client/testing.ts";
+import { render } from "@shivaedev/test-story/client/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { UsersView } from "#client/UsersView.ts";

@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue, defineSchedule } from "#definition.ts";
-import { claimReadsStall, running, runtime, settlementlessClient, storedJob } from "#test/runtime/kit.ts";
+import { claimReadsStall, deferralWritesFail, running, runtime, settlementlessClient, storedJob } from "#test/runtime/kit.ts";
 import { storedJob as stored } from "#test/runtime/storedJob.ts";
 import { scheduled, worker, workerBy } from "#test/workers.ts";
 
@@ -16,7 +16,9 @@ for (const outcome of [{ fails: "scheduled poison job" }, { dies: "scheduled poi
 		function* ({ deliver, settlements }) {
 			yield* deliver("hourly", tenRuns);
 
-			expect(yield* settlements()).toEqual(tenRuns.map(({ id }) => (id === "run-1" ? `${id} failed with scheduled poison job` : `${id} completed`)));
+			expect(yield* settlements()).toEqual(
+				tenRuns.map(({ id }) => (id === "run-1" ? `${id} failed with Error: scheduled poison job` : `${id} completed`)),
+			);
 		},
 	);
 }
@@ -130,5 +132,19 @@ runtime.it("a client that cannot complete or fail jobs still runs a producer-onl
 runtime.it("a worker on a client that cannot complete or fail jobs fails registration", [settlementlessClient], function* ({ start, startup }) {
 	yield* start("app", [worker(Reports, "succeeds")]);
 
-	expect(yield* startup("app")).toBe("register failed with This pg-boss client does not support complete and fail");
+	expect(yield* startup("app")).toBe("register reports failed with This pg-boss client does not support complete and fail");
 });
+
+const Deferring = defineQueue({ name: "deferral-outage", schema: Schema.Struct({}) });
+
+runtime.it(
+	"a deferral the deferral store cannot write fails its job with a typed settle error",
+	[deferralWritesFail, running("app", [worker(Deferring, { defers: "Provider quota" })])],
+	function* ({ deliver, settlements }) {
+		yield* deliver("deferral-outage", [{ data: {}, id: "job-1" }]);
+
+		expect(yield* settlements()).toEqual([
+			expect.stringMatching(/^job-1 failed with PgBossError: pg-boss settle for queue deferral-outage failed:/u),
+		]);
+	},
+);

@@ -37,7 +37,7 @@ for (const { attempt, outcome } of poisons) {
 
 			yield* outcomes({
 				"attempts": [attemptCounts(Settled), Object.fromEntries(ids.map((id) => [`job ${id}`, id === 4 ? 2 : 1]))],
-				"job 4": [job("job 4"), expect.objectContaining({ error: "Poison job", retryCount: 1, state: "failed" })],
+				"job 4": [job("job 4"), expect.objectContaining({ error: "Error: Poison job", retryCount: 1, state: "failed" })],
 				"stored states": [storedStates("settlement"), Object.fromEntries(ids.map((id) => [`job ${id}`, id === 4 ? "failed" : "completed"]))],
 			});
 		},

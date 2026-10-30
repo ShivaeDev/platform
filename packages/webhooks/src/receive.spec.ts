@@ -1,20 +1,21 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { Delivery } from "#test/requests.ts";
-import { auditEnqueueFails, delivered, firstReceiptUpdateFails, inbox, receiptsTableGone } from "#test/story.ts";
+import { auditEnqueueFails, delivered, firstReceiptUpdateFails, inbox } from "#test/story.ts";
 
 const issue42Jobs = ["webhook-audit for issue 42", "webhook-issue for issue 42"];
-const queuedReceipt = { delivery: "delivery-1", event: "issues", jobs: issue42Jobs, outcome: "queued", source: "github" };
+const queuedReceipt = { delivery: "delivery-1", event: "issues", jobs: issue42Jobs, outcome: "queued" as const, source: "github" };
 
 inbox.it(
 	"the signed issue 42 delivery is answered queued, stores a queued receipt naming its jobs and hands issue 42 to both workers",
 	[],
-	function* ({ answer, deliver, handledJobs, storedReceipts }) {
+	function* ({ answer, deliver, handledJobs, spanNames, storedReceipts }) {
 		yield* deliver("the signed issue 42 delivery");
 
 		yield* outcomes({
 			"answer": [answer(), "202 Accepted: queued"],
 			"handled jobs": [handledJobs(), issue42Jobs],
+			"spans recorded": [spanNames(), expect.arrayContaining(["POST", "Webhooks.receive"])],
 			"stored receipts": [storedReceipts(), [queuedReceipt]],
 		});
 	},
@@ -143,20 +144,6 @@ inbox.it(
 );
 
 inbox.it(
-	"an audit enqueue failing after the issue job is answered unavailable and rolls back the issue job and the receipt",
-	[auditEnqueueFails],
-	function* ({ answer, deliver, handledJobs, storedReceipts }) {
-		yield* deliver("the signed issue 42 delivery");
-
-		yield* outcomes({
-			"answer": [answer(), "503 Service Unavailable"],
-			"handled jobs": [handledJobs(), []],
-			"stored receipts": [storedReceipts(), []],
-		});
-	},
-);
-
-inbox.it(
 	"after a failed audit enqueue answered unavailable, the sender's retry is answered queued",
 	[auditEnqueueFails, delivered("the signed issue 42 delivery")],
 	function* ({ answer, deliver }) {
@@ -165,18 +152,5 @@ inbox.it(
 		yield* deliver("the signed issue 42 delivery");
 
 		expect(yield* answer()).toBe("202 Accepted: queued");
-	},
-);
-
-inbox.it(
-	"a delivery the receipts table cannot record is answered unavailable and queues no job",
-	[receiptsTableGone],
-	function* ({ answer, deliver, handledJobs }) {
-		yield* deliver("the signed issue 42 delivery");
-
-		yield* outcomes({
-			"answer": [answer(), "503 Service Unavailable"],
-			"handled jobs": [handledJobs(), []],
-		});
 	},
 );

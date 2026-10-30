@@ -59,7 +59,7 @@ export function storyIt(definition: LooseDefinition): LooseIt {
 		around: (effect) =>
 			Effect.gen(function* () {
 				if (outbound !== undefined) {
-					yield* routeOutbound(outbound);
+					yield* routeOutbound(outbound, { passthrough: definition.outboundPassthrough === true });
 				}
 				return yield* definition.around?.(effect) ?? effect;
 			}).pipe(Effect.provide(TestCrypto.layer(0).pipe(Layer.provide(NodeCrypto.layer)))),

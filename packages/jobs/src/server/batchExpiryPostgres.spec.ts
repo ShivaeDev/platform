@@ -56,13 +56,17 @@ database.it(
 const Hourly = defineSchedule({ cron: "0 * * * *", name: "hourly", queue: { expireInSeconds: 1, retryLimit: 0 } });
 
 database.it(
-	"a scheduled run that outlives its expiry is interrupted and failed by pg-boss",
+	"a scheduled run that outlives its expiry is interrupted, failed by pg-boss and listed with pg-boss's timeout as an Error",
 	[running("app", [scheduled(Hourly, "hangs")])],
-	function* ({ adminSends, interruptions, storedJobs, untilSettled }) {
+	function* ({ adminSends, interruptions, listedOutputs, storedJobs, untilSettled }) {
 		yield* adminSends("hourly", null, { as: "hourly run" });
 		yield* untilSettled(Hourly, 1);
 
 		yield* outcomes({
+			"failed listing": [
+				listedOutputs("app", "failed", { name: Hourly.name, schema: Schema.Null }),
+				[{ _tag: "Error", message: "handler execution exceeded 1s" }],
+			],
 			"interruptions": [interruptions(Hourly), ["run 1 of hourly at or after its deadline"]],
 			"stored runs": [
 				storedJobs("hourly"),

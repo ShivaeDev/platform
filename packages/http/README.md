@@ -56,7 +56,7 @@ const routes = HttpRouter.add("POST", "/webhook", (request) =>
 );
 ```
 
-Oversized `content-length` headers are rejected before reading. Native Effect owns body collection and connection cleanup after chunked overflow; connection reuse depends on its unread-body drain limit. `RequestBodyTooLarge` is a typed failure that implements Effect's `HttpServerRespondable` protocol with status 413. Consume the body once through this reader and decode the result in the application.
+Oversized `content-length` headers are rejected before reading. If `MaxBodySize` is undefined, the reader refuses before reading with `RequestBodyTooLarge` and `limit: 0`, including on routes mounted outside `appHost`. Native Effect owns body collection and connection cleanup after chunked overflow; connection reuse depends on its unread-body drain limit. `RequestBodyTooLarge` is a Schema tagged error with the string tag `"RequestBodyTooLarge"` and a numeric byte `limit`, without the request or its credentials. It implements Effect's `HttpServerRespondable` protocol with status 413. Consume the body once through this reader and decode the result in the application.
 
 ### Install and limits
 

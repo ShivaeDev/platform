@@ -9,12 +9,12 @@ import { manifestOf, rangeOn } from "./manifests.ts";
 const WORKSPACE_FOLDERS = [".changeset", "modules", "packages"];
 const decodePlan = Schema.decodeUnknownSync(Schema.fromJsonString(ReleasePlan));
 
-function answerOf<A>(result: ReturnType<typeof runCli>, success: (stdout: string) => A): A | string {
-	if (result.status === 0) {
+function answerOf<A>(result: Effect.Success<ReturnType<typeof runCli>>, success: (stdout: string) => A): A | string {
+	if (result.exitCode === 0) {
 		return success(result.stdout);
 	}
 	const message = result.stderr.trim();
-	return result.status === 1 && message !== "" ? `refused: ${message}` : `crashed with exit ${result.status}: ${message}`;
+	return result.exitCode === 1 && message !== "" ? `refused: ${message}` : `crashed with exit ${result.exitCode}: ${message}`;
 }
 
 function printedLines(stdout: string): readonly string[] {
@@ -31,9 +31,9 @@ export const workspace = storyKit({
 	verbs: (engine, story) => {
 		const { root } = engine;
 		function releases<A>(args: readonly string[], success: (stdout: string) => A) {
-			return Effect.sync(() => {
+			return Effect.gen(function* () {
 				story.tell(`releases ${args.join(" ")}`);
-				const answer = answerOf(runCli(root, args), success);
+				const answer = answerOf(yield* runCli(root, args), success);
 				engine.answers.push(answer);
 				return answer;
 			});
@@ -60,6 +60,11 @@ export const workspace = storyKit({
 			hookRecord: Effect.fn("ReleasesStory.hookRecord")(function* () {
 				return printedLines(yield* readFile("hook-record.txt"));
 			}),
+			invoke: (args: readonly string[]) =>
+				Effect.gen(function* () {
+					story.tell(`releases ${args.join(" ")}`);
+					return yield* runCli(root, args);
+				}),
 			lastAnswer: () => Effect.sync(() => engine.answers.at(-1)),
 			manifestFile: Effect.fn("ReleasesStory.manifestFile")(function* (name: string) {
 				return (yield* manifestOf(root, name)).text;

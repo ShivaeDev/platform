@@ -24,6 +24,8 @@ export type Attempt =
 	| { readonly defers: string; readonly until?: DeferralTime }
 	| { readonly enqueues: (jobs: PgBossService) => Effect.Effect<unknown, unknown> }
 	| { readonly step: string; readonly next: Attempt }
+	| { readonly logs: string }
+	| { readonly sleeps: number }
 	| "notes its job in the application log";
 
 export interface StartedAttempt {
@@ -116,18 +118,22 @@ function deferralTime(until: DeferralTime | undefined) {
 
 type Services = ApplicationLog | Context.Service.Identifier<typeof Jobs>;
 
+function plainly(attempt: Extract<Attempt, string>, job: JobContext): Effect.Effect<unknown, unknown, Services> {
+	switch (attempt) {
+		case "succeeds":
+			return Effect.void;
+		case "hangs":
+			return Effect.never;
+		case "interrupts itself":
+			return Effect.interrupt;
+		case "notes its job in the application log":
+			return Effect.flatMap(ApplicationLog, (note) => Effect.sync(() => note(`${job.name} ran ${job.id}`)));
+	}
+}
+
 function run(attempt: Attempt, log: WorkLog, job: JobContext): Effect.Effect<unknown, unknown, Services> {
-	if (attempt === "succeeds") {
-		return Effect.void;
-	}
-	if (attempt === "hangs") {
-		return Effect.never;
-	}
-	if (attempt === "interrupts itself") {
-		return Effect.interrupt;
-	}
-	if (attempt === "notes its job in the application log") {
-		return Effect.flatMap(ApplicationLog, (note) => Effect.sync(() => note(`${job.name} ran ${job.id}`)));
+	if (typeof attempt === "string") {
+		return plainly(attempt, job);
 	}
 	if ("waitsFor" in attempt) {
 		const gate = log.gate(attempt.waitsFor);
@@ -158,6 +164,12 @@ function run(attempt: Attempt, log: WorkLog, job: JobContext): Effect.Effect<unk
 		return Effect.flatMap(deferralTime(attempt.until), (at) =>
 			Effect.sync(() => log.deferrals.push({ at, id: job.id })).pipe(Effect.andThen(Effect.fail(new RetryAt({ at, reason })))),
 		);
+	}
+	if ("sleeps" in attempt) {
+		return Effect.sleep(attempt.sleeps);
+	}
+	if ("logs" in attempt) {
+		return Effect.logInfo(attempt.logs);
 	}
 	if ("step" in attempt) {
 		return run(attempt.next, log, job).pipe(Effect.withSpan(attempt.step));

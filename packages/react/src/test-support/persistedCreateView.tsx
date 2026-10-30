@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 import { CreateDraftProbe, DirectDraftProbe } from "./CreateDraftProbe.tsx";
 import type { CreateEffect, CreateHeld } from "./createDraftFields.ts";
 import { submitForm, typeInput } from "./Screen.ts";

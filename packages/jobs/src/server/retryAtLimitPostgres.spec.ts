@@ -91,7 +91,7 @@ database.it(
 		yield* untilSettled(Undeferrable, 1);
 
 		expect(yield* storedJobs("undeferrable")).toEqual([
-			expect.objectContaining({ error: "RetryAt: Disabled", job: "undeferrable run", retryCount: 0, state: "failed" }),
+			expect.objectContaining({ error: "RetryAt", job: "undeferrable run", retryCount: 0, state: "failed" }),
 		]);
 	},
 );
