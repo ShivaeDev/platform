@@ -8,7 +8,6 @@
 "@shivaedev/form": patch
 "@shivaedev/github": patch
 "@shivaedev/heavy-lock": patch
-"@shivaedev/http": patch
 "@shivaedev/identity": patch
 "@shivaedev/jobs": patch
 "@shivaedev/mcp": patch
@@ -20,7 +19,6 @@
 "@shivaedev/server": patch
 "@shivaedev/service": patch
 "@shivaedev/skills": patch
-"@shivaedev/sql": patch
 "@shivaedev/test": patch
 "@shivaedev/test-sql": patch
 "@shivaedev/test-story": patch

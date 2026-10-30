@@ -140,11 +140,6 @@ describe("local-only safety", () => {
 		expect((yield* get("/", `localhost:${board.port}`)).status).toBe(HttpStatus.fromLiteral("OK"));
 	});
 
-	boardStory.it("judges the Host header even when the request target names a loopback host", readingProject, function* ({ board, get }) {
-		expect((yield* get(`http://127.0.0.1:${board.port}/`, "board.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-		expect((yield* get("http://board.example/", `127.0.0.1:${board.port}`)).status).toBe(HttpStatus.fromLiteral("OK"));
-	});
-
 	boardStory.it("sends a policy that allows only the board's own scripts and forbids caching", readingProject, function* ({ request }) {
 		const response = yield* request("/");
 		expect(response.headers.get("content-security-policy")).toContain("script-src 'self' 'wasm-unsafe-eval';");

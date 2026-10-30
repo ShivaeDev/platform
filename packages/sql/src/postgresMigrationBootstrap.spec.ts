@@ -1,4 +1,4 @@
-import { Cause, Duration, Effect, Exit, Fiber } from "effect";
+import { Duration, Effect, Fiber } from "effect";
 import { Migrator } from "effect/sql";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/test/eventually.ts";
@@ -72,15 +72,15 @@ postgres.it(
 	function* ({ migrations, sql, migratePostgres }) {
 		const { ledger, orders } = migrations();
 
-		const exit = yield* migratePostgres({
+		const failure = yield* migratePostgres({
 			loader: Migrator.fromRecord({
 				"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
 				"2_duplicate_order": sql`insert into ${sql(orders)} (name) values ('Printer paper'), ('Printer paper')`.pipe(Effect.asVoid),
 			}),
 			lockTimeout: "5 seconds",
 			table: ledger,
-		}).pipe(Effect.exit);
-		expect(Exit.isFailure(exit) && Cause.hasDies(exit.cause)).toBe(true);
+		}).pipe(Effect.flip);
+		expect(failure).toMatchObject({ _tag: "MigrationError", kind: "Failed" });
 		expect(yield* sql`select to_regclass(${ledger}) as ledger, to_regclass(${orders}) as orders`).toEqual([{ ledger: null, orders: null }]);
 	},
 );

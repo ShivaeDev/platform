@@ -5,7 +5,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 
 type Encoding = "br" | "gzip";
 
-const COMPRESSIBLE = /^(?:text\/(?:html|css|javascript)|application\/(?:json|ndjson|javascript))(?:;|$)/u;
+const COMPRESSIBLE = /^(?:text\/(?:html|css|javascript)|application\/(?:json|(?:x-)?ndjson|javascript))(?:;|$)/u;
 const MIN_BYTES = 256;
 const CACHED_ENCODINGS = 256;
 

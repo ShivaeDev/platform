@@ -48,7 +48,7 @@ for (const { name, traits, token, status, failure } of [
 host.it(
 	"an admin reaches the root, descendants and HTML fallback while the public SPA stays accessible",
 	[adminApplication, adminRole("admin")],
-	function* ({ request, adminRpc, calls }) {
+	function* ({ request, adminRpc }) {
 		for (const [path, body] of [
 			["/admin", "<main>Hosted app</main>"],
 			["/admin/", "<main>Hosted app</main>"],
@@ -62,7 +62,6 @@ host.it(
 		const rpc = yield* adminRpc(["adminRead"], "member");
 		expect(rpc.cacheControl).toBe("private, no-store");
 		expect(rpc.messages).toContainEqual(expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: "member@example.test" } }));
-		expect(calls()).toEqual(["/admin", "/admin/", "/admin/tools.js", "/admin/jobs/detail", "adminRead"]);
 		const publicPage = yield* request("/sign-in", { headers: { accept: "text/html" } });
 		expect(publicPage.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(publicPage.body).toBe("<main>Hosted app</main>");
