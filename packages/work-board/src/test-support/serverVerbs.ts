@@ -23,6 +23,10 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		});
 	}
 	return {
+		watchIndex: () => {
+			tell("a native RPC client subscribes only to the Board index");
+			return subscribe(served(engine).board, true);
+		},
 		anotherFolder: (files: Readonly<Record<string, string>>) =>
 			Effect.acquireRelease(
 				Effect.sync(() => {
