@@ -1,4 +1,4 @@
-import { Effect, type Schema } from "effect";
+import { Effect, Redacted, type Schema } from "effect";
 import type { JobInsert } from "pg-boss";
 import type { QueueDefinition } from "#definition.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
@@ -260,7 +260,7 @@ export const disconnectGated = database.trait(
 	(engine) =>
 		Effect.map(
 			Effect.acquireRelease(
-				Effect.promise(() => disconnectGate(engine.url)),
+				Effect.promise(() => disconnectGate(Redacted.value(engine.url))),
 				(gate) => Effect.promise(gate.close),
 			),
 			(gate) => {
@@ -275,7 +275,7 @@ export function runningBehindGate(name: string, options: StartOptions) {
 			started(engine, name, [], {
 				...options,
 				"application_name": name,
-				"connectionString": engine.gate?.url ?? engine.url,
+				"connectionString": engine.gate === undefined ? engine.url : Redacted.make(engine.gate.url),
 				"schedule": false,
 				"supervise": false,
 			}),

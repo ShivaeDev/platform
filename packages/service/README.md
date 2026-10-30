@@ -144,7 +144,7 @@ The replacement provides the public method interface, rather than private initia
 
 ### Preserve a generic method's signature
 
-Ordinary methods have one concrete signature. For a service with an empty `requires` list, `genericMethod` marks a generic function so its success, failure and caller requirements remain related at each call:
+Ordinary methods have one concrete signature. `genericMethod` marks a generic function so its success, failure and caller requirements remain related at each call:
 
 ```ts
 import { Context, Effect } from "effect";
@@ -174,7 +174,7 @@ const preserved = Effect.gen(function* () {
 
 The wrapped Effect still requires `Caller`, which the caller supplies separately. The generic service's Layer has no declared dependencies. The emitted declarations preserve the generic success and failure types as well as caller requirements.
 
-Marked generic methods require a service with no declared dependencies. The compiler rejects an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload; it may not reject other generic or overloaded signatures. Use ordinary methods with concrete signatures when the service binds dependencies.
+Marked generic methods also work with declared initializer dependencies. Their signatures keep all caller requirements unchanged; unlike ordinary methods, they do not subtract declared dependencies from the public signature. The compiler rejects an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload; it may not reject other generic or overloaded signatures. Use initialization state to close over bound dependencies in generic methods.
 
 Dependency binding wraps the method's outer returned Effect. A Stream returned as its value retains its own service requirements; provide them when running the Stream.
 
@@ -185,7 +185,7 @@ Import the module that defines the name:
 | Module                                      | Name                                                                               | Use                                                                                     |
 | ------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `@shivaedev/service/defineService.ts`       | `defineService(definition)`                                                        | Create a native service with its `.layer`.                                              |
-| `@shivaedev/service/genericMethod.ts`       | `genericMethod(method)`                                                            | Mark a generic Effect-returning function in a service with no declared dependencies.    |
+| `@shivaedev/service/genericMethod.ts`       | `genericMethod(method)`                                                            | Preserve a generic Effect-returning function and its caller requirements.               |
 | `@shivaedev/service/ServiceRequirements.ts` | `ServiceRequirements<Requirements, Success, Failure = never, CallerScope = never>` | Annotate an `Effect.fn` generator with declared dependencies and optional caller scope. |
 
 The definition's fields are:

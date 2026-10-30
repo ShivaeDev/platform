@@ -1,4 +1,4 @@
-import { Layer, type Redacted } from "effect";
+import { Layer } from "effect";
 import { RpcGroup } from "effect/rpc";
 import { mergeAdminRegistrations } from "@shivaedev/admin/server/mergeAdminRegistrations.ts";
 import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
@@ -17,8 +17,5 @@ export const serverModules = {
 	group: RpcGroup.make().merge(...modules.map((module) => module.group)),
 	handlers: admin.handlers,
 	migrations: modules.map((module) => module.migrations),
-	services: (url: Redacted.Redacted<string>, max?: number) => {
-		const clientCacheKey = Symbol("app/producer");
-		return Layer.mergeAll(Layer.empty, ...modules.map((module) => module.services(url, max, clientCacheKey)));
-	},
+	services: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.services)),
 };

@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { Effect, Layer, Redacted } from "effect";
+import { Effect, Layer } from "effect";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -7,7 +7,6 @@ import { Create, Delete, Get, Import, List, NoteReadAccess, Notes, Update } from
 import { jsonPlaceholderNotes } from "#modules/notes/server/adapters/jsonPlaceholder.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
 import { NotesService } from "#modules/notes/server/Service.ts";
-import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { adminRegistration } from "./adminRegistration.ts";
 import { CountWords } from "./jobs.ts";
 
@@ -33,12 +32,8 @@ export const notesRegistration = {
 	handlers: Layer.mergeAll(handlers, adminRegistration.handlers),
 	migrations: resolve(import.meta.dirname, "migrations"),
 	queues: [CountWords],
-	services: (url: Redacted.Redacted<string>, max?: number, clientCacheKey?: symbol) =>
-		Layer.effect(
-			NoteReadAccess,
-			Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(rpcBoundary(Get.error, boundaryOptions))),
-		).pipe(
-			Layer.provideMerge(NotesService.layer.pipe(Layer.provide(jsonPlaceholderNotes))),
-			Layer.provideMerge(Layer.unwrap(Effect.map(JobsClientFactory, (factory) => noteProducer(Redacted.value(url), factory, max, clientCacheKey)))),
-		),
+	services: Layer.effect(
+		NoteReadAccess,
+		Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(rpcBoundary(Get.error, boundaryOptions))),
+	).pipe(Layer.provideMerge(NotesService.layer.pipe(Layer.provide(jsonPlaceholderNotes))), Layer.provideMerge(noteProducer)),
 };

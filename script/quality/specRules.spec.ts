@@ -1,9 +1,9 @@
 import { expect } from "vitest";
+import { namedValues } from "@shivaedev/quality/rules/stories/namedValues.ts";
+import { noExpect } from "@shivaedev/quality/rules/stories/noExpect.ts";
+import { noLimitImports } from "@shivaedev/quality/rules/stories/noLimitImports.ts";
+import { specHelpers } from "@shivaedev/quality/rules/stories/specHelpers.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { namedValues } from "#quality-internal/rules/stories/namedValues.ts";
-import { noExpect } from "#quality-internal/rules/stories/noExpect.ts";
-import { noLimitImports } from "#quality-internal/rules/stories/noLimitImports.ts";
-import { specHelpers } from "#quality-internal/rules/stories/specHelpers.ts";
 
 ruleKit.it(
 	"a spec author moves top-level functions and function values into the kit",

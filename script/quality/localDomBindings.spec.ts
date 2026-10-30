@@ -1,8 +1,8 @@
 import { expect } from "vitest";
+import { storySpecs } from "@shivaedev/quality/rules/stories/specs.ts";
+import { testsFollow } from "@shivaedev/quality/rules/test-names/follow.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 import { ordersPackage, pureOrders, unitSpec } from "#quality/test-support/unitFiles.ts";
-import { storySpecs } from "#quality-internal/rules/stories/specs.ts";
-import { testsFollow } from "#quality-internal/rules/test-names/follow.ts";
 
 for (const binding of [
 	'const document = { body: "order" }; export const body = document.body;',

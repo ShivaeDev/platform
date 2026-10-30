@@ -1,23 +1,33 @@
 import { expect } from "vitest";
-import { columns, SourceRow } from "#test/insertSelect.ts";
-import { hasInsertSelectRows } from "#test/repositoryTraits.ts";
-import { postgres } from "#test/sqlStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { queries, sourceRows } from "#test/queries.ts";
+import { SourceRow } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
-postgres.it("findMany with an empty tuple list matches nothing", [hasInsertSelectRows()], function* ({ insertSelect }) {
-	const { source } = insertSelect();
-	expect(yield* source.findMany({ where: tupleIn(SourceRow, ["sourceKey", "amount"], []) })).toEqual([]);
+const noTuples = tupleIn(SourceRow, ["sourceKey", "amount"], []);
+
+queries.it("findMany with an empty tuple list reads no sources", [sourceRows()], function* ({ findSources }) {
+	const found = yield* findSources({ where: noTuples });
+
+	expect(found).toEqual([]);
 });
 
-postgres.it("select with an empty tuple list copies nothing", [hasInsertSelectRows()], function* ({ insertSelect }) {
-	const { source, target } = insertSelect();
-	expect(yield* target.insertFromSelect(source.select({ where: tupleIn(SourceRow, ["sourceKey", "amount"], []) }), columns)).toEqual([]);
-	expect(yield* target.findMany()).toEqual([]);
+queries.it("a select with an empty tuple list copies no sources", [sourceRows()], function* ({ copies, copySelected, lastResult }) {
+	yield* copySelected({ where: noTuples });
+
+	yield* outcomes({
+		"copied rows returned": [lastResult(), []],
+		"stored copies": [copies(), []],
+	});
 });
 
-postgres.it("delete with an empty tuple list leaves rows intact", [hasInsertSelectRows()], function* ({ insertSelect }) {
-	const { source } = insertSelect();
-	const before = yield* source.findMany({ orderBy: { direction: "asc", field: "sourceKey" } });
-	yield* source.delete(tupleIn(SourceRow, ["sourceKey", "amount"], []));
-	expect(yield* source.findMany({ orderBy: { direction: "asc", field: "sourceKey" } })).toEqual(before);
+queries.it("delete with an empty tuple list keeps every source", [sourceRows()], function* ({ deleteSources, sources }) {
+	yield* deleteSources(noTuples);
+
+	expect(yield* sources()).toEqual([
+		{ amount: 10, displayName: "first", sourceKey: 1, status: "flaky" },
+		{ amount: 20, displayName: "second", sourceKey: 2, status: "flaky" },
+		{ amount: 30, displayName: "stable", sourceKey: 3, status: "stable" },
+		{ amount: 40, displayName: "fourth", sourceKey: 4, status: "flaky" },
+	]);
 });
