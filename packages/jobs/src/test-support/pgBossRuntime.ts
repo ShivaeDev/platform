@@ -40,11 +40,15 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 			...options,
 		});
 	}
-	function boot<const T extends readonly JobRegistration[], R = never>(jobs: T, options?: Partial<PgBossLayerOptions<T, R>>) {
+	function boot<const T extends readonly JobRegistration[], R = never>(
+		jobs: T,
+		options?: Partial<PgBossLayerOptions<T, R>>,
+		finalizerStrategy?: Parameters<typeof Scope.fork>[1],
+	) {
 		return Effect.gen(function* () {
 			tell(`start the jobs runtime with ${jobs.length} registrations`);
 			const parent = yield* Scope.Scope;
-			const scope = yield* Scope.fork(parent);
+			const scope = yield* Scope.fork(parent, finalizerStrategy);
 			const context = yield* logged(Layer.build(layer(jobs, options)).pipe(Effect.provideService(Scope.Scope, scope)));
 			return {
 				jobs: Context.get(context, Jobs),

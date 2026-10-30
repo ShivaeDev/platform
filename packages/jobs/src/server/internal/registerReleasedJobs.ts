@@ -12,16 +12,19 @@ export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
 	execute: PgBossRunner,
-	schema?: string,
+	schema: string | undefined,
+	graceful: boolean,
 ) {
 	const signal = yield* Effect.serviceOption(WorkerRelease);
 	const workers = jobs.filter((job) => job._tag !== "QueueDefinition");
 	const scope = yield* Effect.scope;
-	const register = registerJobs(client, jobs, context, replaceWorkers, execute, schema).pipe(Effect.provideService(Scope.Scope, scope));
+	const register = registerJobs(client, jobs, context, replaceWorkers, execute, schema, true, graceful).pipe(
+		Effect.provideService(Scope.Scope, scope),
+	);
 	if (Option.isNone(signal) || workers.length === 0) {
 		return yield* register;
 	}
-	yield* registerJobs(client, jobs, context, replaceWorkers, execute, schema, false);
+	yield* registerJobs(client, jobs, context, replaceWorkers, execute, schema, false, graceful);
 	let working = replaceWorkers;
 	let paused = false;
 	yield* signal.value.register((active) =>

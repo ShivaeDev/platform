@@ -6,6 +6,7 @@ import { batchBudget } from "#test/batchBudget.ts";
 import { budgetVerbs } from "#test/budgetVerbs.ts";
 import { clientEngine } from "#test/clientEngine.ts";
 import { connectionSecurity } from "#test/connectionSecurity.ts";
+import { gracefulShutdown } from "#test/gracefulShutdown.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
 import { queueRetry } from "#test/queueRetry.ts";
@@ -38,6 +39,7 @@ export const boss = storyKit({
 		const runtime = pgBossRuntime(state, story.tell);
 		return {
 			...runtime,
+			gracefulShutdown: (shared: boolean) => gracefulShutdown(runtime, shared),
 			queueRetry: queueRetry(runtime),
 			workerRuntime: workerRuntime(runtime),
 			...connectionSecurity(state, runtime),

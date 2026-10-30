@@ -1,4 +1,4 @@
-import { Effect, Option, Redacted, Schema } from "effect";
+import { Effect, Redacted, Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
 import { boss } from "#test/boss.ts";
@@ -73,9 +73,9 @@ boss.it(
 		yield* queueRetry.advance(49);
 		expect(queueRetry.finished(registration)).toBe(false);
 		yield* queueRetry.advance(1);
-		const runtime = yield* queueRetry.finish(registration);
+		yield* queueRetry.finish(registration);
 
-		expect(Option.isSome(yield* runtime.jobs.enqueue(defineQueue({ name: "contended", schema: Schema.Struct({}) }), {}))).toBe(true);
+		expect(client.createQueueCalls.map(({ name }) => name)).toEqual(["contended-dlq", "contended"]);
 	},
 	{ clock: "test" },
 );
