@@ -11,6 +11,7 @@ import { screenKit } from "./screenKit.ts";
 
 interface State {
 	readonly destinations: string[];
+	owner?: { readonly action: Atom.AtomResultFn<void, void>; readonly registry: AtomRegistry.AtomRegistry };
 	readonly requests: string[];
 	readonly response: PromiseWithResolvers<void>;
 	view?: Rendered;
@@ -29,7 +30,15 @@ export const signOuts = storyKit(
 			click: () => screen.act("click Sign out", () => clickButton(view(state).container, "Sign out")),
 			complete: () => screen.act("the sign-out request succeeds", () => state.response.resolve()),
 			destinations: () => state.destinations,
+			phase: () => view(state).container.querySelector("output")?.textContent,
 			requests: () => state.requests,
+			startFromAuthOwner: () =>
+				screen.act("the auth owner dispatches sign-out", () => {
+					if (!state.owner) {
+						throw new Error("No sign-out owner");
+					}
+					state.owner.registry.set(state.owner.action, undefined);
+				}),
 			unmount: () => screen.act("unmount the sign-out component", () => view(state).render(null)),
 		}),
 	),
@@ -47,6 +56,7 @@ export function pendingSignOut() {
 			}),
 		);
 
+		state.owner = { action, registry };
 		const root = createRootRoute({ component: Outlet });
 		const home = createRoute({ component: () => <SignOutControls action={action} />, getParentRoute: () => root, path: "/" });
 		const login = createRoute({ component: () => <h1>Sign in</h1>, getParentRoute: () => root, path: "/sign-in" });

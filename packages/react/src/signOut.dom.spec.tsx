@@ -32,3 +32,11 @@ signOuts.it("a second click starts no second request or navigation", [pendingSig
 		"sign-out requests": [Effect.sync(requests), ["sign-out"]],
 	});
 });
+
+signOuts.it("a sign-out started by the auth owner remains pending in the screen", [pendingSignOut()], function* ({ phase, startFromAuthOwner }) {
+	expect(phase()).toBe("Ready");
+
+	yield* startFromAuthOwner();
+
+	expect(phase()).toBe("Signing out");
+});

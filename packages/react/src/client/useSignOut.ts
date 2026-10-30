@@ -1,4 +1,4 @@
-import { RegistryContext } from "@effect/atom-react";
+import { RegistryContext, useAtomMount } from "@effect/atom-react";
 import { useRouter } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
@@ -17,7 +17,18 @@ export function useSignOut<A, E>(action: Atom.AtomResultFn<void, A, E>, options:
 	const router = useRouter({ warn: false });
 	const local = useContext(RegistryContext);
 	const registry = useContext(SignOutRegistryContext) ?? local;
-	const source = useMemo(() => {
+	const source = useMemo(
+		() =>
+			Atom.writable(
+				(get) => {
+					get.addFinalizer(registry.subscribe(action, (result) => get.setSelf(result)));
+					return registry.get(action);
+				},
+				(_, input: undefined | Atom.Reset | Atom.Interrupt) => registry.set(action, input),
+			),
+		[registry, action],
+	);
+	const followUp = useMemo(() => {
 		function failed() {
 			if (router) {
 				router.history.replace(router.history.location.href, { ...router.history.location.state, __platformSignOut: false });
@@ -29,27 +40,23 @@ export function useSignOut<A, E>(action: Atom.AtomResultFn<void, A, E>, options:
 			}
 		}
 		return Atom.fn<void>()(() =>
-			Effect.gen(function* () {
-				registry.set(action, undefined);
-				return yield* AtomRegistry.getResult(registry, action, { suspendOnWaiting: true }).pipe(
-					Effect.tapError(() => Effect.sync(failed)),
-					Effect.tap(() => Effect.sync(completed)),
-				);
-			}),
+			AtomRegistry.getResult(registry, action, { suspendOnWaiting: true }).pipe(Effect.match({ onFailure: failed, onSuccess: completed })),
 		);
 	}, [registry, action, router, options.signIn]);
+	useAtomMount(followUp);
+	useEffect(() => () => local.set(followUp, Atom.Interrupt), [local, followUp]);
 	const state = useAction(source);
-	useEffect(() => () => local.set(source, Atom.Interrupt), [local, source]);
 	return {
 		...state,
 		dispatch: () => {
-			if (local.get(source).waiting) {
+			if (registry.get(action).waiting || local.get(followUp).waiting) {
 				return;
 			}
 			if (router) {
 				router.history.replace(router.history.location.href, { ...router.history.location.state, __platformSignOut: true });
 			}
 			state.dispatch(undefined);
+			local.set(followUp, undefined);
 		},
 	};
 }
