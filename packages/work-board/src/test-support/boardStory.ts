@@ -1,26 +1,27 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { archiveVerbs } from "./archiveVerbs.ts";
-import { attentionVerbs } from "./attentionVerbs.ts";
-import type { FileSystemWrapper } from "./board.ts";
-import { held } from "./browser.ts";
-import { fileVerbs } from "./fileVerbs.ts";
-import { livePageVerbs } from "./livePageVerbs.ts";
-import { metadataScreen } from "./metadataScreen.tsx";
-import { migrationVerbs } from "./migrationVerbs.ts";
-import { nativeVerbs } from "./nativeVerbs.ts";
-import { questionnaireSource } from "./questionnaire.ts";
-import { readerVerbs } from "./readerVerbs.ts";
-import { readingVerbs } from "./readingVerbs.ts";
-import { readVerbs } from "./readVerbs.ts";
-import { responseFeedVerbs } from "./responseFeedVerbs.ts";
-import { responseServiceVerbs } from "./responseServiceVerbs.ts";
-import { serverVerbs } from "./serverVerbs.ts";
-import { servingVerbs } from "./servingVerbs.ts";
-import { standingQuestionVerbs } from "./standingQuestionVerbs.ts";
-import { connected, createBoard, inspectBoard, openReader, served, serveProject, wrapFilesystem } from "./storyEngine.ts";
-import { handoffInput, resultHtml, reviewReport, savedInboxAnswer } from "./storyResponses.ts";
-import { workspaceAccess } from "./workspaceAccess.ts";
+import { archiveVerbs } from "#test/archiveVerbs.ts";
+import { attentionVerbs } from "#test/attentionVerbs.ts";
+import type { FileSystemWrapper } from "#test/board.ts";
+import { held } from "#test/browser.ts";
+import { fileVerbs } from "#test/fileVerbs.ts";
+import { livePageVerbs } from "#test/livePageVerbs.ts";
+import { metadataScreen } from "#test/metadataScreen.tsx";
+import { migrationVerbs } from "#test/migrationVerbs.ts";
+import { nativeVerbs } from "#test/nativeVerbs.ts";
+import { questionnaireSource } from "#test/questionnaire.ts";
+import { readerVerbs } from "#test/readerVerbs.ts";
+import { readingVerbs } from "#test/readingVerbs.ts";
+import { readVerbs } from "#test/readVerbs.ts";
+import { responseFeedVerbs } from "#test/responseFeedVerbs.ts";
+import { responseServiceVerbs } from "#test/responseServiceVerbs.ts";
+import { serverVerbs } from "#test/serverVerbs.ts";
+import { servingVerbs } from "#test/servingVerbs.ts";
+import { socketVerbs } from "#test/socketVerbs.ts";
+import { standingQuestionVerbs } from "#test/standingQuestionVerbs.ts";
+import { connected, createBoard, inspectBoard, openReader, served, serveProject, wrapFilesystem } from "#test/storyEngine.ts";
+import { handoffInput, resultHtml, reviewReport, savedInboxAnswer } from "#test/storyResponses.ts";
+import { workspaceAccess } from "#test/workspaceAccess.ts";
 
 export const boardStory = storyKit({
 	after: { project: serveProject },
@@ -38,6 +39,7 @@ export const boardStory = storyKit({
 		...attentionVerbs(engine, story.tell),
 		...standingQuestionVerbs(engine, story.tell),
 		...serverVerbs(engine, story.tell),
+		...socketVerbs(engine, story.tell),
 		...servingVerbs(engine, story.tell),
 		...nativeVerbs(engine, story.tell),
 		...fileVerbs(engine, story.tell),

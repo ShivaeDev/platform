@@ -8,14 +8,18 @@ export type Template = typeof Template.Type;
 export const decodeTemplate = Schema.decodeUnknownSync(Schema.fromJsonString(Template));
 
 export function appTemplate(template: Template, minimal = false): Template {
+	const minimalManifest = template.find((entry) => entry.path === "package.minimal.json");
 	const minimalBaseline = template.find((entry) => entry.path === "quality-baseline.minimal.jsonl");
-	const files = template.filter((entry) => entry.path !== "quality-baseline.minimal.jsonl");
+	const files = template.filter((entry) => !["quality-baseline.minimal.jsonl", "package.minimal.json"].includes(entry.path));
 	if (!minimal) {
 		return files;
 	}
 	return files
 		.filter((entry) => !entry.path.startsWith("src/modules/notes/"))
 		.map((entry) => {
+			if (entry.path === "package.json" && minimalManifest !== undefined) {
+				return { ...entry, content: minimalManifest.content };
+			}
 			if (entry.path === "quality-baseline.jsonl" && minimalBaseline !== undefined) {
 				return { ...entry, content: minimalBaseline.content };
 			}
@@ -72,12 +76,15 @@ export function registryDependencies(dependencies: Readonly<Record<string, strin
 	);
 }
 
-export function prepareManifest(source: string, versions: Readonly<Record<string, string>>) {
+export function prepareManifest(source: string, versions: Readonly<Record<string, string>>, minimal = false) {
 	const manifest = decodeManifest(source);
 	const { "check:published": _check, ...scripts } = manifest.scripts;
 	const prepared = {
 		...manifest,
-		dependencies: registryDependencies(manifest.dependencies, versions),
+		dependencies: registryDependencies(
+			Object.fromEntries(Object.entries(manifest.dependencies).filter(([name]) => !minimal || name !== "@tanstack/react-table")),
+			versions,
+		),
 		devDependencies: registryDependencies(manifest.devDependencies, versions),
 		scripts: Object.fromEntries(Object.entries(scripts).map(([name, script]) => [name, script.replaceAll("--conditions=source ", "")])),
 	};

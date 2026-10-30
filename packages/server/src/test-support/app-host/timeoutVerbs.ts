@@ -1,6 +1,7 @@
 import { Effect, ManagedRuntime } from "effect";
 import { HttpBody, HttpClient } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { withLive } from "@shivaedev/test/withLive.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { requests } from "./requests.ts";
 import { type HostState, io } from "./state.ts";
@@ -10,7 +11,7 @@ function until(observed: () => boolean, timeout: number) {
 		while (!observed()) {
 			yield* Effect.sleep("10 millis");
 		}
-	}).pipe(Effect.timeout(timeout));
+	}).pipe(Effect.timeout(timeout), withLive);
 }
 
 export function timeoutVerbs(state: HostState, tell: (line: string) => void) {

@@ -1,7 +1,20 @@
 import { act } from "react";
-import type { ScreenEngine } from "./screenEngine.ts";
+import { session } from "#client/session.ts";
+import { waitFor } from "#test/live.ts";
+import type { ScreenEngine } from "#test/screenEngine.ts";
 
 export function sessionTransportActions(engine: ScreenEngine, tell: (line: string) => void) {
+	async function connected() {
+		if (!engine.session) {
+			throw new Error("The session has not opened");
+		}
+		const client = session(engine.session.environment);
+		await waitFor(() => {
+			if (client.registry.get(client.updates.status).connection !== "live") {
+				throw new Error("The session is reconnecting");
+			}
+		});
+	}
 	function boundary() {
 		if (!engine.sessionTransport) {
 			throw new Error("No session transport boundary was prepared");
@@ -54,13 +67,25 @@ export function sessionTransportActions(engine: ScreenEngine, tell: (line: strin
 			);
 		},
 		sessionCommands: () => [...boundary().commands],
-		setSessionOffline: (offline: boolean) => {
+		setSessionOffline: async (offline: boolean) => {
 			tell(`native command delivery becomes ${offline ? "unavailable" : "available"}`);
-			boundary().offline = offline;
+			await act(async () => {
+				boundary().offline = offline;
+				if (!offline) {
+					await connected();
+				}
+			});
 		},
-		setSessionServer: (answering: boolean) => {
+		setSessionServer: async (answering: boolean) => {
 			tell(answering ? "the Board server answers again" : "the Board server stops answering");
-			engine.serverStopped = !answering;
+			await act(async () => {
+				engine.serverStopped = !answering;
+				if (answering) {
+					await connected();
+				} else {
+					engine.sessionDisconnect?.();
+				}
+			});
 		},
 	};
 }

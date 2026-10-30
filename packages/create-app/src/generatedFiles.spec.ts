@@ -4,7 +4,7 @@ import { application } from "#test/application.ts";
 application.it(
 	"gives a generated app its own guidance, documentation, names and normal file permissions",
 	[],
-	function* ({ cli, read, guidanceLink, files, generatedFiles }) {
+	function* ({ cli, read, guidanceLink, files, generatedFiles, exists }) {
 		const result = yield* cli(["demo", "--no-git"], ["NODE_OPTIONS=--import=data:text/javascript,process.umask(0o077)"]);
 		expect(result.status, result.stdout + result.stderr).toBe(0);
 		expect(read("README.md")).toMatch(/^# demo\n/u);
@@ -20,6 +20,10 @@ application.it(
 		expect(read(".env.example")).toContain("/demo_dev\n");
 		expect(read(".env.example")).toContain("/demo_test\n");
 		expect(files()).not.toContain("published-versions.json");
+		for (const path of ["src/client/ui/chart.tsx", "src/client/ui/tooltip.tsx"]) {
+			expect(exists(path), path).toBe(false);
+		}
+		expect(JSON.parse(read("package.json")).dependencies).not.toHaveProperty("recharts");
 		for (const file of generatedFiles()) {
 			expect(file.path).not.toMatch(/starter/iu);
 			expect(file.content, file.path).not.toMatch(/starter/iu);

@@ -1,1 +1,1 @@
-{ "modules": ["../src/register.tsx"] }
+{ "modules": ["../src/adapters/generated/register.js"] }

@@ -1,200 +1,167 @@
-import { Context, Data, Deferred, Effect, Layer, Scope } from "effect";
+import { Cause, Context, Data, Deferred, Effect, Exit, type Fiber, Layer, Option, Scope } from "effect";
 import { defineService } from "#defineService.ts";
 import { genericMethod } from "#genericMethod.ts";
-import type { ServiceRequirements } from "#ServiceRequirements.ts";
 
-export class Declared extends Context.Service<Declared, { readonly identity: object; readonly prefix: string }>()("story/Declared") {}
-export class Caller extends Context.Service<Caller, { readonly value: number }>()("story/Caller") {}
+export class Greeting extends Context.Service<Greeting, string>()("story/Greeting") {}
+export class CallerNumber extends Context.Service<CallerNumber, number>()("story/CallerNumber") {}
 
-export function serviceCounts() {
-	return { factoryCalls: 0, finalizations: 0, initializations: 0, released: 0 };
+class InitializationFailure extends Data.TaggedError("InitializationFailure")<{ readonly message: string }> {}
+class MethodFailure extends Data.TaggedError("MethodFailure")<{ readonly message: string }> {}
+
+const INITIALIZER_RESOURCE = "the initializer's resource";
+const CALL_RESOURCE = "the call's resource";
+
+export type Initialization = "succeeds" | "fails after acquiring its resource" | "waits after acquiring its resource";
+
+export type CountingMethod = "count" | "fail" | "crash";
+
+interface Recorder {
+	initialization: Initialization;
+	readonly initializerAcquired: Deferred.Deferred<void>;
+	initializerRuns: number;
+	methodBuilds: number;
+	readonly released: string[];
+	readonly resourceHeld: Deferred.Deferred<void>;
 }
 
-type ServiceCounts = ReturnType<typeof serviceCounts>;
-const noRequirements = [] as const;
-type NoRequirements<A, E = never, R extends Scope.Scope = never> = ServiceRequirements<typeof noRequirements, A, E, R>;
-
-function initialize(counts: ServiceCounts) {
-	return Effect.fn("StoryService.initialize")(function* (): NoRequirements<{ readonly identity: object }, never, Scope.Scope> {
-		counts.initializations += 1;
-		yield* Effect.addFinalizer(() =>
-			Effect.sync(() => {
-				counts.finalizations += 1;
-			}),
-		);
-		return { identity: {} };
-	})();
+function release(engine: Recorder, resource: string) {
+	return Effect.sync(() => {
+		engine.released.push(resource);
+	});
 }
 
-export function scopedService(counts: ServiceCounts) {
+function counterService(engine: Recorder) {
 	return defineService({
-		id: "story/ScopedService",
-		initialize: initialize(counts),
+		id: "story/Counter",
+		initialize: Effect.gen(function* () {
+			engine.initializerRuns += 1;
+			yield* Effect.acquireRelease(Effect.void, () => release(engine, INITIALIZER_RESOURCE));
+			yield* Deferred.succeed(engine.initializerAcquired, undefined);
+			if (engine.initialization === "fails after acquiring its resource") {
+				return yield* new InitializationFailure({ message: "initialization failure" });
+			}
+			if (engine.initialization === "waits after acquiring its resource") {
+				return yield* Effect.never;
+			}
+			return { count: 0 };
+		}),
 		methods: (state) => {
-			counts.factoryCalls += 1;
+			engine.methodBuilds += 1;
+			function counted() {
+				state.count += 1;
+				return state.count;
+			}
 			return {
-				identity: () => Effect.succeed(state.identity),
-				open: () =>
-					Effect.acquireRelease(Effect.succeed("resource"), () =>
-						Effect.sync(() => {
-							counts.released += 1;
-						}),
+				count: () => Effect.sync(counted),
+				crash: () => Effect.sync(counted).pipe(Effect.andThen(Effect.die(new Error("method defect")))),
+				fail: () => Effect.sync(counted).pipe(Effect.andThen(Effect.fail(new MethodFailure({ message: "method failure" })))),
+				greet: () => Effect.service(Greeting),
+				hold: () =>
+					Effect.acquireRelease(Effect.void, () => release(engine, CALL_RESOURCE)).pipe(
+						Effect.andThen(Deferred.succeed(engine.resourceHeld, undefined)),
+						Effect.andThen(Effect.never),
 					),
-				released: () => Effect.sync(() => counts.released),
+				open: () => Effect.acquireRelease(Effect.succeed(CALL_RESOURCE), (resource) => release(engine, resource)),
 			};
 		},
-		requires: noRequirements,
+		requires: [Greeting],
 	});
 }
 
-export function requiredService() {
-	const requirements = [Declared] as const;
-	type Requirements<A> = ServiceRequirements<typeof requirements, A>;
-	return defineService({
-		id: "story/RequiredService",
-		initialize: Effect.fn("RequiredService.initialize")(function* (): Requirements<{ readonly identity: object }> {
-			return { identity: (yield* Declared).identity };
-		})(),
-		methods: (state) => ({
-			greet: () => Effect.map(Declared, ({ prefix }) => prefix),
-			sameIdentity: Effect.fn("RequiredService.sameIdentity")(function* (): Requirements<boolean> {
-				return (yield* Declared).identity === state.identity;
-			}),
-		}),
-		requires: requirements,
-	});
-}
-
-function preserve<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<{ readonly value: A }, E, R> {
+function wrap<TSuccess, TFailure, TRequirements>(
+	effect: Effect.Effect<TSuccess, TFailure, TRequirements>,
+): Effect.Effect<{ readonly value: TSuccess }, TFailure, TRequirements> {
 	return Effect.map(effect, (value) => ({ value }));
 }
 
-export function genericService() {
+function wrapperService() {
 	return defineService({
-		id: "story/GenericService",
+		id: "story/Wrapper",
 		initialize: Effect.void,
-		methods: () => ({ preserve: genericMethod(preserve) }),
-		requires: noRequirements,
+		methods: () => ({ wrap: genericMethod(wrap) }),
+		requires: [],
 	});
 }
 
-type Acquired<TService> = Effect.Effect<Context.Service.Shape<TService>>;
+type CounterService = ReturnType<typeof counterService>;
+type WrapperService = ReturnType<typeof wrapperService>;
 
-export type BuiltService =
-	| { readonly kind: "unbuilt" }
-	| { readonly kind: "scoped"; readonly read: Acquired<ReturnType<typeof scopedService>> }
-	| { readonly kind: "required"; readonly read: Acquired<ReturnType<typeof requiredService>> }
-	| { readonly kind: "generic"; readonly read: Acquired<ReturnType<typeof genericService>> };
-
-export type Declaration =
-	| { readonly kind: "undeclared" }
-	| { readonly kind: "scoped"; readonly service: ReturnType<typeof scopedService> }
-	| { readonly kind: "required"; readonly service: ReturnType<typeof requiredService>; readonly prefix: string }
-	| { readonly kind: "generic"; readonly service: ReturnType<typeof genericService> };
-
-export interface ServiceEngine {
-	built: BuiltService;
-	readonly counts: ServiceCounts;
-	declaration: Declaration;
-	readonly scope: Scope.Closeable;
+export interface ServiceEngine extends Recorder {
+	readonly answers: unknown[];
+	build: Fiber.Fiber<unknown, unknown> | undefined;
+	buildExit: Exit.Exit<unknown, unknown> | undefined;
+	built: Context.Context<Context.Service.Identifier<CounterService> | Context.Service.Identifier<WrapperService>> | undefined;
+	call: Fiber.Fiber<unknown, unknown> | undefined;
+	callerScope: Scope.Closeable | undefined;
+	readonly counter: CounterService;
+	readonly layerScope: Scope.Closeable;
+	owner: Fiber.Fiber<unknown, unknown> | undefined;
+	readonly wrapper: WrapperService;
 }
 
 export function* serviceEngine(): Effect.fn.Return<ServiceEngine, never, Scope.Scope> {
-	const scope = yield* Scope.fork(yield* Effect.scope);
-	return { built: { kind: "unbuilt" }, counts: serviceCounts(), declaration: { kind: "undeclared" }, scope };
+	const recorder: Recorder = {
+		initialization: "succeeds",
+		initializerAcquired: yield* Deferred.make<void>(),
+		initializerRuns: 0,
+		methodBuilds: 0,
+		released: [],
+		resourceHeld: yield* Deferred.make<void>(),
+	};
+	return Object.assign(recorder, {
+		answers: [],
+		build: undefined,
+		buildExit: undefined,
+		built: undefined,
+		call: undefined,
+		callerScope: undefined,
+		counter: counterService(recorder),
+		layerScope: yield* Scope.fork(yield* Effect.scope),
+		owner: undefined,
+		wrapper: wrapperService(),
+	});
 }
 
-class InitializationFailed extends Data.TaggedError("InitializationFailed") {}
-class MethodFailed extends Data.TaggedError("MethodFailed") {}
-class Prefix extends Context.Service<Prefix, string>()("story/FailurePrefix") {}
-
-export function failureEngine() {
-	const counts = { factoryCalls: 0, finalized: 0 };
-	const operations: string[] = [];
-	const initializationFailure = new InitializationFailed();
-	const methodFailure = new MethodFailed();
-	const defect = new Error("method defect");
-	const failedInitialization = defineService({
-		id: "story/FailedInitialization",
-		initialize: Effect.gen(function* () {
-			yield* Effect.addFinalizer(() =>
-				Effect.sync(() => {
-					counts.finalized += 1;
-					operations.push("finalize initialization");
-				}),
-			);
-			return yield* Effect.fail(initializationFailure);
-		}),
-		methods: () => {
-			counts.factoryCalls += 1;
-			operations.push("create methods");
-			return { run: () => Effect.void };
-		},
-		requires: [],
-	});
-	const failedMethod = defineService({
-		id: "story/MethodFailure",
-		initialize: Effect.sync(() => ({ calls: 0 })),
-		methods: (state) => ({
-			run: Effect.fn("MethodFailure.run")(function* (fail: boolean) {
-				const prefix = yield* Prefix;
-				state.calls += 1;
-				if (fail) {
-					return yield* Effect.fail(methodFailure);
-				}
-				return `${prefix}${state.calls}`;
-			}),
-		}),
-		requires: [Prefix],
-	});
-	const defectiveMethod = defineService({
-		id: "story/MethodDefect",
-		initialize: Effect.void,
-		methods: () => ({ crash: () => Effect.die(defect) }),
-		requires: [],
-	});
-	const methodLayer = failedMethod.layer.pipe(Layer.provide(Layer.succeed(Prefix, "call ")));
-	return { counts, defect, defectiveMethod, failedInitialization, failedMethod, initializationFailure, methodFailure, methodLayer, operations };
+export function serviceLayer(engine: ServiceEngine, greeting: string) {
+	return Layer.merge(engine.counter.layer, engine.wrapper.layer).pipe(Layer.provide(Layer.succeed(Greeting, greeting)));
 }
 
-class Resource extends Context.Service<Resource, string>()("story/InterruptedResource") {}
+function built(engine: ServiceEngine) {
+	if (engine.built === undefined) {
+		return Effect.die(new Error("Declare serviceBuilt() before calling the service"));
+	}
+	return Effect.succeed(engine.built);
+}
 
-export function* lifetimeEngine() {
-	const acquired = yield* Deferred.make<void>();
-	const started = yield* Deferred.make<void>();
-	const counts = { finalized: 0, released: 0 };
-	const operations: string[] = [];
-	const initialization = { wait: false };
-	const scope = yield* Scope.fork(yield* Effect.scope);
-	const service = defineService({
-		id: "story/ServiceLifetime",
-		initialize: Effect.gen(function* () {
-			yield* Effect.addFinalizer(() =>
-				Effect.sync(() => {
-					counts.finalized += 1;
-					operations.push("finalize initialization");
-				}),
-			);
-			yield* Deferred.succeed(started, undefined);
-			if (initialization.wait) {
-				yield* Effect.never;
-			}
-		}),
-		methods: () => ({
-			read: () => Effect.map(Resource, (resource) => resource),
-			wait: Effect.fn("ServiceLifetime.wait")(function* () {
-				yield* Effect.acquireRelease(Resource, () =>
-					Effect.sync(() => {
-						counts.released += 1;
-						operations.push("release resource");
-					}),
-				);
-				yield* Deferred.succeed(acquired, undefined);
-				return yield* Effect.never;
-			}),
-		}),
-		requires: [Resource],
-	});
-	const layer = service.layer.pipe(Layer.provide(Layer.succeed(Resource, "resource")));
-	return { acquired, counts, initialization, layer, operations, scope, service, started };
+export function builtCounter(engine: ServiceEngine) {
+	return Effect.map(built(engine), (context) => Context.get(context, engine.counter));
+}
+
+export function builtWrapper(engine: ServiceEngine) {
+	return Effect.map(built(engine), (context) => Context.get(context, engine.wrapper));
+}
+
+export function buildOutcomeOf(exit: Exit.Exit<unknown, unknown> | undefined): unknown {
+	if (exit === undefined) {
+		return "not finished";
+	}
+	return Exit.isSuccess(exit) ? "built" : answerOf(exit);
+}
+
+export function answerOf(exit: Exit.Exit<unknown, unknown>): unknown {
+	if (Exit.isSuccess(exit)) {
+		return exit.value;
+	}
+	if (Cause.hasInterruptsOnly(exit.cause)) {
+		return "interrupted";
+	}
+	const failure = Cause.findErrorOption(exit.cause);
+	if (Option.isSome(failure)) {
+		return `failed with ${messageOf(failure.value)}`;
+	}
+	return `died with ${messageOf(Cause.squash(exit.cause))}`;
+}
+
+function messageOf(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }

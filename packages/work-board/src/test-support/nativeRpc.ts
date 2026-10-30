@@ -1,7 +1,8 @@
 import { NodeHttpClient } from "@effect/platform-node";
-import { Effect, Exit, Layer, Scope, Stream } from "effect";
+import { Effect, Exit, Layer, Option, Scope, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
+import * as Socket from "effect/socket/Socket";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { documents } from "#rpc/keys.ts";
@@ -47,17 +48,44 @@ export interface EventStream {
 
 export const subscribe = Effect.fn("Test.subscribe")(function* (board: Pick<RunningBoard, "url">) {
 	const scope = yield* Scope.fork(yield* Scope.Scope);
+	const socket = RpcClient.layerProtocolSocket().pipe(
+		Layer.provide(
+			Socket.layerWebSocket(`${board.url.replace(/^http/u, "ws")}/_board/rpc`).pipe(Layer.provide(Socket.layerWebSocketConstructorGlobal)),
+		),
+		Layer.provide(RpcSerialization.layerNdjson),
+	);
+	const context = yield* Layer.buildWithScope(socket, scope);
 	const pull = yield* Effect.gen(function* () {
 		const client = yield* makeClient();
-		return yield* Stream.toPull(client("work-board.subscribe", undefined));
-	}).pipe(Effect.provide(protocol(board)), Effect.provideService(Scope.Scope, scope));
+		const library = yield* client("work-board.library", { showFleet: true });
+		const readings = yield* Effect.forEach(library.files, (file) => Effect.option(client("work-board.document", { url: file.href })));
+		const identities = readings
+			.filter(Option.isSome)
+			.map((entry) => entry.value)
+			.flatMap((doc) =>
+				typeof doc.metadata.id === "string"
+					? [{ payload: { url: `/_board/item/${encodeURIComponent(doc.metadata.id)}/` }, query: "document" as const }]
+					: [],
+			);
+		return yield* Stream.toPull(
+			client("work-board.$changes", {
+				queries: [
+					...library.files.map((file) => ({ payload: { url: file.href }, query: "document" as const })),
+					...identities,
+					{ payload: { url: "/" }, query: "board" },
+					{ payload: undefined, query: "overview" },
+					{ payload: undefined, query: "watcher" },
+				],
+			}),
+		);
+	}).pipe(Effect.provideContext(context), Effect.provideService(Scope.Scope, scope));
 	const pending: LiveHint[] = [];
 	return {
 		close: () => Scope.close(scope, Exit.void),
 		next: () =>
 			Effect.gen(function* () {
 				while (pending.length === 0) {
-					pending.push(...(yield* pull).filter((item) => item._tag !== "Indexing"));
+					pending.push(...(yield* pull));
 				}
 				const hint = pending.shift();
 				if (hint === undefined) {
@@ -71,7 +99,10 @@ export const subscribe = Effect.fn("Test.subscribe")(function* (board: Pick<Runn
 export const changesUntil = Effect.fn("Test.changesUntil")(function* (events: EventStream, path: string) {
 	for (;;) {
 		const hint = yield* events.next();
-		if (hint._tag === "Resync" || hint.keys.some((key) => key._tag === "Item" && key.collection === documents.name && key.id === path)) {
+		if (
+			hint._tag === "Resync"
+			|| hint.keys.some((key) => (key._tag === "Item" && key.collection === documents.name && key.id === path) || key._tag === "Bucket")
+		) {
 			return hint;
 		}
 	}

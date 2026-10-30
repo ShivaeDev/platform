@@ -1,5 +1,6 @@
 import { HttpClientError } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { TestClock } from "effect/testing";
 import { expect } from "vitest";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
@@ -38,23 +39,22 @@ for (const { env, timeout } of timeouts) {
 			}),
 			timedExports,
 		],
-		function* ({ exportTrace, logs, waitForExport, waitForWarning, close }) {
-			const started = performance.now();
-			yield* exportTrace("stalled-export");
-			yield* waitForWarning(timeout + 500);
+		function* ({ exportTrace, exports, exportedSpans, logs, waitForExport, waitForExports, waitForWarning, close }) {
+			yield* waitForExports(1);
+			expect(exports()).toMatchObject([{ body: expect.stringContaining("Platform.hostTransport"), path: "/v1/traces" }]);
+			yield* TestClock.adjust(timeout - 1);
+			expect(logs().filter(({ level }) => level === "Warn")).toEqual([]);
+			yield* TestClock.adjust(1);
+			yield* waitForWarning(500);
 			expect(logs().filter(({ level }) => level === "Warn")).toMatchObject([
 				{ annotations: { "otlp.failure": "TransportError" }, message: ["OTLP trace export failed"] },
 			]);
-			expect(performance.now() - started).toBeGreaterThanOrEqual(timeout - 20);
-			expect(performance.now() - started).toBeLessThan(timeout + 500);
-			expect(logs().find(({ level }) => level === "Warn")?.annotations).toMatchObject({ "otlp.failure": "TransportError" });
 			yield* exportTrace("later-export");
 			yield* waitForExport("later-export");
-			const closing = performance.now();
+			expect(exportedSpans().map(({ name }) => name)).toContain("later-export");
 			yield* close();
-			expect(performance.now() - closing).toBeLessThan(timeout + 500);
 		},
-		15_000,
+		{ clock: "test" },
 	);
 }
 host.it(

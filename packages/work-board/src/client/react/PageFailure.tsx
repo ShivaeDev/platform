@@ -1,10 +1,12 @@
+import { Schema } from "effect";
 import { RpcClientError } from "effect/rpc/RpcClientError";
+import { SocketErrorReason } from "effect/socket/Socket";
 import { CircleAlert, Unplug } from "lucide-react";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "#client/react/components/ui/empty.tsx";
-import { EmptyState } from "./EmptyState.tsx";
-import { LinkButton } from "./LinkButton.tsx";
-import { pageFailureReason } from "./pageFailureReason.ts";
+import { EmptyState } from "#client/react/EmptyState.tsx";
+import { LinkButton } from "#client/react/LinkButton.tsx";
+import { pageFailureReason } from "#client/react/pageFailureReason.ts";
 
 export function PageFailure({ failure, onRetry, retrying }: { readonly failure: unknown; readonly onRetry: () => void; readonly retrying: boolean }) {
 	const unreachable = serverUnreachable(failure);
@@ -29,7 +31,10 @@ export function PageFailure({ failure, onRetry, retrying }: { readonly failure: 
 }
 
 function serverUnreachable(failure: unknown) {
-	return failure instanceof RpcClientError && failure.reason._tag === "HttpError" && failure.reason.kind === "TransportError";
+	return (
+		failure instanceof RpcClientError
+		&& (Schema.is(SocketErrorReason)(failure.reason) || (failure.reason._tag === "HttpError" && failure.reason.kind === "TransportError"))
+	);
 }
 
 export function ProjectionFailure({

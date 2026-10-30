@@ -11,8 +11,6 @@ minimumReleaseAgeExclude: [ "@shivaedev/*" ]
 publicHoistPattern: [ "@shivaedev/*" ]
 
 overrides:
-  # Recharts pins an unattested reselect release; use its attested compatible successor.
-  "recharts>reselect": "catalog:"
   "@effect/platform-node-shared": "catalog:"
 
 allowBuilds:
@@ -24,9 +22,7 @@ catalog:
   lucide-react: 1.61.0
   "cn": 0.5.0
   "@base-ui/react": 1.9.0
-  "recharts": 3.10.1
   "@tanstack/react-table": 9.3.1
-  reselect: 5.3.0
   railway: 3.16.0
   "@effect/atom-react": 4.0.6
   "@effect/platform-node": 4.0.6

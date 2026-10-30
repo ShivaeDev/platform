@@ -1,11 +1,11 @@
 import { Effect } from "effect";
-import { openPage } from "./browser.ts";
-import { followLink } from "./followLink.ts";
-import { formEvent } from "./formEvent.ts";
-import { waitFor } from "./live.ts";
-import { pageActions } from "./pageActions.ts";
-import { setNativeValue } from "./setNativeValue.ts";
-import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
+import { openPage } from "#test/browser.ts";
+import { followLink } from "#test/followLink.ts";
+import { formEvent } from "#test/formEvent.ts";
+import { waitFor } from "#test/live.ts";
+import { pageActions } from "#test/pageActions.ts";
+import { setNativeValue } from "#test/setNativeValue.ts";
+import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "#test/storyEngine.ts";
 
 export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	function page() {
@@ -65,6 +65,29 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			return opened;
 		}),
 		preview: () => formEvent(page(), () => click("response-preview")),
+		readsByMethod: Effect.fn("Story.readsByMethod")(function* () {
+			tell("the reader waits for the page to settle and counts its RPC requests by method");
+			const opened = page();
+			yield* Effect.promise(() =>
+				waitFor(() => {
+					if (opened.document.getElementById("live")?.getAttribute("data-state") !== "live") {
+						throw new Error("The page is not live yet");
+					}
+					const goals = opened.document.querySelector('section[aria-label="Active goals"]');
+					if (goals && (goals.childElementCount < 2 || goals.querySelector("[data-loading]"))) {
+						throw new Error("Active goals are still loading");
+					}
+				}),
+			);
+			return Object.fromEntries(
+				Map.groupBy(
+					opened.pageRequests.methods.filter((method) => !method.endsWith(".$changes")),
+					(method) => method,
+				)
+					.entries()
+					.map(([method, calls]) => [method, calls.length]),
+			);
+		}),
 		releaseRequest: (method: string) => {
 			tell(`the page sends its held ${method} requests`);
 			const hold = engine.heldRequests?.get(method);
@@ -73,27 +96,6 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			}
 			hold.release();
 		},
-		requestsByMethod: Effect.fn("Story.requestsByMethod")(function* () {
-			tell("the reader waits for the page to settle and counts its RPC requests by method");
-			const opened = page();
-			yield* Effect.promise(() =>
-				waitFor(() => {
-					if (opened.document.getElementById("live")?.getAttribute("data-state") !== "live") {
-						throw new Error("The page is not live yet");
-					}
-				}),
-			);
-			let seen = -1;
-			while (seen !== opened.pageRequests.methods.length) {
-				seen = opened.pageRequests.methods.length;
-				yield* Effect.sleep("150 millis");
-			}
-			return Object.fromEntries(
-				Map.groupBy(opened.pageRequests.methods, (method) => method)
-					.entries()
-					.map(([method, calls]) => [method, calls.length]),
-			);
-		}),
 		responseStatus: () => page().document.getElementById("response-status")?.textContent,
 		savedResponses: () => savedResponseItems(engine),
 		submit: (form = "response-form") =>

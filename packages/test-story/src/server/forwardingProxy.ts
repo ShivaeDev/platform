@@ -31,7 +31,12 @@ export const forwardingProxy = Effect.fnUntraced(function* (upstream: string, op
 			method: incoming.method,
 		};
 	}
+	let offline = false;
 	const forward: RequestListener = (incoming, response) => {
+		if (offline) {
+			incoming.destroy();
+			return;
+		}
 		const outgoing = request(`${upstream}${incoming.url}`, requestOptions(incoming), (result) => {
 			response.writeHead(result.statusCode ?? HttpStatus.fromLiteral("BadGateway"), result.headers);
 			result.pipe(response);
@@ -48,31 +53,38 @@ export const forwardingProxy = Effect.fnUntraced(function* (upstream: string, op
 	};
 	const sockets = new Set<Duplex>();
 	function server() {
-		return createServer(forward).on("upgrade", (incoming, downstream, head) => {
-			sockets.add(downstream);
-			downstream.on("close", () => sockets.delete(downstream));
-			const outgoing = request(`${upstream}${incoming.url}`, requestOptions(incoming));
-			outgoing.on("upgrade", (result, upstreamSocket, upstreamHead) => {
-				downstream.write(`HTTP/1.1 ${result.statusCode} ${result.statusMessage}\r\n`);
-				for (let index = 0; index < result.rawHeaders.length; index += 2) {
-					downstream.write(`${result.rawHeaders[index]}: ${result.rawHeaders[index + 1]}\r\n`);
+		return createServer(forward)
+			.on("connection", (socket) => {
+				sockets.add(socket);
+				socket.on("close", () => sockets.delete(socket));
+			})
+			.on("upgrade", (incoming, downstream, head) => {
+				if (offline) {
+					downstream.destroy();
+					return;
 				}
-				downstream.write("\r\n");
-				downstream.write(upstreamHead);
-				upstreamSocket.write(head);
-				downstream.pipe(upstreamSocket).pipe(downstream);
-				downstream.on("close", () => upstreamSocket.destroy());
-				upstreamSocket.on("error", () => downstream.destroy());
+				const outgoing = request(`${upstream}${incoming.url}`, requestOptions(incoming));
+				outgoing.on("upgrade", (result, upstreamSocket, upstreamHead) => {
+					downstream.write(`HTTP/1.1 ${result.statusCode} ${result.statusMessage}\r\n`);
+					for (let index = 0; index < result.rawHeaders.length; index += 2) {
+						downstream.write(`${result.rawHeaders[index]}: ${result.rawHeaders[index + 1]}\r\n`);
+					}
+					downstream.write("\r\n");
+					downstream.write(upstreamHead);
+					upstreamSocket.write(head);
+					downstream.pipe(upstreamSocket).pipe(downstream);
+					downstream.on("close", () => upstreamSocket.destroy());
+					upstreamSocket.on("error", () => downstream.destroy());
+				});
+				outgoing.on("response", (result) => {
+					downstream.end(`HTTP/1.1 ${result.statusCode} ${result.statusMessage}\r\nConnection: close\r\n\r\n`);
+					result.resume();
+				});
+				outgoing.on("error", () => downstream.destroy());
+				downstream.on("error", () => outgoing.destroy());
+				downstream.on("close", () => outgoing.destroy());
+				outgoing.end();
 			});
-			outgoing.on("response", (result) => {
-				downstream.end(`HTTP/1.1 ${result.statusCode} ${result.statusMessage}\r\nConnection: close\r\n\r\n`);
-				result.resume();
-			});
-			outgoing.on("error", () => downstream.destroy());
-			downstream.on("error", () => outgoing.destroy());
-			downstream.on("close", () => outgoing.destroy());
-			outgoing.end();
-		});
 	}
 	const url = yield* loopbackServer(server());
 	yield* loopbackServer(server(), { host: "::1", port: Number(new URL(url).port) });
@@ -83,5 +95,16 @@ export const forwardingProxy = Effect.fnUntraced(function* (upstream: string, op
 			}
 		}),
 	);
-	return { url };
+	return {
+		disconnect: () => {
+			offline = true;
+			for (const socket of sockets) {
+				socket.destroy();
+			}
+		},
+		resume: () => {
+			offline = false;
+		},
+		url,
+	};
 });

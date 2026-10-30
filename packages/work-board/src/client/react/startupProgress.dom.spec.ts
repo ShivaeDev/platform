@@ -17,7 +17,7 @@ describe("startup", () => {
 		[project, readsOneByOne(), readerArrivesEarly("/")],
 		function* ({ liveStatus, reader, releaseRead, releaseReads }) {
 			yield* eventually(() => expect(reader.indexingProgress()).toBe("Reading 0 of 3 files…"));
-			expect(liveStatus()).toBe("Connecting…");
+			expect(liveStatus()).toBe("Updating…");
 			expect(reader.inboxCounts()).toEqual(["", ""]);
 			yield* releaseRead();
 			yield* eventually(() => expect(reader.indexingProgress()).toBe("Reading 1 of 3 files…"));

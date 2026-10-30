@@ -1,48 +1,31 @@
 import { expect } from "@effect/vitest";
-import { declaresRequirement, declaresScopedService, serviceStory } from "#test/serviceStory.ts";
-
-serviceStory.it("provides the declared requirement to initialization and methods", [declaresRequirement()], function* ({ build, sameIdentity }) {
-	yield* build();
-	expect(yield* sameIdentity()).toBe(true);
-});
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { serviceBuilt, serviceStory } from "#test/serviceStory.ts";
 
 serviceStory.it(
-	"initializes private state and constructs methods once per layer",
-	[declaresScopedService()],
-	function* ({ build, close, identity, story }) {
-		yield* build();
-		const first = yield* identity();
-		const second = yield* identity();
-		expect(first).toBe(second);
-		expect(story.engine.counts.initializations).toBe(1);
-		expect(story.engine.counts.factoryCalls).toBe(1);
-		expect(story.engine.counts.finalizations).toBe(0);
-
-		yield* close();
-		expect(story.engine.counts.finalizations).toBe(1);
+	"a method greets with the greeting the Layer was built with, even when its caller provides another",
+	[serviceBuilt({ greeting: "hello from the Layer" })],
+	function* ({ greet }) {
+		expect(yield* greet({ callerProvides: "hello from the caller" })).toBe("hello from the Layer");
 	},
 );
 
 serviceStory.it(
-	"keeps declared dependencies bound when the caller provides another value",
-	[declaresRequirement("declared")],
-	function* ({ build, greet }) {
-		yield* build();
-		expect(yield* greet({ callerPrefix: "caller" })).toBe("declared");
-	},
-);
+	"two calls count on the private state of the Layer's one initializer run, without running the initializer or building the methods again",
+	[serviceBuilt()],
+	function* ({ call, answers, initializerRuns, methodBuilds }) {
+		yield* outcomes({
+			"initializer runs": [initializerRuns(), 1],
+			"method builds": [methodBuilds(), 1],
+		});
 
-serviceStory.it(
-	"releases method resources with the caller scope while the service remains live",
-	[declaresScopedService()],
-	function* ({ build, open, released, story }) {
-		yield* build();
-		expect(yield* open()).toBe("resource");
-		expect(yield* released()).toBe(1);
-		expect(story.engine.counts.finalizations).toBe(0);
+		yield* call("count");
+		yield* call("count");
 
-		expect(yield* open()).toBe("resource");
-		expect(yield* released()).toBe(2);
-		expect(story.engine.counts.finalizations).toBe(0);
+		yield* outcomes({
+			"initializer runs": [initializerRuns(), 1],
+			"method builds": [methodBuilds(), 1],
+			"what the calls returned": [answers(), [1, 2]],
+		});
 	},
 );

@@ -1,7 +1,6 @@
 import { Window } from "happy-dom";
-import { decodedBody } from "./decodedBody.ts";
-import { rpcCall } from "./rpc.ts";
-import type { ScreenEngine } from "./screenEngine.ts";
+import { decodedBody } from "#test/decodedBody.ts";
+import type { ScreenEngine } from "#test/screenEngine.ts";
 
 interface Session {
 	readonly engine: ScreenEngine;
@@ -19,44 +18,18 @@ export function transportWindow(url: string) {
 }
 
 // Effect's fetch reference retains the first function it reads; keep its identity stable across sessions.
-export async function sessionFetch(...args: Parameters<Window["fetch"]>) {
+export function sessionFetch(...args: Parameters<Window["fetch"]>) {
 	const input = args[0];
 	const url = requestUrl(input);
 	const origin = new URL(url).origin;
 	const current = sessions.get(origin) ?? sessions.values().next().value;
 	if (!current) {
-		throw new Error(`No active story session for ${origin}`);
+		return Promise.reject(new Error(`No active story session for ${origin}`));
 	}
 	const { engine, transports } = current;
 	const transport = transportFor(transports, origin);
 	if (engine.serverStopped) {
-		throw new TypeError("Failed to fetch");
-	}
-	const boundary = engine.sessionTransport;
-	if (boundary) {
-		const call = await rpcCall(transport, ...args);
-		if (call?.tag === boundary.tag) {
-			boundary.commands.push(call);
-			await boundary.gate;
-			if (boundary.offline) {
-				throw new Error("Connection lost while saving");
-			}
-			if (boundary.incompatible) {
-				const response = await transport.fetch(...args);
-				const body = (await response.text())
-					.split("\n")
-					.filter(Boolean)
-					.map((line) => {
-						const message = JSON.parse(line);
-						if (message._tag === "Exit" && message.exit?._tag === "Success") {
-							message.exit.value = { outdated: true };
-						}
-						return JSON.stringify(message);
-					})
-					.join("\n");
-				return new transport.Response(`${body}\n`, { headers: response.headers, status: response.status });
-			}
-		}
+		return Promise.reject(new TypeError("Failed to fetch"));
 	}
 	return transport.fetch(...args);
 }

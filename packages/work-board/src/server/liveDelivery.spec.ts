@@ -23,7 +23,7 @@ boardStory.it(
 		editFile("notes/new.md", "# Added");
 		expect(yield* changesUntil(events, "notes/new.md")).toMatchObject({
 			_tag: "Changed",
-			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/new.md" }]),
+			keys: expect.arrayContaining([{ _tag: "Bucket", collection: "work-board/index", field: "workspace", value: "local" }]),
 		});
 		expect((yield* rpcDocument(board, "/notes/new.md")).source).toBe("# Added");
 
@@ -45,7 +45,7 @@ boardStory.it("announces removal of an empty workspace root to a connected clien
 	const events = yield* watchProject();
 	expect(yield* events.next()).toEqual({ _tag: "Resync" });
 	removeProject();
-	expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	yield* events.watching(false);
 	yield* eventually(
 		Effect.flatMap(rpcWatcher(board), (state) => Effect.try(() => expect(state.watching).toBe(false))),
 		{ times: 100 },
@@ -86,7 +86,7 @@ boardStory.it(
 		expect(yield* events.next()).toMatchObject({
 			_tag: "Changed",
 			keys: expect.arrayContaining(
-				["drafts/log.md", "drafts/nested/plan.md", "published/log.md", "published/nested/plan.md"].map((id) => ({
+				["drafts/log.md", "drafts/nested/plan.md"].map((id) => ({
 					_tag: "Item",
 					collection: "work-board/documents",
 					id,

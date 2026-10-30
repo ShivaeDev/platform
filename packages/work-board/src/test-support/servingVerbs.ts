@@ -1,20 +1,20 @@
 import { chmodSync, existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, Fiber } from "effect";
-import { rawExchange, rawGet, rawPost, startBoard } from "./board.ts";
-import { boardCommand } from "./boardCommand.ts";
-import { bundleBoard } from "./bundleBoard.ts";
-import { embeddedBoard } from "./embeddedBoard.ts";
-import { entryModules } from "./entryModules.ts";
-import { waitFor } from "./live.ts";
-import { mcpClient } from "./mcpClient.ts";
-import { rpcCall } from "./nativeRpc.ts";
-import { renderRemaining } from "./renderRemaining.tsx";
-import { attachServer, type ServingOptions, startProject } from "./servingEngine.ts";
-import { shutdownConnection } from "./shutdownConnection.ts";
-import { socketRpc, staleSocket } from "./socketRpc.ts";
-import { abandonedSocketStartup, socketStartup } from "./socketStartup.ts";
-import { type BoardEngine, served } from "./storyEngine.ts";
+import { rawExchange, rawGet, rawPost, startBoard } from "#test/board.ts";
+import { boardCommand } from "#test/boardCommand.ts";
+import { bundleBoard } from "#test/bundleBoard.ts";
+import { embeddedBoard } from "#test/embeddedBoard.ts";
+import { entryModules } from "#test/entryModules.ts";
+import { waitFor } from "#test/live.ts";
+import { mcpClient } from "#test/mcpClient.ts";
+import { rpcCall } from "#test/nativeRpc.ts";
+import { renderRemaining } from "#test/renderRemaining.tsx";
+import { attachServer, type ServingOptions, startProject } from "#test/servingEngine.ts";
+import { shutdownConnection } from "#test/shutdownConnection.ts";
+import { socketRpc, staleSocket } from "#test/socketRpc.ts";
+import { abandonedSocketStartup, socketStartup } from "#test/socketStartup.ts";
+import { type BoardEngine, served } from "#test/storyEngine.ts";
 
 export function servingVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	return {
@@ -52,9 +52,9 @@ export function servingVerbs(engine: BoardEngine, tell: (line: string) => void) 
 			tell("a stopped process leaves an unanswered Unix socket");
 			return Effect.promise(() => staleSocket(join(engine.notes.root, "board.sock")));
 		},
-		openShutdownConnection: (subscribe: boolean, tcp: boolean) => {
-			tell(`a ${tcp ? "TCP" : "socket"} client leaves ${subscribe ? "a subscription" : "an unfinished request"} open`);
-			return shutdownConnection(tcp ? served(engine).board.url : join(engine.notes.root, "board.sock"), subscribe);
+		openShutdownConnection: (tcp: boolean) => {
+			tell(`a ${tcp ? "TCP" : "socket"} client leaves an unfinished request open`);
+			return shutdownConnection(tcp ? served(engine).board.url : join(engine.notes.root, "board.sock"));
 		},
 		permissions: (path: string, mode: number) => {
 			tell(`an outside editor changes permissions on ${path}`);

@@ -76,6 +76,7 @@ updates.it("keeps a minimal app free of notes when a later starter adds example 
 	const result = yield* app.update();
 	expect(result.status, result.stderr).toBe(0);
 	expect(app.git("ls-files", "src/modules/notes").stdout).toBe("");
+	expect(JSON.parse(app.read("package.json")).dependencies).not.toHaveProperty("@tanstack/react-table");
 	expect(app.read("src/server/modules.ts")).not.toContain("notesRegistration");
 	expect(app.read("foundation.txt")).toBe("new foundation\n");
 	expect(JSON.parse(app.read(".create-app.json"))).toEqual({ minimal: true, name: "my-app", version: "0.2.0" });

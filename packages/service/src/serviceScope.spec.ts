@@ -1,31 +1,34 @@
 import { expect } from "@effect/vitest";
-import { Cause, Exit } from "effect";
-import { serviceLifetimeStory } from "#test/serviceStory.ts";
+import { callOpensResource, ownerHoldsService, serviceBuilt, serviceStory } from "#test/serviceStory.ts";
 
-serviceLifetimeStory.it(
-	"runs initialization finalizers once when the Layer scope is explicitly closed",
-	[],
-	function* ({ build, close, read, story }) {
-		const service = yield* build();
-		expect(yield* read(service)).toBe("resource");
-		expect(story.engine.counts.finalized).toBe(0);
-		yield* close();
-		expect(story.engine.operations).toEqual(["finalize initialization"]);
-		yield* close();
-		expect(story.engine.operations).toEqual(["finalize initialization"]);
+serviceStory.it(
+	"closing the caller's scope releases the resource its call opened there and not the initializer's",
+	[serviceBuilt(), callOpensResource()],
+	function* ({ closeCallerScope, released }) {
+		expect(yield* released()).toEqual([]);
+
+		yield* closeCallerScope();
+
+		expect(yield* released()).toEqual(["the call's resource"]);
 	},
 );
 
-serviceLifetimeStory.it(
-	"runs initialization finalizers once when the live Layer's owner is interrupted",
-	[],
-	function* ({ interrupt, startOwner, story }) {
-		const fiber = yield* startOwner();
-		expect(story.engine.counts.finalized).toBe(0);
-		const exit = yield* interrupt(fiber);
-		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
-		expect(story.engine.operations).toEqual(["finalize initialization"]);
-		yield* interrupt(fiber);
-		expect(story.engine.operations).toEqual(["finalize initialization"]);
+serviceStory.it("closing the Layer's scope releases the initializer's resource", [serviceBuilt()], function* ({ closeLayer, released }) {
+	expect(yield* released()).toEqual([]);
+
+	yield* closeLayer();
+
+	expect(yield* released()).toEqual(["the initializer's resource"]);
+});
+
+serviceStory.it(
+	"interrupting the owner that provides the Layer releases the initializer's resource",
+	[ownerHoldsService()],
+	function* ({ interruptOwner, released }) {
+		expect(yield* released()).toEqual([]);
+
+		yield* interruptOwner();
+
+		expect(yield* released()).toEqual(["the initializer's resource"]);
 	},
 );
