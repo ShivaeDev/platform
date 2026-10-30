@@ -8,7 +8,7 @@ const project = repositoryHas(
 	{ content: '{"include":["src"]}', path: "tsconfig.json" },
 	{ content: "export const app = 1;", path: "src/server/app.test.ts" },
 	{ content: MIGRATION, path: "src/server/migrations/0001_accounts.ts" },
-	{ content: MIGRATION, path: "src/modules/food/server/migrations/0002_food.ts" },
+	{ content: MIGRATION, path: "src/modules/billing/server/migrations/0002_invoices.ts" },
 	{ content: MIGRATION, path: "src/server/migrations/helpers.ts" },
 );
 
