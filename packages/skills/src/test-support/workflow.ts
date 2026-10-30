@@ -1,83 +1,68 @@
-import { spawnSync } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Effect, FileSystem, Path } from "effect";
+import { Effect, FileSystem, Path, Schema } from "effect";
+import { parse } from "yaml";
+import { CLI, exec } from "./cli.ts";
 import { writeFile } from "./fixture.ts";
 
 const TEMPLATE = fileURLToPath(new URL("../../templates/sync-skills.yml", import.meta.url));
-const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
-export const BRANCH = "change-selection";
+const BRANCH = "change-selection";
+const JOB = "sync-skills";
 
-export interface WorkflowStep {
-	readonly fields: Readonly<Record<string, string>>;
-	readonly run: string | undefined;
-}
-export interface ProcessRun {
-	readonly status: number | null;
-	readonly stderr: string;
-	readonly stdout: string;
-}
-
-export const workflowTemplate = Effect.fn("SkillsWorkflow.workflowTemplate")(function* () {
-	return yield* (yield* FileSystem.FileSystem).readFileString(TEMPLATE);
+const WorkflowStep = Schema.Struct({
+	"continue-on-error": Schema.optional(Schema.Boolean),
+	id: Schema.optional(Schema.String),
+	if: Schema.optional(Schema.String),
+	name: Schema.String,
+	run: Schema.optional(Schema.String),
 });
 
-function indentOf(line: string) {
-	return line.length - line.trimStart().length;
-}
+const Workflow = Schema.Struct({
+	jobs: Schema.Record(Schema.String, Schema.Struct({ if: Schema.optional(Schema.String), steps: Schema.Array(WorkflowStep) })),
+	on: Schema.Record(Schema.String, Schema.Unknown),
+	permissions: Schema.Record(Schema.String, Schema.String),
+});
 
-function fieldLines(lines: readonly string[], name: string) {
-	const start = lines.findIndex((line) => line.trim() === `- name: ${name}`);
-	if (start === -1) {
-		throw new Error(`The workflow template has no step named ${name}`);
-	}
-	const indent = indentOf(lines[start] ?? "") + 2;
-	const end = lines.findIndex((line, index) => index > start && line.trim() !== "" && indentOf(line) < indent);
-	return { indent, lines: lines.slice(start + 1, end === -1 ? lines.length : end) };
-}
+const template = Effect.fn("SkillsWorkflow.template")(function* () {
+	const text = yield* (yield* FileSystem.FileSystem).readFileString(TEMPLATE);
+	return yield* Schema.decodeUnknownEffect(Workflow)(parse(text));
+});
 
-function blockAt(lines: readonly string[], index: number, indent: number) {
-	const block: string[] = [];
-	for (const line of lines.slice(index + 1)) {
-		if (line.trim() !== "" && indentOf(line) <= indent) {
-			break;
-		}
-		block.push(line.slice(indent + 2));
-	}
-	return `${block.join("\n").trimEnd()}\n`;
-}
+const job = Effect.flatMap(template(), ({ jobs }) => {
+	const found = jobs[JOB];
+	return found === undefined ? Effect.die(new Error(`The workflow template has no job named ${JOB}`)) : Effect.succeed(found);
+});
 
-export function workflowStep(template: string, name: string): WorkflowStep {
-	const step = fieldLines(template.split("\n"), name);
-	const fields: Record<string, string> = {};
-	let run: string | undefined;
-	step.lines.forEach((line, index) => {
-		if (line.trim() === "" || indentOf(line) !== step.indent) {
-			return;
-		}
-		const [key = "", ...rest] = line.trim().split(": ");
-		const value = rest.join(": ");
-		if (key === "run") {
-			run = value === "|" ? blockAt(step.lines, index, step.indent) : value;
-		} else {
-			fields[key] = value;
-		}
+function step(name: string) {
+	return Effect.flatMap(job, ({ steps }) => {
+		const found = steps.find((candidate) => candidate.name === name);
+		return found === undefined ? Effect.die(new Error(`The workflow template has no step named ${name}`)) : Effect.succeed(found);
 	});
-	return { fields, run };
-}
-
-function exec(command: string, args: readonly string[], cwd: string): ProcessRun {
-	const { status, stderr, stdout } = spawnSync(command, args, { cwd, encoding: "utf8" });
-	return { status, stderr, stdout };
 }
 
 function git(cwd: string, ...args: readonly string[]): string {
 	const result = exec("git", ["-c", "user.name=Contributor", "-c", "user.email=contributor@example.com", ...args], cwd);
-	if (result.status !== 0) {
+	if (result.exit !== 0) {
 		throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
 	}
 	return result.stdout;
 }
+
+export function runStep(repo: string, name: string) {
+	return Effect.flatMap(step(name), ({ run }) =>
+		run === undefined
+			? Effect.die(new Error(`The workflow step ${name} has no run script`))
+			: Effect.succeed(exec("bash", ["--noprofile", "--norc", "-eo", "pipefail", "-c", run], repo)),
+	);
+}
+
+export const workflow = {
+	jobCondition: () => Effect.map(job, (found) => found.if),
+	permissions: () => Effect.map(template(), ({ permissions }) => permissions),
+	stepField: (name: string, key: Exclude<keyof typeof WorkflowStep.Type, "name">) => Effect.map(step(name), (found) => found[key]),
+	stepNames: () => Effect.map(job, ({ steps }) => steps.map((found) => found.name)),
+	triggers: () => Effect.map(template(), ({ on }) => Object.keys(on)),
+};
 
 export const checkOutPullRequest = Effect.fn("SkillsWorkflow.checkOutPullRequest")(function* (repo: string) {
 	const fs = yield* FileSystem.FileSystem;
@@ -95,20 +80,9 @@ export const checkOutPullRequest = Effect.fn("SkillsWorkflow.checkOutPullRequest
 	return remote;
 });
 
-export function runStep(repo: string, step: WorkflowStep): ProcessRun {
-	if (step.run === undefined) {
-		throw new Error("The workflow step has no run script");
-	}
-	return exec("bash", ["--noprofile", "--norc", "-eo", "pipefail", "-c", step.run], repo);
-}
-
 export function pushedCommit(remote: string) {
 	return {
 		files: git(remote, "ls-tree", "-r", "--name-only", BRANCH).trim().split("\n"),
 		subject: git(remote, "log", "-1", "--format=%s", BRANCH).trim(),
 	};
-}
-
-export function workingTreeChanges(repo: string): string {
-	return git(repo, "status", "--porcelain");
 }

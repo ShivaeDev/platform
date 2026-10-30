@@ -1,20 +1,48 @@
 import { expect } from "@effect/vitest";
-import { RUN_SYNC, skills } from "#test/skills.ts";
-import { shippedSkills } from "#test/traits.ts";
+import { skills } from "#test/skills.ts";
+import { selectsShipped, synced } from "#test/traits.ts";
 
-skills.it("check asks for sync until sync copies the shipped skills", [shippedSkills], function* ({ cli, repository }) {
-	const before = yield* cli.check();
+const SHIPPED = ["pr-description", "story-testing", "visual-pages"] as const;
 
-	expect(before.status).toBe(1);
-	expect(before.stderr).toContain("shivaedev-skills: The shared skills are out of sync:\n- .agents/skills/.shivaedev-skills.json is missing.\n");
-	expect(before.stderr).toContain(RUN_SYNC);
-	expect(yield* cli.sync()).toMatchObject({
-		status: 0,
-		stdout: `Synced pr-description, story-testing, visual-pages from @shivaedev/skills ${repository.version()}.\n`,
-	});
-	expect(yield* repository.read(".claude/skills/pr-description/SKILL.md")).toContain("name: pr-description");
-	expect(yield* repository.read(".agents/skills/story-testing/SKILL.md")).toContain("# Story testing");
-	expect(yield* repository.read(".claude/skills/story-testing/SKILL.md")).toBe(yield* repository.read(".agents/skills/story-testing/SKILL.md"));
-	expect(yield* repository.read(".claude/skills/visual-pages/SKILL.md")).toContain("name: visual-pages");
-	expect(yield* cli.check()).toMatchObject({ status: 0, stdout: `The shared skills match @shivaedev/skills ${repository.version()}.\n` });
-});
+skills.it(
+	"before the first sync, the check command exits 1 and prints the missing manifest and the sync to run",
+	[selectsShipped(...SHIPPED)],
+	function* ({ cli }) {
+		expect(yield* cli.check()).toEqual({
+			exit: 1,
+			stderr:
+				"shivaedev-skills: The shared skills are out of sync:\n- .agents/skills/.shivaedev-skills.json is missing.\nRun `shivaedev-skills sync` and commit the result.\n",
+			stdout: "",
+		});
+	},
+);
+
+skills.it(
+	"the sync command exits 0 and prints the shipped skills it synced and the package version",
+	[selectsShipped(...SHIPPED)],
+	function* ({ cli, installedVersion }) {
+		expect(yield* cli.sync()).toEqual({
+			exit: 0,
+			stderr: "",
+			stdout: `Synced pr-description, story-testing, visual-pages from @shivaedev/skills ${installedVersion()}.\n`,
+		});
+	},
+);
+
+skills.it(
+	"the sync command syncs the shipped skills into both agent directories of the repository it runs in",
+	[selectsShipped(...SHIPPED)],
+	function* ({ cli, skillFolders }) {
+		yield* cli.sync();
+
+		expect(yield* skillFolders()).toEqual({ ".agents/skills": SHIPPED, ".claude/skills": SHIPPED });
+	},
+);
+
+skills.it(
+	"after a sync, the check command exits 0 and prints the matching package version",
+	[selectsShipped(...SHIPPED), synced],
+	function* ({ cli, installedVersion }) {
+		expect(yield* cli.check()).toEqual({ exit: 0, stderr: "", stdout: `The shared skills match @shivaedev/skills ${installedVersion()}.\n` });
+	},
+);
