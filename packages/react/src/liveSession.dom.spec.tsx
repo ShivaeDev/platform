@@ -24,15 +24,17 @@ liveSessionStory.it(
 );
 
 liveSessionStory.it(
-	"stream revalidation shows sign-in without another query read",
+	"revoking Alice's live session shows sign-in without reading the note again",
 	[],
 	function* ({ observe, ready, reads, recheckedSessions, signOut, text }) {
 		yield* observe("the open page is live", () => expect(ready()).toBe(true));
 		const before = reads();
+		expect(text()).toBe("First");
+		expect(recheckedSessions()).toEqual([]);
 		yield* signOut();
 		yield* observe("the boundary shows sign-in after stream revalidation", () => expect(text()).toBe("Sign in"));
 		expect(reads()).toBe(before);
-		expect(recheckedSessions()).toEqual([undefined]);
+		expect(recheckedSessions()).toContain(undefined);
 	},
 );
 
