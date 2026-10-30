@@ -53,8 +53,7 @@
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
-		"@shivaedev/react": "workspace:*",
-		"@shivaedev/sql": "workspace:*"
+		"@shivaedev/react": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
