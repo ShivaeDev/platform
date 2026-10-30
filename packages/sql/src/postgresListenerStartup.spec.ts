@@ -1,21 +1,31 @@
 import { expect } from "vitest";
-import { listenerStartupStory } from "#test/listenerStartupStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { changeFeed } from "#test/changeFeed.ts";
 
-listenerStartupStory.it(
-	"a PostgreSQL LISTEN refusal fails Layer startup with its SQL error and logs the cause",
+changeFeed.it(
+	"a LISTEN that PostgreSQL refuses fails the change feed's startup with its SQL error and logs the cause",
 	[],
-	function* ({ refuseListen, startupLogs }) {
-		const outcome = yield* refuseListen();
+	function* ({ endings, listenerLog, startFeedListeningOn }) {
+		yield* startFeedListeningOn("");
 
-		expect(outcome).toMatchObject({ failure: "SQL failure", reason: "SqlSyntaxError" });
-		expect(startupLogs()).toMatchObject([{ cause: expect.stringContaining("zero-length delimited identifier"), level: "Error" }]);
+		yield* outcomes({
+			"feed endings": [endings(), ["failed with a SQL syntax error (SQLSTATE 42601)"]],
+			"listener log": [
+				listenerLog(),
+				[expect.stringMatching(/^Error: PostgreSQL change listener startup failed after .*zero-length delimited identifier/u)],
+			],
+		});
 	},
 );
 
 for (const phase of ["acquisition", "heartbeat"] as const) {
-	listenerStartupStory.it(`a stalled first LISTEN ${phase} fails Layer startup within the heartbeat deadline`, [], function* ({ stallStartup }) {
-		const outcome = yield* stallStartup(phase);
+	changeFeed.it(
+		`a first LISTEN that stalls in its ${phase} fails the change feed's startup at the heartbeat timeout`,
+		[],
+		function* ({ startFeedWhoseListenStalls }) {
+			const ending = yield* startFeedWhoseListenStalls(phase);
 
-		expect(outcome).toMatchObject({ failure: "SQL failure", reason: "ConnectionError" });
-	});
+			expect(ending).toBe("failed with a connection failure");
+		},
+	);
 }

@@ -1500,9 +1500,6 @@ importers:
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../service
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql

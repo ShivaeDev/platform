@@ -1,107 +1,125 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
-import { AnnouncedRow } from "#test/AnnouncedRow.ts";
-import { postgres } from "#test/sqlStory.ts";
-import { hasNotificationRows, listeningForChanges } from "#test/sqlTraits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { changeFeed, feedListens, hasTable } from "#test/changeFeed.ts";
 
-postgres.it(
-	"repository writes announce their table and each row once after the outer commit",
-	[listeningForChanges(), hasNotificationRows()],
-	function* ({ makeRepository, notificationTable, notifications, transact }) {
-		const tableName = notificationTable();
-		const { state } = notifications();
-		const rows = yield* makeRepository(AnnouncedRow, { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Rows", tableName });
-		yield* Effect.gen(function* () {
-			yield* rows.insertMany(Array.from({ length: 30 }, (_, id) => ({ id, parent: null })));
-			yield* rows.update({ id: 1, parent: 0 });
-			yield* rows.upsert({ id: 2, parent: 1 }, { updateColumns: ["parent"] });
-			yield* rows.delete(3);
-			expect(state.payloads).toEqual([]);
-		}).pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(
-			Effect.try(() =>
-				expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([
-					[tableName, ...Array.from({ length: 30 }, (_, id) => `${tableName}:${id}`)],
-				]),
-			),
-		);
+const THIRTY = Array.from({ length: 30 }, (_, id) => id);
+const ROW_KEYS = ["rows", ...THIRTY.map((id) => `rows:${id}`)];
+
+changeFeed.it(
+	"repository writes in one transaction publish their table and each row key once, only after the commit",
+	[feedListens(), hasTable("rows")],
+	function* ({ deleteRow, inTransaction, insertRows, published, updateRowParent, upsertRowParent }) {
+		yield* inTransaction(function* () {
+			yield* insertRows(THIRTY);
+			yield* updateRowParent(1, 0);
+			yield* upsertRowParent(2, 1);
+			yield* deleteRow(3);
+			expect(yield* published()).toEqual([]);
+		});
+
+		expect(yield* published()).toEqual([ROW_KEYS]);
 	},
 );
 
-postgres.it(
-	"a standalone Many write commits one deduplicated notification and ignored rows stay silent",
-	[listeningForChanges(), hasNotificationRows()],
-	function* ({ makeRepository, notificationTable, notifications, transact }) {
-		const tableName = notificationTable();
-		const { state } = notifications();
-		const rows = yield* makeRepository(AnnouncedRow, { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Rows", tableName });
-		const inputs = Array.from({ length: 30 }, (_, id) => ({ id, parent: null }));
-		yield* rows.insertMany(inputs).pipe((body) => Effect.provideContext(body, notifications().binding));
-		const announcedKeys = [tableName, ...inputs.map(({ id }) => `${tableName}:${id}`)];
-		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([announcedKeys])));
-		yield* rows.insertManyOrIgnore(inputs).pipe(transact({ onSqlError: (error) => error }));
-		yield* rows
-			.upsertMany(
-				inputs.map((row) => ({ ...row, parent: 0 })),
-				{ updateColumns: ["parent"] },
-			)
-			.pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([announcedKeys, announcedKeys])));
+changeFeed.it(
+	"an insertMany outside a transaction commits on its own and publishes one payload of its table and row keys",
+	[feedListens(), hasTable("rows")],
+	function* ({ insertRows, published }) {
+		yield* insertRows(THIRTY);
+
+		expect(yield* published()).toEqual([ROW_KEYS]);
 	},
 );
 
-postgres.it(
-	"rolled-back repository writes publish nothing, including a failed savepoint",
-	[listeningForChanges(), hasNotificationRows()],
-	function* ({ makeRepository, notificationTable, notifications, transact, sql }) {
-		const tableName = notificationTable();
-		const { state } = notifications();
-		const rows = yield* makeRepository(AnnouncedRow, { idColumn: "id", spanPrefix: "Rows", tableName });
-		const rejected = yield* rows
-			.insert({ id: 1, parent: null })
-			.pipe(Effect.andThen(Effect.fail("rollback")), transact({ onSqlError: (error) => error }), Effect.result);
-		expect(rejected).toMatchObject({ _tag: "Failure", failure: "rollback" });
-		yield* Effect.gen(function* () {
-			yield* rows.insert({ id: 2, parent: null });
-			yield* rows
-				.insert({ id: 3, parent: null })
-				.pipe(Effect.andThen(Effect.fail("savepoint")), transact({ onSqlError: (error) => error }), Effect.ignore);
-		}).pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:2`]])));
-		expect(yield* sql`select id from ${sql(tableName)}`).toEqual([{ id: 2 }]);
+changeFeed.it(
+	"an insertManyOrIgnore whose rows all exist publishes nothing",
+	[feedListens(), hasTable("rows")],
+	function* ({ insertRows, insertRowsOrIgnore, published }) {
+		yield* insertRows(THIRTY);
+		expect(yield* published()).toEqual([ROW_KEYS]);
+
+		yield* insertRowsOrIgnore(THIRTY);
+
+		expect(yield* published()).toEqual([ROW_KEYS]);
 	},
 );
 
-postgres.it(
-	"the coverage verb rejects unannounced raw SQL and accepts repository writes",
-	[hasNotificationRows()],
-	function* ({ withChangeCoverage, makeRepository, notificationTable, sql }) {
-		const tableName = notificationTable();
-		const rows = yield* makeRepository(AnnouncedRow, { idColumn: "id", spanPrefix: "Rows", tableName });
-		yield* withChangeCoverage(rows.insert({ id: 1, parent: null }));
-		const failure = yield* withChangeCoverage(sql`insert into ${sql(tableName)} (id) values (2)`).pipe(Effect.flip);
-		expect(failure).toMatchObject({ _tag: "UnannouncedWrites", tables: [tableName] });
-		expect(yield* rows.findMany()).toEqual([{ id: 1, parent: null }]);
+changeFeed.it(
+	"a rejected transaction rolls back its repository write and publishes nothing",
+	[feedListens(), hasTable("rows")],
+	function* ({ endings, inTransaction, insertRow, published, rejects, storedRows }) {
+		yield* inTransaction(function* () {
+			yield* insertRow(1);
+			yield* rejects();
+		});
+
+		yield* outcomes({
+			"published payloads": [published(), []],
+			"stored rows": [storedRows(), []],
+			"transaction endings": [endings(), ["failed with rejected"]],
+		});
 	},
 );
 
-postgres.it(
-	"void writes publish row keys, and missing deletes stay silent",
-	[listeningForChanges(), hasNotificationRows()],
-	function* ({ makeRepository, notificationTable, notifications, transact }) {
-		const tableName = notificationTable();
-		const rows = yield* makeRepository(AnnouncedRow, { idColumn: "id", spanPrefix: "Rows", tableName });
-		yield* rows.insertVoid({ id: 41, parent: null }).pipe(transact({ onSqlError: (error) => error }));
-		yield* rows.updateVoid({ id: 41, parent: 41 }).pipe(transact({ onSqlError: (error) => error }));
-		yield* rows.delete(41).pipe(transact({ onSqlError: (error) => error }));
-		yield* rows.delete(41).pipe(transact({ onSqlError: (error) => error }));
-		yield* eventually(
-			Effect.try(() =>
-				expect(notifications().state.payloads.map((payload) => JSON.parse(payload))).toEqual(
-					Array.from({ length: 3 }, () => [tableName, `${tableName}:41`]),
-				),
-			),
-		);
+changeFeed.it(
+	"a rejected nested transaction drops its row key while the outer transaction publishes its own",
+	[feedListens(), hasTable("rows")],
+	function* ({ endings, inTransaction, insertRow, published, rejects, storedRows }) {
+		yield* inTransaction(function* () {
+			yield* insertRow(2);
+			yield* inTransaction(function* () {
+				yield* insertRow(3);
+				yield* rejects();
+			});
+		});
+
+		yield* outcomes({
+			"published payloads": [published(), [["rows", "rows:2"]]],
+			"stored rows": [storedRows(), [2]],
+			"transaction endings": [endings(), ["failed with rejected", "committed"]],
+		});
 	},
 );
+
+changeFeed.it("the change coverage check passes a repository insert", [hasTable("rows")], function* ({ checkChangeCoverage, insertRow }) {
+	const ending = yield* checkChangeCoverage(function* () {
+		yield* insertRow(1);
+	});
+
+	expect(ending).toBe("succeeded");
+});
+
+changeFeed.it(
+	"the change coverage check fails a raw SQL insert that announces nothing and rolls it back",
+	[hasTable("rows")],
+	function* ({ checkChangeCoverage, insertRowWithRawSql, storedRows }) {
+		const ending = yield* checkChangeCoverage(function* () {
+			yield* insertRowWithRawSql(2);
+		});
+
+		expect(ending).toMatch(/^failed with unannounced writes/u);
+		expect(yield* storedRows()).toEqual([]);
+	},
+);
+
+changeFeed.it(
+	"a void insert, a void update and a delete each publish their row key",
+	[feedListens(), hasTable("rows")],
+	function* ({ deleteRow, insertRowVoid, published, updateRowParentVoid }) {
+		yield* insertRowVoid(41);
+		yield* updateRowParentVoid(41, 41);
+		yield* deleteRow(41);
+
+		expect(yield* published()).toEqual([
+			["rows", "rows:41"],
+			["rows", "rows:41"],
+			["rows", "rows:41"],
+		]);
+	},
+);
+
+changeFeed.it("deleting a missing row publishes nothing", [feedListens(), hasTable("rows")], function* ({ deleteRow, published }) {
+	yield* deleteRow(41);
+
+	expect(yield* published()).toEqual([]);
+});
