@@ -826,11 +826,11 @@ Without a runtime it uses a native empty atom runtime. Stories supply a runtime 
 
 #### Render tests in happy-dom
 
-Use `@shivaedev/react/client/testing.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
+Use `@shivaedev/test-story/client/react.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
 
 ```sh
 pnpm add @shivaedev/changes @shivaedev/contract
-pnpm add -D @shivaedev/test @effect/vitest vitest happy-dom react-dom @types/react-dom
+pnpm add -D @shivaedev/test-story @effect/platform-node @effect/vitest vitest happy-dom react-dom @types/react-dom
 ```
 
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
@@ -846,7 +846,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
-import { eventually, expectNoReactWarnings, render } from "@shivaedev/react/client/testing.ts";
+import { eventually, expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { it } from "@shivaedev/test/it.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
@@ -927,7 +927,7 @@ screenStories.it("shows the route failure", [], async () => {
 });
 ```
 
-Story kits can acquire `captureReactWarnings` from `client/testing.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
+Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
 
 ### API
 

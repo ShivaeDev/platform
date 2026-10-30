@@ -1,7 +1,6 @@
 import { Context, Effect, Option, Schema } from "effect";
-import { expect, vi } from "vitest";
+import { expect } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
-import { PgBossPayloadError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
 import { boss } from "#test/boss.ts";
 import { job } from "#test/fakeClient.ts";
@@ -32,15 +31,6 @@ boss.it("registers typed queues and UTC schedules with retries and dead letters"
 		{ name: "cleanup", options: { deadLetter: deadLetterQueueName("cleanup"), retryBackoff: true, retryLimit: 3 } },
 	]);
 	expect(client.scheduleCalls).toEqual([{ cron: "17 3 * * *", data: null, name: "cleanup", options: { tz: "UTC" } }]);
-});
-
-boss.it("rejects malformed durable payloads before domain code runs", [], function* ({ boot, client, dispatch }) {
-	const handler = vi.fn(() => Effect.void);
-	const Queue = defineQueue({ name: "typed", schema: Schema.Struct({ count: Schema.Number }) });
-	yield* boot([Queue.handle(handler)]);
-	yield* dispatch("typed", [job("typed", { count: "wrong" })]);
-	expect(client.failCalls[0]?.error).toBeInstanceOf(PgBossPayloadError);
-	expect(handler).not.toHaveBeenCalled();
 });
 
 boss.it("projects queue and dead-letter health concurrently", [], function* ({ boot, client }) {

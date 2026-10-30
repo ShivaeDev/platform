@@ -13,14 +13,14 @@ const Entry = Schema.Struct({
 
 const LegacyFile = Schema.Record(Schema.String, Schema.Record(Schema.String, Entry));
 
-const standard = Schema.toStandardSchemaV1(Schema.fromJsonString(LegacyFile), { parseOptions: { errors: "all", onExcessProperty: "error" } });
+const LegacySchema = Schema.fromJsonString(LegacyFile);
 
 export interface LegacyEntry extends BaselineEntry {
 	readonly measure?: number | undefined;
 }
 
 export async function decodeLegacyBaseline(raw: string): Promise<Decoded<readonly LegacyEntry[]>> {
-	const decoded = await decodeWith(standard, raw);
+	const decoded = await decodeWith(LegacySchema, raw);
 	if (decoded._tag === "Invalid") {
 		return decoded;
 	}

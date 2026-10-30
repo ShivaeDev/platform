@@ -11,13 +11,12 @@ export default [
 			anything.except(
 				files("packages/changes/src/keys.ts"),
 				browserCode,
-				files("packages/test/src/eventually.ts", "packages/test/src/withLive.ts"),
 				packages("access", "contract", "errors", "form", "types"),
-				modules("effect", "@effect/atom-react", "@tanstack/react-router", "react", "react-dom", "vitest"),
+				modules("effect", "@effect/atom-react", "@tanstack/react-router", "react"),
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/react/src/client/resultState.ts", external("@effect/sql-pg")],
+			illegal: ["packages/react/src/client/resultState.ts", external("vitest")],
 			legal: ["packages/react/src/client/resultState.ts", external("effect")],
 		}),
 ];

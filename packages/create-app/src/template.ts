@@ -103,7 +103,7 @@ export function prepareFile(path: string, content: Buffer, versions: Readonly<Re
 		return Buffer.from(prepareManifest(content.toString(), versions));
 	}
 	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"].includes(path)) {
-		return Buffer.from(content.toString().replaceAll('"source", ', "").replaceAll('["source"]', "[]"));
+		return Buffer.from(content.toString().replaceAll('["source"]', "[]"));
 	}
 	return content;
 }

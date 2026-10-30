@@ -1,9 +1,9 @@
 import { Buffer } from "node:buffer";
 import { dirname, join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
-import { appFile } from "./appFiles.ts";
-import { CreateAppError } from "./CreateAppError.ts";
-import { Template } from "./template.ts";
+import { appFile } from "#appFiles.ts";
+import { CreateAppError } from "#CreateAppError.ts";
+import { Template } from "#template.ts";
 
 export const Generation = Schema.Struct({ minimal: Schema.optional(Schema.Boolean), name: Schema.String, version: Schema.String });
 export type Generation = typeof Generation.Type;
@@ -30,6 +30,5 @@ export const renderTemplate = Effect.fn("CreateApp.renderTemplate")(function* (t
 		});
 		yield* fs.makeDirectory(dirname(path), { recursive: true });
 		yield* fs.writeFile(path, content, { mode: 0o644 });
-		yield* fs.chmod(path, 0o644);
 	}
 });

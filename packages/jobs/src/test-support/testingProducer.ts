@@ -10,7 +10,7 @@ type TestingState = ReturnType<typeof testingEngine> extends Generator<unknown, 
 type JobPageOptions = Parameters<PgBossService["failedJobs"]>[1];
 type State = ReturnType<typeof clientEngine> & { testingState: TestingState };
 
-class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number; readonly message: string }> {}
+class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number; readonly message: string; readonly cause: Error }> {}
 
 export function* testingProducer(state: State) {
 	const testing = state.testingState;
@@ -51,7 +51,11 @@ export function* testingWorker(state: State) {
 		if (testing.paused) {
 			return Deferred.succeed(testing.entered, undefined).pipe(Effect.andThen(Deferred.await(testing.release)));
 		}
-		return testing.recovered ? Effect.void : Effect.fail(new WorkerRejected({ id, message: "The worker fails this attempt" }));
+		return testing.recovered
+			? Effect.void
+			: Effect.fail(
+					new WorkerRejected({ cause: new Error("token=cause-secret"), id, message: "The worker fails this attempt: password=job-secret" }),
+				);
 	});
 	const runtime = yield* pgBossRuntime(state, () => undefined).boot([worker, testing.followUps], {
 		clientCacheKey: testing.clientCacheKey,

@@ -10,6 +10,18 @@ export function serviceTypes(checker: ts.TypeChecker) {
 		const property = type.getProperty(name);
 		return property === undefined ? undefined : checker.getTypeOfSymbol(property);
 	}
+	function options(type: ts.Type): boolean {
+		if (type.getCallSignatures().length > 0) {
+			return false;
+		}
+		return type
+			.getProperties()
+			.every(
+				(property) =>
+					(property.flags & ts.SymbolFlags.Optional) !== 0
+					&& checker.getNonNullableType(checker.getTypeOfSymbol(property)).getCallSignatures().length === 0,
+			);
+	}
 	function remember(type: ts.Type): void {
 		if (type.getProperty(SERVICE) === undefined) {
 			return;
@@ -20,6 +32,7 @@ export function serviceTypes(checker: ts.TypeChecker) {
 			&& shape.flags & ts.TypeFlags.Object
 			&& (shape.getProperties().length > 0 || shape.getCallSignatures().length > 0)
 			&& checker.getIndexInfosOfType(shape).length === 0
+			&& !options(shape)
 			&& (shape.getCallSignatures().length === 0 || type.getProperty("~effect/Context/Reference") === undefined)
 		) {
 			shapes.add(shape);

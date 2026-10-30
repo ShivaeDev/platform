@@ -97,7 +97,9 @@ Set `paused` through the registry. The stream keeps consuming hints while automa
 
 `@shivaedev/react/resumeSignal.ts` delegates to the shared implementation.
 
-An ended or failed stream enters `reconnecting` and retries after one second by default. `retryDelay` lets the consumer choose a positive native Duration for its deployment. Typed stream failures remain in `status.failure`; first successful delivery clears them. The runtime's initialization failure remains in the `connection` atom's native AsyncResult. Read failures remain in each query's AsyncResult, which retains its previous success. Connection state and query freshness are separate: `needsResync: false` means invalidation was issued, not that every query completed or the source is accepted.
+An ended or failed stream enters `reconnecting` and retries with a random delay between 80% and 120% of one second by default. `retryDelay` sets the base delay using a positive native Duration; each retry draws fresh jitter. The default shared WebSocket transport also jitters its exponential reconnect backoff, starting at a 500 ms base, growing by 1.5 and capping the base at 5 seconds. Its actual delays range from 80% to 120% of that base. After a host restart, each new subscription reconciles its mounted query through the normal authorized read. Jitter spreads recovery work but does not impose a server-wide request rate limit. Custom transports own their connection retry policy.
+
+Typed stream failures remain in `status.failure`; first successful delivery clears them. The runtime's initialization failure remains in the `connection` atom's native AsyncResult. Read failures remain in each query's AsyncResult, which retains its previous success. Connection state and query freshness are separate: `needsResync: false` means invalidation was issued, not that every query completed or the source is accepted.
 
 ## Limits
 

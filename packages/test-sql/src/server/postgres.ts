@@ -20,7 +20,7 @@ interface PostgresTestCommonOptions<E, TFixtures> extends SqlNameTransforms {
 
 export type PostgresTestOptions<E = never, R = never, TFixtures = never> = PostgresTestCommonOptions<E, TFixtures> &
 	(
-		| { readonly migrations: PostgresMigrationOptions<R>; readonly initialize?: never }
+		| { readonly migrations: PostgresMigrationOptions<R, E>; readonly initialize?: never }
 		| {
 				readonly initialize: Effect.Effect<unknown, E, R | PostgresTestServices | Scope.Scope> | PostgresTestLoader<E, R>;
 				readonly migrations?: never;

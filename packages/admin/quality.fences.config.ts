@@ -12,7 +12,7 @@ export default [
 		.from(browser)
 		.mayNotReach(
 			anything.except(
-				files("packages/changes/src/keys.ts"),
+				files("packages/changes/src/keys.ts", "packages/jobs/src/JobFailure.ts"),
 				browser,
 				packages("access"),
 				packages("contract", "errors", "types"),
@@ -22,14 +22,14 @@ export default [
 		)
 		.demonstratedBy({
 			illegal: ["packages/admin/src/page.ts", external("node:fs")],
-			legal: ["packages/admin/src/page.ts", external("effect")],
+			legal: ["packages/admin/src/jobs/schemas.ts", "packages/jobs/src/JobFailure.ts"],
 		}),
 	fence("admin-views-stay-browser-safe")
 		.because("React views reach browser declarations and client hooks; authentication storage stays on the server.")
 		.from(client)
 		.mayNotReach(
 			anything.except(
-				files("packages/changes/src/keys.ts"),
+				files("packages/changes/src/keys.ts", "packages/jobs/src/JobFailure.ts"),
 				client,
 				browser,
 				packages("access"),

@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { type ActionState, type QueryState, useAction, useQuery } from "#client/resultState.ts";
-import type { Rendered } from "#client/testing.ts";
 import { UnstableSession } from "./UnstableSession.tsx";
 
 interface Held<A, E> {

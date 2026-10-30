@@ -1,6 +1,6 @@
 import { Effect, Fiber } from "effect";
 import { describe, expect } from "vitest";
-import { eventually } from "@shivaedev/react/client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { boardStory, heldRequest, projectFiles, readerArrivesEarly } from "#test/boardStory.ts";
 import { linkedProject } from "#test/linkedProject.ts";
 import { heldWorkspaceListing, readsOneByOne, slowRepositoryLookup } from "#test/readTraits.ts";

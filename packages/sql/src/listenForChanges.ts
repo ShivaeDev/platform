@@ -1,4 +1,4 @@
-import { Clock, Deferred, type Duration, Effect, Queue, Scope } from "effect";
+import { Clock, Deferred, type Duration, Effect, Queue, Random, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { ConnectionError, SqlError } from "effect/sql/SqlError";
 import { decodeKeys, resyncPayload } from "./notifyPayload.ts";
@@ -29,7 +29,7 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 		Effect.gen(function* () {
 			const scope = yield* listenerScope(timeout);
 			const notifications = yield* client.listen(channel).pipe(Scope.provide(scope), deadline);
-			const token = JSON.stringify({ heartbeat: crypto.randomUUID() });
+			const token = JSON.stringify({ heartbeat: `${yield* Random.nextInt}:${yield* Random.nextInt}` });
 			let ack = yield* Deferred.make<void>();
 			function receive(payload: string) {
 				if (payload === token) {

@@ -22,10 +22,12 @@ export default {
 export function pageFetch({
 	chunkRequests,
 	mermaidRequests,
+	onMermaidRequest,
 	theme,
 }: {
 	readonly chunkRequests: string[];
 	readonly mermaidRequests: string[];
+	readonly onMermaidRequest: () => void;
 	readonly theme: RawResponse;
 }): IFetchInterceptor {
 	return {
@@ -39,6 +41,7 @@ export function pageFetch({
 				return Promise.resolve(undefined);
 			}
 			mermaidRequests.push(request.url);
+			onMermaidRequest();
 			return Promise.resolve(new window.Response(MERMAID_STUB, { headers: { "content-type": "text/javascript" } }));
 		},
 		beforeSyncRequest: ({ request, window }) =>

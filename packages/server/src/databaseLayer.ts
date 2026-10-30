@@ -3,6 +3,7 @@ import { createConnection } from "node:net";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Duration, Effect, Fiber, Layer, Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { Migrator } from "effect/sql";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { assertPostgresMigrations, postgresMigrationError } from "@shivaedev/sql/assertPostgresMigrations.ts";
 import type { SqlNameTransforms } from "@shivaedev/sql/clientOptions.ts";
@@ -21,7 +22,7 @@ export interface DatabaseConfig extends SqlNameTransforms {
 	readonly maxConnections?: number;
 }
 
-export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService: typeof AppChanges) {
+export function databaseLayer<R, E>(options: AppDatabaseOptions<R, E>, changesService: typeof AppChanges) {
 	const pool = Layer.unwrap(
 		Effect.gen(function* () {
 			const url = options.config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
@@ -74,7 +75,7 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 	).pipe(Layer.provideMerge(base));
 }
 
-function prepareMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
+function prepareMigrations<R, E>(migrations: AppDatabaseOptions<R, E>["migrations"]) {
 	switch (migrations.mode) {
 		case "check": {
 			const schema = { ...migrations };
@@ -88,7 +89,7 @@ function prepareMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
 	}
 }
 
-function waitForMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
+function waitForMigrations<R, E>(migrations: AppDatabaseOptions<R, E>["migrations"]) {
 	return Effect.gen(function* () {
 		const progressInterval = Duration.fromInputUnsafe(migrations.progressInterval ?? "30 seconds");
 		let pending: PendingPostgresMigrations = { components: [], migrations: [] };
@@ -113,10 +114,10 @@ function waitForMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
 		}).pipe(
 			Effect.retry({
 				schedule: Schedule.max([Schedule.spaced(migrations.pollInterval ?? "1 second"), Schedule.during(migrations.waitTimeout ?? "5 minutes")]),
-				while: (error) => error._tag === "MigrationError" && error.kind === "BadState",
+				while: (error) => error instanceof Migrator.MigrationError && error.kind === "BadState",
 			}),
 			Effect.tapError((error) =>
-				error._tag === "MigrationError" && error.kind === "BadState" ? log("Timed out waiting for database migrations") : Effect.void,
+				error instanceof Migrator.MigrationError && error.kind === "BadState" ? log("Timed out waiting for database migrations") : Effect.void,
 			),
 		);
 		if (progress !== undefined) {

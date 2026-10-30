@@ -3,7 +3,7 @@ import { it } from "vitest";
 import { releaseHoldReason } from "./holdReason.ts";
 
 const pull = { headRefOid: "current-head", mergeQueueEntry: null, state: "OPEN" };
-const currentRun = { "head_sha": pull.headRefOid };
+const currentRun = { headSha: pull.headRefOid };
 
 for (const [name, status, conclusion, expected] of [
 	["waiting for approval", "completed", "action_required", undefined],
@@ -37,7 +37,7 @@ it("releases a closed PR even if its CI succeeded or it was queued", () => {
 });
 
 it("does not hold for CI on a previous head or for a missing run or PR", () => {
-	assert.equal(releaseHoldReason(pull, { ...currentRun, conclusion: "success", "head_sha": "previous-head", status: "completed" }), undefined);
+	assert.equal(releaseHoldReason(pull, { ...currentRun, conclusion: "success", headSha: "previous-head", status: "completed" }), undefined);
 	assert.equal(releaseHoldReason(pull), undefined);
 	assert.equal(releaseHoldReason(undefined), undefined);
 });
