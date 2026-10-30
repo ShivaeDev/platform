@@ -4,6 +4,7 @@ import { archiveDocuments, refreshArchived } from "#server/archive/documents.ts"
 import type { Changes } from "#server/files/changes.ts";
 import { invalidationsSince } from "#server/files/invalidations.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
+import { markdownPaths } from "#server/files/markdownPath.ts";
 import type { MetadataDocument, metadataModel } from "#server/metadata/model.ts";
 import { updateModel } from "#server/metadata/updateModel.ts";
 import type { Entry } from "./entries.ts";
@@ -73,10 +74,10 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 	let records = new Map<string, IndexedDocument>();
 	let listed = new Map<string, MarkdownFile>();
 	const enrich = updateEntries();
-	function find(file: MarkdownFile, dirty: ReadonlySet<string> | undefined) {
+	function find(file: MarkdownFile, dirty: ReadonlySet<string> | undefined, resolve: (file: string) => Effect.Effect<string | undefined>) {
 		const previous = records.get(file.path);
 		return shouldRead(file, previous, listed, dirty)
-			? Effect.map(Effect.option(readDocument(root, changes.realRoot, file.path, home, file.modified, previous)), Option.getOrUndefined)
+			? Effect.map(Effect.option(readDocument(root, changes.realRoot, file.path, home, file.modified, previous, resolve)), Option.getOrUndefined)
 			: Effect.succeed(previous);
 	}
 	function report(progress: Indexing | undefined) {
@@ -101,7 +102,8 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 		const unavailable: string[] = [];
 		yield* progress({ _tag: "Indexing", read: 0, total: files.length });
 		const counted = fileCounter(files.length, progress);
-		const indexed = yield* Effect.forEach(files, (file) => Effect.tap(find(file, dirty), counted), { concurrency: READ_CONCURRENCY });
+		const resolve = yield* markdownPaths(changes.realRoot);
+		const indexed = yield* Effect.forEach(files, (file) => Effect.tap(find(file, dirty, resolve), counted), { concurrency: READ_CONCURRENCY });
 		for (const [position, file] of files.entries()) {
 			const found = indexed[position];
 			if (found) {

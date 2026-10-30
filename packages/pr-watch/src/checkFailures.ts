@@ -46,7 +46,9 @@ const query = `query RequiredChecks($owner: String!, $name: String!, $sha: Strin
 }`;
 const failures = new Set(["failure", "timed_out", "cancelled", "action_required", "startup_failure", "stale"]);
 function decode<TSchema extends Schema.Top>(schema: TSchema, body: unknown) {
-	return Schema.decodeUnknownEffect(schema)(body).pipe(Effect.mapError(() => new WatchError({ message: "Invalid GitHub checks response" })));
+	return Schema.decodeUnknownEffect(schema)(body).pipe(
+		Effect.mapError((cause) => new WatchError({ message: "Invalid GitHub checks response", reason: "response" }, { cause })),
+	);
 }
 export const checkFailures = Effect.fn("GitHub.checkFailures")(function* (options: Options, number: number, sha: string) {
 	const http = yield* GitHubHttp;
@@ -73,7 +75,10 @@ export const checkFailures = Effect.fn("GitHub.checkFailures")(function* (option
 		const response: unknown = yield* http.graphql(options.apiUrl, query, { after, name, number, owner, sha });
 		const { errors } = yield* decode(Errors, response);
 		if (errors !== undefined && errors.length > 0) {
-			return yield* new WatchError({ message: `GitHub required checks: ${errors.map((error) => error.message).join("; ")}` });
+			return yield* new WatchError(
+				{ message: `GitHub required checks: ${errors.map((error) => error.message).join("; ")}`, reason: "response" },
+				{ cause: errors },
+			);
 		}
 		const body = yield* decode(Required, response);
 		const { nodes, pageInfo } = body.data.repository.object.statusCheckRollup.contexts;

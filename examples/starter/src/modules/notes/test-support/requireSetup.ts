@@ -1,5 +1,7 @@
-export function requireSetup(condition: boolean, message: string): void {
-	if (!condition) {
-		throw new Error(message);
-	}
+import { Data, Effect } from "effect";
+
+class SetupFailure extends Data.TaggedError("SetupFailure")<{ readonly message: string }> {}
+
+export function requireSetup(condition: boolean, message: string) {
+	return condition ? Effect.void : Effect.fail(new SetupFailure({ message }));
 }

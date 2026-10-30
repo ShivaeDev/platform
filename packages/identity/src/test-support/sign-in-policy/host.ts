@@ -3,17 +3,20 @@ import { NodeHttpServer } from "@effect/platform-node";
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { type Cause, ConfigProvider, Effect, Layer, type Redacted, Schema } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/http";
+import { FetchHttpClient, Headers, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { Identity } from "#identity.ts";
-import { Authenticated } from "#middleware.ts";
-import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
+import { Authenticated, RequestTracing } from "#middleware.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
 import { authenticatedLayer } from "#server/session.ts";
+import { requestTracingLayer } from "#server/tracing.ts";
+import { recorder } from "#test/rpc/harness.ts";
 
-const Api = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String })).middleware(Authenticated);
+const Api = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String }))
+	.middleware(Authenticated)
+	.middleware(RequestTracing);
 const handlers = Api.toLayer({ Whoami: () => Effect.map(Identity, ({ id }) => id) });
 
 export const policyHost = Effect.fnUntraced(function* (
@@ -38,14 +41,17 @@ export const policyHost = Effect.fnUntraced(function* (
 	const mounted = yield* betterAuthMount(options, { signIn }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
 	const sessions = {
 		origin: () => true,
-		provider: betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers }))),
+		provider: mounted.sessions.provider,
 	};
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, authenticatedLayer(sessions), RpcSerialization.layerJson]),
+		Layer.provide([handlers, authenticatedLayer(sessions), requestTracingLayer(), RpcSerialization.layerJson]),
 	);
+	const recorded = recorder();
 	const context = yield* Layer.build(
 		HttpRouter.serve(Layer.merge(mounted.routes, rpc), { disableLogger: true }).pipe(
 			Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),
+			Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))),
+			Layer.provide(recorded.layer),
 		),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
@@ -60,12 +66,16 @@ export const policyHost = Effect.fnUntraced(function* (
 		}).pipe(
 			Effect.provide(
 				RpcClient.layerProtocolHttp({
-					transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie, origin: baseUrl })),
+					transformClient: (client) =>
+						HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie, origin: baseUrl, "x-request-id": "policy-request" })),
 					url: `${baseUrl}/rpc`,
 				}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
 			),
 			Effect.scoped,
 		);
+	}
+	function resolveSession(cookie: string) {
+		return sessions.provider.get(Headers.fromInput({ cookie, host: new URL(baseUrl).host }));
 	}
 	async function storedUsers() {
 		const { internalAdapter } = await mounted.auth.$context;
@@ -107,7 +117,18 @@ export const policyHost = Effect.fnUntraced(function* (
 		});
 		return users.map(({ email }) => email).sort();
 	}
-	return { baseUrl, revokeUnadmitted: mounted.revokeUnadmitted, seedGitHubUsers, sessionDevices, sessionHolders, storedUsers, whoami };
+	return {
+		baseUrl,
+		logs: recorded.logs,
+		resolveSession,
+		revokeUnadmitted: mounted.revokeUnadmitted.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
+		seedGitHubUsers,
+		sessionDevices,
+		sessionHolders,
+		spans: recorded.spans,
+		storedUsers,
+		whoami,
+	};
 });
 
 export type PolicyHost = Effect.Success<ReturnType<typeof policyHost>>;

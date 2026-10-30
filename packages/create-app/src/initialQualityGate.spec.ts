@@ -1,64 +1,75 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
-import { enclosingRepository, failingQualityGate, installedPackageManager, realSetup } from "#test/traits.ts";
+import { enclosingRepository, failingQualityGate, generated, installedPackageManager, realSetup } from "#test/traits.ts";
 
-const CLI_TIMEOUT = 60_000;
+const GATE_TIMEOUT = 60_000;
+const STAGED_FOR_THE_GATE = expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]);
 
-for (const minimal of [false, true]) {
+for (const flags of [[], ["--minimal"]] as const) {
+	const app = ["my-app", ...flags].join(" ");
 	application.it(
-		`installs the active Quality gate before the initial commit${minimal ? " in a minimal app" : ""}`,
+		`create-app ${app} installs Quality's hook before anything is staged, and the initial commit passes through it with the generated files staged`,
 		[realSetup, installedPackageManager],
-		function* ({ cli, read, git }) {
-			const result = yield* cli(["my-app", ...(minimal ? ["--minimal"] : [])]);
-			expect(result.status, result.stdout + result.stderr).toBe(0);
-			expect(read(".git/hooks/pre-commit")).toContain("Installed by @shivaedev/quality");
-			const setup = JSON.parse(read(".git/setup-order.json"));
-			expect(setup.head).not.toBe(0);
-			expect(setup.staged).toBe("");
-			const gate = JSON.parse(read(".git/initial-gate.json"));
-			expect(gate.staged.split("\n")).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]));
-			expect(git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
+		function* ({ commits, createApp, preCommitHook, qualityGateSaw, setupSaw }) {
+			yield* createApp("my-app", ...flags);
+
+			yield* outcomes({
+				commits: [commits(), ["Create App <create-app@localhost>: Initialize a generated app"]],
+				"pre-commit hook": [preCommitHook(), "Quality's hook"],
+				"setup saw": [setupSaw(), { commit: "no commit", staged: [] }],
+				"the gate saw staged": [qualityGateSaw(), STAGED_FOR_THE_GATE],
+			});
 		},
-		CLI_TIMEOUT,
+		GATE_TIMEOUT,
 	);
 }
 
 application.it(
-	"runs setup again with an existing installation and keeps the Quality gate active",
-	[realSetup, installedPackageManager],
-	function* ({ cli, pnpm, read }) {
-		const generated = yield* cli(["my-app"]);
-		expect(generated.status, generated.stdout + generated.stderr).toBe(0);
-		const setup = pnpm("run", "setup");
-		expect(setup.status, setup.stdout + setup.stderr).toBe(0);
-		expect(read(".git/hooks/pre-commit")).toContain("Installed by @shivaedev/quality");
+	"pnpm run setup, the retry create-app suggests, succeeds again on an installed app and keeps Quality's hook",
+	[realSetup, installedPackageManager, generated("my-app")],
+	function* ({ pnpm, preCommitHook, scriptResult }) {
+		expect(yield* preCommitHook()).toBe("Quality's hook");
+
+		yield* pnpm("run", "setup");
+
+		yield* outcomes({
+			"pnpm run setup": [scriptResult(), "passed"],
+			"pre-commit hook": [preCommitHook(), "Quality's hook"],
+		});
 	},
-	CLI_TIMEOUT,
+	GATE_TIMEOUT,
 );
 
 application.it(
-	"blocks the initial commit when the installed Quality gate fails",
+	"a failing Quality gate stops the initial commit, and create-app names the failed commit and where the files remain",
 	[failingQualityGate, installedPackageManager],
-	function* ({ cli, exists, git }) {
-		const result = yield* cli(["my-app"]);
-		const exitCode = result.status;
-		expect(exitCode, result.stdout + result.stderr).toBe(1);
-		expect(exists(".git/hooks/pre-commit")).toBe(true);
-		expect(exists(".git/initial-gate.json")).toBe(true);
-		expect(result.stderr).toContain("commit -m Initialize a generated app failed");
-		expect(git("rev-parse", "--verify", "HEAD").status).not.toBe(0);
+	function* ({ answer, commits, createApp, qualityGateSaw }) {
+		yield* createApp("my-app");
+
+		yield* outcomes({
+			answer: [
+				answer(),
+				"create-app: git -c user.name=Create App -c user.email=create-app@localhost commit -m Initialize a generated app failed (exit 1). The generated files remain in <workspace>/my-app.",
+			],
+			commits: [commits(), []],
+			"the gate saw staged": [qualityGateSaw(), STAGED_FOR_THE_GATE],
+		});
 	},
-	CLI_TIMEOUT,
+	GATE_TIMEOUT,
 );
 
 application.it(
-	"runs setup without a hook when a repository encloses the app",
+	"inside an enclosing repository, create-app still installs my-app but installs no hook into that repository",
 	[realSetup, installedPackageManager, enclosingRepository],
-	function* ({ cli, exists, workspaceExists }) {
-		const result = yield* cli(["my-app"]);
-		expect(result.status, result.stdout + result.stderr).toBe(0);
-		expect(exists("node_modules")).toBe(true);
-		expect(exists(".git")).toBe(false);
-		expect(workspaceExists(".git/hooks/pre-commit")).toBe(false);
+	function* ({ answer, createApp, enclosingHook, exists }) {
+		yield* createApp("my-app");
+
+		yield* outcomes({
+			answer: [answer(), "created"],
+			"enclosing pre-commit hook": [enclosingHook(), "no hook"],
+			"node_modules": [exists("node_modules"), true],
+		});
 	},
+	GATE_TIMEOUT,
 );

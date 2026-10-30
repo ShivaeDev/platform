@@ -78,6 +78,7 @@ export const indexStory = storyKit({
 				renameSync(join(engine.notes.root, from), join(engine.notes.root, to));
 			}
 		},
+		pathChecks: () => indexed(engine).index.checks(),
 		readIndex: () => {
 			story.tell("the reader requests the current board index");
 			return indexed(engine).read;

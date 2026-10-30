@@ -133,7 +133,7 @@ const mounted = yield* betterAuthMount(
 );
 const sessions = {
   origin: trustedOrigins({ allow: [publicOrigin, ...nativeOrigins], missing: "allow" }),
-  provider: betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers }))),
+  provider: mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers })),
 };
 const host = appHost({ group, handlers, routes: mounted.routes, sessions, nativeOrigins });
 ```
@@ -158,7 +158,6 @@ Give the mount a sign-in policy as its second argument, and resolve RPC sessions
 import { Config, Effect } from "effect";
 import { allowedAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 
 const authentication = Effect.gen(function* () {
@@ -170,7 +169,7 @@ const authentication = Effect.gen(function* () {
 	yield* mounted.revokeUnadmitted;
 	const sessions = {
 		origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
-		provider: betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers }))),
+		provider: mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers })),
 	};
 	return { ...mounted, sessions };
 });
@@ -186,7 +185,7 @@ A removal takes effect on the user's next request through `admittedSessions`: th
 
 `revokeUnadmitted` checks every stored user against the current policy, deletes the sessions of each user it no longer admits and succeeds with `{ users, sessions }`, the number of users and sessions it revoked. Run it at startup, as above, or from an administrative command. It fails with the rule's error or with a `ConfigError`.
 
-Without `signIn`, the mount installs no sign-in policy hooks and `revokeUnadmitted` revokes nothing. Without either mount option, `admittedSessions` returns the lookup unchanged.
+Without `signIn`, the mount installs no sign-in policy hooks and `revokeUnadmitted` revokes nothing. `admittedSessions(lookup)` returns an Effect `SessionProvider`; use it directly as `sessions.provider`. Its policy check runs in the request fiber, preserving request spans, log annotations and interruption. `mounted.sessions` supplies this provider with the mount's roles and the default Better Auth lookup. Supply the application's Config provider to the server Layer so request-time account checks read the same configuration as startup.
 
 ### Once per feature: identity and typed refusals
 
@@ -221,7 +220,7 @@ The same module exports `loopbackOnly(handler)` for local page routes and `sameO
 
 `trustedProxyPeer(trustedProxy?)` compiles the guard's proxy address list into an `(address: string) => boolean` predicate. Use it with the transport's remote address when another route needs the same proxy trust decision. It supports the same IP addresses, CIDR ranges and IPv4-mapped IPv6 peers as `appHost`; absent or malformed configuration matches no peer. It does not read forwarded headers.
 
-`trustedProxyRanges(trustedProxy?)` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
+`trustedProxyRanges(trustedProxy?)` from `@shivaedev/identity/server/trustedProxyRanges.ts` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
 
 Declare expected refusals with the shared tagged error schemas from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme). They work with native RPC without authentication middleware.
 
@@ -517,14 +516,17 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 | Module                                       | Names and purpose                                                                                                                                                                                                                                                         |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `identity.ts`                                | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`: request-local services.                                                                                                                                                    |
-| `middleware.ts`                              | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`: native RPC middleware declarations.                                                                                                                |
+| `identity.ts`                                | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`, `SessionUserSchema`: request-local services and the shared user schema.                                                                                                    |
+| `middleware.ts`                              | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`, `IdentityFailures`: native RPC middleware declarations and their shared failure schema.                                                            |
+| `server/providerFailure.ts`                  | `providerFailure(cause)`: log a redacted provider failure and fail with `AuthUnavailable`.                                                                                                                                                                                |
 | `permission.ts`                              | `permissionMiddleware`, `hasPermission`, `requirePermission`: native permission middleware declarations and predicates over resolved grants.                                                                                                                              |
 | `server/permissions.ts`                      | `permissionLayer`, `permissionRoute`: permission middleware Layers and HTTP route guards.                                                                                                                                                                                 |
 | `server/session.ts`                          | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary.                                               |
 | `server/adapters/betterAuthSessions.ts`      | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                                                                      |
 | `server/origin.ts`                           | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                                                          |
-| `server/local.ts`                            | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`, `trustedProxyRanges`: loopback and proxy guards.                                                                                                                                                       |
+| `server/local.ts`                            | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`: loopback and proxy guards.                                                                                                                                                                             |
+| `server/trustedProxyRanges.ts`               | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                                                                             |
+| `server/proxyRanges.ts`                      | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                                                      |
 | `server/transportHeaders.ts`                 | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                                                          |
 | `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                                                      |
 | `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                                                                         |

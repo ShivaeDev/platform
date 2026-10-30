@@ -27,7 +27,7 @@ const TESTCASE = /<testcase (?<attributes>[^>]*?)(?<selfClosing>\/?)>(?<body>[\s
 const ATTRIBUTE = /(?<key>\w+)="(?<value>[^"]*)"/gu;
 const ENTITIES: Readonly<Record<string, string>> = { "&amp;": "&", "&apos;": "'", "&gt;": ">", "&lt;": "<", "&quot;": '"' };
 const RESULT_ELEMENTS = { failed: "failure", skipped: "skipped" } as const;
-const REPORT_FILE = /^[^/]+\.(?:json|xml)$/u;
+const REPORT_FILE = /^[^/]+\.(?:bin|json|xml)$/u;
 const COVERED_FUNCTION = /^FNDA:(?<count>\d+),(?<name>\w+)$/gmu;
 const RESULTS_CACHE = /^(?<cache>.+)\/vitest\/\w+\/results\.json$/u;
 
@@ -98,7 +98,7 @@ export function reportReadouts(suite: Suite) {
 				Object.fromEntries(json(name).testResults.flatMap((file) => file.assertionResults.map((test) => [testName(test), test.status]))),
 			),
 		junitResults: (name = "tests.junit.xml") => Effect.sync(() => testcases(reportText(name))),
-		optionError: () => Effect.sync(() => /^vitest-rerun: (?<message>.+)$/mu.exec(lastRun(suite).output)?.groups?.message ?? "nothing"),
+		printedError: () => Effect.sync(() => /^vitest-rerun: (?<message>.+)$/mu.exec(lastRun(suite).output)?.groups?.message ?? "nothing"),
 		reports: () => Effect.sync(() => listFiles(suite, REPORTS).filter((path) => REPORT_FILE.test(path))),
 		resultsCaches: () =>
 			Effect.sync(() =>

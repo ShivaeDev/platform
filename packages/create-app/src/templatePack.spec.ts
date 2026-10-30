@@ -1,25 +1,31 @@
 import { Buffer } from "node:buffer";
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { application } from "#test/application.ts";
 import { templateManifest } from "#test/templateManifest.ts";
-import { customTemplate } from "#test/traits.ts";
+import { customTemplate, localArtifacts } from "#test/traits.ts";
+
+const IMAGE = Buffer.from([0, 0xff, 0x80, 0x41]);
 
 application.it(
-	"keeps nested template-internal names and omits root maintenance files",
+	"packing leaves out AGENTS.md, CLAUDE.md, README.md and published-versions.json at the template root but keeps them in docs/",
 	[
-		customTemplate({
-			"AGENTS.md": "template guidance",
-			"CLAUDE.md": "template alias",
-			"docs/AGENTS.md": "nested guidance",
-			"docs/CLAUDE.md": "nested alias",
-			"docs/published-versions.json": "nested versions",
-			"docs/README.md": "nested readme",
-			"README.md": "template readme",
-		}),
+		customTemplate(
+			{
+				"AGENTS.md": "template guidance",
+				"CLAUDE.md": "template alias",
+				"docs/AGENTS.md": "nested guidance",
+				"docs/CLAUDE.md": "nested alias",
+				"docs/published-versions.json": "nested versions",
+				"docs/README.md": "nested readme",
+				"README.md": "template readme",
+			},
+			"the template holds AGENTS.md, CLAUDE.md, README.md and published-versions.json at its root and in docs/",
+		),
 	],
-	function* ({ pack }) {
-		expect(yield* pack()).toEqual({
+	function* ({ pack, packedFiles }) {
+		yield* pack();
+
+		expect(yield* packedFiles()).toEqual({
 			"docs/AGENTS.md": "nested guidance",
 			"docs/CLAUDE.md": "nested alias",
 			"docs/published-versions.json": "nested versions",
@@ -29,52 +35,63 @@ application.it(
 );
 
 application.it(
-	"omits local output and secrets and picks up template changes on each pack",
-	[customTemplate({}, true)],
-	function* ({ changeTemplate, pack }) {
-		for (const value of ["first", "changed"]) {
-			changeTemplate(value);
-			const files = yield* pack();
-			expect(files).toEqual({ ".env.example": "example", "app.ts": value });
-		}
-	},
-);
-
-application.it(
-	"preserves binary bytes in the packed template",
-	[customTemplate({ "image.png": Buffer.from([0, 0xff, 0x80, 0x41]) })],
-	function* ({ pack, readPacked }) {
+	"packing leaves out local output, the lockfile and every .env file except .env.example",
+	[localArtifacts],
+	function* ({ pack, packedFiles }) {
 		yield* pack();
-		expect(readPacked("image.png")).toEqual(Buffer.from([0, 0xff, 0x80, 0x41]));
+
+		expect(yield* packedFiles()).toEqual({ ".env.example": "example", "app.ts": "export const app = true;\n" });
 	},
 );
 
 application.it(
-	"replaces workspace dependencies with exact published versions while preserving registry dependencies",
-	[
-		customTemplate({
-			"package.json": templateManifest({ "@shivaedev/platform": "workspace:*", effect: "catalog:" }),
-			"published-versions.json": JSON.stringify({ "@shivaedev/platform": "0.6.1" }),
-		}),
-	],
-	function* ({ pack }) {
-		const files = yield* pack();
-		expect(JSON.parse(files["package.json"] ?? "{}").dependencies).toEqual({ "@shivaedev/platform": "0.6.1", effect: "catalog:" });
+	"packing keeps a binary file's bytes",
+	[customTemplate({ "image.png": IMAGE }, "the template holds image.png with the bytes 00 ff 80 41")],
+	function* ({ pack, packedBytes }) {
+		yield* pack();
+
+		expect(yield* packedBytes("image.png")).toEqual(IMAGE);
 	},
 );
 
-for (const versions of [{}, { "@shivaedev/platform": "latest" }, { "@shivaedev/platform": "^0.6.1" }]) {
+application.it(
+	"packing replaces a workspace dependency with its published version and keeps a catalog dependency",
+	[
+		customTemplate(
+			{
+				"package.json": templateManifest({ "@shivaedev/platform": "workspace:*", effect: "catalog:" }),
+				"published-versions.json": JSON.stringify({ "@shivaedev/platform": "0.6.1" }),
+			},
+			"the template depends on @shivaedev/platform workspace:*, published as 0.6.1, and effect catalog:",
+		),
+	],
+	function* ({ pack, packedManifest }) {
+		yield* pack();
+
+		expect((yield* packedManifest()).dependencies).toEqual({ "@shivaedev/platform": "0.6.1", effect: "catalog:" });
+	},
+);
+
+for (const [described, versions] of [
+	["has no entry for it", {}],
+	["pins latest", { "@shivaedev/platform": "latest" }],
+	["pins the range ^0.6.1", { "@shivaedev/platform": "^0.6.1" }],
+] as const) {
 	application.it(
-		`rejects a template without an exact workspace replacement: ${JSON.stringify(versions)}`,
+		`packing refuses @shivaedev/platform workspace:* when published-versions.json ${described}`,
 		[
-			customTemplate({
-				"package.json": templateManifest({ "@shivaedev/platform": "workspace:*" }),
-				"published-versions.json": JSON.stringify(versions),
-			}),
+			customTemplate(
+				{
+					"package.json": templateManifest({ "@shivaedev/platform": "workspace:*" }),
+					"published-versions.json": JSON.stringify(versions),
+				},
+				`the template depends on @shivaedev/platform workspace:* and published-versions.json ${described}`,
+			),
 		],
 		function* ({ pack }) {
-			const failure = yield* Effect.flip(pack());
-			expect(failure.message).toContain("@shivaedev/platform: name an exact published version");
+			expect(yield* pack()).toBe(
+				"refused: Failed to prepare template file package.json: @shivaedev/platform: name an exact published version in published-versions.json",
+			);
 		},
 	);
 }

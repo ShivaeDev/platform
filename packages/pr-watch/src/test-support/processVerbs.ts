@@ -16,13 +16,9 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 		return program(programArguments(engine, ...extra), emitTo(engine), diagnosticTo(engine)).pipe(Effect.provide(engine.context));
 	}
 	return {
-		asksForHelp: () =>
-			Effect.gen(function* () {
-				tell("the watcher is asked for --help");
-				yield* run(["--help"]).pipe(Effect.ignore);
-			}),
 		cooldownLengths: () => Effect.sync(() => healthOf(engine.lines, "cooldown").map(({ delayMs = 0 }) => `${delayMs / 1000} s`)),
 		cooldowns: () => Effect.sync(() => healthOf(engine.lines, "cooldown").map(cooldown)),
+		errorKinds: () => Effect.sync(() => healthOf(engine.lines, "error").map(({ errorTag }) => errorTag)),
 		errors: () => Effect.sync(() => healthOf(engine.lines, "error").map(({ message }) => message)),
 		heartbeats: () => Effect.sync(() => healthOf(engine.lines, "heartbeat").map(heartbeat)),
 		howItStopped: () =>

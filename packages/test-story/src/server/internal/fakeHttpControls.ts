@@ -13,8 +13,11 @@ import { fakeHttpGates } from "#internal/fakeHttpGates.ts";
 import { fakeHttpScripts } from "#internal/fakeHttpScripts.ts";
 import { fakeHttpSelection } from "#internal/fakeHttpSelection.ts";
 import { fakeHttpConnection, fakeHttpSend } from "#internal/fakeHttpSend.ts";
+import { describeValue } from "#internal/render.ts";
+import { explained } from "#internal/wrap.ts";
 
 export function fakeHttpControls(tell: (line: string) => void, now: () => number) {
+	let failure: Error | undefined;
 	const scripts = fakeHttpScripts(tell);
 	const holds = fakeHttpGates(tell, "hold");
 	const stalls = fakeHttpGates(tell, "stall");
@@ -29,7 +32,7 @@ export function fakeHttpControls(tell: (line: string) => void, now: () => number
 			}
 			arrivals.delete(route);
 		},
-		close: () => {
+		close: Effect.fnUntraced(function* () {
 			for (const response of active.keys()) {
 				response.destroy();
 			}
@@ -37,6 +40,16 @@ export function fakeHttpControls(tell: (line: string) => void, now: () => number
 			stalls.close();
 			arrivals.clear();
 			scripts.clear();
+			if (failure !== undefined) {
+				yield* Effect.die(failure);
+			}
+		}),
+		failed: (method: string, path: string, cause: unknown) => {
+			const message = `fake HTTP could not answer ${method} ${path}: ${describeValue(cause)}`;
+			tell(message);
+			failure ??= new Error(explained(message, "Fix the fake's handler. To simulate an HTTP failure, return a reply with an error status."), {
+				cause,
+			});
 		},
 		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
 			Effect.promise(async () => {

@@ -1,11 +1,5 @@
 {"path":"packages/vitest-rerun/package.json","rule":"code/unused","count":1}
 {"path":"packages/vitest-rerun/src/cli.ts","rule":"effect/boundary","count":1}
-{"path":"packages/vitest-rerun/src/internal/TimedJsonReporter.ts","rule":"code/unused","count":1}
 {"path":"packages/vitest-rerun/src/internal/TimedJsonReporter.ts","rule":"effect/boundary","count":3}
-{"path":"packages/vitest-rerun/src/internal/attempt.ts","rule":"code/unused","count":1}
 {"path":"packages/vitest-rerun/src/internal/attempt.ts","rule":"effect/boundary","count":1}
-{"path":"packages/vitest-rerun/src/internal/junit.ts","rule":"code/unused","count":1}
-{"path":"packages/vitest-rerun/src/internal/mergeAttempt.ts","rule":"effect/boundary","count":2}
-{"path":"packages/vitest-rerun/src/internal/runAttempt.ts","rule":"code/unused","count":1}
 {"path":"packages/vitest-rerun/src/internal/runAttempt.ts","rule":"effect/boundary","count":4}
-{"path":"packages/vitest-rerun/src/internal/snapshot.ts","rule":"code/unused","count":1}

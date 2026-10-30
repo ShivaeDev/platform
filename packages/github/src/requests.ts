@@ -33,7 +33,7 @@ export function requests(
 			return cached;
 		}
 		const bytes = yield* readBoundedBody(response, limit).pipe(
-			Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path: new URL(input.url).pathname }))),
+			Effect.catchTag("HttpClientError", (cause) => Effect.fail(new GitHubTransportError({ path: new URL(input.url).pathname }, { cause }))),
 		);
 		const entry: CachedResponse = { bytes, decoded: new Map(), response };
 		if (input.method === "GET" && response.headers.etag !== undefined) {

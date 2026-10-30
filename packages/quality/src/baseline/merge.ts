@@ -30,5 +30,5 @@ export const mergeBaseline = Effect.fn("Baseline.mergeBaseline")(
 		);
 		yield* fs.writeFileString(ours, encodeBaseline(mergeEntries(entries[0] ?? [], entries[1] ?? [], entries[2] ?? [])));
 	},
-	Effect.mapError((failure) => new SetupFailure({ message: failure.message })),
+	Effect.mapError((failure) => new SetupFailure({ cause: failure, message: failure.message })),
 );

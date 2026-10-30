@@ -1,13 +1,13 @@
 import process from "node:process";
-import { Clock, Effect, Fiber, FileSystem, Stream } from "effect";
+import { Clock, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
+import { appendSupervisorLog } from "./appendSupervisorLog.ts";
 import type { RunningCode } from "./supervisorCode.ts";
 
 export const logSupervisor = Effect.fn("FleetSupervisor.logSupervisor")(function* (log: string, message: string) {
-	const fs = yield* FileSystem.FileSystem;
 	const now = yield* Clock.currentTimeMillis;
-	yield* fs.writeFileString(log, `${new Date(now).toISOString()} supervisor: ${message}\n`, { flag: "a" });
+	yield* appendSupervisorLog(log, `${new Date(now).toISOString()} supervisor: ${message}\n`);
 });
 
 export const startProcess = Effect.fn("FleetSupervisor.startProcess")(function* (
@@ -18,7 +18,6 @@ export const startProcess = Effect.fn("FleetSupervisor.startProcess")(function* 
 	log: string,
 ) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const fs = yield* FileSystem.FileSystem;
 	const child = yield* spawner.spawn(
 		ChildProcess.make(process.execPath, [...process.execArgv, code.entry, ...args], {
 			env: { [processes.supervisorEnvironment]: token },
@@ -31,7 +30,7 @@ export const startProcess = Effect.fn("FleetSupervisor.startProcess")(function* 
 	const output = yield* Effect.forkScoped(
 		child.all.pipe(
 			Stream.decodeText,
-			Stream.runForEach((text) => fs.writeFileString(log, `${name}: ${text}`, { flag: "a" })),
+			Stream.runForEach((text) => appendSupervisorLog(log, `${name}: ${text}`)),
 		),
 	);
 	let exit: string | undefined;

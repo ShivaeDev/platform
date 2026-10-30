@@ -36,6 +36,8 @@ const Guest = role("guest", []);
 const Access = roleSet(Member, Operator, Guest);
 ```
 
+Each role name is declared once in a role set, and `roleSet` refuses a repeated literal name with a compile error. A name typed only as `string` escapes that check; when it repeats a declared name, every check and `resolve` use the first declaration's grants. Library code that takes an application's role set as a parameter types it as `AccessPolicy<TName>` from `@shivaedev/access/roleSet.ts`.
+
 Keep these declarations in application code. The package provides no persistence or runtime role editor.
 
 ### Store and decode the role string

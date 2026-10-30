@@ -1,8 +1,10 @@
 import type { Effect, Schema } from "effect";
 import { expectTypeOf } from "vitest";
 import type { Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { role } from "#role.ts";
 import type { User } from "#roleSet.ts";
-import { Access, ReadUsers } from "#test/policy.ts";
+import { roleSet } from "#roleSet.ts";
+import { Access, Guest, Manager, Reader, ReadUsers } from "#test/policy.ts";
 
 expectTypeOf<typeof Access.Role.Type>().toEqualTypeOf<"reader" | "manager" | "guest">();
 expectTypeOf<typeof Access.Role.Encoded>().toEqualTypeOf<"reader" | "manager" | "guest">();
@@ -13,3 +15,9 @@ expectTypeOf<typeof Access.Role>().toExtend<Schema.Schema<"reader" | "manager" |
 
 // @ts-expect-error Callers must decode untrusted role strings before using them.
 Access.hasPermission("unknown", ReadUsers);
+
+// @ts-expect-error Role sets refuse a role name declared twice.
+roleSet(Reader, Manager, role("reader", []));
+
+// @ts-expect-error A repeated name is refused wherever it appears in the list.
+roleSet(Reader, Manager, Guest, role("manager", [ReadUsers]));

@@ -55,6 +55,7 @@ export interface StoryKitDefinition<
 	readonly layer?: Layer.Layer<TProvided, unknown, never>;
 	readonly name: string;
 	readonly outbound?: Readonly<Record<string, string>>;
+	readonly outboundPassthrough?: boolean;
 	readonly run?: RunHooks<TEngine, TStep, TFailed, TDiagnose>;
 	readonly runIf?: boolean;
 	readonly stages: readonly TStage[];

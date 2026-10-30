@@ -30,7 +30,6 @@
 {"path":"src/modules/notes/client/notesFlow.dom.spec.ts","rule":"tests/wait-on-events","count":21}
 {"path":"src/modules/notes/client/sessionSwitch.dom.spec.tsx","rule":"tests/wait-on-events","count":5}
 {"path":"src/modules/notes/client/signInReturn.dom.spec.tsx","rule":"tests/wait-on-events","count":15}
-{"path":"src/modules/notes/notes.ts","rule":"code/unused","count":3}
 {"path":"src/modules/notes/server/adminAccess.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"src/modules/notes/server/adminAccess.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"src/modules/notes/server/adminDevelopment.spec.ts","rule":"tests/domain-outcomes","count":2}
@@ -44,12 +43,10 @@
 {"path":"src/modules/notes/server/authClient.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"src/modules/notes/server/deployedNotes.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"src/modules/notes/server/migrations/0002_notes.ts","rule":"code/unused","count":1}
-{"path":"src/modules/notes/server/noteEditingHost.spec.ts","rule":"tests/grouped-outcomes","count":4}
+{"path":"src/modules/notes/server/noteEditingHost.spec.ts","rule":"tests/grouped-outcomes","count":3}
 {"path":"src/modules/notes/server/noteJobsEditing.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"src/modules/notes/server/noteLifecycle.spec.ts","rule":"tests/grouped-outcomes","count":3}
 {"path":"src/modules/notes/server/queueFailure.spec.ts","rule":"tests/grouped-outcomes","count":2}
-{"path":"src/modules/notes/server/rpcClient.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"src/modules/notes/server/sessionUser.spec.ts","rule":"effect/boundary","count":1}
 {"path":"src/modules/notes/server/workerCrash.spec.ts","rule":"tests/wait-on-events","count":1}
 {"path":"src/modules/notes/server/workerRelease.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"src/modules/notes/server/workerRelease.spec.ts","rule":"tests/wait-on-events","count":2}
