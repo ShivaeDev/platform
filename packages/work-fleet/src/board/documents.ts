@@ -1,4 +1,4 @@
-import { Effect, FileSystem, Path } from "effect";
+import { Array as Arr, Effect, FileSystem, Path } from "effect";
 import type { MetadataDocument } from "@shivaedev/work-board/server/integration/board.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { readDocument } from "#board/readDocument.ts";
@@ -34,15 +34,22 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 			(error) => new BoardFailure({ code: "incomplete-observation", message: `Board sources could not be listed: ${root} (${error.message})` }),
 		),
 	);
-	const reads = yield* Effect.forEach(
-		files,
-		(file) =>
-			readDocument(root, realRoot, file.path).pipe(
-				Effect.map(({ document, problem }) => ({ document, file: file.path, problem })),
-				Effect.catch((problem) => Effect.succeed({ document: undefined, file: file.path, problem })),
+	const batches = yield* Effect.forEach(Arr.chunksOf(files, READ_CONCURRENCY), (batch) =>
+		Effect.yieldNow.pipe(
+			Effect.andThen(
+				Effect.forEach(
+					batch,
+					(file) =>
+						readDocument(root, realRoot, file.path).pipe(
+							Effect.map(({ document, problem }) => ({ document, file: file.path, problem })),
+							Effect.catch((problem) => Effect.succeed({ document: undefined, file: file.path, problem })),
+						),
+					{ concurrency: READ_CONCURRENCY },
+				),
 			),
-		{ concurrency: READ_CONCURRENCY },
+		),
 	);
+	const reads = batches.flat();
 	const problems = new Map(reads.flatMap(({ file, problem }) => (problem === undefined ? [] : [[file, problem] as const])));
 	for (const problem of problems.values()) {
 		yield* Effect.logWarning(problem.message);

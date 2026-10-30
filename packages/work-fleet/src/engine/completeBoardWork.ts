@@ -23,6 +23,7 @@ export function boardCompletionAction(record: FleetRecord) {
 }
 
 export function completeBoardWork(state: EngineState) {
+	const reported = state.completionWarnings;
 	return Effect.fn("Fleet.completeBoardWork")(function* (stored: Versioned<FleetRecord>) {
 		const action = boardCompletionAction(stored.value);
 		const complete = state.board.complete;
@@ -33,13 +34,23 @@ export function completeBoardWork(state: EngineState) {
 			&& complete !== undefined
 			&& stored.value.attempts.some((attempt) => attempt.role !== "reviewer" && attempt.receipt !== undefined)
 		) {
+			let source = sourcePath;
 			yield* state.board.get(stored.value.workId).pipe(
-				Effect.flatMap((work) =>
-					refuseDeliveredId(state, work).pipe(
+				Effect.flatMap((work) => {
+					source = JSON.stringify([work.sourcePath, work.context]);
+					return refuseDeliveredId(state, work).pipe(
 						Effect.andThen(briefChanged(stored.value, work) ? Effect.void : complete(stored.value.workId, sourcePath, action)),
-					),
-				),
-				Effect.catch((error) => Effect.logWarning(error.message)),
+					);
+				}),
+				Effect.tap(() => Effect.sync(() => reported.delete(stored.value.workId))),
+				Effect.catch((error) => {
+					const warning = JSON.stringify([source, error.message]);
+					if (reported.get(stored.value.workId) === warning) {
+						return Effect.void;
+					}
+					reported.set(stored.value.workId, warning);
+					return Effect.logWarning(error.message);
+				}),
 			);
 		}
 		if (state.board.closeFinishedDecisions !== undefined) {

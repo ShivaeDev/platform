@@ -45,6 +45,8 @@ export interface EngineStory extends EngineWorld {
 	readinessPublications?: BoardDecision[];
 	recovery: RecoveryWorld;
 	recoveryCase?: RecoveryCase;
+	rescan?: { readonly entered: Effect.Effect<void>; readonly release: Effect.Effect<boolean>; readonly finished: Effect.Effect<void, unknown> };
+	rescanPort?: number;
 	restoreHealth?: () => void;
 	restoreStatus?: () => void;
 	resultObservation?: { value: WorkResult; unavailable: boolean };

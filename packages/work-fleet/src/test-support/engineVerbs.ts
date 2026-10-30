@@ -27,6 +27,8 @@ import { enginePublicationVerbs } from "#test/enginePublicationVerbs.ts";
 import { engineRaceVerbs } from "#test/engineRaceVerbs.ts";
 import { engineRecoveryVerbs } from "#test/engineRecoveryVerbs.ts";
 import { engineReportVerbs } from "#test/engineReportVerbs.ts";
+import { engineRescanDaemon } from "#test/engineRescanDaemon.ts";
+import { engineRescanVerbs } from "#test/engineRescanVerbs.ts";
 import { engineRetryVerbs } from "#test/engineRetryVerbs.ts";
 import { engineRpcVerbs } from "#test/engineRpcVerbs.ts";
 import { engineSchedulingVerbs } from "#test/engineSchedulingVerbs.ts";
@@ -143,6 +145,8 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		...engineSchedulingVerbs(state, story.tell),
 		...engineDecisionVerbs(state, story.tell),
 		...engineBoardVerbs(state, story.tell),
+		...engineRescanVerbs(state, story.tell),
+		...engineRescanDaemon(state, story.tell),
 		...engineWorldVerbs(state, story.tell),
 		...engineGithubVerbs(state, story.tell),
 		...engineRpcVerbs(state, story.tell),
