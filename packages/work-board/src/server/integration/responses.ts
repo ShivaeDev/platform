@@ -7,6 +7,7 @@ import {
 import { currentResponses } from "#responses/current.ts";
 import { Responses } from "#server/Responses.ts";
 import { makeResponse } from "#server/responses/make.ts";
+import { openQuestions } from "#server/responses/openQuestions.ts";
 import { publish } from "#server/responses/publish.ts";
 import { questionSourceMatches } from "#server/responses/questionSourceMatches.ts";
 import { readResponses } from "#server/responses/read.ts";
@@ -23,6 +24,7 @@ export const responses = {
 	currentResponses,
 	DraftInput: DraftInputSchema,
 	makeResponse,
+	openQuestions,
 	publish,
 	Question: QuestionSchema,
 	questionFrom,

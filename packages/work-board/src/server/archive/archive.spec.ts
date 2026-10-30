@@ -7,7 +7,7 @@ boardStory.it(
 	"the archive command moves old terminal briefs and keeps recent and open briefs active",
 	[archiveFixture(), deferredServing],
 	function* (board) {
-		expect(yield* board.archive()).toContain("Moved 2 briefs.");
+		expect(yield* board.archive()).toContain("Moved 2 records.");
 		expect(board.fileSource("archive/board/old.md")).toBe(finishedBrief("old"));
 		expect(board.fileSource("archive/board/dropped.md")).toBe(finishedBrief("dropped", "dropped"));
 		expect(board.fileExists("tasks/board/old.md")).toBe(false);
