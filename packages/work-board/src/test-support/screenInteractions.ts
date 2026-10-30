@@ -34,7 +34,7 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 		draftKey: () => {
 			tell("the reader checks the current draft's storage identity");
 			const form = control("#response-form", HTMLFormElement);
-			return formDraft("response", form.dataset.item ?? "", form.dataset.request).key;
+			return formDraft(() => 0, "response", form.dataset.item ?? "", form.dataset.request).key;
 		},
 		focus: (selector: string | HTMLElement | null | undefined) => {
 			tell(`the reader focuses ${selector}`);
@@ -86,7 +86,7 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 		readStoredDraft: () => {
 			tell("the reader checks the current stored draft");
 			const form = control("#response-form", HTMLFormElement);
-			return localStorage.getItem(formDraft("response", form.dataset.item ?? "", form.dataset.request).key);
+			return localStorage.getItem(formDraft(() => 0, "response", form.dataset.item ?? "", form.dataset.request).key);
 		},
 		refreshDocumentSource: async (document: Document) => {
 			tell("the reader receives refreshed document source");

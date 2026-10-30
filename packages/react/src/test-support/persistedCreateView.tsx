@@ -1,17 +1,17 @@
 import { Effect } from "effect";
 import { act } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 import { CreateDraftProbe, DirectDraftProbe } from "./CreateDraftProbe.tsx";
 import type { CreateEffect, CreateHeld } from "./createDraftFields.ts";
 import { submitForm, typeInput } from "./Screen.ts";
 
-export async function persistedCreateView(view: Rendered, create: CreateEffect = Effect.succeed, direct = false) {
+export async function persistedCreateView(view: Rendered, now: () => number, create: CreateEffect = Effect.succeed, direct = false) {
 	const held: CreateHeld = {};
 	function node(session = "first") {
 		return (
 			<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session={session}>
-				{() => (direct ? <DirectDraftProbe create={create} held={held} /> : <CreateDraftProbe create={create} held={held} />)}
+				{() => (direct ? <DirectDraftProbe create={create} held={held} now={now} /> : <CreateDraftProbe create={create} held={held} now={now} />)}
 			</SessionBoundary>
 		);
 	}

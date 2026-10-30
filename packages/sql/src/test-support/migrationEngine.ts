@@ -1,5 +1,6 @@
 import { Deferred, Effect, type Fiber } from "effect";
 import { SqlClient } from "effect/sql";
+import { RecordedLogs } from "./RecordedLogs.ts";
 
 export type Applied = ReadonlyArray<readonly [id: number, name: string]>;
 
@@ -7,6 +8,7 @@ export interface MigrationEngine {
 	readonly bodiesRun: string[];
 	readonly firstRunStarted: { at: number | undefined };
 	readonly lockTimeouts: string[];
+	readonly logs: RecordedLogs["Service"];
 	readonly pause: { readonly entered: Deferred.Deferred<void>; readonly resume: Deferred.Deferred<void> };
 	paused: Fiber.Fiber<Applied | string> | undefined;
 	readonly releasesSeenByComponents: string[];
@@ -30,6 +32,7 @@ export const migrationEngine = Effect.fnUntraced(function* () {
 		bodiesRun: [],
 		firstRunStarted: { at: undefined },
 		lockTimeouts: [],
+		logs: yield* RecordedLogs,
 		pause: { entered: yield* Deferred.make<void>(), resume: yield* Deferred.make<void>() },
 		paused: undefined,
 		releasesSeenByComponents: [],

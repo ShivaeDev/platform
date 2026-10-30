@@ -102,6 +102,10 @@ export function migrationVerbs(engine: MigrationEngine, tell: (line: string) => 
 				return rows.map(({ id, name }) => [id, name] as const);
 			}).pipe(Effect.orDie),
 		lockTimeoutsSeen: () => Effect.sync(() => [...engine.lockTimeouts]),
+		loggedErrors: () =>
+			Effect.sync(() =>
+				engine.logs.filter(({ level }) => level === "Error").map(({ cause, message }) => `${String(message)} ${cause.split("\n")[0] ?? ""}`),
+			),
 		migrate: (migrations: readonly Migration[], options: RunOptions = {}) =>
 			Effect.suspend(() => {
 				tell(`a runner migrates ${described(migrations)}${withOptions(options)}`);

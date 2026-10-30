@@ -676,6 +676,10 @@ NodeRuntime.runMain(program.pipe(Effect.provide(NodeServices.layer)));
 
 `loadHost(boardDir, configFile?)` from `@shivaedev/work-fleet/host/configFile.ts` reads and validates the host configuration. Compose `daemonLayer(host, parts, port)` in a scoped host, or launch it with `serveFleet(host, parts, port)`, both from `@shivaedev/work-fleet/host/daemon.ts`. The daemon uses Platform’s `appHost` with the loopback policy and `/_fleet/rpc` as its RPC path. Its shared `appDatabase` layer completes Fleet migrations in the namespace ledger before acquiring application services. The listener starts before scheduling.
 
+The daemon's Board answer stream reads only registered questions whose current source request is open and still matches the reviewed revision. Settled questions and their answer history leave recurring Board reads for the Board's on-demand archive.
+
+When PostgreSQL is still starting, the daemon logs its wait and retries `database.url` with exponential backoff from one to ten seconds. It waits up to five minutes before failing with a typed `HostFailure` naming that setting. Once PostgreSQL is ready, startup continues in the same daemon without a supervisor restart.
+
 A composed headless runtime can opt into status publication by providing `statusLayer(boardRoot)` from `@shivaedev/work-fleet/host/statusLayer.ts` over its Fleet Layer and Node filesystem services. It enables health publication with `statusLayer(boardRoot, { concurrency, staleAfterMs })`, provides `healthLayer(boardRoot)` from `@shivaedev/work-fleet/host/healthLayer.ts`, and wraps its provider with `providerHealth` from `@shivaedev/work-fleet/host/providerHealth.ts`. Capacity comes only from structured `rateLimitExceeded`, `flexUnavailable` or `serverOverloaded` errors; unclassified rejection text is not treated as capacity. A repeatedly observed terminal turn does not refresh the same rejection's timestamp.
 
 #### Compose the Effect core

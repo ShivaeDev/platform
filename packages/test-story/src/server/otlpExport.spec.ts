@@ -1,21 +1,32 @@
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
 import { lifecycle, otlpApp } from "#test/otlpApp.ts";
 
-for (const protobuf of [false, true]) {
-	const app = otlpApp(protobuf);
-	app.it("reads real exported spans and every raw export byte", [], function* ({ runWork, failWork, disposeRuntime, requests, spans }) {
-		const ids = yield* runWork();
-		yield* failWork();
-		yield* disposeRuntime();
-		expect(
-			spans()
-				.map(({ name }) => name)
-				.sort(),
-		).toEqual(["child", "failed", "parent"]);
-		expect(spans().find(({ name }) => name === "child")).toMatchObject({
-			...ids,
+const MALFORMED = Buffer.from([0x0a, 0xff]);
+const EMPTY = Buffer.from("{}");
+
+for (const [format, contentType] of [
+	["JSON", "application/json"],
+	["protobuf", "application/x-protobuf"],
+] as const) {
+	const app = otlpApp(format === "protobuf");
+
+	app.it(`reads every span a ${format} exporter sends`, [], function* ({ exportedSpanNames, exportsItsWork }) {
+		yield* exportsItsWork();
+
+		expect(yield* exportedSpanNames()).toEqual(["child", "failed", "parent"]);
+	});
+
+	app.it(`keeps the ids the application traced on a ${format} span`, [], function* ({ exportedSpanIds, exportsItsWork, tracedIds }) {
+		yield* exportsItsWork();
+
+		expect(yield* exportedSpanIds("child")).toEqual(yield* tracedIds());
+	});
+
+	app.it(`decodes a ${format} span's attributes, events, links, kind, resource and status`, [], function* ({ exportedSpan, exportsItsWork }) {
+		yield* exportsItsWork();
+
+		expect(yield* exportedSpan("child")).toMatchObject({
 			attributes: expect.arrayContaining([
 				{ key: "count", value: { intValue: "42" } },
 				{ key: "negative", value: { intValue: "-12" } },
@@ -35,59 +46,59 @@ for (const protobuf of [false, true]) {
 			resourceAttributes: expect.arrayContaining([{ key: "service.name", value: { stringValue: "story-exporter" } }]),
 			status: { code: 1 },
 		});
-		expect(spans().find(({ name }) => name === "failed")?.status).toMatchObject({ code: 2, message: "failed work" });
-		expect(requests()).toMatchObject([
-			{
-				headers: { "content-type": protobuf ? "application/x-protobuf" : "application/json", "x-collector-token": "collector secret" },
-				path: "/v1/traces",
-			},
-			{
-				headers: { "content-type": protobuf ? "application/x-protobuf" : "application/json", "x-collector-token": "collector secret" },
-				path: "/v1/traces",
-			},
-			{
-				headers: { "content-type": protobuf ? "application/x-protobuf" : "application/json", "x-collector-token": "collector secret" },
-				path: "/v1/traces",
-			},
-		]);
-		expect(requests().every(({ body }) => !body.includes(Buffer.from("collector secret")))).toBe(true);
-		expect(requests()[0]?.headers).toMatchObject({
-			"content-type": protobuf ? "application/x-protobuf" : "application/json",
-			"x-collector-token": "collector secret",
+	});
+
+	app.it(`decodes a failed ${format} span's error status and message`, [], function* ({ exportedSpan, exportsItsWork }) {
+		yield* exportsItsWork();
+
+		expect(yield* exportedSpan("failed")).toMatchObject({ status: { code: 2, message: "failed work" } });
+	});
+
+	app.it(`keeps the path and headers of each ${format} export request`, [], function* ({ exportRequests, exportsItsWork }) {
+		yield* exportsItsWork();
+
+		expect(yield* exportRequests()).toEqual(Array.from({ length: 3 }, () => `/v1/traces as ${contentType} with token "collector secret"`));
+	});
+
+	app.it(`keeps the raw bytes of each ${format} export`, [], function* ({ exportsCarrying, exportsItsWork }) {
+		yield* exportsItsWork();
+
+		yield* outcomes({
+			"exports carrying the header secret": [exportsCarrying("collector secret"), 0],
+			"exports carrying the planted span attribute": [exportsCarrying("raw-export-secret"), 1],
 		});
-		expect(requests()[0]?.rawHeaders).toContain("collector secret");
-		expect(requests().some(({ body }) => body.includes(Buffer.from("raw-export-secret")))).toBe(true);
 	});
 }
 
-lifecycle.it("releases its listening port with the scope", [], function* ({ close, send, url }) {
-	const address = url();
-	const status = yield* send("/v1/traces", "application/json", Buffer.from("{}"));
-	expect(status).toBe(HttpStatus.fromLiteral("OK"));
-	yield* close();
-	yield* Effect.promise(() => expect(fetch(`${address}/v1/traces`)).rejects.toThrow());
+lifecycle.it("stops listening once its scope closes", [], function* ({ closesReceiver, sends }) {
+	expect(yield* sends("/v1/traces", "application/json", EMPTY)).toBe("HTTP 200");
+
+	yield* closesReceiver();
+
+	expect(yield* sends("/v1/traces", "application/json", EMPTY)).toBe("connection refused");
 });
 
-lifecycle.it("keeps malformed export bytes and continues receiving", [], function* ({ requests, send }) {
-	const malformed = Buffer.from([0x0a, 0xff]);
-	const empty = Buffer.from("{}");
-	for (const contentType of ["application/json", "application/x-protobuf"]) {
-		const status = yield* send("/v1/traces", contentType, malformed);
-		expect(status).toBe(HttpStatus.fromLiteral("BadRequest"));
-	}
-	for (const [path, contentType, expectedStatus] of [
-		["/wrong", "application/json", HttpStatus.fromLiteral("NotFound")],
-		["/v1/traces", "text/plain", HttpStatus.fromLiteral("UnsupportedMediaType")],
-		["/v1/traces", "application/json; charset=utf-8", HttpStatus.fromLiteral("OK")],
-	] as const) {
-		const status = yield* send(path, contentType, empty);
-		expect(status).toBe(expectedStatus);
-	}
-	expect(requests()).toMatchObject([
-		{ body: malformed, headers: { "content-type": "application/json" }, path: "/v1/traces" },
-		{ body: malformed, headers: { "content-type": "application/x-protobuf" }, path: "/v1/traces" },
-		{ body: empty, headers: { "content-type": "application/json" }, path: "/wrong" },
-		{ body: empty, headers: { "content-type": "text/plain" }, path: "/v1/traces" },
-		{ body: empty, headers: { "content-type": "application/json; charset=utf-8" }, path: "/v1/traces" },
+for (const [what, path, contentType, body, answer] of [
+	["malformed JSON", "/v1/traces", "application/json", MALFORMED, "HTTP 400"],
+	["malformed protobuf", "/v1/traces", "application/x-protobuf", MALFORMED, "HTTP 400"],
+	["another path", "/wrong", "application/json", EMPTY, "HTTP 404"],
+	["an unsupported content type", "/v1/traces", "text/plain", EMPTY, "HTTP 415"],
+	["JSON with a charset", "/v1/traces", "application/json; charset=utf-8", EMPTY, "HTTP 200"],
+] as const) {
+	lifecycle.it(`answers an export of ${what} with ${answer}`, [], function* ({ sends }) {
+		expect(yield* sends(path, contentType, body)).toBe(answer);
+	});
+}
+
+lifecycle.it("records every request it receives, refused ones included, and keeps receiving", [], function* ({ received, sends }) {
+	yield* sends("/v1/traces", "application/x-protobuf", MALFORMED);
+	yield* sends("/wrong", "application/json", EMPTY);
+
+	yield* sends("/v1/traces", "application/json", EMPTY);
+
+	expect(yield* received()).toEqual([
+		"/v1/traces as application/x-protobuf: <0a ff>",
+		"/wrong as application/json: {}",
+		"/v1/traces as application/json: {}",
 	]);
 });

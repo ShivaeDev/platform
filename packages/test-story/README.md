@@ -7,14 +7,16 @@ Tests that read like short English stories and run the real engine. A spec names
 When agents write most of the code, test files grow into hundreds of lines nobody reads. Each test rebuilds its setup by hand, mocks whatever was too much work to build, and hides what it actually checks. A story test holds only what is specific to it:
 
 ```ts
-bakery.it("steps until the condition holds", [ovenIsLit(), hasDough(3)], function* ({ oven }) {
+bakery.it("steps the bakery one minute at a time until the dough runs out", [ovenIsLit(), hasDough(3)], function* ({ oven }) {
+	expect(oven.minutes()).toBe(0);
+
 	yield* oven.bakesEverything();
-	expect(oven.loaves()).toBe(3);
+
 	expect(oven.minutes()).toBe(3);
 });
 ```
 
-That is a whole test. `bakery.it` comes from the bakery's story kit. The list holds its traits, `ovenIsLit()` and `hasDough(3)`, which are written once and shared by every spec. `oven.bakesEverything()` performs the baking action until the dough is gone; `oven.loaves()` and `oven.minutes()` read separate observations. The spec states both expectations. Every story runs the whole engine, so each test also checks the parts its author never thought to mock, and because a spec reads as English, a sloppy test stands out in review.
+That is a whole test. `bakery.it` comes from the bakery's story kit. The list holds its traits, `ovenIsLit()` and `hasDough(3)`, which are written once and shared by every spec. `oven.bakesEverything()` performs the baking action until the dough is gone, and `oven.minutes()` reads how long the oven has baked, before and after it. The spec states each expectation. Every story runs the whole engine, so each test also checks the parts its author never thought to mock, and because a spec reads as English, a sloppy test stands out in review.
 
 When a story fails, it prints itself. One of this package's own failing stories expects 2 loaves from one ball of dough, and the test fails with this message:
 
@@ -132,6 +134,7 @@ This is the bakery kit this package tests itself with. `emptyBakery`, `stillWait
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`                 | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story".                                                                                                                                                                                                                                 |
 | `outbound`             | Optional. A map of exact hostnames to fake server origins for Node fetch and the DOM environment's document requests.                                                                                                                                                                                                     |
+| `outboundPassthrough`  | Optional. Set to `true` to let unrouted Node fetch requests reach the network. The DOM environment still refuses external hosts without a route.                                                                                                                                                                          |
 | `around(effect)`       | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope.                                                                                                                                                                |
 | `clock`                | Optional. `"test"` by default, `"live"` for real time, or a UTC `DateTime` to start TestClock at that instant. A story’s `options.clock` takes precedence.                                                                                                                                                                |
 | `create()`             | A fresh engine. Every story starts from a new one.                                                                                                                                                                                                                                                                        |
@@ -160,26 +163,31 @@ export default defineConfig({
 Compose kits when one story crosses features that already have their own engines, traits and verbs. Keep each feature kit independent; an integration kit imports the kits and their public trait factories, so neither feature needs to import the other's internals.
 
 ```ts
-import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { bakery, hasDough, ovenIsLit } from "./bakery.ts";
-import { mill, sailsAreTurning } from "./mill.ts";
+import { bakery } from "./bakery.ts";
+import { mill } from "./mill.ts";
 
-export const village = storyKit({
-	extends: [mill, bakery],
-	name: "village",
+export const village = storyKit({ extends: [mill, bakery], name: "village" });
+```
+
+```ts
+import { expect } from "vitest";
+import { hasDough, ovenIsLit } from "#test/bakery.ts";
+import { village } from "#test/village.ts";
+import { sailsAreTurning } from "#test/mill.ts";
+
+village.it("runs the mill's traits when the village joins the mill and the bakery", [sailsAreTurning()], ({ sails }) => {
+	expect(sails()).toBe("turning");
 });
 
-village.it("mills flour and bakes loaves", [sailsAreTurning(), ovenIsLit(), hasDough(2)], function* ({ miller, oven, story }) {
-	miller.grinds(3);
+village.it("keeps the bakery's stepped verbs when the village joins the mill and the bakery", [ovenIsLit(), hasDough(2)], function* ({ oven }) {
 	yield* oven.bakesEverything();
-	expect(story.engine.sacks).toBe(3);
-	expect(story.engine.sails).toBe("turning");
+
 	expect(oven.loaves()).toBe(2);
 });
 ```
 
-`extends` takes one or more kits. The composed engine includes each kit's engine fields, the body receives all their verbs, and traits from either kit work directly. Types for engines, stages, verbs and layer services remain inferred. A composed kit can itself appear in `extends`.
+The kit lives in `test-support/village.ts`, and the specs import it with the mill's and the bakery's traits. `extends` takes one or more kits. The composed engine includes each kit's engine fields, the body receives all their verbs, and traits from either kit work directly. Types for engines, stages, verbs and layer services remain inferred. A composed kit can itself appear in `extends`.
 
 Creation runs in dependency order, left to right, before any traits. Stages and their `after` hooks then run in that same order, regardless of the order traits appear in the spec. All creation, traits, hooks and the body share one per-test Scope, whose finalizers release resources in reverse acquisition order, including after a failed story. Feature verbs retain their own `runUntil` hooks, so the bakery's waiting verb still steps the bakery. Use each feature's waiting verbs when driving a composed story.
 
@@ -196,9 +204,9 @@ const app = storyKit({
 });
 ```
 
-`appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. In Node stories, other hostnames pass through the previous dispatcher unchanged. In the DOM environment, only loopback hosts (`localhost`, IPv4 loopback addresses and `[::1]`) may pass through without a route; every other hostname must have an `outbound` fake. A refused request fails the story and names its hostname, even when application code catches the fetch error.
+`appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. When a kit declares `outbound`, only loopback hosts (`localhost`, IPv4 loopback addresses and `[::1]`) may pass through without a route; every other hostname must have an `outbound` fake. Node kits can opt into network access for unrouted hosts with `outboundPassthrough: true`. Composed kits inherit that opt-in from their constituent kits. The DOM environment always refuses unrouted external hosts. A refused request fails the story and names its hostname, even when application code catches the fetch error.
 
-`routeOutbound(routes)` from `@shivaedev/test-story/server/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story.
+`routeOutbound(routes)` from `@shivaedev/test-story/server/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story. Pass `{ passthrough: true }` as its second argument to allow unrouted Node fetch requests.
 
 Routing uses the global dispatcher that Node's built-in `fetch` already uses. The kit's `outbound` option installs routing before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
 
@@ -211,10 +219,21 @@ This lets an application's story assert that a request starts its own trace: a r
 A kit can collect spans with a native in-memory tracer, or start a fake OTLP receiver and point the application's exporter at it. Expose collection, exporter flush and any bounded wait as separate verbs. Assert only after the request span has ended. This small in-memory kit uses Effect's Web Request handler as its host:
 
 ```ts
-import { Effect, Tracer } from "effect";
+import { Effect, Option, Tracer } from "effect";
 import { HttpEffect, HttpServerResponse } from "effect/http";
 import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+
+function describeSpan(span: Tracer.NativeSpan) {
+	const status = span.status._tag === "Ended" ? "ended" : "still open";
+	if (Option.isNone(span.parent)) {
+		return `a root span, ${status}`;
+	}
+	const parent = span.parent.value;
+	return parent._tag === "ExternalSpan"
+		? `under external span ${parent.spanId} in trace ${parent.traceId}, ${status}`
+		: `under "${parent.name}", ${status}`;
+}
 
 const app = storyKit({
 	around: (effect) => effect.pipe(Effect.withSpan("story")),
@@ -233,38 +252,30 @@ const app = storyKit({
 	},
 	name: "traced application",
 	stages: ["ready"],
-	verbs: ({ handler, spans }) => ({
-		request: (headers: HeadersInit = {}) =>
+	verbs: ({ handler, spans }, story) => ({
+		sendsRequest: (headers: HeadersInit = {}) =>
 			Effect.promise(async () => {
-				const response = await handler(new Request("http://app.test/", { headers }));
-				return response.text();
+				story.tell("a caller sends a request");
+				await (await handler(new Request("http://app.test/", { headers }))).text();
 			}),
-		requestSpan: () => {
-			const span = spans.filter((span) => span.kind === "server").at(-1);
-			if (span === undefined) throw new Error("The request exported no server span");
-			return span;
-		},
+		serverSpans: () => Effect.sync(() => spans.filter((span) => span.kind === "server").map(describeSpan)),
 	}),
 });
 
-app.it("a request is its own root trace", [], function* ({ request, requestSpan }) {
-	const storySpan = yield* Effect.currentSpan;
-	expect(yield* request()).toBe("ok");
-	const span = requestSpan();
-	expect(span.parent._tag).toBe("None");
-	expect(span.traceId).not.toBe(storySpan.traceId);
-	expect(span.status._tag).toBe("Ended");
+app.it("starts each request in a root span of its own", [], function* ({ sendsRequest, serverSpans }) {
+	yield* sendsRequest();
+
+	expect(yield* serverSpans()).toEqual(["a root span, ended"]);
 });
 
-app.it("a request continues its supplied trace", [], function* ({ request, requestSpan }) {
-	yield* request({ traceparent: "00-1234567890abcdef1234567890abcdef-1234567890abcdef-01" });
-	const span = requestSpan();
-	expect(span.traceId).toBe("1234567890abcdef1234567890abcdef");
-	expect(span.parent).toMatchObject({ value: { spanId: "1234567890abcdef" } });
+app.it("continues the trace context a request's headers carry", [], function* ({ sendsRequest, serverSpans }) {
+	yield* sendsRequest({ traceparent: "00-1234567890abcdef1234567890abcdef-1234567890abcdef-01" });
+
+	expect(yield* serverSpans()).toEqual(["under external span 1234567890abcdef in trace 1234567890abcdef1234567890abcdef, ended"]);
 });
 ```
 
-Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
+`describeSpan` turns each span into words once in the kit, so the specs compare sentences instead of reading span fields and tags. Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
 #### Forwarding requests to a host
 
@@ -293,15 +304,18 @@ Set `localAddress` to choose the source socket address of the proxy's connection
 Use `otlpReceiver` from `@shivaedev/test-story/server/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Point the application's real exporter at `${receiver.url}/v1/traces`, then flush the exporter before reading:
 
 ```ts
-app.it("exports the work span", [], function* ({ runWork, disposeRuntime, spans, requests }) {
+app.it("exports the work span without the planted secret", [], function* ({ runWork, disposeRuntime, exportedSpanNames, exportsContaining }) {
 	yield* runWork();
 	yield* disposeRuntime();
-	expect(spans()).toContainEqual(expect.objectContaining({ name: "CountWords" }));
-	expect(requests().some(({ body }) => body.includes(Buffer.from("planted-secret")))).toBe(true);
+
+	yield* outcomes({
+		"exported spans": [exportedSpanNames(), ["CountWords"]],
+		"exports with the planted secret": [exportsContaining("planted-secret"), 0],
+	});
 });
 ```
 
-Here `app` is the application's kit. Its `create` acquires the receiver and the real exporter pointed at that receiver, `runWork` performs the traced operation, `disposeRuntime` disposes the exporter's runtime and flushes pending spans, and `spans` and `requests` read the receiver's observations. Each action is visible in the spec. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
+Here `app` is the application's kit. Its `create` acquires the receiver and the real exporter pointed at that receiver, `runWork` performs the traced operation, `disposeRuntime` disposes the exporter's runtime and flushes pending spans, and `exportedSpanNames` and `exportsContaining` are Effect readouts over the receiver's `spans` and `requests`. Each action is visible in the spec. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
 
 For timeout stories, return `undefined` from the `status` callback to accept an export without sending response headers. Set `answer: null` to send headers without completing the response body.
 
@@ -323,11 +337,13 @@ const api = yield* fakeHttpService({
 
 Point the application's real HTTP client at `api.url`, or use the kit's `outbound` map to route its external hostname there. A service-wide `guard` returns a boolean; a missing or wrong credential gets 401 before holds or scripted replies are consumed. Each route can also declare a `guard(request)`; both guards must accept the request before holds, arrival scripts or faults run. A route's guard applies only to that route, so an installation token check can sit beside public routes. Omit the guard for a public fake. Unmatched paths and methods get 404.
 
+If a fake handler throws, the service records the failure and closes the connection. Scope close fails the story with the request and the thrown value, even if the application handles the connection error. Return an error `status` or script a fault to simulate an upstream failure.
+
 In `verbs`, bind `api.narrate(story.tell)` to tell received requests, replies, rejections and hold controls through the story. An optional `tell` callback can also be supplied at acquisition. The service keeps request headers and bytes in `api.requests`. Each entry has a `status`: the numeric status of a completed response, `"pending"` while waiting (including a stalled body), or `"unanswered"` when the connection closes without completing a response. Dropped connections, resets after headers and clients that hang up are unanswered. Statuses include guard rejections, unmatched routes and replies replaced by faults. Readouts can format entries as `GET /repos/o/r/actions/runs/7/artifacts 500`. Narration of normal requests includes only method, path and status.
 
 ```ts
 api.narrate(story.tell);
-yield* api.failOnce("user", { status: 502, body: { error: "try again" } });
+yield* api.scriptFault("user", { kind: "status", reply: { status: 502, body: { error: "try again" } } });
 const paused = yield* api.hold("user");
 const pending = yield* Effect.forkChild(application.loadUser("alice"));
 yield* paused.waiting;
@@ -335,14 +351,17 @@ yield* paused.release;
 const user = yield* Fiber.join(pending);
 ```
 
-`application.loadUser` is the application's real client call. `failOnce` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
+`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
 
-Use the controls through kit verbs after acquiring the service. `replyOnce(route, reply)` scripts the next authorized reply, including raw bytes or `chunks`, a synchronous or asynchronous iterable of strings and byte arrays. Set `headers["content-type"]` to the story's media type; the default is JSON. Chunks are written in iteration order as they become available, so an async iterable can wait between pieces.
+Use the controls through kit verbs after acquiring the service. `scriptFault(route, { kind: "status", reply })` scripts the next authorized reply, including raw bytes or `chunks`, a synchronous or asynchronous iterable of strings and byte arrays. Set `headers["content-type"]` to the story's media type; the default is JSON. Chunks are written in iteration order as they become available, so an async iterable can wait between pieces.
 
 ```ts
-yield* api.replyOnce("download", {
-  body: Uint8Array.from([0, 255, 128]),
-  headers: { "content-type": "application/octet-stream" },
+yield* api.scriptFault("download", {
+  kind: "status",
+  reply: {
+    body: Uint8Array.from([0, 255, 128]),
+    headers: { "content-type": "application/octet-stream" },
+  },
 });
 const stalled = yield* api.stall("download");
 const pending = yield* Effect.forkChild(application.download());
@@ -353,13 +372,13 @@ const bytes = yield* Fiber.join(pending);
 
 `stall(route)` sends the reply's status and headers, then pauses its body. Its `waiting` effect completes at that pause. Its `release` lets the body continue; a client that gives up also stops waiting on the server. Like a hold, a stall remains installed for matching requests until released. Holds pause before headers. `releaseOnArrival(heldRoute, arrivingRoute, scope?)` releases the current hold when an authorized request reaches the named route; script it before that arrival. Rejected requests do not trigger release.
 
-`fault(route, fault)` acts on an arrived request in the required phase. `{ kind: "status", reply: { status: 503, body: { error: "unavailable" } } }` replaces a held reply before headers. `{ kind: "drop" }` drops a connection before headers. `{ kind: "reset" }` terminates a reply after headers, including after body chunks have arrived. Wait for the hold, stall or client observation before injecting the fault. A fault fails with guidance when no request is in the required phase; it does not queue a failure for a future call. `failOnce` queues a status reply for the next request.
+`fault(route, fault)` acts on an arrived request in the required phase. `{ kind: "status", reply: { status: 503, body: { error: "unavailable" } } }` replaces a held reply before headers. `{ kind: "drop" }` drops a connection before headers. `{ kind: "reset" }` terminates a reply after headers, including after body chunks have arrived. Wait for the hold, stall or client observation before injecting the fault. A fault fails with guidance when no request is in the required phase; it does not queue a failure for a future call. Use `scriptFault` to queue a reply for a future call.
 
-`hold(route, scope)`, `stall(route, scope)`, `fault(route, fault, scope)`, `failOnce(route, reply, scope)` and `replyOnce(route, reply, scope)` accept an optional `{ params: { number: "7" } }`. Every supplied parameter must equal the decoded request parameter. Other resources on the same named route answer normally and do not consume the scoped reply. Scoped holds and stalls return `waiting` and `release`. `hold(route, { once: true, params: { number: "7" } })` holds only the first matching request; later matching requests answer while it remains held. Omit `params` to hold only the first request across the route. Omit `once` to keep holding every matching request until release. Pass the same parameter scope as the third argument to `releaseOnArrival` to release that hold.
+`hold(route, scope)`, `stall(route, scope)`, `fault(route, fault, scope)`, `scriptFault(route, fault, options)` accept an optional `{ params: { number: "7" } }`. Every supplied parameter must equal the decoded request parameter. Other resources on the same named route answer normally and do not consume the scoped reply. Scoped holds and stalls return `waiting` and `release`. `hold(route, { once: true, params: { number: "7" } })` holds only the first matching request; later matching requests answer while it remains held. Omit `params` to hold only the first request across the route. Omit `once` to keep holding every matching request until release. Pass the same parameter scope as the third argument to `releaseOnArrival` to release that hold.
 
 Use `scriptFault(route, fault, options)` to install a fault for future authorized matching requests. It returns a control with a narrated `lift` effect. The default strikes once before the route's reply runs; `{ repeat: true }` keeps it installed until lifted. Status faults can repeat too.
 
-A status fault’s `reply`, and the reply argument of `failOnce` or `replyOnce`, can be a fixed `FakeHttpReply` or a function `(request, now) => FakeHttpReply`. The fake evaluates the function when it answers, using the request being answered (including a held request for `fault`) and milliseconds from the Effect `Clock` captured when the service was created. A repeating fault rebuilds its reply for every request. TestClock stories therefore get deterministic refusal times:
+A status fault’s `reply` can be a fixed `FakeHttpReply` or a function `(request, now) => FakeHttpReply`. The fake evaluates the function when it answers, using the request being answered (including a held request for `fault`) and milliseconds from the Effect `Clock` captured when the service was created. A repeating fault rebuilds its reply for every request. TestClock stories therefore get deterministic refusal times:
 
 ```ts
 yield* api.scriptFault("user", {
@@ -466,7 +485,7 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 });
 ```
 
-`kit.it(name, traits, body, options)` declares one Vitest test, named after the kit's genre: `Bakery Story: tells each step into the story`. It starts a fresh engine, seeds the traits stage by stage and runs the body with the kit's verbs and the `story`: its `engine`, `lines`, `tell(line)` and `runUntil`. The body's second argument is Vitest's test context. A body that yields Effects, such as a verb that runs the engine, is a generator, and one that yields nothing is a plain function. A test that only checks that its traits refuse may leave the body out. `options` is a timeout in milliseconds or Vitest's test options, whose own `tags` join the genre tag when the config declares it. `it.fails`, `it.only`, `it.skip`, `it.runIf(condition)` and `it.skipIf(condition)` work as they do in Vitest.
+`kit.it(name, traits, body, options)` declares one Vitest test, named after the kit's genre: `Bakery Story: tells each step into the story`. It starts a fresh engine, seeds the traits stage by stage and runs the body with the kit's verbs and the `story`: its `engine`, `lines`, `tell(line)` and `runUntil`. A spec reads the engine through the kit's readouts rather than `story.engine`, so each check names what it observes. The body's second argument is Vitest's test context. A body that yields Effects, such as a verb that runs the engine, is a generator, and one that yields nothing is a plain function. A test that only checks that its traits refuse may leave the body out. `options` is a timeout in milliseconds or Vitest's test options, whose own `tags` join the genre tag when the config declares it. `it.fails`, `it.only`, `it.skip`, `it.runIf(condition)` and `it.skipIf(condition)` work as they do in Vitest.
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
@@ -653,27 +672,20 @@ yield* seedCookies(cookies);
 
 Happy-dom's detached window records a location change without loading the next document. `domNavigate(url = window.location.href)` from `@shivaedev/test-story/server/domNavigate.ts` performs that load: it follows HTTP redirects through the document transport, keeps cookies for each destination, sets the final location, writes the returned HTML and returns the happy-dom response. Call it after the sign-in client has set the provider location, and before checking the returned page. An unrouted external redirect fails with its hostname.
 
-The starter's [social application kit](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/test-support/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL, with a rendered sign-in button and a fake GitHub provider. Its `create` hook acquires the provider and uses scoped `routeOutbound` routing for both `github.com` and `api.github.com`. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
+The server package's [social application kit](https://github.com/ShivaeDev/platform/blob/main/packages/server/src/test-support/better-auth/socialApp.ts) runs a fixture Better Auth host on real PostgreSQL with a fake GitHub provider. Its `create` hook acquires the provider and uses scoped `routeOutbound` routing for both `github.com` and `api.github.com`. The fake's authorize endpoint returns the application's callback URL with the received state and a test code. The real callback exchanges that code and fetches the user against the fake, creates the account and session in PostgreSQL, and redirects to the signed-in page.
 
-The kit renders a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The story calls `clickGitHubSignIn`, `settle` and `followRedirect` separately, then reads the heading, cookie and session. The screen driver settles on the screen's request state and reads the heading from the current document after navigation. The provider uses `fakeHttpService`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. The kit does not copy cookies into request headers.
+The kit creates a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The story calls `signInWithGitHub`, which sets the provider location, and `followRedirect`, which runs `domNavigate`, then reads the session the document's cookie carries. The provider uses `fakeHttpService`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. The kit does not copy cookies into request headers.
 
 ```ts
-socialApp.it(
-	"a social sign-in returns with a cookie session",
-	[],
-	function* ({ clickGitHubSignIn, settle, followRedirect, heading, cookie, session }) {
-		yield* clickGitHubSignIn();
-		yield* settle();
-		const response = yield* followRedirect();
-		expect(response.status).toBe(200);
-		expect(heading()).toBe("Signed in as alice@social.test");
-		expect(cookie()).not.toContain("session_token");
-		expect(yield* session()).toMatchObject({ user: { email: "alice@social.test" } });
-	},
-);
+socialApp.it("a social sign-in returns with a cookie session", [], function* ({ signInWithGitHub, followRedirect, session }) {
+	yield* signInWithGitHub();
+	yield* followRedirect();
+
+	expect(yield* session()).toMatchObject({ user: { email: "alice@social.test" } });
+});
 ```
 
-`domFetch` defaults to the current window and its cookie jar. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
+`domFetch` defaults to the current window and its cookie jar. The DOM environment keeps one window per test file, and every story starts with no cookies, `localStorage` or `sessionStorage`, so a story never sees the session an earlier story left. The page location and document carry over; run stories using that window serially and let the application's cleanup restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts within one story.
 
 #### Several members on one host
 
@@ -692,6 +704,16 @@ sharedLists.it("grace sees ada's addition", [signedInMembers("ada", "grace")], f
 	expect(as("grace").text("output")).toBe("grace's list: ada: Bread");
 });
 ```
+
+### Rendering React components
+
+Use `render`, `eventually`, `captureReactWarnings` and `expectNoReactWarnings` from `@shivaedev/test-story/client/react.ts` in happy-dom tests. Install the optional peers when using this module:
+
+```sh
+pnpm add --save-dev react react-dom @effect/atom-react @types/react @types/react-dom happy-dom
+```
+
+`render(node, options?)` attaches a React root with its own native atom registry. Its `render(nextNode)` keeps that registry; `unmount()` disposes the root, registry and container. Acquire it with `Effect.acquireRelease` in a story kit so the scope releases it. `captureReactWarnings` acquires a scoped readout of console warnings and caught React errors; `expectNoReactWarnings()` registers a Vitest guard instead. The [React render testing guide](https://github.com/ShivaeDev/platform/tree/main/packages/react#render-tests-in-happy-dom) shows the helpers with a native RPC component and explains the act wait and error declarations.
 
 ### Driving a screen
 

@@ -27,7 +27,11 @@ export const postgresLayer = makePostgresTestLayer({
 	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 });
 
-class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number }> {}
+class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number }> {
+	override get message() {
+		return `the worker rejected ${this.id}: password=admin-job-secret`;
+	}
+}
 const Jobs = makePgBoss("test/AdminJobs");
 const InvalidMail = defineQueue({ name: Mail.name, schema: Schema.Struct({ invalid: Schema.String }) });
 

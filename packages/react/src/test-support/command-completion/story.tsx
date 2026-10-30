@@ -1,7 +1,7 @@
 import { Deferred, Effect } from "effect";
 import { startTransition } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Rendered } from "#client/testing.ts";
 import { clickButton } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { completionClient, Rejected, Unauthorized } from "./client.ts";

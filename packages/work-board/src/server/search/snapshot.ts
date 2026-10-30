@@ -1,6 +1,9 @@
 import { Clock, Effect, type FileSystem, Option, type Path, type PlatformError, Ref, Semaphore, SubscriptionRef } from "effect";
+import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import { archiveDocuments, refreshArchived } from "#server/archive/documents.ts";
+import { loadSettled } from "#server/archive/loadSettled.ts";
+import { archiveSettled } from "#server/archive/settled.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { invalidationsSince } from "#server/files/invalidations.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
@@ -8,17 +11,18 @@ import { markdownPaths } from "#server/files/markdownPath.ts";
 import type { MetadataDocument, metadataModel } from "#server/metadata/model.ts";
 import { updateModel } from "#server/metadata/updateModel.ts";
 import type { Entry } from "./entries.ts";
+import { fileCounter } from "./fileCounter.ts";
 import { type IndexedDocument, readDocument } from "./readDocument.ts";
 import { updateEntries } from "./updateEntries.ts";
 
 const READ_CONCURRENCY = 16;
-const PROGRESS_STEPS = 100;
 
 function currentSnapshot(hit: Snapshot | undefined, revision: number, watching: boolean, elapsed: number) {
 	return hit?.revision === revision && hit.unavailable.length === 0 && watching && elapsed < 60 * 60 * 1000 ? hit : undefined;
 }
 
 export interface Snapshot {
+	readonly archived?: (selection: string) => Effect.Effect<Snapshot, PlatformError.PlatformError | InternalServerError>;
 	readonly documents: readonly MetadataDocument[];
 	readonly entries: readonly Entry[];
 	readonly maintainer?: string;
@@ -51,15 +55,6 @@ const settledListing = Effect.fn("WorkBoard.settledListing")(function* (changes:
 	}
 	return { files, revision };
 });
-
-function fileCounter(total: number, report: (progress: Indexing) => Effect.Effect<void>) {
-	const step = Math.max(1, Math.ceil(total / PROGRESS_STEPS));
-	let read = 0;
-	return Effect.suspend(() => {
-		read += 1;
-		return read % step === 0 || read === total ? report({ _tag: "Indexing", read, total }) : Effect.void;
-	});
-}
 
 export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 	root: string,
@@ -119,6 +114,7 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 			documents.map((document) => ({ ...document, modified: modified.get(document.file) ?? now })),
 			now,
 		);
+		moved.push(...(yield* archiveSettled(root, documents)));
 		housekeptAt = now;
 		if (moved.length > 0) {
 			yield* refreshArchived(changes, moved);
@@ -126,7 +122,17 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 		}
 		const model = updateModel(hit?.model, documents, unavailable, home ?? files[0]?.path);
 		const enriched = enrich(next, model);
-		const snapshot = { documents, entries: enriched, maintainer, model, modified, revision, unavailable };
+		const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
+		const snapshot: Snapshot = {
+			archived: (selection) => loadSettled(root, snapshot, selection).pipe(Effect.provideContext(services)),
+			documents,
+			entries: enriched,
+			maintainer,
+			model,
+			modified,
+			revision,
+			unavailable,
+		};
 		records = next;
 		listed = new Map(files.map((file) => [file.path, file]));
 		yield* Ref.set(cached, snapshot);

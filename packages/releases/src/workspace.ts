@@ -57,7 +57,9 @@ export const loadConfig = Effect.fn("Changesets.loadConfig")(function* (root: st
 const directories = Effect.fn("Changesets.directories")(function* (root: string, pattern: string) {
 	const fs = yield* FileSystem.FileSystem;
 	if (!/^(?:[\w.-]+\/)*[\w.*-]+$/u.test(pattern) || pattern.split("/").includes("..") || (pattern.includes("*") && !pattern.endsWith("/*"))) {
-		return yield* new ChangesetError({ message: `Invalid package pattern ${pattern}; use a relative directory or parent/*. ` });
+		return yield* new ChangesetError({
+			message: `.changeset/changesets.config.ts: package pattern ${pattern} is invalid; use a relative directory or parent/*.`,
+		});
 	}
 
 	if (!pattern.endsWith("/*")) {

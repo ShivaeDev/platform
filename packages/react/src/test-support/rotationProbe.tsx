@@ -1,6 +1,6 @@
 import { act } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 export function rotationProbe(view: Rendered) {
 	interface Rotating {
 		readonly credential: number;

@@ -52,6 +52,12 @@ snakeCaseNames.it(
 	},
 );
 
+snakeCaseNames.it("a raw SQL stream returns rows with createdAt for the created_at column", [], function* ({ insertRaw, rawCreatedAtStream }) {
+	yield* insertRaw(noon);
+
+	expect(yield* rawCreatedAtStream()).toEqual([{ createdAt: noon }]);
+});
+
 snakeCaseNames.it("upsert reports an insert for a new row and an update for the same id", [], function* ({ returned, upsertRow }) {
 	yield* upsertRow(noon);
 	expect(yield* returned()).toEqual({ inserted: true, row: { createdAt: noon, id: 1 } });

@@ -1,83 +1,130 @@
-import { Effect, Fiber } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
 import { httpFaultApp } from "#test/httpFaultApp.ts";
 
-httpFaultApp.it("flushes status and headers while its body waits for release", [], function* ({ stall, replyOnce, request }) {
-	yield* replyOnce("data", { body: { released: true }, headers: { "x-story": "stalled" }, status: HttpStatus.fromLiteral("Accepted") });
+const STALLED_REPLY = { body: { released: true }, headers: { "x-story": "stalled" }, status: HttpStatus.fromLiteral("Accepted") };
+
+httpFaultApp.it(
+	"sends a stalled reply's status and headers before its body",
+	[],
+	function* ({ header, progress, scriptFault, sends, stall, status }) {
+		yield* scriptFault("data", { kind: "status", reply: STALLED_REPLY });
+		const paused = yield* stall("data");
+
+		yield* sends("client");
+
+		yield* paused.waiting;
+		yield* outcomes({
+			"the status": [status("client"), "HTTP 202"],
+			"the x-story header": [header("client", "x-story"), "stalled"],
+			"while the body": [progress("client"), "waiting for its body"],
+		});
+	},
+);
+
+httpFaultApp.it("sends a stalled reply's body once the stall is released", [], function* ({ answer, scriptFault, sends, stall, status }) {
+	yield* scriptFault("data", { kind: "status", reply: STALLED_REPLY });
 	const paused = yield* stall("data");
-	const client = yield* request();
+	yield* sends("client");
 	yield* paused.waiting;
-	expect(yield* client.headers).toMatchObject({ headers: { "x-story": "stalled" }, kind: "headers", status: HttpStatus.fromLiteral("Accepted") });
-	const body = yield* Effect.forkChild(client.finished);
-	const other = yield* request("/trigger");
-	yield* other.finished;
-	expect(body.pollUnsafe()).toBeUndefined();
+	expect(yield* status("client")).toBe("HTTP 202");
+
 	yield* paused.release;
-	expect(yield* Fiber.join(body)).toEqual({ bytes: Buffer.from('{"released":true}'), kind: "complete" });
+
+	expect(yield* answer("client")).toBe('HTTP 202 {"released":true}');
 });
 
-httpFaultApp.it("delivers binary reply bytes with the supplied content type exactly once", [], function* ({ replyOnce, request }) {
-	const bytes = Uint8Array.from([0, 255, 128, 13, 10]);
-	yield* replyOnce("data", { body: bytes, headers: { "content-type": "image/png" } });
-	const client = yield* request();
-	expect(yield* client.headers).toMatchObject({ headers: { "content-type": "image/png" }, status: HttpStatus.fromLiteral("OK") });
-	expect(yield* client.finished).toEqual({ bytes: Buffer.from(bytes), kind: "complete" });
-	const next = yield* request();
-	expect(yield* next.finished).toEqual({ bytes: Buffer.from('{"ready":true}'), kind: "complete" });
-});
-
-httpFaultApp.it("sends each chunk before the next piece is available", [], function* ({ streamChunks, sendChunk, request }) {
-	yield* streamChunks(["first", Uint8Array.from([0, 255]), "last"]);
-	const client = yield* request();
-	const body = yield* Effect.forkChild(client.finished);
-	yield* sendChunk();
-	expect(yield* client.nextChunk).toEqual(Buffer.from("first"));
-	expect(yield* client.headers).toMatchObject({ headers: { "content-type": "application/octet-stream", "transfer-encoding": "chunked" } });
-	expect(body.pollUnsafe()).toBeUndefined();
-	yield* sendChunk();
-	expect(yield* client.nextChunk).toEqual(Buffer.from([0, 255]));
-	expect(body.pollUnsafe()).toBeUndefined();
-	yield* sendChunk();
-	expect(yield* Fiber.join(body)).toEqual({ bytes: Buffer.from([102, 105, 114, 115, 116, 0, 255, 108, 97, 115, 116]), kind: "complete" });
-});
-
-httpFaultApp.it("lets a client abandon a stalled body and serves a later request", [], function* ({ stall, request }) {
+httpFaultApp.it("keeps every later matching body stalled until the same release", [], function* ({ answer, asks, progress, sends, stall, status }) {
 	const paused = yield* stall("data");
-	const client = yield* request();
+	yield* sends("first");
 	yield* paused.waiting;
-	expect(yield* client.headers).toMatchObject({ kind: "headers", status: HttpStatus.fromLiteral("OK") });
-	yield* client.abort;
-	expect(yield* client.finished).toMatchObject({ code: "ECONNRESET", kind: "error" });
-	yield* paused.release;
-	const next = yield* request();
-	expect(yield* next.finished).toMatchObject({ kind: "complete" });
-});
+	yield* sends("second");
+	expect(yield* status("second")).toBe("HTTP 200");
+	yield* asks("/trigger");
+	expect(yield* progress("second")).toBe("waiting for its body");
 
-httpFaultApp.it("keeps later matching bodies stalled until the same release", [], function* ({ stall, request }) {
-	const paused = yield* stall("data");
-	const first = yield* request();
-	yield* paused.waiting;
-	const second = yield* request();
-	expect(yield* first.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-	expect(yield* second.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-	const pending = yield* Effect.forkChild(second.finished);
-	const trigger = yield* request("/trigger");
-	yield* trigger.finished;
-	expect(pending.pollUnsafe()).toBeUndefined();
 	yield* paused.release;
-	expect(yield* first.finished).toEqual({ bytes: Buffer.from('{"ready":true}'), kind: "complete" });
-	expect(yield* Fiber.join(pending)).toEqual({ bytes: Buffer.from('{"ready":true}'), kind: "complete" });
-});
 
-httpFaultApp.it("writes Buffer bodies and synchronous chunks without JSON encoding", [], function* ({ replyOnce, request }) {
-	yield* replyOnce("data", { body: Buffer.from([0, 255]), headers: { "content-type": "application/octet-stream" } });
-	const binary = yield* request();
-	expect(yield* binary.finished).toEqual({ bytes: Buffer.from([0, 255]), kind: "complete" });
-	yield* replyOnce("data", { chunks: ["head", Buffer.from([0, 255]), "tail"], headers: { "content-type": "application/octet-stream" } });
-	const chunked = yield* request();
-	expect(yield* chunked.finished).toEqual({
-		bytes: Buffer.concat([Buffer.from("head"), Buffer.from([0, 255]), Buffer.from("tail")]),
-		kind: "complete",
+	yield* outcomes({
+		first: [answer("first"), 'HTTP 200 {"ready":true}'],
+		second: [answer("second"), 'HTTP 200 {"ready":true}'],
 	});
 });
+
+httpFaultApp.it("serves the next request after a client hangs up on a stalled body", [], function* ({ abandons, asks, sends, stall }) {
+	const paused = yield* stall("data");
+	yield* sends("client");
+	yield* paused.waiting;
+	yield* abandons("client");
+
+	yield* paused.release;
+
+	expect(yield* asks("/data")).toBe('HTTP 200 {"ready":true}');
+});
+
+httpFaultApp.it("sends binary reply bytes as they are with the content type the reply names", [], function* ({ answer, header, scriptFault, sends }) {
+	yield* scriptFault("data", { kind: "status", reply: { body: Uint8Array.from([0, 255, 128, 13, 10]), headers: { "content-type": "image/png" } } });
+
+	yield* sends("client");
+
+	yield* outcomes({
+		answer: [answer("client"), "HTTP 200 <00 ff 80 0d 0a>"],
+		"content type": [header("client", "content-type"), "image/png"],
+	});
+});
+
+httpFaultApp.it("answers normally once a one-shot reply is spent", [], function* ({ asks, scriptFault }) {
+	yield* scriptFault("data", { kind: "status", reply: { body: Uint8Array.from([0, 255]) } });
+
+	yield* outcomes({
+		"the first request": [asks("/data"), "HTTP 200 <00 ff>"],
+		"the next request": [asks("/data"), 'HTTP 200 {"ready":true}'],
+	});
+});
+
+for (const [shape, reply, answer] of [
+	["a Buffer body", { body: Buffer.from([0, 255]) }, "HTTP 200 <00 ff>"],
+	["synchronous chunks", { chunks: ["head", Buffer.from([0, 255]), "tail"] }, "HTTP 200 head<00 ff>tail"],
+] as const) {
+	httpFaultApp.it(`writes ${shape} without JSON encoding`, [], function* ({ asks, scriptFault }) {
+		yield* scriptFault("data", { kind: "status", reply: { ...reply, headers: { "content-type": "application/octet-stream" } } });
+
+		expect(yield* asks("/data")).toBe(answer);
+	});
+}
+
+httpFaultApp.it(
+	"sends a chunk while the next one is not yet available",
+	[],
+	function* ({ nextChunk, progress, sends, sendsNextChunk, streamsChunks }) {
+		yield* streamsChunks(["first", Uint8Array.from([0, 255]), "last"]);
+		yield* sends("client");
+
+		yield* sendsNextChunk();
+
+		yield* outcomes({
+			"chunk received": [nextChunk("client"), "first"],
+			progress: [progress("client"), "waiting for its body"],
+		});
+	},
+);
+
+httpFaultApp.it(
+	"streams chunks with a chunked transfer encoding and ends the body after the last",
+	[],
+	function* ({ answer, header, sends, sendsNextChunk, streamsChunks }) {
+		yield* streamsChunks(["first", Uint8Array.from([0, 255]), "last"]);
+		yield* sends("client");
+
+		yield* sendsNextChunk();
+		yield* sendsNextChunk();
+		yield* sendsNextChunk();
+
+		yield* outcomes({
+			answer: [answer("client"), "HTTP 200 first<00 ff>last"],
+			"content type": [header("client", "content-type"), "application/octet-stream"],
+			"transfer encoding": [header("client", "transfer-encoding"), "chunked"],
+		});
+	},
+);

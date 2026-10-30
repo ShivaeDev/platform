@@ -3,7 +3,7 @@ interface SeedFile {
 	readonly path: string;
 }
 
-const helper = new URL("../../../packages/quality/src/testProjects.ts", import.meta.url).href;
+const helper = new URL("../../../packages/quality/src/adapters/testProjects.ts", import.meta.url).href;
 
 export function projectConfig(options = "", extra = ""): SeedFile {
 	return {

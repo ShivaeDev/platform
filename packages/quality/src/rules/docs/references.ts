@@ -1,6 +1,7 @@
 import { join, posix } from "node:path";
-import { Effect, Option, Schema } from "effect";
+import { Effect } from "effect";
 import ts from "typescript";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { headingAnchors } from "#docs/headingAnchors.ts";
 import { importFindings } from "#docs/importFindings.ts";
 import { isDocument } from "#docs/isDocument.ts";
@@ -9,8 +10,6 @@ import { markdownLines } from "#docs/markdownLines.ts";
 import { repositoryOf } from "#docs/repositoryLink.ts";
 import { type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
 import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
-
-const decodeJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown));
 
 function field(value: unknown, key: string): unknown {
 	return typeof value === "object" && value !== null && key in value ? Reflect.get(value, key) : undefined;
@@ -24,10 +23,6 @@ function isLink(root: string, file: string): boolean {
 
 function reader(inputs: RuleInputs): (path: string) => Effect.Effect<string | undefined> {
 	return (path) => Effect.promise(() => inputs.readText(path));
-}
-
-function jsonAt(read: ReturnType<typeof reader>, path: string): Effect.Effect<unknown> {
-	return Effect.map(read(path), (text) => (text === undefined ? undefined : Option.getOrUndefined(decodeJson(text))));
 }
 
 function anchorsReader(read: ReturnType<typeof reader>): (path: string) => Effect.Effect<ReadonlySet<string> | undefined> {
@@ -47,7 +42,10 @@ const references = Effect.fn("Docs.references")(function* (inputs: RuleInputs) {
 	const packages: readonly WorkspacePackage[] = yield* Effect.promise(() => workspacePackages(inputs));
 	const manifests = new Map(
 		yield* Effect.forEach(packages, (owner) =>
-			Effect.map(jsonAt(read, posix.join(owner.directory, "package.json")), (manifest) => [owner.name, manifest] as const),
+			Effect.map(
+				Effect.promise(() => readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json"))),
+				(manifest) => [owner.name, manifest] as const,
+			),
 		),
 	);
 	const shared = {
@@ -55,7 +53,7 @@ const references = Effect.fn("Docs.references")(function* (inputs: RuleInputs) {
 		exports: new Map([...manifests].map(([name, manifest]) => [name, field(manifest, "exports")])),
 		packages: new Map(packages.map((owner) => [owner.name, owner])),
 		readText: read,
-		repository: repositoryOf(yield* jsonAt(read, "package.json")),
+		repository: repositoryOf(yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))),
 		root: inputs.root,
 	};
 	const documents = inputs.files.filter((file) => isDocument(file) && !isLink(inputs.root, file));
@@ -76,7 +74,7 @@ const references = Effect.fn("Docs.references")(function* (inputs: RuleInputs) {
 });
 
 export const docsReferences = defineRule({
-	check: (inputs) => Effect.runPromise(references(inputs)),
+	check: references,
 	description:
 		"Links, heading anchors and documented modules and exports in Markdown resolve, so documentation cannot point at a file, a heading or an API that no longer exists.",
 	id: "docs/references",

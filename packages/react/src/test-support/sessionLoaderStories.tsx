@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Rendered } from "#client/testing.ts";
 import { loaderSession, type Unauthorized, type Unavailable } from "./loaderSession.ts";
 import { clickButton } from "./Screen.ts";
 import { SessionLoaderApp } from "./SessionLoaderApp.tsx";

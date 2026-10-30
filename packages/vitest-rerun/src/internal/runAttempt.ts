@@ -3,11 +3,11 @@ import type { CliOptions, Vitest } from "vitest/node";
 import * as VitestNode from "vitest/node";
 import { failWith } from "#error.ts";
 import { writeFlakyTests } from "#flakyTests.ts";
+import { TimedJsonReporter } from "#internal/adapters/TimedJsonReporter.ts";
 import { RerunJunitReporter } from "#internal/junit.ts";
 import { mergeAttempt } from "#internal/mergeAttempt.ts";
 import { attemptPaths, reportPaths } from "#internal/reportPaths.ts";
 import { failedFiles, readSnapshot, type Snapshot, saveSnapshot, tests } from "#internal/snapshot.ts";
-import { TimedJsonReporter } from "#internal/TimedJsonReporter.ts";
 
 export interface Attempt {
 	readonly attempt: number;
@@ -84,7 +84,7 @@ const rerunFailed = Effect.fn("VitestRerun.rerunFailed")(function* (vitest: Vite
 	}
 	yield* promise("Vitest could not rerun the failed tests", () => vitest.runTestSpecifications(specifications));
 	const lines: string[] = [];
-	const merged = mergeAttempt(previous, vitest.state.getFiles(), vitest.config.root, (line) => lines.push(line));
+	const merged = yield* mergeAttempt(previous, vitest.state.getFiles(), vitest.config.root, (line) => lines.push(line));
 	for (const file of merged.files) {
 		vitest.state.collectFiles(vitest.getProjectByName(file.projectName ?? ""), [file]);
 	}

@@ -88,15 +88,19 @@ export const Responses = defineService({
 			);
 		}
 		function history(preview: Parameters<typeof responseHistory>[1]) {
-			return Effect.flatMap(snapshot, (data) =>
-				Effect.try({
+			return Effect.gen(function* () {
+				const current = yield* snapshot;
+				const data = yield* (current.archived?.(preview.item) ?? Effect.succeed(current)).pipe(
+					Effect.mapError(() => new ServiceUnavailable({ message: "Archived response history could not be read." })),
+				);
+				return yield* Effect.try({
 					catch: (cause) =>
 						Schema.is(ServiceUnavailable)(cause)
 							? cause
 							: new ServiceUnavailable({ message: "Response history could not be read. Check the source diagnostics and retry." }),
 					try: () => responseHistory(data, preview),
-				}),
-			);
+				});
+			});
 		}
 		function answer({ item, request, revision, ...draft }: AnswerInput) {
 			const save = Effect.flatMap(lock.withPermit(register({ item, request, revision })), (question) => record({ ...draft, question: question.id }));

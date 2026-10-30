@@ -19,6 +19,9 @@ export const mill = storyKit({
 			},
 			waitsForWind: () => story.runUntil((current) => current.wind > 0),
 		},
+		sacks: () => state.sacks,
+		sails: () => state.sails,
+		wind: () => state.wind,
 	}),
 });
 

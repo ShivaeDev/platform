@@ -1,11 +1,11 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { accessStory, signedIn, signedOut } from "#test/accessStory.ts";
-import { AssignRoles, ReadUsers } from "#test/policy.ts";
+import { accessStory, readerDeclaredTwice, signedIn } from "#test/accessStory.ts";
+import { AssignRoles } from "#test/policy.ts";
 
 for (const [role, grants, withheld] of [
 	["reader", ["users.read", "jobs.read"], "users.read.any, roles.assign or jobs.read.details"],
-	["manager", ["users.read.any", "roles.assign"], "users.read, jobs.read or jobs.read.details"],
+	["manager", ["users.read", "users.read.any", "roles.assign"], "jobs.read or jobs.read.details"],
 	["guest", [], "any grant"],
 ] as const) {
 	accessStory.it(
@@ -24,12 +24,14 @@ accessStory.it("grant enforcement answers alice as a reader with forbidden for r
 	expect(yield* enforceGrant(AssignRoles)).toBe("forbidden");
 });
 
-for (const user of [undefined, null]) {
-	accessStory.it(
-		`grant enforcement answers a signed-out caller passing ${String(user)} as the user with unauthorized for users.read`,
-		[signedOut(user)],
-		function* ({ enforceGrant }) {
-			expect(yield* enforceGrant(ReadUsers)).toBe("unauthorized");
-		},
-	);
-}
+accessStory.it(
+	"alice as a reader, in a role set that repeats reader under a name the compiler cannot check, is shown, allowed and resolved to the first declaration's grants alone",
+	[readerDeclaredTwice(), signedIn("reader")],
+	function* ({ allowedGrants, resolvedGrants, shownGrants }) {
+		yield* outcomes({
+			"grants enforcement allows": [allowedGrants(), ["users.read", "jobs.read"]],
+			"grants the check shows": [shownGrants(), ["users.read", "jobs.read"]],
+			"grants the stored role resolves to": [resolvedGrants(), ["users.read", "jobs.read"]],
+		});
+	},
+);

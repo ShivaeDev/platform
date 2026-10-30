@@ -1,49 +1,33 @@
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
+import { database } from "#test/postgres/database.ts";
+import { holds, running } from "#test/postgres/traits.ts";
 
-postgresIt("reports both populated queues and their totals after the monitor refreshes", [realPostgres], function* ({ boot, admin, native, until }) {
-	const queues = [1, 2].map((count) => ({
-		activeCount: count,
-		deadLetteredCount: count,
-		failedCount: count,
-		queue: defineQueue({ name: `health-${count}`, queue: { retryLimit: 0 }, schema: Schema.Struct({}) }),
-		queuedCount: 3,
-		readyCount: 3 - count,
-	}));
-	const client = yield* admin();
-	const observed = native({ monitorIntervalSeconds: 1, superviseIntervalSeconds: 1 });
-	const { jobs } = yield* boot(
-		queues.map(({ queue }) => queue),
-		{ clientFactory: () => observed },
-	);
-	for (const { queue, activeCount, failedCount, readyCount } of queues) {
-		yield* Effect.promise(async () => {
-			for (let index = 0; index < failedCount; index += 1) {
-				await client.send(queue.name, {});
-			}
-			const failed = await client.fetch(queue.name, { batchSize: failedCount, includeMetadata: true });
-			await client.fail(queue.name, failed, new Error("Retained health failure"));
-			for (let index = 0; index < activeCount; index += 1) {
-				await client.send(queue.name, {});
-			}
-			await client.fetch(queue.name, { batchSize: activeCount });
-			for (let index = 0; index < 3; index += 1) {
-				await client.send(queue.name, {}, index < readyCount ? {} : { startAfter: 3600 });
-			}
+const First = defineQueue({ name: "health-1", queue: { retryLimit: 0 }, schema: Schema.Struct({}) });
+const Second = defineQueue({ name: "health-2", queue: { retryLimit: 0 }, schema: Schema.Struct({}) });
+
+database.it(
+	"after a monitor pass, health reports each queue's failed, active, queued, ready and dead-lettered counts and their totals",
+	[
+		running("app", [First, Second], { supervise: false }),
+		holds(First, { active: 1, failed: 1, later: 1, ready: 2 }),
+		holds(Second, { active: 2, failed: 2, later: 2, ready: 1 }),
+	],
+	function* ({ answered, ask, monitorPasses }) {
+		yield* monitorPasses(First.name, Second.name, "health-1-dlq", "health-2-dlq");
+		yield* ask("app", "report health", (jobs) => jobs.health);
+
+		expect(yield* answered()).toEqual({
+			activeTotal: 3,
+			deadLetteredTotal: 3,
+			failedTotal: 3,
+			jobs: [
+				{ activeCount: 1, deadLetteredCount: 1, failedCount: 1, name: First.name, queuedCount: 3, readyCount: 2 },
+				{ activeCount: 2, deadLetteredCount: 2, failedCount: 2, name: Second.name, queuedCount: 3, readyCount: 1 },
+			],
+			queuedTotal: 6,
+			readyTotal: 3,
 		});
-	}
-	const health = yield* until(
-		jobs.health,
-		(value) => value.failedTotal === 3 && value.activeTotal === 3 && value.deadLetteredTotal === 3 && value.queuedTotal === 6,
-	);
-	expect(health).toEqual({
-		activeTotal: 3,
-		deadLetteredTotal: 3,
-		failedTotal: 3,
-		jobs: queues.map(({ queue, ...counts }) => ({ ...counts, name: queue.name })),
-		queuedTotal: 6,
-		readyTotal: 3,
-	});
-});
+	},
+);

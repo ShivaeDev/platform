@@ -1,4 +1,4 @@
-import { extname, join } from "node:path";
+import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Console, Effect, FileSystem, Option } from "effect";
@@ -7,7 +7,7 @@ import { ATTEMPT_REPORT, attemptPaths, reportPaths } from "#internal/reportPaths
 import { failedFiles, readSnapshot } from "#internal/snapshot.ts";
 import type { RerunOptions } from "#options.ts";
 
-const ATTEMPT_MODULE = fileURLToPath(new URL(`./internal/attempt${extname(fileURLToPath(import.meta.url))}`, import.meta.url));
+const ATTEMPT_MODULE = fileURLToPath(import.meta.resolve("#internal/attempt.ts"));
 
 const removeReports = Effect.fn("VitestRerun.removeReports")(function* (outputDir: string) {
 	const fs = yield* FileSystem.FileSystem;
@@ -48,17 +48,24 @@ const keepFirstAttempt = Effect.fn("VitestRerun.keepFirstAttempt")(function* (ou
 	yield* fs.copyFile(final.junit, first.junit);
 });
 
+const removeSnapshots = Effect.fn("VitestRerun.removeSnapshots")(function* (outputDir: string, attempts: number) {
+	const fs = yield* FileSystem.FileSystem;
+	for (let attempt = 1; attempt <= attempts; attempt += 1) {
+		yield* fs.remove(attemptPaths(outputDir, attempt).snapshot, { force: true });
+	}
+});
+
 export const rerun = Effect.fn("VitestRerun.rerun")(function* (options: RerunOptions) {
 	yield* removeReports(options.outputDir);
-	let code = yield* spawnAttempt(options, 1);
-	for (let attempt = 1; attempt <= options.reruns; attempt += 1) {
-		if (!(Option.exists(code, (status) => status !== 0) && (yield* rerunnable(options.outputDir, attempt)))) {
-			break;
-		}
-		if (attempt === 1) {
+	let attempts = 1;
+	let code = yield* spawnAttempt(options, attempts);
+	while (attempts <= options.reruns && Option.exists(code, (status) => status !== 0) && (yield* rerunnable(options.outputDir, attempts))) {
+		if (attempts === 1) {
 			yield* keepFirstAttempt(options.outputDir);
 		}
-		code = yield* spawnAttempt(options, attempt + 1);
+		attempts += 1;
+		code = yield* spawnAttempt(options, attempts);
 	}
+	yield* removeSnapshots(options.outputDir, attempts);
 	return Option.getOrElse(code, () => 1);
 });

@@ -1,10 +1,10 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Schema } from "effect";
+import { Effect, Schema, Stream } from "effect";
 import { identity } from "effect/Function";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clientOptions } from "#clientOptions.ts";
+import { postgresLayer } from "#postgresLayer.ts";
 import { makeRepository } from "#repository.ts";
 import { configured, postgresOptions } from "./postgres.ts";
 import { ownTable, records, uniqueTable } from "./writeTables.ts";
@@ -64,6 +64,7 @@ function datedVerbs({ records: { returned }, rows, sql, tableName }: DatedEngine
 				tell(`the repository inserts row 1 created at ${printed(createdAt)}`);
 				return Effect.map(rows.insert({ createdAt, id: 1 }), (row) => keep(plain(row)));
 			}),
+		rawCreatedAtStream: () => Stream.runCollect(sql`select created_at from ${sql(tableName)}`.stream),
 		rawCreatedAtWhere: (createdAt: Date) => sql`select created_at from ${sql(tableName)} where ${sql("createdAt")} = ${createdAt}`,
 		rawCreatedAtWithRowId: () => sql`select "createdAt", id as row_id from ${sql(tableName)}`,
 		returned: () => Effect.sync(() => returned.at(-1)),
@@ -99,7 +100,7 @@ function namesKit(name: string, column: string, options: object) {
 	return storyKit({
 		clock: "live",
 		create: datedEngine(column),
-		layer: PgClient.layer({ ...postgresOptions, ...options }),
+		layer: postgresLayer(postgresOptions.url, { ...postgresOptions, ...options }),
 		name,
 		runIf: configured,
 		stages: ["rows"],

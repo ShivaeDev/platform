@@ -4,6 +4,7 @@
 {"path":"packages/sql/src/compositeRepository.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/conditionalUpsert.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/conflictWrites.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/sql/src/databaseAddress.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/insertFromSelect.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/latestPerGroup.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/listenForChanges.ts","rule":"effect/service-parameters","count":1}

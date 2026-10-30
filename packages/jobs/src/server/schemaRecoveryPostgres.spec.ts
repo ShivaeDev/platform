@@ -1,47 +1,55 @@
-import { Effect, Fiber, Option, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
-import { schemaIt } from "#test/schemaStories.ts";
+import { schemaKit } from "#test/schema/kit.ts";
+import { installed, ran, rolledBackTo, snapshotHeld, stopped } from "#test/schema/traits.ts";
 
-schemaIt(
-	"retries a cancelled concurrent upgrade by repairing invalid and missing indexes",
-	[],
-	function* ({ boot, holdIndexBuild, installSchema, query, rollbackSchema, untilJob }) {
-		yield* installSchema({ schema: "jobs_test" });
-		const queue = defineQueue({ name: "recover", queue: { partition: true }, schema: Schema.Struct({ value: Schema.Number }) });
-		const producer = yield* boot([queue], { migrate: false });
-		yield* producer.stop;
-		yield* rollbackSchema("jobs_test", 45);
-		const held = yield* holdIndexBuild();
-		const upgrade = yield* installSchema({ schema: "jobs_test" }).pipe(Effect.forkChild);
-		yield* held.cancel;
-		expect(yield* Fiber.join(upgrade).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
-		yield* held.release;
-		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 46 }]);
-		expect(
-			yield* query(
-				"SELECT indexrelid::regclass::text AS name, indisvalid AS valid FROM pg_index WHERE indexrelid = to_regclass('jobs_test.job_common_i13')",
-			),
-		).toEqual([{ name: "jobs_test.job_common_i13", valid: false }]);
-		yield* installSchema({ schema: "jobs_test" });
-		expect(
-			yield* query(
-				"SELECT indisvalid AS valid FROM pg_index JOIN pg_class ON pg_class.oid = indexrelid JOIN pg_namespace ON pg_namespace.oid = relnamespace WHERE nspname = 'jobs_test' AND relname LIKE '%i13'",
-			),
-		).toEqual([{ valid: true }, { valid: true }]);
-		const handled: number[] = [];
-		const worker = yield* boot(
-			[
-				queue.handle(({ value }) =>
-					Effect.sync(() => {
-						handled.push(value);
-					}),
-				),
+const TWO_VERSIONS_BEHIND = 44;
+
+const Recovered = defineQueue({ name: "recover", queue: { partition: true }, schema: Schema.Struct({ value: Schema.Number }) });
+
+const heldBack = [
+	installed("jobs_test"),
+	ran("producer", [Recovered], { controller: "none", migrate: false, schema: "jobs_test" }),
+	stopped("producer"),
+	rolledBackTo("jobs_test", TWO_VERSIONS_BEHIND),
+	snapshotHeld,
+];
+
+schemaKit.it(
+	"an upgrade whose concurrent index build gives up records the new version and leaves that index invalid",
+	heldBack,
+	function* ({ answered, indexes, installSchema, releaseSnapshot, schemaVersion }) {
+		expect(yield* schemaVersion("jobs_test")).toBe(TWO_VERSIONS_BEHIND);
+
+		yield* installSchema("jobs_test");
+		yield* releaseSnapshot();
+
+		yield* outcomes({
+			"answer": [answered(), expect.stringMatching(/^install failed with /u)],
+			"common index": [
+				indexes("jobs_test", "^job_common_i13$"),
+				[{ index: "jobs_test.job_common_i13", table: "jobs_test.job_common", valid: false }],
 			],
-			{ migrate: false },
-		);
-		const id = Option.getOrThrow(yield* worker.jobs.enqueue(queue, { value: 42 }));
-		yield* untilJob(worker.jobs, queue, id, "completed");
-		expect(handled).toEqual([42]);
+			"version": [schemaVersion("jobs_test"), 46],
+		});
+	},
+);
+
+schemaKit.it(
+	"installing again after an index build gave up repairs the invalid and missing indexes",
+	heldBack,
+	function* ({ indexes, installSchema, releaseSnapshot }) {
+		yield* installSchema("jobs_test");
+		yield* releaseSnapshot();
+		expect(yield* indexes("jobs_test", "^job_common_i13$")).toEqual([expect.objectContaining({ valid: false })]);
+
+		yield* installSchema("jobs_test");
+
+		expect(yield* indexes("jobs_test", "i13$")).toEqual([
+			{ index: "jobs_test.job_common_i13", table: "jobs_test.job_common", valid: true },
+			{ index: "jobs_test.partition_i13", table: "jobs_test.partition", valid: true },
+		]);
 	},
 );

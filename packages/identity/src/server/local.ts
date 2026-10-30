@@ -3,7 +3,8 @@ import { HttpServerRequest, HttpServerResponse, HttpTraceContext } from "effect/
 import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization } from "effect/rpc";
 import { proxyAddresses, proxyMatches } from "./trustedProxy.ts";
-import { trustedProxyRanges as normalizedRanges } from "./trustedProxyRanges.ts";
+
+type TransportRequest = Pick<HttpServerRequest.HttpServerRequest, "headers" | "remoteAddress">;
 
 function loopbackAddress(address: string): boolean {
 	const unmapped = unmapAddress(address);
@@ -23,7 +24,7 @@ function loopbackHost(host: string | undefined): boolean {
 	const hostname = authority.hostname?.toLowerCase();
 	return hostname !== undefined && (hostname === "localhost" || hostname === "[::1]" || loopbackAddress(hostname));
 }
-export function sameOrigin(request: HttpServerRequest.HttpServerRequest): boolean {
+export function sameOrigin(request: Pick<TransportRequest, "headers">): boolean {
 	const origin = request.headers.origin;
 	if (origin === undefined) {
 		return true;
@@ -47,11 +48,8 @@ export function trustedProxyPeer(trustedProxy?: string): (address: string) => bo
 	const addresses = trustedProxy === undefined ? undefined : proxyAddresses(trustedProxy);
 	return (address) => addresses !== undefined && proxyMatches(addresses, address);
 }
-export function trustedProxyRanges(trustedProxy?: string): string[] {
-	return normalizedRanges(trustedProxy);
-}
 
-function proxyOrigin(request: HttpServerRequest.HttpServerRequest, isTrustedProxy: (address: string) => boolean, native: boolean): boolean {
+function proxyOrigin(request: TransportRequest, isTrustedProxy: (address: string) => boolean, native: boolean): boolean {
 	if (!Option.exists(request.remoteAddress, isTrustedProxy)) {
 		return false;
 	}
@@ -69,7 +67,7 @@ function proxyOrigin(request: HttpServerRequest.HttpServerRequest, isTrustedProx
 }
 export function localTransport(trustedProxy?: string, nativeOrigins: readonly string[] = []) {
 	const isTrustedProxy = trustedProxyPeer(trustedProxy);
-	return (request: HttpServerRequest.HttpServerRequest): boolean => {
+	return (request: TransportRequest): boolean => {
 		const native = nativeOrigins.includes(request.headers.origin ?? "");
 		const local = loopbackHost(request.headers.host) && Option.exists(request.remoteAddress, loopbackAddress);
 		return (local && (native || sameOrigin(request))) || proxyOrigin(request, isTrustedProxy, native);

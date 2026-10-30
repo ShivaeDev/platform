@@ -13,6 +13,7 @@ import { type RequestAnswer, type Revocation, requestFailures, revocationOf, typ
 import { emailSignUp, gitHubSignIn } from "./flows.ts";
 import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
 import { type PolicyHost, policyHost } from "./host.ts";
+import { policyProbe, requestWork } from "./requestWork.ts";
 
 const people = { alice: "1001", bob: "1002", carol: "1003" } as const;
 export type Person = keyof typeof people;
@@ -24,7 +25,7 @@ export type MalformedList = keyof typeof malformedLists;
 
 interface Engine {
 	readonly accounts: Map<string, GitHubAccount>;
-	readonly app: { sessionsOpen: boolean };
+	readonly app: { sessionsOpen: boolean; readonly policy: Effect.Success<typeof policyProbe> };
 	readonly cookies: Map<Person, string>;
 	readonly env: Record<string, string>;
 	readonly github: Effect.Success<ReturnType<typeof fakeGitHub>>;
@@ -94,7 +95,7 @@ export const signInPolicy = storyKit({
 		yield* routeOutbound({ "api.github.com": github.url, "github.com": github.url });
 		const engine: Engine = {
 			accounts,
-			app: { sessionsOpen: true },
+			app: { policy: yield* policyProbe, sessionsOpen: true },
 			cookies: new Map(),
 			env: { "AUTH_RATE_LIMIT_ENABLED": "false" },
 			github,
@@ -113,6 +114,7 @@ export const signInPolicy = storyKit({
 	verbs: (engine, story) => {
 		engine.github.narrate(story.tell);
 		return {
+			...requestWork(engine.app.policy, engine.cookies, () => host(engine), story.tell),
 			corruptList: (kind: MalformedList) =>
 				Effect.sync(() => {
 					story.tell(`the operator sets AUTH_ALLOWED_ACCOUNTS to ${JSON.stringify(malformedLists[kind])}, ${kind}`);
@@ -240,7 +242,11 @@ export const organizationRule = signInPolicy.trait(
 	"policy",
 	`the application admits members of ${ORGANIZATION}, rechecked every ${RECHECK_INTERVAL}`,
 	(engine) => {
-		engine.policy = { ...engine.policy, recheckInterval: RECHECK_INTERVAL, rule: membershipRule };
+		engine.policy = {
+			...engine.policy,
+			recheckInterval: RECHECK_INTERVAL,
+			rule: (account) => engine.app.policy.check(membershipRule(account)),
+		};
 	},
 );
 
@@ -275,3 +281,7 @@ export const applicationRefusesNewSessions = signInPolicy.trait(
 		engine.app.sessionsOpen = false;
 	},
 );
+
+export const policyWaits = signInPolicy.trait("conditions", "the membership check waits for its provider", (engine) => {
+	engine.app.policy.waiting = true;
+});

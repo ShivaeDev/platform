@@ -1,7 +1,7 @@
 import * as HttpStatus from "effect/http/HttpStatus";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authQuery } from "#client/authQuery.ts";
-import type { Rendered } from "#client/testing.ts";
 import { AuthRead } from "./AuthRead.tsx";
 import { screenKit } from "./screenKit.ts";
 

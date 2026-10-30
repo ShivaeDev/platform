@@ -3,15 +3,14 @@ import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { watchChanges } from "#server/files/changes.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
+import { openQuestions } from "./openQuestions.ts";
 
 function feedRecords(data: Snapshot) {
 	const index = responseIndex(data.model);
 	if (data.unavailable.length > 0 || index.malformed) {
 		return Effect.fail(new ServiceUnavailable({ message: "Response feed is incomplete or malformed. Check the source diagnostics and retry." }));
 	}
-	const records = [...index.questions.values()].flatMap((question) =>
-		index.responsesFor(question).responses.map((response) => ({ question, response })),
-	);
+	const records = openQuestions(data).flatMap((question) => index.responsesFor(question).responses.map((response) => ({ question, response })));
 	records.sort((a, b) => a.response.response.recordedAt - b.response.response.recordedAt || a.response.id.localeCompare(b.response.id));
 	return Effect.succeed(records);
 }

@@ -1,9 +1,6 @@
 import { Effect } from "effect";
-import type * as Reactivity from "effect/reactivity/Reactivity";
-import type { SqlClient } from "effect/sql";
 import { type StoryKit, storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { onPostgres, onSqlite } from "./engines.ts";
-import type { RecordedLogs } from "./RecordedLogs.ts";
+import { type EngineServices, onPostgresClients, onSqlite } from "./engines.ts";
 import { type Database, type TransactionEngine, transactionEngine } from "./transactionEngine.ts";
 import { transactionVerbs } from "./transactionVerbs.ts";
 
@@ -21,16 +18,10 @@ function definition(database: Database) {
 	} as const;
 }
 
-export const postgresTransactions = storyKit({ ...onPostgres, ...definition("PostgreSQL") });
+export const postgresTransactions = storyKit({ ...onPostgresClients, ...definition("PostgreSQL") });
 export const sqliteTransactions = storyKit({ ...onSqlite, ...definition("SQLite") });
 
-type Kit = StoryKit<
-	TransactionEngine,
-	"schema" | "subscribers",
-	ReturnType<typeof transactionVerbs>,
-	never,
-	SqlClient.SqlClient | Reactivity.Reactivity | RecordedLogs
->;
+type Kit = StoryKit<TransactionEngine, "schema" | "subscribers", ReturnType<typeof transactionVerbs>, never, EngineServices>;
 
 export const transactionKits: readonly Kit[] = [postgresTransactions, sqliteTransactions];
 

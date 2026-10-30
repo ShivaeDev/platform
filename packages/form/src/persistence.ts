@@ -1,4 +1,4 @@
-import { Clock, Effect, Schema, SchemaParser } from "effect";
+import { Schema, SchemaParser } from "effect";
 import type { DraftSession } from "./draftSession.ts";
 
 export interface DraftStorage {
@@ -11,6 +11,7 @@ export interface PersistedDraftConfig {
 	readonly key: string;
 	readonly maxAgeMs?: number;
 	readonly maxBytes?: number;
+	readonly now: () => number;
 	readonly session?: DraftSession | undefined;
 	readonly storage: () => DraftStorage;
 }
@@ -71,7 +72,7 @@ export function persistence<TSchema extends Schema.Constraint>(schema: TSchema, 
 					return undefined;
 				}
 				const value: unknown = bytes(raw) <= maxBytes ? JSON.parse(raw) : undefined;
-				const now = Effect.runSync(Clock.currentTimeMillis);
+				const now = config.now();
 				if (
 					valid(value)
 					&& value.session === session
@@ -92,7 +93,7 @@ export function persistence<TSchema extends Schema.Constraint>(schema: TSchema, 
 				return;
 			}
 			attempt(() => {
-				const raw = JSON.stringify({ baseline, edited, session, updatedAt: Effect.runSync(Clock.currentTimeMillis), values, version: 1 });
+				const raw = JSON.stringify({ baseline, edited, session, updatedAt: config.now(), values, version: 1 });
 				const parsed: unknown = JSON.parse(raw);
 				if (!(maxAgeMs > 0 && Number.isFinite(maxAgeMs) && Number.isFinite(maxBytes) && bytes(raw) <= maxBytes && valid(parsed))) {
 					clear();

@@ -31,7 +31,6 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"files": [

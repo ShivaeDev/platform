@@ -1,14 +1,12 @@
 import { Effect } from "effect";
-import type * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { type StoryKit, storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
 import { transact } from "#transact.ts";
 import type { Body, Step } from "./body.ts";
-import { onPostgres, onSqlite } from "./engines.ts";
+import { type EngineServices, onPostgresClients, onSqlite } from "./engines.ts";
 import { InvoiceLine, Label, LabelPrefix } from "./invoiceModels.ts";
 import { attempt, endingOf } from "./outcome.ts";
-import type { RecordedLogs } from "./RecordedLogs.ts";
 import type { Database } from "./transactionEngine.ts";
 import { ownTableIn, uniqueTable } from "./writeTables.ts";
 
@@ -113,10 +111,10 @@ function definition(database: Database) {
 	} as const;
 }
 
-export const postgresInvoices = storyKit({ ...onPostgres, ...definition("PostgreSQL") });
+export const postgresInvoices = storyKit({ ...onPostgresClients, ...definition("PostgreSQL") });
 export const sqliteInvoices = storyKit({ ...onSqlite, ...definition("SQLite") });
 
-type Kit = StoryKit<InvoiceEngine, "lines", ReturnType<typeof invoiceVerbs>, never, SqlClient.SqlClient | Reactivity.Reactivity | RecordedLogs>;
+type Kit = StoryKit<InvoiceEngine, "lines", ReturnType<typeof invoiceVerbs>, never, EngineServices>;
 
 export const invoiceKits: readonly Kit[] = [postgresInvoices, sqliteInvoices];
 

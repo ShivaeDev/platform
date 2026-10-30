@@ -20,12 +20,14 @@ changeFeed.it(
 
 for (const phase of ["acquisition", "heartbeat"] as const) {
 	changeFeed.it(
-		`a first LISTEN that stalls in its ${phase} fails the change feed's startup at the heartbeat timeout`,
+		`a first LISTEN that stalls in its ${phase} fails the change feed's startup at the heartbeat timeout, naming the connection setting to fix`,
 		[],
 		function* ({ startFeedWhoseListenStalls }) {
 			const ending = yield* startFeedWhoseListenStalls(phase);
 
-			expect(ending).toBe("failed with a connection failure");
+			expect(ending).toBe(
+				"failed with PostgreSQL change listener heartbeat timed out without receiving its own notification. Set client to a direct or session-mode connection to the application database.",
+			);
 		},
 	);
 }

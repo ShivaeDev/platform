@@ -67,14 +67,15 @@ migrationRuns.it(
 );
 
 migrationRuns.it(
-	"a failed schema component fails the run with its name and cause and leaves the ledger committed",
+	"a failed schema component fails the run with its own error, logs that error under the component's name and leaves the ledger committed",
 	[],
-	function* ({ ledger, migrate, runs }) {
+	function* ({ ledger, loggedErrors, migrate, runs }) {
 		yield* migrate(["1_create_orders"], { components: ["failing jobs storage"] });
 
 		yield* outcomes({
 			ledger: [ledger(), [[1, "create_orders"]]],
-			runs: [runs(), ["failed with a failed migration: Schema component failing jobs storage failed., caused by jobs storage unavailable"]],
+			"logged errors": [loggedErrors(), ["Schema component failing jobs storage failed. Error: jobs storage unavailable"]],
+			runs: [runs(), ["failed with jobs storage unavailable"]],
 		});
 	},
 );

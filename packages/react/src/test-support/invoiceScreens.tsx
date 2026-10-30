@@ -1,7 +1,7 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import { OneShotScreen } from "#test/invoice-line-editor/OneShot.tsx";
 import { InvoiceLineCreate, InvoiceLineScreen } from "#test/invoice-line-editor/Screen.ts";

@@ -6,7 +6,6 @@ import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
-import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -38,12 +37,10 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	const activity = { lookups: 0 };
 	const sessions = {
 		origin: () => true,
-		provider: betterAuthSessions(
-			mounted.admittedSessions((headers) => {
-				activity.lookups += 1;
-				return mounted.auth.api.getSession({ headers });
-			}),
-		),
+		provider: mounted.admittedSessions((headers) => {
+			activity.lookups += 1;
+			return mounted.auth.api.getSession({ headers });
+		}),
 		streamRevalidationInterval: "50 millis" as const,
 	};
 	const logs: unknown[] = [];
