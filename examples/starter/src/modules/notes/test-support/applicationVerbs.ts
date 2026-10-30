@@ -23,6 +23,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		return engine.host;
 	}
 	engine.tell = story.tell;
+	engine.sourceApi.narrate(story.tell);
 	function http() {
 		return requests(host(), story.tell);
 	}
@@ -98,6 +99,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		runningHost: host,
 		signOut: (cookie: string) => http().signOut(cookie),
+		sourceRequests: () => engine.sourceApi.requests.map(({ method, path, status }) => ({ method, path, status })),
 		startWorker,
 		wordCountCompletions: engine.workerQueue.completions,
 	};

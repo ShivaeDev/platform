@@ -70,6 +70,7 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 					calls.push("get");
 				}),
 			),
+		"notes.import": () => Effect.die("Import is exercised through the application host kit"),
 		"notes.list": () =>
 			Effect.gen(function* () {
 				calls.push("list");
