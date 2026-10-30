@@ -1,4 +1,4 @@
-import { Effect, Equal, Result, Schema, type SchemaIssue, SchemaParser } from "effect";
+import { Effect, Equal, Layer, Result, Schema, type SchemaIssue, SchemaParser } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
@@ -7,15 +7,36 @@ import { literalChoices, messageAt, messagesByField, schemaFeedback } from "./me
 import { pathMessageAt } from "./paths.ts";
 import { persistence } from "./persistence.ts";
 import { fromRef, propertyRef } from "./refs.ts";
-import { type Config, type Decoded, type Encoded, FieldFailure, type Fields, type Form, Invalid, type Name, type Submitter } from "./shape.ts";
+import {
+	type Config,
+	type Decoded,
+	type Encoded,
+	FieldFailure,
+	type Fields,
+	type Form,
+	Invalid,
+	type Name,
+	type Services,
+	type Submitter,
+} from "./shape.ts";
 import { statusOf } from "./statusOf.ts";
 import { trackRejections } from "./trackRejections.ts";
 
-export function form<TFields extends Fields, TValue, TError, TServices, TRuntimeError>(
+const emptyRuntime = Atom.runtime(Layer.empty);
+
+function configuredRuntime<TFields extends Fields, A, E, R, TRuntimeError>(
+	config: Config<TFields, A, E, R, TRuntimeError>,
+): Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
+function configuredRuntime(config: { readonly runtime?: Atom.AtomRuntime<never, unknown> }): Atom.AtomRuntime<never, unknown> {
+	return config.runtime ?? emptyRuntime;
+}
+
+export function form<TFields extends Fields, TValue, TError, TServices = never, TRuntimeError = never>(
 	schema: Schema.Struct<TFields>,
 	config: Config<TFields, TValue, TError, TServices, TRuntimeError>,
 ): Form<TFields, TValue, TError, TRuntimeError> {
-	const { initialValues, onSubmit, runtime } = config;
+	const { initialValues, onSubmit } = config;
+	const runtime = configuredRuntime(config);
 	const debounce = config.debounce ?? "300 millis";
 	const checks: ReadonlyMap<string, (value: Encoded<TFields>[Name<TFields>]) => Effect.Effect<string | undefined, never, TServices>> = new Map(
 		Object.entries(config.checks ?? {}),
