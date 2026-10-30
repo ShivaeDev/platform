@@ -1,42 +1,26 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { type Effect, Layer } from "effect";
+import { Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { applicationVerbs } from "./applicationVerbs.ts";
-import { budgetVerbs } from "./budgetVerbs.ts";
 import { createDatabaseEngine } from "./databaseEngine.ts";
-import { idleVerbs } from "./idleVerbs.ts";
-import { isolationVerbs } from "./isolationVerbs.ts";
-import { lifecycleVerbs } from "./lifecycleVerbs.ts";
+import { databaseVerbs } from "./databaseVerbs.ts";
 import { limitVerbs } from "./limitVerbs.ts";
-import { poolVerbs } from "./poolVerbs.ts";
 import { adminUrl, configured } from "./postgres.ts";
 import { raceVerbs } from "./raceVerbs.ts";
-import { rowLockVerbs } from "./rowLockVerbs.ts";
-import { transactionVerbs } from "./transactionVerbs.ts";
-import { vitestVerbs } from "./vitestVerbs.ts";
 
 export const database = storyKit({
 	after: { configuration: (engine) => engine.lease() },
 	clock: "live",
 	create: () => createDatabaseEngine,
-	inspect: (engine) => ({ counts: engine.fixture.counts, template: engine.template }),
+	inspect: (engine) => ({
+		blocks: [...engine.blocks.keys()],
+		counts: engine.fixture.counts,
+		endings: Object.fromEntries(engine.endings),
+		start: engine.start,
+	}),
 	layer: PgClient.layer({ url: adminUrl }).pipe(Layer.provideMerge(Reactivity.layer)),
 	name: "database",
 	runIf: configured,
 	stages: ["configuration", "activity"],
-	verbs: (engine) => ({
-		...isolationVerbs(engine),
-		inShared: <A, E, R>(effect: Effect.Effect<A, E, R>) => engine.run(effect),
-		...transactionVerbs(engine),
-		...vitestVerbs(),
-		...applicationVerbs(),
-		...lifecycleVerbs(engine),
-		...limitVerbs(engine),
-		...budgetVerbs(engine),
-		...poolVerbs(engine),
-		...idleVerbs(engine),
-		...rowLockVerbs(engine),
-		...raceVerbs(engine),
-	}),
+	verbs: (engine, story) => ({ ...databaseVerbs(engine, story), ...limitVerbs(engine, story), ...raceVerbs(engine, story) }),
 });
