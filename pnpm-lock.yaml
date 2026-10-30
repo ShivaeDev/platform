@@ -172,20 +172,20 @@ catalogs:
       specifier: 2.6.2
       version: 2.6.2
     "@effect/atom-react":
-      specifier: 4.0.5
-      version: 4.0.5
+      specifier: 4.0.6
+      version: 4.0.6
     "@effect/platform-node":
-      specifier: 4.0.5
-      version: 4.0.5
+      specifier: 4.0.6
+      version: 4.0.6
     "@effect/sql-pg":
-      specifier: 4.0.5
-      version: 4.0.5
+      specifier: 4.0.6
+      version: 4.0.6
     "@effect/sql-sqlite-node":
-      specifier: 4.0.5
-      version: 4.0.5
+      specifier: 4.0.6
+      version: 4.0.6
     "@effect/vitest":
-      specifier: 4.0.5
-      version: 4.0.5
+      specifier: 4.0.6
+      version: 4.0.6
     "@fontsource-variable/geist":
       specifier: 5.3.0
       version: 5.3.0
@@ -244,8 +244,8 @@ catalogs:
       specifier: 0.7.1
       version: 0.7.1
     effect:
-      specifier: 4.0.5
-      version: 4.0.5
+      specifier: 4.0.6
+      version: 4.0.6
     esbuild:
       specifier: 0.28.2
       version: 0.28.2
@@ -336,7 +336,7 @@ catalogs:
 
 overrides:
   recharts>reselect: 5.3.0
-  "@effect/platform-node-shared": 4.0.5
+  "@effect/platform-node-shared": 4.0.6
 
 importers:
   .:
@@ -346,7 +346,7 @@ importers:
         version: 2.6.2
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@shivaedev/local-postgres":
         specifier: workspace:*
         version: link:packages/local-postgres
@@ -373,7 +373,7 @@ importers:
         version: 5.0.5(vitest@5.0.5)
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: catalog:compiler-api
         version: "@typescript/typescript6@6.0.2"
@@ -388,13 +388,13 @@ importers:
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       "@effect/atom-react":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@shivaedev/platform":
         specifier: workspace:*
         version: link:../../packages/platform
@@ -415,7 +415,7 @@ importers:
         version: 0.5.0
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       lucide-react:
         specifier: "catalog:"
         version: 1.61.0(@types/react@19.3.0)(react@19.3.1)
@@ -437,7 +437,7 @@ importers:
     devDependencies:
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../../packages/quality
@@ -501,7 +501,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -538,7 +538,7 @@ importers:
     devDependencies:
       "@effect/atom-react":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -562,7 +562,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       happy-dom:
         specifier: "catalog:"
         version: 21.0.4
@@ -592,7 +592,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -611,10 +611,10 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -632,7 +632,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       esbuild:
         specifier: "catalog:"
         version: 0.28.2
@@ -654,10 +654,10 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -669,7 +669,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       esbuild:
         specifier: "catalog:"
         version: 0.28.2
@@ -693,7 +693,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -705,10 +705,10 @@ importers:
     devDependencies:
       "@effect/atom-react":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -726,7 +726,7 @@ importers:
         version: 19.3.0
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       react:
         specifier: "catalog:"
         version: 19.3.1
@@ -751,13 +751,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -772,7 +772,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -784,13 +784,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -805,7 +805,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -817,7 +817,7 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -829,7 +829,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -857,10 +857,10 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -881,7 +881,7 @@ importers:
         version: 1.7.12(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       pg:
         specifier: "catalog:"
         version: 8.23.0
@@ -915,7 +915,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       pg-boss:
         specifier: "catalog:"
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -939,7 +939,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -951,16 +951,16 @@ importers:
     dependencies:
       "@effect/atom-react":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/access":
         specifier: workspace:*
         version: link:../access
@@ -1020,7 +1020,7 @@ importers:
         version: 1.7.12(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       pg:
         specifier: "catalog:"
         version: 8.23.0
@@ -1048,13 +1048,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1069,7 +1069,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -1103,13 +1103,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@types/node":
         specifier: "catalog:"
         version: 24.19.2
@@ -1118,7 +1118,7 @@ importers:
         version: typescript@7.0.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       vitest:
         specifier: "catalog:"
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
@@ -1143,16 +1143,16 @@ importers:
     devDependencies:
       "@effect/atom-react":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@effect/sql-sqlite-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@shivaedev/changes":
         specifier: workspace:*
         version: link:../changes
@@ -1197,7 +1197,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       happy-dom:
         specifier: "catalog:"
         version: 21.0.4
@@ -1218,13 +1218,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1239,7 +1239,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       happy-dom:
         specifier: "catalog:"
         version: 21.0.4
@@ -1276,13 +1276,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/jobs":
         specifier: workspace:*
         version: link:../jobs
@@ -1309,7 +1309,7 @@ importers:
         version: 1.7.12(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       pg:
         specifier: "catalog:"
         version: 8.23.0
@@ -1327,7 +1327,7 @@ importers:
     devDependencies:
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1342,7 +1342,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -1354,13 +1354,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1372,7 +1372,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -1388,13 +1388,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@effect/sql-sqlite-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1412,7 +1412,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -1424,7 +1424,7 @@ importers:
     devDependencies:
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1433,7 +1433,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -1449,10 +1449,10 @@ importers:
     devDependencies:
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1467,7 +1467,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       pg-boss:
         specifier: "catalog:"
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -1482,7 +1482,7 @@ importers:
     dependencies:
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@shivaedev/test":
         specifier: workspace:*
         version: link:../test
@@ -1495,10 +1495,10 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1507,7 +1507,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       happy-dom:
         specifier: "catalog:"
         version: 21.0.4
@@ -1531,13 +1531,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1555,7 +1555,7 @@ importers:
         version: 5.0.5(vitest@5.0.5)
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: "catalog:"
         version: 7.0.2
@@ -1580,7 +1580,7 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1598,7 +1598,7 @@ importers:
         version: 24.19.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       pg-boss:
         specifier: "catalog:"
         version: 12.38.0(@opentelemetry/api@1.9.1)
@@ -1674,13 +1674,13 @@ importers:
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       "@effect/atom-react":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
+        version: 4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@fontsource-variable/geist":
         specifier: "catalog:"
         version: 5.3.0
@@ -1746,7 +1746,7 @@ importers:
         version: 0.5.0
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       esbuild:
         specifier: "catalog:"
         version: 0.28.2
@@ -1800,7 +1800,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       happy-dom:
         specifier: "catalog:"
         version: 21.0.4
@@ -1821,7 +1821,7 @@ importers:
     dependencies:
       "@effect/sql-pg":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)
+        version: 4.0.6(effect@4.0.6)
       "@shivaedev/changes":
         specifier: workspace:*
         version: link:../changes
@@ -1855,13 +1855,13 @@ importers:
     devDependencies:
       "@effect/platform-node":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+        version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
       "@effect/platform-node-shared":
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
+        specifier: 4.0.6
+        version: 4.0.6(effect@4.0.6)
       "@effect/vitest":
         specifier: "catalog:"
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       "@shivaedev/quality":
         specifier: workspace:*
         version: link:../quality
@@ -1882,7 +1882,7 @@ importers:
         version: typescript@7.0.2
       effect:
         specifier: "catalog:"
-        version: 4.0.5
+        version: 4.0.6
       typescript:
         specifier: catalog:compiler-api
         version: "@typescript/typescript6@6.0.2"
@@ -2227,40 +2227,40 @@ packages:
   "@dotenvx/primitives@0.8.0":
     resolution: { integrity: sha512-VYJy0uhFm9zTJ1TxBaW/pA8bjbOM/OttaNMwZ1RHG4JKyRG7DhSdiqD1ipQoAyoD22olUtxbP78W9xY3Wd11bg== }
 
-  "@effect/atom-react@4.0.5":
-    resolution: { integrity: sha512-tqTSiy0rWBitej7kPfvTSw29q4ipof52+txDg6bIBJx0ksHVzVXaFTsssDa+AZBeImafK0xmjm9m1XzPfE6k2A== }
+  "@effect/atom-react@4.0.6":
+    resolution: { integrity: sha512-DpbuEdaJl+2/GW4KkrKtRD8YVPT+I29bh/TFE7JCGkB4YNiHWNE5q69EagDeK/QXi4RlSb+iR+rNGkORJ9qB/A== }
     peerDependencies:
-      effect: ^4.0.5
+      effect: ^4.0.6
       react: ">=19.0.0 <20.0.0"
       scheduler: ">=0.25.0 <0.29.0"
 
-  "@effect/platform-node-shared@4.0.5":
-    resolution: { integrity: sha512-a8rCdEkfZBGe9C6bsIjxVZuRp73svIyK5IHwHdDAVsvZXjrbkxusfI+rZ8WlX31RP1mKizwI/E72GQTNfdMWHw== }
+  "@effect/platform-node-shared@4.0.6":
+    resolution: { integrity: sha512-0PhyC4uG30xGtsajnxjkcBWfTjNRzUh4ZKl1Kvo/MNyCTb+W2O+fBzf7wCRCoqt+nLudiq4V7vX40Q8XIBuMaQ== }
     engines: { node: ">=18.0.0" }
     peerDependencies:
-      effect: ^4.0.5
+      effect: ^4.0.6
 
-  "@effect/platform-node@4.0.5":
-    resolution: { integrity: sha512-v4KD5fWvEUa4QmWFpZFbBsRhmfnTP6ETCME2r9ifyXVDPjhfpxpTZl41prjgQFMqZBHdWWCl7YC5ImbXv5ui5g== }
+  "@effect/platform-node@4.0.6":
+    resolution: { integrity: sha512-gXvGHAy0/8PZbWvMMguloDUyeSP+rzYEo3FSEqUuGduxo9ORcGioDxPI+GOLCIFfam7VuNkmSUxBOiRMIrMrBw== }
     engines: { node: ">=18.0.0" }
     peerDependencies:
-      effect: ^4.0.5
+      effect: ^4.0.6
       redis: ">=5.0.0 <7.0.0"
 
-  "@effect/sql-pg@4.0.5":
-    resolution: { integrity: sha512-F9tG76H+aryhYcp5pvgd+MwWrNltv3XAuLcZSBsOOX6q+PEl+IM4zkQKzx0TF9OsEMH/SQ+3gZRdYWOsDF+vJQ== }
+  "@effect/sql-pg@4.0.6":
+    resolution: { integrity: sha512-mh2Z+Hi1/AWtkoGuzub2PPCHN7ZsMAbY8dlv/YbdJ6PoXVdrVAGsr+FeeoeD6f0rdnln4DQm7PvFjv1htAjY9w== }
     peerDependencies:
-      effect: ^4.0.5
+      effect: ^4.0.6
 
-  "@effect/sql-sqlite-node@4.0.5":
-    resolution: { integrity: sha512-SHza5qNwiI4dRtUk45wvUfvZq7vB950DW2wD6npzt2aH/tesFfPlZJSDBIvwhazoK+gvDknBOONfKyFZsIF+tg== }
+  "@effect/sql-sqlite-node@4.0.6":
+    resolution: { integrity: sha512-mYWr1Ppoz3/XrY+ZBnYfdvZvdcAYJTO6VcWoNetBX5n2c0VKHqg9S8WO6EpgtV5WiR8/yHHmu3qkfAGHJmalcA== }
     peerDependencies:
-      effect: ^4.0.5
+      effect: ^4.0.6
 
-  "@effect/vitest@4.0.5":
-    resolution: { integrity: sha512-q64paZ/i4V2NiRhTyqCmT2KiDbFjlxc2EZrZca8GGt+Nf8844946HyJM5bPk/q+YeRkFSxIrlCs+J+LSfky/wA== }
+  "@effect/vitest@4.0.6":
+    resolution: { integrity: sha512-oKNbtyUHK5+0o730CXwojULEu7f3+c235pYFD4U5T//o+hHrJbYbZU4bRkcv936tPr5IOnmujeyQiC/LuJJjHw== }
     peerDependencies:
-      effect: ^4.0.5
+      effect: ^4.0.6
       vitest: ">=5.0.0 <6.0.0"
 
   "@emnapi/core@1.11.2":
@@ -4164,8 +4164,8 @@ packages:
   ee-first@1.1.1:
     resolution: { integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow== }
 
-  effect@4.0.5:
-    resolution: { integrity: sha512-BY4/28NlpOd99yzmV741xbVGmp+1U7tks4oB7F/Png64bTa5tm5eCA6W0RiXsnuLDDoJpjfVSo4Dnq4BZb/89Q== }
+  effect@4.0.6:
+    resolution: { integrity: sha512-Tc3mkzuLR6t6P9dhLt0D2GrxYtmU5td4XEJEiXCmILz53IRIfJyHsKZWjTA3xEjiwpNTtXBgI4iqYPxMztBDrw== }
 
   electron-to-chromium@1.5.461:
     resolution: { integrity: sha512-3WZFARz1By+/rYcqQ0OLj4UcEdhd6tz2LEcDtKBUq7ey77EeJ1OtetY/5hjSUxw7dC5r5mA7FfkhRbqO9vnTCg== }
@@ -5815,8 +5815,8 @@ packages:
     resolution: { integrity: sha512-03KrMbjIFDWQR5RNPrSw3bd1r12JpyFQl9/yxjUbJtqkjmllqC5lFjZh6ujeuJCKr8EOQvRW872Oy/az+nLYxg== }
     engines: { node: ">=20.18.1" }
 
-  undici@8.11.2:
-    resolution: { integrity: sha512-u4UB2/IrKdU6lFxumHmmo1a3fCQO5tzQllRorfoRS63txhrB7xTpSn1PftwC4qEHkOaqP95fCWW4lJzwErwzhQ== }
+  undici@8.12.3:
+    resolution: { integrity: sha512-+fdndUTwBP86cVjihTp21hZHo7d6oj1c/47XPA3lL8mM0XHs+C4EkcjmgRsFnFk2f/UONGDy9ItBItmXsLOQHw== }
     engines: { node: ">=22.19.0" }
 
   unicorn-magic@0.3.0:
@@ -6419,42 +6419,42 @@ snapshots:
 
   "@dotenvx/primitives@0.8.0": {}
 
-  "@effect/atom-react@4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)":
+  "@effect/atom-react@4.0.6(effect@4.0.6)(react@19.3.1)(scheduler@0.28.0)":
     dependencies:
-      effect: 4.0.5
+      effect: 4.0.6
       react: 19.3.1
       scheduler: 0.28.0
 
-  "@effect/platform-node-shared@4.0.5(effect@4.0.5)":
+  "@effect/platform-node-shared@4.0.6(effect@4.0.6)":
     dependencies:
       "@types/ws": 8.18.2
-      effect: 4.0.5
+      effect: 4.0.6
       ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node@4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))":
+  "@effect/platform-node@4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))":
     dependencies:
-      "@effect/platform-node-shared": 4.0.5(effect@4.0.5)
-      effect: 4.0.5
+      "@effect/platform-node-shared": 4.0.6(effect@4.0.6)
+      effect: 4.0.6
       redis: 6.2.1(@opentelemetry/api@1.9.1)
-      undici: 8.11.2
+      undici: 8.12.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  "@effect/sql-pg@4.0.5(effect@4.0.5)":
+  "@effect/sql-pg@4.0.6(effect@4.0.6)":
     dependencies:
-      effect: 4.0.5
+      effect: 4.0.6
 
-  "@effect/sql-sqlite-node@4.0.5(effect@4.0.5)":
+  "@effect/sql-sqlite-node@4.0.6(effect@4.0.6)":
     dependencies:
-      effect: 4.0.5
+      effect: 4.0.6
 
-  "@effect/vitest@4.0.5(effect@4.0.5)(vitest@5.0.5)":
+  "@effect/vitest@4.0.6(effect@4.0.6)(vitest@5.0.5)":
     dependencies:
-      effect: 4.0.5
+      effect: 4.0.6
       vitest: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   "@emnapi/core@1.11.2":
@@ -8002,7 +8002,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  effect@4.0.5: {}
+  effect@4.0.6: {}
 
   electron-to-chromium@1.5.461: {}
 
@@ -10030,7 +10030,7 @@ snapshots:
 
   undici@7.30.1: {}
 
-  undici@8.11.2: {}
+  undici@8.12.3: {}
 
   unicorn-magic@0.3.0: {}
 
