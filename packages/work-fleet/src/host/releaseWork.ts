@@ -1,14 +1,13 @@
-import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { Conflict, Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import { BoardIndex } from "#board/Index.ts";
+import { watchedBoard } from "#board/watched.ts";
 import { Fleet } from "#fleet.ts";
 import { type HostParts, hostLayer, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 
-const { searchSnapshot, watchChanges } = board;
 const { Responses, Workspace, WorkspaceConfig } = responses;
 
 export function releaseWork(host: FleetHost, workIds: readonly string[], parts: HostParts = productionParts(host)) {
@@ -19,13 +18,12 @@ export function releaseItems(host: FleetHost, workIds: readonly string[], backgr
 	return Effect.forEach(workIds, releaseItem(host.boardDir, background));
 }
 
-// Indexing a large Board takes seconds, so the watched index starts warming at once and later responses read only changed files.
 export function decisionResponses(host: FleetHost) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const changes = yield* watchChanges(host.boardDir);
-			const index = (yield* searchSnapshot(host.boardDir, undefined, changes)).pipe(Effect.provide(NodeServices.layer));
-			yield* index.pipe(Effect.ignore, Effect.forkScoped);
+			const current = yield* Effect.serviceOption(BoardIndex);
+			const shared = current._tag === "Some" ? current.value : Context.get(yield* Layer.build(watchedBoard(host.boardDir)), BoardIndex);
+			const { changes, read: index } = shared.index;
 			return Responses.layer.pipe(
 				Layer.provide(Workspace.layer),
 				Layer.provide(Layer.succeed(WorkspaceConfig, { changes, index, root: host.boardDir, writable: true })),

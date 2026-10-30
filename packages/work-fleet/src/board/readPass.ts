@@ -3,6 +3,7 @@ import { Context, Effect, type FileSystem, type Path, type Scope } from "effect"
 import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/server/integration/board.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import type { BoardDocument } from "#board/documents.ts";
+import { BoardIndex } from "#board/Index.ts";
 import { sharedRead } from "#board/sharedRead.ts";
 import type { BoardFailure, BoardWork } from "#policy.ts";
 
@@ -14,10 +15,10 @@ export class BoardSnapshot {
 	files: ReadonlyMap<string, BoardDocument>;
 	readonly problems: Map<string, BoardFailure>;
 
-	constructor(documents: readonly BoardDocument[], problems: Map<string, BoardFailure> = new Map()) {
+	constructor(documents: readonly BoardDocument[], problems: Map<string, BoardFailure> = new Map(), model = metadataModel(documents)) {
 		this.problems = problems;
 		this.documents = documents;
-		this.model = metadataModel(documents);
+		this.model = model;
 		this.files = new Map(documents.map((document) => [document.file, document]));
 	}
 
@@ -88,6 +89,10 @@ export const recordBoardSource = Effect.fn("FleetBoard.recordBoardSource")(funct
 	source: string,
 	parsed?: ParsedMetadata,
 ) {
+	const watched = yield* Effect.serviceOption(BoardIndex);
+	if (watched._tag === "Some") {
+		yield* watched.value.index.changes.refreshPaths?.([file]) ?? Effect.void;
+	}
 	const pass = yield* ReadPass;
 	const read = pass?.active === true ? pass.reads.get(realRoot) : undefined;
 	if (read !== undefined) {

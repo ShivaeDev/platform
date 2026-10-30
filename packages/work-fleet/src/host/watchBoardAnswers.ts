@@ -1,12 +1,14 @@
-import { Effect, Schedule, Stream } from "effect";
+import { Effect, PubSub, Stream } from "effect";
 import { board, type Snapshot } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import { BoardIndex } from "#board/Index.ts";
 
 export function watchBoardAnswers(root: string) {
 	return Stream.unwrap(
 		Effect.gen(function* () {
-			const changes = yield* board.watchChanges(root);
-			const snapshot = yield* board.searchSnapshot(root, undefined, changes);
+			const shared = yield* Effect.serviceOption(BoardIndex);
+			const index = shared._tag === "Some" ? shared.value.index : yield* board.watchIndex(root);
+			const events = yield* PubSub.subscribe(index.changes.events);
 			function read(data: Snapshot) {
 				return Effect.gen(function* () {
 					const questions = responses.openQuestions(data);
@@ -30,12 +32,14 @@ export function watchBoardAnswers(root: string) {
 					});
 				});
 			}
-			return Stream.fromEffectSchedule(snapshot, Schedule.spaced("100 millis")).pipe(
-				Stream.changesWith((left, right) => left === right),
-				Stream.mapEffect(read),
-				Stream.changesWith((left, right) => JSON.stringify(left) === JSON.stringify(right)),
-				Stream.map((answers) => ({ answers })),
-			);
+			return Stream.fromEffect(index.read)
+				.pipe(Stream.concat(Stream.fromSubscription(events).pipe(Stream.mapEffect(() => index.read))))
+				.pipe(
+					Stream.changesWith((left, right) => left === right),
+					Stream.mapEffect(read),
+					Stream.changesWith((left, right) => JSON.stringify(left) === JSON.stringify(right)),
+					Stream.map((answers) => ({ answers })),
+				);
 		}),
 	);
 }

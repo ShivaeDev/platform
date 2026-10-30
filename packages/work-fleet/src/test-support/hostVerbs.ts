@@ -33,6 +33,7 @@ import { hostRequestVerbs } from "#test/hostRequestVerbs.ts";
 import { hostScenarioVerbs } from "#test/hostScenarioVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
 import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
+import { missedBoardEventVerbs } from "#test/missedBoardEventVerbs.ts";
 import { publicationReadouts } from "#test/publishedHostBranch.ts";
 import { restartCloudVerbs } from "#test/restartCloud.ts";
 import { steeringCloudVerbs } from "#test/steeringCloud.ts";
@@ -46,6 +47,7 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			tell("wait for the scheduler to enter its GitHub-paced pause");
 			return engine.schedulerPaused ?? Effect.die("Configure a paced scheduler first");
 		},
+		...missedBoardEventVerbs(engine, tell),
 		...admissionFetchVerbs(engine, tell),
 		...codexHostVerbs(engine, tell),
 		...publicationReadouts(engine),

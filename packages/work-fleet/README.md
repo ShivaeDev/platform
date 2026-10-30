@@ -29,6 +29,8 @@ work-fleet up .work
 
 `fleet: approved` lets Fleet run the task, and `areas` keeps it from running beside work that changes the same folder. `work-fleet up` starts Fleet and Board together for the Board folder `.work`.
 
+The daemon shares Board’s watched index for admission, dispatch, reconciliation and answers. A Board change wakes the scheduler; a slow pass runs at least a minute apart as a safety net. Active provider turns retain their configured observation interval.
+
 ## Using it
 
 ### How to think about it

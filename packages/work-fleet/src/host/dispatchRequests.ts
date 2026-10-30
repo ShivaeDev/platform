@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 import { Cause, Effect, Fiber, PubSub, Stream } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
+import { BoardIndex } from "#board/Index.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { dispatchApproved } from "#host/admission.ts";
@@ -63,7 +63,9 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 		});
 	}
 	yield* Effect.gen(function* () {
-		const changes = yield* boardApi.watchChanges(host.boardDir);
+		const {
+			index: { changes },
+		} = yield* BoardIndex;
 		const events = yield* PubSub.subscribe(changes.events);
 		yield* observeDropped(changes.realRoot);
 		yield* Stream.fromSubscription(events).pipe(
