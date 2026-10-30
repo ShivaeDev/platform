@@ -14,6 +14,7 @@ export const PUBLIC_URL = "https://app.example";
 
 export interface HostOptions {
 	readonly deployed?: boolean;
+	readonly publicUrl?: "unset";
 	readonly replacements?: Layer.Layer<never>;
 	readonly trustedProxy?: string | undefined;
 }
@@ -24,6 +25,9 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	const database = yield* PostgresTestDatabase;
 	yield* Effect.scoped(migrateDatabase(database.url));
 	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0", "PUBLIC_URL": PUBLIC_URL } : {};
+	if (options.publicUrl === "unset") {
+		delete env.PUBLIC_URL;
+	}
 	if (options.trustedProxy !== undefined) {
 		env.TRUSTED_PROXY = options.trustedProxy;
 	}
@@ -50,11 +54,15 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	const upstream = `http://127.0.0.1:${server.address.port}`;
 	const proxy = deployed
 		? yield* forwardingProxy(upstream, {
-				headers: { host: "internal.test", "x-forwarded-host": "app.example", "x-forwarded-proto": "https" },
+				headers: {
+					host: options.publicUrl === "unset" ? new URL(upstream).host : "internal.test",
+					"x-forwarded-host": "app.example",
+					"x-forwarded-proto": "https",
+				},
 			})
 		: undefined;
 	const baseUrl = proxy?.url ?? upstream;
-	return { baseUrl, context, jobsTesting, logs, origin: deployed ? PUBLIC_URL : baseUrl };
+	return { baseUrl, context, jobsTesting, logs, origin: deployed ? PUBLIC_URL : baseUrl, secureCookies: deployed && options.publicUrl !== "unset" };
 });
 
 export type RunningHost = Effect.Success<ReturnType<typeof startHost>>;

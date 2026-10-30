@@ -8,5 +8,5 @@
 {"path":"packages/identity/src/server/better-auth/testing.ts","rule":"effect/boundary","count":7}
 {"path":"packages/identity/src/server/better-auth/userProfiles.ts","rule":"effect/boundary","count":2}
 {"path":"packages/identity/src/server/local.ts","rule":"effect/boundary","count":2}
-{"path":"packages/identity/src/server/local.ts","rule":"effect/service-parameters","count":3}
+{"path":"packages/identity/src/server/local.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/identity/src/server/permissions.ts","rule":"effect/service-parameters","count":1}
