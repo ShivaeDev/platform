@@ -1,6 +1,7 @@
 import { posix } from "node:path";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import ignore from "ignore";
+import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { exportFits } from "#naming/exportFits.ts";
 import { mainExport } from "#naming/mainExport.ts";
 import { isMigrationFile } from "#naming/migrationFile.ts";
@@ -28,7 +29,7 @@ const SHAPES =
 	"The file name and the names of its folders spell the export, in any order, and the file's first letter follows the export's case: listItems in items/ is items/list.ts, ItemPanel is ItemPanel.tsx or item/Panel.tsx.";
 
 const NamedAfterExportOptions = Schema.Struct({
-	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+	toolOwned: GlobDeclarations,
 });
 
 function stemOf(path: string): string {
@@ -86,7 +87,7 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 export const namedAfterExport = defineRule({
 	check: async ({ files, options, readText, sources }) => {
 		const layout = await packageLayout({ files, readText });
-		const toolOwned = ignore().add([...DEFAULT_TOOL_OWNED, ...options.toolOwned]);
+		const toolOwned = ignore().add([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]);
 		return sources
 			.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || toolOwned.ignores(file.path)))
 			.flatMap((file) => findingsOf(file, layout));
@@ -95,4 +96,5 @@ export const namedAfterExport = defineRule({
 		"A file is named after its main export, with its folders as the prefix; a file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	validate: validateGlobs,
 });

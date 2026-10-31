@@ -1,6 +1,7 @@
 import { posix } from "node:path";
-import { Effect, Order, Schema } from "effect";
+import { Order, Schema } from "effect";
 import ignore, { type Ignore } from "ignore";
+import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { packageLayout } from "#naming/packageLayout.ts";
 import { KEBAB, PASCAL } from "#naming/words.ts";
@@ -11,8 +12,8 @@ const SNAKE = /^[a-z0-9]+(?:_[a-z0-9]+)*$/u;
 const CODE = /\.[cm]?[jt]sx?$/u;
 
 const FolderNamesOptions = Schema.Struct({
-	content: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
-	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+	content: GlobDeclarations,
+	toolOwned: GlobDeclarations,
 });
 
 function foldersIn(files: readonly string[]): readonly string[] {
@@ -75,11 +76,11 @@ export const folderNames = defineRule({
 	check: async ({ files, options, readText }) => {
 		const layout = await packageLayout({ files, readText });
 		const context: Context = {
-			content: ignore().add([...options.content]),
+			content: ignore().add([...globPatterns(options.content)]),
 			names: layout.names,
 			native: nativeNames(files).folders,
 			stems: stemsIn(files),
-			toolOwned: ignore().add([...options.toolOwned]),
+			toolOwned: ignore().add([...globPatterns(options.toolOwned)]),
 		};
 		return foldersIn(files).flatMap((folder): readonly Finding[] => {
 			const message = messageFor(folder, context);
@@ -90,4 +91,5 @@ export const folderNames = defineRule({
 		"A package folder is named after its package, a module folder after its main file, a content folder in snake_case and every other folder in kebab-case.",
 	id: "files/folder-names",
 	options: Schema.toStandardSchemaV1(FolderNamesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	validate: validateGlobs,
 });

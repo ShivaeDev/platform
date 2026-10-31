@@ -1,6 +1,7 @@
 import { posix } from "node:path";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import ignore from "ignore";
+import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { ENVIRONMENTS, type TestName, testName } from "#naming/testName.ts";
 import { CAMEL } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
@@ -16,7 +17,7 @@ const GRAMMAR =
 	"A test file is <file>[.<modifier>].test.ts beside its file or <behaviour>[.<modifier>].spec.ts in the folder it covers, with at most one modifier of dom, slow, typecheck and unit.";
 
 const TestsFollowOptions = Schema.Struct({
-	suites: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+	suites: GlobDeclarations,
 });
 
 function siblingsIn(files: readonly string[]): ReadonlySet<string> {
@@ -78,7 +79,7 @@ function findingsOf(source: SourceFile, siblings: ReadonlySet<string>): readonly
 
 export const testsFollow = defineRule({
 	check: ({ files, options, sources }) => {
-		const suites = ignore().add([...options.suites]);
+		const suites = ignore().add([...globPatterns(options.suites)]);
 		const siblings = siblingsIn(files);
 		return sources.filter((source) => !suites.ignores(source.path)).flatMap((source) => findingsOf(source, siblings));
 	},
@@ -86,4 +87,5 @@ export const testsFollow = defineRule({
 		"A .test file follows the file beside it, a .spec names a behaviour of its folder, the only suffix is one modifier of dom, slow, typecheck and unit, and a test that uses the DOM is a .dom test.",
 	id: "tests/follow",
 	options: Schema.toStandardSchemaV1(TestsFollowOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	validate: validateGlobs,
 });

@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { CLI_TIMEOUT } from "#test/cli.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
-import { importFenceRepository, registry } from "#test/importFenceRepository.ts";
+import { fenceExceptions, importFenceRepository } from "#test/importFenceRepository.ts";
 import { installedWorkspace } from "#test/installedWorkspace.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { runtimeFolders } from "#test/runtimeFolders.ts";
@@ -10,7 +10,7 @@ import { config } from "#test/tree.ts";
 
 const REASON = "The play screen previews CMS drafts until the preview service lands.";
 
-const PLAY_EXCEPTION = { file: "packages/game/src/play.ts", reason: REASON, rule: "imports/fences", subject: "game-keeps-out-of-cms" };
+const PLAY_EXCEPTION = { files: ["packages/game/src/play.ts"], reason: REASON, rules: ["imports/fences"], subject: "game-keeps-out-of-cms" };
 
 const FENCED = [qualityInstalled(), repositoryHas(...importFenceRepository), installedWorkspace("@demo/cms", "packages/cms"), biomeFormatted()];
 
@@ -58,26 +58,29 @@ repositoryStory.it(
 );
 
 repositoryStory.it(
-	"quality lint passes once a registry exception covers the one import across a fence",
+	"quality lint passes once a config exception covers the one import across a fence",
 	FENCED,
-	function* ({ runs, writes }) {
+	function* ({ runs, spawns, writes }) {
 		expect((yield* runs("lint")).stdout).toContain(
 			'packages/game/src/play.ts:1  Imports packages/cms/src/edit.ts across the fence "game-keeps-out-of-cms"',
 		);
 
-		yield* writes(registry(PLAY_EXCEPTION));
+		yield* writes(fenceExceptions([PLAY_EXCEPTION]));
+		yield* spawns("fix");
 
-		expect((yield* runs("lint")).outcome).toBe("passed");
+		expect((yield* spawns("lint")).outcome).toBe("passed");
 	},
 	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
-	"quality lint refuses a registry exception for imports/no-test-code, which takes no exceptions",
+	"quality lint refuses a config exception for imports/no-test-code, which takes no exceptions",
 	[
 		repositoryHas(
 			...PRODUCTION_IMPORTS_TESTS,
-			registry({ file: "src/app.ts", reason: REASON, rule: "imports/no-test-code", subject: "./app.test.ts" }),
+			config(
+				`{ exceptions: [{ files: ["src/app.ts"], reason: ${JSON.stringify(REASON)}, rules: ["imports/no-test-code"], subject: "./app.test.ts" }], sources: ["src"] }`,
+			),
 		),
 	],
 	function* ({ outcome, runs, stdout }) {
