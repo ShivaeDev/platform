@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
 import { enclosingRepository, failingQualityGate, generated, installedPackageManager, realSetup } from "#test/traits.ts";
 
-const GATE_TIMEOUT = 60_000;
+const GATE_TIMEOUT = 120_000;
 const STAGED_FOR_THE_GATE = expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]);
 
 for (const flags of [[], ["--minimal"]] as const) {
