@@ -72,8 +72,8 @@ screenApp.it("leaves hidden content out of the screen text", [], function* ({ sc
 	expect(yield* screenText()).toBe("Load newsReady Sign in Inert Unavailable");
 });
 
-screenApp.it("reads visible text nodes without layout or CSS transforms", [styledText], ({ text }) => {
-	expect(text("#styled")).toBe("FirstSecond");
+screenApp.it("separates visible blocks without CSS text transforms", [styledText], ({ text }) => {
+	expect(text("#styled")).toBe("First\nSecond");
 });
 
 screenApp.it("reports a screen whose news never arrives as unsettled", [], function* ({ holdNews, click, settle }) {
