@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.12.0 - 2026-10-31
+
+### Added
+
+- `migrateBetterAuth` runs Better Auth schema migrations using the database from Effect's SQL service. Applications pass auth configuration without a database pool.
+- Generated applications mount roles through identity, migrate the stored default through a numbered migration, and bootstrap the first owner through `assignRole`.
+- Declare the user role field and its sign-up default through identity, and adopt existing users with `migrateBetterAuth(options, { defaultRole })` without an application backfill. Fresh and upgraded PostgreSQL schemas have the same non-null text column and database default.
+- Let identity's database story kit migrate schemas with or without roles, inspect the stored role column and user roles, and model a missing role.
+
+### Fixed
+
+- Generated applications start with no quality baseline and rely on the jobs package’s peer installation of `pg-boss`.
+- Loaded editors construct their form from the supplied row without an unreachable synchronous guard.
+- Refuse missing stored roles with `Forbidden` and log the migration fix instead of failing requests with a defect.
+
+### Breaking
+
+- `registerAdmin` reports missing or extra page handlers as defects when its handler Layer is built. Consumers that catch synchronous registration errors must instead observe Layer acquisition failures.
+- Pass `defaultRole` alongside `roles` to `betterAuthMount`. Remove application-owned role `additionalFields` and Better Auth's `admin()` plugin if it was only supplying roles. Add and run a numbered `migrateBetterAuth(options, { defaultRole })` migration before deploying, then bootstrap administrators through `assignRole`.
+
 ## 0.11.1 - 2026-10-31
 
 ### Changed

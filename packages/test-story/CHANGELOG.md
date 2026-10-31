@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.31.0 - 2026-10-31
+
+### Added
+
+- Wait for child-process output with scoped `lineSignals` and `untilLine`, exported traces with the OTLP receiver's `untilSpan`, and unfinished HTTP connections with `fakeHttpService.untilAbandoned`. Each wait uses `until`, retains earlier observations, and reports the missing signal on failure.
+- `watchedClock` publishes sleep starts from the native TestClock. Stories use it automatically with a test clock, wait for a matching sleep with `untilTimer`, and advance time while awaiting completion with `passes(interval, then)`.
+
 ## 0.30.0 - 2026-10-31
 
 ### Added
