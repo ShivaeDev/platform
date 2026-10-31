@@ -1,6 +1,7 @@
 import ts from "typescript";
 import type { SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
+import { jsxChildDecision } from "#rules/react/jsxChildDecision.ts";
 
 interface Edit {
 	readonly end: number;
@@ -35,14 +36,7 @@ function conditionalChild(node: ts.Expression): ts.Expression | undefined {
 		return undefined;
 	}
 	const expression = unwrap(child.expression);
-	return isConditional(expression) ? child.expression : undefined;
-}
-
-function isConditional(expression: ts.Expression): boolean {
-	return (
-		ts.isConditionalExpression(expression)
-		|| (ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken)
-	);
+	return jsxChildDecision(expression) === undefined ? undefined : child.expression;
 }
 
 function returnedExpression(node: ts.Node): ts.Expression | undefined {

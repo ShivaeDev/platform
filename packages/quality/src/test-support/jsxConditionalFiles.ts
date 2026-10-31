@@ -35,6 +35,26 @@ export const jsxDecisions = [
 		findings: [MAPPED_DECISION],
 		name: "a && inside the child of a mapped item",
 	},
+	{ code: 'function Label({ on }) { return <span>{on ? "On" : label}</span>; }', findings: [CHILD_DECISION], name: "a computed label branch" },
+	{ code: "const Amount = () => <span>{on ? 1 : read()}</span>;", findings: [CHILD_DECISION], name: "a computed number branch" },
+	{ code: "const View = memo(() => <div>{ready && <X />}</div>);", findings: [CHILD_DECISION], name: "a memo component child" },
+	{ code: "const View = React.forwardRef(() => <div>{ready && <X />}</div>);", findings: [CHILD_DECISION], name: "a forwardRef component child" },
+	{ code: "export default () => <div>{ready && <X />}</div>;", findings: [CHILD_DECISION], name: "a default exported component child" },
+	{
+		code: "class View extends React.Component { render() { return <div>{ready && <X />}</div>; } }",
+		findings: [CHILD_DECISION],
+		name: "a class render child",
+	},
+	{
+		code: "function View() { if (ready) { return <div>{visible && <X />}</div>; } return null; }",
+		findings: [CHILD_DECISION],
+		name: "a child in an early return",
+	},
+	{
+		code: 'const List = ({ items }) => <>{items.map((item, index) => <span>{index > 0 && ", "}{item.name}</span>)}</>;',
+		findings: [MAPPED_DECISION],
+		name: "a separator decision inside returned JSX",
+	},
 ];
 
 export const jsxAccepted = [
@@ -51,4 +71,37 @@ export const jsxAccepted = [
 		code: "const Spread = ({ items }) => <>{items.map(item => <X {...(item.ready ? activeProps : idleProps)} />)}</>;",
 		name: "a ternary inside a spread attribute",
 	},
+	{
+		code: "function Computed({ ready }) { const content = <div>{ready && <X />}</div>; return <main>{content}</main>; }",
+		name: "a JSX child decision built in a const above the return",
+	},
+	{
+		code: "const content = <div>{ready ? <X /> : <Y />}</div>;",
+		name: "JSX built outside a component",
+	},
+	{
+		code: "function Chart() { const options = { formatter: value => <span>{value && <X />}</span> }; return <Library options={options} />; }",
+		name: "a library formatter in options above the return",
+	},
+	{
+		code: "const Chart = () => <Library formatter={value => { return <span>{value ? <X /> : <Y />}</span>; }} />;",
+		name: "a library formatter passed as an attribute",
+	},
+	{
+		code: "const Chart = () => <>{library(values, value => <span>{value && <X />}</span>)}</>;",
+		name: "a callback passed to a library function inside returned JSX",
+	},
+	{
+		code: 'function List({ items }) { return <>{items.map((item, index) => { const separator = index > 0 && ", "; return <span key={item.id}>{separator}{item.name}</span>; })}</>; }',
+		name: "a list separator decided in a const before the item return",
+	},
+	{
+		code: "function Item({ item }) { if (!item.visible) return null; return <li>{item.name}</li>; } const List = ({ items }) => <ul>{items.map(item => <Item key={item.id} item={item} />)}</ul>;",
+		name: "an extracted item component returning null",
+	},
+	{ code: 'const Label = ({ on }) => <span>{on ? "On" : "Off"}</span>;', name: "plain string literal branches" },
+	{ code: "const Amount = ({ on }) => <span>{on ? 1 : 0}</span>;", name: "plain number literal branches" },
+	{ code: 'const Label = ({ on }) => <span>{on ? "On" : 0}</span>;', name: "mixed string and number literal branches" },
+	{ code: 'const Label = ({ on }) => <span>{on ? ("On") : ("Off")}</span>;', name: "parenthesized literal branches" },
+	{ code: "const Amount = ({ on }) => <span>{on ? -1 : +1}</span>;", name: "signed number literal branches" },
 ];
