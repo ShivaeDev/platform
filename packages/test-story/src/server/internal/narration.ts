@@ -1,6 +1,8 @@
+import { Cause, Effect } from "effect";
 import type { TestContext } from "vitest";
 import { callSite } from "#internal/callSite.ts";
 import { failureReport } from "#internal/failureReport.ts";
+import { hooked } from "#internal/hooked.ts";
 import { describeFailure } from "#internal/render.ts";
 
 export interface Refusal {
@@ -22,6 +24,7 @@ export interface Subject<TEngine> {
 	readonly engine: TEngine;
 	readonly inspect: ((engine: TEngine) => unknown) | undefined;
 	readonly name: string;
+	readonly snapshot?: { readonly value: unknown } | { readonly threw: unknown };
 }
 
 export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed, task }: Pick<TestContext, "onTestFailed" | "task">) {
@@ -48,9 +51,18 @@ export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed, task
 		}
 	});
 	return {
-		captureFailure: (stack: string | undefined) => {
-			captured = failureReport(narration, subject, { file: task.file.filepath, name: task.name, stack });
-		},
+		captureFailure: (stack: string | undefined) =>
+			hooked(() => (subject.inspect === undefined ? subject.engine : subject.inspect(subject.engine))).pipe(
+				Effect.matchCause({
+					onFailure: (cause) => ({ threw: Cause.squash(cause) }),
+					onSuccess: (value) => ({ value }),
+				}),
+				Effect.tap((snapshot) =>
+					Effect.sync(() => {
+						captured = failureReport(narration, { ...subject, snapshot }, { file: task.file.filepath, name: task.name, stack });
+					}),
+				),
+			),
 		narration,
 	};
 }

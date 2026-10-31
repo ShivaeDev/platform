@@ -1,4 +1,4 @@
-import { Context, Data, type Effect, Layer } from "effect";
+import { Context, Data, Effect, Layer } from "effect";
 import { expectTypeOf, it } from "vitest";
 import { type Story, type StoryKit, type StoryTest, storyKit, type Trait } from "#storyKit.ts";
 
@@ -27,6 +27,7 @@ const shelf = storyKit({
 		const shelfOf: Shelf = { books: yield* Ledger };
 		return shelfOf;
 	},
+	inspect: (state) => Effect.map(Clerk, (clerk) => ({ books: state.books, clerk })),
 	layer: Layer.mergeAll(Layer.succeed(Ledger, 0), Layer.succeed(Clerk, "Ada")),
 	name: "shelf",
 	run: {

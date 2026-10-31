@@ -19,10 +19,12 @@ export type InferredDefinition<
 	TStep extends AnyEffect,
 	TFailed extends AnyEffect,
 	TDiagnose extends AnyEffect,
+	TInspect extends (engine: HookValue<ReturnType<TCreate>>) => unknown,
 > = Omit<
 	StoryKitDefinition<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TProvided, never, Record<never, never>, TStep, TFailed, TDiagnose>,
-	"create" | "after"
+	"create" | "after" | "inspect"
 > & {
 	readonly create: TCreate;
+	readonly inspect?: TInspect;
 	readonly after?: { readonly [TKey in keyof TAfter]: (engine: HookValue<ReturnType<TCreate>>) => TAfter[TKey] };
-} & LayerFor<HookEffects<ReturnType<TCreate> | TAfter[keyof TAfter]> | TStep | TFailed | TDiagnose, TProvided>;
+} & LayerFor<HookEffects<ReturnType<TCreate> | TAfter[keyof TAfter]> | TStep | TFailed | TDiagnose | HookEffects<ReturnType<TInspect>>, TProvided>;

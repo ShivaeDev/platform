@@ -14,6 +14,10 @@ const scoped = storyKit({
 	*create() {
 		return yield* Effect.acquireRelease(Effect.succeed({ open: true }), () => Effect.void);
 	},
+	*inspect(engine) {
+		yield* Effect.addFinalizer(() => Effect.void);
+		return engine.open;
+	},
 	name: "scoped",
 	run: {
 		*diagnose() {
@@ -111,5 +115,25 @@ storyKit({
 		},
 	},
 	stages: ["built"],
+	verbs: () => ({}),
+});
+
+// @ts-expect-error An inspect Effect needs a Layer for an unrelated service.
+storyKit({
+	create: () => ({}),
+	inspect: () => Missing,
+	name: "missing inspect service",
+	stages: [],
+	verbs: () => ({}),
+});
+
+// @ts-expect-error A generator inspect needs a Layer for an unrelated service.
+storyKit({
+	create: () => ({}),
+	*inspect() {
+		return yield* Missing;
+	},
+	name: "missing generator inspect service",
+	stages: [],
 	verbs: () => ({}),
 });

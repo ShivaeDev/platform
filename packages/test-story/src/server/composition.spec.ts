@@ -83,3 +83,9 @@ village.it(
 		expect(oven.loaves()).toBe(DOUGH_TO_BAKE);
 	},
 );
+
+storyRunner.it("a composed kit resolves a feature's Effect-based inspect into its failure readout", [], function* ({ outcome, runStory }) {
+	yield* runStory("compositionStories", "Village Story: fails after grinding sacks");
+
+	expect(yield* outcome()).toContain('"mill":{"sacks":3,"sails":"furled"}');
+});

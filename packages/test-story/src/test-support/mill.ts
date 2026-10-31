@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { storyKit } from "#storyKit.ts";
 
 export interface Mill {
@@ -8,7 +9,7 @@ export interface Mill {
 
 export const mill = storyKit({
 	create: (): Mill => ({ sacks: 0, sails: "furled", wind: 0 }),
-	inspect: ({ sacks, sails }) => ({ sacks, sails }),
+	inspect: (state) => Effect.sync(() => ({ sacks: state.sacks, sails: state.sails })),
 	name: "mill",
 	stages: ["yard"],
 	verbs: (state, story) => ({

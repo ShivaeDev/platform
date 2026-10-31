@@ -35,5 +35,5 @@ export const start = Effect.fnUntraced(function* (
 				},
 			),
 		);
-	}).pipe(Effect.tapCause((cause) => Effect.sync(() => captureFailure(Cause.prettyErrors(cause)[0]?.stack))));
+	}).pipe(Effect.tapCause((cause) => captureFailure(Cause.prettyErrors(cause)[0]?.stack)));
 });

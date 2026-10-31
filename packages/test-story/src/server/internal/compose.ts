@@ -1,4 +1,4 @@
-import { Layer } from "effect";
+import { Effect, Layer } from "effect";
 import type { AnyTestLayer } from "@shivaedev/test/anyTestLayer.ts";
 import { type KitList, kitDefinition } from "#internal/compositionTypes.ts";
 import { hooked } from "#internal/hooked.ts";
@@ -23,7 +23,11 @@ export function compose(name: string, kits: KitList): LooseDefinition {
 			return engine;
 		},
 		inspect: (engine) =>
-			Object.fromEntries(definitions.map((definition) => [definition.name, definition.inspect === undefined ? engine : definition.inspect(engine)])),
+			Effect.forEach(definitions, (definition) =>
+				hooked(() => (definition.inspect === undefined ? engine : definition.inspect(engine))).pipe(
+					Effect.map((value) => [definition.name, value] as const),
+				),
+			).pipe(Effect.map(Object.fromEntries)),
 		layer: definitions.reduce<AnyTestLayer>((layer, definition) => Layer.merge(layer, definition.layer ?? Layer.empty), Layer.empty),
 		name,
 		outbound: Object.assign({}, ...definitions.map((definition) => definition.outbound)),
