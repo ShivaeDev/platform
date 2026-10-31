@@ -25,7 +25,7 @@ describe("cold open", () => {
 			`A cold open of ${path} requests each piece of its data once`,
 			[project, pageTraffic(), readerAt(path)],
 			function* ({ requestsByMethod }) {
-				expect(yield* requestsByMethod()).toEqual(Object.fromEntries(methods.map((method) => [method, 1])));
+				expect(yield* requestsByMethod(methods)).toEqual(Object.fromEntries(methods.map((method) => [method, 1])));
 			},
 		);
 	}

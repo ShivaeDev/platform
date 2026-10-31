@@ -1,11 +1,11 @@
-import { Context, Deferred, Effect, Option } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
+import { Deferred, Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { screenPending } from "@shivaedev/react/client/screenPending.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { session } from "#client/session.ts";
 import { laterReads } from "./laterReads.ts";
+import { pendingSignal, registryOf } from "./pendingSignal.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 const SETTLE_LIMIT_MS = 10_000;
@@ -37,41 +37,12 @@ function holds(engine: ScreenEngine): readonly Hold[] {
 	].filter(({ held }) => held);
 }
 
-function runtimeNode(node: AtomRegistry.Node<unknown>) {
-	return Option.exists(
-		node.valueOption(),
-		(value) => AsyncResult.isAsyncResult(value) && AsyncResult.isSuccess(value) && Context.isContext(value.value),
-	);
-}
-
-function liveStream(node: AtomRegistry.Node<unknown>) {
-	return (
-		node.atom.idleTTL === 0
-		&& Option.exists(node.valueOption(), (value) => AsyncResult.isAsyncResult(value) && AsyncResult.isInitial(value))
-		&& [...node.parents].some(runtimeNode)
-	);
-}
-
-function withoutLiveStreams(registry: AtomRegistry.AtomRegistry) {
-	return new Proxy(registry, {
-		get: (target, key) =>
-			key === "getNodes" ? () => new Map([...target.getNodes()].filter(([, node]) => !liveStream(node))) : Reflect.get(target, key),
-	});
-}
-
 function sessionStarting(engine: ScreenEngine) {
 	if (engine.session === undefined) {
 		return false;
 	}
 	const { registry, updates } = session(engine.session.environment);
 	return document.documentElement.dataset.boardReady !== "true" || registry.get(updates.status).connection === "connecting";
-}
-
-function registryOf(engine: ScreenEngine) {
-	if (engine.session) {
-		return withoutLiveStreams(session(engine.session.environment).registry);
-	}
-	return engine.view?.registry ?? engine.documentView?.registry;
 }
 
 export const screenPendingWork = Effect.fn("ScreenSettle.screenPendingWork")(function* (engine: ScreenEngine) {
@@ -91,7 +62,9 @@ export const screenSettles = Effect.fn("ScreenSettle.screenSettles")(function* (
 	tell: (line: string) => void = (line) => engine.tell?.(line),
 ) {
 	const pending = yield* screenPendingWork(engine);
-	yield* screenDriver({ act: (action) => act(action), pending, root: () => document.body, tell }).settle({ timeoutMs: SETTLE_LIMIT_MS });
+	yield* screenDriver({ act: (action) => act(action), pending: pendingSignal(engine, pending), root: () => document.body, tell }).settle({
+		timeoutMs: SETTLE_LIMIT_MS,
+	});
 });
 
 type Settled<TResult> = [TResult] extends [Effect.Effect<infer TSuccess, infer TError, infer TServices>]

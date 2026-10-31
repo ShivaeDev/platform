@@ -3,6 +3,7 @@ import { act } from "react";
 import { vi } from "vitest";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { laterReads } from "./laterReads.ts";
+import { pendingSignal } from "./pendingSignal.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenPendingWork } from "./screenSettle.ts";
 
@@ -114,7 +115,9 @@ export const readingSettles = Effect.fn("ReadingSettle.readingSettles")(function
 	function pending() {
 		return (!laterReadWaits(engine) && screen()) || !routeRendered(engine) || framesPending(engine);
 	}
-	yield* screenDriver({ act: (action) => act(action), pending, root: () => document.body, tell }).settle({ timeoutMs: SETTLE_LIMIT_MS });
+	yield* screenDriver({ act: (action) => act(action), pending: pendingSignal(engine, pending), root: () => document.body, tell }).settle({
+		timeoutMs: SETTLE_LIMIT_MS,
+	});
 });
 
 export const framesSettle = Effect.fn("ReadingSettle.framesSettle")(function* (
@@ -122,7 +125,12 @@ export const framesSettle = Effect.fn("ReadingSettle.framesSettle")(function* (
 	tell: (line: string) => void = (line) => engine.tell?.(line),
 ) {
 	const screen = yield* screenPendingWork(engine);
-	yield* screenDriver({ act: (action) => act(action), pending: () => screen() || framesPending(engine), root: () => document.body, tell }).settle({
+	yield* screenDriver({
+		act: (action) => act(action),
+		pending: pendingSignal(engine, () => screen() || framesPending(engine)),
+		root: () => document.body,
+		tell,
+	}).settle({
 		timeoutMs: SETTLE_LIMIT_MS,
 	});
 });

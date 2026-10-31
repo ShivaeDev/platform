@@ -46,9 +46,11 @@ export function pagesBoardVerbs(engine: BoardEngine, tell: (line: string) => voi
 				yield* rememberReader(engine);
 				yield* settles();
 			}),
-		requestsByMethod: () =>
+		requestsByMethod: (awaited: readonly string[]) =>
 			Effect.gen(function* () {
-				yield* settles();
+				yield* pageSettlesOn(engine, tell, `the page has answers for ${awaited.join(", ")} and for every other RPC request it sent`, (answers) =>
+					awaited.every((method) => answers.some(({ tag }) => tag === `work-board.${method}`)),
+				);
 				tell("the reader counts the page's RPC requests by method");
 				return Object.fromEntries(
 					Map.groupBy(
