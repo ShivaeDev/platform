@@ -1,4 +1,3 @@
-import { Clock, Effect } from "effect";
 import { InfoIcon } from "lucide-react";
 import { useContext, useState } from "react";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
@@ -11,6 +10,7 @@ import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#client/react/components/ui/tabs.tsx";
 import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
 import { FleetStartHelp } from "#client/react/FleetStopped.tsx";
+import { useNow } from "#client/react/now.ts";
 import { useMedia } from "#client/react/useMedia.ts";
 import { WorkLane } from "#client/react/WorkLane.tsx";
 
@@ -18,7 +18,7 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 	const fleet = useContext(FleetItemsContext);
 	const phone = useMedia("(max-width: 767px)");
 	const ready = fleet?.state === "ready";
-	const { fleet: items, lanes } = laneRows(data.rows, fleet, Effect.runSync(Clock.currentTimeMillis));
+	const { fleet: items, lanes } = laneRows(data.rows, fleet, useNow());
 	const shared = { done: ready ? undefined : "Needs Fleet to show finished work.", fleet: items, state: data.state, virtual: data.rows.length > 200 };
 	const [chosen, setChosen] = useState<NowLane | undefined>(undefined);
 	const shown = chosen ?? lanes.find(({ rows }) => rows.length > 0)?.lane ?? nowLanes[0];

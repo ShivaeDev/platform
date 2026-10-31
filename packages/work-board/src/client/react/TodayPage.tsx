@@ -1,5 +1,5 @@
-import { Clock, Effect, Option } from "effect";
-import { useEffect, useMemo, useRef } from "react";
+import { Option } from "effect";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { inProgress } from "#browser/views/inProgress.ts";
@@ -7,6 +7,7 @@ import type { InboxProjection, RecentAnswer } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { LinkButton } from "./LinkButton.tsx";
 import { LoadingCards } from "./loading.tsx";
+import { useNow } from "./now.ts";
 import { PageHeader } from "./PageHeader.tsx";
 import { navigationQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -27,7 +28,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 	const navigation = useQuery(navigationQuery(api), { keepPreviousData: true });
 	const home = Option.getOrUndefined(navigation.data)?.home;
 	const answering = useSavedAnswers(data, Option.getOrUndefined(navigation.data));
-	const answered = useMemo(() => recentRows(data.recent), [data.recent]);
+	const answered = recentRows(data.recent, useNow());
 	useArrivalFocus(answered);
 	return (
 		<div className="today-page min-w-0 space-y-3 md:space-y-6">
@@ -71,8 +72,8 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 const WEEK = 604_800_000;
 
 // An answer still waiting on its agent stays whatever its age; one the agent acted on stays a week as a trail.
-function recentRows(rows: readonly RecentAnswer[]) {
-	const since = Effect.runSync(Clock.currentTimeMillis) - WEEK;
+function recentRows(rows: readonly RecentAnswer[], now: number) {
+	const since = now - WEEK;
 	return rows.filter((row) => row.state === "waiting" || row.state === "fleet" || row.answeredAt >= since);
 }
 

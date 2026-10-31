@@ -1,5 +1,6 @@
 import { Effect, type FileSystem, Layer, type Path, type PlatformError } from "effect";
 import type { HttpRouter } from "effect/http";
+import type { MissingReadPolicies } from "@shivaedev/contract/readPolicyErrors.ts";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
@@ -21,7 +22,7 @@ export interface BoardOptions {
 	readonly root: string;
 }
 
-type BoardError = InternalServerError | HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
+type BoardError = MissingReadPolicies | InternalServerError | HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
 type BoardServices =
 	| FileSystem.FileSystem
 	| HttpRouter.HttpRouter

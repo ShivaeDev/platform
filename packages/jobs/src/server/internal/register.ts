@@ -1,10 +1,9 @@
 import { type Context, Effect, type Scope } from "effect";
+import { registerWorker } from "#adapters/registerWorker.ts";
 import type { PgBossClient } from "#client.ts";
 import type { JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#definition.ts";
 import { PgBossQueueOptionsError, toPgBossError } from "#error.ts";
-import type { PgBossRunner } from "#internal/batchHandler.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
-import { registerWorker } from "#internal/registerWorker.ts";
 import { runQueueWorker } from "#internal/runQueueWorker.ts";
 
 function isQueueWorker(registration: JobRegistration): registration is QueueWorker {
@@ -62,7 +61,6 @@ const registerQueue = Effect.fnUntraced(function* (
 	context: Context.Context<unknown>,
 	scope: Scope.Scope,
 	schema: string,
-	execute: PgBossRunner,
 	graceful: boolean,
 ) {
 	const queue = registration._tag === "QueueWorker" ? registration.queue : registration;
@@ -78,10 +76,8 @@ const registerQueue = Effect.fnUntraced(function* (
 		scope,
 		schema,
 		queue.maxDeferrals,
-		context,
-		execute,
 		graceful,
-	);
+	).pipe(Effect.provide(context));
 });
 
 const registerSchedule = Effect.fnUntraced(function* (
@@ -90,21 +86,11 @@ const registerSchedule = Effect.fnUntraced(function* (
 	context: Context.Context<unknown>,
 	scope: Scope.Scope,
 	schema: string,
-	execute: PgBossRunner,
 	graceful: boolean,
 ) {
 	const { schedule } = worker;
-	yield* registerWorker(
-		client,
-		schedule.name,
-		schedule.workerOptions,
-		() => worker.effect,
-		scope,
-		schema,
-		schedule.maxDeferrals,
-		context,
-		execute,
-		graceful,
+	yield* registerWorker(client, schedule.name, schedule.workerOptions, () => worker.effect, scope, schema, schedule.maxDeferrals, graceful).pipe(
+		Effect.provide(context),
 	);
 	yield* Effect.tryPromise({
 		catch: (error) => toPgBossError("register", error, schedule.name),
@@ -125,7 +111,6 @@ export const registerJobs = Effect.fnUntraced(function* <R>(
 	registrations: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
-	execute: PgBossRunner,
 	schema = "pgboss",
 	startWorkers = true,
 	graceful = true,
@@ -139,9 +124,9 @@ export const registerJobs = Effect.fnUntraced(function* <R>(
 	const provided = workerContext(context);
 	for (const registration of registrations) {
 		if (isQueueWorker(registration) || isQueueDefinition(registration)) {
-			yield* registerQueue(client, registration, provided, scope, schema, execute, graceful);
+			yield* registerQueue(client, registration, provided, scope, schema, graceful);
 		} else if (isScheduledWorker(registration)) {
-			yield* registerSchedule(client, registration, provided, scope, schema, execute, graceful);
+			yield* registerSchedule(client, registration, provided, scope, schema, graceful);
 		}
 	}
 });

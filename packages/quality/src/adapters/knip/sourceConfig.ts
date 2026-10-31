@@ -16,5 +16,8 @@ export const sourceConfig = Effect.fn("Knip.sourceConfig")(function* (inputs: Ru
 		);
 		yield* fs.writeFileString(join(folder, "tsconfig.json"), JSON.stringify({ extends: parents.flat(), files: [] }));
 	}
+	// Knip's config loader searches from the parent of cwd, independently of --directory and --tsConfig.
+	const cwd = join(inputs.root, posix.dirname(relative), "run");
+	yield* fs.makeDirectory(cwd);
 	return relative;
 });

@@ -2,6 +2,7 @@ import { ByteSize, Effect, Layer } from "effect";
 import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, type RpcGroup, RpcSerialization } from "effect/rpc";
+import { validateReadPolicies } from "@shivaedev/contract/validateReadPolicies.ts";
 import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
@@ -32,6 +33,7 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 			: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), rpcRequestTracing(sensitive));
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
+			yield* validateReadPolicies(options.group);
 			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure, sensitive.forRpc);
 			const httpGroup = options.group.omit(...[...options.group.requests.keys()].filter((tag) => tag.endsWith(".$changes")));
 			const handler = yield* hostRpc(httpGroup).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
