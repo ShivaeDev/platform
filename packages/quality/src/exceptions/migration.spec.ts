@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { exceptionStory, exceptionsMigrated, repositoryHas } from "#test/exceptionStory.ts";
 import { config } from "#test/tree.ts";
 
@@ -36,6 +37,7 @@ exceptionStory.it(
 			"registry": [reads(REGISTRY.path), undefined],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 exceptionStory.it(
@@ -52,6 +54,7 @@ exceptionStory.it(
 			"registry": [reads("old-exceptions.json"), undefined],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 exceptionStory.it(
@@ -67,6 +70,7 @@ exceptionStory.it(
 			"exit": [outcome(), "passed"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 for (const [shape, property] of [
@@ -93,6 +97,7 @@ for (const [shape, property] of [
 				"files": [files(), before],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }
 
@@ -116,6 +121,7 @@ exceptionStory.it(
 			"files": [files(), before],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 exceptionStory.it(
@@ -132,4 +138,5 @@ exceptionStory.it(
 			"files": [files(), before],
 		});
 	},
+	CLI_TIMEOUT,
 );

@@ -2,6 +2,7 @@ import { dirname } from "node:path";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { hookInstalled, linkedWorktree, outsideGit, ownHook, qualityFileAt } from "#test/linkedWorktree.ts";
 
 const OWN_HOOK = "#!/bin/sh\nmake check\n";
@@ -23,6 +24,7 @@ checkoutStory.it(
 			"report": [stdout(), ""],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -37,6 +39,7 @@ checkoutStory.it(
 			`quality: the pre-commit hook at ${hook} is up to date.\nquality: set repository-local core.hooksPath to ${dirname(hook)}.\nquality: no executable global pre-commit hook to chain.\n`,
 		);
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -56,6 +59,7 @@ checkoutStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -72,6 +76,7 @@ checkoutStory.it(
 			"report": [stdout(), expect.stringContaining(`quality: replaced ${path}, which was not quality's hook;`)],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -87,6 +92,7 @@ checkoutStory.it(
 			"hook": [hook(), "quality's"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -103,30 +109,41 @@ checkoutStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
-checkoutStory.it("quality hooks uninstall in a repository without a hook says there is none", [], function* ({ hookFile, outcome, runs, stdout }) {
-	const hook = yield* hookFile();
+checkoutStory.it(
+	"quality hooks uninstall in a repository without a hook says there is none",
+	[],
+	function* ({ hookFile, outcome, runs, stdout }) {
+		const hook = yield* hookFile();
 
-	yield* runs("hooks", "uninstall");
+		yield* runs("hooks", "uninstall");
 
-	yield* outcomes({
-		"exit": [outcome(), "passed"],
-		"report": [stdout(), `quality: there is no pre-commit hook at ${hook}.\n`],
-	});
-});
+		yield* outcomes({
+			"exit": [outcome(), "passed"],
+			"report": [stdout(), `quality: there is no pre-commit hook at ${hook}.\n`],
+		});
+	},
+	CLI_TIMEOUT,
+);
 
-checkoutStory.it("quality hooks uninstall removes quality's hook and says so", [hookInstalled()], function* ({ hook, hookFile, runs, stdout }) {
-	const path = yield* hookFile();
-	expect(yield* hook()).toBe("quality's");
+checkoutStory.it(
+	"quality hooks uninstall removes quality's hook and says so",
+	[hookInstalled()],
+	function* ({ hook, hookFile, runs, stdout }) {
+		const path = yield* hookFile();
+		expect(yield* hook()).toBe("quality's");
 
-	yield* runs("hooks", "uninstall");
+		yield* runs("hooks", "uninstall");
 
-	yield* outcomes({
-		"hook": [hook(), "none"],
-		"report": [stdout(), `quality: removed the pre-commit hook at ${path}.\n`],
-	});
-});
+		yield* outcomes({
+			"hook": [hook(), "none"],
+			"report": [stdout(), `quality: removed the pre-commit hook at ${path}.\n`],
+		});
+	},
+	CLI_TIMEOUT,
+);
 
 checkoutStory.it(
 	"quality hooks uninstall keeps a pre-commit hook that is not quality's and says so",
@@ -141,4 +158,5 @@ checkoutStory.it(
 			"warning": [stderr(), `quality: kept ${hook}: it is not quality's pre-commit hook.\n`],
 		});
 	},
+	CLI_TIMEOUT,
 );

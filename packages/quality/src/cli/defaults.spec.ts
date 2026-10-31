@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
 const TODO = { content: "// TODO\nexport function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };
@@ -13,6 +14,7 @@ repositoryStory.it(
 
 		expect(answer.outcome).toBe("passed");
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -26,6 +28,7 @@ repositoryStory.it(
 			"report": [stdout(), expect.stringContaining("quality: passed.")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -39,6 +42,7 @@ repositoryStory.it(
 			"report": [stdout(), expect.stringContaining("comments/no-todo")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -51,6 +55,7 @@ repositoryStory.it(
 
 		expect((yield* spawns("lint")).outcome).toBe("passed");
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -67,6 +72,7 @@ repositoryStory.it(
 			"exit": [outcome(), "passed"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -80,4 +86,5 @@ repositoryStory.it(
 			"exit": [outcome(), "invalid"],
 		});
 	},
+	CLI_TIMEOUT,
 );

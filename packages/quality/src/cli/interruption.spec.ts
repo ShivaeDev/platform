@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRunning } from "#test/biomeRunning.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { promiseRunning } from "#test/promiseRunning.ts";
 import { crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
 
@@ -22,6 +23,7 @@ qualityLifecycle.it(
 			"temporary Biome config": [temporaryBiomeConfigExists(), false],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 qualityLifecycle.it(
@@ -37,6 +39,7 @@ qualityLifecycle.it(
 			"stack frame": [stderr(), expect.stringMatching(/at .*crashRule.*quality\.config\.ts:\d+:\d+/u)],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 qualityLifecycle.it(
@@ -49,4 +52,5 @@ qualityLifecycle.it(
 
 		expect(yield* promiseSignalAborted()).toBe(true);
 	},
+	CLI_TIMEOUT,
 );

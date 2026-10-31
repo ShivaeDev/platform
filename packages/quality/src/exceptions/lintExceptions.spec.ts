@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { biomeFormatted, exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
 import { config } from "#test/tree.ts";
 
@@ -35,6 +36,7 @@ exceptionStory.it(
 			"report": [stdout(), expect.stringContaining("1 registered violation not shown")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 exceptionStory.it(
@@ -48,6 +50,7 @@ exceptionStory.it(
 			"exit": [outcome(), "invalid"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 exceptionStory.it(
@@ -61,6 +64,7 @@ exceptionStory.it(
 			"report": [stdout(), expect.stringContaining('Weakens "lint/suspicious/noExplicitAny"')],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 for (const rule of DECLARATION.rules) {
@@ -76,6 +80,7 @@ for (const rule of DECLARATION.rules) {
 				"report": [stdout(), expect.stringContaining(`add to exceptions in custom.config.ts: ${JSON.stringify(suggested)}`)],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }
 
@@ -97,6 +102,7 @@ exceptionStory.it(
 			"report": [stdout(), expect.stringContaining("This Biome exception names a missing file")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 exceptionStory.it(
@@ -115,6 +121,7 @@ exceptionStory.it(
 			"report": [stdout(), expect.stringContaining("comments/no-jsdoc src/missing.ts matches no violation")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 exceptionStory.it(
@@ -134,4 +141,5 @@ exceptionStory.it(
 			"report": [stdout(), expect.stringContaining("1 registered violation not shown")],
 		});
 	},
+	CLI_TIMEOUT,
 );

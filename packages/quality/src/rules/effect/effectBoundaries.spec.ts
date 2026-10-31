@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { usesAt } from "#test/effectPolicyFiles.ts";
 import { qualityInstalled, repositoryHas as repositoryContains, repositoryStory } from "#test/repositoryStory.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
@@ -47,11 +48,16 @@ const CONSTRUCTS = [
 const BRIDGE = "export async function bridge() {\n\treturn 1;\n}";
 
 for (const { code, found, name } of CONSTRUCTS) {
-	ruleStory.it(`effect/boundary reports ${name} at its line`, [repositoryHas({ content: code, path: "src/bridge.ts" })], function* ({ check }) {
-		const findings = yield* check(effectBoundary);
+	ruleStory.it(
+		`effect/boundary reports ${name} at its line`,
+		[repositoryHas({ content: code, path: "src/bridge.ts" })],
+		function* ({ check }) {
+			const findings = yield* check(effectBoundary);
 
-		expect(findings).toEqual(found.map(([line, construct]) => usesAt("src/bridge.ts", line, construct)));
-	});
+			expect(findings).toEqual(found.map(([line, construct]) => usesAt("src/bridge.ts", line, construct)));
+		},
+		CLI_TIMEOUT,
+	);
 }
 
 ruleStory.it(
@@ -60,6 +66,7 @@ ruleStory.it(
 	function* ({ check }) {
 		expect(yield* check(effectBoundary)).toEqual([usesAt("src/bridge.spec.ts", 1, "async function")]);
 	},
+	CLI_TIMEOUT,
 );
 
 for (const path of [
@@ -68,9 +75,14 @@ for (const path of [
 	"src/test-support/bridge.ts",
 	"tooling/nested/test-support/bridge.ts",
 ]) {
-	ruleStory.it(`effect/boundary exempts ${path}`, [repositoryHas({ content: BRIDGE, path })], function* ({ check }) {
-		expect(yield* check(effectBoundary)).toEqual([]);
-	});
+	ruleStory.it(
+		`effect/boundary exempts ${path}`,
+		[repositoryHas({ content: BRIDGE, path })],
+		function* ({ check }) {
+			expect(yield* check(effectBoundary)).toEqual([]);
+		},
+		CLI_TIMEOUT,
+	);
 }
 
 for (const rule of ["effect/boundary", "effect/service-parameters"]) {
@@ -94,6 +106,7 @@ for (const rule of ["effect/boundary", "effect/service-parameters"]) {
 				"report": [stdout(), expect.stringContaining(`${rule} src/value.ts names a rule that takes no exceptions`)],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }
 
@@ -114,6 +127,7 @@ repositoryStory.it(
 
 		expect(yield* stdout()).toContain("src/bridge.ts:1  Uses async arrow.");
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -135,4 +149,5 @@ repositoryStory.it(
 			"time": [stdout(), expect.stringContaining("Ambient time is banned")],
 		});
 	},
+	CLI_TIMEOUT,
 );

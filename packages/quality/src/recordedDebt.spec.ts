@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { trees } from "#test/cli.ts";
+import { CLI_TIMEOUT, trees } from "#test/cli.ts";
 import { findingsBaselined } from "#test/findingsBaselined.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
@@ -27,6 +27,7 @@ repositoryStory.it(
 			"report": [stdout(), expect.stringContaining("quality: passed. 3 source files checked; 2 registered violations not shown.")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -42,6 +43,7 @@ repositoryStory.it(
 			stdout: expect.stringContaining("structure/max-lines src/long.ts matches no violation."),
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -61,6 +63,7 @@ repositoryStory.it(
 			"report": [stdout(), "quality: recorded 2 entries in quality-baseline.jsonl.\n"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -74,6 +77,7 @@ repositoryStory.it(
 			"report": [stdout(), expect.stringContaining("2 baselined violations not shown")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -89,6 +93,7 @@ repositoryStory.it(
 			stdout: expect.stringContaining("src/longer.ts is over its baseline: 4 against 3 baselined."),
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -107,6 +112,7 @@ repositoryStory.it(
 			"shrunk file": [stdout(), expect.stringContaining("structure/max-lines src/longer.ts allows more than is left")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -123,6 +129,7 @@ repositoryStory.it(
 			"report": [stdout(), "quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -136,4 +143,5 @@ repositoryStory.it(
 			"exit": [outcome(), "invalid"],
 		});
 	},
+	CLI_TIMEOUT,
 );

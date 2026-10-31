@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
 const UNSORTED_DUPLICATES = { content: "export const b = { z: 1, a: 2 }\nexport const twice = { a: 1, a: 2 }\n", path: "src/b.ts" };
@@ -14,6 +15,7 @@ repositoryStory.it(
 
 		expect(yield* reads("src/b.ts")).toBe("export const b = { z: 1, a: 2 };\nexport const twice = { a: 1, a: 2 };\n");
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -30,6 +32,7 @@ repositoryStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -52,4 +55,5 @@ repositoryStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );

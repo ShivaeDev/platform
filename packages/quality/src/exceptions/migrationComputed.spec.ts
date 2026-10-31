@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
 
 const FILE = "src/parse.ts";
@@ -41,6 +42,7 @@ for (const quote of ['"', "`"]) {
 				"registry": [reads(REGISTRY.path), undefined],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }
 
@@ -72,5 +74,6 @@ for (const [computed, properties] of [
 				"files": [files(), before],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }

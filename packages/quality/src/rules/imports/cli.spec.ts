@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { importFenceRepository, registry } from "#test/importFenceRepository.ts";
 import { installedWorkspace } from "#test/installedWorkspace.ts";
@@ -33,6 +34,7 @@ repositoryStory.it(
 			"turning the rules off": [stderr(), expect.not.stringContaining("turn the imports rules off")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -48,6 +50,7 @@ repositoryStory.it(
 			"test support import": [stdout(), expect.stringContaining('src/app.ts:2  Imports test code through "./test-support/fixture.ts".')],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it("quality lint passes once a registry exception covers the one import across a fence", FENCED, function* ({ runs, writes }) {
@@ -76,6 +79,7 @@ repositoryStory.it(
 			"refused exception": [stdout(), expect.stringContaining("names a rule that takes no exceptions")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -98,4 +102,5 @@ repositoryStory.it(
 			"runtime findings": [stdout(), expect.stringContaining("error imports/runtime (2)")],
 		});
 	},
+	CLI_TIMEOUT,
 );

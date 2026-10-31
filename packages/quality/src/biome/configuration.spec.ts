@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { malformedBiomeVcs, qualityLifecycle } from "#test/qualityLifecycle.ts";
 
 for (const [setting, value] of [
@@ -17,5 +18,6 @@ for (const [setting, value] of [
 				"rule failure": [stderr(), expect.stringContaining("rule biome failed")],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }

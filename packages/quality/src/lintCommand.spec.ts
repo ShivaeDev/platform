@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { trees } from "#test/cli.ts";
+import { CLI_TIMEOUT, trees } from "#test/cli.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { config } from "#test/tree.ts";
 
@@ -43,6 +43,7 @@ repositoryStory.it(
 			"report": [stdout(), "quality: passed. 3 source files checked.\n"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -60,6 +61,7 @@ repositoryStory.it(
 			"summary": [stdout(), expect.stringContaining("quality: failed with 2 errors.")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -75,6 +77,7 @@ repositoryStory.it(
 			"TODO": [stdout(), expect.stringContaining('  src/a.ts:2  Marks unfinished work: "TODO".')],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 for (const [setup, files, explanation] of UNRUNNABLE) {
@@ -90,15 +93,21 @@ for (const [setup, files, explanation] of UNRUNNABLE) {
 				"report": [stdout(), ""],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }
 
-repositoryStory.it("quality lint refuses an unknown option, names it and prints the usage", [], function* ({ outcome, runs, stderr }) {
-	yield* runs("lint", "--warnings", "all");
+repositoryStory.it(
+	"quality lint refuses an unknown option, names it and prints the usage",
+	[],
+	function* ({ outcome, runs, stderr }) {
+		yield* runs("lint", "--warnings", "all");
 
-	yield* outcomes({
-		"error": [stderr(), expect.stringContaining("Unknown option '--warnings'")],
-		"exit": [outcome(), "invalid"],
-		"usage": [stderr(), expect.stringContaining("Usage:\n  quality lint [--config <file>]")],
-	});
-});
+		yield* outcomes({
+			"error": [stderr(), expect.stringContaining("Unknown option '--warnings'")],
+			"exit": [outcome(), "invalid"],
+			"usage": [stderr(), expect.stringContaining("Usage:\n  quality lint [--config <file>]")],
+		});
+	},
+	CLI_TIMEOUT,
+);

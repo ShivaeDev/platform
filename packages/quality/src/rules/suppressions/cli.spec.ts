@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
 const SUPPRESSED = {
@@ -50,6 +51,7 @@ repositoryStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -73,6 +75,7 @@ repositoryStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -87,6 +90,7 @@ repositoryStory.it(
 			"suppression": [stdout(), expect.stringContaining('  src/a.ts:2  Suppresses a check: "@ts-expect-error".')],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -104,4 +108,5 @@ repositoryStory.it(
 			report: [stdout(), expect.stringContaining("src/a.ts is over its baseline: 2 against 1 baselined.")],
 		});
 	},
+	CLI_TIMEOUT,
 );

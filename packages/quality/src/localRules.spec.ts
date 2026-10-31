@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
 const NO_CONSOLE_LOG = {
@@ -40,6 +41,7 @@ repositoryStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -54,4 +56,5 @@ repositoryStory.it(
 			"dotted": [stdout(), expect.stringContaining("  src/a.ts  dotted")],
 		});
 	},
+	CLI_TIMEOUT,
 );

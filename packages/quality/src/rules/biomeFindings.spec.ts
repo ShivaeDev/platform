@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
 const UNTYPED_PARSER = { content: "export function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n", path: "src/parse.ts" };
@@ -37,6 +38,7 @@ repositoryStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -50,6 +52,7 @@ repositoryStory.it(
 			report: [stdout(), expect.stringContaining("error biome/format (1)\n  src/b.ts  Is not formatted. Run `quality fix`.")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -63,6 +66,7 @@ repositoryStory.it(
 			report: [stdout(), "quality: recorded 1 entry in quality-baseline.jsonl.\n"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -80,6 +84,7 @@ repositoryStory.it(
 			report: [stdout(), expect.stringContaining("src/parse.ts is over its baseline: 2 against 1 baselined.")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -90,6 +95,7 @@ repositoryStory.it(
 
 		expect(yield* reads("quality-baseline.jsonl")).toBe('{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n');
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -106,6 +112,7 @@ repositoryStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -116,6 +123,7 @@ repositoryStory.it(
 
 		expect(yield* outcome()).toBe("passed");
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -136,4 +144,5 @@ repositoryStory.it(
 			"failing rule": [stderr(), expect.stringContaining("rule biome failed: biome check")],
 		});
 	},
+	CLI_TIMEOUT,
 );

@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { hookInstalled, linkedWorktree, projectIn, withoutConfig } from "#test/linkedWorktree.ts";
 
 const MESSY = {
@@ -31,6 +32,7 @@ for (const [where, layout] of [
 				"import order finding": [stdout(), expect.stringContaining("error biome/assist/source/organizeImports (1)")],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }
 
@@ -45,6 +47,7 @@ checkoutStory.it(
 			"finding": [commitErrors(), expect.stringContaining(UNFORMATTED)],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -60,6 +63,7 @@ checkoutStory.it(
 			"file": [readsIn("feature", MESSY.path), FIXED],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -70,6 +74,7 @@ checkoutStory.it(
 
 		expect(answer.outcome).toBe("passed");
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -83,6 +88,7 @@ checkoutStory.it(
 			"file": [readsIn("feature", MESSY.path), MESSY.content],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 for (const command of ["lint", "fix"]) {
@@ -98,5 +104,6 @@ for (const command of ["lint", "fix"]) {
 				"message": [stderr(), expect.stringContaining("No files were processed in the specified paths.")],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }

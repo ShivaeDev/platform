@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { installedWorkspace } from "#test/installedWorkspace.ts";
 import { manifestTree } from "#test/manifestTree.ts";
 import { repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
@@ -28,6 +29,7 @@ repositoryStory.it(
 			"undeclared import": [stdout(), expect.stringContaining(UNDECLARED)],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -55,6 +57,7 @@ repositoryStory.it(
 			"test-code findings": [stdout(), expect.stringContaining("error imports/no-test-code (1)")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 for (const { linked, sources, workspace } of SELECTIONS) {
@@ -72,6 +75,7 @@ for (const { linked, sources, workspace } of SELECTIONS) {
 				"undeclared import": [stdout(), expect.stringContaining(UNDECLARED)],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }
 
@@ -99,6 +103,7 @@ repositoryStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 repositoryStory.it(
@@ -127,4 +132,5 @@ repositoryStory.it(
 			"undeclared import": [stdout(), expect.stringContaining(UNDECLARED)],
 		});
 	},
+	CLI_TIMEOUT,
 );

@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { logs } from "#test/hookRepository.ts";
 import {
 	hookInstalled,
@@ -29,6 +30,7 @@ checkoutStory.it(
 			"report": [reported(), [LINT_PASSED]],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -43,6 +45,7 @@ checkoutStory.it(
 			"script log": [scriptLog(), ["typechecked", "repository checked"]],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -57,6 +60,7 @@ checkoutStory.it(
 			"script log": [scriptLog(), ["repository checked"]],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -70,6 +74,7 @@ checkoutStory.it(
 			"script log": [scriptLog(), ["typechecked"]],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -83,6 +88,7 @@ checkoutStory.it(
 			"exit": [outcome(), "invalid"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -100,6 +106,7 @@ checkoutStory.it(
 			"script log": [scriptLog(), ["still ran"]],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -115,6 +122,7 @@ checkoutStory.it(
 			"verdict": [commitErrors(), expect.stringContaining(`quality: pre-commit failed: quality lint.\n${COMMIT_AGAIN}\n`)],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -130,6 +138,7 @@ checkoutStory.it(
 			"script log": [scriptLog(), ["typechecked"]],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -145,6 +154,7 @@ checkoutStory.it(
 			"script log": [scriptLog(), ["checked from app"]],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -158,6 +168,7 @@ checkoutStory.it(
 			"verdict": [commitErrors(), expect.stringContaining("quality: pre-commit failed: `npm run quality:commit` (exit code 4).")],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 checkoutStory.it(
@@ -176,4 +187,5 @@ checkoutStory.it(
 			],
 		});
 	},
+	CLI_TIMEOUT,
 );

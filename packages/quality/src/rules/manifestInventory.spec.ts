@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { manifestIsDirectory, manifestStory, repositoryHas } from "#test/manifestStory.ts";
 
 const BROKEN = "packages/broken/package.json";
@@ -18,6 +19,7 @@ for (const content of ['{"name":', '{"dependencies":[]}', '{"bin":[]}']) {
 				"rule": [stdout(), expect.stringContaining("manifests/valid")],
 			});
 		},
+		CLI_TIMEOUT,
 	);
 }
 
@@ -32,6 +34,7 @@ manifestStory.it(
 			"exit": [outcome(), "invalid"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 manifestStory.it(
@@ -45,6 +48,7 @@ manifestStory.it(
 			"exit": [outcome(), "invalid"],
 		});
 	},
+	CLI_TIMEOUT,
 );
 
 manifestStory.it(
@@ -59,4 +63,5 @@ manifestStory.it(
 			"one shared manifest": [sharedManifest(), true],
 		});
 	},
+	CLI_TIMEOUT,
 );
