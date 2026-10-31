@@ -767,27 +767,38 @@ const onSubmit = (credentials: { email: string; password: string }) => signIn(cr
 
 `authCall` returns a function from input to `Effect<A, AuthFailure>`. It uses the same failure codes and successful data as `authAction`.
 
-`authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family for Better Auth reads. Render it with `useQuery`, just like a contract query atom:
+Use `authSession` from `@shivaedev/react/client/authSession.ts` for the application's Better Auth session. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
 
 ```tsx
-const authSession = authQuery((disableCookieCache: boolean, signal) =>
-	authClient.getSession({ query: { disableCookieCache }, fetchOptions: { signal } }),
-);
+import { Effect } from "effect";
+import * as Atom from "effect/reactivity/Atom";
+import { authCall } from "@shivaedev/react/client/authAction.ts";
+import { authSession } from "@shivaedev/react/client/authSession.ts";
+import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
+
+const session = authSession((signal) => authClient.getSession({ query: { disableCookieCache: true }, fetchOptions: { signal } }));
+const updateUser = authCall((name: string, signal) => authClient.updateUser({ name }, { signal }));
+const rename = Atom.fn<string>()((name) => updateUser(name).pipe(Effect.andThen(session.refresh)));
 
 function Account() {
-	const query = useQuery(authSession(true));
-	const failure = AsyncResult.error(query.result);
+	const query = useQuery(session.atom);
+	const action = useAction(rename);
 	return (
-		<>
-			{query.pending && <p>Loading…</p>}
+		<section aria-busy={query.pending}>
 			{Option.isSome(query.data) && <p>{query.data.value?.user.name ?? "Signed out"}</p>}
-			{Option.isSome(failure) && <p role="alert">Could not read the session</p>}
-		</>
+			<button disabled={action.pending} onClick={() => action.dispatch("Alicia")}>
+				{action.pending ? "Saving…" : "Change name"}
+			</button>
+		</section>
 	);
 }
 ```
 
-The example uses the application's Better Auth client. Reads preserve returned auth errors and use `AuthActionUnavailable` for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
+The example uses `Option` from `effect` and the application's Better Auth client. The mutation stays pending until the refreshed session settles; the query retains its previous data while refreshing and exposes `pending` for `aria-busy`. Compose email verification with `session.refresh` the same way. Reads preserve returned auth errors and use `AuthActionUnavailable` for rejected promises; a failed refresh fails the composed mutation. A successful `null` session represents sign-out.
+
+`session.refresh` uses the native `AtomRegistry` service supplied by action atoms and atom runtimes. For an Effect run outside an atom, provide the registry that renders the session with `Effect.provideService(AtomRegistry.AtomRegistry, registry)`. Keep the session atom in the auth owner's registry, above any session boundary whose subtree it replaces. The application owns when to refresh; this adapter does not subscribe to Better Auth's hook or store.
+
+For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family. Call `authQuery((input, signal) => authClient.getSession({ query: input, fetchOptions: { signal } }))` with an explicitly typed input, then render its atom with `useQuery`. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
 For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
