@@ -1,12 +1,18 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { humanMergeRequired } from "#test/engineTraits.ts";
 import { publicationStory, publishedBoard } from "#test/publicationStory.ts";
 
 publicationStory.it("publishes an idle scheduler pass from one snapshot without an extra list request", [publishedBoard], function* (fleet) {
-	expect(yield* fleet.publications.idlePassLists()).toEqual([[]]);
+	expect((yield* fleet.publications.health()).lastSchedulerPass).toBeNull();
+
+	const lists = yield* fleet.publications.idlePassLists();
+
+	expect(lists).toEqual([[]]);
 	expect((yield* fleet.publications.health()).lastSchedulerPass).toBeGreaterThan(0);
 });
+
 publicationStory.it(
 	"publishes counts, configured cap, scheduler pass and provider rejection through the shared Board contract",
 	[publishedBoard, humanMergeRequired()],
@@ -42,9 +48,11 @@ publicationStory.it("failed health publication leaves execution usable and retri
 	fleet.publications.blockHealth();
 	yield* fleet.prepareWork("one");
 	yield* fleet.schedule();
-	expect((yield* fleet.get("one")).value.step).toBe("working");
-	expect(yield* fleet.publications.health().pipe(Effect.flip)).toMatchObject({ kind: "error" });
-	expect(yield* fleet.publications.snapshot()).toMatchObject({ concurrency: 8, queued: 0, running: 1 });
+	yield* outcomes([
+		["one", () => fleet.stepOf("one"), "working"],
+		["health", () => fleet.publications.health().pipe(Effect.flip), { kind: "error" }],
+		["snapshot", () => fleet.publications.snapshot(), { concurrency: 8, queued: 0, running: 1 }],
+	]);
 	fleet.publications.restoreHealth();
 	yield* fleet.schedule();
 	expect(yield* fleet.publications.health()).toMatchObject({ concurrency: 8, queued: 0, running: 1 });

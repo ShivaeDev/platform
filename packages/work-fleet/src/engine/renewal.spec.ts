@@ -1,9 +1,11 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { availableQuota, workerAcknowledgementLost } from "#test/engineLaunchTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired, noChangeReported } from "#test/engineTraits.ts";
 import { prepared } from "#test/preparation.ts";
+import { refusal } from "#test/refusal.ts";
 
 describe("context-bound Fleet renewal", () => {
 	engine.it("terminal context edits renew the same Board ID after restart without promoting old evidence", [noChangeReported()], function* (fleet) {
@@ -65,9 +67,12 @@ describe("context-bound Fleet renewal", () => {
 			function* (fleet) {
 				yield* fleet.prepareWork("one");
 				const submitted = yield* fleet.dispatch("one");
-				expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
-				expect((yield* fleet.get("one")).value.attempts).toEqual(submitted.value.attempts);
-				expect((yield* fleet.get("one")).value.history).toBeUndefined();
+				const preparedOutcome = yield* refusal(fleet.prepareWork("one"));
+				expect(preparedOutcome).toMatch(/^forbidden: /u);
+				yield* outcomes([
+					["one attempts", () => fleet.get("one"), { value: { attempts: submitted.value.attempts } }],
+					["one history", () => fleet.get("one").pipe(Effect.map((current) => current.value.history)), undefined],
+				]);
 				expect(fleet.launches()).toEqual(["operation-1"]);
 			},
 		);
@@ -81,9 +86,9 @@ describe("context-bound Fleet renewal", () => {
 		expect(completed.value.outcome).toBeDefined();
 		expect(completed.value.review).toBeDefined();
 		expect(completed.value.checks).toBeDefined();
-		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
+		expect(yield* refusal(fleet.prepareWork("one"))).toMatch(/^forbidden: /u);
 		fleet.editWork("one", "board-one-next");
-		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
+		expect(yield* refusal(fleet.prepareWork("one"))).toMatch(/^forbidden: /u);
 		fleet.approveWork("one", "board-one-next");
 		const renewed = yield* fleet.prepareWork("one");
 		expect(renewed.value.step).toBe("queued");
@@ -105,11 +110,10 @@ describe("context-bound Fleet renewal", () => {
 		if (prior?.receipt === undefined) {
 			return yield* Effect.die("The done worker has no accepted receipt");
 		}
-		expect(yield* Effect.flip(fleet.acknowledgeProviderTurn(prior.operationId, prior.receipt))).toMatchObject({
-			_tag: "SessionFailure",
-			reason: "persistence",
-		});
-		expect(yield* Effect.flip(fleet.dispatch("one"))).toMatchObject({ _tag: "Forbidden" });
+		const acknowledgementOutcome = yield* refusal(fleet.acknowledgeProviderTurn(prior.operationId, prior.receipt));
+		expect(acknowledgementOutcome).toMatch(/^session persistence/u);
+		const dispatchedOutcome = yield* refusal(fleet.dispatch("one"));
+		expect(dispatchedOutcome).toMatch(/^forbidden: /u);
 		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 		expect((yield* fleet.get("one")).value.attempts).toEqual([]);
 	});
@@ -122,7 +126,8 @@ describe("context-bound Fleet renewal", () => {
 		expect(renewed.value.history?.[0]?.resultObservations).toEqual([denied.value.result]);
 		expect(renewed.value.history?.[0]?.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
-		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
+		const dispatched = yield* fleet.dispatch("one");
+		expect(dispatched.value.step).toBe("working");
 		expect(fleet.launches()).toEqual(["operation-1", "operation-2", "operation-3"]);
 	});
 });

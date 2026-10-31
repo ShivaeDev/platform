@@ -1,13 +1,14 @@
 import { expect } from "@effect/vitest";
-import { Effect, Fiber } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { views } from "#engine/views.ts";
-import { renderStatus } from "#host/renderStatus.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { GITHUB_RESET } from "#test/githubApi.ts";
 import { githubBudget } from "#test/githubBudget.ts";
 import { ADOPTED_HEAD, githubResult } from "#test/githubChecks.ts";
+import { refusal } from "#test/refusal.ts";
+
+const STRETCHED_BUDGET = 1500;
+const FULL_PASSES = 5;
 
 const INITIAL_REMAINING = 1000;
 const reservedGithubBudget = engineConfiguration("GitHub reserve reads use the REST budget", githubBudget("reserve", INITIAL_REMAINING));
@@ -15,101 +16,186 @@ const exhaustedGithubBudget = engineConfiguration("GitHub limit reads use the RE
 const conditionalHumanDelivery = engineConfiguration("GitHub delivery reads use the REST budget", githubBudget("delivery"));
 
 const result = githubResult();
-isolatedEngine.it(
-	"a PR waiting for a human merge is re-observed by conditional requests that spend no budget",
-	[conditionalHumanDelivery],
-	function* ({ budgetRemaining, budgetRequests, mergeBudgetPullRequest, finishWorkers, prepareWork, fleet }) {
-		yield* prepareWork("one");
+const RESET_AT = GITHUB_RESET * 1000;
+const RATE_LIMITED = `GitHub is rate-limited until ${new Date(RESET_AT).toISOString()}`;
+const RESERVE_PAUSE = `GitHub paused below the 20% reserve until ${new Date(RESET_AT).toISOString()}`;
+const PASSES = 6;
 
+isolatedEngine.it(
+	"a PR waiting for a human merge is re-observed by conditional requests that spend no budget and leave its record unchanged",
+	[conditionalHumanDelivery],
+	function* ({ budgetRemaining, budgetRequests, finishWorkers, fleet, prepareWork }) {
+		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		finishWorkers();
 		const ready = yield* fleet.reconcile("one");
 		expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
-		const spent = budgetRemaining();
+		const remaining = budgetRemaining();
 		const observed = budgetRequests().length;
-		for (let pass = 0; pass < 5; pass += 1) {
-			expect((yield* fleet.reconcile("one")).version).toBe(ready.version);
+
+		const versions: number[] = [];
+		for (let pass = 0; pass < PASSES; pass += 1) {
+			versions.push((yield* fleet.reconcile("one")).version);
 		}
-		expect(budgetRequests().length).toBeGreaterThan(observed);
-		const conditional = budgetRequests().slice(observed);
-		expect(conditional.map(({ status }) => status)).toEqual(conditional.map(() => HttpStatus.fromLiteral("NotModified")));
-		expect(budgetRemaining()).toBe(spent);
+
+		expect({
+			remaining: budgetRemaining(),
+			statuses: [
+				...new Set(
+					budgetRequests()
+						.slice(observed)
+						.map(({ status }) => status),
+				),
+			],
+			versions: [...new Set(versions)],
+		}).toEqual({ remaining, statuses: [HttpStatus.fromLiteral("NotModified")], versions: [ready.version] });
+	},
+	{ clock: "live" },
+);
+
+isolatedEngine.it(
+	"a human merge of a waiting PR completes its work with the merged revision for one request",
+	[conditionalHumanDelivery],
+	function* ({ budgetRemaining, finishWorkers, fleet, mergeBudgetPullRequest, prepareWork }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		expect((yield* fleet.reconcile("one")).value.decision?.reason).toBe("Reviewed PR is ready to merge");
+		const remaining = budgetRemaining();
+
 		mergeBudgetPullRequest();
 		const accepted = yield* fleet.reconcile("one");
-		expect(accepted.value.step).toBe("done");
-		expect(accepted.value.outcome).toEqual({ head: ADOPTED_HEAD, revision: "c".repeat(40), url: result.kind === "change" ? result.pr : "" });
-		expect(budgetRemaining()).toBe(spent - 1);
+
+		expect({ outcome: accepted.value.outcome, spent: remaining - budgetRemaining(), step: accepted.value.step }).toEqual({
+			outcome: { head: ADOPTED_HEAD, revision: "c".repeat(40), url: result.kind === "change" ? result.pr : "" },
+			spent: 1,
+			step: "done",
+		});
 	},
 	{ clock: "live" },
 );
 
 isolatedEngine.it(
-	"a rate-limited read waits for the reset without escalating or calling GitHub again, and status says until when",
+	"a rate-limited validation read waits on automation until the reset after one check-runs request",
 	[exhaustedGithubBudget],
-	function* ({ budgetRequests, budgetObservations, readBudgetPullRequest, finishWorkers, prepareWork, fleet }) {
+	function* ({ budgetRequests, finishWorkers, fleet, prepareWork }) {
 		yield* prepareWork("one");
-
 		yield* fleet.dispatch("one");
 		finishWorkers();
-		const waiting = yield* fleet.reconcile("one");
-		const until = new Date(GITHUB_RESET * 1000).toISOString();
-		expect(waiting.value.step).toBe("validating");
-		expect(waiting.value.blocker).toBe(`GitHub is rate-limited until ${until}`);
-		expect(waiting.value.attentionOwner).toBe("automation");
-		expect(waiting.value.integrationRetry).toMatchObject({ failures: 0, retryAt: GITHUB_RESET * 1000 });
-		expect(budgetRequests()).toMatchObject([{ endpoint: expect.stringContaining("check-runs"), method: "GET" }]);
-		for (let pass = 0; pass < 6; pass += 1) {
-			yield* fleet.reconcile("one");
-		}
-		expect(yield* readBudgetPullRequest().pipe(Effect.flip)).toMatchObject({ message: `GitHub is rate-limited until ${until}` });
-		expect(budgetRequests()).toMatchObject([{ endpoint: expect.stringContaining("check-runs"), method: "GET" }]);
-		const current = yield* fleet.get("one");
-		expect(current.value.decision).toBeUndefined();
-		expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(`one  waiting  GitHub is rate-limited until ${until}`);
-		expect(yield* budgetObservations()).toMatchObject([
-			{ limitedBy: "rate-limit", limitedUntil: GITHUB_RESET * 1000, remaining: 0, resource: "core" },
-		]);
+
+		const waiting = (yield* fleet.reconcile("one")).value;
+
+		expect({
+			blocker: waiting.blocker,
+			owner: waiting.attentionOwner,
+			requests: budgetRequests().map(({ endpoint, method }) => `${method} ${endpoint.includes("check-runs") ? "check-runs" : endpoint}`),
+			retry: waiting.integrationRetry,
+			step: waiting.step,
+		}).toMatchObject({
+			blocker: RATE_LIMITED,
+			owner: "automation",
+			requests: ["GET check-runs"],
+			retry: { failures: 0, retryAt: RESET_AT },
+			step: "validating",
+		});
 	},
 	{ clock: "live" },
 );
 
 isolatedEngine.it(
-	"below the 20% reserve Fleet stops calling GitHub until the reset and status says so",
+	"passes during a rate limit call GitHub no more, escalate nothing and show until when in status",
+	[exhaustedGithubBudget],
+	function* ({ budgetObservations, budgetRequests, finishWorkers, fleet, prepareWork, readBudgetPullRequest, statusText }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		yield* fleet.reconcile("one");
+		const requests = budgetRequests().length;
+
+		for (let pass = 0; pass < PASSES; pass += 1) {
+			yield* fleet.reconcile("one");
+		}
+
+		expect({
+			decision: (yield* fleet.get("one")).value.decision?.code ?? "none",
+			direct: yield* refusal(readBudgetPullRequest()),
+			observations: yield* budgetObservations(),
+			requests: budgetRequests().length,
+			status: yield* statusText(),
+		}).toMatchObject({
+			decision: "none",
+			direct: expect.stringContaining(RATE_LIMITED),
+			observations: [{ limitedBy: "rate-limit", limitedUntil: RESET_AT, remaining: 0, resource: "core" }],
+			requests,
+			status: expect.stringContaining(`one  waiting  ${RATE_LIMITED}`),
+		});
+	},
+	{ clock: "live" },
+);
+
+isolatedEngine.it(
+	"below the 20% reserve validation waits on automation until the reset after one check-runs request",
 	[reservedGithubBudget],
-	function* ({ budgetRemaining, budgetRequests, budgetObservations, finishWorkers, prepareWork, fleet }) {
+	function* ({ budgetRemaining, budgetRequests, finishWorkers, fleet, prepareWork }) {
 		yield* prepareWork("one");
-
 		yield* fleet.dispatch("one");
 		finishWorkers();
-		const waiting = yield* fleet.reconcile("one");
-		const message = `GitHub paused below the 20% reserve until ${new Date(GITHUB_RESET * 1000).toISOString()}`;
-		expect(waiting.value.step).toBe("validating");
-		expect(waiting.value.blocker).toBe(message);
-		expect(waiting.value.integrationRetry).toMatchObject({ failures: 0, retryAt: GITHUB_RESET * 1000 });
-		expect(budgetRequests()).toMatchObject([{ endpoint: expect.stringContaining("check-runs"), method: "GET" }]);
-		expect(budgetRemaining()).toBe(INITIAL_REMAINING - budgetRequests().length);
-		for (let pass = 0; pass < 6; pass += 1) {
-			yield* fleet.reconcile("one");
-		}
-		expect(budgetRequests()).toMatchObject([{ endpoint: expect.stringContaining("check-runs"), method: "GET" }]);
-		expect((yield* fleet.get("one")).value.decision).toBeUndefined();
-		expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(`one  waiting  ${message}`);
-		expect(yield* budgetObservations()).toMatchObject([{ limitedBy: "reserve", limitedUntil: GITHUB_RESET * 1000, remaining: 999 }]);
+
+		const waiting = (yield* fleet.reconcile("one")).value;
+
+		expect({
+			blocker: waiting.blocker,
+			remaining: budgetRemaining(),
+			requests: budgetRequests().map(({ endpoint, method }) => `${method} ${endpoint.includes("check-runs") ? "check-runs" : endpoint}`),
+			retry: waiting.integrationRetry,
+			step: waiting.step,
+		}).toMatchObject({
+			blocker: RESERVE_PAUSE,
+			remaining: INITIAL_REMAINING - 1,
+			requests: ["GET check-runs"],
+			retry: { failures: 0, retryAt: RESET_AT },
+			step: "validating",
+		});
 	},
 	{ clock: "live" },
 );
 
 isolatedEngine.it(
-	"a REST budget between half and the reserve stretches the scheduler's pause beyond the configured interval",
+	"passes below the reserve call GitHub no more, escalate nothing and show the pause in status",
+	[reservedGithubBudget],
+	function* ({ budgetObservations, budgetRequests, finishWorkers, fleet, prepareWork, statusText }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		yield* fleet.reconcile("one");
+		const requests = budgetRequests().length;
+
+		for (let pass = 0; pass < PASSES; pass += 1) {
+			yield* fleet.reconcile("one");
+		}
+
+		expect({
+			decision: (yield* fleet.get("one")).value.decision?.code ?? "none",
+			observations: yield* budgetObservations(),
+			requests: budgetRequests().length,
+			status: yield* statusText(),
+		}).toMatchObject({
+			decision: "none",
+			observations: [{ limitedBy: "reserve", limitedUntil: RESET_AT, remaining: INITIAL_REMAINING - 1 }],
+			requests,
+			status: expect.stringContaining(`one  waiting  ${RESERVE_PAUSE}`),
+		});
+	},
+	{ clock: "live" },
+);
+
+isolatedEngine.it(
+	"a REST budget between half and the reserve holds its scheduler to one pass while a full-budget scheduler passes six times",
 	[],
-	function* ({ startBudgetScheduler }) {
-		const full = yield* startBudgetScheduler(5000);
-		yield* Effect.sleep("5 millis").pipe(Effect.repeat({ until: () => full.passes.count > 5 }), Effect.timeout("10 seconds"));
-		yield* Fiber.interrupt(full.scheduler);
-		const stretched = yield* startBudgetScheduler(1500);
-		yield* Effect.sleep("300 millis");
-		yield* Fiber.interrupt(stretched.scheduler);
-		expect(stretched.passes.records).toEqual([{ workIds: [] }]);
+	function* ({ stretchedSchedulerPasses }) {
+		const passes = yield* stretchedSchedulerPasses(STRETCHED_BUDGET, FULL_PASSES);
+
+		expect(passes).toBe("one pass");
 	},
 	{ clock: "live" },
 );

@@ -1,11 +1,14 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Duration, Effect, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { TestClock } from "effect/testing";
 import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { failureContext } from "#engine/failureContext.ts";
 import { resolveHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery } from "#host/githubDelivery.ts";
+import { githubRateLimited } from "#host/githubRateLimit.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { hostIntegrations } from "#host/integrations.ts";
 import { MainSource } from "#host/mainSource.ts";
@@ -13,6 +16,7 @@ import { makeReportPublication, reportPublication } from "#host/reportPublicatio
 import { FleetIntegrations } from "#policy.ts";
 import { githubCliApi, syntheticGithub } from "#test/githubApi.ts";
 import { resultFixture } from "#test/githubResult.ts";
+import { described } from "#test/refusal.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 const definition = {
@@ -25,7 +29,13 @@ const definition = {
 				story.tell("connect Fleet's conditional GitHub client");
 				const github = syntheticGithub(options);
 				const client = Context.get(yield* Layer.build(github.layer), GithubApi);
-				return { ...github, client };
+				return {
+					...github,
+					client,
+					pagesOf: (path: string) => outcome(client.pages(path)),
+					read: (path: string) => outcome(client.get(path)),
+					statuses: () => github.requests.map(({ endpoint, status }) => `${status} ${endpoint}`),
+				};
 			}),
 		cli: (responses: ReadonlyMap<string, string>, status: number = HttpStatus.fromLiteral("OK")) =>
 			Effect.gen(function* () {
@@ -40,14 +50,31 @@ const definition = {
 					published: (repository: string, branch: string) => reportPublication(api)(repository, branch),
 				};
 			}),
-		delivery: (observation: Effect.Effect<unknown, ServiceUnavailable>, result: Parameters<ReturnType<typeof githubDelivery>>[0]) => {
+		deliveryOutcome: (observation: Effect.Effect<unknown, ServiceUnavailable>, result: Parameters<ReturnType<typeof githubDelivery>>[0]) => {
 			story.tell("observe delivery of the adopted pull request");
 			return githubDelivery((pr) => {
 				state.requests.push(pr);
 				return observation;
-			})(result);
+			})(result).pipe(
+				Effect.match({
+					onFailure: (error) => {
+						const { code, head, mainRevision } = failureContext(error);
+						const context = [
+							code,
+							head === undefined ? undefined : `head ${head}`,
+							mainRevision === undefined ? undefined : `main ${mainRevision}`,
+						].filter((part) => part !== undefined);
+						return context.length === 0 ? described(error) : `${described(error)} (${context.join(", ")})`;
+					},
+					onSuccess: (delivered) => (delivered === undefined ? "waiting" : `merged ${delivered.revision} at ${delivered.head} for ${delivered.url}`),
+				}),
+			);
 		},
 		deliveryRequests: () => state.requests,
+		elapse: (duration: Duration.Input) => {
+			story.tell(`${Duration.format(Duration.fromInputUnsafe(duration))} pass on the test clock`);
+			return TestClock.adjust(duration);
+		},
 		integrations: (configured = true) => {
 			story.tell("load the host's result and check integrations");
 			const fixture = resultFixture();
@@ -68,3 +95,12 @@ const definition = {
 };
 export const githubHost = storyKit(definition);
 export const githubCliHost = storyKit({ ...definition, clock: "live" });
+
+function outcome(read: Effect.Effect<string, unknown>) {
+	return read.pipe(
+		Effect.match({
+			onFailure: (error) => (githubRateLimited(error) ? `limited until ${failureContext(error).retryAt}` : described(error)),
+			onSuccess: (body): unknown => JSON.parse(body),
+		}),
+	);
+}

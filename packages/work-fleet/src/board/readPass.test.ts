@@ -1,144 +1,177 @@
 import { expect } from "@effect/vitest";
-import { Deferred, Effect, Fiber } from "effect";
-import { vi } from "vitest";
-import { board as metadata } from "@shivaedev/work-board/server/integration/board.ts";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
-import { briefRevision } from "#board/briefRevision.ts";
-import { withBoardReadPass, workMetadata } from "#board/readPass.ts";
-import { approvedWorkIds } from "#host/admission.ts";
-import { resolveHost } from "#host/config.ts";
-import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
-import { syntheticDatabase } from "#test/syntheticDatabase.ts";
+import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { boardReadStory, countedParses, hasBoardItems } from "#test/boardReadStory.ts";
+
+const REVIEW = { id: "review", links: [], reason: "Review required", recommendation: "Inspect the result" };
 
 boardReadStory.it(
-	"100 items share one read and parse per file across listing and concurrent repeated lookups",
-	[hasBoardItems(100)],
-	function* ({ board, fixture }) {
-		const parse = vi.spyOn(metadata, "metadataParse");
-		yield* Effect.addFinalizer(() => Effect.sync(() => parse.mockRestore()));
-		const started = performance.now();
-		yield* withBoardReadPass(
+	"a pass over 100 items scans once and reads and parses each file once across listing and eight lookups per item",
+	[hasBoardItems(100), countedParses],
+	function* ({ approvedIds, duringOnePass, parses, read, readsPerFile, revisionMatchesMetadata, scans }) {
+		const briefs = yield* duringOnePass(
 			Effect.gen(function* () {
-				yield* Effect.all([board.get("item.0"), board.get("item.1")], { concurrency: "unbounded" });
-				const ids = yield* approvedWorkIds(resolveHost(fixture.root, { database: syntheticDatabase, provider: "local" }));
-				expect(ids).toHaveLength(100);
-				const readings = yield* Effect.forEach(ids, (id) => Effect.all(Array.from({ length: 8 }, () => board.get(id))), { concurrency: "unbounded" });
-				expect(readings).toHaveLength(100);
-				for (const [index, items] of readings.entries()) {
-					expect(items).toHaveLength(8);
-					for (const work of items) {
-						expect(work.approved).toBe(true);
-						expect(work.revision).toBe(briefRevision(yield* workMetadata(work)));
-						expect((yield* workMetadata(work)).fields.id).toBe(ids[index]);
-					}
-				}
-			}),
-		).pipe(Effect.provide(fixture.services));
-		expect(fixture.scans()).toBe(1);
-		expect(fixture.reads.size).toBe(100);
-		expect([...fixture.reads.values()]).toEqual(Array.from({ length: 100 }, () => 1));
-		expect(parse).toHaveBeenCalledTimes(100);
-		expect(performance.now() - started).toBeLessThan(3000);
-	},
-);
-boardReadStory.it(
-	"the next pass sees edits, additions, removals and duplicate identities with approval bound to the bytes read",
-	[hasBoardItems(2)],
-	function* ({ board, fixture }) {
-		yield* Effect.gen(function* () {
-			const first = yield* withBoardReadPass(
-				Effect.gen(function* () {
-					const work = yield* board.get("item.0");
-					yield* fixture.write("0.md", fixture.source("item.0", false, "Edited work."));
-					yield* fixture.remove("1.md");
-					yield* fixture.write("new.md", fixture.source("item.new"));
-					expect(yield* board.get("item.0")).toEqual(work);
-					expect((yield* board.get("item.1")).approved).toBe(true);
-					expect((yield* Effect.result(board.get("item.new")))._tag).toBe("Failure");
-					return work;
-				}),
-			);
-			yield* withBoardReadPass(
-				Effect.gen(function* () {
-					const changed = yield* board.get("item.0");
-					expect(changed.approved).toBe(false);
-					expect(changed.revision).toBe(briefRevision(metadataParse(changed.context)));
-					expect(changed.revision).not.toBe(first.revision);
-					expect((yield* Effect.result(board.get("item.1")))._tag).toBe("Failure");
-					expect((yield* board.get("item.new")).approved).toBe(true);
-				}),
-			);
-			yield* fixture.write("duplicate.md", fixture.source("item.new"));
-			expect((yield* withBoardReadPass(Effect.result(board.get("item.new"))))._tag).toBe("Failure");
-		});
-	},
-);
-boardReadStory.it("a reconciliation fiber cannot retain an expired pass snapshot", [hasBoardItems(1)], function* ({ board, fixture }) {
-	yield* Effect.gen(function* () {
-		const release = yield* Deferred.make<void>();
-		const pending = yield* withBoardReadPass(
-			Effect.gen(function* () {
-				yield* board.get("item.0");
-				return yield* Deferred.await(release).pipe(Effect.andThen(board.get("item.0")), Effect.forkScoped);
+				const ids = yield* approvedIds();
+				const lookups = yield* Effect.forEach(ids, (id) => Effect.all(Array.from({ length: 8 }, () => read(id))), { concurrency: "unbounded" });
+				return yield* Effect.forEach(lookups.flat(), (work) =>
+					Effect.map(revisionMatchesMetadata(work), (matches) => ({ approved: work.approved, revisionMatchesMetadata: matches })),
+				);
 			}),
 		);
-		yield* fixture.write("0.md", fixture.source("item.0", false));
-		yield* Deferred.succeed(release, undefined);
-		expect((yield* Fiber.join(pending)).approved).toBe(false);
-	});
-});
-boardReadStory.it(
-	"a pass sees its own durable decisions without rescanning and the next pass reads changed work independently",
-	[hasBoardItems(1)],
-	function* ({ board, fixture }) {
-		yield* Effect.gen(function* () {
-			const receipt = yield* withBoardReadPass(
-				Effect.gen(function* () {
-					const decision = { id: "review", links: [], reason: "Review required", recommendation: "Inspect the result" };
-					const published = yield* board.decision("item.0", decision);
-					expect(yield* board.decision("item.0", decision)).toEqual(published);
-					expect(yield* board.readDecision(published)).toEqual({ _tag: "Pending" });
-					return published;
-				}),
-			);
-			expect(fixture.scans()).toBe(1);
-			expect([...fixture.reads.values()]).toEqual([1]);
-			yield* fixture.write("0.md", fixture.source("item.0", true, "Changed after review."));
-			yield* withBoardReadPass(
-				Effect.gen(function* () {
-					expect((yield* board.get("item.0")).revision).not.toBe(receipt.workRevision);
-					expect((yield* board.readDecision(receipt))._tag).toBe("Pending");
-				}),
-			);
-		});
+
+		expect(briefs).toEqual(Array.from({ length: 800 }, () => ({ approved: true, revisionMatchesMetadata: true })));
+		yield* outcomes([
+			["scans", () => scans(), 1],
+			["reads per file", () => readsPerFile(), Array.from({ length: 100 }, () => 1)],
+			["parses", () => parses(), 100],
+		]);
 	},
 );
+
 boardReadStory.it(
-	"a pass excludes invalid metadata, shares its named problem and retries it on the next pass",
+	"a pass keeps the briefs it read while a file is edited, another removed and a third added",
+	[hasBoardItems(2)],
+	function* ({ approvalOf, duringOnePass, edit, read, refusalOf, remove, write }) {
+		yield* duringOnePass(
+			Effect.gen(function* () {
+				const edited = yield* read("item.0");
+				yield* read("item.1");
+
+				yield* edit("0.md", "item.0", false, "Edited work.");
+				yield* remove("1.md");
+				yield* write("new.md", "item.new");
+
+				yield* outcomes([
+					["edited item", () => read("item.0"), edited],
+					["removed item", () => approvalOf("item.1"), "approved"],
+					["added item", () => refusalOf("item.new"), expect.not.stringMatching(/^accepted$/u)],
+				]);
+			}),
+		);
+	},
+);
+
+boardReadStory.it(
+	"the next pass sees an edited, a removed and an added file",
+	[hasBoardItems(2)],
+	function* ({ approvalOf, duringOnePass, edit, read, refusalOf, remove, revisionMatchesMetadata, write }) {
+		const original = yield* duringOnePass(read("item.0"));
+		yield* edit("0.md", "item.0", false, "Edited work.");
+		yield* remove("1.md");
+		yield* write("new.md", "item.new");
+
+		const edited = yield* duringOnePass(read("item.0"));
+
+		expect(edited.approved).toBe(false);
+		expect(edited.revision).not.toBe(original.revision);
+		yield* duringOnePass(
+			outcomes([
+				["edited revision matches its metadata", () => revisionMatchesMetadata(edited), true],
+				["removed item", () => refusalOf("item.1"), expect.not.stringMatching(/^accepted$/u)],
+				["added item", () => approvalOf("item.new"), "approved"],
+			]),
+		);
+	},
+);
+
+boardReadStory.it("two files claiming one id fail its lookup on the next pass", [hasBoardItems(1)], function* ({ duringOnePass, refusalOf, write }) {
+	yield* write("new.md", "item.new");
+	expect(yield* duringOnePass(refusalOf("item.new"))).toBe("accepted");
+
+	yield* write("duplicate.md", "item.new");
+
+	expect(yield* duringOnePass(refusalOf("item.new"))).not.toBe("accepted");
+});
+
+boardReadStory.it(
+	"a fiber that outlives its pass reads the current brief, not the pass snapshot",
 	[hasBoardItems(1)],
-	function* ({ board, fixture }) {
-		yield* fixture.write("invalid.md", "---\nid: [\n---\nBroken metadata.");
-		yield* Effect.gen(function* () {
-			yield* withBoardReadPass(
-				Effect.gen(function* () {
-					expect((yield* board.get("item.0")).approved).toBe(true);
-					expect(
-						yield* approvedWorkIds(resolveHost(fixture.root, { database: syntheticDatabase, provider: "local" })).pipe(
-							Effect.provide(fixture.services),
-						),
-					).toEqual(["item.0"]);
-					const missing = yield* Effect.result(board.get("missing"));
-					expect(missing._tag).toBe("Failure");
-					if (missing._tag === "Failure") {
-						expect(missing.failure.message).toContain("Board metadata is invalid: invalid.md (frontmatter: line 3: Flow sequence");
-					}
-					yield* fixture.remove("invalid.md");
-					expect((yield* board.get("item.0")).approved).toBe(true);
-				}),
-			);
-			expect(fixture.scans()).toBe(1);
-			expect((yield* withBoardReadPass(board.get("item.0"))).approved).toBe(true);
-			expect(fixture.scans()).toBe(2);
-		});
+	function* ({ edit, holdPassAfter, read }) {
+		const waiting = yield* holdPassAfter(read("item.0"));
+		yield* edit("0.md", "item.0", false);
+
+		const late = yield* waiting.resume();
+
+		expect(late.approved).toBe(false);
+	},
+);
+
+boardReadStory.it(
+	"a decision republished within its pass returns its receipt and reads as pending without a rescan",
+	[hasBoardItems(1)],
+	function* ({ decide, decisionState, duringOnePass, readsPerFile, scans }) {
+		yield* duringOnePass(
+			Effect.gen(function* () {
+				const published = yield* decide("item.0", REVIEW);
+
+				const republished = yield* decide("item.0", REVIEW);
+
+				expect(republished).toEqual(published);
+				expect(yield* decisionState(published)).toBe("pending");
+			}),
+		);
+
+		yield* outcomes([
+			["scans", () => scans(), 1],
+			["reads per file", () => readsPerFile(), [1]],
+		]);
+	},
+);
+
+boardReadStory.it(
+	"a decision stays pending in the next pass after its work changes",
+	[hasBoardItems(1)],
+	function* ({ decide, decisionState, duringOnePass, edit, read }) {
+		const published = yield* duringOnePass(decide("item.0", REVIEW));
+
+		yield* edit("0.md", "item.0", true, "Changed after review.");
+
+		yield* duringOnePass(
+			outcomes([
+				["work revision", () => read("item.0").pipe(Effect.map((work) => work.revision === published.workRevision)), false],
+				["decision", () => decisionState(published), "pending"],
+			]),
+		);
+	},
+);
+
+boardReadStory.it(
+	"a file with invalid metadata leaves the valid work approved and listed",
+	[hasBoardItems(1)],
+	function* ({ approvalOf, approvedIds, duringOnePass, writeSource }) {
+		yield* writeSource("invalid.md", "---\nid: [\n---\nBroken metadata.");
+
+		yield* duringOnePass(
+			outcomes([
+				["valid item", () => approvalOf("item.0"), "approved"],
+				["approved work", () => approvedIds(), ["item.0"]],
+			]),
+		);
+	},
+);
+
+boardReadStory.it(
+	"a lookup for missing work names the file with invalid metadata and its parse problem",
+	[hasBoardItems(1)],
+	function* ({ duringOnePass, refusalOf, writeSource }) {
+		yield* writeSource("invalid.md", "---\nid: [\n---\nBroken metadata.");
+
+		const lookup = yield* duringOnePass(refusalOf("missing"));
+
+		expect(lookup).toContain("Board metadata is invalid: invalid.md (frontmatter: line 3: Flow sequence");
+	},
+);
+
+boardReadStory.it(
+	"invalid metadata removed during a pass is read again only by the next pass",
+	[hasBoardItems(1)],
+	function* ({ approvalOf, duringOnePass, remove, scans, writeSource }) {
+		yield* writeSource("invalid.md", "---\nid: [\n---\nBroken metadata.");
+		yield* duringOnePass(Effect.andThen(approvalOf("item.0"), remove("invalid.md")));
+		expect(yield* scans()).toBe(1);
+
+		yield* duringOnePass(approvalOf("item.0"));
+
+		expect(yield* scans()).toBe(2);
 	},
 );

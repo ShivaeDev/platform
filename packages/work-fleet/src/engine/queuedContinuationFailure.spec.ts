@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import {
 	completedContinuation,
 	continuationCapacity,
@@ -35,8 +37,10 @@ for (const step of ["waiting", "done"] as const) {
 			});
 			expect(stopped.pendingContinuation).toBeUndefined();
 			yield* fleet.schedule();
-			expect((yield* fleet.get("one")).value.pendingContinuation).toBeUndefined();
-			expect((yield* fleet.get("four")).value.step).toBe("working");
+			yield* outcomes([
+				["one pending continuation", () => fleet.get("one").pipe(Effect.map((current) => current.value.pendingContinuation)), undefined],
+				["four", () => fleet.stepOf("four"), "working"],
+			]);
 		},
 	);
 }
@@ -97,8 +101,10 @@ isolatedEngine.it(
 				role: "repair",
 			},
 		]);
-		expect((yield* fleet.get("two")).value.step).toBe("done");
-		expect((yield* fleet.get("three")).value.step).toBe("working");
-		expect((yield* fleet.get("four")).value.step).toBe("queued");
+		yield* outcomes([
+			["two", () => fleet.stepOf("two"), "done"],
+			["three", () => fleet.stepOf("three"), "working"],
+			["four", () => fleet.stepOf("four"), "queued"],
+		]);
 	},
 );

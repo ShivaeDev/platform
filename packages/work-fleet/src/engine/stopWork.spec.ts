@@ -1,5 +1,4 @@
 import { Effect, Fiber } from "effect";
-import { TestClock } from "effect/testing";
 import { expect } from "vitest";
 import { engine, isolatedEngine } from "#test/engineStory.ts";
 import { githubPullRequest, markdownWork, noChangeReported, oneExecutionSlot, reviewerStillRunning } from "#test/engineTraits.ts";
@@ -62,7 +61,7 @@ engine.it(
 isolatedEngine.it(
 	"an unconfirmed interrupt abandons the turn, frees its slot and areas and ignores late output after restart",
 	[oneExecutionSlot, stopConfirmationHeld("interrupt")],
-	function* ({ fleet, prepareWork, setAreas, waitForTimingGate, providerInterrupts, setTurnExecution, restart, schedule }) {
+	function* ({ fleet, prepareWork, setAreas, waitForTimingGate, providerInterrupts, setTurnExecution, restart, schedule, elapse }) {
 		setAreas("one", ["shared"]);
 		setAreas("two", ["shared"]);
 		yield* prepareWork("one");
@@ -71,7 +70,7 @@ isolatedEngine.it(
 		yield* fleet.dispatch("two").pipe(Effect.result);
 		const stopping = yield* fleet.stop("one").pipe(Effect.forkChild);
 		yield* waitForTimingGate();
-		yield* TestClock.adjust("5 seconds");
+		yield* elapse("5 seconds");
 		const stopped = yield* Fiber.join(stopping);
 		expect(stopped.value).toMatchObject({
 			attempts: [{ abandoned: { interruptError: expect.any(String) }, sessionUnusable: true, status: "failed" }],
@@ -97,10 +96,14 @@ engine.it("stopping finished, released or unknown work names its state", [noChan
 	yield* prepareWork("one");
 	yield* fleet.dispatch("one");
 	finishWorkers();
-	expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-	expect(yield* fleet.stop("one").pipe(Effect.flip)).toMatchObject({ message: expect.stringContaining("done") });
+	const reconciled = yield* fleet.reconcile("one");
+	expect(reconciled.value.step).toBe("done");
+	const stopResult = yield* fleet.stop("one").pipe(Effect.flip);
+	expect(stopResult).toMatchObject({ message: expect.stringContaining("done") });
 	yield* prepareWork("two");
 	yield* fleet.stop("two");
-	expect(yield* fleet.stop("two").pipe(Effect.flip)).toMatchObject({ message: expect.stringContaining("released") });
-	expect(yield* fleet.stop("missing-task").pipe(Effect.flip)).toMatchObject({ message: "Unknown Board work missing-task" });
+	const twoStopResult = yield* fleet.stop("two").pipe(Effect.flip);
+	expect(twoStopResult).toMatchObject({ message: expect.stringContaining("released") });
+	const stopResult2 = yield* fleet.stop("missing-task").pipe(Effect.flip);
+	expect(stopResult2).toMatchObject({ message: "Unknown Board work missing-task" });
 });

@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { githubBacklog } from "#test/engineSchedulingTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { markdownAreas } from "#test/markdownAreas.ts";
@@ -13,8 +14,10 @@ for (const restart of [false, true]) {
 			yield* fleet.prepareWork("one");
 			yield* fleet.prepareWork("two");
 			yield* fleet.schedule();
-			expect((yield* fleet.get("one")).value.blocker).toBe("waiting for area shared held by three");
-			expect((yield* fleet.get("two")).value.blocker).toBe("waiting for area shared held by three");
+			yield* outcomes([
+				["one blocker", () => fleet.get("one"), { value: { blocker: "waiting for area shared held by three" } }],
+				["two blocker", () => fleet.get("two"), { value: { blocker: "waiting for area shared held by three" } }],
+			]);
 			fleet.finishWorkers();
 			expect((yield* fleet.reconcile("three")).value.step).toBe("done");
 			fleet.deleteBoardItem("one");
@@ -56,10 +59,11 @@ isolatedEngine.it("deleting an idle area holder releases it during reconciliatio
 	yield* fleet.finishWorker("one");
 	expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 	yield* fleet.prepareWork("two");
-	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ _tag: "StorageAdmission" });
+	expect(yield* fleet.attemptDispatch("two")).toMatch(/^admission refused: /u);
 	fleet.deleteBoardItem("one");
 	yield* fleet.reconcile("one");
-	expect((yield* fleet.dispatch("two")).value.step).toBe("working");
+	const twoDispatched = yield* fleet.dispatch("two");
+	expect(twoDispatched.value.step).toBe("working");
 	expect((yield* fleet.get("one")).value.step).toBe("released");
 });
 

@@ -1,21 +1,30 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
+import { refusal } from "#test/refusal.ts";
+
+for (const status of ["done", "dropped", "ready"]) {
+	boardFolderStory.it(
+		`a ${status} brief in a removed area stays readable without an area warning`,
+		[folderContains("retiredAreas")],
+		function* ({ readBrief, recordedBoardWarnings }) {
+			yield* outcomes([
+				["brief", () => readBrief(status), { status, workId: status }],
+				["Board warnings", () => recordedBoardWarnings(), []],
+			]);
+		},
+	);
+}
 
 boardFolderStory.it(
-	"Fleet keeps historical briefs readable without area warnings while runnable briefs still report removed folders",
+	"a runnable brief in a removed area is refused and its file is named in the Board warnings",
 	[folderContains("retiredAreas")],
-	function* (story) {
-		const historical = ["done", "dropped", "ready"];
-		for (const id of historical) {
-			expect(yield* story.readBrief(id)).toMatchObject({ status: id, workId: id });
-		}
-		expect(story.recordedBoardLogs()).toEqual([]);
-		story.files.write("open.md", "---\nid: open\nkind: task\nstatus: ready\nareas: [removed-package]\n---\n# Runnable work\n");
-		expect(yield* story.readBrief("open").pipe(Effect.flip)).toMatchObject({
-			_tag: "BoardFailure",
-			message: expect.stringContaining("removed-package"),
-		});
-		expect(JSON.stringify(story.recordedBoardLogs())).toContain("open.md");
+	function* ({ files, readBrief, recordedBoardWarnings }) {
+		files.write("open.md", "---\nid: open\nkind: task\nstatus: ready\nareas: [removed-package]\n---\n# Runnable work\n");
+
+		const read = yield* refusal(readBrief("open"));
+
+		expect(read).toMatch(/^Board failure: .*removed-package/u);
+		expect((yield* recordedBoardWarnings()).join("\n")).toContain("open.md");
 	},
 );

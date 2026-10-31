@@ -3,11 +3,10 @@ import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { jobsPage } from "@shivaedev/admin/jobs/page.ts";
 import { jobSchema } from "@shivaedev/admin/jobs/schemas.ts";
-import { JobsPermission } from "@shivaedev/admin/permissions.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
+import { AdminSessions } from "@shivaedev/admin/server/AdminSessions.ts";
 import { jobsHandlers, jobsReadHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
@@ -71,7 +70,7 @@ export const registeredJobs = jobsRedaction.trait(
 							Effect.flatMap((job) => Effect.fail(Option.getOrThrow(job))),
 						),
 			}),
-		).pipe(Layer.provideMerge(permissionLayer(JobsPermission, sessions)), Layer.provide(Layer.succeed(Jobs, jobs)));
+		).pipe(Layer.provide(Layer.succeed(AdminSessions, sessions)), Layer.provide(Layer.succeed(Jobs, jobs)));
 		state.build = () =>
 			appHost({ config: state.config, group: registration.group.merge(TypedFailures, JobDetails), handlers, services: Layer.empty, sessions });
 	},

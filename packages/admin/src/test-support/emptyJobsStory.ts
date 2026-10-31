@@ -1,6 +1,5 @@
 import { Context, Effect, Layer, Option, Ref } from "effect";
 import { RpcTest } from "effect/rpc";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
@@ -8,8 +7,8 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { jobsPage } from "#jobs/page.ts";
-import { JobsPermission } from "#permissions.ts";
 import { adminRegistry } from "#registry.ts";
+import { AdminSessions } from "#server/AdminSessions.ts";
 import { jobsHandlers } from "#server/jobsHandlers.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "./Access.ts";
@@ -22,7 +21,7 @@ const emptyJobsEngine = Effect.gen(function* () {
 	const page = jobsPage();
 	const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
-	const auth = permissionLayer(JobsPermission, { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access });
+	const auth = Layer.succeed(AdminSessions, { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access });
 	const client = yield* RpcTest.makeClient(page.contract).pipe(
 		Effect.provide(Layer.merge(registration.handlers, hostChanges(registration.group))),
 		Effect.provide(auth),

@@ -1,54 +1,88 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { answers, answerWork } from "#test/answerHost.ts";
+import { refusal } from "#test/refusal.ts";
 
 const TEXT = "Use PostgreSQL.";
 
 for (const release of [false, true]) {
-	answers.it(`a ${release ? "release" : "text"} answer confirms, rejects a competing answer, and applies once admission frees`, [], function* (host) {
+	const kind = release ? "release" : "text";
+	const text = release ? "" : TEXT;
+
+	answers.it(`a ${kind} answer while admission is held is recorded and waits on automation`, [], function* (host) {
+		yield* host.dispatch();
+		yield* host.question();
+		yield* host.holdAdmission();
+
+		const recorded = yield* host.answer(text, release);
+
+		const pending = yield* host.status();
+		expect({ blocker: recorded.blocker, rendered: renderStatus(pending), waiting: pending.waiting.automation }).toMatchObject({
+			blocker: ANSWER_RECORDED,
+			rendered: expect.stringContaining(ANSWER_RECORDED),
+			waiting: [{ blocker: ANSWER_RECORDED, workId: "one" }],
+		});
+	});
+
+	answers.it(`repeating a recorded ${kind} answer through the CLI reports it recorded`, [], function* (host) {
+		yield* host.dispatch();
+		yield* host.question();
+		yield* host.holdAdmission();
+		yield* host.answer(text, release);
+
+		const repeated = yield* host.cliAnswer("one", text, release);
+
+		expect(repeated).toEqual({ code: 0, stderr: "", stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}` });
+	});
+
+	answers.it(`a competing answer to a recorded ${kind} answer is refused as a conflict`, [], function* (host) {
+		yield* host.dispatch();
+		yield* host.question();
+		yield* host.holdAdmission();
+		yield* host.answer(text, release);
+
+		const competing = yield* refusal(host.answer(TEXT, !release));
+
+		expect(competing).toMatch(/^conflict: /u);
+	});
+
+	answers.it(`a recorded ${kind} answer applies once admission frees and its recorded blocker clears`, [], function* (host) {
 		yield* host.dispatch();
 		const { decision } = yield* host.question();
 		const { release: free } = yield* host.holdAdmission();
-		expect((yield* host.answer(release ? "" : TEXT, release)).blocker).toBe(ANSWER_RECORDED);
-		expect(yield* host.cliAnswer("one", release ? "" : TEXT, release).pipe(Effect.timeout("5 seconds"))).toEqual({
-			code: 0,
-			stderr: "",
-			stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}`,
-		});
-		const competing = yield* host.answer(TEXT, !release).pipe(Effect.flip);
-		expect(competing._tag).toBe("Conflict");
-		const pending = yield* host.status();
-		expect(pending.waiting.automation).toMatchObject([{ blocker: ANSWER_RECORDED, workId: "one" }]);
-		expect(renderStatus(pending)).toContain(ANSWER_RECORDED);
+		expect((yield* host.answer(text, release)).blocker).toBe(ANSWER_RECORDED);
+
 		yield* free;
+
 		const answered = yield* host.applied();
-		expect(answered.responses?.filter((receipt) => receipt.decisionId === decision.id)).toMatchObject([
-			{ action: release ? "release" : "continue", boardAcknowledged: true },
-		]);
-		expect(answered.blocker).not.toBe(ANSWER_RECORDED);
-		expect(renderStatus(yield* host.status())).not.toContain(ANSWER_RECORDED);
+		expect({
+			blocker: answered.blocker,
+			rendered: renderStatus(yield* host.status()),
+			responses: answered.responses?.filter(({ decisionId }) => decisionId === decision.id),
+		}).toMatchObject({
+			blocker: expect.not.stringMatching(ANSWER_RECORDED),
+			rendered: expect.not.stringContaining(ANSWER_RECORDED),
+			responses: [{ action: release ? "release" : "continue", boardAcknowledged: true }],
+		});
 	});
 
-	answers.it(
-		`a disconnected ${release ? "release" : "text"} answer still records and applies when recording becomes available`,
-		[],
-		function* (host) {
-			yield* host.dispatch();
-			const { decision } = yield* host.question();
-			const completion = yield* host.pauseCompletion();
-			const abandoned = yield* host.answer(TEXT, release).pipe(Effect.flip);
-			expect(abandoned.message).toContain("timed out");
-			expect(abandoned.message).toContain("answer recording is unconfirmed");
-			yield* completion.blocked;
-			yield* completion.release;
-			const applied = yield* host.applied();
-			expect(applied.responses?.filter((receipt) => receipt.decisionId === decision.id)).toMatchObject([
-				{ action: release ? "release" : "continue", boardAcknowledged: true },
-			]);
-		},
-	);
+	answers.it(`a ${kind} answer whose caller times out still records and applies once recording completes`, [], function* (host) {
+		yield* host.dispatch();
+		const { decision } = yield* host.question();
+		const completion = yield* host.pauseCompletion();
+		expect(yield* refusal(host.answer(TEXT, release))).toMatch(
+			/^unavailable: Fleet daemon answer one timed out at .+; answer recording is unconfirmed; check status or watch before retrying$/u,
+		);
+		yield* completion.blocked;
+
+		yield* completion.release;
+
+		const applied = yield* host.applied();
+		expect(applied.responses?.filter(({ decisionId }) => decisionId === decision.id)).toMatchObject([
+			{ action: release ? "release" : "continue", boardAcknowledged: true },
+		]);
+	});
 }
 
 answers.it("daemon answers share one watched Board response index", [answerWork(["one", "two"])], function* (host) {

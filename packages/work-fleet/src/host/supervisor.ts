@@ -3,7 +3,7 @@ import { unlink } from "node:fs/promises";
 import process from "node:process";
 import { Clock, Console, Effect, Exit, Scope, Semaphore } from "effect";
 import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
-import { pluginBuilder } from "#host/adapters/pluginBuilder.ts";
+import { checkoutPreparation } from "./checkoutPreparation.ts";
 import { replacementCode } from "./replacementCode.ts";
 import { logSupervisor, startProcess } from "./supervisedProcess.ts";
 import { codeReader, type RunningCode } from "./supervisorCode.ts";
@@ -14,6 +14,7 @@ import { logFile, type ProcessState, type SupervisorState, saveState, stateFile 
 type Name = "daemon" | "board";
 interface Child {
 	readonly code: RunningCode;
+	readonly dependencies: number;
 	readonly process: Effect.Success<ReturnType<typeof startProcess>>;
 	readonly scope: Scope.Closeable;
 	readonly state: ProcessState;
@@ -34,6 +35,7 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 			const log = logFile(root);
 			const publishing = yield* Semaphore.make(1);
 			const codes = yield* codeReader(root);
+			const checkout = yield* checkoutPreparation(codes.daemon.manifest, log);
 			function empty(name: Name): ProcessState {
 				return {
 					pid: null,
@@ -63,6 +65,7 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 				const child = yield* startProcess(name, code, processArguments(name, options), owner.token, log).pipe(Scope.provide(scope));
 				children.set(name, {
 					code,
+					dependencies: checkout.revision(),
 					process: child,
 					scope,
 					state: {
@@ -75,24 +78,34 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 				});
 				yield* publish();
 			});
+			const replacement = Effect.fnUntraced(function* (name: Name, child: Child) {
+				const dependencies = checkout.revision();
+				const next =
+					child.dependencies === dependencies
+						? yield* replacementCode(name, child.process, child.code, root, log)
+						: { code: (yield* codeReader(root))[name], reason: "dependencies changed; draining requests" };
+				return next === undefined ? undefined : { ...next, dependencies };
+			});
 			const refresh = Effect.fnUntraced(function* (name: Name) {
 				const child = children.get(name);
 				if (child === undefined) {
 					return;
 				}
-				const next = yield* replacementCode(name, child.process, child.code, root, log);
+				const next = yield* checkout.withPrepared(replacement(name, child));
 				if (next !== undefined) {
 					yield* logSupervisor(log, `${name} ${next.reason}; restarting`);
 					yield* Scope.close(child.scope, Exit.void);
 					children.set(name, { ...child, state: { ...child.state, pid: null } });
 					yield* publish();
 					yield* Effect.sleep("300 millis");
-					yield* start(name, next.code, child.state.restarts + 1);
+					yield* checkout.withPrepared(
+						Effect.gen(function* () {
+							const code = next.dependencies === checkout.revision() ? next.code : (yield* codeReader(root))[name];
+							yield* start(name, code, child.state.restarts + 1);
+						}),
+					);
 				}
 			});
-			const buildPlugin = yield* pluginBuilder(codes.daemon.manifest, log);
-			yield* buildPlugin;
-			yield* Effect.forkScoped(Effect.forever(Effect.sleep("1 second").pipe(Effect.andThen(buildPlugin))));
 			for (const name of ["daemon", "board"] as const) {
 				yield* start(name, codes[name], 0);
 			}

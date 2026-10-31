@@ -1,4 +1,5 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Fiber, Layer, Result } from "effect";
+import * as TestClock from "effect/testing/TestClock";
 import { CommittedSink } from "@shivaedev/sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { cycle } from "#engine/scheduler.ts";
@@ -38,8 +39,13 @@ import { engineSweepVerbs } from "#test/engineSweepVerbs.ts";
 import { engineTimingVerbs } from "#test/engineTimingVerbs.ts";
 import { engineWorldVerbs } from "#test/engineWorldVerbs.ts";
 import { githubReadRetry } from "#test/githubReadRetry.ts";
+import { described } from "#test/refusal.ts";
 import { reportFailureVerbs } from "#test/reportFailureVerbs.ts";
 import { sessionNamingVerbs } from "#test/sessionNamingVerbs.ts";
+
+function dispatchWords({ dispatched }: Effect.Success<typeof cycle>) {
+	return dispatched.map((result) => (Result.isSuccess(result) ? `dispatched ${result.success.value.workId}` : described(result.failure)));
+}
 
 export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect.Effect<void, unknown>>) {
 	function provideFleet<A, E, R>(effect: Effect.Effect<A, E, R>) {
@@ -56,6 +62,17 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 			),
 		);
 	}
+	function schedule() {
+		return Effect.suspend(() => {
+			story.tell("run one Fleet scheduler cycle");
+			const scheduled = provideFleet(cycle).pipe(Effect.provide(state.logs.layer));
+			return state.publicationContext === undefined ? scheduled : scheduled.pipe(Effect.provideContext(state.publicationContext));
+		});
+	}
+	function scheduledDispatches() {
+		return schedule().pipe(Effect.map(dispatchWords));
+	}
+	const timing = engineTimingVerbs(state, story.tell);
 	const verbs = {
 		approveWork: (workId: string, revision: string) => {
 			story.tell(`approve ${workId} at ${revision}`);
@@ -135,7 +152,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		...engineProtocolVerbs(state, story.tell),
 		...engineBudgetVerbs(state, story.tell),
 		...engineDispatchVerbs(state),
-		...engineTimingVerbs(state, story.tell),
+		...timing,
 		...boardReadRetry(state, story.tell),
 		...githubReadRetry(state, story.tell),
 		...engineContinuationVerbs(state, story.tell),
@@ -174,11 +191,27 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 			reconcile: verbs.reconcile,
 			resolve: verbs.resolve,
 		},
-		schedule: () =>
-			Effect.suspend(() => {
-				story.tell("run one Fleet scheduler cycle");
-				const scheduled = provideFleet(cycle).pipe(Effect.provide(state.logs.layer));
-				return state.publicationContext === undefined ? scheduled : scheduled.pipe(Effect.provideContext(state.publicationContext));
-			}),
+		schedule,
+		scheduledDispatches,
+		scheduleWithBackgroundRejection: Effect.fn("EngineStory.scheduleWithBackgroundRejection")(function* () {
+			const pass = yield* schedule().pipe(Effect.forkChild);
+			yield* timing.waitForTimingGate("sessionReached");
+			story.tell("a second passes before the session is acknowledged");
+			yield* TestClock.adjust("1 second");
+			yield* timing.waitForTimingGate("turnReached");
+			story.tell("half a second passes before the turn is rejected for capacity");
+			yield* TestClock.adjust("500 millis");
+			yield* timing.waitForStoredRecord("one", (record) => record.launchRetry !== undefined);
+			story.tell("the rest of the acknowledgement window passes");
+			yield* TestClock.adjust("500 millis");
+			return dispatchWords(yield* Fiber.join(pass));
+		}),
+		scheduleWithLateAcknowledgement: Effect.fn("EngineStory.scheduleWithLateAcknowledgement")(function* () {
+			const pass = yield* schedule().pipe(Effect.forkChild);
+			yield* timing.waitForTimingGate();
+			story.tell("the acknowledgement window of one second passes");
+			yield* TestClock.adjust("1 second");
+			return dispatchWords(yield* Fiber.join(pass));
+		}),
 	};
 }

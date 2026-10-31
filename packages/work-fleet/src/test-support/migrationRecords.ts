@@ -1,7 +1,7 @@
 import type { FleetRecord } from "#model.ts";
 import { prepared } from "#test/preparation.ts";
 
-export function migrationRecords(): readonly FleetRecord[] {
+export function migrationRecords(): readonly [FleetRecord, FleetRecord] {
 	const first: FleetRecord = {
 		areas: ["example/storage"],
 		attempts: [
@@ -39,4 +39,9 @@ export function migrationRecords(): readonly FleetRecord[] {
 			workId: "two",
 		},
 	];
+}
+
+export function archivedMigrationCycle() {
+	const [{ workId: _workId, history: _history, ...cycle }] = migrationRecords();
+	return { ...cycle, archivedAt: 200 };
 }

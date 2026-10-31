@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { markdownWork, reviewerStillRunning } from "#test/engineTraits.ts";
 import { sweepPullRequests } from "#test/sweepPullRequests.ts";
@@ -22,6 +23,7 @@ for (const reason of ["checks", "conflict"] as const) {
 			turnOutput,
 			occupyExecution,
 			vacateExecution,
+			stepOf,
 		}) {
 			for (const id of ["package", "catalog", "queued"]) {
 				writeBoardWork(`${id}.md`, sweepTask(id, id === "catalog" ? ["**/package.json"] : undefined));
@@ -53,8 +55,10 @@ for (const reason of ["checks", "conflict"] as const) {
 			yield* schedule();
 			const repairing = (yield* fleet.get("catalog")).value;
 			expect(repairing.attempts.at(-1)).toMatchObject({ role: "repair", status: "accepted" });
-			expect((yield* fleet.get("package")).value.step).toBe("working");
-			expect((yield* fleet.get("queued")).value.attempts.map((entry) => entry.operationId)).toEqual([]);
+			yield* outcomes([
+				["package", () => stepOf("package"), "working"],
+				["queued operations", () => fleet.get("queued").pipe(Effect.map((current) => current.value.attempts.map((entry) => entry.operationId))), []],
+			]);
 			sweepChecksFail("catalog", false);
 			sweepConflicts("catalog", false);
 			yield* vacateExecution("busy");
@@ -63,22 +67,38 @@ for (const reason of ["checks", "conflict"] as const) {
 }
 
 isolatedEngine.it(
-	"concurrent sweep dispatch admits only one sweep and urgent dispatch cannot pass it",
+	"concurrent sweep dispatch launches only one sweep",
 	[markdownWork(), sweepPullRequests()],
-	function* ({ fleet, writeBoardWork, configureSweepPr, prepareWork, launches }) {
-		for (const id of ["catalog", "rename", "urgent"]) {
-			const brief = sweepTask(id, id === "urgent" ? undefined : ["*"]);
-			writeBoardWork(`${id}.md`, id === "urgent" ? brief.replace("fleet: approved", "fleet: approved\nfleet-priority: urgent") : brief);
+	function* ({ configureSweepPr, dispatchTogether, launches, prepareWork, writeBoardWork }) {
+		for (const id of ["catalog", "rename"]) {
+			writeBoardWork(`${id}.md`, sweepTask(id, ["*"]));
 			configureSweepPr(id, [`src/${id}.ts`]);
 			yield* prepareWork(id);
 		}
-		yield* Effect.all(
-			[fleet.dispatch("catalog"), fleet.dispatch("rename")].map((operation) => operation.pipe(Effect.result)),
-			{ concurrency: "unbounded" },
-		);
+
+		yield* dispatchTogether("catalog", "rename");
+
 		expect(launches()).toEqual(["operation-1"]);
-		yield* fleet.dispatch("urgent").pipe(Effect.result);
-		expect((yield* fleet.get("urgent")).value).toMatchObject({ attempts: [], attentionOwner: "automation", step: "queued" });
-		expect((yield* fleet.get("urgent")).value.blocker).toMatch(/^waiting for sweep (?:catalog|rename)$/u);
+	},
+);
+
+isolatedEngine.it(
+	"urgent dispatch is refused and queued on automation behind a launched sweep",
+	[markdownWork(), sweepPullRequests()],
+	function* ({ attemptDispatch, configureSweepPr, fleet, prepareWork, writeBoardWork }) {
+		writeBoardWork("catalog.md", sweepTask("catalog", ["*"]));
+		writeBoardWork("urgent.md", sweepTask("urgent").replace("fleet: approved", "fleet: approved\nfleet-priority: urgent"));
+		for (const id of ["catalog", "urgent"]) {
+			configureSweepPr(id, [`src/${id}.ts`]);
+			yield* prepareWork(id);
+		}
+		expect((yield* fleet.dispatch("catalog")).value.step).toBe("working");
+
+		const refused = yield* attemptDispatch("urgent");
+
+		expect({ refused, urgent: (yield* fleet.get("urgent")).value }).toMatchObject({
+			refused: "admission refused: waiting for sweep catalog",
+			urgent: { attempts: [], attentionOwner: "automation", blocker: "waiting for sweep catalog", step: "queued" },
+		});
 	},
 );

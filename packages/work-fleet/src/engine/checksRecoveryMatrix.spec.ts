@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { backlog, executing } from "#model.ts";
 import { BASE } from "#test/githubResult.ts";
@@ -46,11 +47,10 @@ for (const action of ["retry", "release"] as const) {
 				}
 				if (action === "retry" && explanation !== undefined) {
 					expect(document).toContain(explanation);
-					expect(yield* rejectRetry()).toMatchObject({
-						_tag: "BadRequest",
-						message: "This decision only permits release; choose release to stop and hand back",
-					});
-					expect(yield* currentRecovery()).toEqual(before);
+					yield* outcomes([
+						["retrying", () => rejectRetry(), "bad request: This decision only permits release; choose release to stop and hand back"],
+						["recovery", () => currentRecovery(), before],
+					]);
 					return;
 				}
 				if (scenario.restore !== undefined) {

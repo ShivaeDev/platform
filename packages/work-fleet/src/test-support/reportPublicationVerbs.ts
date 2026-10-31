@@ -37,7 +37,7 @@ export function reportPublicationVerbs(root: string, tell: (line: string) => voi
 				return yield* Effect.gen(function* () {
 					const board = yield* BoardGateway;
 					work = yield* board.get("one");
-					return yield* Effect.result(board.report(work, REPORT_OBSERVATION));
+					return yield* board.report(work, REPORT_OBSERVATION);
 				}).pipe(Effect.provide(layer));
 			}),
 		recover: (later: ReportAttachments | undefined) =>

@@ -4,18 +4,18 @@ import { codedDecisionRecord, legacyDecisionRecord } from "#test/legacyDecisionR
 import { isolatedStorage } from "#test/storageStory.ts";
 
 isolatedStorage.it(
-	"backfills current and archived decisions without changing publication receipts or existing codes",
+	"the decision code backfill codes current and archived decisions without changing receipts or existing codes, and a rerun changes nothing",
 	[],
-	function* ({ namespace, sql, restoreLegacy, migrate, readDecisions }) {
+	function* ({ insertPayloads, migrate, namespace, readDecisions, restoreLegacy }) {
 		yield* restoreLegacy(namespace);
 		yield* migrate(namespace, "attention_owner");
-		yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values ('one', 1, ${JSON.stringify(legacyDecisionRecord)}::jsonb)`;
+		yield* insertPayloads(namespace, [{ ...legacyDecisionRecord, workId: "one" }], () => 1);
 		yield* migrate(namespace, "decision_codes");
+
 		yield* backfillDecisionCodes(namespace);
 		yield* migrate(namespace);
-		const rows = yield* readDecisions(namespace);
-		expect(rows).toEqual([{ payload: codedDecisionRecord, version: 2 }]);
 		yield* migrate(namespace);
-		expect(yield* readDecisions(namespace)).toEqual(rows);
+
+		expect(yield* readDecisions(namespace)).toEqual([{ payload: codedDecisionRecord, version: 2 }]);
 	},
 );

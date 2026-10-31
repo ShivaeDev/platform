@@ -57,6 +57,7 @@ adminStory.it(
 );
 
 for (const [page, refusal] of [
+	["a page that reuses the jobs detail pattern", "Duplicate admin path: /admin/jobs/$"],
 	["a page that reuses the jobs page's id", "Duplicate admin page id: jobs"],
 	["a page that reuses the jobs page's path", "Duplicate admin path: /admin/jobs"],
 	["a page that serves the jobs contract again", "Duplicate admin RPC tag: admin.jobs.failed"],

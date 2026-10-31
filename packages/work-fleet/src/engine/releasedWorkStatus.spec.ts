@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { reviewedPullRequestIsOpen } from "#test/engineDeliveryTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { decisionPublicationFails, releasedUnpublishedDecision } from "#test/releasedDecision.ts";
@@ -9,17 +10,27 @@ for (const status of ["done", "superseded", "deferred", "dropped"]) {
 		[reviewedPullRequestIsOpen(), decisionPublicationFails(), releasedUnpublishedDecision()],
 		function* ({ status: readStatus, setBoardStatus, mergePullRequest, restart, schedule, fleet }) {
 			expect(yield* readStatus()).toContain("Waiting on orchestrator (1)");
+
 			setBoardStatus("one", status);
 			mergePullRequest();
 			yield* restart();
 			yield* schedule();
 			yield* restart();
-			expect(yield* readStatus()).toContain("Waiting on orchestrator (0)");
-			expect((yield* fleet.get("one")).value).toMatchObject({
-				mergedDelivery: { head: "reviewed-head", revision: "merged-revision" },
-				releaseReason: "Released after decision publication failed",
-				step: "released",
-			});
+
+			yield* outcomes([
+				["status", () => readStatus(), expect.stringContaining("Waiting on orchestrator (0)")],
+				[
+					"one",
+					() => fleet.get("one"),
+					{
+						value: {
+							mergedDelivery: { head: "reviewed-head", revision: "merged-revision" },
+							releaseReason: "Released after decision publication failed",
+							step: "released",
+						},
+					},
+				],
+			]);
 		},
 	);
 }
@@ -29,8 +40,11 @@ for (const owner of ["maintainer", "orchestrator"] as const) {
 		`a released open PR keeps waiting on its ${owner} when the Board task closes`,
 		[reviewedPullRequestIsOpen(), decisionPublicationFails(), releasedUnpublishedDecision(owner)],
 		function* ({ status, setBoardStatus, schedule }) {
+			expect(yield* status()).toContain(`Waiting on ${owner === "maintainer" ? "you" : owner} (1)`);
+
 			setBoardStatus("one", "done");
 			yield* schedule();
+
 			expect(yield* status()).toContain(`Waiting on ${owner === "maintainer" ? "you" : owner} (1)`);
 		},
 	);
@@ -42,9 +56,11 @@ for (const owner of ["maintainer", "orchestrator"] as const) {
 			mergePullRequest();
 			yield* schedule();
 			expect(yield* status()).toContain(`Waiting on ${owner === "maintainer" ? "you" : owner} (1)`);
+
 			setBoardStatus("one", "done");
 			yield* restart();
 			yield* schedule();
+
 			expect(yield* status()).toContain(`Waiting on ${owner === "maintainer" ? "you" : owner} (0)`);
 		},
 	);

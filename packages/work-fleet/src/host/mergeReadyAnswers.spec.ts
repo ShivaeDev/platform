@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect, Option, Stream } from "effect";
 import { answers, approvedPullRequest } from "#test/answerHost.ts";
+import { refusal } from "#test/refusal.ts";
 
 answers.it("a merge-ready decision never attempts an answer removed since its scan", [approvedPullRequest], function* (host) {
 	const ready = yield* host.readyPullRequest();
@@ -24,26 +25,26 @@ answers.it("a superseded merge-ready answer points to the current answer, which 
 	const ready = yield* host.readyPullRequest();
 	const old = host.publishPullRequestResponse(ready, "Old feedback.");
 	const current = host.publishPullRequestResponse(ready, "Please adjust the error message.");
-	expect(yield* host.resolve(old.decisionId, old.responseId).pipe(Effect.flip)).toMatchObject({
-		_tag: "Conflict",
-		message: `Board response ${old.responseId} is superseded by ${current.responseId}; apply the current response instead`,
-	});
+
+	const superseded = yield* refusal(host.resolve(old.decisionId, old.responseId));
 	const applied = yield* host.resolve(current.decisionId, current.responseId);
-	expect(applied.responses?.at(-1)).toMatchObject({ action: "retry", boardAcknowledged: true });
-	expect(applied.blocker).toBeUndefined();
+
+	expect(superseded).toBe(`conflict: Board response ${old.responseId} is superseded by ${current.responseId}; apply the current response instead`);
+	expect({ blocker: applied.blocker, response: applied.responses?.at(-1) }).toMatchObject({
+		blocker: undefined,
+		response: { action: "retry", boardAcknowledged: true },
+	});
 });
 
 answers.it("a missing merge-ready answer tells the answerer to record a current answer", [approvedPullRequest], function* (host) {
 	const ready = yield* host.readyPullRequest();
-	const decision = ready.decision;
-	if (decision === undefined) {
-		return yield* Effect.die("Missing merge decision");
-	}
-	expect(yield* host.resolve(decision.id, "response.absent").pipe(Effect.flip)).toMatchObject({
-		_tag: "Conflict",
-		message: "Board response response.absent is missing; record an answer to the current Fleet decision before applying it",
+
+	const missing = yield* refusal(host.resolve(ready.decision?.id ?? "missing", "response.absent"));
+
+	expect({ missing, responses: (yield* host.get()).responses ?? [] }).toEqual({
+		missing: "conflict: Board response response.absent is missing; record an answer to the current Fleet decision before applying it",
+		responses: [],
 	});
-	expect((yield* host.get()).responses ?? []).toEqual([]);
 });
 
 answers.it("an earlier failed answer becomes quiet as soon as its reviewed PR merges", [approvedPullRequest], function* (host) {

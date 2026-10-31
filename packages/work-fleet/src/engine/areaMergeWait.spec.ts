@@ -28,7 +28,8 @@ engine.it(
 		expect((yield* fleet.get("two")).value.step).toBe("queued");
 		advanceTime(1);
 		yield* restart();
-		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
+		const twoDispatched = yield* fleet.dispatch("two");
+		expect(twoDispatched.value.step).toBe("working");
 		expect((yield* fleet.get("one")).value).toMatchObject({
 			attentionOwner: "orchestrator",
 			decision: { attentionOwner: "orchestrator" },

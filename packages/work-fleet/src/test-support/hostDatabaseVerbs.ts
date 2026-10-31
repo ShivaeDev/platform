@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Cause, Effect, Exit, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Fleet } from "#fleet.ts";
 import { daemonLayer } from "#host/daemon.ts";
@@ -14,7 +14,10 @@ export function hostDatabaseVerbs(engine: HostStoryEngine, tell: (line: string) 
 			if (resources === undefined) {
 				return Effect.die("Deploy host resources before booting the scheduler");
 			}
-			return Effect.scoped(Layer.build(daemonLayer(engine.fixture.host, { ...engine.fixture.parts, provider: resources.provider }, 0)));
+			return Effect.scoped(Layer.build(daemonLayer(engine.fixture.host, { ...engine.fixture.parts, provider: resources.provider }, 0))).pipe(
+				Effect.exit,
+				Effect.map((exit) => (Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "booted")),
+			);
 		},
 		configurationFile: () => engine.fixture.configFile,
 		dispatchStatus: (workId: string) => engine.running.client("daemon.dispatch-status", { workId }),

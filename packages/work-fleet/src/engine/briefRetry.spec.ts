@@ -4,6 +4,7 @@ import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 import { oneSubmissionOfQuotaConfiguration } from "#test/oneSubmissionOfQuotaConfiguration.ts";
+import { refusal } from "#test/refusal.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
 
 const oneSubmissionOfQuota = engineConfiguration("one submission of quota", oneSubmissionOfQuotaConfiguration());
@@ -22,8 +23,8 @@ engine.it(
 		const current = `${source}\nNew approved criteria.\n`;
 		writeBoardWork("one.md", current);
 		const responseId = answerReport(decision.published, "retry");
-		const denied = yield* fleet.resolve("one", decision.id, responseId).pipe(Effect.result);
-		expect(denied._tag).toBe("Failure");
+		const denied = yield* refusal(fleet.resolve("one", decision.id, responseId));
+		expect(denied).not.toBe("accepted");
 		const prepared = yield* fleet.get("one");
 		expect(prepared.value.step).toBe("waiting");
 		expect(prepared.value.boardContext).toBe(source);

@@ -1,7 +1,7 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { reviewedPullRequestIsOpen } from "#test/engineDeliveryTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const archived of [false, true]) {
 	isolatedEngine.it(
@@ -53,7 +53,8 @@ isolatedEngine.it(
 		yield* restart();
 		expect((yield* fleet.get("one")).value.mergedDelivery).toBeUndefined();
 		yield* prepareWork("dependent");
-		expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
+		const dependentDispatchedOutcome = yield* refusal(fleet.dispatch("dependent"));
+		expect(dependentDispatchedOutcome).toMatch(/^forbidden: /u);
 		expect((yield* fleet.get("dependent")).value.blocker).toContain("released without a merged delivery");
 	},
 );

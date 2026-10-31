@@ -1,10 +1,10 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { ANSWER_RECORDED } from "#attention.ts";
 import type { FleetRecord } from "#model.ts";
 import { answers, answerWork, approvedPullRequest } from "#test/answerHost.ts";
 import { repairAttempts } from "#test/approvedPrDaemon.ts";
 import { task } from "#test/fleetHost.ts";
+import { refusal } from "#test/refusal.ts";
 
 const TEXT = "Keep the loading indicator visible.";
 
@@ -65,7 +65,7 @@ answers.it(
 	[answerWork(["one"])],
 	function* (daemon) {
 		const started = yield* daemon.dispatch();
-		expect(yield* daemon.answerAndWait("x".repeat(32_769)).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
+		expect(yield* refusal(daemon.answerAndWait("x".repeat(32_769)))).toMatch(/^bad request: /u);
 		yield* daemon.answerAndWait(TEXT);
 		yield* daemon.answerAndWait("Preserve the empty state.");
 		const running = yield* daemon.reconcile();

@@ -11,7 +11,12 @@ export const Failed = query("failed", { readPolicy: () => Effect.succeed(true), 
 export const Retry = command("retry", { invalidates: () => [jobs.list], payload: { id: Schema.String } });
 export const Watch = stream("watch", { reads: () => [jobs.list], success: Schema.Array(Schema.String) });
 export const JobsContract = contract("admin.jobs", { commands: [Retry], queries: [Failed], streams: [Watch] });
-export const Jobs = adminPage({ contract: JobsContract, id: "jobs", permission: JobsPermission, route: { path: "/admin/jobs", title: "Jobs" } });
+export const Jobs = adminPage({
+	contract: JobsContract,
+	id: "jobs",
+	permission: JobsPermission,
+	route: { detail: "/admin/jobs/$id", path: "/admin/jobs", title: "Jobs" },
+});
 export const Profile = query("profile", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String });
 export const Users = adminPage({
 	contract: contract("admin.users", { queries: [Profile] }),
@@ -23,6 +28,12 @@ export const Registry = adminRegistry(Jobs, Users);
 
 const reports = contract("admin.reports", { queries: [Profile] });
 export const pagesBesideJobs = {
+	"a page that reuses the jobs detail pattern": adminPage({
+		contract: reports,
+		id: "reports",
+		permission: UsersPermission,
+		route: { detail: "/admin/jobs/$job", path: "/admin", title: "Reports" },
+	}),
 	"a page that reuses the jobs page's id": adminPage({
 		contract: reports,
 		id: "jobs",

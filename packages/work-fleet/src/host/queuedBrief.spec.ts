@@ -21,7 +21,8 @@ for (const rejectedCall of ["session", "turn"] as const) {
 			daemon.hostModel("new-host-model");
 			daemon.acceptSubmissions();
 			daemon.advanceTime(29_999);
-			expect(yield* daemon.admit()).toEqual([]);
+			const admission = yield* daemon.admit();
+			expect(admission).toEqual([]);
 			expect(yield* daemon.get("one")).toEqual(queued);
 			yield* daemon.schedule();
 			expect((yield* daemon.get("one")).decision).toBeUndefined();

@@ -75,7 +75,8 @@ engine.it(
 		approveWork("one", "renewed-board");
 		yield* prepareWork("one");
 		rejectNextTurn();
-		expect((yield* fleet.dispatch("one")).value.step).toBe("waiting");
+		const dispatched = yield* fleet.dispatch("one");
+		expect(dispatched.value.step).toBe("waiting");
 		expect(yield* fleet.continue("one", "Keep the current thread").pipe(Effect.flip)).toMatchObject({
 			message: "Continue requires an existing worker receipt",
 		});

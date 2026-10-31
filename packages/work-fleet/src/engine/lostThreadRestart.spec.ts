@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { publishedWork } from "#test/engineLostTurnTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { lostThreadAcknowledgement } from "#test/lostThreadAcknowledgement.ts";
 import { lostThreadRestartStory } from "#test/recoveryStories.ts";
+import { refusal } from "#test/refusal.ts";
 
 isolatedEngine.it(
 	"a lost thread without published work restarts automatically and fences late acknowledgements",
@@ -36,9 +36,11 @@ isolatedEngine.it(
 		expect(queued.launchRetry).toMatchObject({ rejections: 1 });
 		expect(queued.attempts[0]).toMatchObject({ sessionUnusable: true, status: "failed" });
 		expect(queued.attempts[0]?.abandoned?.observationError).toContain("no remote branch");
-		expect((yield* attemptDispatch("two")).message).toContain("area fleet/runtime held by one");
+		const twoDispatchOutcome = yield* attemptDispatch("two");
+		expect(twoDispatchOutcome).toContain("area fleet/runtime held by one");
 		expect((yield* get("two")).value.attempts).toEqual([]);
-		expect((yield* acknowledgeProviderTurn("operation-1", { sessionId: "late", turnId: "late" }).pipe(Effect.result))._tag).toBe("Failure");
+		const lateAcknowledgementOutcome = yield* refusal(acknowledgeProviderTurn("operation-1", { sessionId: "late", turnId: "late" }));
+		expect(lateAcknowledgementOutcome).not.toBe("accepted");
 		advanceTime(30_000);
 		yield* restart();
 		yield* schedule();

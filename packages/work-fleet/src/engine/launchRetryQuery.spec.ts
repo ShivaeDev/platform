@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { providerCapacityRejected } from "#test/engineCapacityTraits.ts";
 import { engine } from "#test/engineStory.ts";
 
@@ -11,8 +12,10 @@ engine.it(
 		yield* fleet.restart();
 		const queued = yield* fleet.dispatch("one");
 		expect(queued.value.launchRetry).toBeDefined();
-		expect(yield* fleet.previousHasLaunchRetry()).toBe(true);
-		expect(yield* fleet.hasLaunchRetry()).toBe(true);
+		yield* outcomes([
+			["previous has launch retry", () => fleet.previousHasLaunchRetry(), true],
+			["has launch retry", () => fleet.hasLaunchRetry(), true],
+		]);
 		fleet.recoverProvider();
 		fleet.advanceTime(30_000);
 		const accepted = yield* fleet.dispatch("one");

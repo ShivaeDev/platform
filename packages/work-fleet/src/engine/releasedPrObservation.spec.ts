@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { engine } from "#test/engineStory.ts";
 import { githubPullRequest } from "#test/engineTraits.ts";
 import { PR, REPORT } from "#test/githubResult.ts";
@@ -40,7 +41,8 @@ for (const disposition of ["released", "renewed"] as const) {
 			}
 			yield* fleet.schedule();
 			expect(yield* fleet.foreignReservations()).toEqual([]);
-			expect((yield* fleet.dispatch("two")).value.step).toBe("working");
+			const twoDispatched = yield* fleet.dispatch("two");
+			expect(twoDispatched.value.step).toBe("working");
 		});
 	}
 }
@@ -58,6 +60,8 @@ engine.it("releasing a legacy fleet-invalid closure decision does not reserve it
 	expect(decision.code).toBe("pr-closed");
 	yield* fleet.replaceStoredRecord({ ...closed, decision: { ...decision, code: "fleet-invalid" } });
 	yield* fleet.resolve("one", decision.id, fleet.respond(decision.id, "release"));
-	expect((yield* fleet.get("one")).value.step).toBe("released");
-	expect(yield* fleet.foreignReservations()).toEqual([]);
+	yield* outcomes([
+		["one", () => fleet.stepOf("one"), "released"],
+		["foreign reservations", () => fleet.foreignReservations(), []],
+	]);
 });

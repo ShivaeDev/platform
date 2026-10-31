@@ -1,12 +1,13 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
 import { statusRecord } from "#test/status.ts";
 
 host.it("a daemon command commit reaches a CLI follower without periodic PostgreSQL reads", [approvedWork(["one"])], function* (daemon) {
 	yield* daemon.follow("watcher", "watch", ["one"]);
 	yield* daemon.awaitSnapshot();
-	yield* Effect.sleep("1200 millis");
+	yield* daemon.quietFor("1200 millis");
 	expect(daemon.snapshotQueries()).toEqual([{ failed: false, text: expect.stringContaining('"checks"') }]);
 	const started = yield* daemon.dispatch("one");
 	daemon.finishTurn(started);
@@ -17,9 +18,11 @@ host.it("a daemon command commit reaches a CLI follower without periodic Postgre
 
 host.it("a rolled-back daemon store write sends no snapshot or refresh query", [], function* (daemon) {
 	yield* daemon.subscribe(["one"]);
-	expect(yield* daemon.rollbackInsert(statusRecord("one"), "rollback").pipe(Effect.flip)).toBe("rollback");
-	expect(yield* daemon.loadStoredRecord("one")).toBeUndefined();
-	yield* Effect.sleep("1200 millis");
+	yield* outcomes([
+		["rollback insert one", () => daemon.rollbackInsert(statusRecord("one"), "rollback").pipe(Effect.flip), "rollback"],
+		["load stored record one", () => daemon.loadStoredRecord("one"), undefined],
+	]);
+	yield* daemon.quietFor("1200 millis");
 	expect(daemon.snapshots()).toEqual([[]]);
 	expect(daemon.snapshotQueries()).toEqual([{ failed: false, text: expect.stringContaining('"checks"') }]);
 });

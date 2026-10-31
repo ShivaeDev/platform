@@ -1,39 +1,37 @@
-import { Effect, Exit } from "effect";
 import { expect } from "vitest";
-import { record, submitAgainstQuota } from "#test/storage.ts";
+import { record } from "#test/storage.ts";
 import { isolatedStorage, storage } from "#test/storageStory.ts";
 
-const integration = storage;
-const isolated = isolatedStorage;
-
-integration.it("releases execution capacity when execution turns terminal", [], function* ({ store }) {
+storage.it("a terminal execution frees its execution slot for the next submission", [], function* ({ admission, advance, store }) {
 	const first = yield* store.insert({ ...record("board-a"), step: "submitting" }, { maxExecuting: 1 });
-	expect(Exit.isFailure(yield* store.insert({ ...record("board-b"), step: "submitting" }, { maxExecuting: 1 }).pipe(Effect.exit))).toBe(true);
-	yield* store.compareAndSet("board-a", first.version, { ...first.value, step: "terminal" });
-	yield* store.insert({ ...record("board-b"), step: "submitting" }, { maxExecuting: 1 });
+	expect(yield* admission({ ...record("board-b"), step: "submitting" }, { maxExecuting: 1 })).toBe("execution capacity of 1 is full");
+
+	yield* advance(first, { step: "terminal" });
+
+	expect(yield* admission({ ...record("board-b"), step: "submitting" }, { maxExecuting: 1 })).toBe("accepted");
 });
 
-isolated.it("atomically admits only one submission against a shared remaining quota observation", [], function* ({ store }) {
-	const first = yield* store.insert(record("board-a"));
-	const second = yield* store.insert(record("board-b"));
-	const limits = { maxExecuting: 2, quota: { available: 1, observedAt: 100 } };
-	const results = yield* Effect.all(
-		[first, second].map((entry) => submitAgainstQuota(store, entry, limits).pipe(Effect.exit)),
-		{ concurrency: 2 },
-	);
-	expect(results.map((result) => result._tag).sort()).toEqual(["Failure", "Success"]);
-	expect((yield* store.list()).filter((entry) => entry.value.step === "submitting")).toEqual(
-		results.filter(Exit.isSuccess).map((result) => result.value),
-	);
-	expect(results.filter(Exit.isFailure)).toMatchObject([{ cause: { reasons: [{ error: { _tag: "StorageQuota", reason: "exhausted" } }] } }]);
-});
+isolatedStorage.it(
+	"two submissions racing for one remaining quota admit exactly one",
+	[],
+	function* ({ concurrently, store, submitAgainstQuota, workIds }) {
+		const first = yield* store.insert(record("board-a"));
+		const second = yield* store.insert(record("board-b"));
+		const limits = { maxExecuting: 2, quota: { available: 1, observedAt: 100 } };
 
-integration.it("rechecks current foreign backlog in the submission transaction", [], function* ({ store }) {
+		const submissions = yield* concurrently(submitAgainstQuota(first, limits), submitAgainstQuota(second, limits));
+
+		expect(submissions.toSorted((left, right) => left.localeCompare(right))).toEqual(["accepted", "quota exhausted"]);
+		expect(yield* workIds("submitting")).toEqual([submissions[0] === "accepted" ? "board-a" : "board-b"]);
+	},
+);
+
+storage.it("a submission rechecks the current foreign backlog and stays queued when it is full", [], function* ({ advance, stepOf, store }) {
 	yield* store.reserveForeign("pr-backlog", { backlog: true, executing: false });
 	const prepared = yield* store.insert(record("board-a"));
-	const fullBacklog = yield* store
-		.compareAndSet("board-a", prepared.version, { ...prepared.value, step: "submitting" }, { maxBacklog: 1 })
-		.pipe(Effect.exit);
-	expect(Exit.isFailure(fullBacklog)).toBe(true);
-	expect((yield* store.load("board-a"))?.value.step).toBe("queued");
+
+	const submission = yield* advance(prepared, { step: "submitting" }, { maxBacklog: 1 });
+
+	expect(submission).toBe("backlog capacity of 1 is full");
+	expect(yield* stepOf("board-a")).toBe("queued");
 });

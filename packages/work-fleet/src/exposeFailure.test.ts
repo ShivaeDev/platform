@@ -1,48 +1,59 @@
 import { expect } from "@effect/vitest";
-import { Cause, Effect } from "effect";
+import { Effect } from "effect";
 import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { failureContext, withFailureContext } from "#engine/failureContext.ts";
-import { failureOwner } from "#engine/failureOwner.ts";
-import { daemonError } from "#host/daemonClient.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { StorageAdmission, StorageConflict } from "#storage/errors.ts";
 import { failureStory } from "#test/failureStory.ts";
 
-failureStory.it("preserves platform errors and internal attention ownership before serialization", [], function* ({ request, mappedFailure }) {
-	for (const error of [
-		new BadRequest({ field: "message", message: "Invalid input" }),
-		new Conflict({ field: "revision", message: "Revision changed" }),
-		new Forbidden({ message: "Approval required" }),
-		new NotFound({ message: "Unknown work" }),
-		new ServiceUnavailable({ message: "Provider unavailable" }),
-	]) {
-		withFailureContext(error, { attentionOwner: "automation" });
-		expect(yield* request(Effect.fail(error)).pipe(Effect.flip)).toEqual(error);
-		expect(mappedFailure()).toBe(error);
-		expect(daemonError(error, 12_345)).toBe(error);
-		expect(failureOwner(error)).toBe("automation");
-		expect(JSON.stringify(error)).not.toContain("attentionOwner");
-	}
-	expect(failureContext(new Error("Unclassified"))).toEqual({});
-	expect(failureOwner(new Error("Unclassified"))).toBe("orchestrator");
+for (const [name, error] of [
+	["bad request", new BadRequest({ field: "message", message: "Invalid input" })],
+	["conflict", new Conflict({ field: "revision", message: "Revision changed" })],
+	["forbidden", new Forbidden({ message: "Approval required" })],
+	["not found", new NotFound({ message: "Unknown work" })],
+	["unavailable", new ServiceUnavailable({ message: "Provider unavailable" })],
+] as const) {
+	failureStory.it(
+		`a ${name} failure reaches the client and the daemon client unchanged, keeps its automation owner and hides that owner from serialization`,
+		[],
+		function* ({ boundaryFailureOf, daemonErrorOf, ownerOf, requestFailure, serializedOwner }) {
+			withFailureContext(error, { attentionOwner: "automation" });
+
+			const received = yield* requestFailure(Effect.fail(error));
+
+			expect(received).toEqual(error);
+			yield* outcomes([
+				["boundary failure", () => boundaryFailureOf(error), "the original error"],
+				["daemon error", () => daemonErrorOf(error), "the original error"],
+				["attention owner", () => ownerOf(error), "automation"],
+				["serialized error", () => serializedOwner(error), "attention owner hidden"],
+			]);
+		},
+	);
+}
+
+failureStory.it("an unclassified error belongs to the orchestrator", [], function* ({ ownerOf }) {
+	expect(yield* ownerOf(new Error("Unclassified"))).toBe("orchestrator");
 });
 
-failureStory.it("maps storage conflicts and admission failures without losing their meaning", [], function* ({ request }) {
-	expect(yield* request(Effect.fail(new StorageConflict({ actualVersion: 2, expectedVersion: 1, workId: "one" }))).pipe(Effect.flip)).toMatchObject({
-		_tag: "Conflict",
-		message: "Work changed during this observation; load the current record",
-	});
-	expect(yield* request(Effect.fail(new StorageAdmission({ message: "Area occupied" }))).pipe(Effect.flip)).toMatchObject({
-		_tag: "Forbidden",
-		message: "Area occupied",
-	});
-});
+for (const [failure, error, expected] of [
+	[
+		"a storage conflict",
+		new StorageConflict({ actualVersion: 2, expectedVersion: 1, workId: "one" }),
+		"conflict: Work changed during this observation; load the current record",
+	],
+	["a refused admission", new StorageAdmission({ message: "Area occupied" }), "forbidden: Area occupied"],
+	["a defect", undefined, "unavailable: The integration is unavailable; inspect runtime diagnostics"],
+] as const) {
+	failureStory.it(`${failure} reaches the client as ${expected.split(":")[0]}`, [], function* ({ requestOutcome }) {
+		const outcome = yield* requestOutcome(error === undefined ? Effect.die("Unexpected failure") : Effect.fail(error));
 
-failureStory.it("keeps defects out of transport errors and leaves interruption intact", [], function* ({ request, interrupt }) {
-	const defect = yield* request(Effect.die("Unexpected failure")).pipe(Effect.flip);
-	expect(defect).toMatchObject({ _tag: "ServiceUnavailable", message: "The integration is unavailable; inspect runtime diagnostics" });
-	const interrupted = yield* interrupt().pipe(Effect.exit);
-	expect(interrupted._tag).toBe("Failure");
-	if (interrupted._tag === "Failure") {
-		expect(Cause.hasInterruptsOnly(interrupted.cause)).toBe(true);
-	}
+		expect(outcome).toBe(expected);
+	});
+}
+
+failureStory.it("an interruption passes the error boundary as an interruption", [], function* ({ interruptBoundary }) {
+	const outcome = yield* interruptBoundary();
+
+	expect(outcome).toBe("interrupted");
 });

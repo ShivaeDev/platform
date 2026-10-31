@@ -24,8 +24,10 @@ for (const [held, waiting] of [
 			yield* fleet.dispatch("two").pipe(Effect.result);
 			expect((yield* fleet.get("two")).value.step).toBe("queued");
 			mergePullRequest();
-			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect((yield* fleet.dispatch("two")).value.step).toBe("working");
+			const reconciled = yield* fleet.reconcile("one");
+			expect(reconciled.value.step).toBe("done");
+			const twoDispatched = yield* fleet.dispatch("two");
+			expect(twoDispatched.value.step).toBe("working");
 		},
 	);
 }
@@ -69,7 +71,8 @@ isolatedEngine.it(
 		yield* restart();
 		yield* fleet.dispatch("later").pipe(Effect.result);
 		expect((yield* fleet.get("later")).value.blocker).toContain("queued ahead by dependent");
-		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
+		const dependentDispatched = yield* fleet.dispatch("dependent");
+		expect(dependentDispatched.value.step).toBe("working");
 		yield* fleet.dispatch("later").pipe(Effect.result);
 		expect((yield* fleet.get("later")).value.blocker).toContain("held by dependent");
 		expect(

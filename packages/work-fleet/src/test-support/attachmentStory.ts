@@ -8,7 +8,9 @@ import { connect, request } from "#providers/codexRpc.ts";
 import { codexTurns } from "#providers/codexTurns.ts";
 import { codexServer, type Handshake, type WireRequest } from "#test/codex.ts";
 import { authFolder, FUTURE_EXPIRY, syntheticToken } from "#test/codexCloud.ts";
+import { refusal } from "#test/refusal.ts";
 import { oversizedAttachments, reconstructedAttachment } from "#test/reportAttachmentSafety.ts";
+import { scripted, type WireScript, wireLog } from "#test/wireScript.ts";
 
 export const attachmentStory = storyKit({
 	clock: "live",
@@ -38,6 +40,21 @@ export const attachmentStory = storyKit({
 	name: "Codex report downloads",
 	stages: ["scratch"],
 	verbs: (state, story) => ({
+		...wireLog(() => state.requests),
+		answers: (script: WireScript) =>
+			Effect.sync(() => {
+				story.tell("the fake Codex server supplies report history");
+				state.serverState.reply = scripted(script);
+			}),
+		download: (observation: Parameters<typeof state.read>[0]) => {
+			story.tell(`download the attachments of turn ${observation.receipt.turnId}`);
+			return state.read(observation).pipe(
+				Effect.map(({ files, unavailable }) => ({
+					files: files.map(({ bytes, path }) => ({ path, text: new TextDecoder().decode(bytes) })),
+					unavailable,
+				})),
+			);
+		},
 		files: () => {
 			if (state.scratch.value === undefined) {
 				throw new Error("Prepare reconstructed files before reading them");
@@ -45,25 +62,15 @@ export const attachmentStory = storyKit({
 			story.tell("read regular attachment files inside the scratch directory");
 			return reportAttachmentFiles(state.scratch.value.folder, state.scratch.value.names);
 		},
-		protocols: () => state.handshakes.map((handshake) => handshake.protocols),
-		read: (...args: Parameters<typeof state.read>) => {
-			story.tell("download the report turn's attachments");
-			return state.read(...args);
-		},
-		readItems: (...args: Parameters<typeof state.readItems>) => {
-			story.tell("read the turn's paginated items");
-			return state.readItems(...args);
+		offeredProtocols: () => Effect.sync(() => state.handshakes.flatMap(({ protocols }) => protocols)),
+		readItems: (receipt: Parameters<typeof state.readItems>[0], limit?: number) => {
+			story.tell(`read the items of turn ${receipt.turnId}${limit === undefined ? "" : ` within ${limit} bytes`}`);
+			return refusal(state.readItems(receipt, limit));
 		},
 		reconstruct: (items: Parameters<typeof reportFileChanges>[0], output: string) => {
 			story.tell("reconstruct the report turn's file edits");
 			return reportFileChanges(items, output);
 		},
-		replyWith: (reply: (request: WireRequest) => unknown) =>
-			Effect.sync(() => {
-				story.tell("the fake Codex server supplies report history");
-				state.serverState.reply = reply;
-			}),
-		requests: () => state.requests,
 	}),
 });
 

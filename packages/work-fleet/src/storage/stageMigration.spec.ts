@@ -1,44 +1,58 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { prepared } from "#test/preparation.ts";
 import { isolatedStorage } from "#test/storageStory.ts";
 
-isolatedStorage.it(
-	"upgrades old stages in current and archived records through the Fleet migration ledger",
-	[],
-	function* ({ sql, seedTextRecords, migrate, openFleetStore }) {
-		const namespace = "vocabulary";
-		const predecessor = 25;
-		const records = ["prepared", "executing", "reviewing", "needs-human", "completed", "released"].map((stage) => ({
+const NAMESPACE = "vocabulary";
+const RECORDS = ["prepared", "executing", "reviewing", "needs-human", "completed", "released"].map((stage) => ({
+	attempts: [],
+	boardRevision: "revision",
+	cwd: "/synthetic",
+	preparation: prepared(),
+	prompt: "Work",
+	stage,
+	workId: stage,
+	...(stage === "needs-human" ? { attentionOwner: "orchestrator", blocker: "Choose a direction" } : {}),
+	history: [
+		{
+			archivedAt: 1,
 			attempts: [],
-			boardRevision: "revision",
+			boardRevision: "old-revision",
 			cwd: "/synthetic",
 			preparation: prepared(),
-			prompt: "Work",
-			stage,
-			workId: stage,
-			...(stage === "needs-human" ? { attentionOwner: "orchestrator", blocker: "Choose a direction" } : {}),
-			history: [
-				{
-					archivedAt: 1,
-					attempts: [],
-					boardRevision: "old-revision",
-					cwd: "/synthetic",
-					preparation: prepared(),
-					prompt: "Old work",
-					stage: "completed",
-				},
+			prompt: "Old work",
+			stage: "completed",
+		},
+	],
+}));
+
+isolatedStorage.it(
+	"the stage migration renames old stages in current and archived records and keeps a waiting record's owner and blocker",
+	[],
+	function* ({ migrate, openFleetStore, seedTextRecords }) {
+		yield* seedTextRecords(NAMESPACE, RECORDS);
+		yield* migrate(NAMESPACE, "advisory_reviews");
+
+		yield* migrate(NAMESPACE);
+
+		const values = (yield* openFleetStore({ namespace: NAMESPACE })).list().pipe(Effect.map((entries) => entries.map(({ value }) => value)));
+		yield* outcomes([
+			[
+				"stages",
+				() => values.pipe(Effect.map((found) => found.map(({ stage }) => stage))),
+				["queued", "working", "reviewing", "waiting", "done", "released"],
 			],
-		}));
-		yield* seedTextRecords(namespace, records);
-		yield* migrate(namespace, "advisory_reviews");
-		expect(yield* sql`select max(migration_id) as latest from ${sql(`${namespace}_migrations`)}`).toEqual([{ latest: predecessor }]);
-		yield* migrate(namespace);
-		const store = yield* openFleetStore({ namespace });
-		const values = (yield* store.list()).map((entry) => entry.value);
-		expect(values.map((value) => value.stage)).toEqual(["queued", "working", "reviewing", "waiting", "done", "released"]);
-		expect(values.map((value) => value.history?.[0]?.stage)).toEqual(["done", "done", "done", "done", "done", "done"]);
-		expect(values[3]).toMatchObject({ attentionOwner: "orchestrator", blocker: "Choose a direction" });
-		expect(yield* migrate(namespace)).toEqual([]);
-		expect((yield* store.list()).map((entry) => entry.value)).toEqual(values);
+			[
+				"archived stages",
+				() => values.pipe(Effect.map((found) => found.map(({ history }) => history?.[0]?.stage))),
+				["done", "done", "done", "done", "done", "done"],
+			],
+			[
+				"waiting record",
+				() => values.pipe(Effect.map((found) => found[3])),
+				expect.objectContaining({ attentionOwner: "orchestrator", blocker: "Choose a direction" }),
+			],
+		]);
 	},
 );

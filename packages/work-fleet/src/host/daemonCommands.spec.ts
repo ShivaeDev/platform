@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const action of ["retry", "release"] as const) {
 	host.it(
@@ -52,7 +52,8 @@ host.it(
 		const exitCode = result.code;
 		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain("one waits on no answer in step working");
-		expect(yield* daemon.answer("one").pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("working") });
+		const answerResultOutcome = yield* refusal(daemon.answer("one"));
+		expect(answerResultOutcome).toMatch(/^bad request: .*working/u);
 		expect((yield* daemon.get("one")).step).toBe("working");
 		expect(daemon.boardExists("responses")).toBe(false);
 	},

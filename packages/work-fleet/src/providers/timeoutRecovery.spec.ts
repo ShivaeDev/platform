@@ -1,58 +1,54 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { cloudThread } from "#test/codexCloud.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { threadWithPriorTurn } from "#test/codexCloud.ts";
 import { cloudRecovery, providerStory } from "#test/providerStory.ts";
 
-for (const state of ["completed", "failed", "interrupted", "inProgress", "unknown", "matching"] as const) {
+const SAVED = { operationId: "saved-operation", resume: { afterTimeout: true, prompt: "Saved prompt" }, sessionId: "thread" };
+const MISSING = "session ambiguous (session-turn-missing): No matching accepted turn is observable; absence does not authorize replay";
+
+for (const status of ["completed", "failed", "interrupted"]) {
 	providerStory.it(
-		`a timed-out continuation reconciles a thread with prior turns: ${state}`,
+		`a timed-out continuation whose thread's prior turn is ${status} is resubmitted once with its saved prompt`,
 		[cloudRecovery(1)],
-		function* ({ provider, replyWith, requests: wireRequests }) {
-			const requests: string[] = [];
-			yield* replyWith((request) => {
-				requests.push(request.method);
-				if (request.method === "thread/read") {
-					return cloudThread();
-				}
-				if (request.method === "turn/start") {
-					return { turn: { id: "resubmitted" } };
-				}
-				return {
-					data: [
-						{
-							id: "existing",
-							items: [{ clientId: state === "matching" ? "saved-operation" : "previous-operation", id: "input", type: "userMessage" }],
-							status: state === "matching" ? "inProgress" : state,
-						},
+		function* ({ answers, methods, provider, sent }) {
+			yield* answers(threadWithPriorTurn(status));
+
+			const outcome = yield* provider.recover(SAVED);
+
+			expect(outcome).toBe("turn resubmitted on thread");
+			yield* outcomes([
+				["new threads", () => methods("thread/start"), []],
+				[
+					"resubmitted turns",
+					() => sent("turn/start"),
+					[
+						expect.objectContaining({
+							clientUserMessageId: "saved-operation",
+							input: [expect.objectContaining({ text: "Saved prompt" })],
+							threadId: "thread",
+						}),
 					],
-					nextCursor: null,
-				};
-			});
-			const recovered = yield* provider
-				.reconcile({ operationId: "saved-operation", resume: { afterTimeout: true, prompt: "Saved prompt" }, sessionId: "thread" })
-				.pipe(Effect.result);
-			if (state === "inProgress" || state === "unknown") {
-				expect(recovered).toMatchObject({
-					_tag: "Failure",
-					failure: state === "unknown" ? { reason: "protocol" } : { code: "session-turn-missing" },
-				});
-				expect(requests).not.toContain("turn/start");
-			} else {
-				expect(recovered).toMatchObject({
-					_tag: "Success",
-					success: { sessionId: "thread", turnId: state === "matching" ? "existing" : "resubmitted" },
-				});
-				expect(requests.filter((method) => method === "turn/start")).toHaveLength(state === "matching" ? 0 : 1);
-				if (state !== "matching") {
-					expect(wireRequests().find((request) => request.method === "turn/start")?.params).toMatchObject({
-						clientUserMessageId: "saved-operation",
-						input: [{ text: "Saved prompt" }],
-						threadId: "thread",
-					});
-				}
-			}
-			expect(requests.find((method) => method !== "initialize")).toBe("thread/turns/list");
-			expect(requests).not.toContain("thread/start");
+				],
+			]);
+		},
+	);
+}
+
+for (const [thread, script, expected] of [
+	["its own turn in progress", threadWithPriorTurn("inProgress", "saved-operation"), "turn existing on thread"],
+	["another turn in progress", threadWithPriorTurn("inProgress"), MISSING],
+	["a turn in an unknown state", threadWithPriorTurn("unknown"), expect.stringMatching(/^session protocol/u)],
+] as const) {
+	providerStory.it(
+		`a timed-out continuation on a thread with ${thread} ${expected === "turn existing on thread" ? "adopts that turn" : "fails"} without resubmitting`,
+		[cloudRecovery(1)],
+		function* ({ answers, methods, provider }) {
+			yield* answers(script);
+
+			const outcome = yield* provider.recover(SAVED);
+
+			expect(outcome).toEqual(expected);
+			expect(yield* methods("turn/start", "thread/start")).toEqual([]);
 		},
 	);
 }

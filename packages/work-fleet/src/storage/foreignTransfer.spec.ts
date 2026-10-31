@@ -1,15 +1,16 @@
-import { Effect, Exit } from "effect";
-import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { record } from "#test/storage.ts";
 import { isolatedStorage } from "#test/storageStory.ts";
 
-const test = isolatedStorage;
-test.it("concurrent foreign transfers of one PR occupy a single backlog slot", [], function* ({ store }) {
-	yield* Effect.all(
-		[store.reserveForeign("pr-one", { backlog: true, executing: false }), store.reserveForeign("pr-one", { backlog: true, executing: false })],
-		{ concurrency: 2 },
-	);
-	expect(yield* store.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "pr-one" }]);
-	expect(Exit.isFailure(yield* store.insert({ ...record("board-a"), step: "terminal" }, { maxBacklog: 1 }).pipe(Effect.exit))).toBe(true);
-	yield* store.insert({ ...record("board-a"), step: "terminal" }, { maxBacklog: 2 });
+isolatedStorage.it("concurrent transfers of one foreign PR hold a single backlog slot", [], function* ({ admission, concurrently, store }) {
+	function transfer() {
+		return store.reserveForeign("pr-one", { backlog: true, executing: false });
+	}
+
+	yield* concurrently(transfer(), transfer());
+
+	yield* outcomes([
+		["reservations", () => store.foreignReservations(), [{ areas: [], backlog: true, executing: false, owner: "pr-one" }]],
+		["admission with one free slot", () => admission({ ...record("board-a"), step: "terminal" }, { maxBacklog: 2 }), "accepted"],
+	]);
 });

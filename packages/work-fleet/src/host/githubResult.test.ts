@@ -1,7 +1,7 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { githubHost } from "#test/githubHostStory.ts";
 import { completed, HEAD, MOVED, NO_CHANGE, PR, work } from "#test/githubResult.ts";
+import { refusal } from "#test/refusal.ts";
 
 describe("GitHub worker result adoption", () => {
 	githubHost.it("adopts the observed PR number, exact reported head and all paginated changed paths", [], function* (github) {
@@ -63,6 +63,6 @@ describe("GitHub worker result adoption", () => {
 
 	githubHost.it("leaves adoption unconfigured unless selected", [], function* (github) {
 		const integrations = yield* github.integrations(false);
-		expect(yield* integrations.result(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
+		expect(yield* refusal(integrations.result(work, completed()))).toMatch(/^unavailable: /u);
 	});
 });

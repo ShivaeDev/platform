@@ -1,37 +1,72 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { foreignAreaStory } from "#test/foreignAreaStory.ts";
 
-for (const match of ["pr", "branch", "worker-branch", "unmatched"] as const) {
-	foreignAreaStory.it(`a foreign PR uses ${match} areas and blocks overlapping work until it closes`, [], function* (fleet) {
-		fleet.pr("open", match === "worker-branch" ? "worker/foreign" : "foreign/feature");
-		if (match !== "unmatched") {
-			const metadata = { branch: "branch: foreign/feature\n", pr: "pr: https://github.com/synthetic/project/pull/10\n", "worker-branch": "" }[match];
-			fleet.task("foreign", ["work-fleet"], metadata, false);
-		}
-		fleet.task("one", ["work-fleet/host"]);
-		fleet.task("two", ["work-board/ui"]);
-		expect(yield* fleet.reserve(match === "unmatched" ? ["work-fleet", "documentation"] : ["ignored"])).toMatchObject({ code: 0, stderr: "" });
-		expect(yield* fleet.reservations()).toMatchObject([
-			{ areas: match === "unmatched" ? ["work-fleet", "documentation"] : ["work-fleet"], backlog: true, executing: false },
-		]);
-		expect(yield* fleet.admit()).toEqual([]);
-		yield* fleet.dispatch("one");
-		expect((yield* fleet.get("one")).value).toMatchObject({ blocker: expect.stringContaining("held by https://github.com/"), step: "queued" });
-		expect((yield* fleet.dispatch("two"))._tag).toBe("Success");
-		const two = (yield* fleet.get("two")).value;
-		expect(two).toMatchObject({ attempts: [{ role: "worker" }], step: "working" });
-		expect(fleet.launches()).toEqual(two.attempts.map(({ operationId }) => operationId));
-		fleet.prReadFails();
-		expect(yield* fleet.admit()).toEqual([expect.stringContaining("https://github.com/synthetic/project/pull/10")]);
-		yield* fleet.dispatch("one");
-		expect((yield* fleet.get("one")).value.step).toBe("queued");
-		fleet.pr("closed");
-		expect(yield* fleet.admit()).toEqual([]);
-		expect(yield* fleet.reservations()).toEqual([]);
-		expect((yield* fleet.dispatch("one"))._tag).toBe("Success");
-		expect((yield* fleet.get("one")).value.step).toBe("working");
-		const one = (yield* fleet.get("one")).value;
-		expect(one.attempts).toMatchObject([{ role: "worker" }]);
-		expect(fleet.launches()).toEqual([...two.attempts, ...one.attempts].map(({ operationId }) => operationId));
+const PR = "https://github.com/synthetic/project/pull/10";
+const HELD = expect.stringContaining(`held by ${PR}`);
+const REFUSED = `admission refused: waiting for area work-fleet/host held by ${PR}`;
+
+for (const [match, requested, held] of [
+	["pr", ["ignored"], ["work-fleet"]],
+	["branch", ["ignored"], ["work-fleet"]],
+	["worker-branch", ["ignored"], ["work-fleet"]],
+	["unmatched", ["work-fleet", "documentation"], ["work-fleet", "documentation"]],
+] as const) {
+	foreignAreaStory.it(`reserving a foreign PR found by ${match} holds ${held.join(" and ")}`, [], function* (fleet) {
+		fleet.foreignPr(match);
+
+		const reserved = yield* fleet.reserve(requested);
+
+		expect(reserved).toBe("reserved");
+		expect(yield* fleet.reservations()).toMatchObject([{ areas: held, backlog: true, executing: false }]);
 	});
 }
+
+foreignAreaStory.it("a foreign PR's held area queues overlapping work while disjoint work launches", [], function* (fleet) {
+	yield* fleet.reservedForeignPr();
+	fleet.task("one", ["work-fleet/host"]);
+	fleet.task("two", ["work-board/ui"]);
+
+	const one = yield* fleet.dispatch("one");
+	const two = yield* fleet.dispatch("two");
+
+	expect({ one, two }).toEqual({ one: REFUSED, two: "dispatched" });
+	yield* outcomes([
+		["one", () => fleet.workOf("one"), { blocker: HELD, roles: [], step: "queued" }],
+		["two", () => fleet.workOf("two"), { blocker: "no blocker", roles: ["worker"], step: "working" }],
+		["launched work", () => fleet.launchedWork(), ["two"]],
+	]);
+});
+
+foreignAreaStory.it("an unreadable foreign PR is reported on admission and keeps its areas held", [], function* (fleet) {
+	yield* fleet.reservedForeignPr();
+	fleet.task("one", ["work-fleet/host"]);
+	expect(yield* fleet.dispatch("one")).toBe(REFUSED);
+	fleet.prReadFails();
+
+	const admitted = yield* fleet.admit();
+	const dispatched = yield* fleet.dispatch("one");
+
+	expect({ admitted, dispatched }).toEqual({ admitted: [expect.stringContaining(PR)], dispatched: REFUSED });
+	yield* outcomes([
+		["one", () => fleet.workOf("one"), { blocker: HELD, step: "queued" }],
+		["launched work", () => fleet.launchedWork(), []],
+	]);
+});
+
+foreignAreaStory.it("a closed foreign PR drops its reservation and launches the work it held", [], function* (fleet) {
+	yield* fleet.reservedForeignPr();
+	fleet.task("one", ["work-fleet/host"]);
+	expect(yield* fleet.dispatch("one")).toBe(REFUSED);
+	fleet.pr("closed");
+
+	const admitted = yield* fleet.admit();
+	const dispatched = yield* fleet.dispatch("one");
+
+	expect({ admitted, dispatched }).toEqual({ admitted: [], dispatched: "dispatched" });
+	yield* outcomes([
+		["reservations", () => fleet.reservations(), []],
+		["one", () => fleet.workOf("one"), { roles: ["worker"], step: "working" }],
+		["launched work", () => fleet.launchedWork(), ["one"]],
+	]);
+});

@@ -19,7 +19,8 @@ host.it(
 		expect((yield* daemon.get("one")).step).toBe("released");
 		yield* daemon.stop();
 		yield* daemon.start();
-		expect(yield* daemon.admit()).toEqual([]);
+		const admission = yield* daemon.admit();
+		expect(admission).toEqual([]);
 		expect((yield* daemon.get("one")).step).toBe("queued");
 		yield* daemon.schedule();
 		const resumed = yield* daemon.get("one");
