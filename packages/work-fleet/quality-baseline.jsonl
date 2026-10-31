@@ -164,7 +164,6 @@
 {"path":"packages/work-fleet/src/providers/startCodexTurn.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/reportFileFailure.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/storage/answerStore.ts","rule":"biome/plugin","count":1}
-{"path":"packages/work-fleet/src/storage/attentionOwner.spec.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The fixed storage query observes the real attention owner in a loopback-only single-user service test (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/backfillDecisionCodes.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Backfill rows have a fixed local storage shape; decoding must be considered with the storage migration boundary (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/dispatchStore.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/storage/listedRecords.ts","rule":"effect/service-parameters","count":1}
@@ -176,7 +175,5 @@
 {"path":"packages/work-fleet/src/storage/operationEntries.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The local work-id and version projection has a fixed storage-owned shape in the loopback-only service (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/recordShape.ts","rule":"effect/boundary","count":9}
 {"path":"packages/work-fleet/src/storage/recordSnapshot.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-fleet/src/storage/recordSnapshot.spec.ts","rule":"suppressions/no-double-cast","count":1,"reason":"A fixed local storage projection observes the snapshot produced by the real engine (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/recordValue.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The selected local row depends on the declared record model; decoding needs that model schema instead of a second field description (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/schemaColumnsMigration.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-fleet/src/storage/schemaColumnsMigration.spec.ts","rule":"suppressions/no-double-cast","count":3,"reason":"Fixed catalog and row probes verify real local schema migrations; PostgreSQL and the test-owned table define their shapes (likelihood 1 x severity 4 = 4)."}
