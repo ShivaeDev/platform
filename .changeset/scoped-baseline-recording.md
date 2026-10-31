@@ -10,5 +10,6 @@
 
 ### Fixed
 
+- Generated apps prune their copied baseline after formatting and before the initial commit, so repaired debt cannot block the strict commit gate.
 - Generated app guidance shows file-scoped baseline writes and stages new files before recording their debt.
 - Failing reports point moved files to baseline pruning instead of suggesting repo-wide debt recording.
