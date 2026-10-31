@@ -1,4 +1,5 @@
-import { Effect, Predicate } from "effect";
+import { Effect } from "effect";
+import { isForbidden, isServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clickButton, type Screen, screenWarnings } from "#test/Screen.ts";
@@ -57,9 +58,9 @@ function navigated(state: State) {
 function expectedFailure(state: State, path: string) {
 	const notes = path.startsWith("/notes/") || path === "/account/private";
 	if (path === "/notes/offline") {
-		return "ServiceUnavailable";
+		return isServiceUnavailable;
 	}
-	return (notes && state.role === "guest") || ((path === "/query" || notes) && state.serverRole === "guest") ? "Forbidden" : undefined;
+	return (notes && state.role === "guest") || ((path === "/query" || notes) && state.serverRole === "guest") ? isForbidden : undefined;
 }
 
 function routeVerbs(state: State, screen: Screen) {
@@ -81,10 +82,7 @@ function routeVerbs(state: State, screen: Screen) {
 					return yield* Effect.die(new Error("No permission host"));
 				}
 				const failure = expectedFailure(state, path);
-				const view = yield* screen.open(
-					null,
-					failure ? { onCaughtError: screenWarnings.expectCaughtError((error) => Predicate.isTagged(error, failure)) } : undefined,
-				);
+				const view = yield* screen.open(null, failure ? { onCaughtError: screenWarnings.expectCaughtError(failure) } : undefined);
 				const session = state.role === undefined ? undefined : yield* host.payload(state.role);
 				const app = permissionApp(host, view.registry, session, path);
 				state.view = view;

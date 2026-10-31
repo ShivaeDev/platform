@@ -1,10 +1,10 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import { type Cause, Option } from "effect";
+import { Cause, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useCallback, useContext, useEffect } from "react";
 import { FieldFailure, type Fields, type Form, Invalid } from "@shivaedev/form/shape.ts";
-import { isUnauthorized } from "./resultState.ts";
+import { requestsRecheck } from "#internal/sessionRecheck.ts";
 import { useSessionRecheck } from "./sessionBoundary.ts";
 
 const idle = Atom.make(AsyncResult.initial());
@@ -26,7 +26,7 @@ export function useSaveState<TFields extends Fields, A, E, TRuntimeError>(
 	const result: AsyncResult.AsyncResult<A, E | TRuntimeError | FieldFailure | Invalid> = useAtomValue(form?.submit ?? idle);
 	const dirty = useAtomValue(form?.dirty ?? clean);
 	useEffect(() => {
-		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
+		if (AsyncResult.isFailure(result) && Option.exists(Cause.findErrorOption(result.cause), requestsRecheck)) {
 			recheck();
 		}
 	}, [recheck, result]);

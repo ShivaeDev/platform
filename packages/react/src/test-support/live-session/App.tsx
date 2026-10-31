@@ -1,8 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
-import { Cause, Option, Predicate } from "effect";
+import { Cause, Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
+import { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { connect } from "./connect.ts";
@@ -10,9 +11,7 @@ import { connect } from "./connect.ts";
 export function Note({ client }: { readonly client: ReturnType<typeof connect> }) {
 	const query = useQuery(client.get.query(undefined));
 	const status = useAtomValue(client[LiveConnection].status);
-	const denied = Option.exists(query.cause, (cause) =>
-		Option.exists(Cause.findErrorOption(cause), (error) => Predicate.isTagged(error, "QueryReadDenied")),
-	);
+	const denied = Option.exists(query.cause, (cause) => Option.exists(Cause.findErrorOption(cause), (error) => error instanceof QueryReadDenied));
 	const content = denied ? "Read denied" : (Option.getOrUndefined(query.data) ?? "Loading");
 	return (
 		<output data-denied={denied} data-live={status.connection} data-pending={query.pending}>

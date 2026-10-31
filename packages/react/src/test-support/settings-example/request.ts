@@ -1,11 +1,11 @@
 import { Effect, Predicate } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { Settings } from "./contract.ts";
+import { SaveSettings, type Settings } from "./contract.ts";
 import { makeClient } from "./makeClient.ts";
 import { withReact } from "./withReact.ts";
 
 function outcome(failure: unknown) {
-	if (Predicate.isTagged(failure, "InvalidSettings") && Predicate.hasProperty(failure, "field") && Predicate.hasProperty(failure, "message")) {
+	if (failure instanceof SaveSettings.Rejection.InvalidSettings) {
 		return `rejected as InvalidSettings on ${String(failure.field)}: ${String(failure.message)}`;
 	}
 	return Predicate.hasProperty(failure, "_tag") ? `rejected as ${String(failure._tag)}` : "failed";

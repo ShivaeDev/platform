@@ -19,7 +19,7 @@ liveSessionStory.it(
 );
 
 liveSessionStory.it(
-	"when the server revokes alice's session, stream revalidation rechecks it and shows Sign in without reading the note again",
+	"identity's Unauthorized after session revocation triggers a recheck and shows Sign in without reading the note again",
 	[],
 	function* ({ reads, recheckedSessions, revokeSession, shown }) {
 		const before = yield* reads();

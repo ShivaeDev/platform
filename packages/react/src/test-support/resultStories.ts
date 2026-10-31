@@ -1,11 +1,11 @@
-import { Cause, Data, Effect } from "effect";
+import { Cause, Effect } from "effect";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { causeWords, dataWords, statusWords } from "./outcomeWords.ts";
 import { resultSession } from "./resultSession.ts";
 import { screenKit } from "./screenKit.ts";
 
 type ResultKind = "query" | "action";
-class Unauthorized extends Data.TaggedError("Unauthorized")<{ readonly message: string }> {}
 interface State {
 	answer: () => Effect.Effect<unknown, Unauthorized>;
 	view?: Awaited<ReturnType<typeof resultSession<unknown, Unauthorized>>>;

@@ -1,7 +1,8 @@
 import { Deferred, Effect } from "effect";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { loaderSession, Unauthorized, Unavailable } from "./loaderSession.ts";
+import { loaderSession, Unavailable } from "./loaderSession.ts";
 import { clickButton, type Screen, screenWarnings } from "./Screen.ts";
 import { SessionLoaderApp } from "./SessionLoaderApp.tsx";
 import { screenKit } from "./screenKit.ts";
@@ -41,7 +42,8 @@ export const sessionLoaders = storyKit(
 		(state, screen) => ({
 			alert: () => Effect.sync(() => current(state).container.querySelector("[role=alert]")?.textContent ?? "no alert"),
 			applySession: () => click(state, screen, "Apply session"),
-			failLoad: (failure: Failure) => failLoad(state, screen, failure === "Unauthorized" ? new Unauthorized() : new Unavailable()),
+			failLoad: (failure: Failure) =>
+				failLoad(state, screen, failure === "Unauthorized" ? new Unauthorized({ message: "Authentication required" }) : new Unavailable()),
 			rechecks: () => Effect.sync(() => [...state.session.recheckedSessions]),
 			screenText: () => Effect.sync(() => current(state).container.textContent),
 			signIn: () => click(state, screen, "Sign in"),
@@ -67,6 +69,6 @@ export function privateLoadWaiting(mode: Mode, failure: Failure) {
 export function unauthorizedLoad(mode: Mode) {
 	return sessionLoaders.trait("screen", `visitor's ${mode} load of private data failed as Unauthorized`, function* (engine) {
 		yield* openLoading(engine, mode, "Unauthorized");
-		yield* failLoad(engine.state, engine.screen, new Unauthorized());
+		yield* failLoad(engine.state, engine.screen, new Unauthorized({ message: "Authentication required" }));
 	});
 }

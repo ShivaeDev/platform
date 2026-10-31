@@ -2,12 +2,13 @@ import { Effect } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { AuthActionResult, AuthActionUnavailable } from "./authAction.ts";
+import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { AuthActionResult } from "./authAction.ts";
 import { authQuery } from "./authQuery.ts";
 
 export interface AuthSession<A, E> {
-	readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E | AuthActionUnavailable>>;
-	readonly refresh: Effect.Effect<A, E | AuthActionUnavailable, AtomRegistry.AtomRegistry>;
+	readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E | AuthUnavailable>>;
+	readonly refresh: Effect.Effect<A, E | AuthUnavailable, AtomRegistry.AtomRegistry>;
 }
 
 export function authSession<A, E extends object = never>(read: (signal: AbortSignal) => Promise<AuthActionResult<A, E>>): AuthSession<A, E> {
