@@ -60,6 +60,14 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 		path: "/query",
 	});
 	const controls = createRoute({ component: Controls, getParentRoute: () => root, path: "/controls" });
+	const account = createRoute({ getParentRoute: () => root, path: "/account", staticData: { signedIn: true } });
+	const profile = createRoute({ component: () => <h1>Profile</h1>, getParentRoute: () => account, path: "/profile" });
+	const privateAccount = createRoute({
+		component: () => <h1>Private account</h1>,
+		getParentRoute: () => account,
+		path: "/private",
+		staticData: { permission: ReadNotes },
+	});
 	const login = createRoute({
 		component: Login,
 		getParentRoute: () => root,
@@ -71,7 +79,7 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		disableGlobalCatchBoundary: true,
 		history: createMemoryHistory({ initialEntries: [initial] }),
-		routeTree: root.addChildren([note, direct, controls, login]),
+		routeTree: root.addChildren([note, direct, controls, login, account.addChildren([profile, privateAccount])]),
 	});
 	return { auth, host, router };
 }

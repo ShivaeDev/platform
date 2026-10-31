@@ -658,7 +658,7 @@ For a loader that coordinates more work, use `loadQuery(registry, atom, loaderCo
 
 Permissions come from the session payload's `user.permissions`, populated by `@shivaedev/access` through the server's role policy. `can(session, permission)` uses access's grant evaluator without making a request: names match exactly, and an `any` grant covers an `own` check for that name. An `own` grant does not cover an `any` check. `useCan()` supplies the same check from the nearest `PermissionBoundary` for component controls. A signed-out session has no grants. These checks control visibility; the server still authorizes every request.
 
-Declare a route's requirement in TanStack's native `staticData.permission`. Install `permissionGuard` once as the root route's `beforeLoad`; it checks the matched routes before their loaders run. Signed-out visitors go to the app's `signIn` path with the full requested location in the `returnTo` search field. A signed-in session without a required grant throws the shared `Forbidden` failure.
+Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. Install `permissionGuard` once as the root route's `beforeLoad`; it checks all matched routes before their loaders run, including requirements on parents. Signed-out visitors go to the app's `signIn` path with the full requested location in the `returnTo` search field. A signed-in session without a required grant throws the shared `Forbidden` failure. A signed-in-only parent does not bypass a child's permission requirement.
 
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
@@ -676,6 +676,12 @@ import { auth, SignIn } from "./auth.tsx";
 const ReadNotes = permission("notes.read");
 const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api }>()({
 	beforeLoad: permissionGuard({ session: () => auth.session, signIn: "/login" }),
+});
+const profile = createRoute({
+	getParentRoute: () => root,
+	path: "/profile",
+	staticData: { signedIn: true },
+	component: () => <h1>Profile</h1>,
 });
 const note = createRoute({
 	getParentRoute: () => root,
@@ -702,7 +708,7 @@ const login = createRoute({
 });
 const router = createRouter({
 	context: { registry, api },
-	routeTree: root.addChildren([note, login]),
+	routeTree: root.addChildren([profile, note, login]),
 	disableGlobalCatchBoundary: true,
 });
 

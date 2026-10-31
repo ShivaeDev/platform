@@ -55,7 +55,7 @@ function navigated(state: State) {
 }
 
 function expectedFailure(state: State, path: string) {
-	const notes = path.startsWith("/notes/");
+	const notes = path.startsWith("/notes/") || path === "/account/private";
 	if (path === "/notes/offline") {
 		return "ServiceUnavailable";
 	}

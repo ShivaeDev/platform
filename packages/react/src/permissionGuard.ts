@@ -7,6 +7,7 @@ import { type SignInLocation, signInSearch } from "./signInSearch.ts";
 declare module "@tanstack/react-router" {
 	interface StaticDataRouteOption {
 		readonly permission?: Permission;
+		readonly signedIn?: boolean;
 	}
 }
 
@@ -17,13 +18,13 @@ export interface PermissionGuardOptions {
 
 export interface PermissionGuardContext {
 	readonly location: SignInLocation;
-	readonly matches: readonly { readonly staticData: { readonly permission?: Permission } }[];
+	readonly matches: readonly { readonly staticData: { readonly permission?: Permission; readonly signedIn?: boolean } }[];
 }
 
 export function permissionGuard({ session, signIn }: PermissionGuardOptions): (context: PermissionGuardContext) => void {
 	return ({ matches, location }) => {
 		const required = matches.flatMap((match) => (match.staticData.permission === undefined ? [] : [match.staticData.permission]));
-		if (required.length === 0) {
+		if (required.length === 0 && !matches.some((match) => match.staticData.signedIn === true)) {
 			return;
 		}
 		const current = session();

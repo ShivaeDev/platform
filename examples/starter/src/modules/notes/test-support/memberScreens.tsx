@@ -30,6 +30,7 @@ export function notesMemberScreens(baseUrl: string) {
 				connectModules([notesRegistration(client)]),
 				auth.actions,
 				createMemoryHistory({ initialEntries: ["/"] }),
+				() => ({ user: {} }),
 			);
 			pending.set(member.name, clientActivity(client));
 			yield* Effect.addFinalizer(() =>
