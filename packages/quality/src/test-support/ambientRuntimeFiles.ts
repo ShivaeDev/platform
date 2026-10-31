@@ -33,6 +33,8 @@ export const AMBIENT_RUNTIME_CASES = [
 const RUNTIME_EDGES = [
 	"src/cli.ts",
 	"src/nested/main.ts",
+	"src/client/main.tsx",
+	"src/client/entry.tsx",
 	"src/task-cli.ts",
 	"tools/tool.config.ts",
 	"src/nested/adapters/bridge.ts",

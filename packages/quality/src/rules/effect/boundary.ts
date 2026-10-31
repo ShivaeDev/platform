@@ -93,7 +93,7 @@ export const effectBoundary = defineRule({
 		return [...groups.values()].flatMap((sources) => checkBoundary({ ...inputs, sources }));
 	},
 	description:
-		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points, tool configs and tests. Only adapters/ and test-support/ folders are exempt. Use Effect services and tagged errors; bridge outside libraries in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
+		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points (including main.tsx and entry.tsx), tool configs and tests. Only adapters/ and test-support/ folders are exempt; calls to throwing helpers defined in adapters/ are accepted. Use Effect services and tagged errors; bridge outside libraries in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/boundary",
 	registrable: false,
 });

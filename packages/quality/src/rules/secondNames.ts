@@ -18,7 +18,13 @@ function forwarding(node: ts.FunctionLikeDeclaration, origins: ReadonlyMap<strin
 		return undefined;
 	}
 	const call = returned(node.body);
-	if (call === undefined || !ts.isCallExpression(call) || call.questionDotToken !== undefined || call.arguments.length !== node.parameters.length) {
+	if (
+		call === undefined
+		|| !ts.isCallExpression(call)
+		|| call.questionDotToken !== undefined
+		|| call.typeArguments !== undefined
+		|| call.arguments.length !== node.parameters.length
+	) {
 		return undefined;
 	}
 	const visible = new Map(origins);

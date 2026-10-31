@@ -20,7 +20,15 @@ for (const { code, found, name } of boundaryShapes) {
 	}
 }
 
-for (const path of ["src/cli.ts", "src/main.ts", "src/tool-cli.ts", "tool.config.ts", "src/pure.unit.test.ts"]) {
+for (const path of [
+	"src/cli.ts",
+	"src/main.ts",
+	"src/client/main.tsx",
+	"src/client/entry.tsx",
+	"src/tool-cli.ts",
+	"tool.config.ts",
+	"src/pure.unit.test.ts",
+]) {
 	ruleStory.it(
 		`effect/boundary accepts runners at ${path}`,
 		[repositoryHas({ content: 'import { Effect } from "effect";\nexport const result = Effect.runSync(work);', path })],
@@ -35,22 +43,29 @@ for (const path of ["src/cli.ts", "src/main.ts", "src/tool-cli.ts", "tool.config
 
 for (const path of ["src/work.ts", "src/adapters/work.ts"]) {
 	ruleStory.it(
-		`effect/boundary ${path.includes("adapters/") ? "accepts" : "counts"} all 31 imported throwing guard calls in ${path}`,
+		`effect/boundary reports a core guard's throw and ${path.includes("adapters/") ? "accepts" : "counts"} all 31 calls in ${path}`,
 		[
 			repositoryHas(
 				{
 					content: 'export function guard(value: unknown): void;\nexport function guard(value: unknown) { if (!value) throw new Error("missing"); }',
-					path: "src/adapters/guard.ts",
+					path: "src/guard.ts",
 				},
-				{ content: ['import { guard as check } from "./adapters/guard.ts";', ...Array.from({ length: 31 }, () => "check(input);")].join("\n"), path },
+				{
+					content: [
+						`import { guard as check } from "${path.includes("adapters/") ? "../guard.ts" : "./guard.ts"}";`,
+						...Array.from({ length: 31 }, () => "check(input);"),
+					].join("\n"),
+					path,
+				},
 			),
 		],
 		function* ({ check }) {
 			const findings = yield* check(effectBoundary);
 
-			expect(findings).toEqual(
-				path.includes("adapters/") ? [] : Array.from({ length: 31 }, (_, index) => usesAt(path, index + 2, "throwing helper call (check)")),
-			);
+			expect(findings).toEqual([
+				usesAt("src/guard.ts", 2, "throw statement"),
+				...(path.includes("adapters/") ? [] : Array.from({ length: 31 }, (_, index) => usesAt(path, index + 2, "throwing helper call (check)"))),
+			]);
 		},
 		CLI_TIMEOUT,
 	);
