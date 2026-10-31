@@ -743,15 +743,18 @@ pnpm add --save-dev react react-dom @effect/atom-react @types/react @types/react
 
 `screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is required for `settle()`; `nextLiveHint()` requires client activity in that option. DOM actions, lookups and synchronous readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
 
-To use `settle()`, supply a `pending()` function that reads the application's own request or atom state. Settlement then keeps its `Effect<void>` type with no typed errors and waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
+To use `settle()`, supply a native `Stream<boolean>` as `pending`, emitting the current pending state on subscription and every subsequent change. For example, a package that tracks work in a native `SubscriptionRef<boolean>` supplies `pending: SubscriptionRef.changes(requests.pending)`. For a native boolean atom, use `AtomRegistry.toStream(view.registry, pendingAtom)` from `effect/reactivity/AtomRegistry`. Keep pending true until the resulting screen work is ready to render. Settlement keeps its `Effect<void>` type with no typed errors and waits until the stream emits false; DOM mutations also wake the driver, and repeated identical renders never count as completion. `find()` waits for pending work to finish and its target to appear, reacting to both signals and mutations.
+
+A `pending: () => boolean` sampler remains available for packages whose pending work completes with a DOM mutation. It is sampled after the initial renderer flush and on mutations, without a polling timer. Use the stream when pending can become false without changing the DOM.
 
 ```ts
+import { SubscriptionRef } from "effect";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
 verbs: ({ view, requests }, story) =>
 	screenDriver({
 		root: view.container,
-		pending: () => requests.pending,
+		pending: SubscriptionRef.changes(requests.pending),
 		tell: story.tell,
 	});
 ```
@@ -768,7 +771,7 @@ yield* screen.settle();
 expect(screen.text("output")).toBe("Saved title");
 ```
 
-This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. With client activity, `find()` settles before looking up its target once. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
+This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
 
 `click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 

@@ -48,6 +48,7 @@ export function background() {
 		return fiber;
 	}
 	return {
+		cancel: (name: string) => Fiber.interrupt(fiberOf(name)),
 		finished: (name: string) => Fiber.join(fiberOf(name)),
 		progress: (name: string, whileRunning: string) => Effect.sync(() => (fiberOf(name).pollUnsafe() === undefined ? whileRunning : "finished")),
 		starts: <A, E, R>(name: string, effect: Effect.Effect<A, E, R>, words: (value: A) => string = () => "succeeded") =>
