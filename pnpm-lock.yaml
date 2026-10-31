@@ -641,6 +641,12 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@shivaedev/identity':
+        specifier: workspace:*
+        version: link:../identity
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
