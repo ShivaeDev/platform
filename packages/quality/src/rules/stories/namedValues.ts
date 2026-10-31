@@ -1,6 +1,8 @@
+import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule } from "#rule.ts";
-import { isSpec, memberName, nodesWhere, numericValue, syntaxFindings, unwrapped } from "./syntax.ts";
+import { storySources } from "./sources.ts";
+import { memberName, nodesWhere, numericValue, syntaxFindings, unwrapped } from "./syntax.ts";
 
 const MESSAGE =
 	'Passes a numeric literal or a matcher-only spec-local numeric const to toBe or toHaveLength. Assert the observed items, write the literal where accepted (zero or a process exitCode), or derive the value from the story\'s inputs. For HTTP statuses, import * as HttpStatus from "effect/http/HttpStatus" and use HttpStatus.fromLiteral("NotFound"), for example.';
@@ -87,10 +89,9 @@ function numericAssertion(node: ts.Node): boolean {
 }
 
 export const namedValues = defineRule({
-	check: ({ sources }) =>
-		sources
-			.filter((file) => isSpec(file.path))
-			.flatMap((file) =>
+	check: (inputs) =>
+		Effect.map(storySources(inputs), (stories) =>
+			stories.flatMap((file) =>
 				syntaxFindings(
 					file,
 					(source) => {
@@ -100,6 +101,7 @@ export const namedValues = defineRule({
 					MESSAGE,
 				),
 			),
+		),
 	description: "Stories assert observed items or named values instead of bare counts and numbers.",
 	id: "tests/named-values",
 });

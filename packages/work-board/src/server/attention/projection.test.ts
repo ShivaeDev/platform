@@ -1,19 +1,9 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { attentionLanesFixture } from "#test/attentionLanesFixture.ts";
-import { attentionSources } from "#test/attentionLaneTraits.ts";
+import { lanes } from "#test/attentionLaneTraits.ts";
 import { boardStory } from "#test/boardStory.ts";
 import { responseRecords } from "#test/responseRecords.ts";
 import { anUnreadableSource } from "#test/storyTraits.ts";
-
-function lanes(
-	change: (files: Record<string, string>) => void = () => undefined,
-	line = "asks wait on the maintainer, the orchestrator and automation",
-) {
-	const files = attentionLanesFixture();
-	change(files);
-	return attentionSources(files, line);
-}
 
 boardStory.it(
 	"the inbox puts asks for the maintainer and a person's next action under you and other responders' asks under agents",
@@ -38,7 +28,8 @@ boardStory.it("the inbox reports source diagnostics apart from its lanes", [lane
 });
 
 boardStory.it("the Inbox badge counts the asks waiting on you", [lanes()], function* ({ needsYouBadge }) {
-	expect(yield* needsYouBadge()).toBe(4);
+	const waiting = ["task.draft", "decision.reader", "question.storage", "task.person"];
+	expect(yield* needsYouBadge()).toBe(waiting.length);
 });
 
 boardStory.it(

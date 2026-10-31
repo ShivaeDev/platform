@@ -2,11 +2,10 @@ import { join } from "node:path";
 import ts from "typescript";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
+import { iterationOrigin, type Origin } from "./collectionOrigins.ts";
 import { importOrigin } from "./importOrigin.ts";
 import { storyProgram } from "./program.ts";
 import { returnValues } from "./returnValues.ts";
-
-type Origin = "factory" | "kit" | "story" | "plain" | "suite" | "vitest" | "stories" | "function" | undefined;
 
 function importFrom(node: ts.Node): string | undefined {
 	for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
@@ -27,9 +26,12 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		if (!ts.isVariableDeclaration(node.parent.parent)) {
 			return undefined;
 		}
-		const value = node.parent.parent.initializer;
+		const value = visit(node.parent.parent);
+		if (ts.isArrayBindingPattern(node.parent)) {
+			return typeof value === "object" ? value[node.parent.elements.indexOf(node)] : undefined;
+		}
 		const name = node.propertyName ?? node.name;
-		return value !== undefined && (ts.isIdentifier(name) || ts.isStringLiteral(name)) ? member(value, name.text) : undefined;
+		return ts.isIdentifier(name) || ts.isStringLiteral(name) ? member(value, name.text) : undefined;
 	}
 
 	function declaration(node: ts.Node): Origin {
@@ -40,7 +42,7 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 			return importOrigin(importFrom(node));
 		}
 		if (ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) {
-			return node.initializer === undefined ? undefined : origin(node.initializer);
+			return node.initializer === undefined ? iterationOrigin(node, visit) : visit(node.initializer);
 		}
 		return localBinding(node);
 	}
@@ -72,8 +74,7 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		return undefined;
 	}
 
-	function member(value: ts.Expression, name: string): Origin {
-		const receiver = visit(value);
+	function member(receiver: Origin, name: string): Origin {
 		if (receiver === "kit" && name === "it") {
 			return "story";
 		}
@@ -99,6 +100,9 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		if (ts.isObjectLiteralExpression(node)) {
 			return object(node);
 		}
+		if (ts.isArrayLiteralExpression(node)) {
+			return node.elements.map(visit);
+		}
 		return expression(node);
 	}
 
@@ -119,7 +123,7 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 			return call(node);
 		}
 		if (ts.isPropertyAccessExpression(node)) {
-			return member(node.expression, node.name.text) ?? symbol(checker.getSymbolAtLocation(node.name));
+			return member(visit(node.expression), node.name.text) ?? symbol(checker.getSymbolAtLocation(node.name));
 		}
 		return ts.isIdentifier(node) ? identifier(node) : declaration(node);
 	}

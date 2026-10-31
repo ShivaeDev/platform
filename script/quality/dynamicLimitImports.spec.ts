@@ -1,16 +1,20 @@
 import { expect } from "vitest";
 import { noLimitImports } from "@shivaedev/quality/rules/stories/noLimitImports.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
+import { inStory } from "#quality-fixtures/storySpecFiles.ts";
 
 ruleKit.it(
 	"a spec cannot load implementation caps through literal dynamic limits imports",
 	[
 		repositoryHas({
 			content: [
-				'export {}; const { MAX_ITEMS } = await import("./limits.ts");',
-				'const { MAX_ITEMS: cap } = await (import("#limits.ts"));',
-				'async function run() { const { "MAX_JOBS": jobs, ["MAX_SIZE"]: size } = await import(`./limits.ts`); }',
-				'const limits = await import("./limits.ts"); limits.MAX_ITEMS;',
+				[
+					'export {}; const { MAX_ITEMS } = await import("./limits.ts");',
+					'const { MAX_ITEMS: cap } = await (import("#limits.ts"));',
+					'async function run() { const { "MAX_JOBS": jobs, ["MAX_SIZE"]: size } = await import(`./limits.ts`); }',
+					'const limits = await import("./limits.ts"); limits.MAX_ITEMS;',
+				].join("\n"),
+				inStory(""),
 			].join("\n"),
 			path: "src/orders.spec.ts",
 		}),
@@ -26,7 +30,10 @@ ruleKit.it(
 	[
 		repositoryHas(
 			{
-				content: 'const { itemSchema: MAX_FIELDS_ALIAS } = await import("./limits.ts"); const { MAX_FIELDS } = await import("./schemas.ts");',
+				content: [
+					'const { itemSchema: MAX_FIELDS_ALIAS } = await import("./limits.ts"); const { MAX_FIELDS } = await import("./schemas.ts");',
+					inStory(""),
+				].join("\n"),
 				path: "src/orders.spec.ts",
 			},
 			{ content: 'const { MAX_ITEMS } = await import("./limits.ts");', path: "src/orders.ts" },

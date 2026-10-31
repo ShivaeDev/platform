@@ -5,15 +5,10 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
 import { refusal } from "#test/refusal.ts";
+import { bytes, observation } from "#test/reportObservation.ts";
 
 const LIMIT = 256 * 1024;
 const FINDINGS = "# Findings\n\nComplete evidence.\n";
-function observation(output: string, turnId = "first") {
-	return { execution: "completed", output, provisioning: "unknown", receipt: { sessionId: "worker", turnId } } as const;
-}
-function bytes(text: string) {
-	return new TextEncoder().encode(text).length;
-}
 
 boardReadStory.it(
 	"a published report reads back in the same pass with its output, revision and source",

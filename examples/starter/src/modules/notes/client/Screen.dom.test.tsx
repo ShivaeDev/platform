@@ -4,14 +4,36 @@ import { heldNotesList, notesRoute, screens } from "#modules/notes/test-support/
 screens.it(
 	"shares the route query, validates the form, retains a rejected title and refreshes after creation",
 	[notesRoute()],
-	function* ({ settle, closeScreen, consoleErrors, screenText, submit, alert, enter, draft, noteLink, wordCountText, finishWordCount, queryCount }) {
+	function* ({
+		settle,
+		closeScreen,
+		consoleErrors,
+		screenText,
+		submit,
+		alert,
+		enter,
+		draft,
+		noteLink,
+		wordCountText,
+		finishWordCount,
+		reads,
+		queryCount,
+	}) {
 		yield* settle();
 		expect(screenText()).toContain("No notes yet");
-		expect(queryCount("list")).toBe(1);
+		expect(
+			reads()
+				.filter(({ tag }) => tag === "notes.list")
+				.map(({ tag }) => tag),
+		).toEqual(["notes.list"]);
 		yield* submit();
 		yield* settle();
 		expect(alert()).toBe("Enter a title");
-		expect(queryCount("list")).toBe(1);
+		expect(
+			reads()
+				.filter(({ tag }) => tag === "notes.list")
+				.map(({ tag }) => tag),
+		).toEqual(["notes.list"]);
 		yield* enter("reserved");
 		yield* submit();
 		yield* settle();
@@ -23,7 +45,11 @@ screens.it(
 		expect(noteLink()).toBe("First note");
 		expect(draft()).toBe("");
 		expect(alert()).toBeUndefined();
-		expect(queryCount("list")).toBe(2);
+		expect(
+			reads()
+				.filter(({ tag }) => tag === "notes.list")
+				.map(({ tag }) => tag),
+		).toEqual(["notes.list", "notes.list"]);
 		expect(wordCountText()).toContain("Counting words…");
 		yield* finishWordCount(2);
 		yield* settle();
@@ -52,7 +78,7 @@ screens.it(
 		releaseNotesList,
 		holdNotesList,
 		click,
-		queryCount,
+		reads,
 		screenContent,
 	}) {
 		expect(loadingMessage()).toBe("Loading…");
@@ -71,7 +97,11 @@ screens.it(
 		yield* holdNotesList();
 		yield* click("Refresh");
 		yield* waitForList();
-		expect(queryCount("list")).toBe(2);
+		expect(
+			reads()
+				.filter(({ tag }) => tag === "notes.list")
+				.map(({ tag }) => tag),
+		).toEqual(["notes.list", "notes.list"]);
 		expect(refreshDisabled()).toBe(true);
 		expect(screenText()).toContain("No notes yet");
 		expect(loadingMessage()).toBe(undefined);
@@ -99,6 +129,7 @@ screens.it(
 		noteLink,
 		holdNotesList,
 		click,
+		reads,
 		queryCount,
 		refreshDisabled,
 		loadingMessage,
@@ -115,7 +146,11 @@ screens.it(
 		yield* holdNotesList();
 		yield* click("Refresh");
 		yield* waitForList();
-		expect(queryCount("list")).toBe(3);
+		expect(
+			reads()
+				.filter(({ tag }) => tag === "notes.list")
+				.map(({ tag }) => tag),
+		).toEqual(["notes.list", "notes.list", "notes.list"]);
 		expect(refreshDisabled()).toBe(true);
 		expect(noteLink()).toBe("First note");
 		expect(loadingMessage()).toBe(undefined);
@@ -140,10 +175,14 @@ screens.it(
 	},
 );
 
-screens.it("refuses a whitespace-only title in the form before submit", [notesRoute()], function* ({ enter, alert, queryCount, draft }) {
+screens.it("refuses a whitespace-only title in the form before submit", [notesRoute()], function* ({ enter, alert, reads, draft }) {
 	yield* enter("   ");
 
 	expect(alert()).toBe("Enter a title");
 	expect(draft()).toBe("   ");
-	expect(queryCount("list")).toBe(1);
+	expect(
+		reads()
+			.filter(({ tag }) => tag === "notes.list")
+			.map(({ tag }) => tag),
+	).toEqual(["notes.list"]);
 });

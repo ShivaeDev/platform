@@ -4,13 +4,16 @@ import { noExpect } from "@shivaedev/quality/rules/stories/noExpect.ts";
 import { noLimitImports } from "@shivaedev/quality/rules/stories/noLimitImports.ts";
 import { specHelpers } from "@shivaedev/quality/rules/stories/specHelpers.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
+import { inStory } from "#quality-fixtures/storySpecFiles.ts";
 
 ruleKit.it(
 	"a spec author moves top-level functions and function values into the kit",
 	[
 		repositoryHas({
-			content:
+			content: [
 				'function ordered() {}\nconst basket = (() => ({}));\nconst prices = function () {};\nexport default function () {}\nconst read = Effect.fn("read")(function* () {});',
+				inStory(""),
+			].join("\n"),
 			path: "src/orders.spec.ts",
 		}),
 	],
@@ -25,7 +28,10 @@ ruleKit.it(
 	"a story uses kit actions while source and test-support may define helpers",
 	[
 		repositoryHas(
-			{ content: 'orders.it("places an order", [], function* ({ places }) { yield* places(); });', path: "src/orders.spec.ts" },
+			{
+				content: ['orders.it("places an order", [], function* ({ places }) { yield* places(); });', inStory("")].join("\n"),
+				path: "src/orders.spec.ts",
+			},
 			{ content: "export function ordered() {}", path: "src/orders.ts" },
 			{ content: "export const basket = () => ({});", path: "src/test-support/orders.ts" },
 		),
@@ -59,7 +65,7 @@ ruleKit.it(
 				content: 'export function orders() { if (!button) throw new Error("Missing order button"); return engine.orders; }',
 				path: "src/test-support/orders.ts",
 			},
-			{ content: "expect(engine.orders).toEqual([placed]);", path: "src/orders.spec.ts" },
+			{ content: ["expect(engine.orders).toEqual([placed]);", inStory("")].join("\n"), path: "src/orders.spec.ts" },
 		),
 	],
 	function* ({ checks }) {
@@ -71,8 +77,10 @@ ruleKit.it(
 	"a spec names numeric expectations instead of passing bare literals to matchers",
 	[
 		repositoryHas({
-			content:
+			content: [
 				'expect(items).toHaveLength(2);\nexpect(total).not.toBe(-1);\nexpect(total)["toBe"]((+3));\nexpect(result.statusCount).toBe(2);\nexpect(response.body.length).toBe(4);\nexpect(codex).toBe(2);\nexpect(exitCodes).not.toHaveLength((-2));\nexpect.soft(total).not.toBe((+5));',
+				inStory(""),
+			].join("\n"),
 			path: "src/orders.spec.ts",
 		}),
 	],
@@ -88,18 +96,21 @@ ruleKit.it(
 	[
 		repositoryHas({
 			content: [
-				"const OK_STATUS = 200;",
-				"expect(response.status).toBe(OK_STATUS);",
-				"const shipped = 2;",
-				"expect(count).toBe(shipped);",
-				'orders.it("ships", [], function* () {',
-				"  const zero = 0;",
-				"  expect(items).toHaveLength(zero);",
-				"  const missing = (-1);",
-				'  expect.soft(total).not["toBe"](missing);',
-				"  expect(total).toBe(missing);",
-				"});",
-				'orders.it("seeds", [], function* ({ seed }) { const shipped = 2; yield* seed(shipped); });',
+				[
+					"const OK_STATUS = 200;",
+					"expect(response.status).toBe(OK_STATUS);",
+					"const shipped = 2;",
+					"expect(count).toBe(shipped);",
+					'orders.it("ships", [], function* () {',
+					"  const zero = 0;",
+					"  expect(items).toHaveLength(zero);",
+					"  const missing = (-1);",
+					'  expect.soft(total).not["toBe"](missing);',
+					"  expect(total).toBe(missing);",
+					"});",
+					'orders.it("seeds", [], function* ({ seed }) { const shipped = 2; yield* seed(shipped); });',
+				].join("\n"),
+				inStory(""),
 			].join("\n"),
 			path: "src/orders.spec.ts",
 		}),
@@ -116,8 +127,10 @@ ruleKit.it(
 	[
 		repositoryHas(
 			{
-				content:
+				content: [
 					'import * as HttpStatus from "effect/http/HttpStatus";\nimport { SHIPPED } from "./product.ts";\nexpect(items).toEqual([placed]); expect(count).toBe(SHIPPED); expect(items).toHaveLength(orders.length);\norders.it("ships", [], function* ({ seed }) { const limit = 3; yield* seed(limit); expect(rows).toHaveLength(limit); });\nconst limit = 3; seed({ limit }); expect(rows).toHaveLength(limit);\nexpect(total).toBe(start + backoff);\nexpect(items).toHaveLength(0);\nexpect(total).toBe(0);\nexpect(result.exitCode).toBe(1);\nexpect(response.status).toBe(HttpStatus.fromLiteral("NotFound"));\nexpect(run()["exitCode"]).toBe(2);\nexpect(exitCode).toBe(3);\nexpect(total).not.toBe(-0);\nexpect(items).toHaveLength((0));\nexpect.soft((response.status)).not.toBe(HttpStatus.fromLiteral("InternalServerError"));\nexpect((yield* signIn()).status).toBe(HttpStatus.fromLiteral("OK"));\nexpect(process.exitCode).not.toBe(-1);\nexpect(status).toBe(HttpStatus.fromLiteral("Created"));\nexpect(exitCode).toBe(2);\nexpect.soft(run()["exitCode"]).toBe(3);',
+					inStory(""),
+				].join("\n"),
 				path: "src/orders.spec.ts",
 			},
 			{ content: "export const SHIPPED = 2;", path: "src/product.ts" },
@@ -133,8 +146,10 @@ ruleKit.it(
 	"a spec cannot import implementation caps even under another name",
 	[
 		repositoryHas({
-			content:
+			content: [
 				'import { MAX_ITEMS as cap } from "./limits.ts";\nimport * as limits from "#limits.ts";\nexpect(count).toBe(limits.MAX_ITEMS); limits["MAX_ITEMS"];',
+				inStory(""),
+			].join("\n"),
 			path: "src/orders.spec.ts",
 		}),
 	],
@@ -149,7 +164,10 @@ ruleKit.it(
 	"a spec uses observations without importing caps, and source may use its limits",
 	[
 		repositoryHas(
-			{ content: 'import { itemSchema } from "./schemas.ts"; expect(items).toEqual([placed]);', path: "src/orders.spec.ts" },
+			{
+				content: ['import { itemSchema } from "./schemas.ts"; expect(items).toEqual([placed]);', inStory("")].join("\n"),
+				path: "src/orders.spec.ts",
+			},
 			{ content: 'import { MAX_ITEMS } from "./limits.ts";', path: "src/orders.ts" },
 		),
 	],

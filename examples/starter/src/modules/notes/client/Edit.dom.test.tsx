@@ -4,8 +4,12 @@ import { editingNote, noteRevisedElsewhere, screens } from "#modules/notes/test-
 screens.it(
 	"shares the typed detail route's query and retains an edit through a live refresh",
 	[editingNote()],
-	function* ({ settle, closeScreen, consoleErrors, enter, reviseNote, cachedTitle, queryCount, draft, screenText }) {
-		expect(queryCount("get")).toBe(1);
+	function* ({ settle, closeScreen, consoleErrors, enter, reviseNote, cachedTitle, reads, queryCount, draft, screenText }) {
+		expect(
+			reads()
+				.filter(({ tag }) => tag === "notes.get")
+				.map(({ tag }) => tag),
+		).toEqual(["notes.get"]);
 		yield* enter("Keep my draft");
 		yield* reviseNote("Changed elsewhere");
 		yield* settle();
@@ -21,7 +25,7 @@ screens.it(
 screens.it(
 	"shows a stale edit conflict, keeps the input, then refreshes and saves the reviewed draft",
 	[editingNote(), noteRevisedElsewhere("Saved elsewhere")],
-	function* ({ settle, closeScreen, consoleErrors, enter, click, alert, draft, queryCount, settleQuery, screenText }) {
+	function* ({ settle, closeScreen, consoleErrors, enter, click, alert, draft, reads, settleQuery, screenText }) {
 		yield* enter("  My draft  ");
 		yield* click("Save note");
 		yield* settle();
@@ -29,7 +33,11 @@ screens.it(
 		expect(draft()).toBe("  My draft  ");
 		yield* click("Refresh");
 		yield* settleQuery("get");
-		expect(queryCount("get")).toBe(2);
+		expect(
+			reads()
+				.filter(({ tag }) => tag === "notes.get")
+				.map(({ tag }) => tag),
+		).toEqual(["notes.get", "notes.get"]);
 		yield* settle();
 		expect(draft()).toBe("  My draft  ");
 		yield* click("Save note");

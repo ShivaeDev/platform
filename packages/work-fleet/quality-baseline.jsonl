@@ -4,6 +4,7 @@
 {"path":"packages/work-fleet/src/board/documents.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/board/markdown.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/board/publicationFailure.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/board/readPass.test.ts","rule":"tests/named-values","count":2,"reason":"First story-syntax coverage for .test files: pass-isolation stories still assert scan counters; replacing these needs a scan trace in the Board read kit."}
 {"path":"packages/work-fleet/src/board/readPass.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/board/reportFiles.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/board/reportPayloadFile.ts","rule":"biome/plugin","count":1}
@@ -102,6 +103,7 @@
 {"path":"packages/work-fleet/src/engine/reviewChecks.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/engine/reviewChecks.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/saveLaunch.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/engine/scheduler.test.ts","rule":"tests/named-values","count":3,"reason":"First story-syntax coverage for .test files: concurrent worker and reviewer stories still count opaque launch ids; the engine kit needs a domain readout of launched work and roles."}
 {"path":"packages/work-fleet/src/engine/sessionCleanup.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/sessionRecoveryMatrix.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/engine/settleMergedDelivery.ts","rule":"effect/service-parameters","count":1}
@@ -128,6 +130,7 @@
 {"path":"packages/work-fleet/src/host/briefRetryApproval.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/bulkRelease.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/closedDecisionRelease.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/commands.test.ts","rule":"tests/named-values","count":2,"reason":"First story-syntax coverage for .test files: host dispatch stories still count opaque launch ids beside their prompt assertions; the host kit needs a domain readout of launched work and roles."}
 {"path":"packages/work-fleet/src/host/commands.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/continueReport.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/daemonCommands.spec.ts","rule":"effect/boundary","count":1}
@@ -142,6 +145,7 @@
 {"path":"packages/work-fleet/src/host/localOnlyCriteria.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/mergePrediction.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/host/nameThreads.ts","rule":"effect/failure-honesty","count":1}
+{"path":"packages/work-fleet/src/host/quota.test.ts","rule":"tests/named-values","count":2,"reason":"First story-syntax coverage for .test files: quota-cache stories still assert refresh counters; replacing these needs an observation-request trace in the policy kit."}
 {"path":"packages/work-fleet/src/host/readWaitStates.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/report.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/reportAttachmentSafety.spec.ts","rule":"effect/boundary","count":1}

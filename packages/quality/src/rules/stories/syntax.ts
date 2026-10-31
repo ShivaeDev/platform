@@ -1,11 +1,6 @@
 import ts from "typescript";
-import { isTestSupport, testName } from "#naming/testName.ts";
 import type { Finding, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
-
-export function isSpec(path: string): boolean {
-	return testName(path)?.kind === "spec" && !isTestSupport(path);
-}
 
 export function unwrapped(node: ts.Expression): ts.Expression {
 	return ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isNonNullExpression(node)

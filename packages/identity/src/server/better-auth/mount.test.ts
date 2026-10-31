@@ -80,7 +80,8 @@ mount.it(
 	"even when the app's own options switch rate limiting off, a third auth request within a minute is rate limited",
 	[applicationRateLimit(false)],
 	function* ({ request, useAllowance }) {
-		expect(yield* useAllowance()).toEqual(["accepted", "accepted"]);
+		const allowance = yield* useAllowance();
+		expect(allowance).toEqual(["accepted", "accepted"]);
 
 		expect(yield* request()).toBe("rate limited");
 	},
@@ -90,7 +91,8 @@ mount.it(
 	"AUTH_RATE_LIMIT_ENABLED=false lets a third auth request within a minute through even when the app's options enable rate limiting",
 	[applicationRateLimit(true), environment({ "AUTH_RATE_LIMIT_ENABLED": "false" })],
 	function* ({ request, useAllowance }) {
-		expect(yield* useAllowance()).toEqual(["accepted", "accepted"]);
+		const allowance = yield* useAllowance();
+		expect(allowance).toEqual(["accepted", "accepted"]);
 
 		expect(yield* request()).toBe("accepted");
 	},
@@ -116,7 +118,8 @@ for (const [storage, traits] of Object.entries({ "default storage": [], "explici
 		`with ${storage}, a second auth host in the same process starts with its own rate-limit buckets`,
 		traits,
 		function* ({ request, requestSecondHost, startSecondHost, useAllowance }) {
-			expect(yield* useAllowance()).toEqual(["accepted", "accepted"]);
+			const allowance = yield* useAllowance();
+			expect(allowance).toEqual(["accepted", "accepted"]);
 
 			yield* startSecondHost();
 

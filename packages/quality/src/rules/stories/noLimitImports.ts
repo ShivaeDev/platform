@@ -1,6 +1,8 @@
+import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule } from "#rule.ts";
-import { isSpec, memberName, nodesWhere, syntaxFindings, unwrapped } from "./syntax.ts";
+import { storySources } from "./sources.ts";
+import { memberName, nodesWhere, syntaxFindings, unwrapped } from "./syntax.ts";
 
 const MESSAGE =
 	"Imports a MAX_* constant from a limits module. Tell a story about the observed behavior instead of asserting a copy of the implementation's cap.";
@@ -74,7 +76,7 @@ function capImports(source: ts.SourceFile): readonly ts.Node[] {
 }
 
 export const noLimitImports = defineRule({
-	check: ({ sources }) => sources.filter((file) => isSpec(file.path)).flatMap((file) => syntaxFindings(file, capImports, MESSAGE)),
+	check: (inputs) => Effect.map(storySources(inputs), (stories) => stories.flatMap((file) => syntaxFindings(file, capImports, MESSAGE))),
 	description: "Stories prove behavior instead of importing implementation caps from limits modules.",
 	id: "tests/no-limit-imports",
 });

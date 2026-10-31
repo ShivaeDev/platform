@@ -3,6 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { inStory } from "#test/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
 
@@ -15,13 +16,13 @@ for (const assertion of [
 ]) {
 	ruleStory.it(
 		`tests/named-values reports ${assertion} in a spec and points to Effect's HttpStatus names`,
-		[repositoryHas({ content: assertion, path: SPEC })],
+		[repositoryHas({ content: inStory(assertion), path: SPEC })],
 		function* ({ check, locations, messages }) {
 			yield* check(namedValues);
 
 			yield* outcomes([
 				["advice", () => messages(), [expect.stringContaining(STATUS_NAMES)]],
-				["locations", () => locations(), [`${SPEC}:1`]],
+				["locations", () => locations(), [`${SPEC}:2`]],
 			]);
 		},
 	);
@@ -30,7 +31,7 @@ for (const assertion of [
 for (const assertion of ["expect(exitCode).toBe(1);", 'expect.soft(process["exitCode"]).not.toBe(-1);']) {
 	ruleStory.it(
 		`tests/named-values accepts the process exit code literal in ${assertion}`,
-		[repositoryHas({ content: assertion, path: SPEC })],
+		[repositoryHas({ content: inStory(assertion), path: SPEC })],
 		function* ({ check }) {
 			expect(yield* check(namedValues)).toEqual([]);
 		},

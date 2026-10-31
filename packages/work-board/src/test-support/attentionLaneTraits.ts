@@ -1,6 +1,7 @@
 import { utimesSync } from "node:fs";
 import { join } from "node:path";
 import { runArchive, standingPolicyAnswer } from "./attentionLaneActions.ts";
+import { attentionLanesFixture } from "./attentionLanesFixture.ts";
 import { boardStory, projectFiles } from "./boardStory.ts";
 import { closedInboxFixture } from "./closedInboxFixture.ts";
 import { inboxAudienceFixture } from "./inboxAudienceFixture.ts";
@@ -71,4 +72,13 @@ export function answeredReceiptDecision(
 	line = "the orchestrator answered the Fleet decision on task.context",
 ) {
 	return attentionSources({ ...managedReceiptsFixture(), ...files }, line);
+}
+
+export function lanes(
+	change: (files: Record<string, string>) => void = () => undefined,
+	line = "asks wait on the maintainer, the orchestrator and automation",
+) {
+	const files = attentionLanesFixture();
+	change(files);
+	return attentionSources(files, line);
 }

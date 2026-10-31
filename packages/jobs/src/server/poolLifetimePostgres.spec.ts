@@ -1,5 +1,6 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { running } from "#test/postgres/traits.ts";
@@ -21,8 +22,10 @@ for (const [reason, options] of [
 
 			expect(yield* backendIsConnected(before)).toBe(false);
 			yield* enqueue("app", Notes, { id: 1 }, { as: "note 1" });
-			expect(yield* answered()).toBe("note 1");
-			expect(yield* backendPid("app")).not.toBe(before);
+			yield* outcomes([
+				["job answer", () => answered(), "note 1"],
+				["backend replaced", () => Effect.map(backendPid("app"), (pid) => pid !== before), true],
+			]);
 		},
 	);
 }

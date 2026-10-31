@@ -1,11 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { boardStory, projectFiles } from "#test/boardStory.ts";
-
-const HOME = "nested/home.md";
-function home(source: string) {
-	return projectFiles({ [HOME]: source });
-}
+import { boardStory } from "#test/boardStory.ts";
+import { HOME, home } from "#test/home.ts";
 
 boardStory.it("a GitHub table renders as a table", [home("| Page | State |\n| --- | --- |\n| docs | open |\n")], function* ({ renderedTexts }) {
 	yield* outcomes([
