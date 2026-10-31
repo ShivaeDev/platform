@@ -2,10 +2,12 @@ import { expect } from "vitest";
 import { orchestratorWorkCard } from "#test/orchestratorWorkCard.tsx";
 import { screenStory } from "#test/screenStory.ts";
 
-screenStory.it("shows the orchestrator holder and hides missing PR and stage time", [orchestratorWorkCard()], ({ readText, count, findElement }) => {
-	expect(readText(".work-owner")).toBe("Waiting on orchestrator");
-	expect(readText()).not.toContain("PR not recorded");
-	expect(count("[data-status-token]")).toBe(1);
-	expect(readText("[data-status-token]")).toBe("Working");
-	expect(findElement(".work-stage")).toBeNull();
-});
+screenStory.it(
+	"A work card Fleet is building for the orchestrator names the orchestrator and leaves out an unknown pull request and stage time",
+	[orchestratorWorkCard()],
+	function* ({ nowCard }) {
+		expect(yield* nowCard("task-0")).toEqual(
+			expect.objectContaining({ owner: "Waiting on orchestrator", stage: "none", states: ["Working"], text: expect.not.stringContaining("PR") }),
+		);
+	},
+);

@@ -1,104 +1,148 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { hostedHealthScreen } from "#test/hostedHealthScreen.tsx";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
+import { phoneTabList } from "#test/shellExpectations.ts";
+import { hostedHealthSettled } from "#test/shellTraits.tsx";
 import { todayFixture } from "#test/todayFixture.ts";
 
 expectNoReactWarnings();
 
-const PHONE = 'nav[aria-label="Phone navigation"]';
+const phone = screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]);
+
+for (const [url, current] of [
+	["/", "/"],
+	["/_board/work", "/_board/work"],
+	["/_board/item/project.alpha/", undefined],
+	["/home.md", undefined],
+] as const) {
+	screenStory.it(`offers the Today, Goals and Now tabs on a phone at ${url}`, [phone, chromeScreen(todayFixture(), url)], function* ({ phoneTabs }) {
+		expect(yield* phoneTabs()).toEqual(phoneTabList(current));
+	});
+}
+
 screenStory.it(
-	"keeps primary destinations and Search available from Today, Now, goals and documents",
-	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(todayFixture(), "/")],
-	function* ({ click, navigate, readAttribute, findElements, findElement, readText, roles }) {
-		for (const url of ["/", "/_board/work", "/_board/item/project.alpha/", "/home.md"]) {
-			yield* Effect.promise(() => navigate(url));
-			yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url));
-			expect([...findElements(`${PHONE} a`)].map((link) => [roles.accessible(link).name, link.getAttribute("href")])).toEqual([
-				["Today, 7 need you", "/"],
-				["Goals", "/_board/goals"],
-				["Now", "/_board/work"],
-			]);
-			click([...findElements(`${PHONE} button`)].find((button) => button.textContent === "Search"));
-			expect(findElement("#search-dialog", document)).not.toBeNull();
-			expect(findElement("#search-dialog kbd", document)).toBeNull();
-			expect(readText("#search-dialog", document)).not.toContain("Enter to open");
-			yield* roles.click({ name: "Close", role: "button" });
-			yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
-		}
-		for (const [href, title] of [
-			["/_board/goals", "Goals"],
-			["/_board/work", "Now"],
-			["/", "Today"],
-		]) {
-			click(`${PHONE} a[href="${href}"]`);
-			yield* eventually(() => expect(readText("#doc h1")).toBe(title));
-			expect(readAttribute(`${PHONE} a[aria-current="page"]`, "href")).toBe(href);
-		}
+	"opens Search from the phone navigation without keyboard hints",
+	[phone, chromeScreen(todayFixture(), "/")],
+	function* ({ openPhoneSearch, searchDialog, searchHints }) {
+		expect(yield* searchDialog()).toBe("closed");
+
+		yield* openPhoneSearch();
+
+		yield* outcomes({
+			"Search": [searchDialog(), "open"],
+			"the keyboard hints": [searchHints(), "none"],
+		});
+	},
+);
+
+for (const [tab, href, heading] of [
+	["Goals", "/_board/goals", "Goals"],
+	["Now", "/_board/work", "Now"],
+	["Today", "/", "Today"],
+] as const) {
+	screenStory.it(
+		`opens ${heading} from its phone tab and marks the tab current`,
+		[phone, chromeScreen(todayFixture(), "/home.md")],
+		function* ({ mainHeading, openPhoneTab, phoneTabs }) {
+			expect(yield* phoneTabs()).toEqual(phoneTabList());
+
+			yield* openPhoneTab(tab);
+
+			yield* outcomes({
+				"the heading": [mainHeading(), heading],
+				"the tabs": [phoneTabs(), phoneTabList(href)],
+			});
+		},
+	);
+}
+
+for (const [name, href] of [
+	["Pull requests", "/_board/pull-requests"],
+	["Library", "/_board/library"],
+	["System", "/_board/system"],
+] as const) {
+	screenStory.it(
+		`opens ${name} from the phone's More sheet and closes the sheet`,
+		[phone, chromeScreen(todayFixture(), "/")],
+		function* ({ chooseInMore, currentPage, moreSheet, openMore }) {
+			yield* openMore();
+			expect(yield* moreSheet()).toEqual(expect.objectContaining({ destinations: ["Pull requests", "Library", "System"] }));
+
+			yield* chooseInMore(name);
+
+			yield* outcomes({
+				"More": [moreSheet(), "closed"],
+				"the page": [currentPage(), href],
+			});
+		},
+	);
+}
+
+screenStory.it(
+	"closes the phone's More sheet with its Close button",
+	[phone, chromeScreen(todayFixture(), "/")],
+	function* ({ closeMore, moreSheet, openMore }) {
+		yield* openMore();
+		expect(yield* moreSheet()).not.toBe("closed");
+
+		yield* closeMore();
+
+		expect(yield* moreSheet()).toBe("closed");
 	},
 );
 
 screenStory.it(
-	"opens pull requests, Library and System through More and closes the sheet on navigation or dismissal",
-	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(todayFixture(), "/")],
-	function* ({ click, control, findElement, findElements, location, roles }) {
-		for (const href of ["/_board/pull-requests", "/_board/library", "/_board/system"]) {
-			click(`${PHONE} button[aria-controls="phone-more"]`);
-			expect(findElement("#phone-more", document)).not.toBeNull();
-			expect(findElements('[aria-label="More destinations"] a', document).map((link) => roles.accessible(link).name)).toEqual([
-				"Pull requests",
-				"Library",
-				"System",
-			]);
-			click(`#phone-more a[href="${href}"]`);
-			yield* eventually(() => expect(location()?.pathname).toBe(href));
-			yield* eventually(() => expect(findElement("#phone-more", document)).toBeNull());
-		}
-		click(`${PHONE} button[aria-controls="phone-more"]`);
-		yield* roles.click({ name: "Close", role: "button" });
-		yield* eventually(() => expect(findElement("#phone-more", document)).toBeNull());
-		click("#sidebar-toggle");
-		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
-		click("#sidebar-backdrop");
-		expect(control("#sidebar", HTMLElement).hidden).toBe(true);
-		click("#settings-open");
-		expect(roles.text({ name: "Theme", role: "group" })).toContain("System");
-	},
-);
+	"opens Settings with its Theme choices on a phone",
+	[phone, chromeScreen(todayFixture(), "/")],
+	function* ({ appearanceChoices, openSettings, settingsPanel }) {
+		expect(yield* settingsPanel()).toBe("closed");
 
-const LIVE = "#live";
-screenStory.it(
-	"keeps the phone's live status region empty while nothing is wrong with the connection",
-	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen("connecting")],
-	function* ({ findElement, readAttribute, roles }) {
-		yield* eventually(() => expect(readAttribute(LIVE, "data-state")).toBe("connecting"));
-		expect(roles.accessible(findElement(LIVE) ?? document.body).role).toBe("status");
-		expect(findElement(LIVE)?.textContent).toBe("");
+		yield* openSettings();
+
+		yield* outcomes({
+			"Settings": [settingsPanel(), "open"],
+			"the pressed choices": [appearanceChoices(), expect.arrayContaining(["System"])],
+		});
 	},
 );
 
 screenStory.it(
-	"tells a phone reader when the connection is reconnecting or a refresh failed",
-	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen()],
-	function* ({ click, findElement, readText }) {
-		yield* eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Reconnecting…"));
-		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Reconnecting…");
-		expect(findElement(`${LIVE} svg`)).not.toBeNull();
-		click("[data-document]");
-		yield* eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Couldn't update this page"));
-		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Not updated");
+	"keeps the phone's live status empty while the connection is still connecting",
+	[phone, hostedHealthSettled("connecting")],
+	function* ({ liveIndicator }) {
+		expect(yield* liveIndicator()).toEqual({ announced: "", icon: "none", role: "status", shown: "", state: "connecting" });
 	},
 );
 
 screenStory.it(
-	"tells a phone reader that updates are paused",
-	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen("live", "paused")],
-	function* ({ readAttribute, readText }) {
-		yield* eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Updates paused · 0 pending"));
-		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Paused");
-		expect(readAttribute(LIVE, "data-state")).toBe("paused");
+	"tells a phone reader with an icon that the connection is reconnecting",
+	[phone, hostedHealthSettled()],
+	function* ({ liveIndicator }) {
+		expect(yield* liveIndicator()).toEqual({ announced: "Reconnecting…", icon: "shown", role: "status", shown: "Reconnecting…", state: "down" });
 	},
 );
+
+screenStory.it(
+	"tells a phone reader that the page couldn't update once the host's page fails to refresh",
+	[phone, hostedHealthSettled()],
+	function* ({ hostShowsUnreadableDocument, liveIndicator }) {
+		expect((yield* liveIndicator()).announced).toBe("Reconnecting…");
+
+		yield* hostShowsUnreadableDocument();
+
+		expect(yield* liveIndicator()).toEqual(expect.objectContaining({ announced: "Couldn't update this page", shown: "Not updated" }));
+	},
+);
+
+screenStory.it("tells a phone reader that updates are paused", [phone, hostedHealthSettled("live", "paused")], function* ({ liveIndicator }) {
+	expect(yield* liveIndicator()).toEqual({
+		announced: "Updates paused · 0 pending",
+		icon: "shown",
+		role: "status",
+		shown: "Paused",
+		state: "paused",
+	});
+});

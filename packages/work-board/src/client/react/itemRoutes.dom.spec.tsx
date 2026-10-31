@@ -1,10 +1,11 @@
-import { Effect } from "effect";
-import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
+// Markdown files at the item route's own path must never answer an item URL.
 const files = {
 	"_board/item/missing.md": "# Unidentified Markdown file\n",
 	"_board/item/source.md": "# Colliding Markdown file\n",
@@ -14,38 +15,38 @@ const files = {
 	"task.md": "---\nid: task.fixture\nkind: task\n---\n# Task details\n\nRead the evidence.\n",
 };
 const items = [
-	{ id: "task.fixture", selector: "[data-react-document] .item-introduction h1", text: "Task details" },
-	{ id: "home.fixture", selector: "[data-react-projection] .board-head h1", text: "Project board" },
-	{ id: "missing.fixture", selector: "main [role=status]", text: "No item has the ID missing.fixture" },
-	{ id: "standalone.md", selector: "[data-react-document] .item-introduction h1", text: "Standalone identity" },
-	{ id: "source.md", selector: "[data-react-document] .item-introduction h1", text: "Identified source" },
-	{ id: "missing.md", selector: "main [role=status]", text: "No item has the ID missing.md" },
+	{ id: "task.fixture", page: "Task details" },
+	{ id: "home.fixture", page: "Project board" },
+	{ id: "standalone.md", page: "Standalone identity" },
+	{ id: "source.md", page: "Identified source" },
+	{ id: "missing.fixture", page: "Item not found: No item has the ID missing.fixture. It may be missing, renamed, or invalid." },
+	{ id: "missing.md", page: "Item not found: No item has the ID missing.md. It may be missing, renamed, or invalid." },
 ];
-const routes = items.flatMap((item) =>
-	["", "/"].flatMap((slash) => ["direct", "navigation"].map((mode) => ({ ...item, mode, url: `/_board/item/${item.id}${slash}` }))),
-);
 
-for (const { id, mode, url, selector, text } of routes) {
-	screenStory.it(
-		`opens ${url} through ${mode}`,
-		[routedScreen(files, mode === "direct" ? url : "/task.md", { home: "home.md" })],
-		function* ({ readText, findElement, navigate, location }) {
-			if (mode === "navigation") {
-				yield* eventually(() => expect(readText(".item-introduction h1")).toBe("Task details"));
-				yield* Effect.promise(() => navigate(url));
-			}
-			yield* eventually(() => expect(readText(selector)).toContain(text));
-			expect(location()?.pathname).toBe(url);
-			expect(readText("main")).not.toContain("Project and report templates");
-			expect(readText("main")).not.toContain("Colliding Markdown file");
-			expect(readText("main")).not.toContain("Unidentified Markdown file");
-			if (id.endsWith(".md") && id !== "missing.md") {
-				expect(findElement<HTMLElement>("main")?.dataset.identity).toBe(id);
-			}
-			if (id === "task.fixture") {
-				expect(findElement<HTMLElement>("main")?.dataset.identity).toBe(id);
-				expect(readText("article.doc")).toContain("Read the evidence.");
-			}
-		},
-	);
+for (const { id, page } of items) {
+	for (const url of [`/_board/item/${id}`, `/_board/item/${id}/`]) {
+		screenStory.it(
+			`opening ${url} shows ${page.split(":")[0]} and keeps the address`,
+			[readingPage(files, url, { home: "home.md" })],
+			function* ({ address, shownPage }) {
+				yield* outcomes({
+					address: [address(), url],
+					page: [shownPage(), page],
+				});
+			},
+		);
+
+		screenStory.it(
+			`navigating from a task to ${url} shows ${page.split(":")[0]} and keeps the address`,
+			[readingPage(files, "/task.md", { home: "home.md" })],
+			function* ({ address, navigateTo, shownPage }) {
+				yield* navigateTo(url);
+
+				yield* outcomes({
+					address: [address(), url],
+					page: [shownPage(), page],
+				});
+			},
+		);
+	}
 }

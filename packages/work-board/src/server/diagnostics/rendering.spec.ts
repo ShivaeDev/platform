@@ -1,30 +1,55 @@
 import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { SourceFailure } from "#diagnostics/source.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { codexResponse, githubObservations, health, syntheticSources } from "#test/diagnostics.ts";
-import { daemonSnapshot, diagnosticsSources, readingTime } from "#test/readingTraits.ts";
+import { codexOnlySnapshot, daemonSnapshot, diagnosticsSources, readingTime } from "#test/readingTraits.ts";
+
+const allSources = [projectFiles({ "home.md": "# Home" }), diagnosticsSources(syntheticSources())];
+
+for (const [reader, host, status] of [
+	["a local reader", undefined, 200],
+	["a reader addressing the board as another host", "example.invalid", 403],
+] as const) {
+	boardStory.it(`System answers ${reader} with status ${status}`, allSources, function* ({ systemPageStatus }) {
+		expect(yield* systemPageStatus(host)).toBe(status);
+	});
+}
+
+boardStory.it("System shows the figures each provider reports", allSources, function* ({ githubResources, systemCardFacts, systemCardLimits }) {
+	yield* outcomes({
+		"codex limits": [systemCardLimits("codex"), { "5-hour limit": "24% used", "Weekly limit": "63% used" }],
+		"fleet facts": [
+			systemCardFacts("fleet"),
+			expect.objectContaining({
+				"Last provider capacity rejection": expect.stringContaining("Provider is at capacity"),
+				"Last scheduler pass": expect.any(String),
+				"Running / concurrency cap": "3 / 8",
+				"Waiting on automation": "1",
+				"Waiting on orchestrator": "3",
+			}),
+		],
+		"github resources": [
+			githubResources(),
+			{
+				core: expect.stringContaining("4321 of 5000 requests left"),
+				graphql: expect.stringContaining("0 of 5000 requests left"),
+				search: expect.stringContaining("5 of 30 requests left"),
+			},
+		],
+	});
+});
+
+boardStory.it("System labels the maintainer's count Needs you, never Waiting on you", allSources, function* ({ systemCardFacts, systemText }) {
+	yield* outcomes({
+		"fleet facts": [systemCardFacts("fleet"), expect.objectContaining({ "Needs you": expect.any(String) })],
+		"page text": [systemText(), expect.not.stringContaining("Waiting on you")],
+	});
+});
 
 boardStory.it(
-	"serves System and renders each provider through normal HTTP",
-	[projectFiles({ "home.md": "# Home" }), diagnosticsSources(syntheticSources())],
-	function* ({ getPage, systemHtml }) {
-		expect((yield* getPage("/_board/system")).status).toBe(HttpStatus.fromLiteral("OK"));
-		const body = yield* systemHtml();
-		for (const text of ["24% used", "63% used", "4321 of 5000", "0 of 5000", "3 / 8", "Provider is at capacity", "Last scheduler pass"]) {
-			expect(body).toContain(text);
-		}
-		expect(body).toContain("<dt>Needs you</dt>");
-		expect(body).not.toContain("Waiting on you");
-		expect(body).toContain("<dt>Waiting on orchestrator</dt><dd><strong>3</strong>");
-		expect(body).toContain("<dt>Waiting on automation</dt><dd><strong>1</strong>");
-		expect((yield* getPage("/_board/system", "example.invalid")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-	},
-);
-
-boardStory.it(
-	"source failures leave System usable and escape their causes",
+	"failed Codex and GitHub sources keep System usable, show their own state and print the cause as text",
 	[
 		diagnosticsSources(
 			syntheticSources({
@@ -33,12 +58,12 @@ boardStory.it(
 			}),
 		),
 	],
-	function* ({ systemHtml }) {
-		const body = yield* systemHtml();
-		expect(body).toContain("Not configured");
-		expect(body).toContain("Unavailable");
-		expect(body).toContain("&lt;script&gt;bad&lt;/script&gt;");
-		expect(body).toContain("3 / 8");
+	function* ({ systemCards, systemCardText }) {
+		yield* outcomes({
+			cards: [systemCards(), { codex: "not-configured", fleet: "attention", github: "error" }],
+			"codex card": [systemCardText("codex"), expect.stringContaining("Not configured")],
+			"github card": [systemCardText("github"), expect.stringMatching(/Unavailable.*<script>bad<\/script>/u)],
+		});
 	},
 );
 
@@ -57,127 +82,114 @@ const unobserved = {
 		value: [{ limit: 5000, limitedBy: null, limitedUntil: null, observedAt: now, remaining: 0, reset: 0, resource: "core", used: 5000 }],
 	},
 } as const;
+
 for (const [readAt, label] of [
 	[now, "Current snapshot"],
 	[now + 60_001, "Stale snapshot"],
 	[now - 1, "Publisher clock is ahead"],
 ] as const) {
 	boardStory.it(
-		`discloses ${label} without inventing missing observations`,
+		`a snapshot read ${readAt - now} milliseconds after it was observed is labelled ${label}`,
 		[readingTime(readAt), daemonSnapshot(() => unobserved)],
-		function* ({ systemHtml }) {
-			const body = yield* systemHtml();
-			expect(body).toContain(label);
-			for (const text of [
-				"None observed",
-				"<dt>Last scheduler pass</dt><dd>Not reported</dd>",
-				"<h3>Short limit</h3><p>Not reported</p>",
-				"<h3>Long limit</h3><p>Not reported</p>",
-				"Needs attention",
-			]) {
-				expect(body).toContain(text);
-			}
+		function* ({ systemText }) {
+			expect(yield* systemText()).toContain(label);
 		},
 	);
 }
 
 boardStory.it(
-	"shows each recorded GitHub resource with its own age and pause reason",
+	"observations a source leaves out read as not reported instead of invented values",
+	[readingTime(now), daemonSnapshot(() => unobserved)],
+	function* ({ systemCardFacts, systemCardLimits, systemCards, systemCardText }) {
+		yield* outcomes({
+			cards: [systemCards(), expect.objectContaining({ github: "attention" })],
+			"codex limits": [systemCardLimits("codex"), { "Long limit": "Not reported", "Short limit": "Not reported" }],
+			"fleet capacity rejection": [systemCardText("fleet"), expect.stringContaining("None observed")],
+			"fleet facts": [systemCardFacts("fleet"), expect.objectContaining({ "Last scheduler pass": "Not reported" })],
+		});
+	},
+);
+
+boardStory.it(
+	"System shows each GitHub resource Fleet recorded with its own age and the reason it is paused",
 	[
 		readingTime(now),
 		daemonSnapshot(() => ({ codex: missing, fleet: missing, github: { observedAt: now, state: "ready", value: githubObservations } })),
 	],
-	function* ({ systemHtml }) {
-		const html = yield* systemHtml();
-		const github = html.slice(html.indexOf('data-source="github"'), html.indexOf("</article>", html.indexOf('data-source="github"')));
-		expect(github).toContain('data-state="attention"');
-		const rest = github.slice(github.indexOf('data-resource="core"'), github.indexOf('data-resource="graphql"'));
-		expect(rest).toContain("<dt>REST API</dt>");
-		expect(rest).toContain("4321 of 5000</strong> requests left");
-		expect(rest).toContain(">1m ago</time>");
-		expect(rest).not.toContain("Resumes");
-		const graphql = github.slice(github.indexOf('data-resource="graphql"'), github.indexOf('data-resource="search"'));
-		expect(graphql).toContain("<dt>GraphQL API</dt>");
-		expect(graphql).toContain("0 of 5000");
-		expect(graphql).toContain("<strong>GitHub is blocking requests</strong>. Resumes");
-		expect(graphql).toContain(">5m ago</time>");
-		expect(graphql).toContain(">in 10m</time>");
-		const search = github.slice(github.indexOf('data-resource="search"'));
-		expect(search).toContain("<dt>Search API</dt>");
-		expect(search).toContain("5 of 30");
-		expect(search).toContain("<strong>Fleet paused to keep 20% in reserve</strong>. Resumes");
-		expect(search).not.toContain("GitHub is blocking requests");
-		expect(github).toContain("Fleet reads these limits from its own GitHub requests. The Board does not call GitHub.");
-		expect(github).toContain("GitHub request limits");
+	function* ({ githubResources, systemCards, systemCardText }) {
+		yield* outcomes({
+			cards: [systemCards(), expect.objectContaining({ github: "attention" })],
+			"github card": [
+				systemCardText("github"),
+				expect.stringMatching(/GitHub request limits.*Fleet reads these limits from its own GitHub requests\. The Board does not call GitHub\./u),
+			],
+			resources: [
+				githubResources(),
+				{
+					core: "REST API 4321 of 5000 requests left Resets just now Checked 1m ago",
+					graphql: "GraphQL API 0 of 5000 requests left GitHub is blocking requests. Resumes in 10m Resets just now Checked 5m ago",
+					search: "Search API 5 of 30 requests left Fleet paused to keep 20% in reserve. Resumes in 1m Resets in 1m Checked just now",
+				},
+			],
+		});
 	},
 );
 
 boardStory.it(
-	"uses Fleet's observation time instead of the Board read time for stale counts",
+	"Fleet counts observed two minutes before the read are stale and show Fleet's observation time, not the read time",
 	[
 		readingTime(now + 120_000),
 		daemonSnapshot(() => ({ codex: missing, fleet: { observedAt: now + 120_000, state: "ready", value: health }, github: missing })),
 	],
-	function* ({ systemHtml }) {
-		const html = yield* systemHtml();
-		const fleet = html.slice(html.indexOf('data-source="fleet"'));
-		expect(fleet).toContain('data-state="stale"');
-		expect(fleet).toContain(">Stale</span>");
-		expect(fleet).toContain(`dateTime="${new Date(now).toISOString()}">2m ago</time>`);
-		expect(fleet).not.toContain(new Date(now + 120_000).toISOString());
+	function* ({ systemCards, systemCardText, systemCardTimes }) {
+		yield* outcomes({
+			cards: [systemCards(), expect.objectContaining({ fleet: "stale" })],
+			"fleet card": [systemCardText("fleet"), expect.stringContaining("Stale")],
+			"fleet times": [
+				systemCardTimes("fleet"),
+				["2m ago at 2027-01-15T08:00:00.000Z", "2m ago at 2027-01-15T07:59:50.000Z", "2m ago at 2027-01-15T08:00:00.000Z"],
+			],
+		});
 	},
 );
 
 const resetNow = (codexResponse.rateLimits.primary.resetsAt - 3 * 3600) * 1000;
+
 boardStory.it(
-	"labels Codex windows by duration with local and relative resets",
-	[
-		readingTime(resetNow),
-		daemonSnapshot(() => ({ codex: { observedAt: resetNow, state: "ready", value: codexResponse.rateLimits }, fleet: missing, github: missing })),
-	],
-	function* ({ systemHtml }) {
-		const html = yield* systemHtml();
-		expect(html).toContain("<h3>5-hour limit</h3>");
-		expect(html).toContain("<h3>Weekly limit</h3>");
-		expect(html).toContain("Codex usage");
-		expect(html).toContain(`dateTime="${new Date(codexResponse.rateLimits.primary.resetsAt * 1000).toISOString()}">in 3h</time>`);
+	"Codex usage names each window by its length and shows when it resets, relative and exact",
+	[readingTime(resetNow), codexOnlySnapshot(resetNow, codexResponse.rateLimits)],
+	function* ({ systemCardLimits, systemCardTimes }) {
+		yield* outcomes({
+			limits: [systemCardLimits("codex"), { "5-hour limit": "24% used", "Weekly limit": "63% used" }],
+			times: [
+				systemCardTimes("codex"),
+				["in 3h at 2027-01-15T08:00:00.000Z", "in 1d at 2027-01-16T08:00:00.000Z", "just now at 2027-01-15T05:00:00.000Z"],
+			],
+		});
 	},
 );
+
 boardStory.it(
-	"says a Codex window's reset time is not reported when Codex leaves it out",
-	[
-		readingTime(resetNow),
-		daemonSnapshot(() => ({
-			codex: { observedAt: resetNow, state: "ready", value: { primary: { ...codexResponse.rateLimits.primary, resetsAt: null }, secondary: null } },
-			fleet: missing,
-			github: missing,
-		})),
-	],
-	function* ({ systemHtml }) {
-		expect(yield* systemHtml()).toContain("<p>Resets Not reported</p>");
+	"a Codex window without a reset time says its reset is not reported",
+	[readingTime(resetNow), codexOnlySnapshot(resetNow, { primary: { ...codexResponse.rateLimits.primary, resetsAt: null }, secondary: null })],
+	function* ({ systemCardText }) {
+		expect(yield* systemCardText("codex")).toContain("Resets Not reported");
 	},
 );
+
 for (const [minutes, label] of [
 	[30, "30-minute limit"],
 	[2880, "2-day limit"],
 	[null, "Short limit (length not reported)"],
 ] as const) {
 	boardStory.it(
-		`labels a ${label} Codex window`,
+		`a Codex window of ${minutes ?? "unreported"} minutes is called ${label}`,
 		[
 			readingTime(resetNow),
-			daemonSnapshot(() => ({
-				codex: {
-					observedAt: resetNow,
-					state: "ready",
-					value: { primary: { ...codexResponse.rateLimits.primary, windowDurationMins: minutes }, secondary: null },
-				},
-				fleet: missing,
-				github: missing,
-			})),
+			codexOnlySnapshot(resetNow, { primary: { ...codexResponse.rateLimits.primary, windowDurationMins: minutes }, secondary: null }),
 		],
-		function* ({ systemHtml }) {
-			expect(yield* systemHtml()).toContain(`<h3>${label}</h3>`);
+		function* ({ systemCardLimits }) {
+			expect(yield* systemCardLimits("codex")).toEqual({ [label]: "24% used", "Long limit": "Not reported" });
 		},
 	);
 }

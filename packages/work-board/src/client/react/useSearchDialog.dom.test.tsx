@@ -1,66 +1,44 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { selectionResetOnFocus } from "#test/browserMotion.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
-const QUERY = '#search-dialog [role="combobox"]';
-const RESULT = '#search-dialog [role="option"] p';
 
-const files = { "notes/plan.md": "# Plan\n\nShared phrase.\n" };
 screenStory.it(
-	"retains the search query and refreshed results after dismissal and reopening",
-	[chromeScreen(files)],
-	function* ({ click, input, control, keyboard, refreshQuery, editFile, findElement, roles }) {
-		click("#search-open");
-		input(QUERY, "Shared phrase");
-		yield* eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase."));
-		keyboard("Escape", { cancelable: true }, control(QUERY, HTMLInputElement));
-		yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
-		click("#search-open");
-		expect(control(QUERY, HTMLInputElement).value).toBe("Shared phrase");
-		yield* eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase."));
-		editFile("notes/plan.md", "# Plan\n\nShared phrase changed.\n");
-		yield* Effect.promise(() => refreshQuery("search", { query: "Shared phrase" }));
-		yield* eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed."));
-		yield* roles.click({ name: "Close", role: "button" });
-		yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
-		click("#search-open");
-		expect(control(QUERY, HTMLInputElement).value).toBe("Shared phrase");
-		yield* eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed."));
+	"reopening Search after Escape shows the same query and its results",
+	[chromeScreen({ "notes/plan.md": "# Plan\n\nShared phrase.\n" })],
+	function* ({ openSearch, pressInSearch, results, searchFor, searchQuery }) {
+		yield* openSearch();
+		yield* searchFor("Shared phrase");
+		yield* pressInSearch("Escape");
+
+		yield* openSearch();
+
+		yield* outcomes({
+			query: [searchQuery(), "Shared phrase"],
+			results: [results("snippet"), [{ snippet: "Shared phrase." }]],
+		});
 	},
 );
 
-for (const modifier of ["ctrlKey", "metaKey"] as const) {
-	screenStory.it(
-		`restores textarea focus and selection after ${modifier}+K and Escape`,
-		[
-			chromeScreen(
-				{
-					"question.md":
-						"---\nid: question.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\n---\n# A choice\n\nChoose a direction.\n",
-				},
-				"/question.md",
-				{ writable: true },
-			),
-			selectionResetOnFocus(),
-		],
-		function* ({ control, keyboard, findElement, readFocus, typeText, selectText, readTextSelection }) {
-			yield* eventually(() => expect(findElement("#response-form textarea")).not.toBeNull());
-			const textarea = control("#response-form textarea", HTMLTextAreaElement);
-			typeText(textarea, "Work in progress");
-			selectText(textarea, 4, 8, "backward");
-			keyboard("k", { cancelable: true, [modifier]: true }, textarea);
-			expect(findElement("#search-dialog", document)).not.toBeNull();
-			yield* eventually(() => expect(readFocus()).toBe(control(QUERY, HTMLInputElement)));
+const QUESTION = "---\nid: question.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\n---\n# A choice\n\nChoose a direction.\n";
 
-			keyboard("Escape", { cancelable: true }, control(QUERY, HTMLInputElement));
-			yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
-			yield* eventually(() => expect(readFocus()).toBe(textarea));
-			expect(textarea.value).toBe("Work in progress");
-			expect(readTextSelection("#response-form textarea")).toEqual([4, 8, "backward"]);
+for (const modifier of ["Ctrl", "Cmd"] as const) {
+	screenStory.it(
+		`Escape from Search opened with ${modifier}+K in an answer returns focus to the answer with its text and backward selection`,
+		[chromeScreen({ "question.md": QUESTION }, "/question.md", { writable: true }), selectionResetOnFocus()],
+		function* ({ focusedField, openSearchWithShortcut, pressInSearch, searchDialog, selectText, typeText }) {
+			yield* typeText("#response-form textarea", "Work in progress");
+			yield* selectText("#response-form textarea", 4, 8, "backward");
+			yield* openSearchWithShortcut(modifier);
+			expect(yield* searchDialog()).toBe("open");
+
+			yield* pressInSearch("Escape");
+
+			expect(yield* focusedField()).toEqual({ selection: [4, 8, "backward"], value: "Work in progress" });
 		},
 	);
 }

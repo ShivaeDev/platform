@@ -1,13 +1,17 @@
 import { expect } from "vitest";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 
-for (const approval of ["approved", '"approved"', "held", "manual"]) {
+for (const [approval, approved] of [
+	["approved", true],
+	['"approved"', true],
+	["held", false],
+	["manual", false],
+] as const) {
 	boardStory.it(
-		`projects the authored Fleet approval ${approval} through HTTP`,
+		`a task with fleet: ${approval} ${approved ? "is" : "is not"} approved for Fleet on Work`,
 		[projectFiles({ "task.md": `---\nid: task\nkind: task\nstatus: draft\nfleet: ${approval}\n---\n# Task` })],
-		function* ({ rpc }) {
-			const work = yield* rpc((client) => client("work-board.work", { url: "/_board/work" }));
-			expect(work.rows[0]?.fleetApproved).toBe(approval === "approved" || approval === '"approved"');
+		function* ({ workItem }) {
+			expect(yield* workItem("task")).toMatchObject({ fleetApproved: approved });
 		},
 	);
 }

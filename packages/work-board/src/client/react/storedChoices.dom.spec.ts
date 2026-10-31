@@ -1,5 +1,6 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { chromeFixture } from "#test/chromeFixture.ts";
 import { blockedStorage, screenHistory, screenSession, screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -7,8 +8,9 @@ import { chromeScreen } from "#test/screenTraits.ts";
 import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
+
 screenStory.it(
-	"ignores another workspace's preferences and invalid saved choices",
+	"saved appearance values the Board doesn't know fall back to the system theme, comfortable density and an open sidebar, and another workspace's dark theme is ignored",
 	[
 		screenWorkspace("stored-choices"),
 		storedScreenState({
@@ -17,32 +19,31 @@ screenStory.it(
 		}),
 		chromeScreen(chromeFixture()),
 	],
-	({ readRootAttribute, control }) => {
-		expect(readRootAttribute("data-theme")).toBe("system");
-		expect(readRootAttribute("data-density")).toBe("comfortable");
-		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
+	function* ({ shellPreferences }) {
+		expect(yield* shellPreferences()).toEqual({ density: "comfortable", sidebar: "open", theme: "system" });
 	},
 );
 
 screenStory.it(
-	"keeps appearance controls usable when storage is blocked",
+	"with browser storage blocked, choosing Dark still darkens the page and says the choice lasts for this page only",
 	[screenWorkspace("blocked-choices"), blockedStorage(), chromeScreen(chromeFixture())],
-	function* ({ click, readRootAttribute, readText, roles }) {
-		click("#settings-open");
-		yield* roles.click({ name: "Dark", role: "button" });
-		expect(readRootAttribute("data-scheme")).toBe("dark");
-		expect(readText("#preference-status", document)).toContain("this page only");
+	function* ({ chooseAppearance, openSettings, pageAppearance, preferenceNotice }) {
+		yield* openSettings();
+		expect(yield* pageAppearance()).toEqual(expect.objectContaining({ scheme: "light" }));
+
+		yield* chooseAppearance("Dark");
+
+		yield* outcomes({
+			notice: [preferenceNotice(), expect.stringContaining("this page only")],
+			scheme: [pageAppearance(), expect.objectContaining({ scheme: "dark" })],
+		});
 	},
 );
 
 screenStory.it(
-	"restores this workspace's library and tab reading while ignoring malformed and unrelated entries",
+	"the sidebar restores this workspace's valid pins, skipping a pin without a title and another workspace's pins",
 	[
 		screenWorkspace("stored-reading"),
-		screenHistory({ workBoard: { id: "restored" } }),
-		screenSession({
-			"work-board:reading:stored-reading": JSON.stringify({ restored: { details: [false, true], scroll: [0, 0], selection: null, sidebar: 0 } }),
-		}),
 		storedScreenState({
 			"work-board:library:stored-reading": JSON.stringify({
 				favorites: [{ file: "next.md", title: "Next" }, { file: "invalid.md" }],
@@ -50,21 +51,29 @@ screenStory.it(
 			}),
 			"work-board:library:stored-reading-other": JSON.stringify({ favorites: [{ file: "other.md", title: "Other" }] }),
 		}),
+		chromeScreen({ "next.md": "# Next", "notes/plan.md": "# Plan" }),
+	],
+	function* ({ sidebarLinks }) {
+		expect(yield* sidebarLinks("Pinned")).toEqual([{ href: "/next.md", title: "Next" }]);
+	},
+);
+
+screenStory.it(
+	"a page reopened in the same tab restores which of its details were open",
+	[
+		screenWorkspace("stored-reading"),
+		screenHistory({ workBoard: { id: "restored" } }),
+		screenSession({
+			"work-board:reading:stored-reading": JSON.stringify({ restored: { details: [false, true], scroll: [0, 0], selection: null, sidebar: 0 } }),
+		}),
 		chromeScreen({
-			"next.md": "# Next",
 			"notes/plan.md": "# Plan\n\n<details><summary>First</summary>One</details>\n\n<details><summary>Second</summary>Two</details>",
 		}),
 	],
-	function* ({ findElements, readText, findElement }) {
-		yield* eventually(() =>
-			expect(
-				findElements<HTMLDetailsElement>("#doc details")
-					.slice(0, 2)
-					.map((detail) => detail.open),
-			).toEqual([false, true]),
-		);
-		expect(readText('section[aria-label="Pinned"] a[href="/next.md"]')).toBe("Next");
-		expect(findElement('section[aria-label="Pinned"] a[href="/invalid.md"]')).toBeNull();
-		expect(findElement('section[aria-label="Pinned"] a[href="/other.md"]')).toBeNull();
+	function* ({ detailsBlock }) {
+		yield* outcomes({
+			First: [detailsBlock("First"), "closed"],
+			Second: [detailsBlock("Second"), "open"],
+		});
 	},
 );

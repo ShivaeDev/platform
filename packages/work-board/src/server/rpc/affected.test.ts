@@ -1,39 +1,40 @@
 import "#test/liveDeliveryBoundary.ts";
-import { Effect, PlatformError } from "effect";
 import { expect } from "vitest";
-import { boardFilesystem, boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { interruptedDelivery } from "#test/interruptedDelivery.ts";
+import { liveClientSubscribed } from "#test/liveTraits.ts";
+import { unreadableFile } from "#test/servingStoryTraits.ts";
 
-const graph = projectFiles({
-	"nested/home.md": "---\nid: home\nrelationships:\n - kind: informs\n   target: old\n---\n# Home",
-	"new.md": "---\nid: new\n---\n# New",
-	"old.md": "---\nid: old\n---\n# Old",
-	"other.md": "# Unrelated",
-});
 boardStory.it(
-	"invalidates former and current dependencies, home aliases and both stable identities",
-	[graph, boardHome("nested/home.md")],
-	function* ({ watchProject, editFile }) {
-		const events = yield* watchProject();
-		yield* events.next();
+	"a home file that renames its identity and switches its dependency names the home, both dependencies, their identities and the old identity, and nothing unrelated",
+	[
+		projectFiles({
+			"nested/home.md": "---\nid: home\nrelationships:\n - kind: informs\n   target: old\n---\n# Home",
+			"new.md": "---\nid: new\n---\n# New",
+			"old.md": "---\nid: old\n---\n# Old",
+			"other.md": "# Unrelated",
+		}),
+		boardHome("nested/home.md"),
+		liveClientSubscribed,
+	],
+	function* ({ changeNaming, editFile }) {
 		editFile("nested/home.md", "---\nid: renamed\nrelationships:\n - kind: informs\n   target: new\n---\n# Changed home");
-		const hint = yield* events.changed("nested/home.md");
-		expect(hint).toMatchObject({
-			_tag: "Changed",
-			keys: expect.arrayContaining([
-				{ _tag: "Bucket", collection: "work-board/index", field: "workspace", value: "local" },
-				{ _tag: "Item", collection: "work-board/documents", id: "" },
-				{ _tag: "Item", collection: "work-board/documents", id: "nested/home.md" },
-				{ _tag: "Item", collection: "work-board/documents", id: "old.md" },
-				{ _tag: "Item", collection: "work-board/documents", id: "new.md" },
-				{ _tag: "Item", collection: "work-board/identities", id: "home" },
-			]),
-		});
-		expect(JSON.stringify(hint)).not.toContain("other.md");
+
+		expect(yield* changeNaming("nested/home.md")).toEqual([
+			"document nested/home.md",
+			"document new.md",
+			"document old.md",
+			"home document",
+			"identity home",
+			"identity new",
+			"identity old",
+			"workspace index",
+		]);
 	},
 );
+
 boardStory.it(
-	"follows board membership, evidence, attention targets and Markdown links",
+	"an edited source names every board, task, result, attention request and note that depends on it",
 	[
 		projectFiles({
 			"board.md": "---\nid: board\nitems: [task]\n---\n# Board",
@@ -44,96 +45,85 @@ boardStory.it(
 			"source.md": "# Source",
 			"task.md": "---\nid: task\ncriteria:\n - id: done\n   text: Complete\n---\n# Task",
 		}),
+		liveClientSubscribed,
 	],
-	function* ({ watchProject, editFile }) {
-		const events = yield* watchProject();
-		yield* events.next();
+	function* ({ changeNaming, editFile }) {
 		editFile("source.md", "# Updated source");
-		const hint = yield* events.changed("source.md");
-		for (const file of ["board.md", "task.md", "result.md", "source.md", "request.md", "note.md"]) {
-			expect(hint).toMatchObject({ _tag: "Changed", keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: file }]) });
-		}
+
+		expect(yield* changeNaming("source.md")).toEqual(
+			expect.arrayContaining([
+				"document board.md",
+				"document note.md",
+				"document request.md",
+				"document result.md",
+				"document source.md",
+				"document task.md",
+			]),
+		);
 	},
 );
+
 boardStory.it(
-	"refreshes every conflicting identity when a duplicate arrives and leaves",
-	[projectFiles({ "first.md": "---\nid: same\n---\n# First" })],
-	function* ({ watchProject, editFile, removeFile }) {
-		const events = yield* watchProject();
-		yield* events.next();
+	"a file that duplicates an identity names that identity and the file that held it first",
+	[projectFiles({ "first.md": "---\nid: same\n---\n# First" }), liveClientSubscribed],
+	function* ({ editFile, nextChange }) {
 		editFile("duplicate.md", "---\nid: same\n---\n# Duplicate");
-		for (const removing of [false, true]) {
-			if (removing) {
-				removeFile("duplicate.md");
-			}
-			expect(yield* events.changed("duplicate.md")).toMatchObject({
-				_tag: "Changed",
-				keys: expect.arrayContaining([
-					{ _tag: "Item", collection: "work-board/identities", id: "same" },
-					{ _tag: "Item", collection: "work-board/documents", id: "first.md" },
-				]),
-			});
-		}
+
+		expect(yield* nextChange()).toEqual(expect.arrayContaining(["document first.md", "identity same"]));
 	},
 );
+
 boardStory.it(
-	"invalidates managed sources when receipts or malformed history change",
+	"removing a duplicate names the shared identity and the file that keeps it",
+	[projectFiles({ "duplicate.md": "---\nid: same\n---\n# Duplicate", "first.md": "---\nid: same\n---\n# First" }), liveClientSubscribed],
+	function* ({ changeNaming, removeFile }) {
+		removeFile("duplicate.md");
+
+		expect(yield* changeNaming("duplicate.md")).toEqual(expect.arrayContaining(["document first.md", "identity same"]));
+	},
+);
+
+const managedRequest = projectFiles({
+	"request.md":
+		"---\nid: request\nkind: question\nscope: task\nurgency: whenever\nattention:\n - id: review\n   kind: decision\n   managed: true\n   state: open\n   response_from: [maintainer]\n   reason: Review\n   unblocks: [request]\n---\n# Request",
+});
+
+for (const [kind, file, source] of [
 	[
-		projectFiles({
-			"request.md":
-				"---\nid: request\nkind: question\nscope: task\nurgency: whenever\nattention:\n - id: review\n   kind: decision\n   managed: true\n   state: open\n   response_from: [maintainer]\n   reason: Review\n   unblocks: [request]\n---\n# Request",
-		}),
+		"request receipt",
+		"receipt.md",
+		`---\nid: receipt\nkind: report\nrequest_receipt:\n question: request\n disposition: superseded\n recordedAt: 0\n reviewedRevision: ${"a".repeat(64)}\n---\n# Receipt`,
 	],
-	function* ({ watchProject, editFile }) {
-		const events = yield* watchProject();
-		yield* events.next();
-		for (const [file, source] of [
-			[
-				"receipt.md",
-				`---\nid: receipt\nkind: report\nrequest_receipt:\n question: request\n disposition: superseded\n recordedAt: 0\n reviewedRevision: ${"a".repeat(64)}\n---\n# Receipt`,
-			],
-			["responses/invalid.md", "---\nresponse: {}\n---\n# Invalid"],
-		]) {
-			if (!(file && source)) {
-				throw new Error("Missing source");
-			}
+	["malformed response", "responses/invalid.md", "---\nresponse: {}\n---\n# Invalid"],
+] as const) {
+	boardStory.it(
+		`a new ${kind} names the managed request it could answer`,
+		[managedRequest, liveClientSubscribed],
+		function* ({ editFile, nextChange }) {
 			editFile(file, source);
-			expect(yield* events.changed(file)).toMatchObject({
-				_tag: "Changed",
-				keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "request.md" }]),
-			});
-		}
-	},
-);
+
+			expect(yield* nextChange()).toEqual(expect.arrayContaining(["document request.md"]));
+		},
+	);
+}
 
 boardStory.it(
-	"reconciles fully when the workspace index is incomplete",
-	[
-		projectFiles({ "a.md": "# A", "b.md": "# B" }),
-		boardFilesystem((fs) => ({
-			...fs,
-			readFileString: (file, options) =>
-				file.endsWith("b.md")
-					? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
-					: fs.readFileString(file, options),
-		})),
-	],
-	function* ({ watchProject, editFile }) {
-		const events = yield* watchProject();
-		yield* events.next();
+	"an edit while one file cannot be read reaches a live client as a resync",
+	[projectFiles({ "a.md": "# A", "b.md": "# B" }), unreadableFile("b.md"), liveClientSubscribed],
+	function* ({ editFile, nextChange }) {
 		editFile("a.md", "# Changed A");
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+
+		expect(yield* nextChange()).toBe("resync");
 	},
 );
 
 boardStory.it(
-	"reconciles when an edit is observed outside the announced paths",
-	[projectFiles({ "note.md": "# Before" }), interruptedDelivery],
-	function* ({ watchProject, omitNextPath, editFile }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	"an edit the server observes outside the paths it announced reaches a live client as a resync",
+	[projectFiles({ "note.md": "# Before" }), interruptedDelivery, liveClientSubscribed],
+	function* ({ editFile, nextChange, omitNextPath }) {
 		omitNextPath("note.md");
 		editFile("note.md", "# Changed outside the announced paths");
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+
+		expect(yield* nextChange()).toBe("resync");
 	},
 );

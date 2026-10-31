@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { QueryPlainBoard } from "#test/QueryDocument.tsx";
 import { screenStory } from "#test/screenStory.ts";
 import { boardScreen } from "#test/screenTraits.ts";
@@ -7,14 +7,15 @@ import { boardScreen } from "#test/screenTraits.ts";
 expectNoReactWarnings();
 
 screenStory.it(
-	"heads a board embedded without a context panel with its title and column counts",
+	"a board embedded without a context panel is headed by its title and its open and closed column counts",
 	[
 		boardScreen({ "home.md": "# Release board\n\n## Open\n\n### Draft notes\n\n### Tag release\n\n## Closed\n\n### Plan\n" }, (api) => (
 			<QueryPlainBoard api={api} url="/home.md" />
 		)),
 	],
-	function* ({ readText }) {
-		yield* eventually(() => expect(readText(".board-head h1")).toBe("Release board"));
-		expect(readText(".board-head .counts")).toBe("2 open · 1 closed");
+	function* ({ boardHead, documentsShow }) {
+		yield* documentsShow(".board-head h1");
+
+		expect(yield* boardHead()).toEqual({ counts: "2 open · 1 closed", title: "Release board" });
 	},
 );

@@ -1,37 +1,44 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { liveForm } from "#test/answerTraits.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { sessionScreen } from "#test/sessionScreen.ts";
 
 expectNoReactWarnings();
-for (const kind of ["response", "handoff"] as const) {
-	screenStory.it(
-		`saves ${kind} through the replacement session after pageshow`,
-		[sessionScreen(kind)],
-		function* ({ input, click, submit, findElement, readText, readSession, restoreSession, readSessionFiles }) {
-			const first = readSession();
-			yield* eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull());
-			const field = kind === "response" ? '[name="body"]' : '[name="goal"]';
-			if (kind === "handoff") {
-				input('[name="recipient"]', "local-reviewer");
-			}
-			input(field, "Direction before replacement");
-			restoreSession();
-			expect(readSession()).not.toBe(first);
-			yield* eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false));
-			expect(findElement(field)).toHaveProperty("value", "Direction before replacement");
-			click(`#${kind}-preview`);
-			submit(`#${kind}-form`);
-			yield* eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/"));
-			if (kind === "response") {
-				expect(readText("#response-status")).toContain("not acceptance");
-			}
-			const records = readSessionFiles(kind === "response" ? "responses" : "handoffs");
-			expect(records).toEqual(
-				kind === "response"
-					? [expect.stringContaining("item: item.edge"), expect.stringContaining("Direction before replacement")]
-					: [expect.stringContaining("Direction before replacement")],
-			);
-		},
-	);
-}
+
+const DRAFT = "Direction before the page was restored";
+
+screenStory.it(
+	"after the browser restores the item page from its page cache, the answer draft is still there and Record answer saves it as an answer, not acceptance",
+	[liveForm("response")],
+	function* ({ answerBoxState, answerStatusLine, readSessionFiles, recordAnswer, restoreSession, writeAnswer }) {
+		yield* writeAnswer(DRAFT);
+		yield* restoreSession();
+		expect(yield* answerBoxState()).toEqual(expect.objectContaining({ text: DRAFT }));
+
+		yield* recordAnswer();
+
+		yield* outcomes({
+			saved: [readSessionFiles("responses"), [expect.stringContaining("item: item.edge"), expect.stringContaining(DRAFT)]],
+			status: [answerStatusLine(), expect.stringMatching(/Answer saved\..*not acceptance/su)],
+		});
+	},
+);
+
+screenStory.it(
+	"after the browser restores the handoff page from its page cache, the handoff draft is still there and Prepare handoff saves it",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, handoffField, handoffStatus, pressPrepareHandoff, readSessionFiles, restoreSession }) {
+		yield* fillHandoff("Agent name", "local-reviewer");
+		yield* fillHandoff("Goal", DRAFT);
+		yield* restoreSession();
+		expect(yield* handoffField("Goal")).toEqual(expect.objectContaining({ text: DRAFT }));
+
+		yield* pressPrepareHandoff();
+
+		yield* outcomes({
+			saved: [readSessionFiles("handoffs"), [expect.stringContaining(DRAFT)]],
+			status: [handoffStatus(), expect.stringContaining("Saved handoffs/")],
+		});
+	},
+);

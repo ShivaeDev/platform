@@ -1,7 +1,7 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { standingPolicyAnswered } from "#test/attentionLaneTraits.ts";
 import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
-import { waitFor } from "#test/live.ts";
 import {
 	STANDING_QUESTION_FILE,
 	STANDING_QUESTION_ID,
@@ -10,30 +10,71 @@ import {
 	standingQuestionFixture,
 } from "#test/standingQuestionFixture.ts";
 
+const standingPolicy = boardStory.traits(
+	projectFiles(standingQuestionFixture(), "a standing release policy asks the maintainer"),
+	responsesEnabled(),
+);
+const WAITING = [[STANDING_QUESTION_ID, STANDING_QUESTION_REASON]];
+
 boardStory.it(
-	"moves a recorded standing decision answer from needs-you to waiting on the agent and asks again after an edit",
-	[projectFiles(standingQuestionFixture()), responsesEnabled()],
-	function* ({ answerStandingQuestion, editFile, readNeedsYou, readToday, register, savedAnswer }) {
-		expect((yield* readToday()).you.map((row) => [row.id, row.reason])).toEqual([[STANDING_QUESTION_ID, STANDING_QUESTION_REASON]]);
-		expect((yield* readNeedsYou()).you.map((row) => [row.id, row.reason])).toEqual([[STANDING_QUESTION_ID, STANDING_QUESTION_REASON]]);
-		const saved = yield* answerStandingQuestion();
-		expect(savedAnswer().fields.id).toBe(saved.id);
-		expect(savedAnswer().fields.response).toMatchObject({
-			answers: [{ prompt: "release-policy", selected: ["reviewed"], text: "Include the release notes." }],
-			question: saved.response.question,
-			type: "answer",
+	"an unanswered standing decision waits on you in Today and in needs_you",
+	[standingPolicy],
+	function* ({ needsYouTool, todayNeedsYou }) {
+		yield* outcomes({
+			"needs_you tool": [needsYouTool(), WAITING],
+			today: [todayNeedsYou(), WAITING],
 		});
-		const today = yield* readToday();
-		expect([today.you, (yield* readNeedsYou()).you]).toEqual([[], []]);
-		expect(today.recent).toMatchObject([{ answer: { choice: "After review", response: saved.id, yours: true }, state: "waiting" }]);
-		editFile(STANDING_QUESTION_FILE, STANDING_QUESTION_SOURCE.replace("When should releases ship?", "When should security releases ship?"));
-		yield* Effect.promise(() =>
-			waitFor(() => Effect.runPromise(readToday()).then((inbox) => expect(inbox.you.map((row) => row.id)).toEqual([STANDING_QUESTION_ID]))),
-		);
-		const revised = yield* register(STANDING_QUESTION_ID, "policy");
-		expect(revised.question.reviewedRevision).not.toBe(saved.response.reviewedRevision);
-		expect((yield* readToday()).you.map((row) => [row.id, row.reason])).toEqual([[STANDING_QUESTION_ID, STANDING_QUESTION_REASON]]);
-		expect((yield* readNeedsYou()).you.map((row) => [row.id, row.reason])).toEqual([[STANDING_QUESTION_ID, STANDING_QUESTION_REASON]]);
-		expect((yield* readToday()).recent).toMatchObject([{ state: "changed" }]);
+	},
+);
+
+boardStory.it(
+	"answering the standing decision records the chosen option and note for its registered question",
+	[standingPolicy],
+	function* ({ answerStandingPolicy, savedAnswer }) {
+		const saved = yield* answerStandingPolicy();
+
+		expect(savedAnswer().fields).toMatchObject({
+			id: saved.id,
+			response: {
+				answers: [{ prompt: "release-policy", selected: ["reviewed"], text: "Include the release notes." }],
+				question: saved.response.question,
+				type: "answer",
+			},
+		});
+	},
+);
+
+boardStory.it(
+	"answering the standing decision moves it from Needs you to recent answers waiting on the agent",
+	[standingPolicy],
+	function* ({ answerStandingPolicy, needsYouTool, recentAnswers, todayNeedsYou }) {
+		expect(yield* todayNeedsYou()).toEqual(WAITING);
+
+		const saved = yield* answerStandingPolicy();
+
+		yield* outcomes({
+			"needs_you tool": [needsYouTool(), []],
+			recent: [
+				recentAnswers(),
+				[expect.objectContaining({ answer: expect.objectContaining({ choice: "After review", response: saved.id, yours: true }), state: "waiting" })],
+			],
+			today: [todayNeedsYou(), []],
+		});
+	},
+);
+
+boardStory.it(
+	"editing the answered standing decision asks it again in Today and needs_you and marks the answer changed",
+	[standingPolicy, standingPolicyAnswered],
+	function* ({ edited, needsYouTool, recentAnswers, todayNeedsYou }) {
+		expect(yield* recentAnswers()).toEqual([expect.objectContaining({ state: "waiting" })]);
+
+		yield* edited(STANDING_QUESTION_FILE, STANDING_QUESTION_SOURCE.replace("When should releases ship?", "When should security releases ship?"));
+
+		yield* outcomes({
+			"needs_you tool": [needsYouTool(), WAITING],
+			recent: [recentAnswers(), [expect.objectContaining({ state: "changed" })]],
+			today: [todayNeedsYou(), WAITING],
+		});
 	},
 );

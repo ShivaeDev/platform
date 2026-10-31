@@ -1,67 +1,80 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { emptyHostRouter } from "#test/emptyHostRouter.tsx";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
 const files = {
 	"home.md": "# Workspace\n\n## Plans",
 	"notes/deep/review.md": "# Review\n\nThe review page.",
 	"notes/design.md": "# Design\n\nThe design page.\n\n## Decisions\n",
 };
+
 screenStory.it(
-	"renders compact navigation and the selected document title",
+	"opens a nested document beside the shell's six destinations",
 	[routedScreen(files, "/notes/deep/review.md")],
-	function* ({ readText, findElement, count }) {
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Review"));
-		expect(findElement("#files")).toBeNull();
-		expect(count("#primary-navigation a")).toBe(6);
-		expect(findElement("header")).not.toBeNull();
+	function* ({ mainHeading, sidebarDestinations }) {
+		yield* outcomes({
+			"the destinations": [
+				sidebarDestinations(),
+				["Today", "Goals", "Now", "Pull requests", "Library", "System"].map((label) => expect.objectContaining({ label })),
+			],
+			"the heading": [mainHeading(), "Review"],
+		});
 	},
 );
+
 screenStory.it(
-	"changes the main area through the router while retaining the shell",
+	"swaps only the page when the router opens another document, keeping the header and main area",
 	[routedScreen(files, "/notes/design.md")],
-	function* ({ readText, findElement, navigate, location }) {
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Design"));
-		const header = findElement("header");
-		const host = findElement("main[data-react-document]");
-		yield* Effect.promise(() => navigate("/notes/deep/review.md"));
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Review"));
-		expect(findElement("header")).toBe(header);
-		expect(findElement("main[data-react-document]")).toBe(host);
-		expect(location()?.pathname).toBe("/notes/deep/review.md");
+	function* ({ currentPage, mainHeading, markShell, navigate, shellParts }) {
+		yield* markShell();
+		expect(yield* mainHeading()).toBe("Design");
+
+		yield* navigate("/notes/deep/review.md");
+
+		yield* outcomes({
+			"the heading": [mainHeading(), "Review"],
+			"the page": [currentPage(), "/notes/deep/review.md"],
+			"the shell": [shellParts(), { header: "kept", main: "kept", projection: "none" }],
+		});
 	},
 );
-screenStory.it(
-	"renders a document from its typed query with React context tools",
-	[routedScreen(files, "/notes/design.md")],
-	function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText("article.doc")).toContain("The design page."));
-		expect(findElement(".document-outline")).not.toBeNull();
-	},
-);
+
+screenStory.it("renders a document's text with its outline", [routedScreen(files, "/notes/design.md")], function* ({ pageOutline, pageText }) {
+	yield* outcomes({
+		"the outline": [pageOutline(), ["Design", "Decisions"]],
+		"the page": [pageText(), expect.stringContaining("The design page.")],
+	});
+});
+
 const QUESTION = "---\nid: question.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\n---\n# A choice\n\nChoose a direction.\n";
+
 screenStory.it(
-	"retains form text and focus when a hosted page query refreshes",
+	"keeps a drafted answer, its focus and its selection when the question page refreshes",
 	[routedScreen({ "home.md": "# Home", "question.md": QUESTION }, "/question.md", { home: "home.md", writable: true })],
-	function* ({ findElement, readText, readFocus, typeText, selectText, editFile, refreshDocument }) {
-		yield* eventually(() => expect(findElement("#response-form textarea")).not.toBeNull());
-		typeText("#response-form textarea", "Work in progress");
-		selectText("#response-form textarea", 4, 8, "backward");
-		editFile("question.md", `${QUESTION}\nMore context.\n`);
-		yield* Effect.promise(() => refreshDocument("/question.md"));
-		yield* eventually(() => expect(readText("#doc")).toContain("More context."));
-		const updated = findElement<HTMLTextAreaElement>("#response-form textarea");
-		expect(updated?.value).toBe("Work in progress");
-		expect(readFocus()).toBe(updated);
-		expect([updated?.selectionStart, updated?.selectionEnd, updated?.selectionDirection]).toEqual([4, 8, "backward"]);
+	function* ({ editFile, focusedField, pageText, refreshDocument, typeAnswerAndSelect }) {
+		yield* typeAnswerAndSelect("Work in progress", 4, 8, "backward");
+		yield* editFile("question.md", `${QUESTION}\nMore context.\n`);
+		expect(yield* pageText()).not.toContain("More context.");
+
+		yield* refreshDocument("/question.md");
+
+		yield* outcomes({
+			"the answer field": [focusedField(), { selection: [4, 8, "backward"], value: "Work in progress" }],
+			"the page": [pageText(), expect.stringContaining("More context.")],
+		});
 	},
 );
-screenStory.it("keeps the no-argument router available to a host", [emptyHostRouter(files)], function* ({ navigate, location, readText }) {
-	yield* Effect.promise(() => navigate("/notes/design.md"));
-	expect(location()?.pathname).toBe("/notes/design.md");
-	expect(readText()).toBe("");
+
+screenStory.it("lets a host use the Board router without Board context", [emptyHostRouter(files)], function* ({ currentPage, navigate, pageText }) {
+	yield* navigate("/notes/design.md");
+
+	yield* outcomes({
+		"the page": [currentPage(), "/notes/design.md"],
+		"the screen": [pageText(), ""],
+	});
 });

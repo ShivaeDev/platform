@@ -1,61 +1,31 @@
-import { renameSync } from "node:fs";
-import { join } from "node:path";
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
+import { questionRegistered, replyRecorded } from "#test/questionRecordTraits.ts";
 
-boardStory.it("rejects registration retries after the durable question file is moved", [aQuestionnaire()], function* ({ workspace }) {
-	const question = yield* Effect.promise(() => workspace.register());
-	renameSync(join(workspace.notes.root, `responses/${question.id}.md`), join(workspace.notes.root, "moved.md"));
-	yield* Effect.promise(() =>
-		expect.poll(async () => (await workspace.client.run(workspace.client.api.document.run({ url: "/moved.md" }))).metadata.id).toBe(question.id),
-	);
-	yield* Effect.promise(() =>
-		expect(workspace.register()).rejects.toMatchObject({
-			_tag: "Conflict",
-			message: "The registered identity moved or is duplicated. Read the existing record instead of retrying a write.",
-		}),
-	);
+const CLARIFY = { body: "Please clarify the intended outcome.", id: "response.edge", type: "clarify" } as const;
+
+boardStory.it(
+	"registering the question again after an outside editor moved its record is refused",
+	[aQuestionnaire(), questionRegistered()],
+	function* ({ outsideEditorMovesQuestionRecord, registerQuestion }) {
+		yield* outsideEditorMovesQuestionRecord("moved.md");
+
+		expect(yield* registerQuestion()).toBe(
+			"conflict: The registered identity moved or is duplicated. Read the existing record instead of retrying a write.",
+		);
+	},
+);
+
+boardStory.it("a reply cannot take the identity of a project item", [aQuestionnaire(), questionRegistered()], function* ({ recordReply }) {
+	expect(yield* recordReply({ ...CLARIFY, id: "investigation.choices" })).toBe("conflict: This response identity is already used.");
 });
 
-boardStory.it("rejects a new response identity already owned by an ordinary project item", [aQuestionnaire()], function* ({ workspace }) {
-	const question = yield* Effect.promise(() => workspace.register());
-	yield* Effect.promise(() =>
-		expect(
-			workspace.client.mutate(
-				workspace.client.responses.recordResponse.run({
-					author: "reviewer",
-					body: "Please clarify the intended outcome.",
-					id: "investigation.choices",
-					question: question.id,
-					type: "clarify",
-				}),
-			),
-		).rejects.toMatchObject({
-			_tag: "Conflict",
-			message: "This response identity is already used.",
-		}),
-	);
-});
+boardStory.it(
+	"recording a reply again after an outside editor moved its saved file is refused",
+	[aQuestionnaire(), questionRegistered(), replyRecorded(CLARIFY)],
+	function* ({ outsideEditorMoves, recordReply }) {
+		yield* outsideEditorMoves("responses/response.edge.md", "moved.md");
 
-boardStory.it("rejects response retries after the saved reply is moved by an external editor", [aQuestionnaire()], function* ({ workspace }) {
-	const question = yield* Effect.promise(() => workspace.register());
-	const input = {
-		author: "reviewer",
-		body: "Please clarify the intended outcome.",
-		id: "response.edge",
-		question: question.id,
-		type: "clarify" as const,
-	};
-	yield* Effect.promise(() => workspace.client.mutate(workspace.client.responses.recordResponse.run(input)));
-	renameSync(join(workspace.notes.root, "responses/response.edge.md"), join(workspace.notes.root, "moved.md"));
-	yield* Effect.promise(() =>
-		expect.poll(async () => (await workspace.client.run(workspace.client.api.document.run({ url: "/moved.md" }))).metadata.id).toBe("response.edge"),
-	);
-	yield* Effect.promise(() =>
-		expect(workspace.client.mutate(workspace.client.responses.recordResponse.run(input))).rejects.toMatchObject({
-			_tag: "Conflict",
-			message: "The saved response moved. Read its existing record instead of retrying a write.",
-		}),
-	);
-});
+		expect(yield* recordReply(CLARIFY)).toBe("conflict: The saved response moved. Read its existing record instead of retrying a write.");
+	},
+);

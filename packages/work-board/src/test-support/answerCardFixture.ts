@@ -99,3 +99,14 @@ The scale tests opened too many database connections.
 Write the design in your answer: how connections are shared and what a scale test should prove.
 `,
 };
+
+export function withDecision(files: Readonly<Record<string, string>>, change: (source: string) => string) {
+	return { ...files, [decisionFile]: change(files[decisionFile] ?? "") };
+}
+
+export function withGuideStatus(status: string) {
+	return {
+		...answerCardFixture,
+		"guide.md": answerCardFixture["guide.md"].replace("status: ready", `status: ${status}`),
+	};
+}

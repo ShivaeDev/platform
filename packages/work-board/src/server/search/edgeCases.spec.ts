@@ -1,23 +1,35 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { DUPLICATE_CRITERION_SOURCE } from "#test/coverageEdges.ts";
+import { fleetAcceptsEveryBrief } from "#test/workspaceBoardTraits.ts";
 
 boardStory.it(
-	"omits duplicated criterion identities instead of linking to an arbitrary claim",
-	[projectFiles({ "item.md": DUPLICATE_CRITERION_SOURCE })],
-	function* ({ search, readDocument }) {
-		expect((yield* search("criterion")).results.filter((entry) => entry.href.includes("#criterion-"))).toEqual([]);
-		expect((yield* readDocument("item.md")).diagnostics.some((problem) => problem.message.includes("Duplicate criterion"))).toBe(true);
+	"a duplicated criterion identity is reported on the item, and search links to neither claim",
+	[projectFiles({ "item.md": DUPLICATE_CRITERION_SOURCE }), fleetAcceptsEveryBrief],
+	function* ({ criterionLinks, documentDiagnostics }) {
+		yield* outcomes({
+			"criterion links in search": [criterionLinks("criterion"), []],
+			"item diagnostics": [
+				documentDiagnostics("item.md"),
+				[
+					expect.objectContaining({ line: 4, message: "Duplicate criterion ID duplicate." }),
+					expect.objectContaining({ line: 6, message: "Duplicate criterion ID duplicate." }),
+				],
+			],
+		});
 	},
 );
 
-const text = `${"Before ".repeat(30)}needle${" after".repeat(40)}`;
+const PASSAGE = `${"Before ".repeat(30)}needle${" after".repeat(40)}`;
+
 boardStory.it(
-	"discloses omitted ends of a matching passage without changing its destination",
-	[projectFiles({ "note.md": `# Context\n\n${text}\n` })],
-	function* ({ search }) {
-		const result = (yield* search("needle")).results[0];
-		expect(result?.snippet).toBe(`…${text.slice(text.indexOf("needle") - 50, text.indexOf("needle") + 130)}…`);
-		expect(result?.href).toBe("/note.md");
+	"a long matching passage shows ellipses for its omitted ends and still links to its note",
+	[projectFiles({ "note.md": `# Context\n\n${PASSAGE}\n` })],
+	function* ({ firstResult }) {
+		expect(yield* firstResult("needle")).toMatchObject({
+			href: "/note.md",
+			snippet: `…${PASSAGE.slice(PASSAGE.indexOf("needle") - 50, PASSAGE.indexOf("needle") + 130)}…`,
+		});
 	},
 );

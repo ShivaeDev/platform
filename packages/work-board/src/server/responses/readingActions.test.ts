@@ -1,18 +1,25 @@
 import { expect } from "vitest";
-import { boardStory, deferredServing, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 
 boardStory.it(
-	"omits response actions for an invalid template without turning it into a reading defect",
+	"a question that recommends one of its options offers answer actions",
+	[projectFiles({ "question.md": inboxQuestion }, "a question recommends one of its options"), responsesEnabled()],
+	function* ({ answerActions }) {
+		expect(yield* answerActions("question.md")).toEqual(["answer/answer", "/answer"]);
+	},
+);
+
+boardStory.it(
+	"a question that recommends an option it does not offer shows no answer actions",
 	[
-		deferredServing,
 		projectFiles(
 			{ "question.md": inboxQuestion.replace("recommended: Keep local files", "recommended: Missing") },
 			"a question recommends an absent option",
 		),
 		responsesEnabled(),
 	],
-	function* ({ readQuestionActions }) {
-		expect(yield* readQuestionActions("question.md")).toEqual(new Map());
+	function* ({ answerActions }) {
+		expect(yield* answerActions("question.md")).toEqual([]);
 	},
 );

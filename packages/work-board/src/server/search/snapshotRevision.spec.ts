@@ -1,14 +1,16 @@
-import { Order } from "effect";
-import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { aFileAddedDuringListing, indexedFiles, indexStory } from "#test/indexStory.ts";
 
 indexStory.it(
-	"does not cache an older listing under an advancing revision",
+	"a file added during the first listing makes that read current at the advanced revision, and the next read reuses it",
 	[indexedFiles({ "first.md": "---\nid: first\n---\n# First" }), aFileAddedDuringListing()],
-	function* ({ readIndex, readRevision }) {
-		const snapshot = yield* readIndex();
-		expect(snapshot.revision).toBe(yield* readRevision());
-		expect([...snapshot.model.ids.keys()].sort(Order.String)).toEqual(["added", "first"]);
-		expect(yield* readIndex()).toBe(snapshot);
+	function* ({ indexedIds, laterReadReuses, readerReadsIndex, revisionOfRead }) {
+		yield* readerReadsIndex();
+
+		yield* outcomes({
+			"indexed identities": [indexedIds(), ["added", "first"]],
+			"next read": [laterReadReuses(), "the same snapshot"],
+			"revision of the read": [revisionOfRead(), "current"],
+		});
 	},
 );

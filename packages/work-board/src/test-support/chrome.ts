@@ -1,16 +1,7 @@
-import { Effect } from "effect";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { renderRouter } from "./renderRouter.tsx";
 
 export async function chrome(files: Record<string, string>, url = "/notes/plan.md") {
 	const view = await renderRouter(files, url);
-	await Effect.runPromise(
-		eventually(() => {
-			if (view.container.querySelector("#doc")?.getAttribute("data-route") !== url) {
-				throw new Error(`The shell is still opening ${url}`);
-			}
-		}),
-	);
 	const api = view.router.options.context?.shell?.api;
 	if (!api) {
 		throw new Error("Missing shell API");

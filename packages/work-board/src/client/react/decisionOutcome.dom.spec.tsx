@@ -1,5 +1,6 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { questionId, responseMarkdown, revisionOf } from "#server/responses/records.ts";
 import { decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";
@@ -10,7 +11,8 @@ import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
-const OUTCOME = "article.doc > [data-decision-outcome]";
+const url = `/_board/item/${decisionId}/`;
+const TITLE = "Fleet decision: Publish the install guide";
 const AUTHORED = {
 	"home.md": "# Home",
 	"seven.md": `---\n${JSON.stringify({
@@ -48,76 +50,80 @@ const quietPacket = Object.fromEntries(
 );
 
 screenStory.it(
-	"leads a closed Fleet decision with the recorded choice, who made it and when, under a title naming the work",
-	[routedScreen(closedDecision(answeredDecisionFixture()), `/_board/item/${decisionId}/`, { home: "home.md" })],
-	function* ({ findElement, readText, readTitle }) {
-		yield* eventually(() => expect(findElement(OUTCOME)).not.toBeNull());
-		expect(findElement("article.doc")?.firstElementChild).toBe(findElement(OUTCOME));
-		expect(readText(`${OUTCOME} h2`)).toBe("Outcome");
-		expect(readText(`${OUTCOME} [data-outcome-answer] > p:first-child`)).toBe("Request changes");
-		expect(readText(`${OUTCOME} [data-outcome-answer] > p:last-child`)).toMatch(/^Answered by maintainer \S/u);
-		expect(findElement(`${OUTCOME} a[href='/responses/response.direction-retry.md']`)).not.toBeNull();
-		expect(findElement(`${OUTCOME} time[data-modified='2000']`)).not.toBeNull();
-		expect(readText(".item-introduction h1")).toBe("Fleet decision: Publish the install guide");
-		expect(readTitle()).toContain("Fleet decision: Publish the install guide");
-		expect(findElement("main[data-decision-packet]")).not.toBeNull();
+	"a closed Fleet decision leads its document with an Outcome naming the recorded choice, who chose it, when, and the answer file",
+	[routedScreen(closedDecision(answeredDecisionFixture()), url, { home: "home.md" })],
+	function* ({ decisionOutcome }) {
+		expect(yield* decisionOutcome()).toEqual({
+			answers: [{ at: 2000, by: "maintainer", choice: "Request changes", file: "/responses/response.direction-retry.md", notes: [] }],
+			heading: "Outcome",
+			leadsDocument: true,
+			message: "none",
+		});
 	},
 );
 
 screenStory.it(
-	"shows every author's current answer with its note when answers compete",
-	[routedScreen(competing, `/_board/item/${decisionId}/`, { home: "home.md" })],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() =>
-			expect(findElements(`${OUTCOME} [data-outcome-answer]`).map((answer) => answer.getAttribute("data-outcome-answer"))).toEqual([
-				"response.direction-retry",
-				"response.direction-release",
-			]),
+	"a closed Fleet decision is titled after the work it unblocks, on the page and in the browser title",
+	[routedScreen(closedDecision(answeredDecisionFixture()), url, { home: "home.md" })],
+	function* ({ itemHeading, readTitle }) {
+		yield* outcomes({
+			"browser title": [readTitle(), expect.stringContaining(TITLE)],
+			heading: [itemHeading(), TITLE],
+		});
+	},
+);
+
+screenStory.it(
+	"competing answers each show in the Outcome with their author's choice and note",
+	[routedScreen(competing, url, { home: "home.md" })],
+	function* ({ decisionOutcome }) {
+		expect(yield* decisionOutcome()).toEqual(
+			expect.objectContaining({
+				answers: [
+					expect.objectContaining({ by: "maintainer", choice: "Request changes", notes: [] }),
+					expect.objectContaining({ by: "orchestrator", choice: "Stop and hand back", notes: ["Hand it back before the release."] }),
+				],
+			}),
 		);
-		const release = findElement(`${OUTCOME} [data-outcome-answer='response.direction-release']`);
-		expect(readText("p:first-child", release)).toBe("Stop and hand back");
-		expect(readText("p:nth-child(2)", release)).toBe("Hand it back before the release.");
-		expect(readText("p:last-child", release)).toMatch(/^Answered by orchestrator \S/u);
-		expect(readText(`${OUTCOME} [data-outcome-answer='response.direction-retry'] > p:first-child`)).toBe("Request changes");
 	},
 );
 
 screenStory.it(
-	"says plainly that a closed decision has no recorded answer instead of showing an empty outcome",
+	"a decision closed without an answer says so plainly at the top of its document",
 	[routedScreen(AUTHORED, "/_board/item/decision.seven/", { home: "home.md" })],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement(OUTCOME)).not.toBeNull());
-		expect(findElement("article.doc")?.firstElementChild).toBe(findElement(OUTCOME));
-		expect(readText(`${OUTCOME} p`)).toBe("Closed with no answer recorded on the Board.");
-		expect(findElement(`${OUTCOME} [data-outcome-answer]`)).toBeNull();
-		expect(readText(".item-introduction h1")).toBe("Seven design questions");
-		expect(findElement("main[data-decision-packet]")).toBeNull();
+	function* ({ decisionOutcome }) {
+		expect(yield* decisionOutcome()).toEqual({
+			answers: [],
+			heading: "Outcome",
+			leadsDocument: true,
+			message: "Closed with no answer recorded on the Board.",
+		});
 	},
 );
 
 screenStory.it(
-	"shows no outcome while a decision still waits for its answer",
-	[routedScreen(unansweredDecision(), `/_board/item/${decisionId}/`, { home: "home.md" })],
-	function* ({ findElement }) {
-		yield* eventually(() => expect(findElement("article.doc")).not.toBeNull());
-		expect(findElement("[data-decision-outcome]")).toBeNull();
+	"a decision still waiting for its answer shows its answer card and no Outcome",
+	[routedScreen(unansweredDecision(), url, { home: "home.md" })],
+	function* ({ cardTitle, decisionOutcome }) {
+		yield* outcomes({
+			"answer card": [cardTitle(), "Answer: Publish the install guide"],
+			outcome: [decisionOutcome(), "none"],
+		});
 	},
 );
 
 screenStory.it(
-	"hides a Fleet packet's empty sections and keeps its fenced decision text as plain, wrappable text",
+	"a closed Fleet packet leaves out its empty sections",
 	[routedScreen(quietPacket, `/_board/item/${reviewedDecisionId}/`, { home: "tasks/upload.md" })],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElement(OUTCOME)).not.toBeNull());
-		expect(findElements("article.doc h2").map((heading) => heading.textContent)).toEqual([
-			"Outcome",
-			"Decision",
-			"Recommendation",
-			"Reviewed Board work",
-		]);
-		expect(readText(`${OUTCOME} p`)).toBe("Closed with no answer recorded on the Board.");
-		const fences = findElements("article.doc pre");
-		expect(fences.map((fence) => fence.textContent?.trim())).toEqual(["Reviewed PR is ready to merge", "Merge the reviewed PR"]);
-		expect(fences.every((fence) => fence.className === "" && fence.closest("main[data-decision-packet]") !== null)).toBe(true);
+	function* ({ documentSections }) {
+		expect(yield* documentSections()).toEqual(["Outcome", "Decision", "Recommendation", "Reviewed Board work"]);
+	},
+);
+
+screenStory.it(
+	"a Fleet packet shows its fenced decision and recommendation as plain wrapping text, not code",
+	[routedScreen(quietPacket, `/_board/item/${reviewedDecisionId}/`, { home: "tasks/upload.md" })],
+	function* ({ documentFences }) {
+		expect(yield* documentFences()).toEqual(["Reviewed PR is ready to merge (plain text)", "Merge the reviewed PR (plain text)"]);
 	},
 );

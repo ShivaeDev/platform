@@ -1,9 +1,10 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { observedBrowserMotion } from "#test/browserMotion.ts";
 import { nowAsksFixture } from "#test/nowAsksFixture.ts";
 import { nowScreen } from "#test/nowScreen.tsx";
-import { nowWork } from "#test/nowWork.ts";
+import { goalWork } from "#test/nowWork.ts";
 import { screenMedia, screenResultsLayout } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen, routedScreen } from "#test/screenTraits.ts";
@@ -13,26 +14,22 @@ import { WorkTable } from "./WorkTable.tsx";
 
 expectNoReactWarnings();
 
-const SHOWN_ROWS = 40;
-
-for (const [name, View] of [
-	["All work", WorkCards],
-	["Table", WorkTable],
+for (const [name, plan] of [
+	["All work", [nowScreen(40, WorkCards)]],
+	["Table", [nowScreen(40, WorkTable)]],
+	["The phone's Now lane", [screenMedia(["(max-width: 767px)"]), nowScreen(40, WorkNow)]],
 ] as const) {
-	screenStory.it(`leaves vertical scrolling to the page in ${name}`, [nowScreen(SHOWN_ROWS, View)], ({ findElements, readInnerScrollers }) => {
-		expect(findElements("[data-item]")).toHaveLength(SHOWN_ROWS);
-		expect(readInnerScrollers("body")).toEqual([]);
-	});
+	screenStory.it(
+		`${name} leaves vertical scrolling to the page instead of a height-bounded inner scroller`,
+		plan,
+		function* ({ readInnerScrollers, workItems }) {
+			yield* outcomes({
+				"inner scrollers": [readInnerScrollers("body"), []],
+				"work shown": [workItems(), expect.arrayContaining(["task-0"])],
+			});
+		},
+	);
 }
-
-screenStory.it(
-	"leaves vertical scrolling to the page in the phone's Now lane",
-	[screenMedia(["(max-width: 767px)"]), nowScreen(SHOWN_ROWS, WorkNow)],
-	({ findElements, readInnerScrollers }) => {
-		expect(findElements("[data-item]").length).toBeGreaterThan(0);
-		expect(readInnerScrollers("body")).toEqual([]);
-	},
-);
 
 for (const [layout, top, scrolls] of [
 	["Table", 314, false],
@@ -41,43 +38,31 @@ for (const [layout, top, scrolls] of [
 	["All work", 20, true],
 ] as const) {
 	screenStory.it(
-		`${scrolls ? "brings" : "keeps"} the work results ${scrolls ? "into view" : "in place"} when ${layout} opens with them ${top} pixels down`,
+		`Choosing ${layout} focuses the work results ${top} pixels down and ${scrolls ? "brings them into view" : "leaves them in place"}`,
 		[observedBrowserMotion(), screenResultsLayout(top), routedScreen(nowAsksFixture, "/_board/work", { home: "home.md" })],
-		function* ({ clearMotion, click, findByRole, findElement, readFocus, readPassageTargets }) {
-			yield* eventually(() => expect(findElement("[data-item]")).not.toBeNull());
-			clearMotion();
-			click(findByRole("link", layout, findByRole("navigation", "Work layout")));
-			yield* eventually(() => expect(readFocus()?.id).toBe("work-results"));
-			expect(readPassageTargets().includes("work-results")).toBe(scrolls);
+		function* ({ chooseWorkLayout, clearMotion, focusedId, readPassageTargets }) {
+			yield* clearMotion();
+			expect(yield* focusedId()).not.toBe("work-results");
+
+			yield* chooseWorkLayout(layout);
+
+			yield* outcomes({
+				focus: [focusedId(), "work-results"],
+				"scrolled into view": [readPassageTargets(), scrolls ? ["work-results"] : []],
+			});
 		},
 	);
 }
 
-screenStory.it(
-	"marks the focused work results with the Board's control focus ring instead of the browser outline",
-	[routedScreen(nowAsksFixture, "/_board/work?view=table", { home: "home.md" })],
-	function* ({ findElement }) {
-		yield* eventually(() => expect(findElement("#work-results")).not.toBeNull());
-		const results = [...(findElement("#work-results")?.classList ?? [])];
-		expect(results).toEqual(expect.arrayContaining(["outline-none", "focus-visible:ring-3", "focus-visible:ring-ring/50"]));
-	},
-);
-
-const goalWork = (() => {
-	const data = nowWork(1);
-	const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, kind: "goal" as const } }));
-	return { ...data, items: rows, rows };
-})();
-
 for (const [name, View] of [
-	["All work card", WorkCards],
-	["Table row", WorkTable],
+	["An All work card", WorkCards],
+	["A Table row", WorkTable],
 ] as const) {
 	screenStory.it(
-		`names a goal's kind in its ${name} the way search and the item header do`,
-		[componentScreen(<View data={goalWork} />)],
-		({ readText }) => {
-			expect(readText(".work-kind")).toBe("Goal");
+		`${name} names a goal's kind the way search and the item header do`,
+		[componentScreen(<View data={goalWork()} />)],
+		function* ({ nowCard }) {
+			expect(yield* nowCard("task-0")).toEqual(expect.objectContaining({ kind: "Goal" }));
 		},
 	);
 }

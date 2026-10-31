@@ -1,154 +1,112 @@
-import { renameSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { Effect, PlatformError } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { identityFixture } from "#test/identityFixture.ts";
-import { changesUntil, rpcSearch } from "#test/nativeRpc.ts";
+import { identityChangesAfterIndexing, unreadableFile } from "#test/servingStoryTraits.ts";
 
-const readingProject = [projectFiles(identityFixture()), boardHome("legacy.md")];
+const ITEM = "/_board/item/work.search/";
+const ITEM_FILE = "items/search & review.md";
+const workspace = [
+	projectFiles(identityFixture(), "a workspace holds item work.search in items/search & review.md, and a decision about it"),
+	boardHome("legacy.md"),
+];
+const renamedHeading = identityFixture()[ITEM_FILE]?.replace("# Search the workspace", "# Renamed heading") ?? "";
 
-boardStory.it("serves item URLs with either trailing-slash form and reports unknown IDs", readingProject, function* ({ get }) {
-	for (const slash of ["", "/"]) {
-		const item = yield* get(`/_board/item/work.search${slash}`);
-		expect(item.status).toBe(HttpStatus.fromLiteral("OK"));
-		const missing = yield* get(`/_board/item/missing${slash}`);
-		expect(missing.status).toBe(HttpStatus.fromLiteral("NotFound"));
-	}
-});
-
-boardStory.it(
-	"keeps identity URLs valid after heading edits and file renames and makes deletion explicit",
-	readingProject,
-	function* ({ notes, get, editFile, watchProject }) {
-		const events = yield* watchProject();
-		yield* events.next();
-		try {
-			expect((yield* get("/_board/item/work.search/")).status).toBe(HttpStatus.fromLiteral("OK"));
-			editFile(
-				"items/search & review.md",
-				identityFixture()["items/search & review.md"]?.replace("# Search the workspace", "# Renamed heading") ?? "",
-			);
-			yield* changesUntil(events, "items/search & review.md");
-			renameSync(join(notes.root, "items/search & review.md"), join(notes.root, "renamed.md"));
-			yield* changesUntil(events, "renamed.md");
-			const renamed = yield* get("/_board/item/work.search/");
-			expect(renamed.status).toBe(HttpStatus.fromLiteral("OK"));
-			rmSync(join(notes.root, "renamed.md"));
-			yield* changesUntil(events, "renamed.md");
-			const missing = yield* get("/_board/item/work.search/");
-			expect(missing.status).toBe(HttpStatus.fromLiteral("NotFound"));
-		} finally {
-			yield* events.close();
-		}
-	},
-);
-
-boardStory.it(
-	"returns a conflict for duplicate IDs and diagnoses references without choosing a source",
-	readingProject,
-	function* ({ get, editFile, watchProject }) {
-		const events = yield* watchProject();
-		yield* events.next();
-		try {
-			editFile("duplicate.md", "---\nid: work.search\n---\n# Another source");
-			yield* changesUntil(events, "duplicate.md");
-			const result = yield* get("/_board/item/work.search/");
-			expect(result.status).toBe(HttpStatus.fromLiteral("Conflict"));
-			expect((yield* get("/decision.md")).status).toBe(HttpStatus.fromLiteral("OK"));
-			expect((yield* get("/items/search%20%26%20review.md")).status).toBe(HttpStatus.fromLiteral("OK"));
-		} finally {
-			yield* events.close();
-		}
-	},
-);
-
-boardStory.it("indexes declared IDs/status/owner and criteria at exact source locations", readingProject, function* ({ board }) {
-	const body = yield* rpcSearch(board, "claude");
-	expect(body.results[0]?.href).toBe("/_board/item/work.search/");
-	expect(body.results[0]?.line).toBe(23);
-	const criteria = yield* rpcSearch(board, "Escape returns focus");
-	expect(criteria.results[0]?.href).toBe("/_board/item/work.search/");
-	expect(criteria.results.find((result) => result.href.endsWith("#criterion-keyboard"))?.line).toBe(8);
-	const prose = yield* rpcSearch(board, "Readable project prose");
-	expect(prose.results[0]).toMatchObject({ href: "/_board/item/work.search/", line: 25 });
-});
-
-boardStory.it("does not claim unique identity when part of the workspace cannot be read", readingProject, function* ({ board, start, get }) {
-	yield* board.stop();
-	board = yield* start({
-		home: "legacy.md",
-		wrap: (fs) => ({
-			...fs,
-			readFileString: (file, options) =>
-				file.endsWith("decision.md")
-					? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
-					: fs.readFileString(file, options),
-		}),
+for (const url of ["/_board/item/work.search", ITEM]) {
+	boardStory.it(`the item URL ${url} serves the item's page`, workspace, function* ({ statusOf }) {
+		expect(yield* statusOf(url)).toBe("OK");
 	});
-	const result = yield* get("/_board/item/work.search/");
-	expect(result.status).toBe(HttpStatus.fromLiteral("ServiceUnavailable"));
-	const normal = yield* get("/items/search%20%26%20review.md");
-	expect(normal.status).toBe(HttpStatus.fromLiteral("OK"));
+}
+
+for (const url of ["/_board/item/missing", "/_board/item/missing/"]) {
+	boardStory.it(`the item URL ${url}, naming an unknown ID, answers Not Found`, workspace, function* ({ statusOf }) {
+		expect(yield* statusOf(url)).toBe("Not Found");
+	});
+}
+
+boardStory.it("an item URL still serves its item after the item's heading is edited", workspace, function* ({ statusOf, writeWatched }) {
+	expect(yield* statusOf(ITEM)).toBe("OK");
+
+	yield* writeWatched(ITEM_FILE, renamedHeading);
+
+	expect(yield* statusOf(ITEM)).toBe("OK");
+});
+
+boardStory.it("an item URL reads the item from its new file after the file is renamed", workspace, function* ({ itemRead, renameWatched }) {
+	expect(yield* itemRead(ITEM)).toMatchObject({ file: ITEM_FILE });
+
+	yield* renameWatched(ITEM_FILE, "renamed.md");
+
+	expect(yield* itemRead(ITEM)).toMatchObject({ file: "renamed.md" });
+});
+
+boardStory.it("an item URL answers Not Found once the item's file is deleted", workspace, function* ({ removeWatched, statusOf }) {
+	expect(yield* statusOf(ITEM)).toBe("OK");
+
+	yield* removeWatched(ITEM_FILE);
+
+	expect(yield* statusOf(ITEM)).toBe("Not Found");
+});
+
+boardStory.it("an item URL answers Conflict once a second file declares the same ID", workspace, function* ({ statusOf, writeWatched }) {
+	expect(yield* statusOf(ITEM)).toBe("OK");
+
+	yield* writeWatched("duplicate.md", "---\nid: work.search\n---\n# Another source");
+
+	expect(yield* statusOf(ITEM)).toBe("Conflict");
 });
 
 boardStory.it(
-	"rebuilds identities from files after a server restart without stored index data",
-	readingProject,
-	function* ({ board, notes, start, get }) {
-		expect((yield* get("/_board/item/work.search/")).status).toBe(HttpStatus.fromLiteral("OK"));
-		yield* board.stop();
-		renameSync(join(notes.root, "items/search & review.md"), join(notes.root, "moved.md"));
-		board = yield* start({ home: "legacy.md" });
-		const result = yield* get("/_board/item/work.search/");
-		expect(result.status).toBe(HttpStatus.fromLiteral("OK"));
-	},
-);
-
-boardStory.it(
-	"selects .md identities over colliding Markdown paths with either trailing-slash form",
-	readingProject,
-	function* ({ get, editFile, watchProject }) {
-		const events = yield* watchProject();
-		yield* events.next();
-		try {
-			editFile("_board/item/source.md", "# A regular file under the route prefix");
-			yield* changesUntil(events, "_board/item/source.md");
-			editFile("named.md", "---\nid: source.md\n---\n# An explicitly identified item");
-			yield* changesUntil(events, "named.md");
-			for (const url of ["/_board/item/source.md", "/_board/item/source.md/", "/_board/item/source%2Emd"]) {
-				const item = yield* get(url);
-				expect(item.status).toBe(HttpStatus.fromLiteral("OK"));
-			}
-		} finally {
-			yield* events.close();
-		}
-	},
-);
-
-boardStory.it(
-	"does not retarget an item URL when its source identity changes between index and page reads",
-	readingProject,
-	function* ({ board, start, get }) {
-		yield* board.stop();
-		let reads = 0;
-		function selectedSource(file: string, source: string) {
-			if (!file.endsWith("search & review.md")) {
-				return source;
-			}
-			reads += 1;
-			return reads > 1 ? source.replace("id: work.search", "id: work.replacement") : source;
-		}
-		board = yield* start({
-			home: "legacy.md",
-			wrap: (fs) => ({
-				...fs,
-				readFileString: (file, options) => fs.readFileString(file, options).pipe(Effect.map((source) => selectedSource(file, source))),
-			}),
+	"while two files declare the same ID, both of them and the decision that references the ID still open",
+	[...workspace, projectFiles({ "duplicate.md": "---\nid: work.search\n---\n# Another source" }, "duplicate.md also declares work.search")],
+	function* ({ statusOf }) {
+		yield* outcomes({
+			"the decision": [statusOf("/decision.md"), "OK"],
+			"the duplicate": [statusOf("/duplicate.md"), "OK"],
+			"the item's file": [statusOf("/items/search%20%26%20review.md"), "OK"],
 		});
+	},
+);
 
-		const result = yield* get("/_board/item/work.search/");
-		expect(result.status).toBe(HttpStatus.fromLiteral("NotFound"));
+for (const [declared, query, hits] of [
+	["owner", "claude", ["/_board/item/work.search/ at line 23"]],
+	["criterion", "Escape returns focus", ["/_board/item/work.search/ at line 8", "/_board/item/work.search/#criterion-keyboard at line 8"]],
+	["prose", "Readable project prose", ["/_board/item/work.search/ at line 25"]],
+] as const) {
+	boardStory.it(`searching for the item's ${declared} finds it at the source line it is written on`, workspace, function* ({ searchHits }) {
+		expect(yield* searchHits(query)).toEqual(hits);
+	});
+}
+
+boardStory.it(
+	"while another workspace file cannot be read, an item URL answers Service Unavailable and the item's own file still opens",
+	[...workspace, unreadableFile("decision.md")],
+	function* ({ statusOf }) {
+		yield* outcomes({
+			"item file": [statusOf("/items/search%20%26%20review.md"), "OK"],
+			"item URL": [statusOf(ITEM), "Service Unavailable"],
+		});
+	},
+);
+
+boardStory.it(
+	"an item URL finds its file at the path it was moved to while the board was stopped",
+	workspace,
+	function* ({ itemRead, moveFile, start, stopBoards }) {
+		expect(yield* itemRead(ITEM)).toMatchObject({ file: ITEM_FILE });
+		yield* stopBoards();
+
+		moveFile(ITEM_FILE, "moved.md");
+		yield* start();
+
+		expect(yield* itemRead(ITEM)).toMatchObject({ file: "moved.md" });
+	},
+);
+
+boardStory.it(
+	"an item URL answers Not Found when its file declares another ID by the time the page reads it",
+	[...workspace, identityChangesAfterIndexing("search & review.md", "work.search", "work.replacement")],
+	function* ({ statusOf }) {
+		expect(yield* statusOf(ITEM)).toBe("Not Found");
 	},
 );

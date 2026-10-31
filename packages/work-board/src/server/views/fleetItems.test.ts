@@ -1,13 +1,10 @@
-import { relative, resolve } from "node:path";
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
-import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
 import { unlistableWorkspace } from "#test/readTraits.ts";
 import { nestedProject } from "#test/servingTraits.ts";
-import { fleetReports } from "#test/storyTraits.ts";
+import { fleetDaemon, rejectingFleetDaemon } from "#test/workspaceBoardTraits.ts";
 
 const item = {
 	attentionOwner: "maintainer" as const,
@@ -16,7 +13,7 @@ const item = {
 	stageEnteredAt: 100,
 	updatedAt: 200,
 };
-const data: FleetItems = {
+const reported: FleetItems = {
 	completed: [{ ...item, completedAt: 200, stage: "done", workId: "done" }],
 	items: [
 		{ ...item, workId: "one" },
@@ -30,72 +27,100 @@ const project = projectFiles({
 	"duplicate.md": "---\nid: duplicate\n---\n# Duplicate",
 	"one.md": "---\nid: one\nkind: task\nstatus: draft\n---\n# First task",
 });
-const missing = { cause: "Not configured for the story", observedAt: 0, state: "not-configured" as const };
-function snapshot() {
-	return { codex: missing, fleet: missing, github: missing };
-}
 
 boardStory.it(
-	"joins daemon items by unique ID and retains missing documents and recent completions",
+	"Fleet items join the document with their unique ID, and an item without one or with a duplicated ID keeps no document",
+	[project, fleetDaemon(reported)],
+	function* ({ fleetWork }) {
+		expect(yield* fleetWork()).toMatchObject({
+			completed: [expect.objectContaining({ completedAt: 200, document: expect.objectContaining({ file: "done.md", title: "Delivered task" }) })],
+			items: [
+				expect.objectContaining({
+					document: { file: "one.md", metadata: { id: "one", kind: "task", status: "draft" }, title: "First task" },
+					workId: "one",
+				}),
+				expect.objectContaining({ document: null, workId: "missing" }),
+				expect.objectContaining({ document: null, workId: "duplicate" }),
+			],
+			state: "ready",
+		});
+	},
+);
+
+boardStory.it(
+	"Fleet work follows the daemon when it finishes every item",
+	[project, fleetDaemon(reported)],
+	function* ({ fleetDaemonFinishesAll, fleetWork }) {
+		expect(yield* fleetWork()).toMatchObject({ items: expect.arrayContaining([expect.objectContaining({ workId: "one" })]), state: "ready" });
+
+		yield* fleetDaemonFinishesAll();
+
+		expect(yield* fleetWork()).toEqual({ completed: [], items: [], state: "ready" });
+	},
+);
+
+boardStory.it(
+	"once the Fleet daemon stops, Fleet work is unavailable with a start command while Work still lists the tasks",
+	[project, fleetDaemon(reported)],
+	function* ({ fleetDaemonStops, fleetStartCommand, fleetWork, workRowIds }) {
+		yield* fleetDaemonStops();
+
+		yield* outcomes({
+			"fleet work": [
+				fleetWork(),
+				expect.objectContaining({ authored: [], reason: "Fleet isn't running, so agent work and its health are unknown.", state: "unavailable" }),
+			],
+			"start command": [fleetStartCommand(), expect.stringMatching(/^npx @shivaedev\/work-fleet serve <parent>\/[^ ']+ --port <fleet port>$/u)],
+			"work rows": [workRowIds("/_board/work"), expect.arrayContaining(["one"])],
+		});
+	},
+);
+
+boardStory.it(
+	"the start command quotes a Board folder name with a space and an apostrophe",
+	[nestedProject("Team's notes"), fleetDaemon(reported)],
+	function* ({ fleetDaemonStops, fleetStartCommand }) {
+		yield* fleetDaemonStops();
+
+		expect(yield* fleetStartCommand()).toBe("npx @shivaedev/work-fleet serve '<parent>/Team'\\''s notes' --port <fleet port>");
+	},
+);
+
+boardStory.it(
+	"a Board without Fleet says Fleet isn't set up, in Fleet work and in diagnostics",
 	[project, deferredServing],
-	function* ({ start, rpc, story }) {
-		let current = data;
-		const daemon = yield* diagnosticsDaemon(snapshot, 0, () => current);
-		yield* start({ fleetPort: daemon.port });
-		const result = yield* rpc((client) => client("work-board.fleetItems", undefined));
-		expect(result.state).toBe("ready");
-		if (result.state !== "ready") {
-			throw new Error("Fleet items were unavailable");
-		}
-		expect(result.items[0]?.document).toEqual({ file: "one.md", metadata: { id: "one", kind: "task", status: "draft" }, title: "First task" });
-		expect(result.items[1]?.document).toBeNull();
-		expect(result.items[2]?.document).toBeNull();
-		expect(result.completed[0]).toMatchObject({ completedAt: 200, document: { file: "done.md", title: "Delivered task" } });
-		current = { completed: [], items: [] };
-		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({ completed: [], items: [], state: "ready" });
-		yield* daemon.stop();
-		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
+	function* ({ fleetSource, fleetWork, start }) {
+		yield* start({ fleetPort: null });
+
+		yield* outcomes({
+			"fleet source": [fleetSource(), expect.objectContaining({ cause: "Fleet isn't set up for this Board.", state: "not-configured" })],
+			"fleet work": [fleetWork(), { authored: [], reason: "Fleet isn't set up for this Board.", state: "unavailable" }],
+		});
+	},
+);
+
+boardStory.it(
+	"an unreadable index makes Fleet work unavailable instead of failing the page",
+	[project, fleetDaemon(reported), unlistableWorkspace()],
+	function* ({ fleetWork }) {
+		expect(yield* fleetWork()).toEqual({ reason: "Board documents could not be read for Fleet items", state: "unavailable" });
+	},
+);
+
+boardStory.it(
+	"a Fleet daemon that rejects the request makes Fleet work unavailable, naming its port",
+	[project, rejectingFleetDaemon("Fleet store unavailable")],
+	function* ({ fleetWork }) {
+		expect(yield* fleetWork()).toEqual({
 			authored: [],
-			reason: "Fleet isn't running, so agent work and its health are unknown.",
-			startCommand: `npx @shivaedev/work-fleet serve ${relative(resolve(), story.engine.notes.root)} --port ${daemon.port}`,
-			state: "unavailable",
-		});
-		expect((yield* rpc((client) => client("work-board.work", { url: "/_board/work" }))).items.length).toBeGreaterThan(0);
-	},
-);
-boardStory.it("keeps an unconfigured Fleet explicit over Board RPC", [project, deferredServing], function* ({ start, rpc }) {
-	yield* start({ fleetPort: null });
-	expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
-		authored: [],
-		reason: "Fleet isn't set up for this Board.",
-		state: "unavailable",
-	});
-	expect((yield* rpc((client) => client("work-board.diagnostics", undefined))).sources.fleet).toMatchObject({
-		cause: "Fleet isn't set up for this Board.",
-		state: "not-configured",
-	});
-});
-boardStory.it(
-	"reports an unreadable index as unavailable instead of a page error",
-	[project, fleetReports(data), unlistableWorkspace()],
-	function* ({ rpc }) {
-		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
-			reason: "Board documents could not be read for Fleet items",
+			reason: expect.stringMatching(/^Fleet on port \d+ didn't answer as expected, so agent work and its health are unknown\.$/u),
 			state: "unavailable",
 		});
 	},
 );
-boardStory.it("reports a Fleet service rejection as unavailable over Board HTTP RPC", [project, deferredServing], function* ({ start, rpc }) {
-	const daemon = yield* diagnosticsDaemon(snapshot, 0, Effect.fail(new ServiceUnavailable({ message: "Fleet store unavailable" })));
-	yield* start({ fleetPort: daemon.port });
-	expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
-		authored: [],
-		reason: `Fleet on port ${daemon.port} didn't answer as expected, so agent work and its health are unknown.`,
-		state: "unavailable",
-	});
-});
+
 boardStory.it(
-	"lists the tasks whose own files say they are in progress while Fleet is unavailable",
+	"without Fleet, Work lists the ready tasks as in progress from their own files",
 	[
 		projectFiles({
 			"active.md": "---\nid: task.active\nkind: task\nstatus: ready\nowner: codex\n---\n# Ready task",
@@ -109,9 +134,10 @@ boardStory.it(
 		}),
 		deferredServing,
 	],
-	function* ({ start, rpc }) {
+	function* ({ fleetWork, start }) {
 		yield* start({ fleetPort: null });
-		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
+
+		expect(yield* fleetWork()).toEqual({
 			authored: [
 				{ file: "active.md", status: "ready", title: "Ready task", workId: "task.active" },
 				{ file: "delivering.md", status: "ready", title: "Delivering task", workId: "task.delivering" },
@@ -119,20 +145,6 @@ boardStory.it(
 				{ file: "review.md", status: "ready", title: "Reviewed task", workId: "task.review" },
 			],
 			reason: "Fleet isn't set up for this Board.",
-			state: "unavailable",
-		});
-	},
-);
-boardStory.it(
-	"quotes a Board folder name with a space and an apostrophe in the Fleet start command",
-	[nestedProject("Team's notes"), deferredServing],
-	function* ({ start, rpc, story }) {
-		const daemon = yield* diagnosticsDaemon(snapshot, 0, () => data);
-		yield* start({ fleetPort: daemon.port });
-		yield* daemon.stop();
-		const quoted = `'${relative(resolve(), story.engine.notes.root).replace("Team's", "Team'\\''s")}'`;
-		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toMatchObject({
-			startCommand: `npx @shivaedev/work-fleet serve ${quoted} --port ${daemon.port}`,
 			state: "unavailable",
 		});
 	},

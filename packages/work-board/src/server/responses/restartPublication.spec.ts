@@ -1,46 +1,41 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardStory, deferredServing, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { boardStory, deferredServing } from "#test/boardStory.ts";
+import { aTaskAwaitingDirection } from "#test/publicationTraits.ts";
 
-const SOURCE =
-	"---\nid: task.choice\nkind: task\nattention:\n  - id: direction\n    kind: decision\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.choice]\n    reason: Choose a direction\n---\n# Direction\n";
+const BODY = "Use PostgreSQL.";
 
 for (const phase of ["temporary", "published"] as const) {
 	boardStory.it(
-		`SIGKILL during Board answer publication at ${phase} resumes one answer and the response follower sees no gap or duplicate`,
-		[deferredServing, projectFiles({ "task.md": SOURCE }), responsesEnabled()],
-		function* (board) {
-			const writer = yield* board.startPublicationWriter(phase);
-			const preview = yield* writer.preview();
-			const feed = yield* board.followResponses("1970-01-01T00:00:00.000Z");
-			const input = {
-				author: "maintainer",
-				body: "Use PostgreSQL.",
-				id: "response.restart",
-				item: "task.choice",
-				request: "direction",
-				revision: preview.reviewedRevision,
-				type: "answer" as const,
-			};
-			const saving = yield* writer.answer(input);
-			expect((yield* writer.next()).phase).toBe(phase);
+		`after a Board process is killed writing the ${phase} file of an answer, retrying it on a new Board records it once`,
+		[deferredServing, aTaskAwaitingDirection()],
+		function* ({ answerDirection, boardKilledWhilePublishing, directionHistory, start }) {
+			yield* boardKilledWhilePublishing(phase, BODY);
+			yield* start();
 
-			yield* writer.kill;
-			yield* saving.finished;
-			yield* board.start();
-			const saved = yield* Effect.promise(() => board.client.mutate(board.client.responses.answerQuestion.run(input)));
-			const retried = yield* Effect.promise(() => board.client.mutate(board.client.responses.answerQuestion.run(input)));
+			const saved = yield* answerDirection("response.restart", BODY);
 
-			expect(retried).toEqual(saved);
-			expect(saved).toMatchObject({ body: input.body, id: input.id });
-			expect(yield* feed.nextLine()).toBe("task.choice\tdirection\tresponse.restart\tUse PostgreSQL.");
-			yield* board.recordFeedResponse("task.choice", "direction", "response.next", "Keep the migration.");
-			expect(yield* feed.nextLine()).toBe("task.choice\tdirection\tresponse.next\tKeep the migration.");
-			const read = yield* Effect.promise(() => board.client.run(board.client.responses.responses.run({ question: preview.id })));
-			expect(read.responses.map(({ id, body }) => ({ body, id }))).toEqual([
-				{ body: "Use PostgreSQL.", id: "response.restart" },
-				{ body: "Keep the migration.", id: "response.next" },
-			]);
+			expect(saved).toMatchObject({ body: BODY, id: "response.restart" });
+			yield* outcomes({
+				history: [directionHistory(), [saved]],
+				"second retry": [answerDirection("response.restart", BODY), saved],
+			});
+		},
+	);
+
+	boardStory.it(
+		`the response feed shows an answer resumed after a Board process was killed writing its ${phase} file once, then the next answer`,
+		[deferredServing, aTaskAwaitingDirection()],
+		function* ({ answerDirection, boardKilledWhilePublishing, feedPrints, followAllResponses, start }) {
+			yield* followAllResponses();
+			yield* boardKilledWhilePublishing(phase, BODY);
+			yield* start();
+			yield* answerDirection("response.restart", BODY);
+			expect(yield* feedPrints()).toBe("task.choice\tdirection\tresponse.restart\tUse PostgreSQL.");
+
+			yield* answerDirection("response.next", "Keep the migration.");
+
+			expect(yield* feedPrints()).toBe("task.choice\tdirection\tresponse.next\tKeep the migration.");
 		},
 	);
 }

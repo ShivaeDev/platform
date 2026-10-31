@@ -1,106 +1,174 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { todayAnswerFixture, todayContextFixture } from "#test/todayRowsFixture.ts";
 
 expectNoReactWarnings();
 
-const SAVED = "#needs-you [role='status']";
-const NEEDS = { name: "Needs you", role: "list" };
-const COUNTS = ["#inbox-count", "#inbox-topbar-count", 'nav[aria-label="Phone navigation"] a[href="/"] [data-slot="badge"]'];
-const ANSWERED = 1;
+const READER = "Question for reader";
+const ANSWER = "Publish the guide on Monday.";
+const TODAY = routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true });
+const CONTEXT = routedScreen(todayContextFixture(), "/", { home: "home.md", writable: true });
 
 screenStory.it(
-	"confirms a saved Today answer and takes its row off Needs you before the Board refresh arrives",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ answerRefreshStarted, findElements, holdRefreshAfterAnswer, readFocus, readResponses, readText, releaseRefreshAfterAnswer, roles }) {
-		yield* eventually(() => expect(roles.text({ name: "Answer Question for reader", role: "button" })).toBe("Answer"));
-		const asked = findElements("#needs-you li").length;
-		expect(COUNTS.map((selector) => readText(selector))).toEqual(COUNTS.map(() => String(asked)));
-		holdRefreshAfterAnswer();
-		yield* roles.click({ name: "Answer Question for reader", role: "button" });
-		yield* roles.enter({ name: "Your answer", role: "textbox" }, "Publish the guide on Monday.");
-		yield* roles.click({ name: "Record answer", role: "button" });
-		yield* eventually(() => expect(answerRefreshStarted()).toBe(true));
-		yield* eventually(() => expect(readText(SAVED)).toBe("Answer saved"));
-		expect(findElements("[role='dialog']", document)).toEqual([]);
-		expect(roles.text(NEEDS)).not.toContain("Question for reader");
-		expect(readFocus()?.textContent).toBe("Needs you");
-		const left = String(asked - ANSWERED);
-		expect([String(findElements("#needs-you li").length), ...COUNTS.map((selector) => readText(selector))]).toEqual([left, left, left, left]);
-		yield* Effect.promise(releaseRefreshAfterAnswer);
-		yield* eventually(() => expect(roles.text({ name: "Answered", role: "list" })).toContain("Question for reader"));
-		expect(roles.text(NEEDS)).not.toContain("Question for reader");
-		expect(readFocus()?.textContent).toBe("Question for reader");
-		expect(COUNTS.map((selector) => readText(selector))).toEqual([left, left, left]);
-		const saved = yield* Effect.promise(() => readResponses("decision.reader", "direction"));
-		expect(saved.responses.map((entry) => entry.body)).toEqual(["Publish the guide on Monday."]);
+	"recording a Today answer closes it, says Answer saved, takes the question off Needs you and lowers every Needs you count by one before the Board refresh arrives",
+	[TODAY],
+	function* ({ answerOnToday, holdRefreshAfterAnswer, needsYou, needsYouNotice, recordOnToday, todayAnswer, todayCounts, writeOnToday }) {
+		const before = yield* todayCounts();
+		yield* answerOnToday(READER);
+		yield* writeOnToday(ANSWER);
+		yield* holdRefreshAfterAnswer();
+
+		yield* recordOnToday();
+
+		const left = String(before["Needs you"] - 1);
+		yield* outcomes({
+			counts: [todayCounts(), { header: left, "Needs you": before["Needs you"] - 1, phone: left, sidebar: left }],
+			"needs you": [needsYou(), expect.not.arrayContaining([READER])],
+			notice: [needsYouNotice(), "Answer saved"],
+			"Today answer": [todayAnswer(), "closed"],
+		});
 	},
 );
 
 screenStory.it(
-	"says Saving your answer while the save runs",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ holdWorkspace, readText, releaseWorkspace, roles }) {
-		yield* eventually(() => expect(roles.text({ name: "Answer Question for reader", role: "button" })).toBe("Answer"));
-		yield* roles.click({ name: "Answer Question for reader", role: "button" });
-		yield* roles.enter({ name: "Your answer", role: "textbox" }, "Publish the guide on Monday.");
-		holdWorkspace();
-		yield* roles.click({ name: "Record answer", role: "button" });
-		yield* eventually(() => expect(readText("[role='dialog'] [role='status']", document)).toBe("Saving your answer…"));
-		yield* Effect.promise(releaseWorkspace);
-		yield* eventually(() => expect(readText(SAVED)).toBe("Answer saved"));
+	"after a Today answer is saved, keyboard focus waits on Needs you until the Board refresh arrives",
+	[TODAY],
+	function* ({ answerOnToday, focusedControl, holdRefreshAfterAnswer, recordOnToday, writeOnToday }) {
+		yield* answerOnToday(READER);
+		yield* writeOnToday(ANSWER);
+		yield* holdRefreshAfterAnswer();
+
+		yield* recordOnToday();
+
+		expect(yield* focusedControl()).toEqual(expect.objectContaining({ name: "Needs you" }));
 	},
 );
 
 screenStory.it(
-	"turns off Today answers with a reason while the live connection is down",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ dropLiveConnection, findElements, readText, roles }) {
-		yield* eventually(() => expect(roles.text({ name: "Answer Pick a venue for the launch", role: "button" })).toBe("Answer"));
-		yield* Effect.promise(dropLiveConnection);
-		yield* roles.click({ name: "Answer Pick a venue for the launch", role: "button" });
-		yield* eventually(() =>
-			expect(readText("[role='dialog'] [role='status']", document)).toBe("Reconnecting to the Board. You can answer once it is back."),
+	"when the Board refresh arrives after a Today answer, the question shows under Answered with focus on it, and the counts stay lowered",
+	[TODAY],
+	function* ({
+		answerOnToday,
+		answeredRows,
+		focusedControl,
+		holdRefreshAfterAnswer,
+		needsYou,
+		recordOnToday,
+		releaseRefreshAfterAnswer,
+		todayCounts,
+		writeOnToday,
+	}) {
+		yield* answerOnToday(READER);
+		yield* writeOnToday(ANSWER);
+		yield* holdRefreshAfterAnswer();
+		yield* recordOnToday();
+		const saved = yield* todayCounts();
+
+		yield* releaseRefreshAfterAnswer();
+
+		yield* outcomes({
+			answered: [answeredRows(), expect.arrayContaining([[READER, expect.any(String)]])],
+			counts: [todayCounts(), saved],
+			focus: [focusedControl(), expect.objectContaining({ name: READER })],
+			"needs you": [needsYou(), expect.not.arrayContaining([READER])],
+		});
+	},
+);
+
+screenStory.it(
+	"a Today answer records exactly what the reader typed",
+	[TODAY],
+	function* ({ answerOnToday, recordOnToday, recordedAnswers, writeOnToday }) {
+		yield* answerOnToday(READER);
+		yield* writeOnToday(ANSWER);
+
+		yield* recordOnToday();
+
+		expect(yield* recordedAnswers("decision.reader", "direction")).toEqual([expect.objectContaining({ body: ANSWER })]);
+	},
+);
+
+screenStory.it(
+	"while a Today answer saves, it says Saving your answer…",
+	[TODAY],
+	function* ({ answerOnToday, holdWorkspace, recordOnToday, todayAnswer, writeOnToday }) {
+		yield* answerOnToday(READER);
+		yield* writeOnToday(ANSWER);
+		yield* holdWorkspace();
+
+		yield* recordOnToday();
+
+		expect(yield* todayAnswer()).toEqual(expect.objectContaining({ status: "Saving your answer…" }));
+	},
+);
+
+screenStory.it(
+	"while the live connection is down, a Today answer says it is reconnecting and its options can't be chosen",
+	[TODAY],
+	function* ({ answerOnToday, dropLiveConnection, todayAnswer, todayOptions }) {
+		yield* dropLiveConnection();
+
+		yield* answerOnToday("Pick a venue for the launch");
+
+		yield* outcomes({
+			options: [todayOptions(), ["Hall Choose hall. (disabled)", "Park Choose park. (disabled)"]],
+			status: [todayAnswer(), expect.objectContaining({ status: "Reconnecting to the Board. You can answer once it is back." })],
+		});
+	},
+);
+
+screenStory.it(
+	"a text question whose body lists options opens on Today labelled by its title, with those options collapsed",
+	[CONTEXT],
+	function* ({ answerOnToday, todayAnswerPanel }) {
+		yield* answerOnToday("Keep the startup workaround?");
+
+		expect(yield* todayAnswerPanel()).toEqual({
+			group: "Answer for Keep the startup workaround?",
+			order: ["answer box", "Options in the question (3) (collapsed)", "Read the full question"],
+			text: expect.not.stringContaining("Fix the environment"),
+		});
+	},
+);
+
+screenStory.it(
+	"expanding a text question's options on Today lists each option with its description and marks the recommended one",
+	[CONTEXT],
+	function* ({ answerOnToday, expandTodayContext, todayAnswerPanel }) {
+		yield* answerOnToday("Keep the startup workaround?");
+
+		yield* expandTodayContext();
+
+		expect(yield* todayAnswerPanel()).toEqual(
+			expect.objectContaining({
+				text: expect.stringMatching(
+					/A\. Keep the workaround\. · RecommendedClose the activation task as superseded\.B\. Fix the environment\.Publish a revision that activates on its own, then drop the workaround\.C\. Decide after the release\./su,
+				),
+			}),
 		);
-		const options = findElements("[role='dialog'] fieldset button:not([data-slot='collapsible-trigger'])", document);
-		expect(options.map((button) => roles.accessible(button).name)).toEqual(["Hall Choose hall.", "Park Choose park."]);
-		expect(options.map((button) => button.hasAttribute("disabled"))).toEqual([true, true]);
 	},
 );
 
 screenStory.it(
-	"shows the options and recommendation a text question lists in its body, labelled by its title",
-	[routedScreen(todayContextFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ findElement, roles }) {
-		const dialog = { name: "Answer Keep the startup workaround?", role: "dialog" };
-		yield* eventually(() => expect(roles.text({ name: "Answer Keep the startup workaround?", role: "button" })).toBe("Answer"));
-		yield* roles.click({ name: "Answer Keep the startup workaround?", role: "button" });
-		expect(roles.accessible("[role='dialog'] fieldset")).toEqual({ name: "Answer for Keep the startup workaround?", role: "group" });
-		const trigger = { name: "Options in the question (3)", role: "button" };
-		expect(findElement("[role='dialog'] [data-slot='collapsible-trigger']", document)?.getAttribute("aria-expanded")).toBe("false");
-		expect(roles.text(dialog)).not.toContain("Fix the environment");
-		yield* roles.click(trigger);
-		yield* eventually(() => expect(roles.text(dialog)).toContain("B. Fix the environment."));
-		expect(roles.text(dialog)).toContain("A. Keep the workaround. · Recommended");
-		expect(roles.text(dialog)).toContain("Publish a revision that activates on its own, then drop the workaround.");
-		expect(roles.text(dialog)).toContain("C. Decide after the release.");
-		expect(roles.text({ name: "Read the full question", role: "link" })).toBe("Read the full question");
-	},
-);
+	"an options question on Today offers its own choices and, expanded, only the body's recommendation",
+	[CONTEXT],
+	function* ({ answerOnToday, expandTodayContext, todayAnswerPanel, todayOptions }) {
+		yield* answerOnToday("Pick the launch day");
 
-screenStory.it(
-	"shows only the body's recommendation beside an options question's own choices",
-	[routedScreen(todayContextFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ roles }) {
-		const dialog = { name: "Answer Pick the launch day", role: "dialog" };
-		yield* eventually(() => expect(roles.text({ name: "Answer Pick the launch day", role: "button" })).toBe("Answer"));
-		yield* roles.click({ name: "Answer Pick the launch day", role: "button" });
-		yield* roles.click({ name: "Recommendation in the question", role: "button" });
-		yield* eventually(() => expect(roles.text(dialog)).toContain("Monday, so the team can watch it."));
-		expect(roles.text(dialog)).not.toContain("Options in the question");
-		expect(roles.text({ name: "Monday Choose monday.", role: "button" })).toContain("Choose monday.");
+		yield* expandTodayContext();
+
+		yield* outcomes({
+			options: [todayOptions(), expect.arrayContaining(["Monday Choose monday."])],
+			panel: [
+				todayAnswerPanel(),
+				expect.objectContaining({
+					order: expect.arrayContaining(["Recommendation in the question (expanded)"]),
+					text: expect.stringMatching(/^(?!.*Options in the question).*Monday, so the team can watch it\./su),
+				}),
+			],
+		});
 	},
 );

@@ -1,17 +1,16 @@
-import * as HttpStatus from "effect/http/HttpStatus";
-import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { sourceCheckout } from "#test/sourceCheckout.ts";
 
 boardStory.it(
-	"rebuilds a stale checkout bundle before serving the current browser source",
+	"started from a checkout with a stale browser bundle, the board rebuilds it and serves the current source",
 	[projectFiles({ "plan.md": "# Plan" }), sourceCheckout(), deferredServing],
-	function* ({ launchCommand, get }) {
-		const command = yield* launchCommand();
-		yield* command.listening();
-		const script = yield* get("/_board/react.js");
-		expect(script.status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(script.body).toContain("current-checkout-browser");
-		expect(script.body).not.toContain("staleBrowserBuild");
+	function* ({ commandAddress, commandStarts, scriptBuild }) {
+		yield* commandStarts();
+
+		yield* outcomes({
+			"the address": [commandAddress(), "a loopback address"],
+			"the build": [scriptBuild(), "the current checkout's build"],
+		});
 	},
 );

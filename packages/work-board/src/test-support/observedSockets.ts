@@ -2,10 +2,11 @@ import { NodeWS } from "@effect/platform-node/NodeSocket";
 import { Effect } from "effect";
 import { boardStory } from "#test/boardStory.ts";
 import type { SocketObservations } from "#test/socketVerbs.ts";
+import { Tally } from "#test/Tally.ts";
 
 export const observedSockets = boardStory.trait("project", "native client socket requests are observed", function* (engine) {
 	const Native = globalThis.WebSocket;
-	const observations: SocketObservations = { connections: [], requests: [] };
+	const observations: SocketObservations = { connections: [], requests: [], snapshots: new Tally() };
 	engine.sockets = observations;
 	Object.defineProperty(globalThis, "WebSocket", {
 		configurable: true,

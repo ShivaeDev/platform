@@ -1,6 +1,6 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";
 import { attentionFixture } from "#test/attentionFixture.ts";
@@ -9,118 +9,119 @@ import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen, openScreen, routedScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
+import { pageButton, pageLink } from "#test/shellExpectations.ts";
 import { todayFixture } from "#test/todayFixture.ts";
 
 expectNoReactWarnings();
 
-const PAGE_TITLE = "#doc [data-page-header] > h1";
+for (const { title, url } of [
+	{ title: "Goals", url: "/_board/goals" },
+	{ title: "Now", url: "/_board/work" },
+	{ title: "Library", url: "/_board/library" },
+	{ title: "System", url: "/_board/system" },
+	{ title: "First active goal", url: "/_board/item/project.alpha/" },
+	{ title: "Workspace notes", url: "/home.md" },
+]) {
+	screenStory.it(
+		`opens ${url} from Today under one page header titled ${title}`,
+		[chromeScreen(todayFixture(), "/")],
+		function* ({ navigate, pageAddress, pageHeaders }) {
+			expect(yield* pageHeaders()).toEqual(["Today"]);
 
-screenStory.it(
-	"opens every destination, an item and a document under the same page header",
-	[chromeScreen(todayFixture(), "/")],
-	function* ({ navigate, readAttribute, readText, findElements }) {
-		for (const [url, title] of [
-			["/", "Today"],
-			["/_board/goals", "Goals"],
-			["/_board/work", "Now"],
-			["/_board/library", "Library"],
-			["/_board/system", "System"],
-			["/_board/item/project.alpha/", "First active goal"],
-			["/home.md", "Workspace notes"],
-		] as const) {
-			yield* Effect.promise(() => navigate(url));
-			yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url));
-			yield* eventually(() => expect(readText(PAGE_TITLE)).toBe(title));
-			expect(findElements("#doc [data-page-header]").map((header) => readText("h1", header))).toEqual([title]);
-		}
-	},
-);
+			yield* navigate(url);
 
-const ACTION_CONTROLS = '#doc [data-slot="button"], #doc [data-slot="link-button"]';
+			yield* outcomes({
+				"the headers": [pageHeaders(), [title]],
+				"the page": [pageAddress(), url],
+			});
+		},
+	);
+}
 
-for (const { name, files, url, open, actions } of [
+for (const { actions, files, name, url } of [
 	{
 		actions: [
-			["button", "Pin"],
-			["link", "Prepare an agent handoff"],
-			["link", "Respond to this request"],
-			["link", "Reviewed item"],
+			pageButton("Pin"),
+			pageLink("Prepare an agent handoff", "/_board/handoff?item=request.search"),
+			pageLink("Respond to this request", "/_board/item/request.search/#answer-card-keyboard-review"),
+			pageLink("Reviewed item", "/_board/item/request.search/"),
 		],
 		files: attentionFixture(),
 		name: "a returned result",
-		open: '[role="tab"]:nth-child(2)',
 		url: "/attention/review.md",
 	},
 	{
 		actions: [
-			["button", "Pin"],
-			["button", "Change your answer"],
-			["button", "Clear selections"],
+			pageButton("Pin"),
+			pageButton("Change your answer"),
+			pageButton("Clear selections"),
+			pageLink("Open PR #395", "https://github.com/ShivaeDev/platform/pull/395"),
 		],
 		files: answeredDecisionFixture(),
 		name: "an answered decision",
-		open: "details[data-key='change-answer'] > summary",
 		url: `/_board/item/${decisionId}/`,
 	},
-] as const) {
+]) {
 	screenStory.it(
-		`shows the actions on ${name} as links that navigate and buttons that act in place`,
+		`shows the actions on ${name} as links to a page and buttons that act in place`,
 		[routedScreen(files, url, { writable: true })],
-		function* ({ accessible, click, findElement, findElements }) {
-			yield* eventually(() => expect(findElement(".item-summary")).not.toBeNull());
-			click(open);
-			const controls = findElements(ACTION_CONTROLS).map((element) => [accessible(element).role, element.textContent?.trim()]);
-			for (const action of actions) {
-				expect(controls).toContainEqual(action);
-			}
-			for (const element of findElements(ACTION_CONTROLS).filter((candidate) => accessible(candidate).role === "link")) {
-				expect(element.getAttribute("href")).toMatch(/^(?:\/|https:\/\/)/u);
-			}
+		function* ({ actionControls }) {
+			yield* outcomes({
+				"the links without a page": [
+					actionControls(),
+					expect.not.arrayContaining([pageLink(expect.any(String), expect.not.stringMatching(/^(?:\/|https:\/\/)/u))]),
+				],
+				"the named actions": [actionControls(), expect.arrayContaining(actions)],
+			});
 		},
 	);
 }
 
 screenStory.it(
-	"lands a hash link on the System section it names",
+	"scrolls a System hash link to the section it names",
 	[
 		observedBrowserMotion(),
 		screenFiles({ ...fleetWorkspace, "notes/extra.md": "---\nid: note.extra\nflavor: sweet\n---\n# Extra fields\n" }, { home: "home.md" }),
 		screenRoute("/_board/system#source-problems"),
 		openScreen(),
 	],
-	function* ({ findElement, readPassageTargets }) {
-		yield* eventually(() => expect(findElement("[data-source-problem]")).not.toBeNull());
-		yield* eventually(() => expect(readPassageTargets()).toContain("source-problems"));
+	function* ({ readPassageTargets }) {
+		expect(yield* readPassageTargets()).toContain("source-problems");
 	},
 );
 
 screenStory.it(
-	"offers the sidebar destinations and the Now, All work and Table switch as links",
+	"links each sidebar destination and the Now, All work and Table layouts to their pages, marking Now as current",
 	[chromeScreen(todayFixture(), "/_board/work")],
-	({ findByRole }) => {
-		const sidebar = findByRole("complementary", "Workspace navigation");
-		for (const [name, href] of [
-			[/^Today/u, "/"],
-			[/^Goals$/u, "/_board/goals"],
-			[/^Now/u, "/_board/work"],
-			[/^Library$/u, "/_board/library"],
-			[/^System$/u, "/_board/system"],
-		] as const) {
-			expect(findByRole("link", name, sidebar)?.getAttribute("href")).toBe(href);
-		}
-		const layouts = findByRole("navigation", "Work layout");
-		for (const name of ["Now", "All work", "Table"]) {
-			expect(findByRole("link", name, layouts)?.getAttribute("href")).toMatch(/^\/_board\/work\?/u);
-		}
-		expect(findByRole("link", "Now", layouts)?.getAttribute("aria-current")).toBe("page");
+	function* ({ destinationLinks, workLayoutLinks }) {
+		yield* outcomes({
+			"the destinations": [
+				destinationLinks(),
+				[
+					{ href: "/", label: "Today" },
+					{ href: "/_board/goals", label: "Goals" },
+					{ href: "/_board/work", label: "Now" },
+					{ href: "/_board/pull-requests", label: "Pull requests" },
+					{ href: "/_board/library", label: "Library" },
+					{ href: "/_board/system", label: "System" },
+				],
+			],
+			"the layouts": [
+				workLayoutLinks(),
+				[
+					{ current: "page", href: "/_board/work?view=now&sort=title#work-results", name: "Now" },
+					{ current: "no", href: "/_board/work?view=board&sort=title#work-results", name: "All work" },
+					{ current: "no", href: "/_board/work?view=table&sort=title#work-results", name: "Table" },
+				],
+			],
+		});
 	},
 );
 
 screenStory.it(
-	"offers an answer card's links as links to their pages",
+	"links an answer card's pull request to its page",
 	[routedScreen(readyDecisionFixture, "/guide.md", { home: "home.md" })],
-	function* ({ findByRole, findElement }) {
-		yield* eventually(() => expect(findElement(".answer-links")).not.toBeNull());
-		expect(findByRole("link", "Open PR #395")?.getAttribute("href")).toBe("https://github.com/ShivaeDev/platform/pull/395");
+	function* ({ linkTarget }) {
+		expect(yield* linkTarget("Open PR #395")).toBe("https://github.com/ShivaeDev/platform/pull/395");
 	},
 );

@@ -1,8 +1,9 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 
 boardStory.it(
-	"collects Markdown reference links as backlinks without code or section anchors",
+	"a Markdown reference link counts as a backlink, while links in code and section anchors do not",
 	[
 		projectFiles({
 			"evidence.md": "# Evidence",
@@ -11,16 +12,16 @@ boardStory.it(
 				"# Heading\n\n[Real link][record]\n\n[record]: ../evidence.md#heading-observation\n\n`[Fake](../fake.md)`\n\n```md\n[Also fake](../fake.md)\n```\n\n[Passage](#heading-one)\n",
 		}),
 	],
-	function* ({ readDocument }) {
-		expect((yield* readDocument("evidence.md")).reading?.backlinks).toEqual(
-			expect.arrayContaining([expect.objectContaining({ href: "/nested/note.md" })]),
-		);
-		expect((yield* readDocument("fake.md")).reading?.backlinks).toEqual([]);
+	function* ({ documentBacklinks }) {
+		yield* outcomes({
+			"backlinks of evidence.md": [documentBacklinks("evidence.md"), ["/nested/note.md"]],
+			"backlinks of fake.md": [documentBacklinks("fake.md"), []],
+		});
 	},
 );
 
 boardStory.it(
-	"deduplicates repeated home-board reference links",
+	"two cards on the home board using the same reference link give the target one backlink",
 	[
 		projectFiles({
 			"home.md": "# Home\n\n## To read\n\n### One\n\n[Record][record]\n\n### Two\n\n[Record][record]\n\n[record]: notes/evidence.md\n",
@@ -28,7 +29,7 @@ boardStory.it(
 		}),
 		boardHome("home.md"),
 	],
-	function* ({ readDocument }) {
-		expect((yield* readDocument("notes/evidence.md")).reading?.backlinks).toEqual([expect.objectContaining({ href: "/home.md" })]);
+	function* ({ documentBacklinks }) {
+		expect(yield* documentBacklinks("notes/evidence.md")).toEqual(["/home.md"]);
 	},
 );

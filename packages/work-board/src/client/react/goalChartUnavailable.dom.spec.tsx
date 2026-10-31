@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { goalChartChunkFails } from "#test/goalChartChunkFails.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
 import { screenChartLayout } from "#test/screenEnvironment.ts";
@@ -8,21 +8,20 @@ import { boardScreen } from "#test/screenTraits.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
 
 screenStory.it(
-	"says the goal chart could not load and keeps progress and criteria readable when its chunk fails",
+	"a goal page whose chart chunk fails says the chart could not load and keeps its progress and criteria readable",
 	[
 		goalChartChunkFails(),
 		screenChartLayout(),
 		boardScreen(goalPageFixture(), (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />),
 	],
-	function* ({ findElement, readAttribute, readText }) {
-		const progress = '[data-goal-section="progress"]';
-		yield* eventually(() =>
-			expect(readText(`${progress} [data-goal-chart-error]`)).toMatch(/^The chart could not be loaded: .+\. Reload the page to try again\.$/u),
-		);
-		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe(
-			"1 of 5 done, 1 done, 0 running, 2 blocked, 0 scheduled, 2 parked",
-		);
-		expect(findElement(`${progress} [data-slot="chart"]`)).toBeNull();
-		expect(readText("#criterion-first h3")).toBe("First criterion");
+	function* ({ criterionCard, goalChart, goalPageProgress }) {
+		yield* outcomes({
+			chart: [
+				goalChart(),
+				{ message: expect.stringMatching(/^The chart could not be loaded: .+\. Reload the page to try again\.$/u), state: "failed" },
+			],
+			"first criterion": [criterionCard("first"), expect.objectContaining({ title: "First criterion" })],
+			progress: [goalPageProgress(), expect.objectContaining({ spoken: "1 of 5 done, 1 done, 0 running, 2 blocked, 0 scheduled, 2 parked" })],
+		});
 	},
 );

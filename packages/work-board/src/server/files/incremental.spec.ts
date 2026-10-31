@@ -1,31 +1,50 @@
-import { Effect, Order } from "effect";
+import { Order } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fileWatcherStory, watchedFiles } from "#test/fileWatcherStory.ts";
 
-const paths = Array.from({ length: 300 }, (_, index) => `item-${index}.md`);
+const NOTES = Array.from({ length: 300 }, (_, index) => `item-${index}.md`);
+const watchedNotes = watchedFiles(Object.fromEntries(NOTES.map((path) => [path, "# Before"])));
+
 fileWatcherStory.it(
-	"coalesces over 256 writes and shares one index update between readers",
-	[watchedFiles(Object.fromEntries(paths.map((path) => [path, "# Before"])))],
-	function* ({ readIndex, clearReads, revision, writeFile, notify, nextChange, readPaths }) {
-		yield* readIndex();
-		clearReads();
-		const before = yield* revision();
-		for (const path of paths) {
-			writeFile(path, "# After");
+	"300 edited notes, each reported twice, are announced in one change naming every note and advance the revision once",
+	[watchedNotes],
+	function* ({ editorWrites, nextAnnouncedChange, revisionsAdvanced, watcherReports }) {
+		for (const path of NOTES) {
+			yield* editorWrites(path, "# After");
 		}
-		yield* notify(paths.flatMap((path) => [path, path]));
-		expect(yield* nextChange()).toMatchObject({ _tag: "Changed", paths: expect.arrayContaining(paths) });
-		expect(yield* revision()).toBe(before + 1);
-		const snapshots = yield* Effect.all([readIndex(), readIndex(), readIndex()], { concurrency: "unbounded" });
-		expect(readPaths().sort(Order.String)).toEqual([...paths].sort(Order.String));
-		expect(snapshots[0]).toBe(snapshots[1]);
-		expect(snapshots[1]).toBe(snapshots[2]);
-		expect(snapshots[0]?.documents.map((source) => source.parsed.body)).toEqual(paths.map(() => "# After"));
+
+		yield* watcherReports(NOTES.flatMap((path) => [path, path]));
+
+		yield* outcomes({
+			"announced change": [nextAnnouncedChange(), [...NOTES].sort(Order.String)],
+			"revisions advanced": [revisionsAdvanced(), 1],
+		});
 	},
 );
 
 fileWatcherStory.it(
-	"ignores socket preparation events without rescanning Markdown",
+	"three readers at once after 300 reported edits share one snapshot that read each note once and shows every edit",
+	[watchedNotes],
+	function* ({ distinctBodies, editorWrites, filesRead, nextAnnouncedChange, readersReadAtOnce, watcherReports }) {
+		for (const path of NOTES) {
+			yield* editorWrites(path, "# After");
+		}
+		yield* watcherReports(NOTES);
+		yield* nextAnnouncedChange();
+
+		const shared = yield* readersReadAtOnce(3);
+
+		expect(shared).toBe("one shared snapshot");
+		yield* outcomes({
+			"distinct bodies": [distinctBodies(), ["# After"]],
+			"files read": [filesRead(), [...NOTES].sort(Order.String)],
+		});
+	},
+);
+
+fileWatcherStory.it(
+	"reports from socket preparation folders announce only the note and rescan nothing",
 	[
 		watchedFiles({
 			".board.sock.starting/pending.md": "# Startup lock",
@@ -33,15 +52,15 @@ fileWatcherStory.it(
 			"note.md": "# Notes",
 		}),
 	],
-	function* ({ listedFiles, revision, notify, nextChange, story }) {
-		expect((yield* listedFiles()).map((file) => file.path)).toEqual(["note.md"]);
-		const scans = story.engine.scans;
-		const before = yield* revision();
-		yield* notify([".board.sock.starting", ".board.sock.starting/pending.md", ".sABC123", ".sABC123/pending.md", "note.md"]);
-		expect(yield* nextChange()).toMatchObject({ _tag: "Changed", paths: ["note.md"] });
-		expect(yield* revision()).toBe(before + 1);
-		yield* listedFiles();
-		expect(story.engine.scans).toBe(scans);
-		expect(story.engine.watchedPaths).toEqual([story.engine.notes.root]);
+	function* ({ listedPaths, nextAnnouncedChange, revisionsAdvanced, rootRescans, watcherReports }) {
+		expect(yield* listedPaths()).toEqual(["note.md"]);
+
+		yield* watcherReports([".board.sock.starting", ".board.sock.starting/pending.md", ".sABC123", ".sABC123/pending.md", "note.md"]);
+
+		yield* outcomes({
+			"announced change": [nextAnnouncedChange(), ["note.md"]],
+			"revisions advanced": [revisionsAdvanced(), 1],
+			"root rescans": [rootRescans(), 0],
+		});
 	},
 );

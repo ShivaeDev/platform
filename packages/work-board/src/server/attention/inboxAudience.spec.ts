@@ -1,92 +1,108 @@
 import { expect } from "vitest";
-import { boardStory, deferredServing } from "#test/boardStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { attentionSources, audienceQuestions, responderLabel } from "#test/attentionLaneTraits.ts";
+import { boardStory } from "#test/boardStory.ts";
 import { inboxAudienceFixture } from "#test/inboxAudienceFixture.ts";
-import { anInbox } from "#test/storyTraits.ts";
-import { inboxItems } from "./inbox.ts";
-import { attentionProjection } from "./projection.ts";
+
+const fixture = inboxAudienceFixture();
+const orchestrator = fixture["orchestrator.md"] ?? "";
+const reader = fixture["reader.md"] ?? "";
 
 boardStory.it(
-	"includes requests naming the maintainer among several responders and unaddressed questions",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const files = inboxAudienceFixture();
-		const snapshot = yield* readAttention({ ...files, "reader.md": files["reader.md"]?.replace("[maintainer]", "[orchestrator, maintainer]") ?? "" });
-		expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["decision.reader", "question.storage"]);
-	},
-);
-
-boardStory.it("uses the configured literal responder label", [deferredServing, anInbox()], function* ({ readAttention }) {
-	const snapshot = yield* readAttention(inboxAudienceFixture("Casey"));
-	expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["question.storage"]);
-	expect(inboxItems({ ...snapshot, maintainer: "Casey" }).map((item) => item.id)).toEqual(["decision.reader", "question.storage"]);
-	expect(inboxItems({ ...snapshot, maintainer: "casey" }).map((item) => item.id)).toEqual(["question.storage"]);
-});
-
-boardStory.it(
-	"does not reintroduce another responder's managed request through identity problems",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const files = inboxAudienceFixture();
-		const duplicate = yield* readAttention({ ...files, "duplicate.md": files["orchestrator.md"] ?? "" });
-		expect(inboxItems(duplicate).map((item) => item.id)).toEqual(["decision.reader", "question.storage"]);
-		const missing = yield* readAttention({ ...files, "orchestrator.md": files["orchestrator.md"]?.replace("id: decision.orchestrator\n", "") ?? "" });
-		expect(inboxItems(missing).map((item) => item.id)).toEqual(["decision.reader", "question.storage"]);
-		const readerDuplicate = yield* readAttention({ ...files, "duplicate.md": files["reader.md"] ?? "" });
-		expect(
-			attentionProjection(readerDuplicate)
-				.issues.filter((issue) => issue.message.includes("Duplicate"))
-				.map((issue) => issue.file)
-				.sort(),
-		).toEqual(["duplicate.md", "reader.md"]);
-		expect(inboxItems(readerDuplicate).filter((item) => item.id === "decision.reader")).toHaveLength(0);
+	"Needs you lists the question for the maintainer and the unaddressed question, not the orchestrator's question",
+	[audienceQuestions()],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["decision.reader", "question.storage"]);
 	},
 );
 
 boardStory.it(
-	"filters addressed authored questions before their generic waiting reason",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const files = Object.fromEntries(
-			Object.entries(inboxAudienceFixture()).map(([file, source]) => [file, source.replace("kind: question\n", "kind: question\n")]),
-		);
-		expect(inboxItems(yield* readAttention(files)).map((item) => item.id)).toEqual(["decision.reader", "question.storage"]);
+	"a question naming the maintainer among several responders waits in Needs you",
+	[
+		audienceQuestions(
+			{ "reader.md": reader.replace("[maintainer]", "[orchestrator, maintainer]") },
+			"the reader question asks the orchestrator and the maintainer",
+		),
+	],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["decision.reader", "question.storage"]);
 	},
 );
 
-boardStory.it("keeps unaddressed questions with no attention requests", [deferredServing, anInbox()], function* ({ readAttention }) {
-	const files = inboxAudienceFixture();
-	const source = files["unaddressed.md"]?.replace("status: ready", "status: ready\nattention: []") ?? "";
-	expect(inboxItems(yield* readAttention({ "question.md": source })).map((item) => item.id)).toEqual(["question.storage"]);
-});
-
-boardStory.it(
-	"does not reintroduce another responder's question through owner actions or needs-human status",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const files = inboxAudienceFixture();
-		for (const fields of ["owner: claude\nnext_action: Choose a direction", "status: ready"]) {
-			const source = files["orchestrator.md"]?.replace("kind: question\n", `kind: question\n${fields}\n`) ?? "";
-			expect(inboxItems(yield* readAttention({ ...files, "orchestrator.md": source })).map((item) => item.id)).toEqual([
-				"decision.reader",
-				"question.storage",
-			]);
-		}
-	},
-);
+for (const { label, needsYou } of [
+	{ label: "maintainer", needsYou: ["question.storage"] },
+	{ label: "Casey", needsYou: ["decision.reader", "question.storage"] },
+	{ label: "casey", needsYou: ["question.storage"] },
+]) {
+	boardStory.it(
+		`a board answering for ${label} lists a question for Casey in Needs you only when the label matches letter for letter`,
+		[attentionSources(inboxAudienceFixture("Casey"), "the reader question asks Casey"), responderLabel(label)],
+		function* ({ inboxLane }) {
+			expect(yield* inboxLane("you")).toEqual(needsYou);
+		},
+	);
+}
 
 boardStory.it(
-	"ignores another responder's closed requests when a person owns the next action",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const files = inboxAudienceFixture();
-		const source =
-			files["orchestrator.md"]
-				?.replace("kind: question\n", "kind: question\nowner: marvin\nnext_action: Choose a direction\n")
-				.replace("state: open", "state: closed") ?? "";
-		expect(inboxItems(yield* readAttention({ ...files, "orchestrator.md": source })).map((item) => item.id)).toEqual([
-			"decision.orchestrator",
-			"decision.reader",
-			"question.storage",
-		]);
+	"a duplicated identity on the orchestrator's question keeps it out of Needs you",
+	[audienceQuestions({ "duplicate.md": orchestrator }, "a second file copies the orchestrator's question")],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["decision.reader", "question.storage"]);
 	},
 );
+
+boardStory.it(
+	"the orchestrator's question without an identity stays out of Needs you",
+	[audienceQuestions({ "orchestrator.md": orchestrator.replace("id: decision.orchestrator\n", "") }, "the orchestrator's question has no identity")],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["decision.reader", "question.storage"]);
+	},
+);
+
+boardStory.it(
+	"a duplicated identity on the maintainer's question reports both files and withholds the question from Needs you",
+	[audienceQuestions({ "duplicate.md": reader }, "a second file copies the maintainer's question")],
+	function* ({ inboxLane, sourceProblems }) {
+		yield* outcomes({
+			"needs you": [inboxLane("you"), ["question.storage"]],
+			"source problems": [
+				sourceProblems(),
+				expect.arrayContaining([
+					{ file: "duplicate.md", message: expect.stringContaining("Duplicate") },
+					{ file: "reader.md", message: expect.stringContaining("Duplicate") },
+				]),
+			],
+		});
+	},
+);
+
+boardStory.it(
+	"an unaddressed question with an empty attention list waits in Needs you",
+	[
+		attentionSources(
+			{ "question.md": (fixture["unaddressed.md"] ?? "").replace("status: ready", "status: ready\nattention: []") },
+			"a question lists no attention requests",
+		),
+	],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["question.storage"]);
+	},
+);
+
+for (const { fields, change } of [
+	{ change: "a next action for claude", fields: "owner: claude\nnext_action: Choose a direction" },
+	{ change: "a needs-human status", fields: "status: ready" },
+]) {
+	boardStory.it(
+		`the orchestrator's question with ${change} stays out of Needs you`,
+		[
+			audienceQuestions(
+				{ "orchestrator.md": orchestrator.replace("kind: question\n", `kind: question\n${fields}\n`) },
+				`the orchestrator's question carries ${change}`,
+			),
+		],
+		function* ({ inboxLane }) {
+			expect(yield* inboxLane("you")).toEqual(["decision.reader", "question.storage"]);
+		},
+	);
+}

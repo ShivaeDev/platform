@@ -3,28 +3,39 @@ import { questionId, questionMarkdown, revisionOf } from "#server/responses/reco
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { decisionContext, questionPacket, questionPath } from "#test/responsePacket.ts";
 
+const NESTED_HEADER = '"id":"decision.fixture"';
+
 boardStory.it(
-	"reads a registered question's captured prose without exposing its nested header",
+	"a registered question serves its captured prose without the nested header its file still holds",
 	[projectFiles({ [questionPath]: questionPacket })],
-	function* ({ readDocument }) {
-		const content = yield* readDocument(questionPath);
-		expect(content.source).toContain("Read the evidence before choosing.");
-		expect(content.source).not.toContain('"id":"decision.fixture"');
+	function* ({ documentSourceText, savedFile }) {
+		expect(yield* savedFile(questionPath)).toContain(NESTED_HEADER);
+
+		const source = yield* documentSourceText(questionPath);
+
+		expect(source).toContain("Read the evidence before choosing.");
+		expect(source).not.toContain(NESTED_HEADER);
 	},
 );
+
 for (const [name, source] of [
-	["unregistered", `---\nid: question.authored\nkind: question\nscope: task\nurgency: whenever\n---\n${decisionContext}`],
-	["changed context", questionPacket.replace("Read the evidence", "Changed evidence")],
-	["damaged identity", questionPacket.replace("id: question.", "id: damaged.")],
+	["an unregistered question", `---\nid: question.authored\nkind: question\nscope: task\nurgency: whenever\n---\n${decisionContext}`],
+	["a question whose context changed after capture", questionPacket.replace("Read the evidence", "Changed evidence")],
+	["a question whose identity no longer matches its capture", questionPacket.replace("id: question.", "id: damaged.")],
 ] as const) {
-	boardStory.it(`keeps ${name} question bodies intact`, [projectFiles({ [questionPath]: source })], function* ({ readDocument }) {
-		expect((yield* readDocument(questionPath)).source).toContain('"id":"decision.fixture"');
-	});
+	boardStory.it(
+		`${name} serves its whole body, nested header included`,
+		[projectFiles({ [questionPath]: source })],
+		function* ({ documentSourceText }) {
+			expect(yield* documentSourceText(questionPath)).toContain(NESTED_HEADER);
+		},
+	);
 }
+
 const CONTEXT = "# Plain question\n\nBefore\n\n---\n\nAfter\n\n```yaml\n---\nattention: []\n---\n```\n";
-const revision = revisionOf(CONTEXT);
+
 boardStory.it(
-	"retains thematic breaks and code examples in captured prose",
+	"captured prose keeps its thematic breaks and code examples that look like front matter",
 	[
 		projectFiles({
 			[questionPath]: questionMarkdown({
@@ -36,13 +47,13 @@ boardStory.it(
 					reason: "Choose",
 					registeredAt: 0,
 					request: "direction",
-					reviewedRevision: revision,
+					reviewedRevision: revisionOf(CONTEXT),
 					source: "task.md",
 				},
 			}),
 		}),
 	],
-	function* ({ readDocument }) {
-		expect((yield* readDocument(questionPath)).source).toBe(CONTEXT);
+	function* ({ documentSourceText }) {
+		expect(yield* documentSourceText(questionPath)).toBe(CONTEXT);
 	},
 );

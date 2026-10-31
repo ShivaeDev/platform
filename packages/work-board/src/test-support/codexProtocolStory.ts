@@ -20,10 +20,18 @@ export const codexProtocolStory = storyKit({
 	name: "board provider cancellation",
 	stages: ["provider"],
 	verbs: ({ child }: { child: ChildProcessWithoutNullStreams }, story) => ({
-		cancelRead: () => {
-			story.tell("the host cancels a pending provider read at its deadline");
-			return codexRateLimits(() => child).pipe(Effect.timeout("50 millis"), Effect.result);
+		hostCancelsAtDeadline: () => {
+			story.tell("the host cancels a provider read that never answers at a 50 millisecond deadline");
+			return codexRateLimits(() => child).pipe(
+				Effect.timeout("50 millis"),
+				Effect.as("answered"),
+				Effect.catch(() => Effect.succeed("cancelled")),
+			);
 		},
-		childKilled: () => child.killed,
+		providerProcess: () =>
+			Effect.sync(() => {
+				story.tell("the reader checks the provider's child process");
+				return child.killed ? "killed" : "running";
+			}),
 	}),
 });

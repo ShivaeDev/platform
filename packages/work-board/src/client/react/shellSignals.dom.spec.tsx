@@ -1,63 +1,104 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen, routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
-for (const panel of ["Sidebar", "More"]) {
-	screenStory.it(
-		`dismisses ${panel} when its current destination is selected without a router transition`,
-		[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen({ "home.md": "# Home" }, "/_board/library")],
-		function* ({ click, control, findElement, location }) {
-			const previousLocation = location();
-			if (panel === "Sidebar") {
-				click("#sidebar-toggle");
-				expect(control("#sidebar", HTMLElement).hidden).toBe(false);
-				click("#sidebar #documents-open");
-				yield* eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
-			} else {
-				click('[aria-controls="phone-more"]');
-				expect(findElement("#phone-more", document)).not.toBeNull();
-				click('#phone-more a[href="/_board/library"]');
-				yield* eventually(() => expect(findElement("#phone-more", document)).toBeNull());
-			}
-			expect(location()).toBe(previousLocation);
-		},
-	);
-}
+const phone = screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]);
+const libraryShell = [phone, chromeScreen({ "home.md": "# Home" }, "/_board/library")];
 
-const files = { "home.md": "# Home", "notes/plan.md": "# Plan", "other.md": "# Other" };
 screenStory.it(
-	"closes the sidebar and More on direct router navigation and retains the new recent title",
-	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen(files)],
-	function* ({ click, control, findElement, navigate, readText, editFile, refreshDocument, readTitle }) {
-		click("#sidebar-toggle");
-		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
-		yield* Effect.promise(() => navigate("/other.md"));
-		yield* eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
-		click('[aria-controls="phone-more"]');
-		expect(findElement("#phone-more", document)).not.toBeNull();
-		yield* Effect.promise(() => navigate("/notes/plan.md"));
-		yield* eventually(() => expect(findElement("#phone-more", document)).toBeNull());
-		editFile("notes/plan.md", "# Revised plan");
-		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-		yield* eventually(() => expect(readTitle()).toBe("Revised plan · Work Board"));
-		yield* Effect.promise(() => navigate("/other.md"));
-		yield* eventually(() => expect(readText('section[aria-label="Recent"] a[href="/notes/plan.md"]')).toBe("Revised plan"));
+	"closes the phone sidebar without a new history entry when the reader picks Library while already there",
+	libraryShell,
+	function* ({ historyEntry, openSidebarDestination, sidebarPanel, toggleSidebar }) {
+		const entry = yield* historyEntry();
+		yield* toggleSidebar();
+		expect((yield* sidebarPanel()).shown).toBe(true);
+
+		yield* openSidebarDestination("Library");
+
+		yield* outcomes({
+			"the history entry": [historyEntry(), entry],
+			"the sidebar shown": [sidebarPanel(), expect.objectContaining({ shown: false })],
+		});
 	},
 );
 
 screenStory.it(
-	"restores the passage after DocumentContext reports its outline ready",
-	[
-		screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]),
-		routedScreen({ "notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage." }, "/notes/plan.md#heading-evidence"),
-	],
-	function* ({ findElement, readFocus }) {
-		yield* eventually(() => expect(findElement('.document-outline a[href="#heading-evidence"]')).not.toBeNull());
-		yield* eventually(() => expect(readFocus()?.id).toBe("heading-evidence"));
+	"closes More without a new history entry when the reader picks Library while already there",
+	libraryShell,
+	function* ({ chooseInMore, historyEntry, moreSheet, openMore }) {
+		const entry = yield* historyEntry();
+		yield* openMore();
+		expect(yield* moreSheet()).not.toBe("closed");
+
+		yield* chooseInMore("Library");
+
+		yield* outcomes({
+			"More": [moreSheet(), "closed"],
+			"the history entry": [historyEntry(), entry],
+		});
+	},
+);
+
+const files = { "home.md": "# Home", "notes/plan.md": "# Plan", "other.md": "# Other" };
+
+screenStory.it(
+	"closes the phone sidebar when the Board navigates elsewhere",
+	[phone, chromeScreen(files)],
+	function* ({ navigate, sidebarPanel, toggleSidebar }) {
+		yield* toggleSidebar();
+		expect((yield* sidebarPanel()).shown).toBe(true);
+
+		yield* navigate("/other.md");
+
+		expect((yield* sidebarPanel()).shown).toBe(false);
+	},
+);
+
+screenStory.it("closes More when the Board navigates elsewhere", [phone, chromeScreen(files)], function* ({ moreSheet, navigate, openMore }) {
+	yield* openMore();
+	expect(yield* moreSheet()).not.toBe("closed");
+
+	yield* navigate("/other.md");
+
+	expect(yield* moreSheet()).toBe("closed");
+});
+
+screenStory.it(
+	"puts a page's revised title in the browser title once the page refreshes",
+	[chromeScreen(files)],
+	function* ({ browserTitle, editFile, refreshDocument }) {
+		yield* editFile("notes/plan.md", "# Revised plan");
+		expect(yield* browserTitle()).toBe("Plan · Work Board");
+
+		yield* refreshDocument("/notes/plan.md");
+
+		expect(yield* browserTitle()).toBe("Revised plan · Work Board");
+	},
+);
+
+screenStory.it(
+	"lists a refreshed page under Recent by its revised title once the reader moves on",
+	[chromeScreen(files)],
+	function* ({ editFile, navigate, refreshDocument, sidebarLinks }) {
+		yield* editFile("notes/plan.md", "# Revised plan");
+		yield* refreshDocument("/notes/plan.md");
+		expect(yield* sidebarLinks("Recent")).toEqual([]);
+
+		yield* navigate("/other.md");
+
+		expect(yield* sidebarLinks("Recent")).toEqual([{ href: "/notes/plan.md", title: "Revised plan" }]);
+	},
+);
+
+screenStory.it(
+	"focuses the linked Evidence heading once a phone opens the page at it",
+	[phone, routedScreen({ "notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage." }, "/notes/plan.md#heading-evidence")],
+	function* ({ focusedId }) {
+		expect(yield* focusedId()).toBe("heading-evidence");
 	},
 );

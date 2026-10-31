@@ -21,3 +21,7 @@ export const GOALS = {
 	"task.md":
 		"---\nid: task.part\nkind: task\nstatus: ready\nrelationships:\n  - kind: implements\n    target: goal.reader#layout\n  - kind: implements\n    target: decision.scope\n---\n# Part of the goal",
 };
+
+export function liveTask(status: string) {
+	return `---\nid: task.live\nkind: task\nstatus: ${status}\n---\n# Live task\n`;
+}

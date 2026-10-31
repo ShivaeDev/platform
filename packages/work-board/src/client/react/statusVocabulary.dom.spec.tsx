@@ -1,31 +1,35 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { statusVocabularyFixture } from "#test/statusVocabularyFixture.ts";
 
 expectNoReactWarnings();
-for (const single of [false, true]) {
-	const files = statusVocabularyFixture();
-	if (single) {
-		delete files["tasks/ready.md"];
-	}
+
+for (const [files, label] of [
+	[statusVocabularyFixture(), "Now, 2 open tasks"],
+	[(({ "tasks/ready.md": _ready, ...others }) => others)(statusVocabularyFixture()), "Now, 1 open task"],
+] as const) {
 	screenStory.it(
-		`shows ready briefs in Queued and counts the ${single ? "single task" : "tasks"} in navigation`,
+		`Now shows a ready brief in Queued, leaves out an invalid status and names "${label}" in navigation`,
 		[routedScreen(files, "/_board/work")],
-		function* ({ findElement, readAttribute, readText }) {
-			yield* eventually(() => expect(findElement('[aria-label="Queued"] [data-item="task.merge"]')).not.toBeNull());
-			expect(readText('[data-item="task.merge"] [data-status-token]')).toBe("Ready");
-			expect(findElement('[data-item="task.odd"]')).toBeNull();
-			yield* eventually(() => expect(readAttribute("a[href='/_board/work']", "aria-label")).toBe(single ? "Now, 1 open task" : "Now, 2 open tasks"));
+		function* ({ navigationLabels, nowCard, workItems }) {
+			yield* outcomes({
+				navigation: [navigationLabels(), expect.arrayContaining([label])],
+				"the ready brief": [nowCard("task.merge"), expect.objectContaining({ lane: "Queued", states: ["Ready"] })],
+				"work shown": [workItems(), expect.not.arrayContaining(["task.odd"])],
+			});
 		},
 	);
 }
+
 screenStory.it(
-	"names an invalid authored state and the migration command on System",
+	"System names an invalid authored status and the migration command",
 	[routedScreen(statusVocabularyFixture(), "/_board/system")],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement('[data-source-problem="tasks/odd.md"]')).not.toBeNull());
-		expect(readText('[data-source-problem="tasks/odd.md"]')).toContain("Invalid status; run work-board migrate <board dir>.");
+	function* ({ sourceProblemList }) {
+		expect(yield* sourceProblemList()).toEqual([
+			expect.objectContaining({ file: "tasks/odd.md", reason: expect.stringContaining("Invalid status; run work-board migrate <board dir>.") }),
+		]);
 	},
 );

@@ -1,53 +1,56 @@
 import "#test/liveDeliveryBoundary.ts";
 import { expect } from "vitest";
 import { announcedChanges } from "#test/announcedChanges.ts";
-import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { interruptedDelivery } from "#test/interruptedDelivery.ts";
+import { liveClientSubscribed } from "#test/liveTraits.ts";
+
+const project = [projectFiles({ "home.md": "# Home\n", "note.md": "# Note\n", "other.md": "# Other\n" }), boardHome("home.md")];
 
 boardStory.it(
-	"reconciles initially, targets contiguous edits and reconciles after server-local delivery loss",
-	[projectFiles({ "note.md": "# Note", "other.md": "# Other" }), interruptedDelivery],
-	function* ({ watchProject, editFile, loseNextChange, changeWasDropped, waitUntil }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		editFile("note.md", "# First edit");
-		expect(yield* events.changed("note.md")).toMatchObject({ _tag: "Changed" });
+	"a client that subscribes to a watched project opens with a resync",
+	[...project, liveClientSubscribed],
+	function* ({ clientSubscribes, nextChange }) {
+		yield* clientSubscribes("a second client");
+
+		expect(yield* nextChange("a second client")).toBe("resync");
+	},
+);
+
+boardStory.it(
+	"after the server's live delivery loses a change, a live client resyncs on the next change instead of trusting its gap",
+	[...project, interruptedDelivery, liveClientSubscribed],
+	function* ({ changeLost, changeNaming, editFile, loseNextChange, nextChange }) {
+		editFile("note.md", "# First edit\n");
+		expect(yield* changeNaming("note.md")).toEqual(["document note.md", "workspace index"]);
+
 		loseNextChange();
-		editFile("note.md", "# Lost notification");
-		yield* waitUntil(() => expect(changeWasDropped()).toBe(true));
-		editFile("other.md", "# Next notification");
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+		editFile("note.md", "# Lost edit\n");
+		yield* changeLost();
+		editFile("other.md", "# Next edit\n");
+
+		expect(yield* nextChange()).toBe("resync");
 	},
 );
 
 boardStory.it(
-	"sends no hint for a file event that changed neither bytes nor modification time",
-	[projectFiles({ "note.md": "# Note", "other.md": "# Other" }), announcedChanges],
-	function* ({ watchProject, editFile, replayFileEvent, changeWasAnnounced, waitUntil }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	"a file event that changes neither the bytes nor the modification time reaches no live client",
+	[...project, announcedChanges, liveClientSubscribed],
+	function* ({ editFile, nextChange, replayFileEvent, serverAnnounced }) {
 		replayFileEvent("note.md");
-		yield* waitUntil(() => expect(changeWasAnnounced("note.md")).toBe(true));
-		editFile("other.md", "# Other edited");
-		const hint = yield* events.next();
-		expect(hint).toMatchObject({
-			_tag: "Changed",
-			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "other.md" }]),
-		});
-		expect(JSON.stringify(hint)).not.toContain("note.md");
+		yield* serverAnnounced("note.md");
+		editFile("other.md", "# Other edited\n");
+
+		expect(yield* nextChange()).toEqual(["document other.md", "workspace index"]);
 	},
 );
 
 boardStory.it(
-	"refreshes a file saved again with the same bytes when its modification time changed",
-	[projectFiles({ "note.md": "# Note" })],
-	function* ({ watchProject, retouchFile }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	"a file saved again with the same bytes and a later modification time reaches a live client as a change to its document",
+	[...project, liveClientSubscribed],
+	function* ({ nextChange, retouchFile }) {
 		retouchFile("note.md");
-		expect(yield* events.next()).toMatchObject({
-			_tag: "Changed",
-			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "note.md" }]),
-		});
+
+		expect(yield* nextChange()).toEqual(["document note.md", "workspace index"]);
 	},
 );

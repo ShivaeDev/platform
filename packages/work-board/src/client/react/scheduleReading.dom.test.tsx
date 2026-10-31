@@ -1,101 +1,120 @@
-import { shellIds } from "#client/react/shellIds.ts";
-
-const PASSAGE = "heading-evidence";
-
-import { Effect } from "effect";
-import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { observedBrowserMotion } from "#test/browserMotion.ts";
+import { framesFollowed, readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { componentScreen, routedScreen } from "#test/screenTraits.ts";
+import { componentScreen } from "#test/screenTraits.ts";
+import { shellIds } from "./shellIds.ts";
 
 expectNoReactWarnings();
+
+const PASSAGE = "heading-evidence";
+const savedPassage = [
+	framesFollowed(),
+	observedBrowserMotion(),
+	componentScreen(
+		<article id={shellIds.doc}>
+			<h2 id={PASSAGE} tabIndex={-1}>
+				Evidence
+			</h2>
+		</article>,
+	),
+];
+
 screenStory.it(
-	"restores a saved passage once on the queued frame without scrolling or focusing the heading",
-	[
-		observedBrowserMotion(),
-		componentScreen(
-			<article id={shellIds.doc}>
-				<h2 id={PASSAGE} tabIndex={-1}>
-					Evidence
-				</h2>
-			</article>,
-		),
-	],
-	function* ({ queueReading, readScrollAnchoring, readMotion, readReadingStatus, frame }) {
-		const anchoring = readScrollAnchoring();
-		queueReading({ scroll: [0, 480], selection: null }, "heading-evidence");
-		yield* Effect.promise(() => frame());
-		expect(readScrollAnchoring()).toBe("none");
-		yield* Effect.promise(() => frame(2));
-		expect(readMotion("scroll")).toEqual([[0, 480]]);
-		expect(readReadingStatus()).toEqual([""]);
-		expect(readMotion("passage")).toHaveLength(0);
-		expect(readMotion("focus")).toHaveLength(0);
-		expect(readScrollAnchoring()).toBe(anchoring);
+	"restoring a saved reading scrolls once to the saved position without scrolling to or focusing the passage, and announces nothing",
+	savedPassage,
+	function* ({ readMotion, readReadingStatus, restoreSavedReading }) {
+		yield* restoreSavedReading([0, 480], PASSAGE);
+
+		yield* outcomes({
+			announcements: [readReadingStatus(), [""]],
+			focus: [readMotion("focus"), []],
+			"passage scrolls": [readMotion("passage"), []],
+			"window scrolls": [readMotion("scroll"), [[0, 480]]],
+		});
 	},
 );
 
-for (const navigation of ["Back", "reload"]) {
-	const files = {
-		"home.md": "# Home",
-		"notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage.\n\n<details><summary>More</summary>Saved reading details.</details>",
-		"other.md": "# Other",
-	};
-	const URL = "/notes/plan.md#heading-evidence";
-	screenStory.it(
-		`reports a missing saved passage after ${navigation} while retaining reading position`,
-		[observedBrowserMotion(), routedScreen(files, URL)],
-		function* ({
-			editFile,
-			refreshDocument,
-			readText,
-			readFocus,
-			readMotion,
-			setScrollPosition,
-			clearMotion,
-			openDetails,
-			navigate,
-			frame,
-			browserEvent,
-			location,
-			rememberHistory,
-			closeScreen,
-			renderRouter,
-			back,
-			findElement,
-		}) {
-			yield* eventually(() => expect(readFocus()?.id).toBe("heading-evidence"));
-			editFile("notes/plan.md", "# Plan\n\nThe heading disappeared.\n\n<details><summary>More</summary>Saved reading details.</details>");
-			yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-			yield* eventually(() => expect(readText("#doc")).toContain("The heading disappeared."));
-			openDetails("article details:not(.item-context)");
-			setScrollPosition(480);
-			if (navigation === "Back") {
-				yield* Effect.promise(() => navigate("/other.md"));
-				yield* eventually(() => expect(readText("#doc h1")).toBe("Other"));
-				yield* Effect.promise(() => frame());
-			} else {
-				browserEvent("pagehide");
-				const state = location()?.state;
-				yield* Effect.promise(closeScreen);
-				rememberHistory({ workBoard: { id: state?.key } });
-			}
-			setScrollPosition(0);
-			clearMotion();
-			const previousFocus = readFocus();
-			if (navigation === "Back") {
-				yield* Effect.promise(back);
-			} else {
-				yield* Effect.promise(() => renderRouter(undefined, URL));
-			}
-			yield* eventually(() => expect(readText("#navigation-status")).toBe("This passage is no longer in the document."));
-			expect(location()?.hash).toBe("heading-evidence");
-			expect(findElement("article details:not(.item-context)")).toHaveProperty("open", true);
-			expect(readMotion("scroll")).toEqual([[0, 480]]);
-			expect(readMotion("passage")).toHaveLength(0);
-			expect(readMotion("focus")).toHaveLength(navigation === "Back" ? 1 : 0);
-			expect(readFocus()).toBe(navigation === "Back" ? findElement("#doc") : previousFocus);
-		},
-	);
-}
+const files = {
+	"home.md": "# Home",
+	"notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage.\n\n<details><summary>More</summary>Saved reading details.</details>",
+	"other.md": "# Other",
+};
+const EDITED = "# Plan\n\nThe heading disappeared.\n\n<details><summary>More</summary>Saved reading details.</details>";
+const missingPassage = {
+	hash: "heading-evidence",
+	"open sections": ["More"],
+	"passage scrolls": [],
+	status: { state: "normal", text: "This passage is no longer in the document." },
+	"window scrolls": [[0, 480]],
+};
+
+screenStory.it(
+	"coming Back to a saved passage that was edited away says so, restores the scroll and open sections, and focuses the page",
+	[observedBrowserMotion(), readingPage(files, "/notes/plan.md#heading-evidence")],
+	function* ({
+		addressHash,
+		clearMotion,
+		goBack,
+		navigateTo,
+		navigationStatus,
+		openSection,
+		openSections,
+		readMotion,
+		readerFocus,
+		rewriteDocument,
+		setScrollPosition,
+	}) {
+		yield* rewriteDocument("notes/plan.md", EDITED);
+		yield* openSection("More");
+		yield* setScrollPosition(480);
+		yield* navigateTo("/other.md");
+		yield* setScrollPosition(0);
+		yield* clearMotion();
+
+		yield* goBack();
+
+		yield* outcomes({
+			focus: [readerFocus(), "the page"],
+			hash: [addressHash(), missingPassage.hash],
+			"open sections": [openSections(), missingPassage["open sections"]],
+			"passage scrolls": [readMotion("passage"), missingPassage["passage scrolls"]],
+			status: [navigationStatus(), missingPassage.status],
+			"window scrolls": [readMotion("scroll"), missingPassage["window scrolls"]],
+		});
+	},
+);
+
+screenStory.it(
+	"reloading a saved passage that was edited away says so, restores the scroll and open sections, and leaves focus alone",
+	[observedBrowserMotion(), readingPage(files, "/notes/plan.md#heading-evidence")],
+	function* ({
+		addressHash,
+		clearMotion,
+		navigationStatus,
+		openSection,
+		openSections,
+		readMotion,
+		readerFocus,
+		reloadReading,
+		rewriteDocument,
+		setScrollPosition,
+	}) {
+		yield* rewriteDocument("notes/plan.md", EDITED);
+		yield* openSection("More");
+		yield* setScrollPosition(480);
+		yield* clearMotion();
+
+		yield* reloadReading();
+
+		yield* outcomes({
+			focus: [readerFocus(), "nothing"],
+			hash: [addressHash(), missingPassage.hash],
+			"open sections": [openSections(), missingPassage["open sections"]],
+			"passage scrolls": [readMotion("passage"), missingPassage["passage scrolls"]],
+			status: [navigationStatus(), missingPassage.status],
+			"window scrolls": [readMotion("scroll"), missingPassage["window scrolls"]],
+		});
+	},
+);

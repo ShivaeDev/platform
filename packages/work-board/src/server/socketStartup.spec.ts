@@ -1,123 +1,157 @@
-import { chmodSync, constants, existsSync, readdirSync, rmSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { Cause, Effect, Exit } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
+import { groupWritableProject, stagingObserved } from "#test/liveTraits.ts";
 import { longSocketProject } from "#test/servingTraits.ts";
-import { socketRpc } from "#test/socketRpc.ts";
+
+const project = [projectFiles({ "note.md": "# Notes\n" }), deferredServing];
 
 boardStory.it(
-	"serves a nested directory whose public socket fits but a longer staging address would exceed Unix limits",
-	[longSocketProject, deferredServing],
-	function* ({ notes, start }) {
-		const socket = join(notes.root, "board.sock");
-		let pending = "";
-		const board = yield* start({
-			wrap: (fs) => ({
-				...fs,
-				chmod: (path, mode) => {
-					pending = path;
-					return fs.chmod(path, mode);
-				},
-			}),
+	"a board in a deeply nested folder stages its socket at an address no longer than the public one and answers on the owner-only socket",
+	[longSocketProject, stagingObserved],
+	function* ({ serverAnswer, socketFile, socketRead, stagingFits }) {
+		yield* outcomes({
+			"an Inbox read": [socketRead("work-board.inbox"), "answered"],
+			"the server answer": [serverAnswer("socket"), { directory: "the project folder", url: "the board" }],
+			"the socket": [socketFile(), "owner read-write socket"],
+			"the staged address": [stagingFits(), "no longer than the public socket"],
 		});
-		expect(Buffer.byteLength(pending)).toBeLessThanOrEqual(Buffer.byteLength(socket));
-		expect(statSync(socket).mode & 0o777).toBe(constants.S_IRUSR | constants.S_IWUSR);
-		expect(yield* Effect.promise(() => socketRpc(socket, "work-board.server"))).toEqual(
-			expect.arrayContaining([expect.objectContaining({ exit: { _tag: "Success", value: { directory: notes.root, url: `${board.url}/` } } })]),
-		);
-		expect(yield* Effect.promise(() => socketRpc(socket, "work-board.inbox"))).toEqual(
-			expect.arrayContaining([expect.objectContaining({ exit: { _tag: "Success", value: expect.any(Object) } })]),
-		);
-		yield* board.stop();
-		expect(readdirSync(notes.root)).toEqual(["note.md"]);
+	},
+);
+
+boardStory.it("stopping the nested board leaves only the project's files", [longSocketProject], function* ({ boardStops, projectEntries }) {
+	expect(yield* projectEntries()).toEqual(["board.sock", "note.md"]);
+
+	yield* boardStops();
+
+	expect(yield* projectEntries()).toEqual(["note.md"]);
+});
+
+boardStory.it(
+	"a board starting in a group-writable folder binds its socket inside an owner-only staging folder and publishes nothing before chmod",
+	[...project, groupWritableProject],
+	function* ({ socketFile, stagingSocket, workerReports, workerStarts }) {
+		yield* workerStarts("the board", "permissions");
+
+		yield* outcomes({
+			"the board": [workerReports("the board"), "paused at permissions"],
+			"the public socket": [socketFile(), "missing"],
+			"the staged socket": [stagingSocket("the board"), { folder: "700", socket: "775" }],
+		});
 	},
 );
 
 boardStory.it(
-	"keeps a newly bound socket private before chmod under umask 0002",
-	[projectFiles({ "note.md": "# Notes\n" }), deferredServing],
-	function* ({ notes, startSocketWorker }) {
-		chmodSync(notes.root, 0o775);
-		const child = yield* startSocketWorker("permissions");
-		const pending = yield* child.next();
-		expect(pending.phase).toBe("permissions");
-		expect(pending.path).toBeDefined();
-		const path = pending.path ?? "";
-		expect(statSync(path).isSocket()).toBe(true);
-		expect(statSync(path).mode & 0o777).toBe(constants.S_IRWXU | constants.S_IRWXG | constants.S_IROTH | constants.S_IXOTH);
-		expect(statSync(dirname(path)).mode & 0o777).toBe(constants.S_IRWXU);
-		const socket = join(notes.root, "board.sock");
-		expect(existsSync(socket)).toBe(false);
-		yield* child.send("continue");
-		const ready = yield* child.next();
-		expect(ready.phase).toBe("ready");
-		expect(statSync(socket).mode & 0o777).toBe(constants.S_IRUSR | constants.S_IWUSR);
-		expect(yield* Effect.promise(() => socketRpc(socket, "work-board.server"))).toEqual(
-			expect.arrayContaining([expect.objectContaining({ exit: { _tag: "Success", value: { directory: notes.root, url: `${ready.url}/` } } })]),
-		);
-		yield* child.send("close");
-		expect((yield* child.next()).phase).toBe("closed");
-		expect(existsSync(socket)).toBe(false);
+	"once the paused board in a group-writable folder continues, its public socket is owner-only and answers",
+	[...project, groupWritableProject],
+	function* ({ serverAnswer, socketFile, workerContinues, workerReports, workerStarts }) {
+		yield* workerStarts("the board", "permissions");
+		expect(yield* workerReports("the board")).toBe("paused at permissions");
+
+		yield* workerContinues("the board");
+
+		yield* outcomes({
+			"the board": [workerReports("the board"), "ready"],
+			"the public socket": [socketFile(), "owner read-write socket"],
+			"the server answer": [serverAnswer("socket"), { directory: "the project folder", url: "the board" }],
+		});
 	},
 );
 
 boardStory.it(
-	"serializes stale reclamation across processes and loser cleanup preserves the winner",
-	[projectFiles({ "note.md": "# Notes\n" }), deferredServing],
-	function* ({ notes, startSocketWorker, leaveStaleSocket }) {
-		const socket = join(notes.root, "board.sock");
+	"while one board reclaims a stale socket, a second board starting in another process is refused",
+	project,
+	function* ({ leaveStaleSocket, workerReports, workerStarts }) {
 		yield* leaveStaleSocket();
-		const winner = yield* startSocketWorker("reclaim");
-		expect((yield* winner.next()).phase).toBe("reclaim");
-		const loser = yield* startSocketWorker();
-		const rejected = yield* loser.next();
-		expect(rejected.phase).toBe("rejected");
-		expect(rejected.error).toContain(`Another board is already running at ${socket}`);
-		yield* winner.send("continue");
-		const ready = yield* winner.next();
-		expect(ready.phase).toBe("ready");
-		yield* loser.send("close");
-		expect((yield* loser.next()).phase).toBe("closed");
-		expect(yield* Effect.promise(() => socketRpc(socket, "work-board.server"))).toEqual(
-			expect.arrayContaining([expect.objectContaining({ exit: { _tag: "Success", value: { directory: notes.root, url: `${ready.url}/` } } })]),
+		yield* workerStarts("the winner", "reclaim");
+		expect(yield* workerReports("the winner")).toBe("paused at reclaim");
+
+		yield* workerStarts("the loser");
+
+		expect(yield* workerReports("the loser")).toBe(
+			"rejected: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
 		);
-		yield* winner.send("close");
-		expect((yield* winner.next()).phase).toBe("closed");
-		expect(existsSync(socket)).toBe(false);
-		expect(existsSync(join(notes.root, ".board.sock.starting"))).toBe(false);
 	},
 );
 
 boardStory.it(
-	"releases the startup lock after failed preparation so another startup can recover",
-	[projectFiles({ "note.md": "# Notes\n" }), deferredServing],
-	function* ({ notes, start }) {
-		const socket = join(notes.root, "board.sock");
-		const failed = yield* Effect.scoped(
-			start({ wrap: (fs) => ({ ...fs, chmod: (_path, mode) => fs.chmod(join(notes.root, "missing"), mode) }) }),
-		).pipe(Effect.exit);
-		expect(Exit.isFailure(failed)).toBe(true);
-		expect(existsSync(socket)).toBe(false);
-		expect(existsSync(join(notes.root, ".board.sock.starting"))).toBe(false);
-		const board = yield* start({});
-		yield* board.stop();
+	"the refused board's cleanup leaves the winner's socket answering",
+	project,
+	function* ({ leaveStaleSocket, serverAnswer, workerCloses, workerContinues, workerReports, workerStarts }) {
+		yield* leaveStaleSocket();
+		yield* workerStarts("the winner", "reclaim");
+		expect(yield* workerReports("the winner")).toBe("paused at reclaim");
+		yield* workerStarts("the loser");
+		expect(yield* workerReports("the loser")).toBe(
+			"rejected: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
+		);
+		yield* workerContinues("the winner");
+		expect(yield* workerReports("the winner")).toBe("ready");
+
+		yield* workerCloses("the loser");
+
+		yield* outcomes({
+			"the loser": [workerReports("the loser"), "closed"],
+			"the server answer": [serverAnswer("socket"), { directory: "the project folder", url: "the winner" }],
+		});
 	},
 );
 
 boardStory.it(
-	"explains recovery from an abandoned startup lock and leaves it for its owner",
-	[projectFiles({ "note.md": "# Notes\n" }), deferredServing],
-	function* ({ start, abandonStartup }) {
-		const lock = abandonStartup();
-		const failed = yield* Effect.scoped(start({})).pipe(Effect.exit);
-		expect(Exit.isFailure(failed)).toBe(true);
-		if (Exit.isFailure(failed)) {
-			expect(Cause.pretty(failed.cause)).toContain(`A startup lock exists at ${lock}; remove it only if its startup was forcibly killed.`);
-		}
-		expect(existsSync(lock)).toBe(true);
-		rmSync(lock, { recursive: true });
-		const board = yield* start({});
-		yield* board.stop();
+	"when the board that reclaimed a stale socket closes, neither its socket nor the startup lock remains",
+	project,
+	function* ({ leaveStaleSocket, projectEntries, workerCloses, workerContinues, workerReports, workerStarts }) {
+		yield* leaveStaleSocket();
+		yield* workerStarts("the winner", "reclaim");
+		expect(yield* workerReports("the winner")).toBe("paused at reclaim");
+		yield* workerContinues("the winner");
+		expect(yield* workerReports("the winner")).toBe("ready");
+
+		yield* workerCloses("the winner");
+
+		yield* outcomes({
+			"the project's files": [projectEntries(), ["note.md"]],
+			"the winner": [workerReports("the winner"), "closed"],
+		});
 	},
 );
+
+boardStory.it(
+	"a startup whose preparation fails releases the startup lock, so the next start succeeds",
+	project,
+	function* ({ projectEntries, startAttempt }) {
+		expect(yield* startAttempt("failing chmod")).toEqual(expect.stringMatching(/^refused: /u));
+
+		yield* outcomes({
+			"the next start": [startAttempt(), "started"],
+			"the project's files": [projectEntries(), ["note.md"]],
+		});
+	},
+);
+
+boardStory.it(
+	"a startup lock left by a killed process refuses the next start with recovery advice and stays in place",
+	project,
+	function* ({ abandonStartup, projectEntries, startAttempt }) {
+		abandonStartup();
+
+		yield* outcomes({
+			"the project's files": [projectEntries(), [".board.sock.starting", "note.md"]],
+			"the start": [
+				startAttempt(),
+				"refused: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
+			],
+		});
+	},
+);
+
+boardStory.it("once the abandoned startup lock is removed, the board starts", project, function* ({ abandonStartup, removeFile, startAttempt }) {
+	abandonStartup();
+	expect(yield* startAttempt()).toEqual(
+		"refused: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
+	);
+
+	removeFile(".board.sock.starting");
+
+	expect(yield* startAttempt()).toBe("started");
+});

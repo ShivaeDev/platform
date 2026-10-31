@@ -1,108 +1,177 @@
-import { join } from "node:path";
 import { expect } from "vitest";
-import { inboxItems } from "#server/attention/inbox.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { indexedQuestion } from "#test/indexedQuestion.ts";
-import { indexState } from "#test/indexState.ts";
-import { indexedFiles, indexStory } from "#test/indexStory.ts";
-import { searchMatch } from "./match.ts";
+import { indexedFiles, indexStory, unreadableAfterReport } from "#test/indexStory.ts";
+
+const ALPHA = "---\nid: a\n---\n# Alpha";
+const BETA = "---\nid: b\n---\n# Beta";
+const threeNotes = indexedFiles({ "a.md": ALPHA, "b.md": BETA, "c.md": "# Gamma" });
+const twoNotes = indexedFiles({ "a.md": ALPHA, "b.md": BETA });
 
 indexStory.it(
-	"reads and parses only the edited or added file, removes deleted records and reindexes renamed paths",
-	[indexedFiles({ "a.md": "---\nid: a\n---\n# Alpha", "b.md": "---\nid: b\n---\n# Beta", "c.md": "# Gamma" })],
-	function* ({ readIndex, freshIndex, invalidate, writeFile, removeFile, moveFile, timestamp, setTimestamp, readPaths, root }) {
-		const before = yield* readIndex();
-		const originalTime = timestamp("a.md");
-		writeFile("a.md", "---\nid: a\n---\n# Changed");
-		setTimestamp("a.md", originalTime.atime, originalTime.mtime);
-		yield* invalidate(["a.md"]);
-		const edited = yield* readIndex();
-		expect(readPaths()).toEqual([join(root, "a.md")]);
-		expect(edited.documents[1]).toBe(before.documents[1]);
-		expect(edited.model.ids.get("b")).toBe(before.model.ids.get("b"));
-		expect(edited.model.diagnostics.get("b.md")).toBe(before.model.diagnostics.get("b.md"));
-		expect(edited.entries.find((entry) => entry.file === "b.md")).toBe(before.entries.find((entry) => entry.file === "b.md"));
-		writeFile("added.md", "# Added");
-		yield* invalidate(["added.md"]);
-		yield* readIndex();
-		expect(readPaths()).toEqual([join(root, "added.md")]);
-		removeFile("added.md");
-		yield* invalidate(["added.md"]);
-		yield* readIndex();
-		expect(readPaths()).toEqual([]);
-		moveFile("a.md", "moved.md");
-		yield* invalidate(["a.md", "moved.md"]);
-		const moved = yield* readIndex();
-		expect(readPaths()).toEqual([join(root, "moved.md")]);
-		expect(indexState(moved)).toEqual(indexState(yield* freshIndex()));
+	"a reported edit that keeps its old timestamp is the only file read again, and the other documents are kept without parsing",
+	[threeNotes],
+	function* ({ bodyOf, editorWritesKeepingTimestamp, filesRead, keptDocuments, watcherReports }) {
+		yield* editorWritesKeepingTimestamp("a.md", "---\nid: a\n---\n# Changed");
+		yield* watcherReports("a.md");
+
+		yield* outcomes({
+			"body of a.md": [bodyOf("a.md"), "# Changed"],
+			"documents kept": [keptDocuments(), ["b.md", "c.md"]],
+			"files read": [filesRead(), ["a.md"]],
+		});
 	},
 );
 
 indexStory.it(
-	"checks bytes during reconciliation without reparsing unchanged files, retries unavailable sources and catches edits with preserved timestamps",
-	[indexedFiles({ "a.md": "---\nid: a\n---\n# Alpha", "b.md": "---\nid: b\n---\n# Beta" })],
-	function* ({ readIndex, freshIndex, invalidate, writeFile, timestamp, setTimestamp, blockFile, restoreFiles, stopWatching, readPaths, root }) {
-		const before = yield* readIndex();
-		const originalTime = timestamp("a.md");
-		writeFile("a.md", "---\nid: b\n---\n# Changed");
-		setTimestamp("a.md", originalTime.atime, originalTime.mtime);
-		yield* invalidate();
-		const reconciled = yield* readIndex();
-		expect(reconciled.documents[1]).toBe(before.documents[1]);
-		expect(indexState(reconciled)).toEqual(indexState(yield* freshIndex()));
-		blockFile("a.md");
-		yield* invalidate(["a.md"]);
-		const incomplete = yield* readIndex();
-		expect(incomplete.unavailable).toEqual(["a.md"]);
-		expect(indexState(incomplete)).toEqual(indexState(yield* freshIndex()));
-		restoreFiles();
-		const recovered = yield* readIndex();
-		expect(readPaths()).toEqual([join(root, "a.md")]);
-		expect(indexState(recovered)).toEqual(indexState(yield* freshIndex()));
-		yield* stopWatching();
-		writeFile("b.md", "# Offline edit");
-		const offline = yield* readIndex();
-		expect(indexState(offline)).toEqual(indexState(yield* freshIndex()));
+	"a reported new file is the only file the index reads",
+	[threeNotes],
+	function* ({ editorAdds, filesRead, indexedPaths, watcherReports }) {
+		yield* editorAdds("added.md", "# Added");
+		yield* watcherReports("added.md");
+
+		yield* outcomes({
+			"files read": [filesRead(), ["added.md"]],
+			"indexed paths": [indexedPaths(), ["a.md", "added.md", "b.md", "c.md"]],
+		});
 	},
 );
 
 indexStory.it(
-	"carries source modification times into Inbox order and age while retaining unchanged document identity",
-	[
-		indexedFiles(
-			{ "a.md": indexedQuestion("a"), "b.md": indexedQuestion("b") },
-			new Map([
-				["a.md", 1000],
-				["b.md", 2000],
-			]),
-		),
-	],
-	function* ({ readIndex, invalidate, writeFile, setTimestamp }) {
-		const before = yield* readIndex();
-		expect(inboxItems(before).map((item) => item.id)).toEqual(["a", "b"]);
-		expect(searchMatch(before.entries, "question", before.modified).results.map((entry) => entry.id)).toEqual(["b", "a"]);
-		writeFile("a.md", `${indexedQuestion("a")}\nChanged context`);
-		const editedAt = 10;
-		setTimestamp("a.md", editedAt, editedAt);
-		yield* invalidate(["a.md"]);
-		const edited = yield* readIndex();
-		expect(inboxItems(edited).map((item) => item.id)).toEqual(["b", "a"]);
-		expect(searchMatch(edited.entries, "question", edited.modified).results.map((entry) => entry.id)).toEqual(["a", "b"]);
-		expect(edited.documents[0]?.modified).toBe(editedAt * 1000);
-		expect(edited.documents[1]).toBe(before.documents[1]);
-		expect(edited.model.ids.get("b")).toBe(before.model.ids.get("b"));
-		setTimestamp("b.md", 2 * 86_400, 2 * 86_400);
-		yield* invalidate(["b.md"]);
-		const unchanged = yield* readIndex();
-		expect(unchanged.documents[1]).toBe(edited.documents[1]);
-		expect(unchanged.model.ids.get("b")).toBe(edited.model.ids.get("b"));
-		expect(unchanged.documents[1]?.modified).toBe(before.documents[1]?.modified);
-		expect(inboxItems(unchanged).map((item) => item.id)).toEqual(["a", "b"]);
-		expect(searchMatch(unchanged.entries, "question", unchanged.modified).results.map((entry) => entry.id)).toEqual(["b", "a"]);
-		setTimestamp("a.md", 3 * 86_400, 3 * 86_400);
-		yield* invalidate();
-		const reconciled = yield* readIndex();
-		expect(reconciled.documents[0]).toBe(unchanged.documents[0]);
-		expect(inboxItems(reconciled).map((item) => item.id)).toEqual(["b", "a"]);
-		expect(searchMatch(reconciled.entries, "question", reconciled.modified).results.map((entry) => entry.id)).toEqual(["a", "b"]);
+	"a reported removal drops the record without reading any file",
+	[threeNotes],
+	function* ({ editorRemoves, filesRead, indexedIds, watcherReports }) {
+		expect(yield* indexedIds()).toEqual(["a", "b"]);
+
+		yield* editorRemoves("b.md");
+		yield* watcherReports("b.md");
+
+		yield* outcomes({
+			"files read": [filesRead(), []],
+			"indexed identities": [indexedIds(), ["a"]],
+		});
 	},
 );
+
+indexStory.it(
+	"a reported move reads only the moved file and leaves the index equal to a fresh scan",
+	[threeNotes],
+	function* ({ editorMoves, filesRead, indexDifferences, watcherReports }) {
+		yield* editorMoves("a.md", "moved.md");
+		yield* watcherReports("a.md", "moved.md");
+
+		yield* outcomes({
+			"differences from a fresh scan": [indexDifferences(), []],
+			"files read": [filesRead(), ["moved.md"]],
+		});
+	},
+);
+
+indexStory.it(
+	"the full check catches an edit that kept its old timestamp without parsing the unchanged file again",
+	[twoNotes],
+	function* ({ editorWritesKeepingTimestamp, fullCheckRuns, indexDifferences, keptDocuments }) {
+		yield* editorWritesKeepingTimestamp("a.md", "---\nid: a\n---\n# Changed");
+		yield* fullCheckRuns();
+
+		yield* outcomes({
+			"differences from a fresh scan": [indexDifferences(), []],
+			"documents kept": [keptDocuments(), ["b.md"]],
+		});
+	},
+);
+
+indexStory.it(
+	"a reported file that cannot be read is listed as unavailable and the index still equals a fresh scan",
+	[twoNotes],
+	function* ({ indexDifferences, readingDenied, unavailableFiles, watcherReports }) {
+		expect(yield* unavailableFiles()).toEqual([]);
+
+		yield* readingDenied("a.md");
+		yield* watcherReports("a.md");
+
+		yield* outcomes({
+			"differences from a fresh scan": [indexDifferences(), []],
+			"unavailable files": [unavailableFiles(), ["a.md"]],
+		});
+	},
+);
+
+indexStory.it(
+	"an unavailable file is read again on the next read once it can be read",
+	[twoNotes, unreadableAfterReport("a.md")],
+	function* ({ filesRead, indexDifferences, readingRecovers, unavailableFiles }) {
+		expect(yield* unavailableFiles()).toEqual(["a.md"]);
+
+		yield* readingRecovers();
+
+		yield* outcomes({
+			"differences from a fresh scan": [indexDifferences(), []],
+			"files read": [filesRead(), ["a.md"]],
+			"unavailable files": [unavailableFiles(), []],
+		});
+	},
+);
+
+indexStory.it("with the watcher stopped, a read shows an edit nobody reported", [twoNotes], function* ({ bodyOf, editorWrites, watcherStops }) {
+	expect(yield* bodyOf("b.md")).toBe("# Beta");
+
+	yield* watcherStops();
+	yield* editorWrites("b.md", "# Offline edit");
+
+	expect(yield* bodyOf("b.md")).toBe("# Offline edit");
+});
+
+const QUESTIONS = { "a.md": indexedQuestion("a"), "b.md": indexedQuestion("b") };
+const questionsAged = indexedFiles(
+	QUESTIONS,
+	new Map([
+		["a.md", 1000],
+		["b.md", 2000],
+	]),
+);
+
+indexStory.it(
+	"a reported edit with a newer modification time moves the question in Inbox and search order and records the new time",
+	[questionsAged],
+	function* ({ editorWritesAt, inboxOrder, modifiedAt, searchOrder, watcherReports }) {
+		yield* outcomes({
+			"Inbox order": [inboxOrder(), ["a", "b"]],
+			"search order": [searchOrder("question"), ["b", "a"]],
+		});
+
+		yield* editorWritesAt("a.md", `${QUESTIONS["a.md"]}\nChanged context`, 10);
+		yield* watcherReports("a.md");
+
+		yield* outcomes({
+			"Inbox order": [inboxOrder(), ["b", "a"]],
+			"modification time of a.md": [modifiedAt("a.md"), 10_000],
+			"search order": [searchOrder("question"), ["a", "b"]],
+		});
+	},
+);
+
+for (const [noticed, notice] of [
+	["the watcher reports it", "watcherReports"],
+	["the full check runs", "fullCheckRuns"],
+] as const) {
+	indexStory.it(
+		`when ${noticed}, a new timestamp without new bytes reorders Inbox and search while the parsed document is kept`,
+		[questionsAged],
+		function* (index) {
+			yield* outcomes({
+				"Inbox order": [index.inboxOrder(), ["a", "b"]],
+				"search order": [index.searchOrder("question"), ["b", "a"]],
+			});
+
+			yield* index.editorStamps("a.md", 3 * 86_400);
+			yield* notice === "watcherReports" ? index.watcherReports("a.md") : index.fullCheckRuns();
+
+			yield* outcomes({
+				"documents kept": [index.keptDocuments(), ["a.md", "b.md"]],
+				"Inbox order": [index.inboxOrder(), ["b", "a"]],
+				"search order": [index.searchOrder("question"), ["a", "b"]],
+			});
+		},
+	);
+}

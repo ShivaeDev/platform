@@ -1,27 +1,16 @@
-import { constants, renameSync } from "node:fs";
-import { open, readdir } from "node:fs/promises";
-import { join } from "node:path";
-import { Effect } from "effect";
-import { expect } from "vitest";
-import { publishIn } from "#server/responses/publishIn.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
+import { responsesFolderOpen } from "#test/publicationTraits.ts";
 
 boardStory.it(
-	"refuses publication when an external process moves the already-open write directory",
-	[deferredServing, projectFiles({ "responses/existing.md": "Existing feedback" }, "the project has the stated publication files")],
-	function* ({ notes }) {
-		const target = yield* Effect.promise(() => open(join(notes.root, "responses"), constants.O_RDONLY | constants.O_DIRECTORY));
-		try {
-			renameSync(join(notes.root, "responses"), join(notes.root, "moved"));
-			yield* Effect.promise(() =>
-				expect(publishIn(target, notes.root, notes.root, "response.edge", "New feedback")).rejects.toMatchObject({
-					_tag: "Conflict",
-					message: "The write boundary changed.",
-				}),
-			);
-			expect(yield* Effect.promise(() => readdir(join(notes.root, "moved")))).toEqual(["existing.md"]);
-		} finally {
-			yield* Effect.promise(() => target.close());
-		}
+	"a writer whose open responses/ was moved away refuses to publish and leaves the moved folder as it was",
+	[deferredServing, projectFiles({ "responses/existing.md": "Existing feedback" }, "responses/ holds existing feedback"), responsesFolderOpen()],
+	function* ({ folderEntries, moveFile, publishIntoOpenFolder }) {
+		moveFile("responses", "moved");
+
+		yield* outcomes({
+			"moved folder": [folderEntries("moved"), ["existing.md"]],
+			publication: [publishIntoOpenFolder("response.edge", "New feedback"), "conflict: The write boundary changed."],
+		});
 	},
 );

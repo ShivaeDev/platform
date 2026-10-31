@@ -1,30 +1,46 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { expect } from "vitest";
-import { boardStory, deferredServing } from "#test/boardStory.ts";
+import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { migrationSettledFixture } from "#test/migrationSettledFixture.ts";
 
+const LANES = { agents: ["task.agent"], answered: ["task.answered"], resolved: ["task.resolved"], you: [] };
+
 boardStory.it(
-	"preserves settled receipts, selection-only answers and inbox lanes through vocabulary migration",
-	[deferredServing],
-	function* ({ readAttention, readInbox, migrate, notes }) {
-		const before = yield* readInbox(yield* readAttention(migrationSettledFixture(false)));
-		expect([before.you.length, before.answered.length, before.agents.length, before.resolved.length]).toEqual([0, 1, 1, 1]);
-		yield* readAttention(migrationSettledFixture(true));
-		migrate();
-		const files = Object.fromEntries(Object.keys(migrationSettledFixture(true)).map((file) => [file, readFileSync(join(notes.root, file), "utf8")]));
-		const after = yield* readInbox(yield* readAttention(files));
-		expect([after.you.length, after.answered.length, after.agents.length, after.resolved.length]).toEqual([
-			before.you.length,
-			before.answered.length,
-			before.agents.length,
-			before.resolved.length,
-		]);
-		expect(after.answered[0]?.answered).toMatchObject({ response: "answer.answered", yours: true });
-		expect(migrate()).toBe("Changed 0 files and 0 fields.\n");
-		const changed = { ...files, "responses/decision.answered.md": `${files["responses/decision.answered.md"]}\nA different question.\n` };
-		const edited = yield* readInbox(yield* readAttention(changed));
-		expect(edited.you.map((item) => item.id)).toEqual(["task.answered"]);
-		expect(edited.answered).toEqual([]);
+	"asks in the current vocabulary sit in their Inbox lanes",
+	[projectFiles(migrationSettledFixture(false)), deferredServing],
+	function* ({ inboxLanes }) {
+		expect(yield* inboxLanes()).toEqual(LANES);
+	},
+);
+
+const legacy = [projectFiles(migrationSettledFixture(true)), deferredServing];
+
+boardStory.it("migrating settled asks from the old vocabulary keeps every item in its Inbox lane", legacy, function* ({ inboxLanes, migrationRuns }) {
+	yield* migrationRuns();
+
+	expect(yield* inboxLanes()).toEqual(LANES);
+});
+
+boardStory.it("after migration an answered ask is still settled by the maintainer's answer", legacy, function* ({ answeredRecords, migrationRuns }) {
+	yield* migrationRuns();
+
+	expect(yield* answeredRecords()).toEqual([expect.objectContaining({ response: "answer.answered", yours: true })]);
+});
+
+boardStory.it("a second migration of settled asks changes no file", legacy, function* ({ migrationRuns, migrationRunsAgain }) {
+	yield* migrationRuns();
+
+	expect(yield* migrationRunsAgain(Object.keys(migrationSettledFixture(true)))).toEqual({ changed: [], report: "Changed 0 files and 0 fields.\n" });
+});
+
+boardStory.it(
+	"after migration, a change to an answered question's source sends its task back to the maintainer",
+	legacy,
+	function* ({ editorAppends, inboxLanes, migrationRuns }) {
+		yield* migrationRuns();
+		expect(yield* inboxLanes()).toMatchObject({ answered: ["task.answered"], you: [] });
+
+		yield* editorAppends("responses/decision.answered.md", "\nA different question.\n");
+
+		expect(yield* inboxLanes()).toMatchObject({ answered: [], you: ["task.answered"] });
 	},
 );

@@ -1,34 +1,40 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory } from "#test/boardStory.ts";
 
-boardStory.it("offers copyable source without writing project files or hiding missing documents", [], function* ({ get, rpc, viewHtml, files }) {
-	expect((yield* get("/")).status).toBe(HttpStatus.fromLiteral("OK"));
-	const html = yield* viewHtml("/_board/start");
-	expect(html).toMatch(/>Start your workspace<\/h1>/u);
-	expect(html).toContain("never writes them for you");
-	const start = yield* rpc((client) => client("work-board.start", undefined));
-	expect(start.empty).toBe(true);
-	expect(start.templates.some((template) => template.source.includes("example.report"))).toBe(true);
-	expect(files()).toEqual(["board.sock"]);
-	expect((yield* get("/missing.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
-	expect((yield* get("/_board/start", "outside.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
+boardStory.it("an empty workspace's home page is served", [], function* ({ statusOf }) {
+	expect(yield* statusOf("/")).toBe("OK");
 });
-boardStory.it(
-	"reads copied templates as related documents with no fabricated evidence",
-	[],
-	function* ({ rpc, editFile, watchProject, viewHtml, readDocument }) {
-		const events = yield* watchProject();
-		yield* events.next();
-		const start = yield* rpc((client) => client("work-board.start", undefined));
-		for (const template of start.templates) {
-			editFile(template.file, template.source);
-		}
-		yield* events.changed("report.md");
-		const result = yield* readDocument("report.md");
-		expect(result.diagnostics).toEqual([]);
-		expect(result.metadata.evidence).toBeUndefined();
-		expect(yield* viewHtml("/_board/start")).toMatch(/>Templates<\/h1>/u);
-		expect((yield* rpc((client) => client("work-board.start", undefined))).empty).toBe(false);
-	},
-);
+
+boardStory.it("an empty workspace's start view offers templates to copy, the report among them", [], function* ({ startTemplates, startView }) {
+	yield* outcomes({
+		heading: [startView(), "Start your workspace"],
+		templates: [startTemplates(), expect.arrayContaining(["report.md"])],
+	});
+});
+
+boardStory.it("opening the start view writes no file into the workspace", [], function* ({ files, startView }) {
+	expect(files()).toEqual(["board.sock"]);
+
+	yield* startView();
+
+	expect(files()).toEqual(["board.sock"]);
+});
+
+boardStory.it("a missing document in an empty workspace answers Not Found rather than the start view", [], function* ({ statusOf }) {
+	expect(yield* statusOf("/missing.md")).toBe("Not Found");
+});
+
+boardStory.it("the copied report template reads without diagnostics or recorded evidence", [], function* ({ copyTemplates, documentFindings }) {
+	yield* copyTemplates();
+
+	expect(yield* documentFindings("report.md")).toEqual({ diagnostics: [], evidence: "none" });
+});
+
+boardStory.it("once the templates are copied, the start view lists them as Templates", [], function* ({ copyTemplates, startView }) {
+	expect(yield* startView()).toBe("Start your workspace");
+
+	yield* copyTemplates();
+
+	expect(yield* startView()).toBe("Templates");
+});

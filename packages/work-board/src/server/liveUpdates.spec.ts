@@ -1,149 +1,147 @@
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
-import { describe, expect } from "vitest";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
-import { faultyWatch } from "#test/faults.ts";
-import { changesUntil, changesUntilShown, rpcDocument, rpcPaths, rpcWatcher } from "#test/nativeRpc.ts";
+import { liveClientSubscribed, watcherCanFail, watcherHasFailed, watcherRecovered } from "#test/liveTraits.ts";
 import { nestedProject } from "#test/servingTraits.ts";
 
-const liveProject = [
-	projectFiles({ "notes/log.md": "# Log\n", "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n" }),
+const project = [projectFiles({ "notes/log.md": "# Log\n", "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n" }), boardHome("plan.md")];
+
+boardStory.it(
+	"an edited Markdown file reaches a live client as one change naming its document and the workspace index",
+	[...project, liveClientSubscribed],
+	function* ({ editFile, nextChange }) {
+		editFile("notes/log.md", "# Log\n\nA new line.\n");
+
+		expect(yield* nextChange()).toEqual(["document notes/log.md", "workspace index"]);
+	},
+);
+
+boardStory.it(
+	"an edit to a text file reaches no live client, so the next change names only the edited home plan",
+	[...project, liveClientSubscribed],
+	function* ({ editFile, nextChange }) {
+		editFile("notes/raw.txt", "plain\n");
+		editFile("plan.md", "# Plan\n");
+
+		expect(yield* nextChange()).toEqual(["document plan.md", "home document", "workspace index"]);
+	},
+);
+
+boardStory.it(
+	"two edits that land together reach a live client as one change naming both documents",
+	[...project, liveClientSubscribed],
+	function* ({ editFile, nextChange }) {
+		editFile("notes/log.md", "# Log\n\nOne.\n");
+		editFile("plan.md", "# Plan\n\nTwo.\n");
+
+		expect(yield* nextChange()).toEqual(expect.arrayContaining(["document notes/log.md", "document plan.md"]));
+	},
+);
+
+boardStory.it(
+	"a file added in a new folder reaches a live client as a workspace index change, and the board lists and serves it without a restart",
+	[...project, liveClientSubscribed],
+	function* ({ editFile, libraryListing, nextChange, sourceOf }) {
+		editFile("later/idea.md", "# Idea\n");
+
+		yield* outcomes({
+			"the library": [libraryListing(), ["/later/idea.md", "/notes/log.md", "/plan.md"]],
+			"the new file": [sourceOf("later/idea.md"), "# Idea\n"],
+			"the next change": [nextChange(), ["workspace index"]],
+		});
+	},
+);
+
+boardStory.it(
+	"when the file watcher fails, a live client hears a watcher change and the project reads as not watched",
+	[...project, watcherCanFail, liveClientSubscribed],
+	function* ({ nextChange, watcherFails, watcherState }) {
+		expect(yield* watcherState()).toBe("watching");
+
+		yield* watcherFails();
+
+		yield* outcomes({
+			"the next change": [nextChange(), ["watcher list"]],
+			"the project": [watcherState(), "not watching"],
+		});
+	},
+);
+
+boardStory.it(
+	"a client that subscribes while the watcher is down opens with a resync and reads the project as not watched",
+	[...project, watcherCanFail, liveClientSubscribed, watcherHasFailed],
+	function* ({ clientSubscribes, nextChange, watcherState }) {
+		yield* clientSubscribes("a late client");
+
+		yield* outcomes({
+			"the late client's first change": [nextChange("a late client"), "resync"],
+			"the project": [watcherState(), "not watching"],
+		});
+	},
+);
+
+boardStory.it(
+	"once the failed watcher works again, the board tells the live client the project is watched and resyncs it",
+	[...project, watcherCanFail, liveClientSubscribed, watcherHasFailed],
+	function* ({ nextChange, watcherBecomes, watcherHeals, watcherState }) {
+		yield* watcherHeals();
+		yield* watcherBecomes("watching");
+
+		yield* outcomes({
+			"the live client's next change": [nextChange(), "resync"],
+			"the project": [watcherState(), "watching"],
+		});
+	},
+);
+
+boardStory.it(
+	"after the watcher recovers, an edit reaches the live client as a change naming its document",
+	[...project, watcherCanFail, liveClientSubscribed, watcherHasFailed, watcherRecovered],
+	function* ({ changeShowing, editFile }) {
+		editFile("notes/log.md", "# Log\n\nAfter the restart.\n");
+
+		expect(yield* changeShowing("notes/log.md", "After the restart.")).toEqual(expect.arrayContaining(["document notes/log.md"]));
+	},
+);
+
+boardStory.it(
+	"while the file watcher keeps failing, the board waits longer before each restart",
+	[...project, watcherCanFail, liveClientSubscribed],
+	function* ({ restartWaits, watcherFails, watcherRestarts }) {
+		yield* watcherFails();
+		yield* watcherRestarts(4);
+
+		expect(yield* restartWaits()).toBe("each wait longer than the one before");
+	},
+);
+
+const dotFolderProject = [
+	nestedProject(".notes"),
+	projectFiles({ ".hidden/x.md": "# Hidden", "node_modules/x.md": "# Dependency", "notes/log.md": "# Log", "plan.md": "# Plan" }),
 	boardHome("plan.md"),
 ];
 
-describe("live updates", () => {
-	boardStory.it("pushes a change event naming the markdown file that was written", liveProject, function* ({ board, watchProject, editFile }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		editFile("notes/log.md", "# Log\n\nA new line.\n");
-		expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({
-			_tag: "Changed",
-			keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" }]),
-		});
-		yield* events.close();
+boardStory.it(
+	"a project inside a dot folder lists its notes but not its own dot folders or node_modules",
+	dotFolderProject,
+	function* ({ libraryListing }) {
+		expect(yield* libraryListing()).toEqual(["/notes/log.md", "/plan.md"]);
+	},
+);
+
+for (const path of ["/.hidden/x.md", "/node_modules/x.md"]) {
+	boardStory.it(`a project inside a dot folder answers ${path} with Not Found`, dotFolderProject, function* ({ httpAnswer }) {
+		expect(yield* httpAnswer(path)).toBe("404 Not Found");
 	});
+}
 
-	boardStory.it("never names a file that is not markdown", liveProject, function* ({ board, watchProject, editFile }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		editFile("notes/raw.txt", "plain\n");
-		editFile("plan.md", "# Plan\n");
-		const hint = yield* changesUntil(events, "plan.md");
-		expect(hint).toMatchObject({ _tag: "Changed" });
-		expect(JSON.stringify(hint)).not.toContain("notes/raw.txt");
-		yield* events.close();
-	});
+boardStory.it(
+	"a project inside a dot folder announces an edit to its notes and never names an edit inside its own dot folder",
+	[...dotFolderProject, liveClientSubscribed],
+	function* ({ editFile, nextChange }) {
+		editFile(".hidden/x.md", "# Hidden, edited\n");
+		editFile("notes/log.md", "# Log\n\nEdited.\n");
 
-	boardStory.it("settles changes that land together into one event", liveProject, function* ({ board, watchProject, editFile }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		editFile("notes/log.md", "# Log\n\nOne.\n");
-		editFile("plan.md", "# Plan\n\nTwo.\n");
-		const seen = yield* changesUntil(events, "plan.md");
-		expect(seen).toMatchObject({
-			_tag: "Changed",
-			keys: expect.arrayContaining([
-				{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" },
-				{ _tag: "Item", collection: "work-board/documents", id: "plan.md" },
-			]),
-		});
-		yield* events.close();
-	});
-
-	boardStory.it("serves and announces a file in a new folder without a restart", liveProject, function* ({ board, watchProject, editFile }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		editFile("later/idea.md", "# Idea\n");
-		yield* changesUntil(events, "later/idea.md");
-		const page = yield* Effect.map(rpcDocument(board, "/later/idea.md"), (data) => data.source);
-		expect(page).toContain("# Idea");
-		expect(yield* rpcPaths(board)).toContain("/later/idea.md");
-		yield* events.close();
-	});
-
-	boardStory.it("shows an edit on the next request without a rebuild", liveProject, function* ({ board, editFile }) {
-		editFile("plan.md", "# Plan\n\n## To do\n\n### One\n\n### Two\n");
-		expect((yield* rpcDocument(board, "/plan.md")).source).toContain("### Two");
-	});
-});
-
-describe("watcher recovery", () => {
-	boardStory.it(
-		"says the folder is not watched after the watcher fails, restarts it with backoff and reports changes again",
-		liveProject,
-		function* ({ board, start, watchProject, editFile }) {
-			yield* board.stop();
-			const faults = faultyWatch();
-			board = yield* start({ home: "plan.md", wrap: faults.wrap });
-			const events = yield* watchProject();
-			expect(yield* events.next()).toEqual({ _tag: "Resync" });
-			expect((yield* rpcWatcher(board)).watching).toBe(true);
-			yield* faults.fail();
-			expect(yield* events.watching(false)).toBe(false);
-			const late = yield* watchProject();
-			expect(yield* late.next()).toEqual({ _tag: "Resync" });
-			expect((yield* rpcWatcher(board)).watching).toBe(false);
-			yield* late.close();
-			faults.heal();
-			expect(yield* events.watching(true)).toBe(true);
-			editFile("notes/log.md", "# Log\n\nAfter the restart.\n");
-			yield* changesUntilShown(
-				events,
-				"notes/log.md",
-				Effect.map(rpcDocument(board, "/notes/log.md"), (document) => document.source.includes("After the restart.")),
-			);
-			expect((yield* rpcDocument(board, "/notes/log.md")).source).toContain("After the restart.");
-			yield* events.close();
-		},
-	);
-
-	boardStory.it("waits longer between each restart while the watcher keeps failing", liveProject, function* ({ board, start, watchProject }) {
-		yield* board.stop();
-		const faults = faultyWatch();
-		board = yield* start({ home: "plan.md", wrap: faults.wrap });
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		yield* faults.fail();
-		expect(yield* events.watching(false)).toBe(false);
-		yield* Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 1500)));
-		yield* events.close();
-		const retries = faults.attempts.slice(1);
-		const gaps = retries.slice(1).map((at, index) => at - (retries[index] ?? at));
-		expect(retries.length).toBeGreaterThanOrEqual(3);
-		expect(retries.length).toBeLessThanOrEqual(8);
-		expect(gaps.every((gap, index) => gap > (gaps[index - 1] ?? 0))).toBe(true);
-	});
-});
-
-describe("a folder whose own name starts with a dot", () => {
-	boardStory.it(
-		"lists, serves and watches it, and still skips dot folders and node_modules inside it",
-		[
-			nestedProject(".notes"),
-			projectFiles({ ".hidden/x.md": "# Hidden", "node_modules/x.md": "# Dependency", "notes/log.md": "# Log", "plan.md": "# Plan" }),
-			boardHome("plan.md"),
-		],
-		function* ({ board, editFile, watchProject }) {
-			const home = yield* Effect.promise(async () => (await fetch(board.url)).text());
-			expect(home).toContain("data-board-react-root");
-			expect(yield* rpcPaths(board)).toContain("/notes/log.md");
-			expect(yield* rpcPaths(board)).toEqual(["/notes/log.md", "/plan.md"]);
-			expect((yield* rpcDocument(board, "/notes/log.md")).source).toContain("# Log");
-			expect((yield* Effect.promise(() => fetch(`${board.url}/.hidden/x.md`))).status).toBe(HttpStatus.fromLiteral("NotFound"));
-			expect((yield* Effect.promise(() => fetch(`${board.url}/node_modules/x.md`))).status).toBe(HttpStatus.fromLiteral("NotFound"));
-			const events = yield* watchProject();
-			expect(yield* events.next()).toEqual({ _tag: "Resync" });
-			expect((yield* rpcWatcher(board)).watching).toBe(true);
-			editFile(".hidden/x.md", "# Hidden, edited\n");
-			editFile("notes/log.md", "# Log\n\nEdited.\n");
-			const seen = yield* changesUntil(events, "notes/log.md");
-			expect(JSON.stringify(seen)).not.toContain(".hidden/x.md");
-			yield* events.close();
-		},
-	);
-});
+		expect(yield* nextChange()).toEqual(["document notes/log.md", "workspace index"]);
+	},
+);

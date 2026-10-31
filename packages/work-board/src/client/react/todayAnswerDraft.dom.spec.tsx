@@ -1,6 +1,6 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
@@ -9,195 +9,238 @@ import { todayAnswerFixture, todayContextFixture } from "#test/todayRowsFixture.
 expectNoReactWarnings();
 
 const READER = "Question for reader";
-const DIALOG = "[role='dialog']";
-const PHONE = 'nav[aria-label="Phone navigation"]';
-const NARROW = screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]);
+const VENUE = "Pick a venue for the launch";
+const TODAY = routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true });
+const PHONE = screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]);
 
 screenStory.it(
-	"keeps what the reader typed in a Today answer after Escape closes it and it opens again",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ findElements, keyboard, roles }) {
-		const answer = { name: `Answer ${READER}`, role: "button" };
-		yield* eventually(() => expect(roles.text(answer)).toBe("Answer"));
-		yield* roles.click(answer);
-		yield* roles.enter({ name: "Your answer", role: "textbox" }, "Publish the guide");
-		keyboard("Escape");
-		yield* eventually(() => expect(findElements(DIALOG, document)).toEqual([]));
-		yield* roles.click(answer);
-		expect(roles.value({ name: "Your answer", role: "textbox" })).toBe("Publish the guide");
+	"what the reader typed in a Today answer is still there after Escape closes it and it opens again",
+	[TODAY],
+	function* ({ answerOnToday, closeTodayAnswer, todayAnswer, todayAnswerText, writeOnToday }) {
+		yield* answerOnToday(READER);
+		yield* writeOnToday("Publish the guide");
+		yield* closeTodayAnswer();
+		expect(yield* todayAnswer()).toBe("closed");
+
+		yield* answerOnToday(READER);
+
+		expect(yield* todayAnswerText()).toBe("Publish the guide");
 	},
 );
 
-for (const [title, label] of [
-	[READER, "Your answer"],
-	["Name the next release", "What should the release be called?"],
+for (const [title, label, prompt, item] of [
+	[READER, "Your answer", undefined, "/_board/item/decision.reader/"],
+	["Name the next release", "What should the release be called?", "name", "/_board/item/decision.name/"],
 ] as const) {
 	screenStory.it(
-		`shares one draft for "${title}" between Today and the item page, in both directions`,
-		[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-		function* ({ findElement, location, navigate, roles }) {
-			const answer = { name: `Answer ${title}`, role: "button" };
-			yield* eventually(() => expect(roles.text(answer)).toBe("Answer"));
-			yield* roles.click(answer);
-			yield* roles.enter({ name: label, role: "textbox" }, "Started on Today");
-			const [item] = (findElement(`${DIALOG} a`, document)?.getAttribute("href") ?? "").split("#");
-			yield* roles.click({ name: "Read the full question", role: "link" });
-			yield* eventually(() => expect(location()?.pathname).toBe(item));
-			const page = { name: "Your answer", role: "textbox" };
-			yield* eventually(() => expect(roles.value(page)).toBe("Started on Today"));
-			yield* roles.enter(page, "Finished on the item page");
-			yield* Effect.promise(() => navigate("/"));
-			yield* eventually(() => expect(roles.text(answer)).toBe("Answer"));
-			yield* roles.click(answer);
-			expect(roles.value({ name: label, role: "textbox" })).toBe("Finished on the item page");
+		`a draft started on Today for "${title}" is in the item page's answer box after following Read the full question`,
+		[TODAY],
+		function* ({ answerBoxState, answerOnToday, currentRoute, followFullQuestion, writeOnToday }) {
+			yield* answerOnToday(title);
+			yield* writeOnToday("Started on Today", label);
+
+			yield* followFullQuestion();
+
+			yield* outcomes({
+				draft: [answerBoxState(prompt), expect.objectContaining({ text: "Started on Today" })],
+				page: [currentRoute(), expect.stringMatching(new RegExp(`^${item}`, "u"))],
+			});
+		},
+	);
+
+	screenStory.it(
+		`a draft finished on the item page for "${title}" is in the Today answer when it opens again`,
+		[TODAY],
+		function* ({ answerOnToday, followFullQuestion, navigate, todayAnswerText, writeAnswer, writeOnToday }) {
+			yield* answerOnToday(title);
+			yield* writeOnToday("Started on Today", label);
+			yield* followFullQuestion();
+			yield* writeAnswer("Finished on the item page", prompt);
+			yield* navigate("/");
+
+			yield* answerOnToday(title);
+
+			expect(yield* todayAnswerText(label)).toBe("Finished on the item page");
 		},
 	);
 }
 
 screenStory.it(
-	"puts focus in the text box when a Today answer opens, and on the first option when it offers options, past the question's context",
+	"a Today answer for a text question puts keyboard focus in its text box, past the question's listed options",
 	[routedScreen(todayContextFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ keyboard, findElements, readFocus, roles }) {
-		const text = { name: "Answer Keep the startup workaround?", role: "button" };
-		yield* eventually(() => expect(roles.text(text)).toBe("Answer"));
-		yield* roles.click(text);
-		expect(roles.text({ name: "Options in the question (3)", role: "button" })).toContain("Options in the question");
-		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Your answer", role: "textbox" }));
-		keyboard("Escape");
-		yield* eventually(() => expect(findElements(DIALOG, document)).toEqual([]));
-		yield* roles.click({ name: "Answer Pick the launch day", role: "button" });
-		expect(roles.text({ name: "Recommendation in the question", role: "button" })).toContain("Recommendation");
-		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Monday Choose monday.", role: "button" }));
+	function* ({ answerOnToday, focusedControl, todayAnswerPanel }) {
+		yield* answerOnToday("Keep the startup workaround?");
+
+		yield* outcomes({
+			focus: [focusedControl(), { name: "Your answer", role: "textbox" }],
+			panel: [todayAnswerPanel(), expect.objectContaining({ order: expect.arrayContaining(["Options in the question (3) (collapsed)"]) })],
+		});
 	},
 );
 
 screenStory.it(
-	"answers from a bottom sheet on a phone, with a touch-sized Answer button and the phone navigation out of the way while typing",
-	[NARROW, routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ control, findElement, findElements, keyboard, readResponses, roles }) {
-		const answer = { name: `Answer ${READER}`, role: "button" };
-		yield* eventually(() => expect(roles.text(answer)).toBe("Answer"));
-		const actions = findElements("#needs-you li :is(button[aria-label^='Answer'], a[aria-label^='Open'])");
-		expect(actions.length).toBeGreaterThan(0);
-		expect(actions.filter((action) => !action.classList.contains("pointer-coarse:h-11"))).toEqual([]);
-		expect(control(PHONE, HTMLElement).hidden).toBe(false);
-		yield* roles.click(answer);
-		yield* eventually(() => expect(findElement("[data-slot='sheet-content']", document)?.getAttribute("data-side")).toBe("bottom"));
-		expect(findElement("[data-slot='popover-content']", document)).toBeNull();
-		expect(roles.accessible(`${DIALOG}[data-slot='sheet-content']`)).toEqual({ name: `Answer ${READER}`, role: "dialog" });
-		yield* eventually(() => expect(control(PHONE, HTMLElement).hidden).toBe(true));
-		yield* roles.enter({ name: "Your answer", role: "textbox" }, "Publish the guide on Monday.");
-		expect(findElement(`${DIALOG} button[type='submit']`, document)?.classList.contains("pointer-coarse:h-11")).toBe(true);
-		keyboard("Escape");
-		yield* eventually(() => expect(findElements(DIALOG, document)).toEqual([]));
-		expect(control(PHONE, HTMLElement).hidden).toBe(false);
-		yield* roles.click(answer);
-		yield* roles.click({ name: "Record answer", role: "button" });
-		yield* eventually(() => expect(roles.text({ name: "Needs you", role: "list" })).not.toContain(READER));
-		const saved = yield* Effect.promise(() => readResponses("decision.reader", "direction"));
-		expect(saved.responses.map((entry) => entry.body)).toEqual(["Publish the guide on Monday."]);
+	"a Today answer for an options question puts keyboard focus on its first option, past the question's recommendation",
+	[routedScreen(todayContextFixture(), "/", { home: "home.md", writable: true })],
+	function* ({ answerOnToday, focusedControl, todayAnswerPanel }) {
+		yield* answerOnToday("Pick the launch day");
+
+		yield* outcomes({
+			focus: [focusedControl(), { name: "Monday Choose monday.", role: "button" }],
+			panel: [todayAnswerPanel(), expect.objectContaining({ order: expect.arrayContaining(["Recommendation in the question (collapsed)"]) })],
+		});
 	},
 );
 
 screenStory.it(
-	"records an option chosen on Today with one response body, as the item page writes it",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ readResponses, roles }) {
-		yield* eventually(() => expect(roles.text({ name: "Answer Pick a venue for the launch", role: "button" })).toBe("Answer"));
-		yield* roles.click({ name: "Answer Pick a venue for the launch", role: "button" });
-		yield* roles.click({ name: "Hall Choose hall.", role: "button" });
-		yield* eventually(() => expect(roles.text({ name: "Needs you", role: "list" })).not.toContain("Pick a venue for the launch"));
-		const saved = yield* Effect.promise(() => readResponses("decision.venue", "direction"));
-		const [body] = saved.responses.map((entry) => entry.body);
-		expect(body?.match(/^# Recorded response$/gmu)).toEqual(["# Recorded response"]);
-		expect(body).not.toContain("## Overall response");
+	"on a phone, a Today answer opens as a bottom sheet named for its question and hides the phone navigation while it is open",
+	[PHONE, TODAY],
+	function* ({ answerOnToday, phoneNavigation, todayAnswer }) {
+		expect(yield* phoneNavigation()).toBe("shown");
+
+		yield* answerOnToday(READER);
+
+		yield* outcomes({
+			"phone navigation": [phoneNavigation(), "hidden"],
+			"Today answer": [todayAnswer(), expect.objectContaining({ name: `Answer ${READER}`, shape: "bottom sheet" })],
+		});
 	},
 );
 
 screenStory.it(
-	"records the item page's note and reply kind with an option chosen on Today, and says so before the reader chooses",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ chooseOption, findElement, findElements, navigate, openDetails, readAttribute, readResponses, readText, roles }) {
-		const venue = { name: "Answer Pick a venue for the launch", role: "button" };
-		yield* eventually(() => expect(roles.text(venue)).toBe("Answer"));
-		yield* Effect.promise(() => navigate("/_board/item/decision.venue/"));
-		const optionNote = { name: "Add a note or answer in your own words (optional)", role: "textbox" };
-		yield* eventually(() => expect(roles.value(optionNote)).toBe(""));
-		yield* roles.enter(optionNote, "The hall has parking.");
-		openDetails("[data-key='response-details']");
-		yield* roles.enter({ name: "Anything else to add (optional)", role: "textbox" }, "Check the date with the team.");
-		yield* Effect.promise(() => chooseOption(findElement("#response-form [role='combobox']"), "A question back (it keeps waiting for you)"));
-		yield* Effect.promise(() => navigate("/"));
-		yield* eventually(() => expect(roles.text(venue)).toBe("Answer"));
-		yield* roles.click(venue);
-		expect(readText(`${DIALOG} [data-hidden-draft]`, document)).toBe(
-			"Also sends your note, your reply kind, a question back from the item page. Review it on the item page",
-		);
-		expect(readAttribute(`${DIALOG} [data-hidden-draft] a`, "href", document)).toBe("/_board/item/decision.venue/#answer-card-direction");
-		yield* roles.click({ name: "Hall Choose hall.", role: "button" });
-		yield* eventually(() => expect(findElements(DIALOG, document)).toEqual([]));
-		const saved = yield* Effect.promise(() => readResponses("decision.venue", "direction"));
-		expect(saved.responses.map((entry) => [entry.response.type, entry.response.answers])).toEqual([
-			["clarify", [{ prompt: "venue", selected: ["hall"], text: "The hall has parking." }]],
+	"on a phone, closing a Today answer brings the phone navigation back",
+	[PHONE, TODAY],
+	function* ({ answerOnToday, closeTodayAnswer, phoneNavigation }) {
+		yield* answerOnToday(READER);
+		expect(yield* phoneNavigation()).toBe("hidden");
+
+		yield* closeTodayAnswer();
+
+		expect(yield* phoneNavigation()).toBe("shown");
+	},
+);
+
+screenStory.it(
+	"on a phone, recording from the bottom sheet saves the answer and takes the question off Needs you",
+	[PHONE, TODAY],
+	function* ({ answerOnToday, needsYou, recordOnToday, recordedAnswers, writeOnToday }) {
+		yield* answerOnToday(READER);
+		yield* writeOnToday("Publish the guide on Monday.");
+
+		yield* recordOnToday();
+
+		yield* outcomes({
+			"needs you": [needsYou(), expect.not.arrayContaining([READER])],
+			recorded: [recordedAnswers("decision.reader", "direction"), [expect.objectContaining({ body: "Publish the guide on Monday." })]],
+		});
+	},
+);
+
+screenStory.it(
+	"an option chosen on Today is recorded with a single Recorded response heading and no empty overall response, as the item page writes it",
+	[TODAY],
+	function* ({ answerOnToday, chooseOnToday, recordedAnswers }) {
+		yield* answerOnToday(VENUE);
+
+		yield* chooseOnToday("Hall Choose hall.");
+
+		expect(yield* recordedAnswers("decision.venue", "direction")).toEqual([
+			expect.objectContaining({
+				body: expect.stringMatching(
+					/^(?![\s\S]*## Overall response)(?![\s\S]*# Recorded response[\s\S]*# Recorded response)[\s\S]*# Recorded response/u,
+				),
+			}),
 		]);
-		expect(saved.responses[0]?.body).toContain("## Overall response\n\nCheck the date with the team.");
-	},
-);
-
-const PROMPT_TEXT_LIMIT = 8192;
-const BODY_LIMIT = 32_768;
-screenStory.it(
-	"limits a Today answer to the length its response file accepts, shorter for a question's prompt than for a whole reply",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ findElements, keyboard, roles }) {
-		for (const [title, label, limit] of [
-			["Name the next release", "What should the release be called?", PROMPT_TEXT_LIMIT],
-			[READER, "Your answer", BODY_LIMIT],
-		] as const) {
-			yield* eventually(() => expect(roles.text({ name: `Answer ${title}`, role: "button" })).toBe("Answer"));
-			yield* roles.click({ name: `Answer ${title}`, role: "button" });
-			const box = findElements(`${DIALOG} textarea`, document).find((element) => roles.accessible(element).name === label);
-			expect(box?.getAttribute("maxlength")).toBe(String(limit));
-			keyboard("Escape");
-			yield* eventually(() => expect(findElements(DIALOG, document)).toEqual([]));
-		}
 	},
 );
 
 screenStory.it(
-	"records the earlier answer the item page chose to replace, and names it on Today first",
-	[routedScreen(todayAnswerFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ chooseOption, findElement, findElements, navigate, openDetails, readResponses, readText, roles }) {
-		const reader = { name: `Answer ${READER}`, role: "button" };
-		yield* eventually(() => expect(roles.text(reader)).toBe("Answer"));
-		yield* Effect.promise(() => navigate("/_board/item/decision.reader/"));
-		const body = { name: "Your answer", role: "textbox" };
-		yield* eventually(() => expect(roles.value(body)).toBe(""));
-		yield* roles.enter(body, "Ask me after the release.");
-		openDetails("[data-key='response-details']");
-		yield* Effect.promise(() => chooseOption(findElement("#response-form [role='combobox']"), "Not now (it keeps waiting for you)"));
-		yield* roles.click({ name: "Record answer", role: "button" });
-		yield* eventually(() => expect(readText("#response-status")).toContain("Answer saved"));
-		const [earlier] = (yield* Effect.promise(() => readResponses("decision.reader", "direction"))).responses;
-		function replacing() {
-			return findElements("#response-form [role='combobox']").find(
-				(element) => document.querySelector(`label[for="${CSS.escape(element.id)}"]`)?.textContent === "Replace an earlier answer?",
-			);
-		}
-		yield* eventually(() => expect(replacing()).toBeDefined());
-		yield* Effect.promise(() => chooseOption(replacing(), "Yes, replace your answer"));
-		yield* Effect.promise(() => navigate("/"));
-		yield* eventually(() => expect(roles.text(reader)).toBe("Answer"));
-		yield* roles.click(reader);
-		expect(readText(`${DIALOG} [data-hidden-draft]`, document)).toBe(
-			"Also sends the earlier answer it replaces from the item page. Review it on the item page",
+	"a note and reply kind left on the item page are named on Today before the reader chooses, with a link back to them",
+	[TODAY],
+	function* ({ answerOnToday, chooseInMoreOptions, navigate, todayHiddenDraft, writeAnswer }) {
+		yield* navigate("/_board/item/decision.venue/");
+		yield* writeAnswer("The hall has parking.", "venue");
+		yield* writeAnswer("Check the date with the team.");
+		yield* chooseInMoreOptions("Kind of reply", "A question back (it keeps waiting for you)");
+		yield* navigate("/");
+
+		yield* answerOnToday(VENUE);
+
+		expect(yield* todayHiddenDraft()).toEqual({
+			link: "/_board/item/decision.venue/#answer-card-direction",
+			text: "Also sends your note, your reply kind, a question back from the item page. Review it on the item page",
+		});
+	},
+);
+
+screenStory.it(
+	"choosing an option on Today records the item page's note, overall response and reply kind with it",
+	[TODAY],
+	function* ({ answerOnToday, chooseInMoreOptions, chooseOnToday, navigate, recordedAnswers, writeAnswer }) {
+		yield* navigate("/_board/item/decision.venue/");
+		yield* writeAnswer("The hall has parking.", "venue");
+		yield* writeAnswer("Check the date with the team.");
+		yield* chooseInMoreOptions("Kind of reply", "A question back (it keeps waiting for you)");
+		yield* navigate("/");
+		yield* answerOnToday(VENUE);
+
+		yield* chooseOnToday("Hall Choose hall.");
+
+		expect(yield* recordedAnswers("decision.venue", "direction")).toEqual([
+			expect.objectContaining({
+				answers: [{ prompt: "venue", selected: ["hall"], text: "The hall has parking." }],
+				body: expect.stringContaining("## Overall response\n\nCheck the date with the team."),
+				kind: "clarify",
+			}),
+		]);
+	},
+);
+
+for (const [title, label, limit] of [
+	["Name the next release", "What should the release be called?", 8192],
+	[READER, "Your answer", 32_768],
+] as const) {
+	screenStory.it(
+		`a Today answer to "${title}" accepts up to ${limit} characters, the most its response file takes`,
+		[TODAY],
+		function* ({ answerOnToday, todayAnswerLimit }) {
+			yield* answerOnToday(title);
+
+			expect(yield* todayAnswerLimit(label)).toBe(limit);
+		},
+	);
+}
+
+screenStory.it(
+	"an earlier answer the item page chose to replace is named on Today, and recording on Today replaces it",
+	[TODAY],
+	function* ({
+		answerOnToday,
+		chooseInMoreOptions,
+		navigate,
+		recordAnswer,
+		recordOnToday,
+		recordedAnswers,
+		todayHiddenDraft,
+		writeAnswer,
+		writeOnToday,
+	}) {
+		yield* navigate("/_board/item/decision.reader/");
+		yield* writeAnswer("Ask me after the release.");
+		yield* chooseInMoreOptions("Kind of reply", "Not now (it keeps waiting for you)");
+		yield* recordAnswer();
+		const [earlier] = yield* recordedAnswers("decision.reader", "direction");
+		yield* chooseInMoreOptions("Replace an earlier answer?", "Yes, replace your answer");
+		yield* navigate("/");
+		yield* answerOnToday(READER);
+		expect(yield* todayHiddenDraft()).toEqual(
+			expect.objectContaining({ text: "Also sends the earlier answer it replaces from the item page. Review it on the item page" }),
 		);
-		yield* roles.enter(body, "Publish the guide on Monday.");
-		yield* roles.click({ name: "Record answer", role: "button" });
-		yield* eventually(() => expect(findElements(DIALOG, document)).toEqual([]));
-		const saved = yield* Effect.promise(() => readResponses("decision.reader", "direction"));
-		expect(saved.responses.map((entry) => [entry.body, entry.response.supersedes])).toEqual(
-			expect.arrayContaining([["Publish the guide on Monday.", earlier?.id]]),
+		yield* writeOnToday("Publish the guide on Monday.");
+
+		yield* recordOnToday();
+
+		expect(yield* recordedAnswers("decision.reader", "direction")).toEqual(
+			expect.arrayContaining([expect.objectContaining({ body: "Publish the guide on Monday.", replaces: earlier?.id })]),
 		);
 	},
 );

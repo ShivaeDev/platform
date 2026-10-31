@@ -1,31 +1,34 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { chromeScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
-const files = {
-	"home.md": "# Home\n",
-	"notes/plan.md": "# Plan\n\n![Evidence](../shots/review.png)\n",
-};
 
-screenStory.it(
-	"inspects a local image in a dialog that Escape and Close dismiss back to the image",
-	[chromeScreen(files)],
-	function* ({ keyboard, readFocus, roles }) {
-		const image = { name: "Inspect image: Evidence", role: "button" } as const;
-		const viewer = { name: "Visual evidence", role: "dialog" } as const;
-		yield* eventually(() => expect(() => roles.text(image)).not.toThrow());
-		expect(() => roles.text(viewer)).toThrow(/has 0 matches/u);
-		yield* roles.click(image);
-		yield* eventually(() => expect(roles.text(viewer)).toContain("Evidence · 1 of 1"));
-		keyboard("Escape");
-		yield* eventually(() => expect(() => roles.text(viewer)).toThrow(/has 0 matches/u));
-		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual(image));
-		yield* roles.click(image);
-		yield* eventually(() => expect(() => roles.text(viewer)).not.toThrow());
-		yield* roles.click({ name: "Close", role: "button" });
-		yield* eventually(() => expect(() => roles.text(viewer)).toThrow(/has 0 matches/u));
-		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual(image));
-	},
-);
+const plan = readingPage({ "home.md": "# Home\n", "notes/plan.md": "# Plan\n\n![Evidence](../shots/review.png)\n" }, "/notes/plan.md");
+
+screenStory.it("inspecting a local image opens the image viewer on that image", [plan], function* ({ imageViewer, inspectImage }) {
+	expect(yield* imageViewer()).toBe("closed");
+
+	yield* inspectImage("Evidence");
+
+	expect(yield* imageViewer()).toBe("Evidence · 1 of 1 · /_board/attachment/shots/review.png · notes/plan.md");
+});
+
+for (const way of ["Escape", "Close"] as const) {
+	screenStory.it(
+		`${way} closes the image viewer and returns focus to the image`,
+		[plan],
+		function* ({ closeViewer, imageViewer, inspectImage, readerFocus }) {
+			yield* inspectImage("Evidence");
+
+			yield* closeViewer(way);
+
+			yield* outcomes({
+				focus: [readerFocus(), "button Inspect image: Evidence"],
+				viewer: [imageViewer(), "closed"],
+			});
+		},
+	);
+}

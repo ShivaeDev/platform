@@ -1,31 +1,32 @@
-import { Order } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { indexedAliases } from "#test/indexedAliases.ts";
 import { indexedFiles, indexStory } from "#test/indexStory.ts";
 
-const files = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [`notes/deep/item-${index}.md`, `# Item ${index}`]));
-
-indexStory.it("shares path and directory checks across a full nested-folder read", [indexedFiles(files)], function* ({ readIndex, pathChecks }) {
-	const snapshot = yield* readIndex();
-
-	expect(snapshot.documents.map((document) => document.file).sort(Order.String)).toEqual(Object.keys(files).sort(Order.String));
-	expect(snapshot.unavailable).toEqual([]);
-	expect(pathChecks()).toBeLessThan(4 * Object.keys(files).length);
-});
+const NOTES = 100;
+const nestedNotes = Object.fromEntries(Array.from({ length: NOTES }, (_, index) => [`notes/deep/item-${index}.md`, `# Item ${index}`]));
 
 indexStory.it(
-	"resolves retargeted aliases afresh during the next full read",
+	"the first full read of 100 nested notes checks paths and directories fewer than four times per note",
+	[indexedFiles(nestedNotes)],
+	function* ({ pathChecks }) {
+		expect(yield* pathChecks()).toBeLessThan(4 * NOTES);
+	},
+);
+
+indexStory.it(
+	"a full check resolves an alias that now points at another folder",
 	[indexedFiles({ "first/note.md": "# First", "second/note.md": "# Second" }), indexedAliases],
-	function* ({ readIndex, moveFile, invalidate }) {
-		const before = yield* readIndex();
-		expect(before.documents.find((document) => document.file === "alias/note.md")?.parsed.body).toBe("# First");
+	function* ({ bodyOf, editorMoves, fullCheckRuns, unavailableFiles }) {
+		expect(yield* bodyOf("alias/note.md")).toBe("# First");
 
-		moveFile("alias", "previous");
-		moveFile("replacement", "alias");
-		yield* invalidate();
-		const after = yield* readIndex();
+		yield* editorMoves("alias", "previous");
+		yield* editorMoves("replacement", "alias");
+		yield* fullCheckRuns();
 
-		expect(after.documents.find((document) => document.file === "alias/note.md")?.parsed.body).toBe("# Second");
-		expect(after.unavailable).toEqual([]);
+		yield* outcomes({
+			"body of alias/note.md": [bodyOf("alias/note.md"), "# Second"],
+			"unavailable files": [unavailableFiles(), []],
+		});
 	},
 );

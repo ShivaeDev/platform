@@ -1,54 +1,63 @@
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
-import { expect, vi } from "vitest";
-import * as records from "#server/responses/records.ts";
-import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
-import { waitFor } from "#test/live.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
+import { indexClientSubscribed, recordParsingObserved } from "#test/liveTraits.ts";
 import { responseWorkspace } from "#test/responseWorkspace.ts";
 
+const files = responseWorkspace(20);
+const project = [projectFiles(files), responsesEnabled(), recordParsingObserved, indexClientSubscribed];
+const opened = ["decisions/decision-9.md", "document-1.md", "document-2.md"];
+
 boardStory.it(
-	"reuses validated response history across HTTP and RPC document opens and refreshes the Inbox after a watched answer edit",
-	[projectFiles(responseWorkspace(20)), deferredServing],
-	function* ({ start, editFile, connectClient }) {
-		const files = responseWorkspace(20);
-		const board = yield* start({ responses: true });
-		const client = connectClient();
-		const initial = yield* Effect.promise(() => client.run(client.api.inbox.run()));
-		expect(initial.you.map((item) => item.id).sort()).toEqual(["decision.fixture.19", "decision.fixture.9"]);
-		expect((yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "" })))).inboxCount).toBe(initial.you.length);
-		const responses = vi.spyOn(records, "responseFrom");
-		const questions = vi.spyOn(records, "questionFrom");
-		try {
-			for (const file of ["document-1.md", "document-2.md", "decisions/decision-9.md"]) {
-				const page = yield* Effect.promise(() => fetch(`${board.url}/${file}`));
-				expect(page.status).toBe(HttpStatus.fromLiteral("OK"));
-				expect(yield* Effect.promise(() => page.text())).toContain("data-board-react-root");
-				const content = yield* Effect.promise(() => client.run(client.api.document.run({ url: `/${file}` })));
-				expect(content.file).toBe(file);
-			}
-			expect(responses).not.toHaveBeenCalled();
-			expect(new Set(questions.mock.calls.map(([source]) => source.file))).toEqual(
-				new Set(["document-1.md", "document-2.md", "decisions/decision-9.md"]),
-			);
-			editFile("responses/answer-0-current.md", files["responses/answer-0-current.md"]?.replace("type: answer", "type: not_now") ?? "");
-			yield* Effect.promise(() =>
-				waitFor(async () => {
-					const inbox = await client.run(client.api.inbox.run());
-					expect(inbox.you.map((item) => item.id).sort()).toEqual(["decision.fixture.0", "decision.fixture.19", "decision.fixture.9"]);
-					expect((await client.run(client.api.navigation.run({ current: "" }))).inboxCount).toBe(inbox.you.length);
-				}),
-			);
-			const refreshed = yield* Effect.promise(() => client.run(client.api.inbox.run()));
-			responses.mockClear();
-			questions.mockClear();
-			expect((yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "document-1.md" })))).inboxCount).toBe(
-				refreshed.you.length,
-			);
-			expect(responses).not.toHaveBeenCalled();
-			expect(questions).not.toHaveBeenCalled();
-		} finally {
-			responses.mockRestore();
-			questions.mockRestore();
+	"once the Inbox has read the response history, opening documents over HTTP and RPC parses no responses and only those documents' questions",
+	project,
+	function* ({ httpAnswer, inboxDecisions, parsedQuestions, parsedResponses, recordParsing, sourceOf }) {
+		expect(yield* inboxDecisions()).toEqual(["decision.fixture.19", "decision.fixture.9"]);
+		recordParsing();
+
+		for (const file of opened) {
+			yield* httpAnswer(`/${file}`);
+			yield* sourceOf(file);
 		}
+
+		yield* outcomes({
+			"parsed questions": [parsedQuestions(), opened],
+			"parsed responses": [parsedResponses(), []],
+		});
+	},
+);
+
+boardStory.it(
+	"a watched edit that turns an answer into not now puts its decision back in the Inbox and on the badge",
+	project,
+	function* ({ editFile, inboxDecisions, needsYouBadge, nextChange }) {
+		expect(yield* inboxDecisions()).toEqual(["decision.fixture.19", "decision.fixture.9"]);
+
+		editFile("responses/answer-0-current.md", files["responses/answer-0-current.md"]?.replace("type: answer", "type: not_now") ?? "");
+		yield* nextChange();
+
+		yield* outcomes({
+			"the badge": [needsYouBadge(), 3],
+			"the Inbox": [inboxDecisions(), ["decision.fixture.0", "decision.fixture.19", "decision.fixture.9"]],
+		});
+	},
+);
+
+boardStory.it(
+	"after the Inbox has caught up with an answer edit, reading navigation parses no records again",
+	project,
+	function* ({ boardRead, editFile, inboxDecisions, nextChange, parsedQuestions, parsedResponses, recordParsing }) {
+		expect(yield* inboxDecisions()).toEqual(["decision.fixture.19", "decision.fixture.9"]);
+		editFile("responses/answer-0-current.md", files["responses/answer-0-current.md"]?.replace("type: answer", "type: not_now") ?? "");
+		yield* nextChange();
+		expect(yield* inboxDecisions()).toEqual(["decision.fixture.0", "decision.fixture.19", "decision.fixture.9"]);
+		recordParsing();
+
+		yield* boardRead("navigation");
+
+		yield* outcomes({
+			"parsed questions": [parsedQuestions(), []],
+			"parsed responses": [parsedResponses(), []],
+		});
 	},
 );

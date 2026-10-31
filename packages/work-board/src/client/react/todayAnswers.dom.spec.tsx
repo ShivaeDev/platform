@@ -1,6 +1,7 @@
 import { Clock, Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 import { answeredTwiceFixture, recentAnswersFixture, sharedHeadingFixture } from "#test/responseRecords.ts";
 import { unreadableHome } from "#test/screenEnvironment.ts";
@@ -10,112 +11,129 @@ import { screenFiles } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
 
-const ROWS = "ul[aria-label='Answered'] > li";
 const STORAGE = "Where should the project documents live?";
-const OPTIONS = `[aria-label='Options for ${STORAGE}'] button:not([data-slot='collapsible-trigger'])`;
+const KEEP_LOCAL = "Keep local files · Recommended Read and write Markdown in the project folder.";
+const INBOX = routedScreen({ "home.md": "# Release plans\n", "question.md": inboxQuestion }, "/", { home: "home.md", writable: true });
+const UNREADABLE = "Some files couldn't be read, so what needs you is unknown.";
+const NOW = Effect.runSync(Clock.currentTimeMillis);
 
 screenStory.it(
-	"keeps the question just answered on Today at inbox zero and says when its agent acts",
-	[routedScreen({ "home.md": "# Release plans\n", "question.md": inboxQuestion }, "/", { home: "home.md", writable: true })],
-	function* ({ activate, answeredRows, click, editFile, findElement, readText, refreshInbox }) {
-		yield* eventually(() => expect(findElement("[data-attention-id='question.storage'] button")).not.toBeNull());
-		click("[data-attention-id='question.storage'] button[aria-haspopup='dialog']");
-		yield* eventually(() => expect(findElement(OPTIONS, document)).not.toBeNull());
-		yield* Effect.promise(() => activate(OPTIONS));
-		yield* eventually(() => expect(answeredRows()).toEqual([[STORAGE, "You chose Keep local files · Waiting on the agent."]]));
-		expect(readText('#needs-you [data-slot="empty-title"]')).toBe("Nothing needs you");
-		expect(findElement("#needs-you a[href='/_board/start']")).toBeNull();
-		expect(readText(`${ROWS} time`)).toBe("just now");
-		editFile("question.md", inboxQuestion.replace("status: ready", "status: done"));
-		yield* Effect.promise(refreshInbox);
-		yield* eventually(() => expect(answeredRows()).toEqual([[STORAGE, "You chose Keep local files · It's closed now."]]));
-		editFile("question.md", `${inboxQuestion}\nThe shared drive is gone.\n`);
-		yield* Effect.promise(refreshInbox);
-		yield* eventually(() =>
-			expect(answeredRows()).toEqual([[STORAGE, "You chose Keep local files · The question changed after the answer, so it asks again."]]),
-		);
-		expect(findElement("[data-attention-id='question.storage']")).not.toBeNull();
+	"choosing an option on Today moves the question to Answered as waiting on its agent, leaving Needs you empty without offering Getting started",
+	[INBOX],
+	function* ({ answerOnToday, answeredRows, chooseOnToday, gettingStarted, needsYou }) {
+		yield* answerOnToday(STORAGE);
+
+		yield* chooseOnToday(KEEP_LOCAL);
+
+		yield* outcomes({
+			answered: [answeredRows(), [[STORAGE, "You chose Keep local files · Waiting on the agent."]]],
+			"getting started": [gettingStarted(), "not offered"],
+			"needs you": [needsYou(), "Nothing needs you"],
+		});
 	},
 );
 
 screenStory.it(
-	"lists every answer still waiting on its agent and only the reader's own acted-on answers from the last week",
-	[routedScreen(recentAnswersFixture(Effect.runSync(Clock.currentTimeMillis)), "/", { home: "home.md" })],
+	"an answered question that closes says on Today that it's closed now",
+	[INBOX],
+	function* ({ answerOnToday, answeredRows, chooseOnToday, editFile, refreshInbox }) {
+		yield* answerOnToday(STORAGE);
+		yield* chooseOnToday(KEEP_LOCAL);
+
+		yield* editFile("question.md", inboxQuestion.replace("status: ready", "status: done"));
+		yield* refreshInbox();
+
+		expect(yield* answeredRows()).toEqual([[STORAGE, "You chose Keep local files · It's closed now."]]);
+	},
+);
+
+screenStory.it(
+	"a question changed after it was answered says it asks again and returns to Needs you",
+	[INBOX],
+	function* ({ answerOnToday, answeredRows, chooseOnToday, editFile, needsYou, refreshInbox }) {
+		yield* answerOnToday(STORAGE);
+		yield* chooseOnToday(KEEP_LOCAL);
+
+		yield* editFile("question.md", `${inboxQuestion}\nThe shared drive is gone.\n`);
+		yield* refreshInbox();
+
+		yield* outcomes({
+			answered: [answeredRows(), [[STORAGE, "You chose Keep local files · The question changed after the answer, so it asks again."]]],
+			"needs you": [needsYou(), [STORAGE]],
+		});
+	},
+);
+
+screenStory.it(
+	"Answered lists every answer still waiting on its agent, and of the answers agents acted on, only the reader's own from the last week",
+	[routedScreen(recentAnswersFixture(NOW), "/", { home: "home.md" })],
 	function* ({ answeredRows }) {
-		yield* eventually(() =>
-			expect(answeredRows()).toEqual([
-				["Ship the guide this week?", "You chose Yes · It's closed now."],
-				["Drop the old flag?", "reviewer chose Yes · Waiting on the agent."],
-				["Keep the release branch?", "You chose Yes · Waiting on the agent."],
-			]),
-		);
+		expect(yield* answeredRows()).toEqual([
+			["Ship the guide this week?", "You chose Yes · It's closed now."],
+			["Drop the old flag?", "reviewer chose Yes · Waiting on the agent."],
+			["Keep the release branch?", "You chose Yes · Waiting on the agent."],
+		]);
 	},
 );
 
-for (const [workspace, files, guide] of [
-	["holds no identified documents", { "notes.md": "# Notes\n" }, true],
-	["holds identified work", { "task.md": "---\nid: task.done\nkind: task\nstatus: done\n---\n# Finished task\n" }, false],
+for (const [workspace, files, offered] of [
+	["holds no identified documents", { "notes.md": "# Notes\n" }, "offered"],
+	["holds identified work", { "task.md": "---\nid: task.done\nkind: task\nstatus: done\n---\n# Finished task\n" }, "not offered"],
 ] as const) {
 	screenStory.it(
-		`offers Getting started at inbox zero only when the workspace ${workspace}`,
+		`an empty Needs you offers Getting started only when the workspace ${workspace}`,
 		[routedScreen(files, "/")],
-		function* ({ findElement, readText }) {
-			yield* eventually(() => expect(readText('#needs-you [data-slot="empty-title"]')).toBe("Nothing needs you"));
-			expect(findElement("#needs-you a[href='/_board/start']") !== null).toBe(guide);
+		function* ({ gettingStarted, needsYou }) {
+			yield* outcomes({
+				"getting started": [gettingStarted(), offered],
+				"needs you": [needsYou(), "Nothing needs you"],
+			});
 		},
 	);
 }
 
 screenStory.it(
-	"names the home document after its own title and keeps Workspace for the Board as a whole",
+	"Today links the home document by its own title, while the location trail still calls the whole Board Workspace",
 	[routedScreen({ "home.md": "# Release plans\n" }, "/", { home: "home.md" })],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(readText(".today-page a[href='/home.md']")).toBe("Release plans"));
-		expect(readText("#doc")).not.toContain("Workspace notes");
-		expect(readText("nav[aria-label='File location'] a[href='/']")).toBe("Workspace");
-		expect(findElement("nav[aria-label='File location'] a[href='/home.md']")).toBeNull();
+	function* ({ fileLocation, todayHomeLink }) {
+		yield* outcomes({
+			"home link": [todayHomeLink(), { href: "/home.md", text: "Release plans" }],
+			"location trail": [fileLocation(), "Workspace/ Today"],
+		});
 	},
 );
 
 screenStory.it(
-	"says in plain words that what needs you is unknown while a workspace file cannot be read",
-	[screenFiles({ "home.md": "# Release plans\n", "question.md": inboxQuestion }, { home: "home.md" }), unreadableHome(), openScreen()],
-	function* ({ readText }) {
-		yield* eventually(() => expect(readText("#needs-you > p[role='status']")).toBe("Some files couldn't be read, so what needs you is unknown."));
+	"while a workspace file can't be read, Today says what needs you is unknown and lists no answers",
+	[screenFiles(recentAnswersFixture(NOW), { home: "home.md" }), unreadableHome(), openScreen()],
+	function* ({ answeredRows, needsYou }) {
+		yield* outcomes({
+			answered: [answeredRows(), []],
+			"needs you": [needsYou(), UNREADABLE],
+		});
 	},
 );
 
 screenStory.it(
-	"lists no answers while a workspace file cannot be read",
-	[screenFiles(recentAnswersFixture(Effect.runSync(Clock.currentTimeMillis)), { home: "home.md" }), unreadableHome(), openScreen()],
-	function* ({ answeredRows, readText }) {
-		yield* eventually(() => expect(readText("#needs-you > p[role='status']")).toBe("Some files couldn't be read, so what needs you is unknown."));
-		expect(answeredRows()).toEqual([]);
-	},
-);
-
-screenStory.it(
-	"names each answer by the item it is about and tells its questions apart by a label that never repeats it, then request ID",
-	[routedScreen(sharedHeadingFixture(Effect.runSync(Clock.currentTimeMillis)), "/", { home: "home.md" })],
+	"answers about the same item are told apart by a question label that never repeats the item's title, then by request ID",
+	[routedScreen(sharedHeadingFixture(NOW), "/", { home: "home.md" })],
 	function* ({ answeredRows }) {
-		yield* eventually(() =>
-			expect(answeredRows()).toEqual([
-				["Ship the release", "How should we proceed? · notes-blocked · You chose Retry · Waiting on the agent."],
-				["Ship the release", "How should we proceed? · review-stale · You chose Retry · Waiting on the agent."],
-				[
-					"Ship the release",
-					"The changelog wording for the release reads as a breaking change, although every… · You answered · Waiting on the agent.",
-				],
-				["Ship the release", "You answered · Waiting on the agent."],
-			]),
-		);
+		expect(yield* answeredRows()).toEqual([
+			["Ship the release", "How should we proceed? · notes-blocked · You chose Retry · Waiting on the agent."],
+			["Ship the release", "How should we proceed? · review-stale · You chose Retry · Waiting on the agent."],
+			[
+				"Ship the release",
+				"The changelog wording for the release reads as a breaking change, although every… · You answered · Waiting on the agent.",
+			],
+			["Ship the release", "You answered · Waiting on the agent."],
+		]);
 	},
 );
 
 screenStory.it(
-	"shows the latest answer when two people answered the same question",
-	[routedScreen(answeredTwiceFixture(Effect.runSync(Clock.currentTimeMillis)), "/", { home: "home.md" })],
+	"when two people answered the same question, Answered shows only the latest answer",
+	[routedScreen(answeredTwiceFixture(NOW), "/", { home: "home.md" })],
 	function* ({ answeredRows }) {
-		yield* eventually(() => expect(answeredRows()).toEqual([["Keep the beta flag?", "You chose No · Waiting on the agent."]]));
+		expect(yield* answeredRows()).toEqual([["Keep the beta flag?", "You chose No · Waiting on the agent."]]);
 	},
 );

@@ -2,14 +2,22 @@ import { act } from "react";
 import type { render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { captureReading, restoreReading } from "#client/react/readingState.ts";
+import { answersScreenVerbs } from "./answersScreenVerbs.ts";
 import { appearanceActions } from "./appearanceActions.ts";
 import { chrome } from "./chrome.ts";
 import { diagramActions } from "./diagramActions.ts";
+import { distinctVerbs } from "./distinctVerbs.ts";
+import { itemContextVerbs } from "./itemContextVerbs.ts";
+import { liveScreenVerbs } from "./liveScreenVerbs.ts";
 import { motionActions } from "./motionActions.ts";
 import { outlineActions } from "./outlineActions.ts";
+import { pagesScreenVerbs } from "./pagesScreenVerbs.ts";
 import { renderBoard } from "./react.tsx";
 import { readingActions } from "./readingActions.ts";
+import { readingPageVerbs } from "./readingPageVerbs.ts";
+import { readingScreenVerbs } from "./readingScreenVerbs.ts";
 import { renderRouter } from "./renderRouter.tsx";
+import { responsesScreenVerbs } from "./responsesScreenVerbs.ts";
 import { screenActions } from "./screenActions.ts";
 import { availabilityActions } from "./screenAvailability.tsx";
 import { screenData } from "./screenData.ts";
@@ -20,9 +28,13 @@ import { loaderObservations } from "./screenLoader.ts";
 import { screenObservations } from "./screenObservations.ts";
 import { screenOptions, screenReadVerbs } from "./screenReads.ts";
 import { screenRoles } from "./screenRoles.ts";
+import { readoutVerbs, settlingOnly, settlingVerbs } from "./screenSettle.ts";
+import { servingScreenVerbs } from "./servingScreenVerbs.ts";
 import { sessionActions } from "./sessionActions.ts";
 import { sessionTransportActions } from "./sessionTransportActions.ts";
+import { shellScreenVerbs } from "./shellScreenVerbs.ts";
 import { timeActions } from "./timeActions.tsx";
+import { workspaceScreenVerbs } from "./workspaceScreenVerbs.ts";
 
 export const screenStory = storyKit({
 	clock: "live",
@@ -33,7 +45,13 @@ export const screenStory = storyKit({
 	stages: ["workspace", "screen"],
 	verbs: (engine, story) => {
 		engine.tell = story.tell;
-		return {
+		const own = {
+			boardView() {
+				if (!engine.boardScreen) {
+					throw new Error("The story has no Board screen");
+				}
+				return engine.boardScreen;
+			},
 			captureReading: () => {
 				story.tell("the reader remembers the document selection and scroll");
 				return captureReading();
@@ -43,33 +61,6 @@ export const screenStory = storyKit({
 				const view = await chrome(files, path);
 				engine.router = view.router;
 				return trackScreen(engine, view, story.tell);
-			},
-			restoreReading: (...args: Parameters<typeof restoreReading>) => {
-				story.tell("the reader restores the remembered document reading");
-				restoreReading(...args);
-			},
-			...screenActions(story.tell),
-			...readingActions(engine, story.tell),
-			...timeActions(engine, story.tell),
-			...appearanceActions(story.tell),
-			...screenObservations(engine, story.tell),
-			...screenRoles(story.tell),
-			...screenData(engine, story.tell),
-			...loaderObservations(engine, story.tell),
-			...diagramActions(engine, story.tell),
-			...screenInteractions(engine, story.tell),
-			...sessionActions(engine, story.tell),
-			...sessionTransportActions(engine, story.tell),
-			...motionActions(engine, story.tell),
-			...outlineActions(engine, story.tell),
-			...availabilityActions(engine, story.tell),
-			...screenReadVerbs(engine, story.tell),
-			...screenRoles(story.tell),
-			boardView() {
-				if (!engine.boardScreen) {
-					throw new Error("The story has no Board screen");
-				}
-				return engine.boardScreen;
 			},
 			documentView() {
 				if (!engine.documentView) {
@@ -118,6 +109,10 @@ export const screenStory = storyKit({
 				engine.router = view.router;
 				return trackScreen(engine, view, story.tell);
 			},
+			restoreReading: (...args: Parameters<typeof restoreReading>) => {
+				story.tell("the reader restores the remembered document reading");
+				restoreReading(...args);
+			},
 			routed() {
 				if (!engine.routed) {
 					throw new Error("The story has no routed screen");
@@ -131,5 +126,50 @@ export const screenStory = storyKit({
 				return engine.view;
 			},
 		};
+		const interactions = screenInteractions(engine, story.tell);
+		return distinctVerbs(
+			settlingVerbs(engine, own, ["boardView", "captureReading", "documentView", "read", "routed", "screen"]),
+			settlingVerbs(engine, screenActions(story.tell), ["control"]),
+			settlingVerbs(engine, readingActions(engine, story.tell), ["readHeaderFootprints", "readTextSelection"]),
+			settlingVerbs(engine, timeActions(engine, story.tell), ["advanceClock"]),
+			settlingVerbs(engine, appearanceActions(story.tell)),
+			readoutVerbs(engine, screenObservations(engine, story.tell)),
+			screenRoles(engine, story.tell),
+			itemContextVerbs(engine, story.tell),
+			loaderObservations(engine, story.tell),
+			settlingVerbs(engine, screenData(engine, story.tell), ["deleteFile", "editFile", "failDocument", "recoverDocument", "startNavigation"]),
+			settlingVerbs(engine, diagramActions(engine, story.tell), ["diagramPalette", "drawings"]),
+			settlingVerbs(engine, interactions, [
+				"draftKey",
+				"readDraftRecoveries",
+				"readDraftRecovery",
+				"readInnerScrollers",
+				"readStoredDraft",
+				"rememberStored",
+				"stored",
+			]),
+			settlingVerbs(engine, sessionActions(engine, story.tell), ["mergeSessionPullRequest", "readSession", "readSessionFiles"]),
+			settlingVerbs(engine, sessionTransportActions(engine, story.tell), ["pauseCommand", "sessionCommands"]),
+			settlingOnly(engine, motionActions(engine, story.tell), ["queueReading"]),
+			settlingVerbs(engine, outlineActions(engine, story.tell)),
+			settlingVerbs(engine, availabilityActions(engine, story.tell), [
+				"answerRefreshStarted",
+				"failWorkspace",
+				"holdRefreshAfterAnswer",
+				"holdWorkspace",
+				"readIndexReads",
+				"recoverWorkspace",
+			]),
+			settlingVerbs(engine, screenReadVerbs(engine, story.tell), ["pauseRead", "readDocumentReads", "readStarted", "refreshStarted"]),
+			answersScreenVerbs(engine, story.tell),
+			pagesScreenVerbs(engine, story.tell),
+			readingScreenVerbs(engine, story.tell),
+			readingPageVerbs(engine, story.tell),
+			shellScreenVerbs(engine, story.tell),
+			responsesScreenVerbs(engine, story.tell),
+			servingScreenVerbs(engine, story.tell),
+			liveScreenVerbs(engine, story.tell),
+			workspaceScreenVerbs(engine, story.tell),
+		);
 	},
 });

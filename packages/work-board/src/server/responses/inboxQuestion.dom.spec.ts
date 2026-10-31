@@ -1,22 +1,45 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, readerAt, responsesEnabled } from "#test/boardStory.ts";
-import { waitFor } from "#test/live.ts";
-import { anAnswerForm, anOpenQuestion, aRememberedAuthor } from "#test/storyTraits.ts";
+import { pageAnswerFormReady } from "#test/pageAnswerFormReady.ts";
+import { anOpenQuestion, aRememberedAuthor } from "#test/storyTraits.ts";
+
+const questionPage = [
+	anOpenQuestion(),
+	responsesEnabled(),
+	readerAt("/_board/item/question.storage/"),
+	pageAnswerFormReady(),
+	aRememberedAuthor("Casey"),
+];
 
 boardStory.it(
-	"records a recommended option from the item page and updates the live Inbox badge",
-	[anOpenQuestion(), responsesEnabled(), readerAt("/_board/item/question.storage/"), anAnswerForm(), aRememberedAuthor("Casey")],
-	function* ({ page, reader, savedAnswer }) {
-		yield* reader.chooseOption("option-1");
-		expect(page.document.querySelector('[data-choice="option-1"]')?.getAttribute("aria-checked")).toBe("true");
-		yield* reader.submit();
-		yield* Effect.promise(() => waitFor(() => expect(reader.responseStatus()).toContain("Answer saved")));
-		yield* Effect.promise(() => waitFor(() => expect(reader.inboxCounts()).toEqual(["0", "0"])));
-		const response = savedAnswer();
-		expect(response.fields.kind).toBeUndefined();
-		expect(response.fields.response?.answers?.[0]?.selected).toEqual(["option-1"]);
-		expect(response.fields.response?.author).toBe("Casey");
-		expect(response.body).toContain("Keep local files");
+	"sending the recommended option from the item page records it with the remembered author",
+	questionPage,
+	function* ({ pageAnswerStatus, pageChooses, recordedPageAnswer, sendPageAnswer }) {
+		yield* pageChooses("option-1");
+
+		yield* sendPageAnswer();
+
+		yield* outcomes({
+			"recorded answer": [
+				recordedPageAnswer(),
+				{ author: "Casey", body: expect.stringContaining("Keep local files"), kind: undefined, selected: [["option-1"]] },
+			],
+			status: [pageAnswerStatus(), expect.stringContaining("Answer saved")],
+		});
+	},
+);
+
+boardStory.it(
+	"an answer sent from the item page clears the question from the live Inbox badges",
+	questionPage,
+	function* ({ inboxBadgeUpdates, pageChooses, pageInboxBadges, sendPageAnswer }) {
+		yield* pageChooses("option-1");
+		expect(yield* pageInboxBadges()).toEqual(["1", "1"]);
+
+		yield* sendPageAnswer();
+		yield* inboxBadgeUpdates();
+
+		expect(yield* pageInboxBadges()).toEqual(["0", "0"]);
 	},
 );

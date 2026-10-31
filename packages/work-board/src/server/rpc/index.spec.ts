@@ -1,25 +1,43 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { indexClientSubscribed, liveClientSubscribed } from "#test/liveTraits.ts";
+
+const brief = projectFiles({ "brief.md": "---\nid: brief\nkind: task\n---\n# Before" });
+
+boardStory.it("the Board index lists each Markdown file with its parsed fields and body", [brief], function* ({ indexEntry, indexListing }) {
+	yield* outcomes({
+		"the brief": [indexEntry("brief.md"), { body: "# Before", fields: { id: "brief", kind: "task" }, problems: [] }],
+		"the indexed files": [indexListing(), ["brief.md"]],
+	});
+});
 
 boardStory.it(
-	"RPC clients read indexed metadata and diagnostics and receive live index changes",
-	[projectFiles({ "brief.md": "---\nid: brief\nkind: task\n---\n# Before" })],
-	function* ({ rpc, watchIndex, editFile }) {
-		const before = yield* rpc((client) => client("work-board.index", undefined));
-		expect(before.documents[0]?.parsed.fields).toMatchObject({ id: "brief", kind: "task" });
-		expect(before.files.map((file) => file.path)).toEqual(["brief.md"]);
-		const events = yield* watchIndex();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
+	"a client subscribed to the Board index alone hears an edit as a workspace index change",
+	[brief, indexClientSubscribed],
+	function* ({ editFile, nextChange }) {
+		editFile("brief.md", "---\nid: brief\nkind: task\n---\n# After");
 
-		editFile("brief.md", "---\nid: brief\nkind: invalid\n---\n# After");
-
-		expect(yield* events.next()).toMatchObject({
-			_tag: "Changed",
-			keys: expect.arrayContaining([{ _tag: "Bucket", collection: "work-board/index", field: "workspace", value: "local" }]),
-		});
-		const after = yield* rpc((client) => client("work-board.index", undefined));
-		expect(after.documents[0]?.parsed.body).toBe("# After");
-		expect(after.diagnostics).toEqual([{ diagnostics: expect.arrayContaining([expect.objectContaining({ field: "kind" })]), file: "brief.md" }]);
-		expect(after.revision).toBeGreaterThan(before.revision);
+		expect(yield* nextChange()).toEqual(["workspace index"]);
 	},
 );
+
+boardStory.it(
+	"after an edit to invalid metadata the Board index shows the new body, flags the kind and keeps no fields",
+	[brief, liveClientSubscribed],
+	function* ({ changeNaming, editFile, indexEntry }) {
+		editFile("brief.md", "---\nid: brief\nkind: invalid\n---\n# After");
+		yield* changeNaming("brief.md");
+
+		expect(yield* indexEntry("brief.md")).toEqual({ body: "# After", fields: {}, problems: ["kind"] });
+	},
+);
+
+boardStory.it("an edit raises the Board index revision", [brief, liveClientSubscribed], function* ({ changeNaming, editFile, indexRevision }) {
+	const before = yield* indexRevision();
+
+	editFile("brief.md", "---\nid: brief\nkind: task\n---\n# After");
+	yield* changeNaming("brief.md");
+
+	expect(yield* indexRevision()).toBeGreaterThan(before);
+});

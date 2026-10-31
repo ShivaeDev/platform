@@ -1,87 +1,109 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { answerCardFixture, decisionFile } from "#test/answerCardFixture.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { decisionFile, withGuideStatus } from "#test/answerCardFixture.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { routedScreen } from "#test/screenTraits.ts";
 import { sourceListsFixture } from "#test/sourceListsFixture.ts";
 
 expectNoReactWarnings();
 
-for (const url of [
-	"/task.md",
-	"/goal.md",
-	"/_board/work",
-	"/_board/work?view=table",
-	"/_board/work?view=board",
-	"/_board/library",
-	"/_board/inbox",
-	"/",
-]) {
-	screenStory.it(`keeps absent values quiet at ${url}`, [routedScreen(sourceListsFixture(), url)], function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement("main h1")).not.toBeNull());
-		expect(readText()).not.toMatch(/not recorded/iu);
-		expect(readText()).not.toContain("These are explicit source links");
-		expect(readText()).not.toContain("Open/closed is source state");
-		expect(readText()).not.toContain("Acceptance is not established");
-	});
+for (const [url, page] of [
+	["/task.md", "Publish the guide"],
+	["/goal.md", "Finish line"],
+	["/_board/work", "Now"],
+	["/_board/work?view=table", "Table"],
+	["/_board/work?view=board", "All work"],
+	["/_board/library", "Library"],
+	["/", "Today"],
+] as const) {
+	screenStory.it(
+		`${page} at ${url} adds no notes about values its items leave out`,
+		[readingPage(sourceListsFixture(), url)],
+		function* ({ absentValueNotes, shownPage }) {
+			yield* outcomes({
+				notes: [absentValueNotes(), []],
+				page: [shownPage(), page],
+			});
+		},
+	);
 }
 
 screenStory.it(
-	"collapses repeated titles in backlinks and relationships, retaining each source in its most specific group",
-	[routedScreen(sourceListsFixture(), "/task.md")],
-	function* ({ openDetails, findElement, readText, findElements }) {
-		yield* eventually(() => expect(findElement('[data-context-group="linked-from"]')).not.toBeNull());
-		const backlinks = findElement('[data-context-group="linked-from"]');
-		expect(readText("h3", backlinks)).toBe("Linked from");
-		expect(findElement('[data-source-group="Related to"]', backlinks)).toBeNull();
-		for (const section of [backlinks, findElement('[data-context-group="links-to"]')]) {
-			const group = [...(findElements("details", section) ?? [])].find((entry) => readText("summary", entry) === "Fleet decisions (4)");
-			expect(group).toHaveProperty("open", false);
-			expect(findElements("a", group)).toHaveLength(0);
-			openDetails(group);
-			expect(
-				findElements("a", group)
-					.map((link) => link.getAttribute("href"))
-					.sort(),
-			).toEqual(Array.from({ length: 4 }, (_, index) => `/_board/item/decision.guide.${index}/`));
-		}
-		expect(
-			findElements("a", backlinks)
-				.map((link) => link.getAttribute("href"))
-				.sort(),
-		).toEqual(Array.from({ length: 4 }, (_, index) => `/_board/item/decision.guide.${index}/`));
-		expect(readText()).not.toMatch(/not recorded/iu);
+	"a source that both relates to an item and asks about it is listed only under its more specific Attention request group",
+	[readingPage(sourceListsFixture(), "/task.md")],
+	function* ({ contextKinds }) {
+		expect(yield* contextKinds("linked-from")).toEqual(["Attention request (4)"]);
 	},
 );
 
-for (const status of ["done", "done", "deferred"]) {
-	const files = { ...answerCardFixture, "guide.md": answerCardFixture["guide.md"].replace("status: ready", `status: ${status}`) };
-	for (const url of ["/guide.md", `/${decisionFile}`, "/_board/inbox", "/"]) {
+for (const direction of ["links-to", "linked-from"] as const) {
+	screenStory.it(
+		`under ${direction}, four Fleet decisions sharing one title collapse into one closed group that lists each decision once opened`,
+		[readingPage(sourceListsFixture(), "/task.md")],
+		function* ({ openSourceGroup, sourceGroup }) {
+			expect(yield* sourceGroup(direction, "Fleet decisions (4)")).toBe("closed");
+
+			yield* openSourceGroup(direction, "Fleet decisions (4)");
+
+			expect(yield* sourceGroup(direction, "Fleet decisions (4)")).toEqual([0, 1, 2, 3].map((index) => `/_board/item/decision.guide.${index}/`));
+		},
+	);
+}
+
+const QUESTION = "Which publishing path should we take? Read the release guide.";
+
+for (const [status, cards] of [
+	["ready", [QUESTION]],
+	["done", []],
+	["deferred", []],
+] as const) {
+	for (const [url, page] of [
+		["/guide.md", "Publish the install guide"],
+		[`/${decisionFile}`, "Fleet decision: Publish the install guide"],
+	] as const) {
 		screenStory.it(
-			`hides open managed asks from cards and Inbox for ${status} work at ${url}`,
-			[routedScreen(files, url)],
-			function* ({ findElement, readDefaultText }) {
-				yield* eventually(() => expect(findElement("main h1")).not.toBeNull());
-				expect(findElement(".answer-cards")).toBeNull();
-				expect(findElement("#response-form")).toBeNull();
-				if (!url.includes(decisionFile)) {
-					expect(readDefaultText("main")).not.toContain("Which publishing path should we take?");
-				}
+			`${page} shows ${cards.length === 0 ? "no answer card" : "the answer card"} for the managed ask on ${status} work`,
+			[readingPage(withGuideStatus(status), url)],
+			function* ({ answerCards, shownPage }) {
+				yield* outcomes({
+					"answer cards": [answerCards(), [...cards]],
+					page: [shownPage(), page],
+				});
 			},
 		);
 	}
 }
 
+for (const [status, ask] of [
+	["ready", "mentioned"],
+	["done", "not mentioned"],
+	["deferred", "not mentioned"],
+] as const) {
+	screenStory.it(
+		`Today ${ask === "mentioned" ? "lists" : "leaves out"} the managed ask on ${status} work`,
+		[readingPage(withGuideStatus(status), "/")],
+		function* ({ pageMentions, shownPage }) {
+			yield* outcomes({
+				ask: [pageMentions("Which publishing path should we take?"), ask],
+				page: [shownPage(), "Today"],
+			});
+		},
+	);
+}
+
 screenStory.it(
-	"omits the answer card when an authored question is closed",
+	"a closed authored question shows no answer card",
 	[
-		routedScreen(
+		readingPage(
 			{ "question.md": "---\nid: question.finished\nkind: question\nscope: task\nurgency: whenever\nstatus: done\n---\n# Previous question" },
 			"/question.md",
 		),
 	],
-	function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText("main h1")).toBe("Previous question"));
-		expect(findElement(".answer-cards")).toBeNull();
+	function* ({ answerCards, shownPage }) {
+		yield* outcomes({
+			"answer cards": [answerCards(), []],
+			page: [shownPage(), "Previous question"],
+		});
 	},
 );

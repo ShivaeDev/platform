@@ -1,5 +1,6 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
@@ -11,21 +12,29 @@ const files = {
 	"dropped.md": "---\nid: task.dropped\nkind: task\nstatus: dropped\n---\n# Dropped brief",
 	"ready.md": "---\nid: task.ready\nkind: task\nstatus: ready\n---\n# Ready brief",
 };
+
 screenStory.it(
-	"shows authored words on work cards and keeps all five states in Library's filter",
+	"a Library row names a task's authored state in the Board's words",
 	[routedScreen(files, "/_board/library")],
-	function* ({ roles, readText, findElements }) {
-		yield* eventually(() => expect(readText("main")).toContain("Ready brief"));
-		expect(
-			findElements("main li p")
-				.map((entry) => entry.textContent)
-				.sort(),
-		).toEqual(["Task · Deferred", "Task · Done", "Task · Draft", "Task · Dropped", "Task · Ready"]);
-		yield* roles.click({ name: "Status", role: "combobox" });
-		expect(findElements('[role="option"]', document).map((entry) => entry.textContent)).toEqual(
-			expect.arrayContaining(["Draft", "Ready", "Done", "Deferred", "Dropped"]),
-		);
-		yield* roles.click({ name: "Deferred", role: "option" });
-		yield* eventually(() => expect(findElements("main li p").map((entry) => entry.textContent)).toEqual(["Task · Deferred"]));
+	function* ({ libraryRow }) {
+		yield* outcomes({
+			deferred: [libraryRow("Parked brief"), expect.objectContaining({ details: "Task · Deferred" })],
+			done: [libraryRow("Delivered brief"), expect.objectContaining({ details: "Task · Done" })],
+			draft: [libraryRow("Draft brief"), expect.objectContaining({ details: "Task · Draft" })],
+			dropped: [libraryRow("Dropped brief"), expect.objectContaining({ details: "Task · Dropped" })],
+			ready: [libraryRow("Ready brief"), expect.objectContaining({ details: "Task · Ready" })],
+		});
+	},
+);
+
+screenStory.it(
+	"choosing Deferred in the Library's Status filter lists only deferred work",
+	[routedScreen(files, "/_board/library")],
+	function* ({ filterLibrary, libraryTitles }) {
+		expect(yield* libraryTitles()).toEqual(expect.arrayContaining(["Delivered brief", "Parked brief", "Ready brief"]));
+
+		yield* filterLibrary("Status", "Deferred");
+
+		expect(yield* libraryTitles()).toEqual(["Parked brief"]);
 	},
 );

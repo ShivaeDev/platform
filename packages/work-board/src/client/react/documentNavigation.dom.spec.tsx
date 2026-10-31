@@ -1,56 +1,77 @@
-import { Effect } from "effect";
-import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { laterReadHeld, readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { pausedDocument, routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
 const files = {
 	"home.md": "# Home\n\n## Plans\n",
 	"notes/first.md": "# First\n\n<details><summary>Evidence</summary>Retained evidence</details>\n",
 	"notes/next.md": "# Next\n",
 };
-
-for (const back of [false, true]) {
-	screenStory.it(
-		`clears the old document while loading and handles back before the read completes (back: ${back})`,
-		[pausedDocument("/notes/next.md"), routedScreen(files, "/notes/first.md", { home: "home.md" })],
-		function* ({ startNavigation, finishNavigation, back: goBack, openDetails, location, readStarted, releaseRead, readText, findElement }) {
-			yield* eventually(() => expect(readText("#doc h1")).toBe("First"));
-			yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md"));
-			const main = findElement("main");
-			openDetails("article details");
-			yield* Effect.promise(() => startNavigation("/notes/next.md"));
-			yield* eventually(() => expect(readStarted()).toBe(true));
-			expect(location()?.pathname).toBe("/notes/next.md");
-			expect(findElement("#doc h1")).toBeNull();
-			expect(readText("#doc [role=status]")).toBe("Loading page");
-			expect(findElement('#doc [data-loading-shape="document"]')).not.toBeNull();
-			if (back) {
-				yield* Effect.promise(() => goBack());
-				yield* eventually(() => expect(readText("#doc h1")).toBe("First"));
-			}
-			yield* Effect.promise(releaseRead);
-			yield* Effect.promise(() => finishNavigation());
-			yield* eventually(() => expect(readText("#doc h1")).toBe(back ? "First" : "Next"));
-			expect(findElement("main")).toBe(main);
-			if (back) {
-				yield* eventually(() => expect(findElement<HTMLDetailsElement>("article details")?.open).toBe(true));
-			}
-		},
-	);
-}
+const nextHeld = [readingPage(files, "/notes/first.md", { home: "home.md" }), laterReadHeld("/notes/next.md")];
 
 screenStory.it(
-	"keeps document navigation and back navigation in the same shell",
-	[routedScreen(files, "/notes/first.md")],
-	function* ({ readText, findElement, navigate, back }) {
-		const main = findElement("main");
-		yield* eventually(() => expect(readText("#doc h1")).toBe("First"));
-		yield* Effect.promise(() => navigate("/notes/next.md"));
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Next"));
-		yield* Effect.promise(back);
-		yield* eventually(() => expect(readText("#doc h1")).toBe("First"));
-		expect(findElement("main")).toBe(main);
+	"opening a document whose read has not answered shows a document-shaped loading state at the new address instead of the old document",
+	nextHeld,
+	function* ({ address, loadingPage, navigateTo, shownPage }) {
+		yield* navigateTo("/notes/next.md");
+
+		yield* outcomes({
+			address: [address(), "/notes/next.md"],
+			loading: [loadingPage(), { message: "Loading page", shape: "document" }],
+			page: [shownPage(), "none"],
+		});
+	},
+);
+
+screenStory.it(
+	"a document whose read was held opens in the same page shell once the read answers",
+	nextHeld,
+	function* ({ documentShell, heldReadFinishes, navigateTo, shownPage }) {
+		yield* documentShell();
+		yield* navigateTo("/notes/next.md");
+
+		yield* heldReadFinishes();
+
+		yield* outcomes({
+			page: [shownPage(), "Next"],
+			shell: [documentShell(), "the shell the page opened in"],
+		});
+	},
+);
+
+screenStory.it(
+	"after going Back before a held read answers, the late answer leaves the first document and its open section in place",
+	nextHeld,
+	function* ({ address, goBack, heldReadFinishes, navigateTo, openSection, openSections, shownPage }) {
+		yield* openSection("Evidence");
+		yield* navigateTo("/notes/next.md");
+		yield* goBack();
+
+		yield* heldReadFinishes();
+
+		yield* outcomes({
+			address: [address(), "/notes/first.md"],
+			"open sections": [openSections(), ["Evidence"]],
+			page: [shownPage(), "First"],
+		});
+	},
+);
+
+screenStory.it(
+	"going Back from a second document shows the first one in the same page shell",
+	[readingPage(files, "/notes/first.md")],
+	function* ({ documentShell, goBack, navigateTo, shownPage }) {
+		yield* documentShell();
+		yield* navigateTo("/notes/next.md");
+
+		yield* goBack();
+
+		yield* outcomes({
+			page: [shownPage(), "First"],
+			shell: [documentShell(), "the shell the page opened in"],
+		});
 	},
 );

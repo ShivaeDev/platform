@@ -1,28 +1,47 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { STANDING_QUESTION_ID, standingQuestionFixture } from "#test/standingQuestionFixture.ts";
 
 expectNoReactWarnings();
 
+const standingQuestion = routedScreen(standingQuestionFixture(), `/_board/item/${STANDING_QUESTION_ID}/`, { home: "home.md", writable: true });
+
 screenStory.it(
-	"shows the standing answer's choice and note and leaves Today waiting on the agent",
-	[routedScreen(standingQuestionFixture(), `/_board/item/${STANDING_QUESTION_ID}/`, { home: "home.md", writable: true })],
-	function* ({ answerPrompt, click, findElement, navigate, readAttribute, readText, responseClick }) {
-		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
-		click("[data-choice='reviewed']");
-		answerPrompt("release-policy", "Include the release notes.");
-		responseClick("submit");
-		yield* eventually(() => expect(readText(".response-panel")).toContain("Chose After review"));
-		expect(readText(".response-panel")).toContain("Include the release notes.");
-		yield* Effect.promise(() => navigate("/"));
-		yield* eventually(() => expect(findElement("[data-answered-id='decision.release-policy']")).not.toBeNull());
-		expect(findElement("ul[aria-label='Needs you']")).toBeNull();
-		expect(readText("#needs-you")).toContain("Nothing needs you");
-		expect(readAttribute("[data-answered-id='decision.release-policy'] p", "title")).toBe(
-			"When should releases ship? · You chose After review · Waiting on the agent.",
-		);
+	"answering the standing question shows the chosen option and the note on the item",
+	[standingQuestion],
+	function* ({ answerPrompt, check, responsePanel, sendPacket }) {
+		yield* check("reviewed");
+		yield* answerPrompt("release-policy", "Include the release notes.");
+
+		yield* sendPacket();
+
+		expect(yield* responsePanel()).toEqual(expect.stringMatching(/Chose After review.*Include the release notes\./su));
+	},
+);
+
+screenStory.it(
+	"answering the standing question moves it on Today from Needs you to Answered, waiting on the agent",
+	[standingQuestion],
+	function* ({ answerPrompt, answeredOnToday, check, navigate, needsYouItems, needsYouSection, sendPacket }) {
+		yield* navigate("/");
+		yield* outcomes({
+			answered: [answeredOnToday(STANDING_QUESTION_ID), "not listed"],
+			"needs you": [needsYouItems(), [STANDING_QUESTION_ID]],
+		});
+		yield* navigate(`/_board/item/${STANDING_QUESTION_ID}/`);
+		yield* check("reviewed");
+		yield* answerPrompt("release-policy", "Include the release notes.");
+
+		yield* sendPacket();
+
+		yield* navigate("/");
+		yield* outcomes({
+			answered: [answeredOnToday(STANDING_QUESTION_ID), "When should releases ship? · You chose After review · Waiting on the agent."],
+			"needs you": [needsYouItems(), []],
+			section: [needsYouSection(), expect.stringContaining("Nothing needs you")],
+		});
 	},
 );

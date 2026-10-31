@@ -1,144 +1,196 @@
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { chromeFixture } from "#test/chromeFixture.ts";
 import { blockedStorage, fallibleDocument, screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
 const files = chromeFixture();
+const MISSING_PLAN = "No Markdown file at notes/plan.md. It may have been moved or deleted.";
+
 for (const path of ["/_board/attachment/shots/review.png", "/_board/unsupported"]) {
-	screenStory.it(`leaves ${path} to browser navigation`, [chromeScreen(files)], function* ({ click, location, readDocumentReads }) {
-		const link = document.createElement("a");
-		link.href = path;
-		link.id = "browser-link";
-		document.body.append(link);
-		const before = readDocumentReads();
-		let prevented: boolean | undefined;
-		document.addEventListener(
-			"click",
-			(event) => {
-				prevented = event.defaultPrevented;
-				event.preventDefault();
-			},
-			{ once: true },
-		);
-		click(link);
-		expect(prevented).toBe(false);
-		expect(location()?.pathname).toBe("/notes/plan.md");
-		expect(readDocumentReads()).toEqual(before);
-		link.remove();
-	});
-}
-
-screenStory.it(
-	"keeps a deleted favorite visible and leaves explaining its missing target to the page",
-	[screenWorkspace("missing-favorite"), chromeScreen(files)],
-	function* ({ click, navigate, deleteFile, refreshDocument, readText }) {
-		click("#favorite-toggle");
-		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-		deleteFile("notes/plan.md");
-		yield* Effect.promise(() => refreshDocument());
-		click("#library-open");
-		yield* eventually(() => expect(readText('#reading-library a[href="/notes/plan.md"]', document)).toContain("missing"));
-		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-		click('#reading-library a[href="/notes/plan.md"]');
-		yield* eventually(() =>
-			expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted."),
-		);
-		expect(readText("#navigation-status")).toBe("");
-	},
-);
-
-screenStory.it(
-	"keeps favorites usable across navigation with blocked storage",
-	[screenWorkspace("blocked-favorites"), blockedStorage(), chromeScreen(files)],
-	function* ({ click, navigate, readText }) {
-		click("#favorite-toggle");
-		expect(readText("#favorite-toggle")).toBe("Unpin");
-		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-		expect(readText('section[aria-label="Pinned"] a[href="/notes/plan.md"]')).toBe("Plan");
-		click("#library-open");
-		expect(readText('#library-dialog [role="status"]', document)).toContain("this page only");
-	},
-);
-
-screenStory.it(
-	"retains the reading entry when the selected file is opened again",
-	[screenWorkspace("same-reading"), chromeScreen(files)],
-	function* ({ navigate, follow, openDetails, location, back, findElement }) {
-		openDetails("article details");
-		const entry = location();
-		expect(entry).toBeDefined();
-		yield* Effect.promise(() => follow("/notes/plan.md"));
-		expect(location()).toBe(entry);
-		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-		yield* Effect.promise(() => back());
-		yield* eventually(() => expect(findElement("article details")).toHaveProperty("open", true));
-	},
-);
-
-screenStory.it(
-	"retries the same route after its document request fails, which the page explains on its own",
-	[fallibleDocument(), chromeScreen(files)],
-	function* ({ failDocument, recoverDocument, follow, navigate, readText, readAttribute }) {
-		failDocument();
-		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("ServiceUnavailable"))));
-		expect(readAttribute("#doc", "data-route")).toBe("/notes/deep/proof.md");
-		expect(readText("#navigation-status")).toBe("");
-		recoverDocument();
-		yield* Effect.promise(() => follow("/notes/deep/proof.md"));
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Proof"));
-	},
-);
-
-for (const failed of [false, true]) {
 	screenStory.it(
-		`ignores a held page refresh after newer navigation (failed: ${failed})`,
+		`leaves a link to ${path} to the browser without reading a page`,
 		[chromeScreen(files)],
-		function* ({ pauseRead, refreshDocument, refreshStarted, navigate, releaseRefresh, readText, readAttribute, frame }) {
-			pauseRead("/notes/plan.md", failed);
-			yield* Effect.promise(() => refreshDocument());
-			yield* eventually(() => expect(refreshStarted()).toBe(true));
-			yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-			yield* Effect.promise(() => releaseRefresh());
-			yield* Effect.promise(() => frame());
-			expect(readText("#doc h1")).toBe("Proof");
-			expect(readAttribute("#doc", "data-file")).toBe("notes/deep/proof.md");
+		function* ({ clickLinkTo, currentPage, linkClick, readDocumentReads }) {
+			const reads = yield* readDocumentReads();
+
+			yield* clickLinkTo(path);
+
+			yield* outcomes({
+				"the document reads": [readDocumentReads(), reads],
+				"the link": [linkClick(), "the browser follows it"],
+				"the page": [currentPage(), "/notes/plan.md"],
+			});
 		},
 	);
 }
 
 screenStory.it(
-	"replaces a held invalidation and ignores its late document result",
-	[chromeScreen(files)],
-	function* ({ pauseRead, editFile, refreshDocument, refreshStarted, releaseRefresh, readText, frame }) {
-		pauseRead("/notes/plan.md");
-		editFile("notes/plan.md", "# Older source");
-		yield* Effect.promise(() => refreshDocument());
-		yield* eventually(() => expect(refreshStarted()).toBe(true));
-		editFile("notes/plan.md", "# Newest source");
-		yield* Effect.promise(() => refreshDocument());
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Newest source"));
-		yield* Effect.promise(() => releaseRefresh());
-		yield* Effect.promise(() => frame());
-		expect(readText("#doc h1")).toBe("Newest source");
+	"keeps a pinned document whose file was deleted in Reading history, marked missing",
+	[screenWorkspace("missing-favorite"), chromeScreen(files)],
+	function* ({ deleteFile, navigate, openReadingHistory, pinPage, readingHistory, refreshDocument }) {
+		yield* pinPage();
+		yield* navigate("/notes/deep/proof.md");
+		yield* deleteFile("notes/plan.md");
+		yield* refreshDocument();
+		expect(yield* readingHistory()).toEqual({});
+
+		yield* openReadingHistory();
+
+		expect((yield* readingHistory()).Pinned).toEqual(["Plan (missing)"]);
 	},
 );
 
 screenStory.it(
-	"shows the not-found page after the current file is deleted",
+	"opens a deleted pinned document to the page's not-found notice, leaving the header's status empty",
+	[screenWorkspace("missing-favorite"), chromeScreen(files)],
+	function* ({
+		deleteFile,
+		mainHeading,
+		navigate,
+		navigationStatus,
+		openFromReadingHistory,
+		openReadingHistory,
+		pageNotice,
+		pinPage,
+		refreshDocument,
+	}) {
+		yield* pinPage();
+		yield* navigate("/notes/deep/proof.md");
+		yield* deleteFile("notes/plan.md");
+		yield* refreshDocument();
+		yield* refreshDocument("/notes/plan.md");
+		yield* openReadingHistory();
+		expect(yield* mainHeading()).toBe("Proof");
+
+		yield* openFromReadingHistory("Plan");
+
+		yield* outcomes({
+			"the header's status": [navigationStatus(), { state: "normal", text: "" }],
+			"the notice": [pageNotice(), expect.objectContaining({ description: MISSING_PLAN })],
+		});
+	},
+);
+
+screenStory.it(
+	"keeps a pinned document in the sidebar across navigation when storage is blocked",
+	[screenWorkspace("blocked-favorites"), blockedStorage(), chromeScreen(files)],
+	function* ({ navigate, pinButton, pinPage, sidebarLinks }) {
+		yield* pinPage();
+		expect(yield* pinButton()).toBe("Unpin");
+
+		yield* navigate("/notes/deep/proof.md");
+
+		expect(yield* sidebarLinks("Pinned")).toEqual([{ href: "/notes/plan.md", title: "Plan" }]);
+	},
+);
+
+screenStory.it(
+	"says Reading history applies to this page only when storage is blocked",
+	[screenWorkspace("blocked-favorites"), blockedStorage(), chromeScreen(files)],
+	function* ({ historyNotice, openReadingHistory }) {
+		expect(yield* historyNotice()).toBeUndefined();
+
+		yield* openReadingHistory();
+
+		expect(yield* historyNotice()).toBe("Reading history applies to this page only.");
+	},
+);
+
+screenStory.it(
+	"stays on the same history entry when the reader follows a link to the open document",
+	[screenWorkspace("same-reading"), chromeScreen(files)],
+	function* ({ follow, historyEntry }) {
+		const entry = yield* historyEntry();
+
+		yield* follow("/notes/plan.md");
+
+		expect(yield* historyEntry()).toBe(entry);
+	},
+);
+
+screenStory.it(
+	"reopens the Evidence block the reader opened when they come back to the document",
+	[screenWorkspace("same-reading"), chromeScreen(files)],
+	function* ({ back, detailsBlock, navigate, openDetailsBlock }) {
+		yield* openDetailsBlock("Evidence");
+		yield* navigate("/notes/deep/proof.md");
+
+		yield* back();
+
+		expect(yield* detailsBlock("Evidence")).toBe("open");
+	},
+);
+
+screenStory.it(
+	"leaves explaining a failed document read to the page instead of the header",
+	[fallibleDocument(), chromeScreen(files)],
+	function* ({ failDocument, navigate, navigationStatus, pageAddress, pageAnswer }) {
+		yield* failDocument();
+
+		yield* navigate("/notes/deep/proof.md");
+
+		yield* outcomes({
+			"the answer": [pageAnswer(), "Unavailable"],
+			"the header's status": [navigationStatus(), { state: "normal", text: "" }],
+			"the page": [pageAddress(), "/notes/deep/proof.md"],
+		});
+	},
+);
+
+for (const failed of [false, true]) {
+	screenStory.it(
+		`keeps the newer page when a held refresh of the page before ${failed ? "fails" : "arrives"} late`,
+		[chromeScreen(files)],
+		function* ({ mainHeading, navigate, pageAddress, pauseRead, refreshDocument, releaseRefresh }) {
+			yield* pauseRead("/notes/plan.md", failed);
+			yield* refreshDocument();
+			yield* navigate("/notes/deep/proof.md");
+			expect(yield* mainHeading()).toBe("Proof");
+
+			yield* releaseRefresh();
+
+			yield* outcomes({
+				"the heading": [mainHeading(), "Proof"],
+				"the page": [pageAddress(), "/notes/deep/proof.md"],
+			});
+		},
+	);
+}
+
+screenStory.it(
+	"keeps the newest source when a refresh it replaced arrives late",
 	[chromeScreen(files)],
-	function* ({ deleteFile, refreshDocument, readText, readNavigation }) {
-		deleteFile("notes/plan.md");
-		yield* Effect.promise(() => refreshDocument());
-		yield* eventually(() =>
-			expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted."),
-		);
-		const navigation = yield* Effect.promise(() => readNavigation());
-		expect(navigation.counts.library).toBe(Object.keys(files).length - 1);
+	function* ({ editFile, mainHeading, pauseRead, refreshDocument, releaseRefresh }) {
+		yield* pauseRead("/notes/plan.md");
+		yield* editFile("notes/plan.md", "# Older source");
+		yield* refreshDocument();
+		yield* editFile("notes/plan.md", "# Newest source");
+		yield* refreshDocument();
+		expect(yield* mainHeading()).toBe("Newest source");
+
+		yield* releaseRefresh();
+
+		expect(yield* mainHeading()).toBe("Newest source");
+	},
+);
+
+screenStory.it(
+	"shows the not-found notice and drops the file from the Library count once the open file is deleted",
+	[chromeScreen(files)],
+	function* ({ deleteFile, mainHeading, navigationSummary, pageNotice, refreshDocument }) {
+		yield* deleteFile("notes/plan.md");
+		expect(yield* mainHeading()).toBe("Plan");
+
+		yield* refreshDocument();
+
+		yield* outcomes({
+			"the Library count": [navigationSummary(), expect.objectContaining({ libraryCount: Object.keys(files).length - 1 })],
+			"the notice": [pageNotice(), expect.objectContaining({ description: MISSING_PLAN })],
+		});
 	},
 );

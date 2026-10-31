@@ -1,101 +1,113 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { archivedSources } from "#test/attentionLaneTraits.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { recordedReads } from "#test/readTraits.ts";
 import { settledFixture } from "#test/settledFixture.ts";
 
-const fixture = settledFixture();
-const files = projectFiles(fixture.files);
+const { files, question } = settledFixture();
+const settledQuestions = projectFiles(files, "the project has settled, open and deferred questions");
+const ACTIVE = ["questions/deferred.md", "questions/mixed.md", "questions/open.md"];
+const SETTLED = ["decisions/settled.md", "questions/closed.md", "questions/dropped.md", `responses/${question}.md`, "responses/answer.settled.md"];
+const STORED = {
+	"answer.settled": files["responses/answer.settled.md"],
+	closed: files["questions/closed.md"],
+	dropped: files["questions/dropped.md"],
+	settled: files["decisions/settled.md"],
+	[question]: files[`responses/${question}.md`],
+};
+const MISSING = Object.fromEntries(SETTLED.map((file) => [file, "missing"]));
 
 boardStory.it(
-	"concurrent archive passes preserve every settled source and answer and keep open questions active",
-	[files, deferredServing],
-	function* (board) {
-		yield* board.archiveConcurrently();
+	"archiving moves settled questions, their registered question and their answer into the settled store unchanged",
+	[settledQuestions, deferredServing],
+	function* ({ archivePass, settledStore, sourcesAt }) {
+		expect(yield* settledStore()).toEqual({});
 
-		for (const [file, source] of Object.entries(fixture.files)) {
-			const id = /^id: (?<id>.+)$/mu.exec(source)?.groups?.id;
-			const active = ["questions/open.md", "questions/mixed.md", "questions/deferred.md"].includes(file);
-			expect(board.fileSource(active ? file : `.board-settled/${id}.md`)).toBe(source);
-		}
-		expect(yield* board.archive()).toContain("Moved 0 records.");
-	},
-);
+		yield* archivePass();
 
-boardStory.it(
-	"archives settled sources and all their answers once without moving open or deferred questions",
-	[files, deferredServing],
-	function* (board) {
-		yield* board.archive();
-
-		for (const [file, source] of Object.entries(fixture.files)) {
-			if (["questions/open.md", "questions/mixed.md", "questions/deferred.md"].includes(file)) {
-				expect(board.fileSource(file)).toBe(source);
-			} else {
-				expect(board.fileExists(file)).toBe(false);
-			}
-		}
-		expect(yield* board.archive()).toContain("Moved 0 records.");
-	},
-);
-
-boardStory.it(
-	"opens archived questions and their exact answer history through existing item and source links after restart",
-	[files, deferredServing],
-	function* (board) {
-		yield* board.archive();
-		yield* board.start({ fleetPort: null });
-
-		const item = yield* board.readItem("settled");
-		expect(item).toMatchObject({ file: "decisions/settled.md", identity: "settled", metadata: { status: "done" } });
-		expect(item.requests?.flatMap((request) => request.responses ?? [])).toMatchObject([
-			{ body: "Keep the reviewed option.\n", id: "answer.settled" },
-		]);
 		yield* outcomes({
-			"answer item link": [Effect.map(board.readItem("answer.settled"), (document) => document.source), "Keep the reviewed option.\n"],
-			"original source link": [Effect.map(board.readDocument("decisions/settled.md"), (document) => document.source), item.source],
+			"original places": [sourcesAt(SETTLED), MISSING],
+			"settled store": [settledStore(), STORED],
 		});
-		for (const [file, source] of Object.entries(fixture.files)) {
-			if (!["questions/open.md", "questions/mixed.md", "questions/deferred.md"].includes(file)) {
-				const id = /^id: (?<id>.+)$/mu.exec(source)?.groups?.id;
-				expect(board.fileSource(`.board-settled/${id}.md`)).toBe(source);
-			}
-		}
 	},
 );
 
 boardStory.it(
-	"routine reads after startup never read settled Markdown even after an open question changes",
-	[files, deferredServing, recordedReads()],
-	function* (board) {
-		yield* board.archive();
-		yield* board.start({ fleetPort: null });
-		const events = yield* board.watchProject();
-		yield* events.next();
-		const before = board.readFiles().length;
+	"archiving leaves open, mixed and deferred questions where they are",
+	[settledQuestions, deferredServing],
+	function* ({ archivePass, sourcesAt }) {
+		yield* archivePass();
 
-		board.editFile("questions/open.md", `${fixture.files["questions/open.md"]}\nMore context.\n`);
-		yield* events.changed("questions/open.md");
-		yield* board.readToday();
-
-		const reads = board.readFiles().slice(before);
-		expect(reads).toContain("questions/open.md");
-		expect(reads.filter((file) => file.startsWith(".board-settled/") && file.endsWith(".md"))).toEqual([]);
+		expect(yield* sourcesAt(ACTIVE)).toEqual(Object.fromEntries(ACTIVE.map((file) => [file, files[file]])));
 	},
 );
 
 boardStory.it(
-	"resumes a partially moved archive group without losing its answer or moving an open question",
-	[files, deferredServing],
-	function* (board) {
-		yield* board.archive();
-		board.moveFile(".board-settled/answer.settled.md", "responses/answer.settled.md");
+	"concurrent archive passes by Board and Fleet store every settled record once and leave open questions active",
+	[settledQuestions, deferredServing],
+	function* ({ archiveConcurrently, settledStore, sourcesAt }) {
+		yield* archiveConcurrently();
 
-		expect(yield* board.archive()).toContain("Moved 1 records.");
+		yield* outcomes({
+			"active questions": [sourcesAt(ACTIVE), Object.fromEntries(ACTIVE.map((file) => [file, files[file]]))],
+			"settled store": [settledStore(), STORED],
+		});
+	},
+);
 
-		expect(board.fileSource(".board-settled/answer.settled.md")).toBe(fixture.files["responses/answer.settled.md"]);
-		expect(board.fileExists("responses/answer.settled.md")).toBe(false);
-		expect(board.fileSource("questions/open.md")).toBe(fixture.files["questions/open.md"]);
+boardStory.it("a second archive pass moves no records", [archivedSources(files), deferredServing], function* ({ archivePass }) {
+	expect(yield* archivePass()).toBe("Moved 0 records.");
+});
+
+boardStory.it(
+	"an archived question opens at its item link with its recorded answer",
+	[archivedSources(files)],
+	function* ({ answersOf, briefStatus, foundAt }) {
+		yield* outcomes({
+			answers: [answersOf("settled"), [{ body: "Keep the reviewed option.\n", id: "answer.settled" }]],
+			path: [foundAt("settled"), "decisions/settled.md"],
+			status: [briefStatus("settled"), "done"],
+		});
+	},
+);
+
+boardStory.it("an archived answer opens at its own item link", [archivedSources(files)], function* ({ readItem }) {
+	expect((yield* readItem("answer.settled")).source).toBe("Keep the reviewed option.\n");
+});
+
+boardStory.it("an archived question opens at its original source link", [archivedSources(files)], function* ({ readDocument }) {
+	expect((yield* readDocument("decisions/settled.md")).source).toBe("# settled\n\nWhich option?\n");
+});
+
+boardStory.it(
+	"after an open question changes, the Board's reads and Today never read settled Markdown",
+	[archivedSources(files), recordedReads()],
+	function* ({ clearRecordedReads, edited, readToday, recordedReadsUnder }) {
+		yield* clearRecordedReads();
+
+		yield* edited("questions/open.md", `${files["questions/open.md"]}\nMore context.\n`);
+		yield* readToday();
+
+		yield* outcomes({
+			"open question re-read": [recordedReadsUnder("questions"), expect.arrayContaining(["questions/open.md"])],
+			"settled Markdown read": [recordedReadsUnder(".board-settled"), []],
+		});
+	},
+);
+
+boardStory.it(
+	"the next archive pass finishes a partly moved settled group without moving an open question",
+	[archivedSources(files), deferredServing],
+	function* ({ archivePass, moveFile, settledStore, sourcesAt }) {
+		moveFile(".board-settled/answer.settled.md", "responses/answer.settled.md");
+
+		expect(yield* archivePass()).toBe("Moved 1 records.");
+
+		yield* outcomes({
+			"answer's original place": [sourcesAt(["responses/answer.settled.md"]), { "responses/answer.settled.md": "missing" }],
+			"open question": [sourcesAt(["questions/open.md"]), { "questions/open.md": files["questions/open.md"] }],
+			"settled store": [settledStore(), STORED],
+		});
 	},
 );

@@ -1,78 +1,66 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { boardScreen, routedScreen } from "#test/screenTraits.ts";
-import { boardRouter } from "./boardRouter.ts";
 
 expectNoReactWarnings();
+
 const files = {
 	"home.md": "# Home",
 	"notes/task.md":
-		"---\nid: task.fixture\nkind: task\nstatus: draft\nowner: marvin\nnext_action: Read the evidence\ncriteria:\n  - id: proof\n    text: Show the result\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# Task\n\n[Result](../result.md#recorded-evidence-0)\n\n## Details\n\n### Details\n",
-	"result.md":
-		"---\nid: result.fixture\nkind: report\nevidence:\n  - criterion: task.fixture#proof\n    source: notes/task.md\n    outcome: observed\n---\n# Result\n",
+		"---\nid: task.fixture\nkind: task\nstatus: draft\n---\n# Task\n\n[Result](../result.md#recorded-evidence-0)\n\n## Details\n\n### Details\n",
+	"result.md": "---\nid: result.fixture\nkind: report\n---\n# Result\n",
 };
 
 for (const url of ["/notes/task.md", "/_board/item/task.fixture/"]) {
 	screenStory.it(
-		`renders typed document data and context at ${url}`,
-		[routedScreen(files, url, undefined)],
-		function* ({ readAttribute, findElement, readText }) {
-			yield* eventually(() => expect(readAttribute("article.doc a", "href")).toBe("/result.md#recorded-evidence-0"));
-			expect(findElement("main")?.dataset.identity).toBe("task.fixture");
-			expect(findElement(".item-introduction h1")?.id).toBe("heading-task");
-			expect(findElement("#heading-details-2")).not.toBeNull();
-			expect(readText(".answer-reason")).toContain("Choose a direction");
-			expect(readAttribute("#criterion-proof a", "href")).toBe("/_board/item/result.fixture/#recorded-evidence-0");
-			const backlink = findElement('.work-context a[href="/_board/item/result.fixture/"]');
-			expect(backlink?.textContent).toBe("Result");
-			expect(backlink?.getAttribute("title")).toMatch(/^result\.md:\d+$/u);
-			expect(readText(".item-summary")).toContain("Read the evidence");
+		`a document opened at ${url} resolves its relative links against its own folder`,
+		[readingPage(files, url)],
+		function* ({ documentLinks }) {
+			expect(yield* documentLinks()).toEqual([["Result", "/result.md#recorded-evidence-0"]]);
 		},
 	);
 }
 
-for (const url of ["/missing.md", "/_board/item/missing/"]) {
-	screenStory.it(
-		`shows an empty state with a way back for a missing page at ${url}`,
-		[
-			boardScreen(files, (api, registry) => {
-				const router = boardRouter({ api, registry });
-				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [url] }) });
-				return <RouterProvider router={router} />;
-			}),
-		],
-		function* ({ findElement, findElements, readText }) {
-			yield* eventually(() => expect(findElement("main [data-slot=empty]")).not.toBeNull());
-			const empty = findElement("main [data-slot=empty]");
-			expect(readText("[data-slot=empty-title]", empty)).toBe(url.endsWith(".md") ? "File not found" : "Item not found");
-			expect(readText("[role=status]", empty)).toContain(url.endsWith(".md") ? "No Markdown file at missing.md." : "No item has the ID missing.");
-			expect(findElements("a", empty).map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+screenStory.it("headings with the same title get distinct anchors", [readingPage(files, "/notes/task.md")], function* ({ headingAnchors }) {
+	expect(yield* headingAnchors()).toEqual(["heading-task", "heading-details", "heading-details-2"]);
+});
+
+for (const [url, title, description] of [
+	["/missing.md", "File not found", "No Markdown file at missing.md. It may have been moved or deleted."],
+	["/_board/item/missing/", "Item not found", "No item has the ID missing. It may be missing, renamed, or invalid."],
+] as const) {
+	screenStory.it(`${url} says ${title} and offers the way back to Today and the Library`, [readingPage(files, url)], function* ({ missingPage }) {
+		expect(yield* missingPage()).toEqual({
+			description,
+			links: [
 				["Back to Today", "/"],
 				["Browse the Library", "/_board/library"],
-			]);
-		},
-	);
+			],
+			title,
+		});
+	});
 }
 
 const QUESTION =
 	'---\nid: question.invalid\nkind: question\nscope: task\nurgency: whenever\n---\n# Invalid controls\n\n> ::::question{id="next" select="text"}\n> What next?\n> ::::\n';
 screenStory.it(
-	"keeps response history readable when a question's prompt template is invalid",
-	[routedScreen({ ...files, "question.md": QUESTION }, "/question.md", undefined)],
-	function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText(".response-panel")).toContain("Use top-level question containers"));
-		expect(readText("#response-history h2")).toBe("Answers so far");
-		expect(readText("#response-history")).toContain("No answers yet");
-		expect(findElement("#response-form")).toBeNull();
+	"a question with an invalid prompt template explains the problem, keeps its answer history readable and offers no answer form",
+	[readingPage({ ...files, "question.md": QUESTION }, "/question.md")],
+	function* ({ responseForm, responseHistory, responsePanel }) {
+		yield* outcomes({
+			"answer form": [responseForm(), "none"],
+			"answer history": [responseHistory(), { heading: "Answers so far", text: expect.stringContaining("No answers yet") }],
+			"response panel": [responsePanel(), expect.stringContaining("Use top-level question containers")],
+		});
 	},
 );
 
 screenStory.it(
-	"renders a document at its file URL when no home board is configured",
-	[routedScreen(files, "/home.md", { home: undefined })],
-	function* ({ readText }) {
-		yield* eventually(() => expect(readText(".item-introduction h1")).toBe("Home"));
+	"a Board without a home board opens a document at its file URL",
+	[readingPage(files, "/home.md", { home: undefined })],
+	function* ({ shownPage }) {
+		expect(yield* shownPage()).toBe("Home");
 	},
 );

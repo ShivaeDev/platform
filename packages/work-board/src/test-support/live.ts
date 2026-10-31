@@ -1,7 +1,5 @@
-import { Effect } from "effect";
 import { vi } from "vitest";
-import type { RunningBoard } from "./board.ts";
-import { type OpenPage, openPage } from "./browser.ts";
+import type { OpenPage } from "./browser.ts";
 
 export const PLAN = [
 	"# Plan",
@@ -38,20 +36,6 @@ export const FILES = { "board.md": BOARD, "flow.md": WITH_DIAGRAM, "mixed.md": M
 export function waitFor(check: () => void | Promise<void>) {
 	return vi.waitFor(check, { interval: 10, timeout: 5000 });
 }
-
-export function settle() {
-	return new Promise((resolve) => setTimeout(resolve, 300));
-}
-
-export const openLive = Effect.fn("Test.openLive")(function* (board: RunningBoard, path: string, beforeScripts?: Parameters<typeof openPage>[2]) {
-	const page = yield* openPage(board, path, beforeScripts);
-	yield* Effect.promise(() =>
-		vi.waitUntil(() => page.document.getElementById("live")?.getAttribute("data-state") === "live", { interval: 10, timeout: 5000 }),
-	);
-	yield* Effect.promise(() => vi.waitUntil(() => page.pageRequests.answered >= 1, { interval: 10, timeout: 5000 }));
-	yield* Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 20)));
-	return page;
-});
 
 export function paragraphOf(page: OpenPage, text: string) {
 	return [...page.document.querySelectorAll("#doc p")].find((element) => element.textContent === text);

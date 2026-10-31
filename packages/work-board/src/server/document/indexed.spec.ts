@@ -1,47 +1,32 @@
-import { Effect } from "effect";
-import { expect, vi } from "vitest";
-import * as metadata from "#server/metadata/model.ts";
-import * as parsing from "#server/metadata/parse.ts";
-import * as updates from "#server/metadata/updateModel.ts";
-import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
+import { expect } from "vitest";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { indexedWorkspace } from "#test/indexedWorkspace.ts";
+import { recordedReads } from "#test/readTraits.ts";
+import { countedMetadataWork, fleetAcceptsEveryBrief } from "#test/workspaceBoardTraits.ts";
 
 boardStory.it(
-	"opens indexed documents through HTTP and RPC without parsing or rebuilding the workspace, while still reading each selected file",
-	[projectFiles(indexedWorkspace), deferredServing],
-	function* ({ notes, start, readDocument, request }) {
-		const reads: string[] = [];
-		yield* start({
-			wrap: (fs) => ({
-				...fs,
-				readFileString: (path, encoding) =>
-					Effect.suspend(() => {
-						reads.push(path);
-						return fs.readFileString(path, encoding);
-					}),
-			}),
-		});
-		yield* readDocument("document-0.md");
-		const parsed = vi.spyOn(parsing, "metadataParse");
-		const built = vi.spyOn(metadata, "metadataModel");
-		const updated = vi.spyOn(updates, "updateModel");
-		try {
-			reads.length = 0;
-			for (const file of ["document-1.md", "document-2.md", "document-10.md"]) {
-				const result = yield* readDocument(file);
-				expect(result.file).toBe(file);
-				expect(result.reading?.backlinks).toEqual(expect.arrayContaining([expect.objectContaining({ kind: "Markdown link" })]));
-			}
-			const response = yield* request("/document-3.md");
-			expect(yield* Effect.promise(() => response.text())).toContain("data-board-react-root");
-			expect(reads.map((path) => path.slice(notes.root.length + 1))).toEqual(["document-1.md", "document-2.md", "document-10.md", "document-3.md"]);
-			expect(parsed).not.toHaveBeenCalled();
-			expect(built).not.toHaveBeenCalled();
-			expect(updated).not.toHaveBeenCalled();
-		} finally {
-			parsed.mockRestore();
-			built.mockRestore();
-			updated.mockRestore();
+	"opening indexed documents by RPC and HTTP reads only those files and neither parses metadata nor rebuilds the model",
+	[projectFiles(indexedWorkspace), fleetAcceptsEveryBrief, recordedReads(), countedMetadataWork],
+	function* ({ boardFinishesIndexing, getPage, metadataWork, readDocument, readFiles }) {
+		yield* boardFinishesIndexing();
+
+		for (const file of ["document-1.md", "document-2.md", "document-10.md"]) {
+			yield* readDocument(file);
 		}
+		const page = yield* getPage("/document-3.md");
+
+		expect(page.body).toContain("data-board-react-root");
+		expect(readFiles()).toEqual(["document-1.md", "document-2.md", "document-10.md", "document-3.md"]);
+		expect(yield* metadataWork()).toEqual({ modelBuilds: 0, modelUpdates: 0, parses: 0 });
+	},
+);
+
+boardStory.it(
+	"a document opened from the index still lists the item that depends on it and the note that links to it",
+	[projectFiles(indexedWorkspace), fleetAcceptsEveryBrief],
+	function* ({ boardFinishesIndexing, documentBacklinks }) {
+		yield* boardFinishesIndexing();
+
+		expect(yield* documentBacklinks("document-1.md")).toEqual(["/_board/item/fixture.0/", "/_board/item/fixture.159/"]);
 	},
 );

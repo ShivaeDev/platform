@@ -16,7 +16,17 @@ export function indexAvailability(engine: ScreenEngine, files: readonly string[]
 				PlatformError.systemError({ _tag: "Unknown", description: "Workspace unavailable", method: "readDirectory", module: "FileSystem" }),
 			);
 		}
-		return engine.indexGate ? Deferred.await(engine.indexGate) : Effect.void;
+		if (!engine.indexGate) {
+			return Effect.void;
+		}
+		engine.indexWaiting = true;
+		return Deferred.await(engine.indexGate).pipe(
+			Effect.ensuring(
+				Effect.sync(() => {
+					engine.indexWaiting = false;
+				}),
+			),
+		);
 	});
 }
 

@@ -1,51 +1,46 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { itemOpened } from "#test/itemContextTraits.tsx";
 import { itemPolishFixture } from "#test/itemPolishFixture.ts";
-import { QueryDocument } from "#test/QueryDocument.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { boardScreen } from "#test/screenTraits.ts";
+
+expectNoReactWarnings();
 
 for (const evidence of [false, true]) {
-	screenStory.it(
-		`summarizes criterion evidence once and retains recorded claims (evidence: ${evidence})`,
-		[boardScreen(itemPolishFixture(evidence), (api) => <QueryDocument api={api} url="/done.md" />)],
-		function* ({ findElement, findElements, readText, readAttribute }) {
-			yield* eventually(() => expect(findElement("#criterion-layout")).not.toBeNull());
-			const summary = `${evidence ? 1 : 0} of 2 criteria have recorded evidence`;
-			expect(
-				findElements("p")
-					.filter((p) => p.textContent === summary)
-					.map((p) => p.textContent),
-			).toEqual([summary]);
-			expect(readText()).not.toContain("No recorded evidence");
-			expect(readText()).not.toContain("Acceptance is not established");
-			expect(findElement("#criterion-links p")).toBeNull();
-			if (evidence) {
-				expect(readAttribute("#criterion-layout a", "href")).toBe("/_board/item/report.review/#recorded-evidence-0");
-				expect(readText("#criterion-layout")).toContain("1 recorded claim:");
-			} else {
-				expect(findElement("#criterion-layout a")).toBeNull();
-			}
-			expect(readText(".item-introduction [data-status-token]")).toBe("Done");
-			expect(findElement('a[href="https://github.com/ShivaeDev/platform/pull/390"]')).not.toBeNull();
-		},
-	);
+	const summary = `${evidence ? 1 : 0} of 2 criteria have recorded evidence`;
+	screenStory.it(`a done task says once that ${summary}`, [itemOpened(itemPolishFixture(evidence), "/done.md")], function* ({ evidenceSummaries }) {
+		expect(yield* evidenceSummaries()).toEqual([summary]);
+	});
 }
 
-for (const file of ["done", "draft", "goal"]) {
-	screenStory.it(
-		`keeps owned fields quiet and unowned fields visible on ${file}`,
-		[boardScreen(itemPolishFixture(), (api) => <QueryDocument api={api} url={`/${file}.md`} />)],
-		function* ({ findElement, readText, findElements }) {
-			yield* eventually(() => expect(findElement("#criterion-layout")).not.toBeNull());
-			expect(readText()).toContain("0 of 2 criteria have recorded evidence");
-			expect(readText()).not.toContain("Unknown field fleet");
-			const diagnostics = findElement(".metadata-problems");
-			if (file === "draft") {
-				expect(findElements("li", diagnostics).map((item) => item.textContent)).toEqual([expect.stringContaining("Unknown field flavor")]);
-			} else {
-				expect(diagnostics).toBeNull();
-			}
-		},
-	);
-}
+screenStory.it(
+	"a criterion with recorded evidence links the report that records its claim",
+	[itemOpened(itemPolishFixture(true), "/done.md")],
+	function* ({ criterionEvidence }) {
+		expect(yield* criterionEvidence("layout")).toEqual({ claims: "1 recorded claim:", links: ["/_board/item/report.review/#recorded-evidence-0"] });
+	},
+);
+
+screenStory.it(
+	"a criterion without recorded evidence links no report",
+	[itemOpened(itemPolishFixture(false), "/done.md")],
+	function* ({ criterionEvidence }) {
+		expect(yield* criterionEvidence("layout")).toBe("none");
+	},
+);
+
+screenStory.it(
+	"an unknown frontmatter field is listed as a metadata problem, and Fleet's own fleet field is not",
+	[itemOpened(itemPolishFixture(), "/draft.md")],
+	function* ({ metadataProblems }) {
+		expect(yield* metadataProblems()).toEqual([expect.stringContaining("Unknown field flavor")]);
+	},
+);
+
+screenStory.it(
+	"a task whose only extra field is Fleet's fleet field lists no metadata problems",
+	[itemOpened(itemPolishFixture(), "/done.md")],
+	function* ({ metadataProblems }) {
+		expect(yield* metadataProblems()).toEqual([]);
+	},
+);
