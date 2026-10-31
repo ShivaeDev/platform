@@ -1,9 +1,9 @@
+import { screenElements } from "#adapters/screenElements.ts";
 import type { ScreenTarget } from "#screenDriver.ts";
 import { accessibility, targetName } from "./screenAccessibility.ts";
-import { screenElements } from "./screenElements.ts";
 
-export function screenReadouts(currentRoot: () => HTMLElement, tell: (line: string) => void) {
-	const elements = screenElements(currentRoot);
+export function screenReadouts(currentRoot: () => HTMLElement, tell: (line: string) => void, dialogs = true) {
+	const elements = screenElements(currentRoot, dialogs);
 	return {
 		accessible: (selector: string | Element) => {
 			if (typeof selector !== "string") {

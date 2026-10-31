@@ -1,8 +1,10 @@
-import { isRendered, roleElement, targetName } from "#internal/screenAccessibility.ts";
+import { isRendered, targetName } from "#internal/screenAccessibility.ts";
+import { screenText } from "#internal/screenText.ts";
 import type { ScreenTarget } from "#screenDriver.ts";
-import { screenText } from "./screenText.ts";
+import { screenQueries } from "./screenQueries.ts";
 
-export function screenElements(root: () => HTMLElement) {
+export function screenElements(root: () => HTMLElement, dialogs = true) {
+	const queries = screenQueries(root, dialogs);
 	function rendered(found: HTMLElement, selector: string) {
 		if (!isRendered(found)) {
 			throw new Error(`The screen's ${selector} is not rendered.\nhelp: Reveal the target and its ancestors before acting on or reading it.`);
@@ -11,9 +13,9 @@ export function screenElements(root: () => HTMLElement) {
 	}
 	function element(selector: ScreenTarget) {
 		if (typeof selector !== "string") {
-			return roleElement(root(), selector);
+			return queries.roleElement(selector);
 		}
-		const matches = root().querySelectorAll<HTMLElement>(selector);
+		const matches = queries.query(selector);
 		const found = matches[0];
 		if (matches.length !== 1 || found === undefined) {
 			throw new Error(
@@ -60,7 +62,22 @@ export function screenElements(root: () => HTMLElement) {
 			return found;
 		},
 		input,
+		matches: queries.matches,
 		rendered,
+		select: (selector: ScreenTarget, value: string) => {
+			const field = element(selector);
+			if (!(field instanceof HTMLSelectElement)) {
+				throw new Error(`The screen's ${targetName(selector)} is not a select.\nhelp: Select a rendered select control.`);
+			}
+			enabled(field, selector);
+			if (!Array.from(field.options).some((option) => option.value === value)) {
+				throw new Error(`The screen's ${targetName(selector)} has no option ${JSON.stringify(value)}.\nhelp: Choose an available option value.`);
+			}
+			field.focus();
+			field.value = value;
+			field.dispatchEvent(new Event("change", { bubbles: true }));
+		},
 		text: screenText,
+		textElement: queries.textElement,
 	};
 }
