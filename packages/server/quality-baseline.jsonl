@@ -1,4 +1,3 @@
-{"path":"packages/server/src/appDatabase.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The shared pool release wrapper needs a native lease-ownership replacement, preserving exactly-once release across request scopes (likelihood 3 x severity 6 = 18)."}
 {"path":"packages/server/src/boundedRpcRequest.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/boundedRpcRequest.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/server/src/hostRpc.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Native RPC middleware order keeps read policy inside identity middleware; removing mutation requires rebuilding the group without changing authorization order (likelihood 3 x severity 6 = 18)."}

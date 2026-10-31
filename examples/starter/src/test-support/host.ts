@@ -25,12 +25,12 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	const jobsTesting = makePgBossTesting();
 	const database = yield* PostgresTestDatabase;
 	yield* Effect.scoped(migrateDatabase(database.url));
-	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0", "PUBLIC_URL": PUBLIC_URL } : {};
+	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0" } : {};
 	if (options.ownerAccounts !== undefined) {
 		env.AUTH_OWNER_ACCOUNTS = options.ownerAccounts;
 	}
-	if (options.publicUrl === "unset") {
-		delete env.PUBLIC_URL;
+	if (deployed && options.publicUrl !== "unset") {
+		env.PUBLIC_URL = PUBLIC_URL;
 	}
 	if (options.trustedProxy !== undefined) {
 		env.TRUSTED_PROXY = options.trustedProxy;

@@ -14,7 +14,7 @@ export interface BoardEngine {
 	activeDiagnosticsPolls?: () => number;
 	announcedChanges?: string[][];
 	beforeScripts?: Parameters<typeof openPage>[2];
-	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string };
+	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string | undefined };
 	cliEntry?: string;
 	connectionBoundary?: { readonly disconnect: () => void; readonly resume: () => void };
 	fleetPort?: number | undefined;
@@ -22,7 +22,7 @@ export interface BoardEngine {
 	home?: string | undefined;
 	lastView?: ReturnType<typeof readerView>;
 	linked?: import("./linkedProject.ts").LinkedProject;
-	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage };
+	live?: { board: RunningBoard; client: ReturnType<typeof browserClient>; page: OpenPage } | undefined;
 	manualServing?: boolean;
 	notes: Folder;
 	outside?: Folder;

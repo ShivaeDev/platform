@@ -73,8 +73,7 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 function prepareMigrations<R, E>(migrations: AppDatabaseOptions<R, E>["migrations"]) {
 	switch (migrations.mode) {
 		case "check": {
-			const schema = { ...migrations };
-			delete schema.release;
+			const { release: _release, ...schema } = migrations;
 			return assertPostgresMigrations(schema);
 		}
 		case "wait":

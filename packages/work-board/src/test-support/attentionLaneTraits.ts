@@ -50,10 +50,13 @@ export function archivedSources(files: Readonly<Record<string, string>>) {
 	return boardStory.traits(projectFiles(files, "the project has settled, open and deferred questions"), archivedBeforeStartup);
 }
 
-export function closedInboxAsks(change: (files: Record<string, string>) => void = () => undefined) {
+export function closedInboxAsks(change: (files: Record<string, string>) => void = () => undefined, omitted: readonly string[] = []) {
 	const files = closedInboxFixture();
 	change(files);
-	return attentionSources(files, "Fleet asked about done, draft, dropped and deferred tasks, beside one authored question");
+	return attentionSources(
+		Object.fromEntries(Object.entries(files).filter(([path]) => !omitted.includes(path))),
+		"Fleet asked about done, draft, dropped and deferred tasks, beside one authored question",
+	);
 }
 
 export function audienceQuestions(

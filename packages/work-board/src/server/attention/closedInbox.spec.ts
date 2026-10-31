@@ -74,15 +74,17 @@ boardStory.it(
 boardStory.it(
 	"two requests in one Fleet source for the same task, one through a criterion, count as one ask with an earlier ask",
 	[
-		closedInboxAsks((files) => {
-			delete files["asks/draft-2.md"];
-			files["draft.md"] = files["draft.md"]?.replace("owner: codex", "owner: codex\ncriteria:\n  - id: proof\n    text: Evidence") ?? "";
-			files["asks/draft-1.md"] =
-				files["asks/draft-1.md"]?.replace(
-					"    unblocks: [task.draft]",
-					"    unblocks: [task.draft#proof]\n  - id: later\n    kind: decision\n    managed: true\n    state: open\n    reason: Later request in the same source\n    response_from: [maintainer]\n    unblocks: [task.draft]",
-				) ?? "";
-		}),
+		closedInboxAsks(
+			(files) => {
+				files["draft.md"] = files["draft.md"]?.replace("owner: codex", "owner: codex\ncriteria:\n  - id: proof\n    text: Evidence") ?? "";
+				files["asks/draft-1.md"] =
+					files["asks/draft-1.md"]?.replace(
+						"    unblocks: [task.draft]",
+						"    unblocks: [task.draft#proof]\n  - id: later\n    kind: decision\n    managed: true\n    state: open\n    reason: Later request in the same source\n    response_from: [maintainer]\n    unblocks: [task.draft]",
+					) ?? "";
+			},
+			["asks/draft-2.md"],
+		),
 	],
 	function* ({ inboxAsk, inboxLane }) {
 		yield* outcomes([
@@ -99,24 +101,27 @@ boardStory.it(
 boardStory.it(
 	"a registered ask on an ordinary source joins the other asks for its task under its own reason",
 	[
-		closedInboxAsks((files) => {
-			const source = files["asks/draft-2.md"]?.replace("managed: true", "managed: false") ?? "";
-			const reviewedRevision = revisionOf(source);
-			files["asks/draft-2.md"] = source;
-			files["responses/draft.md"] = questionMarkdown({
-				context: source,
-				id: questionId("decision.draft.2", "approval", reviewedRevision, "asks/draft-2.md"),
-				question: {
-					deadline: 200,
-					item: "decision.draft.2",
-					reason: "draft ask 2",
-					registeredAt: 100,
-					request: "approval",
-					reviewedRevision,
-					source: "asks/draft-2.md",
-				},
-			});
-		}),
+		closedInboxAsks(
+			(files) => {
+				const source = files["asks/draft-2.md"]?.replace("managed: true", "managed: false") ?? "";
+				const reviewedRevision = revisionOf(source);
+				files["asks/draft-2.md"] = source;
+				files["responses/draft.md"] = questionMarkdown({
+					context: source,
+					id: questionId("decision.draft.2", "approval", reviewedRevision, "asks/draft-2.md"),
+					question: {
+						deadline: 200,
+						item: "decision.draft.2",
+						reason: "draft ask 2",
+						registeredAt: 100,
+						request: "approval",
+						reviewedRevision,
+						source: "asks/draft-2.md",
+					},
+				});
+			},
+			["asks/draft-2.md"],
+		),
 	],
 	function* ({ inboxAsk, inboxLane }) {
 		yield* outcomes([

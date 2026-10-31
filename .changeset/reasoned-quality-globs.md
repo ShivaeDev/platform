@@ -15,3 +15,7 @@
 ### Changed
 
 - Generated starters declare auth ownership with reasoned globs for Quality.
+
+### Fixed
+
+- Enable Biome's `noDelete` as an error while disabling its automatic fix so diagnostics remain visible without rewriting deletion behavior.
