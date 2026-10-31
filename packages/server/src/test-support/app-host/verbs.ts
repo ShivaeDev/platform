@@ -5,6 +5,7 @@ import { adminVerbs } from "./adminVerbs.ts";
 import { clientAbortVerbs } from "./clientAbortVerbs.ts";
 import { connectionSecurity, serverOffersTls } from "./connectionSecurity.ts";
 import { databaseVerbs } from "./databaseVerbs.ts";
+import { fieldScopeVerbs } from "./fieldScopeVerbs.ts";
 import { close, hasService } from "./lifecycle.ts";
 import { requests } from "./requests.ts";
 import { runtimeVerbs } from "./runtime.ts";
@@ -32,6 +33,7 @@ export function hostVerbs(state: HostState, story: { tell: (line: string) => voi
 		...requests(state, story.tell),
 		...clientAbortVerbs(state, story.tell),
 		...databaseVerbs(state, story.tell),
+		...fieldScopeVerbs(state, story.tell),
 		...runtimeVerbs(state, story.tell),
 		...traceVerbs(state, story.tell),
 		...timeoutVerbs(state, story.tell),

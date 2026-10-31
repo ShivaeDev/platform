@@ -1,7 +1,7 @@
 import { Predicate, type SchemaAST } from "effect";
 import { isSensitiveKey } from "#sensitive.ts";
 
-function children(ast: SchemaAST.AST): readonly SchemaAST.AST[] {
+export function children(ast: SchemaAST.AST): readonly SchemaAST.AST[] {
 	switch (ast._tag) {
 		case "Objects":
 			return [...ast.propertySignatures.map((property) => property.type), ...ast.indexSignatures.flatMap((index) => [index.parameter, index.type])];
@@ -42,10 +42,23 @@ function containsSensitive(ast: SchemaAST.AST, keys: ReadonlySet<string>): boole
 		|| propertiesOf(ast).some((property) => typeof property.name === "string" && (keys.has(property.name) || isSensitiveKey(property.name)))
 	);
 }
+function preservesFields(source: SchemaAST.AST, target: SchemaAST.AST): boolean {
+	return (
+		source._tag === "Declaration"
+		&& Predicate.hasProperty(source.annotations?.representation, "id")
+		&& source.annotations.representation.id === "effect/schema/Option"
+		&& target._tag === "Union"
+		&& target.types.some((type) => type._tag === "Null")
+	);
+}
 export function collectEncodedKeys(ast: SchemaAST.AST, keys: Set<string>) {
 	let source = ast;
 	let sensitive = false;
 	for (const link of ast.encoding ?? []) {
+		if (preservesFields(source, link.to)) {
+			source = link.to;
+			continue;
+		}
 		sensitive ||= containsSensitive(source, keys);
 		if (sensitive) {
 			for (const property of propertiesOf(link.to)) {
@@ -74,6 +87,10 @@ export function maskedValue(ast: SchemaAST.AST, keys: ReadonlySet<string>, seen 
 	let source = ast;
 	let sensitive = false;
 	for (const link of ast.encoding ?? []) {
+		if (preservesFields(source, link.to)) {
+			source = link.to;
+			continue;
+		}
 		sensitive ||= containsSensitive(source, keys);
 		if (sensitive && !fixedOutput(link.to)) {
 			return true;

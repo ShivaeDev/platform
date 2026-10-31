@@ -5,7 +5,9 @@ import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 export function resolveRole(roles: RoleSet, stored: unknown) {
 	if (stored === undefined || stored === null) {
 		return Effect.andThen(
-			Effect.logWarning("Stored user role is missing. Run migrateBetterAuth with defaultRole, then use assignRole for administrators."),
+			Effect.logWarning(
+				"Stored user role is missing. Generate and apply an auth migration with defaultRole, then use assignRole for administrators.",
+			),
 			Effect.fail(new Forbidden({ message: "User role is missing" })),
 		);
 	}

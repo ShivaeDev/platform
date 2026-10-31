@@ -11,7 +11,7 @@ for (const swap of [false, true]) {
 		`a sensitive encoder that ${swap ? "swaps" : "keeps"} its output fields has both possible fields masked in the client failure, the diagnostic log and span attributes`,
 		[json, branchedEncoding],
 		function* ({ answerMentions, callRpc, close, diagnosticLog, spanAttributes, wireAnswers }) {
-			yield* callRpc("branched", { swap, value: "private branched contact" });
+			yield* callRpc("branched", { chooseSwap: swap, value: "private branched contact" });
 
 			yield* close();
 
