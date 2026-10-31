@@ -70,6 +70,20 @@ export const Handlers = Api.toLayer({
 
 `storageSave` is the application's Effect. `unexpected` constructs a member of the declared schema from the public message. The default message is `Internal server error`; `message` supplies application text, with credential-shaped strings redacted. Before masking an unexpected failure, the boundary reports its diagnostic-redacted cause through Effect's registered `ErrorReporter`s at `Error` severity. Request tracing logs that masked failure at ERROR with its redacted stack, while declared rejections stay at INFO. The original Effect cause is kept on the server rejection's non-enumerable `cause`, so a server span can trace it. Keep `cause` out of the wire schema, as the taxonomy classes do. `ServiceUnavailable` describes a declared availability failure without implying a session-provider outage.
 
+Apply the same boundary to an entire handler registration with `rpcBoundaryHandlers(group, boundary, handlers)`:
+
+```ts
+import { rpcBoundaryHandlers } from "@shivaedev/errors/rpcBoundaryHandlers.ts";
+
+export const Handlers = Api.toLayer(
+	rpcBoundaryHandlers(Api, expose, {
+		Save: () => storageSave,
+	}),
+);
+```
+
+The group supplies payload and result types. Each RPC must declare the boundary's rejection schema. Effect and Stream handlers share the mapping, including failures after a stream has delivered values; native `Rpc.Wrapper` options remain available. Handler service requirements pass through to the native handler Layer. Use this map inside an Effect passed to `toLayer` when handler construction needs services. Queue-backed streams and Deferred results use native handlers with an explicit boundary at their producer instead.
+
 ### Masking secrets in failures
 
 `sensitive.ts` decides which names are secret. `isSensitiveKey(key)` matches credential-shaped names whatever their casing or separator, such as `sessionId`, `bearerToken`, `access_key_id` or `cardNumber`, and database diagnostic keys `db.user`, `db.user.name` and `db.connection_string`. A `SensitiveKey` is any `(key: string) => boolean`, so an application can widen the policy with its own names. `redactText(text, sensitive, maxLength?, key?)` masks credential-shaped text and `key=value` assignments inside a string, URL user information, query values and fragments, and cuts it at 2,048 characters by default; passing `Infinity` keeps complete public text. The optional `key` supplies context for standalone URL components such as `url.query`. `redactUrl(value, key?)` from `sensitive.ts` applies just the URL rules, including nested JSON strings. Masked values become `REDACTED`, the string `<redacted>`.

@@ -159,6 +159,8 @@ export const NotesHandlers = Notes.toLayer(
 
 Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.application` and keep `Notes` as the host and client group.
 
+To map unexpected failures once for a handler registration, declare `boundary = rpcBoundary(schema, options)` once and use `rpcBoundaryHandlers(Notes.application, boundary, handlers)` from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#mapping-unexpected-failures-at-the-handler-edge), then pass the map to `Notes.application.toLayer`. Each operation declares the boundary's rejection schema; payloads, successful results and required services retain their native types.
+
 Native `.middleware(M)` returns a contract that retains its declarations. For example, a native middleware service can supply request identity:
 
 ```ts
@@ -330,6 +332,8 @@ Server adapters read the RPC's `KeyScope` annotation. For `"session"`, they must
 The automatic live connection exposed at `api[LiveConnection]` includes a writable `paused` atom. Set it in the binding’s registry to pause refreshes; clearing it reconciles the mounted queries. Bindings on the same client runtime share this pause state.
 
 Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
+
+Subscribing to the hosted `$changes` stream over HTTP fails with `WebSocketRequired` from `@shivaedev/contract/WebSocketRequired.ts`; its message names the stream and says it needs the WebSocket protocol.
 
 A native shell supplies its lifecycle events through `bind`'s optional `resume` source:
 

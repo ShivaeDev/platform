@@ -149,7 +149,7 @@ export const sessionKeys = storyKit({
 			nextHint: (name: string) => Effect.flatMap(feed(name), (subscription) => subscription.next),
 			postSubscription: () => {
 				story.tell("alice requests the reserved changes stream over POST");
-				return answered(postChanges(state.writer.url, state.alice.cookie));
+				return answered(postChanges(state.writer.url, state.alice.cookie), (error) => (error instanceof Error ? error.message : String(error)));
 			},
 			published: () => Effect.sync(() => state.writer.published.map((keys) => publishedWords(keys, accountName))),
 			read: (caller: Caller, boundary: Boundary = "account") =>
