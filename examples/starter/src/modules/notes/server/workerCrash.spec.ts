@@ -5,7 +5,7 @@ import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 notesDeployment.it(
 	"a killed old worker stops blocking the owning release after its heartbeat expires",
 	[],
-	function* ({ startProcess, signUpAt, notesAt, holdJob }) {
+	function* ({ startProcess, signUpAt, notesAt, holdJob, workerPollPasses }) {
 		const oldRelease = { "RAILWAY_GIT_COMMIT_SHA": "crashed" };
 		const newRelease = { "RAILWAY_GIT_COMMIT_SHA": "replacement" };
 		const migration = yield* startProcess("migrate", 0, oldRelease);
@@ -26,7 +26,7 @@ notesDeployment.it(
 		const second = yield* notes["notes.create"]({ title: "Replacement handles queued jobs" });
 		yield* oldWorker.child.kill({ killSignal: "SIGKILL" });
 		yield* held.release;
-		yield* Effect.sleep("1200 millis");
+		yield* workerPollPasses();
 		expect(yield* notes["notes.get"]({ id: second.id })).toMatchObject({ wordCount: null });
 		yield* Effect.promise(() =>
 			expect.poll(() => Effect.runPromise(notes["notes.get"]({ id: second.id })), { timeout: 8000 }).toMatchObject({ wordCount: 4 }),

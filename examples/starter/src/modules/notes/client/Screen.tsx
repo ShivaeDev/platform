@@ -21,6 +21,10 @@ export function NotesScreen({
 }) {
 	const query = useLoaderQuery(client.api.list.query(), loaded);
 	const rows = query.data;
+	const signOutControl = signOut !== undefined && <SignOut action={signOut} />;
+	const loadFailure = Option.isSome(query.cause) && <p role="alert">Could not load notes. Try refreshing.</p>;
+	const emptyMessage = rows.length === 0 && <p className="text-muted-foreground text-sm">No notes yet. Add your first one above.</p>;
+	const table = rows.length > 0 && <NotesTable notes={rows} />;
 	return (
 		<main className="mx-auto w-full max-w-2xl space-y-8 px-4 py-12 sm:px-6">
 			<header className="space-y-2">
@@ -30,7 +34,7 @@ export function NotesScreen({
 				<a className="inline-block text-sm underline" href="/admin/jobs">
 					Administration
 				</a>
-				{signOut !== undefined && <SignOut action={signOut} />}
+				{signOutControl}
 			</header>
 			<section aria-label="Add a note">
 				<Card>
@@ -46,9 +50,9 @@ export function NotesScreen({
 						Refresh
 					</Button>
 				</div>
-				{Option.isSome(query.cause) && <p role="alert">Could not load notes. Try refreshing.</p>}
-				{rows.length === 0 && <p className="text-muted-foreground text-sm">No notes yet. Add your first one above.</p>}
-				{rows.length > 0 && <NotesTable notes={rows} />}
+				{loadFailure}
+				{emptyMessage}
+				{table}
 			</section>
 		</main>
 	);
@@ -57,12 +61,13 @@ export function NotesScreen({
 function SignOut({ action }: { readonly action: AuthActions["signOut"] }) {
 	const state = useSignOut(action, { signIn: "/sign-in" });
 	const failure = AsyncResult.error(state.result);
+	const signOutFailure = !state.pending && Option.isSome(failure) && <p role="alert">Could not sign out. Try again.</p>;
 	return (
 		<>
 			<Button disabled={state.pending} onClick={() => state.dispatch()} variant="outline">
 				{state.pending ? "Signing out…" : "Sign out"}
 			</Button>
-			{!state.pending && Option.isSome(failure) && <p role="alert">Could not sign out. Try again.</p>}
+			{signOutFailure}
 		</>
 	);
 }

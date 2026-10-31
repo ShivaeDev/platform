@@ -9,8 +9,8 @@ import { requests } from "#modules/notes/test-support/requests.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
-import type { Engine } from "./applicationState.ts";
 import { applicationVerbs } from "./applicationVerbs.ts";
+import type { Engine } from "./Engine.ts";
 import { workerQueue } from "./workerQueue.ts";
 
 export const app = storyKit({

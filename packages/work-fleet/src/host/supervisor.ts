@@ -3,6 +3,7 @@ import { unlink } from "node:fs/promises";
 import process from "node:process";
 import { Clock, Console, Effect, Exit, Scope, Semaphore } from "effect";
 import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
+import { pluginBuilder } from "#host/adapters/pluginBuilder.ts";
 import { replacementCode } from "./replacementCode.ts";
 import { logSupervisor, startProcess } from "./supervisedProcess.ts";
 import { codeReader, type RunningCode } from "./supervisorCode.ts";
@@ -89,6 +90,9 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 					yield* start(name, next.code, child.state.restarts + 1);
 				}
 			});
+			const buildPlugin = yield* pluginBuilder(codes.daemon.manifest, log);
+			yield* buildPlugin;
+			yield* Effect.forkScoped(Effect.forever(Effect.sleep("1 second").pipe(Effect.andThen(buildPlugin))));
 			for (const name of ["daemon", "board"] as const) {
 				yield* start(name, codes[name], 0);
 			}

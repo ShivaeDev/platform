@@ -67,7 +67,7 @@ Application roles and grants come from `@shivaedev/access`; identity resolves th
 
 ### Connect OAuth to identity and the host
 
-The Better Auth adapter is an optional edge module. Add its provider to the auth instance used by identity, alongside Better Auth's JWT plugin. `mcpProvider` configures the `mcp` scope and the endpoint's OAuth resource. The application's login and consent pages implement the provider's ordinary UI flow; the provider owns authorization codes, PKCE and tokens.
+The Better Auth adapter is an optional edge module. Add its provider to the auth instance used by identity, alongside Better Auth's JWT plugin. `mcpProvider` defaults to the `mcp` scope and configures the endpoint's OAuth resource. Pass `scopes: ["mcp", "offline_access"]` to allow refresh tokens; the client must also register the `refresh_token` grant and request `offline_access` during authorization. The application's login and consent pages implement the provider's ordinary UI flow; the provider owns authorization codes, PKCE and tokens.
 
 ```ts
 import { admin, jwt } from "better-auth/plugins";
@@ -121,7 +121,36 @@ const application = Effect.gen(function* () {
 
 `authPool`, `Api` and `Handlers` are the application's existing auth database, RPC group and handlers. Run the Better Auth migrations with the OAuth and JWT plugins included. For existing role management, keep the application's existing role plugin and `RoleSet` in this configuration.
 
-The edge adapter verifies access-token signatures, issuer, endpoint audience and `mcp` scope, then loads the current user through Better Auth. Identity resolves the stored role on each request. An invalid token receives `401` with a `WWW-Authenticate` protected-resource metadata pointer. The metadata names the authorization server and its discovery endpoint, so a client can start OAuth. MCP bearer credentials are separate from browser session cookies.
+The edge adapter verifies access-token signatures, issuer, endpoint audience and `mcp` scope, then loads the current user and the token client's consent through Better Auth. Banned users and clients without consent receive the same unauthorized response as invalid tokens. Identity resolves the stored role on each request. An invalid token receives `401` with a `WWW-Authenticate` protected-resource metadata pointer. The metadata names the authorization server and its discovery endpoint, so a client can start OAuth. MCP bearer credentials are separate from browser session cookies.
+
+### Revoke client grants
+
+The adapter returns `revokeClient(userId, clientId)` and `revokeAllClients(userId)` as Effects that fail with `AuthUnavailable` when storage fails. The application authorizes these operations. Each deletes matching consent, stored access tokens and refresh tokens through Better Auth's adapter. Use the first when disconnecting a client and the second after a password reset. JWT access tokens are refused because each request requires the client's consent.
+
+```ts
+yield* oauth.revokeClient(userId, clientId);
+yield* oauth.revokeAllClients(userId);
+```
+
+Deleting consent through Better Auth also refuses MCP access immediately. Use these revocation methods to delete refresh tokens as well.
+
+### Dynamic origins and local keys
+
+When Better Auth uses a dynamic `baseURL`, give it a `fallback`, for example `{ allowedHosts: ["app.example.com"], fallback: "https://app.example.com" }`. The adapter loads OAuth metadata outside a request, so Better Auth needs that origin to determine the issuer.
+
+By default verification fetches the authorization server's JWKS URL. Pass `jwks` to use an in-process public key source instead, including on story hosts whose public origin has no HTTP route:
+
+```ts
+const oauth = yield* betterAuthMcp({
+	auth: mounted.auth,
+	resource,
+	origin,
+	roles: Roles,
+	jwks: () => mounted.auth.api.getJwks(),
+});
+```
+
+The callback returns the public JWK set from the JWT plugin. Signature, issuer, audience and `mcp` scope checks still apply. Signing keys stay with the auth instance.
 
 ### Install and limits
 

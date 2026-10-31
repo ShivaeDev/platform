@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { type ScreenSurface, screenView } from "#test-support/screenState.ts";
+import { settleScreen } from "./settleScreen.ts";
 
 export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => void) {
 	const driver = screenDriver({
@@ -22,6 +23,7 @@ export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => voi
 				tell("read the rendered screen");
 				return screenView(engine).container;
 			}),
+		settle: () => settleScreen(engine, tell),
 		submitControl: driver.submit,
 	};
 }

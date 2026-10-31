@@ -1,5 +1,7 @@
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminSetup } from "#test-support/adminSetup.ts";
 
 adminSetup.it(
@@ -10,19 +12,32 @@ adminSetup.it(
 		const bootstrap = yield* createAdmin("first-admin@app.test", "first-admin-password-123");
 		expect(bootstrap.code, bootstrap.output + bootstrap.errors).toBe(0);
 		yield* startApp();
-		expect((yield* signIn("first-admin@app.test", "first-admin-password-123")).status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(yield* session()).toMatchObject({
-			user: {
-				email: "first-admin@app.test",
-				name: "Administrator",
-				permissions: expect.arrayContaining([
-					{ name: "users.read", strength: "own" },
-					{ name: "roles.assign", strength: "own" },
-					{ name: "jobs.read", strength: "own" },
-				]),
-				role: "owner",
-			},
-		});
+		yield* outcomes([
+			[
+				"sign-in response",
+				() =>
+					Effect.gen(function* () {
+						return (yield* signIn("first-admin@app.test", "first-admin-password-123")).status;
+					}),
+				HttpStatus.fromLiteral("OK"),
+			],
+			[
+				"signed-in session",
+				() => session(),
+				expect.objectContaining({
+					user: expect.objectContaining({
+						email: "first-admin@app.test",
+						name: "Administrator",
+						permissions: expect.arrayContaining([
+							{ name: "users.read", strength: "own" },
+							{ name: "roles.assign", strength: "own" },
+							{ name: "jobs.read", strength: "own" },
+						]),
+						role: "owner",
+					}),
+				}),
+			],
+		]);
 		const duplicate = yield* createAdmin("first-admin@app.test", "another-admin-password-123");
 		expect(duplicate.code).not.toBe(0);
 	},

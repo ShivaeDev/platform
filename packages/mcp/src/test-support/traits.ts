@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { connects } from "./client.ts";
 import { type Engine, person } from "./host.ts";
@@ -8,8 +8,8 @@ function sign(engine: Engine, payload: Record<string, string | number>) {
 	return Effect.promise(async () => (await engine.auth.api.signJWT({ body: { payload } })).token);
 }
 
-function claims(engine: Engine, name: string) {
-	return { aud: engine.resource, iss: `${engine.baseUrl}/api/auth`, scope: "mcp", sub: person(engine, name).id };
+function claims(engine: Engine, name: string, client: string) {
+	return { aud: engine.resource, "client_id": engine.clientIds.get(client) ?? "", iss: engine.issuer, scope: "mcp", sub: person(engine, name).id };
 }
 
 export const REFUSED_TOKENS = [
@@ -22,19 +22,21 @@ export const REFUSED_TOKENS = [
 ] as const;
 export type TokenKind = "for this endpoint" | (typeof REFUSED_TOKENS)[number];
 
-const TOKENS: Record<TokenKind, (engine: Engine, name: string) => Effect.Effect<string>> = {
-	"for another resource, https://other.test/mcp": (engine, name) => sign(engine, { ...claims(engine, name), aud: "https://other.test/mcp" }),
-	"for this endpoint": (engine, name) => sign(engine, claims(engine, name)),
-	"issued by https://other.test/api/auth": (engine, name) => sign(engine, { ...claims(engine, name), iss: "https://other.test/api/auth" }),
-	"that has expired": (engine, name) => sign(engine, { ...claims(engine, name), exp: 1 }),
+const TOKENS: Record<TokenKind, (engine: Engine, name: string, client: string) => Effect.Effect<string>> = {
+	"for another resource, https://other.test/mcp": (engine, name, client) =>
+		sign(engine, { ...claims(engine, name, client), aud: "https://other.test/mcp" }),
+	"for this endpoint": (engine, name, client) => sign(engine, claims(engine, name, client)),
+	"issued by https://other.test/api/auth": (engine, name, client) =>
+		sign(engine, { ...claims(engine, name, client), iss: "https://other.test/api/auth" }),
+	"that has expired": (engine, name, client) => sign(engine, { ...claims(engine, name, client), exp: 1 }),
 	"that is not a JWT": () => Effect.succeed("not-a-jwt"),
-	"whose claims were altered after signing": (engine, name) =>
-		Effect.map(sign(engine, claims(engine, name)), (token) => {
+	"whose claims were altered after signing": (engine, name, client) =>
+		Effect.map(sign(engine, claims(engine, name, client)), (token) => {
 			const [header, , signature] = token.split(".");
-			const altered = Buffer.from(JSON.stringify({ ...claims(engine, name), altered: true })).toString("base64url");
+			const altered = Buffer.from(JSON.stringify({ ...claims(engine, name, client), altered: true })).toString("base64url");
 			return `${header}.${altered}.${signature}`;
 		}),
-	"with the scope other instead of mcp": (engine, name) => sign(engine, { ...claims(engine, name), scope: "other" }),
+	"with the scope other instead of mcp": (engine, name, client) => sign(engine, { ...claims(engine, name, client), scope: "other" }),
 };
 
 export function signedIn(name: string, role: "admin" | "user") {
@@ -44,9 +46,21 @@ export function signedIn(name: string, role: "admin" | "user") {
 	});
 }
 
-export function holdsToken(name: string, kind: TokenKind = "for this endpoint") {
-	return mcp.trait("tokens", `${name}'s client holds an access token ${kind}`, function* (engine) {
-		engine.tokens.set(name, yield* TOKENS[kind](engine, name));
+export function holdsToken(name: string, kind: TokenKind = "for this endpoint", client = name) {
+	return mcp.trait("tokens", `${name}'s ${client} client holds an access token ${kind}`, function* (engine) {
+		// Minted grants keep authentication preconditions independent of the browser OAuth flow.
+		const { adapter } = yield* Effect.promise(() => engine.auth.$context);
+		const clientId = `${client}-client`;
+		const now = DateTime.toDateUtc(yield* DateTime.now);
+		yield* Effect.promise(() => adapter.create({ data: { clientId, redirectUris: ["http://localhost:8123/callback"] }, model: "oauthClient" }));
+		yield* Effect.promise(() =>
+			adapter.create({
+				data: { clientId, createdAt: now, scopes: ["mcp"], updatedAt: now, userId: person(engine, name).id },
+				model: "oauthConsent",
+			}),
+		);
+		engine.clientIds.set(client, clientId);
+		engine.tokens.set(client, yield* TOKENS[kind](engine, name, client));
 	});
 }
 

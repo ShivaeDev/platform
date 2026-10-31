@@ -1,38 +1,29 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, rejectedNoteCommits, signedIn } from "#modules/notes/test-support/application.ts";
 
-app.it("saves and edits notes when the queue client rejects enqueueing", [signedIn()], function* ({ actor, storedNotes, logs, failNextNoteJob }) {
-	const { notes } = actor();
-	yield* failNextNoteJob();
-	const created = yield* notes.create({ title: "Still saved" });
-	expect(logs()).toContainEqual(
-		expect.objectContaining({
-			message: expect.arrayContaining([
-				expect.objectContaining({
-					error: expect.objectContaining({ operation: "enqueue", queue: "count-note-words" }),
-					event: "note_enqueue_failed",
-					noteId: created.id,
-				}),
-			]),
-		}),
-	);
-	yield* failNextNoteJob();
-	const edited = yield* notes.update({ ...created, title: "Still edited" });
-	expect(yield* notes.get({ id: created.id })).toEqual(edited);
-	expect(yield* storedNotes()).toEqual(
-		[{ id: created.id, title: "Still edited", version: 1, wordCount: null }].map((note) => expect.objectContaining(note)),
-	);
-	expect(
-		logs().filter(
-			(entry) =>
-				Array.isArray(entry.message)
-				&& entry.message.some(
-					(message) => typeof message === "object" && message !== null && "event" in message && message.event === "note_enqueue_failed",
-				),
-		),
-	).toEqual(
-		[created, edited].map((note) =>
+app.it(
+	"saves and edits notes when the queue client rejects enqueueing",
+	[signedIn()],
+	function* ({ actor, storedNotes, logs, recordedEnqueueFailures, failNextNoteJob }) {
+		const { notes } = actor();
+		yield* failNextNoteJob();
+		const created = yield* notes.create({ title: "Still saved" });
+		expect(logs()).toContainEqual(
+			expect.objectContaining({
+				message: expect.arrayContaining([
+					expect.objectContaining({
+						error: expect.objectContaining({ operation: "enqueue", queue: "count-note-words" }),
+						event: "note_enqueue_failed",
+						noteId: created.id,
+					}),
+				]),
+			}),
+		);
+		yield* failNextNoteJob();
+		const edited = yield* notes.update({ ...created, title: "Still edited" });
+		const expectedEnqueueFailures = [created, edited].map((note) =>
 			expect.objectContaining({
 				message: expect.arrayContaining([
 					expect.objectContaining({
@@ -42,16 +33,27 @@ app.it("saves and edits notes when the queue client rejects enqueueing", [signed
 					}),
 				]),
 			}),
-		),
-	);
-});
+		);
+		yield* outcomes([
+			["logs", () => recordedEnqueueFailures(), expectedEnqueueFailures],
+			["notes get", () => notes.get({ id: created.id }), edited],
+			[
+				"stored notes",
+				() => storedNotes(),
+				[{ id: created.id, title: "Still edited", version: 1, wordCount: null }].map((note) => expect.objectContaining(note)),
+			],
+		]);
+	},
+);
 
 app.it(
 	"does not enqueue a note when its write transaction fails at commit",
 	[signedIn(), rejectedNoteCommits()],
 	function* ({ actor, storedNotes, collector, acceptNoteCommits }) {
-		expect(yield* actor().notes.create({ title: "Not committed" }).pipe(Effect.flip)).toMatchObject({ _tag: "InternalServerError" });
-		expect(yield* storedNotes()).toEqual([]);
+		yield* outcomes([
+			["actor", () => actor().notes.create({ title: "Not committed" }).pipe(Effect.flip), expect.objectContaining({ _tag: "InternalServerError" })],
+			["stored notes", () => storedNotes(), []],
+		]);
 		yield* acceptNoteCommits;
 		const control = yield* actor().notes.create({ title: "Committed control" });
 		const receiver = yield* collector();

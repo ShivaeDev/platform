@@ -15,7 +15,7 @@ export const themeStyles = storyKit({
 		load: () =>
 			Effect.promise(async () => {
 				tell("load the application's declared theme tokens");
-				engine.css = await readFile(new URL("../client/entry.css", import.meta.url), "utf8");
+				engine.css = await readFile(new URL("../client/main.css", import.meta.url), "utf8");
 			}),
 		setToken: (name: string, light: string, dark: string) =>
 			Effect.sync(() => {

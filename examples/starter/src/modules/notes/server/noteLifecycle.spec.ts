@@ -1,15 +1,18 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, legacyNote, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [signedIn()], function* ({ actor, storedNotes }) {
 	const { notes: client } = actor();
 	expect(yield* client.list()).toEqual([]);
 	const created = yield* client.create({ title: "First note" });
-	expect(created.title).toBe("First note");
-	expect(yield* client.list()).toEqual([created]);
-	expect(yield* storedNotes()).toEqual([created].map((note) => expect.objectContaining(note)));
+	yield* outcomes([
+		["created title", () => Effect.sync(() => created.title), "First note"],
+		["list", () => client.list(), [created]],
+		["stored notes", () => storedNotes(), [created].map((note) => expect.objectContaining(note))],
+	]);
 });
 
 app.it(
@@ -26,11 +29,15 @@ app.it(
 		const { cookie: aliceCookie, notes: alice } = actor();
 		const note = yield* alice.create({ title: "Alice's note" });
 		const bob = actor("bob").notes;
-		expect(yield* bob.list()).toEqual([]);
-		expect(yield* alice.list()).toEqual([note]);
+		yield* outcomes([
+			["alice list", () => alice.list(), [note]],
+			["bob list", () => bob.list(), []],
+		]);
 		const user = actor();
-		expect(yield* storedNoteOwners(note.title)).toEqual([{ userId: user.userId }]);
-		expect(yield* storedNoteOwners("Legacy note")).toEqual([{ userId: null }]);
+		yield* outcomes([
+			["legacy note owner", () => storedNoteOwners("Legacy note"), [{ userId: null }]],
+			["new note owner", () => storedNoteOwners(note.title), [{ userId: user.userId }]],
+		]);
 		yield* signOut(aliceCookie);
 		const revokedCreate = yield* alice.create({ title: "Revoked note" }).pipe(Effect.flip);
 		expect(revokedCreate).toMatchObject({ _tag: "Unauthorized" });

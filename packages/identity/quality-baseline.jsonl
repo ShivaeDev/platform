@@ -3,7 +3,6 @@
 {"path":"packages/identity/src/server/better-auth/bearerSessions.ts","rule":"effect/boundary","count":2}
 {"path":"packages/identity/src/server/better-auth/clientIp.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/identity/src/server/better-auth/memoryRateLimit.ts","rule":"biome/plugin","count":1}
-{"path":"packages/identity/src/server/better-auth/mount.test.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/identity/src/server/better-auth/mountRoutes.ts","rule":"effect/boundary","count":6}
 {"path":"packages/identity/src/server/better-auth/mountRoutes.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/identity/src/server/better-auth/mountedSessions.ts","rule":"effect/boundary","count":3}
@@ -14,6 +13,5 @@
 {"path":"packages/identity/src/server/local.ts","rule":"effect/boundary","count":2}
 {"path":"packages/identity/src/server/local.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/identity/src/server/permissions.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/identity/src/server/tracing.test.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/identity/src/test-support/rpc/profile.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/identity/src/test-support/rpc/providerProfile.ts","rule":"effect/failure-honesty","count":1}

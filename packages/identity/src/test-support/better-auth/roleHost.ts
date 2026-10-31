@@ -1,4 +1,3 @@
-import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
 import { Cause, ConfigProvider, Effect, Exit, Layer } from "effect";
 import { HttpRouter } from "effect/http";
@@ -6,6 +5,7 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rp
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser, RequestTracing } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
@@ -28,7 +28,7 @@ export const roleHost = Effect.fnUntraced(function* () {
 		secret: "stored-role-story-secret-at-least-32-characters",
 		user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" as const } } },
 	};
-	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
+	yield* migrateBetterAuth(options);
 	const mounted = yield* betterAuthMount(options, { roles: TestRoles }).pipe(
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
 	);

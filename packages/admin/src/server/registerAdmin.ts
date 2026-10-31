@@ -1,4 +1,4 @@
-import { Layer } from "effect";
+import { Effect, Layer } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import type { AdminPage } from "#page.ts";
 import type { AdminRegistry } from "#registry.ts";
@@ -25,16 +25,19 @@ export function registerAdmin(
 	registry: AdminRegistry<readonly AdminPage[]>,
 	handlers: Readonly<Record<string, Layer.Layer<never, unknown, unknown>>>,
 ) {
-	const ids = new Set(registry.pages.map((page) => page.id));
-	for (const id of ids) {
-		if (!Object.hasOwn(handlers, id)) {
-			throw new Error(`Missing admin handlers: ${id}`);
+	const registered = Layer.suspend(() => {
+		const ids = new Set(registry.pages.map((page) => page.id));
+		for (const id of ids) {
+			if (!Object.hasOwn(handlers, id)) {
+				return Layer.effectDiscard(Effect.die(new Error(`Missing admin handlers: ${id}`)));
+			}
 		}
-	}
-	for (const id of Object.keys(handlers)) {
-		if (!ids.has(id)) {
-			throw new Error(`Unregistered admin handlers: ${id}`);
+		for (const id of Object.keys(handlers)) {
+			if (!ids.has(id)) {
+				return Layer.effectDiscard(Effect.die(new Error(`Unregistered admin handlers: ${id}`)));
+			}
 		}
-	}
-	return { group: registry.group, handlers: Layer.mergeAll(Layer.empty, ...Object.values(handlers)), pages: registry.pages };
+		return Layer.mergeAll(Layer.empty, ...Object.values(handlers));
+	});
+	return { group: registry.group, handlers: registered, pages: registry.pages };
 }
