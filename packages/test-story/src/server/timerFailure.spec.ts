@@ -18,5 +18,5 @@ storyRunner.it("prints the missing timer, the wait in the story and help when no
 	expect(report).toContain("Last value seen: (no values received)");
 	expect(report).toContain("help:");
 	expect(report).toContain("wait until a sleep for 1 second starts");
-	expect(report).toContain("at src/test-support/timerStories.ts:");
+	expect(report).toMatch(/at (?:packages\/test-story\/)?src\/test-support\/timerStories\.ts:\d+:\d+/u);
 });
