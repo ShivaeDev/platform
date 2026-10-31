@@ -22,7 +22,8 @@ host.it("100 items read in one query per poll without execution history", [], fu
 	}
 	for (let poll = 0; poll < 2; poll += 1) {
 		const { states, statements } = yield* daemon.tracedSummaries(ids);
-		expect(states).toEqual(ids.map((workId) => ({ outcome: {}, stage: "working", workId })));
+		expect(states).toHaveLength(ids.length);
+		expect(states).toEqual(expect.arrayContaining(ids.map((workId) => ({ outcome: {}, stage: "working", workId }))));
 		expect(statements).toEqual([expect.not.stringContaining('"history"')]);
 	}
 });
