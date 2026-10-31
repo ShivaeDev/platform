@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { browserClient } from "#browserClient.ts";
+import { browserClient } from "#adapters/browserClient.ts";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { connectionBoundary } from "#test/connectionBoundary.ts";
 

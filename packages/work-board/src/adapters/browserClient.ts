@@ -59,10 +59,8 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 	}
 	async function run<A, E>(effect: Effect.Effect<A, E, Reader>, signal?: AbortSignal) {
 		try {
-			return await Effect.runPromise(
-				Effect.flatMap(AtomRegistry.getResult(registry, Client.runtime), (context) => Effect.provideContext(effect, context)),
-				{ signal },
-			);
+			const context = await Effect.runPromise(AtomRegistry.getResult(registry, Client.runtime), { signal });
+			return await Effect.runPromiseWith(context)(effect, { signal });
 		} catch (error) {
 			if (signal?.aborted) {
 				const canceled = new Error("Reading canceled", { cause: error });

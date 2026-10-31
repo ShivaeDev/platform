@@ -1,6 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { useContext, useEffect, useRef, useState } from "react";
-import type { RouterShell } from "#client/react/loadBoardPage.ts";
+import type { RouterShell } from "#client/react/adapters/loadBoardPage.ts";
 import { useMainLocation } from "#client/react/MainLocationContext.ts";
 import { currentEntry, navigationFailure, readingKey, recordEntry, sameReadingLocation } from "#client/react/navigationLocation.ts";
 import { ReadingReadyContext, readingReady } from "#client/react/ReadingReadyContext.ts";

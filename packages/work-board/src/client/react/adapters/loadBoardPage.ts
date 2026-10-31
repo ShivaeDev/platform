@@ -3,13 +3,13 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/react/loadQuery.ts";
 import type { ShellOptions } from "#client/react/BoardShell.tsx";
 import { documentRoute } from "#client/react/documentRoute.ts";
-import { loadProjection } from "#client/react/loadProjection.ts";
-import { loadRemaining } from "#client/react/loadRemaining.ts";
 import { projectionRoute } from "#client/react/projectionRoute.ts";
 import { remainingRoute } from "#client/react/remainingRoute.ts";
-import { routeHome } from "#client/react/routeHome.ts";
 import { documentQuery } from "#client/react/routeQuery.ts";
 import { resultUrl } from "#responses/url.ts";
+import { loadProjection } from "./loadProjection.ts";
+import { loadRemaining } from "./loadRemaining.ts";
+import { routeHome } from "./routeHome.ts";
 
 export type RouterShell = ShellOptions & { readonly registry: AtomRegistry.AtomRegistry };
 

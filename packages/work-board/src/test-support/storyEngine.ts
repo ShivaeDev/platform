@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { NodeWS } from "@effect/platform-node/NodeSocket";
 import { type Deferred, Effect, type Semaphore } from "effect";
-import type { browserClient } from "#browserClient.ts";
+import type { browserClient } from "#adapters/browserClient.ts";
 import type { Sources } from "#diagnostics/source.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";

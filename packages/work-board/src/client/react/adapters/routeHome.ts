@@ -1,9 +1,9 @@
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { loadQuery } from "@shivaedev/react/loadQuery.ts";
-import { documentRoute } from "./documentRoute.ts";
+import { documentRoute } from "#client/react/documentRoute.ts";
+import { navigationQuery } from "#client/react/routeQuery.ts";
 import type { RouterShell } from "./loadBoardPage.ts";
-import { navigationQuery } from "./routeQuery.ts";
 
 // Only a document address can name the home board, and the home board moves so rarely that the last navigation read decides the route.
 export async function routeHome({ api, registry }: RouterShell, pathname: string, abortController: AbortController) {

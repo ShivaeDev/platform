@@ -3,7 +3,7 @@ import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
-import type { BrowserClient } from "#browserClient.ts";
+import type { BrowserClient } from "#adapters/browserClient.ts";
 import { BoardMain } from "#client/react/BoardMain.tsx";
 import { FleetProvider } from "#client/react/FleetProvider.tsx";
 import { FormContext } from "#client/react/FormContext.ts";

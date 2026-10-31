@@ -1,7 +1,7 @@
 import { createRootRouteWithContext, createRoute, createRouter, type RouterHistory } from "@tanstack/react-router";
 import { createElement } from "react";
+import { type BoardLoaderContext, loadBoardPage, openBoardPage, type RouterShell } from "#client/react/adapters/loadBoardPage.ts";
 import { BoardShell } from "./BoardShell.tsx";
-import { type BoardLoaderContext, loadBoardPage, openBoardPage, type RouterShell } from "./loadBoardPage.ts";
 export function boardRouter(options?: RouterShell, history?: RouterHistory) {
 	let opening: Promise<void> | undefined;
 	function loader(context: BoardLoaderContext): ReturnType<typeof loadBoardPage> | undefined {
