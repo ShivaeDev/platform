@@ -1,7 +1,7 @@
-import { Effect, Option, Result, Stream } from "effect";
+import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { untilAtom } from "@shivaedev/react/test-support/untilAtom.ts";
 import { changesUntil, type EventStream, rpcWatcher } from "./nativeRpc.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
@@ -51,15 +51,12 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		nextRead: <A, E>(query: Atom.Atom<AsyncResult.AsyncResult<A, E>>, previous: A) => {
 			tell("the reader waits for its mounted query to show a new read");
 			const before = JSON.stringify(previous);
-			return AtomRegistry.toStream(served(engine).client.registry, query).pipe(
-				Stream.filterMap((result) =>
-					AsyncResult.isSuccess(result) && !result.waiting && JSON.stringify(result.value) !== before
-						? Result.succeed(result.value)
-						: Result.failVoid,
-				),
-				Stream.runHead,
-				Effect.flatMap((read) => Option.match(read, { onNone: () => Effect.die(new Error("The mounted query stopped")), onSome: Effect.succeed })),
-			);
+			return untilAtom(
+				served(engine).client.registry,
+				query,
+				(result) => AsyncResult.isSuccess(result) && !result.waiting && JSON.stringify(result.value) !== before,
+				{ name: "a new settled query read" },
+			).pipe(Effect.map(AsyncResult.getOrThrow));
 		},
 		omitNextPath: (path: string) => {
 			tell(`the next live message omits the observed edit to ${path}`);
@@ -78,10 +75,7 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 		waitForConnection: (state: "live" | "reconnecting" = "live") => {
 			tell(`the reader waits for its native connection to be ${state}`);
 			const client = served(engine).client;
-			return AtomRegistry.toStream(client.registry, client.updates.status).pipe(
-				Stream.takeUntil((status) => status.connection === state),
-				Stream.runDrain,
-			);
+			return untilAtom(client.registry, client.updates.status, (status) => status.connection === state, { name: `connection ${state}` });
 		},
 		watchingReady: Effect.fn("Story.watchingReady")(function* (events: EventStream) {
 			tell("the reader waits for the watcher to recover");
