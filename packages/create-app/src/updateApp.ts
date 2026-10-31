@@ -6,6 +6,7 @@ import { historicalTemplate } from "./historicalTemplate.ts";
 import { checkedProcess, runProcess } from "./runProcess.ts";
 import { starterPatch } from "./starterPatch.ts";
 import { appTemplate } from "./template.ts";
+import { updateChecks } from "./updateChecks.ts";
 
 export const updateApp = Effect.fn("CreateApp.updateApp")(function* (folder: string, templatePath: string, version: string) {
 	return yield* Effect.scoped(
@@ -33,15 +34,19 @@ export const updateApp = Effect.fn("CreateApp.updateApp")(function* (folder: str
 				const result = yield* runProcess(target, "git", ["apply", "--3way", patch.path]);
 				if (result.code !== 0) {
 					const conflicts = (yield* checkedProcess(target, "git", ["diff", "--name-only", "--diff-filter=U"])).trim();
-					return yield* new CreateAppError({
-						message: conflicts
-							? `Resolve these conflicts, then commit your changes:\n${conflicts}\nThe recorded version remains ${generation.version}.`
-							: result.stderr.trim(),
-					});
+					if (!conflicts) {
+						return yield* new CreateAppError({ message: result.stderr.trim() });
+					}
 				}
 			}
 			yield* writeGeneration(target, { ...generation, version });
-			yield* Console.log(`Applied create-app ${version}. Review the changes, run pnpm install and commit when ready.`);
+			const failures = yield* updateChecks(target);
+			if (failures.length > 0) {
+				return yield* new CreateAppError({
+					message: `Recorded create-app ${version}. Finish the update before committing:\n${failures.join("\n\n")}`,
+				});
+			}
+			yield* Console.log(`Applied create-app ${version}. Install and typecheck passed. Review the changes and commit when ready.`);
 		}),
 	);
 });

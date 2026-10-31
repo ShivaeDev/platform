@@ -3,7 +3,8 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { updates } from "#test/updates.ts";
 import { AS_RELEASED, appCommits, appEditsWithoutCommitting, createdWith010, published010, starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
-const APPLIED = "Applied create-app 0.2.0. Review the changes, run pnpm install and commit when ready.";
+const APPLIED =
+	"Running pnpm install...\nRunning pnpm run typecheck...\nApplied create-app 0.2.0. Install and typecheck passed. Review the changes and commit when ready.";
 const shipsUpgrade = starterAt010("ships upgrade.txt reading original", { "upgrade.txt": "original\n" });
 const changesUpgrade = starterAt020("rewrites upgrade.txt as starter content", { "upgrade.txt": "starter content\n" });
 
@@ -55,13 +56,13 @@ updates.it(
 
 		yield* outcomes({
 			commits: [commits(), ["Create App <create-app@localhost>: Initialize a generated app"]],
-			"uncommitted changes": [uncommittedChanges(), [" M .create-app.json", "M  upgrade.txt"]],
+			"uncommitted changes": [uncommittedChanges(), expect.arrayContaining([" M .create-app.json", "M  upgrade.txt"])],
 		});
 	},
 );
 
 updates.it(
-	"update leaves an edit that overlaps the starter's as a listed Git conflict and keeps 0.1.0 recorded",
+	"update lists overlapping edits as conflict markers, records 0.2.0 and runs typecheck with a nonzero exit",
 	[
 		shipsUpgrade,
 		createdWith010(),
@@ -69,13 +70,18 @@ updates.it(
 		appCommits("rewrites upgrade.txt as app content", { "upgrade.txt": "app content\n" }),
 		changesUpgrade,
 	],
-	function* ({ answer, conflictedFiles, file, generationRecord, update }) {
+	function* ({ answer, conflictedFiles, exitCode, file, generationRecord, printedMentions, update }) {
 		yield* update();
 
 		yield* outcomes({
-			".create-app.json": [generationRecord(), { name: "my-app", version: "0.1.0" }],
-			answer: [answer(), "create-app: Resolve these conflicts, then commit your changes:\nupgrade.txt\nThe recorded version remains 0.1.0."],
+			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
+			answer: [
+				answer(),
+				"create-app: Recorded create-app 0.2.0. Finish the update before committing:\nFiles with conflict markers:\nupgrade.txt\n\nUnresolved Git conflicts:\nupgrade.txt",
+			],
 			"conflicted files": [conflictedFiles(), ["upgrade.txt"]],
+			"exit code": [exitCode(), 1],
+			"typecheck ran": [printedMentions("Running pnpm run typecheck..."), true],
 			"upgrade.txt": [file("upgrade.txt"), "<<<<<<< ours\napp content\n=======\nstarter content\n>>>>>>> theirs\n"],
 		});
 	},
@@ -89,7 +95,7 @@ updates.it(
 
 		yield* outcomes({
 			answer: [answer(), APPLIED],
-			"uncommitted changes": [uncommittedChanges(), [" M .create-app.json"]],
+			"uncommitted changes": [uncommittedChanges(), expect.arrayContaining([" M .create-app.json"])],
 			"upgrade.txt": [gitState("upgrade.txt"), "missing"],
 		});
 	},
