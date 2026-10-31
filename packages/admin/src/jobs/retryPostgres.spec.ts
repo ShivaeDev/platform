@@ -37,11 +37,48 @@ jobsStory.it(
 	},
 );
 
+jobsStory.it(
+	"a successful retry removes mail 42's dead-letter copy while unretried mail 7 stays listed",
+	[admin, mailFails(42, 7)],
+	function* ({ deadLettered, retry, workersFinish }) {
+		expect(yield* deadLettered("mail")).toMatchObject({
+			copies: expect.arrayContaining([
+				{
+					copy: "the dead-letter copy of mail 42",
+					payload: { id: 42 },
+					queue: "mail-dlq",
+					source: "mail 42",
+					sourceOutput: "the worker rejected 42",
+					sourceQueue: "mail",
+					started: "not started",
+				},
+			]),
+		});
+
+		yield* retry("mail 42");
+		yield* workersFinish();
+
+		expect(yield* deadLettered("mail")).toEqual({
+			copies: [
+				{
+					copy: "the dead-letter copy of mail 7",
+					payload: { id: 7 },
+					queue: "mail-dlq",
+					source: "mail 7",
+					sourceOutput: "the worker rejected 7",
+					sourceQueue: "mail",
+					started: "not started",
+				},
+			],
+			next: "last page",
+		});
+	},
+);
+
 for (const [view, before, after, change] of [
 	["failed mail jobs", ["mail 42"], [], "no longer listing mail 42"],
 	["mail counts", "1 failed", "0 failed", "counting no failed mail job"],
 	["mail 42's detail", "failed", "not failed", "no longer showing mail 42 failed"],
-	["dead-lettered mail jobs", ["the dead-letter copy of mail 42"], ["the dead-letter copy of mail 42"], "still listing mail 42's dead-letter copy"],
 	["health", ["mail", "scheduled", "sync"], ["mail", "scheduled", "sync"], "still listing the page's three queues"],
 ] as const satisfies readonly (readonly [JobsView, unknown, unknown, string])[]) {
 	jobsStory.it(

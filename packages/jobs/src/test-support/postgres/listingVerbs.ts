@@ -32,7 +32,9 @@ function row(engine: DatabaseEngine, job: Listed) {
 		retryLimit: job.retryLimit,
 		state: job.state,
 		times: times(job),
-		...("sourceId" in job ? { source: labelOf(engine, Option.getOrUndefined(job.sourceId)), sourceError: errorOf(job.sourceOutput) } : {}),
+		...("sourceId" in job
+			? { source: labelOf(engine, Option.getOrUndefined(job.sourceId)), sourceError: errorOf(job.sourceOutput), sourceQueue: job.sourceQueue }
+			: {}),
 	};
 }
 

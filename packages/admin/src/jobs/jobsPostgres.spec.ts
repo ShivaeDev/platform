@@ -50,7 +50,7 @@ jobsStory.it(
 );
 
 jobsStory.it(
-	"the dead-letter copy of mail 42 waits unstarted in mail-dlq with mail 42's payload, naming mail 42 and its rejection",
+	"the dead-letter copy of mail 42 waits unstarted in mail-dlq with mail 42's payload, naming mail as its source queue, mail 42 and its rejection",
 	[admin, mailFails(42)],
 	function* ({ deadLettered }) {
 		expect(yield* deadLettered("mail")).toEqual({
@@ -61,6 +61,7 @@ jobsStory.it(
 					queue: "mail-dlq",
 					source: "mail 42",
 					sourceOutput: "the worker rejected 42",
+					sourceQueue: "mail",
 					started: "not started",
 				},
 			],

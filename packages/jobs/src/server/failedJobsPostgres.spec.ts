@@ -54,30 +54,35 @@ database.it(
 	},
 );
 
-database.it("the dead-letter copy of a failed job is listed with the source job's error", exhausted, function* ({ listed, untilDeadLettered }) {
-	expect((yield* listed("app", "dead-lettered", Listed)).jobs).toEqual([]);
+database.it(
+	"the dead-letter copy of a failed job names its source queue and the source job's error",
+	exhausted,
+	function* ({ listed, untilDeadLettered }) {
+		expect((yield* listed("app", "dead-lettered", Listed)).jobs).toEqual([]);
 
-	yield* untilDeadLettered(Listed, 1);
+		yield* untilDeadLettered(Listed, 1);
 
-	expect(yield* listed("app", "dead-lettered", Listed)).toEqual({
-		jobs: [
-			{
-				attempt: 0,
-				data: { id: 42 },
-				error: "none",
-				job: "copy of job 42",
-				queue: "listed-dlq",
-				retryCount: 0,
-				retryLimit: 2,
-				source: "job 42",
-				sourceError: REJECTED,
-				state: "created",
-				times: "1 UTC times in order",
-			},
-		],
-		next: "no further page",
-	});
-});
+		expect(yield* listed("app", "dead-lettered", Listed)).toEqual({
+			jobs: [
+				{
+					attempt: 0,
+					data: { id: 42 },
+					error: "none",
+					job: "copy of job 42",
+					queue: "listed-dlq",
+					retryCount: 0,
+					retryLimit: 2,
+					source: "job 42",
+					sourceError: REJECTED,
+					sourceQueue: "listed",
+					state: "created",
+					times: "1 UTC times in order",
+				},
+			],
+			next: "no further page",
+		});
+	},
+);
 
 database.it(
 	"failed jobs page newest first, and a later failure does not shift the pages already handed out",

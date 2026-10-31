@@ -48,6 +48,7 @@ export interface ListedJob<TData> {
 export interface DeadLetteredJob<TData> extends ListedJob<TData> {
 	readonly sourceId: Option.Option<string>;
 	readonly sourceOutput: JobFailure | null;
+	readonly sourceQueue: string;
 }
 
 export interface JobPageOptions {

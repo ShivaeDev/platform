@@ -72,6 +72,7 @@ export function deadLetteredSchema<TPayload extends Schema.Top>(queue: { readonl
 		queue: Schema.Literal(name),
 		sourceId: Schema.OptionFromNullOr(Schema.String),
 		sourceOutput: Schema.NullOr(JobFailure),
+		sourceQueue: Schema.Literal(queue.name),
 	});
 }
 

@@ -5,7 +5,7 @@ import { getConstructionPlans, getMigrationPlans, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import { type PgBossError, toPgBossError } from "#error.ts";
-import { deferralStorePlan } from "#internal/deferralStorePlan.ts";
+import { jobStorePlans } from "#internal/jobStorePlans.ts";
 import { runSchemaPlan } from "#internal/runSchemaPlan.ts";
 import { resumeSchemaIndexes } from "#internal/schemaIndexBuilds.ts";
 
@@ -17,6 +17,7 @@ const Partitions = Schema.Array(
 );
 const InstalledSchema = Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) }));
 const InstalledVersion = Schema.Array(Schema.Struct({ version: Schema.Number }));
+const InstalledResolution = Schema.Array(Schema.Struct({ installed: Schema.Boolean }));
 
 export interface PgBossSchemaOptions {
 	readonly schema?: string;
@@ -69,7 +70,9 @@ export function installPgBossSchema(options: PgBossSchemaOptions = {}): Effect.E
 				catch: (error) => error,
 				try: async () => {
 					await installSchema(connection, options, run);
-					await run(connection.executeRaw(deferralStorePlan(options.schema ?? "pgboss"), []));
+					for (const plan of jobStorePlans(options.schema ?? "pgboss")) {
+						await run(connection.executeRaw(plan, []));
+					}
 				},
 			});
 		}).pipe(Effect.mapError((error) => toPgBossError("install", error))),
@@ -92,9 +95,14 @@ export function pgBossSchema(options: PgBossSchemaOptions = {}): SchemaComponent
 					? []
 					: yield* sql`select version from ${table}`.withoutTransform.pipe(Effect.flatMap(Schema.decodeUnknownEffect(InstalledVersion)));
 			const required = pgBossPackage.pgboss.schema;
-			return row === undefined || row.version < required
-				? `schema ${schema}, installed version ${row?.version ?? "missing"}, required version ${required}`
-				: undefined;
+			if (row === undefined || row.version < required) {
+				return `schema ${schema}, installed version ${row?.version ?? "missing"}, required version ${required}`;
+			}
+			const job = sql`${sql(schema)}.${sql("job")}`;
+			const [resolution] = yield* sql`SELECT EXISTS (
+				SELECT 1 FROM pg_trigger WHERE tgrelid = to_regclass(${job.compile()[0]}) AND tgname = 'effect_dead_letter_resolution'
+			) AS installed`.withoutTransform.pipe(Effect.flatMap(Schema.decodeUnknownEffect(InstalledResolution)));
+			return resolution?.installed ? undefined : `schema ${schema}, missing dead-letter resolution trigger`;
 		}),
 	};
 }
