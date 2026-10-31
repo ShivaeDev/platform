@@ -1,77 +1,122 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { legacyVocabulary } from "#test/legacyVocabulary.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
+import { refusal } from "#test/refusal.ts";
 import { isolatedStorage } from "#test/storageStory.ts";
 
-const test = isolatedStorage;
+const VALUES = migrationRecords();
+const EXPECTED = VALUES.map((value, index) => ({ value, version: index + 7 }));
+const [FIRST_RECORD] = migrationRecords();
+const FIRST = { value: FIRST_RECORD, version: 7 };
 
-test.it(
-	"populated JSONB records migrate without changing records, versions, order or foreign reservations",
+isolatedStorage.it(
+	"the model migration keeps every JSONB record, version, admission order and foreign reservation and drops the payload column",
 	[],
-	function* ({ namespace, sql, restoreLegacy, migrate, openFleetStore }) {
-		yield* restoreLegacy(namespace);
-		yield* migrate(namespace, "attention_owner");
-		yield* sql`select setval(pg_get_serial_sequence(${`${namespace}_records`}, 'admission_order'), 9007199254740993, false)`;
-		const values = migrationRecords();
-		for (const [index, value] of values.entries()) {
-			yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, ${index + 7}, ${JSON.stringify(legacyVocabulary(value))}::jsonb)`;
-		}
-		yield* sql`insert into ${sql(`${namespace}_foreign_reservations`)} (owner, executing, backlog) values ('external', false, true)`;
-		const before = yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`;
-		let requeue = false;
-		const store = yield* openFleetStore({ namespace, requeue: () => requeue });
+	function* ({ admissionOrder, columns, jsonbModel, migrate, namespace, openFleetStore }) {
+		yield* jsonbModel(namespace, VALUES);
+		const before = yield* admissionOrder(namespace);
+		const store = yield* openFleetStore({ namespace });
+
 		yield* migrate(namespace);
-		const expected = values.map((value, index) => ({ value, version: index + 7 }));
-		expect(yield* store.list()).toEqual(expected);
-		for (const entry of expected) {
-			expect(yield* store.load(entry.value.workId)).toEqual(entry);
-		}
-		expect(yield* store.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "external" }]);
-		expect(yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`).toEqual(before);
-		expect(yield* migrate(namespace)).toEqual([]);
-		const first = expected[0];
-		if (first === undefined) {
-			return yield* Effect.die("Missing migrated record");
-		}
-		const unchanged = yield* store.compareAndSet(first.value.workId, first.version, first.value);
-		expect(yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`).toEqual(before);
-		requeue = true;
-		const saved = yield* store.compareAndSet(first.value.workId, unchanged.version, { ...first.value, areas: undefined, mergeReadyAt: undefined });
-		expect(saved.version).toBe(first.version + 2);
-		expect(yield* sql`select admission_order from ${sql(`${namespace}_records`)} where work_id = ${first.value.workId}`).toEqual([
-			{
-				"admission_order": 9007199254740995n,
-			},
+
+		yield* outcomes([
+			["listed records", () => store.list(), EXPECTED],
+			["loaded records", () => Effect.forEach(EXPECTED, ({ value }) => store.load(value.workId)), EXPECTED],
+			["foreign reservations", () => store.foreignReservations(), [{ areas: [], backlog: true, executing: false, owner: "external" }]],
+			["admission order", () => admissionOrder(namespace), before],
+			["payload column", () => columns(`${namespace}_records`).pipe(Effect.map((found) => found.some(({ name }) => name === "payload"))), false],
 		]);
-		expect((yield* store.load(first.value.workId))?.value.areas).toBeUndefined();
-		expect((yield* store.list()).map((entry) => entry.value.workId)).toEqual(["two", "one"]);
-		expect((yield* store.compareAndSet(first.value.workId, first.version, first.value).pipe(Effect.flip))._tag).toBe("StorageConflict");
-		expect(
-			yield* sql`select column_name from information_schema.columns where table_name = ${`${namespace}_records`} and column_name = 'payload'`,
-		).toEqual([]);
 	},
 );
 
-test.it(
-	"a failed model migration retains the source records and ledger for a repaired retry",
+isolatedStorage.it(
+	"an unchanged save after the model migration keeps the admission order",
 	[],
-	function* ({ namespace, sql, restoreLegacy, migrate, openFleetStore }) {
-		yield* restoreLegacy(namespace);
-		yield* migrate(namespace, "attention_owner");
-		const value = migrationRecords()[0];
-		if (value === undefined) {
-			return yield* Effect.die("Missing migration fixture");
-		}
-		const invalid = legacyVocabulary({ ...value, mergeReadyAt: "invalid-number" });
-		yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, 9, ${JSON.stringify(invalid)}::jsonb)`;
-		expect((yield* migrate(namespace).pipe(Effect.exit))._tag).toBe("Failure");
-		const rows = yield* sql`select version, payload from ${sql(`${namespace}_records`)} where work_id = ${value.workId}`;
-		expect(rows).toEqual([{ payload: invalid, version: 9 }]);
-		expect(yield* sql`select migration_id from ${sql(`${namespace}_migrations`)} where migration_id = 5`).toEqual([]);
-		yield* sql`update ${sql(`${namespace}_records`)} set payload = ${JSON.stringify(legacyVocabulary(value))}::jsonb where work_id = ${value.workId}`;
+	function* ({ admissionOrder, jsonbModel, migrate, namespace, openFleetStore }) {
+		yield* jsonbModel(namespace, VALUES);
 		const store = yield* openFleetStore({ namespace });
 		yield* migrate(namespace);
-		expect(yield* store.load(value.workId)).toEqual({ value, version: 9 });
+		const before = yield* admissionOrder(namespace);
+
+		yield* store.compareAndSet(FIRST.value.workId, FIRST.version, FIRST.value);
+
+		expect(yield* admissionOrder(namespace)).toEqual(before);
+	},
+);
+
+isolatedStorage.it(
+	"a requeued save after the model migration moves the record to the back of the admission order past 2^53",
+	[],
+	function* ({ admissionOrder, jsonbModel, migrate, namespace, openFleetStore }) {
+		yield* jsonbModel(namespace, VALUES);
+		let requeue = false;
+		const store = yield* openFleetStore({ namespace, requeue: () => requeue });
+		yield* migrate(namespace);
+		const unchanged = yield* store.compareAndSet(FIRST.value.workId, FIRST.version, FIRST.value);
+		requeue = true;
+
+		yield* store.compareAndSet(FIRST.value.workId, unchanged.version, { ...FIRST.value, areas: undefined, mergeReadyAt: undefined });
+
+		yield* outcomes([
+			[
+				"admission order",
+				() => admissionOrder(namespace),
+				[expect.objectContaining({ "work_id": "two" }), { "admission_order": 9_007_199_254_740_995n, "work_id": FIRST.value.workId }],
+			],
+			["listed order", () => store.list().pipe(Effect.map((entries) => entries.map(({ value }) => value.workId))), ["two", "one"]],
+			["saved areas", () => store.load(FIRST.value.workId).pipe(Effect.map((entry) => entry?.value.areas)), undefined],
+		]);
+	},
+);
+
+isolatedStorage.it(
+	"a write on a version from before the model migration's saves is a conflict",
+	[],
+	function* ({ jsonbModel, migrate, namespace, openFleetStore }) {
+		yield* jsonbModel(namespace, VALUES);
+		const store = yield* openFleetStore({ namespace });
+		yield* migrate(namespace);
+		yield* store.compareAndSet(FIRST.value.workId, FIRST.version, FIRST.value);
+
+		const stale = yield* refusal(store.compareAndSet(FIRST.value.workId, FIRST.version, FIRST.value));
+
+		expect(stale).toBe(`storage conflict on one: expected ${FIRST.version}, found ${FIRST.version + 1}`);
+	},
+);
+
+isolatedStorage.it(
+	"a model migration that meets an invalid record fails and keeps its source row and ledger",
+	[],
+	function* ({ appliedMigrations, insertPayloads, migrate, migration, namespace, restoreLegacy, storedPayload }) {
+		yield* restoreLegacy(namespace);
+		yield* migrate(namespace, "attention_owner");
+		const invalid = legacyVocabulary({ ...FIRST.value, mergeReadyAt: "invalid-number" });
+		yield* insertPayloads(namespace, [invalid], () => 9);
+
+		const outcome = yield* migration(namespace);
+
+		expect(outcome).toBe("failed");
+		yield* outcomes([
+			["source row", () => storedPayload(namespace, FIRST.value.workId), [{ payload: JSON.parse(JSON.stringify(invalid)), version: 9 }]],
+			["model migration in the ledger", () => appliedMigrations(namespace).pipe(Effect.map((applied) => applied.includes(5))), false],
+		]);
+	},
+);
+
+isolatedStorage.it(
+	"a repaired record migrates on retry",
+	[],
+	function* ({ insertPayloads, migrate, migration, namespace, openFleetStore, repairPayload, restoreLegacy }) {
+		yield* restoreLegacy(namespace);
+		yield* migrate(namespace, "attention_owner");
+		yield* insertPayloads(namespace, [legacyVocabulary({ ...FIRST.value, mergeReadyAt: "invalid-number" })], () => 9);
+		expect(yield* migration(namespace)).toBe("failed");
+		yield* repairPayload(namespace, FIRST.value.workId, legacyVocabulary(FIRST.value));
+
+		yield* migrate(namespace);
+
+		expect(yield* (yield* openFleetStore({ namespace })).load(FIRST.value.workId)).toEqual({ value: FIRST.value, version: 9 });
 	},
 );

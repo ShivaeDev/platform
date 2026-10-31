@@ -22,7 +22,7 @@ export function rootEncoding(source: "schema" | "host", shape: "scalar" | "recor
 			),
 		};
 		const group = RpcGroup.make(
-			Rpc.make("hidden", { error: errors[shape], payload: { contact: Schema.String, slot: Schema.String }, success: Schema.Void }),
+			Rpc.make("hidden", { error: errors[shape], payload: { contact: Contact, slot: Schema.String }, success: Schema.Void }),
 			Rpc.make("visibleFailure", { error: Schema.Struct({ detail: Schema.String }), payload: { detail: Schema.String }, success: Schema.Void }),
 			Rpc.make("succeed", { payload: { contact: Schema.String }, success: Schema.String }),
 		);

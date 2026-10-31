@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { githubCliHost } from "#test/githubHostStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 githubCliHost.it("checks exact refs and all PR pages using only GitHub GET requests", [], function* (github) {
 	const endpoints = new Map([
@@ -19,8 +19,6 @@ githubCliHost.it("checks exact refs and all PR pages using only GitHub GET reque
 
 for (const response of ["{}", "not json"]) {
 	githubCliHost.it("fails closed on malformed remote evidence", [], function* (github) {
-		expect(yield* github.publication(response).pipe(Effect.flip)).toMatchObject({
-			_tag: "ServiceUnavailable",
-		});
+		expect(yield* refusal(github.publication(response))).toMatch(/^unavailable: /u);
 	});
 }

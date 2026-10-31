@@ -7,7 +7,7 @@ const Rejected = Schema.Struct({
 	_tag: Schema.Literal("Rejected"),
 	sealed: Schema.RedactedFromValue(Schema.String),
 	visible: Schema.String,
-}).pipe(Schema.encodeKeys({ sealed: "wireValue" }));
+}).pipe(Schema.encodeKeys({ _tag: "wireTag", sealed: "wireValue", visible: "wireVisible" }));
 const RenamedPassword = Schema.Struct({ password: Schema.String }).pipe(Schema.encodeKeys({ password: "wireCode" }));
 const Computed = Schema.Struct({ sealed: Schema.String.annotate({ sensitive: true }) }).pipe(
 	Schema.encodeTo(Schema.Struct({ computedWire: Schema.String }), {

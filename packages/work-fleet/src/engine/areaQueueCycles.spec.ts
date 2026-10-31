@@ -12,7 +12,7 @@ isolatedEngine.it("two overlapping tasks cannot retain opposite queue positions 
 	yield* fleet.waitForGate("entered");
 	fleet.reviseBrief("one", "revised-one");
 	yield* fleet.prepareWork("one");
-	expect(yield* fleet.attemptDispatch("one")).toMatchObject({ message: "waiting for area server queued ahead by two" });
+	expect(yield* fleet.attemptDispatch("one")).toBe("admission refused: waiting for area server queued ahead by two");
 	yield* fleet.releaseGate("release");
 	yield* Fiber.join(dispatch);
 	expect(fleet.providerStarts()).toMatchObject([{ prompt: "Implement two" }]);
@@ -40,12 +40,12 @@ isolatedEngine.it("three overlapping waiters make progress when held areas and q
 	const dispatch = yield* fleet.dispatch("two").pipe(Effect.result, Effect.forkChild);
 	yield* fleet.waitForGate("entered");
 	yield* fleet.reserveForeign("contract-holder", ["contract"]);
-	expect(yield* fleet.attemptDispatch("three")).toMatchObject({ message: "waiting for area react queued ahead by two" });
+	expect(yield* fleet.attemptDispatch("three")).toBe("admission refused: waiting for area react queued ahead by two");
 	yield* fleet.vacateExecution("contract-holder");
 	fleet.reviseBrief("one", "revised-one");
 	yield* fleet.prepareWork("one");
 	yield* fleet.reserveForeign("board-holder", ["board"]);
-	expect(yield* fleet.attemptDispatch("one")).toMatchObject({ message: "waiting for area starter queued ahead by three" });
+	expect(yield* fleet.attemptDispatch("one")).toBe("admission refused: waiting for area starter queued ahead by three");
 	yield* fleet.vacateExecution("board-holder");
 	yield* fleet.releaseGate("release");
 	yield* Fiber.join(dispatch);

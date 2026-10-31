@@ -1,9 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { pendingRequiredChecks, unconfiguredAdoption } from "#test/attentionOwnerTraits.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
 
 for (const owner of ["orchestrator", "maintainer"] as const) {
@@ -80,9 +82,17 @@ engine.it(
 		expect(reassigned.decision?.worker).toEqual(old.decision.worker);
 		expect(archivedSessions()).toEqual([]);
 		expect(reassigned.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: old.published }]);
-		expect((yield* rpcViews()).waiting.maintainer).toMatchObject([{ decision: { id: reassigned.decision?.id }, workId: "one" }]);
-		expect((yield* rpcViews()).waiting.orchestrator).toHaveLength(0);
-		expect(yield* fleet.resolve("one", old.decision.id, oldAnswer.id).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
+		yield* outcomes([
+			[
+				"waiting on the maintainer",
+				() =>
+					rpcViews().pipe(Effect.map(({ waiting }) => waiting.maintainer.map((entry) => ({ decision: entry.decision?.id, workId: entry.workId })))),
+				[{ decision: reassigned.decision?.id, workId: "one" }],
+			],
+			["waiting on the orchestrator", () => rpcViews().pipe(Effect.map(({ waiting }) => waiting.orchestrator)), []],
+		]);
+		const resolvedOutcome = yield* refusal(fleet.resolve("one", old.decision.id, oldAnswer.id));
+		expect(resolvedOutcome).toMatch(/^conflict: /u);
 		const decision = reassigned.decision;
 		if (decision === undefined) {
 			return yield* Effect.die("Missing reassigned decision");

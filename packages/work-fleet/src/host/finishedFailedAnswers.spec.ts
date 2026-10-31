@@ -39,14 +39,16 @@ for (const [step, status] of [
 			expect(preview.stdout).toContain(reason);
 			expect(board.metadataParse(fleet.readBoard(published.sourcePath)).fields.attention).toMatchObject([{ state: "open" }]);
 			expect((yield* fleet.status()).waiting.orchestrator).toMatchObject(step === "waiting" ? [{ workId: "one" }] : []);
-			expect(yield* fleet.cli(["close-finished-decisions"])).toMatchObject({ code: 0, stdout: expect.stringContaining("1 decision(s) closed.") });
+			const cliResult = yield* fleet.cli(["close-finished-decisions"]);
+			expect(cliResult).toMatchObject({ code: 0, stdout: expect.stringContaining("1 decision(s) closed.") });
 			expect(board.metadataParse(fleet.readBoard(published.sourcePath)).fields).toMatchObject({
 				attention: [{ state: "closed" }],
 				nextAction: reason,
 				status: "done",
 			});
 			expect((yield* fleet.status()).waiting.orchestrator).toEqual([]);
-			expect((yield* fleet.cli(["status"])).stdout).not.toContain("Answer failed:");
+			const statusCliResult = yield* fleet.cli(["status"]);
+			expect(statusCliResult.stdout).not.toContain("Answer failed:");
 			const snapshot = yield* fleet.request("daemon.watch", { workIds: ["one"] }).pipe(
 				Stream.filter((value) => value.states !== undefined),
 				Stream.runHead,

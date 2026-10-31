@@ -1,7 +1,7 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { engine } from "#test/engineStory.ts";
 import { duplicateTerminalTurns } from "#test/engineTurnTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 const REASON = "Multiple Codex turns match one operation; retain reservation";
 for (const fault of ["none", "running", "unavailable", "mismatch", "wrong-session", "acknowledged"] as const) {
@@ -38,12 +38,13 @@ for (const fault of ["none", "running", "unavailable", "mismatch", "wrong-sessio
 				yield* acknowledgeProviderTurn("operation-1", { sessionId: "session-operation-1", turnId: "third" });
 			}
 			const retryId = respond(decisionId, "retry");
-			expect((yield* fleet.resolve("one", decisionId, retryId).pipe(Effect.result))._tag).toBe("Failure");
+			expect(yield* refusal(fleet.resolve("one", decisionId, retryId))).not.toBe("accepted");
 			const responseId = respond(decisionId, "release");
 			const release = fleet.resolve("one", decisionId, responseId);
 			if (fault !== "none" && fault !== "acknowledged") {
 				yield* restart();
-				expect((yield* release.pipe(Effect.result))._tag).toBe("Failure");
+				const resultResultOutcome = yield* refusal(release);
+				expect(resultResultOutcome).not.toBe("accepted");
 				expect((yield* fleet.get("one")).value.step).toBe("waiting");
 				const pending = yield* fleet.get("one");
 				yield* replaceStoredRecord({

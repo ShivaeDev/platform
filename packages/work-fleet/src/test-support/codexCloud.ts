@@ -5,6 +5,7 @@ import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
 import { CodexCloudConfig, type CodexCloudConfiguration, codexCloudLayer } from "#providers/codexCloud.ts";
+import { page, turn } from "#test/wireScript.ts";
 
 export const SYNTHETIC_ENVIRONMENT = "synthetic-environment";
 export const SYNTHETIC_WORKSPACE = "/workspace/synthetic";
@@ -59,4 +60,12 @@ export function cloudConfiguration(endpoint: string, authFile: string, overrides
 }
 export function cloudThread(environmentId = SYNTHETIC_ENVIRONMENT, cwd = SYNTHETIC_WORKSPACE) {
 	return { thread: { environments: [{ cwd, environmentConfigId: environmentId }], id: "synthetic-session" } };
+}
+
+export function threadWithPriorTurn(status: string, operationId = "previous-operation") {
+	return {
+		"thread/read": cloudThread(),
+		"thread/turns/list": page([turn("existing", status, operationId)]),
+		"turn/start": { turn: { id: "resubmitted" } },
+	};
 }

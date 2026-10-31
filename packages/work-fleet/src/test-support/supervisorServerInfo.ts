@@ -38,6 +38,16 @@ function socketCall(socketPath: string) {
 	});
 }
 
-export function supervisorSocketCall(socketPath: string) {
-	return Effect.tryPromise(() => socketCall(socketPath));
+function served(frame: unknown) {
+	if (typeof frame !== "object" || frame === null || !("exit" in frame)) {
+		return undefined;
+	}
+	const { exit } = frame;
+	return typeof exit === "object" && exit !== null && "value" in exit ? exit.value : undefined;
+}
+
+export function supervisorServerInfo(socketPath: string) {
+	return Effect.tryPromise(() => socketCall(socketPath)).pipe(
+		Effect.map((answers) => answers.map(served).find((value) => value !== undefined) ?? "no server info"),
+	);
 }

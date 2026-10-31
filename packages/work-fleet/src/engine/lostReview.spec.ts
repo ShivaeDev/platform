@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { reviewAcknowledgementIsLost } from "#test/engineReviewFaultTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const exhausted of [false, true]) {
 	isolatedEngine.it(
@@ -41,10 +41,8 @@ for (const exhausted of [false, true]) {
 				expect(queued.launchRetry).toMatchObject({ rejections: failure, retryAt: currentTime() + 30_000 * 2 ** (failure - 1) });
 				expect(publishedDecisions()).toHaveLength(0);
 				expect(
-					(yield* acknowledgeProviderTurn(queued.attempts.at(-1)?.operationId ?? "missing", { sessionId: "late", turnId: "late" }).pipe(
-						Effect.result,
-					))._tag,
-				).toBe("Failure");
+					yield* refusal(acknowledgeProviderTurn(queued.attempts.at(-1)?.operationId ?? "missing", { sessionId: "late", turnId: "late" })),
+				).not.toBe("accepted");
 				advanceTime(30_000 * 2 ** (failure - 1));
 				yield* restart();
 				yield* schedule();

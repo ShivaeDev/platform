@@ -1,9 +1,9 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { doneDependencySource } from "#test/dependencyBoard.ts";
 import { dependencyMarkdown } from "#test/dependencyMarkdown.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork, noChangeReported, requiredChecksFailOnce } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const noChange of [false, true]) {
 	engine.it(
@@ -80,7 +80,8 @@ for (const done of [false, true]) {
 			if (done) {
 				expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 			} else {
-				expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
+				const dependentDispatchedOutcome = yield* refusal(fleet.dispatch("dependent"));
+				expect(dependentDispatchedOutcome).toMatch(/^forbidden: /u);
 				expect((yield* fleet.get("dependent")).value.blocker).toContain("released without a merged delivery");
 			}
 		},
@@ -103,6 +104,7 @@ engine.it("done Board work with active Fleet work keeps its dependent blocked", 
 	yield* fleet.dispatch("one");
 	setBoardStatus("one", "done");
 	yield* prepareWork("dependent");
-	expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
+	const dependentDispatchedOutcome2 = yield* refusal(fleet.dispatch("dependent"));
+	expect(dependentDispatchedOutcome2).toMatch(/^forbidden: /u);
 	expect((yield* fleet.get("dependent")).value.blocker).toContain("Fleet work is still active");
 });

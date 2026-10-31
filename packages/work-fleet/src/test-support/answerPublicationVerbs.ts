@@ -4,6 +4,7 @@ import { answerWork } from "#host/answerWork.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
 import type { FleetRecord } from "#model.ts";
 import type { AnswerHostEngine } from "#test/AnswerHostEngine.ts";
+import { described } from "#test/refusal.ts";
 import { storeState } from "#test/storeState.ts";
 
 export function answerPublicationVerbs(engine: AnswerHostEngine) {
@@ -23,9 +24,9 @@ export function answerPublicationVerbs(engine: AnswerHostEngine) {
 				};
 				const result = yield* withDecisionResponses(engine.host.host, answerWork(engine.host.host, waiting.workId, input)).pipe(
 					Effect.provideService(Fleet, racing),
-					Effect.result,
+					Effect.match({ onFailure: described, onSuccess: ({ value }) => `answer pending while ${value.step}` }),
 				);
-				return { publications: publishedWorkIds.length, publishedWorkIds, result };
+				return { answer: result, publishedWorkIds };
 			}).pipe(Effect.provideContext(engine.running.context)),
 	};
 }

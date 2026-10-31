@@ -1,43 +1,56 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { mergeWaitIsFiveSeconds } from "#test/engineAreaTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired } from "#test/engineTraits.ts";
 
+const PR = "https://github.com/example/project/pull/42";
+
 engine.it(
-	"safe release moves an area holder into free capacity for its first waiter",
+	"a safe release of an area holder empties the area and leaves its waiter queued in it",
 	[humanMergeRequired()],
-	function* ({ fleet, setAreas, prepareWork, finishWorkers, respond }) {
+	function* ({ answerDecision, areaLane, finishWorkers, fleet, prepareWork, setAreas }) {
 		setAreas("one", ["fleet"]);
 		setAreas("two", ["fleet/host"]);
 		yield* prepareWork("one");
 		yield* prepareWork("two");
 		yield* fleet.dispatch("one");
 		finishWorkers();
-		const waiting = yield* fleet.reconcile("one");
-		const before = yield* fleet.areaLanes(["fleet", "idle"]);
-		expect(before.find((area) => area.area === "fleet")?.holders).toMatchObject([{ stage: "waiting", workId: "one" }]);
-		const decision = waiting.value.decision?.id ?? "missing";
-		yield* fleet.resolve("one", decision, respond(decision, "release"));
-		const released = yield* fleet.areaLanes(["fleet", "idle"]);
-		expect(released.find((area) => area.area === "fleet")).toEqual({
-			area: "fleet",
-			holders: [],
-			queue: [{ prUrl: null, stage: "queued", workId: "two" }],
-		});
-		yield* fleet.dispatch("two");
-		const after = yield* fleet.areaLanes(["fleet", "idle"]);
-		expect(after.find((area) => area.area === "fleet")?.holders).toEqual([{ prUrl: null, stage: "working", workId: "two" }]);
-		expect(after.find((area) => area.area === "fleet")?.queue).toEqual([]);
-		expect(after.find((area) => area.area === "idle")).toEqual({ area: "idle", holders: [], queue: [] });
+		yield* fleet.reconcile("one");
+		expect(yield* areaLane("fleet")).toMatchObject({ holders: [{ stage: "waiting", workId: "one" }] });
+
+		yield* answerDecision("one", "release");
+
+		expect(yield* areaLane("fleet")).toEqual({ area: "fleet", holders: [], queue: [{ prUrl: null, stage: "queued", workId: "two" }] });
 	},
 );
 
 engine.it(
-	"area availability expires at the scheduler's configured merge-wait boundary",
+	"dispatching the waiter after a safe release makes it the area's only holder and leaves other areas idle",
+	[humanMergeRequired()],
+	function* ({ answerDecision, areaLane, finishWorkers, fleet, prepareWork, setAreas }) {
+		setAreas("one", ["fleet"]);
+		setAreas("two", ["fleet/host"]);
+		yield* prepareWork("one");
+		yield* prepareWork("two");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		yield* fleet.reconcile("one");
+		yield* answerDecision("one", "release");
+
+		yield* fleet.dispatch("two");
+
+		yield* outcomes([
+			["fleet", () => areaLane("fleet"), { area: "fleet", holders: [{ prUrl: null, stage: "working", workId: "two" }], queue: [] }],
+			["idle", () => areaLane("idle"), { area: "idle", holders: [], queue: [] }],
+		]);
+	},
+);
+
+engine.it(
+	"area availability expires at the scheduler's configured merge-wait boundary and admits the waiter",
 	[mergeWaitIsFiveSeconds()],
-	function* ({ fleet, setAreas, prepareWork, finishWorkers, advanceTime }) {
+	function* ({ advanceTime, areaLane, finishWorkers, fleet, prepareWork, setAreas }) {
 		setAreas("one", ["fleet"]);
 		setAreas("two", ["fleet"]);
 		yield* prepareWork("one");
@@ -46,54 +59,55 @@ engine.it(
 		finishWorkers();
 		yield* fleet.reconcile("one");
 		advanceTime(4999);
-		expect((yield* fleet.areaLanes(["fleet"]))[0]?.holders.map((task) => task.workId)).toEqual(["one"]);
-		advanceTime(1);
-		expect((yield* fleet.areaLanes(["fleet"]))[0]?.holders).toEqual([]);
-		const started = yield* fleet.dispatch("two");
-		expect(started.value.step).toBe("working");
-	},
-);
+		expect(yield* areaLane("fleet")).toMatchObject({ holders: [{ workId: "one" }] });
 
-engine.it(
-	"parent areas show disjoint child holders and wildcard reservations hold every area",
-	[],
-	function* ({ fleet, setAreas, prepareWork, reserveForeign }) {
-		setAreas("one", ["fleet/host"]);
-		setAreas("two", ["fleet/engine"]);
-		yield* prepareWork("one");
-		yield* prepareWork("two");
-		yield* fleet.dispatch("one");
-		yield* fleet.dispatch("two");
-		const children = yield* fleet.areaLanes(["fleet"]);
-		expect(children.find((area) => area.area === "fleet")?.holders.map((task) => task.workId)).toEqual(["one", "two"]);
-		const url = "https://github.com/example/project/pull/42";
-		yield* reserveForeign(url, ["*"]);
-		expect((yield* fleet.areaLanes(["idle"])).find((area) => area.area === "idle")?.holders).toEqual([
-			{ prUrl: url, stage: "external", workId: url },
+		advanceTime(1);
+
+		yield* outcomes([
+			["fleet", () => areaLane("fleet"), { holders: [] }],
+			["two once dispatched", () => fleet.dispatch("two"), { value: { step: "working" } }],
 		]);
 	},
 );
 
+engine.it("a parent area shows the holders of its disjoint child areas", [], function* ({ areaLane, fleet, prepareWork, setAreas }) {
+	setAreas("one", ["fleet/host"]);
+	setAreas("two", ["fleet/engine"]);
+	yield* prepareWork("one");
+	yield* prepareWork("two");
+
+	yield* fleet.dispatch("one");
+	yield* fleet.dispatch("two");
+
+	expect(yield* areaLane("fleet")).toMatchObject({ holders: [{ workId: "one" }, { workId: "two" }] });
+});
+
+engine.it("a wildcard foreign reservation holds every area", [], function* ({ areaLane, reserveForeign }) {
+	expect(yield* areaLane("idle")).toEqual({ area: "idle", holders: [], queue: [] });
+
+	yield* reserveForeign(PR, ["*"]);
+
+	expect(yield* areaLane("idle")).toEqual({ area: "idle", holders: [{ prUrl: PR, stage: "external", workId: PR }], queue: [] });
+});
+
 engine.it(
-	"prepared tasks waiting on dependencies leave the area queue until eligible",
+	"prepared work leaves its area queue while it waits on a dependency and rejoins once the dependency clears",
 	[],
-	function* ({ fleet, setAreas, setDependencies, prepareWork }) {
+	function* ({ areaLane, attemptDispatch, fleet, prepareWork, setAreas, setDependencies }) {
 		setAreas("one", ["fleet"]);
 		setAreas("two", ["fleet"]);
 		yield* prepareWork("one");
 		yield* prepareWork("two");
 		yield* fleet.dispatch("one");
 		setDependencies("two", ["dependent"]);
-		yield* fleet.dispatch("two").pipe(Effect.result);
+		yield* attemptDispatch("two");
 		yield* outcomes([
-			[
-				"Dependency wait",
-				() => fleet.get("two").pipe(Effect.map((stored) => stored.value.blocker)),
-				expect.stringContaining("waiting for dependency dependent"),
-			],
-			["Area queue", () => fleet.areaLanes(["fleet"]).pipe(Effect.map((areas) => areas[0]?.queue)), []],
+			["two", () => fleet.get("two"), { value: { blocker: expect.stringContaining("waiting for dependency dependent") } }],
+			["fleet", () => areaLane("fleet"), { queue: [] }],
 		]);
+
 		setDependencies("two", []);
-		expect((yield* fleet.areaLanes(["fleet"]))[0]?.queue.map((task) => task.workId)).toEqual(["two"]);
+
+		expect(yield* areaLane("fleet")).toMatchObject({ queue: [{ workId: "two" }] });
 	},
 );

@@ -48,7 +48,9 @@ export function adminRegistry<const TPages extends readonly AdminPage[]>(...page
 	}
 	for (const page of pages) {
 		unique(ids, page.id, "page id");
-		unique(paths, page.route.path, "path");
+		for (const path of [page.route.path, ...(page.route.detail === undefined ? [] : [page.route.detail])]) {
+			unique(paths, path.replace(/\$[^/]+/gu, "$").replace(/\/$/u, ""), "path");
+		}
 		for (const tag of page.contract.requests.keys()) {
 			unique(tags, tag, "RPC tag");
 		}

@@ -11,6 +11,7 @@ import { captureLogs } from "#test/captureLogs.ts";
 import { delayedPostgres } from "#test/delayedPostgres.ts";
 import { hostFixture } from "#test/fleetHost.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
+import { described } from "#test/refusal.ts";
 
 export const databaseStartup = storyKit({
 	around: withIsolatedDatabase,
@@ -63,7 +64,8 @@ export const databaseStartup = storyKit({
 				story.tell(`${duration} pass during daemon startup`);
 				return TestClock.adjust(duration);
 			},
-			failure: () => Fiber.join(running()).pipe(Effect.catch((error) => (error instanceof HostFailure ? Effect.succeed(error) : Effect.die(error)))),
+			failure: () =>
+				Fiber.join(running()).pipe(Effect.catch((error) => (error instanceof HostFailure ? Effect.succeed(described(error)) : Effect.die(error)))),
 			isRunning: () => Effect.sync(() => running().pollUnsafe() === undefined),
 			logs: () => Effect.sync(() => engine.logs.entries.flatMap((entry) => entry.message)),
 			nextRetry: () =>

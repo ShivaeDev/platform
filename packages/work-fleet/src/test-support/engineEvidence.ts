@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import type { SessionReceipt } from "#session/schema.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 
@@ -9,6 +10,13 @@ export function engineEvidence(state: EngineStory) {
 		acknowledgements: () => structuredClone(fixture().acknowledgements),
 		boardWork: (id: string) => structuredClone(fixture().work(id)),
 		foreignReservations: () => fixture().foreignReservations(),
+		launchCount: () => Effect.sync(() => fixture().launched.length),
+		launchedPrompts: () =>
+			Effect.sync(() =>
+				fixture()
+					.starts.filter(({ access }) => access !== "read-only")
+					.map(({ prompt }) => prompt),
+			),
 		launches: () => [...fixture().launched],
 		mergedHeads: () => [...fixture().merged],
 		providerCalls: () => structuredClone(fixture().settings),

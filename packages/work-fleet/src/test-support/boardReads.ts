@@ -5,7 +5,7 @@ import { markdownBoard } from "#board/markdown.ts";
 export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: number) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const root = yield* fs.makeTempDirectoryScoped({ prefix: "fleet-reads-" });
+	const root = yield* fs.realPath(yield* fs.makeTempDirectoryScoped({ prefix: "fleet-reads-" }));
 	const reads = new Map<string, number>();
 	const unreadable = new Set<string>();
 	const scannedFolders: string[] = [];

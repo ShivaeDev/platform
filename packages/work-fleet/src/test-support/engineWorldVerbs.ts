@@ -1,4 +1,5 @@
-import { Deferred } from "effect";
+import { Clock, Deferred, Duration, Effect } from "effect";
+import { TestClock } from "effect/testing";
 import type { EngineStory } from "#test/engineState.ts";
 export function engineWorldVerbs(state: EngineStory, tell: (line: string) => void) {
 	function change(line: string, action: () => void) {
@@ -11,6 +12,14 @@ export function engineWorldVerbs(state: EngineStory, tell: (line: string) => voi
 				state.now += ms;
 			}),
 		currentTime: () => state.now,
+		elapse: (duration: Duration.Input) => {
+			tell(`${Duration.format(Duration.fromInputUnsafe(duration))} pass on the test clock`);
+			return TestClock.adjust(duration);
+		},
+		elapseUntil: (at: number) => {
+			tell(`the test clock reaches ${at}`);
+			return Clock.currentTimeMillis.pipe(Effect.flatMap((now) => TestClock.adjust(at - now)));
+		},
 		missingReviewOperation: () => state.missingReviewOperation,
 		providerReadCount: () => state.providerReads,
 		providerRecoveries: () => structuredClone(state.missingTurns?.recoveries ?? []),

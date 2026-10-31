@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Clock, Effect } from "effect";
+import { Effect } from "effect";
 import { fanoutCloudTrait } from "#test/fanoutCloudTrait.ts";
 import { host } from "#test/hostStory.ts";
 
@@ -30,7 +30,7 @@ host.it(
 		const readsDue = Math.max(...(yield* daemon.cloudRecords()).map(({ value }) => value.attempts[0]?.readRetry?.retryAt ?? 0));
 		const restarted = yield* daemon.spawnHost();
 		yield* restarted.until(() => Effect.succeed(restarted.url !== undefined));
-		yield* Effect.sleep(Math.max(0, readsDue - (yield* Clock.currentTimeMillis)));
+		yield* daemon.reachTime(readsDue);
 		yield* restarted.until(() =>
 			daemon.cloudRecords().pipe(
 				Effect.map((stored) => {

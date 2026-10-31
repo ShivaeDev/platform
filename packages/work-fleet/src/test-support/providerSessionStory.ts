@@ -10,6 +10,7 @@ import { codexConfiguration, codexServer, WireRejection, type WireRequest } from
 import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { receipt } from "#test/session.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
+import { scripted, type WireScript, wireLog } from "#test/wireScript.ts";
 
 interface State {
 	cloud: boolean;
@@ -102,14 +103,18 @@ export const providerSessionOptions = {
 			throw new Error("The journaled provider did not start");
 		}
 		return {
-			logs: () => state.logs.entries,
-			persisted: () => state.persisted,
+			...wireLog(() => state.requests),
+			answers: (script: WireScript) =>
+				Effect.sync(() => {
+					story.tell(`the fake provider answers ${Object.keys(script).join(", ")}`);
+					state.reply = scripted(script);
+				}),
+			journal: () => Effect.sync(() => [...state.persisted]),
 			replyWith: (reply: (request: WireRequest) => unknown) =>
 				Effect.sync(() => {
 					story.tell("the fake provider responds to journaled sessions");
 					state.reply = reply;
 				}),
-			requests: () => state.requests,
 			sessions: {
 				...sessions,
 				archive: (...args: Parameters<typeof sessions.archive>) => {
@@ -121,6 +126,12 @@ export const providerSessionOptions = {
 					return sessions.start(...args).pipe(Effect.provide(state.logs.layer));
 				},
 			},
+			warnings: () =>
+				Effect.sync(() =>
+					state.logs.entries.flatMap((entry) =>
+						entry.level === "Warn" ? [{ annotations: entry.annotations, cause: entry.cause, message: entry.message }] : [],
+					),
+				),
 		};
 	},
 };

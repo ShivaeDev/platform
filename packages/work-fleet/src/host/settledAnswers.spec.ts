@@ -30,7 +30,8 @@ host.it("consuming an answer settles the ask and the close command repairs previ
 		status: "done",
 	});
 	expect((yield* fleet.get("one")).step).toBe("working");
-	expect(yield* fleet.cli(["close-finished-decisions"])).toMatchObject({ code: 0, stdout: "0 decision(s) closed." });
+	const cliResult = yield* fleet.cli(["close-finished-decisions"]);
+	expect(cliResult).toMatchObject({ code: 0, stdout: "0 decision(s) closed." });
 });
 
 host.it("the close command leaves an unconsumed answer to an earlier revision open", [approvedWork(["one"])], function* (fleet) {

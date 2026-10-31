@@ -1,47 +1,47 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { SqlClient } from "effect/sql";
-import { spanCounts } from "#test/spanCounts.ts";
-import { makeTestStore, record } from "#test/storage.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { record } from "#test/storage.ts";
 import { storage } from "#test/storageStory.ts";
 
-const test = storage;
-
-test.it("an unchanged list reuses decoded records and rereads only rows another writer changed", [], function* ({ store, namespace, openStore }) {
+storage.it("an unchanged second list decodes no records again", [], function* ({ decodedOnList, store }) {
 	yield* store.insert(record("one"));
-	const two = yield* store.insert(record("two"));
-	const spans = spanCounts();
-	expect((yield* spans.trace(store.list())).map(({ value }) => value.workId)).toEqual(["one", "two"]);
-	expect(spans.recorded("FleetRow.recordValues")).toEqual(["FleetRow.recordValues"]);
-	spans.reset();
-	yield* spans.trace(store.list());
-	expect(spans.recorded("FleetRow.recordValues")).toEqual([]);
-	const other = yield* openStore(namespace);
-	const running = yield* other.compareAndSet("two", two.version, { ...two.value, step: "running" });
-	const listed = yield* spans.trace(store.list());
-	expect(listed.map(({ value }) => value.step)).toEqual(["queued", "running"]);
-	expect(listed[1]).toEqual(running);
-	expect(spans.recorded("FleetRow.recordValues")).toEqual(["FleetRow.recordValues"]);
+	yield* store.insert(record("two"));
+	expect(yield* decodedOnList()).toBe("decoded records");
+
+	const decodes = yield* decodedOnList();
+
+	expect(decodes).toBe("decoded nothing");
 });
 
-test.it(
+storage.it(
+	"a list after another writer changes one record rereads it and returns its new version",
+	[],
+	function* ({ decodedOnList, namespace, openStore, store }) {
+		yield* store.insert(record("one"));
+		const two = yield* store.insert(record("two"));
+		yield* decodedOnList();
+		const other = yield* openStore(namespace);
+
+		const running = yield* other.compareAndSet("two", two.version, { ...two.value, step: "running" });
+
+		yield* outcomes([
+			["record decodes", () => decodedOnList(), "decoded records"],
+			["listed steps", () => store.list().pipe(Effect.map((entries) => entries.map(({ value }) => value.step))), ["queued", "running"]],
+			["listed second record", () => store.list().pipe(Effect.map((entries) => entries[1])), running],
+		]);
+	},
+);
+
+storage.it(
 	"a list read inside a rolled-back write never serves that write after another writer commits the same version",
 	[],
-	function* ({ store, namespace }) {
-		const sql = yield* SqlClient.SqlClient;
+	function* ({ listInsideRolledBackWrite, namespace, openStore, store }) {
 		const one = yield* store.insert(record("one"));
-		const rolledBack = yield* sql
-			.withTransaction(
-				Effect.gen(function* () {
-					yield* store.compareAndSet("one", one.version, { ...one.value, step: "running" });
-					yield* store.list();
-					return yield* Effect.fail("roll back");
-				}),
-			)
-			.pipe(Effect.flip);
-		expect(rolledBack).toBe("roll back");
-		const other = yield* makeTestStore(namespace);
-		const terminal = yield* other.compareAndSet("one", one.version, { ...one.value, step: "terminal" });
+		yield* listInsideRolledBackWrite(one, { step: "running" });
+
+		const terminal = yield* (yield* openStore(namespace)).compareAndSet("one", one.version, { ...one.value, step: "terminal" });
+
 		expect(yield* store.list()).toEqual([terminal]);
 	},
 );

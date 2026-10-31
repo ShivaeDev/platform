@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { stalledInterruptIsObserved } from "#test/engineStalledTurnTraits.ts";
 import { engine } from "#test/engineStory.ts";
+import { refusal } from "#test/refusal.ts";
 import { replacementDecision } from "#test/replacementDecision.ts";
 
 for (const scenario of [
@@ -51,7 +52,7 @@ for (const scenario of [
 				status: "failed",
 			});
 			expect(providerInterruptions()).toEqual([receipt.turnId]);
-			expect((yield* acknowledgeProviderTurn(attempt.operationId, receipt).pipe(Effect.result))._tag).toBe("Failure");
+			expect(yield* refusal(acknowledgeProviderTurn(attempt.operationId, receipt))).not.toBe("accepted");
 			setTurnExecution(receipt, "completed", "Late abandoned output");
 			if (action === "retry") {
 				const fresh = yield* afterRestart(fleet.dispatch("one"));

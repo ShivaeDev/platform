@@ -1,12 +1,16 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { reviewedPullRequestIsOpen } from "#test/engineDeliveryTraits.ts";
 import { engine } from "#test/engineStory.ts";
+
+const LATER_MERGE = { head: "later-head", revision: "later-merge-commit", url: "https://github.com/example/repository/pull/42" };
 
 for (const merged of [false, true]) {
 	engine.it(
 		`a released delivery ${merged ? "merged later unblocks its dependent across restart" : "left unmerged keeps its dependent blocked"}`,
 		[reviewedPullRequestIsOpen()],
-		function* ({ fleet, prepareWork, finishWorkers, respond, mergePullRequest, restart, schedule, setBoardStatus, boardWork }) {
+		function* ({ fleet, prepareWork, finishWorkers, respond, mergePullRequest, restart, schedule, setBoardStatus, boardWork, stepOf }) {
 			setBoardStatus("one", "planned");
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
@@ -34,16 +38,16 @@ for (const merged of [false, true]) {
 			expect(boardWork("one").status).toBe("planned");
 			yield* restart();
 			if (merged) {
-				expect((yield* fleet.get("one")).value.mergedDelivery).toEqual({
-					head: "later-head",
-					revision: "later-merge-commit",
-					url: "https://github.com/example/repository/pull/42",
-				});
-				expect((yield* fleet.get("dependent")).value.step).toBe("working");
+				yield* outcomes([
+					["one", () => fleet.get("one"), { value: { mergedDelivery: LATER_MERGE } }],
+					["dependent", () => stepOf("dependent"), "working"],
+				]);
 			} else {
-				expect((yield* fleet.get("one")).value.mergedDelivery).toBeUndefined();
-				expect((yield* fleet.get("dependent")).value.step).toBe("queued");
-				expect((yield* fleet.get("dependent")).value.blocker).toContain("released without a merged delivery");
+				yield* outcomes([
+					["one merged delivery", () => fleet.get("one").pipe(Effect.map((current) => current.value.mergedDelivery)), undefined],
+					["dependent", () => stepOf("dependent"), "queued"],
+					["dependent blocker", () => fleet.get("dependent"), { value: { blocker: expect.stringContaining("released without a merged delivery") } }],
+				]);
 			}
 		},
 	);

@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { delayedRefresh } from "#test/hostCommandDelaysTraits.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const fail of [false, true]) {
 	host.it(
@@ -16,10 +16,12 @@ for (const fail of [false, true]) {
 			yield* daemon.awaitDelay();
 			const accepted = yield* daemon.request("daemon.dispatch-status", { workId: "one" });
 			expect(accepted).toMatchObject({ status: "pending", workId: "one" });
-			expect(yield* daemon.request("daemon.dispatch", { workId: "one" })).toEqual(accepted);
-			expect((yield* daemon.get("one").pipe(Effect.flip))._tag).toBe("NotFound");
+			const requestResult = yield* daemon.request("daemon.dispatch", { workId: "one" });
+			expect(requestResult).toEqual(accepted);
+			expect(yield* refusal(daemon.get("one"))).toMatch(/^not found: /u);
 			expect(daemon.providerLaunches()).toHaveLength(0);
-			expect((yield* daemon.cli(["status", "one"], { selection: "port" })).stdout).toContain("one  dispatch pending");
+			const statusCliResult = yield* daemon.cli(["status", "one"], { selection: "port" });
+			expect(statusCliResult.stdout).toContain("one  dispatch pending");
 			if (fail) {
 				yield* daemon.follow("watch", "watch", ["one"], { interval: 0.1 });
 				yield* daemon.awaitSnapshot();

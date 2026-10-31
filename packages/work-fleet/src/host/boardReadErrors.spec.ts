@@ -9,20 +9,65 @@ const invalid = task("broken", "approved").replace("kind: task", "kind: task\nne
 const NAMED_PROBLEM = "Board metadata is invalid: broken.md (frontmatter: line 4: Nested mappings are not allowed in compact mappings";
 
 host.it(
-	"invalid unrelated metadata does not block admission and a later pass admits its repaired source",
+	"invalid metadata in one brief is named and does not block admitting the others",
 	[boardWork({ "broken.md": invalid, "one.md": task("one", "approved") }, {})],
 	function* (daemon) {
 		const failures = yield* daemon.admit();
-		expect(failures).toEqual([expect.stringContaining(NAMED_PROBLEM)]);
+
+		expect({ failures, work: (yield* daemon.list()).map(({ value }) => value.workId) }).toEqual({
+			failures: [expect.stringContaining(NAMED_PROBLEM)],
+			work: ["one"],
+		});
+	},
+);
+
+host.it(
+	"a later pass admits and launches a repaired brief once",
+	[boardWork({ "broken.md": invalid, "one.md": task("one", "approved") }, {})],
+	function* (daemon) {
+		expect(yield* daemon.admit()).toEqual([expect.stringContaining(NAMED_PROBLEM)]);
 		yield* daemon.schedule();
-		expect((yield* daemon.storedRecord("one")).value.step).toBe("working");
-		expect((yield* daemon.list()).map(({ value }) => value.workId)).toEqual(["one"]);
 		daemon.writeBoard("broken.md", task("broken", "approved"));
-		expect(yield* daemon.admit()).toEqual([]);
+
+		const failures = yield* daemon.admit();
 		yield* daemon.schedule();
-		expect((yield* daemon.storedRecord("broken")).value.step).toBe("working");
-		expect((yield* daemon.storedRecord("one")).value.step).toBe("working");
-		expect(daemon.providerLaunches()).toEqual((yield* daemon.list()).flatMap(({ value }) => value.attempts.map(({ operationId }) => operationId)));
+
+		const records = (yield* daemon.list()).map(({ value }) => value);
+		expect({
+			failures,
+			launches: daemon.providerLaunches(),
+			steps: records.map(({ step, workId }) => `${workId} ${step}`).toSorted(),
+		}).toEqual({
+			failures: [],
+			launches: records.flatMap(({ attempts }) => attempts.map(({ operationId }) => operationId)),
+			steps: ["broken working", "one working"],
+		});
+	},
+);
+
+host.it(
+	"an unrelated invalid brief is logged and leaves running work on its attempt",
+	[boardWork({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, {})],
+	function* (daemon) {
+		yield* daemon.admit();
+		yield* daemon.schedule();
+		const before = (yield* daemon.storedRecord("one")).value;
+		expect(before.step).toBe("working");
+
+		daemon.writeBoard("broken.md", invalid);
+		yield* daemon.admit();
+		yield* daemon.schedule();
+
+		const records = (yield* daemon.list()).map(({ value }) => value);
+		expect({
+			attempts: records.find(({ workId }) => workId === "one")?.attempts.map(({ operationId, receipt }) => ({ operationId, receipt })),
+			logs: JSON.stringify(daemon.logs()),
+			work: records.map(({ decision, step, workId }) => `${workId} ${step} ${decision?.code ?? "without decision"}`).toSorted(),
+		}).toEqual({
+			attempts: before.attempts.map(({ operationId, receipt }) => ({ operationId, receipt })),
+			logs: expect.stringContaining(NAMED_PROBLEM),
+			work: ["one working without decision", "two working without decision"],
+		});
 	},
 );
 
@@ -35,43 +80,34 @@ for (const [kind, source, diagnostic] of [
 	],
 ] as const) {
 	host.it(
-		`unrelated errors preserve running work and its own ${kind} reaches status, logs and the published decision`,
+		`a running brief's own ${kind} stops it with a published decision named in status and logs while other work keeps running`,
 		[boardWork({ "one.md": task("one", "approved"), "two.md": task("two", "approved") }, {})],
 		function* (daemon) {
 			yield* daemon.admit();
 			yield* daemon.schedule();
-			const before = (yield* daemon.storedRecord("one")).value;
-			daemon.writeBoard("broken.md", invalid);
+			expect((yield* daemon.storedRecord("one")).value.step).toBe("working");
+
+			daemon.writeBoard("one.md", source);
 			yield* daemon.admit();
 			yield* daemon.schedule();
-			for (const id of ["one", "two"]) {
-				const running = (yield* daemon.storedRecord(id)).value;
-				expect(running.step).toBe("working");
-				expect(running.decision).toBeUndefined();
-			}
-			const after = (yield* daemon.storedRecord("one")).value;
-			expect(after.attempts).toHaveLength(before.attempts.length);
-			expect(after.attempts.at(-1)?.receipt).toEqual(before.attempts.at(-1)?.receipt);
-			expect(after.attempts.at(-1)?.status).toBe("running");
-			daemon.writeBoard("one.md", source);
-			yield* daemon.schedule();
-			const stopped = (yield* daemon.storedRecord("one")).value;
-			expect(stopped.step).toBe("waiting");
-			expect(stopped.decision?.reason).toContain(diagnostic);
-			expect(stopped.decisionPublished).toBe(true);
-			expect((yield* daemon.storedRecord("two")).value.step).toBe("working");
+
 			const records = (yield* daemon.list()).map(({ value }) => value);
-			for (const status of [renderStatus(views(records)), statusMarkdown(records)]) {
-				expect(status).toContain(diagnostic);
-			}
-			const publication = stopped.decision?.published;
-			expect(publication).toBeDefined();
-			if (publication !== undefined) {
-				expect(daemon.readBoard(publication.sourcePath)).toContain(diagnostic);
-			}
-			expect(JSON.stringify(daemon.logs())).toContain(diagnostic);
-			expect(JSON.stringify(daemon.logs())).toContain(NAMED_PROBLEM);
-			expect(daemon.providerLaunches()).toEqual((yield* daemon.list()).flatMap(({ value }) => value.attempts.map(({ operationId }) => operationId)));
+			const one = records.find(({ workId }) => workId === "one");
+			expect({
+				board: daemon.readBoard(one?.decision?.published?.sourcePath ?? "one.md"),
+				logs: JSON.stringify(daemon.logs()),
+				one: { published: one?.decisionPublished, reason: one?.decision?.reason, step: one?.step },
+				status: renderStatus(views(records)),
+				statusMarkdown: statusMarkdown(records),
+				two: records.find(({ workId }) => workId === "two")?.step,
+			}).toEqual({
+				board: expect.stringContaining(diagnostic),
+				logs: expect.stringContaining(diagnostic),
+				one: { published: true, reason: expect.stringContaining(diagnostic), step: "waiting" },
+				status: expect.stringContaining(diagnostic),
+				statusMarkdown: expect.stringContaining(diagnostic),
+				two: "working",
+			});
 		},
 	);
 }

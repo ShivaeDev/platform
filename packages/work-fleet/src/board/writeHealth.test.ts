@@ -1,41 +1,68 @@
 import { expect } from "@effect/vitest";
-import { Effect, FileSystem } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardFileStory, healthBoundary } from "#test/boardFileStory.ts";
 import { healthSnapshot } from "#test/health.ts";
+import { refusal } from "#test/refusal.ts";
 
-boardFileStory.it("atomically replaces versioned snapshots, retains identical files and cleans temporary files", [], function* ({ health: folder }) {
-	yield* folder.publish(healthSnapshot);
-	expect(folder.read()).toEqual(healthSnapshot);
-	const before = folder.stat();
-	yield* folder.publish(healthSnapshot);
-	expect(folder.stat().ino).toBe(before.ino);
-	expect(folder.stat().mtimeMs).toBe(before.mtimeMs);
-	for (let running = 0; running < 20; running += 1) {
-		const writing = Effect.runPromise(folder.publish({ ...healthSnapshot, running }));
-		expect(folder.read().version).toBe(2);
-		yield* Effect.tryPromise(() => writing);
-		expect(folder.read().running).toBe(running);
-	}
-	expect(folder.files()).toEqual(["health.json"]);
+boardFileStory.it("published health reads back as the snapshot", [], function* ({ health }) {
+	yield* health.publish(healthSnapshot);
+
+	expect(yield* health.published()).toEqual(healthSnapshot);
 });
 
-for (const trait of ["directory", "file", "occupied"] as const) {
+boardFileStory.it("republishing identical health leaves the file untouched", [], function* ({ health }) {
+	yield* health.publish(healthSnapshot);
+	const first = yield* health.identity();
+
+	yield* health.publish(healthSnapshot);
+
+	expect(yield* health.identity()).toEqual(first);
+});
+
+boardFileStory.it(
+	"a reader sees a whole version 2 snapshot during each of 20 replacements, and no temporary file remains",
+	[],
+	function* ({ health }) {
+		yield* health.publish(healthSnapshot);
+
+		const versions = yield* health.readWhileReplacing(healthSnapshot, 20);
+
+		expect(versions).toEqual(Array.from({ length: 20 }, () => 2));
+		yield* outcomes([
+			["last snapshot", () => health.published(), { running: 19 }],
+			["health folder", () => health.files(), ["health.json"]],
+		]);
+	},
+);
+
+for (const boundary of ["directory", "file"] as const) {
 	boardFileStory.it(
-		`refuses the ${trait} health publication boundary without modifying existing content`,
-		[healthBoundary(trait)],
-		function* ({ health: folder }) {
-			expect(yield* folder.publish(healthSnapshot).pipe(Effect.flip)).toMatchObject({ _tag: "BoardFailure" });
-			expect(folder.outside()).toBe("Keep this source");
-			if (trait === "occupied") {
-				expect(folder.source()).toBe("Authored content");
-			}
+		`health publication through a symlinked ${boundary} is refused and the outside file is kept`,
+		[healthBoundary(boundary)],
+		function* ({ health }) {
+			const published = yield* refusal(health.publish(healthSnapshot));
+
+			expect(published).toMatch(/^Board failure: /u);
+			expect(yield* health.outsideSource()).toBe("Keep this source");
 		},
 	);
 }
 
-boardFileStory.it("replaces an earlier health snapshot with owner counts", [], function* ({ health: folder }) {
-	const fs = yield* FileSystem.FileSystem;
-	yield* fs.writeFileString(`${folder.root}/fleet/health.json`, JSON.stringify({ ...healthSnapshot, version: 1, waiting: undefined }));
-	yield* folder.publish(healthSnapshot);
-	expect(folder.read()).toEqual(healthSnapshot);
+boardFileStory.it(
+	"health publication over an authored health file is refused and the file is kept",
+	[healthBoundary("occupied")],
+	function* ({ health }) {
+		const published = yield* refusal(health.publish(healthSnapshot));
+
+		expect(published).toMatch(/^Board failure: /u);
+		expect(yield* health.publishedSource()).toBe("Authored content");
+	},
+);
+
+boardFileStory.it("a version 1 health snapshot is replaced with owner counts", [], function* ({ health }) {
+	yield* health.writeLegacy({ ...healthSnapshot, version: 1, waiting: undefined });
+
+	yield* health.publish(healthSnapshot);
+
+	expect(yield* health.published()).toEqual(healthSnapshot);
 });

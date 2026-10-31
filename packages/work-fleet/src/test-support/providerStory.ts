@@ -1,10 +1,12 @@
 import { Clock, Context, Duration, Effect, Exit, Layer, Queue, Result, Scope } from "effect";
+import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionTransport } from "#session/service.ts";
 import { codexConfiguration, codexServer, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudConfiguration, FUTURE_EXPIRY, PAST_EXPIRY, refreshingCli, syntheticToken } from "#test/codexCloud.ts";
 import { newProvider, type ProviderState } from "#test/providerStoryState.ts";
 import { providerVerbs } from "#test/providerVerbs.ts";
+import { scripted, type WireScript, wireLog } from "#test/wireScript.ts";
 
 const definition = {
 	after: {
@@ -67,14 +69,25 @@ const definition = {
 			}
 			return state.backend;
 		}
+		function delayScheduled(milliseconds: number) {
+			return Effect.gen(function* () {
+				let delay = yield* Queue.take(state.sleeps);
+				while (delay !== milliseconds) {
+					delay = yield* Queue.take(state.sleeps);
+				}
+			});
+		}
+		const wire = wireLog(() => state.requests);
 		return {
-			awaitSleep: (milliseconds: number) =>
-				Effect.gen(function* () {
-					story.tell(`wait until the provider schedules a ${milliseconds} millisecond delay`);
-					let delay = yield* Queue.take(state.sleeps);
-					while (delay !== milliseconds) {
-						delay = yield* Queue.take(state.sleeps);
-					}
+			answers: (script: WireScript) =>
+				Effect.sync(() => {
+					story.tell(`the fake provider answers ${Object.keys(script).join(", ")}`);
+					state.reply = scripted(script, (milliseconds, reply) => {
+						if (state.clock === undefined) {
+							throw new Error("The provider clock was not installed");
+						}
+						return Effect.runPromise(Effect.sleep(milliseconds).pipe(Effect.as(reply), Effect.provideService(Clock.Clock, state.clock)));
+					});
 				}),
 			closeObserver: () => {
 				story.tell("close the provider observer");
@@ -82,6 +95,18 @@ const definition = {
 					return Effect.die("The provider observer did not start");
 				}
 				return Scope.close(state.observerScope, Exit.void);
+			},
+			delayElapses: (milliseconds: number) => {
+				story.tell(`the provider's ${milliseconds} ms delay elapses`);
+				return delayScheduled(milliseconds).pipe(Effect.andThen(TestClock.adjust(milliseconds)));
+			},
+			delayNearlyElapses: (milliseconds: number) => {
+				story.tell(`all but the last millisecond of the provider's ${milliseconds} ms delay elapses`);
+				return delayScheduled(milliseconds).pipe(Effect.andThen(TestClock.adjust(milliseconds - 1)));
+			},
+			delayScheduled: (milliseconds: number) => {
+				story.tell(`the provider schedules a ${milliseconds} ms delay`);
+				return delayScheduled(milliseconds);
 			},
 			dropConnections: () =>
 				Effect.gen(function* () {
@@ -98,20 +123,30 @@ const definition = {
 					story.tell(`the provider streams ${method} on ${threadId}`);
 					backend().notify(threadId, method);
 				}),
-			handshakes: () => state.handshakes,
+			finalMillisecondElapses: () => {
+				story.tell("the last millisecond of the delay elapses");
+				return TestClock.adjust(1);
+			},
+			handshakes: () => Effect.sync(() => state.handshakes.length),
+			methods: wire.methods,
+			minutePasses: () => {
+				story.tell("a minute passes");
+				return TestClock.adjust("1 minute");
+			},
+			offeredProtocols: () => Effect.sync(() => state.handshakes.flatMap(({ protocols }) => protocols)),
 			provider: providerVerbs(connected, story.tell, state.clock),
-			replyAfter: (milliseconds: number, response: unknown) => {
-				if (state.clock === undefined) {
-					throw new Error("The provider clock was not installed");
-				}
-				return Effect.runPromise(Effect.sleep(milliseconds).pipe(Effect.as(response), Effect.provideService(Clock.Clock, state.clock)));
+			recoveryPollsElapse: (polls: number) => {
+				story.tell(`${polls} recovery polls of 250 ms elapse`);
+				return Effect.forEach(Array.from({ length: polls }), () => delayScheduled(250).pipe(Effect.andThen(TestClock.adjust(250))), {
+					discard: true,
+				});
 			},
 			replyWith: (reply: (request: WireRequest) => unknown) =>
 				Effect.sync(() => {
 					story.tell("the fake provider changes its responses");
 					state.reply = reply;
 				}),
-			requests: () => state.requests,
+			sent: wire.sent,
 		};
 	},
 };

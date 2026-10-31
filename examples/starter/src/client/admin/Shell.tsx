@@ -5,7 +5,7 @@ import { useCan } from "@shivaedev/react/client/permissionBoundary.ts";
 
 export interface AdminNavigation {
 	readonly id: string;
-	readonly route: { readonly path: string; readonly permission: Permission; readonly title: string };
+	readonly route: { readonly path: string; readonly detail?: string; readonly permission: Permission; readonly title: string };
 }
 
 export function AdminShell({

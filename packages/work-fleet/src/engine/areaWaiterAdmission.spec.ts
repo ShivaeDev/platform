@@ -1,11 +1,11 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 
 isolatedEngine.it(
-	"a waiter blocked on area A leaves area B available to later work",
+	"a waiter blocked on one of its areas leaves its other area to later work",
 	[],
-	function* ({ approveWork, setAreas, prepareWork, fleet, schedule, get, providerStarts }) {
+	function* ({ approveWork, attemptsOf, blockerOf, fleet, launchedPrompts, prepareWork, schedule, setAreas, workStages }) {
 		setAreas("one", ["docs/framework/quickstart"]);
 		setAreas("two", ["docs/framework/quickstart", "platform/auth"]);
 		setAreas("later", ["platform/auth"]);
@@ -14,21 +14,22 @@ isolatedEngine.it(
 			yield* prepareWork(id);
 		}
 		yield* fleet.dispatch("one");
+
 		yield* schedule();
-		expect((yield* get("two")).value).toMatchObject({
-			attempts: [],
-			blocker: "waiting for area docs/framework/quickstart held by one",
-			step: "queued",
-		});
-		expect((yield* get("later")).value.step).toBe("working");
-		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one", "Implement later"]);
+
+		yield* outcomes([
+			["two", () => blockerOf("two"), "waiting for area docs/framework/quickstart held by one"],
+			["attempts on two", () => attemptsOf("two"), 0],
+			["stages", () => workStages(["two", "later"]), { later: "working", two: "queued" }],
+			["launched prompts", () => launchedPrompts(), ["Implement one", "Implement later"]],
+		]);
 	},
 );
 
 isolatedEngine.it(
-	"free-area contenders launch by priority and retain queue order within a priority",
+	"free-area contenders launch by priority and keep queue order within a priority",
 	[],
-	function* ({ approveWork, setAreas, setPriority, prepareWork, schedule, get, finishWorker, fleet, providerStarts }) {
+	function* ({ approveWork, attemptDispatch, finishWorker, fleet, launchedPrompts, prepareWork, schedule, setAreas, setPriority, workStages }) {
 		for (const id of ["one", "two", "later"]) {
 			approveWork(id, `board-${id}`);
 			setAreas(id, ["shared"]);
@@ -36,44 +37,49 @@ isolatedEngine.it(
 		}
 		setPriority("two", "high");
 		setPriority("later", "high");
-		expect(yield* fleet.dispatch("one").pipe(Effect.flip)).toMatchObject({ message: "waiting for area shared queued ahead by two" });
-		expect(yield* fleet.dispatch("later").pipe(Effect.flip)).toMatchObject({ message: "waiting for area shared queued ahead by two" });
+		yield* outcomes([
+			["dispatching one", () => attemptDispatch("one"), "admission refused: waiting for area shared queued ahead by two"],
+			["dispatching later", () => attemptDispatch("later"), "admission refused: waiting for area shared queued ahead by two"],
+		]);
+
 		yield* schedule();
-		expect((yield* get("two")).value.step).toBe("working");
-		expect((yield* get("one")).value.step).toBe("queued");
-		expect((yield* get("later")).value.step).toBe("queued");
+
+		expect(yield* workStages(["one", "two", "later"])).toEqual({ later: "queued", one: "queued", two: "working" });
 		yield* finishWorker("two");
 		yield* fleet.reconcile("two");
 		yield* schedule();
-		expect((yield* get("later")).value.step).toBe("working");
-		expect(
-			providerStarts()
-				.filter(({ access }) => access !== "read-only")
-				.map(({ prompt }) => prompt),
-		).toEqual(["Implement two", "Implement later"]);
+		yield* outcomes([
+			["later", () => workStages(["later"]), { later: "working" }],
+			["launched prompts", () => launchedPrompts(), ["Implement two", "Implement later"]],
+		]);
 	},
 );
 
 isolatedEngine.it(
-	"a waiter blocked by a foreign area holder leaves its other area available",
+	"a waiter blocked by a foreign area holder leaves its other area to later work",
 	[],
-	function* ({ reserveForeign, setAreas, prepareWork, schedule, get }) {
+	function* ({ attemptsOf, blockerOf, prepareWork, reserveForeign, schedule, setAreas, workStages }) {
 		yield* reserveForeign("external", ["area-a"]);
 		setAreas("one", ["area-a", "area-b"]);
 		setAreas("two", ["area-b"]);
 		yield* prepareWork("one");
 		yield* prepareWork("two");
+
 		yield* schedule();
-		expect((yield* get("one")).value).toMatchObject({ attempts: [], blocker: "waiting for area area-a held by external", step: "queued" });
-		expect((yield* get("two")).value.step).toBe("working");
+
+		yield* outcomes([
+			["one", () => blockerOf("one"), "waiting for area area-a held by external"],
+			["attempts on one", () => attemptsOf("one"), 0],
+			["stages", () => workStages(["one", "two"]), { one: "queued", two: "working" }],
+		]);
 	},
 );
 
 for (const priority of ["urgent", "high"] as const) {
 	isolatedEngine.it(
-		`a blocked ${priority} waiter launches when its area frees ahead of lower-priority contenders`,
+		`a blocked ${priority} waiter launches ahead of lower-priority contenders when its area frees`,
 		[],
-		function* ({ approveWork, setAreas, setPriority, prepareWork, fleet, schedule, get, finishWorker, providerStarts }) {
+		function* ({ approveWork, blockerOf, finishWorker, fleet, launchedPrompts, prepareWork, schedule, setAreas, setPriority, workStages }) {
 			for (const id of ["one", "two", "waiter"]) {
 				approveWork(id, `board-${id}`);
 				setAreas(id, ["shared"]);
@@ -82,40 +88,39 @@ for (const priority of ["urgent", "high"] as const) {
 			yield* fleet.dispatch("one");
 			setPriority("waiter", priority);
 			yield* schedule();
-			expect((yield* get("waiter")).value.blocker).toBe("waiting for area shared held by one");
+			expect(yield* blockerOf("waiter")).toBe("waiting for area shared held by one");
 			approveWork("later", "board-later");
 			setAreas("later", ["shared"]);
 			yield* prepareWork("later");
 			yield* finishWorker("one");
 			yield* fleet.reconcile("one");
+
 			yield* schedule();
-			expect((yield* get("waiter")).value.step).toBe("working");
-			expect((yield* get("two")).value.step).toBe("queued");
-			expect((yield* get("later")).value.step).toBe("queued");
-			expect(
-				providerStarts()
-					.filter(({ access }) => access !== "read-only")
-					.map(({ prompt }) => prompt),
-			).toEqual(["Implement one", "Implement waiter"]);
+
+			yield* outcomes([
+				["stages", () => workStages(["waiter", "two", "later"]), { later: "queued", two: "queued", waiter: "working" }],
+				["launched prompts", () => launchedPrompts(), ["Implement one", "Implement waiter"]],
+			]);
 		},
 	);
 }
 
 isolatedEngine.it(
-	"a waiter blocked on a dependency leaves its areas available to later work",
+	"a waiter blocked on a dependency leaves its areas to later work",
 	[],
-	function* ({ setAreas, setDependencies, prepareWork, schedule, get }) {
+	function* ({ attemptsOf, blockerOf, prepareWork, schedule, setAreas, setDependencies, workStages }) {
 		setAreas("one", ["shared"]);
 		setDependencies("one", ["dependency"]);
 		setAreas("two", ["shared"]);
 		yield* prepareWork("one");
 		yield* prepareWork("two");
+
 		yield* schedule();
-		expect((yield* get("one")).value).toMatchObject({
-			attempts: [],
-			blocker: expect.stringContaining("waiting for dependency dependency"),
-			step: "queued",
-		});
-		expect((yield* get("two")).value.step).toBe("working");
+
+		yield* outcomes([
+			["one", () => blockerOf("one"), expect.stringContaining("waiting for dependency dependency")],
+			["attempts on one", () => attemptsOf("one"), 0],
+			["stages", () => workStages(["one", "two"]), { one: "queued", two: "working" }],
+		]);
 	},
 );

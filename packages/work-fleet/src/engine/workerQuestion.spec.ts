@@ -59,7 +59,8 @@ for (const type of ["clarify", "not_now"] as const) {
 					.map((call) => call.operationId),
 			).toEqual(["operation-1"]);
 			const answer = yield* answerWorker(decision, "response.superseding", "answer", deferred.id);
-			expect((yield* fleet.reconcile("one")).value.step).toBe("working");
+			const reconciled = yield* fleet.reconcile("one");
+			expect(reconciled.value.step).toBe("working");
 			expect((yield* fleet.get("one")).value.attempts.at(-1)?.prompt).toBe(answer.body);
 			expect(
 				providerCalls()

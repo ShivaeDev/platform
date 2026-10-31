@@ -1,42 +1,41 @@
-import { expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 
+const APPROVAL = {
+	code: "approval-required" as const,
+	id: "approval",
+	links: [],
+	reason: "Work is no longer approved",
+	recommendation: "Approve the task and continue.",
+};
+const NOTE = "The task is approved again. Keep the scoped checks.";
+
 boardFolderStory.it(
-	"refuses a text-only approval answer without closing the Fleet question",
+	"an approval answer with only text is refused and the Fleet question stays pending",
 	[folderContains("withDependency")],
-	function* ({ board, openHttp }) {
-		const receipt = yield* board.decision("task.one", {
-			code: "approval-required",
-			id: "approval",
-			links: [],
-			reason: "Work is no longer approved",
-			recommendation: "Approve the task and continue.",
-		});
-		const { client } = yield* openHttp();
-		const note = "The task is approved again. Keep the scoped checks.";
-		const input = {
-			answers: [{ prompt: "fleet-action", selected: [], text: note }],
-			author: "maintainer",
-			body: "",
-			id: "response.approval",
-			question: receipt.questionId,
-			type: "answer" as const,
-		};
-		const failure = yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(input)).catch((error: unknown) => error));
-		expect(failure).toBeInstanceOf(Conflict);
-		expect(failure).toMatchObject({ message: expect.stringContaining("Choose an option") });
-		expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Pending" });
-		const saved = yield* Effect.tryPromise(() =>
-			client.mutate(
-				client.responses.recordResponse.run({
-					...input,
-					answers: [{ prompt: "fleet-action", selected: ["retry"], text: note }],
-				}),
-			),
-		);
-		expect(saved.body).toContain("Keep the scoped checks.");
-		expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Response", response: saved });
+	function* ({ decisionState, publishDecision, respond }) {
+		const approval = yield* publishDecision(APPROVAL);
+
+		const answer = yield* respond(approval, { id: "response.approval", selected: [], text: NOTE, type: "answer" });
+
+		expect(answer).toMatch(/^conflict: .*Choose an option/u);
+		expect(yield* decisionState(approval)).toBe("pending");
+	},
+);
+
+boardFolderStory.it(
+	"an approval answer that selects retry is recorded with its note",
+	[folderContains("withDependency")],
+	function* ({ answerBody, decisionState, publishDecision, respond }) {
+		const approval = yield* publishDecision(APPROVAL);
+		expect(yield* decisionState(approval)).toBe("pending");
+
+		yield* respond(approval, { id: "response.approval", selected: ["retry"], text: NOTE, type: "answer" });
+
+		yield* outcomes([
+			["decision", () => decisionState(approval), "answered by response.approval"],
+			["answer body", () => answerBody(approval), expect.stringContaining("Keep the scoped checks.")],
+		]);
 	},
 );

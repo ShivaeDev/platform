@@ -1,47 +1,76 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { hostPolicyStory } from "#test/hostPolicyStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const role of ["worker", "reviewer"] as const) {
 	describe(`host ${role} guidance`, () => {
-		hostPolicyStory.it("caches text by modification time and rejects a removed file", [], function* (policy) {
+		hostPolicyStory.it("an edit that keeps the modification time leaves the cached guidance in place", [], function* (policy) {
+			yield* policy.writeGuidance("Original approval.", 1000);
+			const read = yield* policy.cachedGuidance(role);
+			expect(yield* read).toBe("Original approval.");
+
+			yield* policy.writeGuidance("Updated approval.", 1000);
+
+			expect(yield* read).toBe("Original approval.");
+		});
+
+		hostPolicyStory.it("a newer modification time rereads the guidance", [], function* (policy) {
 			yield* policy.writeGuidance("Original approval.", 1000);
 			const read = yield* policy.cachedGuidance(role);
 			expect(yield* read).toBe("Original approval.");
 			yield* policy.writeGuidance("Updated approval.", 1000);
-			expect(yield* read).toBe("Original approval.");
+
 			yield* policy.touchGuidance(2000);
+
 			expect(yield* read).toBe("Updated approval.");
-			yield* policy.removeGuidance();
-			expect(yield* read.pipe(Effect.flip)).toMatchObject({ _tag: "HostFailure" });
 		});
+
+		hostPolicyStory.it("removing the cached guidance file fails the next read as a host failure", [], function* (policy) {
+			yield* policy.writeGuidance("Original approval.", 1000);
+			const read = yield* policy.cachedGuidance(role);
+			expect(yield* read).toBe("Original approval.");
+
+			yield* policy.removeGuidance();
+
+			expect(yield* refusal(read)).toMatch(/^host failure: /u);
+		});
+
 		for (const guidance of ["", { file: "" }, 17, { file: 3 }]) {
-			hostPolicyStory.it(`rejects invalid guidance: ${JSON.stringify(guidance)}`, [], function* (policy) {
-				const failure = yield* policy.prompt(role, guidance).pipe(Effect.flip);
-				expect(failure).toMatchObject({ _tag: "HostFailure" });
-				expect(failure.message).toContain("is invalid:");
+			hostPolicyStory.it(`invalid guidance ${JSON.stringify(guidance)} is refused as invalid`, [], function* (policy) {
+				const prompt = yield* refusal(policy.prompt(role, guidance));
+
+				expect(prompt).toMatch(/^host failure: .*is invalid:/u);
 			});
 		}
-		hostPolicyStory.it(`passes inline repository guidance from configuration to the ${role} prompt`, [], function* (policy) {
+
+		hostPolicyStory.it(`inline repository guidance from configuration reaches the ${role} prompt`, [], function* (policy) {
 			const guidance = "Inspect the synthetic workflow.\nConfirm database tests are enabled.";
-			expect(yield* policy.prompt(role, guidance)).toContain(guidance);
+
+			const prompt = yield* policy.prompt(role, guidance);
+
+			expect(prompt).toContain(guidance);
 		});
-		hostPolicyStory.it("reads a guidance file relative to the Board folder", [], function* (policy) {
+
+		hostPolicyStory.it("a guidance file is read relative to the Board folder", [], function* (policy) {
 			const guidance = "Confirm the synthetic integration checks passed.";
-			expect(yield* policy.prompt(role, { file: `${role}.md` }, { [`${role}.md`]: guidance })).toContain(guidance);
+
+			const prompt = yield* policy.prompt(role, { file: `${role}.md` }, { [`${role}.md`]: guidance });
+
+			expect(prompt).toContain(guidance);
 		});
+
 		hostPolicyStory.it(`omitted guidance leaves the ${role} prompt repository-independent`, [], function* (policy) {
 			const prompt = yield* policy.prompt(role);
-			expect(prompt).not.toContain(`Repository ${role} guidance:`);
-			expect(prompt).not.toContain("pnpm db:setup");
-			expect(prompt).not.toContain("_TEST_DATABASE_URL");
-			expect(prompt).not.toContain("script/lib/postgresTestEnvironment.ts");
+
+			for (const repositoryText of [`Repository ${role} guidance:`, "pnpm db:setup", "_TEST_DATABASE_URL", "script/lib/postgresTestEnvironment.ts"]) {
+				expect(prompt).not.toContain(repositoryText);
+			}
 		});
-		hostPolicyStory.it("an unreadable guidance file fails host policy creation", [], function* (policy) {
-			const failure = yield* policy.prompt(role, { file: "missing.md" }).pipe(Effect.flip);
-			expect(failure).toMatchObject({ _tag: "HostFailure" });
-			expect(failure.message).toContain(`Fleet ${role} guidance is missing or unreadable: `);
-			expect(failure.message).toMatch(/missing\.md$/u);
+
+		hostPolicyStory.it("an unreadable guidance file fails host policy creation and names the file", [], function* (policy) {
+			const prompt = yield* refusal(policy.prompt(role, { file: "missing.md" }));
+
+			expect(prompt).toMatch(new RegExp(`^host failure: Fleet ${role} guidance is missing or unreadable: .*missing\\.md$`, "u"));
 		});
 	});
 }

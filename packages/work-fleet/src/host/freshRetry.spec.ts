@@ -16,7 +16,8 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 				throw new Error("Missing stalled decision");
 			}
 			daemon.moveMain({ observedAt: 2, revision: "main-1" });
-			expect(yield* daemon.admit()).toEqual([]);
+			const admission = yield* daemon.admit();
+			expect(admission).toEqual([]);
 			expect((yield* daemon.get("one")).decision).toEqual(stalled.decision);
 			const responseId = daemon.answerReport(stalled.decision.published, "retry");
 			const retried = yield* daemon.resolve("one", stalled.decision.id, responseId);

@@ -1,6 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Clock, Fiber } from "effect";
-import { TestClock } from "effect/testing";
+import { Fiber } from "effect";
 import { providerRead, silentCodexReads } from "#test/providerReadStory.ts";
 import { TIMEOUT } from "#test/timeoutProvider.ts";
 
@@ -17,20 +16,24 @@ providerRead.it(
 		waitForStoredRecord,
 		publishedDecisions,
 		statusText,
+		elapse,
+		elapseUntil,
 	}) {
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		const scheduler = yield* startPacedScheduler();
 		yield* awaitProviderReads(1);
-		yield* TestClock.adjust("1 second");
+		yield* elapse("1 second");
 		const waiting = yield* waitForStoredRecord("one", (record) => record.attempts[0]?.readRetry !== undefined);
 		const retryAt = waiting.attempts[0]?.readRetry?.retryAt ?? 0;
 		expect(yield* statusText()).toContain(`Waiting to read provider state: ${TIMEOUT}; read attempt 1 of 5; retry after`);
-		yield* TestClock.adjust("1 second");
+		yield* elapse("1 second");
 		yield* awaitRetryTimer(retryAt);
-		yield* TestClock.adjust(retryAt - (yield* Clock.currentTimeMillis) - 1);
+		yield* elapseUntil(retryAt - 1);
 		expect(providerReadTimes()).toEqual([waiting.attempts[0]?.submittedAt]);
-		yield* TestClock.adjust("1 milli");
+
+		yield* elapse("1 milli");
+
 		const ready = yield* waitForStoredRecord("one", (record) => record.decision?.code === "reviewed-pr-ready");
 		expect(providerReadTimes()[1]).toBe(retryAt);
 		expect(ready.attempts[0]?.readRetry).toBeUndefined();
@@ -52,22 +55,24 @@ providerRead.it(
 		awaitRetryTimer,
 		waitForStoredRecord,
 		publishedDecisions,
+		elapse,
+		elapseUntil,
 	}) {
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		const scheduler = yield* startPacedScheduler();
 		for (let failures = 1; failures <= 5; failures += 1) {
 			yield* awaitProviderReads(failures);
-			yield* TestClock.adjust("1 second");
+			yield* elapse("1 second");
 			const stored = yield* waitForStoredRecord("one", (record) =>
 				failures < 5 ? record.attempts[0]?.readRetry?.failures === failures : record.step === "waiting",
 			);
 			if (failures < 5) {
 				expect(stored.decision).toBeUndefined();
 				const retryAt = stored.attempts[0]?.readRetry?.retryAt ?? 0;
-				yield* TestClock.adjust("1 second");
+				yield* elapse("1 second");
 				yield* awaitRetryTimer(retryAt);
-				yield* TestClock.adjust(retryAt - (yield* Clock.currentTimeMillis));
+				yield* elapseUntil(retryAt);
 			} else {
 				expect(stored.decision).toMatchObject({
 					attentionOwner: "orchestrator",

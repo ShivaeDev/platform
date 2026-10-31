@@ -5,6 +5,7 @@ import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { enterRecoveryCase } from "#test/enterRecoveryCase.ts";
+import { refusal } from "#test/refusal.ts";
 import { answerReport } from "#test/report.ts";
 import { openFleetBoard } from "#test/withFleetBoard.ts";
 
@@ -89,7 +90,7 @@ export function runRecoveryCase(state: EngineStory, tell: (line: string) => void
 					submissions: [...fixture.settings],
 				};
 			}),
-		rejectRetry: () => answer("retry").pipe(Effect.flip),
+		rejectRetry: () => refusal(answer("retry")),
 		repeatAnswer: () => {
 			const { decision } = stopped();
 			const receipt = response();

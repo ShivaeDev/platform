@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { noChangeReported } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 import { twoSubmissionsOfQuotaConfiguration } from "#test/twoSubmissionsOfQuotaConfiguration.ts";
 
 const twoSubmissionsOfQuota = engineConfiguration("two submissions of quota", twoSubmissionsOfQuotaConfiguration());
@@ -13,9 +14,12 @@ isolatedEngine.it(
 	function* ({ providerOperations, editWork, prepareWork, fleet }) {
 		yield* prepareWork("one");
 		editWork("one", "changed-board");
-		expect((yield* fleet.dispatch("one")).value.step).toBe("waiting");
-		expect(yield* fleet.continue("one", " \n").pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
-		expect(yield* fleet.continue("one", "No worker").pipe(Effect.flip)).toMatchObject({ message: "Continue requires an existing worker receipt" });
+		const dispatched2 = yield* fleet.dispatch("one");
+		expect(dispatched2.value.step).toBe("waiting");
+		const continuedOutcome = yield* refusal(fleet.continue("one", " \n"));
+		expect(continuedOutcome).toMatch(/^bad request: /u);
+		const continued = yield* fleet.continue("one", "No worker").pipe(Effect.flip);
+		expect(continued).toMatchObject({ message: "Continue requires an existing worker receipt" });
 		expect(providerOperations()).toEqual([]);
 	},
 );
@@ -47,7 +51,8 @@ isolatedEngine.it(
 		yield* fleet.dispatch("one");
 		finishWorkers();
 		yield* fleet.reconcile("one");
-		expect(yield* fleet.continue("one", "Over quota").pipe(Effect.flip)).toMatchObject({ message: "Fresh available provider quota is required" });
+		const continued2 = yield* fleet.continue("one", "Over quota").pipe(Effect.flip);
+		expect(continued2).toMatchObject({ message: "Fresh available provider quota is required" });
 		expect((yield* fleet.get("one")).value.step).toBe("done");
 		expect(providerOperations()).toEqual(["operation-1", "operation-2"]);
 	},

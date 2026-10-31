@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { unslurped } from "#test/githubApi.ts";
 import { ADOPTED_HEAD, checkRun, githubFixture, githubResult } from "#test/githubChecks.ts";
 import { githubCliHost } from "#test/githubHostStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 githubCliHost.it("reads GitHub over HTTP and revalidates repeated check evidence", [], function* (github) {
 	const fixture = githubFixture();
@@ -29,8 +29,10 @@ githubCliHost.it("rejects a failed GitHub response even when its body contains g
 	const fixture = githubFixture();
 	fixture.reply(ADOPTED_HEAD, [[checkRun()]]);
 	const cli = yield* github.cli(unslurped(fixture.responses), HttpStatus.fromLiteral("InternalServerError"));
-	const failure = yield* cli.checks(githubResult()).pipe(Effect.flip);
-	expect(failure).toMatchObject({ _tag: "ServiceUnavailable" });
+
+	const checks = yield* refusal(cli.checks(githubResult()));
+
+	expect(checks).toMatch(/^unavailable: /u);
 	expect(cli.commands).toMatchObject([
 		{
 			endpoint: `repos/example/project/commits/${ADOPTED_HEAD}/check-runs?per_page=100&filter=latest`,

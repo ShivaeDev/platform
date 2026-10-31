@@ -1,116 +1,108 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { requestCursor } from "#test/codex.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { providerStory } from "#test/providerStory.ts";
+import { byCursor, page, turn } from "#test/wireScript.ts";
 
-const receipt = { sessionId: "synthetic-session", turnId: "synthetic-turn" };
+const RECEIPT = { sessionId: "synthetic-session", turnId: "synthetic-turn" };
+const WORK = { cwd: "/synthetic", operationId: "operation", prompt: "work" };
+const COMPLETED = {
+	"thread/items/list": page([{ item: { id: "message", text: "Evidence", type: "agentMessage" } }]),
+	"thread/start": { thread: { id: RECEIPT.sessionId } },
+	"thread/turns/list": page([turn(RECEIPT.turnId, "completed")]),
+	"turn/start": { turn: { id: RECEIPT.turnId } },
+};
+const RUNNING = { "thread/items/list": page([]), "thread/turns/list": page([turn(RECEIPT.turnId, "inProgress")]) };
+
+providerStory.it("a local session and its turn take the ids Codex acknowledges", [], function* ({ answers, provider }) {
+	yield* answers(COMPLETED);
+	expect(yield* provider.openSession(WORK)).toBe(`session ${RECEIPT.sessionId}`);
+
+	const outcome = yield* provider.submit({ ...WORK, sessionId: RECEIPT.sessionId });
+
+	expect(outcome).toBe("turn synthetic-turn on synthetic-session");
+});
+
+providerStory.it("a completed turn's evidence is read once and served from cache afterwards", [], function* ({ answers, methods, provider }) {
+	yield* answers(COMPLETED);
+	expect((yield* provider.observe(RECEIPT)).output).toBe("Evidence");
+
+	const again = yield* provider.observe(RECEIPT);
+
+	expect(again.output).toBe("Evidence");
+	expect(yield* methods("thread/turns/list", "thread/items/list")).toEqual(["thread/turns/list", "thread/items/list"]);
+});
+
 providerStory.it(
-	"uses acknowledged IDs and caches terminal evidence; closing an observer never interrupts",
+	"closing the provider observer does not interrupt the observed running turn",
 	[],
-	function* ({ provider, replyWith, closeObserver }) {
-		const methods: string[] = [];
-		yield* replyWith((request) => {
-			methods.push(request.method);
-			if (request.method === "thread/start") {
-				return { thread: { id: receipt.sessionId } };
-			}
-			if (request.method === "turn/start") {
-				return { turn: { id: receipt.turnId } };
-			}
-			if (request.method === "thread/turns/list") {
-				return { data: [{ id: receipt.turnId, items: [], status: "completed" }], nextCursor: null };
-			}
-			if (request.method === "thread/items/list") {
-				return { data: [{ item: { id: "message", text: "Evidence", type: "agentMessage" } }], nextCursor: null };
-			}
-			return {};
-		});
-		yield* Effect.gen(function* () {
-			const sessionId = yield* provider.startSession({ cwd: "/synthetic", operationId: "operation", prompt: "work" });
-			expect(sessionId).toBe(receipt.sessionId);
-			expect(yield* provider.startTurn({ operationId: "operation", prompt: "work", sessionId })).toEqual(receipt);
-			expect((yield* provider.observe(receipt)).output).toBe("Evidence");
-			yield* provider.observe(receipt);
-		});
+	function* ({ answers, closeObserver, methods, provider }) {
+		yield* answers(RUNNING);
+		yield* provider.observe(RECEIPT);
+
 		yield* closeObserver();
-		expect(methods.filter((method) => method === "thread/turns/list")).toHaveLength(1);
-		expect(methods.filter((method) => method === "thread/items/list")).toHaveLength(1);
-		expect(methods).not.toContain("thread/resume");
-		expect(methods).not.toContain("turn/interrupt");
+
+		expect(yield* methods("turn/interrupt")).toEqual([]);
 	},
 );
-providerStory.it("reconciles across all pages and refuses ambiguous duplicate operations", [], function* ({ provider, replyWith }) {
-	const methods: string[] = [];
-	yield* replyWith((request) => {
-		methods.push(request.method);
-		if (request.method !== "thread/turns/list") {
-			return {};
-		}
-		const cursor = requestCursor(request);
-		return {
-			data: [
-				{
-					id: cursor === "second" ? "second-turn" : "first-turn",
-					items: [{ clientId: "operation", id: "input", type: "userMessage" }],
-					status: "completed",
-				},
-			],
-			nextCursor: cursor === "second" ? null : "second",
-		};
-	});
-	const result = yield* Effect.gen(function* () {
-		return yield* provider.reconcile({ operationId: "operation", sessionId: receipt.sessionId }).pipe(Effect.flip);
-	});
-	expect(result.reason).toBe("ambiguous");
-	expect(methods.filter((method) => method === "thread/turns/list")).toHaveLength(2);
-	expect(methods).not.toContain("turn/start");
-});
+
 providerStory.it(
-	"adopts an existing acknowledged turn after restart and requires explicit interrupt acknowledgement",
+	"recovery reads every page of turns and fails as ambiguous when the operation appears twice",
 	[],
-	function* ({ provider, replyWith }) {
-		const methods: string[] = [];
-		yield* replyWith((request) => {
-			methods.push(request.method);
-			if (request.method === "thread/turns/list") {
-				return { data: [{ id: receipt.turnId, items: [], status: "inProgress" }], nextCursor: null };
-			}
-			if (request.method === "thread/items/list") {
-				return { data: [], nextCursor: null };
-			}
-			return {};
+	function* ({ answers, methods, provider }) {
+		yield* answers({
+			"thread/turns/list": byCursor({
+				first: page([turn("first-turn", "completed", "operation")], "second"),
+				second: page([turn("second-turn", "completed", "operation")]),
+			}),
 		});
-		yield* Effect.gen(function* () {
-			expect(yield* provider.reconcile({ operationId: "operation", ...receipt })).toEqual(receipt);
-			expect((yield* provider.observe(receipt)).execution).toBe("running");
-			expect(yield* provider.interrupt(receipt)).toEqual(receipt);
-		});
-		expect(methods).not.toContain("turn/start");
-		expect(methods.filter((method) => method === "turn/interrupt")).toHaveLength(1);
+
+		const outcome = yield* provider.recover({ operationId: "operation", sessionId: RECEIPT.sessionId });
+
+		expect(outcome).toMatch(/^session ambiguous/u);
+		expect(yield* methods("thread/turns/list", "turn/start")).toEqual(["thread/turns/list", "thread/turns/list"]);
 	},
 );
-providerStory.it("retains a lost turn response and reconciles its operation without a second submission", [], function* ({ provider, replyWith }) {
-	const methods: string[] = [];
-	yield* replyWith((request) => {
-		methods.push(request.method);
-		if (request.method === "thread/start") {
-			return { thread: { id: receipt.sessionId } };
-		}
-		if (request.method === "turn/start") {
-			return undefined;
-		}
-		if (request.method === "thread/turns/list") {
-			return {
-				data: [{ id: receipt.turnId, items: [{ clientId: "operation", id: "input", type: "userMessage" }], status: "inProgress" }],
-				nextCursor: null,
-			};
-		}
-		return {};
-	});
-	yield* Effect.gen(function* () {
-		const sessionId = yield* provider.startSession({ cwd: "/synthetic", operationId: "operation", prompt: "work" });
-		expect((yield* provider.startTurn({ operationId: "operation", prompt: "work", sessionId }).pipe(Effect.flip)).reason).toBe("ambiguous");
-		expect(yield* provider.reconcile({ operationId: "operation", sessionId })).toEqual(receipt);
-	});
-	expect(methods.filter((method) => method === "turn/start")).toHaveLength(1);
+
+providerStory.it(
+	"recovery after a restart adopts the acknowledged running turn without resubmitting it",
+	[],
+	function* ({ answers, methods, provider }) {
+		yield* answers(RUNNING);
+
+		const outcome = yield* provider.recover({ operationId: "operation", ...RECEIPT });
+
+		expect(outcome).toBe("turn synthetic-turn on synthetic-session");
+		yield* outcomes([
+			["execution", () => provider.observe(RECEIPT).pipe(Effect.map(({ execution }) => execution)), "running"],
+			["submitted turns", () => methods("turn/start"), []],
+		]);
+	},
+);
+
+providerStory.it("interrupting a turn sends one interrupt and confirms it with the turn's receipt", [], function* ({ answers, methods, provider }) {
+	yield* answers(RUNNING);
+
+	const outcome = yield* provider.interrupt(RECEIPT);
+
+	expect(outcome).toBe("interrupted turn synthetic-turn on synthetic-session");
+	expect(yield* methods("turn/interrupt")).toEqual(["turn/interrupt"]);
 });
+
+providerStory.it(
+	"a turn whose acknowledgement is lost is found by recovery without a second submission",
+	[],
+	function* ({ answers, methods, provider }) {
+		yield* answers({
+			"thread/start": { thread: { id: RECEIPT.sessionId } },
+			"thread/turns/list": page([turn(RECEIPT.turnId, "inProgress", "operation")]),
+			"turn/start": undefined,
+		});
+		expect(yield* provider.submit({ ...WORK, sessionId: RECEIPT.sessionId })).toMatch(/^session ambiguous/u);
+
+		const outcome = yield* provider.recover({ operationId: "operation", sessionId: RECEIPT.sessionId });
+
+		expect(outcome).toBe("turn synthetic-turn on synthetic-session");
+		expect(yield* methods("turn/start")).toEqual(["turn/start"]);
+	},
+);

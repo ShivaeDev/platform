@@ -103,8 +103,10 @@ engine.it(
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.step).toBe("validating");
-		expect((yield* fleet.reconcile("one")).value.checks?.head).toBe(ADOPTED_HEAD);
+		const reconciled = yield* fleet.reconcile("one");
+		expect(reconciled.value.step).toBe("validating");
+		const reconciled2 = yield* fleet.reconcile("one");
+		expect(reconciled2.value.checks?.head).toBe(ADOPTED_HEAD);
 		expect(mergedHeads()).toHaveLength(0);
 		expect(
 			githubRequests()

@@ -11,10 +11,12 @@ host.it("stop cancels a preparing dispatch before a worker or Fleet record exist
 		stage: "released",
 		workId: "one",
 	});
-	expect(yield* daemon.request("daemon.dispatch-status", { workId: "one" })).toMatchObject({ status: "cancelled" });
+	const requestResult = yield* daemon.request("daemon.dispatch-status", { workId: "one" });
+	expect(requestResult).toMatchObject({ status: "cancelled" });
 	expect(daemon.readBoard(`responses/${daemon.responseFiles().at(-1)}`)).toContain("Work cancelled by orchestrator.");
 	expect(daemon.boardAcknowledgements()).toMatchObject([{ disposition: "applied" }]);
-	expect(yield* daemon.request("daemon.stop", { workId: "one" }).pipe(Effect.flip)).toMatchObject({ message: expect.stringContaining("released") });
+	const requestResult2 = yield* daemon.request("daemon.stop", { workId: "one" }).pipe(Effect.flip);
+	expect(requestResult2).toMatchObject({ message: expect.stringContaining("released") });
 	yield* daemon.releaseDelay();
 	yield* daemon.stop();
 	yield* daemon.start();
@@ -44,7 +46,8 @@ host.it(
 			releaseReason: "Work cancelled by orchestrator.",
 			stage: "released",
 		});
-		expect(yield* daemon.request("daemon.dispatch-status", { workId: "one" })).toMatchObject({ status: "cancelled" });
+		const requestResult3 = yield* daemon.request("daemon.dispatch-status", { workId: "one" });
+		expect(requestResult3).toMatchObject({ status: "cancelled" });
 		yield* daemon.releaseDelay();
 		yield* daemon.schedulerPass();
 		expect(daemon.providerLaunches()).toEqual([]);

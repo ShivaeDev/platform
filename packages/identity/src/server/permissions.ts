@@ -1,4 +1,4 @@
-import { Effect, Layer, Option } from "effect";
+import { type Context, Effect, Layer, Option } from "effect";
 import { type HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { RpcMiddleware } from "effect/rpc";
@@ -9,14 +9,16 @@ import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
-import { hasPermission, type permissionMiddleware } from "#permission.ts";
+import { hasPermission } from "#permission.ts";
 import { commandChanges } from "#server/commandChanges.ts";
 import { recheckSession } from "./recheckSession.ts";
 import { revalidateStream } from "./revalidateStream.ts";
 import { type SessionPolicy, type UserSessionShape, withSessionUser } from "./session.ts";
 
 export function permissionLayer<TMiddleware, TSession extends UserSessionShape>(
-	middleware: ReturnType<ReturnType<typeof permissionMiddleware<TMiddleware>>>,
+	middleware: Context.Key<TMiddleware, RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never>> & {
+		readonly permission: Permission;
+	},
 	policy: SessionPolicy<TSession>,
 ) {
 	const permission = middleware.permission;

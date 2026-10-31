@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork, reviewerStillRunning } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 engine.it(
 	"stores shared stages while retaining resumable execution steps",
@@ -9,7 +10,8 @@ engine.it(
 	function* ({ fleet, prepareWork, finishWorkers, turnReports, restart }) {
 		yield* prepareWork("one");
 		expect((yield* fleet.get("one")).value.stage).toBe("queued");
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("working");
+		const dispatched = yield* fleet.dispatch("one");
+		expect(dispatched.value.stage).toBe("working");
 		finishWorkers();
 		const reviewing = yield* fleet.reconcile("one");
 		expect(reviewing.value.stage).toBe("reviewing");
@@ -27,8 +29,8 @@ engine.it(
 for (const approval of ["held", "manual"] as const) {
 	engine.it(`never launches a ${approval} Board task`, [markdownWork()], function* ({ boardBrief, writeBoardWork, prepareWork, schedule, launches }) {
 		writeBoardWork("one.md", boardBrief().replace("fleet: approved", `fleet: ${approval}`));
-		const failure = yield* prepareWork("one").pipe(Effect.match({ onFailure: (error) => error, onSuccess: () => undefined }));
-		expect(failure).toMatchObject({ _tag: "Forbidden", message: "Current Board revision needs maintainer approval" });
+		const failure = yield* refusal(prepareWork("one"));
+		expect(failure).toBe("forbidden: Current Board revision needs maintainer approval");
 		yield* schedule();
 		expect(launches()).toEqual([]);
 	});

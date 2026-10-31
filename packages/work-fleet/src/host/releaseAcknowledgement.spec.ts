@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { answers, answerWork } from "#test/answerHost.ts";
 
@@ -16,8 +17,10 @@ answers.it("release confirms during a blocked launch and applies its accepted re
 			stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}`,
 		});
 	}
-	expect((yield* host.status()).waiting.automation).toMatchObject([{ blocker: ANSWER_RECORDED, workId: "one" }]);
-	expect(yield* host.storedRequests()).toMatchObject([{ release: true, "work_id": "one" }]);
+	yield* outcomes([
+		["status waiting automation", () => host.status(), { waiting: { automation: [{ blocker: ANSWER_RECORDED, workId: "one" }] } }],
+		["stored requests", () => host.storedRequests(), [{ release: true, "work_id": "one" }]],
+	]);
 	yield* admission.release;
 	yield* Fiber.join(launch);
 	const released = yield* host.applied();
@@ -26,7 +29,8 @@ answers.it("release confirms during a blocked launch and applies its accepted re
 		{ action: "release", boardAcknowledged: true },
 	]);
 	expect(host.boardAcknowledgements()).toMatchObject([{ disposition: "applied", question: decision.published?.questionId }]);
-	expect(yield* host.cliRelease("one")).toEqual({ code: 0, stderr: "", stdout: "one released" });
+	const released2 = yield* host.cliRelease("one");
+	expect(released2).toEqual({ code: 0, stderr: "", stdout: "one released" });
 	expect((yield* host.get()).responses).toEqual(released.responses);
 	expect(host.boardAcknowledgements()).toMatchObject([{ disposition: "applied", question: decision.published?.questionId }]);
 });
@@ -41,6 +45,7 @@ answers.it("release reports refusal for running work or an unrecorded request", 
 	expect(yield* host.storedRequests()).toEqual([]);
 	expect(host.boardReceipts()).toEqual([]);
 	yield* host.failRecording(false);
-	expect((yield* host.cliRelease("one")).code).toBe(0);
+	const released3 = yield* host.cliRelease("one");
+	expect(released3.code).toBe(0);
 	expect((yield* host.applied()).step).toBe("released");
 });

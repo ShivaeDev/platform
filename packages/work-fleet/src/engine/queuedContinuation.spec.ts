@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { completedContinuation, continuationCapacity, fourApproved, needsHumanContinuation, singleSlot } from "#test/continuationCapacity.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 
@@ -38,7 +40,7 @@ for (const step of ["waiting", "done"] as const) {
 			});
 			yield* fleet.finishWorker("two");
 			yield* fleet.reconcile("two");
-			expect(yield* fleet.attemptDispatch("four")).toMatchObject({ _tag: "StorageCapacity", kind: "merge-work" });
+			expect(yield* fleet.attemptDispatch("four")).toMatch(/^merge-work capacity of \d+ is full$/u);
 			yield* fleet.schedule();
 			const resumed = (yield* fleet.get("one")).value;
 			expect(resumed.step).toBe("working");
@@ -54,8 +56,10 @@ for (const step of ["waiting", "done"] as const) {
 			expect(resumed.history?.[0]).not.toHaveProperty("pendingContinuation");
 			expect(resumed.history?.[0]?.attentionOwner).toBe(terminal.attentionOwner);
 			expect(resumed.history?.[0]?.blocker).toBe(terminal.blocker);
-			expect((yield* fleet.get("three")).value.step).toBe("working");
-			expect((yield* fleet.get("four")).value.step).toBe("queued");
+			yield* outcomes([
+				["three", () => fleet.stepOf("three"), "working"],
+				["four", () => fleet.stepOf("four"), "queued"],
+			]);
 			yield* fleet.schedule();
 			const observed = (yield* fleet.get("one")).value;
 			expect(observed.attempts).toMatchObject([{ receipt: resumed.attempts[0]?.receipt }]);
@@ -96,7 +100,9 @@ isolatedEngine.it("releasing a queued continuation cancels its request and lets 
 	fleet.setDependencies("dependent", []);
 	yield* fleet.prepareWork("dependent");
 	yield* fleet.schedule();
-	expect((yield* fleet.get("one")).value.step).toBe("released");
-	expect((yield* fleet.get("one")).value.history ?? []).toHaveLength(0);
-	expect((yield* fleet.get("dependent")).value.step).toBe("working");
+	yield* outcomes([
+		["one", () => fleet.stepOf("one"), "released"],
+		["one history", () => fleet.get("one").pipe(Effect.map((current) => current.value.history ?? [])), []],
+		["dependent", () => fleet.stepOf("dependent"), "working"],
+	]);
 });

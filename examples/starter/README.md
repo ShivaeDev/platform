@@ -92,6 +92,12 @@ To verify the generated app, run `pnpm --filter @shivaedev/starter check:publish
 
 Add `--registry` to generate the app with the published `pnpm create @shivaedev/app` command instead of packing the local generator; it cannot be combined with `--archives`. The Published starter workflow runs registry mode on a schedule and after each package publish.
 
+### Auth schema changes
+
+Numbered auth migrations contain frozen SQL. After changing `src/server/authOptions.ts` or the default role, follow identity's [frozen migration workflow](https://github.com/ShivaeDev/platform/tree/main/packages/identity#frozen-auth-migrations): apply the existing migrations to a disposable PostgreSQL database, generate the next module with `generateBetterAuthMigration`, then review and commit its SQL. Register the generated file in `boundaries/auth-sql`'s `options.owners` in `quality.config.ts`. Run `pnpm migrate` to apply it. Keep earlier migrations unchanged.
+
+The auth migration stories call `assertBetterAuthSchema` after all numbered migrations, so missing schema changes fail with their names. A migration calling Better Auth's `getMigrations` or identity's `migrateBetterAuth` live is not frozen; option changes and Better Auth upgrades can change its DDL.
+
 ## Deployment
 
 Railway needs no hand-written proxy setting. `.railway/railway.ts` uses `.railway/proxy.json` for proxy peer trust and client IP headers. `TRUSTED_PROXY` controls which peers may supply forwarded client IPs and the public HTTPS authority for RPC origin checks; `PUBLIC_URL` selects secure auth cookies. A session host listening on a non-loopback address refuses to boot without `TRUSTED_PROXY` or `config.trustedProxy`, with a typed `TrustedProxyRequired` error explaining how to set it. Local development on loopback keeps working without it.

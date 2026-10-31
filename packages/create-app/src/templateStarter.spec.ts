@@ -81,12 +81,11 @@ for (const [from, to] of RENAMED) {
 	});
 }
 
-application.it("packing the starter leaves out its published-versions.json, CLAUDE.md and quality.config.ts", [], function* ({ pack, packedFile }) {
+application.it("packing the starter leaves out its published-versions.json and CLAUDE.md", [], function* ({ pack, packedFile }) {
 	yield* pack();
 
 	yield* outcomes([
 		["CLAUDE.md", () => packedFile("CLAUDE.md"), "not packed"],
 		["published-versions.json", () => packedFile("published-versions.json"), "not packed"],
-		["quality.config.ts", () => packedFile("quality.config.ts"), "not packed"],
 	]);
 });

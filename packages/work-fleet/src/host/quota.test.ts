@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { hostPolicyStory } from "#test/hostPolicyStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 describe("work-fleet quota", () => {
 	hostPolicyStory.it("ordinary Codex usage admits without a flat cap and is cached for a minute", [], function* (policy) {
@@ -15,7 +15,9 @@ describe("work-fleet quota", () => {
 
 	hostPolicyStory.it("an unknown rate limit shape is an integration failure", [], function* (policy) {
 		policy.quotaObservation(0, { limits: [] });
-		const failure = yield* policy.quota().pipe(Effect.flip);
-		expect(failure._tag).toBe("ServiceUnavailable");
+
+		const quota = yield* refusal(policy.quota());
+
+		expect(quota).toMatch(/^unavailable: /u);
 	});
 });
