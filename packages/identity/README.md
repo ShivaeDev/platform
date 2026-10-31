@@ -107,7 +107,7 @@ const authentication = Effect.gen(function* () {
 });
 ```
 
-`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Use `migrateBetterAuth(options)` from `@shivaedev/identity/server/better-auth/migrate.ts` for the auth schema migration. It takes Better Auth options without a database and reads the SQL service itself. Create the database adapter inside a SQL transaction when auth writes must commit or roll back with application writes. The application SQL Layer owns shutdown.
+`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Generate frozen numbered auth migrations as described below. Create the database adapter inside a SQL transaction when auth writes must commit or roll back with application writes. The application SQL Layer owns shutdown.
 
 Run this Effect in the host's scope; the application SQL Layer manages its connections. A rejected auth handler returns HTTP 503 with `Authentication is temporarily unavailable`.
 
@@ -354,20 +354,61 @@ const mounted = yield* betterAuthMount(authOptions, { defaultRole: "member", rol
 const sessions = { ...mounted.sessions, origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }) };
 ```
 
-For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. A missing or null stored role refuses access with `Forbidden` (HTTP 403 at the session endpoint) and logs the fix: run `migrateBetterAuth` with `defaultRole`, then use `assignRole` for administrators. An undeclared non-null stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
+For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. A missing or null stored role refuses access with `Forbidden` (HTTP 403 at the session endpoint) and logs the fix: generate and apply a frozen migration with `defaultRole`, then use `assignRole` for administrators. An undeclared non-null stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
+
+### Frozen auth migrations
+
+Generate each auth migration once, review its SQL and commit the generated module. `generateBetterAuthMigration(options, roleOptions?)` reads the current PostgreSQL schema through `SqlClient` and returns a TypeScript migration module. It does not apply the migration. The module imports only native Effect and executes fixed SQL on the migrator's transaction connection. Later auth option changes and Better Auth upgrades cannot change its SQL.
+
+Start with a disposable PostgreSQL database containing only your previously shipped migrations. For the first auth migration that means an empty auth schema. In a scoped generation script with `postgresLayer` and Node services provided:
+
+```ts
+import { FileSystem } from "effect";
+import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
+
+const fs = yield* FileSystem.FileSystem;
+const source = yield* generateBetterAuthMigration({ emailAndPassword: { enabled: true } });
+yield* fs.writeFileString("src/server/migrations/0001_auth.ts", source, { flag: "wx" });
+```
+
+Apply `0001_auth` through `migratePostgres`. When options change, such as adding `user.additionalFields.role`, keep `0001_auth` unchanged. Generate a new file against a database with the previous migrations applied:
+
+```ts
+const source = yield* generateBetterAuthMigration({
+	emailAndPassword: { enabled: true },
+	user: { additionalFields: { role: { type: "string", required: true, defaultValue: "member" } } },
+});
+yield* fs.writeFileString("src/server/migrations/0002_auth_roles.ts", source, { flag: "wx" });
+```
+
+Review and commit `0002_auth_roles`, then apply it with the other numbered migrations. If the app uses Quality, register each reviewed generated file in `boundaries/auth-sql`'s `options.owners` in its `quality.config.ts`; the generated file owns auth DDL, while application queries continue to use identity. For identity-managed roles, pass `{ defaultRole: "member" }` as the second argument instead of configuring the field yourself; its generated SQL also freezes the default, null backfill and NOT NULL constraint.
+
+A numbered migration calling `getMigrations(authOptions)` live is **not frozen**, even if it copies the options into that file: the installed Better Auth version still decides the DDL. `migrateBetterAuth` is also live; use it for disposable test setup, not shipped migrations. It executes compiled DDL on the native SQL connection. Generated modules use a PostgreSQL `DO` block to execute the compiled statements together on that connection.
+
+After applying all numbered migrations in an isolated story database, check them against the current options:
+
+```ts
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
+
+yield* assertBetterAuthSchema(authOptions, { defaultRole: "member" });
+```
+
+`assertBetterAuthSchema` fails with `BetterAuthSchemaDrift`, whose `missing` entries name missing tables, columns and configured indexes, incompatible column types and missing NOT NULL constraints. It also reports an optional field whose existing non-null column has neither a database default nor an auth field default. With identity role options it checks the role default. A newly added `user.role` reports `column user.role` until the next migration is generated **and applied**. Generation follows Better Auth's additive migration planner; type and nullability changes may require reviewed, application-authored SQL in a new migration. The check does not compare arbitrary application constraints or detect changes to default functions.
+
+The starter ships checked-in SQL for its auth migrations and checks all numbered migrations against current auth options in its PostgreSQL stories.
 
 ### Adopting stored roles with existing users
 
 Identity declares `user.additionalFields.role` when the mount has `roles` and `defaultRole`. Choose a default from your application's role set, such as `member`. It is a required string and cannot be supplied by sign-up input. No `additionalFields` entry or Better Auth `admin()` plugin is needed.
-1. Add a numbered application migration that calls `migrateBetterAuth(authOptions, { defaultRole: "member" })`. Run it before deploying the mount with roles. PostgreSQL fills existing users when the column is added; identity also fills null roles when adopting a nullable role column. Both fresh and upgraded schemas finish with a `text NOT NULL DEFAULT 'member'` column. The migration keeps existing non-null roles.
+1. Generate a new numbered application migration with `generateBetterAuthMigration(authOptions, { defaultRole: "member" })`, following the frozen workflow above. Run it before deploying the mount with roles. PostgreSQL fills existing users when the column is added; identity also fills null roles when adopting a nullable role column. Both fresh and upgraded schemas finish with a `text NOT NULL DEFAULT 'member'` column. The migration keeps existing non-null roles.
 2. Mount with `betterAuthMount(authOptions, { defaultRole: "member", roles: Access })`, using the same default as the migration. New users get that role. Remove any app-owned role field configuration and the admin plugin if you used it only for roles.
 3. In a trusted server-side bootstrap process, call `assignRole(Access, existingUserId, "admin")` to make the first administrator. Provide the application's SQL Layer and Effect Reactivity, as for other role changes. `Access` must declare `admin` with the permissions that administrator needs, including `AssignRoles` to manage other users. Do not expose the bootstrap process as an unauthenticated endpoint.
 
 ```ts
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
-import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/migrate.ts";
+import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
 
-export default migrateBetterAuth(authOptions, { defaultRole: "member" });
+const migrationSource = yield* generateBetterAuthMigration(authOptions, { defaultRole: "member" });
 
 const changed = yield* assignRole(Access, existingUserId, "admin");
 ```
