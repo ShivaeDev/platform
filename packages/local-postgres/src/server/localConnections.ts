@@ -1,10 +1,10 @@
 import { Effect, Schema } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
-import { LocalPostgresError } from "./LocalPostgresError.ts";
-import { POSTGRES_IMAGE } from "./localContainer.ts";
-import type { docker as localDocker } from "./localDocker.ts";
-import type { PostgresCommandError } from "./PostgresCommandError.ts";
-import type { PostgresVersionMismatch } from "./PostgresVersionMismatch.ts";
+import { LocalPostgresError } from "#LocalPostgresError.ts";
+import { POSTGRES_IMAGE } from "#localContainer.ts";
+import type { docker as localDocker } from "#localDocker.ts";
+import type { PostgresCommandError } from "#PostgresCommandError.ts";
+import type { PostgresVersionMismatch } from "#PostgresVersionMismatch.ts";
 
 export class PostgresSettingError extends Schema.TaggedError<PostgresSettingError>()("PostgresSettingError", {
 	cause: Schema.Unknown,

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { LocalPostgresError } from "./LocalPostgresError.ts";
-import { type CommandOptions, runCommand } from "./runCommand.ts";
+import { LocalPostgresError } from "#LocalPostgresError.ts";
+import { type CommandOptions, runCommand } from "#runCommand.ts";
 
 export type DockerEnvironment = Readonly<{ "DOCKER_CONTEXT"?: string | undefined; "DOCKER_HOST"?: string | undefined }>;
 

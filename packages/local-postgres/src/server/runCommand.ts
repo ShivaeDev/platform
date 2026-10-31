@@ -1,6 +1,6 @@
 import { Effect, PlatformError, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { PostgresCommandError } from "./PostgresCommandError.ts";
+import { PostgresCommandError } from "#PostgresCommandError.ts";
 
 export type CommandOptions = Pick<ChildProcess.CommandOptions, "env" | "extendEnv">;
 

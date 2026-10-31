@@ -1,4 +1,4 @@
-import type { CommandOptions } from "./runCommand.ts";
+import type { CommandOptions } from "#runCommand.ts";
 
 export function clientConnection(value: URL, options: CommandOptions = {}) {
 	const url = new URL(value);

@@ -1,11 +1,11 @@
 import { Effect, Schedule } from "effect";
-import { clientConnection } from "./clientConnection.ts";
-import { LocalPostgresError } from "./LocalPostgresError.ts";
-import { ensureConnections } from "./localConnections.ts";
-import { sqlInContainer, startContainer } from "./localContainer.ts";
-import { type DockerEnvironment, docker } from "./localDocker.ts";
-import { PostgresVersionMismatch } from "./PostgresVersionMismatch.ts";
-import { type CommandOptions, missingCommand, runCommand } from "./runCommand.ts";
+import { clientConnection } from "#clientConnection.ts";
+import { LocalPostgresError } from "#LocalPostgresError.ts";
+import { ensureConnections } from "#localConnections.ts";
+import { sqlInContainer, startContainer } from "#localContainer.ts";
+import { type DockerEnvironment, docker } from "#localDocker.ts";
+import { PostgresVersionMismatch } from "#PostgresVersionMismatch.ts";
+import { type CommandOptions, missingCommand, runCommand } from "#runCommand.ts";
 
 export const LOCAL_SERVER = "postgresql://postgres:postgres@127.0.0.1:55432";
 
