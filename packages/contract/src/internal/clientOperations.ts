@@ -9,6 +9,7 @@ import type { QueryOptions } from "#bind.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import { MissingReadPolicy } from "#readPolicyErrors.ts";
 import type { BindingOwner } from "./bindingOwner.ts";
+import { clientActivities } from "./clientActivity.ts";
 import { queryReactivity } from "./queryReactivity.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
@@ -24,7 +25,7 @@ function run<A, E>(service: ErasedClient, effect: Effect.Effect<A, E, unknown>, 
 }
 
 export function boundQuery(service: ErasedClient, tag: string, query: QueryShape, automatic: ReturnType<typeof automaticLive>, owner?: BindingOwner) {
-	const reactive = queryReactivity(service.runtime);
+	const reactive = queryReactivity(service.runtime, clientActivities.get(service)?.queued);
 	const cached = new WeakMap<ReturnType<typeof service.query>, ReturnType<typeof service.query>>();
 	return {
 		query: (payload: unknown, options: QueryOptions = {}) => {
@@ -50,8 +51,9 @@ export function boundQuery(service: ErasedClient, tag: string, query: QueryShape
 				Schema.toEquivalence(query.success),
 				query.live === "rerun-and-compare" ? Schema.decodeUnknownSync(Schema.toType(query.success)) : undefined,
 			);
-			cached.set(atom, result);
-			return result;
+			const tracked = clientActivities.get(service)?.watch(result) ?? result;
+			cached.set(atom, tracked);
+			return tracked;
 		},
 		run: (payload: unknown) =>
 			run(

@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Deferred, Effect, Layer, PubSub, Schema, Stream } from "effect";
+import { Deferred, Effect, Layer, PubSub, Queue, Schema, Stream } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
@@ -16,6 +16,7 @@ export const ReadPage = contract("page", {
 			payload: { id: Schema.Number },
 			readPolicy: () => Effect.succeed(true),
 			reads: ({ id }) => [{ _tag: "Item", collection: "pages", id }],
+			rejections: { Missing: { id: Schema.Number } },
 			success: Schema.String,
 		}),
 		query("second", {
@@ -31,6 +32,18 @@ export const ReadPage = contract("page", {
 export const readPageHost = Effect.gen(function* () {
 	const titles = new Map([[1, "First page"]]);
 	const held = yield* Deferred.make<void>();
+	let readGate: Deferred.Deferred<void> | undefined;
+	const reading = yield* Queue.unbounded<void>();
+	function holdRead() {
+		readGate = Deferred.makeUnsafe<void>();
+	}
+	function releaseRead() {
+		if (readGate === undefined) {
+			throw new Error("No page read is held");
+		}
+		Effect.runSync(Deferred.succeed(readGate, undefined));
+		readGate = undefined;
+	}
 	const opened = yield* PubSub.unbounded<number>();
 	const changes = yield* PubSub.unbounded<LiveHint>();
 	const handlers = ReadPage.toLayer({
@@ -55,7 +68,15 @@ export const readPageHost = Effect.gen(function* () {
 				}),
 			);
 		},
-		"page.get": ({ id }) => Effect.sync(() => titles.get(id) ?? "Missing page"),
+		"page.get": ({ id }) =>
+			Effect.gen(function* () {
+				if (readGate !== undefined) {
+					yield* Queue.offer(reading, undefined);
+					yield* Deferred.await(readGate);
+				}
+				const title = titles.get(id);
+				return title === undefined ? yield* ReadPage.declaration.queries[0].reject.Missing({ id }) : title;
+			}),
 		"page.second": () => Effect.succeed("Waiting for live data"),
 		"page.write": ({ id, title }) =>
 			Effect.sync(() => titles.set(id, title)).pipe(
@@ -80,5 +101,5 @@ export const readPageHost = Effect.gen(function* () {
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP page host");
 	}
-	return { held, opened, url: `http://127.0.0.1:${server.address.port}/rpc` };
+	return { held, holdRead, opened, reading, releaseRead, url: `http://127.0.0.1:${server.address.port}/rpc` };
 });

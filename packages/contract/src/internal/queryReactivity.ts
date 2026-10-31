@@ -6,7 +6,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { liveBatches, liveKeys } from "./liveInvalidation.ts";
 
-export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
+export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: () => () => void) {
 	const service = runtime.atom(Effect.service(Reactivity.Reactivity));
 	type Query = Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>;
 	const cached = new WeakMap<Query, Query>();
@@ -31,6 +31,13 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 				}
 				const reactivity = context.value;
 				let pending: (() => boolean) | undefined;
+				let queued: (() => void) | undefined;
+				function dequeue() {
+					if (!scheduled && pending === undefined) {
+						queued?.();
+						queued = undefined;
+					}
+				}
 				let scheduled = false;
 				const timer = runtime.fn(({ delay, active }: { readonly delay: number; readonly active: () => boolean }) =>
 					Effect.andThen(
@@ -46,9 +53,11 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 					get.set(timer, Atom.Interrupt);
 					scheduled = false;
 					pending = undefined;
+					dequeue();
 				}
 				function refresh(active: () => boolean) {
 					if (!active()) {
+						dequeue();
 						return;
 					}
 					if (get.once(source).waiting) {
@@ -56,6 +65,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 					} else {
 						pending = undefined;
 						get.refresh(source);
+						dequeue();
 					}
 				}
 				function changed() {
@@ -69,6 +79,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 						clear();
 						get.refresh(source);
 					} else if (!scheduled) {
+						queued ??= queue?.();
 						scheduled = true;
 						get.set(timer, { active: batch.active, delay });
 					}
@@ -91,6 +102,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 						if (active()) {
 							get.refresh(source);
 						}
+						dequeue();
 					}
 				});
 				return get.once(source);
