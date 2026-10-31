@@ -6,6 +6,7 @@ import { telemetry } from "@shivaedev/github/test-support/telemetry.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GithubApi, githubApiLayer } from "#host/githubApi.ts";
 import { githubCli } from "#test/githubCli.ts";
+import { described } from "#test/refusal.ts";
 
 export const CLI_TOKEN = "fixture-cli-secret";
 export const ENV_TOKEN = "fixture-env-secret";
@@ -43,6 +44,7 @@ export const githubAuthentication = storyKit({
 					return {
 						observations: api.observations,
 						read: () => api.get(ENDPOINT).pipe(Effect.withSpan("Fleet authentication read"), Effect.provide(recording.layer)),
+						readFailure: () => failureOf(api.get(ENDPOINT).pipe(Effect.withSpan("Fleet authentication read"), Effect.provide(recording.layer))),
 					};
 				}),
 			);
@@ -62,3 +64,12 @@ export const githubAuthentication = storyKit({
 		}),
 	}),
 });
+
+function failureOf(read: Effect.Effect<unknown, unknown>) {
+	return read.pipe(
+		Effect.match({
+			onFailure: (error) => ({ described: described(error), serialized: JSON.stringify(error) }),
+			onSuccess: () => ({ described: "read succeeded", serialized: "" }),
+		}),
+	);
+}

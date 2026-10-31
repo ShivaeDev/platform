@@ -1,51 +1,37 @@
 import { expect } from "@effect/vitest";
-import { Effect, Fiber } from "effect";
-import * as TestClock from "effect/testing/TestClock";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { cloudRecovery, timedProviderStory } from "#test/providerStory.ts";
+import { page, turn } from "#test/wireScript.ts";
 
-for (const evidence of ["matching", "unrelated", "empty"] as const) {
+const MISSING = "session ambiguous (session-turn-missing): No matching accepted turn is observable; absence does not authorize replay";
+const QUESTION = page([turn("question-turn", "completed", "question-operation")]);
+
+for (const [evidence, appears, expected] of [
+	["the answer's turn", page([turn("answer-turn", "inProgress", "answer-operation")]), "turn answer-turn on thread"],
+	["only an unrelated turn", QUESTION, MISSING],
+	["no turn", page([]), MISSING],
+] as const) {
 	timedProviderStory.it(
-		`waits for a continuation on a non-empty thread without replay: evidence=${evidence}`,
+		`a continuation on a non-empty thread waits its whole grace period and ${expected === MISSING ? "fails as missing" : "adopts the turn"} when ${evidence} is visible at the deadline`,
 		[cloudRecovery(5000)],
-		function* ({ provider, replyWith, requests, awaitSleep }) {
-			let observable = false;
-			yield* replyWith(() => {
-				const matching = observable && evidence === "matching";
-				const turn = {
-					id: matching ? "answer-turn" : "question-turn",
-					items: [{ clientId: matching ? "answer-operation" : "question-operation", id: "input", type: "userMessage" }],
-					status: matching ? "inProgress" : "completed",
-				};
-				return { data: observable && evidence === "empty" ? [] : [turn], nextCursor: null };
+		function* ({ answers, delayNearlyElapses, finalMillisecondElapses, methods, provider, recoveryPollsElapse }) {
+			yield* answers({ "thread/turns/list": QUESTION });
+			const recovery = yield* provider.recoverInBackground({
+				operationId: "answer-operation",
+				resume: { prompt: "Recorded answer" },
+				sessionId: "thread",
 			});
-			const recovering = yield* provider
-				.reconcile({ operationId: "answer-operation", resume: { prompt: "Recorded answer" }, sessionId: "thread" })
-				.pipe(Effect.result, Effect.forkChild);
-			for (let step = 0; step < 19; step += 1) {
-				yield* awaitSleep(250);
-				yield* TestClock.adjust(250);
-			}
-			yield* awaitSleep(250);
-			yield* TestClock.adjust(249);
-			expect(recovering.pollUnsafe()).toBeUndefined();
-			observable = evidence !== "unrelated";
-			yield* TestClock.adjust(1);
-			const result = yield* Fiber.join(recovering);
-			if (evidence === "matching") {
-				expect(result).toMatchObject({ _tag: "Success", success: { sessionId: "thread", turnId: "answer-turn" } });
-			} else {
-				expect(result).toMatchObject({
-					_tag: "Failure",
-					failure: {
-						code: "session-turn-missing",
-						message: "No matching accepted turn is observable; absence does not authorize replay",
-						reason: "ambiguous",
-					},
-				});
-			}
-			expect(requests().filter((request) => request.method === "thread/turns/list").length).toBeGreaterThan(1);
-			expect(requests().map((request) => request.method)).not.toContain("turn/start");
-			expect(requests().map((request) => request.method)).not.toContain("thread/start");
+			yield* recoveryPollsElapse(19);
+			yield* delayNearlyElapses(250);
+			expect(yield* recovery.progress()).toBe("pending");
+			yield* answers({ "thread/turns/list": appears });
+
+			yield* finalMillisecondElapses();
+
+			yield* outcomes([
+				["recovery", () => recovery.outcome(), expected],
+				["replayed calls", () => methods("turn/start", "thread/start"), []],
+			]);
 		},
 	);
 }

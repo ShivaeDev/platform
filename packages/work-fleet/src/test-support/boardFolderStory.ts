@@ -5,6 +5,7 @@ import { migrate } from "@shivaedev/work-board/server/migration/migrate.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardAnswerVerbs } from "#test/boardAnswerVerbs.ts";
+import { boardDecisionVerbs } from "#test/boardDecisionVerbs.ts";
 import { boardFolder } from "#test/boardFolder.ts";
 import { boardAskFiles, boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 import { captureLogs } from "#test/captureLogs.ts";
@@ -30,19 +31,31 @@ export const boardFolderStory = storyKit({
 	name: "Board folder decisions",
 	stages: ["files"],
 	verbs: (state, story) => {
-		const board = state.board;
-		if (board === undefined) {
+		if (state.board === undefined) {
 			throw new Error("The Board folder did not open");
 		}
+		let board = state.board;
 		const logs = captureLogs();
+		const files = boardHttpFiles(state.root);
 		return {
 			...boardAnswerVerbs(state.root, story.tell),
+			...boardDecisionVerbs(state.root, () => board, files, story.tell),
 			askFiles: (maintainer?: string) => {
 				story.tell("read the Board inbox over HTTP");
 				return boardAskFiles(state.root, maintainer);
 			},
 			board,
-			files: boardHttpFiles(state.root),
+			files: {
+				...files,
+				move: (from: string, to: string) => {
+					story.tell(`move ${from} to ${to}`);
+					files.move(from, to);
+				},
+				write: (file: string, content: string) => {
+					story.tell(`write ${file}`);
+					files.write(file, content);
+				},
+			},
 			migrate: () => {
 				story.tell("migrate the Board folder vocabulary");
 				return migrate(state.root);
@@ -55,12 +68,20 @@ export const boardFolderStory = storyKit({
 				story.tell(`Fleet reads the Board brief ${id}`);
 				return board.get(id).pipe(Effect.provide(logs.layer));
 			},
-			recordedBoardLogs: () => logs.entries,
+			recordedBoardWarnings: () => Effect.sync(() => logs.entries.map(({ message }) => JSON.stringify(message))),
 			reopenBoard: () => {
 				story.tell("reopen the Board folder");
-				return Layer.build(Layer.fresh(markdownBoard(state.root))).pipe(Effect.map((services) => Context.get(services, BoardGateway)));
+				return Layer.build(Layer.fresh(markdownBoard(state.root))).pipe(
+					Effect.tap((services) =>
+						Effect.sync(() => {
+							board = Context.get(services, BoardGateway);
+						}),
+					),
+					Effect.asVoid,
+				);
 			},
 			root: state.root,
+			sourceOf: (file: string) => Effect.sync(() => files.read(file)),
 		};
 	},
 });

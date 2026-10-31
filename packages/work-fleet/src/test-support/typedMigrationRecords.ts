@@ -13,7 +13,7 @@ const published = {
 	workSourcePath: "work.md",
 };
 
-export function typedMigrationRecords(): readonly FleetRecord[] {
+export function typedMigrationRecords(): readonly [FleetRecord, ...FleetRecord[]] {
 	const first: FleetRecord = {
 		areas: ["area", "second", "area"],
 		attempts: typedMigrationAttempts,

@@ -78,7 +78,7 @@ for (const boundary of [
 					expect(after.decision?.code).toBe("approval-required");
 				}
 				expect(after.attempts[0]?.status).toBe("submitting");
-				expect((yield* daemon.renewCloudWork(after))._tag).toBe("Failure");
+				expect(yield* daemon.renewCloudWork(after)).not.toBe("accepted");
 			}
 			if (recoverable) {
 				expect(after.attempts[0]?.receipt).toEqual({ sessionId: "synthetic-session", turnId: "synthetic-turn" });

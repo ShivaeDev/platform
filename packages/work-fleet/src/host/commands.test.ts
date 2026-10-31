@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { renderStatus } from "#host/renderStatus.ts";
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
+import { refusal } from "#test/refusal.ts";
 import { scheduledHost } from "#test/scheduledHost.ts";
 import { WAIT_EXIT } from "./waitOutcome.ts";
 
@@ -13,7 +14,7 @@ host.it(
 	[boardWork(files), scheduledHost],
 	function* (daemon) {
 		const launched = yield* daemon.launched("a");
-		yield* Effect.sleep("2500 millis");
+		yield* daemon.quietFor("2500 millis");
 		expect(daemon.providerLaunches()).toHaveLength(1);
 		expect(daemon.providerPrompts()).toEqual([expect.stringContaining("id: a")]);
 		daemon.finishTurn(launched);
@@ -36,8 +37,7 @@ host.it(
 	"dispatch denies unapproved work and launches the current approved brief",
 	[boardWork({ "a.md": task("a", "approved", "First revision."), "b.md": task("b") })],
 	function* (daemon) {
-		const denied = yield* daemon.approve("b").pipe(Effect.flip);
-		expect(denied).toMatchObject({ _tag: "Forbidden", message: 'b needs "fleet: approved" in its Board frontmatter' });
+		expect(yield* refusal(daemon.approve("b"))).toBe('forbidden: b needs "fleet: approved" in its Board frontmatter');
 		yield* daemon.admit();
 		const first = yield* daemon.get("a");
 		expect(first.step).toBe("queued");

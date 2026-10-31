@@ -1,4 +1,4 @@
-import { Context, Effect, Stream, SubscriptionRef } from "effect";
+import { Clock, Context, Duration, Effect, Result, Stream, SubscriptionRef } from "effect";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { SchedulerPasses } from "#engine/health.ts";
 import { cycle } from "#engine/scheduler.ts";
@@ -37,6 +37,7 @@ import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
 import { missedBoardEventVerbs } from "#test/missedBoardEventVerbs.ts";
 import { preparationReadVerbs } from "#test/preparationRead.ts";
 import { publicationReadouts } from "#test/publishedHostBranch.ts";
+import { described } from "#test/refusal.ts";
 import { restartCloudVerbs } from "#test/restartCloud.ts";
 import { steeringCloudVerbs } from "#test/steeringCloud.ts";
 import { watchEventVerbs } from "#test/watchEventVerbs.ts";
@@ -146,6 +147,14 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 				);
 			}),
 		port: () => engine.running.port,
+		quietFor: (duration: Duration.Input) => {
+			tell(`nothing else happens for ${Duration.format(Duration.fromInputUnsafe(duration))}`);
+			return Effect.sleep(duration);
+		},
+		reachTime: (at: number) => {
+			tell(`the live clock reaches ${at}`);
+			return Clock.currentTimeMillis.pipe(Effect.flatMap((now) => Effect.sleep(Math.max(0, at - now))));
+		},
 		reconcile: (workId: string) => {
 			tell(`reconcile ${workId} through the daemon`);
 			return engine.running.client("fleet.reconcile", { workId });
@@ -166,6 +175,13 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		schedulerPass: () => {
 			tell("admit and schedule one Board read pass");
 			return withBoardReadPass(admitApproved(engine.fixture.host).pipe(Effect.andThen(cycle))).pipe(Effect.provideContext(engine.running.context));
+		},
+		schedulerPassDispatches: () => {
+			tell("admit and schedule one Board read pass");
+			return withBoardReadPass(admitApproved(engine.fixture.host).pipe(Effect.andThen(cycle))).pipe(
+				Effect.map(({ dispatched }) => dispatched.map((dispatch) => (Result.isSuccess(dispatch) ? "dispatched" : described(dispatch.failure)))),
+				Effect.provideContext(engine.running.context),
+			);
 		},
 		start: (port = 0) => {
 			tell(`start the daemon on ${port}`);

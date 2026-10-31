@@ -1,9 +1,10 @@
 import { expect } from "@effect/vitest";
-import { Clock } from "effect";
+import { Clock, Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fleetSupervisor, ignoresStop } from "#test/supervisorStory.ts";
 
 fleetSupervisor.it(
-	"restarts Board onto new TCP and socket code with a subscription and an unfinished request open",
+	"a Board code change with a subscription and an unfinished request open restarts Board once onto the new TCP and socket code without force-killing it",
 	[],
 	function* (fleet) {
 		yield* fleet.start();
@@ -11,19 +12,24 @@ fleetSupervisor.it(
 		yield* fleet.ready("board");
 		const before = yield* fleet.running();
 		const original = { directory: fleet.boardDir(), url: `http://127.0.0.1:${before.board.port}/` };
-		expect(yield* fleet.serverInfo(before.board.port)).toEqual(original);
-		expect(yield* fleet.socketServerInfo()).toContainEqual(expect.objectContaining({ exit: { _tag: "Success", value: original } }));
+		yield* outcomes([
+			["TCP server", () => fleet.serverInfo(before.board.port), original],
+			["socket server", () => fleet.socketServerInfo(), original],
+		]);
 		const subscription = yield* fleet.subscribe(before.board.port);
 		yield* fleet.holdBoardRequest();
+
 		yield* fleet.changeBoardCode();
+
 		yield* fleet.ready("board", before.board.pid);
 		yield* subscription.closed;
-		const after = yield* fleet.state();
-		expect(after?.board.restarts).toBe(before.board.restarts + 1);
-		expect(fleet.alive(before.board.pid ?? 0)).toBe(false);
 		const replacement = { ...original, url: `${original.url}replacement` };
-		expect(yield* fleet.serverInfo(before.board.port)).toEqual(replacement);
-		expect(yield* fleet.socketServerInfo()).toContainEqual(expect.objectContaining({ exit: { _tag: "Success", value: replacement } }));
+		expect(fleet.alive(before.board.pid ?? 0)).toBe(false);
+		yield* outcomes([
+			["Board restarts", () => fleet.state().pipe(Effect.map((state) => state?.board.restarts)), before.board.restarts + 1],
+			["TCP server", () => fleet.serverInfo(before.board.port), replacement],
+			["socket server", () => fleet.socketServerInfo(), replacement],
+		]);
 		expect(fleet.log()).not.toContain("force-killing");
 	},
 	90_000,

@@ -60,7 +60,8 @@ for (const state of ["OPEN", "CLOSED"] as const) {
 			yield* restart();
 			yield* schedule();
 			expect(yield* fleet.get("one")).toEqual(current);
-			expect(yield* fleet.reconcile("one")).toEqual(current);
+			const reconciled = yield* fleet.reconcile("one");
+			expect(reconciled).toEqual(current);
 			expect(backlog(current.value)).toBe(true);
 			githubRecovers();
 			reopenPullRequest();

@@ -34,7 +34,7 @@ for (const [repairPriority, launchPriority] of [
 			if (launchPriority === "urgent") {
 				expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 			} else {
-				expect(yield* fleet.attemptDispatch("two")).toMatchObject({ message: "waiting for area shared queued ahead by one" });
+				expect(yield* fleet.attemptDispatch("two")).toBe("admission refused: waiting for area shared queued ahead by one");
 				yield* fleet.schedule();
 				yield* outcomes([
 					[
@@ -95,7 +95,7 @@ isolatedEngine.it("a revised queued brief rejoins behind existing equal-priority
 	yield* fleet.prepareWork("two");
 	fleet.advanceTime(100);
 	fleet.reviseBrief("one", "revised-one");
-	expect(yield* fleet.attemptDispatch("one")).toMatchObject({ message: "waiting for area shared queued ahead by two" });
+	expect(yield* fleet.attemptDispatch("one")).toBe("admission refused: waiting for area shared queued ahead by two");
 	const started = yield* fleet.dispatch("two");
 	expect(started.value.step).toBe("working");
 });

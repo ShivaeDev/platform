@@ -1,13 +1,14 @@
 import { Effect } from "effect";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { PR, REPORT } from "#test/githubResult.ts";
+import { described, refusal } from "#test/refusal.ts";
 
 export function engineSchedulingVerbs(state: EngineStory, tell: (line: string) => void) {
 	function attempt<A, E>(effect: Effect.Effect<A, E>, action: string, id: string) {
 		tell(`Fleet attempts to ${action} ${id}`);
 		return effect.pipe(
 			Effect.matchEffect({
-				onFailure: Effect.succeed,
+				onFailure: (error) => Effect.succeed(described(error)),
 				onSuccess: () => Effect.die(new Error(`Expected ${action === "dispatch" ? "dispatching" : "continuing"} ${id} to fail, but it succeeded`)),
 			}),
 		);
@@ -37,6 +38,21 @@ export function engineSchedulingVerbs(state: EngineStory, tell: (line: string) =
 		attemptContinue: (id: string, message: string) => attempt(running(state).fleet.continue(id, message), "continue", id),
 		attemptDispatch: (id: string) => attempt(running(state).fleet.dispatch(id), "dispatch", id),
 		commitBatches: () => state.commits,
+		decisionWritesTogether: (...writes: readonly Effect.Effect<unknown, unknown>[]) => {
+			tell(`${writes.length} decision writes race`);
+			return Effect.all(writes.map(refusal), { concurrency: "unbounded" }).pipe(Effect.map((outcomes) => outcomes.toSorted()));
+		},
+		dispatchTogether: (...ids: readonly string[]) => {
+			tell(`Fleet dispatches ${ids.join(", ")} concurrently`);
+			return Effect.all(
+				ids.map((id) =>
+					running(state)
+						.fleet.dispatch(id)
+						.pipe(Effect.match({ onFailure: described, onSuccess: ({ value }) => value.step })),
+				),
+				{ concurrency: "unbounded" },
+			);
+		},
 		finishWorker: (id: string) => report(id, REPORT),
 		providerQuota: (available: number) => {
 			tell(`the provider now reports quota for ${available} submissions`);

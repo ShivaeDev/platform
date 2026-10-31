@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
@@ -7,6 +6,7 @@ import { dependencySource } from "#test/dependencyBoard.ts";
 import { authoredBoardWork } from "#test/engineBoardTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork, noChangeReported } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const noChange of [false, true]) {
 	for (const [field, source] of [
@@ -29,11 +29,8 @@ for (const noChange of [false, true]) {
 				const before = yield* fleet.get("one");
 				fleet.writeBoardWork("one.md", source);
 				yield* fleet.restart();
-				const denied = yield* fleet.prepareWork("one").pipe(Effect.result);
-				expect(denied).toMatchObject({
-					_tag: "Failure",
-					failure: { _tag: "Forbidden", message: "Completed work needs a newly approved Board context before renewal" },
-				});
+				const denied = yield* refusal(fleet.prepareWork("one"));
+				expect(denied).toBe("forbidden: Completed work needs a newly approved Board context before renewal");
 				expect(yield* fleet.get("one")).toEqual(before);
 			},
 		);

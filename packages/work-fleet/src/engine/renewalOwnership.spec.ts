@@ -1,8 +1,8 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { workerResultUnavailable } from "#test/engineLaunchTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { noChangeReported } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 describe("renewal reconciles prior result ownership", () => {
 	engine.it("a context edit cannot discard an unadopted worker PR's reservation", [], function* (fleet) {
@@ -17,7 +17,8 @@ describe("renewal reconciles prior result ownership", () => {
 		expect(renewed.value.history?.[0]?.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
 		expect(renewed.value.history?.[0]?.outcome).toBeUndefined();
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
-		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
+		const dispatched = yield* fleet.dispatch("one");
+		expect(dispatched.value.step).toBe("working");
 		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 	});
 	engine.it("unknown terminal result ownership cannot be turned into a new worker", [workerResultUnavailable()], function* (fleet) {
@@ -27,8 +28,8 @@ describe("renewal reconciles prior result ownership", () => {
 		fleet.finishWorkers();
 		yield* fleet.reconcile("one");
 		fleet.approveWork("one", "board-one-next");
-		const error = yield* Effect.flip(fleet.prepareWork("one"));
-		expect(error).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("ownership is unavailable") });
+		const error = yield* refusal(fleet.prepareWork("one"));
+		expect(error).toMatch(/^forbidden: .*ownership is unavailable/u);
 		const retained = yield* fleet.get("one");
 		expect(retained.value.history).toBeUndefined();
 		expect(retained.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1"]);
@@ -43,7 +44,8 @@ describe("renewal reconciles prior result ownership", () => {
 		yield* fleet.reconcile("one");
 		fleet.approveWork("one", "board-one-next");
 		fleet.failNextObservation(submitted.value.attempts[0]?.receipt?.turnId ?? "missing");
-		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
+		const preparedOutcome = yield* refusal(fleet.prepareWork("one"));
+		expect(preparedOutcome).toMatch(/^forbidden: /u);
 		expect((yield* fleet.get("one")).value.history).toBeUndefined();
 		expect(fleet.launches()).toEqual(["operation-1"]);
 	});

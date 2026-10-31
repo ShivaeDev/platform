@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { answers } from "#test/answerHost.ts";
 
@@ -21,6 +22,8 @@ answers.it("recorded guidance survives shutdown before admission frees and queue
 	const queued = yield* host.waitForRecord("one", (record) => record.pendingAnswers?.length === messages.length);
 	expect(queued.pendingAnswers).toEqual(messages);
 	expect(queued.attempts).toEqual(current.attempts);
-	expect(yield* host.storedRequests()).toEqual([]);
-	expect((yield* host.get()).pendingAnswers).toEqual(messages);
+	yield* outcomes([
+		["stored requests", () => host.storedRequests(), []],
+		["get pending answers", () => host.get(), { pendingAnswers: messages }],
+	]);
 });

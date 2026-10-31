@@ -1,82 +1,69 @@
-import { Effect } from "effect";
-import { expect, vi } from "vitest";
-import * as publication from "@shivaedev/work-board/server/responses/publicationDirectory.ts";
+import { expect } from "@effect/vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { boardFileStory } from "#test/boardFileStory.ts";
 
+const SUMMARY = "Done; PR #7 merged.";
+
 for (const authored of ["identity", "criterion"] as const) {
-	boardFileStory.it(`refuses completion when a YAML alias would change the authored ${authored}`, [], function* ({ completion }) {
-		const { fs, root, source } = completion;
-		const anchored = source.replace("status: draft", "status: &bookkeeping planned");
-		const aliased =
-			authored === "identity"
-				? anchored.replace("id: one", "id: *bookkeeping")
-				: anchored.replace("next_action: Work", "next_action: Work\ncriteria: [{ id: behavior, text: *bookkeeping }]");
-		yield* fs.writeFileString(`${root}/tasks/one.md`, aliased);
-		yield* Effect.gen(function* () {
-			expect(
-				yield* completion.complete(authored === "identity" ? "planned" : "one", `${root}/tasks/one.md`, "Done; PR #7 merged.").pipe(Effect.flip),
-			).toMatchObject({ _tag: "BoardFailure" });
-		});
-		expect(yield* fs.readFileString(`${root}/tasks/one.md`)).toBe(aliased);
-	});
+	boardFileStory.it(
+		`completion is refused when a YAML alias would change the authored ${authored}, and the task is kept`,
+		[],
+		function* ({ completion }) {
+			const anchored = completion.source.replace("status: draft", "status: &bookkeeping planned");
+			const aliased =
+				authored === "identity"
+					? anchored.replace("id: one", "id: *bookkeeping")
+					: anchored.replace("next_action: Work", "next_action: Work\ncriteria: [{ id: behavior, text: *bookkeeping }]");
+			yield* completion.writeTask(aliased);
+
+			const completed = yield* completion.complete(authored === "identity" ? "planned" : "one", `${completion.root}/tasks/one.md`, SUMMARY);
+
+			expect(completed).toMatch(/^Board failure: /u);
+			expect(yield* completion.taskSource()).toBe(aliased);
+		},
+	);
 }
 
 for (const location of ["root", "directory", "file"] as const) {
-	boardFileStory.it(`refuses a symlink at the completion ${location} boundary`, [], function* ({ completion }) {
-		const { fs, root, outside, source } = completion;
-		const targets = { directory: `${root}/tasks`, file: `${root}/tasks/one.md`, root };
-		const target = targets[location];
-		yield* fs.remove(target, { recursive: true });
-		yield* fs.symlink(location === "file" ? `${outside}/one.md` : outside, target);
-		expect(yield* completion.publish(root, "tasks/one.md", source, "replacement").pipe(Effect.flip)).toMatchObject({
-			_tag: "ReportFileFailure",
-		});
-		expect(yield* fs.readFileString(`${outside}/one.md`)).toBe(source);
+	boardFileStory.it(`a completion through a symlinked ${location} is refused and the outside task is kept`, [], function* ({ completion }) {
+		yield* completion.linkOutside(location);
+
+		const published = yield* completion.publish(completion.root, "tasks/one.md", completion.source, "replacement");
+
+		expect(published).toMatch(/^report file failure: /u);
+		expect(yield* completion.outsideSource()).toBe(completion.source);
 	});
 }
 
+boardFileStory.it("a task edited after the replacement is prepared keeps the edit and loses the temporary file", [], function* ({ completion }) {
+	const changed = `${completion.source}A human edit.\n`;
+	const edit = yield* completion.editTaskWhileReplacing(changed);
+
+	yield* completion.publish(completion.root, "tasks/one.md", completion.source, completionMarkdown(completion.source, SUMMARY) ?? "");
+
+	yield* outcomes([
+		["task before the edit", () => edit.beforeEdit(), { source: completion.source, temporaryFiles: 1 }],
+		["task", () => completion.taskSource(), changed],
+		["task folder", () => completion.taskFiles(), ["one.md"]],
+	]);
+});
+
+boardFileStory.it("a completion against a different Board root is refused", [], function* ({ completion }) {
+	expect(yield* completion.publish(completion.outside, "tasks/one.md", completion.source, "replacement")).toMatch(/^report file failure: /u);
+});
+
 boardFileStory.it(
-	"rechecks source bytes after preparing the atomic replacement and removes the skipped temporary file",
+	"a completion at the saved path is refused when that file now holds another identity, and the file is kept",
 	[],
 	function* ({ completion }) {
-		const { fs, root, source } = completion;
-		const changed = `${source}A human edit.\n`;
-		const validate = publication.validateDirectory;
-		let validations = 0;
-		const spy = vi.spyOn(publication, "validateDirectory").mockImplementation(async (...args) => {
-			await validate(...args);
-			if (args[2] !== `${root}/tasks`) {
-				return;
-			}
-			validations += 1;
-			if (validations === 2) {
-				expect(await Effect.runPromise(fs.readFileString(`${root}/tasks/one.md`))).toBe(source);
-				const files = await Effect.runPromise(fs.readDirectory(`${root}/tasks`));
-				expect(files.filter((file) => file.endsWith(".tmp"))).toHaveLength(1);
-				await Effect.runPromise(fs.writeFileString(`${root}/tasks/one.md`, changed));
-			}
-		});
-		yield* Effect.addFinalizer(() => Effect.sync(() => spy.mockRestore()));
-		const content = completionMarkdown(source, "Done; PR #7 merged.") ?? "";
-		yield* completion.publish(root, "tasks/one.md", source, content);
-		expect(validations).toBe(2);
-		expect(yield* fs.readFileString(`${root}/tasks/one.md`)).toBe(changed);
-		expect(yield* fs.readDirectory(`${root}/tasks`)).toEqual(["one.md"]);
+		const other = completion.source.replace("id: one", "id: other");
+		yield* completion.complete("one", `${completion.root}/moved.md`, SUMMARY);
+		yield* completion.writeTask(other);
+
+		const completed = yield* completion.complete("one", `${completion.root}/tasks/one.md`, SUMMARY);
+
+		expect(completed).toMatch(/^Board failure: /u);
+		expect(yield* completion.taskSource()).toBe(other);
 	},
 );
-
-boardFileStory.it("refuses a changed root and confines completion to the saved authored source path and identity", [], function* ({ completion }) {
-	const { fs, root, outside, source } = completion;
-	expect(yield* completion.publish(outside, "tasks/one.md", source, "replacement").pipe(Effect.flip)).toMatchObject({
-		_tag: "ReportFileFailure",
-	});
-	yield* Effect.gen(function* () {
-		yield* completion.complete("one", `${root}/moved.md`, "Done; PR #7 merged.");
-		yield* fs.writeFileString(`${root}/tasks/one.md`, source.replace("id: one", "id: other"));
-		expect(yield* completion.complete("one", `${root}/tasks/one.md`, "Done; PR #7 merged.").pipe(Effect.flip)).toMatchObject({
-			_tag: "BoardFailure",
-		});
-	});
-	expect(yield* fs.readFileString(`${root}/tasks/one.md`)).toBe(source.replace("id: one", "id: other"));
-});

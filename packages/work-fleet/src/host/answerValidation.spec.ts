@@ -1,32 +1,46 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { approvedWork, host } from "#test/hostStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const worker of [false, true]) {
 	for (const release of [false, true]) {
 		host.it(
-			`oversized text leaves no response and permits a later valid answer with worker=${worker}, release=${release}`,
+			`an oversized answer is refused and leaves no response, with worker=${worker}, release=${release}`,
 			[approvedWork(["one"])],
 			function* (daemon) {
 				const started = yield* daemon.dispatch("one");
 				daemon.finishTurn(started, worker ? "FLEET_QUESTION: Which storage should I use?" : undefined);
 				const waiting = yield* daemon.reconcile("one");
-				const error = yield* daemon.answer("one", "x".repeat(32_769), release).pipe(Effect.flip);
-				expect(daemon.responseFiles()).toEqual([]);
-				expect(daemon.receiptFiles()).toEqual([]);
-				expect(error).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("32768") });
+
+				const answered = yield* refusal(daemon.answer("one", "x".repeat(32_769), release));
+
+				expect(answered).toMatch(/^bad request: .*32768/u);
+				expect({ receipts: daemon.receiptFiles(), responses: daemon.responseFiles() }).toEqual({ receipts: [], responses: [] });
 				const rejected = yield* daemon.get("one");
-				expect(rejected.decision).toEqual(waiting.decision);
-				expect(rejected.responses).toEqual(waiting.responses);
+				expect({ decision: rejected.decision, responses: rejected.responses }).toEqual({ decision: waiting.decision, responses: waiting.responses });
+			},
+		);
+
+		host.it(
+			`after an oversized refusal, an answer at the size limit applies with worker=${worker}, release=${release}`,
+			[approvedWork(["one"])],
+			function* (daemon) {
+				const started = yield* daemon.dispatch("one");
+				daemon.finishTurn(started, worker ? "FLEET_QUESTION: Which storage should I use?" : undefined);
+				yield* daemon.reconcile("one");
+				expect(yield* refusal(daemon.answer("one", "x".repeat(32_769), release))).toMatch(/^bad request: /u);
 				const text = "v".repeat(32_768);
+				const applied = worker ? "working" : "adopting";
+
 				const answered = yield* daemon.answer("one", text, release);
-				const step = worker ? "working" : "adopting";
-				expect(answered.step).toBe(release ? "released" : step);
-				expect(answered.responses?.at(-1)).toMatchObject({ boardAcknowledged: true });
+
+				expect(answered).toMatchObject({
+					responses: expect.arrayContaining([expect.objectContaining({ boardAcknowledged: true })]),
+					step: release ? "released" : applied,
+				});
 				expect(daemon.receiptFiles().map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
 				if (worker && !release) {
-					expect(answered.attempts.at(-1)?.prompt).toBe(text);
-					expect(answered.attempts.at(-1)?.receipt?.sessionId).toBe(started.attempts[0]?.receipt?.sessionId);
+					expect(answered.attempts.at(-1)).toMatchObject({ prompt: text, receipt: { sessionId: started.attempts[0]?.receipt?.sessionId } });
 				}
 			},
 		);

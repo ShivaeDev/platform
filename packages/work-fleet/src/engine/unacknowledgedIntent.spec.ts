@@ -1,7 +1,9 @@
 import { Effect, Fiber } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { Fleet } from "#fleet.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
+import { refusal } from "#test/refusal.ts";
 import { unacknowledgedSession } from "#test/unacknowledgedSession.ts";
 
 for (const action of ["retry", "release"] as const) {
@@ -22,12 +24,12 @@ for (const action of ["retry", "release"] as const) {
 			expect(resolved.value.attempts[0]).toMatchObject({ status: "failed" });
 			yield* releaseGate("session");
 			yield* Effect.yieldNow;
-			expect((yield* acknowledgeProviderTurn("operation-1", { sessionId: "session-operation-1", turnId: "late" }).pipe(Effect.result))._tag).toBe(
-				"Failure",
-			);
+			const lateAcknowledgementOutcome = yield* refusal(acknowledgeProviderTurn("operation-1", { sessionId: "session-operation-1", turnId: "late" }));
+			expect(lateAcknowledgementOutcome).not.toBe("accepted");
 			expect((yield* fleet.get("one")).value.attempts[0]?.sessionId).toBeUndefined();
 			expect(providerOperations()).toEqual([]);
-			expect((yield* afterRestart(resolve)).value.responses).toEqual(resolved.value.responses);
+			const afterRestartResult = yield* afterRestart(resolve);
+			expect(afterRestartResult.value.responses).toEqual(resolved.value.responses);
 			if (action === "retry") {
 				const fresh = yield* afterRestart(Fleet.pipe(Effect.flatMap((resumed) => resumed.dispatch("one"))));
 				expect(fresh.value.attempts.at(-1)?.receipt?.turnId).toBe("turn-operation-2");
@@ -40,7 +42,18 @@ for (const action of ["retry", "release"] as const) {
 isolatedEngine.it(
 	"acknowledgement winning the retirement race retains execution until terminal observation",
 	[unacknowledgedSession(true)],
-	function* ({ releaseGate, waitForGate, awaitRecordedReceipt, fleet, prepareWork, finishWorkers, afterRestart, respond, providerOperations }) {
+	function* ({
+		releaseGate,
+		waitForGate,
+		awaitRecordedReceipt,
+		fleet,
+		prepareWork,
+		finishWorkers,
+		afterRestart,
+		respond,
+		providerOperations,
+		stepOf,
+	}) {
 		yield* prepareWork("one");
 
 		yield* fleet.dispatch("one");
@@ -48,15 +61,17 @@ isolatedEngine.it(
 		const decisionId = stopped.value.decision?.id ?? "missing";
 		const responseId = respond(decisionId, "release");
 		const resolve = Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decisionId, responseId)));
-		const retiring = yield* afterRestart(resolve.pipe(Effect.result)).pipe(Effect.forkChild);
+		const retiring = yield* afterRestart(refusal(resolve)).pipe(Effect.forkChild);
 		yield* waitForGate("retiring");
 		yield* releaseGate("session");
 		yield* waitForGate("turn");
 		yield* releaseGate("commit");
 		const rejected = yield* Fiber.join(retiring);
-		expect(rejected).toMatchObject({ _tag: "Failure", failure: { _tag: "Conflict" } });
-		expect((yield* fleet.get("one")).value.attempts[0]?.sessionId).toBe("session-operation-1");
-		expect((yield* fleet.get("one")).value.step).toBe("waiting");
+		expect(rejected).toMatch(/^conflict: /u);
+		yield* outcomes([
+			["one session", () => fleet.get("one").pipe(Effect.map((current) => current.value.attempts[0]?.sessionId)), "session-operation-1"],
+			["one", () => stepOf("one"), "waiting"],
+		]);
 		yield* awaitRecordedReceipt("one");
 		finishWorkers();
 		expect((yield* afterRestart(resolve)).value.step).toBe("released");

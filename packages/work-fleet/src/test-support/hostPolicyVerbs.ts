@@ -1,4 +1,5 @@
-import { Context, Effect, Layer, Ref } from "effect";
+import { Context, Duration, Effect, Layer, Ref } from "effect";
+import { TestClock } from "effect/testing";
 import { Health, type HealthState } from "#engine/health.ts";
 import { providerHealth } from "#host/providerHealth.ts";
 import { codexQuota } from "#host/quota.ts";
@@ -17,6 +18,10 @@ export function hostPolicyVerbs(tell: (line: string) => void) {
 		}),
 	);
 	return {
+		elapse: (duration: Duration.Input) => {
+			tell(`${Duration.format(Duration.fromInputUnsafe(duration))} pass on the test clock`);
+			return TestClock.adjust(duration);
+		},
 		healthTransport: (explicit: boolean, terminal = false) =>
 			Effect.gen(function* () {
 				tell("observe provider capacity failures through the host health layer");

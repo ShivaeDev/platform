@@ -10,7 +10,7 @@ for (const release of [false, true]) {
 		const stopped = yield* daemon.reconcile("one");
 		const decision = stopped.decision;
 		if (decision === undefined) {
-			throw new Error("Expected a worker decision");
+			return yield* Effect.die("Expected a worker decision");
 		}
 		const responseId = yield* daemon.recordAnswer(decision, release ? "release" : "retry", "Use PostgreSQL.");
 		yield* daemon.store("one", { ...stopped, blocker: ANSWER_RECORDED });
@@ -18,7 +18,7 @@ for (const release of [false, true]) {
 		yield* daemon.start();
 		yield* daemon.follow("watcher", "watch", ["one"]);
 		yield* daemon.awaitSnapshot();
-		yield* Effect.sleep("100 millis");
+		yield* daemon.quietFor("100 millis");
 		expect(daemon.followerRunning("watcher")).toBe(true);
 		expect(daemon.followerOutput("watcher")).toBe("");
 		expect(waitingOwner(yield* daemon.get("one"))).toBe("automation");

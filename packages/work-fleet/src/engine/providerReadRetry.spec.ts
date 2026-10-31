@@ -1,9 +1,9 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { cycle } from "#engine/scheduler.ts";
 import { executing } from "#model.ts";
 import { capacityReadsFail } from "#test/engineProviderRetryTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 const CASES = [
 	{ lostAcknowledgement: true, readRetryMs: undefined },
@@ -48,7 +48,7 @@ for (const { lostAcknowledgement, readRetryMs } of CASES) {
 			expect(queued.attentionOwner).toBe("automation");
 			expect(queued.attempts.at(-1)).toMatchObject({ ...before.attempts[0], readRetry: { failures: 1, retryAt: firstRetry } });
 			expect(executing(queued)).toBe(true);
-			expect(yield* fleet.dispatch("two").pipe(Effect.flip)).toMatchObject({ _tag: "StorageCapacity", kind: "execution" });
+			expect(yield* refusal(fleet.dispatch("two"))).toMatch(/^execution capacity of \d+ is full$/u);
 			const failedReads = providerReadCount();
 			setFleetTime(firstRetry - 1);
 			yield* afterRestart(cycle);

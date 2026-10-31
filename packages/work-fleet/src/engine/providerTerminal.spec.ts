@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { terminalCapacity, terminalCapacityCases } from "#test/engineCapacityTraits.ts";
 import { engine } from "#test/engineStory.ts";
@@ -7,7 +9,7 @@ for (const { capacity, reviewer, clears, message } of terminalCapacityCases) {
 	engine.it(
 		`terminal capacity retries remain bounded: reviewer=${reviewer}, clears=${clears}, capacity=${capacity}`,
 		[terminalCapacity(reviewer, message, capacity)],
-		function* ({ recoverProvider, advanceTime, currentTime, fleet, prepareWork, finishWorkers, afterRestart, publishedDecisions, schedule }) {
+		function* ({ recoverProvider, advanceTime, currentTime, fleet, prepareWork, finishWorkers, afterRestart, publishedDecisions, schedule, stepOf }) {
 			yield* prepareWork("one");
 
 			yield* fleet.dispatch("one");
@@ -29,8 +31,10 @@ for (const { capacity, reviewer, clears, message } of terminalCapacityCases) {
 			}
 			yield* afterRestart(cycle);
 			if (clears) {
-				expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
-				expect((yield* fleet.get("one")).value.step).toBe(reviewer ? "done" : "working");
+				yield* outcomes([
+					["one launch retry", () => fleet.get("one").pipe(Effect.map((current) => current.value.launchRetry)), undefined],
+					["one", () => stepOf("one"), reviewer ? "done" : "working"],
+				]);
 				expect(publishedDecisions()).toHaveLength(0);
 			} else {
 				const parked = (yield* fleet.get("one")).value;

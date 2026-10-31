@@ -1,14 +1,10 @@
-import { Cause, Effect, Exit } from "effect";
 import { expect } from "vitest";
 import { brokenMigration } from "#test/hostDatabaseTraits.ts";
 import { host } from "#test/hostStory.ts";
 
-host.it("a Fleet migration failure prevents provider acquisition and scheduling", [brokenMigration], function* (daemon) {
-	const exit = yield* daemon.bootScheduler().pipe(Effect.exit);
-	expect(Exit.isFailure(exit)).toBe(true);
-	if (Exit.isFailure(exit)) {
-		expect(Cause.pretty(exit.cause)).toContain("MigrationError");
-	}
-	expect(daemon.providerResources().providers).toBe(0);
-	expect(daemon.providerLaunches()).toHaveLength(0);
+host.it("a Fleet migration failure stops the daemon boot before it acquires a provider or launches work", [brokenMigration], function* (daemon) {
+	const booted = yield* daemon.bootScheduler();
+
+	expect(booted).toContain("MigrationError");
+	expect({ launches: daemon.providerLaunches(), providers: daemon.providerResources().providers }).toEqual({ launches: [], providers: 0 });
 });

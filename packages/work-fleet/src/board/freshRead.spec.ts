@@ -1,52 +1,78 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { briefRevision } from "#board/briefRevision.ts";
-import { withBoardReadPass, workMetadata } from "#board/readPass.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
 import { watchedBoardReads } from "#test/watchedBoardReads.ts";
 
 boardReadStory.it(
-	"a fresh lookup leaves later passes on the indexed revision until the edit is observed",
+	"a fresh read sees an edit the watched index has not observed while later passes keep the indexed brief",
 	[hasBoardItems(1), watchedBoardReads()],
-	function* ({ fixture, readInPass }) {
-		const original = yield* readInPass("item.0");
-		yield* fixture.write("0.md", fixture.source("item.0", false, "An edit outside the observed index."));
+	function* ({ edit, readInPass }) {
+		const indexed = yield* readInPass("item.0");
+		yield* edit("0.md", "item.0", false, "An edit outside the observed index.");
 
 		const fresh = yield* readInPass("item.0", { fresh: true });
 
 		expect(fresh.approved).toBe(false);
-		const later = yield* readInPass("item.0");
-		expect(later).toEqual(original);
+		expect(yield* readInPass("item.0")).toEqual(indexed);
 	},
 );
 
-boardReadStory.it("a fresh lookup rereads only its source and updates the pass metadata", [hasBoardItems(2)], function* ({ board, fixture }) {
-	yield* withBoardReadPass(
-		Effect.gen(function* () {
-			const original = yield* board.get("item.0");
-			yield* board.get("item.1");
-			yield* fixture.write("0.md", fixture.source("item.0", false, "Changed during the pass."));
-			expect(yield* board.get("item.0")).toEqual(original);
-			const current = yield* board.get("item.0", { fresh: true });
-			expect(current.approved).toBe(false);
-			expect(current.revision).not.toBe(original.revision);
-			expect(current.revision).toBe(briefRevision(yield* workMetadata(current)));
-			expect(yield* board.get("item.0")).toEqual(current);
-			expect(fixture.scannedFolders()).toEqual(["."]);
-			expect(fixture.readFiles().slice(0, -1).toSorted()).toEqual(["0.md", "1.md"]);
-			expect(fixture.readFiles().slice(-1)).toEqual(["0.md"]);
-		}),
-	);
-});
-boardReadStory.it("a fresh lookup fails when its cached source becomes unreadable", [hasBoardItems(1)], function* ({ board, fixture }) {
-	yield* withBoardReadPass(
-		Effect.gen(function* () {
-			expect((yield* board.get("item.0")).approved).toBe(true);
-			fixture.unreadable.add("0.md");
-			expect(yield* Effect.result(board.get("item.0", { fresh: true }))).toMatchObject({
-				_tag: "Failure",
-				failure: { message: expect.stringContaining("Board source could not be read: 0.md") },
-			});
-		}),
-	);
-});
+boardReadStory.it(
+	"a read within a pass keeps the brief it first read after the file is edited",
+	[hasBoardItems(1)],
+	function* ({ duringOnePass, edit, read }) {
+		yield* duringOnePass(
+			Effect.gen(function* () {
+				const original = yield* read("item.0");
+				yield* edit("0.md", "item.0", false, "Changed during the pass.");
+
+				expect(yield* read("item.0")).toEqual(original);
+			}),
+		);
+	},
+);
+
+boardReadStory.it(
+	"a fresh read within a pass rereads only its own file, and later reads in the pass see the new brief",
+	[hasBoardItems(2)],
+	function* ({ duringOnePass, edit, read, readFiles, revisionMatchesMetadata, scannedFolders }) {
+		yield* duringOnePass(
+			Effect.gen(function* () {
+				yield* read("item.0");
+				yield* read("item.1");
+				yield* edit("0.md", "item.0", false, "Changed during the pass.");
+
+				const fresh = yield* read("item.0", { fresh: true });
+
+				expect(fresh).toMatchObject({ approved: false });
+				yield* outcomes([
+					["fresh revision matches its metadata", () => revisionMatchesMetadata(fresh), true],
+					["later read", () => read("item.0"), fresh],
+					["scanned folders", () => scannedFolders(), ["."]],
+					[
+						"read files",
+						() => readFiles().pipe(Effect.map((files) => [...files.slice(0, -1).toSorted(), ...files.slice(-1)])),
+						["0.md", "1.md", "0.md"],
+					],
+				]);
+			}),
+		);
+	},
+);
+
+boardReadStory.it(
+	"a fresh read fails with the file named when its cached source becomes unreadable",
+	[hasBoardItems(1)],
+	function* ({ approvalOf, duringOnePass, makeUnreadable, refusalOf }) {
+		yield* duringOnePass(
+			Effect.gen(function* () {
+				expect(yield* approvalOf("item.0")).toBe("approved");
+
+				makeUnreadable("0.md");
+
+				expect(yield* refusalOf("item.0", { fresh: true })).toContain("Board source could not be read: 0.md");
+			}),
+		);
+	},
+);

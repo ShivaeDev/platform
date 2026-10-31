@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { providerCanReject } from "#test/engineReviewFaultTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
@@ -21,13 +22,21 @@ engine.it(
 		yield* prepareWork("two");
 		yield* prepareWork("three");
 		yield* schedule();
-		expect((yield* get("two")).value).toMatchObject({
-			attempts: [],
-			blocker: expect.stringContaining("waiting for dependency three"),
-			step: "queued",
-		});
-		expect((yield* get("three")).value.step).toBe("working");
-		expect((yield* get("one")).value).toMatchObject({ launchRetry: lowRetry, step: "queued" });
+		yield* outcomes([
+			[
+				"two",
+				() => get("two"),
+				{
+					value: {
+						attempts: [],
+						blocker: expect.stringContaining("waiting for dependency three"),
+						step: "queued",
+					},
+				},
+			],
+			["three step", () => get("three"), { value: { step: "working" } }],
+			["one", () => get("one"), { value: { launchRetry: lowRetry, step: "queued" } }],
+		]);
 		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one", "Implement three"]);
 	},
 );
@@ -51,9 +60,11 @@ engine.it(
 			yield* prepareWork(id);
 		}
 		yield* schedule();
-		expect((yield* get("three")).value.launchRetry).toMatchObject({ rejections: 1 });
-		expect((yield* get("four")).value).toMatchObject({ attempts: [], step: "queued" });
-		expect((yield* get("one")).value.launchRetry).toEqual(lowRetry);
+		yield* outcomes([
+			["three launch retry", () => get("three"), { value: { launchRetry: { rejections: 1 } } }],
+			["four", () => get("four"), { value: { attempts: [], step: "queued" } }],
+			["one launch retry", () => get("one"), { value: { launchRetry: lowRetry } }],
+		]);
 		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one", "Implement three"]);
 	},
 );

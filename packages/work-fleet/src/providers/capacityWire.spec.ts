@@ -1,61 +1,61 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { WireRejection } from "#test/codex.ts";
 import { providerStory } from "#test/providerStory.ts";
 
-providerStory.it("preserves a structured capacity rejection through the actual provider WebSocket boundary", [], function* ({ provider, replyWith }) {
-	yield* replyWith((request) =>
-		request.method === "turn/start" ? new WireRejection("Synthetic provider capacity", { codexErrorInfo: "serverOverloaded" }) : {},
-	);
-	const error = yield* provider.startTurn({ operationId: "capacity-operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
-	expect(error).toMatchObject({
-		capacity: "serverOverloaded",
-		message: "Codex rejected the protocol request: Synthetic provider capacity",
-		reason: "rejected",
-	});
-});
+const CONTINUE = { operationId: "capacity-operation", prompt: "Continue", sessionId: "thread" };
 
 for (const message of ["App-server request queue is full. Please retry.", "No execution slots are available."]) {
-	providerStory.it(`the overload protocol code identifies capacity regardless of wording: ${message}`, [], function* ({ provider, replyWith }) {
-		yield* replyWith((request) => (request.method === "turn/start" ? new WireRejection(message, undefined, -32_001) : {}));
-		const error = yield* provider.startTurn({ operationId: "capacity-operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
-		expect(error).toMatchObject({ code: "session-queue-full", message: `Codex rejected the protocol request: ${message}`, reason: "rejected" });
+	providerStory.it(`the overload protocol code marks "${message}" as a full queue`, [], function* ({ answers, provider }) {
+		yield* answers({ "turn/start": new WireRejection(message, undefined, -32_001) });
+
+		const outcome = yield* provider.submit(CONTINUE);
+
+		expect(outcome).toBe(`session rejected (session-queue-full): Codex rejected the protocol request: ${message}`);
 	});
 }
 
-providerStory.it("queue-full wording with another protocol code remains an ordinary rejection", [], function* ({ provider, replyWith }) {
-	yield* replyWith((request) => (request.method === "turn/start" ? new WireRejection("App-server request queue is full. Please retry.") : {}));
-	expect(yield* provider.startTurn({ operationId: "capacity-operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip)).toMatchObject({
-		code: "session-rejected",
-		reason: "rejected",
-	});
+providerStory.it("queue-full wording with another protocol code stays an ordinary rejection", [], function* ({ answers, provider }) {
+	yield* answers({ "turn/start": new WireRejection("App-server request queue is full. Please retry.") });
+
+	const outcome = yield* provider.submit(CONTINUE);
+
+	expect(outcome).toBe("session rejected (session-rejected): Codex rejected the protocol request: App-server request queue is full. Please retry.");
 });
 
 for (const capacity of ["serverOverloaded", "rateLimitExceeded", "flexUnavailable"]) {
-	providerStory.it(`keeps structured ${capacity} evidence through a turn rejection`, [], function* ({ provider, replyWith, requests }) {
-		yield* replyWith((request) => (request.method === "turn/start" ? new WireRejection("Busy", { codexErrorInfo: capacity }) : {}));
-		expect(yield* provider.startTurn({ operationId: "structured", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip)).toMatchObject({
-			capacity,
-			reason: "rejected",
-		});
-		expect(requests().filter((request) => request.method === "turn/start")).toMatchObject([{ method: "turn/start", params: { threadId: "thread" } }]);
-		expect(requests().map((request) => request.method)).not.toContain("thread/turns/list");
-	});
+	providerStory.it(
+		`a turn rejected with ${capacity} evidence keeps it and is not checked for a busy thread`,
+		[],
+		function* ({ answers, methods, provider }) {
+			yield* answers({ "turn/start": new WireRejection("Busy", { codexErrorInfo: capacity }) });
+
+			const outcome = yield* provider.submit(CONTINUE);
+
+			expect(outcome).toMatch(new RegExp(`^session rejected .*at ${capacity}: Codex rejected the protocol request: Busy$`, "u"));
+			expect(yield* methods("turn/start", "thread/turns/list")).toEqual(["turn/start"]);
+		},
+	);
 }
+
 for (const [problem, reply] of [
-	["missing turn", {}],
-	["null turn", { turn: null }],
-	["missing identity", { turn: {} }],
-	["numeric identity", { turn: { id: 42 } }],
-	["null identity", { turn: { id: null } }],
-	["array response", []],
-	["string response", "accepted"],
+	["a missing turn", {}],
+	["a null turn", { turn: null }],
+	["a missing turn id", { turn: {} }],
+	["a numeric turn id", { turn: { id: 42 } }],
+	["a null turn id", { turn: { id: null } }],
+	["an array", []],
+	["a string", "accepted"],
 ] as const) {
-	providerStory.it(`refuses ${problem} in a turn acknowledgement without replay`, [], function* ({ provider, replyWith, requests }) {
-		yield* replyWith((request) => (request.method === "turn/start" ? reply : {}));
-		expect(yield* provider.startTurn({ operationId: "invalid", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip)).toMatchObject({
-			reason: "protocol",
-		});
-		expect(requests().filter((request) => request.method === "turn/start")).toMatchObject([{ method: "turn/start", params: { threadId: "thread" } }]);
-	});
+	providerStory.it(
+		`a turn acknowledgement with ${problem} fails as a protocol error without resubmission`,
+		[],
+		function* ({ answers, methods, provider }) {
+			yield* answers({ "turn/start": reply });
+
+			const outcome = yield* provider.submit(CONTINUE);
+
+			expect(outcome).toMatch(/^session protocol/u);
+			expect(yield* methods("turn/start")).toEqual(["turn/start"]);
+		},
+	);
 }

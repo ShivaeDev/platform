@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { stalledWorker } from "#test/engineStalledTurnTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const action of ["retry", "dispatch", "release"] as const) {
 	engine.it(
@@ -49,7 +50,7 @@ for (const action of ["retry", "dispatch", "release"] as const) {
 				sessionUnusable: true,
 				status: "failed",
 			});
-			expect((yield* acknowledgeProviderTurn(attempt.operationId, receipt).pipe(Effect.result))._tag).toBe("Failure");
+			expect(yield* refusal(acknowledgeProviderTurn(attempt.operationId, receipt))).not.toBe("accepted");
 			setTurnExecution(receipt, "completed", "Late abandoned output");
 			if (action === "release") {
 				expect(resolved.value.step).toBe("released");

@@ -22,7 +22,7 @@ for (const areas of [["shared"], ["shared", "other"]]) {
 			}
 			fleet.advanceTime(100);
 			yield* fleet.restart();
-			expect(yield* fleet.attemptDispatch("two")).toMatchObject({ message: "waiting for area shared queued ahead by one" });
+			expect(yield* fleet.attemptDispatch("two")).toBe("admission refused: waiting for area shared queued ahead by one");
 			yield* fleet.schedule();
 			yield* outcomes([
 				[
@@ -79,7 +79,7 @@ isolatedEngine.it("continuing completed work waits behind an existing free-area 
 	fleet.advanceTime(100);
 	yield* fleet.prepareWork("two");
 	fleet.advanceTime(100);
-	expect(yield* fleet.attemptContinue("one", "Check the follow-up")).toMatchObject({ message: "waiting for area shared queued ahead by two" });
+	expect(yield* fleet.attemptContinue("one", "Check the follow-up")).toBe("admission refused: waiting for area shared queued ahead by two");
 	yield* fleet.schedule();
 	expect((yield* fleet.get("two")).value.step).toBe("working");
 	yield* fleet.finishWorker("two");

@@ -1,39 +1,56 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { boardSnapshot } from "#board/documents.ts";
-import { withBoardReadPass } from "#board/readPass.ts";
-import { approvedWorkIds } from "#host/admission.ts";
-import { resolveHost } from "#host/config.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
-import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 boardReadStory.it(
-	"a file read failure names the source, excludes it from admission and preserves other lookups",
+	"an unreadable file fails its own lookup with the file and filesystem problem named",
 	[hasBoardItems(2)],
-	function* ({ board, fixture }) {
-		fixture.unreadable.add("1.md");
-		yield* withBoardReadPass(
-			Effect.gen(function* () {
-				expect((yield* board.get("item.0")).approved).toBe(true);
-				expect(yield* approvedWorkIds(resolveHost(fixture.root, { database: syntheticDatabase, provider: "local" }))).toEqual(["item.0"]);
-				const failed = yield* Effect.result(board.get("item.1"));
-				expect(failed._tag).toBe("Failure");
-				if (failed._tag === "Failure") {
-					expect(failed.failure.message).toContain("Board source could not be read: 1.md");
-					expect(failed.failure.message).toContain("PermissionDenied");
-				}
-			}),
-		).pipe(Effect.provide(fixture.services));
-		fixture.unreadable.clear();
-		expect((yield* board.get("item.1")).approved).toBe(true);
+	function* ({ duringOnePass, makeUnreadable, refusalOf }) {
+		makeUnreadable("1.md");
+
+		const lookup = yield* duringOnePass(refusalOf("item.1"));
+
+		expect(lookup).toMatch(/Board source could not be read: 1\.md.*PermissionDenied/su);
 	},
 );
-boardReadStory.it("a directory scan failure retains the directory and the filesystem problem", [hasBoardItems(1)], function* ({ fixture }) {
-	fixture.unreadable.add(".");
-	const failed = yield* Effect.result(boardSnapshot(fixture.root, fixture.root)).pipe(Effect.provide(fixture.services));
-	expect(failed._tag).toBe("Failure");
-	if (failed._tag === "Failure") {
-		expect(failed.failure.message).toContain(`Board sources could not be listed: ${fixture.root}`);
-		expect(failed.failure.message).toContain("PermissionDenied");
-	}
-});
+
+boardReadStory.it(
+	"an unreadable file leaves the other lookups and approved work in the same pass",
+	[hasBoardItems(2)],
+	function* ({ approvalOf, approvedIds, duringOnePass, makeUnreadable }) {
+		makeUnreadable("1.md");
+
+		yield* duringOnePass(
+			outcomes([
+				["readable item", () => approvalOf("item.0"), "approved"],
+				["approved work", () => approvedIds(), ["item.0"]],
+			]),
+		);
+	},
+);
+
+boardReadStory.it(
+	"a file that becomes readable again is approved on the next pass",
+	[hasBoardItems(2)],
+	function* ({ approvalOf, duringOnePass, makeReadable, makeUnreadable, refusalOf }) {
+		makeUnreadable("1.md");
+		expect(yield* duringOnePass(refusalOf("item.1"))).not.toBe("accepted");
+
+		makeReadable();
+
+		expect(yield* approvalOf("item.1")).toBe("approved");
+	},
+);
+
+boardReadStory.it(
+	"an unreadable Board folder fails the listing with the folder and filesystem problem named",
+	[hasBoardItems(1)],
+	function* ({ listingFailure, makeUnreadable, root }) {
+		makeUnreadable(".");
+
+		const listing = yield* listingFailure();
+
+		expect(listing).toContain(`Board sources could not be listed: ${root}`);
+		expect(listing).toContain("PermissionDenied");
+	},
+);

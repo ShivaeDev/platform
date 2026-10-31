@@ -21,7 +21,8 @@ for (const command of [["answer", "--release"], ["release"]]) {
 			expect(closed.step).toBe("released");
 			expect(closed.releaseReason).toBe("Board status is done");
 			expect(executing(closed)).toBe(false);
-			expect((yield* daemon.reconcile("two")).step).toBe("waiting");
+			const twoReconciled = yield* daemon.reconcile("two");
+			expect(twoReconciled.step).toBe("waiting");
 			expect(yield* daemon.cli([...command, "two"])).toEqual({
 				code: 0,
 				stderr: "",

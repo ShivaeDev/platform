@@ -1,13 +1,18 @@
-import { Context, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import type { SessionReceipt } from "#session/schema.ts";
 import { SessionService } from "#session/service.ts";
-import { sessionHarness } from "#test/session.ts";
+import { outcomeOf } from "#test/refusal.ts";
+import { receipt, sessionHarness } from "#test/session.ts";
 
 type Options = NonNullable<Parameters<typeof sessionHarness>[1]>;
 interface SessionState {
 	events: string[];
 	options: Options;
 	session: typeof SessionService.Service | undefined;
+}
+function receiptWords({ sessionId, turnId }: SessionReceipt) {
+	return `turn ${turnId} on ${sessionId}`;
 }
 export const sessionStory = storyKit({
 	after: {
@@ -24,34 +29,38 @@ export const sessionStory = storyKit({
 		if (session === undefined) {
 			throw new Error("The session service did not start");
 		}
-		return {
-			events: () => state.events,
-			session: {
-				archive: (...args: Parameters<typeof session.archive>) => {
-					story.tell("archive the session");
-					return session.archive(...args);
-				},
-				continue: (...args: Parameters<typeof session.continue>) => {
-					story.tell("continue the session");
-					return session.continue(...args);
-				},
-				interrupt: (...args: Parameters<typeof session.interrupt>) => {
-					story.tell("interrupt the session");
-					return session.interrupt(...args);
-				},
-				observe: (...args: Parameters<typeof session.observe>) => {
-					story.tell("observe the session");
-					return session.observe(...args);
-				},
-				reconcile: (...args: Parameters<typeof session.reconcile>) => {
-					story.tell("reconcile the session");
-					return session.reconcile(...args);
-				},
-				start: (...args: Parameters<typeof session.start>) => {
-					story.tell("start a journaled session");
-					return session.start(...args);
-				},
+		const commands = {
+			continue: () => {
+				story.tell("continue the acknowledged session with a repair prompt");
+				return outcomeOf(
+					session.continue({ operationId: "repair", prompt: "repair", sessionId: receipt.sessionId }),
+					(turn) => `continued ${receiptWords(turn)}`,
+				);
 			},
+			interrupt: () => {
+				story.tell("interrupt the acknowledged turn");
+				return outcomeOf(session.interrupt(receipt), (turn) => `interrupted ${receiptWords(turn)}`);
+			},
+			observe: () => {
+				story.tell("observe the acknowledged turn");
+				return outcomeOf(session.observe(receipt), ({ execution, provisioning }) => `execution ${execution}, provisioning ${provisioning}`);
+			},
+			reconcile: () => {
+				story.tell("reconcile the operation with the provider");
+				return outcomeOf(session.reconcile({ operationId: "operation", ...receipt }), (turn) => `reconciled ${receiptWords(turn)}`);
+			},
+			start: () => {
+				story.tell("start a journaled session");
+				return outcomeOf(session.start({ cwd: "/synthetic", operationId: "operation", prompt: "work" }), (turn) => `started ${receiptWords(turn)}`);
+			},
+		};
+		return {
+			archive: () => {
+				story.tell("archive the session");
+				return outcomeOf(session.archive(receipt.sessionId), () => "archived");
+			},
+			commands,
+			events: () => Effect.sync(() => [...state.events]),
 		};
 	},
 });

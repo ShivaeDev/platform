@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { SYNTHETIC_WORKSPACE } from "#test/codexCloud.ts";
 import { cloudMetadata, providerSessions } from "#test/providerSessionStory.ts";
 import { receipt } from "#test/session.ts";
@@ -7,59 +8,80 @@ const input = { cwd: SYNTHETIC_WORKSPACE, operationId: "synthetic-operation", pr
 
 for (const threadNamePrefix of [undefined, "Automation: "]) {
 	providerSessions.it(
-		`names threads with the ${threadNamePrefix === undefined ? "default" : "configured"} prefix after persisting the session`,
-		[cloudMetadata({ ...(threadNamePrefix === undefined ? {} : { threadNamePrefix }), projectId: "synthetic-project" })],
-		function* ({ sessions, requests, persisted }) {
-			expect(yield* sessions.start(input)).toEqual(receipt);
-			expect(requests().find((request) => request.method === "thread/name/set")?.params).toEqual({
-				name: `${threadNamePrefix ?? "Fleet: "}synthetic-work: Synthetic work`,
-				threadId: receipt.sessionId,
-			});
-			expect(persisted()).toEqual([receipt.sessionId, "name requested"]);
-			expect(requests().find((request) => request.method === "thread/start")?.params).toMatchObject({ projectId: "synthetic-project" });
-			expect(
-				requests()
-					.map((request) => request.method)
-					.indexOf("thread/name/set"),
-			).toBeLessThan(
-				requests()
-					.map((request) => request.method)
-					.indexOf("turn/start"),
-			);
-			yield* sessions.archive(receipt.sessionId);
-			expect(requests().find((request) => request.method === "thread/archive")?.params).toEqual({ threadId: receipt.sessionId });
+		`a Cloud session is named with the ${threadNamePrefix === undefined ? "default" : "configured"} prefix after it is journaled and before its turn starts`,
+		[cloudMetadata(threadNamePrefix === undefined ? {} : { threadNamePrefix })],
+		function* ({ journal, methods, sent, sessions }) {
+			yield* sessions.start(input);
+
+			yield* outcomes([
+				[
+					"thread name",
+					() => sent("thread/name/set"),
+					[{ name: `${threadNamePrefix ?? "Fleet: "}synthetic-work: Synthetic work`, threadId: receipt.sessionId }],
+				],
+				["journal", () => journal(), [receipt.sessionId, "name requested"]],
+				["call order", () => methods("thread/name/set", "turn/start"), ["thread/name/set", "turn/start"]],
+			]);
 		},
 	);
 }
 
-providerSessions.it(
-	"retains threads when archiving is turned off in host config",
-	[cloudMetadata({ archiveThreads: false })],
-	function* ({ sessions, requests }) {
-		yield* sessions.start(input);
-		yield* sessions.archive(receipt.sessionId);
-		expect(requests().map((request) => request.method)).not.toContain("thread/archive");
-		expect(requests().find((request) => request.method === "thread/start")?.params).not.toHaveProperty("projectId");
-	},
-);
-
-for (const nameFailure of ["rejected", "timeout"] as const) {
+for (const [configured, expected] of [
+	[{ projectId: "synthetic-project" }, [expect.objectContaining({ projectId: "synthetic-project" })]],
+	[{}, [expect.not.objectContaining({ projectId: expect.anything() })]],
+] as const) {
 	providerSessions.it(
-		`starts the turn after naming is ${nameFailure} and warns with the session and cause`,
+		`a Cloud thread starts ${"projectId" in configured ? "in the configured project" : "without a project when none is configured"}`,
+		[cloudMetadata(configured)],
+		function* ({ sent, sessions }) {
+			yield* sessions.start(input);
+
+			expect(yield* sent("thread/start")).toEqual(expected);
+		},
+	);
+}
+
+for (const [archiveThreads, archived] of [
+	[undefined, [{ threadId: receipt.sessionId }]],
+	[false, []],
+] as const) {
+	providerSessions.it(
+		`archiving a session ${archived.length === 0 ? "keeps its Cloud thread when host config turns archiving off" : "archives its Cloud thread"}`,
+		[cloudMetadata(archiveThreads === undefined ? {} : { archiveThreads })],
+		function* ({ sent, sessions }) {
+			yield* sessions.start(input);
+
+			yield* sessions.archive(receipt.sessionId);
+
+			expect(yield* sent("thread/archive")).toEqual(archived);
+		},
+	);
+}
+
+for (const [nameFailure, cause] of [
+	["rejected", "Name rejected"],
+	["timeout", "Codex request timed out"],
+] as const) {
+	providerSessions.it(
+		`a ${nameFailure} thread name still starts the turn and warns with the session and cause`,
 		[cloudMetadata({ nameFailure, requestTimeoutMs: 1000 })],
-		function* ({ sessions, requests, persisted, logs }) {
-			expect(yield* sessions.start(input)).toEqual(receipt);
-			expect(persisted()).toEqual([receipt.sessionId, "name requested"]);
-			expect(requests().filter((request) => request.method === "turn/start")).toMatchObject([
-				{ method: "turn/start", params: { threadId: receipt.sessionId } },
-			]);
-			expect(logs().filter((entry) => entry.level === "Warn")).toEqual([
-				{
-					annotations: { sessionId: receipt.sessionId },
-					cause: expect.stringContaining(nameFailure === "rejected" ? "Name rejected" : "Codex request timed out"),
-					level: "Warn",
-					message: ["Fleet session naming failed; starting the turn"],
-				},
+		function* ({ sent, sessions, warnings }) {
+			const started = yield* sessions.start(input);
+
+			expect(started).toEqual(receipt);
+			yield* outcomes([
+				["started turns", () => sent("turn/start"), [expect.objectContaining({ threadId: receipt.sessionId })]],
+				[
+					"warnings",
+					() => warnings(),
+					[
+						{
+							annotations: { sessionId: receipt.sessionId },
+							cause: expect.stringContaining(cause),
+							message: ["Fleet session naming failed; starting the turn"],
+						},
+					],
+				],
 			]);
 		},
 	);

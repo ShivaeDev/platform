@@ -1,130 +1,189 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
+import { refusal } from "#test/refusal.ts";
 
-const decision = {
+const DENIED = {
 	id: "fleet.denied",
 	links: [],
 	reason: "Delivery policy denies this scope",
 	recommendation: "Configure trusted policy and retry.",
 };
+const CLARIFY = { body: "What scope is denied?", id: "response.clarify", type: "clarify" } as const;
+const RETRY = { body: "Policy configured.", id: "response.retry", selected: ["retry"], type: "answer" } as const;
+
 boardFolderStory.it(
-	"closes an applied exact answer as done, retains its body, and keeps a later denied request open",
+	"applying a clarify response is refused and the decision stays asked in the inbox",
 	[folderContains("withDependency")],
-	function* ({ board, files, openHttp, askFiles }) {
-		yield* Effect.gen(function* () {
-			const receipt = yield* board.decision("task.one", decision);
-			const source = files.read(receipt.sourcePath);
-			const { client } = yield* openHttp();
-			const clarify = yield* Effect.tryPromise(() =>
-				client.mutate(
-					client.responses.recordResponse.run({
-						author: "maintainer",
-						body: "What scope is denied?",
-						id: "response.clarify",
-						question: receipt.questionId,
-						type: "clarify",
-					}),
-				),
-			);
-			expect(
-				(yield* Effect.result(board.acknowledgeDecision({ decision: receipt, disposition: "applied", recordedAt: 1000, responseId: clarify.id })))
-					._tag,
-			).toBe("Failure");
-			expect(yield* askFiles()).toContain(receipt.sourcePath);
-			const answer = yield* Effect.tryPromise(() =>
-				client.mutate(
-					client.responses.recordResponse.run({
-						answers: [{ prompt: "fleet-action", selected: ["retry"], text: "" }],
-						author: "maintainer",
-						body: "Policy configured.",
-						id: "response.retry",
-						question: receipt.questionId,
-						supersedes: clarify.id,
-						type: "answer",
-					}),
-				),
-			);
-			const acknowledgement = { decision: receipt, disposition: "applied" as const, recordedAt: 1001, responseId: answer.id };
-			yield* board.acknowledgeDecision(acknowledgement);
-			yield* board.acknowledgeDecision(acknowledgement);
-			expect((yield* Effect.result(board.acknowledgeDecision({ decision: receipt, disposition: "superseded", recordedAt: 1002 })))._tag).toBe(
-				"Failure",
-			);
-			expect(files.receipts().map((file) => boardApi.metadataParse(files.read(file)).fields.requestReceipt)).toEqual([
-				{
-					disposition: acknowledgement.disposition,
-					question: receipt.questionId,
-					recordedAt: acknowledgement.recordedAt,
-					response: answer.id,
-					reviewedRevision: receipt.revision,
-				},
-			]);
-			const closed = boardApi.metadataParse(files.read(`.board-settled/${receipt.itemId}.md`));
-			expect(closed.fields).toMatchObject({ attention: [{ state: "closed" }], status: "done" });
-			expect(closed.body).toBe(boardApi.metadataParse(source).body);
-			expect(yield* askFiles()).not.toContain(receipt.sourcePath);
-			const { client: current } = yield* openHttp();
-			expect(
-				(yield* Effect.result(
-					Effect.tryPromise(() => current.run(current.responses.question.run({ item: receipt.itemId, request: receipt.request }))),
-				))._tag,
-			).toBe("Failure");
-			const sourceData = yield* Effect.tryPromise(() => current.run(current.api.document.run({ url: `/${receipt.sourcePath}` })));
-			expect(sourceData.requests?.find((request) => request.id === receipt.request)?.responses?.map((response) => response.id)).toContain(answer.id);
-			const next = yield* board.decision("task.one", { ...decision, id: "fleet.denied-again" });
-			const asks = yield* askFiles();
-			expect(asks).not.toContain(receipt.sourcePath);
-			expect(asks).toContain(next.sourcePath);
-		});
+	function* ({ acknowledge, inbox, publishDecision, respond }) {
+		const denied = yield* publishDecision(DENIED);
+		yield* respond(denied, CLARIFY);
+
+		const applied = yield* acknowledge(denied, "applied", CLARIFY.id);
+
+		expect(applied).not.toBe("accepted");
+		expect(yield* inbox(denied)).toBe("asked in the inbox");
 	},
 );
+
 boardFolderStory.it(
-	"recovers exact lost publication from original context after a task edit and acknowledges supersession without a fabricated answer",
+	"applying an answer twice records one receipt for the answer and the reviewed revision",
 	[folderContains("withDependency")],
-	function* ({ board, files, askFiles }) {
-		yield* Effect.gen(function* () {
-			const original = yield* board.get("task.one");
-			const lost = yield* board.decision("task.one", decision, original);
-			const oldSource = files.read(lost.sourcePath);
-			files.write("task.md", `${original.context}\nHuman context changed.\n`);
-			const recovered = yield* board.decision("task.one", decision, original);
-			expect(recovered).toEqual(lost);
-			expect(files.read(recovered.sourcePath)).toBe(oldSource);
-			expect((yield* board.readDecision(recovered))._tag).toBe("Pending");
-			yield* board.acknowledgeDecision({ decision: recovered, disposition: "superseded", recordedAt: 2000 });
-			expect(yield* askFiles()).not.toContain(lost.sourcePath);
-			expect(files.receipts().map(files.read).join("\n")).not.toContain('"response":');
-			expect((yield* Effect.result(board.decision("task.one", decision, { ...original, revision: "wrong-hash" })))._tag).toBe("Failure");
-		});
+	function* ({ acknowledge, publishDecision, receiptRecords, respond }) {
+		const denied = yield* publishDecision(DENIED);
+		yield* respond(denied, RETRY);
+
+		yield* acknowledge(denied, "applied", RETRY.id);
+		yield* acknowledge(denied, "applied", RETRY.id);
+
+		expect(yield* receiptRecords()).toMatchObject([
+			{ disposition: "applied", question: denied.questionId, response: RETRY.id, reviewedRevision: denied.revision },
+		]);
 	},
 );
+
 boardFolderStory.it(
-	"keeps duplicates, malformed metadata and changed decision contexts outside receipt closure",
+	"an applied decision refuses a later superseded acknowledgement",
 	[folderContains("withDependency")],
-	function* ({ board, files, askFiles }) {
-		yield* Effect.gen(function* () {
-			const receipt = yield* board.decision("task.one", decision);
-			const source = files.read(receipt.sourcePath);
-			files.write(receipt.sourcePath, `${source}\nChanged decision.\n`);
-			expect((yield* Effect.result(board.acknowledgeDecision({ decision: receipt, disposition: "superseded", recordedAt: 3000 })))._tag).toBe(
-				"Failure",
-			);
-			files.write(receipt.sourcePath, source);
-			yield* board.acknowledgeDecision({ decision: receipt, disposition: "superseded", recordedAt: 3000 });
-			const saved = files.receipts()[0];
-			expect(saved).toBeDefined();
-			files.write(receipt.sourcePath, source);
-			files.write("responses/duplicate-receipt.md", files.read(saved ?? ""));
-			expect(yield* askFiles()).toContain(receipt.sourcePath);
-			files.write("responses/duplicate-receipt.md", "# No duplicate receipt\n");
-			files.write(receipt.sourcePath, source.replace('"managed":true', '"managed":true,"unsupported":true'));
-			expect((yield* Effect.result(board.acknowledgeDecision({ decision: receipt, disposition: "superseded", recordedAt: 3000 })))._tag).toBe(
-				"Failure",
-			);
-			files.write(receipt.sourcePath, source.replace('"managed":true', '"managed":false'));
-			expect(yield* askFiles()).toContain(receipt.sourcePath);
-		});
+	function* ({ acknowledge, publishDecision, respond }) {
+		const denied = yield* publishDecision(DENIED);
+		yield* respond(denied, RETRY);
+		yield* acknowledge(denied, "applied", RETRY.id);
+
+		expect(yield* acknowledge(denied, "superseded")).not.toBe("accepted");
+	},
+);
+
+boardFolderStory.it(
+	"an applied answer settles the decision as closed and done with its body, out of the inbox and preview",
+	[folderContains("withDependency")],
+	function* ({ acknowledge, files, inbox, publishDecision, questionPreview, respond, settledDecision }) {
+		const denied = yield* publishDecision(DENIED);
+		const body = metadataParse(files.read(denied.sourcePath)).body;
+		yield* respond(denied, RETRY);
+		expect(yield* inbox(denied)).toBe("asked in the inbox");
+
+		yield* acknowledge(denied, "applied", RETRY.id);
+
+		yield* outcomes([
+			["settled decision", () => settledDecision(denied), { attention: [{ state: "closed" }], body, status: "done" }],
+			["inbox", () => inbox(denied), "not in the inbox"],
+			["question preview", () => refusal(questionPreview(denied)), expect.not.stringMatching(/^accepted$/u)],
+		]);
+	},
+);
+
+boardFolderStory.it(
+	"a settled decision's source still lists the applied answer",
+	[folderContains("withDependency")],
+	function* ({ acknowledge, publishDecision, recordedResponses, respond }) {
+		const denied = yield* publishDecision(DENIED);
+		yield* respond(denied, RETRY);
+
+		yield* acknowledge(denied, "applied", RETRY.id);
+
+		expect(yield* recordedResponses(denied)).toContain(RETRY.id);
+	},
+);
+
+boardFolderStory.it(
+	"a later decision for settled work is asked in the inbox",
+	[folderContains("withDependency")],
+	function* ({ acknowledge, inbox, publishDecision, respond }) {
+		const denied = yield* publishDecision(DENIED);
+		yield* respond(denied, RETRY);
+		yield* acknowledge(denied, "applied", RETRY.id);
+
+		const next = yield* publishDecision({ ...DENIED, id: "fleet.denied-again" });
+
+		expect(yield* inbox(next)).toBe("asked in the inbox");
+	},
+);
+
+boardFolderStory.it(
+	"a lost decision republished from the original brief after a task edit keeps its receipt and source",
+	[folderContains("withDependency")],
+	function* ({ board, decisionState, files, publishDecision, sourceOf }) {
+		const original = yield* board.get("task.one");
+		const lost = yield* publishDecision(DENIED, original);
+		const source = files.read(lost.sourcePath);
+		files.write("task.md", `${original.context}\nHuman context changed.\n`);
+
+		const recovered = yield* publishDecision(DENIED, original);
+
+		expect(recovered).toEqual(lost);
+		yield* outcomes([
+			["source", () => sourceOf(recovered.sourcePath), source],
+			["decision", () => decisionState(recovered), "pending"],
+		]);
+	},
+);
+
+boardFolderStory.it(
+	"a superseded acknowledgement takes the decision out of the inbox without recording an answer",
+	[folderContains("withDependency")],
+	function* ({ acknowledge, inbox, publishDecision, receiptRecords }) {
+		const denied = yield* publishDecision(DENIED);
+		expect(yield* inbox(denied)).toBe("asked in the inbox");
+
+		yield* acknowledge(denied, "superseded");
+
+		yield* outcomes([
+			["inbox", () => inbox(denied), "not in the inbox"],
+			["receipts", () => receiptRecords(), [{ disposition: "superseded" }]],
+			["answers in receipts", () => receiptRecords().pipe(Effect.map((receipts) => receipts.map((receipt) => receipt?.response))), [undefined]],
+		]);
+	},
+);
+
+boardFolderStory.it(
+	"a decision published against a brief revision that never existed is refused",
+	[folderContains("withDependency")],
+	function* ({ board, publishDecision }) {
+		const original = yield* board.get("task.one");
+
+		const published = yield* refusal(publishDecision(DENIED, { ...original, revision: "wrong-hash" }));
+
+		expect(published).not.toBe("accepted");
+	},
+);
+
+boardFolderStory.it(
+	"acknowledging a decision whose source changed is refused",
+	[folderContains("withDependency")],
+	function* ({ acknowledge, files, publishDecision }) {
+		const denied = yield* publishDecision(DENIED);
+		files.write(denied.sourcePath, `${files.read(denied.sourcePath)}\nChanged decision.\n`);
+
+		expect(yield* acknowledge(denied, "superseded")).not.toBe("accepted");
+	},
+);
+
+boardFolderStory.it(
+	"a duplicated receipt keeps the decision asked in the inbox",
+	[folderContains("withDependency")],
+	function* ({ acknowledge, files, inbox, publishDecision }) {
+		const denied = yield* publishDecision(DENIED);
+		const source = files.read(denied.sourcePath);
+		yield* acknowledge(denied, "superseded");
+		expect(yield* inbox(denied)).toBe("not in the inbox");
+
+		files.write(denied.sourcePath, source);
+		files.write("responses/duplicate-receipt.md", files.read(files.receipts()[0] ?? ""));
+
+		expect(yield* inbox(denied)).toBe("asked in the inbox");
+	},
+);
+
+boardFolderStory.it(
+	"acknowledging a decision with unsupported metadata is refused",
+	[folderContains("withDependency")],
+	function* ({ acknowledge, files, publishDecision }) {
+		const denied = yield* publishDecision(DENIED);
+		files.write(denied.sourcePath, files.read(denied.sourcePath).replace('"managed":true', '"managed":true,"unsupported":true'));
+
+		expect(yield* acknowledge(denied, "superseded")).not.toBe("accepted");
 	},
 );

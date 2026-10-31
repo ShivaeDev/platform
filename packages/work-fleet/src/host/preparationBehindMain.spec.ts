@@ -69,7 +69,8 @@ host.it(
 		expect(blocked).toMatchObject({ attempts: [], decision: { code: "incomplete-context" }, step: "waiting" });
 		expect(blocked.decision?.reason).toContain("Cloud workers cannot read local-only Board data");
 		daemon.moveMain({ observedAt: 3, revision: "main-2" });
-		expect(yield* daemon.admit()).toEqual([]);
+		const admission = yield* daemon.admit();
+		expect(admission).toEqual([]);
 		expect((yield* daemon.get("one")).decision).toEqual(blocked.decision);
 		expect(daemon.providerStarts()).toEqual([]);
 	},

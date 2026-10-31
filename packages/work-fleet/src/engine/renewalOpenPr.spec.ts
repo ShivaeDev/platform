@@ -1,8 +1,10 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { WorkResult } from "#policy.ts";
 import { engine } from "#test/engineStory.ts";
 import { observedRenewalResult } from "#test/observedRenewalResult.ts";
+import { refusal } from "#test/refusal.ts";
 
 const original: WorkResult = { head: "head-one", kind: "change", paths: ["src/one.ts"], pr: "https://example.invalid/pr/one" };
 describe("renewal refreshes adopted open PR ownership", () => {
@@ -15,9 +17,16 @@ describe("renewal refreshes adopted open PR ownership", () => {
 		fleet.setObservedResult(result);
 		fleet.editWork("one", "board-one-next");
 		fleet.approveWork("one", "board-one-next");
-		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("scope exceeds") });
-		expect((yield* fleet.get("one")).value.history).toBeUndefined();
-		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
+		const preparedOutcome = yield* refusal(fleet.prepareWork("one"));
+		expect(preparedOutcome).toMatch(/^forbidden: .*scope exceeds/u);
+		yield* outcomes([
+			["one history", () => fleet.get("one").pipe(Effect.map((current) => current.value.history)), undefined],
+			[
+				"foreign reservations",
+				() => fleet.foreignReservations(),
+				[{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }],
+			],
+		]);
 		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 	});
 	engine.it("unknown actual PR ownership retains the previous cycle", [observedRenewalResult(original)], function* (fleet) {
@@ -28,10 +37,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 		fleet.loseResultOwnership();
 		fleet.editWork("one", "board-one-next");
 		fleet.approveWork("one", "board-one-next");
-		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({
-			_tag: "Forbidden",
-			message: expect.stringContaining("ownership is unavailable"),
-		});
+		expect(yield* refusal(fleet.prepareWork("one"))).toMatch(/^forbidden: .*ownership is unavailable/u);
 		const retained = yield* fleet.get("one");
 		expect(retained.value.result).toEqual(original);
 		expect(retained.value.history).toBeUndefined();
@@ -46,11 +52,15 @@ describe("renewal refreshes adopted open PR ownership", () => {
 		fleet.setObservedResult(result);
 		fleet.editWork("one", "board-one-next");
 		fleet.approveWork("one", "board-one-next");
-		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("identity changed") });
-		expect((yield* fleet.get("one")).value.result).toEqual(original);
-		expect((yield* fleet.foreignReservations()).map(({ owner }) => owner)).toEqual([
-			"https://example.invalid/pr/one",
-			"https://example.invalid/pr/replacement",
+		const renewed = yield* refusal(fleet.prepareWork("one"));
+		expect(renewed).toMatch(/^forbidden: .*identity changed/u);
+		yield* outcomes([
+			["one result", () => fleet.get("one"), { value: { result: original } }],
+			[
+				"foreign reservation owners",
+				() => fleet.foreignReservations().pipe(Effect.map((current) => current.map(({ owner }) => owner))),
+				["https://example.invalid/pr/one", "https://example.invalid/pr/replacement"],
+			],
 		]);
 	});
 	engine.it(
@@ -81,10 +91,11 @@ describe("renewal refreshes adopted open PR ownership", () => {
 		const denied = yield* fleet.reconcile("one");
 		const result = { ...original, paths: ["src/one.ts", "src/two.ts"] };
 		fleet.setObservedResult(result);
-		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
+		expect(yield* refusal(fleet.prepareWork("one"))).toMatch(/^forbidden: /u);
 		const decisionId = denied.value.decision?.id ?? "missing";
 		const responseId = fleet.respond(decisionId, "release");
-		expect((yield* fleet.resolve("one", decisionId, responseId)).value.step).toBe("released");
+		const resolved = yield* fleet.resolve("one", decisionId, responseId);
+		expect(resolved.value.step).toBe("released");
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 	});
 });

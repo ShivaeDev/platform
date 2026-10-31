@@ -102,8 +102,10 @@ host.it(
 	function* (work) {
 		const original = work.readBoard("one.md");
 		const message = `id one was delivered in ${PR}; give this brief a new id`;
-		expect(yield* work.admit()).toContain(`one: ${message}`);
-		expect(yield* work.approve("one").pipe(Effect.flip)).toMatchObject({ message });
+		const admission = yield* work.admit();
+		expect(admission).toContain(`one: ${message}`);
+		const approveResult = yield* work.approve("one").pipe(Effect.flip);
+		expect(approveResult).toMatchObject({ message });
 		const board = yield* work.boardHttp();
 		const document = yield* Effect.promise(() => board.client.run(board.client.api.document.run({ url: "/one.md" })));
 		expect(document.diagnostics).toContainEqual({ field: "id", line: 2, message });

@@ -1,5 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { views } from "#engine/views.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { priorityTask } from "#test/engineBriefFixtures.ts";
@@ -20,8 +21,10 @@ describe("Fleet dispatch priority", () => {
 			const urgent = yield* fleet.dispatch("three", undefined, { ignoreAreas: false });
 			expect(urgent.value.attempts.at(-1)).toMatchObject({ overLimit: true, role: "worker" });
 			yield* schedule();
-			expect(yield* workStages(["one", "two", "three"])).toEqual({ one: "working", three: "working", two: "queued" });
-			expect((yield* fleet.get("two")).value.blocker).toBe("execution capacity is occupied (limit 1)");
+			yield* outcomes([
+				["work stages one", () => workStages(["one", "two", "three"]), { one: "working", three: "working", two: "queued" }],
+				["two blocker", () => fleet.get("two"), { value: { blocker: "execution capacity is occupied (limit 1)" } }],
+			]);
 			const status = renderStatus(views((yield* fleet.list()).map(({ value }) => value)));
 			expect(status).toContain("three  working  launched over the limit");
 			expect(status).not.toContain("one  working  launched over the limit");
@@ -43,8 +46,10 @@ describe("Fleet dispatch priority", () => {
 			setPriority("two", "urgent");
 			setPriority("three", "urgent");
 			yield* schedule();
-			expect(yield* workStages(["one", "two", "three"])).toEqual({ one: "working", three: "working", two: "queued" });
-			expect((yield* fleet.get("two")).value.blocker).toBe("waiting for area work-fleet/scheduler held by one");
+			yield* outcomes([
+				["work stages one", () => workStages(["one", "two", "three"]), { one: "working", three: "working", two: "queued" }],
+				["two blocker", () => fleet.get("two"), { value: { blocker: "waiting for area work-fleet/scheduler held by one" } }],
+			]);
 			const forced = yield* fleet.dispatch("two", undefined, { ignoreAreas: true });
 			expect(forced.value.attempts.at(-1)).toMatchObject({ overLimit: true, role: "worker" });
 		},
@@ -83,8 +88,10 @@ describe("Fleet dispatch priority", () => {
 		expect((yield* fleet.get("dependent")).value).toMatchObject({ attempts: [], dispatchNow: { ignoreAreas: true }, step: "queued" });
 		yield* fleet.dispatch("one");
 		finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
+		const reconciled = yield* fleet.reconcile("one");
+		expect(reconciled.value.step).toBe("done");
+		const dependentDispatched = yield* fleet.dispatch("dependent");
+		expect(dependentDispatched.value.step).toBe("working");
 	});
 
 	isolatedEngine.it(

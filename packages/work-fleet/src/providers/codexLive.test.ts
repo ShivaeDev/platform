@@ -1,55 +1,59 @@
 import { expect } from "@effect/vitest";
-import { TestClock } from "effect/testing";
-import type { WireRequest } from "#test/codex.ts";
+import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { cloudThread } from "#test/codexCloud.ts";
 import { cloudProvider, timedProviderStory } from "#test/providerStory.ts";
+import { page, turn } from "#test/wireScript.ts";
 
-const receipt = { sessionId: "synthetic-session", turnId: "synthetic-turn" };
-function runningTurn(request: WireRequest) {
-	switch (request.method) {
-		case "thread/turns/list":
-			return { data: [{ id: receipt.turnId, items: [], status: "inProgress" }], nextCursor: null };
-		case "thread/items/list":
-			return { data: [], nextCursor: null };
-		case "thread/resume":
-			return cloudThread();
-		default:
-			return {};
-	}
-}
+const RECEIPT = { sessionId: "synthetic-session", turnId: "synthetic-turn" };
+const RUNNING = { "thread/items/list": page([]), "thread/resume": cloudThread(), "thread/turns/list": page([turn(RECEIPT.turnId, "inProgress")]) };
+const MINUTE = 60_000;
 
 timedProviderStory.it(
-	"a running Cloud turn reports its live events and follows the thread again after a reconnect",
+	"only agent output on the observed thread moves a running Cloud turn's activity time",
 	[cloudProvider],
-	function* ({ provider, replyWith, emitThreadEvent, dropConnections, requests, handshakes }) {
-		yield* replyWith(runningTurn);
-		const subscribed = yield* provider.observe(receipt);
+	function* ({ answers, emitThreadEvent, minutePasses, provider }) {
+		yield* answers(RUNNING);
+		const subscribed = yield* provider.observe(RECEIPT);
 		expect(subscribed.activityAt).toBeUndefined();
-		expect(subscribed.subscribedAt).toEqual(expect.any(Number));
-		yield* TestClock.adjust("1 minute");
-		yield* emitThreadEvent(receipt.sessionId, "item/agentMessage/delta");
-		const first = (yield* provider.observe(receipt)).activityAt;
-		expect(first).toEqual(expect.any(Number));
-		yield* emitThreadEvent(receipt.sessionId, "account/rateLimits/updated");
+		yield* minutePasses();
+		yield* emitThreadEvent(RECEIPT.sessionId, "item/agentMessage/delta");
+		const active = (yield* provider.observe(RECEIPT)).activityAt;
+		expect(active).toBe((subscribed.subscribedAt ?? 0) + MINUTE);
+		yield* minutePasses();
+
+		yield* emitThreadEvent(RECEIPT.sessionId, "account/rateLimits/updated");
 		yield* emitThreadEvent("other-session", "item/agentMessage/delta");
-		yield* TestClock.adjust("1 minute");
-		const quiet = yield* provider.observe(receipt);
-		expect(quiet.activityAt).toBe(first);
-		expect(quiet.subscribedAt).toBe(subscribed.subscribedAt);
+
+		expect((yield* provider.observe(RECEIPT)).activityAt).toBe(active);
+	},
+);
+
+timedProviderStory.it(
+	"after the provider drops its connection, the next observation resubscribes the thread and counts its events again",
+	[cloudProvider],
+	function* ({ answers, dropConnections, emitThreadEvent, handshakes, minutePasses, provider, sent }) {
+		yield* answers(RUNNING);
+		const subscribed = yield* provider.observe(RECEIPT);
+		yield* minutePasses();
+
 		yield* dropConnections();
-		const reconnected = yield* provider.observe(receipt);
-		expect(reconnected.subscribedAt).toBe((subscribed.subscribedAt ?? 0) + 2 * 60_000);
-		yield* TestClock.adjust("1 minute");
-		yield* emitThreadEvent(receipt.sessionId, "item/commandExecution/outputDelta");
-		expect((yield* provider.observe(receipt)).activityAt).toBe((first ?? 0) + 2 * 60_000);
-		expect(handshakes()).toHaveLength(2);
-		expect(
-			requests()
-				.filter((request) => request.method === "thread/resume")
-				.map((request) => request.params),
-		).toEqual([
-			{ excludeTurns: true, threadId: receipt.sessionId },
-			{ excludeTurns: true, threadId: receipt.sessionId },
+
+		const resubscribed = yield* provider.observe(RECEIPT);
+		expect(resubscribed.subscribedAt).toBe((subscribed.subscribedAt ?? 0) + MINUTE);
+		yield* minutePasses();
+		yield* emitThreadEvent(RECEIPT.sessionId, "item/commandExecution/outputDelta");
+		yield* outcomes([
+			["activity", () => provider.observe(RECEIPT).pipe(Effect.map(({ activityAt }) => activityAt)), (subscribed.subscribedAt ?? 0) + 2 * MINUTE],
+			["connections", () => handshakes(), 2],
+			[
+				"thread subscriptions",
+				() => sent("thread/resume"),
+				[
+					{ excludeTurns: true, threadId: RECEIPT.sessionId },
+					{ excludeTurns: true, threadId: RECEIPT.sessionId },
+				],
+			],
 		]);
 	},
 );
