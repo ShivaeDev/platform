@@ -9,7 +9,7 @@ for (const [wait, tracked] of [
 	["area", false],
 ] as const) {
 	mergeLoop.it(
-		`repairs a dequeued PR with check output while parked on ${wait} ${tracked ? "with" : "without"} saved queue state`,
+		`repairs a dequeued PR with its failed run while parked on ${wait} ${tracked ? "with" : "without"} saved queue state`,
 		[watchedBranches, automaticMerges],
 		function* (fleet) {
 			yield* fleet.preparePredictionWork("one");
@@ -29,14 +29,16 @@ for (const [wait, tracked] of [
 					wait === "ordering" ? { head: ready.result?.head ?? "", prs: ["https://github.com/example/project/pull/2"] } : undefined,
 				step: wait === "area" ? "waiting" : "reviewing",
 			});
-			fleet.failRequiredCheck("1", "typecheck", "src/one.ts: error TS2322: Type 'string' is not assignable to type 'number'.");
-			fleet.dequeue("1");
+			const failedRun = "https://github.com/example/project/actions/runs/72";
+			const mergeHead = "b".repeat(40);
+			fleet.mergeGroupCheck(mergeHead, { conclusion: "failure", name: "verify", url: failedRun });
+			fleet.dequeue("1", "failed_checks", mergeHead);
 			yield* fleet.restart();
 
 			const repair = yield* fleet.reconcile("one");
 			expect(repair.value).toMatchObject({ mergeQueueRepair: true, step: "working" });
 			expect(repair.value.attempts.at(-1)).toMatchObject({
-				prompt: expect.stringContaining("error TS2322"),
+				prompt: expect.stringContaining(failedRun),
 				receipt: { sessionId: ready.attempts[0]?.receipt?.sessionId },
 				role: "repair",
 			});

@@ -31,13 +31,15 @@ export function hostIntegrations(host: FleetHost) {
 			const repository = reportRepository(main.repositoryRoot, host.repository.remote).pipe(Effect.provide(NodeServices.layer));
 			const isAncestor = reportRevision(main.repositoryRoot, host.repository.remote);
 			const prediction = main.mergeConflicts === undefined ? {} : { predict: mergePrediction(github, main, repository) };
+			const queue: typeof FleetIntegrations.Service.queue =
+				host.worker === undefined
+					? undefined
+					: (work, result, queued, queuedAt) => githubMergeQueue(host)(work, result, queued, queuedAt).pipe(Effect.provideService(GithubApi, github));
 			return FleetIntegrations.of({
 				...prediction,
 				checks: (_work, result) =>
 					result.kind === "no-change" ? noChangeChecks(main.latest, isAncestor)(result) : githubChecks(github, host.repository.branch)(result),
-				...(host.worker === undefined
-					? {}
-					: { queue: (work, result, queued) => githubMergeQueue(host)(work, result, queued).pipe(Effect.provideService(GithubApi, github)) }),
+				...(queue === undefined ? {} : { queue }),
 				delivery: githubDelivery(readPullRequest(github.get)),
 				isAncestor,
 				main: main.observe,
