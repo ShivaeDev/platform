@@ -51,6 +51,12 @@ export const published010 = updates.trait("created", "create-app 0.1.0 is publis
 	Effect.sync(() => engine.publish("0.1.0")),
 );
 
+export const trustDowngrade = updates.trait("current", "the registry rejects a transitive package pinned by the old lockfile", (engine) =>
+	Effect.sync(() => {
+		engine.processes.installationError = 'ERR_PNPM_TRUST_DOWNGRADE High-risk trust downgrade for "transitive-package@1.2.3"';
+	}),
+);
+
 export function appCommits(described: string, change: Change) {
 	return updates.trait("customized", `my-app ${described} and commits it`, (engine) =>
 		Effect.sync(() => {
