@@ -7,9 +7,9 @@ import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
-import { StatisticsPermission } from "#appPermissions.ts";
 import { StatisticsPage } from "#modules/notes/admin.ts";
 import { noteQueue } from "#modules/notes/queue.ts";
+import { StatisticsPermission } from "#modules/notes/StatisticsPermission.ts";
 import { Admin, foundation } from "#modules.ts";
 import { adminBackend } from "./backend.ts";
 
