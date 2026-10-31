@@ -1,7 +1,6 @@
 import { Effect } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { conflictingPr } from "#engine/deliveryFailure.ts";
 import { newEngineState } from "#test/engineState.ts";
 import { engineDefinition } from "#test/engineStory.ts";
 import { engineVerbs } from "#test/engineVerbs.ts";
@@ -33,30 +32,6 @@ export const areaOrder = storyKit({
 			story.tell(`${id}'s repair resolves its main conflict`);
 		},
 	}),
-});
-
-export const areaOrderChecks = areaOrder.trait("configuration", "required checks and main conflicts can change for each PR", (state) => {
-	const repository = state.predictionRepository;
-	if (repository === undefined) {
-		throw new Error("Area order stories need watched branches");
-	}
-	state.options = {
-		...state.options,
-		checksQuery: (result) =>
-			Effect.sync(() => ({
-				evidence: ["Required checks observed for the PR head"],
-				head: result.head,
-				passed: !state.red.has(result.kind === "change" && result.pr === repository.result("two").pr ? "two" : "one"),
-				repairPrompt: "Repair the failed required check",
-			})),
-		deliveryQuery: (result) =>
-			Effect.suspend(() => {
-				const id = [...state.conflictingPrs].find((candidate) => repository.result(candidate).pr === result.pr);
-				return id === undefined
-					? Effect.succeed(repository.delivery(result))
-					: Effect.fail(conflictingPr(repository.git("rev-parse", "origin/main")));
-			}),
-	};
 });
 
 export const cyclicChecks = areaOrder.trait("configuration", "required checks can turn green for either cycle member", (state) => {

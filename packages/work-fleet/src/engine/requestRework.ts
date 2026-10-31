@@ -25,6 +25,8 @@ export function requestRework(state: EngineState) {
 				decision: undefined,
 				decisionAcknowledged: undefined,
 				decisionPublished: undefined,
+				mergeMainRepair: mainRevision === undefined ? undefined : true,
+				mergeQueue: undefined,
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
 				prompt: [
