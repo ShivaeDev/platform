@@ -25,10 +25,14 @@ export const bucketRows = Effect.gen(function* () {
 	yield* Effect.acquireRelease(sql`create table ${sql(sourceTable)} (like ${sql(tableName)} including all)`, () =>
 		sql`drop table ${sql(sourceTable)}`.pipe(Effect.orDie),
 	);
-	const options = { conflictColumns: ["slug"], idColumn: "id", spanPrefix: "Buckets", tableName } as const;
-	const rows = yield* makeRepository(BucketRow, options);
-	const source = yield* makeRepository(BucketRow, { ...options, tableName: sourceTable });
-	const versioned = yield* makeRepository(BucketRow, { ...options, versionColumn: "version" });
 	const keys = collection(tableName, Schema.Number, { listId: Schema.Number, owner: Schema.String });
+	const options = { collection: keys, conflictColumns: ["slug"], idColumn: "id", spanPrefix: "Buckets", tableName } as const;
+	const rows = yield* makeRepository(BucketRow, options);
+	const source = yield* makeRepository(BucketRow, {
+		...options,
+		collection: collection(sourceTable, Schema.Number, { listId: Schema.Number, owner: Schema.String }),
+		tableName: sourceTable,
+	});
+	const versioned = yield* makeRepository(BucketRow, { ...options, versionColumn: "version" });
 	return { keys, rows, source, tableName, versioned };
 });

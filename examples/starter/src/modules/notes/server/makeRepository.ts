@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { bucket } from "@shivaedev/changes/buckets.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
-import { Note } from "#modules/notes/notes.ts";
+import { Note, notes } from "#modules/notes/notes.ts";
 
 export class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
@@ -13,6 +13,7 @@ export class StoredNote extends Model.Class<StoredNote>("StoredNote")({
 }) {}
 
 export const makeNotesRepository = makeRepository(StoredNote, {
+	collection: notes,
 	idColumn: "id",
 	spanPrefix: "Notes",
 	tableName: "notes",

@@ -52,7 +52,7 @@ export const handlers = Layer.merge(
 	Writes.application.toLayer({
 		"costWrites.edit": ({ text }) =>
 			Effect.gen(function* () {
-				const repository = yield* makeRepository(Note, { idColumn: "id", spanPrefix: "CostNotes", tableName: "cost_notes" });
+				const repository = yield* makeRepository(Note, { collection: notes, idColumn: "id", spanPrefix: "CostNotes", tableName: "cost_notes" });
 				yield* repository.update({ id: 1, room: "shared", text });
 			}).pipe(Effect.orDie),
 	}),
