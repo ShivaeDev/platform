@@ -1,27 +1,33 @@
 import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
-import { Effect, Schema } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { Effect, Redacted, Schema } from "effect";
+import { Migrator, SqlClient } from "effect/sql";
+import { databaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
+import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
-import { authDatabase } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { passwordUser } from "#server/better-auth/testing.ts";
-import { postgres } from "./postgres.ts";
 
 const ORIGIN = "http://localhost:3000";
 const credentials = { email: "ada@password.test", password: "correct-horse-battery-staple" };
 const SessionBody = Schema.Struct({ user: SessionUserSchema });
 
+const postgres = makePostgresTestLayer({
+	maxConnections: 1,
+	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
+	url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
+});
+
 export const passwordAuth = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const database = yield* PostgresTestDatabase;
 		const options = {
 			"baseURL": ORIGIN,
-			database: yield* authDatabase(database.url),
+			database: yield* betterAuthDatabase(),
 			emailAndPassword: { enabled: true },
 			logger: { disabled: true },
 			plugins: [testUtils()],
@@ -32,8 +38,17 @@ export const passwordAuth = storyKit({
 	},
 	layer: postgres,
 	name: "password user",
+	runIf: databaseUrl !== undefined,
 	stages: ["account"],
 	verbs: (engine, story) => ({
+		databaseConnections: () =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				const rows = yield* sql<{
+					connections: number;
+				}>`select count(*)::int as connections from pg_stat_activity where datname = current_database()`;
+				return rows.map(({ connections }) => connections);
+			}),
 		session: () =>
 			Effect.promise(async () => {
 				const response = await engine.auth.handler(new Request(`${ORIGIN}/api/auth/get-session`, { headers: { cookie: engine.cookie } }));

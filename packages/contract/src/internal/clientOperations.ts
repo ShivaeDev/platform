@@ -7,8 +7,8 @@ import { invalidationKeys, type Key, readKeys } from "@shivaedev/changes/keys.ts
 import type { automaticLive } from "#automaticLive.ts";
 import type { QueryOptions } from "#bind.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
-import { MissingReadPolicy } from "#readPolicyErrors.ts";
 import type { BindingOwner } from "./bindingOwner.ts";
+import { clientActivities } from "./clientActivity.ts";
 import { queryReactivity } from "./queryReactivity.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
@@ -24,15 +24,10 @@ function run<A, E>(service: ErasedClient, effect: Effect.Effect<A, E, unknown>, 
 }
 
 export function boundQuery(service: ErasedClient, tag: string, query: QueryShape, automatic: ReturnType<typeof automaticLive>, owner?: BindingOwner) {
-	const reactive = queryReactivity(service.runtime);
+	const reactive = queryReactivity(service.runtime, clientActivities.get(service)?.queued);
 	const cached = new WeakMap<ReturnType<typeof service.query>, ReturnType<typeof service.query>>();
 	return {
 		query: (payload: unknown, options: QueryOptions = {}) => {
-			if (query.readPolicy === undefined) {
-				return service.runtime.atom(
-					Effect.fail(new MissingReadPolicy({ message: `Declare a readPolicy on query ${query.name} before running it live or subscribing` })),
-				);
-			}
 			const atom = service.query(tag, payload, options);
 			const existing = cached.get(atom);
 			if (existing !== undefined) {
@@ -48,9 +43,11 @@ export function boundQuery(service: ErasedClient, tag: string, query: QueryShape
 				reference,
 				keys,
 				Schema.toEquivalence(query.success),
+				query.live === "rerun-and-compare" ? Schema.decodeUnknownSync(Schema.toType(query.success)) : undefined,
 			);
-			cached.set(atom, result);
-			return result;
+			const tracked = clientActivities.get(service)?.watch(result) ?? result;
+			cached.set(atom, tracked);
+			return tracked;
 		},
 		run: (payload: unknown) =>
 			run(

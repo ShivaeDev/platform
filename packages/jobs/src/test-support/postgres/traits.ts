@@ -1,14 +1,14 @@
 import { Effect, Redacted, type Schema } from "effect";
 import type { JobInsert } from "pg-boss";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { QueueDefinition } from "#definition.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
 import type { Registration } from "#test/workers.ts";
 import type { PgBossTesting } from "#testing.ts";
 import { serverTlsAbsent } from "./connections.ts";
-import { countIdleReads, startIdleWait, watchChange } from "./controller.ts";
+import { countIdleReads, startFetchWatch, startIdleWait, watchChange } from "./controller.ts";
 import { database } from "./database.ts";
 import type { StoryPayload } from "./databaseEngine.ts";
-import { disconnectGate } from "./disconnectGate.ts";
 import { admin, runningIn, type StartOptions, startRuntime } from "./engine.ts";
 import { type Enqueue, enqueueAs, idOf, runtimeVerbs, testingOf, waitingVerbs } from "./verbs.ts";
 
@@ -250,6 +250,12 @@ export function idleWaitStarted(name: string) {
 	return database.trait("jobs", `the testing controller of ${name} has started waiting for idle`, (engine) => startIdleWait(engine, name));
 }
 
+export function fetchesWatched(name: string, queue: Pick<QueueDefinition, "name">, count: number) {
+	return database.trait("jobs", `the testing controller of ${name} is waiting for ${count} ${queue.name} fetches to pass`, (engine) =>
+		startFetchWatch(engine, name, queue, count),
+	);
+}
+
 export function watchingForChange(name: string) {
 	return database.trait("jobs", `the testing controller of ${name} is waiting for a change`, (engine) => watchChange(engine, name, "now"));
 }
@@ -258,15 +264,9 @@ export const disconnectGated = database.trait(
 	"database",
 	"a disconnect gate in front of PostgreSQL holds each disconnect acknowledgement",
 	(engine) =>
-		Effect.map(
-			Effect.acquireRelease(
-				Effect.promise(() => disconnectGate(Redacted.value(engine.url))),
-				(gate) => Effect.promise(gate.close),
-			),
-			(gate) => {
-				engine.gate = gate;
-			},
-		),
+		Effect.map(disconnectProxy(Redacted.value(engine.url), { holdDisconnects: true }), (gate) => {
+			engine.gate = gate;
+		}),
 );
 
 export function runningBehindGate(name: string, options: StartOptions) {

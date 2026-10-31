@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.27.0 - 2026-10-31
+
+### Added
+
+- `@shivaedev/react`: `queryRoute` passes the loader's router context to its query factory alongside params and validated search. Annotate `context` with the parent route's `types.allContext` to read declared clients and viewer state with type checking.
+
+### Changed
+
+- `@shivaedev/create-app`: generated starter routes read clients and session state from native router context instead of taking them as route factory parameters.
+
+## 0.26.0 - 2026-10-31
+
+### Added
+
+- Screen kits can build a screen driver's `pending` signal with `screenPending({ router })` from `client/screenPending.ts`, which reads the `AtomRegistry` from the environment: it reports pending while a read `AsyncResult` is waiting or the TanStack router is loading a route, and ignores results left waiting by unmounted components.
+
+### Breaking
+
+- `loadQuery` moved from `@shivaedev/react/loadQuery.ts` to `@shivaedev/react/adapters/loadQuery.ts`, beside the other bridges from outside libraries into Effect. Change the import path; the function and its behavior are unchanged.
+
+## 0.25.0 - 2026-10-30
+
+### Added
+
+- `authCall` turns a Better Auth client callback into an input-taking Effect for form `onSubmit` handlers.
+
+### Breaking
+
+- `authAction` now fails with `AuthFailure`. Map its closed `code` union to application text instead of reading raw Better Auth error fields or HTTP statuses. Core Better Auth codes pass through; code-less rate limiting becomes `RATE_LIMITED`, and unsupported codes and rejected promises become `UNKNOWN`. Read the original error from `cause`. Replace action error annotations that include `AuthActionUnavailable` with `AuthFailure`; `authQuery` retains its existing failures.
+
+## 0.24.0 - 2026-10-30
+
+### Added
+
+- `useLoaderQuery` accepts the shared query options, including `coalesceWindow`, so loader-backed screens can configure live refetches directly.
+- `NoticeHost` accepts an optional `runtime` and runs notice expiry as an Effect sleep on that atom runtime's `Clock`, so a story's `TestClock` drives expiry. Without it, expiry uses Effect's default clock as before.
+
+## 0.23.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.23.1 - 2026-10-30
 
 ### Changed

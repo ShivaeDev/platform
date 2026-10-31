@@ -32,6 +32,7 @@ export const runtime = storyKit({
 			);
 		},
 		batchAnswer: () => Effect.sync(() => engine.batchAnswer),
+		batchFailureMessage: () => Effect.sync(() => engine.batchFailureMessage),
 		claimReads: () => Effect.sync(() => engine.client.claimReads),
 		clientCalls: () => Effect.sync(() => [...engine.client.calls]),
 		clientsConstructed: () => Effect.sync(() => engine.clientsConstructed),
@@ -135,6 +136,7 @@ const delivered = Effect.fnUntraced(function* (engine: RuntimeEngine, queue: str
 		return yield* Effect.die(new Error(`No worker is registered for ${queue}`));
 	}
 	const now = yield* Clock.currentTimeMillis;
+	engine.client.databaseNow = now;
 	const aborts = new Map(jobs.map((job) => [job.id, new AbortController()]));
 	const batch = jobs.map((job): Job<unknown> & { readonly startedOn: Date } => ({
 		data: job.data ?? {},
@@ -154,7 +156,13 @@ const delivered = Effect.fnUntraced(function* (engine: RuntimeEngine, queue: str
 	}
 	engine.work.changed.add(abort);
 	engine.batchAnswer = yield* Effect.tryPromise(() => worker.run(batch)).pipe(
-		Effect.match({ onFailure: (error) => `rejected with ${failureOf(error.cause)}`, onSuccess: () => "returned" }),
+		Effect.match({
+			onFailure: (error) => {
+				engine.batchFailureMessage = error.cause instanceof Error ? error.cause.message : String(error.cause);
+				return `rejected with ${failureOf(error.cause)}`;
+			},
+			onSuccess: () => "returned",
+		}),
 		Effect.ensuring(Effect.sync(() => engine.work.changed.delete(abort))),
 	);
 	const deadline = Math.max(...batch.map((job) => job.startedOn.getTime() + job.expireInSeconds * 1000));
@@ -255,15 +263,6 @@ export function storedJob(job: Parameters<FakeClient["stored"]["set"]>[1]) {
 		engine.client.stored.set(job.id, job);
 	});
 }
-
-export const deferralWritesFail = runtime.trait("client", "the deferral store rejects every write", (engine) => {
-	Object.assign(engine.client, {
-		getDb: () => ({
-			executeSql: (text: string) =>
-				text.includes("WITH claimed AS MATERIALIZED") ? Promise.reject(new Error("deferral storage unavailable")) : Promise.resolve({ rows: [] }),
-		}),
-	});
-});
 
 export const claimReadsStall = runtime.trait("client", "pg-boss never answers reads of a claimed job", (engine) => {
 	engine.client.stallsClaimReads = true;

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/server",
-	"version": "0.8.0",
+	"version": "0.10.0",
 	"description": "The Effect application host: HTTP and RPC serving, health, OTLP export, database and migrations, and development mode",
 	"keywords": [
 		"effect"
@@ -41,6 +41,7 @@
 		"!src/**/*.spec.ts",
 		"!src/**/*.spec.tsx",
 		"!src/**/test-support",
+		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {
@@ -62,15 +63,16 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
+		"@shivaedev/access": "workspace:*",
+		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
-		"@types/pg": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
-		"pg": "catalog:",
 		"pg-boss": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
@@ -80,8 +82,7 @@
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"better-auth": "catalog:",
-		"effect": "catalog:",
-		"pg": "catalog:"
+		"effect": "catalog:"
 	},
 	"peerDependenciesMeta": {
 		"@effect/platform-node": {
@@ -94,9 +95,6 @@
 			"optional": true
 		},
 		"better-auth": {
-			"optional": true
-		},
-		"pg": {
 			"optional": true
 		}
 	},

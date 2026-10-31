@@ -11,6 +11,7 @@ import { webhookRoute } from "#server/route.ts";
 import { webhookReceipts } from "#server/webhookReceipts.ts";
 import { auditQueue, issueQueue, Jobs, MAX_BODY_BYTES, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
+import { senderPreferences } from "#test/senderCheck.ts";
 
 export interface HandledJob {
 	readonly id: string;
@@ -104,6 +105,7 @@ export function hostLayer(state: InboxState) {
 						policy: "loopback" as const,
 						routes: webhookRoute({ basePath: "/hooks", jobs: Jobs, sources }).pipe(
 							Layer.provide(jobs),
+							Layer.provide(senderPreferences),
 							Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
 						),
 						services: jobs,

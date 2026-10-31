@@ -1,4 +1,4 @@
-import { Clock, Context, Effect, Ref } from "effect";
+import { Clock, Context, Effect, Ref, SubscriptionRef } from "effect";
 import type { SourceFailure } from "@shivaedev/work-board/diagnostics/source.ts";
 import type { CapacityRejection, FleetHealth } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -10,6 +10,9 @@ export interface HealthState {
 export class Health extends Context.Service<Health, Ref.Ref<HealthState>>()("Fleet/Health") {}
 export class HealthSnapshot extends Context.Service<HealthSnapshot, Effect.Effect<FleetHealth, SourceFailure>>()("Fleet/HealthSnapshot") {}
 export class HealthPublication extends Context.Service<HealthPublication, Effect.Effect<void>>()("Fleet/HealthPublication") {}
+export class SchedulerPasses extends Context.Service<SchedulerPasses, SubscriptionRef.SubscriptionRef<number>>()(
+	"@shivaedev/work-fleet/SchedulerPasses",
+) {}
 
 export const schedulerPassed = Effect.gen(function* () {
 	const health = yield* Effect.serviceOption(Health);
@@ -20,6 +23,10 @@ export const schedulerPassed = Effect.gen(function* () {
 	const publication = yield* Effect.serviceOption(HealthPublication);
 	if (publication._tag === "Some") {
 		yield* publication.value;
+	}
+	const passes = yield* Effect.serviceOption(SchedulerPasses);
+	if (passes._tag === "Some") {
+		yield* SubscriptionRef.update(passes.value, (count) => count + 1);
 	}
 });
 

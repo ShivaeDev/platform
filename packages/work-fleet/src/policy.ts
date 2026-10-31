@@ -135,6 +135,11 @@ export class FleetIntegrations extends Context.Service<
 		readonly isAncestor?: (base: string, revision: string) => Effect.Effect<boolean, FleetError>;
 		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetError>;
 		readonly checks: (work: BoardWork, result: WorkResult, purpose?: "review") => Effect.Effect<Checks, FleetError>;
+		readonly queue?: (
+			work: BoardWork,
+			result: typeof ChangeResult.Type,
+			queued: boolean,
+		) => Effect.Effect<"queued" | "pending" | "manual" | "failed", FleetError>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;
 	}
 >()("@shivaedev/work-fleet/FleetIntegrations") {}

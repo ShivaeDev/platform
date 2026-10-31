@@ -19,6 +19,7 @@ export type Attempt =
 	| { readonly waitsUntilRunning: number }
 	| { readonly fails: string }
 	| { readonly failsTyped: string }
+	| { readonly failsWith: unknown }
 	| { readonly failsWithText: string }
 	| { readonly dies: string }
 	| { readonly defers: string; readonly until?: DeferralTime }
@@ -152,6 +153,9 @@ function run(attempt: Attempt, log: WorkLog, job: JobContext): Effect.Effect<unk
 	}
 	if ("failsTyped" in attempt) {
 		return Effect.fail(new WorkerRejected({ message: attempt.failsTyped }));
+	}
+	if ("failsWith" in attempt) {
+		return Effect.fail(attempt.failsWith);
 	}
 	if ("failsWithText" in attempt) {
 		return Effect.fail(attempt.failsWithText);

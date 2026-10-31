@@ -1,108 +1,134 @@
-import { afterEach, expect, it } from "vitest";
+import { expect } from "vitest";
 import { importsManifest } from "#rules/imports/manifest.ts";
-import { blocked, manifest } from "#test/bundleManifest.ts";
-import { findingsIn } from "#test/imports.ts";
+import { blocked, bundleManifest } from "#test/bundleManifest.ts";
+import { importStory, repositoryHas, repositoryHolds } from "#test/importStory.ts";
 import { manifestTree } from "#test/manifestTree.ts";
-import { removeSeededTrees } from "#test/tree.ts";
 
-afterEach(removeSeededTrees);
+const INPUT = { content: 'import "plain-kit";', path: "modules/app/src/bundle/input.ts" };
 
-const input = { content: 'import "plain-kit";', path: "modules/app/src/bundle/input.ts" };
+const WORKSPACE = repositoryHolds(manifestTree());
 
-it("allows declared development dependencies in explicitly export-blocked bundle inputs", async () => {
-	const root = manifestTree([manifest(), input]);
-	expect(await findingsIn(importsManifest, undefined, root)).toEqual([]);
-});
+const REACHES = [
+	["an import", 'import "./bundle/input.ts";'],
+	["a re-export", 'export * from "./bundle/input.ts";'],
+	["a type query", 'type Input = typeof import("./bundle/input.ts");'],
+	["a dynamic import", 'const input = import("./bundle/input.ts");'],
+] as const;
 
-it("still rejects undeclared dependencies in export-blocked bundle inputs", async () => {
-	const root = manifestTree([input, { content: JSON.stringify({ exports: blocked, name: "@acme/app" }), path: "modules/app/package.json" }]);
-	expect((await findingsIn(importsManifest, undefined, root)).map(({ subject }) => subject)).toEqual(["plain-kit"]);
-});
+const PUBLIC_EXPORTS = [
+	["an exact export", { ...blocked, "./bundle/input.ts": "./src/bundle/input.ts" }],
+	["a more specific pattern", { ...blocked, "./bundle/input.*": "./src/bundle/input.*" }],
+] as const;
 
-it.each([
-	'import "./bundle/input.ts";',
-	'export * from "./bundle/input.ts";',
-	'type Input = typeof import("./bundle/input.ts");',
-	'const input = import("./bundle/input.ts");',
-])("rejects a development dependency when public code reaches a blocked input through %s", async (content) => {
-	const root = manifestTree([manifest(), input, { content, path: "modules/app/src/public.ts" }]);
-	expect((await findingsIn(importsManifest, undefined, root)).map(({ file }) => file)).toEqual([input.path]);
-});
-
-it("follows blocked helpers and cycles reached by runtime code", async () => {
-	const root = manifestTree([
-		manifest(),
-		{ ...input, content: 'import "plain-kit"; import "./helper.ts";' },
-		{ content: 'import "./input.ts";', path: "modules/app/src/bundle/helper.ts" },
-		{ content: 'import "./bundle/helper.ts";', path: "modules/app/src/public.ts" },
-	]);
-	expect((await findingsIn(importsManifest, undefined, root)).map(({ file }) => file)).toEqual([input.path]);
-});
-
-it.each([
-	{ file: "runtime.ts", runtime: true },
-	{ file: "consumer.test.ts", runtime: false },
-])("keeps cross-member reachability from $file inside its dependency boundary", async ({ file, runtime }) => {
-	const root = manifestTree([
-		manifest(),
-		input,
-		{
-			content: JSON.stringify({ dependencies: { "@acme/app": "workspace:*" }, name: "consumer-app" }),
-			path: "modules/consumer/package.json",
-		},
-		{ content: 'import "../../app/src/bundle/input.ts";', path: `modules/consumer/src/${file}` },
-	]);
-	expect((await findingsIn(importsManifest, undefined, root)).map(({ file: path, subject }) => ({ file: path, subject }))).toEqual(
-		runtime ? [{ file: input.path, subject: "plain-kit" }] : [],
-	);
-});
-
-it.each(["./dist/bundle/input.js", "./src/bundle/input.ts"])("keeps executable %s in the runtime dependency boundary", async (bin) => {
-	const root = manifestTree([manifest(blocked, bin), input]);
-	expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
-		{ file: input.path, subject: "plain-kit" },
-	]);
-});
-
-it("keeps executable tooling inside the runtime dependency boundary", async () => {
-	const root = manifestTree([manifest(blocked, "./tooling/cli.ts"), { ...input, path: "modules/app/tooling/cli.ts" }]);
-	expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
-		{ file: "modules/app/tooling/cli.ts", subject: "plain-kit" },
-	]);
-});
-
-it.each([
-	{ ...blocked, "./bundle/input.ts": "./src/bundle/input.ts" },
-	{ ...blocked, "./bundle/input.*": "./src/bundle/input.*" },
-])("honors a more specific public export inside a blocked pattern", async (exports) => {
-	const root = manifestTree([manifest(exports), input]);
-	expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
-		{ file: input.path, subject: "plain-kit" },
-	]);
-});
-
-it.each(["./src/bundle/input.ts", "./dist/bundle/input.js", "./dist/bundle/input.d.ts"])(
-	"rejects a blocked source also exported through alias %s",
-	async (target) => {
-		const root = manifestTree([manifest({ ...blocked, "./public.ts": target }), input]);
-		expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
-			{ file: input.path, subject: "plain-kit" },
-		]);
+importStory.it(
+	"imports/manifest accepts a declared development dependency in an export-blocked bundle input",
+	[WORKSPACE, repositoryHas(bundleManifest(), INPUT)],
+	function* ({ check }) {
+		expect(yield* check(importsManifest)).toEqual([]);
 	},
 );
 
-it.each([
-	{ bin: { app: "./dist/bundle/input.mjs" }, path: "modules/app/src/bundle/input.mts" },
-	{ bin: { app: "./dist/bundle/input.cjs" }, path: "modules/app/src/bundle/input.cts" },
-])("keeps compiled executable $path in the runtime boundary", async ({ bin, path }) => {
-	const root = manifestTree([
-		{
-			content: JSON.stringify({ bin, devDependencies: { "plain-kit": "workspace:*" }, exports: blocked, name: "@acme/app" }),
-			path: "modules/app/package.json",
+importStory.it(
+	"imports/manifest reports an undeclared dependency in an export-blocked bundle input",
+	[WORKSPACE, repositoryHas(INPUT, { content: JSON.stringify({ exports: blocked, name: "@acme/app" }), path: "modules/app/package.json" })],
+	function* ({ check, sites }) {
+		yield* check(importsManifest);
+
+		expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+	},
+);
+
+for (const [form, content] of REACHES) {
+	importStory.it(
+		`imports/manifest reports a development dependency in a blocked bundle input that public code reaches through ${form}`,
+		[WORKSPACE, repositoryHas(bundleManifest(), INPUT, { content, path: "modules/app/src/public.ts" })],
+		function* ({ check, sites }) {
+			yield* check(importsManifest);
+
+			expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
 		},
-		{ ...input, path },
-	]);
-	expect((await findingsIn(importsManifest, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
-		{ file: path, subject: "plain-kit" },
-	]);
+	);
+}
+
+importStory.it(
+	"imports/manifest follows blocked helpers and the cycles between them from public code",
+	[
+		WORKSPACE,
+		repositoryHas(
+			bundleManifest(),
+			{ ...INPUT, content: 'import "plain-kit"; import "./helper.ts";' },
+			{ content: 'import "./input.ts";', path: "modules/app/src/bundle/helper.ts" },
+			{ content: 'import "./bundle/helper.ts";', path: "modules/app/src/public.ts" },
+		),
+	],
+	function* ({ check, sites }) {
+		yield* check(importsManifest);
+
+		expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+	},
+);
+
+const CONSUMER = repositoryHas(bundleManifest(), INPUT, {
+	content: JSON.stringify({ dependencies: { "@acme/app": "workspace:*" }, name: "consumer-app" }),
+	path: "modules/consumer/package.json",
 });
+
+importStory.it(
+	"imports/manifest reports a blocked bundle input that another member's runtime code reaches",
+	[WORKSPACE, CONSUMER, repositoryHas({ content: 'import "../../app/src/bundle/input.ts";', path: "modules/consumer/src/runtime.ts" })],
+	function* ({ check, sites }) {
+		yield* check(importsManifest);
+
+		expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+	},
+);
+
+importStory.it(
+	"imports/manifest accepts a blocked bundle input that only another member's test reaches",
+	[WORKSPACE, CONSUMER, repositoryHas({ content: 'import "../../app/src/bundle/input.ts";', path: "modules/consumer/src/consumer.test.ts" })],
+	function* ({ check }) {
+		expect(yield* check(importsManifest)).toEqual([]);
+	},
+);
+
+for (const [bin, path] of [
+	["./dist/bundle/input.js", INPUT.path],
+	["./src/bundle/input.ts", INPUT.path],
+	["./tooling/cli.ts", "modules/app/tooling/cli.ts"],
+	[{ app: "./dist/bundle/input.mjs" }, "modules/app/src/bundle/input.mts"],
+	[{ app: "./dist/bundle/input.cjs" }, "modules/app/src/bundle/input.cts"],
+] as const) {
+	importStory.it(
+		`imports/manifest keeps the executable ${path} in the runtime dependency boundary when bin names ${JSON.stringify(bin)}`,
+		[WORKSPACE, repositoryHas(bundleManifest(blocked, bin), { ...INPUT, path })],
+		function* ({ check, sites }) {
+			yield* check(importsManifest);
+
+			expect(yield* sites()).toEqual([`${path}:1 plain-kit`]);
+		},
+	);
+}
+
+for (const [form, exports] of PUBLIC_EXPORTS) {
+	importStory.it(
+		`imports/manifest honors ${form} that makes a bundle input inside a blocked pattern public`,
+		[WORKSPACE, repositoryHas(bundleManifest(exports), INPUT)],
+		function* ({ check, sites }) {
+			yield* check(importsManifest);
+
+			expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+		},
+	);
+}
+
+for (const target of ["./src/bundle/input.ts", "./dist/bundle/input.js", "./dist/bundle/input.d.ts"]) {
+	importStory.it(
+		`imports/manifest reports a blocked bundle input that another export also publishes as ${target}`,
+		[WORKSPACE, repositoryHas(bundleManifest({ ...blocked, "./public.ts": target }), INPUT)],
+		function* ({ check, sites }) {
+			yield* check(importsManifest);
+
+			expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+		},
+	);
+}

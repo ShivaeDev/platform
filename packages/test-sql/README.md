@@ -169,7 +169,21 @@ expect(results.filter(Result.isSuccess)).toHaveLength(1);
 expect(results.filter(Result.isFailure).map((result) => result.failure)).toEqual(["full", "full"]);
 ```
 
-`claimLastPlace` is the application's guarded write, failing with the typed `"full"` value when no place remains; `Result` is Effect's native `Result` module. Results stay in input order, including each call's typed failure. The holder rolls back by default, discarding any writes in `lock`; set `release: "commit"` when a contender must observe the holder's committed write. The default timeout is five seconds; `timeout` accepts an Effect duration. Defects and interruption retain their native failure kind, and the helper's scope owns the holder and competing fibers.
+`claimLastPlace` is the application's guarded write, failing with the typed `"full"` value when no place remains; `Result` is Effect's native `Result` module. Results stay in input order, including each call's typed failure. The holder rolls back by default, discarding any writes in `lock`; set `release: "commit"` when a contender must observe the holder's committed write. `timeout` accepts an Effect duration, five seconds by default, and bounds each phase on its own: taking the lock and the contenders' finish after release fail with `TimeoutError`, and contenders that never all block fail with `NeverSettled` from `observeUntil`, naming how many blocked at the last read. The wait for blocked contenders runs on live time. Defects and interruption retain their native failure kind, and the helper's scope owns the holder and competing fibers.
+
+### Wait for PostgreSQL state that sends no notification
+
+PostgreSQL announces no change to its catalog views: a session leaving `pg_stat_activity` or a backend starting to wait on a lock happens without a signal. `observeUntil` is the one poll for such state. It repeats one read, returns the value once `settled` holds for `stableReads` reads in a row, and sleeps on live time, so a story's paused test clock does not stall it:
+
+```ts
+import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
+
+const sessions = sql<{ count: number }>`select count(*)::int as count from pg_stat_activity
+	where application_name = ${applicationName}`.pipe(Effect.map(([row]) => row?.count ?? 0));
+yield* observeUntil(sessions, (count) => count === 0, "the app's sessions to close");
+```
+
+Options are `every` (default 25 milliseconds between reads), `within` (default 5 seconds) and `stableReads` (default 2). A count that reaches zero and rises again restarts the run of agreeing reads instead of being accepted. When `within` runs out the Effect fails with a typed `NeverSettled`, whose `last` holds the last value as an `Option` and whose message reads like `Timed out after 1s waiting for the app's sessions to close: 40 reads, last value 1`. Use it only for state PostgreSQL does not announce; wait on the engine's own signals everywhere else.
 
 ### Choose an empty database per story or trait
 
@@ -249,6 +263,14 @@ With a PostgreSQL client in the current Context, the assertion compares names th
 
 The assertion uses the SQL `Model`'s selected database fields, including generated ids and excluding JSON-only fields. Supply an exact PostgreSQL type for every field: schemas such as `Schema.Number` do not determine whether storage is `integer`, `numeric` or `double precision`. It fails with a typed `ModelColumnMismatch` containing all detected missing, extra and wrongly typed column problems. The type map is checked against the model both by TypeScript and at runtime. This check covers names and types; it does not check defaults, nullability, constraints or application data transformations.
 
+### Database faults
+
+`disconnectProxy` from `@shivaedev/test-sql/server/disconnectProxy.ts` acquires a loopback TCP proxy in the current Effect scope. Give its `url` to the application database client. `disconnect()` cuts existing connections, `setReachable(false)` also refuses new connections, and `setResponsive(false)` stalls traffic until `setResponsive(true)` resumes it. Closing the scope destroys the sockets and closes the listener.
+
+For teardown stories, pass `{ holdDisconnects: true }`: `disconnecting` signals the first upstream disconnect, `allHeld` signals when every upstream has disconnected, and `release()` forwards the held acknowledgements. For LISTEN health stories, `{ dropNotifications: true }` filters PostgreSQL notifications while other SQL traffic continues; `dropped` signals a filtered notification.
+
+`@shivaedev/test-sql/server/emptyPostgres.ts` provides `databaseUrl` and `postgres`, an empty migration template selected by `PLATFORM_SQL_TEST_DATABASE_URL`. Use it with `withIsolatedDatabase` for kits that initialize their own schema. `environmentVariable(name)` from `@shivaedev/test-sql/server/adapters/environmentVariable.ts` reads an optional string through Effect Config when declaring a kit's `runIf`.
+
 ### API
 
 Import each name from the module that defines it. The package has no root entry. Every source module is available through its `.ts` subpath, including modules under `server/internal/`.
@@ -262,6 +284,7 @@ Import each name from the module that defines it. The package has no root entry.
 | `@shivaedev/test-sql/server/migrationSteps.ts`       | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }`                                                                                                           |
 | `@shivaedev/test-sql/server/migrationUpgrade.ts`     | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn`                                                                                               |
 | `@shivaedev/test-sql/server/assertModelColumns.ts`   | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch`                                                                                                                         |
+| `@shivaedev/test-sql/server/observeUntil.ts`         | `observeUntil(read, settled, waitingFor, { every?, within?, stableReads? }?)`, `NeverSettled`, `ObserveOptions`                                                                            |
 
 `url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url`, an `awaitCleanup: Effect<void>` drain, a scoped `isolated` Effect that acquires a migrated clone's service Context, and `clone(template)` for an explicit `"empty"` or `"migrated"` choice. With `prepare: false`, both choices are empty. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures surface as SQL defects when the Layer closes. Drops that fail with connection exhaustion (SQLSTATE `53300`) retry every 100 ms of live time for up to 300 retries, even while a test clock is paused; if capacity does not return, the SQL defect remains visible. Startup sweeps databases left by dead processes on the same host and databases from the older unowned naming format. Databases owned by live processes or another host are retained, so local parallel workers keep their databases. Use the same host to reclaim its abandoned databases.
 

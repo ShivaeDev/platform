@@ -3,6 +3,7 @@ import { Clock, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
 import { appendSupervisorLog } from "./appendSupervisorLog.ts";
+import { observeLoadedCode } from "./observeLoadedCode.ts";
 import type { RunningCode } from "./supervisorCode.ts";
 
 export const logSupervisor = Effect.fn("FleetSupervisor.logSupervisor")(function* (log: string, message: string) {
@@ -18,8 +19,11 @@ export const startProcess = Effect.fn("FleetSupervisor.startProcess")(function* 
 	log: string,
 ) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+	const observer = new URL(`./adapters/recordLoadedCode.${import.meta.url.endsWith(".ts") ? "ts" : "js"}`, import.meta.url);
+	observer.searchParams.set("manifest", code.manifest);
 	const child = yield* spawner.spawn(
-		ChildProcess.make(process.execPath, [...process.execArgv, code.entry, ...args], {
+		ChildProcess.make(process.execPath, [...process.execArgv, "--import", observer.href, code.entry, ...args], {
+			additionalFds: { fd3: { type: "output" } },
 			env: { [processes.supervisorEnvironment]: token },
 			extendEnv: true,
 			stderr: "pipe",
@@ -27,6 +31,7 @@ export const startProcess = Effect.fn("FleetSupervisor.startProcess")(function* 
 			stdout: "pipe",
 		}),
 	);
+	const loaded = yield* observeLoadedCode(child);
 	const output = yield* Effect.forkScoped(
 		child.all.pipe(
 			Stream.decodeText,
@@ -63,5 +68,5 @@ export const startProcess = Effect.fn("FleetSupervisor.startProcess")(function* 
 		}).pipe(Effect.orDie),
 	);
 	yield* logSupervisor(log, `started ${name} pid ${child.pid} on ${code.revision}`);
-	return { exit: () => exit, pid: Number(child.pid) };
+	return { checkCode: loaded.check, exit: () => exit, pid: Number(child.pid) };
 });

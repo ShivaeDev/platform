@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Predicate } from "effect";
 import { SqlClient } from "effect/sql";
-import { words } from "#test/answers.ts";
+import { words } from "@shivaedev/test/answers.ts";
 import { type ClientAbortState, observed } from "./clientAbortFixture.ts";
 import { type HostState, io } from "./state.ts";
 import { attributesOf } from "./traceVerbs.ts";

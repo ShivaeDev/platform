@@ -18,7 +18,11 @@ import { notesUiVerbs } from "./uiVerbs.ts";
 export const screens = storyKit({
 	clock: "live",
 	create: createScreen,
-	inspect: (engine) => ({ calls: engine.client.calls, route: engine.router?.state.location.pathname, text: engine.view?.container.textContent }),
+	inspect: (engine) => ({
+		reads: engine.client.observed.reads(),
+		route: engine.router?.state.location.pathname,
+		text: engine.view?.container.textContent,
+	}),
 	name: "app screen",
 	stages: ["list", "screen", "elsewhere"],
 	verbs: (engine, story) => ({
@@ -41,7 +45,7 @@ export function heldNotesList() {
 
 export function editingNote() {
 	return screens.trait("screen", "the first note is open in the editor", function* (engine) {
-		engine.client = notesClient([{ id: 1, title: "First note", version: 0, wordCount: null }]);
+		engine.client = yield* notesClient([{ id: 1, title: "First note", version: 0, wordCount: null }]);
 		yield* openRoute(engine, "/notes/1");
 		yield* requireSetup(screenView(engine).container.querySelector("input")?.value === "First note", "The editor did not load First note");
 	});

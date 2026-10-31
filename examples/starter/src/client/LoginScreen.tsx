@@ -3,6 +3,7 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import type { AuthFailureCode } from "@shivaedev/react/client/authAction.ts";
 import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
@@ -74,7 +75,7 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 				</div>
 				{!action.pending && Option.isSome(failure) && (
 					<p className="text-destructive" role="alert">
-						{"_tag" in failure.value ? "Could not reach authentication. Try again." : (failure.value.message ?? "Authentication failed. Try again.")}
+						{authenticationMessage(failure.value.code)}
 					</p>
 				)}
 				<Button disabled={action.pending} type="submit">
@@ -94,4 +95,19 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 			</Button>
 		</main>
 	);
+}
+
+function authenticationMessage(code: AuthFailureCode) {
+	switch (code) {
+		case "INVALID_EMAIL_OR_PASSWORD":
+		case "INVALID_PASSWORD":
+			return "Invalid email or password";
+		case "USER_ALREADY_EXISTS":
+		case "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL":
+			return "Email is already registered";
+		case "UNKNOWN":
+			return "Could not reach authentication. Try again.";
+		default:
+			return "Authentication failed. Try again.";
+	}
 }

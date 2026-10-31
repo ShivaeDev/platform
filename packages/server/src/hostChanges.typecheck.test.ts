@@ -7,7 +7,7 @@ import { query } from "@shivaedev/contract/operation.ts";
 import { appHost } from "#appHost.ts";
 
 class Required extends Context.Service<Required, string>()("changes-test/Required") {}
-const Api = contract("changes", { queries: [query("read", { reads: () => [], success: Schema.String })] });
+const Api = contract("changes", { queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })] });
 const options = {
 	group: Api,
 	handlers: Api.application.toLayer({ "changes.read": () => Required }),

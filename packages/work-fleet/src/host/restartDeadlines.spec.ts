@@ -46,9 +46,6 @@ for (const name of ["daemon", "board"] as const) {
 				yield* fleet.changeBoardCode();
 			}
 			yield* fleet.waitForLog(`${name} ignored SIGTERM`);
-			if (name === "board") {
-				yield* fleet.ready("daemon", before.daemon.pid);
-			}
 			const siblingPid = yield* fleet.runningPid(sibling);
 			yield* fleet.crash(siblingPid);
 			yield* fleet.ready(sibling, siblingPid);

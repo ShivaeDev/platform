@@ -2,13 +2,13 @@ import type { Context, Effect, Fiber, Redacted } from "effect";
 import type { SqlClient } from "effect/sql";
 import type { PgBoss } from "pg-boss";
 import type { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { PgBossClient } from "#client.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
 import type { PgBossService } from "#service.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { type WorkLog, workLog } from "#test/workers.ts";
 import type { PgBossTesting } from "#testing.ts";
-import type { DisconnectGate } from "./disconnectGate.ts";
 
 export interface Runtime {
 	readonly client: PgBossClient;
@@ -17,6 +17,7 @@ export interface Runtime {
 	readonly startedAt: number;
 	readonly stop: Effect.Effect<void>;
 	readonly testing: PgBossTesting | undefined;
+	readonly worked: readonly string[];
 }
 
 export interface StoryPayload extends JobPayloadSchema {
@@ -40,7 +41,8 @@ export interface DatabaseEngine {
 	readonly changeWatches: Map<string, Fiber.Fiber<number>>;
 	readonly controllers: PgBossTesting[];
 	readonly enqueuedAt: Map<string, number>;
-	gate: DisconnectGate | undefined;
+	readonly fetchWatches: Map<string, Fiber.Fiber<unknown, unknown>>;
+	gate: Effect.Success<ReturnType<typeof disconnectProxy>> | undefined;
 	readonly idleReads: ("after the busy work went on" | "while work was busy")[];
 	readonly idleWaits: Map<string, Fiber.Fiber<void, unknown>>;
 	readonly jobs: Map<string, Labelled>;
@@ -87,6 +89,7 @@ export function databaseEngine(url: Redacted.Redacted<string>, sql: SqlClient.Sq
 		changeWatches: new Map(),
 		controllers: [],
 		enqueuedAt: new Map(),
+		fetchWatches: new Map(),
 		gate: undefined,
 		idleReads: [],
 		idleWaits: new Map(),

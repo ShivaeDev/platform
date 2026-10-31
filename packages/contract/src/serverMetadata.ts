@@ -2,7 +2,7 @@ import { Context, Effect, Option, Schema } from "effect";
 import { Rpc, type RpcSchema } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { QueryServices } from "#contract.ts";
-import { LiveHint } from "#live.ts";
+import { changesSuccess } from "#internal/changesSuccess.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { Viewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
@@ -15,6 +15,7 @@ export interface QueryRequest<E = unknown, R = unknown> {
 export class ChangesQueries extends Context.Service<
 	ChangesQueries,
 	{
+		readonly queries: readonly QueryShape[];
 		readonly resolve: (references: readonly QueryReference[]) => Effect.Effect<readonly QueryRequest[]>;
 	}
 >()("@shivaedev/contract/ChangesQueries") {}
@@ -67,7 +68,7 @@ export function changesRpc<const TName extends string, const TQueries extends re
 ): Rpc.Rpc<
 	`${TName}.$changes`,
 	Schema.Struct<{ queries: ReturnType<typeof referenceSchemas<TQueries>> }>,
-	RpcSchema.Stream<typeof LiveHint, ChangesError<TQueries>>,
+	RpcSchema.Stream<ReturnType<typeof changesSuccess<TQueries>>, ChangesError<TQueries>>,
 	Schema.Never,
 	never,
 	QueryServices<TQueries[number]>
@@ -77,8 +78,8 @@ export function changesRpc(name: string, queries: readonly QueryShape[]) {
 		error: Schema.Union([MissingReadPolicy, QueryReadDenied, ...queries.map((query) => query.error)]),
 		payload: { queries: referenceSchemas(queries) },
 		stream: true,
-		success: LiveHint,
-	}).annotate(ChangesQueries, { resolve: (references) => resolveQueries(queries, references) });
+		success: changesSuccess(queries),
+	}).annotate(ChangesQueries, { queries, resolve: (references) => resolveQueries(queries, references) });
 }
 
 export function operationAnnotations(operation: QueryShape | CommandShape | StreamShape, keyScope: "session" | undefined) {

@@ -5,14 +5,15 @@ import type { PgBossClient } from "#client.ts";
 import { defaultClientFactory } from "#defaultClientFactory.ts";
 import { PgBossError } from "#error.ts";
 import { registrationName } from "#internal/register.ts";
-import { type PgBossOptions, pgBossLayer } from "#service.ts";
+import { makePgBoss, type PgBossOptions, pgBossLayer } from "#service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
-import { makePgBossTesting, testRetryPolicy } from "#testing.ts";
+import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "#testing.ts";
 import { observeStops, observeWakes, pauseCompletion, sortBatches } from "./clientObservers.ts";
 import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
 export type StartOptions = PgBossOptions & {
+	readonly queueNames?: readonly string[];
 	readonly controller?: "production retries" | "test retries" | "none";
 	readonly finalizesInParallel?: true;
 	readonly handsBatchesOver?: "by priority";
@@ -49,7 +50,7 @@ export function provided<A, E, R>(engine: DatabaseEngine, runtime: string, effec
 	const logged = effect.pipe(
 		Effect.provide(Logger.layer([logger])),
 		Effect.provideService(References.MinimumLogLevel, "Debug"),
-		Effect.provideService(ApplicationLog, (line) => engine.timeline.push(line)),
+		Effect.provide(Layer.succeed(ApplicationLog, (line) => engine.timeline.push(line))),
 		Effect.withTracer(engine.trace.tracer),
 	);
 	return release === undefined ? logged : Effect.provideService(logged, WorkerRelease, release.service);
@@ -69,6 +70,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 	options: StartOptions = {},
 ) {
 	const {
+		queueNames,
 		controller,
 		finalizesInParallel,
 		handsBatchesOver,
@@ -102,10 +104,13 @@ export const startRuntime = Effect.fnUntraced(function* (
 			return client;
 		},
 	});
-	const layer = Jobs.layer({
-		jobs: registered,
-		...(reportsErrors === true ? { onError: (error: Error) => Effect.sync(() => engine.reported.push(error.message)) } : {}),
-	}).pipe(Layer.provide(clientLayer));
+	const service = queueNames === undefined ? Jobs : makePgBoss(Jobs.key, queueNames);
+	const layer = service
+		.layer({
+			jobs: registered,
+			...(reportsErrors === true ? { onError: (error: Error) => Effect.sync(() => engine.reported.push(error.message)) } : {}),
+		})
+		.pipe(Layer.provide(clientLayer));
 
 	const startedAt = yield* Clock.currentTimeMillis;
 	const built = yield* provided(engine, name, Layer.buildWithScope(layer, scope)).pipe(
@@ -134,6 +139,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 		startedAt,
 		stop: provided(engine, name, Scope.close(scope, Exit.void)),
 		testing,
+		worked: registered.filter((registration) => registration._tag !== "QueueDefinition").map(registrationName),
 	});
 });
 
@@ -143,6 +149,14 @@ export function runningIn(engine: DatabaseEngine, name: string): Runtime {
 		throw new Error(`${name} is not running: ${engine.startups.get(name) ?? "it never started"}`);
 	}
 	return found;
+}
+
+export function controllerWorking(engine: DatabaseEngine, queue: string): PgBossTesting {
+	const working = [...engine.runtimes.values()].findLast((runtime) => runtime.testing !== undefined && runtime.worked.includes(queue));
+	if (working?.testing === undefined) {
+		throw new Error(`No running runtime with a testing controller works ${queue}`);
+	}
+	return working.testing;
 }
 
 export function anyRuntime(engine: DatabaseEngine): Runtime {

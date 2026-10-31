@@ -28,6 +28,7 @@ export function views(records: readonly ViewRecord[]): typeof FleetViews.Type {
 			mergePrs: record.predictedConflictHold?.prs,
 			pr: record.result?.kind === "change" ? record.result.pr : undefined,
 			reason: record.blocker,
+			repairing: record.step === "repairing",
 			sweepItem: record.sweepHold?.workId,
 			waiting: fleetStage(record) === "waiting",
 		})),

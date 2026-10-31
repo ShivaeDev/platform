@@ -1,4 +1,5 @@
 import { Effect, type FileSystem, type PubSub, Stream } from "effect";
+import { readinessEvents } from "./readinessEvents.ts";
 
 export interface IndexAccesses {
 	readonly checks: string[];
@@ -22,6 +23,7 @@ export function watchedIndexFilesystem(fs: FileSystem.FileSystem, accesses: Inde
 		readFileString: (path, encoding) => track(accesses.reads, path, fs.readFileString(path, encoding)),
 		realPath: (path) => track(accesses.checks, path, fs.realPath(path)),
 		stat: (path) => track(accesses.checks, path, fs.stat(path)),
-		watch: (_path, options) => (options?.recursive ? Stream.fromPubSub(accesses.input) : Stream.never),
+		watch: (path, options) =>
+			options?.recursive ? Stream.merge(readinessEvents(fs, path, options), Stream.fromPubSub(accesses.input)) : Stream.never,
 	};
 }

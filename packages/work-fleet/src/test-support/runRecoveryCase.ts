@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { enterRecoveryCase } from "#test/enterRecoveryCase.ts";
 import { answerReport } from "#test/report.ts";
+import { openFleetBoard } from "#test/withFleetBoard.ts";
 
 export function runRecoveryCase(state: EngineStory, tell: (line: string) => void) {
 	let entered: Effect.Success<ReturnType<typeof enterRecoveryCase>> | undefined;
@@ -63,6 +66,16 @@ export function runRecoveryCase(state: EngineStory, tell: (line: string) => void
 					Effect.map(({ value }) => observe(value)),
 				),
 			),
+		recoveryBrief: () => readFileSync(join(stopped().context.root, "one.md"), "utf8"),
+		recoveryDecisionState: () =>
+			Effect.gen(function* () {
+				const { context, decision } = stopped();
+				if (decision.published === undefined) {
+					return yield* Effect.die("Missing published decision");
+				}
+				const board = yield* openFleetBoard(context.root);
+				return (yield* board.readDecision(decision.published))._tag.toLowerCase();
+			}),
 		recoveryEvidence: () =>
 			Effect.gen(function* () {
 				const { scenario, submissionCalls } = stopped();

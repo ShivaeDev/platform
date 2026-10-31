@@ -1,16 +1,10 @@
 import { Effect } from "effect";
 import { act, type ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
-import { beforeEach, vi } from "vitest";
-import { eventually, expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 export const screenWarnings = expectNoReactWarnings();
-beforeEach(({ onTestFinished }) => {
-	onTestFinished(() => {
-		vi.useRealTimers();
-	});
-});
 
 export function typeInput(container: HTMLElement, name: string, value: string) {
 	const field = container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
@@ -62,10 +56,6 @@ export class Screen {
 				await run();
 			});
 		});
-	}
-	observe(line: string, check: () => void) {
-		this.tell(line);
-		return eventually(check);
 	}
 	inspect() {
 		return {

@@ -1,8 +1,26 @@
 import { Effect } from "effect";
-import { eventually } from "@shivaedev/test/eventually.ts";
+import { answerWord, hintWord } from "./hintWords.ts";
 import { privateClient } from "./privateClient.ts";
 import { type ProcessEngine, process } from "./processEngine.ts";
-import { startProcess, until } from "./processHarness.ts";
+import { startProcess } from "./startProcess.ts";
+
+type PrivateClient = "writer" | "reader" | "bob";
+
+function privateClientOf(engine: ProcessEngine, name: string) {
+	const found = engine.privateClients.get(name);
+	if (!found) {
+		throw new Error(`Missing private client ${name}`);
+	}
+	return found;
+}
+
+function since(engine: ProcessEngine, name: PrivateClient) {
+	return privateClientOf(engine, name).delivered.items.slice(engine.marks.get(name) ?? 0);
+}
+
+function deliveredSinceMark(engine: ProcessEngine, ...names: readonly PrivateClient[]) {
+	return Promise.all(names.map((name) => privateClientOf(engine, name).delivered.when(() => since(engine, name).length > 0)));
+}
 
 export const openPrivateCluster = Effect.fn("PrivateSessions.openPrivateCluster")(function* (engine: ProcessEngine) {
 	for (const name of ["first", "second"]) {
@@ -23,52 +41,53 @@ export const openPrivateCluster = Effect.fn("PrivateSessions.openPrivateCluster"
 		);
 		engine.privateClients.set(name, client);
 	}
-	yield* Effect.promise(() => until(() => [...engine.privateClients.values()].every((client) => client.delivered.length > 0)));
+	yield* Effect.promise(() => Promise.all([...engine.privateClients.values()].map((client) => client.delivered.when((items) => items.length > 0))));
+	for (const [name, client] of engine.privateClients) {
+		engine.marks.set(name, client.delivered.items.length);
+	}
 });
+
+export const holdPrivateSave = Effect.fn("PrivateSessions.holdPrivateSave")(function* (engine: ProcessEngine, title: string) {
+	const host = process(engine, "first");
+	yield* Effect.promise(() => host.send({ _tag: "Hold" }, "Held"));
+	const entered = host.next("Entered");
+	engine.privateSaving.pending = privateClientOf(engine, "writer").save(title);
+	yield* Effect.promise(() => entered);
+});
+
 export function privateVerbs(engine: ProcessEngine, tell: (line: string) => void) {
-	function client(name: string) {
-		const found = engine.privateClients.get(name);
-		if (!found) {
-			throw new Error(`Missing private client ${name}`);
-		}
-		return found;
+	async function save(name: PrivateClient, title: string) {
+		engine.answers.push(answerWord(await privateClientOf(engine, name).save(title)));
 	}
 	return {
-		beginPrivateSave: (title: string) =>
-			Effect.sync(() => {
-				tell(`Alice submits ${title}`);
-				engine.privateSaving.pending = client("writer").save(title);
-			}),
-		holdPrivateCommit: () =>
-			Effect.gen(function* () {
-				tell("the first host holds its next transaction before commit");
-				const host = process(engine, "first");
-				host.child.send({ _tag: "Hold" });
-				yield* Effect.promise(() => host.wait("Held"));
-			}),
-		observePrivate: (check: () => void) => eventually(Effect.try({ catch: (error) => error, try: check })),
-		privateCommitEntered: () => Effect.promise(() => process(engine, "first").wait("Entered")),
-		privateDeliveries: (name: string) => [...client(name).delivered],
-		privateRead: (name: string) => Effect.promise(() => client(name).read()),
-		privateSave: (title: string) => {
-			tell(`Alice saves ${title} on the first host`);
-			return Effect.promise(() => client("writer").save(title));
-		},
-		privateSaveResult: () =>
+		bobSaves: (title: string) =>
 			Effect.promise(async () => {
-				if (!engine.privateSaving.pending) {
+				tell(`Bob saves his own title ${title}`);
+				await save("bob", title);
+				await deliveredSinceMark(engine, "bob");
+			}),
+		privateDeliveries: (name: PrivateClient) =>
+			Effect.sync(() => since(engine, name).map(({ hint, list, title }) => `${hintWord(hint).split(" ")[0]}: ${title} / ${list.join(", ")}`)),
+		privateRead: (name: PrivateClient) => Effect.promise(() => privateClientOf(engine, name).read()),
+		privateSaves: () => Effect.sync(() => [...engine.answers]),
+		rejectedPrivateSave: (title: string) =>
+			Effect.promise(async () => {
+				tell(`the first host rejects Alice's save of ${title}; then she saves After rollback`);
+				await process(engine, "first").send({ _tag: "Reject" }, "Rejected");
+				await save("writer", title);
+				await save("writer", "After rollback");
+				await deliveredSinceMark(engine, "writer", "reader");
+			}),
+		releasePrivateCommit: () =>
+			Effect.promise(async () => {
+				tell("the first host commits Alice's held save");
+				process(engine, "first").child.send({ _tag: "Release" });
+				const pending = engine.privateSaving.pending;
+				if (!pending) {
 					throw new Error("No private save is pending");
 				}
-				return await engine.privateSaving.pending;
+				engine.answers.push(answerWord(await pending));
+				await deliveredSinceMark(engine, "writer", "reader");
 			}),
-		rejectNextPrivateCommit: () =>
-			Effect.gen(function* () {
-				tell("the first host will reject its next transaction");
-				const host = process(engine, "first");
-				host.child.send({ _tag: "Reject" });
-				yield* Effect.promise(() => host.wait("Rejected"));
-			}),
-		releasePrivateCommit: () => Effect.sync(() => process(engine, "first").child.send({ _tag: "Release" })),
-		settlePrivate: () => Effect.sleep("300 millis"),
 	};
 }

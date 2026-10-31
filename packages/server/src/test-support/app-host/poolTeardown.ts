@@ -1,21 +1,18 @@
 import { Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#appHost.ts";
-import { connectionGate } from "#test/connectionGate.ts";
 
 export const poolTeardown = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
 		const database = yield* PostgresTestDatabase;
-		const gate = yield* Effect.acquireRelease(
-			Effect.promise(() => connectionGate(Redacted.value(database.url))),
-			(resource) => Effect.promise(resource.close),
-		);
+		const gate = yield* disconnectProxy(Redacted.value(database.url), { holdDisconnects: true });
 		const scope = yield* Scope.fork(yield* Scope.Scope);
 		yield* Effect.addFinalizer(() => Effect.sync(gate.release));
 		const name = `pool-teardown-${crypto.randomUUID()}`;

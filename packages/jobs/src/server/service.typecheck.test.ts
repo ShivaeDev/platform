@@ -1,9 +1,9 @@
 import { Context, type Duration, Effect, Layer, Option, Redacted, Schema, SchemaGetter } from "effect";
 import { expectTypeOf } from "vitest";
+import { defineSchedule } from "#defineSchedule.ts";
 import { defineQueue, type JobContext } from "#definition.ts";
-import type { PgBossClientOptionsError, PgBossError, PgBossQueueOptionsError } from "#error.ts";
+import type { PgBossClientOptionsError, PgBossError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#error.ts";
 import { makePgBoss, type PgBossDefinition, pgBossLayer } from "#service.ts";
-import { defineSchedule } from "./defineSchedule.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
 
@@ -25,7 +25,7 @@ const layer = Jobs.layer({ jobs: [Queue.handle((payload) => Effect.map(HandlerDe
 	Layer.provide(pgBossLayer({ connectionString: Redacted.make("postgresql://compile-only") })),
 );
 
-expectTypeOf<Layer.Error<typeof layer>>().toEqualTypeOf<PgBossError | PgBossQueueOptionsError | PgBossClientOptionsError>();
+expectTypeOf<Layer.Error<typeof layer>>().toEqualTypeOf<PgBossError | PgBossQueueNamesError | PgBossQueueOptionsError | PgBossClientOptionsError>();
 
 const boot = Effect.asVoid(Jobs).pipe(Effect.provide(layer));
 // @ts-expect-error The handler's service requirement remains visible on the Layer.

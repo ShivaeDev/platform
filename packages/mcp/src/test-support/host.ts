@@ -4,10 +4,10 @@ import { admin, jwt, testUtils } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
 import type { McpClient } from "effect/ai";
 import { RpcGroup } from "effect/rpc";
-import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
 import { jwksEndpoint } from "./jwksEndpoint.ts";
@@ -25,8 +25,7 @@ async function availablePort() {
 }
 
 const startHost = Effect.gen(function* () {
-	const database = yield* PostgresTestDatabase;
-	const pool = yield* authDatabase(database.url);
+	const pool = yield* betterAuthDatabase();
 	const port = yield* Effect.promise(availablePort);
 	const baseUrl = `http://127.0.0.1:${port}`;
 	const resource = `${baseUrl}/mcp`;

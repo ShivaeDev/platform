@@ -2,17 +2,17 @@ import { ConfigProvider, Effect, Fiber, Layer, Queue, Redacted, Schema, Stream }
 import { Migrator, SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
 import { PostgresListenerError } from "@shivaedev/sql/PostgresListenerError.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppChanges, appHost } from "#appHost.ts";
 import type { DatabaseConfig } from "#databaseLayer.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 import { hintWords } from "#test/rpc/followHints.ts";
-import { notificationProxy } from "./notificationProxy.ts";
 
 const notes = collection("notes", Schema.Number);
 
@@ -33,10 +33,7 @@ function build(config: DatabaseConfig, env: Record<string, string>) {
 
 const engine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
-	const proxy = yield* Effect.acquireRelease(
-		Effect.promise(() => notificationProxy(Redacted.value(database.url))),
-		(resource) => Effect.promise(resource.close),
-	);
+	const proxy = yield* disconnectProxy(Redacted.value(database.url), { dropNotifications: true });
 	const hints = yield* Queue.unbounded<string>();
 	let context: Effect.Success<ReturnType<typeof build>> | undefined;
 	let starting: Fiber.Fiber<string | { failure: string; setting: string; message: string }> | undefined;

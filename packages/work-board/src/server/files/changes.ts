@@ -3,6 +3,7 @@ import { registerInvalidations, trackInvalidations } from "./invalidations.ts";
 import type { MarkdownFile } from "./list.ts";
 import { updateFiles } from "./update.ts";
 import { watchDirectories } from "./watchDirectories.ts";
+import { unconfirmedWatch } from "./watchSentinel.ts";
 
 export type Change = ({ readonly _tag: "Changed"; readonly paths: readonly string[] } | { readonly _tag: "Watching"; readonly watching: boolean }) & {
 	readonly sequence?: number;
@@ -82,6 +83,7 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 		settled: finishPending,
 		setWatching,
 		stale,
+		unconfirmed: yield* Effect.cached(unconfirmedWatch(realRoot)),
 	});
 	yield* attempt.pipe(
 		Effect.sandbox,

@@ -7,9 +7,9 @@ import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
+import { answered } from "@shivaedev/test/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppChanges, appHost } from "#appHost.ts";
-import { answered } from "#test/answers.ts";
 import { hintWords } from "#test/rpc/followHints.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("test/ChangesGreeting") {}

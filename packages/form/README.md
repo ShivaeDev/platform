@@ -10,7 +10,6 @@ An input gives you a string; your service needs a number. Meanwhile, fresh serve
 const order = form(Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString }), {
 	initialValues: { name: "Paper", quantity: "300" },
 	onSubmit: Effect.succeed,
-	runtime,
 });
 
 order.change("name", "Copy paper");
@@ -29,21 +28,19 @@ The **baseline** is the encoded value against which the form recognizes edits. I
 
 Keep one form instance for one editing session. Use a new instance for a different entity or user session. Query acquisition, entity identity, normalized saved rows and create-reset orchestration can be composed with [`useEditor` and `useCreate`](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md) from `@shivaedev/react`.
 
-### Once per application: supply the runtime and registry
+### Once per application: supply services and a registry
 
-`form` takes an atom runtime. Build its Layer from the services your submit handler and field checks need. A handler that reads a service outside that runtime's declared dependencies does not compile. The handler's type also permits the native `Scope`, `AtomRegistry` and `Reactivity` services.
+`form` uses an empty atom runtime when the handler, field checks and schema decoding need no application services. To use application services, pass `runtime: Atom.runtime(layer)` with a Layer that provides them. Missing service dependencies fail to compile. The native `Scope`, `AtomRegistry` and `Reactivity` services are available without a supplied runtime.
 
 Use an `AtomRegistry` to mount and read atoms and write the submit atom. Own its lifetime at the application boundary. In React, provide that registry through `RegistryContext` from `@effect/atom-react`.
 
 ### Once per feature: define fields and submission
 
 ```ts
-import { Effect, Layer, Schema } from "effect";
-import * as Atom from "effect/reactivity/Atom";
+import { Effect, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { form } from "@shivaedev/form/form.ts";
 
-const runtime = Atom.runtime(Layer.empty);
 const fields = Schema.Struct({
 	name: Schema.NonEmptyString,
 	quantity: Schema.NumberFromString,
@@ -52,7 +49,6 @@ const fields = Schema.Struct({
 const order = form(fields, {
 	initialValues: { name: "Paper", quantity: "300" },
 	onSubmit: (values, submitter) => (values.name === "reserved" ? submitter.fail("name", "Choose another name") : Effect.succeed(values)),
-	runtime,
 });
 
 const registry = AtomRegistry.make();
@@ -77,15 +73,13 @@ The handler has three arguments: decoded values, the submitter, and the submitte
 
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
-import { Effect, Layer, Schema } from "effect";
-import * as Atom from "effect/reactivity/Atom";
+import { Effect, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { form } from "@shivaedev/form/form.ts";
 import { useDirty, useField, useSubmit } from "@shivaedev/form/client/react.ts";
 
-const runtime = Atom.runtime(Layer.empty);
 const fields = Schema.Struct({ name: Schema.NonEmptyString, quantity: Schema.NumberFromString });
 
 function OrderEditor() {
@@ -93,7 +87,6 @@ function OrderEditor() {
 		form(fields, {
 			initialValues: { name: "Paper", quantity: "300" },
 			onSubmit: Effect.succeed,
-			runtime,
 		}),
 	);
 	const name = useField(order, "name");
@@ -174,7 +167,6 @@ const order = form(fields, {
 	initialValues: { name: "Paper", quantity: "300" },
 	onSubmit: Effect.succeed,
 	persistedDraft: { key: "order:123", now, storage: () => window.localStorage },
-	runtime,
 });
 ```
 
@@ -191,7 +183,6 @@ function OrderEditor({ now }: { readonly now: () => number }) {
 			initialValues: { name: "Paper", quantity: "300" },
 			onSubmit: Effect.succeed,
 			persistedDraft,
-			runtime,
 		}),
 	);
 	return <OrderFields form={order} />;
@@ -220,7 +211,6 @@ const profile = form(Schema.Struct({ name: Schema.String }), {
 	debounce: "300 millis",
 	initialValues: { name: "" },
 	onSubmit: Effect.succeed,
-	runtime,
 });
 ```
 
@@ -241,7 +231,6 @@ const answers = form(
 		arrayKeys: { answers: (answer) => answer.id },
 		initialValues: { answers: [{ id: "question", text: "Yes" }] },
 		onSubmit: (_values, submitter) => submitter.fail(["answers", 0, "text"], "This answer is closed"),
-		runtime,
 	},
 );
 ```
@@ -283,7 +272,7 @@ Import the module that defines a name; there is no root entry.
 | Option           | Type or role                                                                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `initialValues`  | `Encoded<F>`                                                                                                                                              |
-| `runtime`        | Atom runtime for the handler/check services and schema decoding services                                                                                  |
+| `runtime`        | Optional when no application services are needed; otherwise an atom runtime for handler/check and schema decoding services                                |
 | `onSubmit`       | `(values, submitter, submitted) => Effect<A, E, R>`; the three arguments are decoded values, field failure helper and encoded snapshot                    |
 | `checks`         | Optional functions keyed by field, from encoded input to an Effect of `string \| undefined`                                                               |
 | `arrayKeys`      | Optional `ArrayKeys<F>` selectors keyed by top-level array field, from encoded element to stable `PropertyKey`; retains nested feedback across reordering |

@@ -38,12 +38,14 @@ export const caughtErrorScreen = storyKit({
 	name: "caught error screen",
 	stages: ["screen"],
 	verbs: (state, story) => ({
+		alert: () => Effect.sync(() => state.roots.at(-1)?.container.querySelector('[role="alert"]')?.textContent ?? "no alert"),
 		expectCaughtError: warnings.expectCaughtError,
+		heading: () => Effect.sync(() => state.roots.at(-1)?.container.querySelector("h1")?.textContent ?? "no heading"),
 		logError: (message: string) => Effect.sync(() => vi.mocked(console.error)(message)),
 		openRoute: (failure: Error | null, options?: RootOptions, warning = false) =>
 			Effect.acquireRelease(
 				Effect.promise(async () => {
-					story.tell("open the route screen");
+					story.tell(failure === null ? "open a route that loads" : `open a route whose loader throws ${failure.name}: ${failure.message}`);
 					const router = failureRouter(failure, warning);
 					await router.load();
 					const view = await render(<RouterProvider router={router} />, options);
@@ -51,6 +53,6 @@ export const caughtErrorScreen = storyKit({
 					return view;
 				}),
 				(view) => Effect.promise(view.unmount),
-			),
+			).pipe(Effect.asVoid),
 	}),
 });

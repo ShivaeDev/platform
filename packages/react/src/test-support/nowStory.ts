@@ -6,8 +6,10 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { useNow } from "#client/useNow.ts";
 import { Screen } from "#test/Screen.ts";
 
+const INTERVAL = 1000;
+
 function Time({ runtime }: { readonly runtime: Atom.AtomRuntime<never> }) {
-	return createElement("output", null, String(useNow(1000, runtime)));
+	return createElement("output", null, String(useNow(INTERVAL, runtime)));
 }
 
 export const nowStory = storyKit({
@@ -23,11 +25,11 @@ export const nowStory = storyKit({
 	inspect: ({ view }) => ({ time: view.container.textContent }),
 	name: "component clock",
 	stages: ["screen"],
-	verbs: ({ run, screen, view }, story) => ({
-		advance: (duration: number) => {
-			story.tell(`advance the clock by ${duration} milliseconds`);
-			return screen.act("advance time", () => run(TestClock.adjust(duration)));
-		},
-		time: () => view.container.textContent,
-	}),
+	verbs: ({ run, screen, view }, story) => {
+		screen.tell = story.tell;
+		return {
+			intervalsPass: (count: number) => screen.act(`${count} intervals of ${INTERVAL} ms pass`, () => run(TestClock.adjust(count * INTERVAL))),
+			shownTime: () => Effect.sync(() => view.container.textContent),
+		};
+	},
 });

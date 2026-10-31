@@ -6,7 +6,7 @@ import { contract } from "#contract.ts";
 import type { LiveHint } from "#live.ts";
 import { command, query, stream } from "#operation.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
-import { type Denied, type Guard, type NoteMissing, Notes } from "#test/notes.ts";
+import { Denied, type Guard, type NoteMissing, Notes } from "#test/notes.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
 type Changes = Rpc.ExtractTag<Rpcs, "notes.$changes">;
@@ -35,7 +35,7 @@ expectTypeOf(Notes.application).toEqualTypeOf<typeof Explicit>();
 
 const Mixed = contract("mixed", {
 	commands: [command("write", { invalidates: () => [] })],
-	queries: [query("read", { reads: () => [], success: Schema.Number })],
+	queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.Number })],
 	streams: [stream("follow", { reads: () => [], success: Schema.String })],
 });
 type MixedRead = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Mixed>, "mixed.read">;
@@ -56,3 +56,27 @@ client("notes.$changes", { queries: [{ payload: { id: 1, title: "Changed" }, que
 client("notes.$changes", { queries: [{ payload: { id: "one" }, query: "get" }] });
 // @ts-expect-error Raw keys are not a subscription payload.
 client("notes.$changes", { keys: [] });
+
+const Pushed = contract("pushed", {
+	queries: [
+		query("read", {
+			live: "rerun-and-compare",
+			readPolicy: () => Effect.succeed(true),
+			reads: () => [],
+			rejections: { Denied },
+			success: Schema.BigIntFromString,
+		}),
+		query("hinted", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String }),
+	],
+});
+type PushedChanges = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Pushed>, "pushed.$changes">;
+expectTypeOf<Rpc.SuccessChunk<PushedChanges>>().toEqualTypeOf<
+	| LiveHint
+	| {
+			readonly _tag: "Result";
+			readonly query: "read";
+			readonly queryIndex: number;
+			readonly value: bigint;
+	  }
+>();
+expectTypeOf<Rpc.ErrorExit<PushedChanges>>().toEqualTypeOf<MissingReadPolicy | QueryReadDenied | Denied>();

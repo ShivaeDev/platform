@@ -13,21 +13,22 @@ export async function persistedDraftView(
 	view: Rendered,
 	persistedDraft: BrowserDraftConfig,
 	save: Save = (values) => Effect.succeed({ ...values, quantity: String(values.quantity) }),
+	session = "first",
 ) {
 	const query = Atom.make<AsyncResult.AsyncResult<Row>>(AsyncResult.success(draftInitial));
 	const held: Held = {};
-	function node(session: string | undefined, visible = true, mode: "visible" | "hidden" = "visible") {
+	function node(shownSession: string | undefined, visible = true, mode: "visible" | "hidden" = "visible") {
 		return (
 			<StrictMode>
 				<Activity mode={mode}>
-					<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session={session} signedOut="Signed out">
+					<SessionBoundary connect={() => undefined} identify={(id) => id} recheck={() => undefined} session={shownSession} signedOut="Signed out">
 						{() => (visible ? <DraftScreen held={held} persistedDraft={persistedDraft} query={query} save={save} /> : null)}
 					</SessionBoundary>
 				</Activity>
 			</StrictMode>
 		);
 	}
-	await view.render(node("first"));
+	await view.render(node(session));
 	function editor() {
 		if (!held.current?.form) {
 			throw new Error("Expected an editor form");
@@ -36,7 +37,7 @@ export async function persistedDraftView(
 	}
 	return {
 		...view,
-		activity: (mode: "visible" | "hidden") => view.render(node("first", true, mode)),
+		activity: (mode: "visible" | "hidden") => view.render(node(session, true, mode)),
 		change: (name: "name" | "quantity", value: string) =>
 			act(() => {
 				typeInput(view.container, name, value);
@@ -53,6 +54,6 @@ export async function persistedDraftView(
 			act(() => {
 				submitForm(view.container);
 			}),
-		show: (session: string | undefined, visible = true) => view.render(node(session, visible)),
+		show: (shownSession: string | undefined, visible = true) => view.render(node(shownSession, visible)),
 	};
 }
