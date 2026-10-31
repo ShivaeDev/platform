@@ -31,7 +31,15 @@ export const makePostgresClient = Effect.fn("Sql.makePostgresClient")(function* 
 		[PgClient.TypeId]: PgClient.TypeId,
 		config,
 		json: (value: unknown) => Statement.fragment([json(value)]),
-		listen: (channel: string) => Effect.flatMap(pool.reserve, (connection) => connection.listen(channel)),
+		listen: (channel: string) =>
+			Effect.gen(function* () {
+				// TTL checkout retains expired leases until its scope closes; LISTEN must not pin those old backends for another lifetime.
+				if (pool.config.connectionTTL !== undefined) {
+					yield* pool.use(() => Effect.void);
+				}
+				const connection = yield* pool.reserve;
+				return yield* connection.listen(channel);
+			}),
 		notify: (channel: string, payload: string) =>
 			pool.use((connection) => connection.query("SELECT pg_notify($1, $2)", [channel, payload])).pipe(Effect.asVoid),
 	}) satisfies PgClient.PgClient;

@@ -38,7 +38,7 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 			secret: "role-management-story-secret-at-least-32-characters",
 			session: { cookieCache: { enabled: false } },
 		},
-		{ roles: Access },
+		{ defaultRole: "user", roles: Access },
 	).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	const context = yield* Effect.promise(() => mounted.auth.$context);
 	yield* Effect.promise(() => context.runMigrations());

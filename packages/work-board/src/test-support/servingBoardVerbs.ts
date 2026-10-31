@@ -179,7 +179,7 @@ export function servingBoardVerbs(engine: BoardEngine, tell: (line: string) => v
 			tell("the Claude Code plugin's overview tool reads the board");
 			return Effect.promise(() => overview(pluginTools()));
 		},
-		pluginSection: (section: "asks" | "flights" | "goals", at: number) => {
+		pluginSection: (section: "areas" | "asks" | "flights" | "goals", at: number) => {
 			tell(`the Claude Code plugin reads the board's ${section}`);
 			return Effect.map(pluginBoard(at), (board) => board[section]);
 		},

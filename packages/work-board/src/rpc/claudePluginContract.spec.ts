@@ -20,6 +20,9 @@ const aLaunch = projectFiles(
 );
 
 const aBuildInFlight = fleetReports({
+	areas: [
+		{ area: "work-board", holders: [{ prUrl: "https://github.com/example/project/pull/7", stage: "working", workId: "task.build" }], queue: [] },
+	],
 	completed: [],
 	items: [
 		{
@@ -40,7 +43,7 @@ const aBuildInFlight = fleetReports({
 });
 
 boardStory.it(
-	"the plugin's board read shows the open decision, the build in flight and the launch goal's progress",
+	"the plugin's board read shows the open decision, the build in flight, the area it holds and the launch goal's progress",
 	[aLaunch, aBuildInFlight],
 	function* ({ board, pluginSection }) {
 		const flight = {
@@ -55,6 +58,20 @@ boardStory.it(
 			workId: "task.build",
 		};
 		yield* outcomes([
+			[
+				"areas",
+				() => pluginSection("areas", NOW),
+				{
+					items: [
+						{
+							area: "work-board",
+							holders: [{ prUrl: "https://github.com/example/project/pull/7", stage: "working", title: "Build the page", workId: "task.build" }],
+							queue: [],
+						},
+					],
+					problem: null,
+				},
+			],
 			[
 				"asks",
 				() => pluginSection("asks", NOW),

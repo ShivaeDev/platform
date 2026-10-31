@@ -10,7 +10,10 @@ import { databaseAddress } from "#databaseAddress.ts";
 
 export interface PostgresOptions extends SqlNameTransforms {
 	readonly applicationName?: string | undefined;
+	readonly "connectionTTL"?: PgPool.Config["connectionTTL"];
+	readonly idleTimeout?: PgPool.Config["idleTimeout"];
 	readonly maxConnections?: number | undefined;
+	readonly minConnections?: PgPool.Config["minConnections"];
 }
 
 export function postgresLayer(url: Redacted.Redacted<string>, options?: PostgresOptions) {

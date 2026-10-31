@@ -5,6 +5,7 @@ import { flight, goal } from "#test/summaryFixtures.ts";
 describe("the board summary", () => {
 	it("sums Needs you, In flight and goal progress, with ? for a query the Board could not answer", () => {
 		const ready = {
+			areas: { items: [], problem: null },
 			asks: { items: [{ key: "open:a", title: "A", url: null }], problem: null },
 			flights: { items: [flight("one", "working", null)], problem: null },
 			goals: { items: [goal("goal.a", 3, 1, 5), goal("goal.b", 2, 0, 2)], problem: null },

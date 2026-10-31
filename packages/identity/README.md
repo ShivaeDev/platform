@@ -137,7 +137,7 @@ For email sign-in through `appHost`, the session record's `ipAddress` follows th
 
 ### Role assignments
 
-Pass `{ roles: AppAccess }` as the second argument to `betterAuthMount`. Identity adds `/admin/set-role`, `/admin/update-user` and `/admin/create-user` to the disabled HTTP paths and sets the Better Auth admin plugin's `adminRoles` to `[]`. Existing disabled paths remain in effect. The admin Users page remains the application path for role changes.
+Pass `{ defaultRole: "member", roles: AppAccess }` as the second argument to `betterAuthMount`. Identity adds `/admin/set-role`, `/admin/update-user` and `/admin/create-user` to the disabled HTTP paths and sets the Better Auth admin plugin's `adminRoles` to `[]`. Existing disabled paths remain in effect. The admin Users page remains the application path for role changes.
 
 Seeds and trusted operator commands use the same transactional write and last-role-assigner guard as the Users page:
 
@@ -350,11 +350,31 @@ import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts
 
 const UseTools = permission("tools.use");
 const Access = roleSet(role("member", []), role("operator", [UseTools]));
-const mounted = yield* betterAuthMount(authOptions, { roles: Access });
+const mounted = yield* betterAuthMount(authOptions, { defaultRole: "member", roles: Access });
 const sessions = { ...mounted.sessions, origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }) };
 ```
 
-For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. An undeclared stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
+For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. A missing or null stored role refuses access with `Forbidden` (HTTP 403 at the session endpoint) and logs the fix: run `migrateBetterAuth` with `defaultRole`, then use `assignRole` for administrators. An undeclared non-null stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
+
+### Adopting stored roles with existing users
+
+Identity declares `user.additionalFields.role` when the mount has `roles` and `defaultRole`. Choose a default from your application's role set, such as `member`. It is a required string and cannot be supplied by sign-up input. No `additionalFields` entry or Better Auth `admin()` plugin is needed.
+1. Add a numbered application migration that calls `migrateBetterAuth(authOptions, { defaultRole: "member" })`. Run it before deploying the mount with roles. PostgreSQL fills existing users when the column is added; identity also fills null roles when adopting a nullable role column. Both fresh and upgraded schemas finish with a `text NOT NULL DEFAULT 'member'` column. The migration keeps existing non-null roles.
+2. Mount with `betterAuthMount(authOptions, { defaultRole: "member", roles: Access })`, using the same default as the migration. New users get that role. Remove any app-owned role field configuration and the admin plugin if you used it only for roles.
+3. In a trusted server-side bootstrap process, call `assignRole(Access, existingUserId, "admin")` to make the first administrator. Provide the application's SQL Layer and Effect Reactivity, as for other role changes. `Access` must declare `admin` with the permissions that administrator needs, including `AssignRoles` to manage other users. Do not expose the bootstrap process as an unauthenticated endpoint.
+
+```ts
+import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
+import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/migrate.ts";
+
+export default migrateBetterAuth(authOptions, { defaultRole: "member" });
+
+const changed = yield* assignRole(Access, existingUserId, "admin");
+```
+
+Use a numbered migration for schema adoption and a separate bootstrap command for the assignment. Existing sessions read the stored role on their next request. In an isolated story database, `const storage = yield* authTestDatabase; yield* storage.migrate(authOptions)` builds the schema without a role field when the options omit it; store users through `signedInUser`, then call `storage.migrate(authOptions, { defaultRole: "member" })` to exercise adoption without writing SQL against auth tables.
+
+### Permission middleware
 
 Declare a native middleware service for each required permission and provide its Layer beside the handlers:
 
@@ -489,7 +509,7 @@ Run the auth schema migration before the app migration. Use `ON DELETE CASCADE` 
 
 Use `testUtils()` from `better-auth/plugins` in a test-only Better Auth instance with the host's database, secret and cookie policy. Keep the plugin out of production auth options.
 
-Use `authTestDatabase` from `@shivaedev/identity/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus the test-only faults `expireSessions(userId?)` and `omitImageColumn`. Pass a user id to expire only that user's sessions, or call `expireSessions()` to expire every session. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and read `SqlClient` from the Effect environment; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
+Use `authTestDatabase` from `@shivaedev/identity/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus `migrate(options, roleOptions?)`, `roleColumn` (PostgreSQL type, nullability and default), `userRoles` (emails and roles), and the test-only faults `expireSessions(userId?)`, `omitImageColumn` and `omitRole(userId)`. The last fault makes a role nullable and clears that user's role to model a partial migration. Pass a user id to expire only that user's sessions, or call `expireSessions()` to expire every session. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and read `SqlClient` from the Effect environment; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
 
 `authTestDatabase` also exposes `sessionsFor(userId)`, returning that user’s stored sessions as `{ id, expiresAt, expired }`. `expiresAt` is a native Effect UTC value; `expired` compares it with Effect’s current clock. Expired sessions remain visible until removed. Revocation deletes a session, so its id disappears from this readout; it keeps no revocation history. For expiry stories, advance `TestClock` to the minted session’s expiry instead of rewriting storage timestamps. Identity’s Better Auth session provider, session administration list and expired-session sweep use Effect’s clock. Better Auth’s own auth endpoints, session creation and refresh still use the provider’s clock.
 
@@ -510,7 +530,7 @@ const { user, headers, cookies } = await signedInUser(testAuth, {
 });
 ```
 
-`options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. Roles require the application's role plugin, such as Better Auth's `admin()`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+`options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. To mint users with roles, use the auth instance returned by `betterAuthMount(options, { defaultRole: "member", roles: Access })`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
 
 `passwordUser(auth, { email, password, ...fields })` from the same testing module saves a user and a credential account using Better Auth's configured password hasher, and returns an Effect containing the user without minting a session. Use it for the one story that signs in through `/api/auth/sign-in/email`; keep feature stories on `signedInUser` so they avoid password hashing.
 

@@ -18,6 +18,11 @@ export const storedRole = storyKit({
 			story.tell("alice requests her profile over RPC");
 			return host.profile();
 		},
+		recordedLogs: host.recordedLogs,
+		removeRole: () => {
+			story.tell("alice has a null role in a partially migrated database");
+			return host.missingRole();
+		},
 		sessionStatus: () => {
 			story.tell("alice requests her session through Better Auth's HTTP endpoint");
 			return host.session().pipe(Effect.map((response) => response.status));

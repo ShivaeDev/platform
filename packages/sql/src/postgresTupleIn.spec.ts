@@ -17,6 +17,7 @@ queries.it(
 					[1, 10],
 					[2, 40],
 				],
+				{ "amount": "text", "sourceKey": "int4" },
 			),
 		});
 
@@ -36,7 +37,11 @@ queries.it(
 
 		const found = yield* findPayments({
 			select: ["note"],
-			where: tupleIn(Payment, ["settled_at", "sequence", "amount"], [[new Date("2026-09-19T00:11:12.345-10:00"), payment.sequence, payment.amount]]),
+			where: tupleIn(Payment, ["settled_at", "sequence", "amount"], [[new Date("2026-09-19T00:11:12.345-10:00"), payment.sequence, payment.amount]], {
+				"amount": "numeric",
+				"sequence": "int8",
+				"settled_at": "timestamptz",
+			}),
 		});
 
 		expect(found).toEqual([{ note: "matching" }]);
@@ -70,6 +75,7 @@ queries.it(
 						["two", 2, "X"],
 						["three", 3, "X"],
 					],
+					{ "a": "text", "b": "text", "kind": "text" },
 				),
 				value: { in: [10] },
 			},
@@ -93,6 +99,7 @@ queries.it("select applies a tuple filter beside equality when copying sources",
 					[20, "second"],
 					[40, "first"],
 				],
+				{ "amount": "text", "displayName": "text" },
 			),
 			status: "flaky",
 		},
@@ -121,6 +128,7 @@ queries.it(
 					["one", 1],
 					["two", 2],
 				],
+				{ "a": "text", "b": "text" },
 			),
 			value: 10,
 		});

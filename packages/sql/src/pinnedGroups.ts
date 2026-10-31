@@ -18,7 +18,7 @@ export function pinnedGroups(
 			(value) => typeof value === "object" && value !== null && "in" in value && Array.isArray(value.in) && value.in.length === 0,
 		)
 	) {
-		return Effect.succeed({ groups: [], remaining: input });
+		return Effect.succeed({ groups: [], remaining: input, tuple: undefined });
 	}
 	const exactTuple = tuple !== undefined && tuple.fields.length === partitionBy.length && partitionBy.every((key) => tuple.fields.includes(key));
 	let groups: readonly (readonly unknown[])[] = [[]];
@@ -40,7 +40,9 @@ export function pinnedGroups(
 	const { fieldAt } = makeFilter(model, sql);
 	return Effect.gen(function* () {
 		const fields = yield* Effect.forEach(partitionBy, fieldAt);
-		const groupsEncoded = yield* Effect.forEach(groups, (group) => Schema.encodeUnknownEffect(Schema.Tuple(fields))(group));
-		return { groups: groupsEncoded, remaining };
+		const groupsEncoded: readonly (readonly unknown[])[] = yield* Effect.forEach(groups, (group) =>
+			Schema.encodeUnknownEffect(Schema.Tuple(fields))(group),
+		);
+		return { groups: groupsEncoded, remaining, tuple: exactTuple ? tuple : undefined };
 	});
 }

@@ -52,5 +52,11 @@ export const FleetItem = Schema.Struct({
 	workId: Schema.String,
 });
 export const CompletedFleetItem = Schema.Struct({ ...FleetItem.fields, completedAt: FleetTimestamp, stage: Schema.Literal("done") });
-export const FleetItems = Schema.Struct({ completed: Schema.Array(CompletedFleetItem), items: Schema.Array(FleetItem) });
+const AreaTask = Schema.Struct({ prUrl: Schema.NullOr(Schema.String), stage: Schema.String, workId: Schema.String });
+export const FleetArea = Schema.Struct({ area: Schema.String, holders: Schema.Array(AreaTask), queue: Schema.Array(AreaTask) });
+export const FleetItems = Schema.Struct({
+	areas: Schema.optionalKey(Schema.Array(FleetArea)),
+	completed: Schema.Array(CompletedFleetItem),
+	items: Schema.Array(FleetItem),
+});
 export type FleetItems = typeof FleetItems.Type;

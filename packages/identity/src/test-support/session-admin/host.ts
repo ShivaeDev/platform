@@ -37,9 +37,8 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 			plugins: [testUtils()],
 			secret: "session-admin-story-secret-with-at-least-32-characters",
 			session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
-			user: { additionalFields: { role: { defaultValue: "viewer", input: false, type: "string" } } },
 		},
-		{ roles: Access },
+		{ defaultRole: "viewer", roles: Access },
 	).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	const context = yield* Effect.promise(() => mounted.auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
