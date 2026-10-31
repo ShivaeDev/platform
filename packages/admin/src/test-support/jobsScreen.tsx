@@ -41,7 +41,21 @@ export const jobsScreen = storyKit({
 		const driver = driverFor(engine, story.tell);
 		return {
 			alerts: () => Effect.sync(() => [...screenOf(engine).querySelectorAll('[role="alert"]')].map(({ textContent }) => textContent)),
-			chooseQueue: (name: string) => Effect.andThen(driver.enter("select", name), driver.settle()),
+			chooseQueue: (name: string) =>
+				Effect.gen(function* () {
+					story.tell(`choose the ${name} queue`);
+					const select = screenOf(engine).querySelector("select");
+					if (select === null) {
+						throw new Error("The jobs queue picker is not rendered");
+					}
+					yield* Effect.sync(() =>
+						act(() => {
+							select.value = name;
+							select.dispatchEvent(new Event("change", { bubbles: true }));
+						}),
+					);
+					yield* driver.settle();
+				}),
 			openJob: (name: string) => Effect.andThen(driver.click({ name: engine.ids.get(name) ?? name, role: "button" }), driver.settle()),
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
 			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
