@@ -24,8 +24,6 @@ function settleAttempt(
 	});
 }
 
-export type PgBossRunner = <A, E>(effect: Effect.Effect<A, E>) => Promise<A>;
-
 const interruptAt = Effect.fnUntraced(function* (deadline: number) {
 	let remaining = deadline - (yield* Clock.currentTimeMillis);
 	while (remaining > 0) {
@@ -49,11 +47,11 @@ function aborted(signal: AbortSignal) {
 	});
 }
 
-export function batchHandler(
+export function batchHandler<R>(
 	client: PgBossClient,
 	name: string,
 	schema: string,
-	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown>,
+	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown, R>,
 	afterFailure: (job: Job<unknown>) => Effect.Effect<void, unknown> = () => Effect.void,
 ) {
 	const complete = client.complete?.bind(client);

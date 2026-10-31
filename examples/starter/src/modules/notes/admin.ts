@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { adminPage } from "@shivaedev/admin/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
@@ -12,6 +12,7 @@ export const StatisticsPage = adminPage({
 	contract: contract("admin.notes", {
 		queries: [
 			query("statistics", {
+				readPolicy: () => Effect.succeed(true),
 				reads: () => [notes.list],
 				rejections: { InternalServerError, ServiceUnavailable },
 				success: NoteStatistics,

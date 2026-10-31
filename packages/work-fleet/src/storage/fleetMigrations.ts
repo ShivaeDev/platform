@@ -123,5 +123,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 					add column "mergeQueue__head" text, add column "mergeQueue__status" text`;
 			}
 		}),
+		"34_merge_queue_repair": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "mergeQueueRepair" boolean`;
+			}
+		}),
 	});
 });

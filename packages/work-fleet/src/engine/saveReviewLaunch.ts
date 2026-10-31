@@ -11,7 +11,13 @@ export const saveReviewLaunch = Effect.fn("Fleet.saveReviewLaunch")(function* (
 	quota: FleetConfiguration["quota"],
 ) {
 	const state = yield* EngineContext;
-	const mergeRepair = stored.value.mergeMainRepair === true;
+	const record = stored.value;
+	const mergeRepair =
+		record.mergeMainRepair === true
+		|| record.mergeQueueRepair === true
+		|| (record.mergeAreasReleased === true
+			&& record.mergePrediction?.head === record.result?.head
+			&& !record.mergePrediction?.conflicts.some((conflict) => conflict.otherPr === "main"));
 	return yield* state.save(
 		stored,
 		{

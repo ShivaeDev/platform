@@ -43,11 +43,7 @@ export const NotesService = defineService({
 			);
 		}
 		return {
-			canRead: (id: number, userId: string) =>
-				repository.findMany({ limit: 1, where: { id } }).pipe(
-					Effect.map((rows) => rows[0] === undefined || rows[0].userId === userId),
-					Effect.catchTag("SqlError", (error) => Effect.fail(notesSqlFailure(error))),
-				),
+			canRead: (id: number, userId: string) => Effect.as(get(id, userId), true),
 			create,
 			delete: (input: typeof Delete.payload.Type, userId: string) =>
 				Effect.gen(function* () {
