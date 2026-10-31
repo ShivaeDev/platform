@@ -1,7 +1,6 @@
-import { Cause, Clock, Effect, Exit, Result } from "effect";
+import { type Cause, Clock, Effect, Result } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { TestClock } from "effect/testing";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
@@ -11,6 +10,7 @@ import { allowedAccounts } from "#server/better-auth/allowedAccounts.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
 import { accountVerbs } from "./accountVerbs.ts";
 import { type RequestAnswer, type Revocation, requestFailures, revocationOf, type SignInAnswer, signInRefusals } from "./answers.ts";
+import { configurationVerbs } from "./configurationVerbs.ts";
 import { emailSignUp, gitHubSignIn } from "./flows.ts";
 import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
 import { type PolicyHost, policyHost } from "./host.ts";
@@ -85,8 +85,7 @@ const signedInOn = Effect.fnUntraced(function* (engine: Engine, person: Person, 
 export const signInPolicy = storyKit({
 	after: {
 		*policy(engine) {
-			const database = yield* PostgresTestDatabase;
-			engine.host.current = yield* policyHost(database.url, engine.env, engine.policy, engine.app);
+			engine.host.current = yield* policyHost(engine.env, engine.policy, engine.app);
 		},
 	},
 	around: withIsolatedDatabase,
@@ -115,6 +114,7 @@ export const signInPolicy = storyKit({
 	verbs: (engine, story) => {
 		engine.github.narrate(story.tell);
 		return {
+			...configurationVerbs(engine, () => policyHost(engine.env, engine.policy, engine.app), story.tell),
 			...requestWork(engine.app.policy, engine.cookies, () => host(engine), story.tell),
 			...accountVerbs(() => host(engine), engine.cookies, story.tell),
 			corruptList: (kind: MalformedList) =>
@@ -153,20 +153,6 @@ export const signInPolicy = storyKit({
 					}
 					const tag = result.failure._tag;
 					return requestFailures.get(tag) ?? (`failed: ${tag}` satisfies RequestAnswer);
-				}),
-			restart: () =>
-				Effect.gen(function* () {
-					story.tell("the application restarts with the current configuration");
-					const database = yield* PostgresTestDatabase;
-					const restarted = yield* Effect.exit(policyHost(database.url, engine.env, engine.policy, engine.app));
-					if (Exit.isSuccess(restarted)) {
-						engine.host.current = restarted.value;
-						engine.startup = "started";
-						return;
-					}
-					const error = Cause.findErrorOption(restarted.cause);
-					engine.startup =
-						error._tag === "Some" ? `refused to start: ${error.value.message.replaceAll(/\s+/gu, " ")}` : `crashed: ${Cause.pretty(restarted.cause)}`;
 				}),
 			revocation: () =>
 				Effect.sync(() => {
@@ -213,13 +199,6 @@ export const signInPolicy = storyKit({
 					} else {
 						engine.signUps.set(person, code === "sign_in_refused" ? "refused" : `failed: ${code ?? "no code"}`);
 					}
-				}),
-			startup: () =>
-				Effect.sync(() => {
-					if (engine.startup === undefined) {
-						throw new Error("The application has not restarted");
-					}
-					return engine.startup;
 				}),
 			storedSessions: (person: Person | "dana") => {
 				story.tell(`read the devices of ${person}'s stored sessions`);

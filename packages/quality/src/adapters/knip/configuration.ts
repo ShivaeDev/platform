@@ -2,7 +2,6 @@ import { posix } from "node:path";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
-import { isMigrationFile } from "#naming/migrationFile.ts";
 import type { RuleInputs } from "#rule.ts";
 import { KNIP_ISSUES } from "./findings.ts";
 
@@ -18,7 +17,7 @@ function importPaths(imports: Readonly<Record<string, unknown>>) {
 	);
 }
 
-export async function knipConfiguration(inputs: RuleInputs) {
+export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly string[] = []) {
 	const packages = await workspacePackages(inputs);
 	const manifests = await Promise.all(
 		[".", ...packages.map(({ directory }) => directory)].map(async (directory) => {
@@ -42,13 +41,20 @@ export async function knipConfiguration(inputs: RuleInputs) {
 		);
 		const publicFiles = sources.filter((path) => exportedModule(manifest.exports, path));
 		// Migration runners load these files from their directory, so no import reaches them.
-		const migrations = sources.filter((path) => isMigrationFile(posix.join(directory, path)));
+		const migrations = sources.filter((path) => /(?:^|\/)server\/migrations\//u.test(path));
+		const ui = toolOwned
+			.filter((folder) => (packageOf(packages, `${folder}/component.ts`)?.directory ?? ".") === directory)
+			.map((folder) => `${posix.relative(directory, folder)}/**/*.{ts,tsx,js,jsx}`);
+		const styles = inputs.files
+			.filter((path) => path.endsWith(".css") && (packageOf(packages, path)?.directory ?? ".") === directory)
+			.map((path) => posix.relative(directory, path));
 		return [
 			directory,
 			{
-				entry: [...ENTRIES, ...publicFiles, ...migrations, ...bins, ...binaries, ...scriptEntries],
+				entry: [...ENTRIES, ...publicFiles, ...migrations, ...bins, ...binaries, ...scriptEntries, ...ui, ...styles],
 				paths: importPaths(manifest.imports ?? {}),
-				project: sources,
+				project: [...sources, ...ui, ...styles],
+				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },
 			},
 		] as const;
 	});

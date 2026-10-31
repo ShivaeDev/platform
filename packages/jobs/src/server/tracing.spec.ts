@@ -1,9 +1,10 @@
 import { Effect, Schema, Tracer } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { running, runtime } from "#test/runtime/kit.ts";
 import { scheduled, worker } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const Nightly = defineSchedule({ cron: "17 3 * * *", name: "nightly" });
 const Orders = defineQueue({ name: "orders", schema: Schema.Struct({ id: Schema.NumberFromString }) });

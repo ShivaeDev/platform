@@ -1,7 +1,7 @@
 import type { RequestReceipt } from "#attention/RequestReceipt.ts";
 import type { Question, RecordedResponse } from "#browser/responses/schema.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import type { Metadata } from "#metadata/schema.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import { currentQuestion } from "#server/responses/currentQuestion.ts";
 

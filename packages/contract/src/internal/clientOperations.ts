@@ -7,7 +7,6 @@ import { invalidationKeys, type Key, readKeys } from "@shivaedev/changes/keys.ts
 import type { automaticLive } from "#automaticLive.ts";
 import type { QueryOptions } from "#bind.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
-import { MissingReadPolicy } from "#readPolicyErrors.ts";
 import type { BindingOwner } from "./bindingOwner.ts";
 import { clientActivities } from "./clientActivity.ts";
 import { queryReactivity } from "./queryReactivity.ts";
@@ -29,11 +28,6 @@ export function boundQuery(service: ErasedClient, tag: string, query: QueryShape
 	const cached = new WeakMap<ReturnType<typeof service.query>, ReturnType<typeof service.query>>();
 	return {
 		query: (payload: unknown, options: QueryOptions = {}) => {
-			if (query.readPolicy === undefined) {
-				return service.runtime.atom(
-					Effect.fail(new MissingReadPolicy({ message: `Declare a readPolicy on query ${query.name} before running it live or subscribing` })),
-				);
-			}
 			const atom = service.query(tag, payload, options);
 			const existing = cached.get(atom);
 			if (existing !== undefined) {

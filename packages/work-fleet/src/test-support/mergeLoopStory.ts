@@ -14,8 +14,13 @@ export const mergeLoop = storyKit({
 	...engineDefinition,
 	around: withIsolatedDatabase,
 	create: () => {
-		const state: EngineStory & { pendingChecks: boolean; queueApi: Effect.Success<typeof mergeQueueApi> | undefined } = {
+		const state: EngineStory & {
+			failedChecks: Map<string, { name: string; output: string }>;
+			pendingChecks: boolean;
+			queueApi: Effect.Success<typeof mergeQueueApi> | undefined;
+		} = {
 			...newEngineState(),
+			failedChecks: new Map(),
 			pendingChecks: false,
 			queueApi: undefined,
 		};
@@ -28,9 +33,17 @@ export const mergeLoop = storyKit({
 			state.queueApi?.dequeue(number);
 			story.tell(`GitHub removes PR ${number} from its queue`);
 		},
+		failRequiredCheck: (id: string, name: string, output: string) => {
+			state.failedChecks.set(id, { name, output });
+			story.tell(`${id}'s required ${name} check fails: ${output}`);
+		},
 		loseQueueReply: () => {
 			state.queueApi?.loseReply();
 			story.tell("GitHub accepts auto-merge but loses its reply");
+		},
+		passRequiredChecks: (number: string) => {
+			state.failedChecks.delete(number);
+			story.tell(`PR ${number}'s required checks pass`);
 		},
 		queuedPullRequests: () => state.queueApi?.queued(),
 		queueObservation: (number: string, fields: Record<string, unknown>) => {
@@ -57,12 +70,17 @@ export const automaticMerges = mergeLoop.trait("configuration", "Fleet queues it
 	state.options = {
 		...state.options,
 		checksQuery: (result) =>
-			Effect.sync(() => ({
-				evidence: ["Required CI for the observed head"],
-				head: result.head,
-				passed: !state.pendingChecks,
-				pending: state.pendingChecks,
-			})),
+			Effect.sync(() => {
+				const failure = state.failedChecks.get(result.kind === "change" ? (result.pr.split("/").at(-1) ?? "") : "");
+				return {
+					evidence: ["Required CI for the observed head"],
+					failedChecks: failure === undefined ? undefined : [failure.name],
+					head: result.head,
+					passed: !state.pendingChecks && failure === undefined,
+					pending: state.pendingChecks,
+					repairPrompt: failure?.output,
+				};
+			}),
 		queue: (work, result, queued) => {
 			api.observe(work, result);
 			return queue(work, result, queued).pipe(Effect.provideService(GithubApi, api.client));

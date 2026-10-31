@@ -1,4 +1,5 @@
-import { type MetadataDocument, metadataModel } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
+import { metadataModel } from "#server/metadata/model.ts";
 import { decisionClosed } from "#server/migration/decisionClosed.ts";
 import { sourceHeader } from "#server/migration/sourceHeader.ts";
 import { responseIndex } from "#server/responseIndex.ts";

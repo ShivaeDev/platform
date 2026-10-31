@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.1 - 2026-10-31
+
+### Fixed
+
+- End open authenticated streams with `AuthUnavailable` when a session revalidation cannot reach the auth provider. Revoked sessions still end with `Unauthorized`, and live-change subscriptions use identity's shared stream revalidation.
+
 ## 0.10.0 - 2026-10-31
 
 ### Added

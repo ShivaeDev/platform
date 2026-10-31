@@ -4,9 +4,9 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { resolveDocumentLink } from "#render/documentLinks.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { referencesOf } from "#server/metadata/referencesOf.ts";
 
 export function documentTargets(document: MetadataDocument, model: MetadataModel, additional: readonly string[] = []) {

@@ -1,8 +1,7 @@
 import { isWork } from "#browser/views/now.ts";
-import { viewNames } from "#browser/views/state.ts";
+import { type State, viewNames } from "#browser/views/state.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { filterItems, type Item, itemsOf } from "./items.ts";
-import type { State } from "./state.ts";
 
 export interface Projection {
 	readonly boards: readonly Item[];

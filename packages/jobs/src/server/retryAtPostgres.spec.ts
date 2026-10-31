@@ -29,13 +29,15 @@ const deferredOnce = [
 ];
 
 database.it(
-	"a deferred job waits to run again without spending a retry, reporting an error or being dead-lettered",
+	"a deferred job stays untaken by its worker's next fetch without spending a retry, reporting an error or being dead-lettered",
 	[deferring],
-	function* ({ deadLettered, deferrals, enqueue, job, reported, untilDeferred }) {
+	function* ({ attempts, deadLettered, deferrals, enqueue, job, reported, untilDeferred, untilFetchesPass }) {
 		yield* enqueue("app", Deferring, { id: 42 }, { as: "job 42", singletonKey: "account-42" });
 		yield* untilDeferred("app", Deferring, 1);
+		yield* untilFetchesPass(Deferring, 1);
 
 		yield* outcomes([
+			["attempts", () => attempts(Deferring), ["job 42"]],
 			["dead-lettered", () => deadLettered(Deferring), []],
 			["deferrals", () => deferrals("app", Deferring), [{ at: "the time the worker asked for", reason: "Provider quota" }]],
 			["job 42", () => job("job 42"), expect.objectContaining({ retryCount: 0, singletonKey: "account-42", state: "retry" })],

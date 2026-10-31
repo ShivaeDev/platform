@@ -1,4 +1,4 @@
-import { Cause, Effect, FileSystem, Path, Queue, Schedule } from "effect";
+import { Cause, Effect, FileSystem, Path, Predicate, Queue, Schedule } from "effect";
 import type { PlatformError } from "effect/PlatformError";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 
@@ -17,9 +17,19 @@ export function watcherEnded() {
 	return new ServiceUnavailable({ message: "The workspace watcher ended. Retrying the watch automatically." });
 }
 
+export function unconfirmedWatch(root: string) {
+	return Effect.logWarning(`Cannot write the workspace watch sentinel in ${root}; trusting the watcher without confirmation.`);
+}
+
+function unwritable(error: PlatformError) {
+	const cause = error.reason.cause;
+	return Predicate.hasProperty(cause, "code") && (cause.code === "EACCES" || cause.code === "EPERM" || cause.code === "EROFS");
+}
+
 export const watchSentinel = Effect.fn("WorkBoard.watchSentinel")(function* (
 	realRoot: string,
 	events: Queue.Dequeue<string, PlatformError | Cause.Done>,
+	unconfirmed: Effect.Effect<void> = unconfirmedWatch(realRoot),
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
@@ -30,7 +40,11 @@ export const watchSentinel = Effect.fn("WorkBoard.watchSentinel")(function* (
 		Effect.repeat({ until: (relative) => relative === name }),
 		Effect.catchIf(Cause.isDone, () => Effect.fail(watcherEnded())),
 	);
-	const touched = Effect.uninterruptible(fs.writeFileString(file, "")).pipe(Effect.repeat(RETOUCH), Effect.andThen(Effect.never));
+	const touched = Effect.uninterruptible(fs.writeFileString(file, "")).pipe(
+		Effect.repeat(RETOUCH),
+		Effect.andThen(Effect.never),
+		Effect.catchIf(unwritable, () => unconfirmed),
+	);
 	yield* Effect.raceFirst(reported, touched).pipe(
 		Effect.timeoutOrElse({
 			duration: READINESS_WITHIN,

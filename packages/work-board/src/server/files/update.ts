@@ -1,6 +1,7 @@
 import { Effect, FileSystem, Option } from "effect";
 import { attachmentType } from "#path/attachment.ts";
-import { byFolder, isMarkdown, listMarkdown, type MarkdownFile } from "./list.ts";
+import { isMarkdown } from "#path/isMarkdown.ts";
+import { byFolder, listMarkdown, type MarkdownFile } from "./list.ts";
 import { markdownPath } from "./markdownPath.ts";
 
 export const updateFiles = Effect.fn("WorkBoard.updateFiles")(function* (

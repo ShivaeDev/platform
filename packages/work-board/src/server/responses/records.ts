@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { stringify } from "yaml";
 import type { DraftInput, Question, Reading, RecordedResponse } from "#browser/responses/schema.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 
 export function revisionOf(source: string) {
 	return createHash("sha256").update(source).digest("hex");

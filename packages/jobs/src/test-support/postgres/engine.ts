@@ -1,13 +1,14 @@
 import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope, Tracer } from "effect";
 import { PgBoss } from "pg-boss";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
-import { defaultClientFactory, type PgBossClient } from "#client.ts";
+import type { PgBossClient } from "#client.ts";
+import { defaultClientFactory } from "#defaultClientFactory.ts";
 import { PgBossError } from "#error.ts";
 import { registrationName } from "#internal/register.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "#service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
-import { makePgBossTesting, testRetryPolicy } from "#testing.ts";
+import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "#testing.ts";
 import { observeStops, observeWakes, pauseCompletion, sortBatches } from "./clientObservers.ts";
 import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
@@ -49,7 +50,7 @@ export function provided<A, E, R>(engine: DatabaseEngine, runtime: string, effec
 	const logged = effect.pipe(
 		Effect.provide(Logger.layer([logger])),
 		Effect.provideService(References.MinimumLogLevel, "Debug"),
-		Effect.provideService(ApplicationLog, (line) => engine.timeline.push(line)),
+		Effect.provide(Layer.succeed(ApplicationLog, (line) => engine.timeline.push(line))),
 		Effect.withTracer(engine.trace.tracer),
 	);
 	return release === undefined ? logged : Effect.provideService(logged, WorkerRelease, release.service);
@@ -138,6 +139,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 		startedAt,
 		stop: provided(engine, name, Scope.close(scope, Exit.void)),
 		testing,
+		worked: registered.filter((registration) => registration._tag !== "QueueDefinition").map(registrationName),
 	});
 });
 
@@ -147,6 +149,14 @@ export function runningIn(engine: DatabaseEngine, name: string): Runtime {
 		throw new Error(`${name} is not running: ${engine.startups.get(name) ?? "it never started"}`);
 	}
 	return found;
+}
+
+export function controllerWorking(engine: DatabaseEngine, queue: string): PgBossTesting {
+	const working = [...engine.runtimes.values()].findLast((runtime) => runtime.testing !== undefined && runtime.worked.includes(queue));
+	if (working?.testing === undefined) {
+		throw new Error(`No running runtime with a testing controller works ${queue}`);
+	}
+	return working.testing;
 }
 
 export function anyRuntime(engine: DatabaseEngine): Runtime {

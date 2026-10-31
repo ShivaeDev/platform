@@ -4,7 +4,6 @@ import { SqlClient } from "effect/sql";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { answered } from "@shivaedev/test/answers.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -42,8 +41,7 @@ function socketWords(url: string) {
 const create = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql`create table preferences (owner text not null, id text not null, value text not null, primary key (owner, id))`;
-	const database = yield* PostgresTestDatabase;
-	const provider = yield* createProvider(database.url);
+	const provider = yield* createProvider();
 	const alice = yield* Effect.promise(() => signedInUser(provider.auth, { email: "alice@example.test", name: "alice" }));
 	const bob = yield* Effect.promise(() => signedInUser(provider.auth, { email: "bob@example.test", name: "bob" }));
 	const second = yield* Effect.promise(async () => {

@@ -1,8 +1,8 @@
+import { stateOf } from "#browser/views/state.ts";
 import { attentionRequests } from "#server/attention/requests.ts";
 import { backlinksOf } from "#server/metadata/backlinks.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { projectItems } from "#server/views/projection.ts";
-import { stateOf } from "#server/views/state.ts";
 
 export function indexState(snapshot: Snapshot) {
 	return {

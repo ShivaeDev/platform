@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { attention } from "@shivaedev/work-board/server/integration/attention.ts";
+import { managedRequestReceipt } from "@shivaedev/work-board/server/attention/managedRequestReceipt.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { closePublishedDecision } from "#board/closePublishedDecision.ts";
@@ -9,7 +9,6 @@ import { reviewedDecision } from "#board/reviewedDecision.ts";
 import { BoardAcknowledgementStale, type BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
 
-const { managedRequestReceipt } = attention;
 const { metadataModel } = boardApi;
 const { publish, revisionOf } = responses;
 

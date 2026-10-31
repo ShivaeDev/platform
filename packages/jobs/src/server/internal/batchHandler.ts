@@ -24,7 +24,14 @@ function settleAttempt(
 	});
 }
 
-export type PgBossRunner = <A, E>(effect: Effect.Effect<A, E>) => Promise<A>;
+const interruptAt = Effect.fnUntraced(function* (deadline: number) {
+	let remaining = deadline - (yield* Clock.currentTimeMillis);
+	while (remaining > 0) {
+		yield* Effect.sleep(remaining);
+		remaining = deadline - (yield* Clock.currentTimeMillis);
+	}
+	return yield* Effect.interrupt;
+});
 
 function aborted(signal: AbortSignal) {
 	return Effect.callback<never>((resume) => {
@@ -40,11 +47,11 @@ function aborted(signal: AbortSignal) {
 	});
 }
 
-export function batchHandler(
+export function batchHandler<R>(
 	client: PgBossClient,
 	name: string,
 	schema: string,
-	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown>,
+	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown, R>,
 	afterFailure: (job: Job<unknown>) => Effect.Effect<void, unknown> = () => Effect.void,
 ) {
 	const complete = client.complete?.bind(client);
@@ -61,11 +68,7 @@ export function batchHandler(
 		if (remaining <= 0) {
 			return "expired";
 		}
-		const exit = yield* run(job, deadline).pipe(
-			Effect.timeoutOrElse({ duration: remaining, orElse: () => Effect.interrupt }),
-			Effect.raceFirst(aborted(job.signal)),
-			Effect.exit,
-		);
+		const exit = yield* run(job, deadline).pipe(Effect.raceFirst(interruptAt(deadline)), Effect.raceFirst(aborted(job.signal)), Effect.exit);
 		if (job.signal.aborted || (Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause))) {
 			return "interrupted";
 		}

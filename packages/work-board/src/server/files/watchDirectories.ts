@@ -1,8 +1,9 @@
 import { Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
 import { attachmentType } from "#path/attachment.ts";
-import { isMarkdown, type MarkdownFile } from "./list.ts";
+import { isMarkdown } from "#path/isMarkdown.ts";
+import type { MarkdownFile } from "./list.ts";
 import { folderEvents, rescanFolders, SETTLE, type WatchRoots, watchedScan } from "./watchedScan.ts";
-import { watcherEnded } from "./watchSentinel.ts";
+import { unconfirmedWatch, watcherEnded } from "./watchSentinel.ts";
 
 function changedFiles(previous: ReadonlyMap<string, number>, next: ReadonlyMap<string, number>) {
 	return [...new Set([...previous.keys(), ...next.keys()])].filter((file) => previous.get(file) !== next.get(file));
@@ -41,18 +42,20 @@ export interface WatchHooks {
 	readonly settled?: Effect.Effect<unknown>;
 	readonly setWatching: (watching: boolean) => Effect.Effect<unknown>;
 	readonly stale: Effect.Effect<unknown>;
+	readonly unconfirmed?: Effect.Effect<void>;
 }
 
 export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function* (
 	root: string,
 	realRoot: string,
-	{ listed, observed = Effect.void, publish, setWatching, settled = Effect.void, stale }: WatchHooks,
+	{ listed, observed = Effect.void, publish, setWatching, settled = Effect.void, stale, unconfirmed }: WatchHooks,
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
+	const warnUnconfirmed = unconfirmed ?? (yield* Effect.cached(unconfirmedWatch(realRoot)));
 	const cycle = Effect.scoped(
 		Effect.gen(function* () {
-			const { files, listing, rootEvents, roots } = yield* watchedScan(root, realRoot);
+			const { files, listing, rootEvents, roots } = yield* watchedScan(root, realRoot, warnUnconfirmed);
 			let contents = new Map(files.map((file) => [file.path, file.modified]));
 			if (listing) {
 				yield* listed(listing);

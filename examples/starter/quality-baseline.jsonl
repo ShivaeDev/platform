@@ -51,7 +51,4 @@
 {"path":"src/modules/notes/server/workerShutdown.spec.ts","rule":"tests/wait-on-events","count":1}
 {"path":"src/modules/notes/test-support/applicationState.ts","rule":"code/unused","count":1}
 {"path":"src/server/adminSetup.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"src/server/authOptions.ts","rule":"effect/service-parameters","count":1}
-{"path":"src/server/databaseOptions.ts","rule":"effect/service-parameters","count":1}
-{"path":"src/server/migrations.ts","rule":"effect/service-parameters","count":1}
 {"path":"src/server/migrations/0001_auth.ts","rule":"effect/boundary","count":3}

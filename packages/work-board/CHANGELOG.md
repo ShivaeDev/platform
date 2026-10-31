@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.37.6 - 2026-10-31
+
+### Fixed
+
+- Close reviewed no-change tasks after verifying their reported commit is on main, mark their briefs done, and resume reviewed tasks stopped by the former missing validator.
+- Count PR waits alongside working and reviewing tasks in Board progress, and show who each waits on.
+
 ## 0.37.5 - 2026-10-31
 
 ### Fixed

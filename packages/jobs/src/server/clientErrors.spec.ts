@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import {
 	clientStartFails,
 	clientStopFails,
@@ -14,6 +14,7 @@ import {
 	stopped,
 } from "#test/runtime/kit.ts";
 import { scheduled, worker } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const terminationLogged = {
 	level: "Debug",

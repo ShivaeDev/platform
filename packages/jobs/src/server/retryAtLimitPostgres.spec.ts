@@ -1,10 +1,11 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { deferred, enqueued, running, stoppedAfterwards } from "#test/postgres/traits.ts";
 import { type Attempt, scheduled, worker } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const DEFAULT_LIMIT = 10;
 const Limited = defineQueue({

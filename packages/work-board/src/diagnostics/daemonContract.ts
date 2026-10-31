@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
@@ -34,19 +34,34 @@ export type BriefRefusal = typeof BriefRefusal.Type;
 
 const briefProblems = query("briefProblems", {
 	payload: { briefs: Schema.Array(Brief) },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [],
 	rejections: { ServiceUnavailable },
 	success: Schema.Array(BriefRefusal),
 });
 
-const fleetItems = query("fleetItems", { payload: {}, reads: () => [], rejections: { ServiceUnavailable }, success: FleetItems });
+const fleetItems = query("fleetItems", {
+	payload: {},
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [],
+	rejections: { ServiceUnavailable },
+	success: FleetItems,
+});
 
 export const DiagnosticsContract = contract("daemon", {
-	queries: [query("diagnostics", { payload: {}, reads: () => [], success: DiagnosticsSnapshot }), fleetItems, briefProblems],
+	queries: [
+		query("diagnostics", { payload: {}, readPolicy: () => Effect.succeed(true), reads: () => [], success: DiagnosticsSnapshot }),
+		fleetItems,
+		briefProblems,
+	],
 });
 
 export const DaemonReadContract = contract("daemon", {
-	queries: [query("diagnostics", { payload: {}, reads: () => [], success: Schema.Unknown }), fleetItems, briefProblems],
+	queries: [
+		query("diagnostics", { payload: {}, readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.Unknown }),
+		fleetItems,
+		briefProblems,
+	],
 });
 export const DAEMON_RPC_PATH = "/_fleet/rpc";
 export const DAEMON_PORT = 3457;

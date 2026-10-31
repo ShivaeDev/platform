@@ -1,6 +1,6 @@
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { authoredQuestion, openItem } from "#server/attention/inbox.ts";
 import { attentionRequests } from "#server/attention/requests.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
 export function requestSource(

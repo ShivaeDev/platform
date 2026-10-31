@@ -1,6 +1,6 @@
 import { Effect, FileSystem } from "effect";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { type Entry, entriesOf } from "./entries.ts";
 

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { LastRoleAssigner } from "@shivaedev/access/roles.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
@@ -25,6 +25,7 @@ export function usersPage<const TRole extends string>(access: Pick<AccessPolicy<
 			queries: [
 				query("list", {
 					payload: UserListInput.fields,
+					readPolicy: () => Effect.succeed(true),
 					reads: () => [users.list],
 					rejections: { AuthUnavailable, Forbidden },
 					success: UsersList,

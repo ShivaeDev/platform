@@ -1,7 +1,8 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineSchedule } from "#defineSchedule.ts";
+import { defineQueue } from "#definition.ts";
 import { deferralWritesFail } from "#test/runtime/deferralWritesFail.ts";
 import { claimReadsStall, running, runtime, settlementlessClient, storedJob } from "#test/runtime/kit.ts";
 import { storedJob as stored } from "#test/runtime/storedJob.ts";

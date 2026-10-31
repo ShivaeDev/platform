@@ -1,5 +1,4 @@
-import type { MetadataDocument } from "./model.ts";
-import type { Diagnostic } from "./parse.ts";
+import type { Diagnostic, MetadataDocument } from "#integration/metadata.ts";
 
 export function attentionProblems(document: MetadataDocument): readonly Diagnostic[] {
 	const { fields, lines } = document.parsed;

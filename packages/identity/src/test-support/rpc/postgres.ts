@@ -1,4 +1,3 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
 import { getMigrations } from "better-auth/db/migration";
 import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
@@ -9,11 +8,7 @@ import { createProvider } from "./harness.ts";
 export const databaseUrl = environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL");
 export const postgres = makePostgresTestLayer({
 	fixtures: Effect.gen(function* () {
-		const sql = yield* PgClient.PgClient;
-		if (sql.config.url === undefined) {
-			return yield* Effect.die("The RPC story database needs a PostgreSQL URL");
-		}
-		const provider = yield* createProvider(sql.config.url);
+		const provider = yield* createProvider();
 		yield* Effect.promise(async () => {
 			await (await getMigrations(provider.auth.options)).runMigrations();
 		});

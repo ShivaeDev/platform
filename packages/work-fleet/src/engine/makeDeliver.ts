@@ -96,7 +96,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	}
 	if (
 		deliveryPending(record)
-		|| !["delivering", "waiting"].includes(record.step)
+		|| (!["delivering", "waiting"].includes(record.step) && record.mergeQueue?.status !== "queued")
 		|| !reviewSatisfied(record, result.head)
 		|| record.checks?.passed !== true
 	) {

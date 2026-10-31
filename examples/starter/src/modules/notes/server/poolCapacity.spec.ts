@@ -4,7 +4,7 @@ import { expect } from "vitest";
 import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 
-const connections = 2 * (testPoolSizes.sql + testPoolSizes.auth + testPoolSizes.jobs);
+const connections = 2 * (testPoolSizes.sql + testPoolSizes.jobs);
 const LISTEN_CONNECTIONS = 2;
 
 notesDeployment.it(

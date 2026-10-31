@@ -1,10 +1,11 @@
 import { Option, Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { running } from "#test/postgres/traits.ts";
 import { scheduled, worker } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const Payload = Schema.Struct({ id: Schema.NumberFromString });
 const Source = defineQueue({ name: "source", queue: { notify: true }, schema: Payload });

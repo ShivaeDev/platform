@@ -1,9 +1,9 @@
 import type { RecordedResponse } from "#browser/responses/schema.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import type { Metadata } from "#metadata/schema.ts";
 import { managedRequestState } from "#server/attention/managedRequestReceipt.ts";
 import { closedItem } from "#server/attention/status.ts";
 import { identityUrl, referenceTarget } from "#server/metadata/links.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
 export type Request = NonNullable<Metadata["attention"]>[number];

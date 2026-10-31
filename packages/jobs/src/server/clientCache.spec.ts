@@ -1,10 +1,10 @@
 import { Redacted } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineSchedule } from "#definition.ts";
 import type { PgBossOptions } from "#service.ts";
 import { clientStartPending, clientStopFails, freshClientEachTime, running, runtime, sharedClientKey, stopped } from "#test/runtime/kit.ts";
 import { scheduled } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 runtime.it(
 	"a second runtime under the same client key and settings reuses the started client",

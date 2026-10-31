@@ -1,6 +1,5 @@
 import { request } from "node:http";
 import { Effect } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -15,8 +14,7 @@ interface Engine {
 export const clientIp = storyKit({
 	after: {
 		*configured(engine) {
-			const database = yield* PostgresTestDatabase;
-			engine.host = yield* clientIpHost(database.url, engine.env);
+			engine.host = yield* clientIpHost(engine.env);
 		},
 	},
 	around: withIsolatedDatabase,
@@ -32,7 +30,7 @@ export const clientIp = storyKit({
 		if (host === undefined) {
 			throw new Error("The client IP story host has not started");
 		}
-		const { baseUrl, pool } = host;
+		const { baseUrl } = host;
 
 		return {
 			signIn: (headers: Record<string, string>, peer?: string) => {
@@ -45,7 +43,7 @@ export const clientIp = storyKit({
 			},
 			storedSessions: () => {
 				story.tell("read the session IP addresses stored in PostgreSQL");
-				return authTestDatabase(pool).sessionIpAddresses;
+				return Effect.flatMap(authTestDatabase, (storage) => storage.sessionIpAddresses);
 			},
 		};
 	},

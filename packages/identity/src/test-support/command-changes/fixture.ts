@@ -10,7 +10,7 @@ export const notes = collection("command_notes", Schema.Number);
 const Note = Schema.Struct({ id: Schema.Number, title: Schema.String });
 export const Api = contract("notes", {
 	commands: [command("save", { invalidates: (_input, result) => [notes.item(result.id)], payload: { title: Schema.String }, success: Note })],
-	queries: [query("list", { reads: () => [notes.list], success: Schema.Array(Note) })],
+	queries: [query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Note) })],
 }).middleware(RequestTracing).application;
 
 export const handlers = Api.toLayer({

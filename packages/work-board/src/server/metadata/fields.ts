@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
+import type { Diagnostic } from "#integration/metadata.ts";
 import { Metadata } from "#metadata/schema.ts";
-import type { Diagnostic } from "./parse.ts";
 import { invalidField, questionFields } from "./vocabulary.ts";
 
 const addonFields = new Set(["fleet-launch", "fleet-priority"]);

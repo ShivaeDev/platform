@@ -1,8 +1,16 @@
+import { Effect } from "effect";
+import { TestClock } from "effect/testing";
 import { act } from "react";
 import { vi } from "vitest";
 import type { ScreenEngine } from "./screenEngine.ts";
 export function timeActions(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
+		advanceClock: (milliseconds: number) =>
+			Effect.gen(function* () {
+				tell(`the runtime clock advances ${milliseconds} milliseconds`);
+				const run = Effect.runPromiseWith(yield* Effect.context());
+				yield* Effect.promise(() => act(() => run(TestClock.adjust(milliseconds))));
+			}),
 		advanceTime: async (milliseconds: number) => {
 			tell(`time advances ${milliseconds} milliseconds`);
 			await act(() => vi.advanceTimersByTimeAsync(milliseconds));

@@ -58,7 +58,12 @@ auth.it(
 			[
 				"provider logs",
 				() => providerLogs(),
-				[["Authentication provider failed", expect.objectContaining({ message: "Cannot use a pool after calling end on the pool" })]],
+				[
+					[
+						"Authentication provider failed",
+						expect.objectContaining({ _tag: "SqlError", reason: expect.objectContaining({ _tag: "ConnectionError" }) }),
+					],
+				],
 			],
 		]);
 	},

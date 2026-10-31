@@ -1,6 +1,6 @@
 import type { Question } from "#browser/responses/schema.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { responseUrl } from "#responses/url.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import { questionSourceMatches } from "#server/responses/questionSourceMatches.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";

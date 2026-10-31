@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.36.13",
+	"version": "0.36.14",
 	"description": "One dependency for the ShivaeDev Effect application stack",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
@@ -47,7 +47,6 @@
 		"@tanstack/react-router": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
-		"pg": "catalog:",
 		"pg-boss": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
@@ -70,9 +69,6 @@
 			"optional": true
 		},
 		"better-auth": {
-			"optional": true
-		},
-		"pg": {
 			"optional": true
 		},
 		"pg-boss": {

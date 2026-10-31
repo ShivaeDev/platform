@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.27.0 - 2026-10-31
+
+### Added
+
+- Contract clients expose `clientActivity(client)`, a native Effect `Stream` with a `current` Effect reporting finite RPC calls, queued live invalidations, refreshing query atoms and received live hints.
+- Screen drivers accept that activity as `pending`, wait for idle activity with their renderer before screen assertions, and expose `nextLiveHint()` for the next client delivery. Stories keep live coalescing enabled.
+
+### Fixed
+
+- Live hint and query coalescing delays use the atom runtime's Clock, so TestClock can drive their windows without waiting in real time. Resyncs and registry disposal cancel pending delays.
+- Live server resync identities use Effect's Random service, allowing a seeded runtime to reproduce them.
+- Shared RPC WebSockets measure opening, heartbeat and reconnect delays on live time, so advancing an application's TestClock does not time out a real connection. Application timers keep their own clock.
+
 ## 0.26.0 - 2026-10-31
 
 ### Added

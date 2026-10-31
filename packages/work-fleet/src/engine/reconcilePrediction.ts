@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { breakWaitCycle, orderedPrediction } from "#engine/breakWaitCycle.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { EngineContext, type EngineState } from "#engine/makeState.ts";
+import { orderMergePrediction } from "#engine/orderMergePrediction.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import { publishedPr, watchedPrs } from "#engine/watchedPrs.ts";
 import type { MergePrediction } from "#MergePrediction.ts";
@@ -17,13 +18,30 @@ export const reconcilePrediction = Effect.fn("Fleet.reconcilePrediction")(functi
 	if (pr === undefined) {
 		return stored;
 	}
-	const prediction = yield* state.integrations.predict(pr, [...(yield* watchedPrs(state)), ...(record.predictedConflictHold?.prs ?? [])]);
-	if (!canHold(record)) {
-		return yield* state.save(stored, { ...record, mergePrediction: prediction });
+	const observed = yield* state.integrations.predict(pr, [...(yield* watchedPrs(state)), ...(record.predictedConflictHold?.prs ?? [])]);
+	const parkedRepair =
+		(record.step === "repairing" || record.blocker?.startsWith("waiting for area "))
+		&& !executing(record)
+		&& !record.mergeMainRepair
+		&& observed.conflicts.some((conflict) => conflict.otherPr === "main");
+	if (!(canHold(record) || parkedRepair)) {
+		return yield* state.save(stored, { ...record, mergePrediction: observed });
 	}
-	const ordered = orderedPrediction(record, prediction);
-	const resolved = yield* breakWaitCycle(stored, ordered).pipe(Effect.provideService(EngineContext, state));
-	return yield* applyPrediction(state, resolved, orderedPrediction(resolved.value, ordered));
+	const prediction = yield* orderMergePrediction(record, orderedPrediction(record, observed)).pipe(Effect.provideService(EngineContext, state));
+	if (parkedRepair && !prediction.conflicts.some((conflict) => conflict.wait)) {
+		return yield* requestRework(state)(
+			stored,
+			`Fetch and merge main once at ${prediction.mainRevision}, resolve the conflicts, and retain the requested changes.\n\n${record.checks?.repairPrompt ?? record.prompt}`,
+			undefined,
+			prediction.mainRevision,
+		);
+	}
+	const resolved = yield* breakWaitCycle(stored, prediction).pipe(Effect.provideService(EngineContext, state));
+	const selected = resolved.value.mergeOrderFirst;
+	const promoted =
+		selected !== undefined
+		&& (selected.head !== record.mergeOrderFirst?.head || selected.prs.some((otherPr) => !record.mergeOrderFirst?.prs.includes(otherPr)));
+	return yield* applyPrediction(state, resolved, promoted ? orderedPrediction(resolved.value, prediction) : prediction);
 });
 
 const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
@@ -61,6 +79,7 @@ const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
 		...(record.predictedConflictHold === undefined ? {} : { attentionOwner: undefined, blocker: undefined }),
 		mergePrediction: prediction,
 		predictedConflictHold: undefined,
+		step: record.predictedConflictHold === undefined ? record.step : ("reviewing" as const),
 	};
 	const merged = record.predictedConflictHold?.prs.filter((pr) => prediction.mergedPrs.includes(pr)) ?? [];
 	return merged.length === 0
@@ -84,6 +103,8 @@ function canHold(record: FleetRecord) {
 	return (
 		!executing(record)
 		&& record.result?.kind === "change"
-		&& (["reviewing", "validating", "delivering"].includes(record.step) || record.decision?.code === "reviewed-pr-ready")
+		&& (["reviewing", "validating", "delivering"].includes(record.step)
+			|| (record.step === "waiting" && record.predictedConflictHold !== undefined)
+			|| record.decision?.code === "reviewed-pr-ready")
 	);
 }

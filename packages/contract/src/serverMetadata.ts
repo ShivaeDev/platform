@@ -15,6 +15,7 @@ export interface QueryRequest<E = unknown, R = unknown> {
 export class ChangesQueries extends Context.Service<
 	ChangesQueries,
 	{
+		readonly queries: readonly QueryShape[];
 		readonly resolve: (references: readonly QueryReference[]) => Effect.Effect<readonly QueryRequest[]>;
 	}
 >()("@shivaedev/contract/ChangesQueries") {}
@@ -78,7 +79,7 @@ export function changesRpc(name: string, queries: readonly QueryShape[]) {
 		payload: { queries: referenceSchemas(queries) },
 		stream: true,
 		success: changesSuccess(queries),
-	}).annotate(ChangesQueries, { resolve: (references) => resolveQueries(queries, references) });
+	}).annotate(ChangesQueries, { queries, resolve: (references) => resolveQueries(queries, references) });
 }
 
 export function operationAnnotations(operation: QueryShape | CommandShape | StreamShape, keyScope: "session" | undefined) {

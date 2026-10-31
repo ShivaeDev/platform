@@ -2,6 +2,7 @@ import { Context, Effect, Exit, Layer, type Option, Redacted, type Schema, Scope
 import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } from "pg-boss";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
+import { clientErrorReporter } from "#adapters/clientErrorReporter.ts";
 import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#error.ts";
@@ -49,8 +50,7 @@ export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossE
 	return Layer.effect(
 		PgBoss,
 		Effect.gen(function* () {
-			const dependencies = yield* Effect.context<never>();
-			const execute = Effect.runPromiseWith(dependencies);
+			const report = yield* clientErrorReporter(logClientError);
 			const acquired = yield* Effect.acquireRelease(
 				acquireClient(
 					{
@@ -61,9 +61,7 @@ export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossE
 							...(connectionString === undefined ? {} : { connectionString: Redacted.value(connectionString) }),
 						},
 					},
-					(error) => {
-						void execute(logClientError(error));
-					},
+					report,
 				),
 				(client) => releaseClient(client, stop),
 			);
@@ -94,24 +92,17 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 			initialize: Effect.gen(function* () {
 				yield* validateQueueNames(options.jobs, queueNames);
 				const acquired = yield* PgBoss;
-				const execute = Effect.runPromiseWith(dependencies);
 				const workerScope = yield* Scope.make();
 				const service = makeService(acquired.client, options.jobs.map(registrationName), acquired.schema);
 				const context = Context.add(dependencies, Service, service);
 				const reportError = options.onError ?? logClientError;
-				const unsubscribe = subscribeClientErrors(acquired.client, (error) => {
-					void execute(Effect.exit(Effect.provide(reportError(error), context)));
-				});
+				const report = yield* clientErrorReporter(reportError).pipe(Effect.provide(context));
+				const unsubscribe = subscribeClientErrors(acquired.client, report);
 				yield* Effect.addFinalizer(() => Scope.close(workerScope, Exit.void).pipe(Effect.ensuring(Effect.sync(unsubscribe))));
-				yield* registerReleasedJobs(
-					acquired.client,
-					options.jobs,
-					context,
-					acquired.reused,
-					(effect) => execute(effect),
-					acquired.schema,
-					acquired.stop?.graceful !== false,
-				).pipe(Effect.provideService(Scope.Scope, workerScope), Effect.provide(dependencies));
+				yield* registerReleasedJobs(acquired.client, options.jobs, context, acquired.reused, acquired.schema, acquired.stop?.graceful !== false).pipe(
+					Effect.provideService(Scope.Scope, workerScope),
+					Effect.provide(dependencies),
+				);
 				return service;
 			}),
 			methods: (service) => ({

@@ -50,7 +50,8 @@ export const queueNames = [emailQueue.name, cleanupSchedule.name] as const;
 The client imports `queueNames` for its queue filter, or passes `emailQueue` to the admin jobs page. Server definitions reference the same declarations:
 
 ```ts
-import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts";
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { cleanupSchedule, emailQueue, queueNames } from "./queues.ts";
 
@@ -129,7 +130,8 @@ export const MailLive = Mail.layer;
 Define the feature's registrations in `jobs.ts`:
 
 ```ts
-import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts";
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
 import { Effect, Schema } from "effect";
 import { Mail } from "./services.ts";
 
@@ -517,20 +519,29 @@ Set `retryPolicy: testRetryPolicy` through the controller to override queue and 
 
 A kit can also capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement or worker fetch, and when a local worker returns to idle as `waitForIdle` defines it, including terminal native worker timeouts. It also resumes immediately if a change occurred between the read and the wait. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout.
 
+`untilJob(queue, id, state)` waits that way for one job: it reads the job, waits for the next change when the job is in another state, and returns the job with `data` decoded through the queue's Schema once it reaches `state`. `fetchesPass(queue, n)` completes once `n` worker fetches on the queue that began after the wait started have finished, whether or not they claimed anything, so a story can show that a job stayed untaken by fetches that could have claimed it. Each fetch also counts as a change for `waitForChange`. Both waits give up after `within` (default 20 seconds) of wall time, which a story's `TestClock` does not move, and fail with `PgBossWaitError`, whose message names what the wait expected and what it last saw:
+
+```ts
+yield* testing.untilJob(SendEmail, id, "completed", { within: "5 seconds" });
+// Gave up after 5s waiting until job <id> in send-email is completed; last seen: retry
+```
+
 ### API
 
 Import the module that defines the name; the package has no root entry.
 
-| Module                                 | Public names                                                                                                                                                                                                                                                                                       |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shivaedev/jobs/server/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
-| `@shivaedev/jobs/server/service.ts`    | `makePgBoss`, `pgBossLayer`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossOptions`, `PgBossService`                                                                                                                                                                                            |
-| `@shivaedev/jobs/server/PgBoss.ts`     | `PgBoss`: the shared client Context service.                                                                                                                                                                                                                                                       |
-| `@shivaedev/jobs/server/schema.ts`     | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                                                                       |
-| `@shivaedev/jobs/server/health.ts`     | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                                                                     |
-| `@shivaedev/jobs/server/error.ts`      | `PgBossError`, `PgBossPayloadError`, `PgBossQueueNamesError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation`                                                                                                                      |
-| `@shivaedev/jobs/server/client.ts`     | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                                                      |
-| `@shivaedev/jobs/server/testing.ts`    | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                                                                                                  |
+| Module                                           | Public names                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/jobs/server/definition.ts`           | `defineQueue`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
+| `@shivaedev/jobs/server/service.ts`              | `makePgBoss`, `pgBossLayer`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossOptions`, `PgBossService`                                                                                                                                                                          |
+| `@shivaedev/jobs/server/PgBoss.ts`               | `PgBoss`: the shared client Context service.                                                                                                                                                                                                                                     |
+| `@shivaedev/jobs/server/schema.ts`               | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                                                     |
+| `@shivaedev/jobs/server/health.ts`               | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                                                   |
+| `@shivaedev/jobs/server/error.ts`                | `PgBossError`, `PgBossPayloadError`, `PgBossQueueNamesError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `PgBossWaitError`, `toPgBossError`; `PgBossOperation`                                                                                 |
+| `@shivaedev/jobs/server/client.ts`               | `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                                                            |
+| `@shivaedev/jobs/server/testing.ts`              | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `PgBossTestingWaitOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                                                    |
+| `@shivaedev/jobs/server/defineSchedule.ts`       | `defineSchedule`                                                                                                                                                                                                                                                                 |
+| `@shivaedev/jobs/server/defaultClientFactory.ts` | `defaultClientFactory`                                                                                                                                                                                                                                                           |
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
