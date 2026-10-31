@@ -4,6 +4,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { promisify } from "node:util";
 import { Effect } from "effect";
+import { sourceProblemsScreen } from "./sourceProblemsScreen.tsx";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function archiveVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -32,6 +33,10 @@ export function archiveVerbs(engine: BoardEngine, tell: (line: string) => void) 
 			}),
 		fileExists: (file: string) => existsSync(join(engine.notes.root, file)),
 		fileSource: (file: string) => readFileSync(join(engine.notes.root, file), "utf8"),
+		openSourceProblems: () => {
+			tell("the reader opens Files with problems from the Board inbox");
+			return sourceProblemsScreen(engine);
+		},
 		readGoals: () =>
 			Effect.promise(() => {
 				tell("read goal progress through Board RPC");

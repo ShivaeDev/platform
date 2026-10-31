@@ -47,7 +47,7 @@ export const loadSettled = Effect.fn("WorkBoard.loadSettled")(function* (root: s
 		...snapshot,
 		documents,
 		entries: [...snapshot.entries, ...found.flatMap((record) => record.entries)],
-		model: metadataModel(documents, snapshot.unavailable, snapshot.model.rootFile),
+		model: metadataModel(documents, snapshot.unavailable, snapshot.model.rootFile, snapshot.model.settled),
 		modified: new Map([...snapshot.modified, ...records.map((record) => [record.file, record.modified] as const)]),
 	};
 });
