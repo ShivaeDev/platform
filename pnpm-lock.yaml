@@ -1397,6 +1397,9 @@ importers:
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
+      '@shivaedev/admin':
+        specifier: workspace:*
+        version: link:../admin
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
@@ -1545,6 +1548,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2

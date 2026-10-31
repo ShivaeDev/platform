@@ -1,14 +1,15 @@
 import { RegistryContext } from "@effect/atom-react";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, Link, RouterProvider, useRouterState } from "@tanstack/react-router";
 import { Effect } from "effect";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, type ReactNode, useContext, useState } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { loadQuery } from "#adapters/loadQuery.ts";
+import { screenPending } from "#client/screenPending.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import { loadQuery } from "#loadQuery.ts";
 import { loaderHost } from "./loaderHost.ts";
 import { loaderResponses } from "./loaderResponses.ts";
 
@@ -26,7 +27,6 @@ export const loaderScreen = storyKit({
 		const loaded = Promise.withResolvers<void>();
 		const renders: string[] = [];
 		let registry: AtomRegistry.AtomRegistry | undefined;
-		let refreshing = false;
 		function Shell({ children }: { readonly children: ReactNode }) {
 			const pending = useRouterState({ select: (state) => state.isLoading });
 			return (
@@ -43,7 +43,6 @@ export const loaderScreen = storyKit({
 			component: () => {
 				const query = useLoaderQuery(host.atom, note.useLoaderData());
 				renders.push(query.data.title);
-				refreshing = query.pending;
 				return (
 					<article>
 						<h1>{query.data.title}</h1>
@@ -85,16 +84,18 @@ export const loaderScreen = storyKit({
 			);
 		}
 		yield* Effect.promise(() => view.render(<App />));
+		function sessionRegistry() {
+			if (!registry) {
+				throw new Error("No session registry");
+			}
+			return registry;
+		}
+		const pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, sessionRegistry()));
 		return {
 			host,
 			loaded,
-			refreshing: () => refreshing,
-			registry: () => {
-				if (!registry) {
-					throw new Error("No session registry");
-				}
-				return registry;
-			},
+			pending,
+			registry: sessionRegistry,
 			renders,
 			router,
 			view,
@@ -103,12 +104,12 @@ export const loaderScreen = storyKit({
 	inspect: ({ host, renders, view }) => ({ calls: host.calls, renders, screen: view.container.textContent }),
 	name: "loader handoff screen",
 	stages: ["screen"],
-	verbs: ({ host, loaded, registry, renders, router, view, refreshing }, story) => ({
+	verbs: ({ host, loaded, pending, registry, renders, router, view }, story) => ({
 		...screenDriver({
 			act: async (action) => {
 				await act(action);
 			},
-			pending: () => router.state.isLoading || router.state.matches.some((match) => match.isFetching) || refreshing(),
+			pending,
 			root: view.container,
 			tell: story.tell,
 		}),
@@ -134,6 +135,7 @@ export const loaderScreen = storyKit({
 				await act(async () => loaded.promise);
 			}),
 		...loaderResponses(host, registry, story.tell),
+		pending: () => Effect.sync(pending),
 		unmounted: () =>
 			Effect.promise(async () => {
 				story.tell("let the unmounted query wrapper become idle");

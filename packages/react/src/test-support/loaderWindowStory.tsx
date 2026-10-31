@@ -8,9 +8,9 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { loadQuery } from "#adapters/loadQuery.ts";
 import { mountLive } from "#client/mountLive.ts";
 import type { QueryOptions } from "#client/resultState.ts";
-import { loadQuery } from "#loadQuery.ts";
 import { LoaderWindowRead } from "./LoaderWindowRead.tsx";
 import { Screen } from "./Screen.ts";
 

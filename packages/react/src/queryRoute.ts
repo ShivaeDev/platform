@@ -3,7 +3,7 @@ import { Predicate } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { loadQuery } from "./loadQuery.ts";
+import { loadQuery } from "#adapters/loadQuery.ts";
 
 export function queryRoute<
 	TParams extends object,
