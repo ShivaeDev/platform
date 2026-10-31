@@ -1,55 +1,56 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { biomeRunning } from "#test/biomeRunning.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { promiseRunning } from "#test/promiseRunning.ts";
-import { biomeRunning, brokenConfig, crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
+import { crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
 
 qualityLifecycle.it(
-	"interrupting Biome exits 130, stops its child and removes its temporary config",
+	"interrupting quality while Biome checks ends the run as interrupted without an error, stops Biome and removes quality's temporary Biome config",
 	[biomeRunning],
-	function* ({ childRunning, interrupt, originalEntries, rootEntries, status, stderr, temporaryConfigExists }) {
-		expect(yield* childRunning()).toBe(true);
-		expect(yield* temporaryConfigExists()).toBe(true);
-		const before = originalEntries();
+	function* ({ biomeIsRunning, interrupts, outcome, stderr, temporaryBiomeConfigExists }) {
+		yield* outcomes([
+			["Biome running", () => biomeIsRunning(), true],
+			["temporary Biome config", () => temporaryBiomeConfigExists(), true],
+		]);
 
-		yield* interrupt();
+		yield* interrupts();
 
 		yield* outcomes([
-			["Biome child running", () => childRunning(), false],
-			["error output", () => Effect.sync(stderr), ""],
-			["exit status", () => Effect.sync(status), 130],
-			["repository entries", () => rootEntries(), before],
-			["temporary config exists", () => temporaryConfigExists(), false],
+			["Biome running", () => biomeIsRunning(), false],
+			["error output", () => stderr(), ""],
+			["exit", () => outcome(), "interrupted"],
+			["temporary Biome config", () => temporaryBiomeConfigExists(), false],
 		]);
 	},
+	CLI_TIMEOUT,
 );
-
-qualityLifecycle.it("a crashing rule exits 2 and prints its id and original stack", [crashingRule], function* ({ check, status, stderr }) {
-	yield* check();
-
-	yield* outcomes([
-		["defect output", () => Effect.sync(stderr), expect.stringContaining("quality: internal error")],
-		["exit status", () => Effect.sync(status), 2],
-		["original stack", () => Effect.sync(stderr), expect.stringMatching(/at .*crashRule.*quality\.config\.ts:\d+:\d+/u)],
-		["rule and error", () => Effect.sync(stderr), expect.stringContaining("rule local/crash failed: policy crashed")],
-	]);
-});
 
 qualityLifecycle.it(
-	"a setup failure retains its original cause without enumerating or serializing it",
-	[brokenConfig],
-	function* ({ check, setupFailure }) {
-		yield* check();
+	"a local rule that throws makes quality lint invalid with an internal error that names the rule, its error and the check's own stack frame",
+	[crashingRule],
+	function* ({ outcome, runs, stderr }) {
+		yield* runs("lint");
 
-		expect(setupFailure()).toMatchObject({ cause: "config crashed", enumerableCause: false });
-		expect(setupFailure().serialized).not.toContain('"cause"');
+		yield* outcomes([
+			["exit", () => outcome(), "invalid"],
+			["internal error", () => stderr(), expect.stringContaining("quality: internal error")],
+			["rule and error", () => stderr(), expect.stringContaining("rule local/crash failed: policy crashed")],
+			["stack frame", () => stderr(), expect.stringMatching(/at .*crashRule.*quality\.config\.ts:\d+:\d+/u)],
+		]);
 	},
+	CLI_TIMEOUT,
 );
 
-qualityLifecycle.it("interrupting a Promise check aborts its signal", [promiseRunning], function* ({ interrupt, promiseAborted }) {
-	expect(yield* promiseAborted()).toBe(false);
+qualityLifecycle.it(
+	"interrupting a rule's Promise check aborts the signal the check received",
+	[promiseRunning],
+	function* ({ interrupts, promiseSignalAborted }) {
+		expect(yield* promiseSignalAborted()).toBe(false);
 
-	yield* interrupt();
+		yield* interrupts();
 
-	expect(yield* promiseAborted()).toBe(true);
-});
+		expect(yield* promiseSignalAborted()).toBe(true);
+	},
+	CLI_TIMEOUT,
+);

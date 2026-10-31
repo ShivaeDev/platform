@@ -114,6 +114,8 @@ export const GithubApi = defineService({
 					);
 					return JSON.stringify(bodies);
 				}),
+			write: (body: unknown) =>
+				request("graphql", state.github.write("POST", "graphql", body).pipe(Effect.flatMap((page) => page.decode(Schema.Unknown)))),
 		};
 	},
 	requires: [GitHub],

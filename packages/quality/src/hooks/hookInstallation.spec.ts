@@ -1,110 +1,165 @@
-import { realpathSync } from "node:fs";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { CLI_EXIT, CLI_TIMEOUT, runQuality } from "#test/cli.ts";
-import { hookPath } from "#test/hookPath.ts";
-import { commits, hookRepository, hookText, qualityFrom, withOwnHook, withQualityAt, withWorktree } from "#test/hookRepository.ts";
-import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
+import { dirname } from "node:path";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { checkoutStory } from "#test/checkoutStory.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
+import { hookInstalled, linkedWorktree, outsideGit, ownHook, qualityFileAt } from "#test/linkedWorktree.ts";
 
-const OWNER = "# Installed by @shivaedev/quality: `quality hooks install` writes it, `quality hooks uninstall` removes it.";
+const OWN_HOOK = "#!/bin/sh\nmake check\n";
 
-afterEach(removeSeededTrees);
+checkoutStory.it(
+	"quality hooks install outside a git repository refuses and explains how to start one",
+	[outsideGit()],
+	function* ({ folder, outcome, runs, stderr, stdout }) {
+		const project = yield* folder();
 
-describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
-	it("explains how to initialize a repository before installing a hook", async () => {
-		const root = seedTree([config("{}")]);
-		expect(await runQuality(root, "hooks", "install")).toEqual({
-			status: 2,
-			stderr: `quality: ${realpathSync(root)} is not in a git work tree, so there is no hook to manage.\nhelp: run quality from inside the repository, or run \`git init\` first.\n`,
-			stdout: "",
-		});
-	});
+		yield* runs("hooks", "install");
 
-	it("installs again over its own hook and says it is up to date", async () => {
-		const repository = hookRepository();
-		await runQuality(repository.root, "hooks", "install");
+		yield* outcomes([
+			[
+				"error",
+				() => stderr(),
+				`quality: ${project} is not in a git work tree, so there is no hook to manage.\nhelp: run quality from inside the repository, or run \`git init\` first.\n`,
+			],
+			["exit", () => outcome(), "invalid"],
+			["report", () => stdout(), ""],
+		]);
+	},
+	CLI_TIMEOUT,
+);
 
-		expect((await runQuality(repository.root, "hooks", "install")).stdout).toBe(
-			`quality: the pre-commit hook at ${hookPath(repository.root)} is up to date.\nquality: set repository-local core.hooksPath to ${join(hookPath(repository.root), "..")}.\nquality: no executable global pre-commit hook to chain.\n`,
+checkoutStory.it(
+	"quality hooks install over quality's own hook says the hook is up to date",
+	[hookInstalled()],
+	function* ({ hookFile, runs, stdout }) {
+		const hook = yield* hookFile();
+
+		yield* runs("hooks", "install");
+
+		expect(yield* stdout()).toBe(
+			`quality: the pre-commit hook at ${hook} is up to date.\nquality: set repository-local core.hooksPath to ${dirname(hook)}.\nquality: no executable global pre-commit hook to chain.\n`,
 		);
-	});
+	},
+	CLI_TIMEOUT,
+);
 
-	it("keeps a pre-commit hook that is not quality's and says how to check commits with it", async () => {
-		const repository = withOwnHook(hookRepository(), "#!/bin/sh\nmake check\n");
+checkoutStory.it(
+	"quality hooks install keeps a pre-commit hook that is not quality's and says how to check commits from it",
+	[ownHook(OWN_HOOK)],
+	function* ({ hookFile, hookScript, outcome, runs, stderr }) {
+		const hook = yield* hookFile();
 
-		const result = await runQuality(repository.root, "hooks", "install");
+		yield* runs("hooks", "install");
 
-		expect(result.status).toBe(CLI_EXIT.passed);
-		expect(result.stderr).toBe(
-			`quality: kept ${hookPath(repository.root)}: it is not quality's pre-commit hook, so quality does not check commits.\nhelp: call \`node_modules/.bin/quality hooks pre-commit\` from that hook, or replace it with \`quality hooks install --force\`.\n`,
-		);
-		expect(hookText(repository)).toBe("#!/bin/sh\nmake check\n");
-	});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["hook", () => hookScript(), OWN_HOOK],
+			[
+				"warning",
+				() => stderr(),
+				`quality: kept ${hook}: it is not quality's pre-commit hook, so quality does not check commits.\nhelp: call \`node_modules/.bin/quality hooks pre-commit\` from that hook, or replace it with \`quality hooks install --force\`.\n`,
+			],
+		]);
+	},
+	CLI_TIMEOUT,
+);
 
-	it("replaces a pre-commit hook that is not quality's with --force", async () => {
-		const repository = withOwnHook(hookRepository(), "#!/bin/sh\nmake check\n");
+checkoutStory.it(
+	"quality hooks install --force replaces a pre-commit hook that is not quality's and says so",
+	[ownHook(OWN_HOOK)],
+	function* ({ hook, hookFile, runs, stdout }) {
+		const path = yield* hookFile();
+		expect(yield* hook()).toBe("another");
 
-		expect((await runQuality(repository.root, "hooks", "install", "--force")).stdout).toContain(
-			`quality: replaced ${hookPath(repository.root)}, which was not quality's hook;`,
-		);
-		expect(hookText(repository)).toContain(OWNER);
-	});
+		yield* runs("hooks", "install", "--force");
 
-	it("installs from a linked worktree into the hooks every worktree shares", async () => {
-		const repository = hookRepository();
-		const worktree = withWorktree(repository, "feature");
+		yield* outcomes([
+			["hook", () => hook(), "quality's"],
+			["report", () => stdout(), expect.stringContaining(`quality: replaced ${path}, which was not quality's hook;`)],
+		]);
+	},
+	CLI_TIMEOUT,
+);
 
-		expect((await runQuality(worktree, "hooks", "install")).status).toBe(CLI_EXIT.passed);
-		expect(hookText(repository)).toContain(OWNER);
-		expect((await runQuality(repository.root, "hooks", "install")).stdout).toContain("is up to date");
-	});
+checkoutStory.it(
+	"quality hooks install in a linked worktree writes quality's hook into the hooks every worktree shares",
+	[linkedWorktree("feature")],
+	function* ({ hook, outcome, runsIn }) {
+		expect(yield* hook()).toBe("none");
 
-	it("runs quality the way install ran it when that is a file in the repository, with the same Node options", () => {
-		const repository = hookRepository();
-		const local = withQualityAt(repository, "tools/quality.ts");
+		yield* runsIn("feature", "hooks", "install");
 
-		qualityFrom(local, repository.root, "hooks", "install");
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["hook", () => hook(), "quality's"],
+		]);
+	},
+	CLI_TIMEOUT,
+);
 
-		expect(hookText(repository)).toContain("quality=tools/quality.ts\n");
-		expect(hookText(repository)).toContain('node --conditions=source "$quality" hooks pre-commit || status=$?\n');
-		expect(commits(repository.root, "Checked by the repository's own quality").status).toBe(CLI_EXIT.passed);
-	});
+checkoutStory.it(
+	"quality hooks install run from the repository's own quality file writes a hook that runs that file with the same Node options",
+	[qualityFileAt("tools/quality.ts")],
+	function* ({ hookLines, outcome, runsOwnQuality }) {
+		yield* runsOwnQuality("hooks", "install");
 
-	it("runs from the folder of a config below the repository root", async () => {
-		const repository = hookRepository({ folder: "app", scripts: { "quality:commit": "test -f quality.config.ts" } });
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			[
+				"hook",
+				() => hookLines(),
+				expect.arrayContaining(["quality=tools/quality.ts", 'node --conditions=source "$quality" hooks pre-commit || status=$?']),
+			],
+		]);
+	},
+	CLI_TIMEOUT,
+);
 
-		await runQuality(join(repository.root, "app"), "hooks", "install");
+checkoutStory.it(
+	"quality hooks uninstall in a repository without a hook says there is none",
+	[],
+	function* ({ hookFile, outcome, runs, stdout }) {
+		const hook = yield* hookFile();
 
-		expect(hookText(repository)).toContain('cd "$top"/app || exit 2\n');
-		expect(commits(repository.root, "Checked from app").status).toBe(CLI_EXIT.passed);
-	});
-});
+		yield* runs("hooks", "uninstall");
 
-describe("quality hooks uninstall", { timeout: CLI_TIMEOUT }, () => {
-	it("reports that a fresh repository has no hook to uninstall", async () => {
-		const repository = hookRepository();
-		expect(await runQuality(repository.root, "hooks", "uninstall")).toEqual({
-			status: 0,
-			stderr: "",
-			stdout: `quality: there is no pre-commit hook at ${hookPath(repository.root)}.\n`,
-		});
-	});
-	it("removes quality's hook", async () => {
-		const repository = hookRepository();
-		await runQuality(repository.root, "hooks", "install");
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), `quality: there is no pre-commit hook at ${hook}.\n`],
+		]);
+	},
+	CLI_TIMEOUT,
+);
 
-		expect((await runQuality(repository.root, "hooks", "uninstall")).stdout).toBe(
-			`quality: removed the pre-commit hook at ${hookPath(repository.root)}.\n`,
-		);
-		expect(hookText(repository)).toBeUndefined();
-	});
+checkoutStory.it(
+	"quality hooks uninstall removes quality's hook and says so",
+	[hookInstalled()],
+	function* ({ hook, hookFile, runs, stdout }) {
+		const path = yield* hookFile();
+		expect(yield* hook()).toBe("quality's");
 
-	it("keeps a hook that is not quality's", async () => {
-		const repository = withOwnHook(hookRepository(), "#!/bin/sh\nmake check\n");
+		yield* runs("hooks", "uninstall");
 
-		expect((await runQuality(repository.root, "hooks", "uninstall")).stderr).toBe(
-			`quality: kept ${hookPath(repository.root)}: it is not quality's pre-commit hook.\n`,
-		);
-		expect(hookText(repository)).toBe("#!/bin/sh\nmake check\n");
-	});
-});
+		yield* outcomes([
+			["hook", () => hook(), "none"],
+			["report", () => stdout(), `quality: removed the pre-commit hook at ${path}.\n`],
+		]);
+	},
+	CLI_TIMEOUT,
+);
+
+checkoutStory.it(
+	"quality hooks uninstall keeps a pre-commit hook that is not quality's and says so",
+	[ownHook(OWN_HOOK)],
+	function* ({ hookFile, hookScript, runs, stderr }) {
+		const hook = yield* hookFile();
+
+		yield* runs("hooks", "uninstall");
+
+		yield* outcomes([
+			["hook", () => hookScript(), OWN_HOOK],
+			["warning", () => stderr(), `quality: kept ${hook}: it is not quality's pre-commit hook.\n`],
+		]);
+	},
+	CLI_TIMEOUT,
+);

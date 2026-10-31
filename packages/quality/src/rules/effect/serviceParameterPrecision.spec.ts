@@ -1,52 +1,67 @@
 import { expect } from "vitest";
-import { effectPolicyStory, policyFiles } from "#effect-policy-story";
-import { SERVICE_DECLARATION } from "#test/effectPolicyFiles.ts";
+import { serviceParameters } from "#rules/effect/serviceParameters.ts";
+import { carries, effectResolves, serviceModule } from "#test/effectPolicyFiles.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+
+// A Reference whose value is a function, so a parameter of that function type must not count as carrying it.
+const CALLBACK_REFERENCE = [
+	"type DefaultCallback = (key: string) => boolean;",
+	'export const DefaultCallbackReference = Context.Reference<DefaultCallback>("DefaultCallback", { defaultValue: () => (key) => key.length > 0 });',
+];
 
 const ORDINARY_PARAMETERS = [
-	{ name: "atom", type: "Atom.Atom<string>" },
-	{ name: "schema", type: "Schema.Schema<string>" },
-	{ name: "record", type: "Record<string, unknown>" },
-	{ name: "tuple", type: "readonly [string, number]" },
 	{ name: "lookalike", type: "{ readonly read: () => Effect.Effect<string> }" },
-	{ name: "element", type: "Element" },
 	{ name: "referenceValue", type: "DefaultCallback" },
 ];
 
+const CALLABLE_SERVICES = [
+	'import { Schema } from "effect";',
+	"interface Row { readonly id: string }",
+	"type Invalidate = (payload: unknown, result: unknown) => readonly Row[];",
+	'export class Invalidation extends Context.Service<Invalidation, Invalidate>()("Invalidation") {}',
+	'type Lookup = <T extends "get">(tag: T) => T extends "get" ? Effect.Effect<string> : never;',
+	'export class LookupService extends Context.Service<LookupService, Lookup>()("Lookup") {}',
+];
+
+const CALLABLE_PARAMETERS = [
+	{ code: "export const client = (lookup: Lookup) => lookup;", name: "a generic function that is a service's shape", parameter: "lookup" },
+	{ code: "export const direct = (invalidate: Invalidate) => invalidate;", name: "a function that is a service's shape", parameter: "invalidate" },
+	{
+		code: "export const nested = (services: { readonly invalidate: Invalidate }) => services.invalidate;",
+		name: "an object that holds a function that is a service's shape",
+		parameter: "services",
+	},
+];
+
 for (const { name, type } of ORDINARY_PARAMETERS) {
-	effectPolicyStory.it(
-		`${name} parameters are accepted alongside real service parameters`,
+	ruleStory.it(
+		`effect/service-parameters accepts a ${name} parameter of type ${type}`,
 		[
-			policyFiles({
-				content: `${SERVICE_DECLARATION}
-import { Duration, Schema } from "effect";
-import * as Atom from "effect/reactivity/Atom";
-import * as HttpMiddleware from "effect/http/HttpMiddleware";
-export const Window = Context.Service<Duration.Input>("Window");
-export const nameGenerator = HttpMiddleware.SpanNameGenerator;
-export const BrowserFetch = Context.Reference<typeof globalThis.fetch>("BrowserFetch", { defaultValue: () => globalThis.fetch });
-type DefaultCallback = (key: string) => boolean;
-export const DefaultCallbackReference = Context.Reference<DefaultCallback>("DefaultCallback", { defaultValue: () => (key) => key.length > 0 });
-export const ordinary = (${name}: ${type}) => ${name};
-export const tag = (serviceTag: typeof Store) => serviceTag;
-export const instance = (serviceInstance: Store) => serviceInstance;
-export const implementation = (serviceShape: StoreShape) => serviceShape;
-export const context = (services: Context.Context<Store>) => services;
-export const reference = (referenceKey: typeof BrowserFetch) => referenceKey;`,
-				path: "src/parameters.ts",
-			}),
+			effectResolves(),
+			repositoryHas(serviceModule("src/parameters.ts", ...CALLBACK_REFERENCE, `export const ordinary = (${name}: ${type}) => ${name};`)),
 		],
-		function* ({ lint }) {
-			const result = yield* lint();
-			const exitCode = result.status;
-			expect(exitCode).toBe(1);
-			expect(result.stdout).not.toContain(`Parameter ${name} carries a service.`);
-			expect(result.stdout.match(/Parameter .+ carries a service\./gu)).toEqual([
-				"Parameter serviceTag carries a service.",
-				"Parameter serviceInstance carries a service.",
-				"Parameter serviceShape carries a service.",
-				"Parameter services carries a service.",
-				"Parameter referenceKey carries a service.",
-			]);
+		function* ({ check }) {
+			expect(yield* check(serviceParameters)).toEqual([]);
+		},
+	);
+}
+
+ruleStory.it(
+	"effect/service-parameters accepts a Schema beside services whose shapes are functions",
+	[effectResolves(), repositoryHas(serviceModule("src/collections.ts", ...CALLABLE_SERVICES, "export const schema = (codec: Schema.Top) => codec;"))],
+	function* ({ check }) {
+		expect(yield* check(serviceParameters)).toEqual([]);
+	},
+);
+
+for (const { code, name, parameter } of CALLABLE_PARAMETERS) {
+	ruleStory.it(
+		`effect/service-parameters reports a parameter that takes ${name}`,
+		[effectResolves(), repositoryHas(serviceModule("src/collections.ts", ...CALLABLE_SERVICES, code))],
+		function* ({ check, messages }) {
+			yield* check(serviceParameters);
+
+			expect(yield* messages()).toEqual([carries(parameter)]);
 		},
 	);
 }

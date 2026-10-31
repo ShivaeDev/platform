@@ -1,23 +1,23 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adoption, baselinedFindings, jsxFixture, newRuleDebt } from "#test/adoption.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { conciseView, conditionalView, fragmentView, manualViews, mixedView, retainedView } from "#test/conditionalFixes.ts";
 
 adoption.it(
-	"recording the new rule through the baseline script makes the gate pass",
+	"recording a new rule's findings through the baseline script records them and makes the gate pass",
 	[newRuleDebt],
-	function* ({ baseline, check, output, recordedDebt }) {
-		yield* check();
-		expect(yield* output()).toMatchObject({ status: 1, stdout: expect.stringContaining("comments/no-todo") });
+	function* ({ gate, recordedDebt, recordsThroughBaselineScript }) {
+		expect(yield* gate()).toBe("rejected");
 
-		yield* baseline("comments/no-todo");
+		yield* recordsThroughBaselineScript("comments/no-todo");
 
-		expect(yield* recordedDebt()).toContain('"rule":"comments/no-todo","count":1');
-
-		yield* check();
-
-		expect(yield* output()).toMatchObject({ status: 0 });
+		yield* outcomes([
+			["gate", () => gate(), "passed"],
+			["recorded debt", () => recordedDebt(), expect.stringContaining('"rule":"comments/no-todo","count":1')],
+		]);
 	},
+	CLI_TIMEOUT,
 );
 
 for (const [name, source] of [
@@ -26,97 +26,106 @@ for (const [name, source] of [
 	["fragment", fragmentView],
 ] as const) {
 	adoption.it(
-		`the JSX fix removes ${name} return findings and preserves rendered values and read order`,
+		`the JSX fix rewrites a ${name} return's conditional child, passes and preserves rendered values and read order`,
 		[jsxFixture(source)],
-		function* ({ fix, output, rendered }) {
+		function* ({ fix, outcome, rendered, stdout }) {
 			const before = yield* rendered(true);
 
 			yield* fix("react/jsx-conditionals");
 
 			yield* outcomes([
-				["fix command", () => output(), expect.objectContaining({ status: 0, stdout: expect.stringContaining("rewrote 1 file") })],
+				["fix", () => outcome(), "passed"],
 				["rendered values and read order", () => rendered(), before],
+				["report", () => stdout(), expect.stringContaining("rewrote 1 file")],
 			]);
 		},
+		CLI_TIMEOUT,
 	);
 }
 
 adoption.it(
-	"the JSX fix leaves attribute and mapped-child decisions unchanged and reported",
+	"the JSX fix leaves attribute and mapped-child decisions unchanged and rejects them as manual findings",
 	[jsxFixture(retainedView)],
-	function* ({ fix, originalSource, output, source }) {
+	function* ({ fix, originalSource, outcome, source, stdout }) {
 		const before = yield* originalSource();
 
 		yield* fix("react/jsx-conditionals");
 
 		yield* outcomes([
-			["remaining findings", () => output(), expect.objectContaining({ status: 1, stdout: expect.stringContaining("Inside .map") })],
-			["unmodified source", () => source(), before],
+			["fix", () => outcome(), "rejected"],
+			["remaining findings", () => stdout(), expect.stringContaining("Inside .map")],
+			["source", () => source(), before],
 		]);
 	},
+	CLI_TIMEOUT,
 );
 
 for (const rule of ["tests/grouped-outcomes", "imports/aliased"]) {
 	adoption.it(
-		`${rule} says it has no safe mechanical fix and leaves source unchanged`,
+		`fixing ${rule} is refused as invalid because it has no safe mechanical fix, and the source stays unchanged`,
 		[jsxFixture(retainedView)],
-		function* ({ fix, originalSource, output, source }) {
+		function* ({ fix, originalSource, outcome, source, stderr }) {
 			const before = yield* originalSource();
 
 			yield* fix(rule);
 
 			yield* outcomes([
-				["unmodified source", () => source(), before],
-				[
-					"unsupported fix",
-					() => output(),
-					expect.objectContaining({ status: 2, stderr: expect.stringContaining(`No safe mechanical fix for ${rule}`) }),
-				],
+				["error", () => stderr(), expect.stringContaining(`No safe mechanical fix for ${rule}`)],
+				["fix", () => outcome(), "invalid"],
+				["source", () => source(), before],
 			]);
 		},
+		CLI_TIMEOUT,
 	);
 }
 
 adoption.it(
-	"the JSX fix repairs safe children while leaving manual findings reported in the same file",
+	"the JSX fix moves a safe decision before the return, keeps the mapped decision and rejects it as a manual finding in the same file",
 	[jsxFixture(mixedView)],
-	function* ({ fix, output, source }) {
+	function* ({ fix, outcome, source, stdout }) {
 		yield* fix("react/jsx-conditionals");
 
 		yield* outcomes([
+			["fix", () => outcome(), "rejected"],
 			["mapped decision retained", () => source(), expect.stringContaining("items.map(item => item.visible ? <i /> : null)")],
-			["remaining finding", () => output(), expect.objectContaining({ status: 1, stdout: expect.stringContaining("Inside .map") })],
+			["remaining finding", () => stdout(), expect.stringContaining("Inside .map")],
 			["safe decision moved before return", () => source(), expect.stringContaining("const qualityContent1 =")],
 		]);
 	},
+	CLI_TIMEOUT,
 );
 
 adoption.it(
-	"the JSX fix reports manual findings even when the baseline already covers them",
+	"the JSX fix rejects manual findings even when the baseline already covers them",
 	[jsxFixture(retainedView), baselinedFindings],
-	function* ({ check, fix, output }) {
-		yield* check();
-		expect(yield* output()).toMatchObject({ status: 0 });
+	function* ({ fix, gate, outcome, stdout }) {
+		expect(yield* gate()).toBe("passed");
 
 		yield* fix("react/jsx-conditionals");
 
-		expect(yield* output()).toMatchObject({ status: 1, stdout: expect.stringContaining("react/jsx-conditionals") });
+		yield* outcomes([
+			["fix", () => outcome(), "rejected"],
+			["report", () => stdout(), expect.stringContaining("react/jsx-conditionals")],
+		]);
 	},
+	CLI_TIMEOUT,
 );
 
 for (const [name, fixture] of manualViews) {
 	adoption.it(
-		`the JSX fix leaves ${name} decisions unchanged and reported`,
+		`the JSX fix leaves ${name} decisions unchanged and rejects them as manual findings`,
 		[jsxFixture(fixture)],
-		function* ({ fix, originalSource, source, output }) {
+		function* ({ fix, originalSource, outcome, source, stdout }) {
 			const before = yield* originalSource();
 
 			yield* fix("react/jsx-conditionals");
 
 			yield* outcomes([
-				["manual finding", () => output(), expect.objectContaining({ status: 1, stdout: expect.stringContaining("react/jsx-conditionals") })],
-				["unmodified source", () => source(), before],
+				["fix", () => outcome(), "rejected"],
+				["manual finding", () => stdout(), expect.stringContaining("react/jsx-conditionals")],
+				["source", () => source(), before],
 			]);
 		},
+		CLI_TIMEOUT,
 	);
 }

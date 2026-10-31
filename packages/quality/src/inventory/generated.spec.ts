@@ -1,35 +1,57 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
-import { CLI_EXIT, quality } from "#test/cli.ts";
-import { generatedAuthored } from "#test/generatedAuthored.ts";
-import { removeSeededTrees } from "#test/tree.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { repositoryTracks } from "#test/repositoryTracks.ts";
+import { config } from "#test/tree.ts";
 
-afterEach(removeSeededTrees);
+const GENERATED_IGNORED = { content: "node_modules/\nsrc/generated/\n", path: ".gitignore" };
 
-describe("authored code in generated folders", () => {
-	it("checks tracked ignored files with source, naming, suppression and Biome rules", () => {
-		const root = generatedAuthored();
-		const result = quality(root, "lint");
-		expect(result.status).toBe(CLI_EXIT.rejected);
-		for (const rule of [
-			"structure/max-lines",
-			"suppressions/no-inline",
-			"imports/resolvable",
-			"files/named-after-export",
-			"files/folder-names",
-			"files/other-names",
-			"biome/lint/suspicious/noDebugger",
-		]) {
-			expect(result.stdout).toContain(rule);
-		}
-		expect(result.stdout).not.toContain("untracked-missing");
-	});
+// Each line breaks one rule family: a missing import, an inline suppression, a debugger statement, and 150 blank lines over the length limit.
+const AUTHORED = {
+	content: `import "./missing.ts";\n// @ts-ignore\ndebugger;\nexport const actual = 1;\n${"\n".repeat(150)}`,
+	path: "src/generated/WrongFolder/badName.ts",
+};
+const AUTHORED_NOTES = { content: "{}", path: "src/generated/BadNotes.json" };
+const OUTPUT = { content: 'import "./untracked-missing.ts";\ndebugger;', path: "src/generated/output.ts" };
 
-	it("fixes authored tracked files in generated folders while leaving generated output alone", () => {
-		const root = generatedAuthored();
-		expect(quality(root, "fix").status).toBe(CLI_EXIT.passed);
-		expect(readFileSync(join(root, "src/generated/WrongFolder/badName.ts"), "utf8")).not.toContain("debugger;");
-		expect(readFileSync(join(root, "src/generated/output.ts"), "utf8")).toContain("debugger;");
-	});
-});
+const generatedFolder = [
+	qualityInstalled(),
+	repositoryHas(config('{ sources: ["src"] }'), GENERATED_IGNORED, AUTHORED, AUTHORED_NOTES, OUTPUT),
+	repositoryTracks(AUTHORED.path, AUTHORED_NOTES.path),
+];
+
+repositoryStory.it(
+	"quality lint rejects the authored files git tracks in an ignored generated folder with source, naming, suppression and Biome findings, and skips the untracked output",
+	generatedFolder,
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
+
+		yield* outcomes([
+			["biome/lint/suspicious/noDebugger", () => stdout(), expect.stringContaining("biome/lint/suspicious/noDebugger")],
+			["exit", () => outcome(), "rejected"],
+			["files/folder-names", () => stdout(), expect.stringContaining("files/folder-names")],
+			["files/named-after-export", () => stdout(), expect.stringContaining("files/named-after-export")],
+			["files/other-names", () => stdout(), expect.stringContaining("files/other-names")],
+			["imports/resolvable", () => stdout(), expect.stringContaining("imports/resolvable")],
+			["structure/max-lines", () => stdout(), expect.stringContaining("structure/max-lines")],
+			["suppressions/no-inline", () => stdout(), expect.stringContaining("suppressions/no-inline")],
+			["untracked output", () => stdout(), expect.not.stringContaining("untracked-missing")],
+		]);
+	},
+);
+
+repositoryStory.it(
+	"quality fix removes the debugger from an authored file git tracks in an ignored generated folder and leaves the untracked output alone",
+	generatedFolder,
+	function* ({ outcome, reads, runs }) {
+		expect(yield* reads(AUTHORED.path)).toContain("debugger;");
+
+		yield* runs("fix");
+
+		yield* outcomes([
+			["authored file", () => reads(AUTHORED.path), expect.not.stringContaining("debugger;")],
+			["exit", () => outcome(), "passed"],
+			["untracked output", () => reads(OUTPUT.path), expect.stringContaining("debugger;")],
+		]);
+	},
+);

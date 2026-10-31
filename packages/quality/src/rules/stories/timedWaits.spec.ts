@@ -1,63 +1,44 @@
 import { expect } from "vitest";
-import { repositoryHas, ruleKit } from "#rule-story";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { inStory } from "#test/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
 
-ruleKit.it(
-	"a spec is told to settle on the engine's signal for each sleep, timer, poll, fake timer and clock adjustment",
-	[
-		repositoryHas({
-			content: [
-				'import { Effect } from "effect";',
-				'import { TestClock } from "effect/testing";',
-				'import { vi } from "vitest";',
-				'import { eventually } from "@shivaedev/test/eventually.ts";',
-				inStory(
-					'yield* Effect.sleep("50 millis");',
-					"setTimeout(ship, 10);",
-					"globalThis.setInterval(poll, 10);",
-					'yield* eventually(() => expect(status()).toBe("shipped"));',
-					"vi.useFakeTimers();",
-					"vi.advanceTimersByTime(1000);",
-					'yield* Effect.promise(() => vi.waitFor(() => expect(status()).toBe("shipped")));',
-					'yield* TestClock.adjust("1 day");',
-					"yield* TestClock.setTime(0);",
-				),
-			].join("\n"),
-			path: SPEC,
-		}),
-	],
-	function* ({ checks }) {
-		const findings = yield* checks(waitOnEvents);
+const VI = 'import { vi } from "vitest";';
+const TEST_CLOCK = 'import { TestClock } from "effect/testing";';
+const NO_IMPORT = 'import { expect } from "vitest";';
 
-		expect(findings).toEqual(
-			[6, 7, 8, 9, 10, 11, 12, 13, 14].map((line) => ({ file: SPEC, line, message: expect.stringContaining("engine's own signal") })),
-		);
-	},
-);
+for (const [imports, wait] of [
+	['import { Effect } from "effect";', 'yield* Effect.sleep("50 millis");'],
+	[NO_IMPORT, "setTimeout(ship, 10);"],
+	[NO_IMPORT, "globalThis.setInterval(poll, 10);"],
+	['import { eventually } from "@shivaedev/test/eventually.ts";', 'yield* eventually(() => expect(status()).toBe("shipped"));'],
+	[VI, "vi.useFakeTimers();"],
+	[VI, "vi.advanceTimersByTime(1000);"],
+	[VI, 'yield* Effect.promise(() => vi.waitFor(() => expect(status()).toBe("shipped")));'],
+	[TEST_CLOCK, 'yield* TestClock.adjust("1 day");'],
+	[TEST_CLOCK, "yield* TestClock.setTime(0);"],
+] as const) {
+	ruleStory.it(
+		`tests/wait-on-events reports ${wait} in a story and asks to settle on the engine's signal`,
+		[repositoryHas({ content: `${imports}\n${inStory(wait)}`, path: SPEC })],
+		function* ({ check, locations, messages }) {
+			yield* check(waitOnEvents);
 
-ruleKit.it(
-	"a kit verb that advances the clock, and the spec that calls it, pass",
-	[
-		repositoryHas(
-			{ content: inStory("yield* aDayPasses();", 'expect(yield* status()).toBe("overdue");'), path: SPEC },
-			{
-				content: 'import { TestClock } from "effect/testing";\nexport const aDayPasses = () => TestClock.adjust("1 day");',
-				path: "src/test-support/orders.ts",
-			},
-		),
-	],
-	function* ({ checks }) {
-		expect(yield* checks(waitOnEvents)).toEqual([]);
-	},
-);
+			yield* outcomes([
+				["advice", () => messages(), [expect.stringContaining("Settle on the engine's own signal through a kit verb")]],
+				["locations", () => locations(), [`${SPEC}:3`]],
+			]);
+		},
+	);
+}
 
 const POLLING = `import { eventually } from "#eventually.ts";\n${inStory("yield* eventually(() => expect(attempts()).toBe(3));")}`;
 
-ruleKit.it(
-	"packages that test-story depends on keep their own timing tests, while other packages are told to settle on events",
+ruleStory.it(
+	"tests/wait-on-events leaves the polling story of a package test-story depends on alone and reports the same story elsewhere",
 	[
 		repositoryHas(
 			{ content: '{"workspaces":["packages/*"]}', path: "package.json" },
@@ -68,9 +49,9 @@ ruleKit.it(
 			{ content: POLLING, path: "packages/orders/src/orders.spec.ts" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(waitOnEvents);
+	function* ({ check, locations }) {
+		yield* check(waitOnEvents);
 
-		expect(findings.map(({ file }) => file)).toEqual(["packages/orders/src/orders.spec.ts"]);
+		expect(yield* locations()).toEqual(["packages/orders/src/orders.spec.ts:3"]);
 	},
 );

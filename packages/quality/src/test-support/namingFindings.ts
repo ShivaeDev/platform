@@ -1,8 +1,8 @@
-import type { Diagnostic } from "#biome/report.ts";
+import type { SeedFile } from "./tree.ts";
 
 export type Line = readonly [code: string, ...findings: string[]];
 
-export const PLUGINS: ReadonlyArray<readonly [prefix: string, plugin: string]> = [
+const PLUGINS: ReadonlyArray<readonly [prefix: string, plugin: string]> = [
 	["A module-level constant", "constant-names"],
 	["A top-level function whose whole body is Effect.gen", "effect-fn-functions"],
 	["A test body that is only Effect.gen", "effect-test-bodies"],
@@ -16,13 +16,14 @@ export const PLUGINS: ReadonlyArray<readonly [prefix: string, plugin: string]> =
 	["A module never re-exports", "type-re-exports"],
 ];
 
-export function nameOf(diagnostic: Diagnostic): string | undefined {
-	if (diagnostic.category === "plugin") {
-		return PLUGINS.find(([prefix]) => diagnostic.message.startsWith(prefix))?.[1];
-	}
-	return undefined;
+export function pluginOf(message: string): string {
+	return PLUGINS.find(([prefix]) => message.startsWith(prefix))?.[1] ?? message;
 }
 
-export function expected(lines: readonly Line[]): readonly string[] {
+export function namingSource(path: string, lines: readonly Line[]): SeedFile {
+	return { content: `${lines.map(([code]) => code).join("\n")}\n`, path };
+}
+
+export function expectedPlugins(lines: readonly Line[]): readonly string[] {
 	return lines.flatMap(([, ...findings], index) => findings.map((finding) => `${index + 1} ${finding}`)).toSorted();
 }

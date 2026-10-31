@@ -1,0 +1,46 @@
+import { describe, expect, it } from "vitest";
+import { parseCommand } from "#cli/args.ts";
+
+describe("parseCommand", () => {
+	it.each([
+		[[], { _tag: "Lint", config: undefined }],
+		[["lint", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts" }],
+		[["fix"], { _tag: "Fix", config: undefined, rules: [] }],
+		[["baseline", "write"], { _tag: "BaselineWrite", config: undefined, rules: [] }],
+		[["baseline", "write", "--rule", "a/b", "--rule", "c/d"], { _tag: "BaselineWrite", config: undefined, rules: ["a/b", "c/d"] }],
+		[["baseline", "prune"], { _tag: "BaselinePrune", against: undefined, config: undefined }],
+		[["baseline", "prune", "--against", "upstream/trunk"], { _tag: "BaselinePrune", against: "upstream/trunk", config: undefined }],
+		[["baseline", "prune", "--against", "origin/main", "--config", "q.ts"], { _tag: "BaselinePrune", against: "origin/main", config: "q.ts" }],
+		[["baseline", "tighten", "--staged"], { _tag: "BaselineTighten", config: undefined, staged: true }],
+		[["baseline", "tighten"], { _tag: "BaselineTighten", config: undefined, staged: false }],
+		[["baseline", "migrate", "--from", "debt.json"], { _tag: "BaselineMigrate", config: undefined, from: "debt.json" }],
+		[["hooks", "install"], { _tag: "HooksInstall", config: undefined, force: false }],
+		[["hooks", "install", "--force", "--config", "app/quality.config.ts"], { _tag: "HooksInstall", config: "app/quality.config.ts", force: true }],
+		[["hooks", "uninstall"], { _tag: "HooksUninstall" }],
+		[["hooks", "pre-commit"], { _tag: "HooksPreCommit", config: undefined }],
+		[["--help"], { _tag: "Help" }],
+		[["help"], { _tag: "Help" }],
+	])("reads %j as its command", (args, command) => {
+		expect(parseCommand(args)).toEqual({ _tag: "Parsed", command });
+	});
+
+	it.each([
+		[["lint", "--bogus"], "Unknown option"],
+		[["lint", "--rule", "a/b"], "--rule applies only to baseline write"],
+		[["baseline", "prune", "--rule", "a/b"], "--rule applies only to baseline write"],
+		[["baseline"], "baseline takes write, prune, tighten, migrate, merge or install-driver"],
+		[["lint", "--against", "origin/main"], "--against applies only to baseline prune"],
+		[["baseline", "write", "--staged"], "--staged applies only to baseline tighten"],
+		[["fix", "--lint"], "Unknown option '--lint'"],
+		[["baseline", "prune", "--from", "old.json"], "--from applies only to baseline migrate"],
+		[["baseline", "prune", "--against=--output=x"], "--against takes a git ref"],
+		[["baseline", "check"], "baseline takes write, prune, tighten, migrate, merge or install-driver"],
+		[["baseline", "write", "now"], "unknown command"],
+		[["check"], "unknown command"],
+		[["hooks"], "hooks takes install, uninstall, status or pre-commit"],
+		[["hooks", "commit-msg"], "hooks takes install, uninstall, status or pre-commit"],
+		[["hooks", "pre-commit", "--force"], "--force applies only to hooks install"],
+	])("refuses %j with its usage problem", (args, problem) => {
+		expect(parseCommand(args)).toEqual({ _tag: "Usage", problem: expect.stringContaining(problem) });
+	});
+});

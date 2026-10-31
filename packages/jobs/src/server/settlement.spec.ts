@@ -2,7 +2,8 @@ import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue, defineSchedule } from "#definition.ts";
-import { claimReadsStall, deferralWritesFail, running, runtime, settlementlessClient, storedJob } from "#test/runtime/kit.ts";
+import { deferralWritesFail } from "#test/runtime/deferralWritesFail.ts";
+import { claimReadsStall, running, runtime, settlementlessClient, storedJob } from "#test/runtime/kit.ts";
 import { storedJob as stored } from "#test/runtime/storedJob.ts";
 import { scheduled, worker, workerBy } from "#test/workers.ts";
 
@@ -101,13 +102,18 @@ for (const reads of [
 	runtime.it(
 		`when claim reads ${reads.how} after an interruption, the batch gives up a second past its deadline with a logged settle error`,
 		[...reads.given, running("app", [worker(Reports, "hangs")])],
-		function* ({ batchAnswer, deliver, deliveryReturned, logged }) {
+		function* ({ batchAnswer, batchFailureMessage, deliver, deliveryReturned, logged }) {
 			yield* deliver("reports", [{ data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 }]);
 
 			yield* outcomes([
 				["batch", () => batchAnswer(), expect.stringMatching(/^rejected with settle reports failed with Operation timed out/u)],
 				["batch returned", () => deliveryReturned(), "1 second after the batch deadline"],
 				["logs", () => logged(), [{ level: "Error", message: expect.stringMatching(/^settle reports failed with Operation timed out/u) }]],
+				[
+					"settle failure summary",
+					() => batchFailureMessage(),
+					expect.stringMatching(/^pg-boss settle for queue reports failed: TimeoutError: Operation timed out/u),
+				],
 			]);
 		},
 	);

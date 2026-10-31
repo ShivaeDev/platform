@@ -1,49 +1,39 @@
 import { expect } from "vitest";
-import { repositoryHas, ruleKit } from "#rule-story";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { inStory } from "#test/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
 
-ruleKit.it(
-	"a spec is told to return domain words from the kit for each Exit, Cause or Result use, _tag read and Failure or Success literal",
-	[
-		repositoryHas({
-			content: [
-				'import { Cause, Effect, Exit } from "effect";',
-				'import * as Result from "effect/Result";',
-				"expect(Exit.isFailure(exit) && Cause.hasDies(exit.cause)).toBe(true);",
-				"expect(Result.isSuccess(result)).toBe(true);",
-				'expect(error._tag).toBe("Forbidden");',
-				"const { _tag } = answer;",
-				'expect(saved).toMatchObject({ _tag: "Failure", failure: { _tag: "Rejected" } });',
-			].join("\n"),
-			path: SPEC,
-		}),
-	],
-	function* ({ checks }) {
-		const findings = yield* checks(domainOutcomes);
+const VITEST = 'import { expect } from "vitest";';
 
-		expect(findings).toEqual(
-			[3, 3, 4, 5, 6, 7].map((line) => ({ file: SPEC, line, message: expect.stringContaining("return the outcome in the domain's words") })),
-		);
-	},
-);
+for (const [shape, imports, line] of [
+	["an Exit helper", 'import { Exit } from "effect";', "expect(Exit.isFailure(exit)).toBe(true);"],
+	["a Cause helper", 'import { Cause } from "effect";', "expect(Cause.hasDies(cause)).toBe(true);"],
+	["a Result helper from effect/Result", 'import * as Result from "effect/Result";', "expect(Result.isSuccess(result)).toBe(true);"],
+	["a _tag read", VITEST, 'expect(error._tag).toBe("Forbidden");'],
+	["a destructured _tag", VITEST, "const { _tag } = answer;"],
+	["a Failure literal around a domain tag", VITEST, 'expect(saved).toMatchObject({ _tag: "Failure", failure: { _tag: "Rejected" } });'],
+] as const) {
+	ruleStory.it(
+		`tests/domain-outcomes reports ${shape} in a story once and asks for the outcome in the domain's words`,
+		[repositoryHas({ content: `${imports}\n${inStory(line)}`, path: SPEC })],
+		function* ({ check, locations, messages }) {
+			yield* check(domainOutcomes);
 
-ruleKit.it(
-	"domain tagged values in a spec, and Exit handling in the kit, a type test or a unit test, pass",
-	[
-		repositoryHas(
-			{ content: inStory('expect(yield* nextMessage()).toEqual({ _tag: "Resync" });'), path: SPEC },
-			{
-				content: 'import { Exit } from "effect";\nexport const ending = (exit) => (Exit.isSuccess(exit) ? "ended" : "unauthorized");',
-				path: "src/test-support/orders.ts",
-			},
-			{ content: 'import type { Exit } from "effect";\nconst tag: Exit.Exit<void>["_tag"] = "Success";', path: "src/orders.typecheck.spec.ts" },
-			{ content: 'import { Exit } from "effect";\nexpect(Exit.isSuccess(Exit.void)).toBe(true);', path: "src/ending.unit.spec.ts" },
-		),
-	],
-	function* ({ checks }) {
-		expect(yield* checks(domainOutcomes)).toEqual([]);
+			yield* outcomes([
+				["advice", () => messages(), [expect.stringContaining("return the outcome in the domain's words")]],
+				["locations", () => locations(), [`${SPEC}:3`]],
+			]);
+		},
+	);
+}
+
+ruleStory.it(
+	"tests/domain-outcomes accepts a domain tagged value such as Resync in a story",
+	[repositoryHas({ content: `${VITEST}\n${inStory('expect(yield* nextMessage()).toEqual({ _tag: "Resync" });')}`, path: SPEC })],
+	function* ({ check }) {
+		expect(yield* check(domainOutcomes)).toEqual([]);
 	},
 );

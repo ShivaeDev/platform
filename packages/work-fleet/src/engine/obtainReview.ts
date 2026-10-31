@@ -1,13 +1,14 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import { workRevision } from "#board/workRevision.ts";
-import { areaWaiters } from "#engine/areaWaiters.ts";
 import { invalidPriorReview } from "#engine/invalidPriorReview.ts";
 import { launchObservationRetries } from "#engine/launchObservationRetries.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { EngineContext } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import { reviewChecks } from "#engine/reviewChecks.ts";
 import { reviewContext } from "#engine/reviewContext.ts";
+import { saveReviewLaunch } from "#engine/saveReviewLaunch.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
@@ -16,7 +17,7 @@ import { reviewerPrompt } from "#prompt/reviewer.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function obtainReview(state: EngineState) {
-	const { store, sessions, save, board } = state;
+	const { store, sessions, board } = state;
 	return Effect.fn("Fleet.obtainReview")(function* (
 		stored: Versioned<FleetRecord>,
 		work: BoardWork,
@@ -69,18 +70,7 @@ export function obtainReview(state: EngineState) {
 			{ ...policy, quota },
 			board.get,
 		);
-		yield* save(
-			stored,
-			{
-				...stored.value,
-				attempts: [...stored.value.attempts, attempt],
-				launchRetry: undefined,
-				mergeAreasReleased: undefined,
-				mergeReadyAt: undefined,
-				mergeReadyHead: undefined,
-			},
-			{ areaWaiters: yield* areaWaiters(state, stored.value), quota, role: "reviewer" },
-		);
+		yield* saveReviewLaunch(stored, attempt, quota).pipe(Effect.provideService(EngineContext, state));
 		const input = {
 			access: "read-only",
 			cwd: stored.value.cwd,

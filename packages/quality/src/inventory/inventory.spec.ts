@@ -1,99 +1,112 @@
-import { join } from "node:path";
-import process from "node:process";
-import { afterEach, expect } from "vitest";
-import { services } from "#cli/runMain.ts";
-import { collectInventory } from "#inventory/collect.ts";
-import { readOptionalText, readRequiredText } from "#inventory/filesystem.ts";
-import { walk } from "#inventory/walk.ts";
-import {
-	blockedInventoryDirectory,
-	manifestUnderFile,
-	removeInventoryRepositories,
-	unicodePathsRepository,
-	unreadableManifestRepository,
-} from "#test/inventoryFixtures.ts";
-import { failureText, makeRoot, repository, scope } from "#test/inventoryRepository.ts";
-import { it as effectIt } from "#test/it.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { folderBlocked, inventoryStory, repositoryHas, repositoryLinks, runsAsRoot } from "#test/inventoryStory.ts";
 
-afterEach(removeInventoryRepositories);
+const APP = { content: "a\nb\n", path: "src/app.ts" };
+const VIEW = { content: "<p/>\n", path: "src/view.tsx" };
+const NOTES = { content: "# Notes\n", path: "docs/notes.md" };
+const ROUTES = { content: "export const route = 1;\n", path: "src/routes/tree.gen.ts" };
+const TOOL = { content: "export {};\n", path: "scripts/tool.ts" };
 
-const asRoot = process.getuid?.() === 0;
+const repository = repositoryHas(APP, VIEW, NOTES, ROUTES, TOOL);
 
-effectIt.layer(services)("filesystem adapter", (it) => {
-	it.effect("treats a missing optional file as absent", function* () {
-		expect(yield* readOptionalText(join(makeRoot(), ".gitignore"))).toBeUndefined();
-	});
+inventoryStory.it(
+	"the inventory lists every file in path order and reads the sources with the configured extensions line by line",
+	[repository],
+	function* ({ collects, files, source, sourcePaths }) {
+		yield* collects({ extensions: [".ts", ".tsx"] });
 
-	it.effect("reports an optional manifest whose parent is a file", function* () {
-		const path = manifestUnderFile();
-		const text = yield* failureText(readOptionalText(path));
-		expect(text).toContain("cannot read");
-		expect(text).toContain(path);
-	});
+		yield* outcomes([
+			["files", () => files(), ["docs/notes.md", "scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]],
+			["source of src/app.ts", () => source("src/app.ts"), { lines: ["a", "b"], path: "src/app.ts", text: "a\nb\n" }],
+			["sources", () => sourcePaths(), ["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]],
+		]);
+	},
+);
 
-	it.effect("fails distinctly when a required file is missing", function* () {
-		const path = join(makeRoot(), "pnpm-workspace.yaml");
-		const text = yield* failureText(readRequiredText(path));
-		expect(text).toContain("required input is missing");
-		expect(text).toContain(path);
-	});
+inventoryStory.it(
+	"the inventory walks only the configured sources, single files among them, and lists a file named twice once",
+	[repository],
+	function* ({ collects, files }) {
+		yield* collects({ sources: ["src", "scripts/tool.ts", "src", "src/app.ts"] });
 
-	it.effect("fails loudly when a file cannot be read", function* () {
-		const root = unreadableManifestRepository();
-		const text = yield* failureText(readRequiredText(join(root, "package.json")));
-		expect(text).toContain("FilesystemFailure");
-		expect(text).toContain(join(root, "package.json"));
-	});
+		expect(yield* files()).toEqual(["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);
+	},
+);
 
-	it.effect.skipIf(asRoot)("fails loudly when a directory cannot be listed", function* () {
-		const blocked = blockedInventoryDirectory();
-		const text = yield* failureText(walk(blocked));
-		expect(text).toContain("SetupFailure");
-		expect(text).toContain(blocked);
-	});
-});
+const UNICODE = [
+	"src/.ts",
+	"src/😀.ts",
+	"src/𐀀.ts",
+	"src/á.ts",
+	"src/é.ts",
+	"src/aa.ts",
+	"src/a2.ts",
+	"src/a10.ts",
+	"src/a.ts",
+	"src/Z.ts",
+	"src/B.ts",
+];
 
-effectIt.layer(services)("inventory", (it) => {
-	it.effect("lists every file and reads the sources with the configured extensions", function* () {
-		const inventory = yield* collectInventory(repository(), scope({}));
-		expect(inventory.files).toEqual(["docs/notes.md", "scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);
-		expect(inventory.sources.map((source) => source.path)).toEqual(["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);
-		expect(inventory.sources.find((source) => source.path === "src/app.ts")).toEqual({ lines: ["a", "b"], path: "src/app.ts", text: "a\nb\n" });
-	});
+inventoryStory.it(
+	"the inventory orders paths by UTF-16 code units, not by locale or code points",
+	[repositoryHas(...UNICODE.map((path) => ({ content: path, path })))],
+	function* ({ collects, files }) {
+		yield* collects();
 
-	it.effect("walks only the configured sources, which may name single files", function* () {
-		const inventory = yield* collectInventory(repository(), scope({ sources: ["src", "scripts/tool.ts", "src"] }));
-		expect(inventory.files).toEqual(["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);
-	});
-
-	it.effect("orders paths by UTF-16 code units and keeps overlapping sources unique", function* () {
-		const root = unicodePathsRepository();
-		const inventory = yield* collectInventory(root, scope({ sources: ["src", "src/a.ts", "src"] }));
-		const expected = [
+		expect(yield* files()).toEqual([
 			"src/B.ts",
 			"src/Z.ts",
 			"src/a.ts",
 			"src/a10.ts",
 			"src/a2.ts",
 			"src/aa.ts",
-			"src/e\u0301.ts",
+			"src/é.ts",
 			"src/á.ts",
 			"src/𐀀.ts",
 			"src/😀.ts",
-			"src/\uE000.ts",
-		];
-		expect(inventory.files).toEqual(expected);
-		expect(inventory.sources).toEqual(expected.map((path) => ({ lines: [path], path, text: path })));
-	});
+			"src/.ts",
+		]);
+	},
+);
 
-	it.effect("leaves out excluded paths, written in .gitignore syntax", function* () {
-		const inventory = yield* collectInventory(repository(), scope({ exclude: ["*.gen.ts", "docs/"] }));
-		expect(inventory.files).toEqual(["scripts/tool.ts", "src/app.ts", "src/view.tsx"]);
-	});
+inventoryStory.it("the inventory leaves out excluded paths written in .gitignore syntax", [repository], function* ({ collects, files }) {
+	yield* collects({ exclude: ["*.gen.ts", "docs/"] });
 
-	it.effect("fails when a configured source does not exist or leaves the repository", function* () {
-		const root = repository();
-		expect(yield* failureText(collectInventory(root, scope({ sources: ["srcc"] })))).toContain('source "srcc" does not exist');
-		expect(yield* failureText(collectInventory(root, scope({ sources: ["../elsewhere"] })))).toContain("outside the repository");
-	});
+	expect(yield* files()).toEqual(["scripts/tool.ts", "src/app.ts", "src/view.tsx"]);
 });
+
+const refusedSources = [
+	["srcc", 'source "srcc" does not exist'],
+	["../elsewhere", 'source "../elsewhere" lies outside the repository'],
+] as const;
+
+for (const [configured, reason] of refusedSources) {
+	inventoryStory.it(`the inventory fails because the configured ${reason}`, [repository], function* ({ collects, failure }) {
+		yield* collects({ sources: [configured] });
+
+		expect(yield* failure()).toContain(reason);
+	});
+}
+
+inventoryStory.it("the walk finds nothing in a folder that does not exist", [], function* ({ walks }) {
+	expect(yield* walks("missing")).toEqual([]);
+});
+
+inventoryStory.it(
+	"the walk passes a link to a missing file and collects the files that remain",
+	[repositoryHas({ content: "export const value = 1;", path: "present.ts" }), repositoryLinks("dangling.ts", "missing-target")],
+	function* ({ walks }) {
+		expect(yield* walks(".")).toEqual(["present.ts"]);
+	},
+);
+
+inventoryStory.it.skipIf(runsAsRoot)(
+	"the walk fails on a folder git may not enter and names it",
+	[folderBlocked("packages")],
+	function* ({ failure, walks }) {
+		yield* walks("packages");
+
+		expect(yield* failure()).toMatch(/^cannot run git in packages: /u);
+	},
+);

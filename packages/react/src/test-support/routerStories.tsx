@@ -72,6 +72,14 @@ function routeVerbs(state: State, screen: Screen) {
 					void current(state).router.navigate({ params: { id: "first" }, search: { page }, to: "/notes/$id" });
 				})
 				.pipe(Effect.andThen(requestArrives(state, screen))),
+		changeViewer: (page: number) =>
+			screen
+				.act(`the viewer switches to page ${page}`, () => {
+					const { router } = current(state);
+					router.update({ context: { ...router.options.context, viewerPage: page } });
+					void router.invalidate();
+				})
+				.pipe(Effect.andThen(requestArrives(state, screen))),
 		clientRuntimes: () => Effect.sync(() => state.client.builds()),
 		firstFrame: () => Effect.sync(() => state.client.frames[0] ?? "none"),
 		heading: () => Effect.sync(() => text(state, "h1")),
@@ -111,21 +119,23 @@ interface Engine {
 	readonly state: State;
 }
 
-function* openRoute({ screen, state }: Engine, initial: string, expectedFailure?: NoteMissing) {
+function* openRoute({ screen, state }: Engine, initial: string, expectedFailure?: NoteMissing, viewerPage = 1) {
 	const root = yield* screen.open(
 		null,
 		expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === expectedFailure) } : undefined,
 	);
 	state.root = root;
-	const router = routerApp(root.registry, state.client, initial);
+	const router = routerApp(root.registry, state.client, initial, viewerPage);
 	state.router = router;
 	yield* Effect.promise(() => act(() => root.render(<RouterProvider router={router} />)));
 	yield* screen.act(`the loader at ${initial} reaches the server`, () => state.client.requestArrives(1));
 }
 
-export function routeRequested(initial = "/notes/first", expectedFailure?: NoteMissing) {
-	return routes.trait("screen", `the notes router opened ${initial} and its loader's request waits on the server`, (engine) =>
-		openRoute(engine, initial, expectedFailure),
+export function routeRequested(initial = "/notes/first", expectedFailure?: NoteMissing, viewerPage = 1) {
+	return routes.trait(
+		"screen",
+		`the notes router opened ${initial} with viewer page ${viewerPage} and its loader's request waits on the server`,
+		(engine) => openRoute(engine, initial, expectedFailure, viewerPage),
 	);
 }
 

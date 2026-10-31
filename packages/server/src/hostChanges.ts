@@ -1,13 +1,13 @@
 import { Context, Effect, Layer, Option, Stream } from "effect";
 import { Headers } from "effect/http";
-import type { Rpc, RpcGroup } from "effect/rpc";
+import { Rpc, type RpcGroup } from "effect/rpc";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
+import { revalidateStream } from "@shivaedev/identity/server/revalidateStream.ts";
 import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
-import { revalidateSession } from "@shivaedev/identity/server/socketSession.ts";
 import type { AppChanges } from "#appHost.ts";
 import { rerunQuery } from "#rerunQuery.ts";
 
@@ -21,7 +21,7 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 			const changes = yield* Effect.serviceOption(changesService);
 			const services = yield* Effect.context<never>();
 			const handlers = new Map<string, unknown>();
-			function subscribe(rpc: Rpc.Any, queries: readonly QueryReference[], options: Parameters<Rpc.Handler<string>["handler"]>[1]) {
+			function subscribe(rpc: Rpc.AnyWithProps, queries: readonly QueryReference[], options: Parameters<Rpc.Handler<string>["handler"]>[1]) {
 				return Stream.unwrap(
 					Effect.gen(function* () {
 						const { subscription, context } = yield* resolveChanges(rpc, queries);
@@ -33,12 +33,15 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 						if (sessions === undefined || Option.isNone(viewer)) {
 							return stream;
 						}
-						return Stream.interruptWhen(stream, sessionRevoked(sessions, rpc._tag, viewer.value.id));
+						const revalidation = Effect.never.pipe(
+							revalidateStream(sessions, rpc, viewer.value.id, recheckSession(sessions, Headers.empty, rpc._tag)),
+						);
+						return Stream.interruptWhen(stream, revalidation);
 					}),
 				);
 			}
 			for (const rpc of group.requests.values()) {
-				if (!rpc._tag.endsWith(".$changes")) {
+				if (!(Rpc.isRpc(rpc) && rpc._tag.endsWith(".$changes"))) {
 					continue;
 				}
 				const provided = services.mapUnsafe.get(rpc.key);
@@ -74,13 +77,4 @@ function authorizeSession<TSession extends SessionShape, E, R>(
 				allowed ? policy : Effect.fail(new Unauthorized({ message: "Authentication required" })),
 		),
 	);
-}
-
-function sessionRevoked<TSession extends SessionShape>(sessions: SessionPolicy<TSession>, tag: string, id: string) {
-	return Effect.gen(function* () {
-		const current = yield* recheckSession(sessions, Headers.empty, tag).pipe(Effect.catchTag("AuthUnavailable", () => Effect.succeed(undefined)));
-		if (current !== undefined && (Option.isNone(current) || current.value.user.id !== id)) {
-			return yield* new Unauthorized({ message: "Authentication required" });
-		}
-	}).pipe((check) => revalidateSession(check, sessions.streamRevalidationInterval ?? "30 seconds"));
 }

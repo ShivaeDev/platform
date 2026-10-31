@@ -1,33 +1,38 @@
 import { expect } from "vitest";
-import { repositoryHas, ruleKit } from "#rule-story";
 import { importsManifest } from "#rules/imports/manifest.ts";
 import { application, entryPointWorkspace, HOIST_WORKSPACE, pieceImports, platformApp } from "#test/applicationFiles.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-const workspace = repositoryHas(...entryPointWorkspace, HOIST_WORKSPACE);
+const WORKSPACE = repositoryHas(...entryPointWorkspace, HOIST_WORKSPACE);
 
-ruleKit.it(
-	"an application imports the pieces its platform and test-story entry points bring by their own names",
-	[workspace, repositoryHas(application("modules/app/package.json", platformApp), ...pieceImports)],
-	function* ({ checks }) {
-		expect(yield* checks(importsManifest)).toEqual([]);
+ruleStory.it(
+	"imports/manifest lets an application import the pieces its platform and test-story entry points bring by their own names",
+	[WORKSPACE, repositoryHas(application("modules/app/package.json", platformApp), ...pieceImports)],
+	function* ({ check }) {
+		expect(yield* check(importsManifest)).toEqual([]);
 	},
 );
 
-ruleKit.it(
-	"test-story's pieces stay out of an application's runtime code",
-	[workspace, repositoryHas(application("modules/app/package.json", platformApp))],
-	function* ({ checks, writes }) {
-		yield* writes({ content: 'import { story } from "@shivaedev/test/story.ts";\nexport const shipped = story;\n', path: "modules/app/src/app.ts" });
-		expect((yield* checks(importsManifest)).map((finding) => [finding.file, finding.subject])).toEqual([
-			["modules/app/src/app.ts", "@shivaedev/test"],
-		]);
-	},
-);
-
-ruleKit.it(
-	"a library that tests with test-story still declares each piece it imports",
+ruleStory.it(
+	"imports/manifest keeps test-story's pieces out of an application's runtime code",
 	[
-		workspace,
+		WORKSPACE,
+		repositoryHas(application("modules/app/package.json", platformApp), {
+			content: 'import { story } from "@shivaedev/test/story.ts";\nexport const shipped = story;\n',
+			path: "modules/app/src/app.ts",
+		}),
+	],
+	function* ({ check }) {
+		const findings = yield* check(importsManifest);
+
+		expect(findings).toEqual([expect.objectContaining({ file: "modules/app/src/app.ts", subject: "@shivaedev/test" })]);
+	},
+);
+
+ruleStory.it(
+	"imports/manifest requires a library that tests with test-story to declare each piece it imports",
+	[
+		WORKSPACE,
 		repositoryHas(
 			{
 				content: `${JSON.stringify({ devDependencies: { "@shivaedev/test-story": "workspace:*" }, name: "@shivaedev/library" })}\n`,
@@ -36,17 +41,24 @@ ruleKit.it(
 			...pieceImports,
 		),
 	],
-	function* ({ checks }) {
-		expect((yield* checks(importsManifest)).map((finding) => finding.subject).toSorted()).toEqual(["@shivaedev/sql", "@shivaedev/test"]);
+	function* ({ check }) {
+		const findings = yield* check(importsManifest);
+
+		expect(findings.map((finding) => finding.subject).toSorted()).toEqual(["@shivaedev/sql", "@shivaedev/test"]);
 	},
 );
 
-ruleKit.it(
-	"an application without the entry point that brings a piece is told which entry point to add",
-	[workspace, repositoryHas(application("modules/app/package.json", { dependencies: platformApp.dependencies }), ...pieceImports)],
-	function* ({ checks }) {
-		const findings = yield* checks(importsManifest);
-		expect(findings.map((finding) => finding.subject)).toEqual(["@shivaedev/test"]);
-		expect(findings[0]?.message).toContain('An application can instead add "@shivaedev/test-story" to devDependencies, which brings it.');
+ruleStory.it(
+	"imports/manifest tells an application without the entry point that brings a piece which entry point to add",
+	[WORKSPACE, repositoryHas(application("modules/app/package.json", { dependencies: platformApp.dependencies }), ...pieceImports)],
+	function* ({ check }) {
+		const findings = yield* check(importsManifest);
+
+		expect(findings).toEqual([
+			expect.objectContaining({
+				message: expect.stringContaining('An application can instead add "@shivaedev/test-story" to devDependencies, which brings it.'),
+				subject: "@shivaedev/test",
+			}),
+		]);
 	},
 );

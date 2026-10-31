@@ -73,6 +73,8 @@ export function readouts(engine: DatabaseEngine) {
 			),
 		mostRunningAtOnce: (queue: Pick<QueueDefinition, "name">) => Effect.sync(() => engine.work.peaks.get(queue.name) ?? 0),
 		overlappingAttempts: () => Effect.sync(() => engine.work.overlaps.map((id) => labelOf(engine, id))),
+		remainingBudgets: (queue: Pick<QueueDefinition, "name">) =>
+			Effect.sync(() => engine.work.started.filter((attempt) => attempt.queue === queue.name).map(({ budget }) => budget)),
 		reported: () => Effect.sync(() => [...engine.reported]),
 		secondsUntilFirstAttempt: (as: string) =>
 			Effect.sync(() => {

@@ -1,40 +1,30 @@
 import { expect } from "vitest";
-import { repositoryHas, ruleKit } from "#rule-story";
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
-import { jsxAccepted, jsxDecision, jsxDecisions, jsxJavascript } from "#test/jsxConditionalFiles.ts";
+import { CHILD_DECISION, jsxAccepted, jsxDecisions } from "#test/jsxConditionalFiles.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-ruleKit.it(
-	"authors get a repair for every JSX child decision, including nested and mapped items",
-	[repositoryHas(jsxDecisions), repositoryHas(jsxJavascript)],
-	function* ({ checks }) {
-		const findings = yield* checks(jsxConditionals);
-		expect(findings.map(({ file, line }) => [file, line])).toEqual([
-			["src/decisions.tsx", 1],
-			["src/decisions.tsx", 2],
-			["src/decisions.tsx", 3],
-			["src/decisions.tsx", 4],
-			["src/decisions.tsx", 4],
-			["src/decisions.tsx", 5],
-			["src/decisions.tsx", 5],
-			["src/decisions.tsx", 6],
-			["src/decisions.tsx", 7],
-			["src/decisions.tsx", 8],
-			["src/decisions.tsx", 9],
-			["src/view.jsx", 1],
-		]);
-		for (const finding of findings) {
-			expect(finding.message).toContain("if and early return");
-			expect(finding.message).toContain("variable computed above the return");
-			expect(finding.message).toContain("component that receives the data and returns null");
-		}
-		for (const finding of findings.filter(({ line }) => line === 6 || line === 8 || line === 9)) {
-			expect(finding.message).toContain("Inside .map, extract the item into its own component");
-		}
+for (const { code, findings, name } of jsxDecisions) {
+	ruleStory.it(
+		`react/jsx-conditionals reports ${name} with its repair`,
+		[repositoryHas({ content: code, path: "src/view.tsx" })],
+		function* ({ check, messages }) {
+			yield* check(jsxConditionals);
+
+			expect(yield* messages()).toEqual(findings);
+		},
+	);
+}
+
+for (const { code, name } of jsxAccepted) {
+	ruleStory.it(`react/jsx-conditionals accepts ${name}`, [repositoryHas({ content: code, path: "src/view.tsx" })], function* ({ check }) {
+		expect(yield* check(jsxConditionals)).toEqual([]);
+	});
+}
+
+ruleStory.it(
+	"react/jsx-conditionals reports a JSX child decision in a .jsx file at its line",
+	[repositoryHas({ content: "const View = () => <div>{ready && <X />}</div>;", path: "src/view.jsx" })],
+	function* ({ check }) {
+		expect(yield* check(jsxConditionals)).toEqual([{ file: "src/view.jsx", line: 1, message: CHILD_DECISION }]);
 	},
 );
-
-ruleKit.it("components decide before their JSX and keep conditional attribute values", [repositoryHas(jsxAccepted)], function* ({ checks, writes }) {
-	expect(yield* checks(jsxConditionals)).toEqual([]);
-	yield* writes(jsxDecision);
-	expect(yield* checks(jsxConditionals)).toEqual([{ file: "src/accepted.tsx", line: 1, message: expect.stringContaining("Decide before the JSX") }]);
-});

@@ -9,8 +9,8 @@ export function containerPlan(state: "existing" | "missing" | "outdated") {
 	return [
 		daemonAnswers,
 		{
-			args: ["container", "inspect", "development-postgres"],
-			result: state === "missing" ? new Error("No such container: development-postgres") : "[]",
+			args: ["container", "ls", "--all", "--filter", "name=^/development-postgres$", "--format", "{{.ID}}"],
+			result: state === "missing" ? "" : "container-id",
 		},
 		...(state === "missing"
 			? [

@@ -1,7 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { appDatabaseMissing, appDatabaseWithRow, queryRole } from "#test/databaseTraits.ts";
 import { postgres } from "#test/postgres.ts";
-import { appDatabaseMissing, appDatabaseWithRow, realPostgres } from "#test/postgresTraits.ts";
+import { realPostgres } from "#test/postgresTraits.ts";
 
 postgres.it(
 	"preparing creates the app database when it does not exist yet",
@@ -26,6 +27,19 @@ postgres.it(
 		yield* outcomes([
 			["rows", () => appRows(), ["existing data"]],
 			["setup", () => outcome(), "prepared"],
+		]);
+	},
+);
+
+postgres.it(
+	"a refused CREATE DATABASE reaches the setup caller as PostgresCommandError with PostgreSQL's diagnostic",
+	[realPostgres(), appDatabaseMissing(), queryRole()],
+	function* ({ failureKind, outcome, prepareAppDatabaseAsQueryRole }) {
+		yield* prepareAppDatabaseAsQueryRole();
+
+		yield* outcomes([
+			["diagnostic", () => outcome(), "failed: ERROR:  permission denied to create database"],
+			["failure", () => failureKind(), "setup command failed"],
 		]);
 	},
 );

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { conflictRepairCanRaceDispatch } from "#test/engineAreaTraits.ts";
+import { continuedWorkHasExpiredAreas } from "#test/engineAreaTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 
 for (const [repairPriority, launchPriority] of [
@@ -11,8 +11,8 @@ for (const [repairPriority, launchPriority] of [
 	["normal", "urgent"],
 ] as const) {
 	isolatedEngine.it(
-		`a waiting ${repairPriority} conflict repair precedes a new ${launchPriority} launch unless its priority is strictly higher`,
-		[conflictRepairCanRaceDispatch(true)],
+		`a waiting ${repairPriority} code repair precedes a new ${launchPriority} launch unless its priority is strictly higher`,
+		[continuedWorkHasExpiredAreas()],
 		function* (fleet) {
 			fleet.setAreas("one", ["shared"]);
 			fleet.setPriority("one", repairPriority);
@@ -23,7 +23,7 @@ for (const [repairPriority, launchPriority] of [
 			fleet.advanceTime(5000);
 			yield* fleet.reconcile("one");
 			yield* fleet.reserveForeign("holder", ["shared"]);
-			fleet.conflictPullRequest();
+			yield* fleet.answerDecision("one", "retry", "Fix the requested code changes.");
 			expect((yield* fleet.reconcile("one")).value).toMatchObject({ blocker: "waiting for area shared held by holder", step: "repairing" });
 			fleet.advanceTime(100);
 			fleet.setAreas("two", ["shared"]);
@@ -55,7 +55,7 @@ for (const [repairPriority, launchPriority] of [
 
 isolatedEngine.it(
 	"equal repair waiters use waiting age rather than original preparation order across restart",
-	[conflictRepairCanRaceDispatch(true)],
+	[continuedWorkHasExpiredAreas()],
 	function* (fleet) {
 		for (const id of ["one", "two"]) {
 			fleet.setAreas(id, ["shared"]);
@@ -67,8 +67,8 @@ isolatedEngine.it(
 			yield* fleet.reconcile(id);
 		}
 		yield* fleet.reserveForeign("holder", ["shared"]);
-		fleet.conflictPullRequest();
 		for (const id of ["two", "one"]) {
+			yield* fleet.answerDecision(id, "retry", "Fix the requested code changes.");
 			expect((yield* fleet.reconcile(id)).value).toMatchObject({ blocker: "waiting for area shared held by holder", step: "repairing" });
 			fleet.advanceTime(100);
 		}

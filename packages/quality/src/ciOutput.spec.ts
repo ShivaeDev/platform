@@ -1,14 +1,22 @@
 import { expect } from "vitest";
-import { ciEnvironment, testOutputStory } from "#test/outputPolicy.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { ciEnvironment, outputPolicyStory } from "#test/outputPolicyStory.ts";
 
-const { it } = testOutputStory;
+outputPolicyStory.it("in CI, a passing test's diagnostic stays in the output", [ciEnvironment("true")], function* ({ output, runsPassingTest }) {
+	yield* runsPassingTest();
 
-it("keeps a passing test's diagnostic visible in CI", [ciEnvironment("true")], function* ({ run }) {
-	expect(yield* run()).toContain("diagnostic from a passing test");
+	expect(yield* output()).toContain("diagnostic from a passing test");
 });
 
-it("hides a passing test's diagnostic outside CI", [ciEnvironment("")], function* ({ run }) {
-	const output = yield* run();
-	expect(output).toContain("1 passed");
-	expect(output).not.toContain("diagnostic from a passing test");
-});
+outputPolicyStory.it(
+	"outside CI, the output reports the passing test but hides its diagnostic",
+	[ciEnvironment("")],
+	function* ({ output, runsPassingTest }) {
+		yield* runsPassingTest();
+
+		yield* outcomes([
+			["diagnostic", () => output(), expect.not.stringContaining("diagnostic from a passing test")],
+			["result", () => output(), expect.stringContaining("1 passed")],
+		]);
+	},
+);

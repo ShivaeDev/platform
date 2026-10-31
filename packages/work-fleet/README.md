@@ -1,12 +1,12 @@
 # @shivaedev/work-fleet
 
-Work Fleet carries approved Work Board tasks through coding agents to a reviewed, validated pull request that waits for a person to merge it. It keeps every attempt in PostgreSQL against the Board item, so a restart neither loses nor repeats work, and every wait names who must act.
+Work Fleet carries approved Work Board tasks through coding agents, independent review and required checks, then queues its green pull requests with GitHub and observes their delivery. It keeps every attempt in PostgreSQL against the Board item, so a restart neither loses nor repeats work, and every wait names who must act.
 
 ## Keep approved work moving
 
-Approving a task is the easy part. Someone still has to launch an agent, notice when it stalls or asks a question, read its pull request, send review findings back, wait for the required checks, catch conflicts with other open work and tell the maintainer when it is ready to merge. Across many tasks, that bookkeeping becomes the job.
+Approving a task is the easy part. Someone still has to launch an agent, notice when it stalls or asks a question, read its pull request, send review findings back, wait for the required checks, catch conflicts with other open work and queue it when review and checks pass. Across many tasks, that bookkeeping becomes the job.
 
-Fleet does that bookkeeping. You approve an item in Board; Fleet admits it within your capacity limits, runs a worker, adopts its pull request, has a separate reviewer check the exact head, waits for the required checks and then puts the green pull request in your lane as ready to merge. Fleet never merges: it observes your merge and records the delivery. While work waits, the waiting views name who must act: the maintainer, the orchestrator or automation.
+Fleet does that bookkeeping. You approve an item in Board; Fleet admits it within your capacity limits, runs a worker, adopts its pull request, has a separate reviewer check the exact head, waits for the required checks and queues the reviewed head with GitHub auto-merge. It repairs conflicts on the existing branch as earlier PRs land, then reviews and validates the repaired head before queuing it. It observes GitHub landing the PR and records the delivery. While work waits, the waiting views name who must act: the maintainer, the orchestrator or automation.
 
 A task is an ordinary Board file:
 
@@ -47,11 +47,11 @@ Each item moves through a small set of stages, shared with Board:
 
 The [Board vocabulary](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/README.md#work-vocabulary) defines each authored state's meaning, approval, ownership, deliverables and question fields. Fleet keeps resumable execution steps in `record.step` beneath the shared `record.stage`. Stored records, status files, CLI and MCP projections use the same stages. Review, required-check validation and delivery observation all show as `reviewing`.
 
-A finished worker turn is not finished work. A terminal worker turn is execution evidence; accepted completion also needs result adoption, review when enabled, required checks and an observed human merge of the validated head, or a validated no-change result. A provider receipt, a terminal turn, a passing review and an accepted delivery are separate facts, and Fleet records each one separately.
+A finished worker turn is not finished work. A terminal worker turn is execution evidence; accepted completion also needs result adoption, review when enabled, required checks and an observed merge of the validated head, or a validated no-change result. A provider receipt, a terminal turn, a passing review and an accepted delivery are separate facts, and Fleet records each one separately.
 
 Fleet owns an item from launch until accepted delivery, a validated no-change result or an explicit safe release. Terminal execution frees the execution slot, but ownership stays. Running work retains ownership until normal completion or a confirmed safe release, and uncertain provider receipts retain ownership for reconciliation. When Fleet cannot tell what happened, it keeps the work and asks rather than starting a second worker.
 
-Every wait names its owner and reason. The maintainer decides scope and merges; the orchestrator, the agent or person driving Fleet day to day, answers routine worker questions, inspects results and retries; automation covers what only time or other work can resolve. A predicted conflict hold names the PR to merge and the conflicting files.
+Every wait names its owner and reason. The maintainer decides scope; the orchestrator, the agent or person driving Fleet day to day, answers routine worker questions, inspects results and retries; automation covers what only time or other work can resolve. A predicted conflict hold names the PR to merge and the conflicting files.
 
 Fleet identifies a task by its authored brief, not by its bookkeeping. Editing `status`, `next_action` or `owner` leaves the attempts alone; editing the title, body or criteria makes a new revision that Fleet either approves in place or stops on.
 
@@ -182,7 +182,7 @@ work-fleet up <board-dir> --port 3457 --board-port 4747 --home index.md --respon
 
 `--port` (also `--fleet-port`) selects Fleet's port; `--board-port` selects Board's port. Board also receives `--home`, `--responses` and `--maintainer`. `--config` selects Fleet's host configuration. The command resolves the installed Fleet and Work Board packages from the repository that holds the Board directory and needs no shell restart loop. Keep `up` running: it is what reconciles worker progress.
 
-The supervisor holds the canonical Board directory until shutdown. A second `up`, a hand-started `serve` or a hand-started Board command refuses with the owner's pid, ports and start time. A lease left by a dead process is reclaimed. A child that exits is restarted independently after a short backoff; a code change replaces the affected child after HTTP shutdown drains active requests. Code revisions are SHA-256 digests of Fleet, Board and their installed ShivaeDev package code; source execution watches source files, and published execution watches compiled code and Board assets.
+The supervisor holds the canonical Board directory until shutdown. A second `up`, a hand-started `serve` or a hand-started Board command refuses with the owner's pid, ports and start time. A lease left by a dead process is reclaimed. A child that exits is restarted independently after a short backoff; a change to code that child loaded replaces it after HTTP shutdown drains active requests. Filesystem events coalesce a burst of edits into one restart, while changes to unimported dependencies leave both children running. Each child reports the modules it loads, including imported response modules; source execution tracks source modules and published execution tracks compiled modules.
 
 ```sh
 work-fleet up <board-dir> --status
@@ -289,19 +289,25 @@ relationships:
 
 An overlapping task waits on automation, with a reason such as `waiting for area work-fleet/host held by task.foundation`. Areas are held through execution, review and validation, and are freed on completion or safe release.
 
-For a reviewed, green PR ready for a human merge, `areaMergeWaitMs` in Fleet policy or `fleet.config.json` defaults to `1800000` (30 minutes), counted from that readiness event. Once the wait expires, other tasks can use its areas while Fleet continues observing the PR for delivery.
+For a reviewed, green PR waiting to merge, `areaMergeWaitMs` in Fleet policy or `fleet.config.json` defaults to `1800000` (30 minutes), counted from that readiness event. Once the wait expires, other tasks can use its areas while Fleet continues observing the PR for delivery.
 
-Fleet gives available areas to eligible queued tasks and waiting PR repairs by `fleet-priority`, highest first, then by time waiting. PostgreSQL preserves that order across restarts. A conflict or CI repair waiting for an area goes before a new launch of the same or lower priority, including when other open PRs wait for that repair to merge. Each scheduler pass retries waiting work but rewrites a waiting item only when its reason changes, and admission reads decode only the records that changed since the previous read.
+Fleet gives available areas to eligible queued tasks and code repairs by `fleet-priority`, highest first, then by time waiting. PostgreSQL preserves that order across restarts. A CI repair waiting for an area goes before a new launch of the same or lower priority, including when other open PRs wait for that repair to merge. Each scheduler pass retries waiting work but rewrites a waiting item only when its reason changes, and admission reads decode only the records that changed since the previous read.
+
+#### Queue reviewed PRs
+
+The GitHub host enables squash auto-merge when a Fleet PR has an approved review and passing required checks for its exact head and GitHub reports it mergeable. The mutation pins `expectedHeadOid` to that reviewed commit. Fleet waits on automation for GitHub to land it and observes the merge before completing the task; no orchestrator answer is needed. Main advancing alone does not require another review. A restart reconciles the existing auto-merge request before submitting anything else.
+
+Automatic queuing applies to PRs on the configured worker branch for that task in the same repository, targeting the configured base branch. Foreign PRs, release branches, PRs titled Release or labelled `release`, and hosts without a queue integration retain the human merge path. A PR with unknown mergeability waits for GitHub. If GitHub removes auto-merge from a queued PR without merging it, Fleet sends a fix turn to the existing worker for fresh review and checks.
 
 #### Hold work behind predicted conflicts
 
 The Git-backed host also predicts conflicts as reconciliation observes worker pushes. It uses `git merge-tree --write-tree --name-only` without checking out a branch, comparing the pushed head with current main and every other open PR it watches, including foreign reservations and worker PRs not yet adopted. Conflicts between PRs include only files both branches changed from their merge base with current main; a stale branch's conflict with main stays on that PR. `mergePrediction` records each conflict's two heads, PR URL (`main` for the base branch), file names and UTC observation time in typed PostgreSQL rows.
 
-Normally, a later-opened conflicting PR waits before review and merge readiness with an automation reason such as `waiting for https://github.com/example/project/pull/7 to merge: conflicting packages/work-fleet/src/storage/fleetMigrations.ts`. This hold survives restarts and remains independent of `areaMergeWaitMs`. When the earlier PR merges, Fleet continues the held worker on the same branch and PR once to fetch and merge main, resolve the conflicts, then receive fresh review and checks. Non-conflicting PRs proceed in parallel.
+Normally, a later-opened conflicting PR waits before review and merge readiness with an automation reason such as `waiting for https://github.com/example/project/pull/7 to merge: conflicting packages/work-fleet/src/storage/fleetMigrations.ts`. This hold survives restarts and remains independent of `areaMergeWaitMs`. When the earlier PR merges, Fleet continues the held worker on the same branch and PR once to fetch and merge main and resolve the conflicts. This merge-main turn and its read-only review bypass area locks; the open-PR limit applies only to new implementers. Execution capacity and the durable per-PR reservation still apply, so a PR receives only one repair turn at a time. The repaired head receives fresh review and required checks before Fleet queues it. Review findings that need code changes use normal area admission. Non-conflicting PRs proceed in parallel.
 
 Work waiting for another PR or sweep to merge releases its areas immediately once execution has ended. Those areas stay released until a new worker or repair turn passes normal area admission, so a merge wait cannot hold an area needed to repair the PR it waits for.
 
-Fleet breaks a cycle between an area hold and merge order by letting a PR with fresh passing required checks and no conflict with main go first. It drops only that PR's merge waits inside the cycle and preserves the exception across restarts for the selected head. If neither PR qualifies, Fleet lends the held area to the repair. Review, validation and human merge authority still apply.
+Fleet breaks a cycle between an area hold and merge order by letting a PR with fresh passing required checks and no conflict with main go first. It drops only that PR's merge waits inside the cycle and preserves the exception across restarts for the selected head. If neither PR qualifies, Fleet lends the held area to the repair. Review, validation and repository protections still apply.
 
 Status and watch report remaining cycles among area waits, predicted PR merge waits and sweep holds as `Stuck: wait cycle`, naming the work items and PRs involved on one stable member per cycle. Items blocked behind the cycle keep their own waiting reasons, and repairable area cycles stay with automation. This includes cycles from custom prediction integrations.
 
@@ -406,13 +412,13 @@ Fleet reads GitHub check runs and commit statuses for the adopted PR's exact com
 
 If a check still fails after three consecutive completed check repairs, Fleet publishes an orchestrator decision naming it instead of launching another repair. The repair history survives restart; review repairs and changed failing check names do not count toward that check's limit.
 
-#### Ready to merge: human delivery
+#### Ready to merge: queue and observe delivery
 
-Green PRs that passed blocking review, completed advisory review or skipped review under `review: false` wait on the maintainer as ready to merge. Fleet never submits a merge. Reconciliation keeps observing the adopted PR through GitHub's REST API with the host's configured GitHub credentials, accepts only a merge of the validated head and records the PR head and merge commit. A PR closed without merging waits on the orchestrator with that fact. A temporary observation failure preserves the current Board decision and ownership until GitHub evidence is available again.
+The GitHub host queues eligible Fleet PRs with an approved review and passing checks for the exact head. Foreign and release PRs, PRs without an approved review, and custom hosts without a queue integration wait on the orchestrator as ready to merge. Reconciliation keeps observing the adopted PR through GitHub's REST API with the host's configured GitHub credentials, accepts only a merge of the validated head and records the PR head and merge commit. A PR closed without merging waits on the orchestrator with that fact. A temporary observation failure preserves the current Board decision and ownership until GitHub evidence is available again.
 
 A moved PR head after approval goes back through the currently configured review path and fresh checks automatically; [moved heads](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/recovery.md#moved-heads-and-failed-follow-ups) describes how.
 
-Main advancing alone does not invalidate adoption, review or validation of an unchanged PR head: an approved, green, conflict-free head behind main stays ready through reconciliation and restart, then accepts its human merge without repeating review or validation. GitHub's explicit `CONFLICTING` mergeability observation sends an approved PR to its worker to merge main once per observed main revision; durable revision receipts prevent repeated automatic repair across restart. A conflict that remains after that repair waits on the orchestrator.
+Main advancing alone does not invalidate adoption, review or validation of an unchanged PR head: an approved, green, conflict-free head behind main stays ready through reconciliation and restart, then queues that exact reviewed head without repeating review or validation. GitHub's explicit `CONFLICTING` mergeability observation sends an approved PR to its worker to merge main once per observed main revision; durable revision receipts prevent repeated automatic repair across restart. A conflict that remains after that repair waits on the orchestrator.
 
 #### When a turn stalls or goes missing
 
@@ -523,7 +529,7 @@ Use `--json` for one JSON object per line, `--pr-events false` to disable PR mon
 
 | Kind                                                          | Transition                                                                                                                          |
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `waiting-on-orchestrator`                                     | Work needs orchestrator action, including a reviewed PR ready to merge.                                                             |
+| `waiting-on-orchestrator`                                     | Work needs orchestrator action, including a PR on the human merge path.                                                             |
 | `waiting-on-you`                                              | Work needs a maintainer decision.                                                                                                   |
 | `done`                                                        | Fleet accepts completion.                                                                                                           |
 | `released`                                                    | Fleet releases ownership.                                                                                                           |
@@ -534,7 +540,7 @@ Use `--json` for one JSON object per line, `--pr-events false` to disable PR mon
 | `pr-merged`, `pr-closed`                                      | A watched PR merges or closes.                                                                                                      |
 | `pr-dequeued`, `pr-stuck`, `pr-conflict`, `pr-auto-merge-off` | A watched PR needs queue or merge attention.                                                                                        |
 
-Text events start with the event kind followed by named JSON values, so multiline details stay on one line. With `--json`, item events carry `kind` and `workId`, plus `reason` for waits and failures, and `pr` and `head` when Fleet has a result. A ready PR therefore includes its reason, PR URL and reviewed head SHA:
+Text events start with the event kind followed by named JSON values, so multiline details stay on one line. With `--json`, item events carry `kind` and `workId`, plus `reason` for waits and failures, and `pr` and `head` when Fleet has a result. A ready PR on the human merge path includes its reason, PR URL and reviewed head SHA:
 
 ```json
 {
@@ -704,7 +710,7 @@ export function launch(work: PrepareWork) {
 - `BoardGateway` reads Board context and publishes decisions, reports and responses. `markdownBoard(root)` from `@shivaedev/work-fleet/board/markdown.ts` is the Markdown gateway. Custom gateways implement `report` with the same immutable, idempotent boundary as Board's durable publisher, and `respond` to record closing responses for `stop`.
 - `FleetRepository` stores records. `postgresFleetRepository(namespace?)` from `@shivaedev/work-fleet/engine/repository.ts` supplies durable SQL attachments on a native `SqlClient`.
 - `FleetPolicy` carries capacity, launch settings, quota and review settings. Set `FleetPolicy.review` to `false` to skip reviewer sessions; `FleetPolicy.launch` supplies reviewer launch settings and `FleetPolicy.reviewerGuidance` repository-specific validation instructions, which the command host resolves from `worker.reviewerGuidance`.
-- `FleetIntegrations` supplies source observations, actual result adoption, required checks and delivery observation. Its `result` implementation must re-read current result ownership and head each time it is called. Its `checks` port also receives `"review"` as an optional third argument when Fleet reads a snapshot for the reviewer prompt; that observation does not replace required validation. Optional `publication(work)` supplies branch and PR evidence for lost-turn recovery, `isAncestor(base, revision)` verifies report revisions, and `predict(pr, watchedPrs)` predicts merge conflicts; a custom `MainSource` can supply `mergeConflicts(head, otherHeads)` to enable the host's prediction integration.
+- `FleetIntegrations` supplies source observations, actual result adoption, required checks and delivery observation. Its `result` implementation must re-read current result ownership and head each time it is called. Its `checks` port also receives `"review"` as an optional third argument when Fleet reads a snapshot for the reviewer prompt; that observation does not replace required validation. Optional `queue(work, result, queued)` submits or observes exact-head auto-merge and returns `"queued"`, `"pending"`, `"manual"` or `"failed"`; `queued` says Fleet previously observed acceptance, and `"failed"` requests a worker fix turn. Without this port, Fleet publishes a human merge decision. Optional `publication(work)` supplies branch and PR evidence for lost-turn recovery, `isAncestor(base, revision)` verifies report revisions, and `predict(pr, watchedPrs)` predicts merge conflicts; a custom `MainSource` can supply `mergeConflicts(head, otherHeads)` to enable the host's prediction integration.
 - `SessionService` runs one provider conversation and its turns through a `SessionTransport` and a durable session journal, independent of scheduling, dependencies and merge authority.
 
 Review when enabled and checks must name the exact adopted head; the reviewer must use a different session from the worker.
@@ -737,6 +743,6 @@ A running host needs:
 - For `"provider": "cloud"`, a Codex Cloud environment and a Codex login file; the Codex CLI refreshes an expired login. For `"provider": "local"`, a Codex app-server on a loopback WebSocket.
 - For GitHub reads, a token in `GH_TOKEN` or `GITHUB_TOKEN`, or a signed-in `gh`.
 
-Fleet works with Codex as its only provider and GitHub as its only result and delivery integration; other providers or forges need a composed host with their own `SessionTransport` and `FleetIntegrations`. Fleet never submits a merge, so a person or a merge queue must merge every PR. It never bypasses repository protections, and worker or answer text cannot grant execution or delivery authority.
+Fleet works with Codex as its only provider and GitHub as its only result and delivery integration; other providers or forges need a composed host with their own `SessionTransport` and `FleetIntegrations`. Fleet enables GitHub auto-merge for its reviewed, green, mergeable PRs, pinned to the reviewed head. PRs outside the configured worker branch naming convention and release PRs remain with people. It never bypasses repository protections, and worker or answer text cannot grant execution or delivery authority.
 
 Fleet's tests run against real PostgreSQL with synthetic Codex, Cloud and GitHub servers; they do not prove live hosted Cloud execution, review, GitHub adoption or delivery. A local Codex transport proves nothing about hosted Cloud.

@@ -117,5 +117,11 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 					add column "mergeOrderFirst__head" text, add column "mergeOrderFirst__prs" text[]`;
 			}
 		}),
+		"33_merge_loop": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "mergeMainRepair" boolean, add column "mergeQueue" boolean,
+					add column "mergeQueue__head" text, add column "mergeQueue__status" text`;
+			}
+		}),
 	});
 });

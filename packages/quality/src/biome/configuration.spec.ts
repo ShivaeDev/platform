@@ -1,22 +1,23 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
 import { malformedBiomeVcs, qualityLifecycle } from "#test/qualityLifecycle.ts";
 
 for (const [setting, value] of [
-	["VCS section", false],
-	["VCS root", { root: 7 }],
+	["VCS section that is not an object", false],
+	["VCS root that is not a path", { root: 7 }],
 ] as const) {
 	qualityLifecycle.it(
-		`a malformed Biome ${setting} aborts the run with its rule id`,
+		`a Biome config with a ${setting} makes quality lint invalid and names the biome rule as failed`,
 		[malformedBiomeVcs(value)],
-		function* ({ check, status, stderr }) {
-			yield* check();
+		function* ({ outcome, runs, stderr }) {
+			yield* runs("lint");
 
 			yield* outcomes([
-				["exit status", () => Effect.sync(status), 2],
-				["rule failure", () => Effect.sync(stderr), expect.stringContaining("rule biome failed")],
+				["exit", () => outcome(), "invalid"],
+				["rule failure", () => stderr(), expect.stringContaining("rule biome failed")],
 			]);
 		},
+		CLI_TIMEOUT,
 	);
 }

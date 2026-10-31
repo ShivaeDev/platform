@@ -44,6 +44,7 @@ export function refreshReviewResult(state: EngineState) {
 			blocker: undefined,
 			checks: undefined,
 			decision: undefined,
+			mergeQueue: undefined,
 			mergeReadyAt: undefined,
 			mergeReadyHead: undefined,
 			result: current,

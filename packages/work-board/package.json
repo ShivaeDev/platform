@@ -98,7 +98,7 @@
 		"build:browser": "esbuild src/server/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --external:yaml --outfile=assets/agent.js && vite build",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
-		"test:prepare": "tsc --project tsconfig.build.json --noCheck && pnpm build:browser",
+		"test:prepare": "pnpm --filter @shivaedev/work-board-plugin build:client && tsc --project tsconfig.build.json --noCheck && pnpm build:browser",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {

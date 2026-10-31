@@ -33,14 +33,15 @@ postgres.it(
 );
 
 postgres.it(
-	`with ${ATTEMPTS} readiness attempts, setup gives up on a service that never answers after ${ATTEMPTS} checks, with a version mismatch that observed no version`,
+	`with ${ATTEMPTS} readiness attempts, setup gives up on a service that never answers after ${ATTEMPTS} checks, with the final readiness command failure`,
 	[serviceNeverAnswers(), readinessAttempts(ATTEMPTS)],
-	function* ({ outcome, readinessChecks, start }) {
+	function* ({ failureKind, outcome, readinessChecks, start }) {
 		yield* start();
 
 		yield* outcomes([
+			["failure", () => failureKind(), "setup command failed"],
 			["readiness checks", () => readinessChecks(), ATTEMPTS],
-			["setup", () => outcome(), "version mismatch: expected 18.6, observed none"],
+			["setup", () => outcome(), "failed: Install psql or start the shared PostgreSQL service with Docker."],
 		]);
 	},
 );

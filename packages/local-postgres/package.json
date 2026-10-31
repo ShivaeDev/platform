@@ -46,12 +46,16 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
+		"@effect/platform-node": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"effect": "catalog:"
 	},
 	"engines": {
 		"node": ">=24"

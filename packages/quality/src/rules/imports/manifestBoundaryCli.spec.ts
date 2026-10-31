@@ -1,90 +1,139 @@
-import { afterEach, expect, it } from "vitest";
-import { CLI_EXIT, quality } from "#test/cli.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
+import { installedWorkspace } from "#test/installedWorkspace.ts";
 import { manifestTree } from "#test/manifestTree.ts";
-import { config, removeSeededTrees } from "#test/tree.ts";
+import { repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { config } from "#test/tree.ts";
 
-afterEach(removeSeededTrees);
+const UNDECLARED = 'Imports workspace package "plain-kit" without declaring it in modules/app/package.json';
 
-it("enables manifest boundaries by default on the CLI without import configuration or leaf fences", () => {
-	const root = manifestTree([
-		config('{ sources: ["modules"] }'),
-		{ content: 'import "plain-kit";\nexport const app = 1;', path: "modules/app/src/app.ts" },
-	]);
-	const result = quality(root, "lint");
-	expect(result.status).toBe(CLI_EXIT.rejected);
-	expect(result.stdout).toContain("error imports/manifest (1)");
-	expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
-});
+const APP = { content: 'import "plain-kit";\nexport const app = 1;', path: "modules/app/src/app.ts" };
 
-it("checks manifest dependencies and test-code boundaries on the same resolved import", () => {
-	const root = manifestTree(
-		[
-			config('{ sources: ["modules"] }'),
-			{ content: 'import "plain-kit/test-support/fixture.ts";', path: "modules/app/src/app.ts" },
-			{ content: 'import "plain-kit/test-support/fixture.ts";', path: "modules/app/src/app.test.ts" },
-			{ content: "export const fixture = 1;", path: "modules/kit/src/test-support/fixture.ts" },
-		],
-		{ declaration: "devDependencies", linked: true },
-	);
-	const result = quality(root, "lint");
-	expect(result.status).toBe(CLI_EXIT.rejected);
-	expect(result.stdout).toContain("error imports/manifest (1)");
-	expect(result.stdout).toContain("error imports/no-test-code (1)");
-	expect(result.stdout).toContain('modules/app/src/app.ts:1  Imports test code through "plain-kit/test-support/fixture.ts".');
-});
-
-it.each([
+const SELECTIONS = [
 	{ linked: false, sources: ["modules/app/src", "modules/kit/src"], workspace: "npm" },
 	{ linked: false, sources: ["modules/app/src", "modules/kit/src"], workspace: "pnpm" },
 	{ linked: true, sources: ["modules/app/src"], workspace: "npm" },
 	{ linked: true, sources: ["modules/app/src"], workspace: "pnpm" },
-] as const)(
-	"discovers $workspace manifests outside selected sources $sources",
-	({ linked, sources, workspace }) => {
-		const root = manifestTree(
-			[config(`{ sources: ${JSON.stringify(sources)} }`), { content: 'import "plain-kit";\nexport const app = 1;', path: "modules/app/src/app.ts" }],
-			{ linked, workspace },
-		);
-		const result = quality(root, "lint");
-		expect(result.status).toBe(CLI_EXIT.rejected);
-		expect(result.stdout).toContain("error imports/manifest (1)");
-		expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
+] as const;
+
+repositoryStory.it(
+	"quality lint reports an undeclared workspace import through imports/manifest without any import configuration or fence",
+	[repositoryHas(...manifestTree().files, config('{ sources: ["modules"] }'), APP)],
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
+
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["manifest findings", () => stdout(), expect.stringContaining("error imports/manifest (1)")],
+			["undeclared import", () => stdout(), expect.stringContaining(UNDECLARED)],
+		]);
 	},
-	30_000,
+	CLI_TIMEOUT,
 );
 
-it("keeps each importing member's policy when only source folders are selected", () => {
-	const root = manifestTree(
+repositoryStory.it(
+	"quality lint checks one resolved import against both the manifest's dependencies and the test-code boundary",
+	[
+		repositoryHas(
+			...manifestTree({ declaration: "devDependencies" }).files,
+			config('{ sources: ["modules"] }'),
+			{ content: 'import "plain-kit/test-support/fixture.ts";', path: "modules/app/src/app.ts" },
+			{ content: 'import "plain-kit/test-support/fixture.ts";', path: "modules/app/src/app.test.ts" },
+			{ content: "export const fixture = 1;", path: "modules/kit/src/test-support/fixture.ts" },
+		),
+		installedWorkspace("plain-kit", "modules/kit"),
+	],
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
+
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["manifest findings", () => stdout(), expect.stringContaining("error imports/manifest (1)")],
+			[
+				"test-code finding",
+				() => stdout(),
+				expect.stringContaining('modules/app/src/app.ts:1  Imports test code through "plain-kit/test-support/fixture.ts".'),
+			],
+			["test-code findings", () => stdout(), expect.stringContaining("error imports/no-test-code (1)")],
+		]);
+	},
+	CLI_TIMEOUT,
+);
+
+for (const { linked, sources, workspace } of SELECTIONS) {
+	repositoryStory.it(
+		`quality lint reads the ${workspace} workspace's manifests outside the selected sources ${sources.join(", ")}${linked ? " with plain-kit installed" : ""}`,
 		[
+			repositoryHas(...manifestTree({ workspace }).files, config(`{ sources: ${JSON.stringify(sources)} }`), APP),
+			...(linked ? [installedWorkspace("plain-kit", "modules/kit")] : []),
+		],
+		function* ({ outcome, runs, stdout }) {
+			yield* runs("lint");
+
+			yield* outcomes([
+				["exit", () => outcome(), "rejected"],
+				["undeclared import", () => stdout(), expect.stringContaining(UNDECLARED)],
+			]);
+		},
+		CLI_TIMEOUT,
+	);
+}
+
+repositoryStory.it(
+	"quality lint keeps each importing member's own dependencies when only source folders are selected, ignoring the root's",
+	[
+		repositoryHas(
+			...manifestTree({ declaration: "dependencies" }).files,
 			config('{ sources: ["modules/app/src", "modules/kit/src"] }'),
 			{ content: 'import "plain-kit";', path: "modules/app/src/app.ts" },
 			{ content: 'import "@acme/app";', path: "modules/kit/src/app.ts" },
 			{ content: '{"name":"root","dependencies":{"@acme/app":"workspace:*","plain-kit":"workspace:*"}}', path: "package.json" },
-		],
-		{ declaration: "dependencies" },
-	);
-	const result = quality(root, "lint");
-	expect(result.status).toBe(CLI_EXIT.rejected);
-	expect(result.stdout).toContain("error imports/manifest (1)");
-	expect(result.stdout).toContain('Imports workspace package "@acme/app" without declaring it in modules/kit/package.json');
-	expect(result.stdout).not.toContain('Imports workspace package "plain-kit" without declaring it');
-});
+		),
+	],
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
 
-it("keeps a member's development dependencies restricted to test code with an unselected target", () => {
-	const root = manifestTree(
-		[
+		yield* outcomes([
+			["declared import", () => stdout(), expect.not.stringContaining('Imports workspace package "plain-kit" without declaring it')],
+			["exit", () => outcome(), "rejected"],
+			["manifest findings", () => stdout(), expect.stringContaining("error imports/manifest (1)")],
+			[
+				"undeclared import",
+				() => stdout(),
+				expect.stringContaining('Imports workspace package "@acme/app" without declaring it in modules/kit/package.json'),
+			],
+		]);
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality lint keeps a member's devDependencies to its test code when the imported member is not selected",
+	[
+		repositoryHas(
+			...manifestTree({ declaration: "devDependencies" }).files,
 			config('{ sources: ["modules/app/src"] }'),
 			{ content: 'import "plain-kit";', path: "modules/app/src/app.ts" },
 			{ content: 'import "plain-kit";', path: "modules/app/src/app.test.ts" },
 			{ content: '{"name":"root","dependencies":{"plain-kit":"workspace:*"}}', path: "package.json" },
-		],
-		{ declaration: "devDependencies" },
-	);
-	const result = quality(root, "lint");
-	expect(result.status).toBe(CLI_EXIT.rejected);
-	expect(result.stdout).toContain("error imports/manifest (1)");
-	expect(result.stdout).toContain('Imports workspace package "plain-kit" without declaring it in modules/app/package.json');
-	expect(result.stdout).toContain(
-		"devDependencies are only available to tests, test support, tooling and export-blocked bundle inputs unreachable from runtime code.",
-	);
-});
+		),
+	],
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
+
+		yield* outcomes([
+			[
+				"development dependencies",
+				() => stdout(),
+				expect.stringContaining(
+					"devDependencies are only available to tests, test support, tooling and export-blocked bundle inputs unreachable from runtime code.",
+				),
+			],
+			["exit", () => outcome(), "rejected"],
+			["manifest findings", () => stdout(), expect.stringContaining("error imports/manifest (1)")],
+			["undeclared import", () => stdout(), expect.stringContaining(UNDECLARED)],
+		]);
+	},
+	CLI_TIMEOUT,
+);
