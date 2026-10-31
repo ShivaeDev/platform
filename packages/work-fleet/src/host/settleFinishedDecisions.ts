@@ -31,7 +31,7 @@ export const settleFinishedDecisions = Effect.fn("FleetHost.settleFinishedDecisi
 	if (!dryRun) {
 		for (const { request, reason } of candidates) {
 			const current = yield* fleet.get(request.work_id);
-			if (!["done", "released"].includes(current.value.step)) {
+			if (current.value.step !== "done") {
 				yield* fleet.reconcile(request.work_id);
 			}
 			yield* store.finish(request);

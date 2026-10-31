@@ -4,7 +4,7 @@ import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function needsReleasedSettlement(record: FleetRecord): boolean {
-	return record.step === "released" && record.mergedDelivery !== undefined && record.blocker !== undefined;
+	return record.step === "released" && record.blocker !== undefined;
 }
 
 export const settleReleasedWork = Effect.fn("Fleet.settleReleasedWork")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
@@ -15,5 +15,10 @@ export const settleReleasedWork = Effect.fn("Fleet.settleReleasedWork")(function
 	if (!["done", "superseded", "deferred", "dropped"].includes(work.status ?? "")) {
 		return stored;
 	}
-	return yield* state.save(stored, { ...stored.value, attentionOwner: undefined, blocker: undefined });
+	return yield* state.save(stored, {
+		...stored.value,
+		attentionOwner: undefined,
+		blocker: undefined,
+		step: work.status === "done" ? "done" : "released",
+	});
 });
