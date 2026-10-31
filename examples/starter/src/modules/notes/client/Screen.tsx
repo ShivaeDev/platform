@@ -62,9 +62,7 @@ function SignOut({ action }: { readonly action: AuthActions["signOut"] }) {
 			<Button disabled={state.pending} onClick={() => state.dispatch()} variant="outline">
 				{state.pending ? "Signing out…" : "Sign out"}
 			</Button>
-			{!state.pending && Option.isSome(failure) && (
-				<p role="alert">{"_tag" in failure.value ? "Could not sign out. Try again." : (failure.value.message ?? "Could not sign out. Try again.")}</p>
-			)}
+			{!state.pending && Option.isSome(failure) && <p role="alert">Could not sign out. Try again.</p>}
 		</>
 	);
 }

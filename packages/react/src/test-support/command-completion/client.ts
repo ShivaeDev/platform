@@ -19,9 +19,27 @@ const Rename = command("rename", {
 const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [rows.list], success: Schema.String });
 const Commands = contract("completions", { commands: [Rename], queries: [List] });
 
+interface Command {
+	readonly arrived: Deferred.Deferred<void>;
+	readonly finished: Deferred.Deferred<void>;
+	readonly gate: Deferred.Deferred<string, Rejected | Unauthorized>;
+}
+
 export function completionClient() {
-	const gates = new Map<string, Deferred.Deferred<string, Rejected | Unauthorized>>();
-	const calls: string[] = [];
+	const commands = new Map<string, Command>();
+	function commandFor(title: string) {
+		const existing = commands.get(title);
+		if (existing) {
+			return existing;
+		}
+		const created: Command = {
+			arrived: Deferred.makeUnsafe<void>(),
+			finished: Deferred.makeUnsafe<void>(),
+			gate: Deferred.makeUnsafe<string, Rejected | Unauthorized>(),
+		};
+		commands.set(title, created);
+		return created;
+	}
 	const finished: string[] = [];
 	const refetch = Effect.runSync(Deferred.make<string>());
 	let reads = 0;
@@ -36,9 +54,8 @@ export function completionClient() {
 				},
 				"completions.rename": ({ title }) =>
 					Effect.gen(function* () {
-						const gate = yield* Deferred.make<string, Rejected | Unauthorized>();
-						gates.set(title, gate);
-						calls.push(title);
+						const { arrived, gate } = commandFor(title);
+						Deferred.doneUnsafe(arrived, Effect.void);
 						return yield* Deferred.await(gate);
 					}),
 			}),
@@ -61,15 +78,8 @@ export function completionClient() {
 		}),
 	);
 	return {
-		calls,
+		command: commandFor,
 		finished,
-		gate: (title: string) => {
-			const gate = gates.get(title);
-			if (!gate) {
-				throw new Error(`Command ${title} has not started`);
-			}
-			return gate;
-		},
 		invalidations: () => invalidations,
 		list: api.list.query(),
 		reads: () => reads,
@@ -78,6 +88,7 @@ export function completionClient() {
 				Effect.onExit(() =>
 					Effect.sync(() => {
 						finished.push(input.title);
+						Deferred.doneUnsafe(commandFor(input.title).finished, Effect.void);
 					}),
 				),
 			),

@@ -1,6 +1,5 @@
 import { Clock, Duration, Effect, Schema } from "effect";
 import type { Job, policies, Queue, ScheduleOptions, WorkOptions } from "pg-boss";
-import { deadlineOf } from "#internal/deadlineOf.ts";
 import { maxDeferrals, nativeQueueOptions } from "#internal/definitionOptions.ts";
 import { scheduleDefinition } from "#internal/scheduleDefinition.ts";
 
@@ -128,13 +127,13 @@ export function defineSchedule<const TName extends string>(options: DefineSchedu
 	return scheduleDefinition(options);
 }
 
-export function jobContext(job: Job<unknown>): JobContext {
+export function jobContext(job: Job<unknown>, deadline: number): JobContext {
 	return {
 		expireInSeconds: job.expireInSeconds,
 		heartbeatSeconds: job.heartbeatSeconds,
 		id: job.id,
 		name: job.name,
-		remainingBudget: Effect.map(Clock.currentTimeMillis, (now) => Duration.millis(Math.max(0, deadlineOf(job) - now))),
+		remainingBudget: Effect.map(Clock.currentTimeMillis, (now) => Duration.millis(Math.max(0, deadline - now))),
 		signal: job.signal,
 	};
 }

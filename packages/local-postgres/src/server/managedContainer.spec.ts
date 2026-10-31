@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { PINNED_IMAGE } from "#test/dockerScript.ts";
 import { postgres } from "#test/postgres.ts";
-import { dockerDaemonDown, noContainer, outdatedContainer, stoppedPinnedContainer } from "#test/postgresTraits.ts";
+import { containerListingFails, dockerDaemonDown, noContainer, outdatedContainer, stoppedPinnedContainer } from "#test/postgresTraits.ts";
 
 postgres.it(
 	"with the Docker daemon down, starting the container fails with Docker's own message and runs no other Docker command",
@@ -55,5 +55,19 @@ postgres.it(
 				PINNED_IMAGE,
 			].join(" "),
 		]);
+	},
+);
+
+postgres.it(
+	"a failed container listing reaches the caller as PostgresCommandError without creating or starting a container",
+	[containerListingFails()],
+	function* ({ containerChanges, failureKind, outcome, startContainer }) {
+		yield* startContainer();
+
+		yield* outcomes({
+			"container changes": [containerChanges(), []],
+			"diagnostic": [outcome(), "failed: Cannot list containers"],
+			"failure": [failureKind(), "setup command failed"],
+		});
 	},
 );

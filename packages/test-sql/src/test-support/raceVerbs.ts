@@ -1,6 +1,7 @@
-import { Effect, Result, Schedule } from "effect";
+import { Effect, Option, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
+import { observeUntil } from "#observeUntil.ts";
 import { raceWithLock } from "#raceWithLock.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { withTestTransaction } from "#withTestTransaction.ts";
@@ -20,13 +21,13 @@ function takeLock(sql: SqlClient.SqlClient, lock: Lock) {
 	}
 }
 
-// PostgreSQL signals nothing when a session starts waiting on a lock, so the kit polls its lock view.
 function afterWaiting(sql: SqlClient.SqlClient, count: number) {
-	return sql`select pg_stat_clear_snapshot()`.pipe(
+	const waiting = sql`select pg_stat_clear_snapshot()`.pipe(
 		Effect.andThen(sql<{ waiting: number }>`select count(*)::integer as waiting from pg_stat_activity
 			where datname = current_database() and wait_event_type = 'Lock'`),
-		Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => row?.waiting !== count }),
+		Effect.map(([row]) => row?.waiting ?? 0),
 	);
+	return observeUntil(waiting, (sessions) => sessions === count, `${count} sessions waiting on a lock`);
 }
 
 const anotherSessionWaits = Effect.fnUntraced(function* (sql: SqlClient.SqlClient) {
@@ -67,6 +68,7 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 	let results: readonly string[] = [];
 	let seen: readonly string[] = [];
 	let read = "";
+	let stalled = "";
 	const race = Effect.fnUntraced(function* (guarded: boolean, lock: Lock, outsider: boolean) {
 		const sql = yield* SqlClient.SqlClient;
 		const recordWaiting = Effect.gen(function* () {
@@ -110,6 +112,20 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 		});
 		read = answer !== undefined && Result.isSuccess(answer) ? answer.success : "no answer";
 	});
+	const bobNeverQueues = Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* raceWithLock({
+			effects: [sql`update items set value = 'alice' where id = 1`, sql`select 1`],
+			lock: takeLock(sql, "table"),
+			timeout: "500 millis",
+		}).pipe(
+			Effect.catchTag("NeverSettled", (error) =>
+				Effect.sync(() => {
+					stalled = `waited for ${error.waitingFor}; ${Option.getOrElse(error.last, () => 0)} blocked at the last read`;
+				}),
+			),
+		);
+	});
 	return {
 		contenderReadsHeldRow: (release?: "commit") => {
 			story.tell(`a contender waits to read the row a holder updated, and the holder releases with ${release ?? "its default rollback"}`);
@@ -126,6 +142,10 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 				claimed: results.filter((result) => result !== "full").length,
 				full: results.filter((result) => result === "full").length,
 			})),
+		raceWhereBobNeverQueues: () => {
+			story.tell("alice updates the item behind a table lock while bob only selects 1, so bob never queues on the lock");
+			return engine.run(withIsolatedDatabase(bobNeverQueues));
+		},
 		raceWhileAnotherSessionWaits: () => {
 			story.tell("another session waits on the advisory lock, then alice, bob and charlie race with guarded writes behind it");
 			return engine.run(withIsolatedDatabase(race(true, "advisory", true)));
@@ -135,6 +155,7 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 			story.tell("a second rollback test writes the row the first rollback test holds");
 			return engine.run(secondTestWrites);
 		},
+		stalledRace: () => Effect.sync(() => stalled),
 		waitingAtRelease: () => Effect.sync(() => waiting),
 	};
 }

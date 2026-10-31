@@ -8,5 +8,5 @@ export const setupDatabases = Effect.fn("Platform.setupDatabases")(function* () 
 		"DOCKER_HOST": Config.String("DOCKER_HOST").pipe(Config.withDefault("")),
 		"TEST_DATABASE_URL": Config.String("TEST_DATABASE_URL"),
 	});
-	yield* Effect.sync(() => localPostgres(config).prepareDatabases([config.DATABASE_URL, config.TEST_DATABASE_URL]));
+	yield* localPostgres(config).prepareDatabases([config.DATABASE_URL, config.TEST_DATABASE_URL]);
 });

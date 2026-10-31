@@ -1,6 +1,15 @@
-import { Schema } from "effect";
+import { Hash, Schema } from "effect";
 
 export type Identity = string | number;
+
+export function compositeId(values: readonly unknown[]): string {
+	return JSON.stringify(values, (_key, value: unknown) => (typeof value === "bigint" ? String(value) : value));
+}
+
+export function recordKey(name: string, id: unknown): string {
+	const identity = typeof id === "string" || typeof id === "number" || typeof id === "bigint" || typeof id === "boolean" ? String(id) : Hash.hash(id);
+	return `${name}:${identity}`;
+}
 
 export interface ListKey<TName extends string = string> {
 	readonly _tag: "List";
@@ -69,7 +78,7 @@ function own(key: Key): string {
 		case "List":
 			return key.collection;
 		case "Item":
-			return `${key.collection}:${key.id}`;
+			return recordKey(key.collection, key.id);
 		case "Bucket":
 			return JSON.stringify(["bucket", key.collection, key.field, key.value]);
 	}

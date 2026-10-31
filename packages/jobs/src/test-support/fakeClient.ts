@@ -43,6 +43,7 @@ export class FakeClient implements PgBossClient {
 	readonly stored = new Map<string, JobWithMetadata<unknown>>();
 	readonly createQueueFailures: unknown[] = [];
 	readonly deliverOnWork = new Map<string, unknown>();
+	databaseNow: number | undefined;
 	creationAttempts = 0;
 	claimReads = 0;
 	stallsClaimReads = false;
@@ -52,6 +53,9 @@ export class FakeClient implements PgBossClient {
 	duringStart: (() => void) | undefined;
 	duringStop: (() => void) | undefined;
 
+	getDb() {
+		return { executeSql: async () => ({ rows: [{ now: this.databaseNow ?? Effect.runSync(Clock.currentTimeMillis) }] }) };
+	}
 	complete(name: string, target: JobAttempt | string | JobAttempt[] | string[]) {
 		for (const id of idsOf(target)) {
 			this.settled.push(`${id} completed`);

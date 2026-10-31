@@ -1,75 +1,96 @@
 import { expect } from "vitest";
-import { repositoryHas, repositoryLinks, ruleKit } from "#rule-story";
 import { docsReferences } from "#rules/docs/references.ts";
-import { docsWorkspace, markdown } from "#test/docsRepository.ts";
+import { docsWorkspace, guide, markdown } from "#test/docsRepository.ts";
+import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 
-const guide = markdown(
-	"docs/guide.md",
-	"# Guide",
-	"",
-	"## Set up once",
-	"",
-	"Start [here](#set-up-once), then [tear down](#teardown).",
-	"Read [the library](../packages/lib/README.md#using-it) and [the old page](./removed.md).",
-	"Compare [a sibling project](../../elsewhere.md) and [the web](https://example.com/guide).",
-	"See [the moved guide](https://github.com/acme/tools/blob/main/docs/old.md), [its release](https://github.com/acme/tools/blob/v1.0.0/docs/old.md) and [its commit](https://github.com/acme/tools/blob/0123abc/docs/old.md).",
-	"Write `[a link](nowhere.md)` literally.",
-	'<img src="images/diagram.png" alt="Diagram">',
-	"[archive]: ./archive.md",
-	"",
-	"```md",
-	"[an example](example.md)",
-	"```",
-);
+const GONE = "Link to the file's current path, or remove the link.";
 
-ruleKit.it(
-	"documentation links reach existing files and headings, while code, other sites and pinned releases stay unchecked",
-	[
-		repositoryHas(
-			...docsWorkspace,
-			guide,
-			markdown("packages/lib/README.md", "# @acme/lib", "", "## Using it"),
-			markdown("CHANGELOG.md", "# Changelog", "", "- Moved [the guide](docs/old.md)."),
-		),
-	],
-	function* ({ checks, writes }) {
-		const findings = yield* checks(docsReferences);
-		expect(findings.map((finding) => [finding.line, finding.subject])).toEqual([
-			[5, "#teardown"],
-			[6, "./removed.md"],
-			[7, "../../elsewhere.md"],
-			[8, "https://github.com/acme/tools/blob/main/docs/old.md"],
-			[10, "images/diagram.png"],
-			[11, "./archive.md"],
-		]);
-		expect(findings[0]?.message).toBe(
+const LIBRARY_README = markdown("packages/lib/README.md", "# @acme/lib", "", "## Using it");
+
+const BROKEN_LINKS = [
+	{
+		link: "Finish with [tear down](#teardown).",
+		message:
 			'"#teardown" links to the heading #teardown, which docs/guide.md does not have. Link to a current heading; GitHub forms its anchor from the heading text.',
-		);
-		expect(findings[1]?.message).toBe(
-			'"./removed.md" links to docs/removed.md, which does not exist. Link to the file\'s current path, or remove the link.',
-		);
-		expect(findings[2]?.message).toBe('"../../elsewhere.md" leaves the repository. Link to a file inside it, or use an absolute URL.');
-		yield* writes(
-			markdown("docs/removed.md", "# Removed"),
-			markdown("docs/old.md", "# Old"),
-			markdown("docs/guide.md", "# Guide", "", "## Set up once", "", "## Teardown", "", "[Start](#set-up-once) and [finish](#teardown)."),
-		);
-		expect(yield* checks(docsReferences)).toEqual([]);
+		name: "a link to a heading the document does not have",
+		subject: "#teardown",
+	},
+	{
+		link: "Read [the old page](./removed.md).",
+		message: `"./removed.md" links to docs/removed.md, which does not exist. ${GONE}`,
+		name: "a link to a file that does not exist",
+		subject: "./removed.md",
+	},
+	{
+		link: "Compare [a sibling project](../../elsewhere.md).",
+		message: '"../../elsewhere.md" leaves the repository. Link to a file inside it, or use an absolute URL.',
+		name: "a link that leaves the repository",
+		subject: "../../elsewhere.md",
+	},
+	{
+		link: "See [the moved guide](https://github.com/acme/tools/blob/main/docs/old.md).",
+		message: `"https://github.com/acme/tools/blob/main/docs/old.md" links to docs/old.md, which does not exist. ${GONE}`,
+		name: "a GitHub link on a branch of this repository to a file that does not exist",
+		subject: "https://github.com/acme/tools/blob/main/docs/old.md",
+	},
+	{
+		link: '<img src="images/diagram.png" alt="Diagram">',
+		message: `"images/diagram.png" links to docs/images/diagram.png, which does not exist. ${GONE}`,
+		name: "an HTML image whose source does not exist",
+		subject: "images/diagram.png",
+	},
+	{
+		link: "[archive]: ./archive.md",
+		message: `"./archive.md" links to docs/archive.md, which does not exist. ${GONE}`,
+		name: "a link reference definition to a file that does not exist",
+		subject: "./archive.md",
+	},
+];
+
+const UNCHECKED_LINKS = [
+	{ lines: ["Start [here](#set-up-once)."], name: "a link to a heading the document has" },
+	{ lines: ["Read [the library](../packages/lib/README.md#using-it)."], name: "a link to a heading of another document" },
+	{ lines: ["Compare [the web](https://example.com/guide)."], name: "a link to another site" },
+	{ lines: ["See [its release](https://github.com/acme/tools/blob/v1.0.0/docs/old.md)."], name: "a GitHub link pinned to a release tag" },
+	{ lines: ["See [its commit](https://github.com/acme/tools/blob/0123abc/docs/old.md)."], name: "a GitHub link pinned to a commit" },
+	{ lines: ["Write `[a link](nowhere.md)` literally."], name: "a link written in inline code" },
+	{ lines: ["```md", "[an example](example.md)", "```"], name: "a link inside a fenced code block" },
+];
+
+for (const { link, message, name, subject } of BROKEN_LINKS) {
+	ruleStory.it(`docs/references reports ${name} at its line`, [repositoryHas(...docsWorkspace, LIBRARY_README, guide(link))], function* ({ check }) {
+		const findings = yield* check(docsReferences);
+
+		expect(findings).toEqual([{ file: "docs/guide.md", line: 5, message, subject }]);
+	});
+}
+
+for (const { lines, name } of UNCHECKED_LINKS) {
+	ruleStory.it(`docs/references accepts ${name}`, [repositoryHas(...docsWorkspace, LIBRARY_README, guide(...lines))], function* ({ check }) {
+		expect(yield* check(docsReferences)).toEqual([]);
+	});
+}
+
+ruleStory.it(
+	"docs/references leaves the links of CHANGELOG.md unchecked, because a released entry keeps the links of its release",
+	[repositoryHas(...docsWorkspace, markdown("CHANGELOG.md", "# Changelog", "", "- Moved [the guide](docs/old.md)."))],
+	function* ({ check }) {
+		expect(yield* check(docsReferences)).toEqual([]);
 	},
 );
 
-ruleKit.it(
-	"a published package README links outside its package by absolute URL, because npm shows it without the repository",
+ruleStory.it(
+	"docs/references asks a published package README to link outside its package by absolute URL, because npm shows it without the repository",
 	[
 		repositoryHas(
 			...docsWorkspace,
 			markdown("docs/guide.md", "# Guide"),
-			markdown("packages/lib/README.md", "# @acme/lib", "", "Read [the guide](../../docs/guide.md#guide) and [the source](src/repository.ts)."),
-			markdown("packages/app/README.md", "# App", "", "Read [the guide](../../docs/guide.md)."),
+			markdown("packages/lib/README.md", "# @acme/lib", "", "Read [the guide](../../docs/guide.md#guide)."),
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(docsReferences);
+	function* ({ check }) {
+		const findings = yield* check(docsReferences);
+
 		expect(findings).toEqual([
 			{
 				file: "packages/lib/README.md",
@@ -82,10 +103,34 @@ ruleKit.it(
 	},
 );
 
-ruleKit.it(
-	"a document linked under another name, such as CLAUDE.md beside AGENTS.md, reports its findings once",
+ruleStory.it(
+	"docs/references accepts a published package README that links to a file inside its package",
+	[repositoryHas(...docsWorkspace, markdown("packages/lib/README.md", "# @acme/lib", "", "Read [the source](src/repository.ts)."))],
+	function* ({ check }) {
+		expect(yield* check(docsReferences)).toEqual([]);
+	},
+);
+
+ruleStory.it(
+	"docs/references accepts a private package README that links outside its package",
+	[
+		repositoryHas(
+			...docsWorkspace,
+			markdown("docs/guide.md", "# Guide"),
+			markdown("packages/app/README.md", "# App", "", "Read [the guide](../../docs/guide.md)."),
+		),
+	],
+	function* ({ check }) {
+		expect(yield* check(docsReferences)).toEqual([]);
+	},
+);
+
+ruleStory.it(
+	"docs/references reports a broken link once when another name links to its document, such as CLAUDE.md beside AGENTS.md",
 	[repositoryHas(markdown("AGENTS.md", "# Agents", "", "Read [the guide](docs/guide.md).")), repositoryLinks("CLAUDE.md", "AGENTS.md")],
-	function* ({ checks }) {
-		expect((yield* checks(docsReferences)).map((finding) => [finding.file, finding.subject])).toEqual([["AGENTS.md", "docs/guide.md"]]);
+	function* ({ check, locations }) {
+		yield* check(docsReferences);
+
+		expect(yield* locations()).toEqual(["AGENTS.md:3"]);
 	},
 );

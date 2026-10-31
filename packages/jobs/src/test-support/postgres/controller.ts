@@ -74,7 +74,7 @@ export function controllerVerbs(engine: DatabaseEngine, tell: Tell) {
 					.untilJob(queue, id, state, within === undefined ? {} : { within })
 					.pipe(
 						Effect.match({
-							onFailure: (error) => failureOf(error).replace(id, as),
+							onFailure: (error) => ({ error: error.name, message: failureOf(error).replace(id, as) }),
 							onSuccess: (job) => ({ data: job.data, job: labelOf(engine, job.id), state: job.state }),
 						}),
 					);
@@ -83,7 +83,7 @@ export function controllerVerbs(engine: DatabaseEngine, tell: Tell) {
 		controllerAwaitsFetches: (name: string, queue: Pick<QueueDefinition, "name">, count: number, within: Duration.Input) => {
 			tell(`the testing controller of ${name} waits at most ${Duration.format(Duration.fromInputUnsafe(within))} for ${count} ${queue.name} fetches`);
 			return Effect.suspend(() => testingOf(engine, name).fetchesPass(queue, count, { within })).pipe(
-				Effect.match({ onFailure: failureOf, onSuccess: () => "passed" }),
+				Effect.match({ onFailure: (error) => ({ error: error.name, message: failureOf(error) }), onSuccess: () => "passed" }),
 			);
 		},
 		controllerJobs: <const TPayload extends StoryPayload>(name: string, queue: QueueDefinition<string, TPayload>, options?: FindJobsOptions) =>

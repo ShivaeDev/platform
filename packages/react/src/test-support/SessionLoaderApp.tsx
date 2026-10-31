@@ -3,8 +3,8 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Outlet
 import { Deferred, Predicate } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useState } from "react";
+import { loadQuery } from "#adapters/loadQuery.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { loadQuery } from "#loadQuery.ts";
 import type { LoaderSession } from "./loaderSession.ts";
 
 function signIn(session: LoaderSession) {
@@ -38,11 +38,13 @@ function RouteApp({ session }: { readonly session: LoaderSession }) {
 			getParentRoute: () => root,
 			path: "/sign-in",
 		});
-		return createRouter({
+		const created = createRouter({
 			defaultPendingMs: Number.POSITIVE_INFINITY,
 			history: createMemoryHistory({ initialEntries: ["/"] }),
 			routeTree: root.addChildren([home, privateRoute, login]),
 		});
+		session.busy = () => created.state.isLoading;
+		return created;
 	});
 	return (
 		<>
@@ -58,10 +60,13 @@ function DirectApp({ session }: { readonly session: LoaderSession }) {
 	const [atom] = useState(() => Atom.make(Deferred.await(session.gate)));
 	const [message, show] = useState("Home");
 	async function load() {
+		session.busy = () => true;
 		try {
 			show(await loadQuery(registry, atom, { abortController: new AbortController() }));
 		} catch (error) {
 			show(Predicate.isTagged(error, "Unauthorized") ? "Session expired" : "Load unavailable");
+		} finally {
+			session.busy = () => false;
 		}
 	}
 	return (

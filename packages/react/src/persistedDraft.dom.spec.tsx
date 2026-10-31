@@ -1,89 +1,143 @@
 import { expect } from "vitest";
-import { drafts, persistedDraft, unavailableDraft } from "#test/draftStories.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import {
+	drafts,
+	draftTyped,
+	firstSessionDraft,
+	invalidInputTyped,
+	restoredAfterReload,
+	typedThenRefreshed,
+	unavailableStorage,
+} from "#test/draftStories.ts";
+
+drafts.it("a reload restores the stored draft", [draftTyped("name", "Typed answer")], function* ({ fields, reload }) {
+	yield* reload();
+
+	expect(yield* fields()).toEqual({ name: "Typed answer", quantity: "300" });
+});
+
+drafts.it("a refresh after a reload adopts the newer row's untouched fields", [restoredAfterReload()], function* ({ fields, refresh }) {
+	yield* refresh();
+
+	expect(yield* fields()).toEqual({ name: "Typed answer", quantity: "350" });
+});
+
+drafts.it("revert returns to the latest row and clears the stored draft", [restoredAfterReload(true)], function* ({ fields, revert, stored }) {
+	yield* revert();
+
+	yield* outcomes({
+		fields: [fields(), { name: "Remote", quantity: "350" }],
+		stored: [stored(), "none"],
+	});
+});
+
+drafts.it("a query refresh stores the merged input", [draftTyped("name", "Local")], function* ({ refresh, stored }) {
+	yield* refresh();
+
+	expect(yield* stored()).toEqual({ name: "Local", quantity: "350" });
+});
 
 drafts.it(
-	"restores encoded input across reload; untouched fields and revert use the latest row",
-	[persistedDraft()],
-	function* ({ type, reload, draft, refresh, revert }) {
-		yield* type("name", "Typed answer");
-		expect(window.localStorage.getItem("order-draft")).toContain("Typed answer");
+	"a reload after a merged refresh restores only the edited field, still unsaved",
+	[typedThenRefreshed()],
+	function* ({ fields, reload, status }) {
 		yield* reload();
-		expect(draft().container.querySelector("input")?.value).toBe("Typed answer");
-		yield* refresh({ name: "Remote", quantity: "350" });
-		expect(draft().editor().form.values.value).toEqual({ name: "Typed answer", quantity: "350" });
-		yield* revert();
-		expect(draft().editor().form.values.value).toEqual({ name: "Remote", quantity: "350" });
-		expect(window.localStorage.getItem("order-draft")).toBeNull();
+
+		yield* outcomes({
+			fields: [fields(), { name: "Local", quantity: "300" }],
+			status: [status(), "Unsaved"],
+		});
 	},
 );
 
-drafts.it("a query refresh persists merged input for the next reload", [persistedDraft()], function* ({ type, refresh, reload, draft }) {
-	yield* type("name", "Local");
-	yield* refresh({ name: "Remote", quantity: "350" });
-	expect(JSON.parse(window.localStorage.getItem("order-draft") ?? "null").values).toEqual({ name: "Local", quantity: "350" });
-	yield* reload();
-	expect(draft().editor().form.values.value).toEqual({ name: "Local", quantity: "300" });
-	expect(draft().editor().dirty).toBe(true);
+drafts.it("a successful save clears the stored draft", [draftTyped("name", "Saved answer")], function* ({ status, stored, submit }) {
+	yield* submit();
+
+	yield* outcomes({
+		status: [status(), "Saved"],
+		stored: [stored(), "none"],
+	});
 });
 
-drafts.it("clears a successful submission and does not restore it", [persistedDraft()], function* ({ type, submit, observe, draft, reload }) {
-	yield* type("name", "Saved answer");
-	expect(window.localStorage.getItem("order-draft")).not.toBeNull();
-	yield* submit();
-	yield* observe("the draft is saved", () => expect(draft().editor().dirty).toBe(false));
-	expect(window.localStorage.getItem("order-draft")).toBeNull();
-	yield* reload();
-	expect(draft().container.querySelector("input")?.value).toBe("Paper");
+drafts.it("hiding the form keeps the session's stored draft", [draftTyped("name", "First session")], function* ({ hideForm, stored }) {
+	yield* hideForm();
+
+	expect(yield* stored()).toEqual({ name: "First session", quantity: "300" });
+});
+
+drafts.it("replacing the session drops the drafts the old session stored", [firstSessionDraft("hidden")], function* ({ session, stored }) {
+	yield* session("second", false);
+
+	expect(yield* stored()).toBe("none");
+});
+
+drafts.it("the new session's form opens on the row", [firstSessionDraft("replaced")], function* ({ fields, session }) {
+	yield* session("second");
+
+	expect(yield* fields()).toEqual({ name: "Paper", quantity: "300" });
 });
 
 drafts.it(
-	"session replacement drops visited drafts and prevents old forms writing again",
-	[persistedDraft()],
-	function* ({ type, draft, show, staleEdit }) {
-		yield* type("name", "First session");
-		const old = draft().editor().form;
-		yield* show("first", false);
-		expect(window.localStorage.getItem("order-draft")).toContain("First session");
-		yield* show("second", false);
-		expect(window.localStorage.getItem("order-draft")).toBeNull();
-		yield* show("second");
-		expect(draft().container.querySelector("input")?.value).toBe("Paper");
-		yield* type("name", "Second session");
-		yield* staleEdit(old, "Late first session edit");
-		expect(window.localStorage.getItem("order-draft")).toContain("Second session");
-		yield* show(undefined);
-		expect(window.localStorage.getItem("order-draft")).toBeNull();
-		expect(draft().container.textContent).toBe("Signed out");
+	"a late edit from the old session's form leaves the new session's draft alone",
+	[firstSessionDraft("second typed")],
+	function* ({ firstFormEdits, stored }) {
+		yield* firstFormEdits("Late first session edit");
+
+		expect(yield* stored()).toEqual({ name: "Second session", quantity: "300" });
 	},
 );
 
-for (const failure of ["getter", "read", "write", "remove"]) {
+drafts.it("signing out clears the stored draft", [firstSessionDraft("second typed")], function* ({ screenText, session, stored }) {
+	yield* session(undefined);
+
+	yield* outcomes({
+		screen: [screenText(), "Signed out"],
+		stored: [stored(), "none"],
+	});
+});
+
+for (const failure of ["getter", "read", "write", "remove"] as const) {
 	drafts.it(
-		`unavailable storage (${failure}) permits editing, refreshing and saving`,
-		[unavailableDraft(failure)],
-		function* ({ type, refresh, draft, submit, observe, show, storage }) {
-			expect(storage()).toHaveBeenCalled();
-			yield* type("name", "Local");
-			yield* refresh({ name: "Remote", quantity: "350" });
-			expect(draft().editor().form.values.value).toEqual({ name: "Local", quantity: "350" });
-			yield* submit();
-			yield* observe("the draft is saved", () => expect(draft().editor().dirty).toBe(false));
-			yield* show(undefined);
+		`an editor whose storage fails (${failure}) still merges a refresh`,
+		[unavailableStorage(failure)],
+		function* ({ fields, refresh, storageConsulted }) {
+			yield* refresh();
+
+			yield* outcomes({
+				fields: [fields(), { name: "Local", quantity: "350" }],
+				storage: [storageConsulted(), "consulted"],
+			});
 		},
 	);
+
+	drafts.it(`an editor whose storage fails (${failure}) still saves`, [unavailableStorage(failure)], function* ({ status, submit }) {
+		yield* submit();
+
+		expect(yield* status()).toBe("Saved");
+	});
+
+	drafts.it(`an editor whose storage fails (${failure}) still signs out`, [unavailableStorage(failure)], function* ({ screenText, session }) {
+		yield* session(undefined);
+
+		expect(yield* screenText()).toBe("Signed out");
+	});
 }
 
 drafts.it(
-	"failed submissions and invalid encoded input remain persisted",
-	[persistedDraft(undefined, "rejected")],
-	function* ({ type, submit, observe, draft, reload }) {
-		yield* type("name", "Rejected answer");
+	"a rejected save keeps the stored draft",
+	[draftTyped("name", "Rejected answer", undefined, "rejected")],
+	function* ({ saveError, stored, submit }) {
 		yield* submit();
-		yield* observe("the save failed", () => expect(draft().editor().failure._tag).toBe("Some"));
-		expect(window.localStorage.getItem("order-draft")).toContain("Rejected answer");
-		yield* type("quantity", "-");
-		yield* type("name", "");
-		yield* reload();
-		expect(draft().editor().form.values.value).toEqual({ name: "", quantity: "-" });
+
+		yield* outcomes({
+			"save error": [saveError(), "Save failed"],
+			stored: [stored(), { name: "Rejected answer", quantity: "300" }],
+		});
 	},
 );
+
+drafts.it("a reload restores input the Schema cannot decode", [invalidInputTyped()], function* ({ fields, reload }) {
+	yield* reload();
+
+	expect(yield* fields()).toEqual({ name: "", quantity: "-" });
+});

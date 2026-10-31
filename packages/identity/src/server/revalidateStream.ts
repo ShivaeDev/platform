@@ -15,8 +15,8 @@ export function revalidateStream<TSession extends SessionShape>(
 			return effect;
 		}
 		const check = Effect.gen(function* () {
-			const session = yield* lookup.pipe(Effect.catchTag("AuthUnavailable", () => Effect.succeed(undefined)));
-			if (session !== undefined && (Option.isNone(session) || session.value.user.id !== id)) {
+			const session = yield* lookup;
+			if (Option.isNone(session) || session.value.user.id !== id) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
 		});

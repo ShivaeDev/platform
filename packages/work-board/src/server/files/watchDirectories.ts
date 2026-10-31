@@ -1,8 +1,8 @@
 import { Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
-import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { attachmentType } from "#path/attachment.ts";
 import { isMarkdown, type MarkdownFile } from "./list.ts";
 import { folderEvents, rescanFolders, SETTLE, type WatchRoots, watchedScan } from "./watchedScan.ts";
+import { watcherEnded } from "./watchSentinel.ts";
 
 function changedFiles(previous: ReadonlyMap<string, number>, next: ReadonlyMap<string, number>) {
 	return [...new Set([...previous.keys(), ...next.keys()])].filter((file) => previous.get(file) !== next.get(file));
@@ -74,13 +74,6 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 					folderEvents,
 				)),
 			];
-			// A removed root can be reported without any descendant file events.
-			streams.push(
-				fs.watch(path.dirname(realRoot)).pipe(
-					Stream.filter((event) => event._tag === "Remove" && path.resolve(path.dirname(realRoot), event.path) === realRoot),
-					Stream.map(() => ""),
-				),
-			);
 			const pending = new Set<string>();
 			const rescan = new Set<string>();
 			const changedPath = Effect.fn("WorkBoard.changedPath")(function* (relative: string) {
@@ -127,13 +120,7 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 				Stream.interruptWhen(Deferred.await(topology)),
 				Stream.debounce(SETTLE),
 				Stream.runForEach(() => flush),
-				Effect.andThen(
-					Effect.flatMap(Deferred.isDone(topology), (changed) =>
-						changed
-							? Effect.void
-							: Effect.fail(new ServiceUnavailable({ message: "The workspace watcher ended. Retrying the watch automatically." })),
-					),
-				),
+				Effect.andThen(Effect.flatMap(Deferred.isDone(topology), (changed) => (changed ? Effect.void : Effect.fail(watcherEnded())))),
 			);
 			yield* Effect.forkScoped(listing ? setWatching(true) : Effect.delay(Effect.andThen(stale, setWatching(true)), SETTLE));
 			yield* watch;

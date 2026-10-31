@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.1.8 - 2026-10-31
+
+### Fixed
+
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+
+## 0.1.7 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.1.6 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.1.5 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.1.4 - 2026-10-30
 
 ### Changed

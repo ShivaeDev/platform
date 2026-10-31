@@ -49,7 +49,7 @@ for (const { description, file, refusal, text } of [
 	{
 		description: "under a ### Features heading",
 		file: "invalid-section",
-		refusal: "use ### Added, ### Changed, ### Fixed or ### Breaking.",
+		refusal: "use ### Added, ### Changed, ### Fixed, ### Breaking or ### Quality rules.",
 		text: changeset({ [CORE]: "patch" }, "### Features\n\n- Feature.\n"),
 	},
 	{

@@ -2,7 +2,7 @@
 import { fileURLToPath } from "node:url";
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Runtime, Schema } from "effect";
-import { Argument, Command } from "effect/cli";
+import { Argument, CliError, Command } from "effect/cli";
 import { program } from "#cli/program.ts";
 
 let commandExitCode: number | undefined;
@@ -15,7 +15,13 @@ const main = Effect.gen(function* () {
 		"heavy-lock",
 		{ command: Argument.String("command"), rest: Argument.String("args").pipe(Argument.variadic()) },
 		({ command, rest }) =>
-			program([command, ...rest]).pipe(
+			Effect.gen(function* () {
+				const [executable, ...args] = command === "--" ? rest : [command, ...rest];
+				if (executable === undefined) {
+					return yield* new CliError.ShowHelp({ commandPath: ["heavy-lock"], errors: [new CliError.MissingArgument({ argument: "command" })] });
+				}
+				return yield* program([executable, ...args]);
+			}).pipe(
 				Effect.tap((code) =>
 					Effect.sync(() => {
 						commandExitCode = code;

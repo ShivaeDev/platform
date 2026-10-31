@@ -1,27 +1,90 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { CLI_EXIT, quality } from "#test/cli.ts";
-import { defaultTree, removeSeededTrees } from "#test/tree.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
+import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
-afterEach(removeSeededTrees);
+const TODO = { content: "// TODO\nexport function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };
+const CLEAN = { content: "export function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };
 
-describe("quality without a config", { timeout: 60_000 }, () => {
-	it("lints and fixes with the shared defaults", () => {
-		const root = defaultTree();
-		expect(quality(root, "fix").status).toBe(CLI_EXIT.passed);
-		expect(quality(root)).toMatchObject({ status: 0, stdout: expect.stringContaining("quality: passed.") });
-	});
+repositoryStory.it(
+	"quality without a config fixes a clean repository with the shared defaults",
+	[qualityInstalled(), repositoryHas(CLEAN)],
+	function* ({ spawns }) {
+		const answer = yield* spawns("fix");
 
-	it("fails for uncovered findings and can record and prune existing debt", () => {
-		const root = defaultTree({ content: "// TODO\nexport function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" });
-		expect(quality(root, "lint")).toMatchObject({ status: 1, stdout: expect.stringContaining("comments/no-todo") });
-		expect(quality(root, "baseline", "write").status).toBe(CLI_EXIT.passed);
-		expect(quality(root, "lint").status).toBe(CLI_EXIT.passed);
-		expect(quality(root, "baseline", "prune").status).toBe(CLI_EXIT.passed);
-	});
+		expect(answer.outcome).toBe("passed");
+	},
+	CLI_TIMEOUT,
+);
 
-	it("rejects an explicitly selected missing config", () => {
-		const result = quality(defaultTree(), "lint", "--config", "missing.ts");
-		expect(result.status).toBe(CLI_EXIT.invalid);
-		expect(result.stderr).toContain("Check the --config path");
-	});
-});
+repositoryStory.it(
+	"quality without a config and without a command lints a clean repository with the shared defaults and reports that it passed",
+	[qualityInstalled(), repositoryHas(CLEAN)],
+	function* ({ outcome, spawns, stdout }) {
+		yield* spawns();
+
+		yield* outcomes({
+			"exit": [outcome(), "passed"],
+			"report": [stdout(), expect.stringContaining("quality: passed.")],
+		});
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality without a config rejects a finding of the shared defaults and names its rule",
+	[qualityInstalled(), repositoryHas(TODO)],
+	function* ({ outcome, spawns, stdout }) {
+		yield* spawns("lint");
+
+		yield* outcomes({
+			"exit": [outcome(), "rejected"],
+			"report": [stdout(), expect.stringContaining("comments/no-todo")],
+		});
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality without a config passes lint once baseline write records the existing finding",
+	[qualityInstalled(), repositoryHas(TODO)],
+	function* ({ spawns }) {
+		expect((yield* spawns("lint")).outcome).toBe("rejected");
+
+		yield* spawns("baseline", "write");
+
+		expect((yield* spawns("lint")).outcome).toBe("passed");
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality without a config prunes a baseline whose recorded finding remains",
+	[qualityInstalled(), repositoryHas(TODO)],
+	function* ({ outcome, reads, spawns }) {
+		yield* spawns("baseline", "write");
+		const recorded = yield* reads("quality-baseline.jsonl");
+
+		yield* spawns("baseline", "prune");
+
+		yield* outcomes({
+			"baseline": [reads("quality-baseline.jsonl"), recorded],
+			"exit": [outcome(), "passed"],
+		});
+	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality rejects an explicitly selected config that does not exist and asks to check the --config path",
+	[qualityInstalled(), repositoryHas(CLEAN)],
+	function* ({ outcome, spawns, stderr }) {
+		yield* spawns("lint", "--config", "missing.ts");
+
+		yield* outcomes({
+			"error": [stderr(), expect.stringContaining("Check the --config path")],
+			"exit": [outcome(), "invalid"],
+		});
+	},
+	CLI_TIMEOUT,
+);

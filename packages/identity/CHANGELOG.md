@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.10.0 - 2026-10-31
+
+### Added
+
+- List active sessions with user details and activity times, and revoke one session through the permission-guarded `identity.sessions` contract. Session revocation uses the existing request and live subscription revalidation path.
+- Generated applications grant session management to their admin and owner roles.
+
+### Fixed
+
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+- End hosted live subscriptions with `Unauthorized` when the original session is signed out, revoked or expired, whether detected during a change hint or periodic revalidation. Keep `QueryReadDenied` for a signed-in viewer whose query policy refuses the read.
+- Batch shared socket session lookups with an Effect scheduler yield so advancing `TestClock` past `streamRevalidationInterval` completes revalidation without another clock advance.
+- Preserve typed session-provider failures during hint-time authorization instead of reporting them as read-policy refusals.
+
+## 0.9.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.9.0 - 2026-10-30
+
+### Added
+
+- Access exports `AssignRoles` and `LastRoleAssigner` from `@shivaedev/access/roles.ts` for shared role policy declarations.
+- Identity provides `assignRole(access, userId, role)` for trusted seeds and operator commands. Supply `SqlClient` and `Reactivity`; it returns whether storage changed and uses the Users page's PostgreSQL lock, last-role-assigner guard and commit invalidation.
+
+### Breaking
+
+- Identity mounts with `roles` close Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` HTTP endpoints and set its admin plugin's `adminRoles` to `[]`. Remove that setup from applications. Use the admin Users page for authorized requests and identity's `assignRole` for trusted server commands.
+- Admin consumers import `AssignRoles` and `LastRoleAssigner` from `@shivaedev/access/roles.ts` instead of `@shivaedev/admin/permissions.ts` and `@shivaedev/admin/users/roles.ts`. The Users page uses identity's shared assignment operation; its permission checks, typed refusal and audit log remain.
+
+## 0.8.0 - 2026-10-30
+
+### Added
+
+- Pass a provider-account lookup to a Better Auth mount's `admittedSessions(getSession, getProviderAccounts)` to read linked provider IDs through `SessionUserWithProviderAccounts` while enforcing admission and session revocation. Omitting the lookup preserves the base session shape.
+
 ## 0.7.0 - 2026-10-30
 
 ### Fixed

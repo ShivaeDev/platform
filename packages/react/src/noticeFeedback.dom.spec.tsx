@@ -1,73 +1,98 @@
 import { expect } from "vitest";
-import { noticeScreen, notifications } from "#test/notices/story.tsx";
-
-notifications.it("A refresh failure publishes once and retains the visible data", [noticeScreen()], function* ({ click, observe, snapshot, render }) {
-	yield* observe("initial query completes", () => expect(snapshot().rows).toBe("existing"));
-	yield* click("Break refresh");
-	yield* observe("refresh failure publishes its wording", () =>
-		expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Refresh failed"]),
-	);
-	yield* render({ queryFailure: false });
-	expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Refresh failed"]);
-	expect(snapshot().rows).toBe("existing");
-	yield* click("Refresh");
-	yield* observe("a separate failed refresh publishes independently", () =>
-		expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Refresh failed", "Refresh failed"]),
-	);
-});
-
-notifications.it("A successful form submission can offer Undo", [noticeScreen()], function* ({ type, click, complete, observe, snapshot }) {
-	yield* type("created");
-	yield* click("Submit form");
-	yield* observe("the form submits decoded values", () => expect(snapshot().started).toEqual(["created"]));
-	yield* complete("remove", "created");
-	yield* observe("the form publishes a notice", () => expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Removed created"]));
-	yield* click("Undo created");
-	yield* observe("form Undo uses the application's payload", () => expect(snapshot().calls).toEqual([{ expectedVersion: 8, title: "created" }]));
-	yield* complete("restore", "created");
-	yield* observe("form Undo completes on its action", () => expect(snapshot().notices[0]?.outcome).toBe("Restored created"));
-});
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { formSubmitted, noticeScreen, notifications, refreshFailed, removalHeldAcrossSessionChange } from "#test/notices/story.tsx";
 
 notifications.it(
-	"Session replacement discards a late command descriptor",
+	"a failed refresh publishes Refresh failed and keeps the shown notes",
 	[noticeScreen()],
-	function* ({ click, complete, observe, snapshot, render }) {
-		yield* click("Remove first");
-		yield* observe("remove starts", () => expect(snapshot().started).toEqual(["first"]));
-		yield* render({ session: "bob" });
-		yield* complete("remove", "first");
-		expect(snapshot().notices).toEqual([]);
-		yield* click("Remove second");
-		yield* observe("the new session runs commands", () => expect(snapshot().started).toEqual(["first", "second"]));
-		yield* complete("remove", "second");
-		yield* observe("the new session publishes its own descriptor", () =>
-			expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Removed second"]),
-		);
+	function* ({ breakRefresh, notices, rows }) {
+		yield* breakRefresh();
+
+		yield* outcomes({
+			notices: [notices(), ["Refresh failed"]],
+			rows: [rows(), "existing"],
+		});
+	},
+);
+
+notifications.it("rendering again after a failed refresh publishes nothing more", [refreshFailed()], function* ({ notices, renderAgain }) {
+	yield* renderAgain();
+
+	expect(yield* notices()).toEqual(["Refresh failed"]);
+});
+
+notifications.it("a second failed refresh publishes its own notice", [refreshFailed()], function* ({ notices, refresh }) {
+	yield* refresh();
+
+	expect(yield* notices()).toEqual(["Refresh failed", "Refresh failed"]);
+});
+
+notifications.it(
+	"a completed form submission publishes a notice that offers Undo",
+	[formSubmitted("created")],
+	function* ({ completeRemove, notice }) {
+		yield* completeRemove("created");
+
+		expect(yield* notice("Removed created")).toEqual({ outcome: "", undo: "ready" });
 	},
 );
 
 notifications.it(
-	"Editor saves publish through their submission Effect",
-	[noticeScreen({ editor: true })],
-	function* ({ click, complete, observe, snapshot }) {
-		yield* click("Save editor");
-		yield* observe("the editor submits its row", () => expect(snapshot().started).toEqual(["existing"]));
-		yield* complete("remove", "existing");
-		yield* observe("the editor publishes its completion", () =>
-			expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Saved existing"]),
-		);
+	"a form notice's Undo sends the application's payload",
+	[formSubmitted("created")],
+	function* ({ completeRemove, restoreCalls, undo }) {
+		yield* completeRemove("created");
+
+		yield* undo("created");
+
+		expect(yield* restoreCalls()).toEqual([{ expectedVersion: 8, title: "created" }]);
 	},
 );
 
 notifications.it(
-	"Editor query failures publish without another query hook",
+	"a removal that completes after bob's session replaced alice's publishes nothing",
+	[removalHeldAcrossSessionChange()],
+	function* ({ completeRemove, notices }) {
+		yield* completeRemove("first");
+
+		expect(yield* notices()).toEqual([]);
+	},
+);
+
+notifications.it(
+	"after the session change, bob's own removal publishes its notice",
+	[removalHeldAcrossSessionChange()],
+	function* ({ completeRemove, notices, remove }) {
+		yield* completeRemove("first");
+		yield* remove("second");
+
+		yield* completeRemove("second");
+
+		expect(yield* notices()).toEqual(["Removed second"]);
+	},
+);
+
+notifications.it(
+	"an editor save publishes its notice through its submission",
 	[noticeScreen({ editor: true })],
-	function* ({ click, observe, snapshot }) {
-		yield* observe("the editor query completes", () => expect(snapshot().rows).toBe("existing"));
-		yield* click("Break refresh");
-		yield* observe("the editor publishes its query failure", () =>
-			expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Editor refresh failed"]),
-		);
-		expect(snapshot().rows).toBe("existing");
+	function* ({ completeRemove, notices, saveEditor }) {
+		yield* saveEditor();
+
+		yield* completeRemove("existing");
+
+		expect(yield* notices()).toEqual(["Saved existing"]);
+	},
+);
+
+notifications.it(
+	"an editor's failed refresh publishes its query notice and keeps the shown notes",
+	[noticeScreen({ editor: true })],
+	function* ({ breakRefresh, notices, rows }) {
+		yield* breakRefresh();
+
+		yield* outcomes({
+			notices: [notices(), ["Editor refresh failed"]],
+			rows: [rows(), "existing"],
+		});
 	},
 );

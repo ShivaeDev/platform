@@ -4,7 +4,7 @@ import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import { defaultClientFactory, type PgBossClient } from "#client.ts";
 import { PgBossError } from "#error.ts";
 import { registrationName } from "#internal/register.ts";
-import { type PgBossOptions, pgBossLayer } from "#service.ts";
+import { makePgBoss, type PgBossOptions, pgBossLayer } from "#service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
 import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "#testing.ts";
@@ -12,6 +12,7 @@ import { observeStops, observeWakes, pauseCompletion, sortBatches } from "./clie
 import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
 export type StartOptions = PgBossOptions & {
+	readonly queueNames?: readonly string[];
 	readonly controller?: "production retries" | "test retries" | "none";
 	readonly finalizesInParallel?: true;
 	readonly handsBatchesOver?: "by priority";
@@ -68,6 +69,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 	options: StartOptions = {},
 ) {
 	const {
+		queueNames,
 		controller,
 		finalizesInParallel,
 		handsBatchesOver,
@@ -101,10 +103,13 @@ export const startRuntime = Effect.fnUntraced(function* (
 			return client;
 		},
 	});
-	const layer = Jobs.layer({
-		jobs: registered,
-		...(reportsErrors === true ? { onError: (error: Error) => Effect.sync(() => engine.reported.push(error.message)) } : {}),
-	}).pipe(Layer.provide(clientLayer));
+	const service = queueNames === undefined ? Jobs : makePgBoss(Jobs.key, queueNames);
+	const layer = service
+		.layer({
+			jobs: registered,
+			...(reportsErrors === true ? { onError: (error: Error) => Effect.sync(() => engine.reported.push(error.message)) } : {}),
+		})
+		.pipe(Layer.provide(clientLayer));
 
 	const startedAt = yield* Clock.currentTimeMillis;
 	const built = yield* provided(engine, name, Layer.buildWithScope(layer, scope)).pipe(

@@ -19,6 +19,17 @@ const Notes = contract("routerNotes", { queries: [Get] });
 export function routerClient() {
 	const frames: string[] = [];
 	const calls: { readonly id: string; readonly page: number }[] = [];
+	const waiting = new Set<{ readonly count: number; readonly arrived: () => void }>();
+	function requestArrives(count: number) {
+		return new Promise<void>((arrived) => {
+			const waiter = { arrived, count };
+			waiting.add(waiter);
+			if (calls.length >= count) {
+				waiting.delete(waiter);
+				arrived();
+			}
+		});
+	}
 	let builds = 0;
 	const gates = new Map<string, Deferred.Deferred<{ readonly id: string; readonly title: string }, NotFound | NoteMissing>>();
 	function gate(id: string, page = 1) {
@@ -36,6 +47,12 @@ export function routerClient() {
 				"routerNotes.$changes": () => Stream.never,
 				"routerNotes.get": ({ id, page }) => {
 					calls.push({ id, page });
+					for (const waiter of [...waiting]) {
+						if (calls.length >= waiter.count) {
+							waiting.delete(waiter);
+							waiter.arrived();
+						}
+					}
 					return Deferred.await(gate(id, page));
 				},
 			});
@@ -53,5 +70,6 @@ export function routerClient() {
 		frames,
 		gate,
 		next: (id: string, page = 1) => gates.delete(`${id}:${page}`),
+		requestArrives,
 	};
 }

@@ -17,21 +17,27 @@ export function webhookJob<const TName extends string, TPayload extends JobPaylo
 	return { [enqueue]: (jobs) => jobs.enqueue(queue, payload) };
 }
 
-export interface WebhookEvent<R = never> {
-	readonly decode: (body: Uint8Array) => Effect.Effect<readonly WebhookJob<R>[], Schema.SchemaError, R>;
+export interface WebhookEvent<R = never, E = never> {
+	readonly decode: (body: Uint8Array) => Effect.Effect<readonly WebhookJob<R>[], Schema.SchemaError | E, R>;
 }
 
-export function webhookEvent<TSchema extends Schema.Constraint, R = never>(
+export function webhookEvent<TSchema extends Schema.Constraint, R = never, E = never>(
 	schema: TSchema,
-	jobs: (payload: TSchema["Type"]) => readonly WebhookJob<R>[],
-): WebhookEvent<TSchema["DecodingServices"] | R> {
+	jobs: (payload: TSchema["Type"]) => readonly WebhookJob<R>[] | Effect.Effect<readonly WebhookJob<R>[], E, R>,
+): WebhookEvent<TSchema["DecodingServices"] | R, E> {
 	return {
-		decode: (body) => Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(new TextDecoder().decode(body)).pipe(Effect.map(jobs)),
+		decode: (body) =>
+			Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(new TextDecoder().decode(body)).pipe(
+				Effect.flatMap((payload) => {
+					const result = jobs(payload);
+					return Effect.isEffect(result) ? result : Effect.succeed(result);
+				}),
+			),
 	};
 }
 
-export interface WebhookSource<R = never> {
-	readonly events: Readonly<Record<string, WebhookEvent<R>>>;
+export interface WebhookSource<R = never, E = never> {
+	readonly events: Readonly<Record<string, WebhookEvent<R, E>>>;
 	readonly key: Config.Config<Redacted.Redacted<string>>;
 	readonly strategy: WebhookStrategy;
 }
