@@ -5,7 +5,14 @@ import { jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { adminRegistry } from "#registry.ts";
 import { Users } from "./pages.ts";
 
-export const Mail = defineQueue({ name: "mail", schema: Schema.Struct({ id: Schema.NumberFromString }) });
+export const Mail = defineQueue({
+	name: "mail",
+	schema: Schema.Struct({
+		href: Schema.optionalKey(Schema.Redacted(Schema.String)),
+		id: Schema.NumberFromString,
+		token: Schema.optionalKey(Schema.String),
+	}),
+});
 export const Sync = defineQueue({ name: "sync", schema: Schema.Struct({ key: Schema.String }) });
 export const Private = defineQueue({ name: "private", schema: Schema.Struct({ id: Schema.Number }) });
 export const Scheduled = defineSchedule({ cron: "0 0 1 1 *", name: "scheduled", queue: { retryLimit: 0 } });

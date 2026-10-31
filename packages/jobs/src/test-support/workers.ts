@@ -25,7 +25,7 @@ export type Attempt =
 	| { readonly defers: string; readonly until?: DeferralTime }
 	| { readonly enqueues: (jobs: PgBossService) => Effect.Effect<unknown, unknown> }
 	| { readonly step: string; readonly next: Attempt }
-	| { readonly logs: string }
+	| { readonly logs: unknown; readonly afterwards?: Attempt }
 	| { readonly sleeps: number }
 	| "notes its job in the application log";
 
@@ -119,6 +119,11 @@ function deferralTime(until: DeferralTime | undefined) {
 
 type Services = ApplicationLog | Context.Service.Identifier<typeof Jobs>;
 
+function logged(attempt: Extract<Attempt, { readonly logs: unknown }>, log: WorkLog, job: JobContext) {
+	const line = Effect.logInfo(attempt.logs);
+	return attempt.afterwards === undefined ? line : Effect.andThen(line, run(attempt.afterwards, log, job));
+}
+
 function plainly(attempt: Extract<Attempt, string>, job: JobContext): Effect.Effect<unknown, unknown, Services> {
 	switch (attempt) {
 		case "succeeds":
@@ -173,7 +178,7 @@ function run(attempt: Attempt, log: WorkLog, job: JobContext): Effect.Effect<unk
 		return Effect.sleep(attempt.sleeps);
 	}
 	if ("logs" in attempt) {
-		return Effect.logInfo(attempt.logs);
+		return logged(attempt, log, job);
 	}
 	if ("step" in attempt) {
 		return run(attempt.next, log, job).pipe(Effect.withSpan(attempt.step));

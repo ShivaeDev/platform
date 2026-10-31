@@ -1,4 +1,4 @@
-import { Effect, Option, Queue, Ref, Schema } from "effect";
+import { Effect, Option, Queue, Redacted, Ref, Schema } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Access } from "./Access.ts";
@@ -158,6 +158,18 @@ export function mailFails(...ids: readonly number[]) {
 
 export const syncWaits = jobsStory.trait("jobs", "the waiting sync job has no worker to take it", function* (engine) {
 	named(engine, Option.getOrThrow(yield* engine.jobs.enqueue(Sync, { key: "sync-key" })), "the waiting sync job");
+});
+
+export const secretMailFails = jobsStory.trait("jobs", "mail with a one-time link failed delivery", function* (engine) {
+	const id = Option.getOrThrow(
+		yield* engine.jobs.enqueue(
+			Mail,
+			{ href: Redacted.make("https://example.com/confirm/one-time-value"), id: 42, token: "one-time-token" },
+			{ retryLimit: 0 },
+		),
+	);
+	named(engine, id, "secret mail");
+	yield* engine.testing.waitForIdle;
 });
 
 export const privateWaits = jobsStory.trait("jobs", "a job waits in the private queue, which the Jobs page does not show", function* (engine) {
