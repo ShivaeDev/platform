@@ -81,7 +81,22 @@ const Server = appHost({ group: Api, handlers: Handlers, services: Services, rou
 
 `AppMetadata` is an app service supplied by `Services`. Register `OPTIONS` or `"*"` for a route whose native `HttpMiddleware.cors` must answer preflight. The host restricts foreign-origin preflights only on `rpcPath` (default `/rpc`) and `/api/auth/*`, including `/api/auth` itself. Application endpoints own their CORS policy. `nativeOrigins` lists exact native-client origins admitted by the host’s RPC and auth CORS policy; other foreign origins receive 403 on those paths.
 
-`assets` accepts a directory string or native `HttpStaticServer.layer` options. For a browser app whose routes must also work on direct navigation or reload, use `{ root: "dist", spa: true }` or merge `HttpStaticServer.layer({ root: "dist", spa: true })` from `effect/http` into `routes`. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses `routes` for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
+`assets` accepts a directory string or an `AssetOptions` object, extending native static-server options. For direct navigation to browser routes, use `{ root: "dist", spa: true }`. HTML files, including SPA fallbacks, default to `Cache-Control: no-store`, `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`. Fingerprinted assets default to `public, max-age=31536000, immutable`; other files use `no-cache`. A fingerprint is a dot- or hyphen-separated filename suffix before the extension with at least eight hexadecimal characters, or at least eight letters, digits, underscores or hyphens containing a digit or uppercase letter. HTML policy takes precedence over fingerprint detection, including custom HTML MIME types. HEAD, partial and conditional responses retain the selected file's policy.
+
+Set `assets.cacheControl` to a string for every file, or a callback receiving the public URL pathname, including any mount prefix and excluding the query string. Returning `undefined` uses the default for the selected file. Set `assets.documentHeaders.frameAncestors` to a CSP source list and `assets.documentHeaders.xFrameOptions` to `"DENY"` or `"SAMEORIGIN"`; either accepts `false` to omit that header.
+
+```ts
+import type { AssetOptions } from "@shivaedev/server/AssetOptions.ts";
+
+const assets: AssetOptions = {
+	root: "dist",
+	spa: true,
+	cacheControl: (pathname) => (pathname === "/service-worker.js" ? "no-store" : undefined),
+	documentHeaders: { frameAncestors: "'self'", xFrameOptions: "SAMEORIGIN" },
+};
+```
+
+Static layers mounted manually through `routes` keep Effect's native behavior. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses `routes` for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
 
 The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `maxBodySize`, `databaseUrl` and `listenDatabaseUrl` (Effect `Redacted<string>` values), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 

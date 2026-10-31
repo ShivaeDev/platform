@@ -1,6 +1,6 @@
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Effect, Layer } from "effect";
-import { HttpRouter, HttpServer, HttpStaticServer } from "effect/http";
+import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { SessionShape } from "@shivaedev/identity/server/session.ts";
@@ -8,6 +8,7 @@ import type { appDatabase } from "#appDatabase.ts";
 import type { AppHttpHostOptions } from "#appHost.ts";
 import { healthRoute } from "#healthRoute.ts";
 import { hostApplicationRoutes } from "#hostApplicationRoutes.ts";
+import { hostAssets } from "#hostAssets.ts";
 import type { HostOptions, HostPolicy, HostRouteRequirements } from "#hostOptions.ts";
 import { hostRpcRoutes } from "#hostRpcRoutes.ts";
 import { hostTransport } from "#hostTransport.ts";
@@ -50,10 +51,7 @@ export function appHostHttp<
 					const transport = yield* hostTransport(options);
 					const { bodySize, host, trustedProxy, nativeOrigins } = transport;
 					const routes = hostRpcRoutes(options, transport, sensitive);
-					const assets =
-						options.assets === undefined
-							? Layer.empty
-							: HttpStaticServer.layer(typeof options.assets === "string" ? { root: options.assets } : options.assets);
+					const assets = options.assets === undefined ? Layer.empty : hostAssets(options.assets);
 					const application = Layer.mergeAll(options.services ?? Layer.empty);
 					const server = nodeHttpServer(host, options.config);
 					const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);

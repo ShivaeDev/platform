@@ -2,6 +2,7 @@ import type { Agent } from "node:http";
 import { type Cause, Effect, Layer, type LogLevel, type Tracer } from "effect";
 import type { HttpRouter, HttpServer } from "effect/http";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
+import type { AssetOptions } from "#AssetOptions.ts";
 import type { PlatformRuntime } from "#runtime/types.ts";
 import { otlpHost } from "#test/otlpHost.ts";
 import type { otlpReceiver } from "#test/otlpReceiver.ts";
@@ -13,7 +14,7 @@ export interface HostState {
 	adminSession: { role: string; unavailable: boolean };
 	agent?: Agent;
 	applicationName?: string;
-	assets?: { root: string; spa: boolean };
+	assets?: string | AssetOptions;
 	bindAddress: string;
 	bootFailure?: import("effect").Cause.Cause<unknown>;
 	build: (state: HostState) => Layer.Layer<HttpServer.HttpServer, unknown>;

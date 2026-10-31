@@ -1,13 +1,14 @@
 import type { Duration, Layer } from "effect";
-import type { HttpRouter, HttpStaticServer } from "effect/http";
+import type { HttpRouter } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
-import type { AppDatabaseOptions } from "./appHost.ts";
+import type { AssetOptions } from "#AssetOptions.ts";
+import type { AppDatabaseOptions } from "#appHost.ts";
 
 export type HostRouteRequirements = HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>;
 
 export type HostCoreOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> = {
-	readonly assets?: string | Parameters<typeof HttpStaticServer.layer>[0];
+	readonly assets?: string | AssetOptions;
 	readonly config?: AppDatabaseOptions["config"] & {
 		readonly port?: number;
 		readonly host?: string;
