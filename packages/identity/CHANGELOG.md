@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.11.0 - 2026-10-31
+
+### Changed
+
+- Server and the platform dependency shell no longer declare `pg` as an optional peer; its PostgreSQL integration uses the native pool from sql.
+
+### Fixed
+
+- Validate GitHub ids in `AllowedAccounts` as decimal digits so a login such as `github:octocat` refuses boot with a `ConfigError` naming the entry and expected format. Providers without a known format continue to accept any non-empty id.
+- Preserve emailed verification and password-reset redirects behind bearer sessions. Browser responses keep redirect, empty and unparseable bodies intact while parseable JSON still has session tokens removed.
+
+### Breaking
+
+- Replace `authDatabase(url, { max, application_name })` from identity's `server/better-auth/mount.ts` with `yield* betterAuthDatabase()` from `server/better-auth/adapters/database.ts`, inside the application's SQL environment. Pass the result as Better Auth's `database`. Use sql's `postgresLayer` for standalone processes; database-backed `appHost` exposes the client inside its `application` Effect. Move connection settings to `maxConnections` and `applicationName` on that SQL Layer. Auth now shares its connection budget and lifecycle; remove direct `pg` dependencies when no longer used.
+- Replace `authTestDatabase(pool)` with `yield* authTestDatabase` in identity test fixtures, provided with the application's `SqlClient`.
+- When applying the generated starter update, replace `poolSizes.auth` with the shared `poolSizes.sql` budget. Auth migrations use the application SQL environment; remove custom `AuthMigrationDatabase` providers.
+
 ## 0.10.1 - 2026-10-31
 
 ### Fixed

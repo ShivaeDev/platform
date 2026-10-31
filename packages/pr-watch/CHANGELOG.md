@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/github` from 0.8.1 to 0.8.2.
+
 ## 0.6.1 - 2026-10-31
 
 ### Changed

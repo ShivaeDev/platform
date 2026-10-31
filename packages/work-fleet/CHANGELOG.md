@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.27.0 - 2026-10-31
+
+### Added
+
+- Queue integrations can return `{ status: "held", releasePr }` to wait on a named release without requesting a repair.
+
+### Changed
+
+- Share Board's watched index across daemon admission, dispatch, reconciliation and responses. Board changes wake scheduling immediately, with a slow periodic safety pass and continued active-turn observation.
+- Direct filesystem edits become visible to daemon reads when Board's watched index observes them.
+- Generated starters import schedule definitions and the default queue client factory from their defining modules.
+
+### Fixed
+
+- Adopt parked merge-main repairs without waiting for areas, review green PRs held on merge ordering, and put reviewed green, mergeable Fleet PRs ahead of conflicting or unreviewed work.
+- Observe merge-queue removal while work waits on ordering or areas and continue its worker with the failing check output, then review the repaired head.
+- Wait for GitHub to remove a PR from the merge queue for failed checks before sending queue repair work. Repair turns include failed-check URLs from the removed merge-group commit.
+- Hold PRs that add changesets while an open `release/next` PR has passing required CI, naming the release in Fleet status and Board waits. PRs without new changesets keep merging, and held PRs resume after the release merges or closes.
+- Report exported type aliases of imports, value aliases with `typeof` annotations or local const chains, object facades and unchanged forwarding functions, with repairs naming their defining modules. Keep wrappers that transform inputs, add steps, supply defaults or declare overloads.
+
+### Breaking
+
+- Custom `FleetIntegrations.queue` implementations must return `{ status: "failed", repairPrompt }` instead of `"failed"`, with the failed run's URL in `repairPrompt`. Return `"queued"` or `"pending"` while the PR is queued or failure evidence is unavailable. The fourth argument, `queuedAt`, records when the current head became merge-ready; use it to reject older removal events.
+- Custom hosts calling `hostScheduler` or `dispatchRequests` directly must provide `watchedBoard(root)` from `@shivaedev/work-fleet/board/watched.ts` as a shared Layer. `hostLayer` and `daemonLayer` provide it automatically.
+- Quality: the gate now rejects imported second names even when they use type aliases, value annotations, object facades or forwarding functions. Import from the defining module and remove the second name; existing facade debt can be recorded at adoption. Import `USAGE` from `cli/messages.ts` instead of `cli/args.ts`.
+- Jobs: import `defaultClientFactory` from `@shivaedev/jobs/server/defaultClientFactory.ts` instead of `server/client.ts`. Import `defineSchedule` from `@shivaedev/jobs/server/defineSchedule.ts` instead of `server/definition.ts`. The removed `server/internal/nativeClient.ts` and `server/internal/scheduleDefinition.ts` exports migrate to those same modules as `defaultClientFactory` and `defineSchedule`. The default factory now exposes its native pg-boss return type; type custom factory mocks against `PgBossClient` or `PgBossClientFactory` from `server/client.ts`.
+- React: import `resumeSignal`, `ResumeOptions`, `ResumeSource` and `ResumeWindow` from `@shivaedev/contract/resume.ts`; `@shivaedev/react/resumeSignal.ts` is removed.
+- Work Board: import `Identity` from `path/Identity.ts`, view state helpers from `browser/views/state.ts`, `isMarkdown` from `path/isMarkdown.ts`, and `processes` from `server/processOwnership.ts`. The forwarding `server/views/state.ts` and `server/integration/processes.ts` modules are removed. Replace the removed `attention` facade with imports of `managedRequestReceipt` from `server/attention/managedRequestReceipt.ts`, `attentionProjection` from `server/attention/projection.ts`, and `RequestReceipt` from `attention/RequestReceipt.ts`. Replace the removed `publication` facade with direct imports from `server/responses/publicationDirectory.ts`. Import `Changes` from `server/files/changes.ts`, `MarkdownFile` from `server/files/list.ts`, `Snapshot` from `server/search/snapshot.ts`, metadata document/model/diagnostic/parsed types from `integration/metadata.ts`, `InboxProjection` from `browser/views/schema.ts` instead of `AttentionProjection`, `SourceFailure` from `diagnostics/source.ts`, and `WorkspaceOptions` from `server/workspace.ts` instead of the integration facades. Metadata types are also removed from `server/metadata/model.ts` and `server/metadata/parse.ts`; import them from `integration/metadata.ts`.
+- Work Fleet: import `WAIT_EXIT`, `WaitState`, `WaitOutcome` and `settled` from `host/waitOutcome.ts` instead of `host/wait.ts`; import `fleetRecords` from `fleetRecords.ts` instead of `operations.ts`.
+
 ## 0.26.0 - 2026-10-31
 
 ### Added

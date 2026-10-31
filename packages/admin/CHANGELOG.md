@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.13.0 - 2026-10-31
+
+### Added
+
+- Jobs dead-letter entries and admin Jobs RPC responses carry `sourceQueue`, the name of the original queue.
+- Jobs encode and decode durable payloads through Effect's JSON codec, so native `Schema.Redacted` fields reach workers with their real values.
+- Contract exports the `signedIn` read policy and `validateReadPolicies(group)` for native hosts to validate their RPC group during Layer construction.
+
+### Fixed
+
+- Successful jobs clear their dead-letter copies in the completion transaction. Copies of unretried jobs and failed retries remain listed. Schema installation also clears copies whose retained source already completed.
+- Job inspection and worker logs mask native `Redacted` values and fields recognized by the errors package's sensitive-key policy. The admin Jobs page carries masked inspection data over RPC without re-encoding it through the payload schema.
+- Admin's built-in Users and Jobs queries and Work Board's daemon diagnostics queries explicitly declare read policies; existing permission and loopback boundaries continue to own access.
+
+### Breaking
+
+- Consumers constructing `DeadLetteredJob` values or admin dead-letter responses must supply `sourceQueue`. Applications using `migrate: false` must run `installPgBossSchema` during upgrade to install the completion trigger.
+- Jobs `getJob`, `failedJobs` and `deadLetteredJobs`, and admin Jobs RPC results, now return masked `data: unknown` instead of a typed worker payload. Consumers must treat this as diagnostic data and narrow it before reading fields; obtain operational payloads in queue handlers. Admin RPC no longer applies the queue's payload encoding or requires its encoding services for results.
+- Every contract query requires a `readPolicy`, including plain RPC reads. Add `readPolicy: signedIn` for any signed-in viewer, an explicit `() => Effect.succeed(true)` for public reads, or an application policy for restricted reads. Plain calls without a policy now fail closed with `MissingReadPolicy` even on native servers that bypass startup validation.
+- The application server Layer fails with typed `MissingReadPolicies` before listening when untyped queries omit policies. Handle this boot error if your application narrows startup failures; its `queries` field lists every affected RPC. Query atom error types now follow their native RPC errors without an extra client-side `MissingReadPolicy` branch. Custom `ChangesQueries` annotations must now include their query definitions in `queries` alongside `resolve`.
+
 ## 0.12.3 - 2026-10-31
 
 ### Changed
