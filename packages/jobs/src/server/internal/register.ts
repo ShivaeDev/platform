@@ -74,7 +74,7 @@ const registerQueue = Effect.fnUntraced(function* (
 		client,
 		name,
 		queue.workerOptions,
-		(job) => runQueueWorker(registration, job),
+		(job, deadline) => runQueueWorker(registration, job, deadline),
 		scope,
 		schema,
 		queue.maxDeferrals,
