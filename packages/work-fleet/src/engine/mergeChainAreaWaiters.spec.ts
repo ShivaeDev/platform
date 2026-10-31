@@ -50,10 +50,10 @@ for (const [launchPriority, blockedElsewhere] of [
 			}
 			yield* fleet.restart();
 			yield* fleet.vacateExecution("holder");
-			const areas = yield* fleet.fleet.areaLanes(["shared"]);
-			expect(areas.find((area) => area.area === "shared")?.queue.map((task) => task.workId)).toEqual(
-				launchPriority === "urgent" ? ["four", "one"] : ["one", "four"],
-			);
+			expect(yield* fleet.areaLane("shared")).toMatchObject({
+				queue: (launchPriority === "urgent" ? ["four", "one"] : ["one", "four"]).map((workId) => ({ workId })),
+			});
+
 			if (launchPriority === "urgent") {
 				expect((yield* fleet.dispatch("four")).value.step).toBe("working");
 			} else {

@@ -51,10 +51,7 @@ export function sessionWords({ capacity, code, message, reason, terminalReceipts
 }
 
 export function outcomeOf<A, E, R>(effect: Effect.Effect<A, E, R>, success: (value: A) => string): Effect.Effect<string, never, R> {
-	return effect.pipe(
-		Effect.map(success),
-		Effect.catch((error) => Effect.succeed(described(error))),
-	);
+	return effect.pipe(Effect.match({ onFailure: described, onSuccess: success }));
 }
 
 export function refusal<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<string, never, R> {

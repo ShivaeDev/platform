@@ -9,6 +9,8 @@ export function engineDispatchVerbs(state: EngineStory) {
 		return Effect.suspend(() => running(state).fleet.get(id)).pipe(Effect.map(({ value }) => value));
 	}
 	return {
+		areaLane: (area: string) =>
+			Effect.suspend(() => running(state).fleet.areaLanes([area])).pipe(Effect.map((lanes) => lanes.find((lane) => lane.area === area) ?? "no lane")),
 		attemptsOf: (id: string) => record(id).pipe(Effect.map(({ attempts }) => attempts.length)),
 		blockerOf: (id: string) => record(id).pipe(Effect.map(({ blocker }) => blocker ?? "no blocker")),
 		executionOf: (id: string) => record(id).pipe(Effect.map((value) => (executing(value) ? "executing" : "not executing"))),

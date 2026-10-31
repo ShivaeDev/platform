@@ -84,8 +84,7 @@ export function storageMigrationVerbs(tell: (line: string) => void) {
 		migration: (...args: Parameters<typeof migrateFleet>) => {
 			tell(`migrate Fleet namespace ${args[0]}`);
 			return migrateFleet(...args).pipe(
-				Effect.map((applied) => (applied.length === 0 ? "nothing to apply" : "applied")),
-				Effect.catch(() => Effect.succeed("failed")),
+				Effect.match({ onFailure: () => "failed", onSuccess: (applied) => (applied.length === 0 ? "nothing to apply" : "applied") }),
 			);
 		},
 		openFleetStore: (options: FleetStoreOptions<FleetRecord>) => {

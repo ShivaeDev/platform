@@ -88,6 +88,7 @@ for (const [kind, source, diagnostic] of [
 			expect((yield* daemon.storedRecord("one")).value.step).toBe("working");
 
 			daemon.writeBoard("one.md", source);
+			yield* daemon.admit();
 			yield* daemon.schedule();
 
 			const records = (yield* daemon.list()).map(({ value }) => value);
