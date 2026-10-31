@@ -20,7 +20,7 @@ host.it(
 		expect(invalid.message).toBe("Continuation needs a message");
 		const denied = yield* daemon.request("fleet.continue", { message: "Continue", workId: "one" }).pipe(Effect.flip);
 		expect(denied).toBeInstanceOf(Forbidden);
-		expect(denied.message).toBe("Continue requires terminal waiting or done work");
+		expect(denied.message).toBe("Continue requires terminal waiting, done or explicitly stopped work");
 		const stale = yield* daemon
 			.request("fleet.reassign", { attentionOwner: "orchestrator", decisionId: "old-decision", workId: "one" })
 			.pipe(Effect.flip);

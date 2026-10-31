@@ -5,11 +5,12 @@ export function observedAttempt(attempt: Attempt, observation: SessionObservatio
 	if (attempt.abandoned !== undefined) {
 		return attempt;
 	}
-	const signature = observation.progress === undefined ? undefined : JSON.stringify(observation.progress);
-	const observed = signature === undefined || signature === attempt.progress?.signature ? attempt.progress : { at: now, signature };
+	const signature = observation.progress === undefined ? (attempt.progress?.signature ?? "null") : JSON.stringify(observation.progress);
+	const observed =
+		signature === attempt.progress?.signature ? attempt.progress : { at: observation.progress === undefined ? attempt.submittedAt : now, signature };
 	const since = Math.max(observation.activityAt ?? 0, observation.subscribedAt ?? 0);
 	const live = Math.min(since, now);
-	const progress = observed === undefined || live <= observed.at ? observed : { ...observed, at: live };
+	const progress = live <= observed.at ? observed : { ...observed, at: live };
 	return {
 		...attempt,
 		finishedAt: ["completed", "failed", "interrupted"].includes(observation.execution) ? (attempt.finishedAt ?? observedAt) : undefined,
