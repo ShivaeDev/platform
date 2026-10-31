@@ -4,16 +4,16 @@ import { appHost } from "#appHost.ts";
 import { host } from "./story.ts";
 
 const BranchFailure = Schema.Struct({ contact: Schema.String.annotate({ sensitive: true }), other: Schema.String, swap: Schema.Boolean }).pipe(
-	Schema.encodeTo(Schema.Struct({ left: Schema.String, right: Schema.String, swap: Schema.Boolean }), {
-		decode: SchemaGetter.transform(({ left, right, swap }) => ({ contact: swap ? right : left, other: swap ? left : right, swap })),
-		encode: SchemaGetter.transform(({ contact, other, swap }) => ({ left: swap ? other : contact, right: swap ? contact : other, swap })),
+	Schema.encodeTo(Schema.Struct({ left: Schema.String, right: Schema.String, wireSwap: Schema.Boolean }), {
+		decode: SchemaGetter.transform(({ left, right, wireSwap: swap }) => ({ contact: swap ? right : left, other: swap ? left : right, swap })),
+		encode: SchemaGetter.transform(({ contact, other, swap }) => ({ left: swap ? other : contact, right: swap ? contact : other, wireSwap: swap })),
 	}),
 );
 const branchApi = RpcGroup.make(
-	Rpc.make("branched", { error: BranchFailure, payload: { swap: Schema.Boolean, value: Schema.String }, success: Schema.Void }),
+	Rpc.make("branched", { error: BranchFailure, payload: { chooseSwap: Schema.Boolean, value: Schema.String }, success: Schema.Void }),
 );
 const branchHandlers = branchApi.toLayer({
-	branched: ({ swap, value }) =>
+	branched: ({ chooseSwap: swap, value }) =>
 		Effect.gen(function* () {
 			const diagnostic = { left: swap ? "public detail" : value, right: swap ? value : "public detail", visible: "public control" };
 			yield* Effect.logInfo("branched diagnostic").pipe(Effect.annotateLogs(diagnostic));
