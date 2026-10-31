@@ -13,7 +13,7 @@ interface SessionHost {
 
 export const sessionPrecondition = Effect.fn("AppStory.sessionPrecondition")(function* (host: SessionHost) {
 	const pool = yield* betterAuthDatabase();
-	const options = authOptions(pool);
+	const options = { ...authOptions(), database: pool };
 	return betterAuth({
 		...options,
 		advanced: { ...options.advanced, useSecureCookies: host.secureCookies ?? host.origin.startsWith("https:") },

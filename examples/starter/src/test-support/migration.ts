@@ -23,7 +23,7 @@ export const migration = storyKit({
 		}),
 		pendingAuthMigrations: Effect.fn("AppStory.pendingAuthMigrations")(function* () {
 			const pool = yield* betterAuthDatabase();
-			return yield* Effect.tryPromise(() => getMigrations(authOptions(pool)));
+			return yield* Effect.tryPromise(() => getMigrations({ ...authOptions(), database: pool }));
 		}),
 	}),
 });

@@ -4,10 +4,9 @@ import { userAc } from "better-auth/plugins/admin/access";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 
-export function authOptions(database: NonNullable<BetterAuthOptions["database"]>) {
+export function authOptions() {
 	return {
 		advanced: { database: { validateSchema: true } },
-		database,
 		emailAndPassword: { enabled: true },
 		plugins: [admin({ defaultRole: User.name, roles: Object.fromEntries(AppAccess.Role.literals.map((name) => [name, userAc])) })],
 		session: { cookieCache: { enabled: false } },

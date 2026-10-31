@@ -40,7 +40,7 @@ export const migration = storyKit({
 		deleteUser: () =>
 			Effect.promise(async () => {
 				story.tell("delete the auth user who owns the existing note");
-				const auth = betterAuth({ ...authOptions(engine.pool), plugins: [testUtils()] });
+				const auth = betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] });
 				const { internalAdapter } = await auth.$context;
 				await internalAdapter.deleteUser(engine.userId);
 			}),
@@ -54,7 +54,7 @@ export const migration = storyKit({
 export const existingNotes = migration.trait("schema", "Alice has an owned note and a legacy note exists before the foreign key", function* (engine) {
 	const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
 	yield* steps.migrateTo("0002_notes");
-	const auth = betterAuth({ ...authOptions(engine.pool), plugins: [testUtils()] });
+	const auth = betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] });
 	const { user } = yield* Effect.promise(() => signedInUser(auth, { email: "alice@migration.test", name: "Alice" }));
 	engine.userId = user.id;
 	const sql = yield* SqlClient.SqlClient;

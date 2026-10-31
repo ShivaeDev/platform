@@ -30,7 +30,8 @@ export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (e
 	const pool = yield* betterAuthDatabase();
 	const mounted = yield* betterAuthMount(
 		{
-			...authOptions(pool),
+			...authOptions(),
+			database: pool,
 			secret: Redacted.value(secret),
 			socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 		},

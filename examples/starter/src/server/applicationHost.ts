@@ -38,7 +38,8 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 				application: Effect.gen(function* () {
 					const { routes, sessions: authSessions } = yield* betterAuthMount(
 						{
-							...authOptions(yield* betterAuthDatabase()),
+							...authOptions(),
+							database: yield* betterAuthDatabase(),
 							...(config?.secret === undefined ? {} : { secret: Redacted.value(config.secret) }),
 						},
 						{ roles: AppAccess },
