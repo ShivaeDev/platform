@@ -99,6 +99,11 @@ export function traceVerbs(state: HostState, tell: (line: string) => void) {
 				return span === undefined ? "no POST /rpc span exported" : attributesOf(span.resourceAttributes);
 			}),
 		exportedSpanNames: () => Effect.sync(() => (state.receiver?.spans ?? []).map(({ name }) => name)),
+		exportedSpanStatus: (name: string) =>
+			Effect.sync(() => {
+				const span = state.receiver?.spans.find((entry) => entry.name === name);
+				return span === undefined ? "missing" : statusWords[span.status.code];
+			}),
 		exportMentions: (...texts: readonly string[]) =>
 			Effect.sync(() => {
 				const bodies = (state.receiver?.requests ?? []).map(({ body }) => body).join("\n");

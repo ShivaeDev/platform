@@ -115,3 +115,11 @@ With `pnpm dev` running, use `pnpm browser-check --page / --text "Sign in"` for 
 With those credentials set for a disposable account, run `pnpm browser-check --live-notes` to check two tabs sharing one session. It creates a note through the first tab, requires the second tab to receive its socket hint and display the note without navigation, then signs out in the first tab and requires the second tab's live socket and private notes to disappear. Inspect `.browser-check/live-notes.png` and `.browser-check/signed-out.png`. The note remains in the disposable account. Run with `--url http://127.0.0.1:3000` against `pnpm build && pnpm start` to check the production socket path too. This local check covers awake Chromium tabs, not tab sleep or other browsers.
 
 End-to-end browser tests do not belong in an app's CI because they cost CI minutes on private repositories. Stories prove behavior; browser check is for looking at the app locally. It is opt-in and stays out of CI and `pnpm ready`/`ci`.
+
+## Errors and traces
+
+Railway tracing is the default and only production error and trace destination. `.railway/railway.ts` enables manual tracing for web and worker; Railway supplies the OTLP endpoint and authentication on deployment. Leave exporter endpoint overrides unset. Open the project's Traces page to see application spans, log events and Effect `ErrorReporter` reports. The framework redacts diagnostics before exporting.
+
+`App` mounts `useBrowserErrors` once, including before sign-in. `appHost` mounts `POST /_platform/errors`, forwarding uncaught browser errors and unhandled rejections through that same redacting pipeline. The route limits reports to 20 per minute per client IP per process.
+
+Local development and tests run without export when no endpoint is configured. To inspect traces locally, follow the loopback OpenTelemetry Collector setup in the [server guide](https://github.com/ShivaeDev/platform/blob/main/packages/server/README.md). Agents extending this starter must keep Railway as the sink and must not add another error service.

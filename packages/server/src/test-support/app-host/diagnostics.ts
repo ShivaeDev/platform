@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Cause, Effect, ErrorReporter } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { host } from "./story.ts";
 
@@ -40,4 +40,16 @@ export const textDiagnostics = host.trait("configured", "a failed route annotate
 });
 export const tracedRoutes = host.trait("configured", "the router serves a parameterized item route", (state) => {
 	state.routes = HttpRouter.add("GET", "/items/:id", HttpServerResponse.text("item"));
+});
+
+export const reportedDiagnostics = host.trait("configured", "a route logs and reports an application failure", (state) => {
+	state.routes = HttpRouter.add(
+		"GET",
+		"/reported",
+		Effect.gen(function* () {
+			yield* Effect.logError("server diagnostic token=hidden-log-token").pipe(Effect.annotateLogs({ password: "hidden-log-password" }));
+			yield* ErrorReporter.report(Cause.die(new Error("server failure password=hidden-report-password")));
+			return HttpServerResponse.empty();
+		}),
+	);
 });

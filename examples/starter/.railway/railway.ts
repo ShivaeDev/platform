@@ -16,6 +16,7 @@ export default defineRailway((ctx) => {
 		healthcheckTimeout: 120,
 		preDeploy: "pnpm migrate",
 		start: "pnpm start",
+		tracing: { autoInstrumentation: false, enabled: true },
 	});
 	const worker = service("worker", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
@@ -24,6 +25,7 @@ export default defineRailway((ctx) => {
 			"DATABASE_URL": database.env.DATABASE_URL,
 		},
 		start: "pnpm worker",
+		tracing: { autoInstrumentation: false, enabled: true },
 	});
 	return project(ctx.projectName ?? "app", { resources: [database, web, worker] });
 });
