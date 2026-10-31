@@ -3,7 +3,7 @@ import * as Socket from "effect/socket/Socket";
 
 export const SocketAuthentication = Schema.Struct({
 	_tag: Schema.Literal("Authenticate"),
-	token: Schema.String,
+	token: Schema.String.check(Schema.isPattern(/^[\x21-\x7e]+$/u)),
 });
 
 export const authenticateSocket = Effect.fnUntraced(function* (token: string) {

@@ -35,7 +35,7 @@ nativeSessions.it(
 	},
 );
 
-for (const kind of ["invalid", "expired", "malformed", "oversized"] as const) {
+for (const kind of ["invalid", "expired", "malformed", "oversized", "header-control"] as const) {
 	nativeSessions.it(
 		`a ${kind} native authentication frame closes the socket with policy violation`,
 		[alice],

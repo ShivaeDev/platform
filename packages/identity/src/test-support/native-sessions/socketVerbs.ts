@@ -55,9 +55,12 @@ export function socketVerbs(host: Host, account: (name: string) => Account, tell
 				return answerOf(AsyncResult.toExit(result.value));
 			});
 		},
-		rejectNativeCredential: (name: string, kind: "invalid" | "expired" | "malformed" | "oversized") => {
+		rejectNativeCredential: (name: string, kind: "invalid" | "expired" | "malformed" | "oversized" | "header-control") => {
 			tell(`a native socket sends a ${kind} authentication frame`);
-			const token = kind === "invalid" ? "invalid.signature" : account(name).credential;
+			let token = kind === "invalid" ? "invalid.signature" : account(name).credential;
+			if (kind === "header-control") {
+				token = "invalid\r\ncredential";
+			}
 			let frame = JSON.stringify({ _tag: "Authenticate", token });
 			if (kind === "malformed") {
 				frame = "not JSON";
