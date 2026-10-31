@@ -125,3 +125,33 @@ routes.it(
 		expect(root.container.querySelector<HTMLInputElement>('[name="shell"]')?.value).toBe("Keep this draft");
 	},
 );
+
+routes.it(
+	"the query factory loads data using the client and viewer from router context",
+	[noteRoute(undefined, undefined, 3)],
+	function* ({ route, observe, succeed }) {
+		const { client, root } = route();
+		yield* observe("the viewer's page is requested", () => expect(client.calls).toEqual([{ id: "first", page: 3 }]));
+
+		yield* succeed("first", "Viewer's note", 3);
+
+		yield* observe("the context query's data is rendered", () =>
+			expect(root.container.querySelector("[data-query]")?.textContent).toBe("Viewer's note"),
+		);
+	},
+);
+
+routes.it("a reloaded query factory reads the current viewer context", [noteRoute()], function* ({ route, observe, succeed, changeViewer }) {
+	const { root } = route();
+	yield* succeed("first", "First viewer's note");
+	yield* observe("the first viewer's data is rendered", () =>
+		expect(root.container.querySelector("[data-query]")?.textContent).toBe("First viewer's note"),
+	);
+
+	yield* changeViewer(2);
+	yield* succeed("first", "Second viewer's note", 2);
+
+	yield* observe("the new viewer's data is rendered", () =>
+		expect(root.container.querySelector("[data-query]")?.textContent).toBe("Second viewer's note"),
+	);
+});

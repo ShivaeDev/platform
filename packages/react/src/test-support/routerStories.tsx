@@ -23,6 +23,12 @@ export const routes = storyKit(
 		"route screen",
 		(): State => ({ client: routerClient() }),
 		(state, screen) => ({
+			changeViewer: (page: number) =>
+				screen.act(`the viewer switches to page ${page}`, () => {
+					const { router } = current(state);
+					router.update({ context: { ...router.options.context, viewerPage: page } });
+					void router.invalidate();
+				}),
 			missing: (failure: NoteMissing | NotFound) =>
 				screen.act(`note ${failure.id} is missing`, () => Effect.runPromise(Deferred.fail(state.client.gate(failure.id), failure))),
 			navigate: () =>
@@ -49,14 +55,14 @@ export const routes = storyKit(
 		}),
 	),
 );
-export function noteRoute(initial?: string, expectedFailure?: NoteMissing) {
+export function noteRoute(initial?: string, expectedFailure?: NoteMissing, page = 1) {
 	return routes.trait("screen", `the notes router at ${initial ?? "/notes/first"}`, function* ({ screen, state }) {
 		const root = yield* screen.open(
 			null,
 			expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === expectedFailure) } : undefined,
 		);
 		state.root = root;
-		const router = routerApp(root.registry, state.client, initial);
+		const router = routerApp(root.registry, state.client, initial, page);
 		state.router = router;
 		yield* Effect.promise(() => root.render(<RouterProvider router={router} />));
 	});
