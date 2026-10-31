@@ -1,15 +1,14 @@
-import { Effect, PubSub, Schema, Stream } from "effect";
+import { Effect, Layer, PubSub, Schema, Stream } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
+import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
@@ -50,12 +49,7 @@ function server() {
 				}),
 		}),
 	);
-	class Client extends AtomRpc.Service<Client>()("query-window/Client", {
-		group: Notes,
-		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: handlers,
-	}) {}
-	const api = bind(Notes, Client);
+	const { api } = makeClient(Notes, { protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)), url: "memory://notes" });
 	const queries: Record<Name, Atom.Atom<AsyncResult.AsyncResult<number, unknown>>> = {
 		dashboard: api.get.query({ id: "dashboard" }),
 		detail: api.get.query({ id: "detail" }),

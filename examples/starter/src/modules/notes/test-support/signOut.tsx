@@ -41,7 +41,7 @@ export const signOut = storyKit({
 					connect={() => connectModules([notesRegistration(client)])}
 					history={history}
 					recheck={() => undefined}
-					session={signedIn ? { user: { permissions: [] } } : null}
+					session={signedIn ? { user: { id: "alice", permissions: [] } } : null}
 					userId={signedIn ? "alice" : undefined}
 				/>,
 			);

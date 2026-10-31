@@ -571,6 +571,23 @@ const DocumentHandlers = Documents.application
 
 The generated subscription uses the owning query handler's captured services too, so this handler-only provision serves subscriptions as well as RPC calls. Request-local services take precedence over captured services; a session value installed while building handlers cannot replace the current viewer's session. The policy runs again for live hints; its allow or deny result is not cached.
 
+### In-memory clients in story kits
+
+`layerMemoryProtocol(group)` from `@shivaedev/contract/testing.ts` connects the native RPC client and server in the same process. Provide the group's handlers and middleware with `Layer.provide`, then pass the protocol to the application's client factory:
+
+```ts
+import { Layer } from "effect";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
+
+const client = makeClient(Notes, {
+	protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+	url: "memory://notes",
+});
+```
+
+The URL identifies the client configuration; the in-memory protocol opens no socket. The client's direct calls and bound query atoms use the real handlers, schema decoding and middleware. Live subscriptions deliver the server's initial resync and changed hints, and mounted queries refresh from those hints. Closing a subscription interrupts its server stream. The protocol does not add handlers or publish changes: provide the same live handlers and change source that the application serves over WebSocket.
+
 ### Live hints in stories
 
 Use `watchHints` and `heard` from `@shivaedev/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle.
@@ -606,7 +623,7 @@ Import the module that defines the name; the package has no root entry.
 | `serverMetadata.ts`       | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.queries`, `ChangesQueries.resolve(references)`, the Effect `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters.                                                                                                                                                                          |
 | `resume.ts`               | `resumeSignal({ window?, native? })`, returning a native numeric signal atom.                                                                                                                                                                                                                                                                                                                                          |
 | `clientActivity.ts`       | `clientActivity(client)` exposes a native activity Stream with a `current` Effect; `isClientIdle(state)` checks finite work.                                                                                                                                                                                                                                                                                           |
-| `testing.ts`              | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                                                                                                                                         |
+| `testing.ts`              | `layerMemoryProtocol(group)` supplies an in-memory native RPC protocol backed by the group’s handlers and middleware; `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                   |
 
 A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.
 
