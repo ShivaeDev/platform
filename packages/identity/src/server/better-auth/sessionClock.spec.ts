@@ -105,9 +105,11 @@ sessionClock.it(
 
 		yield* signsInAgain("alice");
 
-		expect(yield* request("alice")).toBe("alice");
-		expect((yield* mintedSession("alice")).id).not.toBe(original.id);
-		expect(yield* requestUserId("alice")).toBe(userId);
+		yield* outcomes([
+			["protected request", () => request("alice"), "alice"],
+			["fresh session", () => mintedSession("alice"), expect.not.objectContaining({ id: original.id })],
+			["same account", () => requestUserId("alice"), userId],
+		]);
 
 		yield* timePasses("1 hour");
 
