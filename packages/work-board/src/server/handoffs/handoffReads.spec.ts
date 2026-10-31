@@ -18,8 +18,8 @@ boardStory.it(
 		yield* prepareHandoff();
 
 		yield* outcomes({
-			"files read": [readsSinceNoted(), [HANDOFF_RECORD, "items/keyboard.md"]],
-			handoffs: [handoffHistory(), { records: ["handoff.keyboard.1 requested"], unreadable: [] }],
+			"handoffs listed": [handoffHistory(), { records: ["handoff.keyboard.1 requested"], unreadable: [] }],
+			"reads since the mark": [readsSinceNoted(), [HANDOFF_RECORD, "items/keyboard.md"]],
 		});
 	},
 );

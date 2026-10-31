@@ -90,10 +90,7 @@ boardStory.it(
 
 		yield* workerCloses("the loser");
 
-		yield* outcomes({
-			"the loser": [workerReports("the loser"), "closed"],
-			"the server answer": [serverAnswer("socket"), { directory: "the project folder", url: "the winner" }],
-		});
+		expect(yield* serverAnswer("socket")).toEqual({ directory: "the project folder", url: "the winner" });
 	},
 );
 
@@ -109,10 +106,7 @@ boardStory.it(
 
 		yield* workerCloses("the winner");
 
-		yield* outcomes({
-			"the project's files": [projectEntries(), ["note.md"]],
-			"the winner": [workerReports("the winner"), "closed"],
-		});
+		expect(yield* projectEntries()).toEqual(["note.md"]);
 	},
 );
 

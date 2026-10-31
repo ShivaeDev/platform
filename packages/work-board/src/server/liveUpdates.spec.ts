@@ -45,9 +45,9 @@ boardStory.it(
 		editFile("later/idea.md", "# Idea\n");
 
 		yield* outcomes({
-			"the library": [libraryListing(), ["/later/idea.md", "/notes/log.md", "/plan.md"]],
+			"announced change": [nextChange(), ["workspace index"]],
+			library: [libraryListing(), ["/later/idea.md", "/notes/log.md", "/plan.md"]],
 			"the new file": [sourceOf("later/idea.md"), "# Idea\n"],
-			"the next change": [nextChange(), ["workspace index"]],
 		});
 	},
 );

@@ -17,8 +17,8 @@ for (const [kind, files] of [
 			yield* watcherBecomes("not watching");
 
 			yield* outcomes({
+				"announced change": [nextChange(), "resync"],
 				"navigation": [boardRead("navigation"), "internal server error"],
-				"the live client's next change": [nextChange(), "resync"],
 			});
 		},
 	);
@@ -53,9 +53,9 @@ boardStory.it(
 		yield* directoryReported("published");
 
 		yield* outcomes({
+			"announced change": [nextChange(), expect.arrayContaining(["document drafts/log.md", "document drafts/nested/plan.md"])],
+			library: [libraryListing(), ["/published/log.md", "/published/nested/plan.md"]],
 			"published/nested/plan.md": [sourceOf("published/nested/plan.md"), "# Plan"],
-			"the library": [libraryListing(), ["/published/log.md", "/published/nested/plan.md"]],
-			"the next change": [nextChange(), expect.arrayContaining(["document drafts/log.md", "document drafts/nested/plan.md"])],
 		});
 	},
 );
@@ -93,8 +93,8 @@ boardStory.it(
 		editFile("notes/log.md", "# After the directory notification");
 
 		yield* outcomes({
+			"announced change": [nextChange(), expect.arrayContaining(["document notes/log.md"])],
 			"notes/log.md": [sourceOf("notes/log.md"), "# After the directory notification"],
-			"the next change": [nextChange(), expect.arrayContaining(["document notes/log.md"])],
 			"the project": [watcherState(), "watching"],
 			"watched folders": [watchedFolders(), ["."]],
 		});

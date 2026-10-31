@@ -348,13 +348,7 @@
 {"path":"packages/work-board/src/server/integration/board.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/server/integration/diagnostics.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/server/integration/responses.ts","rule":"structure/no-barrel","count":1}
-{"path":"packages/work-board/src/server/liveDelivery.spec.ts","rule":"tests/domain-outcomes","count":1}
-{"path":"packages/work-board/src/server/liveDelivery.spec.ts","rule":"tests/grouped-outcomes","count":7}
-{"path":"packages/work-board/src/server/liveDelivery.spec.ts","rule":"tests/wait-on-events","count":2}
 {"path":"packages/work-board/src/server/livePage.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/server/liveUpdates.spec.ts","rule":"effect/boundary","count":3}
-{"path":"packages/work-board/src/server/liveUpdates.spec.ts","rule":"tests/grouped-outcomes","count":9}
-{"path":"packages/work-board/src/server/liveUpdates.spec.ts","rule":"tests/wait-on-events","count":1}
 {"path":"packages/work-board/src/server/mcp.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/work-board/src/server/metadata/parse.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/metadata/sourceLinks.ts","rule":"effect/boundary","count":2}
@@ -407,7 +401,6 @@
 {"path":"packages/work-board/src/server/results/result.spec.ts","rule":"tests/wait-on-events","count":8}
 {"path":"packages/work-board/src/server/rpc/affected.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/rpc/fleetItems.spec.ts","rule":"tests/domain-outcomes","count":1}
-{"path":"packages/work-board/src/server/rpc/goalProgress.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/work-board/src/server/rpc/native.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/rpc/native.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/work-board/src/server/rpc/native.spec.ts","rule":"tests/grouped-outcomes","count":1}
@@ -424,8 +417,6 @@
 {"path":"packages/work-board/src/server/serve.test.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/work-board/src/server/socket.spec.ts","rule":"tests/domain-outcomes","count":12}
 {"path":"packages/work-board/src/server/socketGuard.spec.ts","rule":"tests/domain-outcomes","count":1}
-{"path":"packages/work-board/src/server/socketStartup.spec.ts","rule":"tests/domain-outcomes","count":8}
-{"path":"packages/work-board/src/server/socketStartup.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/work-board/src/server/startupIndex.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/work-board/src/server/views/fleetItems.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/views/fleetItems.test.ts","rule":"tests/grouped-outcomes","count":2}

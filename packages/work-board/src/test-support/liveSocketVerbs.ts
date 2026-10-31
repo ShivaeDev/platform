@@ -64,11 +64,10 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 				return code === 0 ? "succeeded" : "failed";
 			});
 		},
-		commandSaid: () =>
-			Effect.sync(() => {
-				tell("the reader reads what the command printed");
-				return label(command().output());
-			}),
+		commandSaid: () => {
+			tell("the reader reads what the command printed by the time it exited");
+			return Effect.map(command().exit(), () => label(command().output()));
+		},
 		commandSignalled: Effect.fn("Story.commandSignalled")(function* (signal: NodeJS.Signals) {
 			const before = yield* Clock.currentTimeMillis;
 			command().signal(signal);
@@ -153,12 +152,15 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 		},
 		scriptBuild: () => {
 			tell("a local HTTP client requests the board's browser script");
-			return Effect.map(rawGet(served(engine).board, "/_board/react.js"), ({ body }) => {
-				if (body.includes("staleBrowserBuild")) {
-					return "the stale build";
-				}
-				return body.includes("current-checkout-browser") ? "the current checkout's build" : "an unknown build";
-			});
+			return Effect.map(
+				Effect.suspend(() => rawGet(served(engine).board, "/_board/react.js")),
+				({ body }) => {
+					if (body.includes("staleBrowserBuild")) {
+						return "the stale build";
+					}
+					return body.includes("current-checkout-browser") ? "the current checkout's build" : "an unknown build";
+				},
+			);
 		},
 		searchAnswer: (query: string) => {
 			tell(`the reader's client searches for ${JSON.stringify(query)}`);
@@ -239,10 +241,14 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 			tell(`a ${over} client leaves an unfinished request open`);
 			state.unfinished = yield* shutdownConnection(over === "TCP" ? served(engine).board.url : join(engine.notes.root, "board.sock"));
 		}),
-		workerCloses: (name: string) => {
-			tell(`${name} closes`);
-			return worker(name).send("close");
-		},
+		workerCloses: Effect.fn("Story.workerCloses")(function* (name: string) {
+			tell(`${name} closes and reports it closed`);
+			yield* worker(name).send("close");
+			const report = yield* worker(name).next();
+			if (report.phase !== "closed") {
+				return yield* Effect.die(new Error(`${name} reported ${report.phase} instead of closing`));
+			}
+		}),
 		workerContinues: (name: string) => {
 			tell(`${name} continues its startup`);
 			return worker(name).send("continue");
