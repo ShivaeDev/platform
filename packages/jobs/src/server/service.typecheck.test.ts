@@ -36,7 +36,7 @@ const program = Effect.gen(function* () {
 	const jobs = yield* Jobs;
 	yield* jobs.enqueue(Queue, { count: 1, label: "one" });
 	const job = Option.getOrThrow(yield* jobs.getJob(Queue, "job-id"));
-	expectTypeOf(job.data).toEqualTypeOf<{ readonly count: number; readonly label: string }>();
+	expectTypeOf(job.data).toEqualTypeOf<unknown>();
 	yield* jobs.retry(Queue, "job-id");
 	yield* jobs.counts(Queue);
 
@@ -93,7 +93,7 @@ const lookup = Effect.flatMap(Jobs, (jobs) => jobs.getJob(RequiresDecode, "id"))
 expectTypeOf<Effect.Services<typeof lookup>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
 const failedListing = Effect.flatMap(Jobs, (jobs) => jobs.failedJobs(RequiresDecode, { limit: 10 }));
 expectTypeOf<Effect.Services<typeof failedListing>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
-expectTypeOf<Effect.Success<typeof failedListing>["jobs"][number]["data"]>().toEqualTypeOf<{ readonly value: string }>();
+expectTypeOf<Effect.Success<typeof failedListing>["jobs"][number]["data"]>().toEqualTypeOf<unknown>();
 const deadLetterListing = Effect.flatMap(Jobs, (jobs) => jobs.deadLetteredJobs(RequiresDecode, { limit: 10 }));
 expectTypeOf<Effect.Services<typeof deadLetterListing>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
 

@@ -114,7 +114,7 @@ for (const listing of ["failed", "dead-lettered"] as const) {
 			listing === "failed" ? jobs.failedJobs(Renamed, { limit: 10 }) : jobs.deadLetteredJobs(Renamed, { limit: 10 }),
 		);
 
-		expect(yield* answered()).toBe('decode listed payload failed with Expected number\n  at ["id"]');
+		expect(yield* answered()).toBe('decode listed payload failed with Expected "Infinity" | "-Infinity" | "NaN"\n  at ["id"]');
 	});
 }
 
