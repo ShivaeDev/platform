@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.49.0 - 2026-10-31
+
+### Changed
+
+- Generated starters import schedule definitions and the default queue client factory from their defining modules.
+
+### Fixed
+
+- Report ambient runtime workarounds in core code: runners over Clock, Config and Random, unsafe clock reads, cryptographic randomness, performance time, process state and scheduling. Entry points, tool configs, adapters and test-support retain their boundary role for these checks.
+- Surface knip's error output and exit code when analysis produces no valid report, and reject exits inconsistent with the report.
+- Resolve analysis and tool configuration within the checked checkout, including git worktrees nested in another checkout.
+- Count migration-folder modules, shadcn UI imports, CSS imports and custom Vitest configurations as entry points so plain apps retain their used dependencies and test support.
+- Report exported type aliases of imports, value aliases with `typeof` annotations or local const chains, object facades and unchanged forwarding functions, with repairs naming their defining modules. Keep wrappers that transform inputs, add steps, supply defaults or declare overloads.
+- Limit shadcn exclusions to canonical registry filenames inside the configured UI folder, so hand-written neighbors receive source rules and Biome lint, formatting and fixes. Keep skipped components in the unused-code import graph so dependencies they import count as used.
+
+### Breaking
+
+- Repositories upgrading Quality must repair the newly reported ambient access or record existing adoption debt with `quality baseline write --rule biome/plugin`, then lower it as repairs land.
+- `createApp` reads secret bytes from Effect's Crypto service. Applications embedding this Effect must provide `Crypto.Crypto`, for example with `NodeServices.layer` or `NodeCrypto.layer` from `@effect/platform-node`. The create-app command already provides it.
+- The pg-boss testing-expiration bridge moved from `@shivaedev/jobs/server/internal/testingExpirations.ts` to `@shivaedev/jobs/server/adapters/testingExpirations.ts`. Consumers importing that internal path must import the adapter path instead.
+- Quality: the gate now rejects imported second names even when they use type aliases, value annotations, object facades or forwarding functions. Import from the defining module and remove the second name; existing facade debt can be recorded at adoption. Import `USAGE` from `cli/messages.ts` instead of `cli/args.ts`.
+- Jobs: import `defaultClientFactory` from `@shivaedev/jobs/server/defaultClientFactory.ts` instead of `server/client.ts`. Import `defineSchedule` from `@shivaedev/jobs/server/defineSchedule.ts` instead of `server/definition.ts`. The removed `server/internal/nativeClient.ts` and `server/internal/scheduleDefinition.ts` exports migrate to those same modules as `defaultClientFactory` and `defineSchedule`. The default factory now exposes its native pg-boss return type; type custom factory mocks against `PgBossClient` or `PgBossClientFactory` from `server/client.ts`.
+- React: import `resumeSignal`, `ResumeOptions`, `ResumeSource` and `ResumeWindow` from `@shivaedev/contract/resume.ts`; `@shivaedev/react/resumeSignal.ts` is removed.
+- Work Board: import `Identity` from `path/Identity.ts`, view state helpers from `browser/views/state.ts`, `isMarkdown` from `path/isMarkdown.ts`, and `processes` from `server/processOwnership.ts`. The forwarding `server/views/state.ts` and `server/integration/processes.ts` modules are removed. Replace the removed `attention` facade with imports of `managedRequestReceipt` from `server/attention/managedRequestReceipt.ts`, `attentionProjection` from `server/attention/projection.ts`, and `RequestReceipt` from `attention/RequestReceipt.ts`. Replace the removed `publication` facade with direct imports from `server/responses/publicationDirectory.ts`. Import `Changes` from `server/files/changes.ts`, `MarkdownFile` from `server/files/list.ts`, `Snapshot` from `server/search/snapshot.ts`, metadata document/model/diagnostic/parsed types from `integration/metadata.ts`, `InboxProjection` from `browser/views/schema.ts` instead of `AttentionProjection`, `SourceFailure` from `diagnostics/source.ts`, and `WorkspaceOptions` from `server/workspace.ts` instead of the integration facades. Metadata types are also removed from `server/metadata/model.ts` and `server/metadata/parse.ts`; import them from `integration/metadata.ts`.
+- Work Fleet: import `WAIT_EXIT`, `WaitState`, `WaitOutcome` and `settled` from `host/waitOutcome.ts` instead of `host/wait.ts`; import `fleetRecords` from `fleetRecords.ts` instead of `operations.ts`.
+
 ## 0.48.2 - 2026-10-31
 
 ### Fixed

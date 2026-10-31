@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.11.0 - 2026-10-31
+
+### Added
+
+- Auth HTTP spans expose the selected rate-limit address and its peer or trusted-forwarded source as `auth.rate_limit.address` and `auth.rate_limit.address_source`, including counted and refused sign-in attempts.
+
+### Changed
+
+- Server and the platform dependency shell no longer declare `pg` as an optional peer; its PostgreSQL integration uses the native pool from sql.
+
+### Fixed
+
+- Validate GitHub ids in `AllowedAccounts` as decimal digits so a login such as `github:octocat` refuses boot with a `ConfigError` naming the entry and expected format. Providers without a known format continue to accept any non-empty id.
+- Preserve emailed verification and password-reset redirects behind bearer sessions. Browser responses keep redirect, empty and unparseable bodies intact while parseable JSON still has session tokens removed.
+- A trusted peer without the configured forwarded header falls back to its connection address in development and tests as well as production.
+
+### Breaking
+
+- Replace `authDatabase(url, { max, application_name })` from identity's `server/better-auth/mount.ts` with `yield* betterAuthDatabase()` from `server/better-auth/adapters/database.ts`, inside the application's SQL environment. Pass the result as Better Auth's `database`. Use sql's `postgresLayer` for standalone processes; database-backed `appHost` exposes the client inside its `application` Effect. Move connection settings to `maxConnections` and `applicationName` on that SQL Layer. Auth now shares its connection budget and lifecycle; remove direct `pg` dependencies when no longer used.
+- Replace `authTestDatabase(pool)` with `yield* authTestDatabase` in identity test fixtures, provided with the application's `SqlClient`.
+- When applying the generated starter update, replace `poolSizes.auth` with the shared `poolSizes.sql` budget. Auth migrations use the application SQL environment; remove custom `AuthMigrationDatabase` providers.
+- Better Auth mounts require the account's current password for `/change-email`, including signed bearer sessions. Send `password` alongside `newEmail` in the HTTP JSON body; Better Auth's typed `changeEmail` method does not declare this extra field. Passwordless accounts cannot change email under this default. Applications with another account-verification policy can explicitly opt out with `betterAuthMount(options, { hardening: { requirePasswordForEmailChange: false } })`.
+- Better Auth mounts revoke existing sessions after a password reset by default. Applications that intentionally retain sessions must set `emailAndPassword.revokeSessionsOnPasswordReset: false` in their Better Auth options.
+
 ## 0.10.1 - 2026-10-31
 
 ### Fixed

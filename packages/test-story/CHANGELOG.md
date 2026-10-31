@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.29.0 - 2026-10-31
+
+### Added
+
+- Let story kit `inspect` hooks return Effects or generators to read engine state with the kit's services before its Scope closes, including in composed kits.
+
+### Breaking
+
+- `screenDriver.text()` separates visible block elements and `<br>` with a newline when adjacent text has no whitespace, while preserving inline text. Update assertions that expected concatenated card titles, messages and actions to expect separated parts, and remove application-side splitting of those parts.
+
 ## 0.28.0 - 2026-10-31
 
 ### Added
