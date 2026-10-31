@@ -24,15 +24,26 @@ for (const initial of ["/notes/first", "/notes/first?page=invalid"]) {
 }
 
 routes.it(
-	"a NotFound answer shows the route's not-found screen without an alert",
+	"a NotFound answer shows its server message and typed id on the root not-found screen without an alert",
 	[routeRequested("/notes/missing")],
-	function* ({ alert, heading, reject }) {
-		yield* reject(new NotFound({ id: "missing" }));
+	function* ({ alert, heading, missingId, reject }) {
+		yield* reject(new NotFound({ id: "missing", message: "This note was removed by its owner" }));
 
 		yield* outcomes({
 			alert: [alert(), "none"],
-			heading: [heading(), "Note not found"],
+			heading: [heading(), "This note was removed by its owner"],
+			"missing note id": [missingId(), "missing"],
 		});
+	},
+);
+
+routes.it(
+	"a route-level not-found screen wins over the shared root screen for a NotFound answer",
+	[routeRequested("/custom-notes/missing")],
+	function* ({ heading, reject }) {
+		yield* reject(new NotFound({ id: "missing", message: "This note was removed by its owner" }));
+
+		expect(yield* heading()).toBe("Note not found");
 	},
 );
 
