@@ -1,155 +1,176 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
+import { DENIED_DELIVERY } from "#test/boardDecisionVerbs.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 
-const decision = {
-	id: "fleet.denied",
-	links: ["https://example.test/pr/1"],
-	reason: "Delivery authority is denied",
-	recommendation: "Update trusted runtime policy, then retry.",
-};
+const RETRY = {
+	body: "Policy is now configured. **Keep the scoped checks.**",
+	id: "response.retry",
+	selected: ["retry"],
+	text: "Preserve independent review.",
+	type: "answer",
+} as const;
+
 boardFolderStory.it(
-	"opens an answerable linked Board decision over real HTTP and records a guided response through native RPC",
+	"a published decision previews over Board HTTP as its question, source and source revision",
 	[folderContains("withDependency")],
-	function* ({ board, root, openHttp, reopenBoard }) {
-		const original = readFileSync(join(root, "task.md"), "utf8");
-		yield* Effect.gen(function* () {
-			const receipt = yield* board.decision("task.one", decision);
-			const { client, url } = yield* openHttp();
-			const preview = yield* Effect.tryPromise(() => client.run(client.responses.question.run({ item: receipt.itemId, request: receipt.request })));
-			expect(preview.id).toBe(receipt.questionId);
-			expect(receipt.workSourcePath).toBe("task.md");
-			expect(preview.source).toBe(receipt.sourcePath);
-			expect(preview.reviewedRevision).toBe(revisionOf(readFileSync(join(root, receipt.sourcePath), "utf8")));
-			const page = yield* Effect.tryPromise(() =>
-				fetch(`${url}/_board/respond?item=${receipt.itemId}&request=${receipt.request}`, { redirect: "manual" }),
-			);
-			expect(page.status).toBe(HttpStatus.fromLiteral("Found"));
-			expect(page.headers.get("location")).toBe(
-				`/_board/item/${encodeURIComponent(receipt.itemId)}/#answer-card-${encodeURIComponent(receipt.request)}`,
-			);
-			const saved = yield* Effect.tryPromise(() =>
-				client.mutate(
-					client.responses.recordResponse.run({
-						answers: [{ prompt: "fleet-action", selected: ["retry"], text: "Preserve independent review." }],
-						author: "maintainer",
-						body: "Policy is now configured. **Keep the scoped checks.**",
-						id: "response.retry",
-						question: receipt.questionId,
-						type: "answer",
-					}),
-				),
-			);
-			expect(saved.body).toContain("Keep the scoped checks");
-			expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Response", response: saved });
-			yield* Effect.gen(function* () {
-				const restarted = yield* reopenBoard();
-				expect(yield* restarted.decision("task.one", decision)).toEqual(receipt);
-				expect(yield* restarted.readDecision(receipt)).toEqual({ _tag: "Response", response: saved });
-			});
-			expect(readFileSync(join(root, "task.md"), "utf8")).toBe(original);
+	function* ({ files, publishDecision, questionPreview }) {
+		const denied = yield* publishDecision();
+
+		expect(yield* questionPreview(denied)).toEqual({
+			question: denied.questionId,
+			revision: revisionOf(files.read(denied.sourcePath)),
+			source: denied.sourcePath,
 		});
 	},
 );
+
 boardFolderStory.it(
-	"keeps clarify and not-now explicit and selects the newest answer from the same author",
+	"a decision's respond link redirects to the answer card on its item page",
 	[folderContains("withDependency")],
-	function* ({ board, openHttp }) {
-		yield* Effect.gen(function* () {
-			const receipt = yield* board.decision("task.one", decision);
-			const { client } = yield* openHttp();
-			const clarify = yield* Effect.tryPromise(() =>
-				client.mutate(
-					client.responses.recordResponse.run({
-						author: "maintainer",
-						body: "Which exact scope needs authority?",
-						id: "response.clarify",
-						question: receipt.questionId,
-						type: "clarify",
-					}),
-				),
-			);
-			expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Response", response: clarify });
-			const deferred = yield* Effect.tryPromise(() =>
-				client.mutate(
-					client.responses.recordResponse.run({
-						author: "maintainer",
-						body: "Wait for policy review.",
-						id: "response.deferred",
-						question: receipt.questionId,
-						supersedes: clarify.id,
-						type: "not_now",
-					}),
-				),
-			);
-			expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Response", response: deferred });
-			const answer = yield* Effect.tryPromise(() =>
-				client.mutate(
-					client.responses.recordResponse.run({
-						answers: [{ prompt: "fleet-action", selected: ["retry"], text: "" }],
-						author: "maintainer",
-						body: "Retry.",
-						id: "response.answer",
-						question: receipt.questionId,
-						supersedes: deferred.id,
-						type: "answer",
-					}),
-				),
-			);
-			expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Response", response: answer });
-			const resolved = yield* Effect.tryPromise(() =>
-				client.mutate(
-					client.responses.recordResponse.run({
-						answers: [{ prompt: "fleet-action", selected: ["release"], text: "" }],
-						author: "maintainer",
-						body: "Release instead.",
-						id: "response.resolved",
-						question: receipt.questionId,
-						type: "answer",
-					}),
-				),
-			);
-			expect(yield* board.readDecision(receipt)).toEqual({ _tag: "Response", response: resolved });
+	function* ({ publishDecision, respondLink }) {
+		const denied = yield* publishDecision();
+
+		expect(yield* respondLink(denied)).toEqual({
+			location: `/_board/item/${encodeURIComponent(denied.itemId)}/#answer-card-${encodeURIComponent(denied.request)}`,
+			status: 302,
 		});
 	},
 );
+
 boardFolderStory.it(
-	"qualifies current answers by exact decision source location, context independently of work revision",
+	"a guided answer recorded over Board HTTP is the decision's answer with its body",
 	[folderContains("withDependency")],
-	function* ({ board, root, files, openHttp }) {
-		yield* Effect.gen(function* () {
-			const receipt = yield* board.decision("task.one", decision);
-			const { client } = yield* openHttp();
-			const source = readFileSync(join(root, receipt.sourcePath), "utf8");
-			files.write(receipt.sourcePath, `${source}\nChanged context.\n`);
-			expect((yield* board.readDecision(receipt))._tag).toBe("Stale");
-			const recorded = yield* Effect.result(
-				Effect.tryPromise(() =>
-					client.mutate(
-						client.responses.recordResponse.run({
-							author: "maintainer",
-							body: "Old context.",
-							id: "response.stale",
-							question: receipt.questionId,
-							type: "clarify",
-						}),
-					),
-				),
-			);
-			expect(recorded._tag).toBe("Failure");
-			files.write(receipt.sourcePath, source);
-			files.move(receipt.sourcePath, "moved.md");
-			expect((yield* board.readDecision(receipt))._tag).toBe("Stale");
-			files.move("moved.md", receipt.sourcePath);
-			files.move("task.md", "moved-task.md");
-			expect((yield* board.readDecision(receipt))._tag).toBe("Pending");
-			files.move("moved-task.md", "task.md");
-			files.write("task.md", `${files.read("task.md")}\nChanged work.\n`);
-			expect((yield* board.readDecision(receipt))._tag).toBe("Pending");
-		});
+	function* ({ answerBody, decisionState, publishDecision, respond }) {
+		const denied = yield* publishDecision();
+		expect(yield* decisionState(denied)).toBe("pending");
+
+		yield* respond(denied, RETRY);
+
+		yield* outcomes([
+			["decision", () => decisionState(denied), "answered by response.retry"],
+			["answer body", () => answerBody(denied), expect.stringContaining("Keep the scoped checks")],
+		]);
 	},
 );
+
+boardFolderStory.it(
+	"a reopened Board republishes the same decision and keeps its answer",
+	[folderContains("withDependency")],
+	function* ({ decisionState, publishDecision, reopenBoard, respond }) {
+		const denied = yield* publishDecision();
+		yield* respond(denied, RETRY);
+
+		yield* reopenBoard();
+
+		yield* outcomes([
+			["republished decision", () => publishDecision(), denied],
+			["decision", () => decisionState(denied), "answered by response.retry"],
+		]);
+	},
+);
+
+boardFolderStory.it(
+	"publishing and answering a decision leaves the task file unchanged",
+	[folderContains("withDependency")],
+	function* ({ files, publishDecision, respond }) {
+		const task = files.read("task.md");
+
+		yield* respond(yield* publishDecision(), RETRY);
+
+		expect(files.read("task.md")).toBe(task);
+	},
+);
+
+for (const type of ["clarify", "not_now"] as const) {
+	boardFolderStory.it(
+		`a ${type} response stays the decision's answer`,
+		[folderContains("withDependency")],
+		function* ({ decisionState, publishDecision, respond }) {
+			const denied = yield* publishDecision();
+
+			yield* respond(denied, { body: "Which exact scope needs authority?", id: `response.${type}`, type });
+
+			expect(yield* decisionState(denied)).toBe(`answered by response.${type}`);
+		},
+	);
+}
+
+boardFolderStory.it(
+	"a response that supersedes an earlier one becomes the decision's answer",
+	[folderContains("withDependency")],
+	function* ({ decisionState, publishDecision, respond }) {
+		const denied = yield* publishDecision();
+		yield* respond(denied, { body: "Which exact scope needs authority?", id: "response.clarify", type: "clarify" });
+		expect(yield* decisionState(denied)).toBe("answered by response.clarify");
+
+		yield* respond(denied, { body: "Wait for policy review.", id: "response.deferred", supersedes: "response.clarify", type: "not_now" });
+
+		expect(yield* decisionState(denied)).toBe("answered by response.deferred");
+	},
+);
+
+boardFolderStory.it(
+	"the newest answer from the same author wins without naming the answer it replaces",
+	[folderContains("withDependency")],
+	function* ({ decisionState, publishDecision, respond }) {
+		const denied = yield* publishDecision();
+		yield* respond(denied, { body: "Retry.", id: "response.answer", selected: ["retry"], type: "answer" });
+		expect(yield* decisionState(denied)).toBe("answered by response.answer");
+
+		yield* respond(denied, { body: "Release instead.", id: "response.resolved", selected: ["release"], type: "answer" });
+
+		expect(yield* decisionState(denied)).toBe("answered by response.resolved");
+	},
+);
+
+boardFolderStory.it(
+	"an edited decision source is stale and refuses new responses",
+	[folderContains("withDependency")],
+	function* ({ decisionState, files, publishDecision, respond }) {
+		const denied = yield* publishDecision();
+		expect(yield* decisionState(denied)).toBe("pending");
+
+		files.write(denied.sourcePath, `${files.read(denied.sourcePath)}\nChanged context.\n`);
+
+		yield* outcomes([
+			["decision", () => decisionState(denied), "stale"],
+			[
+				"late response",
+				() => respond(denied, { body: "Old context.", id: "response.stale", type: "clarify" }),
+				expect.not.stringMatching(/^accepted$/u),
+			],
+		]);
+	},
+);
+
+boardFolderStory.it("a moved decision source is stale", [folderContains("withDependency")], function* ({ decisionState, files, publishDecision }) {
+	const denied = yield* publishDecision();
+	expect(yield* decisionState(denied)).toBe("pending");
+
+	files.move(denied.sourcePath, "moved.md");
+
+	expect(yield* decisionState(denied)).toBe("stale");
+});
+
+for (const [change, edit] of [
+	["a moved task file", (files: { move: (from: string, to: string) => void }) => files.move("task.md", "moved-task.md")],
+	[
+		"an edited task",
+		(files: { read: (file: string) => string; write: (file: string, content: string) => void }) =>
+			files.write("task.md", `${files.read("task.md")}\nChanged work.\n`),
+	],
+] as const) {
+	boardFolderStory.it(
+		`a decision stays pending after ${change}`,
+		[folderContains("withDependency")],
+		function* ({ decisionState, files, publishDecision }) {
+			const denied = yield* publishDecision(DENIED_DELIVERY);
+
+			edit(files);
+
+			expect(yield* decisionState(denied)).toBe("pending");
+		},
+	);
+}

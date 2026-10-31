@@ -2,30 +2,36 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 const decision = { id: "task.one.3", links: [], reason: "Choose the storage", recommendation: "Use PostgreSQL" };
 const CONFLICT = "This identity already records different content; no file was replaced.";
 
 boardFolderStory.it(
-	"a filesystem publication failure names the underlying operation",
+	"a decision that cannot be written names the Board record and the filesystem error",
 	[folderContains("withDependency")],
-	function* ({ board, files }) {
+	function* ({ files, publishDecision }) {
 		files.write("responses", "A file occupies the response directory\n");
-		const failure = yield* board.decision("task.one", decision).pipe(Effect.flip);
-		expect(failure.message).toContain("Fleet decision source could not be recorded on Board");
-		expect(failure.message).toContain("ENOTDIR");
-		expect(failure.cause).toMatchObject({ _tag: "ServiceUnavailable", cause: { code: "ENOTDIR" } });
+
+		const published = yield* refusal(publishDecision(decision));
+
+		expect(published).toMatch(/^Board failure: Fleet decision source could not be recorded on Board.*ENOTDIR/su);
 	},
 );
 
 for (const record of ["source", "question"] as const) {
-	boardFolderStory.it(`a conflicting decision ${record} retains Board's rejection`, [folderContains("withDependency")], function* ({ board, files }) {
-		const published = yield* board.decision("task.one", decision);
-		files.write(record === "source" ? published.sourcePath : `responses/${published.questionId}.md`, "Different content\n");
-		const failure = yield* board.decision("task.one", decision).pipe(Effect.flip);
-		expect(failure.message).toContain(CONFLICT);
-		expect(failure.cause).toMatchObject({ _tag: "Conflict", message: CONFLICT });
-	});
+	boardFolderStory.it(
+		`republishing a decision whose ${record} was changed is refused with Board's conflict`,
+		[folderContains("withDependency")],
+		function* ({ files, publishDecision }) {
+			const published = yield* publishDecision(decision);
+			files.write(record === "source" ? published.sourcePath : `responses/${published.questionId}.md`, "Different content\n");
+
+			const republished = yield* refusal(publishDecision(decision));
+
+			expect(republished).toContain(CONFLICT);
+		},
+	);
 
 	host.it(`CLI status names a decision ${record} publication failure`, [approvedWork(["one"])], function* (daemon) {
 		const started = yield* daemon.dispatch("one");

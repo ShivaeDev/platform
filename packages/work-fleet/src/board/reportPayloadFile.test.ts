@@ -1,23 +1,40 @@
-import { readFileSync } from "node:fs";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { boardFileStory, payloadBoundary } from "#test/boardFileStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 const ID = `fleet-report.${revisionOf("payload")}`;
-boardFileStory.it("atomically retains the first payload across concurrent writes and excludes it from Board sources", [], function* ({ files }) {
+
+boardFileStory.it("two concurrent payload writes both return the first payload, which a later read returns", [], function* ({ files }) {
 	expect(yield* files.payload(ID)).toBeUndefined();
-	const results = yield* Effect.all([files.payload(ID, "first"), files.payload(ID, "second")], { concurrency: "unbounded" });
-	expect(results[0]).toBe(results[1]);
-	expect(yield* files.payload(ID)).toBe(results[0]);
-	expect(yield* files.payload(ID, "replacement")).toBe(results[0]);
+
+	const [first, second] = yield* Effect.all([files.payload(ID, "first"), files.payload(ID, "second")], { concurrency: "unbounded" });
+
+	expect(second).toBe(first);
+	expect(yield* files.payload(ID)).toBe(first);
+});
+
+boardFileStory.it("a retained payload refuses a replacement and stays out of the Board sources", [], function* ({ files }) {
+	const first = yield* files.payload(ID, "first");
+
+	const replaced = yield* files.payload(ID, "replacement");
+
+	expect(replaced).toBe(first);
 	expect(yield* files.documents()).toEqual([]);
 });
+
 for (const boundary of ["root", "directory", "file"]) {
-	boardFileStory.it(`refuses payload symlinks at the ${boundary} boundary`, [payloadBoundary(boundary, ID)], function* ({ files }) {
-		const { externalFile } = files;
-		expect((yield* Effect.result(files.payload(ID)))._tag).toBe("Failure");
-		expect((yield* Effect.result(files.payload(ID, "replacement")))._tag).toBe("Failure");
-		expect(readFileSync(externalFile, "utf8")).toBe("private");
-	});
+	boardFileStory.it(
+		`a payload through a symlinked ${boundary} is refused for reads and writes and the outside file is kept`,
+		[payloadBoundary(boundary, ID)],
+		function* ({ files }) {
+			yield* outcomes([
+				["read", () => refusal(files.payload(ID)), expect.not.stringMatching(/^accepted$/u)],
+				["write", () => refusal(files.payload(ID, "replacement")), expect.not.stringMatching(/^accepted$/u)],
+				["outside file", () => files.externalSource(), "private"],
+			]);
+		},
+	);
 }
