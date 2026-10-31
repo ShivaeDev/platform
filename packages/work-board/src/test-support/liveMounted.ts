@@ -2,7 +2,7 @@ import { Effect, Option, Result, type Scope, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { browserClient } from "#browserClient.ts";
+import type { browserClient } from "#adapters/browserClient.ts";
 import { present } from "./liveState.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";
 

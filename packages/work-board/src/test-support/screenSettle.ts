@@ -5,6 +5,7 @@ import { act } from "react";
 import { screenPending } from "@shivaedev/react/client/screenPending.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { session } from "#client/session.ts";
+import { laterReads } from "./laterReads.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 const SETTLE_LIMIT_MS = 10_000;
@@ -18,6 +19,11 @@ function open(gate: Deferred.Deferred<void>) {
 	return !Effect.runSync(Deferred.isDone(gate));
 }
 
+function startedLaterRead(engine: ScreenEngine): readonly Hold[] {
+	const read = laterReads.get(engine);
+	return read?.started ? [{ held: open(read.gate), started: true }] : [];
+}
+
 // A story that holds work on purpose has settled once that work waits on its gate; nothing behind it can finish before the release.
 function holds(engine: ScreenEngine): readonly Hold[] {
 	return [
@@ -26,6 +32,7 @@ function holds(engine: ScreenEngine): readonly Hold[] {
 		...(engine.heldAnswerRefresh ? [{ held: open(engine.heldAnswerRefresh.gate), started: engine.heldAnswerRefresh.started }] : []),
 		...(engine.indexGate ? [{ held: open(engine.indexGate), started: engine.indexWaiting === true }] : []),
 		...(engine.startupGate ? [{ held: open(engine.startupGate), started: true }] : []),
+		...startedLaterRead(engine),
 		...(engine.sessionTransport?.release ? [{ held: true, started: engine.sessionTransport.commandWaiting === true }] : []),
 	].filter(({ held }) => held);
 }

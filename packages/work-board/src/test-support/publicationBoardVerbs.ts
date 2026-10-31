@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { Effect, Fiber, Order } from "effect";
-import { browserClient } from "#browserClient.ts";
+import { browserClient } from "#adapters/browserClient.ts";
 import { publish } from "#server/responses/publish.ts";
 import { publishIn } from "#server/responses/publishIn.ts";
 import type { RunningBoard } from "./board.ts";

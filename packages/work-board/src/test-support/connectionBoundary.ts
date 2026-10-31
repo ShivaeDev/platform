@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
-import { browserClient } from "#browserClient.ts";
+import { browserClient } from "#adapters/browserClient.ts";
 import { boardStory } from "#test/boardStory.ts";
 import { served } from "#test/storyEngine.ts";
 

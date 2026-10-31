@@ -2,6 +2,7 @@ import { Deferred, Effect } from "effect";
 import { act } from "react";
 import { vi } from "vitest";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { laterReads } from "./laterReads.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenPendingWork } from "./screenSettle.ts";
 
@@ -9,7 +10,6 @@ const SETTLE_LIMIT_MS = 10_000;
 
 const pendingFrames = new WeakMap<ScreenEngine, Set<number>>();
 const heldBodies = new WeakMap<ScreenEngine, () => void>();
-const laterReads = new WeakMap<ScreenEngine, { readonly gate: Deferred.Deferred<void>; started: boolean; readonly url: string }>();
 
 export function followFrames(engine: ScreenEngine) {
 	const pending = new Set<number>();
