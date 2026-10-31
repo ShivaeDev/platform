@@ -131,6 +131,8 @@ Password resets revoke existing sessions by default. Set `emailAndPassword.revok
 
 `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. Without a trusted proxy, auth rate limiting uses the connection peer address, so different peers have separate buckets and Better Auth receives a client IP without a missing-IP warning. A trusted peer's configured forwarded header takes precedence over the peer address.
 
+The auth HTTP server span records the resolved rate-limit address in `auth.rate_limit.address` and its source in `auth.rate_limit.address_source`: `forwarded` for the trusted proxy's configured header, or `peer` for the connection address. These attributes accompany counted sign-in attempts and HTTP 429 refusals, so operators can inspect the choice directly. The recorded address follows Better Auth's normalization, including IPv6 subnet grouping; a trusted peer without a forwarded header records `peer`.
+
 For email sign-in through `appHost`, the session record's `ipAddress` follows the same rule. With a trusted peer, `AUTH_CLIENT_IP_HEADER=x-real-ip` stores `X-Real-IP` even if `X-Forwarded-For` supplies a different address; the default header selects the rightmost untrusted address in the `X-Forwarded-For` chain, ignoring trusted proxy hops on the right. With an untrusted peer, neither header can supply the stored address. Sign-in attempts from an untrusted peer share one bucket per path; with a trusted peer and `x-real-ip`, changing `X-Forwarded-For` does not change the bucket, while changing `X-Real-IP` does.
 
 ### Role assignments

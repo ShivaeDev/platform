@@ -33,6 +33,18 @@ export const clientIp = storyKit({
 		const { baseUrl } = host;
 
 		return {
+			recordedSignInLimits: () => {
+				story.tell("read the sign-in HTTP spans' rate-limit address, source and response status");
+				return Effect.sync(() =>
+					host.spans
+						.filter((span) => span.kind === "server" && span.attributes.get("url.path") === "/api/auth/sign-in/email")
+						.map((span) => ({
+							address: span.attributes.get("auth.rate_limit.address"),
+							source: span.attributes.get("auth.rate_limit.address_source"),
+							status: span.attributes.get("http.response.status_code"),
+						})),
+				);
+			},
 			signIn: (headers: Record<string, string>, peer?: string) => {
 				story.tell(`Alice signs in over HTTP with ${JSON.stringify(headers)}`);
 				return emailRequest(baseUrl, "sign-in", headers, peer);
