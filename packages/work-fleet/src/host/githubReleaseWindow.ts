@@ -1,7 +1,6 @@
 import { Effect, Schema } from "effect";
 import { githubJson } from "#host/github.ts";
 import { GithubApi } from "#host/githubApi.ts";
-import { githubChecks } from "#host/githubChecks.ts";
 import type { ChangeResult } from "#policy.ts";
 
 const Releases = Schema.Array(
@@ -14,6 +13,13 @@ const Releases = Schema.Array(
 	),
 );
 const Files = Schema.Array(Schema.Array(Schema.Struct({ filename: Schema.String, status: Schema.String })));
+const Runs = Schema.Struct({
+	workflowRuns: Schema.Array(
+		Schema.Struct({ conclusion: Schema.NullOr(Schema.String), headSha: Schema.String, status: Schema.String }).pipe(
+			Schema.encodeKeys({ headSha: "head_sha" }),
+		),
+	),
+}).pipe(Schema.encodeKeys({ workflowRuns: "workflow_runs" }));
 
 function changeset(path: string) {
 	return /^\.changeset\/(?!README\.md$)[^/]+\.md$/u.test(path);
@@ -37,8 +43,15 @@ export const githubReleaseWindow = Effect.fn("FleetHost.githubReleaseWindow")(fu
 		),
 	);
 	for (const release of releases.flat().filter((pr) => !pr.draft)) {
-		const checks = yield* githubChecks(github, branch)({ head: release.head.sha, kind: "change", paths: [], pr: release.htmlUrl });
-		if (!checks.passed) {
+		const runs = yield* githubJson(
+			Runs,
+			github.get(`repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${release.head.sha}&per_page=1`),
+		);
+		const run = runs.workflowRuns[0];
+		if (
+			run?.headSha !== release.head.sha
+			|| !(run.status === "queued" || run.status === "in_progress" || (run.status === "completed" && run.conclusion === "success"))
+		) {
 			continue;
 		}
 		const files = yield* githubJson(Files, github.pages(`${endpoint}/files?per_page=100`));
