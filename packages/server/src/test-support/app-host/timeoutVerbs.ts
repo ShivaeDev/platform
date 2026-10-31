@@ -24,7 +24,7 @@ export function timeoutVerbs(state: HostState, tell: (line: string) => void) {
 	return {
 		exportArrives: (name: string) => {
 			tell(`the collector receives the export containing ${name}`);
-			return io(() => receiverOf(state).whenReceived((exports) => exports.some(({ body }) => body.includes(name))));
+			return io(() => receiverOf(state).whenReceived(() => receiverOf(state).spans.some((span) => span.name === name)));
 		},
 		exportDeadlineNearlyPasses: (timeout: number) => {
 			tell(`${timeout - 1} ms pass while the collector holds the first export`);

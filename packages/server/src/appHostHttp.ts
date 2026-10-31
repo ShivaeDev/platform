@@ -6,6 +6,7 @@ import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { appDatabase } from "#appDatabase.ts";
 import type { AppHttpHostOptions } from "#appHost.ts";
+import { browserErrorRoute } from "#browserErrorRoute.ts";
 import { healthRoute } from "#healthRoute.ts";
 import { hostApplicationRoutes } from "#hostApplicationRoutes.ts";
 import { hostAssets } from "#hostAssets.ts";
@@ -55,7 +56,7 @@ export function appHostHttp<
 					const application = Layer.mergeAll(options.services ?? Layer.empty);
 					const server = nodeHttpServer(host, options.config);
 					const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
-					const httpRoutes = Layer.mergeAll(routes, healthRoute, assets, applicationRoutes).pipe(
+					const httpRoutes = Layer.mergeAll(routes, healthRoute, browserErrorRoute(trustedProxy), assets, applicationRoutes).pipe(
 						Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
 						Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, options.nativeOrigins === undefined ? "preflight" : true)),
 					);

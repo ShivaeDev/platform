@@ -121,6 +121,14 @@ export function requests(state: HostState, tell: (line: string) => void) {
 			const message = { _tag: "Request", headers: [], id: "1", payload, tag: "publicFailure" };
 			return io(() => postNdjson(state.url, `${JSON.stringify(message)}\n`, false)).pipe(Effect.map(({ body }) => body));
 		},
+		reportBrowserError: (message: string, options?: { readonly kind?: string; readonly stack?: string; readonly headers?: Headers }) => {
+			tell("the browser reports an uncaught error over HTTP");
+			return fetched("/_platform/errors", {
+				body: JSON.stringify({ kind: options?.kind ?? "error", message, stack: options?.stack, url: `${state.url}/notes?token=hidden-url-token` }),
+				headers: { "content-type": "application/json", ...options?.headers },
+				method: "POST",
+			});
+		},
 		request: (path = "/", init?: RequestInit) => {
 			tell(`${init?.method ?? "GET"} ${path}`);
 			return fetched(path, init);
