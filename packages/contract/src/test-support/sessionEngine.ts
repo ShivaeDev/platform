@@ -9,7 +9,8 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
-import { type QueryReference, queryKeys } from "#serverMetadata.ts";
+import { queryKeys } from "#queryKeys.ts";
+import type { QueryReference } from "#serverMetadata.ts";
 import { Guard, Preferences, preferences, Save, Session } from "#test/sessionContract.ts";
 import type { Mark } from "./reRead.ts";
 

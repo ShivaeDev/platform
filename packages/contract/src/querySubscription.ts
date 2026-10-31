@@ -2,6 +2,7 @@ import { Context, Effect, type Option } from "effect";
 import { Rpc } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { policyContext } from "#internal/policyContext.ts";
+import { queryReadKeys } from "#internal/queryReadKeys.ts";
 import { checkQuery, type PolicyChannels, type Viewer } from "#readPolicy.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { ChangesQueries, type QueryReference, type QueryRequest } from "#serverMetadata.ts";
@@ -34,12 +35,13 @@ export function querySubscription(rpc: Rpc.Any, references: readonly QueryRefere
 				const context = yield* policyContext(Rpc.make(`${prefix}${query.name}`));
 				return {
 					check: Effect.provideContext(checkQuery(query, payload, viewer), context),
+					keys: queryReadKeys(query, payload, viewer).pipe(Effect.provideContext(context)),
 					permitted: Effect.suspend(() => query.readPolicy?.(payload, viewer) ?? Effect.succeed(false)).pipe(Effect.provideContext(context)),
 				};
 			}),
 		);
 		yield* Effect.forEach(policies, ({ check }) => check);
-		const scopes = queries.map(({ query, payload }) => query.reads(payload, viewer));
+		const scopes = yield* Effect.forEach(policies, ({ keys }) => keys);
 		const authorized = Effect.map(
 			Effect.forEach(policies, ({ permitted }) => permitted),
 			(permissions) => permissions.every(Boolean),

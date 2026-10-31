@@ -3,7 +3,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
-import { queryKeys } from "#serverMetadata.ts";
+import { queryKeys } from "#queryKeys.ts";
 import { Note, notes } from "#test/notes.ts";
 import { notesServer } from "#test/notesServer.ts";
 import { Unavailable } from "./contract.ts";

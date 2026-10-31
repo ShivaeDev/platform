@@ -1,9 +1,10 @@
 import type { Option, Schema } from "effect";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
-import { type Loose, operation } from "#internal/operationDeclaration.ts";
+import { type Declaration, type Loose, operation } from "#internal/operationDeclaration.ts";
+import type { QueryServerReads } from "#QueryServerReads.ts";
 import type { QueryReadPolicy, Viewer } from "#readPolicy.ts";
-import type { MatchingTags, Reject, RejectedBy, RejectionSpecs, Rejections, RejectionUnion } from "#rejection.ts";
+import type { Reject, RejectedBy, RejectionSpecs, Rejections, RejectionUnion } from "#rejection.ts";
 
 export type PayloadSchema<TPayload extends Schema.Top | Schema.Struct.Fields> = TPayload extends Schema.Struct.Fields
 	? Schema.Struct<TPayload>
@@ -27,6 +28,7 @@ export interface QueryShape<E = unknown, R = unknown> extends OperationShape {
 	readonly live?: "rerun-and-compare" | undefined;
 	readonly readPolicy: Bivariant<QueryReadPolicy<unknown, E, R>>;
 	reads: Bivariant<(payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[]>;
+	readonly serverReads?: Bivariant<QueryServerReads<unknown, E, R>>;
 }
 
 export interface StreamShape extends OperationShape {
@@ -62,6 +64,7 @@ export interface Query<
 	readonly live?: TLive;
 	readonly readPolicy: QueryReadPolicy<TPayload["Type"], RejectedBy<TSpecs>, R>;
 	reads: (payload: TPayload["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
+	readonly serverReads?: QueryServerReads<TPayload["Type"], RejectedBy<TSpecs>, R>;
 }
 
 export interface Streaming<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs>
@@ -74,12 +77,6 @@ export interface Command<TName extends string, TPayload extends Schema.Top, TSuc
 	extends Operation<TName, TPayload, TSuccess, TSpecs> {
 	invalidates: (payload: TPayload["Type"], result: TSuccess["Type"], viewer?: Option.Option<Viewer>) => readonly Key[];
 	readonly kind: "command";
-}
-
-interface Declaration<TPayload extends Schema.Top | Schema.Struct.Fields, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs> {
-	readonly payload?: TPayload;
-	readonly rejections?: TSpecs & MatchingTags<TSpecs>;
-	readonly success?: TSuccess;
 }
 
 export function query<
@@ -95,6 +92,7 @@ export function query<
 		readonly live?: TLive;
 		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly readPolicy: QueryReadPolicy<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R>;
+		readonly serverReads?: QueryServerReads<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R>;
 	},
 ): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs, R, TLive>>;
 export function query(
@@ -103,6 +101,7 @@ export function query(
 		readonly live?: "rerun-and-compare" | undefined;
 		readonly reads: (payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly readPolicy: QueryReadPolicy<unknown, unknown, unknown>;
+		readonly serverReads?: QueryServerReads<unknown, unknown, unknown>;
 	},
 ): QueryShape {
 	return {
@@ -110,6 +109,7 @@ export function query(
 		live: declaration.live,
 		readPolicy: declaration.readPolicy,
 		reads: declaration.reads,
+		...(declaration.serverReads === undefined ? {} : { serverReads: declaration.serverReads }),
 	};
 }
 

@@ -1,6 +1,12 @@
 import { Schema } from "effect";
 import type { OperationShape } from "#operation.ts";
-import { type RejectionSpecs, rejectionSet } from "#rejection.ts";
+import { type MatchingTags, type RejectionSpecs, rejectionSet } from "#rejection.ts";
+
+export interface Declaration<TPayload extends Schema.Top | Schema.Struct.Fields, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs> {
+	readonly payload?: TPayload;
+	readonly rejections?: TSpecs & MatchingTags<TSpecs>;
+	readonly success?: TSuccess;
+}
 
 export interface Loose {
 	readonly payload?: Schema.Top | Schema.Struct.Fields;
