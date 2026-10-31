@@ -39,12 +39,13 @@
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
+		"@typescript/native": "catalog:",
 		"effect": "catalog:",
 		"esbuild": "catalog:",
 		"happy-dom": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
-		"typescript": "catalog:",
+		"typescript": "catalog:compiler-api",
 		"vitest": "catalog:"
 	},
 	"engines": {
