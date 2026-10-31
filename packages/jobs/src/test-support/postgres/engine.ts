@@ -7,7 +7,7 @@ import { registrationName } from "#internal/register.ts";
 import { makePgBoss, type PgBossOptions, pgBossLayer } from "#service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
-import { makePgBossTesting, testRetryPolicy } from "#testing.ts";
+import { makePgBossTesting, type PgBossTesting, testRetryPolicy } from "#testing.ts";
 import { observeStops, observeWakes, pauseCompletion, sortBatches } from "./clientObservers.ts";
 import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
@@ -138,6 +138,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 		startedAt,
 		stop: provided(engine, name, Scope.close(scope, Exit.void)),
 		testing,
+		worked: registered.filter((registration) => registration._tag !== "QueueDefinition").map(registrationName),
 	});
 });
 
@@ -147,6 +148,14 @@ export function runningIn(engine: DatabaseEngine, name: string): Runtime {
 		throw new Error(`${name} is not running: ${engine.startups.get(name) ?? "it never started"}`);
 	}
 	return found;
+}
+
+export function controllerWorking(engine: DatabaseEngine, queue: string): PgBossTesting {
+	const working = [...engine.runtimes.values()].findLast((runtime) => runtime.testing !== undefined && runtime.worked.includes(queue));
+	if (working?.testing === undefined) {
+		throw new Error(`No running runtime with a testing controller works ${queue}`);
+	}
+	return working.testing;
 }
 
 export function anyRuntime(engine: DatabaseEngine): Runtime {

@@ -10,7 +10,7 @@ import type { Registration } from "#test/workers.ts";
 import { untilWork } from "#test/workers.ts";
 import type { PgBossTesting } from "#testing.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
-import { admin, provided, runningIn, type StartOptions, startRuntime, until } from "./engine.ts";
+import { admin, controllerWorking, provided, runningIn, type StartOptions, startRuntime, until } from "./engine.ts";
 
 type Tell = (line: string) => void;
 
@@ -223,6 +223,13 @@ export function waitingVerbs(engine: DatabaseEngine, tell: Tell) {
 				Effect.suspend(() => testingOf(engine, name).deferred(queue)).pipe(Effect.map((waiting) => (waiting.length >= count ? waiting : undefined))),
 			);
 		},
+		untilFetchesPass: (queue: Pick<QueueDefinition, "name">, count: number) => {
+			tell(`wait until ${count} ${queue.name} worker ${count === 1 ? "fetch passes" : "fetches pass"}`);
+			return Effect.suspend(() => controllerWorking(engine, queue.name).fetchesPass(queue, count)).pipe(
+				Effect.mapError((error) => new Error(failureOf(error))),
+				Effect.orDie,
+			);
+		},
 		untilFinished: (queue: Pick<QueueDefinition, "name">, count: number) => {
 			tell(`wait until ${count} ${queue.name} attempts have finished`);
 			return patiently(
@@ -249,11 +256,12 @@ export function waitingVerbs(engine: DatabaseEngine, tell: Tell) {
 		},
 		untilJob: (as: string, state: JobWithMetadata["state"]) => {
 			tell(`wait until ${as} is ${state}`);
-			return until(
-				engine,
-				`${as} is ${state}`,
-				Effect.map(lookup(engine, as), (job) => (Option.getOrUndefined(job)?.state === state ? true : undefined)),
-			);
+			return Effect.suspend(() => {
+				const { id, queue } = idOf(engine, as);
+				return controllerWorking(engine, queue.name)
+					.untilJob(queue, id, state)
+					.pipe(Effect.mapError((error) => new Error(failureOf(error).replace(id, as))));
+			}).pipe(Effect.orDie, Effect.asVoid);
 		},
 		untilLogged: (fragment: string) => {
 			tell(`wait until a log line mentions "${fragment}"`);
