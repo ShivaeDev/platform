@@ -92,8 +92,8 @@ export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Ty
 					connect={connect}
 					history={history}
 					recheck={recheck}
-					session={{ user: { permissions: access.permissions } }}
-					sessionId={id}
+					session={{ user: { id, permissions: access.permissions } }}
+					userId={id}
 				/>,
 			);
 		}

@@ -60,16 +60,15 @@ import { makeOrderClient, OrderScreens } from "./orders.tsx";
 
 interface Session {
 	readonly id: string;
-	readonly credentialGeneration: number;
-	readonly token: string;
+	readonly user: { readonly id: string };
 }
 
 export function App({ session, recheck }: { readonly session: Session | undefined; readonly recheck: () => void }) {
 	return (
 		<SessionBoundary
 			session={session}
-			identify={(current) => `${current.id}:${current.credentialGeneration}`}
-			connect={(current) => makeOrderClient(current.token)}
+			identify={(current) => current.user.id}
+			connect={() => makeOrderClient()}
 			recheck={recheck}
 			signedOut={<p>Signed out</p>}
 		>
@@ -79,7 +78,9 @@ export function App({ session, recheck }: { readonly session: Session | undefine
 }
 ```
 
-`makeOrderClient` and `OrderScreens` belong to the application. A changed generation creates a new client and registry, acquires a socket with the current session cookie, remounts the screens and disposes the outgoing registry. Independent registries for the same generation share the socket. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. Include the credential generation when the client captures its token, as above.
+`makeOrderClient` and `OrderScreens` belong to the application; this example uses the current session cookie. Identify by user id by default: rotating a session after a password change keeps the signed-in screen's state. Identifying by session id is an explicit choice that discards state on rotation. A changed generation creates a new client and registry, acquires a socket with the current session cookie, remounts the screens and disposes the outgoing registry. Independent registries for the same generation share the socket. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. If a client captures a token, either read the current token per request or explicitly include the session id or credential generation in `identify`, accepting a remount on rotation.
+
+Pass the signed-out router as `signedOut` and the requested continuation address as `redirectTo` (for example, the sign-in route's `returnTo` search value). On successful sign-in, the auth owner supplies the new `session`; the boundary unmounts the signed-out tree before replacing the URL, then mounts the signed-in tree at that address. The sign-in screen requests a session recheck after success; it leaves navigation to the boundary. Off-site, non-HTTP and malformed targets fall back to `/`. A same-origin destination keeps its path, query and fragment. The default replacement uses browser history. Supply `navigate={(href) => history.replace(href)}` for a router history such as TanStack's memory history; the callback receives only the checked local path. Navigation happens once when entering a generation, so a same-user session rotation does not navigate again.
 
 A query that fails with an `Unauthorized` from `@shivaedev/errors/taxonomy.ts` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. A live socket failure also asks the auth owner to recheck, since the host closes revoked sessions. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 
@@ -93,8 +94,8 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 <SessionBoundary
 	session={session}
-	identify={(current) => current.generation}
-	connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
+	identify={(current) => current.user.id}
+	connect={(_, registry) => bind(Preferences, makePreferencesClient(), { registry })}
 	recheck={recheck}
 	signedOut={<p>Signed out</p>}
 >
@@ -102,7 +103,7 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 </SessionBoundary>;
 ```
 
-`Preferences` is the application's session-scoped contract, and `makePreferencesClient(token)` creates its native AtomRpc service with the transport credentials. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
+`Preferences` is the application's session-scoped contract, and `makePreferencesClient()` creates its native AtomRpc service using the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
 
 #### Resume from a native shell
 
