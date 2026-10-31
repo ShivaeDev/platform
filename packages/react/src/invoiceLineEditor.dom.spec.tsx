@@ -1,153 +1,221 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { InvoiceLine } from "#test/invoice-line-editor/backend.ts";
 import { stapler } from "#test/invoiceScreens.tsx";
-import { creatingLine, editingLine, invoiceSessions, invoices } from "#test/invoiceStories.ts";
+import {
+	aliceEditing,
+	bobAfterAlice,
+	createdWhileFolderTyped,
+	createSaveHeld,
+	draftDroppedForLineTwo,
+	editorSaveHeld,
+	invoices,
+	lineEdited,
+	quantityRejected,
+	refreshFailedWithDraft,
+} from "#test/invoiceStories.ts";
 
 invoices.it(
-	"Retry keeps the dirty editor mounted",
-	[editingLine()],
-	function* ({ invoice, type, click, observe, finishLoad, serverUnavailable, serverAvailable }) {
-		const { view } = invoice();
-		expect(view.text()).toContain("Loading");
-		expect(view.value("name")).toBeUndefined();
-		yield* finishLoad();
-		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
-		const input = view.container.querySelector('input[name="name"]');
-		const form = view.container.querySelector("form");
-		yield* type("name", "Blue stapler");
-		serverUnavailable();
-		yield* click("Refresh");
-		yield* observe("the invoice screen settles", () => expect(view.alerts()).toContain("Could not load"));
-		expect(view.text()).toContain("Stapler / 150");
-		expect(view.value("name")).toBe("Blue stapler");
-		expect(view.container.querySelector("form")).toBe(form);
-		expect(view.container.querySelector('input[name="name"]')).toBe(input);
-		serverAvailable();
-		yield* click("Retry");
-		yield* observe("the invoice screen settles", () => expect(view.alerts()).toEqual([]));
-		expect(view.value("name")).toBe("Blue stapler");
-		expect(view.status()).toBe("Unsaved");
-		expect(view.container.querySelector("form")).toBe(form);
-		expect(view.container.querySelector('input[name="name"]')).toBe(input);
+	"a failed refresh keeps the dirty editor mounted with its draft",
+	[lineEdited("name", "Blue stapler")],
+	function* ({ alerts, field, form, refresh, serverIs, shownLine }) {
+		yield* serverIs("unavailable");
+
+		yield* refresh();
+
+		yield* outcomes({
+			alerts: [alerts(), ["Could not load"]],
+			draft: [field("name"), "Blue stapler"],
+			form: [form(), "same form and inputs"],
+			"shown line": [shownLine(), "Stapler / 150"],
+		});
 	},
 );
 
 invoices.it(
-	"a refresh while dirty adopts untouched fields and keeps edited ones",
-	[editingLine()],
-	function* ({ invoice, type, click, observe, finishLoad, serverEdit }) {
-		const { view } = invoice();
-		yield* finishLoad();
-		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
-		yield* type("name", "Black stapler");
-		serverEdit(new InvoiceLine({ id: 1, name: "Stapler", quantity: 175 }));
-		yield* click("Refresh");
-		yield* observe("the invoice screen settles", () => expect(view.value("quantity")).toBe("175"));
-		expect(view.value("name")).toBe("Black stapler");
+	"Retry after a failed refresh keeps the draft unsaved in the same form",
+	[refreshFailedWithDraft()],
+	function* ({ alerts, field, form, retry, serverIs, status }) {
+		yield* serverIs("available");
+
+		yield* retry();
+
+		yield* outcomes({
+			alerts: [alerts(), []],
+			draft: [field("name"), "Blue stapler"],
+			form: [form(), "same form and inputs"],
+			status: [status(), "Unsaved"],
+		});
 	},
 );
 
 invoices.it(
-	"save shows server normalization, keeps edits made while saving and ignores a second submit",
-	[editingLine()],
-	function* ({ invoice, type, click, observe, holdSave, finishSave, finishLoad }) {
-		const { server, view } = invoice();
-		yield* finishLoad();
-		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
-		yield* type("name", "  blue stapler ");
-		holdSave();
-		yield* click("Save");
-		yield* observe("the invoice screen settles", () => expect(view.status()).toBe("Saving"));
-		yield* type("quantity", "160");
-		yield* click("Save");
-		yield* finishSave();
-		yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Blue stapler"));
-		expect(view.value("quantity")).toBe("160");
-		expect(view.status()).toBe("Unsaved");
-		expect(server.control.savedDrafts).toEqual([{ expectedVersion: 1, id: 1, name: "  blue stapler ", quantity: 150 }]);
-		expect(server.stored(1)).toEqual(new InvoiceLine({ id: 1, name: "Blue stapler", quantity: 150, version: 2 }));
+	"a refresh while dirty adopts the server's untouched field and keeps the edited one",
+	[lineEdited("name", "Black stapler")],
+	function* ({ field, refresh, serverEdits }) {
+		yield* serverEdits(new InvoiceLine({ id: 1, name: "Stapler", quantity: 175 }));
+
+		yield* refresh();
+
+		yield* outcomes({
+			name: [field("name"), "Black stapler"],
+			quantity: [field("quantity"), "175"],
+		});
 	},
 );
 
 invoices.it(
-	"field rejections attach to their field; other failures are exposed separately",
-	[editingLine()],
-	function* ({ invoice, type, click, observe, finishLoad, serverUnavailable }) {
-		const { server, view } = invoice();
-		yield* finishLoad();
-		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
-		yield* type("quantity", "9000");
-		yield* click("Save");
-		yield* observe("the invoice screen settles", () => expect(view.error("quantity")).toBe("Quantity is too large"));
-		expect(view.alerts()).toEqual([]);
-		yield* type("quantity", "200");
-		expect(view.error("quantity")).toBeUndefined();
-		serverUnavailable();
-		yield* click("Save");
-		yield* observe("the invoice screen settles", () => expect(view.alerts()).toEqual(["Could not save"]));
-		expect(view.value("quantity")).toBe("200");
-		expect(server.stored(1)).toEqual(stapler);
+	"a save shows and stores the server's normalized row",
+	[lineEdited("name", "  blue stapler ")],
+	function* ({ field, save, status, storedLine }) {
+		yield* save();
+
+		yield* outcomes({
+			name: [field("name"), "Blue stapler"],
+			status: [status(), "Saved"],
+			stored: [storedLine(1), { ...new InvoiceLine({ id: 1, name: "Blue stapler", quantity: 150, version: 2 }) }],
+		});
 	},
 );
 
+invoices.it("input typed while a save waits survives the saved row", [editorSaveHeld()], function* ({ field, finishHeld, status, type }) {
+	yield* type("quantity", "160");
+
+	yield* finishHeld();
+
+	yield* outcomes({
+		name: [field("name"), "Blue stapler"],
+		quantity: [field("quantity"), "160"],
+		status: [status(), "Unsaved"],
+	});
+});
+
+invoices.it("a second Save while one waits sends nothing more", [editorSaveHeld()], function* ({ finishHeld, save, savedDrafts }) {
+	yield* save();
+	yield* finishHeld();
+
+	expect(yield* savedDrafts()).toEqual([{ expectedVersion: 1, id: 1, name: "  blue stapler ", quantity: 150 }]);
+});
+
+invoices.it("a field rejection attaches to its field without an alert", [lineEdited("quantity", "9000")], function* ({ alerts, fieldError, save }) {
+	yield* save();
+
+	yield* outcomes({
+		alerts: [alerts(), []],
+		"quantity error": [fieldError("quantity"), "Quantity is too large"],
+	});
+});
+
+invoices.it("typing in a rejected field clears its error", [quantityRejected()], function* ({ fieldError, type }) {
+	yield* type("quantity", "200");
+
+	expect(yield* fieldError("quantity")).toBe("none");
+});
+
 invoices.it(
-	"a different key remounts the form without carrying the previous draft",
-	[editingLine()],
-	function* ({ invoice, type, show, observe, finishLoad }) {
-		const { view } = invoice();
-		yield* finishLoad();
-		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
-		yield* type("name", "Draft");
-		yield* show(2);
-		yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Notebook"));
-		expect(view.status()).toBe("Saved");
-		yield* show(1);
-		yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Stapler"));
+	"a failed save shows an alert and keeps the input",
+	[lineEdited("quantity", "200")],
+	function* ({ alerts, field, save, serverIs, storedLine }) {
+		yield* serverIs("unavailable");
+
+		yield* save();
+
+		yield* outcomes({
+			alerts: [alerts(), ["Could not save"]],
+			quantity: [field("quantity"), "200"],
+			stored: [storedLine(1), { ...stapler }],
+		});
 	},
 );
 
+invoices.it("a different line remounts the form without the previous draft", [lineEdited("name", "Draft")], function* ({ field, show, status }) {
+	yield* show(2);
+
+	yield* outcomes({
+		name: [field("name"), "Notebook"],
+		status: [status(), "Saved"],
+	});
+});
+
+invoices.it("returning to a line after leaving it shows its stored name", [draftDroppedForLineTwo()], function* ({ field, show }) {
+	yield* show(1);
+
+	expect(yield* field("name")).toBe("Stapler");
+});
+
 invoices.it(
-	"create resets to its initial values after success, keeping fields edited during the save",
-	[creatingLine()],
-	function* ({ invoice, type, click, observe, holdSave, finishSave }) {
-		const { view } = invoice();
-		yield* type("name", "pencil");
-		yield* type("quantity", "120");
-		holdSave();
-		yield* click("Save");
-		yield* observe("the invoice screen settles", () => expect(view.status()).toBe("Saving"));
+	"a create resets to its initial values and keeps fields edited during the save",
+	[createSaveHeld()],
+	function* ({ completed, field, fieldError, finishHeld, status, type }) {
 		yield* type("name", "Folder");
-		yield* finishSave();
-		yield* observe("the invoice screen settles", () => expect(view.text()).toContain("Created 2: Pencil"));
-		expect(view.value("name")).toBe("Folder");
-		expect(view.value("quantity")).toBe("");
-		expect(view.error("quantity")).toBeUndefined();
-		expect(view.status()).toBe("Unsaved");
-		yield* type("quantity", "40");
-		yield* click("Save");
-		yield* observe("the invoice screen settles", () => expect(view.text()).toContain("Created 3: Folder"));
-		expect([view.value("name"), view.value("quantity"), view.status()]).toEqual(["", "", "Saved"]);
+
+		yield* finishHeld();
+
+		yield* outcomes({
+			created: [completed(), "Created 2: Pencil"],
+			name: [field("name"), "Folder"],
+			quantity: [field("quantity"), ""],
+			"quantity error": [fieldError("quantity"), "none"],
+			status: [status(), "Unsaved"],
+		});
 	},
 );
 
 invoices.it(
-	"switching session tears down the editor, its draft and its registry; Unauthorized asks for a re-check",
-	[invoiceSessions()],
-	function* ({ sessions, type, click, showSession, observe, rejectSession }) {
-		const { view, rechecks, registries } = sessions();
-		yield* showSession("alice");
-		yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Stapler"));
-		yield* type("name", "Alice draft");
-		rejectSession("alice");
-		yield* click("Refresh");
-		yield* observe("the invoice screen settles", () => expect(rechecks).toEqual(["alice"]));
-		expect(view.value("name")).toBe("Alice draft");
+	"the next create submits the field kept through the reset",
+	[createdWhileFolderTyped()],
+	function* ({ completed, field, save, status, type }) {
+		yield* type("quantity", "40");
+
+		yield* save();
+
+		yield* outcomes({
+			created: [completed(), "Created 3: Folder"],
+			name: [field("name"), ""],
+			quantity: [field("quantity"), ""],
+			status: [status(), "Saved"],
+		});
+	},
+);
+
+invoices.it(
+	"an Unauthorized refresh asks for a session re-check and keeps the draft",
+	[aliceEditing()],
+	function* ({ field, rechecks, refresh, unauthorized }) {
+		yield* unauthorized("alice");
+
+		yield* refresh();
+
+		yield* outcomes({
+			draft: [field("name"), "Alice draft"],
+			rechecks: [rechecks(), ["alice"]],
+		});
+	},
+);
+
+invoices.it(
+	"switching to Bob shows his line and releases Alice's registry",
+	[aliceEditing()],
+	function* ({ field, registry, shownLine, showSession }) {
 		yield* showSession("bob");
-		yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Envelope"));
-		expect(view.text()).not.toContain("Stapler");
-		expect(registries[0]?.getNodes().size).toBe(0);
+
+		yield* outcomes({
+			"Alice's registry": [registry("alice"), "released"],
+			name: [field("name"), "Envelope"],
+			"shown line": [shownLine(), "Envelope / 80"],
+		});
+	},
+);
+
+invoices.it(
+	"signing out shows the signed-out screen and releases Bob's registry",
+	[bobAfterAlice()],
+	function* ({ registry, screenText, showSession }) {
 		yield* showSession(undefined);
-		expect(view.text()).toBe("Signed out");
-		expect(registries[1]?.getNodes().size).toBe(0);
+
+		yield* outcomes({
+			"Bob's registry": [registry("bob"), "released"],
+			screen: [screenText(), "Signed out"],
+		});
 	},
 );

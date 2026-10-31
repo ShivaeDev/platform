@@ -1,144 +1,206 @@
 import { expect } from "vitest";
-import { commandScreen, commands } from "#test/command-completion/story.tsx";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import {
+	commands,
+	firstAndSecondHeld,
+	firstFinished,
+	firstHeld,
+	firstHeldAcrossSessionChange,
+	firstSupersededBySecond,
+	outgoingFinishedForBob,
+	secondFinishedFirstHeld,
+} from "#test/command-completion/story.tsx";
 
 commands.it(
-	"Concurrent command completions retain their own inputs",
-	[commandScreen({ concurrent: true })],
-	function* ({ click, complete, observe, snapshot }) {
-		yield* click("first");
-		yield* click("second");
-		yield* observe("both commands reach the handler", () => expect(snapshot().calls).toEqual(["first", "second"]));
+	"with concurrent dispatch, the action stays pending after a later command completes while an earlier one is held",
+	[firstAndSecondHeld()],
+	function* ({ actionPending, complete, notices }) {
 		yield* complete("second", "B");
-		yield* observe("second completes while first is held", () => expect(snapshot().notices).toEqual(["original: second -> B"]));
-		expect(snapshot().pending).toBe("true");
-		yield* complete("first", "A");
-		yield* observe("each completion has its input", () => expect(snapshot().notices).toEqual(["original: second -> B", "original: first -> A"]));
+
+		yield* outcomes({
+			"action pending": [actionPending(), "true"],
+			notices: [notices(), ["original: second -> B"]],
+		});
 	},
 );
 
-commands.it("Completion uses the current callback", [commandScreen()], function* ({ click, complete, render, observe, snapshot }) {
-	yield* click("first");
-	yield* observe("the command is held", () => expect(snapshot().calls).toEqual(["first"]));
-	yield* render({ callback: "current" });
-	yield* complete("first", "A");
-	yield* observe("the committed callback presents completion", () => expect(snapshot().notices).toEqual(["current: first -> A"]));
+commands.it(
+	"with concurrent dispatch, an earlier command completing last reports its own input",
+	[secondFinishedFirstHeld("completed")],
+	function* ({ complete, notices }) {
+		yield* complete("first", "A");
+
+		expect(yield* notices()).toEqual(["original: second -> B", "original: first -> A"]);
+	},
+);
+
+commands.it(
+	"a completion presents through the callback of the latest committed render",
+	[firstHeld()],
+	function* ({ complete, notices, switchCallback }) {
+		yield* switchCallback("current");
+
+		yield* complete("first", "A");
+
+		expect(yield* notices()).toEqual(["current: first -> A"]);
+	},
+);
+
+commands.it("dispatching again interrupts the held command", [firstHeld()], function* ({ dispatch, finished }) {
+	expect(yield* finished()).toEqual([]);
+
+	yield* dispatch("second");
+
+	expect(yield* finished()).toEqual(["first"]);
 });
 
-commands.it("Superseded command produces no notice", [commandScreen()], function* ({ click, complete, observe, snapshot }) {
-	yield* click("first");
-	yield* observe("first starts", () => expect(snapshot().calls).toEqual(["first"]));
-	yield* click("second");
-	yield* observe("superseding interrupts first", () => expect(snapshot().finished).toContain("first"));
-	yield* complete("first", "A");
+commands.it("only the superseding command reports its completion", [firstSupersededBySecond()], function* ({ complete, notices }) {
 	yield* complete("second", "B");
-	yield* observe("only second reports completion", () => expect(snapshot().notices).toEqual(["original: second -> B"]));
+
+	expect(yield* notices()).toEqual(["original: second -> B"]);
 });
 
 commands.it(
-	"Session replacement discards outgoing completion",
-	[commandScreen({ uninterruptible: true })],
-	function* ({ click, complete, render, observe, snapshot }) {
-		yield* click("first");
-		yield* observe("outgoing command starts", () => expect(snapshot().calls).toEqual(["first"]));
-		yield* render({ callback: "bob", session: "bob" });
+	"a command that finishes after bob's session replaced alice's reports nothing",
+	[firstHeldAcrossSessionChange("bob")],
+	function* ({ complete, notices }) {
 		yield* complete("first", "A");
-		yield* observe("outgoing work finishes", () => expect(snapshot().finished).toContain("first"));
-		expect(snapshot().notices).toEqual([]);
-		yield* click("second");
-		yield* observe("new owner can dispatch", () => expect(snapshot().calls).toEqual(["first", "second"]));
+
+		expect(yield* notices()).toEqual([]);
+	},
+);
+
+commands.it(
+	"after the session change, bob's own command reports through bob's callback",
+	[outgoingFinishedForBob()],
+	function* ({ complete, dispatch, notices }) {
+		yield* dispatch("second");
+
 		yield* complete("second", "B");
-		yield* observe("new owner reports its completion", () => expect(snapshot().notices).toEqual(["bob: second -> B"]));
+
+		expect(yield* notices()).toEqual(["bob: second -> B"]);
 	},
 );
 
 commands.it(
-	"Completion neither duplicates invalidation nor waits for refetch or replays on rerender",
-	[commandScreen()],
-	function* ({ click, complete, render, observe, snapshot }) {
-		yield* observe("initial query is loaded", () => expect(snapshot()).toMatchObject({ reads: 1 }));
-		yield* click("first");
-		yield* observe("command starts", () => expect(snapshot().calls).toEqual(["first"]));
-		yield* complete("first", "A");
-		yield* observe("completion runs while the invalidated query waits", () => {
-			expect(snapshot()).toMatchObject({ invalidations: 1, notices: ["original: first -> A"], pending: "false", queryPending: "true", reads: 2 });
+	"a rejection that arrives after bob's session replaced alice's reports nothing and asks for no recheck",
+	[firstHeldAcrossSessionChange("original")],
+	function* ({ notices, rechecks, reject }) {
+		yield* reject("first", "Unauthorized");
+
+		yield* outcomes({
+			notices: [notices(), []],
+			rechecks: [rechecks(), "never"],
 		});
-		yield* render();
-		expect(snapshot()).toMatchObject({ invalidations: 1, notices: ["original: first -> A"], reads: 2 });
 	},
 );
 
 commands.it(
-	"Typed rejection reports its invocation and Unauthorized rechecks once without signing out",
-	[commandScreen()],
-	function* ({ click, reject, render, observe, snapshot }) {
-		yield* click("first");
-		yield* observe("first starts", () => expect(snapshot().calls).toEqual(["first"]));
-		yield* reject("first");
-		yield* observe("typed failure is presented", () => expect(snapshot().notices).toEqual(["original: first rejected: Rejected"]));
-		yield* click("second");
-		yield* observe("second starts", () => expect(snapshot().calls).toEqual(["first", "second"]));
-		yield* reject("second", true);
-		yield* observe("one session recheck runs for the invocation", () => expect(snapshot()).toMatchObject({ rechecks: 1 }));
-		yield* render();
-		expect(snapshot()).toMatchObject({
-			invalidations: 0,
-			notices: ["original: first rejected: Rejected", "original: second rejected: Unauthorized"],
-			rechecks: 1,
+	"a completion invalidates the list once and reports before the list's refetch answers",
+	[firstHeld()],
+	function* ({ complete, invalidations, listPending, listReads, notices }) {
+		yield* outcomes({
+			invalidations: [invalidations(), 0],
+			"list reads": [listReads(), 1],
 		});
-		expect(snapshot().cause).toContain("Unauthorized");
-	},
-);
 
-commands.it("A presentation defect is not a domain rejection", [commandScreen({ defect: true })], function* ({ click, complete, observe, snapshot }) {
-	yield* click("first");
-	yield* observe("first starts", () => expect(snapshot().calls).toEqual(["first"]));
-	yield* complete("first", "A");
-	yield* observe("the defect stays in the native cause", () => expect(snapshot().cause).toContain("Presentation failed"));
-	expect(snapshot()).toMatchObject({ notices: [], rechecks: 0 });
-});
-
-commands.it(
-	"An abandoned render cannot replace the committed completion callback",
-	[commandScreen()],
-	function* ({ click, complete, suspend, observe, snapshot }) {
-		yield* click("first");
-		yield* observe("first starts", () => expect(snapshot().calls).toEqual(["first"]));
-		yield* suspend();
-		yield* observe("the new callback rendered without committing", () => expect(snapshot().attempts).toContain("uncommitted"));
 		yield* complete("first", "A");
-		yield* observe("completion uses the committed callback", () => expect(snapshot().notices).toEqual(["original: first -> A"]));
+
+		yield* outcomes({
+			invalidations: [invalidations(), 1],
+			"list pending": [listPending(), "true"],
+			"list reads": [listReads(), 2],
+			notices: [notices(), ["original: first -> A"]],
+		});
 	},
 );
 
 commands.it(
-	"Concurrent Unauthorized failures each recheck their session once",
-	[commandScreen({ concurrent: true })],
-	function* ({ click, reject, render, observe, snapshot }) {
-		yield* click("first");
-		yield* click("second");
-		yield* observe("both commands start", () => expect(snapshot().calls).toEqual(["first", "second"]));
-		yield* reject("second", true);
-		yield* reject("first", true);
-		yield* observe("each failure has its own input and session recheck", () =>
-			expect(snapshot()).toMatchObject({
-				notices: ["original: second rejected: Unauthorized", "original: first rejected: Unauthorized"],
-				rechecks: 2,
-			}),
-		);
-		yield* render();
-		expect(snapshot()).toMatchObject({ rechecks: 2 });
+	"rendering again after a completion neither replays its notice nor invalidates again",
+	[firstFinished("completed")],
+	function* ({ invalidations, notices, renderAgain }) {
+		yield* renderAgain();
+
+		yield* outcomes({
+			invalidations: [invalidations(), 1],
+			notices: [notices(), ["original: first -> A"]],
+		});
 	},
 );
 
 commands.it(
-	"Session replacement discards outgoing rejection and session recheck",
-	[commandScreen({ uninterruptible: true })],
-	function* ({ click, reject, render, observe, snapshot }) {
-		yield* click("first");
-		yield* observe("outgoing command starts", () => expect(snapshot().calls).toEqual(["first"]));
-		yield* render({ session: "bob" });
-		yield* reject("first", true);
-		yield* observe("outgoing command finishes", () => expect(snapshot().finished).toContain("first"));
-		expect(snapshot()).toMatchObject({ notices: [], rechecks: 0 });
+	"a typed rejection reports its input and error, invalidates nothing and asks for no recheck",
+	[firstHeld()],
+	function* ({ invalidations, notices, rechecks, reject }) {
+		yield* reject("first", "Rejected");
+
+		yield* outcomes({
+			invalidations: [invalidations(), 0],
+			notices: [notices(), ["original: first rejected: Rejected"]],
+			rechecks: [rechecks(), "never"],
+		});
+	},
+);
+
+commands.it(
+	"an Unauthorized rejection reports its input and asks the auth owner to recheck once",
+	[firstHeld()],
+	function* ({ notices, rechecks, reject }) {
+		yield* reject("first", "Unauthorized");
+
+		yield* outcomes({
+			notices: [notices(), ["original: first rejected: Unauthorized"]],
+			rechecks: [rechecks(), "once"],
+		});
+	},
+);
+
+commands.it(
+	"rendering again after an Unauthorized rejection asks for no second recheck",
+	[firstFinished("Unauthorized")],
+	function* ({ rechecks, renderAgain }) {
+		yield* renderAgain();
+
+		expect(yield* rechecks()).toBe("once");
+	},
+);
+
+commands.it(
+	"concurrent Unauthorized rejections each report their own input and recheck once each",
+	[secondFinishedFirstHeld("Unauthorized")],
+	function* ({ notices, rechecks, reject }) {
+		yield* reject("first", "Unauthorized");
+
+		yield* outcomes({
+			notices: [notices(), ["original: second rejected: Unauthorized", "original: first rejected: Unauthorized"]],
+			rechecks: [rechecks(), "twice"],
+		});
+	},
+);
+
+commands.it(
+	"a success callback that throws shows its defect and reports no rejection or recheck",
+	[firstHeld({ defect: true })],
+	function* ({ complete, defectShown, notices, rechecks }) {
+		yield* complete("first", "A");
+
+		yield* outcomes({
+			defect: [defectShown(), "Error: Presentation failed"],
+			notices: [notices(), []],
+			rechecks: [rechecks(), "never"],
+		});
+	},
+);
+
+commands.it(
+	"a render abandoned before commit never presents a completion",
+	[firstHeld()],
+	function* ({ complete, notices, renderedCallbacks, startAbandonedRender }) {
+		yield* startAbandonedRender();
+		expect(yield* renderedCallbacks()).toContain("uncommitted");
+
+		yield* complete("first", "A");
+
+		expect(yield* notices()).toEqual(["original: first -> A"]);
 	},
 );

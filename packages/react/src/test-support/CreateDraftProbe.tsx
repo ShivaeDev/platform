@@ -24,6 +24,7 @@ export function CreateDraftProbe({ create, held, now }: ProbeProps) {
 		>
 			<input name="name" onChange={(event) => name.onChange(event.target.value)} value={name.value} />
 			<button type="submit">Save</button>
+			<output data-saving={held.created.saving} />
 		</form>
 	);
 }
