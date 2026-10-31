@@ -149,8 +149,9 @@ database.it(
 	"a failure an older pg-boss writer stored is listed with its secrets redacted and without its diagnostic fields",
 	[running("app", [OlderFailures]), enqueued(OlderFailures, {}, { as: "older job" }), failedByAnOlderWriter("older job", olderFailure)],
 	function* ({ listedOutputs, storedOutput }) {
-		expect(yield* storedOutput("older job")).toEqual(olderFailure);
-
-		expect(yield* listedOutputs("app", "failed", OlderFailures)).toEqual([{ _tag: "LegacyRejected", message: "password=<redacted>" }]);
+		yield* outcomes([
+			["stored output", () => storedOutput("older job"), olderFailure],
+			["listed output", () => listedOutputs("app", "failed", OlderFailures), [{ _tag: "LegacyRejected", message: "password=<redacted>" }]],
+		]);
 	},
 );

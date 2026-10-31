@@ -18,8 +18,10 @@ database.it(
 	"worker startup removes retired queues and keyed schedules while keeping their dead letters and registering current queues",
 	[previous, stopped],
 	function* ({ start, startup, storedQueue, storedSchedules }) {
-		expect(yield* storedQueue("legacy")).toMatchObject({ name: "legacy" });
-		expect(yield* storedSchedules("old-nightly")).toMatchObject([{ name: "old-nightly" }]);
+		yield* outcomes([
+			["old queue", () => storedQueue("legacy"), { name: "legacy" }],
+			["old schedule", () => storedSchedules("old-nightly"), [{ name: "old-nightly" }]],
+		]);
 
 		yield* start("current", [Current], { retired: ["legacy", "old-nightly"] });
 

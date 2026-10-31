@@ -22,10 +22,8 @@ host.it("100 items read in one query per poll without execution history", [], fu
 	}
 	for (let poll = 0; poll < 2; poll += 1) {
 		const { states, statements } = yield* daemon.tracedSummaries(ids);
-		expect(states).toHaveLength(100);
-		expect(states[0]).toEqual({ outcome: {}, stage: "working", workId: "item-0" });
-		expect(statements).toHaveLength(1);
-		expect(statements[0]).not.toContain('"history"');
+		expect(states).toEqual(ids.map((workId) => ({ outcome: {}, stage: "working", workId })));
+		expect(statements).toEqual([expect.not.stringContaining('"history"')]);
 	}
 });
 host.it("waiting summaries retain a stable code beside reworded reason text", [], function* (daemon) {

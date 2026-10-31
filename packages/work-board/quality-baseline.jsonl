@@ -158,6 +158,7 @@
 {"path":"packages/work-board/src/client/reconcile/normalized.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/responses/authorLabel.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/client/responses/retainContext.ts","rule":"biome/plugin","count":1}
+{"path":"packages/work-board/src/diagnostics/source.test.ts","rule":"tests/named-values","count":2,"reason":"First story-syntax coverage for .test files: cache-hit and cache-expiry stories still assert source-read counters; the diagnostics kit needs a request trace before these can assert the actual reads."}
 {"path":"packages/work-board/src/diagnostics/source.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/render/code.ts","rule":"effect/boundary","count":7}
 {"path":"packages/work-board/src/render/visual.ts","rule":"effect/boundary","count":13}
