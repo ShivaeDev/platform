@@ -8,9 +8,12 @@ import { WIDTH, wrap, wrapJson } from "#internal/wrap.ts";
 
 const INLINE_CHARACTERS = 2000;
 
-type Snapshot = { readonly value: unknown } | { readonly threw: unknown };
+type Snapshot = NonNullable<Subject<unknown>["snapshot"]>;
 
 function snapshot<TEngine>(subject: Subject<TEngine>): Snapshot {
+	if (subject.snapshot !== undefined) {
+		return subject.snapshot;
+	}
 	try {
 		return { value: subject.inspect === undefined ? subject.engine : subject.inspect(subject.engine) };
 	} catch (threw) {

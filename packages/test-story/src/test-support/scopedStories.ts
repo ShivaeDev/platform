@@ -18,9 +18,18 @@ const scoped = storyKit({
 			Effect.sync(() => AtomRegistry.make()),
 			(current) => Effect.sync(() => current.dispose()),
 		);
-		return { count: Atom.make(0), refuseAfter: false, registry };
+		return { count: Atom.keepAlive(Atom.make(0)), inspection: "reads", refuseAfter: false, registry };
 	},
-	inspect: (engine) => ({ count: engine.registry.get(engine.count) }),
+	*inspect(engine) {
+		yield* Effect.yieldNow;
+		if (engine.inspection === "fails") {
+			return yield* Effect.fail("inventory is closed");
+		}
+		if (engine.inspection === "dies") {
+			return yield* Effect.die("inventory is closed");
+		}
+		return { count: engine.registry.get(engine.count) };
+	},
 	name: "scoped registry",
 	stages: ["setup"],
 	verbs: (engine) => ({ count: () => engine.registry.get(engine.count), edit: (count: number) => engine.registry.set(engine.count, count) }),
@@ -39,3 +48,12 @@ scoped.it("fails in the body", [], ({ edit, count }) => {
 });
 scoped.it("fails in a trait", [refusal]);
 scoped.it("fails in an after hook", [refusedAfter]);
+
+for (const ending of ["fails", "dies"] as const) {
+	const unavailable = scoped.trait("setup", `inspection ${ending}`, (engine) => {
+		engine.inspection = ending;
+	});
+	scoped.it(`inspection ${ending}`, [unavailable], function* () {
+		return yield* Effect.fail("the story failed");
+	});
+}
