@@ -1,6 +1,5 @@
 import { DateTime, Deferred, Effect, Option, Stream } from "effect";
 import { JobsUnavailable } from "@shivaedev/admin/jobs/schemas.ts";
-import type { AdminJob } from "#client/admin/jobsTypes.ts";
 
 export function adminBackend() {
 	const state: {
@@ -85,7 +84,7 @@ export function adminBackend() {
 	};
 }
 
-export function failedJob(id: string): AdminJob & { readonly data: { readonly noteId: number } } {
+export function failedJob(id: string) {
 	return {
 		attempt: 2,
 		completedOn: Option.some(DateTime.makeUnsafe("2026-10-25T11:00:00Z")),
@@ -97,6 +96,6 @@ export function failedJob(id: string): AdminJob & { readonly data: { readonly no
 		retryCount: 1,
 		retryLimit: 1,
 		startedOn: Option.some(DateTime.makeUnsafe("2026-10-25T10:59:00Z")),
-		state: "failed",
+		state: "failed" as const,
 	};
 }

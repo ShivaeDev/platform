@@ -1,9 +1,9 @@
 import { Effect, type Layer } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { RpcClient } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { pages } from "./jobsPages.ts";
 
 type Registry = ReturnType<typeof pages>;
@@ -12,14 +12,14 @@ export const jobsClient = Effect.fnUntraced(function* (
 	group: Registry["group"],
 	protocol: Layer.Layer<RpcClient.Protocol>,
 ) {
-	class Client extends AtomRpc.Service<Client>()("test/AdminJobsClient", { group, protocol }) {}
-	const api = bind(page.contract, Client, { live: false });
+	const transport = makeClient(page.contract, { group, live: false, protocol, url: "http://localhost/rpc" });
+	const { api, Client } = transport;
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
 	);
-	function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
+	function run<A, E>(effect: Effect.Effect<A, E, typeof Client.Identifier | Reactivity.Reactivity>) {
 		return AtomRegistry.getResult(registry, Client.runtime.atom(effect));
 	}
-	return { api, registry, run };
+	return { activity: clientActivity(transport), api, registry, retryAction: Client.runtime.fn(api.retry.run), run };
 });

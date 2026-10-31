@@ -1,6 +1,6 @@
+import type { RetryJob } from "@shivaedev/admin/client/jobsTypes.ts";
 import { bind, makeClient } from "@shivaedev/contract/bind.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
-import type { RetryJob } from "#client/admin/jobsTypes.ts";
 import { foundation } from "#modules.ts";
 
 export function makeFoundationClient(url: string, options: Omit<ClientOptions, "url"> = {}) {

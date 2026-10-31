@@ -116,7 +116,21 @@ Schedule definitions from `defineSchedule` can be passed beside queues. A browse
 
 Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as jobs health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
 
-The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. The application supplies the Jobs view and mounts the registration on its existing RPC host.
+The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. The application mounts the registration on its existing RPC host.
+
+#### Mount the Jobs view
+
+Bind the page contract to the application's AtomRpc client and pass the shared queue names to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client";` in their client CSS.
+
+```tsx
+import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+
+const jobs = bind(JobsPage.contract, Client);
+
+<JobsView api={jobs} queues={queueNames} />;
+```
+
+For a retry-enabled page, pass `retry={Client.runtime.fn(jobs.retry.run)}`. The view offers retry on failed originals; the server also requires `jobs.retry`. Omitting `retry` leaves the view read-only. Keep the view inside the application's admin shell and protect its route with `JobsPage.route.permission`.
 
 ## Declare retry explicitly
 
@@ -170,6 +184,6 @@ Keep Better Auth cookie caching disabled so requests see current permissions. Ro
 
 Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react` as peers. The package has no root entry; import the module that defines the name.
 
-Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the built-in Users view under `/client` uses React. Applications own route composition and styling.
+Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the built-in Jobs and Users views under `/client` use React. Applications own route composition and styling.
 
 This package declares the permission middleware and does not resolve sessions. `permissionLayer` from `@shivaedev/identity/server/permissions.ts` resolves each request's session through the session policy the application supplies, then checks the page's permission.
