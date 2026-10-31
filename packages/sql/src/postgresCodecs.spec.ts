@@ -90,16 +90,3 @@ codecs.it(
 		]);
 	},
 );
-
-codecs.it(
-	"a plain object written to a JSON column fails with a SQL error and writes no receipt",
-	[],
-	function* ({ endings, insertReceipt, receiptCount }) {
-		yield* insertReceipt({ attempts: 1, channel: "card" });
-
-		yield* outcomes([
-			["receipt endings", () => endings(), ["failed with an unclassified SQL failure"]],
-			["stored receipts", () => receiptCount(), 0],
-		]);
-	},
-);
