@@ -66,7 +66,7 @@ export function boundaryReference(checker: ts.TypeChecker, node: ts.Node, seen =
 }
 
 export function boundaryEntryPoint(path: string, source: ts.SourceFile, checker: ts.TypeChecker): boolean {
-	if (/(?:^|\/)(?:cli|main|[^/]+-cli)\.[cm]?[jt]sx?$|\.(?:config|test|spec)\.[cm]?[jt]sx?$/u.test(path)) {
+	if (/(?:^|\/)(?:cli|main|entry|[^/]+-cli)\.[cm]?[jt]sx?$|\.(?:config|test|spec)\.[cm]?[jt]sx?$/u.test(path)) {
 		return true;
 	}
 	function visit(node: ts.Node): boolean {

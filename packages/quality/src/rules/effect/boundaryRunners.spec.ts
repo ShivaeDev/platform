@@ -52,3 +52,13 @@ ruleStory.it(
 	},
 	CLI_TIMEOUT,
 );
+
+ruleStory.it(
+	"effect/boundary still reports throws in a browser entry module",
+	[repositoryHas({ content: 'import { Effect } from "effect";\nEffect.runSync(work);\nthrow new Error("missing");', path: "src/client/entry.tsx" })],
+	function* ({ check }) {
+		const findings = yield* check(effectBoundary);
+
+		expect(findings).toEqual([usesAt("src/client/entry.tsx", 3, "throw statement")]);
+	},
+);

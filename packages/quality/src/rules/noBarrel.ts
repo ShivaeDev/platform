@@ -24,6 +24,6 @@ export const noBarrel = defineRule({
 			return findings;
 		}),
 	description:
-		"Name modules after their purpose; import values from their defining module instead of exporting aliases, facades or unchanged forwarding calls.",
+		"Name modules after their purpose; import values from their defining module instead of exporting aliases, facades or unchanged forwarding calls. Wrappers that supply explicit type arguments keep their own meaning.",
 	id: "structure/no-barrel",
 });

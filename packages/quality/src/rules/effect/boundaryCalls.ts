@@ -77,7 +77,7 @@ export function boundaryCalls(checker: ts.TypeChecker) {
 	}
 	function guard(call: ts.CallExpression): boolean {
 		const body = functionBody(checker, call.expression);
-		return body !== undefined && throws(body);
+		return body !== undefined && !/(?:^|\/)adapters\//u.test(body.getSourceFile().fileName) && throws(body);
 	}
 	function unsafeSync(call: ts.CallExpression): boolean {
 		const callback = call.arguments[0];
