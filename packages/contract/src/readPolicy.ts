@@ -2,6 +2,7 @@ import { Context, Effect, Option, type Stream, type Types } from "effect";
 import type { Rpc } from "effect/rpc";
 import { policyContext } from "#internal/policyContext.ts";
 import type { QueryShape } from "#operation.ts";
+import { isPermissionReadPolicy } from "#permissionReadPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { QueryDefinition } from "#serverMetadata.ts";
 
@@ -16,6 +17,9 @@ export const signedIn: QueryReadPolicy<unknown> = (_payload, viewer) => Effect.s
 export const checkQuery = Effect.fnUntraced(function* <E, R>(query: QueryShape<E, R>, payload: unknown, viewer: Option.Option<Viewer>) {
 	if (query.readPolicy === undefined) {
 		return yield* new MissingReadPolicy({ message: `Declare a readPolicy on query ${query.name} before reading it or subscribing` });
+	}
+	if (query.readsCollections !== undefined && !isPermissionReadPolicy(query.readPolicy)) {
+		return yield* new QueryReadDenied({ message: `Collection reads require a permission policy on query ${query.name}` });
 	}
 	if (!(yield* query.readPolicy(payload, viewer))) {
 		return yield* new QueryReadDenied({ message: `Read not allowed for query ${query.name}` });

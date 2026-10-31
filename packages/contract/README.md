@@ -481,6 +481,31 @@ const Mine = query("mine", {
 });
 ```
 
+On a repository model, annotate tenant fields with `bucket()` from `@shivaedev/changes/buckets.ts` so writes announce the affected buckets. For an admin page spanning every tenant, declare `readsCollections` beside a permission read policy:
+
+```ts
+import { Effect, Schema } from "effect";
+import { permission } from "@shivaedev/access/permission.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
+import { query } from "@shivaedev/contract/operation.ts";
+import { permissionReadPolicy } from "@shivaedev/contract/permissionReadPolicy.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { hasPermission } from "@shivaedev/identity/permission.ts";
+
+const notes = collection("notes", Schema.Number);
+const ManageNotes = permission("notes.manage").any;
+const AllNotes = query("allNotes", {
+	success: Schema.Array(Schema.String),
+	readPolicy: permissionReadPolicy(ManageNotes, (required) => Effect.map(SessionUser, (user) => hasPermission(user, required))),
+	reads: () => [],
+	readsCollections: [notes],
+});
+```
+
+The application supplies the permission checker through `permissionReadPolicy(permission, check)`; `check` receives that permission and the current viewer, and must check the viewer's grant using server services. Its failures and service requirements flow through the query like any other read policy. Supply `SessionUser` with the application's identity middleware. The policy guards both calls and subscriptions, and runs again before changed hints are delivered. `readsCollections` requires this policy at declaration: a `signedIn` or ordinary boolean policy fails TypeScript checking. The server also refuses untyped collection queries with an ordinary policy as `QueryReadDenied`. Tenant-facing queries use `notes.bucket.userId(viewerId)` instead.
+
+Collection reads reuse the bare repository table key, the same key as `notes.list`, even when the contract uses `keyScope: "session"`; ordinary reads keep their session scope. They add no wildcard matching or write-side work. Every committed repository insert, update, delete, upsert and bulk write already publishes that key. Generated-id inserts also publish the bare collection key alongside their generated record key, so `publishes` stories that check exact published keys must allow the bare key today. For a table named `notes`, that is `"notes"` alongside `"notes:<id>"` and any affected bucket keys. Mounting a collection subscriber adds **zero PostgreSQL NOTIFY messages per write**: it consumes the existing payloads. It adds a normal query subscription and an authorized reread when the collection changes.
+
 For dependencies that need server data, add `serverReads(payload, viewer)`, an Effect returning extra keys. Keep `reads` for keys the browser can derive, or return `[]` there. The server checks every referenced query's policy before it runs any `serverReads`, and resolves it with the owning query handler's services. Declare its failures in the query's `rejections`, as with policy failures. A denied subscription never runs the resolver.
 
 ```ts

@@ -11,6 +11,7 @@ export type QueryRerun<E = unknown, R = never> = (request: QueryRequest) => Effe
 
 export interface QuerySubscription<E = never, R = never> {
 	readonly authorized: Effect.Effect<boolean, E, R>;
+	readonly globalKeys?: readonly Key[];
 	readonly keys: readonly Key[];
 	readonly queries?: readonly QueryRequest[];
 	readonly scopes: readonly (readonly Key[])[];
@@ -46,6 +47,9 @@ export function querySubscription(rpc: Rpc.Any, references: readonly QueryRefere
 			Effect.forEach(policies, ({ permitted }) => permitted),
 			(permissions) => permissions.every(Boolean),
 		);
-		return { authorized, keys: scopes.flat(), queries, scopes } satisfies QuerySubscription<unknown, unknown>;
+		const globalKeys = queries.flatMap(
+			({ query }) => query.readsCollections?.map((collection) => ({ _tag: "List" as const, collection: collection.name })) ?? [],
+		);
+		return { authorized, globalKeys, keys: scopes.flat(), queries, scopes } satisfies QuerySubscription<unknown, unknown>;
 	})();
 }
