@@ -1,6 +1,6 @@
-import { subscribe, unsubscribe } from "node:diagnostics_channel";
-import { type ClientRequest, request as httpRequest, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
+import { type ClientRequest, request as httpRequest, type IncomingHttpHeaders } from "node:http";
 import { Effect } from "effect";
+import type { SignalNotReceived } from "#until.ts";
 
 export interface Send {
 	readonly body?: string;
@@ -102,46 +102,12 @@ function answerOf(state: Call) {
 	return body.length === 0 ? status : `${status} ${bytesInWords(body)}`;
 }
 
-function isRequestStart(message: unknown): message is { readonly request: IncomingMessage; readonly response: ServerResponse } {
-	return typeof message === "object" && message !== null && "request" in message && "response" in message;
-}
-
-export interface HangUps {
-	readonly next: (path: string) => Promise<void>;
-}
-
-export function listensForHangUps(url: string) {
-	const port = Number(new URL(url).port);
-	const waiting: { readonly path: string; readonly resolve: () => void }[] = [];
-	function started(message: unknown) {
-		if (!isRequestStart(message) || message.request.socket.localPort !== port) {
-			return;
-		}
-		const { request, response } = message;
-		response.once("close", () => {
-			for (const waiter of waiting.filter(({ path }) => path === request.url)) {
-				waiting.splice(waiting.indexOf(waiter), 1);
-				waiter.resolve();
-			}
-		});
-	}
-	const hangUps: HangUps = {
-		next: (path) => {
-			const closed = Promise.withResolvers<void>();
-			waiting.push({ path, resolve: closed.resolve });
-			return closed.promise;
-		},
-	};
-	return Effect.acquireRelease(
-		Effect.sync(() => {
-			subscribe("http.server.request.start", started);
-			return hangUps;
-		}),
-		() => Effect.sync(() => unsubscribe("http.server.request.start", started)),
-	);
-}
-
-export function httpClient(baseUrl: () => string, tell: (line: string) => void, defaults: () => Send = () => ({}), hangUps?: HangUps) {
+export function httpClient(
+	baseUrl: () => string,
+	tell: (line: string) => void,
+	defaults: () => Send = () => ({}),
+	abandoned?: (path: string) => Effect.Effect<unknown, SignalNotReceived>,
+) {
 	const calls = new Map<string, { readonly path: string; readonly state: Call }>();
 	function named(name: string) {
 		const found = calls.get(name);
@@ -173,14 +139,15 @@ export function httpClient(baseUrl: () => string, tell: (line: string) => void, 
 		abandons: (name: string) => {
 			const { path, state } = named(name);
 			tell(`${name} hangs up`);
-			return Effect.promise(() => {
-				if (hangUps === undefined) {
-					throw new Error("Give the HTTP client the service's hang-ups before a request abandons it.");
-				}
-				const closed = hangUps.next(path);
-				state.request.destroy();
-				return closed;
-			});
+			return Effect.sync(() => state.request.destroy()).pipe(
+				Effect.andThen(() => {
+					if (abandoned === undefined) {
+						return Effect.die("Give the HTTP client the service's abandoned-request signal before a request abandons it.");
+					}
+					return abandoned(path);
+				}),
+				Effect.asVoid,
+			);
 		},
 		answer: (name: string) => {
 			const { state } = named(name);
