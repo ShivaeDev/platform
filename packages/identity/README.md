@@ -434,7 +434,7 @@ const sessions = {
 };
 ```
 
-An `AuthUnavailable` failure during revalidation leaves the stream running and the next interval checks again. During a session-store outage, the sign-out delivery window extends until a lookup succeeds. Initial session lookup failures still reject the subscription. Unary calls resolve their session once per call. `MaybeAuthenticated` streams that start anonymous continue without a session monitor; a signed-in optional stream ends with `Unauthorized` when its session is removed. Callers can subscribe again to continue anonymously.
+An `AuthUnavailable` failure during revalidation ends the stream with `AuthUnavailable`. Initial session lookup failures also reject the subscription. Unary calls resolve their session once per call. `MaybeAuthenticated` streams that start anonymous continue without a session monitor; a signed-in optional stream ends with `Unauthorized` when its session is removed. Callers can subscribe again to continue anonymously.
 
 ### Transport headers and request ids
 

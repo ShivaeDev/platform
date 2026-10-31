@@ -26,15 +26,13 @@ streamSession.it(
 );
 
 streamSession.it(
-	"after a shared session-store outage, the next check still revokes every stream",
+	"a session-store outage ends every idle stream on one socket as auth unavailable at the next interval",
 	[revalidatesEvery("5 seconds"), sharedConnection, ...streams],
-	function* ({ aliceSignsOut, revalidationIntervalPasses, sessionStoreBlips, streamEnds }) {
+	function* ({ revalidationIntervalPasses, sessionStoreBlips, streamEnds }) {
 		yield* sessionStoreBlips();
-		yield* revalidationIntervalPasses();
-
-		yield* aliceSignsOut();
 
 		yield* revalidationIntervalPasses();
-		expect(yield* streamEnds()).toEqual(["unauthorized", "unauthorized", "unauthorized", "unauthorized"]);
+
+		expect(yield* streamEnds()).toEqual(["auth unavailable", "auth unavailable", "auth unavailable", "auth unavailable"]);
 	},
 );
