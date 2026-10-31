@@ -2,6 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -25,13 +26,12 @@ export function notesMemberScreens(baseUrl: string) {
 			);
 			const client = makeNotesClient(`${baseUrl}/rpc`, { live: false, protocol });
 			const auth = makeAuth({ baseUrl, fetchOptions: { customFetchImpl: member.fetch } });
-			const router = appRouter(
-				member.registry,
+			const router = yield* appRouter(
 				connectModules([notesRegistration(client)]),
 				auth.actions,
 				createMemoryHistory({ initialEntries: ["/"] }),
 				() => ({ user: { id: member.name } }),
-			);
+			).pipe(Effect.provideService(AtomRegistry.AtomRegistry, member.registry));
 			pending.set(member.name, clientActivity(client));
 			yield* Effect.addFinalizer(() =>
 				Effect.sync(() => {

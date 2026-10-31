@@ -570,10 +570,10 @@ Worker registration always requests `includeMetadata: true`, including when `wor
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/jobs effect pg-boss
+pnpm add @shivaedev/jobs effect
 ```
 
-The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers; use versions that satisfy the package's published peer ranges.
+The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers. pnpm installs `pg-boss` as the jobs package’s peer; apps do not list `pg-boss` themselves.
 
 `connectionString` configures pg-boss's own `pg` Pool, separately from the application's Effect SQL pool, and pg-boss's driver decides how its `sslmode` behaves. Set the TLS mode in that URL; the [framework database connection security guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#database-connection-security) compares the drivers and the application's connection paths.
 

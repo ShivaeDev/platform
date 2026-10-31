@@ -23,6 +23,10 @@ export function signInVisitor(initial: string, signedIn = false, moduleLink = fa
 			signedIn,
 		});
 		engine.auth = fixture;
+		engine.pending = () =>
+			(fixture.auth.client.$store.atoms.session?.get().isPending ?? false)
+			|| (engine.view !== undefined
+				&& (engine.view.registry.get(fixture.auth.actions.submit).waiting || engine.view.registry.get(fixture.auth.actions.signOut).waiting));
 		const view = yield* acquireScreen(engine, {
 			onCaughtError: (error) => {
 				engine.routeErrors.push(error);

@@ -23,15 +23,16 @@ const columns = columnHelper.columns([
 		),
 	}),
 	columnHelper.accessor("wordCount", {
-		cell: ({ row }) => (
-			<Badge variant="secondary">
-				{row.original.wordCount === null ? "Counting words…" : `${row.original.wordCount} ${row.original.wordCount === 1 ? "word" : "words"}`}
-			</Badge>
-		),
+		cell: ({ row }) => <WordCount count={row.original.wordCount} />,
 		header: "Words",
 	}),
 ]);
 
 export function NotesTable({ notes }: { readonly notes: readonly SavedNote[] }) {
 	return <DataTable aria-label="Saved notes" columns={columns} data={notes} />;
+}
+
+function WordCount({ count }: { readonly count: number | null }) {
+	const label = count === null ? "Counting words…" : `${count} ${count === 1 ? "word" : "words"}`;
+	return <Badge variant="secondary">{label}</Badge>;
 }

@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it(
@@ -16,8 +17,12 @@ app.it(
 		const stopWorker = yield* receiver.startWorker();
 		const counted = { ...edited, version: 2, wordCount: 3 };
 		yield* Effect.promise(() => expect.poll(() => Effect.runPromise(client.get({ id: edited.id })), { timeout: 8000 }).toEqual(counted));
-		expect(yield* client.update({ ...edited, title: "Before counting" }).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
-		expect(yield* client.list()).toEqual([counted]);
+		const rejectedEdit = yield* client.update({ ...edited, title: "Before counting" }).pipe(Effect.flip);
+		yield* outcomes([
+			["edit rejection", () => Effect.succeed(rejectedEdit), expect.objectContaining({ _tag: "Conflict" })],
+			["saved notes", () => client.list(), [counted]],
+		]);
+
 		yield* Effect.promise(() =>
 			expect
 				.poll(() => receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code), { timeout: 8000 })

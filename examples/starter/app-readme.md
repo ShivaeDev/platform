@@ -6,7 +6,7 @@ A notes application built on the ShivaeDev framework, with PostgreSQL persistenc
 const query = useQuery(client.api.list.query());
 ```
 
-The shared contract lives in `src/modules/notes/notes.ts`, server code in `src/server`, and the browser entry point in `src/client/entry.tsx`. The application owns its UI and session policy; Effect services, transactions and native RPC connect the layers.
+The shared contract lives in `src/modules/notes/notes.ts`, server code in `src/server`, and the browser entry point in `src/client/main.tsx`. The application owns its UI and session policy; Effect services, transactions and native RPC connect the layers.
 
 To remove the example, delete `src/modules/notes` and its import and entry in `src/server/modules.ts`, `src/server/workerModules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server, worker and client pieces in those same registries.
 

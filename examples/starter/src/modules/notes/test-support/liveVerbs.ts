@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import type { Engine } from "#modules/notes/test-support/applicationState.ts";
+import type { Engine } from "#modules/notes/test-support/Engine.ts";
 import { listHints } from "#modules/notes/test-support/listHints.ts";
 import { liveNote, liveNotes } from "#modules/notes/test-support/live.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";

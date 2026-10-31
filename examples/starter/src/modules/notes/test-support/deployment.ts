@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deploymentProcesses } from "#test-support/deploymentProcesses.ts";
@@ -12,5 +13,17 @@ export const notesDeployment = storyKit({
 	layer: postgres,
 	name: "notes deployment",
 	stages: [],
-	verbs: (_engine, story) => ({ ...deploymentProcesses(story.tell), holdJob, notesAt: notesHttp }),
+	verbs: (_engine, story) => ({
+		...deploymentProcesses(story.tell),
+		heartbeatWindowPasses: () => {
+			story.tell("the worker remains draining beyond the heartbeat staleness window");
+			return Effect.sleep("6 seconds");
+		},
+		holdJob,
+		notesAt: notesHttp,
+		workerPollPasses: () => {
+			story.tell("a worker polling interval passes");
+			return Effect.sleep("1200 millis");
+		},
+	}),
 });
