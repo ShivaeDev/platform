@@ -1,0 +1,56 @@
+2026-10-31T12:00:00.0000000Z ##[group]Run pnpm test
+2026-10-31T12:00:00.0000000Z Progress: resolved 497, reused 497
+2026-10-31T12:00:00.0000000Z  RUN  v5.0.5 /home/runner/work/project
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z (node:1776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+2026-10-31T12:00:00.0000000Z (Use `node --trace-warnings ...` to show where the warning was created)
+2026-10-31T12:00:00.0000000Z  ❯ failing.spec.ts (2 tests | 2 failed) 10ms
+2026-10-31T12:00:00.0000000Z    × sends the repair assertion 7ms
+2026-10-31T12:00:00.0000000Z    × names the failing worker 2ms
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z  FAIL  failing.spec.ts > sends the repair assertion
+2026-10-31T12:00:00.0000000Z AssertionError: expected { status: 'waiting' } to deeply equal { status: 'repairing' }
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z - Expected
+2026-10-31T12:00:00.0000000Z + Received
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z   {
+2026-10-31T12:00:00.0000000Z -   "status": "repairing",
+2026-10-31T12:00:00.0000000Z +   "status": "waiting",
+2026-10-31T12:00:00.0000000Z   }
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z  ❯ failing.spec.ts:2:33
+2026-10-31T12:00:00.0000000Z       1| test('sends the repair assertion', () => {
+2026-10-31T12:00:00.0000000Z       2|   expect({ status: 'waiting' }).toEqual({ status: 'repairing' });
+2026-10-31T12:00:00.0000000Z        |                                 ^
+2026-10-31T12:00:00.0000000Z       3| });
+2026-10-31T12:00:00.0000000Z       4| test('names the failing worker', () => {
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z  FAIL  failing.spec.ts > names the failing worker
+2026-10-31T12:00:00.0000000Z AssertionError: expected 'unknown worker' to be 'alice' // Object.is equality
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z Expected: "alice"
+2026-10-31T12:00:00.0000000Z Received: "unknown worker"
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z  ❯ failing.spec.ts:5:28
+2026-10-31T12:00:00.0000000Z       3| });
+2026-10-31T12:00:00.0000000Z       4| test('names the failing worker', () => {
+2026-10-31T12:00:00.0000000Z       5|   expect('unknown worker').toBe('alice');
+2026-10-31T12:00:00.0000000Z        |                            ^
+2026-10-31T12:00:00.0000000Z       6| });
+2026-10-31T12:00:00.0000000Z       7|
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z  Test Files  1 failed (1)
+2026-10-31T12:00:00.0000000Z       Tests  2 failed (2)
+2026-10-31T12:00:00.0000000Z    Start at  23:01:37
+2026-10-31T12:00:00.0000000Z    Duration  161ms (transform 37%, tests 30%, worker 18%, import 15%)
+2026-10-31T12:00:00.0000000Z
+2026-10-31T12:00:00.0000000Z ##[error]Error: Process completed with exit code 1.
+2026-10-31T12:00:00.0000000Z ##[endgroup]
