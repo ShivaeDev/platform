@@ -33,8 +33,7 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
 			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure, sensitive.forRpc);
-			const httpGroup = options.group.omit(...[...options.group.requests.keys()].filter((tag) => tag.endsWith(".$changes")));
-			const handler = yield* hostRpc(httpGroup).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
+			const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
 			const websocket = yield* hostRpc(options.group, true).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			yield* router.add(
