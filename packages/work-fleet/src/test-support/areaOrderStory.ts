@@ -9,7 +9,7 @@ export const areaOrder = storyKit({
 	...engineDefinition,
 	around: withIsolatedDatabase,
 	create: () => {
-		const state = { ...newEngineState(), conflictingPrs: new Set<string>(), red: new Set<string>() };
+		const state = { ...newEngineState(), red: new Set<string>() };
 		state.options = { now: () => state.now };
 		return state;
 	},
@@ -18,18 +18,6 @@ export const areaOrder = storyKit({
 		checksFail: (id: string) => {
 			state.red.add(id);
 			story.tell(`${id}'s required checks fail`);
-		},
-		checksPass: (id: string) => {
-			state.red.delete(id);
-			story.tell(`${id}'s repair passes its required checks`);
-		},
-		conflictsWithMain: (id: string) => {
-			state.conflictingPrs.add(id);
-			story.tell(`${id}'s PR conflicts with main`);
-		},
-		resolveMainConflict: (id: string) => {
-			state.conflictingPrs.delete(id);
-			story.tell(`${id}'s repair resolves its main conflict`);
 		},
 	}),
 });
