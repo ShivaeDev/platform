@@ -14,15 +14,20 @@ import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import type { AppDatabaseOptions } from "#appHost.ts";
 
 export interface DatabaseConfig extends PostgresOptions {
-	readonly changes?: Partial<Omit<PostgresChangesOptions, "client" | "listenerClient" | "connectionSetting" | "resync">>;
+	readonly changes?: Partial<Omit<PostgresChangesOptions, "client" | "listenerClient" | "connectionSetting" | "connectionTTL" | "resync">>;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly listenDatabaseUrl?: Redacted.Redacted<string>;
 }
 
 export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
+	const config = {
+		...options.config,
+		"connectionTTL": options.config?.connectionTTL ?? "10 minutes",
+		idleTimeout: options.config?.idleTimeout ?? "1 minute",
+	} satisfies DatabaseConfig;
 	const pool = Layer.unwrap(
 		Effect.map(options.config?.databaseUrl === undefined ? Config.Redacted("DATABASE_URL") : Effect.succeed(options.config.databaseUrl), (url) =>
-			postgresLayer(url, options.config),
+			postgresLayer(url, config),
 		),
 	);
 	const prepared = Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(pool));
@@ -45,15 +50,22 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 			const listenerClient =
 				listenUrl === undefined
 					? client
-					: yield* Effect.map(
-							Layer.build(postgresLayer(listenUrl, { applicationName: options.config?.applicationName, maxConnections: 1 })),
-							(context) => Context.get(context, PgClient.PgClient),
+					: yield* Effect.map(Layer.build(postgresLayer(listenUrl, { ...config, maxConnections: 1, minConnections: 0 })), (context) =>
+							Context.get(context, PgClient.PgClient),
 						);
 			let connectionSetting = options.config?.databaseUrl === undefined ? "DATABASE_URL" : "config.databaseUrl";
 			if (listenUrl !== undefined) {
 				connectionSetting = options.config?.listenDatabaseUrl === undefined ? "LISTEN_DATABASE_URL" : "config.listenDatabaseUrl";
 			}
-			return postgresChanges({ ...changes, channel, client, connectionSetting, listenerClient, resync: hints.resync() });
+			return postgresChanges({
+				...changes,
+				channel,
+				client,
+				connectionSetting,
+				"connectionTTL": config.connectionTTL,
+				listenerClient,
+				resync: hints.resync(),
+			});
 		}),
 	).pipe(Layer.provideMerge(base));
 }
