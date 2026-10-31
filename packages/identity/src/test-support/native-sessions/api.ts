@@ -1,10 +1,12 @@
-import { Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { HttpServerRequest } from "effect/http";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser, SessionUserWithProviderAccounts } from "#identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "#middleware.ts";
+
+const Profile = Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String, role: Schema.NullOr(Schema.String) });
 
 export const Api = contract("native", {
 	keyScope: "session",
@@ -20,7 +22,13 @@ export const Api = contract("native", {
 			readPolicy: () => Effect.succeed(true),
 			reads: () => [{ _tag: "List", collection: "profile" }],
 			rejections: { Forbidden },
-			success: Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String, role: Schema.NullOr(Schema.String) }),
+			success: Profile,
+		}),
+		query("restrictedProfile", {
+			payload: { owner: Schema.String },
+			readPolicy: ({ owner }, viewer) => Effect.succeed(Option.isSome(viewer) && viewer.value.id === owner),
+			reads: () => [{ _tag: "List", collection: "profile" }],
+			success: Profile,
 		}),
 	],
 }).middleware(AuthenticatedUserWithProviderAccounts);
@@ -36,6 +44,7 @@ export const handlers = Api.application.toLayer({
 			}
 			return { email: user.email, id: identity.id, name: user.name, role: user.role ?? null };
 		}),
+	"native.restrictedProfile": () => Effect.map(SessionUser, (user) => ({ ...user, role: user.role ?? null })),
 });
 
 export const diagnostic = Effect.gen(function* () {

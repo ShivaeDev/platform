@@ -5,6 +5,7 @@ import { type Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import { Activity } from "#clientActivity.ts";
 import type { ClientOptions } from "#clientOptions.ts";
+import { authenticateSocket } from "#socketAuthentication.ts";
 import { clientActivities, makeActivity } from "./clientActivity.ts";
 
 export interface RpcSource {
@@ -17,6 +18,7 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 	const group = RpcGroup.make(...source.requests.values()).annotateMerge(source.annotations);
 	function sharedProtocol(identity?: string) {
 		return socketProtocol({
+			bearerToken: options.bearerToken,
 			headers: options.headers,
 			identity,
 			url: options.url.replace(/^http/u, "ws"),
@@ -64,19 +66,26 @@ export const socketIdentity = Atom.make<string | undefined>(undefined);
 const socketMemoMap = Layer.makeMemoMapUnsafe();
 const socketProtocol = Atom.family(
 	(options: {
+		readonly bearerToken: ClientOptions["bearerToken"];
 		readonly url: string;
 		readonly headers: ClientOptions["headers"];
 		readonly identity: string | undefined;
 		readonly webSocketConstructor: ClientOptions["webSocketConstructor"];
 	}) => {
+		let url = options.url;
+		if (options.bearerToken !== undefined) {
+			const address = new URL(url);
+			address.searchParams.set("auth", "frame");
+			url = address.toString();
+		}
+		const raw = Socket.layerWebSocket(url, { headers: options.headers });
+		const socket = (
+			options.bearerToken === undefined ? raw : Layer.effect(Socket.Socket, authenticateSocket(options.bearerToken)).pipe(Layer.provide(raw))
+		).pipe(Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal));
 		const protocol = RpcClient.layerProtocolSocket({
 			retryPolicy: Schedule.jittered(Schedule.min([Schedule.exponential(500, 1.5), Schedule.spaced(5000)])),
 		}).pipe(
-			Layer.provide(
-				Socket.layerWebSocket(options.url, { headers: options.headers }).pipe(
-					Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal),
-				),
-			),
+			Layer.provide(socket),
 			Layer.provide(RpcSerialization.layerNdjson),
 			// Socket deadlines follow network time even when application time is simulated.
 			Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue())),
