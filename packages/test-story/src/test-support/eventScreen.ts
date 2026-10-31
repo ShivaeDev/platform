@@ -76,9 +76,9 @@ export const eventScreen = storyKit({
 			cancelSettling: () => waiting.cancel("settle"),
 			complete: () => SubscriptionRef.set(pending, false),
 			completeAndPaint: (message: string) => paint(message, true),
-			finished: (operation: "settle" | "find") => waiting.finished(operation),
+			finished: (operation: "settle" | "find" | "findText" | "gone") => waiting.finished(operation),
 			paint,
-			progress: (operation: "settle" | "find") => waiting.progress(operation, "waiting"),
+			progress: (operation: "settle" | "find" | "findText" | "gone") => waiting.progress(operation, "waiting"),
 			renameOutput: (name: string) => paint("Loading", false, name),
 			replaceScreen: (message: string) =>
 				Effect.sync(() => {
@@ -88,6 +88,8 @@ export const eventScreen = storyKit({
 				waiting
 					.starts("find", driver.find(target), (element) => element.textContent ?? "")
 					.pipe(Effect.andThen(engine.mode === "none" ? Effect.void : Deferred.await(observing))),
+			startsFindingText: (text: string) => waiting.starts("findText", driver.findText(text)).pipe(Effect.andThen(Deferred.await(observing))),
+			startsGone: (target: ScreenTarget) => waiting.starts("gone", driver.gone(target)).pipe(Effect.andThen(Deferred.await(observing))),
 			startsSettling: () => waiting.starts("settle", driver.settle()).pipe(Effect.andThen(Deferred.await(observing))),
 			subscriptionState: () => (engine.subscriptions === 0 ? "unsubscribed" : "subscribed"),
 		};

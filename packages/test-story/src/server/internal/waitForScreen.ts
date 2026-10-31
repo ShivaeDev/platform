@@ -34,13 +34,15 @@ export const waitForScreen = Effect.fnUntraced(function* <A, E>({ act, pending, 
 	yield* screenMutations(root(), () => Queue.offerUnsafe(changes, undefined));
 	const isBusy = yield* observePending(pending, changes);
 	do {
-		yield* Effect.promise(() => act(() => Promise.resolve()));
+		if (pending !== undefined) {
+			yield* Effect.promise(() => act(() => Promise.resolve()));
+		}
 		if (!(yield* isBusy)) {
 			const result = yield* Effect.result(read);
 			if (Result.isSuccess(result)) {
 				return result.success;
 			}
 		}
-		yield* Effect.promise((signal) => act(() => Effect.runPromise(Queue.take(changes), { signal })));
+		yield* pending === undefined ? Queue.take(changes) : Effect.promise((signal) => act(() => Effect.runPromise(Queue.take(changes), { signal })));
 	} while (true);
 }, Effect.scoped);
