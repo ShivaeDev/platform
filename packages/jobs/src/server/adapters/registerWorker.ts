@@ -1,27 +1,26 @@
-import { type Context, Effect, Fiber, Scope } from "effect";
+import { Effect, Fiber, Scope } from "effect";
 import type { Job, WorkOptions } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { toPgBossError } from "#error.ts";
-import { batchHandler, type PgBossRunner } from "#internal/batchHandler.ts";
+import { batchHandler } from "#internal/batchHandler.ts";
 import { deferrableAttempt } from "#internal/deferrableAttempt.ts";
 import { retryWake } from "#internal/retryWake.ts";
 import { traceJob } from "#internal/tracing.ts";
 
-export const registerWorker = Effect.fnUntraced(function* (
+export const registerWorker = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,
 	name: string,
 	options: WorkOptions,
-	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown, unknown>,
+	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown, R>,
 	scope: Scope.Scope,
 	schema: string,
 	maxDeferrals: number,
-	context: Context.Context<unknown>,
-	execute: PgBossRunner,
 	graceful: boolean,
 ) {
+	const execute = Effect.runPromiseWith(yield* Effect.context<R>());
 	const fibers = yield* Scope.fork(scope);
 	function runJob(job: Job<unknown>, deadline: number) {
-		return Effect.provide(traceJob(deferrableAttempt(run(job, deadline), client, schema, job, maxDeferrals), job, name), context);
+		return traceJob(deferrableAttempt(run(job, deadline), client, schema, job, maxDeferrals), job, name);
 	}
 	function afterFailure(attempt: Job<unknown>) {
 		return retryWake(client, name, attempt.id, registration).pipe(Effect.forkIn(fibers), Effect.asVoid);

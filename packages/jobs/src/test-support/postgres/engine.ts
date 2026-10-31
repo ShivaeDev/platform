@@ -49,7 +49,7 @@ export function provided<A, E, R>(engine: DatabaseEngine, runtime: string, effec
 	const logged = effect.pipe(
 		Effect.provide(Logger.layer([logger])),
 		Effect.provideService(References.MinimumLogLevel, "Debug"),
-		Effect.provideService(ApplicationLog, (line) => engine.timeline.push(line)),
+		Effect.provide(Layer.succeed(ApplicationLog, (line) => engine.timeline.push(line))),
 		Effect.withTracer(engine.trace.tracer),
 	);
 	return release === undefined ? logged : Effect.provideService(logged, WorkerRelease, release.service);

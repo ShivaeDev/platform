@@ -28,6 +28,11 @@ function relabelled(engine: DatabaseEngine, value: unknown): unknown {
 
 export function readouts(engine: DatabaseEngine) {
 	return {
+		applicationLoggedJob: (as: string) =>
+			Effect.sync(() => {
+				const { id, queue } = idOf(engine, as);
+				return engine.timeline.includes(`${queue.name} ran ${id}`);
+			}),
 		attemptCounts: (queue: Pick<QueueDefinition, "name">) =>
 			Effect.sync(() => {
 				const counts: Record<string, number> = {};
