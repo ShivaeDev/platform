@@ -29,8 +29,8 @@ application.it(
 			".create-app.json",
 			".env.local",
 			"package.json",
-			"src/client/modules.ts",
 			"src/admin/modules.ts",
+			"src/client/modules.ts",
 			"src/server/modules.ts",
 			"src/server/workerModules.ts",
 		]);
