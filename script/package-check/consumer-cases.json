@@ -80,7 +80,7 @@
 			"run": []
 		},
 		{
-			"entries": ["./loadQuery.ts"],
+			"entries": ["./adapters/loadQuery.ts"],
 			"fixtures": ["router-types.ts.txt"],
 			"omitOptionalPeers": false,
 			"run": []
