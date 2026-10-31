@@ -188,6 +188,8 @@ The supervisor holds the canonical Board directory until shutdown. A second `up`
 
 In a Platform checkout, `up` builds the sibling Work Board plugin's client bundle before starting Fleet and Board, then rebuilds it when the plugin's TypeScript sources, package manifest or client build script change. Generated output is excluded from change detection. Build output and errors go to the supervisor log; a failed plugin build leaves Fleet and Board running.
 
+When that checkout's `pnpm-lock.yaml` changes while `up` runs, the supervisor runs `pnpm install --frozen-lockfile` from the lockfile's directory before rebuilding the plugin and restarting both services. Source-only edits do not install dependencies. Install output and errors go to the supervisor log. A failed install leaves the existing services running and blocks rebuilds and restarts until another lockfile change triggers a new install.
+
 ```sh
 work-fleet up <board-dir> --status
 work-fleet up <board-dir> --status --json

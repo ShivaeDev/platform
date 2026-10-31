@@ -12,6 +12,7 @@ import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { SupervisorStoryEngine } from "#test/SupervisorStoryEngine.ts";
 import { supervisorBoardCall } from "#test/supervisorBoardCall.ts";
 import { supervisorCodeChanges } from "#test/supervisorCodeChanges.ts";
+import { supervisorDependencies } from "#test/supervisorDependencies.ts";
 import { supervisorPluginFiles, supervisorPluginInstallation } from "#test/supervisorPluginInstallation.ts";
 import { supervisorSocketCall } from "#test/supervisorSocketCall.ts";
 
@@ -58,6 +59,14 @@ export const fleetSupervisor = storyKit({
 			story.tell(`change ${kind} installed code`);
 			return engine.editCode(kind);
 		},
+		editLockfile: (kind: "change" | "fail") =>
+			Effect.sync(() => {
+				story.tell(`${kind} the checkout lockfile`);
+				if (engine.dependencies === undefined) {
+					throw new Error("Install the dependency fixture first");
+				}
+				engine.dependencies[kind]();
+			}),
 		editPlugin: (source: string) => Effect.sync(() => supervisorPluginFiles(engine.fixture.root).edit(source)),
 		exit: () => {
 			const child = engine.process;
@@ -143,3 +152,7 @@ export function ignoresStop(name: "daemon" | "board") {
 		engine.stubbornChild = name;
 	});
 }
+
+export const lockedDependencies = fleetSupervisor.trait("ownership", "the plugin reads a locked local dependency", (engine) => {
+	engine.dependencies = supervisorDependencies(engine.fixture.root);
+});

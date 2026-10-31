@@ -25,37 +25,38 @@ function sourceRevision(root: string) {
 export const pluginBuilder = Effect.fn("FleetSupervisor.pluginBuilder")(function* (fleetManifest: string, log: string) {
 	const root = join(dirname(realpathSync(fleetManifest)), "../work-board-plugin");
 	if (!existsSync(join(root, "script/build-client.ts"))) {
-		return Effect.void;
+		return () => Effect.void;
 	}
 	let previous: string | undefined;
-	return Effect.gen(function* () {
-		const revision = yield* Effect.try(() => sourceRevision(root));
-		if (revision === previous) {
-			return;
-		}
-		previous = revision;
-		yield* logSupervisor(log, "building Work Board plugin client bundle");
-		yield* Effect.scoped(
-			Effect.gen(function* () {
-				const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-				const child = yield* spawner.spawn(
-					ChildProcess.make(process.execPath, ["--conditions=source", join(root, "script/build-client.ts")], {
-						cwd: root,
-						stderr: "pipe",
-						stdin: "ignore",
-						stdout: "pipe",
-					}),
-				);
-				const output = yield* Effect.forkScoped(
-					child.all.pipe(
-						Stream.decodeText,
-						Stream.runForEach((text) => appendSupervisorLog(log, `plugin: ${text}`)),
-					),
-				);
-				const status = yield* child.exitCode;
-				yield* Fiber.join(output);
-				yield* logSupervisor(log, status === 0 ? "built Work Board plugin client bundle" : `Work Board plugin build failed: exit ${status}`);
-			}),
-		);
-	}).pipe(Effect.catch((error) => logSupervisor(log, `Work Board plugin build failed: ${error.message}`)));
+	return (force = false) =>
+		Effect.gen(function* () {
+			const revision = yield* Effect.try(() => sourceRevision(root));
+			if (!force && revision === previous) {
+				return;
+			}
+			previous = revision;
+			yield* logSupervisor(log, "building Work Board plugin client bundle");
+			yield* Effect.scoped(
+				Effect.gen(function* () {
+					const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+					const child = yield* spawner.spawn(
+						ChildProcess.make(process.execPath, ["--conditions=source", join(root, "script/build-client.ts")], {
+							cwd: root,
+							stderr: "pipe",
+							stdin: "ignore",
+							stdout: "pipe",
+						}),
+					);
+					const output = yield* Effect.forkScoped(
+						child.all.pipe(
+							Stream.decodeText,
+							Stream.runForEach((text) => appendSupervisorLog(log, `plugin: ${text}`)),
+						),
+					);
+					const status = yield* child.exitCode;
+					yield* Fiber.join(output);
+					yield* logSupervisor(log, status === 0 ? "built Work Board plugin client bundle" : `Work Board plugin build failed: exit ${status}`);
+				}),
+			);
+		}).pipe(Effect.catch((error) => logSupervisor(log, `Work Board plugin build failed: ${error.message}`)));
 });

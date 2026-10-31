@@ -3,6 +3,7 @@ import { unlink } from "node:fs/promises";
 import process from "node:process";
 import { Clock, Console, Effect, Exit, Scope, Semaphore } from "effect";
 import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
+import { dependencyInstaller } from "#host/adapters/dependencyInstaller.ts";
 import { pluginBuilder } from "#host/adapters/pluginBuilder.ts";
 import { replacementCode } from "./replacementCode.ts";
 import { logSupervisor, startProcess } from "./supervisedProcess.ts";
@@ -75,12 +76,14 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 				});
 				yield* publish();
 			});
-			const refresh = Effect.fnUntraced(function* (name: Name) {
+			const refresh = Effect.fnUntraced(function* (name: Name, dependenciesChanged: boolean) {
 				const child = children.get(name);
 				if (child === undefined) {
 					return;
 				}
-				const next = yield* replacementCode(name, child.process, child.code, root, log);
+				const next = dependenciesChanged
+					? { code: (yield* codeReader(root))[name], reason: "dependencies changed; draining requests" }
+					: yield* replacementCode(name, child.process, child.code, root, log);
 				if (next !== undefined) {
 					yield* logSupervisor(log, `${name} ${next.reason}; restarting`);
 					yield* Scope.close(child.scope, Exit.void);
@@ -90,20 +93,23 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 					yield* start(name, next.code, child.state.restarts + 1);
 				}
 			});
+			const installDependencies = yield* dependencyInstaller(codes.daemon.manifest, log);
 			const buildPlugin = yield* pluginBuilder(codes.daemon.manifest, log);
-			yield* buildPlugin;
-			yield* Effect.forkScoped(Effect.forever(Effect.sleep("1 second").pipe(Effect.andThen(buildPlugin))));
+			yield* buildPlugin();
 			for (const name of ["daemon", "board"] as const) {
 				yield* start(name, codes[name], 0);
 			}
 			yield* Console.log(`Fleet up pid ${process.pid}; Fleet port ${options.daemonPort}, Board port ${options.boardPort}\nLogs: ${log}`);
-			const watch = Effect.fnUntraced(function* (name: Name) {
-				for (;;) {
-					yield* Effect.sleep("1 second");
-					yield* refresh(name).pipe(Effect.catch((error) => logSupervisor(log, error.message)));
+			const refreshCheckout = Effect.gen(function* () {
+				const dependencies = yield* installDependencies();
+				if (dependencies === "failed") {
+					return;
 				}
-			});
-			yield* Effect.forEach(["daemon", "board"] as const, watch, { concurrency: "unbounded", discard: true });
+				const changed = dependencies === "installed";
+				yield* buildPlugin(changed);
+				yield* Effect.forEach(["daemon", "board"] as const, (name) => refresh(name, changed), { concurrency: "unbounded", discard: true });
+			}).pipe(Effect.catch((error) => logSupervisor(log, error.message)));
+			yield* Effect.forever(Effect.sleep("1 second").pipe(Effect.andThen(refreshCheckout)));
 		}),
 	);
 });
