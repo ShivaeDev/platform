@@ -113,6 +113,19 @@ screenStory.it(
 );
 
 screenStory.it(
+	"closing Reading history returns focus to the sidebar button that opened it",
+	history,
+	function* ({ closeReadingHistory, openReadingHistory, readerFocus }) {
+		yield* openReadingHistory();
+		expect(yield* readerFocus()).toBe("link First");
+
+		yield* closeReadingHistory();
+
+		expect(yield* readerFocus()).toBe("button Reading history");
+	},
+);
+
+screenStory.it(
 	"cancelling Clear history keeps every entry",
 	history,
 	function* ({ answerClearConfirmation, clearHistory, historyDays, openReadingHistory }) {

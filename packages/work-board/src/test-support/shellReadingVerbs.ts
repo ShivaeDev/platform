@@ -4,7 +4,7 @@ import { chrome } from "./chrome.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { trackScreen } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
-import { shellActs, shellElement } from "./shellScreenAct.ts";
+import { pressKey, shellActs, shellElement } from "./shellScreenAct.ts";
 
 function details(summary: string) {
 	const found = [...document.querySelectorAll<HTMLDetailsElement>("#doc details")].find(
@@ -23,6 +23,10 @@ function sectionLinks(name: string) {
 export function shellReadingVerbs(engine: ScreenEngine, tell: (line: string) => void) {
 	const { acting, reading } = shellActs(engine, tell);
 	return {
+		closeReadingHistory: () =>
+			acting("the reader closes Reading history with Escape", () => {
+				pressKey(document.activeElement ?? document.body, "Escape");
+			}),
 		detailsBlock: (summary: string) => reading(`the reader checks the ${summary} details`, () => (details(summary).open ? "open" : "closed")),
 		historyNotice: () =>
 			reading("the reader reads the reading history notice", () => document.querySelector('#library-dialog [role="status"]')?.textContent),

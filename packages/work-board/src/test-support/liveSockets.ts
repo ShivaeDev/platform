@@ -91,7 +91,7 @@ interface SocketState {
 	other?: BoardPlace;
 	search?: Fiber.Fiber<readonly string[], unknown>;
 	readonly staged: Map<string, string>;
-	stopped?: number;
+	stopStarted?: number;
 	unfinished?: Unfinished;
 	readonly workers: Map<string, Worker>;
 }

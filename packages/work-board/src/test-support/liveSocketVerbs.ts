@@ -94,12 +94,14 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 		},
 		inboxAudience: () => {
 			tell("a native RPC client reads who the Inbox asks");
-			return Effect.map(
-				rpcCall(served(engine).board, (client) => client("work-board.inbox", undefined)),
-				(inbox) => ({
-					agents: inbox.agents.length,
-					you: inbox.you.length,
-				}),
+			return Effect.suspend(() =>
+				Effect.map(
+					rpcCall(served(engine).board, (client) => client("work-board.inbox", undefined)),
+					(inbox) => ({
+						agents: inbox.agents.length,
+						you: inbox.you.length,
+					}),
+				),
 			);
 		},
 		navigationHome: () => {
@@ -184,12 +186,13 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 			const root = of === "the project" ? engine.notes.root : place(of).root;
 			return serverAnswerOf(over === "socket" ? join(root, "board.sock") : place(of).url, label);
 		},
-		shutdownWait: () =>
-			Effect.sync(() => {
-				tell("the reader checks how long shutdown waited");
-				const took = present(state.stopped, "The board was not stopped with stopTimed");
-				return took >= 4900 ? "the full drain period" : `${Math.round(took)}ms`;
-			}),
+		shutdownWait: () => {
+			tell("the reader checks how long shutdown waited before it cut the unfinished request");
+			const stopAt = present(state.stopStarted, "The board was not stopped with stopTimed");
+			return Effect.map(present(state.unfinished, "No unfinished request is open").closed, ({ at }) =>
+				at - stopAt >= 4900 ? "the full drain period" : `${Math.round(at - stopAt)}ms`,
+			);
+		},
 		socketFile: (of: "the project" | "the other folder" = "the project") =>
 			Effect.sync(() => {
 				tell(`the reader inspects the socket in ${of === "the project" ? "the project folder" : "the other folder"}`);
@@ -227,9 +230,8 @@ export function liveSocketVerbs(engine: BoardEngine, tell: (line: string) => voi
 		},
 		stopTimed: Effect.fn("Story.stopTimed")(function* () {
 			tell("the board shuts down");
-			const before = yield* Clock.currentTimeMillis;
+			state.stopStarted = yield* Clock.currentTimeMillis;
 			yield* served(engine).board.stop();
-			state.stopped = (yield* Clock.currentTimeMillis) - before;
 		}),
 		unfinishedRequestEnd: () => {
 			tell("the reader sees how the unfinished request ended");

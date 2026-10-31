@@ -138,6 +138,11 @@ export function shellPageVerbs(engine: ScreenEngine, tell: (line: string) => voi
 			reading("the reader looks for the header's Opening page bar", () =>
 				document.querySelector('[role="progressbar"][aria-label="Opening page"]') ? "shown" : "not shown",
 			),
+		pendingFeedbackDelayAlmostPasses: () =>
+			Effect.gen(function* () {
+				tell(`${PENDING_FEEDBACK_MS - 1} ms of the pending-feedback delay pass`);
+				yield* Effect.promise(() => act(() => vi.advanceTimersByTimeAsync(PENDING_FEEDBACK_MS - 1)));
+			}),
 		pendingFeedbackDelayPasses: () =>
 			Effect.gen(function* () {
 				tell(`the ${PENDING_FEEDBACK_MS} ms pending-feedback delay passes`);

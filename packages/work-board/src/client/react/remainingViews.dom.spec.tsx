@@ -12,7 +12,7 @@ const FILES = { "home.md": "# Home", "task.md": TASK };
 const URL = "/_board/item/task.fixture/";
 
 screenStory.it(
-	"the System page opened by its address shows each source's state, with Codex missing",
+	"the System page opened by its address shows Codex as not configured",
 	[routedScreen(FILES, "/_board/system")],
 	function* ({ systemCard }) {
 		expect(yield* systemCard("codex")).toEqual(expect.objectContaining({ state: "not-configured" }));

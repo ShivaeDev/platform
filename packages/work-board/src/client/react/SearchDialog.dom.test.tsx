@@ -91,18 +91,23 @@ screenStory.it(
 	},
 );
 
-for (const key of ["Home", "End"]) {
+for (const { key, moves, selected } of [
+	{ key: "Home", moves: ["ArrowDown"], selected: "Second" },
+	{ key: "End", moves: [], selected: "First" },
+]) {
 	screenStory.it(
-		`${key} moves the caret in the search field without changing the selected result`,
+		`${key} moves the caret in the search field without moving the selection off ${selected}`,
 		[searchOpened({ "notes/first.md": "# First\n\nShared phrase one.", "notes/second.md": "# Second\n\nShared phrase two." })],
 		function* ({ pressInSearch, searchFor, selectedResult }) {
 			yield* searchFor("Shared phrase");
-			yield* pressInSearch("ArrowDown");
-			expect((yield* selectedResult()).selected).toBe("Second");
+			for (const move of moves) {
+				yield* pressInSearch(move);
+			}
+			expect((yield* selectedResult()).selected).toBe(selected);
 
 			yield* pressInSearch(key);
 
-			expect((yield* selectedResult()).selected).toBe("Second");
+			expect((yield* selectedResult()).selected).toBe(selected);
 		},
 	);
 }

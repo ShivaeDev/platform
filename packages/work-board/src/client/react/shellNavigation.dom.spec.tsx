@@ -59,12 +59,13 @@ const heldItem = [holdableRead("/_board/item/note.next/"), routedScreen(files, "
 const NOW = expect.stringMatching(/^Now/u);
 
 screenStory.it(
-	"marks Now current as soon as the reader starts opening it, without pending feedback before 150 ms",
+	"marks Now current as soon as the reader starts opening it, and shows no pending feedback before 150 ms pass",
 	heldItem,
-	function* ({ beginOpeningWithHeldRead, currentDestination, pendingFeedback }) {
+	function* ({ beginOpeningWithHeldRead, currentDestination, pendingFeedback, pendingFeedbackDelayAlmostPasses }) {
 		expect(yield* currentDestination()).toBe("Goals");
 
 		yield* beginOpeningWithHeldRead("/_board/work?item=note.next");
+		yield* pendingFeedbackDelayAlmostPasses();
 
 		yield* outcomes({
 			"the current destination": [currentDestination(), NOW],

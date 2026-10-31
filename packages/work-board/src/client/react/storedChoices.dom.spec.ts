@@ -10,17 +10,29 @@ import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
 expectNoReactWarnings();
 
 screenStory.it(
-	"saved appearance values the Board doesn't know fall back to the system theme, comfortable density and an open sidebar, and another workspace's dark theme is ignored",
+	"saved appearance values the Board doesn't know fall back to the system theme, comfortable density and an open sidebar",
 	[
 		screenWorkspace("stored-choices"),
-		storedScreenState({
-			"work-board:appearance:stored-choices": JSON.stringify({ closed: "yes", density: "tiny", theme: "unknown" }),
-			"work-board:appearance:stored-choices-other": JSON.stringify({ theme: "dark" }),
-		}),
+		storedScreenState({ "work-board:appearance:stored-choices": JSON.stringify({ closed: "yes", density: "tiny", theme: "unknown" }) }),
 		chromeScreen(chromeFixture()),
 	],
 	function* ({ shellPreferences }) {
 		expect(yield* shellPreferences()).toEqual({ density: "comfortable", sidebar: "open", theme: "system" });
+	},
+);
+
+screenStory.it(
+	"the Board restores the appearance saved for its own workspace and ignores another workspace's",
+	[
+		screenWorkspace("stored-choices"),
+		storedScreenState({
+			"work-board:appearance:stored-choices": JSON.stringify({ closed: true, density: "compact", theme: "dark" }),
+			"work-board:appearance:stored-choices-other": JSON.stringify({ closed: false, density: "comfortable", theme: "light" }),
+		}),
+		chromeScreen(chromeFixture()),
+	],
+	function* ({ shellPreferences }) {
+		expect(yield* shellPreferences()).toEqual({ density: "compact", sidebar: "closed", theme: "dark" });
 	},
 );
 

@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { archiveFixture, finishedBrief } from "#test/archiveFixture.ts";
@@ -8,12 +9,12 @@ const OLD_ARCHIVED = ["archive/board/dropped.md", "archive/board/old.md", "tasks
 const OLD_DEPENDENCY = { diagnostics: [], target: expect.objectContaining({ kind: "task", status: "done", title: "old" }) };
 
 boardStory.it(
-	"the archive command moves briefs finished over two weeks ago into the archive unchanged and keeps recent and open briefs active",
+	"the archive command moves briefs finished over two weeks ago into the archive unchanged, keeps recent and open briefs active and reports how many it moved",
 	[archiveFixture(), deferredServing],
 	function* ({ archivePass, briefFiles, sourcesAt }) {
 		expect(yield* briefFiles()).toEqual(ALL_ACTIVE);
 
-		expect(yield* archivePass()).toBe("Moved 2 records.");
+		const report = yield* archivePass();
 
 		yield* outcomes({
 			"archived sources": [
@@ -21,6 +22,7 @@ boardStory.it(
 				{ "archive/board/dropped.md": finishedBrief("dropped", "dropped"), "archive/board/old.md": finishedBrief("old") },
 			],
 			briefs: [briefFiles(), OLD_ARCHIVED],
+			"the report": [Effect.succeed(report), "Moved 2 records."],
 		});
 	},
 );

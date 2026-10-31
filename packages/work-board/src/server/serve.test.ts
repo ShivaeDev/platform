@@ -24,9 +24,11 @@ boardStory.it(
 	[projectFiles(inboxAudienceFixture("Casey")), deferredServing],
 	function* ({ commandAddress, commandStarts, inboxAudience }) {
 		yield* commandStarts(["--maintainer", "Casey"]);
-		expect(yield* commandAddress()).toBe("a loopback address");
 
-		expect(yield* inboxAudience()).toEqual({ agents: 1, you: 2 });
+		yield* outcomes({
+			address: [commandAddress(), "a loopback address"],
+			"inbox audience": [inboxAudience(), { agents: 1, you: 2 }],
+		});
 	},
 );
 
