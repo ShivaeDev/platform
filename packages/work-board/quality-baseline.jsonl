@@ -103,7 +103,7 @@
 {"path":"packages/work-board/src/client/react/TodayPage.dom.test.tsx","rule":"tests/wait-on-events","count":7}
 {"path":"packages/work-board/src/client/react/TodayPage.tsx","rule":"react/jsx-conditionals","count":12}
 {"path":"packages/work-board/src/client/react/TodayProgress.dom.test.tsx","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/client/react/TodayProgress.tsx","rule":"react/jsx-conditionals","count":16}
+{"path":"packages/work-board/src/client/react/TodayProgress.tsx","rule":"react/jsx-conditionals","count":15}
 {"path":"packages/work-board/src/client/react/TodayReadOnly.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"packages/work-board/src/client/react/TodaySummary.tsx","rule":"react/jsx-conditionals","count":6}
 {"path":"packages/work-board/src/client/react/UpdatesToggle.tsx","rule":"react/jsx-conditionals","count":2}

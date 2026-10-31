@@ -1,17 +1,18 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { notesRoute, screens } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
 	"lists saved notes in the data table and sorts their linked titles in both directions",
 	[notesRoute()],
-	function* ({ closeScreen, consoleErrors, enter, submit, noteLink, notesTable, click }) {
+	function* ({ settle, closeScreen, consoleErrors, enter, submit, noteLink, notesTable, click }) {
 		yield* enter("Apple");
 		yield* submit();
-		yield* eventually(() => expect(noteLink()).toBe("Apple"));
+		yield* settle();
+		expect(noteLink()).toBe("Apple");
 		yield* enter("Zebra");
 		yield* submit();
-		yield* eventually(() => expect(noteLink()).toBe("Zebra"));
+		yield* settle();
+		expect(noteLink()).toBe("Zebra");
 		const table = yield* notesTable();
 		expect(table.getAttribute("aria-label")).toBe("Saved notes");
 		expect([...table.querySelectorAll("tbody td a")].map((link) => link.textContent)).toEqual(["Zebra", "Apple"]);

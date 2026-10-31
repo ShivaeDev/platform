@@ -23,11 +23,11 @@ export const folderEvents = Effect.fn("WorkBoard.folderEvents")(function* (folde
 	);
 });
 
-export const watchedScan = Effect.fn("WorkBoard.watchedScan")(function* (root: string, realRoot: string) {
+export const watchedScan = Effect.fn("WorkBoard.watchedScan")(function* (root: string, realRoot: string, unconfirmed?: Effect.Effect<void>) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const rootEvents = yield* Stream.toQueue(yield* folderEvents({ real: realRoot, recursive: true, relative: "" }), { capacity: "unbounded" });
-	// Scanning only after the root watch reports its own sentinel leaves no change unseen. The removal watch, for a root removed without
+	// When writable, scanning only after the root watch reports its own sentinel leaves no change unseen. The removal watch, for a root removed without
 	// descendant events, starts first because adding a watcher restarts macOS's shared event stream and drops the events in between. Linked
 	// folders are watched only once the scan finds them, so their workspace offers no listing and is listed again after those watches settle.
 	const removals = yield* Stream.toQueue(
@@ -37,7 +37,7 @@ export const watchedScan = Effect.fn("WorkBoard.watchedScan")(function* (root: s
 		),
 		{ capacity: "unbounded" },
 	);
-	yield* watchSentinel(realRoot, rootEvents);
+	yield* watchSentinel(realRoot, rootEvents, unconfirmed);
 	const { files, roots } = yield* scanMarkdown(root, realRoot);
 	return {
 		files,

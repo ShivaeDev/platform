@@ -1,13 +1,16 @@
 import { Data, Effect, Schedule } from "effect";
+import { type ClientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { withLive } from "@shivaedev/test/withLive.ts";
-import { accessibility, targetName } from "#internal/screenAccessibility.ts";
+import { targetName } from "#internal/screenAccessibility.ts";
+import { nextClientHint, waitForClient } from "#internal/screenActivity.ts";
 import { screenElements } from "#internal/screenElements.ts";
+import { screenReadouts } from "#internal/screenReadouts.ts";
 
 export type ScreenTarget = string | { readonly role: string; readonly name: string | RegExp };
 
 export interface ScreenDriverOptions {
 	readonly act?: (action: () => Promise<void>) => PromiseLike<void>;
-	readonly pending?: () => boolean;
+	readonly pending?: (() => boolean) | ClientActivity;
 	readonly root: HTMLElement | (() => HTMLElement);
 	readonly tell: (line: string) => void;
 	readonly timeoutMs?: number;
@@ -18,11 +21,18 @@ export class MissingScreenPending extends Data.TaggedError("MissingScreenPending
 		"Cannot settle the screen without the pending option.\nhelp: Supply pending: () => boolean that reads the application's pending work and stays true until its resulting screen work is ready to render.";
 }
 
-export type ScreenDriver<E = never> = Omit<ReturnType<typeof makeScreenActions>, "settle"> & {
+export class MissingClientActivity extends Data.TaggedError("MissingClientActivity") {
+	override readonly message =
+		"Cannot wait for a live hint without client activity.\nhelp: Supply pending: clientActivity(client) from @shivaedev/contract/clientActivity.ts.";
+}
+
+export type ScreenDriver<E = never, THintError = MissingClientActivity> = Omit<ReturnType<typeof makeScreenActions>, "settle" | "nextLiveHint"> & {
+	nextLiveHint: () => Effect.Effect<void, THintError>;
 	settle: (options?: { readonly timeoutMs?: number }) => Effect.Effect<void, E>;
-	within: (container: ScreenTarget | HTMLElement) => ScreenDriver<E>;
+	within: (container: ScreenTarget | HTMLElement) => ScreenDriver<E, THintError>;
 };
 
+export function screenDriver(options: ScreenDriverOptions & { readonly pending: ClientActivity }): ScreenDriver<never, never>;
 export function screenDriver(options: ScreenDriverOptions & { readonly pending: () => boolean }): ScreenDriver;
 export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending>;
 export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending> {
@@ -54,16 +64,22 @@ function makeScreenActions({ root, pending, tell, act = (action) => action(), ti
 		if (pending === undefined) {
 			return Effect.fail(new MissingScreenPending());
 		}
+		return settleWork(pending, options);
+	}
+	function settleWork(work: NonNullable<ScreenDriverOptions["pending"]>, options: { readonly timeoutMs?: number }) {
 		const limit = options.timeoutMs ?? timeoutMs;
+		const isIdle = typeof work === "function" ? Effect.sync(() => !work()) : Effect.map(work.current, isClientIdle);
 		const wait = Effect.gen(function* () {
 			tell("wait for the screen's pending work");
 			do {
 				yield* Effect.promise(() => act(async () => undefined));
-				if (!pending()) {
+				if (yield* isIdle) {
 					tell("the screen has no pending work");
 					return;
 				}
-				yield* Effect.promise(() => act(() => new Promise<void>((resolve) => setTimeout(resolve, 10))));
+				yield* typeof work === "function"
+					? Effect.promise(() => act(() => new Promise<void>((resolve) => setTimeout(resolve, 10))))
+					: Effect.promise((signal) => act(() => Effect.runPromise(waitForClient(work), { signal })));
 			} while (true);
 		});
 		function timedOut() {
@@ -76,6 +92,16 @@ function makeScreenActions({ root, pending, tell, act = (action) => action(), ti
 		return withLive(wait.pipe(Effect.timeoutOrElse({ duration: limit, orElse: timedOut })));
 	}
 	function find(target: ScreenTarget, options: { readonly timeout?: number } = {}) {
+		if (pending !== undefined && typeof pending !== "function") {
+			return settleWork(pending, { timeoutMs: options.timeout ?? timeoutMs }).pipe(
+				Effect.andThen(
+					Effect.sync(() => {
+						tell(`find ${targetName(target)}`);
+						return elements.element(target);
+					}),
+				),
+			);
+		}
 		return withLive(
 			Effect.gen(function* () {
 				tell(`find ${targetName(target)}`);
@@ -93,15 +119,7 @@ function makeScreenActions({ root, pending, tell, act = (action) => action(), ti
 		);
 	}
 	return {
-		accessible: (selector: string | Element) => {
-			if (typeof selector !== "string") {
-				return accessibility(selector);
-			}
-			const element = elements.element(selector);
-			const accessible = accessibility(element);
-			tell(`read the accessibility of ${selector}: ${JSON.stringify(accessible)}`);
-			return accessible;
-		},
+		...screenReadouts(currentRoot, tell),
 		click: (selector: ScreenTarget) =>
 			perform(`click ${targetName(selector)}`, () => {
 				const element = elements.element(selector);
@@ -111,17 +129,17 @@ function makeScreenActions({ root, pending, tell, act = (action) => action(), ti
 			}),
 		enter: (selector: ScreenTarget, value: string) => perform(`enter a value in ${targetName(selector)}`, () => elements.enter(selector, value)),
 		find,
+		nextLiveHint: () => {
+			if (pending === undefined || typeof pending === "function") {
+				return Effect.fail(new MissingClientActivity());
+			}
+			return withLive(
+				Effect.sync(() => tell("wait for the next live hint")).pipe(
+					Effect.andThen(Effect.promise((signal) => act(() => Effect.runPromise(nextClientHint(pending), { signal })))),
+				),
+			);
+		},
 		settle,
 		submit: (selector: ScreenTarget = "form") => perform(`submit ${targetName(selector)}`, () => elements.form(selector).requestSubmit()),
-		text: (selector?: ScreenTarget) => {
-			const text = elements.text(selector === undefined ? elements.rendered(currentRoot(), "root") : elements.element(selector));
-			tell(`read ${selector === undefined ? "the screen" : targetName(selector)}: ${JSON.stringify(text)}`);
-			return text;
-		},
-		value: (selector: ScreenTarget) => {
-			const value = elements.input(selector).value;
-			tell(`read the value in ${targetName(selector)}: ${JSON.stringify(value)}`);
-			return value;
-		},
 	};
 }

@@ -5,11 +5,10 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { JobsView } from "#client/admin/JobsView.tsx";
-import { foundationRegistration } from "#client/foundationRegistration.ts";
+import { foundationRegistration } from "#client/foundationRegistration.tsx";
 import { connectModules } from "#client/Module.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
-import { Admin } from "#modules/notes/admin.ts";
-import { adminRoutes } from "#modules/notes/client/adminRoutes.tsx";
+import { adminRegistration } from "#modules/notes/client/adminRegistration.tsx";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
 import { foundation } from "#modules.ts";
 import type { ScreenSurface } from "#test-support/screenState.ts";
@@ -81,15 +80,7 @@ export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Ty
 		const auth = screenAuth();
 		function connect({ id }: { readonly id: string }) {
 			const client = id === "alice" ? engine.client : other;
-			return connectModules([
-				foundationRegistration(client),
-				{
-					admin: Admin,
-					api: client.statistics,
-					bindings: [client.jobs, client.statistics, client.users],
-					routes: (context) => adminRoutes(client, { adminPages: context.adminPages, getParentRoute: () => context.root, session: context.session }),
-				},
-			]);
+			return connectModules([foundationRegistration(client), adminRegistration(client)]);
 		}
 		function recheck() {
 			return undefined;

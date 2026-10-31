@@ -27,7 +27,7 @@ export const makeSocketSession = Effect.fnUntraced(function* (interval: Duration
 			Effect.gen(function* () {
 				let batch = pending.get(key);
 				if (batch === undefined) {
-					batch = yield* Effect.cached(Effect.sleep(0).pipe(Effect.andThen(lookup), Effect.ensuring(Effect.sync(() => pending.delete(key)))));
+					batch = yield* Effect.cached(Effect.yieldNow.pipe(Effect.andThen(lookup), Effect.ensuring(Effect.sync(() => pending.delete(key)))));
 					pending.set(key, batch);
 				}
 				return yield* batch;

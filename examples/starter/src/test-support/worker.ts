@@ -1,5 +1,4 @@
 import { Effect, Layer } from "effect";
-import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -19,8 +18,7 @@ export const worker = storyKit({
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		yield* Effect.scoped(migrateDatabase(database.url));
-		const pool = yield* authDatabase(database.url);
-		return { database, storage: authTestDatabase(pool), testing: makePgBossTesting() };
+		return { database, storage: yield* authTestDatabase, testing: makePgBossTesting() };
 	},
 	inspect: () => ({}),
 	layer: postgres,

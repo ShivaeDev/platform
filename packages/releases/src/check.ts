@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { checkPackageFiles } from "#checkPackageFiles.ts";
 import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { Source, Workspace } from "#model.ts";
@@ -33,6 +34,7 @@ export const planDiff = Effect.fn("Changesets.planDiff")(function* (before: Work
 });
 
 export const validateDiff = Effect.fn("Changesets.validateDiff")(function* (before: Workspace, after: Workspace) {
+	yield* checkPackageFiles(after.packages);
 	const declarations = yield* Effect.forEach([...before.changesets, ...after.changesets], parseChangeset);
 	for (const old of before.packages) {
 		const replacement = after.packages.find((pkg) => pkg.directory === old.directory);

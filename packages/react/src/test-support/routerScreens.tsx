@@ -23,9 +23,9 @@ export function RouterShell() {
 
 export function RouterNote() {
 	const row = noteRoute.useLoaderData<Router>();
-	const { api, frames } = noteRoute.useRouteContext<Router>();
+	const { client, frames, viewer } = noteRoute.useRouteContext<Router>();
 	const search = noteRoute.useSearch<Router>();
-	const query = useLoaderQuery(api.get.query({ id: row.id, page: search.page }), row);
+	const query = useLoaderQuery(client.api.get.query({ id: row.id, page: search.page * viewer.page }), row);
 	useLayoutEffect(() => {
 		frames.push(query.data.title);
 	}, [frames, query.data.title]);
@@ -39,7 +39,7 @@ export function RouterNote() {
 
 export function RouterFailure({ error }: ErrorComponentProps) {
 	const router = useRouter();
-	const { api, registry } = noteRoute.useRouteContext<Router>();
+	const { client, registry, viewer } = noteRoute.useRouteContext<Router>();
 	const { id } = noteRoute.useParams<Router>();
 	const { page } = noteRoute.useSearch<Router>();
 	return (
@@ -47,7 +47,7 @@ export function RouterFailure({ error }: ErrorComponentProps) {
 			<p role="alert">{Predicate.isTagged(error, "NoteMissing") ? `${error._tag}:${"id" in error ? error.id : ""}` : "Could not load"}</p>
 			<button
 				onClick={() => {
-					registry.refresh(api.get.query({ id, page }));
+					registry.refresh(client.api.get.query({ id, page: page * viewer.page }));
 					void router.invalidate();
 				}}
 				type="button"

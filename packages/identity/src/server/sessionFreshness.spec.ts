@@ -39,28 +39,17 @@ streamSession.it(
 	},
 );
 
-streamSession.it(
-	"when the session store blips at a check, alice's stream stays open",
-	[aliceSubscribesTo("Identity")],
-	function* ({ echo, revalidationIntervalPasses, sessionStoreBlips }) {
-		yield* sessionStoreBlips();
+for (const method of ["Identity", "Profile", "Accounts", "Optional"] as const) {
+	streamSession.it(
+		`a session-store outage ends alice's idle ${method} stream as auth unavailable at the next check`,
+		[aliceSubscribesTo(method)],
+		function* ({ echo, revalidationIntervalPasses, sessionStoreBlips, streamEnd }) {
+			expect(yield* echo("hello")).toBe("alice: hello");
 
-		yield* revalidationIntervalPasses();
+			yield* sessionStoreBlips();
+			yield* revalidationIntervalPasses();
 
-		expect(yield* echo("hello")).toBe("alice: hello");
-	},
-);
-
-streamSession.it(
-	"after a blipped check, the next check still ends alice's stream once she has signed out",
-	[aliceSubscribesTo("Identity")],
-	function* ({ aliceSignsOut, revalidationIntervalPasses, sessionStoreBlips, streamEnd }) {
-		yield* sessionStoreBlips();
-		yield* revalidationIntervalPasses();
-
-		yield* aliceSignsOut();
-
-		yield* revalidationIntervalPasses();
-		expect(yield* streamEnd()).toBe("unauthorized");
-	},
-);
+			expect(yield* streamEnd()).toBe("auth unavailable");
+		},
+	);
+}

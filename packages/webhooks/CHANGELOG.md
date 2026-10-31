@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.3 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/jobs` from 0.24.0 to 0.25.0.
+
+## 0.3.2 - 2026-10-31
+
+### Fixed
+
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+
 ## 0.3.1 - 2026-10-30
 
 ### Changed

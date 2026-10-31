@@ -570,7 +570,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` renders the route’s `notFoundComponent`; other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` renders the route’s `notFoundComponent`; other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -586,7 +586,7 @@ import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()();
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api }>()();
 const Search = Schema.Struct({
 	page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
 		Schema.catchDecoding(() => Effect.succeed(Option.some(1))),
@@ -597,13 +597,15 @@ const note = createRoute({
 	getParentRoute: () => root,
 	path: "/notes/$id",
 	validateSearch: Schema.toStandardSchemaV1(Search),
-	...queryRoute(({ params, search }: { params: { id: string }; search: typeof Search.Type }) => api.get.query({ id: params.id, page: search.page })),
+	...queryRoute(({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof Search.Type }) =>
+		context.api.get.query({ id: params.id, page: search.page }),
+	),
 	notFoundComponent: () => <h1>Note not found</h1>,
 	component: Note,
 	errorComponent: Failure,
 });
 const router = createRouter({
-	context: { registry },
+	context: { registry, api },
 	routeTree: root.addChildren([note]),
 	defaultPendingMs: Infinity,
 	InnerWrap: Shell,
@@ -642,7 +644,7 @@ export function App() {
 
 `validateSearch` stays native: `Schema.toStandardSchemaV1(Search)` supplies TanStack’s search input and output types. The schema defaults a missing or invalid page to `1`. The query callback names its params and schema output type because TypeScript cannot infer them backward through an object spread. Changing search changes the loader dependencies and queries the new payload. Keep `params`, `validateSearch`, `component`, `errorComponent` and `notFoundComponent` on the route; options after the spread can override its `loaderDeps` or `loader`.
 
-For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
+For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/adapters/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
 
 `defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window: the first render has the loaded value and the RPC handler runs once.
 
@@ -672,14 +674,16 @@ import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
 
 const ReadNotes = permission("notes.read");
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()({
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api }>()({
 	beforeLoad: permissionGuard({ session: () => auth.session, signIn: "/login" }),
 });
 const note = createRoute({
 	getParentRoute: () => root,
 	path: "/notes/$id",
 	staticData: { permission: ReadNotes },
-	...queryRoute(({ params }: { params: { id: string }; search: Record<string, never> }) => api.get.query({ id: params.id, page: 1 })),
+	...queryRoute(({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
+		context.api.get.query({ id: params.id, page: 1 }),
+	),
 	component: () => {
 		const query = useLoaderQuery(api.get.query({ ...note.useParams(), page: 1 }), note.useLoaderData());
 		return <h1>{query.data.title}</h1>;
@@ -697,7 +701,7 @@ const login = createRoute({
 	},
 });
 const router = createRouter({
-	context: { registry },
+	context: { registry, api },
 	routeTree: root.addChildren([note, login]),
 	disableGlobalCatchBoundary: true,
 });
@@ -937,6 +941,13 @@ screenStories.it("shows the route failure", [], async () => {
 ```
 
 Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
+
+A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/client/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
+
+```ts
+const pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
+const screen = screenDriver({ act, pending, root: view.container, tell: story.tell });
+```
 
 ### API
 

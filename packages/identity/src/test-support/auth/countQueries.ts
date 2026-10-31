@@ -1,14 +1,21 @@
-import type { Pool } from "pg";
+import { Effect } from "effect";
+import type { SqlClient, SqlConnection } from "effect/sql";
 
-export function countQueries(pool: Pool) {
+export function countQueries(sql: SqlClient.SqlClient) {
 	const queries: Array<{ readonly text: unknown; readonly values: unknown }> = [];
-	pool.on("connect", (client) => {
-		client.query = new Proxy(client.query, {
-			apply(query, receiver, args: unknown[]) {
-				queries.push({ text: args[0], values: args[1] });
-				return Reflect.apply(query, receiver, args);
+	function observe(connection: SqlConnection.Connection) {
+		return {
+			...connection,
+			executeRaw: (text: string, values: readonly unknown[]) => {
+				queries.push({ text, values });
+				return connection.executeRaw(text, values);
 			},
-		});
+		};
+	}
+	const observed = new Proxy(sql, {
+		get(target, key, receiver) {
+			return key === "reserve" ? target.reserve.pipe(Effect.map(observe)) : Reflect.get(target, key, receiver);
+		},
 	});
-	return queries;
+	return { queries, sql: observed };
 }

@@ -51,7 +51,7 @@ export const JobFields = {
 	completedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromString),
 	createdOn: Schema.DateTimeUtcFromString,
 	id: Schema.String,
-	output: Schema.NullOr(JobFailure),
+	output: Schema.NullOr(JobFailure).annotate({ sensitive: true }),
 	retryCount: Schema.Number,
 	retryLimit: Schema.Number,
 	startedOn: Schema.OptionFromNullOr(Schema.DateTimeUtcFromString),
@@ -61,17 +61,17 @@ export const JobFields = {
 export const PageFields = { cursor: Schema.optionalKey(Schema.String), limit: Schema.Number };
 
 export function jobSchema<TPayload extends Schema.Top>(queue: { readonly name: string; readonly schema: TPayload }) {
-	return Schema.Struct({ ...JobFields, data: queue.schema, queue: Schema.Literal(queue.name) });
+	return Schema.Struct({ ...JobFields, data: queue.schema.annotate({ sensitive: true }), queue: Schema.Literal(queue.name) });
 }
 
 export function deadLetteredSchema<TPayload extends Schema.Top>(queue: { readonly name: string; readonly schema: TPayload }) {
 	const name: string = `${queue.name}-dlq`;
 	return Schema.Struct({
 		...JobFields,
-		data: queue.schema,
+		data: queue.schema.annotate({ sensitive: true }),
 		queue: Schema.Literal(name),
 		sourceId: Schema.OptionFromNullOr(Schema.String),
-		sourceOutput: Schema.NullOr(JobFailure),
+		sourceOutput: Schema.NullOr(JobFailure).annotate({ sensitive: true }),
 		sourceQueue: Schema.Literal(queue.name),
 	});
 }

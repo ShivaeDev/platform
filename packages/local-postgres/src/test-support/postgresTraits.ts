@@ -1,9 +1,6 @@
-import { randomUUID } from "node:crypto";
-import { Effect } from "effect";
 import { answers, containerPlan, daemonAnswers, publishedBy, unanswered } from "#test/containerPlans.ts";
-import { ROLE_PASSWORD } from "#test/credentials.ts";
 import { postgres } from "#test/postgres.ts";
-import { configureReadiness, databaseUrl, type PostgresEngine, SERVER } from "#test/postgresEngine.ts";
+import { configureReadiness } from "#test/postgresEngine.ts";
 
 const NEVER_ANSWERED = 64;
 
@@ -39,6 +36,15 @@ export function dockerDaemonDown() {
 		engine.plan.push({
 			args: ["info"],
 			result: new Error("Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?"),
+		});
+	});
+}
+
+export function containerListingFails() {
+	return postgres.trait("machine", "Docker answers but refuses to list containers", (engine) => {
+		engine.plan.push(daemonAnswers, {
+			args: ["container", "ls", "--all", "--filter", "name=^/development-postgres$", "--format", "{{.ID}}"],
+			result: new Error("Cannot list containers"),
 		});
 	});
 }
@@ -123,47 +129,5 @@ export function realPostgresWithoutHostPsql() {
 	return postgres.trait("machine", "the shared local PostgreSQL 18.6 service runs, and the host has no psql", (engine) => {
 		engine.mode = "real";
 		engine.hostPsql = false;
-	});
-}
-
-function uniqueName(prefix: string) {
-	return `${prefix}_${randomUUID().replaceAll("-", "")}`;
-}
-
-export function queryRole() {
-	return postgres.trait("service", `PostgreSQL has a query role whose password is ${ROLE_PASSWORD}`, (engine) =>
-		Effect.acquireRelease(
-			Effect.sync(() => {
-				const role = uniqueName("query_role");
-				engine.manager.sql(SERVER, `CREATE ROLE "${role}" LOGIN PASSWORD '${ROLE_PASSWORD}'`);
-				engine.queryRole = role;
-				return role;
-			}),
-			(role) => Effect.sync(() => engine.manager.sql(SERVER, `DROP ROLE "${role}"`)),
-		),
-	);
-}
-
-function appDatabase(engine: PostgresEngine) {
-	return Effect.acquireRelease(
-		Effect.sync(() => {
-			const name = uniqueName("local_postgres_story");
-			engine.appDatabase = name;
-			return name;
-		}),
-		(name) => Effect.sync(() => engine.manager.sql(SERVER, `DROP DATABASE IF EXISTS "${name}"`)),
-	);
-}
-
-export function appDatabaseMissing() {
-	return postgres.trait("service", "the app database does not exist yet", (engine) => Effect.asVoid(appDatabase(engine)));
-}
-
-export function appDatabaseWithRow() {
-	return postgres.trait("service", "setup prepared the app database earlier, and it holds the row 'existing data'", function* (engine) {
-		const name = yield* appDatabase(engine);
-		const url = databaseUrl(name);
-		engine.manager.prepareDatabases([url]);
-		engine.manager.sql(url, "CREATE TABLE kept (value text NOT NULL); INSERT INTO kept VALUES ('existing data')");
 	});
 }

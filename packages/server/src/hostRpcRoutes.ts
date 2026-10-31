@@ -2,10 +2,10 @@ import { ByteSize, Effect, Layer } from "effect";
 import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, type RpcGroup, RpcSerialization } from "effect/rpc";
+import { validateReadPolicies } from "@shivaedev/contract/validateReadPolicies.ts";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "@shivaedev/identity/server/session.ts";
-import { requestTracingLayer } from "@shivaedev/identity/server/tracing.ts";
 import type { AppChanges } from "#appHost.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import { hostChanges } from "#hostChanges.ts";
@@ -13,6 +13,7 @@ import type { HostPolicy } from "#hostOptions.ts";
 import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import type { hostTransport } from "#hostTransport.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
+import { rpcRequestTracing } from "#rpcRequestTracing.ts";
 import type { schemaSensitiveKeys } from "#schemaSensitiveKeys.ts";
 import { socketRpc } from "#socketRpc.ts";
 
@@ -28,11 +29,12 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 ) {
 	const middleware: Layer.Layer<RequestTracing> | Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> =
 		options.policy === "loopback"
-			? requestTracingLayer({ sensitive })
-			: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer({ sensitive }));
+			? rpcRequestTracing(sensitive)
+			: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), rpcRequestTracing(sensitive));
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
-			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure);
+			yield* validateReadPolicies(options.group);
+			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure, sensitive.forRpc);
 			const httpGroup = options.group.omit(...[...options.group.requests.keys()].filter((tag) => tag.endsWith(".$changes")));
 			const handler = yield* hostRpc(httpGroup).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);

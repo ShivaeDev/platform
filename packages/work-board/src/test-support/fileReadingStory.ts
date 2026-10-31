@@ -1,14 +1,14 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Cause, Deferred, Effect, Exit, Fiber, FileSystem, Layer, Queue, Stream } from "effect";
+import { Cause, Effect, Exit, Fiber, type FileSystem, type Layer, Queue } from "effect";
 import { TestClock } from "effect/testing";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { homeIn } from "#server/files/home.ts";
 import { listMarkdown } from "#server/files/list.ts";
 import { watchDirectories } from "#server/files/watchDirectories.ts";
-import { isWatchSentinel, READINESS_WITHIN } from "#server/files/watchSentinel.ts";
+import { READINESS_WITHIN } from "#server/files/watchSentinel.ts";
 import { type Folder, folder } from "./board.ts";
 import { unlinkBeforeStat } from "./fileRaces.ts";
 
@@ -18,7 +18,7 @@ interface FileReader {
 	readonly sentinelWrites: Queue.Queue<string>;
 	services: Layer.Layer<FileSystem.FileSystem>;
 	watch?: Fiber.Fiber<unknown, unknown>;
-	readonly watching: Deferred.Deferred<void>;
+	readonly watching: Queue.Queue<void>;
 }
 
 function running(engine: FileReader) {
@@ -40,7 +40,7 @@ export const fileReadingStory = storyKit({
 			published: yield* Queue.unbounded<readonly string[]>(),
 			sentinelWrites: yield* Queue.unbounded<string>(),
 			services: NodeServices.layer,
-			watching: yield* Deferred.make<void>(),
+			watching: yield* Queue.unbounded<void>(),
 		};
 		return engine;
 	},
@@ -49,14 +49,17 @@ export const fileReadingStory = storyKit({
 	name: "board files",
 	stages: ["project"],
 	verbs: (engine, story) => ({
-		edited: Effect.fn("Story.edited")(function* (file: string, source: string) {
-			story.tell(`an editor writes ${file} and the watch publishes it`);
-			engine.notes.write(file, source);
-			yield* Queue.take(engine.published).pipe(Effect.repeat({ until: (paths) => paths.includes(file) }));
-		}),
+		edited: (file: string, source: string) => {
+			story.tell(`an outside editor writes ${file}`);
+			return Effect.sync(() => engine.notes.write(file, source));
+		},
 		listFiles: () => {
 			story.tell("the board lists Markdown files");
 			return listMarkdown(engine.notes.root, engine.notes.root).pipe(Effect.provide(engine.services));
+		},
+		publishedPaths: () => {
+			story.tell("the reader receives the next live file change");
+			return Queue.take(engine.published);
 		},
 		readinessWindowPasses: () => {
 			story.tell(`${READINESS_WITHIN} pass without the watcher reporting its sentinel`);
@@ -78,7 +81,7 @@ export const fileReadingStory = storyKit({
 			engine.watch = yield* watchDirectories(engine.notes.root, engine.notes.root, {
 				listed: () => Effect.void,
 				publish: (paths) => Queue.offer(engine.published, paths),
-				setWatching: (watching) => (watching ? Deferred.succeed(engine.watching, undefined) : Effect.void),
+				setWatching: (watching) => (watching ? Queue.offer(engine.watching, undefined) : Effect.void),
 				stale: Effect.void,
 			}).pipe(Effect.provide(engine.services), Effect.forkScoped);
 		}),
@@ -102,7 +105,7 @@ export const fileReadingStory = storyKit({
 		}),
 		watchStarted: () => {
 			story.tell("the host waits until it is watching the workspace");
-			return Effect.raceFirst(Deferred.await(engine.watching), Fiber.join(running(engine)));
+			return Effect.raceFirst(Queue.take(engine.watching), Fiber.join(running(engine)));
 		},
 		workspaceEntries: () => readdirSync(engine.notes.root).toSorted(),
 	}),
@@ -117,28 +120,5 @@ export function readableFiles(files: Readonly<Record<string, string>>) {
 export function disappearsBeforeStat(file: string) {
 	return fileReadingStory.trait("project", `${file} disappears between resolution and stat`, (engine) => {
 		engine.services = unlinkBeforeStat(join(engine.notes.root, file));
-	});
-}
-export function anEndedWatcher() {
-	return fileReadingStory.trait("project", "the filesystem watcher ends without an error", (engine) => {
-		engine.services = Layer.effect(
-			FileSystem.FileSystem,
-			Effect.map(FileSystem.FileSystem, (fs) => ({ ...fs, watch: () => Stream.empty })),
-		).pipe(Layer.provide(NodeServices.layer));
-	});
-}
-export function aSilentWatcher() {
-	return fileReadingStory.trait("project", "the filesystem watcher starts but never reports a change", (engine) => {
-		engine.services = Layer.effect(
-			FileSystem.FileSystem,
-			Effect.map(FileSystem.FileSystem, (fs) => ({
-				...fs,
-				watch: () => Stream.never,
-				writeFileString: (path, data, options) =>
-					fs
-						.writeFileString(path, data, options)
-						.pipe(Effect.tap(() => (isWatchSentinel(path) ? Queue.offer(engine.sentinelWrites, path) : Effect.void))),
-			})),
-		).pipe(Layer.provide(NodeServices.layer));
 	});
 }

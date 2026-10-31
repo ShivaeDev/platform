@@ -7,7 +7,7 @@ import { makeDeliver } from "#engine/makeDeliver.ts";
 import { makeHuman } from "#engine/makeHuman.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import { makeReview } from "#engine/makeReview.ts";
-import type { EngineState } from "#engine/makeState.ts";
+import { EngineContext, type EngineState } from "#engine/makeState.ts";
 import { makeValidate } from "#engine/makeValidate.ts";
 import { observeExecution } from "#engine/observeExecution.ts";
 import { holdPredictedReview, reconcilePrediction } from "#engine/reconcilePrediction.ts";
@@ -15,6 +15,8 @@ import { holdPendingReady } from "#engine/reconcileSweepHold.ts";
 import { reconcileBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { observeReleasedDeliveries } from "#engine/releasedDeliveries.ts";
+import { repairParkedChecks } from "#engine/repairParkedChecks.ts";
+import { reviewPredictedHold } from "#engine/reviewPredictedHold.ts";
 import { settleReleasedWork } from "#engine/settleReleasedWork.ts";
 import { reconcileStop } from "#engine/stopCommand.ts";
 import type { FleetRecord } from "#model.ts";
@@ -33,7 +35,12 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 		if (["done", "released"].includes(stored.value.step)) {
 			return stored;
 		}
+		stored = yield* repairParkedChecks(stored).pipe(Effect.provideService(EngineContext, state));
+		if (stored.value.mergeQueue?.status === "queued") {
+			stored = yield* makeDeliver(state)(stored);
+		}
 		stored = yield* reconcilePrediction(state, stored);
+		stored = yield* reviewPredictedHold(stored).pipe(Effect.provideService(EngineContext, state));
 		if (stored.value.predictedConflictHold !== undefined) {
 			return stored;
 		}
@@ -78,6 +85,7 @@ function advanceExecution(state: EngineState, launch: ReturnType<typeof makeLaun
 		if (stored.value.step === "adopting") {
 			stored = yield* makeAdopt(state)(stored, work);
 			stored = yield* reconcilePrediction(state, stored);
+			stored = yield* reviewPredictedHold(stored).pipe(Effect.provideService(EngineContext, state));
 		}
 		if (stored.value.predictedConflictHold !== undefined) {
 			return stored;

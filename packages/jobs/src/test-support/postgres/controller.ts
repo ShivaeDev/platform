@@ -1,10 +1,10 @@
-import { Clock, DateTime, Deferred, Effect, Fiber } from "effect";
-import type { FindJobsOptions } from "pg-boss";
+import { Clock, DateTime, Deferred, Duration, Effect, Fiber } from "effect";
+import type { FindJobsOptions, JobWithMetadata } from "pg-boss";
 import type { QueueDefinition } from "#definition.ts";
 import { failureOf } from "#test/failureOf.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { labelOf, runningIn } from "./engine.ts";
-import { testingOf } from "./verbs.ts";
+import { idOf, testingOf } from "./verbs.ts";
 
 type Tell = (line: string) => void;
 
@@ -42,6 +42,18 @@ export function startIdleWait(engine: DatabaseEngine, name: string) {
 	);
 }
 
+export function startFetchWatch(engine: DatabaseEngine, name: string, queue: Pick<QueueDefinition, "name">, count: number) {
+	return Effect.map(
+		Effect.forkScoped(
+			Effect.suspend(() => testingOf(engine, name).fetchesPass(queue, count)),
+			{ startImmediately: true },
+		),
+		(fiber) => {
+			engine.fetchWatches.set(name, fiber);
+		},
+	);
+}
+
 function outcomeOf(fiber: Fiber.Fiber<unknown, unknown> | undefined, done: string) {
 	if (fiber === undefined) {
 		return "never started";
@@ -52,6 +64,28 @@ function outcomeOf(fiber: Fiber.Fiber<unknown, unknown> | undefined, done: strin
 export function controllerVerbs(engine: DatabaseEngine, tell: Tell) {
 	return {
 		changeWatch: (name: string) => Effect.sync(() => outcomeOf(engine.changeWatches.get(name), "woke for a later revision")),
+		controllerAwaits: (name: string, as: string, state: JobWithMetadata["state"], within?: Duration.Input) => {
+			tell(
+				`the testing controller of ${name} waits until ${as} is ${state}${within === undefined ? "" : ` for at most ${Duration.format(Duration.fromInputUnsafe(within))}`}`,
+			);
+			return Effect.suspend(() => {
+				const { id, queue } = idOf(engine, as);
+				return testingOf(engine, name)
+					.untilJob(queue, id, state, within === undefined ? {} : { within })
+					.pipe(
+						Effect.match({
+							onFailure: (error) => ({ error: error.name, message: failureOf(error).replace(id, as) }),
+							onSuccess: (job) => ({ data: job.data, job: labelOf(engine, job.id), state: job.state }),
+						}),
+					);
+			});
+		},
+		controllerAwaitsFetches: (name: string, queue: Pick<QueueDefinition, "name">, count: number, within: Duration.Input) => {
+			tell(`the testing controller of ${name} waits at most ${Duration.format(Duration.fromInputUnsafe(within))} for ${count} ${queue.name} fetches`);
+			return Effect.suspend(() => testingOf(engine, name).fetchesPass(queue, count, { within })).pipe(
+				Effect.match({ onFailure: (error) => ({ error: error.name, message: failureOf(error) }), onSuccess: () => "passed" }),
+			);
+		},
 		controllerJobs: <const TPayload extends StoryPayload>(name: string, queue: QueueDefinition<string, TPayload>, options?: FindJobsOptions) =>
 			Effect.suspend(() => testingOf(engine, name).jobs(queue, options)).pipe(
 				Effect.match({
@@ -59,6 +93,7 @@ export function controllerVerbs(engine: DatabaseEngine, tell: Tell) {
 					onSuccess: (jobs) => jobs.map(({ data, id, state }) => ({ data, job: labelOf(engine, id), state })),
 				}),
 			),
+		fetchWatch: (name: string) => Effect.sync(() => outcomeOf(engine.fetchWatches.get(name), "passed")),
 		idleReads: () =>
 			Effect.sync(() => {
 				const busy = engine.idleReads.filter((read) => read === "while work was busy").length;
@@ -104,6 +139,13 @@ export function controllerVerbs(engine: DatabaseEngine, tell: Tell) {
 				return fiber === undefined
 					? Effect.die(new Error(`Nothing watches the testing controller of ${name}`))
 					: Fiber.join(fiber).pipe(Effect.timeout("20 seconds"));
+			});
+		},
+		untilFetchWatchPasses: (name: string) => {
+			tell(`wait until the fetch watch of ${name} passes`);
+			return Effect.suspend(() => {
+				const fiber = engine.fetchWatches.get(name);
+				return fiber === undefined ? Effect.die(new Error(`${name} started no fetch watch`)) : Fiber.join(fiber).pipe(Effect.timeout("20 seconds"));
 			});
 		},
 		untilIdleWaitSettles: (name: string) => {

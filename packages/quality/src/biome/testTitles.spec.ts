@@ -1,28 +1,27 @@
 import { expect } from "vitest";
-import { repositoryHas, ruleKit } from "#rule-story";
-import { biome } from "#rules/biome.ts";
-import { helperNamed, invalidTestTitle, qualityInstalled, testTitlePreset } from "#test/titleInputs.ts";
+import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
+import { helperNamed, invalidTestTitle } from "#test/titleInputs.ts";
 
 for (const name of ["describe", "it", "test"]) {
-	ruleKit.it(
-		`Biome accepts an ordinary ${name} helper outside test code`,
-		[repositoryHas(...testTitlePreset, helperNamed(name)), qualityInstalled],
-		function* ({ checks }) {
-			const findings = yield* checks(biome);
+	biomeStory.it(
+		`the preset accepts a number passed as the title to an ordinary ${name} function outside test code`,
+		[presetInstalled(), repositoryHas(helperNamed(name))],
+		function* ({ checks, reported }) {
+			yield* checks();
 
-			expect(findings.filter((finding) => finding.subject === "lint/nursery/useValidTestTitle")).toEqual([]);
+			expect(yield* reported("lint/nursery/useValidTestTitle")).toEqual([]);
 		},
 	);
 }
 
 for (const path of ["src/titles.spec.ts", "src/titles.test.ts", "src/test-support/titles.ts"]) {
-	ruleKit.it(
-		`Biome rejects a non-string describe title in ${path}`,
-		[repositoryHas(...testTitlePreset, invalidTestTitle(path)), qualityInstalled],
-		function* ({ checks }) {
-			const findings = yield* checks(biome);
+	biomeStory.it(
+		`the preset rejects a non-string describe title in ${path} at its line`,
+		[presetInstalled(), repositoryHas(invalidTestTitle(path))],
+		function* ({ checks, reported }) {
+			yield* checks();
 
-			expect(findings.filter((finding) => finding.subject === "lint/nursery/useValidTestTitle").map((finding) => finding.file)).toEqual([path]);
+			expect(yield* reported("lint/nursery/useValidTestTitle")).toEqual([`${path}:3`]);
 		},
 	);
 }

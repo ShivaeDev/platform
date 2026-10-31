@@ -4,7 +4,6 @@ import { Context, type Duration, Effect, Fiber, Layer, Option, Queue, Result, Sc
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Identity, OptionalIdentity, SessionUser, SessionUserWithProviderAccounts } from "#identity.ts";
@@ -33,14 +32,16 @@ function ending(result: Result.Result<void, unknown>) {
 		return "ended";
 	}
 	const error = result.failure;
+	if (error instanceof AuthUnavailable) {
+		return "auth unavailable";
+	}
 	return error instanceof Unauthorized ? "unauthorized" : `failed: ${String(error)}`;
 }
 
 export const streamSession = storyKit({
 	around: withIsolatedDatabase,
 	*create() {
-		const database = yield* PostgresTestDatabase;
-		const provider = yield* createProvider(database.url);
+		const provider = yield* createProvider();
 		const mintingAuth = betterAuth({ ...provider.auth.options, plugins: [testUtils()] });
 		const session = yield* Effect.promise(() => signedInUser(mintingAuth, { email: "alice@example.test", name: "Alice" }));
 		const cookie = session.headers.get("cookie");

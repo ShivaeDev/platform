@@ -7,9 +7,9 @@ import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { AppChanges, appHost } from "@shivaedev/server/appHost.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { Api, diagnostic, handlers } from "./api.ts";
 
@@ -20,8 +20,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	nativeOrigins?: readonly string[],
 	trustedProxy?: string,
 ) {
-	const database = yield* PostgresTestDatabase;
-	const pool = yield* authDatabase(database.url);
+	const pool = yield* betterAuthDatabase();
 	const options = {
 		"baseURL": "http://127.0.0.1",
 		database: pool,

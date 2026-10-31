@@ -1,16 +1,23 @@
-import { afterEach, expect, it } from "vitest";
-import { emittedDeclarations, seedPackageBuild } from "#test/packageBuild.ts";
-import { removeSeededTrees } from "#test/tree.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { packageBuild, packageExtendsQualityConfig, packageHas } from "#test/packageBuild.ts";
 
-afterEach(removeSeededTrees);
+packageBuild.it(
+	"a package build emits a declaration whose inferred type imports a relative module with its extension through a # alias, without diagnostics",
+	[
+		packageExtendsQualityConfig(),
+		packageHas(
+			{ content: 'export class Token {\n\treadonly kind = "token";\n}\n', path: "src/token.ts" },
+			{ content: 'import { Token } from "./token.ts";\n\nexport const issue = () => new Token();\n', path: "src/issue.ts" },
+			{ content: 'import { issue } from "#issue.ts";\n\nexport const issued = issue();\n', path: "src/users/issued.ts" },
+		),
+	],
+	function* ({ builds, declaration, diagnostics }) {
+		yield* builds();
 
-it("package builds emit declarations whose inferred relative imports carry extensions through # aliases", () => {
-	const root = seedPackageBuild([
-		{ content: 'export class Token {\n\treadonly kind = "token";\n}\n', path: "src/token.ts" },
-		{ content: 'import { Token } from "./token.ts";\n\nexport const issue = () => new Token();\n', path: "src/issue.ts" },
-		{ content: 'import { issue } from "#issue.ts";\n\nexport const issued = issue();\n', path: "src/users/issued.ts" },
-	]);
-	const emitted = emittedDeclarations(root);
-	expect(emitted.diagnostics).toEqual([]);
-	expect(emitted.files.get("users/issued.d.ts")).toContain('import("../token.ts").Token');
-});
+		yield* outcomes({
+			"diagnostics": [diagnostics(), []],
+			"users/issued.d.ts": [declaration("users/issued.d.ts"), expect.stringContaining('import("../token.ts").Token')],
+		});
+	},
+);

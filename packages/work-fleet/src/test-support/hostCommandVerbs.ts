@@ -27,6 +27,7 @@ export function hostCommandVerbs(engine: HostStoryEngine, tell: (line: string) =
 		logs: () => engine.logs.entries,
 		providerObservation: (turnId: string) => engine.observedProvider.observations.get(turnId),
 		providerPrompts: () => [...engine.observedProvider.observations.values()].map((observation) => observation.output),
+		repositoryRevision: (ref: string) => execFileSync("git", ["rev-parse", ref], { cwd: engine.repositoryRoot, encoding: "utf8" }).trim(),
 		request,
 		startScheduler: () => hostScheduler(engine.fixture.host).pipe(Effect.provideContext(engine.running.context), Effect.forkScoped),
 		workerQuestion: (workId = "one") => askWorker(engine.observedProvider, workId).pipe(Effect.provideContext(engine.running.context)),

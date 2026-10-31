@@ -10,8 +10,10 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 	const rows = [...initial];
 	const hints = Effect.runSync(PubSub.unbounded<LiveHint>());
 	const session = { signedIn: true };
+	let listStarted = Deferred.makeUnsafe<void>();
 	let listGate: Deferred.Deferred<void> | undefined;
 	function holdList() {
+		listStarted = Deferred.makeUnsafe<void>();
 		listGate = Effect.runSync(Deferred.make<void>());
 	}
 	function releaseList() {
@@ -63,8 +65,10 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 		"notes.import": () => Effect.die("Import is exercised through the application host kit"),
 		"notes.list": () =>
 			Effect.gen(function* () {
-				if (listGate !== undefined) {
-					yield* Deferred.await(listGate);
+				const gate = listGate;
+				if (gate !== undefined) {
+					yield* Deferred.succeed(listStarted, undefined);
+					yield* Deferred.await(gate);
 				}
 				return [...rows];
 			}),
@@ -101,5 +105,14 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 		rows[index] = { ...row, title, version: row.version + 1 };
 		return notify ? Effect.runPromise(PubSub.publish(hints, { _tag: "Changed", keys: [notes.item(id)] })).then(() => undefined) : Promise.resolve();
 	}
-	return { ...client, finishNote, holdList, listHeld: () => listGate !== undefined, releaseList, reviseNote, session };
+	return {
+		...client,
+		finishNote,
+		holdList,
+		listHeld: () => listGate !== undefined,
+		listWaiting: () => Deferred.await(listStarted),
+		releaseList,
+		reviseNote,
+		session,
+	};
 });
