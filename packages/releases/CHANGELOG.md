@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 - 2026-10-31
+
+### Fixed
+
+- Refuse a release check when changesets remain outside the collected notes. Name their commits and require the release PR to regenerate before merging or publishing.
+
 ## 0.6.1 - 2026-10-31
 
 ### Fixed
