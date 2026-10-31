@@ -47,7 +47,6 @@
 		"@tanstack/react-router": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
-		"pg": "catalog:",
 		"pg-boss": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
@@ -70,9 +69,6 @@
 			"optional": true
 		},
 		"better-auth": {
-			"optional": true
-		},
-		"pg": {
 			"optional": true
 		},
 		"pg-boss": {

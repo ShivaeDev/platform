@@ -3,13 +3,14 @@ import { NodeHttpServer } from "@effect/platform-node";
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
-import { type Cause, ConfigProvider, Effect, Layer, type Redacted, Schema } from "effect";
+import { type Cause, ConfigProvider, Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, Headers, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { Identity } from "#identity.ts";
 import { Authenticated, RequestTracing } from "#middleware.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { authenticatedLayer, authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
@@ -24,12 +25,11 @@ const Api = RpcGroup.make(Rpc.make("Whoami", { success: Schema.String }))
 const handlers = Api.toLayer({ Whoami: () => Effect.map(Identity, ({ id }) => id) });
 
 export const policyHost = Effect.fnUntraced(function* (
-	databaseUrl: Redacted.Redacted<string>,
 	env: Record<string, string>,
 	signIn: SignInPolicy<Cause.UnknownError> | undefined,
 	app: { readonly sessionsOpen: boolean; readonly providerAccounts?: boolean },
 ) {
-	const pool = yield* authDatabase(databaseUrl);
+	const pool = yield* betterAuthDatabase();
 	const options = {
 		database: pool,
 		databaseHooks: { session: { create: { before: async (session) => (app.sessionsOpen ? { data: session } : false) } } },

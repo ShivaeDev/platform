@@ -1,11 +1,10 @@
 import type { BetterAuthOptions } from "better-auth";
 import { admin } from "better-auth/plugins";
 import { userAc } from "better-auth/plugins/admin/access";
-import type { Pool } from "pg";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 
-export function authOptions(database: Pool) {
+export function authOptions(database: NonNullable<BetterAuthOptions["database"]>) {
 	return {
 		advanced: { database: { validateSchema: true } },
 		database,

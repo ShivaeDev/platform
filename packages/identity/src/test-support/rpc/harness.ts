@@ -1,9 +1,9 @@
 import { betterAuth } from "better-auth";
-import { type Cause, Context, Effect, Layer, Logger, Redacted, References, Tracer } from "effect";
+import { type Cause, Context, Effect, Exit, Layer, Logger, References, Scope, Tracer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
-import { Pool } from "pg";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 
 export const ORIGIN = "http://localhost:3000";
 
@@ -38,28 +38,13 @@ export function recorder() {
 	return { layer, logs, spans };
 }
 
-export const createProvider = Effect.fnUntraced(function* (url: Redacted.Redacted<string>) {
-	const database = new Pool({ connectionString: Redacted.value(url), max: 2 });
-	const disconnected = new Set<Promise<void>>();
-	database.on("connect", (client) => {
-		const closed = new Promise<void>((resolve) =>
-			client.once("end", () => {
-				disconnected.delete(closed);
-				resolve();
-			}),
-		);
-		disconnected.add(closed);
-	});
-	let closing: Promise<void> | undefined;
+export const createProvider = Effect.fnUntraced(function* () {
+	const scope = yield* Scope.fork(yield* Scope.Scope);
+	const database = yield* betterAuthDatabase().pipe(Scope.provide(scope));
+	const run = Effect.runPromiseWith(yield* Effect.context<never>());
 	function close() {
-		closing ??= (async () => {
-			// pg-pool can finish ending before its idle clients disconnect.
-			await database.end();
-			await Promise.all(disconnected);
-		})();
-		return closing;
+		return run(Scope.close(scope, Exit.void));
 	}
-	yield* Effect.addFinalizer(() => Effect.promise(close));
 	const options = {
 		"baseURL": ORIGIN,
 		database,
@@ -73,7 +58,7 @@ export const createProvider = Effect.fnUntraced(function* (url: Redacted.Redacte
 		lookups += 1;
 		return auth.api.getSession({ headers });
 	}
-	return { auth, close, database, getSession, lookups: () => lookups };
+	return { auth, close, getSession, lookups: () => lookups };
 });
 
 export type Provider = Effect.Success<ReturnType<typeof createProvider>>;

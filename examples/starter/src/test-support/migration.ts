@@ -1,7 +1,6 @@
 import { getMigrations } from "better-auth/db/migration";
 import { Effect } from "effect";
-import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -19,14 +18,11 @@ export const migration = storyKit({
 	verbs: (_engine, story) => ({
 		migrate: Effect.fn("AppStory.migrate")(function* () {
 			story.tell("apply every numbered application migration");
-			const database = yield* PostgresTestDatabase;
-			const pool = yield* authDatabase(database.url);
-			const steps = yield* migrationSteps({ ...migrations(pool), lockTimeout: "5 seconds" });
+			const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
 			yield* steps.migrateTo("0001_auth");
 		}),
 		pendingAuthMigrations: Effect.fn("AppStory.pendingAuthMigrations")(function* () {
-			const database = yield* PostgresTestDatabase;
-			const pool = yield* authDatabase(database.url);
+			const pool = yield* betterAuthDatabase();
 			return yield* Effect.tryPromise(() => getMigrations(authOptions(pool)));
 		}),
 	}),

@@ -11,10 +11,10 @@ import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { sessionsHandlers } from "#server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "#server/permissions.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
@@ -29,8 +29,7 @@ const Profile = contract("profile", {
 export const Api = Sessions.merge(Profile);
 
 export const sessionAdminHost = Effect.fnUntraced(function* () {
-	const database = yield* PostgresTestDatabase;
-	const pool = yield* authDatabase(database.url);
+	const pool = yield* betterAuthDatabase();
 	const mounted = yield* betterAuthMount(
 		{
 			"baseURL": ORIGIN,

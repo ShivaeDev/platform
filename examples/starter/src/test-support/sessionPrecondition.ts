@@ -1,9 +1,8 @@
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { Effect, Redacted } from "effect";
-import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { secret } from "./host.ts";
 
@@ -13,8 +12,7 @@ interface SessionHost {
 }
 
 export const sessionPrecondition = Effect.fn("AppStory.sessionPrecondition")(function* (host: SessionHost) {
-	const database = yield* PostgresTestDatabase;
-	const pool = yield* authDatabase(database.url);
+	const pool = yield* betterAuthDatabase();
 	const options = authOptions(pool);
 	return betterAuth({
 		...options,

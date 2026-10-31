@@ -1,6 +1,5 @@
 import { Effect, Option, Result } from "effect";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type OriginPolicy, trustedOrigins } from "#server/origin.ts";
@@ -111,8 +110,7 @@ export const sessions = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const database = yield* PostgresTestDatabase;
-		const provider = yield* createProvider(database.url);
+		const provider = yield* createProvider();
 		const engine: Engine = { accounts: new Map(), close: provider.close, provider };
 		yield* Effect.addFinalizer(() => Effect.promise(async () => engine.app?.app.dispose()));
 		return engine;
