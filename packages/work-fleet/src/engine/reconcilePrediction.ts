@@ -20,7 +20,7 @@ export const reconcilePrediction = Effect.fn("Fleet.reconcilePrediction")(functi
 	}
 	const observed = yield* state.integrations.predict(pr, [...(yield* watchedPrs(state)), ...(record.predictedConflictHold?.prs ?? [])]);
 	const parkedRepair =
-		record.step === "repairing"
+		(record.step === "repairing" || record.blocker?.startsWith("waiting for area "))
 		&& !executing(record)
 		&& !record.mergeMainRepair
 		&& observed.conflicts.some((conflict) => conflict.otherPr === "main");
