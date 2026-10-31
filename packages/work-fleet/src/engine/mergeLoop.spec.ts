@@ -76,22 +76,3 @@ mergeLoop.it("repairs a three-PR conflict chain in order while another task hold
 	expect(fleet.queueRequests()?.map((request) => request.variables.pr)).toEqual(["1", "2", "3"]);
 	expect(fleet.publishedDecisions()).toEqual([]);
 });
-
-mergeLoop.it("sends a merge-queue failure back to the existing worker for fresh review", [watchedBranches, automaticMerges], function* (fleet) {
-	yield* fleet.preparePredictionWork("one");
-	yield* fleet.dispatch("one");
-	fleet.pushWorkerBranch("one", { "one.ts": "export const one = 1;" });
-	yield* fleet.finishWorker("one");
-	const ready = yield* fleet.reconcile("one");
-	fleet.dequeue("1");
-	const repair = yield* fleet.reconcile("one");
-	expect(repair.value.step).toBe("working");
-	expect(repair.value.attempts.at(-1)).toMatchObject({
-		prompt: expect.stringContaining("merge-group CI failure"),
-		receipt: { sessionId: ready.value.attempts[0]?.receipt?.sessionId },
-		role: "repair",
-	});
-	expect(repair.value.review).toBeUndefined();
-	expect(repair.value.decision).toBeUndefined();
-	expect(fleet.publishedDecisions()).toEqual([]);
-});

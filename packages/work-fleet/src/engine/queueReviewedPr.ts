@@ -26,23 +26,22 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 			: yield* state.save(stored, {
 					...record,
 					mergeQueue: { head: result.head, status: "requested" },
+					mergeReadyAt: record.mergeReadyAt ?? state.policy.now(),
+					mergeReadyHead: result.head,
 				});
-	const status = yield* queue(yield* state.board.get(record.workId), result, current.value.mergeQueue?.status === "queued").pipe(
-		Effect.catch((error) => observeDeliveryFailure(state, current, result, error)),
-	);
+	const status = yield* queue(
+		yield* state.board.get(record.workId),
+		result,
+		current.value.mergeQueue?.status === "queued",
+		current.value.mergeReadyAt,
+	).pipe(Effect.catch((error) => observeDeliveryFailure(state, current, result, error)));
 	if (typeof status !== "string") {
-		return status;
+		return "value" in status
+			? status
+			: yield* requestRework(state)({ ...current, value: { ...current.value, mergeQueueRepair: true } }, status.repairPrompt);
 	}
 	if (status === "manual") {
 		return yield* awaitHumanMerge(state, current, result.head);
-	}
-	if (status === "failed") {
-		const checks = yield* state.integrations.checks(yield* state.board.get(record.workId), result);
-		return yield* requestRework(state)(
-			{ ...current, value: { ...current.value, mergeQueueRepair: true } },
-			checks.repairPrompt
-				?? "The PR left the merge queue without merging. Inspect the merge-group CI failure, fix it on the same branch, and push for fresh review and checks.",
-		);
 	}
 	return yield* state
 		.save(current, {
@@ -52,8 +51,8 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 			decision: undefined,
 			decisionAcknowledged: undefined,
 			decisionPublished: undefined,
-			mergeQueue: { head: result.head, status: status === "queued" ? "queued" : "requested" },
-			mergeReadyAt: record.mergeReadyAt ?? state.policy.now(),
+			mergeQueue: { head: result.head, status: status === "queued" || current.value.mergeQueue?.status === "queued" ? "queued" : "requested" },
+			mergeReadyAt: current.value.mergeReadyAt,
 			mergeReadyHead: result.head,
 			step: "waiting",
 			supersededDecisions:

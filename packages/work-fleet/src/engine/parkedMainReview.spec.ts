@@ -23,7 +23,7 @@ mergeLoop.it("a legacy review parked on an area repairs main before reviewing an
 		review: undefined,
 		step: "reviewing",
 	});
-	fleet.dequeue("1");
+	fleet.dequeue("1", "merge_conflict");
 	yield* fleet.restart();
 
 	const repair = yield* fleet.reconcile("one");

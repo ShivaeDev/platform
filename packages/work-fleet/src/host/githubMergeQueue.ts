@@ -4,10 +4,10 @@ import { conflictingPr, movedPrHead } from "#engine/deliveryFailure.ts";
 import type { FleetHost } from "#host/config.ts";
 import { githubJson } from "#host/github.ts";
 import { GithubApi } from "#host/githubApi.ts";
+import { githubQueueStatus } from "#host/githubQueueStatus.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
 
 const PullRequest = Schema.Struct({
-	autoMerge: Schema.NullOr(Schema.Unknown),
 	base: Schema.Struct({ ref: Schema.String, sha: Schema.String }),
 	head: Schema.Struct({
 		ref: Schema.String,
@@ -17,9 +17,8 @@ const PullRequest = Schema.Struct({
 	labels: Schema.Array(Schema.Struct({ name: Schema.String })),
 	mergeable: Schema.NullOr(Schema.Boolean),
 	nodeId: Schema.String,
-	state: Schema.String,
 	title: Schema.String,
-}).pipe(Schema.encodeKeys({ autoMerge: "auto_merge", nodeId: "node_id" }));
+}).pipe(Schema.encodeKeys({ nodeId: "node_id" }));
 
 const mutation = `mutation FleetQueue($pr: ID!, $head: GitObjectID!) {
 	enablePullRequestAutoMerge(input: {pullRequestId: $pr, expectedHeadOid: $head, mergeMethod: SQUASH}) {
@@ -31,7 +30,7 @@ const Response = Schema.Struct({
 });
 
 export function githubMergeQueue(host: FleetHost) {
-	return Effect.fn("FleetHost.githubMergeQueue")(function* (work: BoardWork, result: typeof ChangeResult.Type, queued: boolean) {
+	return Effect.fn("FleetHost.githubMergeQueue")(function* (work: BoardWork, result: typeof ChangeResult.Type, queued: boolean, queuedAt?: number) {
 		const target = /^https:\/\/github\.com\/(?<repository>[^/]+\/[^/]+)\/pull\/(?<number>[1-9]\d*)$/u.exec(result.pr)?.groups;
 		if (host.worker === undefined || target === undefined) {
 			return "manual" as const;
@@ -47,9 +46,12 @@ export function githubMergeQueue(host: FleetHost) {
 		if (pr.mergeable === false) {
 			return yield* conflictingPr(pr.base.sha);
 		}
-		const status = queueStatus(pr, queued);
+		const status = yield* githubQueueStatus(pr.nodeId, result, host.repository.branch, queued, queuedAt);
 		if (status !== undefined) {
 			return status;
+		}
+		if (pr.mergeable === null) {
+			return "pending" as const;
 		}
 		yield* github.write({ query: mutation, variables: { head: result.head, pr: pr.nodeId } }).pipe(
 			Effect.flatMap(Schema.decodeUnknownEffect(Response)),
@@ -68,17 +70,4 @@ function humanMerge(pr: typeof PullRequest.Type, host: FleetHost, workId: string
 		|| /^release(?:\b|\/)/iu.test(pr.title)
 		|| pr.labels.some((label) => label.name === "release")
 	);
-}
-
-function queueStatus(pr: typeof PullRequest.Type, queued: boolean): "queued" | "pending" | "failed" | undefined {
-	if (pr.state !== "open") {
-		return "pending";
-	}
-	if (pr.autoMerge !== null) {
-		return "queued";
-	}
-	if (queued) {
-		return "failed";
-	}
-	return pr.mergeable === null ? "pending" : undefined;
 }

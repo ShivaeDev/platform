@@ -74,8 +74,8 @@ for (const [reviewed, area] of [
 				review: reviewed ? green.review : undefined,
 				step: "reviewing",
 			});
-			fleet.dequeue("1");
-			fleet.dequeue("4");
+			fleet.dequeue("1", "merge_conflict");
+			fleet.dequeue("4", "manually_removed");
 			const requests = fleet.queueRequests()?.length ?? 0;
 			yield* fleet.restart();
 
