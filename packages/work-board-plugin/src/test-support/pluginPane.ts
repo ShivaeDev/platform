@@ -6,6 +6,7 @@ import { readBoard } from "#board.ts";
 import { type PaneView, paneView } from "#pane.tsx";
 import { bandLine } from "#summary.ts";
 import { NOW } from "#test/admissionItems.ts";
+import { areaReadouts } from "#test/areaReadouts.ts";
 import { installPaneJsx, paneElements, reactPane } from "#test/paneElements.ts";
 import { agentsShown, drawingOf, flightLinesShown, goalLines, inFlightShown, legendShown, lookOf, terminalBarOf } from "#test/paneReadouts.ts";
 import { reply, success } from "#test/rpcReplies.ts";
@@ -37,6 +38,11 @@ export const createPane = Effect.fnUntraced(function* () {
 			view.achievedOpen = !view.achievedOpen;
 			draw();
 		},
+		onToggleArea: (area) => {
+			view.openArea = view.openArea === area ? null : area;
+			draw();
+		},
+		openArea: null,
 		surface: "desktop",
 		updated: "just now",
 	};
@@ -70,13 +76,17 @@ function boardFrom(engine: PaneEngine): WorkboardBoard {
 	const goals = engine.goals.filter((goal) => goal.status !== "done");
 	const closedGoals = engine.goals.filter((goal) => goal.status === "done");
 	return readBoard(
-		reply(success("1", { you: [] }), success("2", { fleet: { items: engine.work, state: "ready" }, goals: { closedGoals, goals } })),
+		reply(
+			success("1", { you: [] }),
+			success("2", { fleet: { areas: engine.areas, items: engine.work, state: "ready" }, goals: { closedGoals, goals } }),
+		),
 		"/repo",
 		NOW,
 	);
 }
 
 interface PaneEngine {
+	areas?: readonly unknown[];
 	board: WorkboardBoard;
 	goals: GoalAnswer[];
 	readonly pane: Effect.Success<ReturnType<typeof createPane>>;
@@ -97,6 +107,7 @@ export const pluginPane = storyKit({
 	verbs: (engine, story) => {
 		const { container } = engine.pane;
 		return {
+			...areaReadouts(container, story.tell),
 			agentsOf: (title: string) =>
 				Effect.sync(() => {
 					story.tell(`read the agents of ${title} in flight`);
@@ -190,5 +201,11 @@ export const achievedOpen = pluginPane.trait("board", "the Achieved list is alre
 export function paneColumns(columns: number) {
 	return pluginPane.trait("board", `the pane is ${columns} columns wide`, (engine) => {
 		engine.pane.view.columns = columns;
+	});
+}
+
+export function areasAnswered(areas: readonly unknown[]) {
+	return pluginPane.trait("board", "Fleet supplies area holders and queues", (engine) => {
+		engine.areas = areas;
 	});
 }

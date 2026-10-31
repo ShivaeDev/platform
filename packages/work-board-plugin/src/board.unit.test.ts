@@ -23,6 +23,7 @@ describe("the Board's RPC stream", () => {
 			NOW,
 		);
 		expect(board).toEqual({
+			areas: { items: [], problem: "This Fleet has not supplied area availability." },
 			asks: {
 				items: [
 					{ key: "open:todo.a", title: "First", url: "http://127.0.0.1:4801/_board/item/todo.a/" },

@@ -23,6 +23,9 @@ const aLaunch = projectFiles(
 );
 
 const aBuildInFlight = fleetReports({
+	areas: [
+		{ area: "work-board", holders: [{ prUrl: "https://github.com/example/project/pull/7", stage: "working", workId: "task.build" }], queue: [] },
+	],
 	completed: [],
 	items: [
 		{
@@ -43,11 +46,21 @@ const aBuildInFlight = fleetReports({
 });
 
 boardStory.it(
-	"answers the Claude Code plugin's batch with what its parsers read as Needs you, In flight and Goals",
+	"answers the Claude Code plugin's batch with Needs you, In flight, Areas and Goals",
 	[aLaunch, aBuildInFlight],
 	function* ({ board, postToSocket }) {
 		const reply = yield* postToSocket(boardInit("/project"));
 		expect(readBoard(reply, "/project", NOW)).toEqual({
+			areas: {
+				items: [
+					{
+						area: "work-board",
+						holders: [{ prUrl: "https://github.com/example/project/pull/7", stage: "working", title: "Build the page", workId: "task.build" }],
+						queue: [],
+					},
+				],
+				problem: null,
+			},
 			asks: {
 				items: [{ key: "open:task.build", title: "Build the page", url: `${board.url}/_board/item/decision.scope/#answer-card-direction` }],
 				problem: null,

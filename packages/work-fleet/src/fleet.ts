@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { admissionOrder } from "#engine/admissionOrder.ts";
+import { areaLanes } from "#engine/areaLanes.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueCommand } from "#engine/continueCommand.ts";
 import { deliveredIdProblem } from "#engine/deliveredId.ts";
@@ -35,10 +36,11 @@ export const Fleet = defineService({
 	initialize: Effect.gen(function* () {
 		const state = yield* makeState;
 		const launch = makeLaunch(state);
-		return { ...state, advance: makeAdvance(state, launch), launch };
+		return { ...state, advance: makeAdvance(state, launch), areaLanes: yield* areaLanes, launch };
 	}),
 	methods: (state) => ({
 		admissionOrder: admissionOrder(state),
+		areaLanes: state.areaLanes,
 		briefProblem: (workId: string, sourcePath: string) =>
 			state.board
 				.get(workId)

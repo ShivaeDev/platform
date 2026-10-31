@@ -73,6 +73,7 @@ export function fleetItems(folder: string, fleetPort: number | null = DAEMON_POR
 		const refused = new Set(refusals.map((refusal) => refusal.workId));
 		const ready = mergeWaits(snapshot);
 		return {
+			...(data.areas === undefined ? {} : { areas: data.areas }),
 			completed: data.completed
 				.filter((item) => !refused.has(item.workId))
 				.map((item) => ({ ...item, document: documents.get(item.workId) ?? null })),
