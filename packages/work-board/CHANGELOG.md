@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.40.1 - 2026-10-31
+
+### Fixed
+
+- Install the workspace removal watch before the recursive watch, and wait for both to buffer native events before reporting the workspace as watched, including when the root cannot accept a readiness sentinel.
+
 ## 0.40.0 - 2026-10-31
 
 ### Fixed

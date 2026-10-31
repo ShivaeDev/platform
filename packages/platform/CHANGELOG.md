@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.37.4 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/admin` from 0.16.0 to 0.16.1.
+- Update `@shivaedev/identity` from 0.13.0 to 0.14.0.
+- Update `@shivaedev/jobs` from 0.28.1 to 0.28.2.
+- Update `@shivaedev/server` from 0.14.0 to 0.15.0.
+- Update `@shivaedev/sql` from 0.28.0 to 0.29.0.
+- Update `@shivaedev/webhooks` from 0.3.7 to 0.3.8.
+
 ## 0.37.3 - 2026-10-31
 
 ### Changed
