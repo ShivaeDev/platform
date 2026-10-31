@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.26.1 - 2026-10-31
+
+### Fixed
+
+- Adopt parked merge-main repairs without waiting for areas, review green PRs held on merge ordering, and put reviewed green, mergeable Fleet PRs ahead of conflicting or unreviewed work.
+- Observe merge-queue removal while work waits on ordering or areas and continue its worker with the failing check output, then review the repaired head.
+
 ## 0.26.0 - 2026-10-31
 
 ### Added
