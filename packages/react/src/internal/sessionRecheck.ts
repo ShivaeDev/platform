@@ -1,5 +1,6 @@
-import { Predicate } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { RpcClientError } from "effect/rpc/RpcClientError";
+import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 
 const rechecks = new WeakMap<AtomRegistry.AtomRegistry, () => void>();
 
@@ -10,8 +11,12 @@ export function registerSessionRecheck(registry: AtomRegistry.AtomRegistry, rech
 	};
 }
 
+export function requestsRecheck(error: unknown, connection = false): boolean {
+	return isUnauthorized(error) || (connection && error instanceof RpcClientError);
+}
+
 export async function recheckUnauthorized(registry: AtomRegistry.AtomRegistry, error: unknown, connection = false): Promise<void> {
-	if (Predicate.isTagged(error, "Unauthorized") || (connection && Predicate.isTagged(error, "RpcClientError"))) {
+	if (requestsRecheck(error, connection)) {
 		await rechecks.get(registry)?.();
 	}
 }

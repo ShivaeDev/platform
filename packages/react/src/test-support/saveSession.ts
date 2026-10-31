@@ -1,14 +1,13 @@
-import { Data, Effect, Layer, Option, Schema } from "effect";
+import { Effect, Layer, Option, Schema } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { useField } from "@shivaedev/form/client/react.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { type Create, useCreate } from "#client/create.ts";
 import { type Editor, useEditor } from "#client/editor.ts";
 import { UnstableSession } from "./UnstableSession.tsx";
-
-export class Unauthorized extends Data.TaggedError("Unauthorized")<{ readonly message: string }> {}
 
 const Name = Schema.Struct({ name: Schema.String });
 type Name = typeof Name.Type;

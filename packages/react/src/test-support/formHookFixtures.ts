@@ -1,5 +1,6 @@
 import { Data, Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 
 export const query = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 export const Title = Schema.Struct({ title: Schema.String });
@@ -17,8 +18,6 @@ export function saveStale(values: { readonly title: string }) {
 	return Effect.fail(new StaleRejected({ field: "subtitle", message: values.title }));
 }
 
-const perField = { field: Schema.optionalKey(Schema.String), message: Schema.String };
-export class Conflict extends Schema.TaggedError<Conflict>()("Conflict", perField) {}
 export class TitleConflict extends Schema.TaggedError<TitleConflict>()("TitleConflict", {
 	field: Schema.optionalKey(Schema.Literal("title")),
 	message: Schema.String,

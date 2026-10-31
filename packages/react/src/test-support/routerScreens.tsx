@@ -1,9 +1,9 @@
 import { type ErrorComponentProps, getRouteApi, Link, type NotFoundRouteProps, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
-import { Predicate, Schema } from "effect";
 import { useLayoutEffect } from "react";
+import { isNotFound } from "@shivaedev/errors/taxonomy.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import type { routerApp } from "./routerApp.ts";
-import { NotFound } from "./routerClient.ts";
+import { NoteMissing } from "./routerClient.ts";
 
 type Router = ReturnType<typeof routerApp>;
 const noteRoute = getRouteApi<"/notes/$id", Router>("/notes/$id");
@@ -45,7 +45,7 @@ export function RouterFailure({ error }: ErrorComponentProps) {
 	const { page } = noteRoute.useSearch<Router>();
 	return (
 		<>
-			<p role="alert">{Predicate.isTagged(error, "NoteMissing") ? `${error._tag}:${"id" in error ? error.id : ""}` : "Could not load"}</p>
+			<p role="alert">{error instanceof NoteMissing ? `${error._tag}:${error.id}` : "Could not load"}</p>
 			<button
 				onClick={() => {
 					registry.refresh(client.api.get.query({ id, page: page * viewer.page }));
@@ -64,10 +64,9 @@ export function RouterNotFound() {
 }
 
 export function SharedNotFound({ data }: NotFoundRouteProps) {
-	return Schema.is(NotFound)(data) ? (
+	return isNotFound(data) ? (
 		<article>
 			<h1>{data.message}</h1>
-			<output data-missing-id>{data.id}</output>
 		</article>
 	) : (
 		<h1>Page not found</h1>
