@@ -24,13 +24,14 @@ async function availablePort() {
 	return address.port;
 }
 
-const startHost = Effect.gen(function* () {
+const startHost = Effect.fnUntraced(function* (inProcess: boolean) {
 	const pool = yield* betterAuthDatabase();
 	const port = yield* Effect.promise(availablePort);
 	const baseUrl = `http://127.0.0.1:${port}`;
-	const resource = `${baseUrl}/mcp`;
+	const publicUrl = inProcess ? "https://mcp.story.test" : baseUrl;
+	const resource = `${publicUrl}/mcp`;
 	const options = {
-		"baseURL": baseUrl,
+		"baseURL": { allowedHosts: ["127.0.0.1:*", "mcp.story.test"], fallback: publicUrl },
 		database: pool,
 		logger: { disabled: true },
 		plugins: [
@@ -43,6 +44,7 @@ const startHost = Effect.gen(function* () {
 				consentPage: "/consent",
 				loginPage: "/login",
 				resource,
+				scopes: ["mcp", "offline_access"],
 			}),
 		],
 		secret: "mcp-story-secret-with-at-least-thirty-two-characters",
@@ -50,7 +52,13 @@ const startHost = Effect.gen(function* () {
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
 	const mounted = yield* betterAuthMount(options, { roles: Roles });
-	const oauth = yield* betterAuthMcp({ auth: mounted.auth, origin: trustedOrigins({ allow: [baseUrl], missing: "allow" }), resource, roles: Roles });
+	const oauth = yield* betterAuthMcp({
+		auth: mounted.auth,
+		...(inProcess ? { jwks: () => mounted.auth.api.getJwks() } : {}),
+		origin: trustedOrigins({ allow: [baseUrl], missing: "allow" }),
+		resource,
+		roles: Roles,
+	});
 	const group = RpcGroup.make();
 	const jwks = jwksEndpoint(mounted.auth);
 	yield* Layer.build(
@@ -74,9 +82,9 @@ const startHost = Effect.gen(function* () {
 			sessions: { ...mounted.sessions, origin: () => true },
 		}).pipe(Layer.provide(jwks.logger)),
 	);
-	return { auth: mounted.auth, baseUrl, jwks, resource };
+	return { auth: mounted.auth, baseUrl, issuer: `${publicUrl}/api/auth`, jwks, oauth, resource };
 });
-type Host = Effect.Success<typeof startHost>;
+type Host = Effect.Success<ReturnType<typeof startHost>>;
 
 interface Person {
 	readonly cookie: string;
@@ -84,22 +92,28 @@ interface Person {
 }
 
 interface Story {
+	readonly clientIds: Map<string, string>;
 	readonly clients: Map<string, McpClient.McpClient>;
 	readonly flow: { clientId?: string; code?: string; consentQuery?: string };
 	readonly people: Map<string, Person>;
+	readonly refreshTokens: Map<string, string>;
 	refusal: { readonly challenge: string | undefined; readonly status: number } | undefined;
 	readonly tokens: Map<string, string>;
 }
 
-export const startEngine = Effect.map(startHost, (host): Host & Story => ({
-	...host,
-	clients: new Map(),
-	flow: {},
-	people: new Map(),
-	refusal: undefined,
-	tokens: new Map(),
-}));
-export type Engine = Effect.Success<typeof startEngine>;
+export function startEngine(inProcess = false) {
+	return Effect.map(startHost(inProcess), (host): Host & Story => ({
+		...host,
+		clientIds: new Map(),
+		clients: new Map(),
+		flow: {},
+		people: new Map(),
+		refreshTokens: new Map(),
+		refusal: undefined,
+		tokens: new Map(),
+	}));
+}
+export type Engine = Effect.Success<ReturnType<typeof startEngine>>;
 
 export function person(engine: Engine, name: string) {
 	const found = engine.people.get(name);

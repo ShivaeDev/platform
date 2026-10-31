@@ -26,6 +26,23 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 	}, [action.result, action.pending]);
 	const submitLabel = mode === "sign-in" ? "Sign in" : "Create account";
 	const buttonLabel = action.pending ? "Please wait…" : submitLabel;
+	const nameField = mode === "sign-up" && (
+		<div className="space-y-2">
+			<label htmlFor={`${id}-name`}>Name</label>
+			<Input
+				autoComplete="name"
+				id={`${id}-name`}
+				onChange={(event) => setCredentials({ ...credentials, name: event.target.value })}
+				required
+				value={credentials.name}
+			/>
+		</div>
+	);
+	const failureMessage = !action.pending && Option.isSome(failure) && (
+		<p className="text-destructive" role="alert">
+			{authenticationMessage(failure.value.code)}
+		</p>
+	);
 	return (
 		<main className="mx-auto w-full max-w-md space-y-6 px-4 py-12">
 			<h1 className="text-3xl font-semibold">{mode === "sign-in" ? "Sign in" : "Create an account"}</h1>
@@ -38,18 +55,7 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 					action.dispatch({ credentials, mode });
 				}}
 			>
-				{mode === "sign-up" && (
-					<div className="space-y-2">
-						<label htmlFor={`${id}-name`}>Name</label>
-						<Input
-							autoComplete="name"
-							id={`${id}-name`}
-							onChange={(event) => setCredentials({ ...credentials, name: event.target.value })}
-							required
-							value={credentials.name}
-						/>
-					</div>
-				)}
+				{nameField}
 				<div className="space-y-2">
 					<label htmlFor={`${id}-email`}>Email</label>
 					<Input
@@ -73,11 +79,7 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 						value={credentials.password}
 					/>
 				</div>
-				{!action.pending && Option.isSome(failure) && (
-					<p className="text-destructive" role="alert">
-						{authenticationMessage(failure.value.code)}
-					</p>
-				)}
+				{failureMessage}
 				<Button disabled={action.pending} type="submit">
 					{buttonLabel}
 				</Button>

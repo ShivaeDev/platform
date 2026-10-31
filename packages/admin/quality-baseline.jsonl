@@ -1,8 +1,5 @@
 {"path":"packages/admin/src/client/JobDetail.tsx","rule":"react/jsx-conditionals","count":8}
 {"path":"packages/admin/src/client/JobList.tsx","rule":"react/jsx-conditionals","count":5}
-{"path":"packages/admin/src/jobs/page.typecheck.test.ts","rule":"effect/boundary","count":4}
 {"path":"packages/admin/src/page.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/admin/src/registry.ts","rule":"effect/boundary","count":4}
-{"path":"packages/admin/src/registry.typecheck.test.ts","rule":"effect/boundary","count":7}
 {"path":"packages/admin/src/server/jobsHandlers.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/admin/src/server/registerAdmin.ts","rule":"effect/boundary","count":2}

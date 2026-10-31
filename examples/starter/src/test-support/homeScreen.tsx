@@ -9,6 +9,10 @@ import { screens } from "./screens.ts";
 export const homeScreen = screens.trait("screen", "the app has no feature modules", function* (engine) {
 	const fixture = appAuth({ baseUrl: "http://foundation.story.test" });
 	const view = yield* acquireScreen(engine);
+	engine.pending = () =>
+		(fixture.auth.client.$store.atoms.session?.get().isPending ?? false)
+		|| (engine.view !== undefined
+			&& (engine.view.registry.get(fixture.auth.actions.submit).waiting || engine.view.registry.get(fixture.auth.actions.signOut).waiting));
 	yield* Effect.promise(() =>
 		view.render(<App auth={fixture.auth} connect={() => connectModules([])} history={createMemoryHistory({ initialEntries: ["/"] })} />),
 	);

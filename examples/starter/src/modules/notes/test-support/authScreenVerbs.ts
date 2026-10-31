@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { act } from "react";
 import type { Screen } from "./screenState.ts";
 
 export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
@@ -40,6 +41,17 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 			Effect.sync(() => {
 				tell("the session check provider recovers");
 				auth().recover();
+			}),
+		refreshSession: () =>
+			Effect.promise(async () => {
+				tell("refresh the session through the app's auth client");
+				const session = auth().auth.client.$store.atoms.session;
+				if (session === undefined) {
+					throw new Error("The auth client has no session atom");
+				}
+				await act(async () => {
+					await session.get().refetch();
+				});
 			}),
 		signOutCalls: () => engine.signOutCalls,
 		switchSession: (id: string) =>

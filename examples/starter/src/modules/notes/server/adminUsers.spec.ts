@@ -1,5 +1,6 @@
 import { DateTime, Effect, Option } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
 
 adminHost.it(
@@ -30,13 +31,19 @@ adminHost.it(
 		const listed = yield* owner["admin.users.list"]({ limit: 20 });
 		const target = listed.users.find(({ name }) => name === "reader");
 		if (target === undefined) {
-			throw new Error("Reader was not listed");
+			return yield* Effect.die(new Error("Reader was not listed"));
 		}
-		expect(listed.canChangeRoles).toBe(true);
-		expect(yield* Effect.flip(owner["admin.users.changeRole"]({ role: "admin", userId: "missing" }))).toMatchObject({
-			_tag: "NotFound",
-		});
-		expect(yield* Effect.flip(reader["admin.users.list"]({ limit: 20 }))).toMatchObject({ _tag: "Forbidden" });
+		yield* outcomes([
+			["owner can assign roles", () => Effect.sync(() => listed.canChangeRoles), true],
+			[
+				"role change rejection",
+				() => Effect.flip(owner["admin.users.changeRole"]({ role: "admin", userId: "missing" })),
+				expect.objectContaining({
+					_tag: "NotFound",
+				}),
+			],
+			["user list rejection", () => Effect.flip(reader["admin.users.list"]({ limit: 20 })), expect.objectContaining({ _tag: "Forbidden" })],
+		]);
 		for (const role of ["admin", "owner"] as const) {
 			yield* owner["admin.users.changeRole"]({ role, userId: target.id });
 			expect((yield* reader["admin.users.list"]({ limit: 20 })).users).toContainEqual(expect.objectContaining({ id: target.id, role }));
@@ -63,10 +70,23 @@ adminHost.it(
 		const users = yield* client["admin.users.list"]({ limit: 20 });
 		const owner = users.users.find(({ name }) => name === "owner");
 		if (owner === undefined) {
-			throw new Error("Owner was not listed");
+			return yield* Effect.die(new Error("Owner was not listed"));
 		}
-		expect(yield* Effect.flip(client["admin.users.changeRole"]({ role: "user", userId: owner.id }))).toMatchObject({ _tag: "Forbidden" });
-		expect((yield* client["admin.users.list"]({ limit: 20 })).users).toEqual(users.users);
+		yield* outcomes([
+			[
+				"role change rejection",
+				() => Effect.flip(client["admin.users.changeRole"]({ role: "user", userId: owner.id })),
+				expect.objectContaining({ _tag: "Forbidden" }),
+			],
+			[
+				"unchanged users",
+				() =>
+					Effect.gen(function* () {
+						return (yield* client["admin.users.list"]({ limit: 20 })).users;
+					}),
+				users.users,
+			],
+		]);
 	},
 );
 
@@ -77,8 +97,14 @@ adminHost.it(
 		for (const name of ["reader", "reader-two", "visitor"]) {
 			const client = yield* openAdmin(name);
 			const tag = name === "visitor" ? "Unauthorized" : "Forbidden";
-			expect(yield* Effect.flip(client["admin.users.list"]({ limit: 20 }))).toMatchObject({ _tag: tag });
-			expect(yield* Effect.flip(client["admin.users.changeRole"]({ role: "admin", userId: "missing" }))).toMatchObject({ _tag: tag });
+			yield* outcomes([
+				[
+					"role change rejection",
+					() => Effect.flip(client["admin.users.changeRole"]({ role: "admin", userId: "missing" })),
+					expect.objectContaining({ _tag: tag }),
+				],
+				["user list rejection", () => Effect.flip(client["admin.users.list"]({ limit: 20 })), expect.objectContaining({ _tag: tag })],
+			]);
 		}
 	},
 );

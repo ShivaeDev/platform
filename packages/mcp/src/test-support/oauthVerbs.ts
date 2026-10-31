@@ -5,7 +5,7 @@ import { type Engine, person } from "./host.ts";
 const VERIFIER = "mcp-story-pkce-verifier-long-enough-for-sha256";
 const CALLBACK = "http://localhost:8123/callback";
 
-function registered(engine: Engine) {
+export function registered(engine: Engine) {
 	const { clientId } = engine.flow;
 	if (clientId === undefined) {
 		throw new Error("No client has registered");
@@ -23,7 +23,7 @@ function step<A>(line: string, tell: (line: string) => void, run: () => Promise<
 export function oauthVerbs(engine: Engine, tell: (line: string) => void) {
 	const auth = `${engine.baseUrl}/api/auth`;
 	return {
-		authorizes: (name: string) =>
+		authorizes: (name: string, offline = false) =>
 			step(`${name} authorizes ${name}'s client in the browser`, tell, async () => {
 				const query = new URLSearchParams({
 					"client_id": registered(engine),
@@ -32,7 +32,7 @@ export function oauthVerbs(engine: Engine, tell: (line: string) => void) {
 					"redirect_uri": CALLBACK,
 					resource: engine.resource,
 					"response_type": "code",
-					scope: "mcp",
+					scope: offline ? "mcp offline_access" : "mcp",
 					state: "client-state",
 				});
 				const response = await fetch(`${auth}/oauth2/authorize?${query}`, {
@@ -61,7 +61,7 @@ export function oauthVerbs(engine: Engine, tell: (line: string) => void) {
 				}
 				engine.flow.code = code;
 			}),
-		exchangesCode: (name: string) =>
+		exchangesCode: (name: string, client = name) =>
 			step(`${name}'s client exchanges the code and its PKCE verifier for an access token`, tell, async () => {
 				const response = await fetch(`${auth}/oauth2/token`, {
 					body: new URLSearchParams({
@@ -80,18 +80,23 @@ export function oauthVerbs(engine: Engine, tell: (line: string) => void) {
 				if (typeof token !== "string") {
 					throw new Error(`The code exchange returned no access token: ${response.status} ${body}`);
 				}
-				engine.tokens.set(name, token);
+				engine.tokens.set(client, token);
+				engine.clientIds.set(client, registered(engine));
+				const refresh: unknown = JSON.parse(body).refresh_token;
+				if (typeof refresh === "string") {
+					engine.refreshTokens.set(client, refresh);
+				}
 			}),
-		registersClient: (name: string) =>
+		registersClient: (name: string, offline = false) =>
 			step(`${name}'s client registers its callback with the authorization server`, tell, async () => {
 				const response = await fetch(`${auth}/oauth2/register`, {
 					body: JSON.stringify({
 						"application_type": "native",
 						"client_name": "Story client",
-						"grant_types": ["authorization_code"],
+						"grant_types": offline ? ["authorization_code", "refresh_token"] : ["authorization_code"],
 						"redirect_uris": [CALLBACK],
 						"response_types": ["code"],
-						scope: "mcp",
+						scope: offline ? "mcp offline_access" : "mcp",
 						"token_endpoint_auth_method": "none",
 					}),
 					headers: { "content-type": "application/json" },

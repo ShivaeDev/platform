@@ -1,12 +1,12 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { malformedSession, notesScreen, screens, signedOutNotesRoute } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
 	"redirects a signed-out notes visitor before querying notes or rendering a route failure",
 	[signedOutNotesRoute()],
-	function* ({ closeScreen, consoleErrors, heading, alert, reads }) {
-		yield* eventually(() => expect(heading()).toBe("Sign in"));
+	function* ({ settle, closeScreen, consoleErrors, heading, alert, reads }) {
+		yield* settle();
+		expect(heading()).toBe("Sign in");
 		expect(alert()).toBeUndefined();
 		expect(reads()).toEqual([]);
 		yield* closeScreen();
@@ -17,12 +17,13 @@ screens.it(
 screens.it(
 	"shows typed command rejection after expiry without clearing the draft",
 	[notesScreen()],
-	function* ({ closeScreen, consoleErrors, expireSession, enter, submit, alert, draft }) {
+	function* ({ settle, closeScreen, consoleErrors, expireSession, enter, submit, alert, draft }) {
 		yield* expireSession();
 		yield* enter("Keep this draft");
 		yield* submit();
-		yield* eventually(() => expect(alert()).toBe("Sign in to add a note."));
-		yield* eventually(() => expect(draft()).toBe("Keep this draft"));
+		yield* settle();
+		expect(alert()).toBe("Sign in to add a note.");
+		expect(draft()).toBe("Keep this draft");
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},
@@ -31,10 +32,11 @@ screens.it(
 screens.it(
 	"calls sign-out and shows a failed sign-out without claiming success",
 	[notesScreen("Could not sign out")],
-	function* ({ closeScreen, consoleErrors, click, signOutCalls, alert }) {
+	function* ({ settle, closeScreen, consoleErrors, click, signOutCalls, alert }) {
 		yield* click("Sign out");
-		yield* eventually(() => expect(signOutCalls()).toEqual([undefined]));
-		yield* eventually(() => expect(alert()).toBe("Could not sign out. Try again."));
+		yield* settle();
+		expect(signOutCalls()).toEqual([undefined]);
+		expect(alert()).toBe("Could not sign out. Try again.");
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},

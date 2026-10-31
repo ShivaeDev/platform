@@ -1,11 +1,12 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { homeScreen } from "#test-support/homeScreen.tsx";
 import { screens } from "#test-support/screens.ts";
 
-screens.it("keeps a home page and sign-in route without feature modules", [homeScreen], function* ({ screenContent, clickControl }) {
+screens.it("keeps a home page and sign-in route without feature modules", [homeScreen], function* ({ settle, screenContent, clickControl }) {
 	const content = yield* screenContent();
-	yield* eventually(() => expect(content.querySelector("h1")?.textContent).toBe("Your app"));
+	yield* settle();
+	expect(content.querySelector("h1")?.textContent).toBe("Your app");
 	yield* clickControl("a");
-	yield* eventually(() => expect(content.querySelector("h1")?.textContent).toBe("Sign in"));
+	yield* settle();
+	expect(content.querySelector("h1")?.textContent).toBe("Sign in");
 });

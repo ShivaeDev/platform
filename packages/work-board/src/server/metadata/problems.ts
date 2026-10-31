@@ -2,13 +2,19 @@ import type { Diagnostic, MetadataDocument } from "#integration/metadata.ts";
 import { attentionProblems } from "./attentionProblems.ts";
 import { referencesOf } from "./referencesOf.ts";
 
-function referenceProblem(target: string, ids: ReadonlyMap<string, readonly MetadataDocument[]>): string | undefined {
+export function referenceProblem(
+	target: string,
+	ids: ReadonlyMap<string, readonly MetadataDocument[]>,
+	settled: ReadonlyMap<string, string> = new Map(),
+): string | undefined {
 	const [id = "", criterion] = target.split("#");
-	const matches = ids.get(id);
-	if (!matches?.length) {
+	const matches = ids.get(id) ?? [];
+	const archived = settled.get(id);
+	const count = matches.length + (archived && !matches.some((document) => document.file === archived) ? 1 : 0);
+	if (count === 0) {
 		return `Unresolved reference ${target}.`;
 	}
-	if (matches.length > 1) {
+	if (count > 1) {
 		return `Ambiguous reference ${target}; the ID is duplicated.`;
 	}
 	if (criterion && matches[0]?.parsed.fields.criteria?.filter((item) => item.id === criterion).length !== 1) {
@@ -24,15 +30,24 @@ function criterionProblems(document: MetadataDocument): readonly Diagnostic[] {
 			: [],
 	);
 }
-function referenceProblems(document: MetadataDocument, ids: ReadonlyMap<string, readonly MetadataDocument[]>): readonly Diagnostic[] {
+function referenceProblems(
+	document: MetadataDocument,
+	ids: ReadonlyMap<string, readonly MetadataDocument[]>,
+	settled?: ReadonlyMap<string, string>,
+): readonly Diagnostic[] {
 	const { lines } = document.parsed;
 	const references = referencesOf(document);
 	return references.flatMap((reference) => {
-		const message = referenceProblem(reference.target, ids);
+		const message = referenceProblem(reference.target, ids, settled);
 		return message ? [{ field: reference.field, line: lines[reference.key] ?? lines[reference.field] ?? 2, message }] : [];
 	});
 }
-export function metadataProblems(document: MetadataDocument, ids: ReadonlyMap<string, readonly MetadataDocument[]>, unavailable: readonly string[]) {
+export function metadataProblems(
+	document: MetadataDocument,
+	ids: ReadonlyMap<string, readonly MetadataDocument[]>,
+	unavailable: readonly string[],
+	settled?: ReadonlyMap<string, string>,
+) {
 	const { parsed } = document;
 	const problems = [...parsed.diagnostics, ...criterionProblems(document), ...attentionProblems(document)];
 	const matches = parsed.fields.id ? ids.get(parsed.fields.id) : undefined;
@@ -51,7 +66,7 @@ export function metadataProblems(document: MetadataDocument, ids: ReadonlyMap<st
 			});
 		}
 	} else {
-		problems.push(...referenceProblems(document, ids));
+		problems.push(...referenceProblems(document, ids, settled));
 	}
 	return problems;
 }

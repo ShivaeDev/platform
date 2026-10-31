@@ -19,6 +19,17 @@ export function NoteCreate({ client }: { readonly client: NotesClient }) {
 		runtime: client.runtime,
 	});
 	const title = useField(create.form, "title");
+	const titleError = Boolean(title.error) && (
+		<p className="text-destructive text-sm" id={errorId} role="alert">
+			{title.error}
+		</p>
+	);
+	const failureMessage = Option.isSome(create.failure) && (
+		<p className="text-destructive text-sm" role="alert">
+			{Predicate.isTagged(create.failure.value, "Unauthorized") ? "Sign in to add a note." : "Could not add the note. Try again."}
+		</p>
+	);
+	const statusMessage = Option.isSome(create.created) ? `Added ${create.created.value.title}` : "Notes are saved to PostgreSQL.";
 	return (
 		<form
 			className="space-y-3"
@@ -44,18 +55,10 @@ export function NoteCreate({ client }: { readonly client: NotesClient }) {
 					{create.saving ? "Adding…" : "Add note"}
 				</Button>
 			</div>
-			{Boolean(title.error) && (
-				<p className="text-destructive text-sm" id={errorId} role="alert">
-					{title.error}
-				</p>
-			)}
-			{Option.isSome(create.failure) && (
-				<p className="text-destructive text-sm" role="alert">
-					{Predicate.isTagged(create.failure.value, "Unauthorized") ? "Sign in to add a note." : "Could not add the note. Try again."}
-				</p>
-			)}
+			{titleError}
+			{failureMessage}
 			<p aria-live="polite" className="text-muted-foreground text-sm">
-				{Option.isSome(create.created) ? `Added ${create.created.value.title}` : "Notes are saved to PostgreSQL."}
+				{statusMessage}
 			</p>
 		</form>
 	);

@@ -20,7 +20,7 @@ application.it(
 );
 
 application.it(
-	"a minimal app's files match the full app's, except its manifest, Quality baseline, record, secrets and module registrations",
+	"a minimal app's files match the full app's, except its manifest, record, secrets and module registrations",
 	[fullAppToCompare],
 	function* ({ createApp, filesDifferingFrom }) {
 		yield* createApp("my-app", "--minimal", "--no-git");
@@ -29,7 +29,6 @@ application.it(
 			".create-app.json",
 			".env.local",
 			"package.json",
-			"quality-baseline.jsonl",
 			"src/client/modules.ts",
 			"src/modules.ts",
 			"src/server/modules.ts",

@@ -4,6 +4,7 @@ import { act } from "react";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { screenView } from "#test-support/screenState.ts";
+import { settleScreen } from "#test-support/settleScreen.ts";
 import type { Screen } from "./screenState.ts";
 import { settleQuery } from "./settleQuery.ts";
 
@@ -41,7 +42,10 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				}),
 			),
 		route: () => engine.router?.state.location.pathname,
-		settle: () => driver().settle(),
+		settle: () =>
+			driver()
+				.settle()
+				.pipe(Effect.andThen(settleScreen(engine, tell))),
 		settleQuery: (query: "get" | "list") => settleQuery(engine, query),
 		visitNotes: () =>
 			Effect.promise(async () => {

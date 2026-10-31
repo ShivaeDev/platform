@@ -1,9 +1,8 @@
-import { createRoute } from "@tanstack/react-router";
+import { createRoute, redirect } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
 import { AppAccess } from "#AppAccess.ts";
-import { routerRedirect } from "#client/adapters/routerRedirect.ts";
 import { type FoundationClient, makeFoundationClient } from "#client/admin/foundation.ts";
 import { AdminSessions } from "#client/admin/Sessions.tsx";
 import { AdminShell } from "#client/admin/Shell.tsx";
@@ -18,7 +17,7 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 		routes: ({ getParentRoute }: RouteContext) => {
 			const parent = createRoute({ context: () => ({ client }), getParentRoute, id: "foundation" });
 			const index = createRoute({
-				beforeLoad: (): never => routerRedirect(foundation.JobsPage.route.path),
+				beforeLoad: () => redirect({ href: foundation.JobsPage.route.path }),
 				getParentRoute: () => parent,
 				path: "/admin",
 			});
