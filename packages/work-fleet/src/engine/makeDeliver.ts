@@ -1,6 +1,7 @@
 import { Effect, Result } from "effect";
 import { reviewSatisfied, validateChecks, validateReviewRequirement } from "#completion.ts";
 import { authorizeBriefContext, briefChanged, isChangedBriefDecision, stopChangedBrief } from "#engine/boardBrief.ts";
+import { canObserveDeliveryFailure, deliveryPending } from "#engine/deliveryObservationPolicy.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import { EngineContext, type EngineState } from "#engine/makeState.ts";
@@ -65,10 +66,6 @@ function deniedDelivery(state: EngineState, stored: Versioned<FleetRecord>, work
 	);
 }
 
-function deliveryPending(record: FleetRecord): boolean {
-	return record.decision?.worker !== undefined || (record.decision !== undefined && record.decision.published === undefined);
-}
-
 const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	state: EngineState,
 	input: Versioned<FleetRecord>,
@@ -112,14 +109,6 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 		(yield* queueReviewedPr(stored, result).pipe(Effect.provideService(EngineContext, state))) ?? (yield* awaitHumanMerge(state, stored, result.head))
 	);
 });
-
-function canObserveDeliveryFailure(record: FleetRecord, error: FleetError) {
-	return (
-		!(executing(record) || deliveryPending(record))
-		&& (["delivering", "waiting"].includes(record.step)
-			|| (failureCode(error) === "pr-head-moved" && ["reviewing", "validating"].includes(record.step)))
-	);
-}
 
 const releaseClosedDelivery = Effect.fn("Fleet.releaseClosedDelivery")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
 	if (stored.value.step !== "waiting" || executing(stored.value)) {

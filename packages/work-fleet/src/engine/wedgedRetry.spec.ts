@@ -3,7 +3,7 @@ import { wedgedConflictRepair } from "#test/engineStalledTurnTraits.ts";
 import { engine } from "#test/engineStory.ts";
 
 engine.it(
-	"a wedged repair automatically starts a fresh thread on the same PR across restart",
+	"a wedged conflict repair retries in a fresh thread after restart before reviewing the repaired head",
 	[wedgedConflictRepair()],
 	function* ({
 		setFleetTime,
@@ -28,7 +28,7 @@ engine.it(
 		expect(blocked.value.launchRetry?.retryAt).toBe(retryAt);
 		expect(blocked.value.attempts.at(-1)).toMatchObject({ role: "repair", sessionUnusable: true, status: "failed" });
 		yield* afterRestart(fleet.reconcile("one"));
-		expect(providerStarts().map((start) => start.operationId)).toEqual(["operation-1", "operation-2"]);
+		expect(providerStarts().map((start) => start.operationId)).toEqual(["operation-1"]);
 		setFleetTime(retryAt);
 		const repair = yield* afterRestart(fleet.reconcile("one"));
 		expect(repair.value.step).toBe("working");
@@ -41,7 +41,7 @@ engine.it(
 			`same branch and PR (${blocked.value.result?.kind === "change" ? blocked.value.result.pr : ""})`,
 		);
 		expect(providerStarts().at(-1)?.cwd).toBe(blocked.value.cwd);
-		expect(reviewedHeads()).toEqual(["head-one-0"]);
+		expect(reviewedHeads()).toEqual([]);
 		expect(publishedDecisions()).toHaveLength(0);
 		resolvePullRequestConflict();
 		finishWorkers();
@@ -51,6 +51,6 @@ engine.it(
 			pr: blocked.value.result?.kind === "change" ? blocked.value.result.pr : "",
 		});
 		expect(reviewed.value.review).toMatchObject({ head: "head-one-1", verdict: "approved" });
-		expect(reviewedHeads()).toEqual(["head-one-0", "head-one-1"]);
+		expect(reviewedHeads()).toEqual(["head-one-1"]);
 	},
 );

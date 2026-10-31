@@ -40,7 +40,5 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 });
 
 function stalled(attempt: Attempt, now: number, minutes: number) {
-	return (
-		attempt.status === "running" && attempt.progress !== undefined && now - Math.max(attempt.progress.at, attempt.submittedAt) >= minutes * 60_000
-	);
+	return attempt.status === "running" && now - Math.max(attempt.progress?.at ?? attempt.submittedAt, attempt.submittedAt) >= minutes * 60_000;
 }

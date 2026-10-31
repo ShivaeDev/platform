@@ -24,6 +24,6 @@ export const interruptWork = Effect.fn("Fleet.interruptWork")(function* (state: 
 			? { status: interrupted.success.length === 0 ? ("failed" as const) : ("interrupted" as const), terminalReceipts: interrupted.success }
 			: { abandoned: { at: state.policy.now(), interruptError: interrupted.failure.message }, status: "failed" as const }),
 		output: undefined,
-		sessionUnusable: true,
+		sessionUnusable: interrupted._tag === "Failure" || interrupted.success.length === 0 ? true : attempt.sessionUnusable,
 	};
 });
