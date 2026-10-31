@@ -45,5 +45,5 @@ export const legacyUser = migration.trait("schema", "alice has a user before rol
 		secret: "migration-story-secret-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 	});
-	yield* Effect.promise(() => signedInUser(auth, { email: "alice@migration.test", name: "alice" }));
+	yield* signedInUser(auth, { email: "alice@migration.test", name: "alice" });
 });

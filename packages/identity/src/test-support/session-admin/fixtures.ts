@@ -4,13 +4,13 @@ import type { SessionAdminHost } from "./host.ts";
 
 export type Device = "alice" | "bobLaptop" | "bobPhone";
 export type Actor = Device | "anonymous";
-type Login = Awaited<ReturnType<typeof signedInUser>>;
+type Login = Effect.Success<ReturnType<typeof signedInUser>>;
 export type Accounts = Record<Device, Login>;
 
 export const mintSessions = Effect.fnUntraced(function* (host: SessionAdminHost) {
 	// These sessions start the story after sign-in, with recorded activity in the provider's storage.
-	const alice = yield* Effect.promise(() => signedInUser(host.auth, { email: "alice@sessions.test", name: "alice", role: "admin" }));
-	const bobLaptop = yield* Effect.promise(() => signedInUser(host.auth, { email: "bob@sessions.test", name: "bob", role: "viewer" }));
+	const alice = yield* signedInUser(host.auth, { email: "alice@sessions.test", name: "alice", role: "admin" });
+	const bobLaptop = yield* signedInUser(host.auth, { email: "bob@sessions.test", name: "bob", role: "viewer" });
 	const context = yield* Effect.promise(() => host.auth.$context);
 	const bobPhone = yield* Effect.promise(() => context.test.login({ userId: bobLaptop.user.id }));
 	const accounts = { alice, bobLaptop, bobPhone };

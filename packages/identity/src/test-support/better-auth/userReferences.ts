@@ -53,7 +53,7 @@ export function appRows(onDelete: "cascade" | "set null") {
 			user_id text references ${sql(userReference.table)} (${sql(userReference.column)}) on delete ${sql.literal(onDelete)}
 		)`;
 		for (const name of ["Alice", "Bob"]) {
-			const { user } = yield* Effect.promise(() => signedInUser(engine.auth, { email: `${name}@reference.test`, name }));
+			const { user } = yield* signedInUser(engine.auth, { email: `${name}@reference.test`, name });
 			engine.users.set(name, user.id);
 			yield* sql`insert into app_notes (title, user_id) values (${name}, ${user.id})`;
 		}

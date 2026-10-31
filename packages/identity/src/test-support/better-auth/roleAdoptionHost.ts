@@ -68,7 +68,7 @@ export const roleAdoptionHost = Effect.fnUntraced(function* () {
 		mint: (name: Person) =>
 			Effect.gen(function* () {
 				const auth = yield* legacy;
-				people.set(name, yield* Effect.promise(() => signedInUser(auth, { email: `${name}@roles.test`, name })));
+				people.set(name, yield* signedInUser(auth, { email: `${name}@roles.test`, name }));
 			}),
 		removeRole: (name: Person) => storage.omitRole(person(name).user.id),
 		roleColumn: () => storage.roleColumn,

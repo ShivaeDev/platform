@@ -3,6 +3,27 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { sessionClock } from "#test/sessionClock.ts";
 
+sessionClock.it(
+	"in 2100, alice stays signed in for her configured hour and expires at its end",
+	[],
+	function* ({ request, timePasses }) {
+		expect(yield* request("alice")).toBe("alice");
+
+		yield* timePasses("59 minutes");
+
+		expect(yield* request("alice")).toBe("alice");
+
+		yield* timePasses("1 minute");
+
+		expect(yield* request("alice")).toBe("failed with unauthorized");
+
+		yield* timePasses("1 milli");
+
+		expect(yield* request("alice")).toBe("failed with unauthorized");
+	},
+	{ clock: DateTime.makeUnsafe("2100-01-01T00:00:00Z") },
+);
+
 for (const millisecondsAfter of [0, 1]) {
 	sessionClock.it(
 		`alice's session expires and is swept ${millisecondsAfter} milliseconds after its lifetime while bob stays signed in`,

@@ -58,8 +58,8 @@ export const roleHost = Effect.fnUntraced(function* () {
 		session: () => Effect.promise(() => app.handler(new Request(`${ORIGIN}/api/auth/get-session`, { headers }))),
 		// A minted session isolates stored-role resolution from the sign-in flow.
 		signedInAs: (role: string) =>
-			Effect.promise(async () => {
-				const session = await signedInUser(mounted.auth, { email: "alice@roles.test", name: "alice", role });
+			Effect.gen(function* () {
+				const session = yield* signedInUser(mounted.auth, { email: "alice@roles.test", name: "alice", role });
 				userId = session.user.id;
 				headers.set("cookie", session.headers.get("cookie") ?? "");
 			}),

@@ -55,7 +55,7 @@ export const existingNotes = migration.trait("schema", "Alice has an owned note 
 	const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
 	yield* steps.migrateTo("0002_notes");
 	const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
-	const { user } = yield* Effect.promise(() => signedInUser(auth, { email: "alice@migration.test", name: "Alice" }));
+	const { user } = yield* signedInUser(auth, { email: "alice@migration.test", name: "Alice" });
 	engine.userId = user.id;
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql`insert into notes (owner_id, title) values (${user.id}, 'Alice note'), (null, 'Legacy note')`;

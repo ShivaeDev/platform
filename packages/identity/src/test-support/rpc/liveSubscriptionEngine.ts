@@ -23,7 +23,7 @@ export const documents = collection("documents", Schema.String);
 export const liveSubscriptionEngine = Effect.gen(function* () {
 	const provider = yield* createProvider();
 	const mintingAuth = betterAuth({ ...provider.auth.options, plugins: [testUtils()] });
-	const session = yield* Effect.promise(() => signedInUser(mintingAuth, { email: "alice@example.test", name: "alice" }));
+	const session = yield* signedInUser(mintingAuth, { email: "alice@example.test", name: "alice" });
 	const cookie = session.headers.get("cookie");
 	if (cookie === null) {
 		return yield* Effect.die("The signed-in precondition needs a session cookie");

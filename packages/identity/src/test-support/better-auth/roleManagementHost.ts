@@ -43,8 +43,8 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 	const context = yield* Effect.promise(() => mounted.auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
 	// Minted sessions start the story after registration and sign-in.
-	const alice = yield* Effect.promise(() => signedInUser(mounted.auth, { email: "alice@roles.test", name: "alice", role: "admin" }));
-	const bob = yield* Effect.promise(() => signedInUser(mounted.auth, { email: "bob@roles.test", name: "bob", role: "user" }));
+	const alice = yield* signedInUser(mounted.auth, { email: "alice@roles.test", name: "alice", role: "admin" });
+	const bob = yield* signedInUser(mounted.auth, { email: "bob@roles.test", name: "bob", role: "user" });
 	const accounts = { alice, bob };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer));

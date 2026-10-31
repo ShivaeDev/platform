@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
@@ -21,7 +20,7 @@ const definition = {
 export const socialApp = storyKit({ ...definition, create: () => socialEngine() });
 export function mintedSocialSession(providerAccounts: NonNullable<Parameters<typeof signedInUser>[1]["providerAccounts"]> = []) {
 	return socialApp.trait("account", "Bob starts signed in with a minted session", function* ({ auth, minted }) {
-		const { cookies, user } = yield* Effect.promise(() => signedInUser(auth, { email: "bob@social.test", name: "Bob", providerAccounts }));
+		const { cookies, user } = yield* signedInUser(auth, { email: "bob@social.test", name: "Bob", providerAccounts });
 		minted.set("Bob", user.id);
 		yield* seedCookies(cookies);
 	});

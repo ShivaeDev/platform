@@ -41,7 +41,7 @@ const TOKENS: Record<TokenKind, (engine: Engine, name: string, client: string) =
 
 export function signedIn(name: string, role: "admin" | "user") {
 	return mcp.trait("people", `${name} is signed in as ${role === "admin" ? "an admin" : "a user"}`, function* (engine) {
-		const session = yield* Effect.promise(() => signedInUser(engine.auth, { email: `${name}@mcp.test`, name, role }));
+		const session = yield* signedInUser(engine.auth, { email: `${name}@mcp.test`, name, role });
 		engine.people.set(name, { cookie: session.headers.get("cookie") ?? "", id: session.user.id });
 	});
 }

@@ -32,5 +32,5 @@ export const sessionPrecondition = Effect.fn("AppStory.sessionPrecondition")(fun
 
 export const mintUser = Effect.fn("AppStory.mintUser")(function* (host: SessionHost, name: string, role?: string) {
 	const auth = yield* sessionPrecondition(host);
-	return yield* Effect.promise(() => signedInUser(auth, { email: `${name}@app.test`, name, ...(role === undefined ? {} : { role }) }));
+	return yield* signedInUser(auth, { email: `${name}@app.test`, name, ...(role === undefined ? {} : { role }) });
 });
