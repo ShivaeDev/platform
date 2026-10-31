@@ -12,7 +12,7 @@ for (const [launchPriority, blockedElsewhere] of [
 	["urgent", true],
 ] as const) {
 	isolatedEngine.it(
-		`a new ${launchPriority} launch competes with a requested CI repair that two open PRs await${blockedElsewhere ? " while another area stays occupied" : ""}`,
+		`a new ${launchPriority} launch competes with a requested code repair that two open PRs await${blockedElsewhere ? " while another area stays occupied" : ""}`,
 		[watchedBranches, watchedChecks],
 		function* (fleet) {
 			fleet.setPriority("one", "high");
@@ -35,10 +35,8 @@ for (const [launchPriority, blockedElsewhere] of [
 			}
 			yield* fleet.reconcile("one");
 			yield* fleet.reserveForeign("holder", ["shared"]);
-			const first = fleet.publishedPredictionResult("one");
-			fleet.checksRespond(first.head, [[checkRun({ conclusion: "failure", headSha: first.head, name: "verify" })]]);
 			const decision = (yield* fleet.get("one")).value.decision?.id ?? "missing";
-			yield* fleet.resolve("one", decision, fleet.respond(decision, "retry", "answer", "Fix the failed required verify check on this PR."));
+			yield* fleet.resolve("one", decision, fleet.respond(decision, "retry", "answer", "Apply the requested code changes on this PR."));
 			yield* fleet.reconcile("one");
 			fleet.finishWorkers();
 			expect((yield* fleet.reconcile("one")).value).toMatchObject({ blocker: "waiting for area shared held by holder", step: "repairing" });
@@ -63,7 +61,7 @@ for (const [launchPriority, blockedElsewhere] of [
 				const repairing = (yield* fleet.reconcile("one")).value;
 				expect(repairing).toMatchObject({
 					attempts: expect.arrayContaining([
-						expect.objectContaining({ prompt: expect.stringContaining("Fix the failed required verify check"), role: "repair" }),
+						expect.objectContaining({ prompt: expect.stringContaining("Apply the requested code changes"), role: "repair" }),
 					]),
 					step: "working",
 				});

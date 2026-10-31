@@ -1,5 +1,7 @@
 import { Context, Effect, FileSystem, Layer, Path, Semaphore } from "effect";
-import { board, type MetadataDocument, type Snapshot } from "@shivaedev/work-board/server/integration/board.ts";
+import type { MetadataDocument } from "@shivaedev/work-board/integration/metadata.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
+import type { Snapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { BoardIndex } from "#board/Index.ts";
 import { validateDocument } from "#board/readDocument.ts";

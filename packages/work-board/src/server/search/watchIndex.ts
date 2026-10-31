@@ -1,6 +1,6 @@
 import { Context, Effect, FileSystem, Option, Path, PubSub, Schedule, Semaphore, Stream } from "effect";
+import { isMarkdown } from "#path/isMarkdown.ts";
 import { type Change, type Changes, watchChanges } from "#server/files/changes.ts";
-import { isMarkdown } from "#server/files/list.ts";
 import { IndexProgress } from "./IndexProgress.ts";
 import { type Snapshot, searchSnapshot } from "./snapshot.ts";
 

@@ -30,7 +30,7 @@ The pane folds goals with status `done` under an “Achieved (N)” row, closed 
 
 ### Install
 
-Install it from this repository's marketplace. At the prompt of a terminal session, on Claude Code 2.1.299 or later:
+Install it from this repository's marketplace. The install command needs Git, Node.js 24 or later and pnpm on your PATH. Claude Code asks you to approve the marketplace command, which fetches this repository and builds the plugin automatically. At the prompt of a terminal session, on Claude Code 2.1.299 or later:
 
 ```
 /plugin install workboard --marketplace ShivaeDev/platform
@@ -53,4 +53,6 @@ pnpm --filter @shivaedev/work-board-plugin typecheck
 
 Pane stories render the element port with React in happy-dom. Check the runtime hooks, band and toasts by hand: start Claude Code with `--plugin-dir packages/work-board-plugin`, or list the folder in `CLAUDE_CODE_PLUGIN_DIRS`, in a folder with a running Work Board, then open `/workboard`.
 
-The plugin ships a generated Effect client and hook bundle so marketplace installs need no npm setup. Run `pnpm build:client` after changing its source. `pnpm test` checks that the committed bundle matches the source before running the stories. The bundle contains no source maps.
+Run `./script/update` from the repository checkout before loading the plugin with `--plugin-dir` or `CLAUDE_CODE_PLUGIN_DIRS`. Setup builds the Effect client and hooks into `src/adapters/generated/`, which git ignores. Package builds and test preparation also rebuild the bundle from current workspace sources; `pnpm build:client` remains available while editing. CI builds it through the existing package build and test preparation steps. The bundle contains no source maps.
+
+For marketplace installs, the command source fetches a fresh checkout, installs its locked dependencies and builds the bundle before Claude Code copies the plugin into its cache. Claude Code runs that command on installation, updates and once per session. The temporary checkout is removed after the command finishes; the output directory contains only the plugin manifest, hooks, types and generated bundle. This private plugin is distributed through the marketplace and is not published to npm.

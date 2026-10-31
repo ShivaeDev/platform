@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Context, Effect } from "effect";
+import { inProgress } from "@shivaedev/work-board/browser/views/inProgress.ts";
 import { BoardIndex } from "#board/Index.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
@@ -49,6 +50,12 @@ export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			return boardHttp(engine.fixture.host.boardDir, undefined, undefined, engine.running.port);
 		},
 		boardPath: (file: string) => join(engine.fixture.host.boardDir, file),
+		boardProgress: () =>
+			Effect.gen(function* () {
+				const board = yield* boardHttp(engine.fixture.host.boardDir, undefined, undefined, engine.running.port);
+				const data = yield* Effect.promise(() => board.client.run(board.client.api.fleetItems.run(undefined)));
+				return inProgress(data)?.rows.map((row) => row.workId);
+			}),
 		inbox: (board: Effect.Success<ReturnType<typeof boardHttp>>) => Effect.tryPromise(() => board.client.run(board.client.api.inbox.run(undefined))),
 		publishAnswer: (board: Effect.Success<ReturnType<typeof boardHttp>>, input: Parameters<typeof board.client.responses.recordResponse.run>[0]) => {
 			tell(`publish Board answer ${input.id}`);

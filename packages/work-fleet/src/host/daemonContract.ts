@@ -5,10 +5,11 @@ import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/inte
 import { ClosedDecision } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRejections } from "#errors.ts";
+import { fleetRecords } from "#fleetRecords.ts";
 import { DaemonStatus } from "#host/configSettings.ts";
 import { WatchSnapshot } from "#host/watchState.ts";
 import { FleetRecord } from "#model.ts";
-import { FleetContract, fleetRecords } from "#operations.ts";
+import { FleetContract } from "#operations.ts";
 import { StoppedPreparation } from "#StoppedPreparation.ts";
 
 const { DAEMON_RPC_PATH, DiagnosticsContract } = diagnosticsApi;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 - 2026-10-30
+
+### Fixed
+
+- Accept an extra leading `--` so both `pnpm heavy <command>` and `pnpm heavy -- <command>` run under the lock. Show usage when no command follows the separator.
+
 ## 0.6.0 - 2026-10-30
 
 ### Added

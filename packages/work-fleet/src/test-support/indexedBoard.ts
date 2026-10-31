@@ -1,5 +1,5 @@
 import { Effect, Option, PubSub, Stream } from "effect";
-import type { Snapshot } from "@shivaedev/work-board/server/integration/board.ts";
+import type { Snapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import type { BoardIndex } from "#board/Index.ts";
 
 export function indexedBoard(index: typeof BoardIndex.Service.index, ready: (snapshot: Snapshot) => boolean) {

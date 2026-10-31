@@ -1,7 +1,13 @@
+import { Effect } from "effect"
+import { ChildProcessSpawner } from "effect/process"
 import { assertLocalDatabase, LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts"
+import { LocalPostgresError } from "@shivaedev/local-postgres/server/LocalPostgresError.ts"
+import { PostgresCommandError } from "@shivaedev/local-postgres/server/PostgresCommandError.ts"
+import { PostgresSettingError } from "@shivaedev/local-postgres/server/localConnections.ts"
+import { PostgresVersionMismatch } from "@shivaedev/local-postgres/server/PostgresVersionMismatch.ts"
 
 const postgres = localPostgres({ DOCKER_CONTEXT: undefined, DOCKER_HOST: undefined })
-const database: URL = assertLocalDatabase(`${LOCAL_SERVER}/example_test`, ["example_test"])
-const query: (url: string | URL, sql: string) => string = postgres.sql
-const prepare: (urls: readonly string[]) => void = postgres.prepareDatabases
+const database: Effect.Effect<URL, LocalPostgresError> = assertLocalDatabase(`${LOCAL_SERVER}/example_test`, ["example_test"])
+const query: (url: string | URL, sql: string) => Effect.Effect<string, LocalPostgresError | PostgresCommandError, ChildProcessSpawner.ChildProcessSpawner> = postgres.sql
+const prepare: (urls: readonly string[]) => Effect.Effect<void, LocalPostgresError | PostgresCommandError | PostgresSettingError | PostgresVersionMismatch, ChildProcessSpawner.ChildProcessSpawner> = postgres.prepareDatabases
 void [database, query, prepare]

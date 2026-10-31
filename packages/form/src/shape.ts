@@ -42,7 +42,7 @@ export type Checks<TFields extends Fields, R> = {
 	readonly [TKey in Name<TFields>]?: (value: Encoded<TFields>[TKey]) => Effect.Effect<string | undefined, never, R>;
 };
 
-export interface Config<TFields extends Fields, A, E, R, TRuntimeError> {
+export type Config<TFields extends Fields, A, E, R, TRuntimeError> = {
 	readonly arrayKeys?: ArrayKeys<TFields>;
 	readonly checks?: Checks<TFields, R>;
 	readonly debounce?: Duration.Input;
@@ -53,8 +53,9 @@ export interface Config<TFields extends Fields, A, E, R, TRuntimeError> {
 		submitted: Encoded<TFields>,
 	) => Effect.Effect<A, E, R | Scope.Scope | AtomRegistry | Reactivity>;
 	readonly persistedDraft?: PersistedDraftConfig | undefined;
-	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
-}
+} & ([Exclude<Services<TFields, R>, Scope.Scope | AtomRegistry | Reactivity>] extends [never]
+	? { readonly runtime?: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError> }
+	: { readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError> });
 
 export interface Form<TFields extends Fields, A, E, TRuntimeError> {
 	readonly blur: (name: Name<TFields>) => void;

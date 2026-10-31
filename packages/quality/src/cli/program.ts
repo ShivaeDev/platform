@@ -1,10 +1,11 @@
 import { Console, Effect } from "effect";
 import { installDriver } from "#baseline/installDriver.ts";
 import { mergeBaseline } from "#baseline/merge.ts";
-import { parseCommand, USAGE } from "#cli/args.ts";
+import { parseCommand } from "#cli/args.ts";
 import { writeBaseline } from "#cli/baseline.ts";
 import { ci } from "#cli/ci.ts";
 import { fix } from "#cli/fix.ts";
+import { fixRule } from "#cli/fixRule.ts";
 import { lint } from "#cli/lint.ts";
 import { migrateBaseline } from "#cli/migrateBaseline.ts";
 import { migrateExceptions } from "#cli/migrateExceptions.ts";
@@ -16,6 +17,7 @@ import { preCommitHook } from "#hooks/preCommit.ts";
 import { setupHook } from "#hooks/setup.ts";
 import { hookStatus } from "#hooks/status.ts";
 import { uninstallHook } from "#hooks/uninstall.ts";
+import { USAGE } from "./messages.ts";
 
 export interface Invocation {
 	readonly cwd: string;
@@ -38,7 +40,7 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 		case "Lint":
 			return yield* lint(cwd, command.config);
 		case "Fix":
-			return yield* fix(cwd, command.config);
+			return yield* command.rules.length === 0 ? fix(cwd, command.config) : fixRule(cwd, command.config, command.rules);
 		case "BaselineMerge":
 			return yield* mergeBaseline(command.base, command.ours, command.theirs);
 		case "BaselineInstallDriver":

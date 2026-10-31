@@ -44,8 +44,8 @@ it("infers engines and services from Effect-returning setup beside generator run
 	kit.it("rejects the missing service", [missing]);
 });
 
+// @ts-expect-error Effect-returning creation needs its service from the worker Layer.
 storyKit({
-	// @ts-expect-error Effect-returning creation needs its service from the worker Layer.
 	create: () => Effect.map(Missing, (count): Engine => ({ count })),
 	name: "missing creation service",
 	stages: ["built"],
@@ -82,8 +82,8 @@ it("infers after-hook services with synchronous creation and mixed stage hooks",
 	expectTypeOf(mixed).toEqualTypeOf<StoryKit<Engine, "built" | "counted", Record<never, never>, never, Count>>();
 });
 
+// @ts-expect-error Effect-returning after hooks need their service from the worker Layer.
 storyKit({
-	// @ts-expect-error Effect-returning after hooks need their service from the worker Layer.
 	after: { built: () => Effect.asVoid(Missing) },
 	create: (): Engine => ({ count: 0 }),
 	name: "missing after service",

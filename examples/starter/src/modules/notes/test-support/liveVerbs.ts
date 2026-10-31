@@ -3,9 +3,11 @@ import { SqlClient } from "effect/sql";
 import type { Engine } from "#modules/notes/test-support/applicationState.ts";
 import { listHints } from "#modules/notes/test-support/listHints.ts";
 import { liveNote, liveNotes } from "#modules/notes/test-support/live.ts";
+import { developmentServer } from "#test-support/developmentServer.ts";
 import type { RunningHost } from "#test-support/host.ts";
 
 export function liveVerbs(engine: Engine, host: () => RunningHost, tell: (line: string) => void) {
+	let liveHost = host;
 	function cookie(name: string) {
 		const actor = engine.actors.get(name);
 		if (actor === undefined) {
@@ -23,15 +25,20 @@ export function liveVerbs(engine: Engine, host: () => RunningHost, tell: (line: 
 		}),
 		listHints: (name = "alice") => {
 			tell(`${name} listens for list hints over the socket`);
-			return listHints(host(), cookie(name));
+			return listHints(liveHost(), cookie(name));
 		},
 		liveNote: (id: number, name = "alice") => {
 			tell(`${name} watches note ${id} live`);
-			return liveNote(host(), cookie(name), id);
+			return liveNote(liveHost(), cookie(name), id);
 		},
 		liveNotes: (name = "alice") => {
 			tell(`${name} watches the live notes list`);
-			return liveNotes(host(), cookie(name));
+			return liveNotes(liveHost(), cookie(name));
 		},
+		startDevelopment: Effect.fn("AppStory.startDevelopment")(function* () {
+			tell("start the app's Vite development server");
+			const { url } = yield* developmentServer(host().baseUrl);
+			liveHost = () => ({ ...host(), baseUrl: url, origin: url });
+		}),
 	};
 }

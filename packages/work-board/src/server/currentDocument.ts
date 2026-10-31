@@ -1,4 +1,5 @@
-import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { updateModel } from "#server/metadata/updateModel.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";

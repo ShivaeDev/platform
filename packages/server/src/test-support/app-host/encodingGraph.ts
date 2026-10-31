@@ -42,20 +42,7 @@ export function declarationOrder(order: "first" | "last") {
 			declaration: () => Effect.void,
 			firstLink: ({ value }) => Effect.fail({ contact: value }),
 			lastLink: ({ value }) => Effect.fail({ intermediateContact: value, visible: "public detail" }),
-			mapped: ({ value }) =>
-				Effect.gen(function* () {
-					const diagnostic = {
-						contact: value,
-						control: "public control",
-						intermediateContact: value,
-						visible: "public detail",
-						wireChainedContact: value,
-						wireContact: value,
-					};
-					yield* Effect.logInfo("mapping diagnostic").pipe(Effect.annotateLogs(diagnostic));
-					yield* Effect.annotateCurrentSpan(diagnostic);
-					return yield* Effect.fail({ contact: value, visible: diagnostic.visible });
-				}),
+			mapped: ({ value }) => Effect.fail({ contact: value, visible: "public detail" }),
 		});
 		state.build = () => appHost({ config: state.config, group, handlers, policy: "loopback", services: Layer.empty });
 	});

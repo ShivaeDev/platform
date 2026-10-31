@@ -1,7 +1,7 @@
 import { fileUrl } from "#files/url.ts";
+import type { MetadataModel } from "#integration/metadata.ts";
 import { attachmentHref } from "#path/attachment.ts";
 import { referenceTarget } from "./links.ts";
-import type { MetadataModel } from "./model.ts";
 
 const BASE = "http://work-board.local";
 const absolute = /^(?:[a-z][a-z\d+.-]*:|\/\/)/iu;

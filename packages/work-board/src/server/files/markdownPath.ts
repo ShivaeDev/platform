@@ -1,5 +1,6 @@
 import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
-import { isMarkdown, within } from "./list.ts";
+import { isMarkdown } from "#path/isMarkdown.ts";
+import { within } from "./list.ts";
 import { readPaths } from "./readPaths.ts";
 
 export const markdownPaths = Effect.fn("WorkBoard.markdownPaths")(function* (realRoot: string) {

@@ -4,7 +4,7 @@ import { query } from '@shivaedev/contract/operation.ts';
 import { Effect, Schema, Stream } from 'effect';
 import { RpcTest } from 'effect/rpc';
 const notes = collection('notes', Schema.Number);
-const Notes = contract('notes', { queries: [query('list', { success: Schema.Array(Schema.String), reads: () => [notes.list] })] });
+const Notes = contract('notes', { queries: [query('list', { readPolicy: () => Effect.succeed(true), success: Schema.Array(Schema.String), reads: () => [notes.list] })] });
 const layer = Notes.toLayer(Effect.succeed(Notes.of({ 'notes.$changes': () => Stream.never, 'notes.list': () => Effect.succeed(['written']) })));
 const result = await Effect.runPromise(Effect.gen(function* () {
  const client = yield* RpcTest.makeClient(Notes);

@@ -1,9 +1,9 @@
 import { backlinkLabel, specificSources } from "#browser/document/sourceGroups.ts";
 import { fileUrl } from "#files/url.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { managedRequestReceipt } from "#server/attention/managedRequestReceipt.ts";
 import { backlinksOf } from "#server/metadata/backlinks.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { sourceFile, sourceHref } from "#server/metadata/sourceLinks.ts";
 
 export function readingContext(document: MetadataDocument, model: MetadataModel, board: boolean, titles: ReadonlyMap<string, string> = new Map()) {

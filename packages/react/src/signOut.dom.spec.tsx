@@ -1,42 +1,49 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { pendingSignOut, signOuts } from "#test/signOutStories.tsx";
+import { signOutIsReady, signOuts } from "#test/signOutStories.tsx";
 
-signOuts.it("a successful sign-out navigates to sign-in", [pendingSignOut()], function* ({ click, complete, destinations }) {
-	yield* click();
-	expect(destinations()).toEqual([]);
+signOuts.it("a successful sign-out navigates to sign-in", [signOutIsReady()], function* ({ clickSignOut, destinations, signOutSucceeds }) {
+	yield* clickSignOut();
+	expect(yield* destinations()).toEqual([]);
 
-	yield* complete();
+	yield* signOutSucceeds();
 
-	expect(destinations()).toEqual(["/sign-in"]);
+	expect(yield* destinations()).toEqual(["/sign-in"]);
 });
 
-signOuts.it("unmount during sign-out stops follow-up navigation", [pendingSignOut()], function* ({ click, complete, destinations, unmount }) {
-	yield* click();
-	yield* unmount();
+signOuts.it(
+	"a sign-out that succeeds after its component unmounts navigates nowhere",
+	[signOutIsReady()],
+	function* ({ clickSignOut, destinations, leave, signOutSucceeds }) {
+		yield* clickSignOut();
+		yield* leave();
 
-	yield* complete();
+		yield* signOutSucceeds();
 
-	expect(destinations()).toEqual([]);
-});
+		expect(yield* destinations()).toEqual([]);
+	},
+);
 
-signOuts.it("a second click starts no second request or navigation", [pendingSignOut()], function* ({ click, complete, destinations, requests }) {
-	yield* click();
+signOuts.it(
+	"clicking Sign out again while it is pending sends no second request and navigates once",
+	[signOutIsReady()],
+	function* ({ clickSignOut, destinations, requests, signOutSucceeds }) {
+		yield* clickSignOut();
 
-	yield* click();
-	yield* complete();
+		yield* clickSignOut();
+		yield* signOutSucceeds();
 
-	yield* outcomes({
-		"navigation destinations": [Effect.sync(destinations), ["/sign-in"]],
-		"sign-out requests": [Effect.sync(requests), ["sign-out"]],
-	});
-});
+		yield* outcomes({
+			"navigation destinations": [destinations(), ["/sign-in"]],
+			"sign-out requests": [requests(), ["sign-out"]],
+		});
+	},
+);
 
-signOuts.it("a sign-out started by the auth owner remains pending in the screen", [pendingSignOut()], function* ({ phase, startFromAuthOwner }) {
-	expect(phase()).toBe("Ready");
+signOuts.it("a sign-out the auth owner starts shows as pending on the screen", [signOutIsReady()], function* ({ authOwnerStartsSignOut, phase }) {
+	expect(yield* phase()).toBe("Ready");
 
-	yield* startFromAuthOwner();
+	yield* authOwnerStartsSignOut();
 
-	expect(phase()).toBe("Signing out");
+	expect(yield* phase()).toBe("Signing out");
 });

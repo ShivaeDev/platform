@@ -3,6 +3,7 @@ import { Model } from "effect/schema";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { signedIn } from "@shivaedev/contract/readPolicy.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { Conflict, InternalServerError, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
@@ -31,7 +32,7 @@ export const Get = query("get", {
 	success: Note.json,
 });
 export const List = query("list", {
-	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	readPolicy: signedIn,
 	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
 	rejections: { InternalServerError, ServiceUnavailable },
 	success: Schema.Array(Note.json),

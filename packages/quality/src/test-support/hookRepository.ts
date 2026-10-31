@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import sortPackageJson from "sort-package-json";
-import { qualityArgs, type Run } from "./cli.ts";
+import type { Run } from "./cli.ts";
 import { commitAll, git, ISOLATED_ENV } from "./git.ts";
 import { formatTree } from "./qualityTree.ts";
 import { DEFAULT_FILES, linkPackage, packageRoot, type SeedFile, seedTree } from "./tree.ts";
@@ -43,11 +43,6 @@ const CLEAN: SeedFile = { content: "export function full(): number {\n\treturn 1
 
 const BIN = `#!/bin/sh\nexec node --conditions=source ${join(packageRoot, "src", "cli.ts")} "$@"\n`;
 
-function run(command: string, args: readonly string[], cwd: string): Run {
-	const result = spawnSync(command, [...args], { cwd, encoding: "utf8", env: ISOLATED_ENV });
-	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
-}
-
 const CONFIG: SeedFile = {
 	content: 'export default { rules: { "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n',
 	path: "quality.config.ts",
@@ -56,6 +51,10 @@ const CONFIG: SeedFile = {
 export function writes(root: string, path: string, content: string): void {
 	mkdirSync(dirname(join(root, path)), { recursive: true });
 	writeFileSync(join(root, path), content);
+}
+
+function manifest(fields: Readonly<Record<string, unknown>>): string {
+	return `${JSON.stringify(sortPackageJson({ exports: SOURCE_EXPORTS, type: "module", ...fields }), null, "\t")}\n`;
 }
 
 function withBin(root: string): void {
@@ -80,7 +79,7 @@ export function hookRepository({
 						{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
 					]),
 			{ content: "loglevel=silent\n", path: ".npmrc" },
-			{ content: `${JSON.stringify(sortPackageJson({ exports: SOURCE_EXPORTS, scripts, type: "module" }), null, "\t")}\n`, path: "package.json" },
+			{ content: manifest({ scripts }), path: "package.json" },
 			...files,
 		].map((file) => ({
 			...file,
@@ -97,42 +96,13 @@ export function hookRepository({
 }
 
 export function withScripts(root: string, scripts: Readonly<Record<string, string>>, packageManager?: string): string {
-	writes(
-		root,
-		"package.json",
-		`${JSON.stringify(sortPackageJson({ exports: SOURCE_EXPORTS, packageManager, scripts, type: "module" }), null, "\t")}\n`,
-	);
+	writes(root, "package.json", manifest({ packageManager, scripts }));
 	return root;
-}
-
-export function withoutManifest(root: string): string {
-	rmSync(join(root, "package.json"));
-	return root;
-}
-
-export function withOwnHook(repository: HookRepository, script: string): HookRepository {
-	writes(dirname(repository.hook), "pre-commit", script);
-	chmodSync(repository.hook, 0o755);
-	return repository;
 }
 
 export function withQualityAt(repository: HookRepository, path: string): string {
-	mkdirSync(dirname(join(repository.root, path)), { recursive: true });
 	writes(repository.root, path, 'import "@shivaedev/quality/cli.ts";\n');
-	writes(
-		repository.root,
-		"package.json",
-		`${JSON.stringify(
-			sortPackageJson({
-				bin: { quality: `./${path}` },
-				devDependencies: { "@shivaedev/quality": "*" },
-				exports: SOURCE_EXPORTS,
-				type: "module",
-			}),
-			null,
-			"\t",
-		)}\n`,
-	);
+	writes(repository.root, "package.json", manifest({ bin: { quality: `./${path}` }, devDependencies: { "@shivaedev/quality": "*" } }));
 	formatTree(repository.root);
 	return join(repository.root, path);
 }
@@ -149,24 +119,9 @@ export function withWorktree(repository: HookRepository, name: string, at?: stri
 	return root;
 }
 
-export function quality(cwd: string, ...args: readonly string[]): Run {
-	return run("node", qualityArgs(args), cwd);
-}
-
-export function qualityFrom(script: string, cwd: string, ...args: readonly string[]): Run {
-	return run("node", ["--conditions=source", script, ...args], cwd);
-}
-
 export function commits(cwd: string, message: string): Run {
-	return run("git", ["commit", "--quiet", "--allow-empty", "--message", message], cwd);
-}
-
-export function stages(cwd: string, ...paths: readonly string[]): Run {
-	return run("git", ["add", "--", ...paths], cwd);
-}
-
-export function gitIn(cwd: string, ...args: readonly string[]): string {
-	return run("git", args, cwd).stdout;
+	const result = spawnSync("git", ["commit", "--quiet", "--allow-empty", "--message", message], { cwd, encoding: "utf8", env: ISOLATED_ENV });
+	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 }
 
 export function hookText(repository: HookRepository): string | undefined {

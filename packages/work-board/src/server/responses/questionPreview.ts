@@ -1,5 +1,6 @@
 import type { QuestionPreview } from "#browser/responses/schema.ts";
-import { documentSource, type MetadataDocument, type MetadataModel } from "#server/metadata/model.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import { currentQuestion } from "./currentQuestion.ts";
 import { questionId, revisionOf } from "./records.ts";
 

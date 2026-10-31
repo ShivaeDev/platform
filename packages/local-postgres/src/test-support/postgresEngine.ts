@@ -1,15 +1,8 @@
-import type { ExecFileSyncOptions } from "node:child_process";
-import { execFileSync } from "node:child_process";
-import { Effect } from "effect";
-import { vi } from "vitest";
+import { Effect, PlatformError } from "effect";
+import { type ChildProcess, ChildProcessSpawner } from "effect/process";
 import { LOCAL_SERVER, localPostgres } from "#localPostgres.ts";
 import { dockerScript } from "#test/dockerScript.ts";
-
-// Production modules bind execFileSync when they first load, so kit modules load them only after this module.
-vi.mock("node:child_process", async (original) => {
-	const module = await original<typeof import("node:child_process")>();
-	return { ...module, execFileSync: vi.fn(module.execFileSync) };
-});
+import { scriptedProcess } from "#test/scriptedProcess.ts";
 
 export function databaseUrl(name: string) {
 	return `${LOCAL_SERVER}/${name}`;
@@ -23,68 +16,71 @@ export interface PostgresEngine {
 	contextEndpoint: string;
 	environment: { "DOCKER_CONTEXT"?: string | undefined; "DOCKER_HOST"?: string | undefined };
 	failure: unknown;
-	hostClient?: (args: readonly string[], options: ExecFileSyncOptions) => ReturnType<typeof execFileSync>;
+	hostClient?: (command: ChildProcess.StandardCommand) => ChildProcess.StandardCommand;
 	hostPsql: boolean;
 	manager: ReturnType<typeof localPostgres>;
 	mode: "scripted" | "real";
 	outcome: string | undefined;
 	plan: Parameters<typeof dockerScript>[0][number][];
 	queryRole: string | undefined;
-	realExec: typeof execFileSync;
+	realSpawner: ChildProcessSpawner.ChildProcessSpawner["Service"];
+	spawner: ChildProcessSpawner.ChildProcessSpawner["Service"];
 	tell: ((line: string) => void) | undefined;
 }
 
-export function createPostgres() {
-	return Effect.acquireRelease(
-		Effect.promise(async (): Promise<PostgresEngine> => {
-			const real = await vi.importActual<typeof import("node:child_process")>("node:child_process");
-			const environment: PostgresEngine["environment"] = { "DOCKER_HOST": "unix:///var/run/docker.sock" };
-			return {
-				appDatabase: undefined,
-				calls: [],
-				contextEndpoint: "unix:///var/run/docker.sock",
-				environment,
-				failure: undefined,
-				hostPsql: false,
-				manager: localPostgres(environment, { delayMillis: 0 }),
-				mode: "scripted",
-				outcome: undefined,
-				plan: [],
-				queryRole: undefined,
-				realExec: real.execFileSync,
-				tell: undefined,
-			};
-		}),
-		() => Effect.sync(() => vi.mocked(execFileSync).mockReset()),
-	);
-}
+export const createPostgres = Effect.gen(function* () {
+	const realSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+	const environment: PostgresEngine["environment"] = { "DOCKER_HOST": "unix:///var/run/docker.sock" };
+	const engine: PostgresEngine = {
+		appDatabase: undefined,
+		calls: [],
+		contextEndpoint: "unix:///var/run/docker.sock",
+		environment,
+		failure: undefined,
+		hostPsql: false,
+		manager: localPostgres(environment, { delayMillis: 0 }),
+		mode: "scripted",
+		outcome: undefined,
+		plan: [],
+		queryRole: undefined,
+		realSpawner,
+		spawner: realSpawner,
+		tell: undefined,
+	};
+	return engine;
+});
 
-function missingPsql() {
-	return Object.assign(new Error("spawnSync psql ENOENT"), { code: "ENOENT" });
-}
-
-// A scripted answer is a Buffer unless the call asks for text, as execFileSync's own answer is.
-function answered(answer: string, options: ExecFileSyncOptions | undefined) {
-	return options?.encoding === "utf8" ? answer : Buffer.from(answer);
+export function usingCli<A, E, R>(engine: PostgresEngine, effect: Effect.Effect<A, E, R>) {
+	return Effect.provideService(effect, ChildProcessSpawner.ChildProcessSpawner, engine.spawner);
 }
 
 export function connectCli(engine: PostgresEngine) {
 	const script = dockerScript(engine.plan);
-	vi.mocked(execFileSync).mockImplementation((file, args, options) => {
-		const cli = args ?? [];
-		engine.calls.push([file, ...cli]);
-		if (file === "psql" && !engine.hostPsql) {
-			throw missingPsql();
-		}
-		if (file === "psql" && engine.hostClient) {
-			return engine.hostClient(cli, options ?? {});
-		}
-		if (engine.mode === "real") {
-			return engine.realExec(file, cli, options);
-		}
-		engine.tell?.(`Docker ${cli.join(" ")}`);
-		return answered(cli[0] === "context" ? engine.contextEndpoint : script.run(cli), options);
-	});
+	engine.spawner = ChildProcessSpawner.make(
+		Effect.fn("PostgresEngine.spawn")(function* (command) {
+			if (command._tag !== "StandardCommand") {
+				return yield* Effect.die(new Error("The local setup kit expects a single command"));
+			}
+			const { command: file, args } = command;
+			engine.calls.push([file, ...args]);
+			if (file === "psql" && !engine.hostPsql) {
+				return yield* PlatformError.systemError({
+					_tag: "NotFound",
+					method: "spawn",
+					module: "ChildProcess",
+					pathOrDescriptor: "psql",
+				});
+			}
+			if (engine.mode === "real") {
+				return yield* engine.realSpawner.spawn(file === "psql" && engine.hostClient ? engine.hostClient(command) : command);
+			}
+			engine.tell?.(`Docker ${args.join(" ")}`);
+			const result = yield* Effect.try(() => (args[0] === "context" ? engine.contextEndpoint : script.run(args))).pipe(
+				Effect.catch((error) => Effect.succeed(new Error(String(error.cause instanceof Error ? error.cause.message : error.cause)))),
+			);
+			return scriptedProcess(result);
+		}),
+	);
 }
 
 export function configureReadiness(engine: PostgresEngine, attempts: number) {

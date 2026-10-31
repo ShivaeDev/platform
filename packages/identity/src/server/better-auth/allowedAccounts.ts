@@ -1,6 +1,14 @@
-import { Config, Schema, SchemaGetter } from "effect";
+import { Config, Result, Schema, SchemaGetter } from "effect";
 
-const ProviderAccount = Schema.Struct({ accountId: Schema.NonEmptyString, providerId: Schema.NonEmptyString });
+const GitHubAccountId = Schema.String.check(Schema.isPattern(/^[0-9]+$/u, { expected: "a numeric GitHub account id (digits only)" }));
+
+const ProviderAccount = Schema.Struct({ accountId: Schema.String, providerId: Schema.NonEmptyString }).check(
+	Schema.makeFilter(({ accountId, providerId }) => {
+		const accountIdSchema = providerId === "github" ? GitHubAccountId : Schema.NonEmptyString;
+		const decoded = Schema.decodeUnknownResult(accountIdSchema)(accountId);
+		return Result.isSuccess(decoded) ? true : `Invalid entry "${providerId}:${accountId}": ${decoded.failure.message}`;
+	}),
+);
 
 const AccountEntry = Schema.String.pipe(
 	Schema.decodeTo(ProviderAccount, {

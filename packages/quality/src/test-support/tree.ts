@@ -53,7 +53,3 @@ export function lines(count: number): string {
 export function config(body: string): SeedFile {
 	return { content: `export default ${body};\n`, path: "quality.config.ts" };
 }
-
-export function linkMissingFile(root: string, path: string): void {
-	symlinkSync(join(root, "missing-target"), join(root, path));
-}

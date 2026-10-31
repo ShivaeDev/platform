@@ -1,4 +1,5 @@
-import { Data, Redacted } from "effect";
+import { Cause, Data, Duration, Redacted } from "effect";
+import { failureOutput } from "#internal/failureOutput.ts";
 
 export type PgBossOperation =
 	| "counts"
@@ -19,10 +20,12 @@ export class PgBossError extends Data.TaggedError("PgBossError")<{
 	readonly queue?: string | undefined;
 	readonly original: Redacted.Redacted<unknown>;
 }> {
-	// The original's message can quote payloads or connection strings, so only its class and code are shown.
+	// Non-settlement originals can quote payloads or connection strings, so only their class and code are shown.
 	override get message(): string {
 		const target = this.queue === undefined ? "" : ` for queue ${this.queue}`;
-		return `pg-boss ${this.operation}${target} failed: ${originalKind(Redacted.value(this.original))}`;
+		const original = Redacted.value(this.original);
+		const detail = this.operation === "settle" ? failureOutput(Cause.fail(original)) : undefined;
+		return `pg-boss ${this.operation}${target} failed: ${detail === undefined ? originalKind(original) : `${detail._tag}: ${detail.message}`}`;
 	}
 }
 
@@ -40,6 +43,15 @@ export class PgBossQueueOptionsError extends Data.TaggedError("PgBossQueueOption
 }> {
 	override get message(): string {
 		return `Queue ${this.queue} cannot change options after creation: ${this.options.join(", ")}`;
+	}
+}
+
+export class PgBossQueueNamesError extends Data.TaggedError("PgBossQueueNamesError")<{
+	readonly missing: readonly string[];
+	readonly unexpected: readonly string[];
+}> {
+	override get message(): string {
+		return `Queue names differ from their declaration: missing [${this.missing.join(", ")}], unexpected [${this.unexpected.join(", ")}]`;
 	}
 }
 
@@ -63,6 +75,16 @@ export class PgBossTestingError extends Data.TaggedError("PgBossTestingError")<{
 	readonly original: Redacted.Redacted<unknown>;
 	readonly queue?: string | undefined;
 }> {}
+
+export class PgBossWaitError extends Data.TaggedError("PgBossWaitError")<{
+	readonly lastSeen: string;
+	readonly waitingFor: string;
+	readonly within: Duration.Duration;
+}> {
+	override get message(): string {
+		return `Gave up after ${Duration.format(this.within)} waiting until ${this.waitingFor}; last seen: ${this.lastSeen}`;
+	}
+}
 
 export function toPgBossError(operation: PgBossOperation, error: unknown, queue?: string): PgBossError {
 	return new PgBossError({

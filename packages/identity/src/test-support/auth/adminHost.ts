@@ -4,12 +4,12 @@ import { admin, testUtils } from "better-auth/plugins";
 import { Duration, Effect, Exit, Layer, Scope } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { Migrator } from "effect/sql";
+import { Migrator, SqlClient } from "effect/sql";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { trustedOrigins } from "#server/origin.ts";
 import { permissionLayer } from "#server/permissions.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
@@ -18,11 +18,14 @@ import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
 import { countQueries } from "./countQueries.ts";
 
 export const startAdminHost = Effect.gen(function* () {
-	const database = yield* PostgresTestDatabase;
 	const poolScope = yield* Scope.make();
 	yield* Effect.addFinalizer(() => Scope.close(poolScope, Exit.void));
-	const pool = yield* authDatabase(database.url).pipe(Effect.provideService(Scope.Scope, poolScope));
-	const queries = countQueries(pool);
+	const observed = countQueries(yield* SqlClient.SqlClient);
+	const pool = yield* betterAuthDatabase().pipe(
+		Effect.provideService(Scope.Scope, poolScope),
+		Effect.provideService(SqlClient.SqlClient, observed.sql),
+	);
+	const queries = observed.queries;
 	const options = {
 		"baseURL": "http://localhost:3000",
 		database: pool,

@@ -17,7 +17,7 @@ function importPaths(imports: Readonly<Record<string, unknown>>) {
 	);
 }
 
-export async function knipConfiguration(inputs: RuleInputs) {
+export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly string[] = []) {
 	const packages = await workspacePackages(inputs);
 	const manifests = await Promise.all(
 		[".", ...packages.map(({ directory }) => directory)].map(async (directory) => {
@@ -40,9 +40,22 @@ export async function knipConfiguration(inputs: RuleInputs) {
 			(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),
 		);
 		const publicFiles = sources.filter((path) => exportedModule(manifest.exports, path));
+		// Migration runners load these files from their directory, so no import reaches them.
+		const migrations = sources.filter((path) => /(?:^|\/)server\/migrations\//u.test(path));
+		const ui = toolOwned
+			.filter((folder) => (packageOf(packages, `${folder}/component.ts`)?.directory ?? ".") === directory)
+			.map((folder) => `${posix.relative(directory, folder)}/**/*.{ts,tsx,js,jsx}`);
+		const styles = inputs.files
+			.filter((path) => path.endsWith(".css") && (packageOf(packages, path)?.directory ?? ".") === directory)
+			.map((path) => posix.relative(directory, path));
 		return [
 			directory,
-			{ entry: [...ENTRIES, ...publicFiles, ...bins, ...binaries, ...scriptEntries], paths: importPaths(manifest.imports ?? {}), project: sources },
+			{
+				entry: [...ENTRIES, ...publicFiles, ...migrations, ...bins, ...binaries, ...scriptEntries, ...ui, ...styles],
+				paths: importPaths(manifest.imports ?? {}),
+				project: [...sources, ...ui, ...styles],
+				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },
+			},
 		] as const;
 	});
 	return {

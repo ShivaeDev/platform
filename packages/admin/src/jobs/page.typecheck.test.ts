@@ -3,7 +3,7 @@ import type { RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import type { Bound } from "@shivaedev/contract/bind.ts";
 import type { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
-import { defineSchedule } from "@shivaedev/jobs/server/definition.ts";
+import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { adminRegistry } from "#registry.ts";
 import { jobsHandlers } from "#server/jobsHandlers.ts";

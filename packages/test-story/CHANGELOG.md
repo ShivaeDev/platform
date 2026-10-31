@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.28.0 - 2026-10-31
+
+### Added
+
+- Contract clients expose `clientActivity(client)`, a native Effect `Stream` with a `current` Effect reporting finite RPC calls, queued live invalidations, refreshing query atoms and received live hints.
+- Screen drivers accept that activity as `pending`, wait for idle activity with their renderer before screen assertions, and expose `nextLiveHint()` for the next client delivery. Stories keep live coalescing enabled.
+
+## 0.27.0 - 2026-10-31
+
+### Added
+
+- Browser readouts expose each subscription opening's state and an Effect that waits for all openings to receive a first response or a tagged refusal, without polling.
+- Contract clients accept a session identity protocol factory so custom transports can follow sign-in and sign-out.
+
+### Fixed
+
+- Story kits with unmet creation service requirements report the missing service in TypeScript errors instead of an unrelated composition property error.
+
+### Breaking
+
+- `browserReads().protocol` is now a session identity protocol factory. Continue passing it directly to `makeClient`; native Layer consumers must call `observed.protocol(undefined)` for an anonymous client, or pass the session identity. The same readout counts traffic across session sockets.
+
+## 0.26.3 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.26.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.26.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.26.0 - 2026-10-30
 
 ### Added

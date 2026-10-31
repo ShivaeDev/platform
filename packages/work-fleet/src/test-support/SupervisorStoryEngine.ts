@@ -1,12 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
-import { type Duration, Effect, Fiber } from "effect";
+import { type Duration, Effect, Fiber, Queue } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
+import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
 import { type SupervisorState, supervisionStatus } from "#host/supervisorState.ts";
 import { launchSupervisorCli } from "#test/launchSupervisorCli.ts";
+import type { supervisorCodeChanges } from "#test/supervisorCodeChanges.ts";
 import { supervisorInstallation } from "#test/supervisorInstallation.ts";
 
 export class SupervisorStoryEngine {
@@ -16,6 +17,8 @@ export class SupervisorStoryEngine {
 	delayedLive = false;
 	stubbornChild: "daemon" | "board" | undefined;
 	pending: Fiber.Fiber<{ readonly body: string; readonly status: number }, unknown> | undefined;
+	codeChanges: ReturnType<typeof supervisorCodeChanges> | undefined;
+	codeCheckOffset = 0;
 
 	get fixture() {
 		if (this.installation === undefined) {
@@ -46,16 +49,44 @@ export class SupervisorStoryEngine {
 
 	until(condition: () => Effect.Effect<boolean, unknown>, timeout: Duration.Input = "30 seconds") {
 		const engine = this;
-		return Effect.gen(function* () {
-			while (!(yield* condition())) {
-				if (engine.process !== undefined && !engine.process.running()) {
-					throw new Error(`Supervisor exited: ${engine.process.output()}`);
+		return Effect.scoped(
+			Effect.gen(function* () {
+				const changes = yield* Queue.unbounded<void>();
+				yield* Effect.acquireRelease(
+					Effect.sync(() => watch(engine.fixture.boardDir, () => Queue.offerUnsafe(changes, undefined))),
+					(watcher) => Effect.sync(() => watcher.close()),
+				);
+				while (!(yield* condition())) {
+					if (engine.process !== undefined && !engine.process.running()) {
+						throw new Error(`Supervisor exited: ${engine.process.output()}`);
+					}
+					yield* Queue.take(changes);
 				}
-				yield* Effect.sleep("100 millis");
-			}
-		}).pipe(
+			}),
+		).pipe(
 			Effect.timeout(timeout),
 			Effect.tapError(() => Effect.logError(this.inspect())),
+		);
+	}
+
+	editCode(kind: "loaded" | "unrelated" | "burst") {
+		const changes = this.codeChanges;
+		if (changes === undefined) {
+			throw new Error("Install the code change fixture first");
+		}
+		return Effect.sync(() => {
+			this.codeCheckOffset = this.log().length;
+			changes[kind]();
+		});
+	}
+
+	codeSettled(name: "daemon" | "board") {
+		const engine = this;
+		return this.until(() =>
+			Effect.gen(function* () {
+				const state = yield* engine.state();
+				return state !== undefined && engine.log().slice(engine.codeCheckOffset).includes(`checked ${name} pid ${state[name].pid} loaded code`);
+			}),
 		);
 	}
 

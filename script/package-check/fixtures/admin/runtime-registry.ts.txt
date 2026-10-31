@@ -11,7 +11,7 @@ import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 
 class JobStore extends Context.Service<JobStore, readonly string[]>()("consumer/JobStore") {}
-const Failed = query("failed", { reads: () => [], success: Schema.Array(Schema.String) });
+const Failed = query("failed", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.Array(Schema.String) });
 const Jobs = adminPage({ permission: JobsPermission, id: "jobs", route: { path: "/admin/jobs", title: "Jobs" }, contract: contract("admin.jobs", { queries: [Failed] }) });
 const registry = adminRegistry(Jobs);
 const registered = registerAdmin(registry, {

@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
-import { WAIT_EXIT } from "#host/wait.ts";
 import { fleetDaemon } from "#test/daemonStory.ts";
+import { WAIT_EXIT } from "./waitOutcome.ts";
 
 fleetDaemon.it(
 	"the wait process exits distinctly on each terminal state and on timeout",

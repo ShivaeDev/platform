@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1 - 2026-10-31
+
+### Fixed
+
+- List each moved published workspace dependency with its old and new version in dependency-only changelog entries; keep a package's own changeset notes when present. `collectChangelog` accepts an optional fifth argument with published dependency names to render these details.
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+
 ## 0.6.0 - 2026-10-30
 
 ### Added

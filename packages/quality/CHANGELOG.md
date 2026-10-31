@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.48.2 - 2026-10-31
+
+### Fixed
+
+- Limit `react/jsx-conditionals` and its mechanical fix to decisions in returned component JSX. Accept JSX built in a `const` before the return, library callbacks and ternaries between plain string or number literals. Document accepted decisions, attributes, extracted components and list separators.
+
+## 0.48.1 - 2026-10-30
+
+### Fixed
+
+- `code/unused` treats numbered migrations in `src/server/migrations` and `src/modules/<module>/server/migrations` as entry points, because migration runners load them from their directory, so apps no longer baseline every migration as an unused file.
+
+## 0.48.0 - 2026-10-30
+
+### Added
+
+- `quality fix --rule react/jsx-conditionals` extracts safe conditional children before their return and reports remaining findings, including baseline debt. Rule-specific fixes leave other formatting alone. Unsupported rules explain that they need a manual repair; `tests/grouped-outcomes` remains manual because grouping changes evaluation and failure order.
+- Document the starter and generated apps' `pnpm baseline write --rule <id>` upgrade path.
+
+### Fixed
+
+- Proxy shared RPC WebSocket upgrades on `/rpc` in `appViteConfig` so development clients receive query results and live updates without a local Vite override.
+
+### Breaking
+
+- The exported CLI `Command` type's `Fix` variant now requires a `rules` array. Callers constructing that variant pass `[]` for the existing formatter or the rule ids for mechanical fixes; `parseCommand` supplies the array automatically.
+
 ## 0.47.0 - 2026-10-30
 
 ### Fixed

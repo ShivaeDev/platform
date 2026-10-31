@@ -1,7 +1,7 @@
 import type { Key } from "@shivaedev/changes/keys.ts";
+import type { MetadataModel } from "#integration/metadata.ts";
 import { documents, identities, index, navigation } from "#rpc/keys.ts";
 import { referencesFrom } from "#server/metadata/backlinks.ts";
-import type { MetadataModel } from "#server/metadata/model.ts";
 import { referencesOf } from "#server/metadata/referencesOf.ts";
 import { malformedResponse } from "#server/responses/records.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";

@@ -1,6 +1,7 @@
 import { Effect, PubSub, Stream } from "effect";
-import { board, type Snapshot } from "@shivaedev/work-board/server/integration/board.ts";
+import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
+import type { Snapshot } from "@shivaedev/work-board/server/search/snapshot.ts";
 import { BoardIndex } from "#board/Index.ts";
 
 export function watchBoardAnswers(root: string) {

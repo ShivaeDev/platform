@@ -3,5 +3,5 @@ import { command, query } from "#operation.ts";
 
 contract("dupes", {
 	commands: [command("save", { invalidates: () => [] }), command("save", { invalidates: () => [] })],
-	queries: [query("list", { reads: () => [] })],
+	queries: [query("list", { readPolicy: () => Effect.succeed(true), reads: () => [] })],
 });

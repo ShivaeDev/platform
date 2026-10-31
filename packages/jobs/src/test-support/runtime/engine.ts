@@ -27,6 +27,7 @@ export interface RuntimeEngine {
 	answered: unknown;
 	readonly applicationLog: string[];
 	batchAnswer: string;
+	batchFailureMessage: string;
 	client: FakeClient;
 	clientsConstructed: number;
 	factory: PgBossClientFactory;
@@ -49,6 +50,7 @@ export function runtimeEngine(): RuntimeEngine {
 		answered: undefined,
 		applicationLog: [],
 		batchAnswer: "not delivered",
+		batchFailureMessage: "no failure",
 		client,
 		clientsConstructed: 0,
 		factory: () => client,

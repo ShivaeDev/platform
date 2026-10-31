@@ -6,10 +6,11 @@ import type { routerClient } from "./routerClient.ts";
 import { RouterFailure, RouterNote, RouterNotFound, RouterPending, RouterShell } from "./routerScreens.tsx";
 
 const root = createRootRouteWithContext<{
-	readonly api: ReturnType<typeof routerClient>["api"];
+	readonly client: ReturnType<typeof routerClient>;
+	readonly viewerPage: number;
 	readonly frames: string[];
 	readonly registry: AtomRegistry.AtomRegistry;
-}>()({ component: RouterShell });
+}>()({ beforeLoad: ({ context }) => ({ viewer: { page: context.viewerPage } }), component: RouterShell });
 
 export const RouterSearch = Schema.Struct({
 	page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
@@ -18,13 +19,14 @@ export const RouterSearch = Schema.Struct({
 	),
 });
 
-function noteRoute(client: ReturnType<typeof routerClient>) {
+function noteRoute() {
 	return createRoute({
 		component: RouterNote,
 		errorComponent: RouterFailure,
 		getParentRoute: () => root,
-		...queryRoute(({ params, search }: { params: { id: string }; search: typeof RouterSearch.Type }) =>
-			client.api.get.query({ ...params, ...search }),
+		...queryRoute(
+			({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof RouterSearch.Type }) =>
+				context.client.api.get.query({ ...params, page: search.page * context.viewer.page }),
 		),
 		notFoundComponent: RouterNotFound,
 		path: "/notes/$id",
@@ -32,12 +34,12 @@ function noteRoute(client: ReturnType<typeof routerClient>) {
 	});
 }
 
-export function routerApp(registry: AtomRegistry.AtomRegistry, client: ReturnType<typeof routerClient>, initial = "/notes/first") {
+export function routerApp(registry: AtomRegistry.AtomRegistry, client: ReturnType<typeof routerClient>, initial = "/notes/first", page = 1) {
 	return createRouter({
-		context: { api: client.api, frames: client.frames, registry },
+		context: { client, frames: client.frames, registry, viewerPage: page },
 		defaultPendingComponent: RouterPending,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		history: createMemoryHistory({ initialEntries: [initial] }),
-		routeTree: root.addChildren([noteRoute(client)]),
+		routeTree: root.addChildren([noteRoute()]),
 	});
 }

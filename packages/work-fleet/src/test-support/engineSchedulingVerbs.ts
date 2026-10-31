@@ -25,14 +25,14 @@ export function engineSchedulingVerbs(state: EngineStory, tell: (line: string) =
 		});
 	}
 	return {
-		answerDecision: Effect.fnUntraced(function* (id: string, action: "retry" | "release") {
+		answerDecision: Effect.fnUntraced(function* (id: string, action: "retry" | "release", body = "") {
 			tell(`the human answers ${id}'s decision with ${action}`);
 			const { fleet, fixture } = running(state);
 			const decision = (yield* fleet.get(id)).value.decision;
 			if (decision === undefined) {
 				return yield* Effect.die(new Error(`No decision to answer for ${id}`));
 			}
-			return yield* fleet.resolve(id, decision.id, fixture.respond(decision.id, action));
+			return yield* fleet.resolve(id, decision.id, fixture.respond(decision.id, action, "answer", body));
 		}),
 		attemptContinue: (id: string, message: string) => attempt(running(state).fleet.continue(id, message), "continue", id),
 		attemptDispatch: (id: string) => attempt(running(state).fleet.dispatch(id), "dispatch", id),

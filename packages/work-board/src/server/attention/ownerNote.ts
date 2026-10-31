@@ -1,4 +1,4 @@
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 
 export function ownerNote(fields: MetadataDocument["parsed"]["fields"], maintainer: string): string | undefined {
 	const owner = fields.owner?.trim();

@@ -1,7 +1,7 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect, Schema } from "effect";
-import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
+import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
 
 const ProcessState = Schema.Struct({
 	pid: Schema.NullOr(Schema.Number),

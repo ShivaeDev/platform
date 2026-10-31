@@ -1,70 +1,66 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { reduceLongFile } from "#test/baselineChanges.ts";
-import { baseline, shrunkTwice } from "#test/baselineTightening.ts";
-import { CLI_EXIT, CLI_TIMEOUT, runQuality, trees } from "#test/cli.ts";
-import { branchOff, commitAll, git } from "#test/git.ts";
-import { qualityTree } from "#test/qualityTree.ts";
-import { removeSeededTrees } from "#test/tree.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { baselineStory } from "#test/baselineStory.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
+import { branchedFromMain, debtRecorded, deletedWithGit, shortened, staged } from "#test/debtRecorded.ts";
 
-afterEach(removeSeededTrees);
+const RECORDED = ["src/long.ts structure/max-lines 1", "src/longer.ts structure/max-lines 3"];
 
-describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
-	it("with --staged, lowers and removes only the entries of staged files", async () => {
-		const root = await shrunkTwice();
-		git(root, "add", "src/long.ts");
-		expect((await runQuality(root, "baseline", "tighten", "--staged")).stdout).toBe(
-			"quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n",
-		);
-		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":3}\n');
-		expect((await runQuality(root, "lint")).status).toBe(CLI_EXIT.passed);
-	});
+baselineStory.it(
+	"baseline tighten --staged removes the fixed entry of a staged file and leaves the entry of an unstaged file that shrank",
+	[debtRecorded(), branchedFromMain(), shortened("src/long.ts", 1), shortened("src/longer.ts", 5), staged("src/long.ts")],
+	function* ({ recorded, runs, stdout }) {
+		expect(yield* recorded()).toEqual(RECORDED);
 
-	it("without --staged, covers every file changed since HEAD", async () => {
-		const root = await shrunkTwice();
-		expect((await runQuality(root, "baseline", "tighten")).stdout).toBe("quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n");
-		expect(baseline(root)).toBe('{"path":"src/longer.ts","rule":"structure/max-lines","count":2}\n');
-	});
+		yield* runs("baseline", "tighten", "--staged");
 
-	it("drops the entries of a deleted file", async () => {
-		const root = await shrunkTwice();
-		git(root, "rm", "--quiet", "--force", "src/longer.ts");
-		expect((await runQuality(root, "baseline", "tighten", "--staged")).stdout).toBe(
-			"quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n",
-		);
-		expect(baseline(root)).toBe('{"path":"src/long.ts","rule":"structure/max-lines","count":1}\n');
-	});
+		yield* outcomes({
+			"recorded debt": [recorded(), ["src/longer.ts structure/max-lines 3"]],
+			"report": [stdout(), "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n"],
+		});
+	},
+	CLI_TIMEOUT,
+);
 
-	it("leaves a baseline that changed files do not touch as it is", async () => {
-		const root = qualityTree(trees.dirty);
-		await runQuality(root, "baseline", "write");
-		branchOff(root);
-		expect((await runQuality(root, "baseline", "tighten", "--staged")).stdout).toBe("quality: quality-baseline.jsonl is current.\n");
-	});
-});
+baselineStory.it(
+	"baseline tighten without --staged removes and lowers the entries of every file changed since HEAD",
+	[debtRecorded(), branchedFromMain(), shortened("src/long.ts", 1), shortened("src/longer.ts", 5)],
+	function* ({ recorded, runs, stdout }) {
+		expect(yield* recorded()).toEqual(RECORDED);
 
-describe("quality baseline prune", { timeout: CLI_TIMEOUT }, () => {
-	it("carries the entry of a file moved since the merge base", async () => {
-		const root = qualityTree(trees.dirty);
-		await runQuality(root, "baseline", "write");
-		branchOff(root);
-		git(root, "mv", "src/longer.ts", "src/a-longer.ts");
-		commitAll(root, "Move");
-		expect((await runQuality(root, "baseline", "prune", "--against", "main")).stdout).toBe(
-			"quality: removed 0 entries, lowered 0 entries and carried 1 entry to moved files in quality-baseline.jsonl.\n",
-		);
-		expect(baseline(root)).toBe(
-			['{"path":"src/a-longer.ts","rule":"structure/max-lines","count":3}', '{"path":"src/long.ts","rule":"structure/max-lines","count":1}', ""].join(
-				"\n",
-			),
-		);
-	});
+		yield* runs("baseline", "tighten");
 
-	it("still prunes outside git, and says that moves are not followed", async () => {
-		const root = qualityTree(trees.dirty);
-		await runQuality(root, "baseline", "write");
-		reduceLongFile(root);
-		const result = await runQuality(root, "baseline", "prune");
-		expect(result).toMatchObject({ status: 0, stdout: "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n" });
-		expect(result.stderr).toContain("quality: moved files are not followed:");
-	});
-});
+		yield* outcomes({
+			"recorded debt": [recorded(), ["src/longer.ts structure/max-lines 2"]],
+			"report": [stdout(), "quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n"],
+		});
+	},
+	CLI_TIMEOUT,
+);
+
+baselineStory.it(
+	"baseline tighten --staged removes the entry of a file deleted with git rm",
+	[debtRecorded(), branchedFromMain(), deletedWithGit("src/longer.ts")],
+	function* ({ recorded, runs, stdout }) {
+		expect(yield* recorded()).toEqual(RECORDED);
+
+		yield* runs("baseline", "tighten", "--staged");
+
+		yield* outcomes({
+			"recorded debt": [recorded(), ["src/long.ts structure/max-lines 1"]],
+			"report": [stdout(), "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n"],
+		});
+	},
+	CLI_TIMEOUT,
+);
+
+baselineStory.it(
+	"baseline tighten --staged with nothing staged reports the baseline as current",
+	[debtRecorded(), branchedFromMain()],
+	function* ({ runs, stdout }) {
+		yield* runs("baseline", "tighten", "--staged");
+
+		expect(yield* stdout()).toBe("quality: quality-baseline.jsonl is current.\n");
+	},
+	CLI_TIMEOUT,
+);

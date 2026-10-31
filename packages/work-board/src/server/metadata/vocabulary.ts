@@ -1,4 +1,4 @@
-import type { Diagnostic } from "./parse.ts";
+import type { Diagnostic } from "#integration/metadata.ts";
 
 const vocabularyFields = new Set(["kind", "status", "owner", "fleet", "delivers", "scope", "urgency"]);
 export function invalidField(field: string) {
