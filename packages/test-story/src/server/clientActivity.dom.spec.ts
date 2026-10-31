@@ -69,7 +69,7 @@ activityPage.it(
 );
 
 activityPage.it(
-	"unmounting clears a queued live invalidation and its refreshing atoms",
+	"unmounting clears a queued live invalidation",
 	[],
 	function* ({ shown, coalesceFor, startHintWait, writeElsewhere, activity, closePage }) {
 		expect(yield* shown()).toBe("First page");
@@ -82,6 +82,24 @@ activityPage.it(
 		yield* closePage();
 
 		expect((yield* activity()).liveInvalidations).toBe(0);
-		expect((yield* activity()).refreshingAtoms).toBe(0);
+	},
+);
+
+activityPage.it(
+	"unmounting a screen releases its held query activity",
+	[],
+	function* ({ shown, holdRefresh, startHintWait, writeElsewhere, refreshStarted, activity, closePage, settle }) {
+		expect(yield* shown()).toBe("First page");
+		yield* holdRefresh();
+		const hint = yield* startHintWait();
+		yield* writeElsewhere("Held page");
+		yield* hint.finish;
+		yield* refreshStarted();
+		expect(yield* activity()).toMatchObject({ refreshingAtoms: 1, rpcCalls: 1 });
+
+		yield* closePage();
+		yield* settle();
+
+		expect(yield* activity()).toMatchObject({ refreshingAtoms: 0, rpcCalls: 0 });
 	},
 );
