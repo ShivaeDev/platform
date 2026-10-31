@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { prWatchAuthentication, signedOut } from "#test/prWatchAuthentication.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const [name, variables, token] of [
 	["GH_TOKEN ahead of GITHUB_TOKEN", { "GH_TOKEN": "primary-token", "GITHUB_TOKEN": "fallback-token" }, "primary-token"],
@@ -27,10 +27,8 @@ prWatchAuthentication.it("PR watch requests use the signed-in gh token when no e
 });
 
 prWatchAuthentication.it("PR watching refuses to start without GitHub authentication", [signedOut], function* (story) {
-	const error = yield* story.start({}).pipe(Effect.flip);
-	expect(error).toMatchObject({
-		_tag: "ServiceUnavailable",
-		message: "GitHub authentication unavailable; set GH_TOKEN or GITHUB_TOKEN, or sign in with gh",
-	});
+	const started = yield* refusal(story.start({}));
+
+	expect(started).toBe("unavailable: GitHub authentication unavailable; set GH_TOKEN or GITHUB_TOKEN, or sign in with gh");
 	expect(story.requests()).toEqual([]);
 });

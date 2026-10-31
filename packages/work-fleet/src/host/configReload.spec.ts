@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { HostConfigRejected } from "#host/config.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
@@ -76,7 +77,7 @@ host.it(
 			.logs()
 			.filter((entry) => entry.level === "Warn")
 			.flatMap((entry) => [entry.message].flat());
-		expect(warnings).toContainEqual(expect.objectContaining({ _tag: "HostConfigRejected", field: "concurrency" }));
+		expect(warnings.flatMap((warning) => (warning instanceof HostConfigRejected ? [warning.field] : []))).toContain("concurrency");
 		expect(renderStatus(yield* daemon.request("daemon.status", {}))).toContain("Rejected edit of concurrency, still applying the config above");
 		yield* daemon.edit({ concurrency: 4 });
 		const applied = yield* daemon.waitForConfig((config) => config.settings.concurrency === 4);

@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { describe } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { executing } from "#model.ts";
 import {
 	answerAtPullRequestLimitConfiguration,
@@ -71,8 +72,14 @@ describe("Fleet dispatch back pressure", () => {
 				expect(yield* runningWorkIds(candidates)).toEqual([]);
 				setPriority("candidate-4", "urgent");
 				yield* schedule();
-				expect(yield* runningWorkIds(candidates)).toEqual(["candidate-4"]);
-				expect((yield* fleet.get("candidate-4")).value.attempts.at(-1)?.overLimit).toBe(true);
+				yield* outcomes([
+					["running work ids", () => runningWorkIds(candidates), ["candidate-4"]],
+					[
+						"candidate-4 latest attempt over limit",
+						() => fleet.get("candidate-4").pipe(Effect.map((current) => current.value.attempts.at(-1)?.overLimit)),
+						true,
+					],
+				]);
 				const head = open[0]?.value.result?.head ?? "missing";
 				merged.add(head);
 				expect((yield* fleet.reconcile("pr-1")).value.step).toBe("done");
@@ -142,7 +149,7 @@ describe("Fleet dispatch back pressure", () => {
 	isolatedEngine.it(
 		"a review waiting for a slot goes before a new implementer",
 		[oneExecutionSlot],
-		function* ({ occupyExecution, vacateExecution, finishWorkers, prepareWork, fleet, schedule }) {
+		function* ({ occupyExecution, vacateExecution, finishWorkers, prepareWork, fleet, schedule, stepOf }) {
 			yield* prepareWork("one");
 			yield* prepareWork("two");
 			yield* fleet.dispatch("one");
@@ -157,8 +164,10 @@ describe("Fleet dispatch back pressure", () => {
 				step: "queued",
 			});
 			yield* schedule();
-			expect((yield* fleet.get("one")).value.attempts.at(-1)?.role).toBe("reviewer");
-			expect((yield* fleet.get("two")).value.step).toBe("queued");
+			yield* outcomes([
+				["one latest role", () => fleet.get("one").pipe(Effect.map((current) => current.value.attempts.at(-1)?.role)), "reviewer"],
+				["two", () => stepOf("two"), "queued"],
+			]);
 		},
 	);
 });

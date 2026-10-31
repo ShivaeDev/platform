@@ -38,10 +38,7 @@ databaseStartup.it("an unavailable database fails only after five minutes with a
 
 	yield* daemon.advance("1 second");
 
-	expect(yield* daemon.failure()).toMatchObject({
-		_tag: "HostFailure",
-		message: "Timed out after 5 minutes waiting for PostgreSQL at database.url",
-	});
+	expect(yield* daemon.failure()).toBe("host failure: Timed out after 5 minutes waiting for PostgreSQL at database.url");
 });
 
 databaseStartup.it("a daemon waiting for PostgreSQL can be stopped", [], function* (daemon) {

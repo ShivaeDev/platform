@@ -1,66 +1,80 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { engine } from "#test/engineStory.ts";
 import { noChangeReported } from "#test/engineTraits.ts";
 
 engine.it(
-	"a dependency chain launches in order after validated completion",
+	"a dependency chain held by automation launches in order, each link after its predecessor completes across restarts",
 	[noChangeReported()],
-	function* ({ fleet, prepareWork, setDependencies, schedule, restart, finishWorkers, providerStarts }) {
+	function* ({ finishWorkers, fleet, get, launchedPrompts, prepareWork, restart, schedule, setDependencies }) {
 		setDependencies("two", ["one"]);
 		setDependencies("dependent", ["two"]);
 		for (const id of ["dependent", "two", "one"]) {
 			yield* prepareWork(id);
 		}
 		yield* schedule();
-		expect((yield* fleet.get("two")).value.blocker).toContain("waiting for dependency one");
-		expect((yield* fleet.get("two")).value.attentionOwner).toBe("automation");
-		expect((yield* fleet.get("dependent")).value.blocker).toContain("waiting for dependency two");
+		yield* outcomes([
+			["two", () => get("two"), { value: { attentionOwner: "automation", blocker: expect.stringContaining("waiting for dependency one") } }],
+			["dependent", () => get("dependent"), { value: { blocker: expect.stringContaining("waiting for dependency two") } }],
+		]);
+
 		for (const id of ["one", "two"]) {
 			finishWorkers();
 			expect((yield* fleet.reconcile(id)).value.step).toBe("done");
 			yield* restart();
 			yield* schedule();
 		}
-		expect(
-			providerStarts()
-				.filter((start) => start.access !== "read-only")
-				.map((start) => start.prompt),
-		).toEqual(["Implement one", "Implement two", "Implement dependent"]);
+
+		expect(yield* launchedPrompts()).toEqual(["Implement one", "Implement two", "Implement dependent"]);
 	},
 );
 
 engine.it(
-	"done Board dependencies qualify with no record or after their prepared Fleet work releases",
+	"a dependency done on the Board with no Fleet record qualifies its dependent",
 	[],
-	function* ({ fleet, prepareWork, setDependencies, setBoardStatus }) {
+	function* ({ attemptDispatch, fleet, prepareWork, setBoardStatus, setDependencies }) {
 		setDependencies("dependent", ["external"]);
 		yield* prepareWork("dependent");
-		expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
-		expect((yield* fleet.get("dependent")).value.blocker).toContain("not done on the Board");
+		expect(yield* attemptDispatch("dependent")).toMatch(/^forbidden: .*not done on the Board/u);
+
 		setBoardStatus("external", "done");
+
 		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
+	},
+);
+
+engine.it(
+	"a dependency done on the Board qualifies its dependent once its prepared Fleet work releases",
+	[],
+	function* ({ attemptDispatch, fleet, prepareWork, setBoardStatus, setDependencies, stepOf }) {
 		setDependencies("two", ["one"]);
 		setBoardStatus("one", "done");
 		yield* prepareWork("one");
 		yield* prepareWork("two");
-		expect(yield* fleet.dispatch("two").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
-		expect((yield* fleet.get("two")).value.blocker).toContain("Fleet work is still active (queued)");
-		expect((yield* fleet.dispatch("one")).value.step).toBe("released");
-		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
+		expect(yield* attemptDispatch("two")).toMatch(/^forbidden: .*Fleet work is still active \(queued\)/u);
+
+		yield* fleet.dispatch("one");
+
+		yield* outcomes([
+			["one", () => stepOf("one"), "released"],
+			["two once dispatched", () => fleet.dispatch("two"), { value: { step: "working" } }],
+		]);
 	},
 );
 
 engine.it(
-	"a dependency that shares an area with an earlier dependent can still launch",
+	"a dependency sharing an area with its earlier-queued dependent launches first, and the dependent follows it",
 	[],
-	function* ({ fleet, prepareWork, setAreas, finishWorkers }) {
+	function* ({ attemptDispatch, finishWorkers, fleet, prepareWork, setAreas }) {
 		setAreas("dependent", ["fleet/host"]);
 		setAreas("one", ["fleet/host"]);
 		yield* prepareWork("dependent");
 		yield* prepareWork("one");
-		expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
-		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
+		expect(yield* attemptDispatch("dependent")).toMatch(/^forbidden: /u);
+
+		const dependency = yield* fleet.dispatch("one");
+
+		expect(dependency.value.step).toBe("working");
 		finishWorkers();
 		yield* fleet.reconcile("one");
 		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");

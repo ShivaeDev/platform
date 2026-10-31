@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { controlPublication } from "#test/controlPublication.ts";
+import { refusal } from "#test/refusal.ts";
 
 const MESSAGE = "Use PostgreSQL and keep the existing PR.";
 
@@ -36,8 +37,8 @@ controlPublication.it("repeating continue after a lost acknowledgement reports a
 	yield* daemon.loseAcknowledgement(MESSAGE);
 	const recorded = yield* daemon.get();
 	expect(recorded.attempts).toMatchObject([{ prompt: MESSAGE, role: "repair" }]);
-	const repeated = yield* daemon.continue(MESSAGE).pipe(Effect.result);
-	expect(repeated).toMatchObject({ _tag: "Failure", failure: { _tag: "Forbidden" } });
+	const repeated = yield* refusal(daemon.continue(MESSAGE));
+	expect(repeated).toMatch(/^forbidden: /u);
 	yield* daemon.releasePublication();
 	yield* daemon.flush();
 	expect((yield* daemon.get()).attempts).toEqual(recorded.attempts);

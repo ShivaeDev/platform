@@ -10,6 +10,7 @@ import { daemonClient } from "#test/daemonClient.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { hostProcess } from "#test/hostProcess.ts";
+import { refusal } from "#test/refusal.ts";
 
 export const configureCloud = Effect.fn("CloudHost.configureCloud")(function* (
 	engine: HostStoryEngine,
@@ -64,7 +65,7 @@ export function cloudHostVerbs(engine: HostStoryEngine) {
 		renewCloudWork: (record: FleetRecord) =>
 			Effect.flatMap(Fleet, (fleet) =>
 				fleet.prepare({ cwd: record.cwd, preparation: record.preparation, prompt: record.prompt, workId: record.workId }),
-			).pipe(Effect.provide(runtime()), Effect.result),
+			).pipe(Effect.provide(runtime()), refusal),
 		spawnBoardProcess: () => hostProcess(engine.fixture.configFile, false, false, new URL("./boardProcess.ts", import.meta.url)),
 		spawnHost: () => hostProcess(engine.fixture.configFile),
 		spawnRestartHost: (pausePublication = false) => hostProcess(engine.fixture.configFile, pausePublication, true),

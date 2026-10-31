@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired, independentReviewFailsOnce, markdownWork, noChangeReported, requiredChecksFailOnce } from "#test/engineTraits.ts";
 
@@ -47,10 +48,13 @@ engine.it(
 		});
 		const input = { decisionId: decision.id, responseId: answer.id, workId: "one" };
 		yield* rpcResolve(input);
-		expect((yield* rpcReconcile("one")).step).toBe("done");
-		expect((yield* rpcResolve(input)).responses).toMatchObject([{ questionRevision: published.revision, responseId: answer.id }]);
+		yield* outcomes([
+			["rpc reconcile one step", () => rpcReconcile("one"), { step: "done" }],
+			["rpc resolve responses", () => rpcResolve(input), { responses: [{ questionRevision: published.revision, responseId: answer.id }] }],
+		]);
 		yield* restart();
-		expect((yield* fleet.resolve("one", decision.id, answer.id)).value.step).toBe("done");
+		const resolved = yield* fleet.resolve("one", decision.id, answer.id);
+		expect(resolved.value.step).toBe("done");
 		expect((yield* fleet.get("one")).value.responses?.[0]?.questionRevision).toBe(published.revision);
 		expect(launches()).toEqual(["operation-1", "operation-2"]);
 		expect(readBoardWork()).toBe(

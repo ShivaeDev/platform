@@ -53,7 +53,7 @@ for (const [launchPriority, blockedElsewhere] of [
 			if (launchPriority === "urgent") {
 				expect((yield* fleet.dispatch("four")).value.step).toBe("working");
 			} else {
-				expect(yield* fleet.attemptDispatch("four")).toMatchObject({ message: "waiting for area shared queued ahead by one" });
+				expect(yield* fleet.attemptDispatch("four")).toBe("admission refused: waiting for area shared queued ahead by one");
 				if (blockedElsewhere) {
 					expect((yield* fleet.reconcile("one")).value.blocker).toBe("waiting for area other held by other-holder");
 					yield* fleet.vacateExecution("other-holder");

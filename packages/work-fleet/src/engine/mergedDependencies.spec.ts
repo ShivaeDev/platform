@@ -1,7 +1,7 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { reviewedPullRequestIsOpen } from "#test/engineDeliveryTraits.ts";
 import { engine } from "#test/engineStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const head of ["reviewed-head", "unreviewed-head"]) {
 	engine.it(
@@ -10,7 +10,7 @@ for (const head of ["reviewed-head", "unreviewed-head"]) {
 		function* ({ fleet, prepareWork, finishWorkers, mergePullRequest, restart, editWork }) {
 			yield* prepareWork("one");
 			yield* prepareWork("dependent");
-			expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
+			expect(yield* refusal(fleet.dispatch("dependent"))).toMatch(/^forbidden: /u);
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
@@ -28,7 +28,8 @@ for (const head of ["reviewed-head", "unreviewed-head"]) {
 			editWork("one", "changed-brief");
 			yield* restart();
 			expect((yield* fleet.get("one")).value.mergedDelivery).toEqual(merged.value.mergedDelivery);
-			expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
+			const dependentDispatched = yield* fleet.dispatch("dependent");
+			expect(dependentDispatched.value.step).toBe("working");
 		},
 	);
 }
@@ -38,7 +39,7 @@ engine.it("a dependent lists every unmet dependency and the missing evidence", [
 	yield* prepareWork("one");
 	yield* fleet.dispatch("one");
 	yield* prepareWork("dependent");
-	expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
+	expect(yield* refusal(fleet.dispatch("dependent"))).toMatch(/^forbidden: /u);
 	const blocker = (yield* fleet.get("dependent")).value.blocker;
 	expect(blocker).toContain("dependency one: Fleet work is still active");
 	expect(blocker).toContain("dependency two: not done on the Board");

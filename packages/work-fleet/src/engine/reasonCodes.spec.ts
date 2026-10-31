@@ -4,6 +4,7 @@ import { Fleet } from "#fleet.ts";
 import { foreignPullRequest } from "#test/engineLifecycleTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 import { savedDecision } from "#test/savedDecision.ts";
 
 describe("stable decision codes", () => {
@@ -51,15 +52,9 @@ describe("stable decision codes", () => {
 			const resumed = yield* afterRestart(Fleet.pipe(Effect.flatMap((current) => current.reconcile("one"))));
 			expect(resumed.value.decision).toEqual(reworded);
 			const failure = yield* afterRestart(
-				Fleet.pipe(
-					Effect.flatMap((current) => current.resolve("one", decision.id, respond(decision.id, "retry"))),
-					Effect.flip,
-				),
+				refusal(Fleet.pipe(Effect.flatMap((current) => current.resolve("one", decision.id, respond(decision.id, "retry"))))),
 			);
-			expect(failure).toMatchObject({
-				_tag: "BadRequest",
-				message: "This decision only permits release; choose release to stop and hand back",
-			});
+			expect(failure).toBe("bad request: This decision only permits release; choose release to stop and hand back");
 		},
 	);
 });

@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { githubCliHost } from "#test/githubHostStory.ts";
 import { BASE, completed, HEAD, PR, work } from "#test/githubResult.ts";
+import { refusal } from "#test/refusal.ts";
 
 const ENDPOINT = "repos/example/repository/pulls/7";
 const responses = new Map([
@@ -33,6 +33,6 @@ githubCliHost.it("adopts a result with REST reads through the shared HTTP client
 
 githubCliHost.it("rejects a failed GitHub response even when its body contains a valid result", [], function* (github) {
 	const cli = yield* github.cli(responses, HttpStatus.fromLiteral("BadGateway"));
-	expect(yield* cli.adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
+	expect(yield* refusal(cli.adopt(work, completed()))).toMatch(/^unavailable: /u);
 	expect(cli.commands).toMatchObject([{ endpoint: ENDPOINT, status: HttpStatus.fromLiteral("BadGateway") }]);
 });

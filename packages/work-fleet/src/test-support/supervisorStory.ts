@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
@@ -13,7 +13,7 @@ import { SupervisorStoryEngine } from "#test/SupervisorStoryEngine.ts";
 import { supervisorBoardCall } from "#test/supervisorBoardCall.ts";
 import { supervisorCodeChanges } from "#test/supervisorCodeChanges.ts";
 import { supervisorPluginFiles, supervisorPluginInstallation } from "#test/supervisorPluginInstallation.ts";
-import { supervisorSocketCall } from "#test/supervisorSocketCall.ts";
+import { supervisorServerInfo } from "#test/supervisorServerInfo.ts";
 
 const layer = Layer.merge(postgresLayer, NodeServices.layer);
 
@@ -32,7 +32,7 @@ export const fleetSupervisor = storyKit({
 		awaitRevision: (previous: string) => engine.awaitRevision(previous),
 		beginRequest: () => engine.beginRequest(),
 		boardCli: (args: readonly string[]) => engine.run(args, engine.fixture.boardCli),
-		boardDir: () => engine.fixture.boardDir,
+		boardDir: () => realpathSync(engine.fixture.boardDir),
 		changeBoardCode: () =>
 			Effect.sync(() => {
 				story.tell("replace the installed Board server response");
@@ -110,7 +110,7 @@ export const fleetSupervisor = storyKit({
 				writeFileSync(join(engine.fixture.boardDir, ".work-up.log"), text);
 			}),
 		serverInfo: (port: number) => supervisorBoardCall(port, (client) => client("work-board.server", undefined)),
-		socketServerInfo: () => supervisorSocketCall(join(engine.fixture.boardDir, "board.sock")),
+		socketServerInfo: () => supervisorServerInfo(join(engine.fixture.boardDir, "board.sock")),
 		stalePid: () => engine.stalePid,
 		start: () => {
 			story.tell("start Fleet and Board in a consumer repository");

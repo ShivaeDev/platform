@@ -1,59 +1,114 @@
 import { expect } from "@effect/vitest";
+import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { markdownWork, reviewerStillRunning } from "#test/engineTraits.ts";
 
+isolatedEngine.it(
+	"holding running work on the Board publishes an approval question waiting on the maintainer",
+	[markdownWork(), reviewerStillRunning()],
+	function* ({ boardBrief, boardInboxFiles, fleet, prepareWork, rpcViews, writeBoardWork }) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		writeBoardWork("one.md", boardBrief().replace("fleet: approved", "fleet: held"));
+
+		const held = (yield* fleet.reconcile("one")).value;
+
+		yield* outcomes([
+			["inbox", () => boardInboxFiles(), expect.arrayContaining([held.decision?.published?.sourcePath])],
+			["waiting on the maintainer", () => rpcViews().pipe(Effect.map(({ waiting }) => waiting.maintainer.map(({ workId }) => workId))), ["one"]],
+		]);
+		expect(held).toMatchObject({ decision: { code: "approval-required", published: { sourcePath: expect.any(String) } }, step: "waiting" });
+	},
+);
+
 for (const completedWhileHeld of [false, true]) {
+	const worker = completedWhileHeld ? "completed" : "running";
+
 	isolatedEngine.it(
-		`re-approval resumes the same ${completedWhileHeld ? "completed" : "running"} worker and closes the approval question after restart`,
+		`re-approval after a restart resumes the same ${worker} worker and supersedes its approval question`,
 		[markdownWork(), reviewerStillRunning()],
 		function* ({
 			boardBrief,
-			writeBoardWork,
-			prepareWork,
-			fleet,
-			restart,
-			finishWorkers,
-			boardReceiptRecords,
-			providerStarts,
-			schedule,
-			rpcViews,
 			boardInboxFiles,
+			boardReceiptRecords,
+			finishWorkers,
+			fleet,
+			prepareWork,
+			providerStarts,
+			restart,
+			rpcViews,
+			schedule,
+			writeBoardWork,
 		}) {
 			const source = boardBrief();
 			yield* prepareWork("one");
 			const original = yield* fleet.dispatch("one");
 			writeBoardWork("one.md", source.replace("fleet: approved", "fleet: held"));
-			const held = yield* fleet.reconcile("one");
-			expect(held.value.decision?.code).toBe("approval-required");
-			expect(held.value.decision?.published).toBeDefined();
-			expect(yield* boardInboxFiles()).toContain(held.value.decision?.published?.sourcePath);
-			expect((yield* rpcViews()).waiting.maintainer.map((item) => item.workId)).toContain("one");
+			const question = (yield* fleet.reconcile("one")).value.decision?.published;
+			if (completedWhileHeld) {
+				finishWorkers();
+			}
+			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
+
+			writeBoardWork("one.md", source);
+			yield* restart();
+			yield* schedule();
+
+			const resumed = (yield* fleet.get("one")).value;
+			yield* outcomes([
+				["inbox", () => boardInboxFiles(), expect.not.arrayContaining([question?.sourcePath])],
+				["waiting on the maintainer", () => rpcViews().pipe(Effect.map(({ waiting }) => waiting.maintainer)), []],
+			]);
+			expect({
+				blocker: resumed.blocker ?? "none",
+				decision: resumed.decision?.code ?? "none",
+				receipt: resumed.attempts[0]?.receipt,
+				receipts: boardReceiptRecords().map((receipt) => `${receipt?.disposition} ${receipt?.question}`),
+				step: resumed.step,
+				superseded: resumed.supersededDecisions?.map(({ boardAcknowledged, published }) => ({ boardAcknowledged, published })),
+				workers: providerStarts()
+					.filter(({ access }) => access !== "read-only")
+					.map(({ operationId }) => operationId),
+			}).toEqual({
+				blocker: "none",
+				decision: "none",
+				receipt: original.value.attempts[0]?.receipt,
+				receipts: [`superseded ${question?.questionId}`],
+				step: "working",
+				superseded: [{ boardAcknowledged: true, published: question }],
+				workers: ["operation-1"],
+			});
+		},
+	);
+
+	isolatedEngine.it(
+		`a re-approved ${worker} worker's report reaches review without launching another worker`,
+		[markdownWork(), reviewerStillRunning()],
+		function* ({ boardBrief, finishWorkers, fleet, prepareWork, providerStarts, restart, schedule, writeBoardWork }) {
+			const source = boardBrief();
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			writeBoardWork("one.md", source.replace("fleet: approved", "fleet: held"));
+			yield* fleet.reconcile("one");
 			if (completedWhileHeld) {
 				finishWorkers();
 			}
 			yield* fleet.reconcile("one");
-			expect((yield* fleet.get("one")).value.step).toBe("waiting");
 			writeBoardWork("one.md", source);
 			yield* restart();
 			yield* schedule();
-			const resumed = yield* fleet.get("one");
-			expect(resumed.value.decision).toBeUndefined();
-			expect(resumed.value.blocker).toBeUndefined();
-			expect((yield* rpcViews()).waiting.maintainer).toEqual([]);
-			expect(yield* boardInboxFiles()).not.toContain(held.value.decision?.published?.sourcePath);
-			expect(resumed.value.step).toBe("working");
-			expect(resumed.value.attempts[0]?.receipt).toEqual(original.value.attempts[0]?.receipt);
-			expect(resumed.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: held.value.decision?.published }]);
-			expect(boardReceiptRecords()).toMatchObject([{ disposition: "superseded", question: held.value.decision?.published?.questionId }]);
 			finishWorkers();
+
 			const reviewed = yield* fleet.reconcile("one");
-			expect(reviewed.value.step).toBe("reviewing");
-			expect(reviewed.value.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
-			expect(
-				providerStarts()
-					.filter((start) => start.access !== "read-only")
-					.map((start) => start.operationId),
-			).toEqual(["operation-1"]);
+
+			expect({
+				result: reviewed.value.result,
+				step: reviewed.value.step,
+				workers: providerStarts()
+					.filter(({ access }) => access !== "read-only")
+					.map(({ operationId }) => operationId),
+			}).toMatchObject({ result: { kind: "change", pr: "https://example.invalid/pr/one" }, step: "reviewing", workers: ["operation-1"] });
 		},
 	);
 }

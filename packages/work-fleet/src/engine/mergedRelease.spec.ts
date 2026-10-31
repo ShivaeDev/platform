@@ -63,7 +63,8 @@ for (const scenario of ["worker question", "failing check", "changed head"] as c
 			});
 			expect(backlog(released.value)).toBe(false);
 			expect(yield* foreignReservations()).toEqual([]);
-			expect((yield* fleet.reconcile("one")).version).toBe(released.version);
+			const reconciled = yield* fleet.reconcile("one");
+			expect(reconciled.version).toBe(released.version);
 			expect(mergedHeads()).toEqual([]);
 		},
 	);

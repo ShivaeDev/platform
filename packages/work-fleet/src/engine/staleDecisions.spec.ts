@@ -1,9 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { Fleet } from "#fleet.ts";
 import { noChangeChecksFailOnce } from "#test/engineLifecycleTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 for (const status of ["draft", "deferred"]) {
 	engine.it(
@@ -48,8 +50,10 @@ for (const status of ["draft", "deferred"]) {
 			} else {
 				expect(released.value.responses).toMatchObject([{ action: "release", boardAcknowledged: true, responseId: answer.id }]);
 			}
-			expect(yield* boardInboxFiles()).not.toContain(published.sourcePath);
-			expect(yield* boardInboxFiles("orchestrator")).toEqual([]);
+			yield* outcomes([
+				["inbox", () => boardInboxFiles(), expect.not.arrayContaining([published.sourcePath])],
+				["orchestrator inbox", () => boardInboxFiles("orchestrator"), []],
+			]);
 			yield* afterRestart(
 				Fleet.pipe(Effect.flatMap((resumed) => (status === "deferred" ? resumed.reconcile("one") : resumed.resolve("one", decision.id, answer.id)))),
 			);
@@ -100,8 +104,8 @@ engine.it(
 		yield* afterRestart(
 			Effect.gen(function* () {
 				const restarted = yield* Fleet;
-				const denied = yield* restarted.resolve("one", decision.id, answer).pipe(Effect.result);
-				expect(denied._tag).toBe("Failure");
+				const denied = yield* refusal(restarted.resolve("one", decision.id, answer));
+				expect(denied).not.toBe("accepted");
 				const stopped = yield* restarted.reconcile("one");
 				expect(stopped.value.step).toBe("waiting");
 				expect(stopped.value.decision?.reason).toBe("Board context changed");

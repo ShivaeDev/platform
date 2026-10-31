@@ -1,4 +1,6 @@
 import { expect } from "@effect/vitest";
+import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { executing } from "#model.ts";
 import { busyThread, rejectedSubmission, submissionAtCapacity } from "#test/engineProviderRetryTraits.ts";
@@ -25,8 +27,10 @@ for (const structured of [false, true]) {
 			expect(launches()).toEqual(["operation-1"]);
 			setFleetTime(30_100);
 			yield* afterRestart(cycle);
-			expect((yield* fleet.get("one")).value).toMatchObject({ step: "working" });
-			expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
+			yield* outcomes([
+				["one", () => fleet.get("one"), { value: { step: "working" } }],
+				["one launch retry", () => fleet.get("one").pipe(Effect.map((current) => current.value.launchRetry)), undefined],
+			]);
 			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
@@ -67,8 +71,10 @@ for (const rejection of ["Rejected credential", "Request refused by policy"]) {
 			yield* prepareWork("one");
 
 			yield* schedule();
-			expect((yield* fleet.get("one")).value).toMatchObject({ decision: { reason: rejection }, step: "waiting" });
-			expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
+			yield* outcomes([
+				["one", () => fleet.get("one"), { value: { decision: { reason: rejection }, step: "waiting" } }],
+				["one launch retry", () => fleet.get("one").pipe(Effect.map((current) => current.value.launchRetry)), undefined],
+			]);
 			yield* afterRestart(cycle);
 			expect(launches()).toEqual(["operation-1"]);
 		},

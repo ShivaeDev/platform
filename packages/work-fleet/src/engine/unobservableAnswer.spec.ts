@@ -13,7 +13,7 @@ for (const legacy of [false, true]) {
 			expect(answered.attempts.at(-1)?.receipt?.turnId).toBe("turn-2");
 			setAreas("two", ["server"]);
 			yield* prepareWork("two");
-			expect((yield* attemptDispatch("two")).message).toContain("area server held by one");
+			expect(yield* attemptDispatch("two")).toContain("area server held by one");
 			yield* fleet.reconcile("one");
 			advanceTime(299_999);
 			expect((yield* fleet.reconcile("one")).value.attempts.map((attempt) => attempt.operationId)).toEqual(["operation-1", "operation-2"]);
@@ -26,7 +26,7 @@ for (const legacy of [false, true]) {
 			expect(recovered.attempts.at(-1)?.prompt).toContain("Continue on the same branch and PR");
 			expect(recovered.attempts.at(-1)?.sessionId).not.toBe(answered.attempts.at(-1)?.sessionId);
 			expect(recovered.attempts[1]?.abandoned).toBeDefined();
-			expect((yield* attemptDispatch("two")).message).toContain("area server held by one");
+			expect(yield* attemptDispatch("two")).toContain("area server held by one");
 			hideNativeTurn("turn-3");
 			yield* fleet.reconcile("one");
 			advanceTime(300_000);

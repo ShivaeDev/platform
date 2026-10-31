@@ -1,10 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { taskPrompt } from "#prompt/task.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork, reviewerStillRunning, reviewRequestsRepairs } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 engine.it(
 	"an approved brief edit preserves the repair session and adopts its result",
@@ -160,9 +162,11 @@ engine.it(
 			return yield* Effect.die("Missing decision");
 		}
 		writeBoardWork("one.md", `${source}\nSecond criteria edit.\n`);
-		const denied = yield* fleet.resolve("one", decision.id, answerReport(decision.published, "retry")).pipe(Effect.result);
-		expect(denied._tag).toBe("Failure");
-		expect((yield* fleet.get("one")).value.boardContext).toBe(source);
-		expect((yield* fleet.get("one")).value.responses).toBeUndefined();
+		const denied = yield* refusal(fleet.resolve("one", decision.id, answerReport(decision.published, "retry")));
+		expect(denied).not.toBe("accepted");
+		yield* outcomes([
+			["one board context", () => fleet.get("one"), { value: { boardContext: source } }],
+			["one responses", () => fleet.get("one").pipe(Effect.map((current) => current.value.responses)), undefined],
+		]);
 	},
 );

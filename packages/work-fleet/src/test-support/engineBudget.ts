@@ -1,4 +1,4 @@
-import { Clock, Context, Effect, Layer, Stream } from "effect";
+import { Clock, Context, Effect, Fiber, Layer, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
@@ -14,6 +14,7 @@ import { ADOPTED_HEAD, checkRun, githubFixture, githubResult } from "#test/githu
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 const PR_ENDPOINT = "repos/example/project/pulls/7";
+const FULL_BUDGET = 5000;
 export function budgetPullRequest(merged: boolean) {
 	const result = githubResult();
 	return {
@@ -53,6 +54,19 @@ function liveInterval(seconds: number) {
 	);
 }
 export function engineBudgetVerbs(state: EngineStory, tell: (line: string) => void) {
+	const budgetScheduler = Effect.fn("FleetStory.budgetScheduler")(function* (remaining: number) {
+		const github = syntheticGithub({ remaining, reset: Math.ceil((yield* Clock.currentTimeMillis) / 1000) + 3600 });
+		github.reply(PR_ENDPOINT, budgetPullRequest(false));
+		const api = Context.get(yield* Layer.build(github.layer), GithubApi);
+		yield* api.get(PR_ENDPOINT);
+		const passes = { count: 0 };
+		const admit = Effect.sync(() => {
+			passes.count += 1;
+		});
+		const pause = schedulerPause.pipe(Effect.provideService(GithubApi, api), Effect.provide(liveInterval(0.005)));
+		const scheduler = yield* Effect.scoped(run(pause, admit)).pipe(Effect.provideService(Fleet, running(state).fleet), Effect.forkChild);
+		return { passes, scheduler };
+	});
 	function budget() {
 		if (state.budget === undefined) {
 			throw new Error("No GitHub REST budget is configured");
@@ -71,22 +85,15 @@ export function engineBudgetVerbs(state: EngineStory, tell: (line: string) => vo
 			tell("read the PR through the GitHub API");
 			return budget().api.get(PR_ENDPOINT);
 		},
-		startBudgetScheduler: (remaining: number) =>
+		stretchedSchedulerPasses: (remaining: number, fullPasses: number) =>
 			Effect.gen(function* () {
-				tell(`start the scheduler with ${remaining} GitHub requests left`);
-				const github = syntheticGithub({ remaining, reset: Math.ceil((yield* Clock.currentTimeMillis) / 1000) + 3600 });
-				github.reply(PR_ENDPOINT, budgetPullRequest(false));
-				const api = Context.get(yield* Layer.build(github.layer), GithubApi);
-				yield* api.get(PR_ENDPOINT);
-				const passes: { count: number; records: { readonly workIds: readonly string[] }[] } = { count: 0, records: [] };
-				const admit = Effect.gen(function* () {
-					const records = yield* running(state).fleet.list();
-					passes.count += 1;
-					passes.records.push({ workIds: records.map(({ value }) => value.workId) });
-				}).pipe(Effect.orDie);
-				const pause = schedulerPause.pipe(Effect.provideService(GithubApi, api), Effect.provide(liveInterval(0.005)));
-				const scheduler = yield* Effect.scoped(run(pause, admit)).pipe(Effect.provideService(Fleet, running(state).fleet), Effect.forkChild);
-				return { passes, scheduler };
+				tell(`run schedulers with ${FULL_BUDGET} and ${remaining} GitHub requests left until the full one passes ${fullPasses} times`);
+				const full = yield* budgetScheduler(FULL_BUDGET);
+				const stretched = yield* budgetScheduler(remaining);
+				yield* Effect.sleep("5 millis").pipe(Effect.repeat({ until: () => full.passes.count > fullPasses }), Effect.timeout("10 seconds"));
+				yield* Fiber.interrupt(full.scheduler);
+				yield* Fiber.interrupt(stretched.scheduler);
+				return stretched.passes.count === 1 ? "one pass" : `${stretched.passes.count} passes`;
 			}),
 	};
 }

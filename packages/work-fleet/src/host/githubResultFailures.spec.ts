@@ -1,7 +1,7 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { githubHost } from "#test/githubHostStory.ts";
 import { BASE, completed, HEAD, MOVED, PR, REPORT, work } from "#test/githubResult.ts";
+import { refusal } from "#test/refusal.ts";
 
 describe("typed result adoption failures", () => {
 	for (const output of [
@@ -20,7 +20,7 @@ describe("typed result adoption failures", () => {
 	]) {
 		githubHost.it(`rejects missing, malformed or ambiguous report lines: ${output}`, [], function* (github) {
 			const fixture = github.result();
-			expect(yield* fixture.adopt(work, completed(output)).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
+			expect(yield* refusal(fixture.adopt(work, completed(output)))).toMatch(/^bad request: /u);
 			expect(fixture.requests).toHaveLength(0);
 		});
 	}
@@ -37,45 +37,40 @@ describe("typed result adoption failures", () => {
 			`rejects an unmerged closure, inconsistent merge, wrong-base or wrong-identity PR: ${JSON.stringify(before)}`,
 			[],
 			function* (github) {
-				expect(yield* github.result({ before }).adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
+				expect(yield* refusal(github.result({ before }).adopt(work, completed()))).toMatch(/^bad request: /u);
 			},
 		);
 	}
 	githubHost.it("rejects a PR head that moved after the worker report", [], function* (github) {
-		expect(
-			yield* github
-				.result({ before: { head: { sha: MOVED } } })
-				.adopt(work, completed())
-				.pipe(Effect.flip),
-		).toMatchObject({ _tag: "Conflict" });
+		const adopted = yield* refusal(github.result({ before: { head: { sha: MOVED } } }).adopt(work, completed()));
+
+		expect(adopted).toMatch(/^conflict: /u);
 	});
 	for (const after of [{ head: { sha: MOVED } }, { base: { ref: "other", sha: MOVED } }, { "changed_files": 3 }, { state: "closed" }]) {
 		githubHost.it(`rejects movement or closure during path observation: ${JSON.stringify(after)}`, [], function* (github) {
-			expect(yield* github.result({ after }).adopt(work, completed()).pipe(Effect.flip)).toMatchObject({
-				_tag: "state" in after || "base" in after ? "BadRequest" : "Conflict",
-			});
+			const adopted = yield* refusal(github.result({ after }).adopt(work, completed()));
+
+			expect(adopted).toMatch("state" in after || "base" in after ? /^bad request: /u : /^conflict: /u);
 		});
 	}
 	githubHost.it("rejects a report for another repository", [], function* (github) {
 		const fixture = github.result();
-		expect(yield* fixture.adopt(work, completed(REPORT.replace("example/repository", "other/repository"))).pipe(Effect.flip)).toMatchObject({
-			_tag: "BadRequest",
-		});
+		expect(yield* refusal(fixture.adopt(work, completed(REPORT.replace("example/repository", "other/repository"))))).toMatch(/^bad request: /u);
 		expect(fixture.requests).toEqual([]);
 	});
 	for (const files of [[[{ filename: "src/one.ts" }]], [[{ filename: "src/one.ts" }, { filename: "src/one.ts" }]]]) {
 		githubHost.it("rejects incomplete or duplicate file pages", [], function* (github) {
-			expect(yield* github.result({ files }).adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
+			expect(yield* refusal(github.result({ files }).adopt(work, completed()))).toMatch(/^unavailable: /u);
 		});
 	}
 	for (const options of [{ before: { head: { sha: "short" } } }, { invalidJson: true }, { unavailable: true }]) {
 		githubHost.it(`fails typed for unavailable or invalid GitHub observations: ${JSON.stringify(options)}`, [], function* (github) {
-			expect(yield* github.result(options).adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
+			expect(yield* refusal(github.result(options).adopt(work, completed()))).toMatch(/^unavailable: /u);
 		});
 	}
 	githubHost.it("does not adopt a running worker", [], function* (github) {
 		const fixture = github.result();
-		expect(yield* fixture.adopt(work, { ...completed(), execution: "running" }).pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest" });
+		expect(yield* refusal(fixture.adopt(work, { ...completed(), execution: "running" }))).toMatch(/^bad request: /u);
 		expect(fixture.requests).toHaveLength(0);
 	});
 });

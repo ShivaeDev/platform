@@ -2,6 +2,7 @@ import { describe, expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
 import { heldAction } from "#test/engineRaceTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
+import { refusal } from "#test/refusal.ts";
 
 describe("Fleet autonomous scheduling", () => {
 	isolatedEngine.it(
@@ -72,7 +73,7 @@ describe("Fleet autonomous scheduling", () => {
 			yield* waitForGate("entered");
 			const decision = (yield* fleet.get("one")).value.decision;
 			expect(decision).toBeDefined();
-			expect(yield* Effect.flip(fleet.resolve("one", decision?.id ?? "missing", "response.unpublished"))).toMatchObject({ _tag: "Conflict" });
+			expect(yield* refusal(fleet.resolve("one", decision?.id ?? "missing", "response.unpublished"))).toMatch(/^conflict: /u);
 			yield* releaseGate("release");
 			expect((yield* Fiber.join(pending)).value.step).toBe("waiting");
 			yield* fleet.resolve("one", decision?.id ?? "missing", respond(decision?.id ?? "missing", "release"));

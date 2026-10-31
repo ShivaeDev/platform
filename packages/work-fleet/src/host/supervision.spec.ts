@@ -1,5 +1,7 @@
 import { expect } from "@effect/vitest";
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fleetSupervisor, slowLiveRequest, staleSupervisor } from "#test/supervisorStory.ts";
 
 fleetSupervisor.it(
@@ -17,8 +19,10 @@ fleetSupervisor.it(
 		const home = yield* fleet.request(state, "board", "/home.md");
 		expect(home.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(home.body).toContain("<title>home.md</title>");
-		expect((yield* fleet.navigation(state.board.port)).home?.file).toBe("home.md");
-		expect((yield* fleet.inbox(state.board.port)).you).toEqual(expect.arrayContaining([expect.objectContaining({ id: "decision.operator" })]));
+		yield* outcomes([
+			["navigation home file", () => fleet.navigation(state.board.port).pipe(Effect.map((current) => current.home?.file)), "home.md"],
+			["inbox you", () => fleet.inbox(state.board.port), { you: expect.arrayContaining([expect.objectContaining({ id: "decision.operator" })]) }],
+		]);
 		const preview = yield* fleet.preview(state.board.port);
 		expect((yield* fleet.register(state.board.port, preview.reviewedRevision)).question).toMatchObject({
 			item: "decision.operator",

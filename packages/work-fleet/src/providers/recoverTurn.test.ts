@@ -1,84 +1,71 @@
 import { expect } from "@effect/vitest";
-import { Effect, Fiber } from "effect";
-import * as TestClock from "effect/testing/TestClock";
-import { requestCursor, WireRejection } from "#test/codex.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { WireRejection } from "#test/codex.ts";
 import { cloudThread } from "#test/codexCloud.ts";
 import { cloudRecovery, providerStory, timedProviderStory } from "#test/providerStory.ts";
-import { uncertainEvidence } from "#test/recoveryEvidence.ts";
+import { byCursor, page, turn } from "#test/wireScript.ts";
 
-const input = {
+const RECOVERY = {
 	operationId: "operation",
 	resume: { access: "read-only" as const, prompt: "Approved work", settings: { effort: "high", model: "synthetic-model", serviceTier: "priority" } },
 	sessionId: "synthetic-session",
 };
+
 timedProviderStory.it(
-	"waits the bounded grace period and concurrent recovery starts once on the acknowledged empty thread",
+	"two concurrent recoveries on an empty thread wait the whole grace period and then start one read-only turn",
 	[cloudRecovery(5000)],
-	function* ({ provider, replyWith, requests, awaitSleep }) {
-		yield* replyWith((request) => {
-			if (request.method === "thread/read") {
-				return cloudThread();
-			}
-			if (request.method === "turn/start") {
-				return { turn: { id: "synthetic-turn" } };
-			}
-			return { data: [], nextCursor: null };
-		});
-		const recovering = yield* Effect.all([provider.reconcile(input), provider.reconcile(input)], { concurrency: "unbounded" }).pipe(Effect.forkChild);
-		for (let step = 0; step < 19; step += 1) {
-			yield* awaitSleep(250);
-			yield* TestClock.adjust(250);
-		}
-		yield* awaitSleep(250);
-		yield* TestClock.adjust(249);
-		expect(requests().map((request) => request.method)).not.toContain("turn/start");
-		yield* TestClock.adjust(1);
-		expect(yield* Fiber.join(recovering)).toEqual([
-			{ sessionId: input.sessionId, turnId: "synthetic-turn" },
-			{ sessionId: input.sessionId, turnId: "synthetic-turn" },
+	function* ({ answers, delayNearlyElapses, finalMillisecondElapses, methods, provider, recoveryPollsElapse, sent }) {
+		yield* answers({ "thread/read": cloudThread(), "thread/turns/list": page([]), "turn/start": { turn: { id: "synthetic-turn" } } });
+		const first = yield* provider.recoverInBackground(RECOVERY);
+		const second = yield* provider.recoverInBackground(RECOVERY);
+		yield* recoveryPollsElapse(19);
+		yield* delayNearlyElapses(250);
+		expect(yield* methods("turn/start")).toEqual([]);
+
+		yield* finalMillisecondElapses();
+
+		yield* outcomes([
+			["first recovery", () => first.outcome(), "turn synthetic-turn on synthetic-session"],
+			["second recovery", () => second.outcome(), "turn synthetic-turn on synthetic-session"],
+			["new threads", () => methods("thread/start"), []],
+			[
+				"started turns",
+				() => sent("turn/start"),
+				[
+					expect.objectContaining({
+						...RECOVERY.resume.settings,
+						approvalPolicy: "never",
+						clientUserMessageId: RECOVERY.operationId,
+						input: [expect.objectContaining({ text: RECOVERY.resume.prompt, type: "text" })],
+						sandboxPolicy: expect.objectContaining({ networkAccess: true, type: "readOnly" }),
+						threadId: RECOVERY.sessionId,
+					}),
+				],
+			],
 		]);
-		const starts = requests().filter((request) => request.method === "turn/start");
-		expect(starts).toHaveLength(1);
-		expect(starts[0]?.params).toMatchObject({
-			...input.resume.settings,
-			approvalPolicy: "never",
-			clientUserMessageId: input.operationId,
-			input: [{ text: input.resume.prompt, type: "text" }],
-			sandboxPolicy: { networkAccess: true, type: "readOnly" },
-			threadId: input.sessionId,
-		});
-		expect(requests().map((request) => request.method)).not.toContain("thread/start");
 	},
 );
 
-for (const scenario of uncertainEvidence) {
-	providerStory.it(`retains ownership without replay for ${scenario}`, [cloudRecovery(1)], function* ({ provider, replyWith, requests }) {
-		yield* replyWith((request) => {
-			if (request.method === "thread/read") {
-				return cloudThread();
-			}
-			const cursor = requestCursor(request);
-			if (scenario === "missing-thread" || (scenario === "broken-page" && cursor === "second")) {
-				return new WireRejection("Thread evidence is unavailable");
-			}
-			const matching = { id: "turn", items: [{ clientId: "operation", id: "input", type: "userMessage" }], status: "inProgress" };
-			if (scenario === "duplicates") {
-				return { data: [matching, { ...matching, id: "other" }], nextCursor: null };
-			}
-			if (scenario === "unrelated") {
-				return { data: [{ ...matching, items: [] }], nextCursor: null };
-			}
-			return { data: [], nextCursor: scenario === "broken-page" ? "second" : null };
-		});
-		const result = yield* provider
-			.reconcile({
-				...input,
-				...(scenario === "missing-session" ? { sessionId: undefined } : {}),
-				...(scenario === "missing-prompt" ? { resume: undefined } : {}),
-			})
-			.pipe(Effect.result);
-		expect(result._tag).toBe("Failure");
-		expect(requests().map((request) => request.method)).not.toContain("thread/start");
-		expect(requests().map((request) => request.method)).not.toContain("turn/start");
-	});
+const UNAVAILABLE = new WireRejection("Thread evidence is unavailable");
+const OWN_TURN = turn("turn", "inProgress", "operation");
+for (const [evidence, script, input] of [
+	["no session", { "thread/turns/list": page([]) }, { ...RECOVERY, sessionId: undefined }],
+	["an unreadable thread", { "thread/turns/list": UNAVAILABLE }, RECOVERY],
+	["only an unrelated turn", { "thread/turns/list": page([turn("turn", "inProgress")]) }, RECOVERY],
+	["two turns for the operation", { "thread/turns/list": page([OWN_TURN, { ...OWN_TURN, id: "other" }]) }, RECOVERY],
+	["an unreadable second page", { "thread/turns/list": byCursor({ first: page([], "second"), second: UNAVAILABLE }) }, RECOVERY],
+	["no saved prompt", { "thread/turns/list": page([]) }, { ...RECOVERY, resume: undefined }],
+] as const) {
+	providerStory.it(
+		`recovery with ${evidence} fails without starting a thread or turn`,
+		[cloudRecovery(1)],
+		function* ({ answers, methods, provider }) {
+			yield* answers({ "thread/read": cloudThread(), ...script });
+
+			const outcome = yield* provider.recover(input);
+
+			expect(outcome).toMatch(/^session /u);
+			expect(yield* methods("thread/start", "turn/start")).toEqual([]);
+		},
+	);
 }

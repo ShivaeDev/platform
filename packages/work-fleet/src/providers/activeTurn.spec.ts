@@ -1,107 +1,75 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { WireRejection } from "#test/codex.ts";
 import { providerStory } from "#test/providerStory.ts";
+import { inTurn, page, turn } from "#test/wireScript.ts";
 
-for (const message of ["turn already active for thread", "Another operation owns this thread."]) {
+const FOLLOWUP = {
+	operationId: "followup-operation",
+	prompt: "Continue the repair",
+	sessionId: "worker-thread",
+	settings: { effort: "high", model: "synthetic-model", serviceTier: "synthetic-tier" },
+};
+const CONTINUE = { operationId: "operation", prompt: "Continue", sessionId: "thread" };
+const BUSY = "turn already active for thread";
+const ACTIVE_THEN_IDLE = inTurn(page([turn("active", "inProgress")]), page([turn("active", "completed")]));
+
+for (const message of [BUSY, "Another operation owns this thread."]) {
 	providerStory.it(
-		`an active-turn rejection preserves submission across busy races independently of wording: ${message}`,
+		`a turn rejected as busy with "${message}" is resubmitted unchanged each time the thread goes idle`,
 		[],
-		function* ({ provider, replyWith }) {
-			const submissions: unknown[] = [];
-			const methods: string[] = [];
-			let polls = 0;
-			yield* replyWith((request) => {
-				methods.push(request.method);
-				if (request.method === "turn/start") {
-					submissions.push(request.params);
-					return submissions.length < 3 ? new WireRejection(message) : { turn: { id: "followup" } };
-				}
-				if (request.method === "thread/turns/list") {
-					polls += 1;
-					return { data: [{ id: "active", items: [], status: polls % 2 === 1 ? "inProgress" : "completed" }], nextCursor: null };
-				}
-				return {};
+		function* ({ answers, methods, provider, sent }) {
+			yield* answers({
+				"thread/turns/list": ACTIVE_THEN_IDLE,
+				"turn/start": inTurn(new WireRejection(message), new WireRejection(message), { turn: { id: "followup" } }),
 			});
-			yield* Effect.gen(function* () {
-				const receipt = yield* provider.startTurn({
-					operationId: "followup-operation",
-					prompt: "Continue the repair",
-					sessionId: "worker-thread",
-					settings: { effort: "high", model: "synthetic-model", serviceTier: "synthetic-tier" },
-				});
-				expect(receipt).toEqual({ sessionId: "worker-thread", turnId: "followup" });
-			});
-			expect(methods.filter((method) => method === "thread/turns/list")).toEqual([
-				"thread/turns/list",
-				"thread/turns/list",
-				"thread/turns/list",
-				"thread/turns/list",
+
+			const outcome = yield* provider.submit(FOLLOWUP);
+
+			expect(outcome).toBe("turn followup on worker-thread");
+			const submission = expect.objectContaining({ clientUserMessageId: "followup-operation", model: "synthetic-model", threadId: "worker-thread" });
+			yield* outcomes([
+				[
+					"provider calls",
+					() => methods("turn/start", "thread/turns/list", "turn/interrupt", "thread/start"),
+					["turn/start", "thread/turns/list", "thread/turns/list", "turn/start", "thread/turns/list", "thread/turns/list", "turn/start"],
+				],
+				["submitted turns", () => sent("turn/start"), [submission, submission, submission]],
 			]);
-			expect(submissions).toEqual([submissions[0], submissions[0], submissions[0]]);
-			expect(methods).not.toContain("turn/interrupt");
-			expect(methods).not.toContain("thread/start");
 		},
 	);
 }
-providerStory.it("repeated busy races stop after three resubmissions with a definite rejection", [], function* ({ provider, replyWith }) {
-	const methods: string[] = [];
-	let reads = 0;
-	yield* replyWith((request) => {
-		methods.push(request.method);
-		if (request.method === "thread/turns/list") {
-			reads += 1;
-		}
-		return request.method === "turn/start"
-			? new WireRejection("turn already active for thread")
-			: { data: [{ id: "steered", items: [], status: reads % 2 === 1 ? "inProgress" : "completed" }], nextCursor: null };
-	});
-	yield* Effect.gen(function* () {
-		const error = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
-		expect(error.reason).toBe("rejected");
-		expect(error.code).toBe("session-active-turn-exhausted");
-		expect(error.message).toContain("active-turn resubmission limit reached");
-	});
-	expect(methods.filter((method) => method === "turn/start" || method === "thread/turns/list")).toEqual([
-		"turn/start",
-		"thread/turns/list",
-		"thread/turns/list",
-		"turn/start",
-		"thread/turns/list",
-		"thread/turns/list",
-		"turn/start",
-		"thread/turns/list",
-		"thread/turns/list",
-		"turn/start",
-		"thread/turns/list",
-	]);
+
+providerStory.it("a thread that stays busy fails after three resubmissions", [], function* ({ answers, methods, provider }) {
+	yield* answers({ "thread/turns/list": ACTIVE_THEN_IDLE, "turn/start": new WireRejection(BUSY) });
+
+	const outcome = yield* provider.submit(CONTINUE);
+
+	expect(outcome).toBe(
+		`session rejected (session-active-turn-exhausted): Codex rejected the protocol request: ${BUSY}; active-turn resubmission limit reached`,
+	);
+	expect(yield* methods("turn/start")).toEqual(["turn/start", "turn/start", "turn/start", "turn/start"]);
 });
-for (const overloaded of [false, true]) {
-	providerStory.it(
-		`unreadable state and distinct rejection codes cannot authorize contention replay: overload=${overloaded}`,
-		[],
-		function* ({ provider, replyWith }) {
-			const methods: string[] = [];
-			yield* replyWith((request) => {
-				methods.push(request.method);
-				if (request.method === "turn/start") {
-					return new WireRejection("turn already active for thread", undefined, overloaded ? -32_001 : -32_602);
-				}
-				return request.method === "thread/turns/list" ? new WireRejection("State observation is unavailable.") : {};
-			});
-			yield* Effect.gen(function* () {
-				const error = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
-				expect(error).toMatchObject({
-					code: overloaded ? "session-queue-full" : "session-rejected",
-					message: "Codex rejected the protocol request: turn already active for thread",
-					reason: "rejected",
-				});
-			});
-			expect(methods.filter((method) => method === "turn/start")).toEqual(["turn/start"]);
-			expect(methods.filter((method) => method === "thread/turns/list")).toEqual(overloaded ? [] : ["thread/turns/list"]);
-		},
-	);
+
+for (const [rejection, code, checks] of [
+	["with the overload code", -32_001, []],
+	["whose thread state is unreadable", -32_602, ["thread/turns/list"]],
+] as const) {
+	providerStory.it(`a busy rejection ${rejection} fails without resubmission`, [], function* ({ answers, methods, provider }) {
+		yield* answers({
+			"thread/turns/list": new WireRejection("State observation is unavailable."),
+			"turn/start": new WireRejection(BUSY, undefined, code),
+		});
+
+		const outcome = yield* provider.submit(CONTINUE);
+
+		expect(outcome).toBe(
+			`session rejected (${code === -32_001 ? "session-queue-full" : "session-rejected"}): Codex rejected the protocol request: ${BUSY}`,
+		);
+		expect(yield* methods("turn/start", "thread/turns/list")).toEqual(["turn/start", ...checks]);
+	});
 }
+
 for (const message of [
 	"Rejected credential",
 	"Invalid API key",
@@ -109,19 +77,12 @@ for (const message of [
 	"Selected model is at capacity",
 	"Selected model is at capacity. Please try a different model.",
 ]) {
-	providerStory.it(`an active thread cannot turn ${message} into contention replay`, [], function* ({ provider, replyWith }) {
-		const methods: string[] = [];
-		yield* replyWith((request) => {
-			methods.push(request.method);
-			return request.method === "turn/start"
-				? new WireRejection(message)
-				: { data: [{ id: "active", items: [], status: "inProgress" }], nextCursor: null };
-		});
-		yield* Effect.gen(function* () {
-			const error = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
-			expect(error).toMatchObject({ code: "session-rejected", message: `Codex rejected the protocol request: ${message}`, reason: "rejected" });
-		});
-		expect(methods.filter((method) => method === "turn/start")).toEqual(["turn/start"]);
-		expect(methods).not.toContain("thread/turns/list");
+	providerStory.it(`a thread with an active turn does not make "${message}" a busy rejection`, [], function* ({ answers, methods, provider }) {
+		yield* answers({ "thread/turns/list": page([turn("active", "inProgress")]), "turn/start": new WireRejection(message) });
+
+		const outcome = yield* provider.submit(CONTINUE);
+
+		expect(outcome).toBe(`session rejected (session-rejected): Codex rejected the protocol request: ${message}`);
+		expect(yield* methods("turn/start", "thread/turns/list")).toEqual(["turn/start"]);
 	});
 }

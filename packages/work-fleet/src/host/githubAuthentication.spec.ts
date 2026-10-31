@@ -1,5 +1,4 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { CLI_TOKEN, ENV_TOKEN, FALLBACK_TOKEN, githubAuthentication } from "#test/githubAuthentication.ts";
 
 for (const [name, variables, token] of [
@@ -14,15 +13,37 @@ for (const [name, variables, token] of [
 	});
 }
 
-githubAuthentication.it("Fleet resolves an existing gh login once and keeps the token out of failures and diagnostics", [], function* (story) {
+githubAuthentication.it("Fleet resolves an existing gh login once for every read", [], function* (story) {
 	const client = yield* story.connect({});
 	yield* client.read();
+
 	yield* client.read();
-	expect(story.requests().map(({ headers }) => headers.authorization)).toEqual([`Bearer ${CLI_TOKEN}`, `Bearer ${CLI_TOKEN}`]);
-	expect(story.commands()).toMatchObject([{ args: ["auth", "token"], command: "gh" }]);
-	story.limit();
-	const error = yield* client.read().pipe(Effect.flip);
-	expect(error).toMatchObject({ _tag: "ServiceUnavailable" });
-	expect(yield* client.observations()).toMatchObject([{ limitedBy: "rate-limit" }]);
-	expect(JSON.stringify({ error, observations: yield* client.observations(), telemetry: story.telemetry() })).not.toContain(CLI_TOKEN);
+
+	expect({
+		authorizations: story.requests().map(({ headers }) => headers.authorization),
+		commands: story.commands(),
+	}).toMatchObject({ authorizations: [`Bearer ${CLI_TOKEN}`, `Bearer ${CLI_TOKEN}`], commands: [{ args: ["auth", "token"], command: "gh" }] });
 });
+
+githubAuthentication.it(
+	"a rate-limited read with a gh login fails as unavailable and keeps the token out of the failure and diagnostics",
+	[],
+	function* (story) {
+		const client = yield* story.connect({});
+		yield* client.read();
+		story.limit();
+
+		const failure = yield* client.readFailure();
+
+		const observations = yield* client.observations();
+		expect({
+			described: failure.described,
+			diagnostics: JSON.stringify({ error: failure.serialized, observations, telemetry: story.telemetry() }),
+			limitedBy: observations.map(({ limitedBy }) => limitedBy),
+		}).toEqual({
+			described: expect.stringMatching(/^unavailable: /u),
+			diagnostics: expect.not.stringContaining(CLI_TOKEN),
+			limitedBy: ["rate-limit"],
+		});
+	},
+);

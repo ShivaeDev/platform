@@ -1,6 +1,7 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { host as configuration } from "#test/hostStory.ts";
+import { refusal } from "#test/refusal.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 describe("work-fleet host configuration", () => {
@@ -56,11 +57,10 @@ describe("work-fleet host configuration", () => {
 		const host = yield* daemon.loadConfiguration(
 			'{ "provider": "local", "database": { "maxConnections": 1, "url": "postgresql://synthetic.invalid/work_fleet" } }',
 		);
-		const failure = yield* daemon.openDatabase(host).pipe(Effect.flip);
-		expect(failure).toMatchObject({
-			_tag: "HostFailure",
-			message: "Fleet database.maxConnections must be at least 2 for queries and the change listener",
-		});
+
+		const opened = yield* refusal(daemon.openDatabase(host));
+
+		expect(opened).toBe("host failure: Fleet database.maxConnections must be at least 2 for queries and the change listener");
 	});
 	configuration.it("selects GitHub result adoption explicitly", [], function* (daemon) {
 		const host = yield* daemon.loadConfiguration(

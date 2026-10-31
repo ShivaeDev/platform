@@ -1,10 +1,10 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { task } from "#test/fleetHost.ts";
 import { BASE, HEAD, PR, REPORT } from "#test/githubResult.ts";
 import { fakeCodex } from "#test/hostScenarioTraits.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 import { humanDelivery } from "#test/humanDelivery.ts";
+import { refusal } from "#test/refusal.ts";
 
 const review = `## TL;DR\n\nVerdict: approve. No findings worth raising.\n\n## Details\n\nNone.\n\nFLEET_REVIEW: ${JSON.stringify({ evidence: ["Independent review"], findings: [], head: HEAD, verdict: "approve" })}`;
 
@@ -33,15 +33,15 @@ for (const first of ["admission", "reconciliation", "preparation"]) {
 			yield* daemon.stop();
 			yield* daemon.start();
 			if (first === "preparation") {
-				const renewal = yield* daemon
-					.request("fleet.prepare", {
+				const renewal = yield* refusal(
+					daemon.request("fleet.prepare", {
 						cwd: ready.cwd,
 						preparation: ready.preparation,
 						prompt: ready.prompt,
 						workId: "one",
-					})
-					.pipe(Effect.result);
-				expect(renewal).toMatchObject({ _tag: "Failure", failure: { _tag: "Forbidden" } });
+					}),
+				);
+				expect(renewal).toMatch(/^forbidden: /u);
 			}
 			if (first === "reconciliation") {
 				yield* daemon.reconcile("one");

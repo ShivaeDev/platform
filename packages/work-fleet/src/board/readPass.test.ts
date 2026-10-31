@@ -104,7 +104,9 @@ boardReadStory.it(
 			Effect.gen(function* () {
 				const published = yield* decide("item.0", REVIEW);
 
-				expect(yield* decide("item.0", REVIEW)).toEqual(published);
+				const republished = yield* decide("item.0", REVIEW);
+
+				expect(republished).toEqual(published);
 				expect(yield* decisionState(published)).toBe("pending");
 			}),
 		);

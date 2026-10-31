@@ -1,4 +1,5 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
+import { SqlError } from "effect/sql/SqlError";
 import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { BoardAcknowledgementStale } from "#board/schema.ts";
 import { HostConfigRejected, HostFailure } from "#host/config.ts";
@@ -22,7 +23,7 @@ const phrases = [
 	on(HostFailure, ({ message }) => `host failure: ${message}`),
 	on(HostConfigRejected, ({ file, message }) => `config rejected in ${file}: ${message}`),
 	on(ReportFileFailure, ({ message }) => `report file failure: ${message}`),
-	on(SessionFailure, ({ message, reason }) => `session ${reason}: ${message}`),
+	on(SessionFailure, sessionWords),
 	on(
 		StorageConflict,
 		({ actualVersion, expectedVersion, workId }) => `storage conflict on ${workId}: expected ${expectedVersion}, found ${actualVersion}`,
@@ -30,6 +31,8 @@ const phrases = [
 	on(StorageCapacity, ({ kind, limit }) => `${kind} capacity of ${limit} is full`),
 	on(StorageQuota, ({ reason }) => `quota ${reason}`),
 	on(StorageAdmission, ({ message }) => `admission refused: ${message}`),
+	on(Schema.SchemaError, ({ message }) => `invalid stored data: ${message}`),
+	on(SqlError, ({ message }) => `database failure: ${message}`),
 ];
 
 export function described(error: unknown) {
@@ -42,9 +45,18 @@ export function described(error: unknown) {
 	return `unexpected failure: ${error instanceof Error ? error.message : String(error)}`;
 }
 
-export function refusal<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<string, never, R> {
+export function sessionWords({ capacity, code, message, reason, terminalReceipts }: SessionFailure) {
+	const receipts = terminalReceipts === undefined ? "" : `; terminal receipts ${terminalReceipts.map(({ turnId }) => turnId).join(", ")}`;
+	return `session ${reason}${code === undefined ? "" : ` (${code})`}${capacity === undefined ? "" : ` at ${capacity}`}: ${message}${receipts}`;
+}
+
+export function outcomeOf<A, E, R>(effect: Effect.Effect<A, E, R>, success: (value: A) => string): Effect.Effect<string, never, R> {
 	return effect.pipe(
-		Effect.as("accepted"),
+		Effect.map(success),
 		Effect.catch((error) => Effect.succeed(described(error))),
 	);
+}
+
+export function refusal<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<string, never, R> {
+	return outcomeOf(effect, () => "accepted");
 }

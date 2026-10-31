@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { engine } from "#test/engineStory.ts";
 import { noChangeReported } from "#test/engineTraits.ts";
+import { refusal } from "#test/refusal.ts";
 
 engine.it(
 	"current dependency revision requires fresh accepted completion while unrelated work dispatches",
@@ -15,14 +16,18 @@ engine.it(
 		approveWork("one", "board-one-changed");
 		yield* prepareWork("dependent");
 		yield* prepareWork("two");
-		expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
+		const dependentDispatchedOutcome = yield* refusal(fleet.dispatch("dependent"));
+		expect(dependentDispatchedOutcome).toMatch(/^forbidden: /u);
 		expect((yield* fleet.get("dependent")).value.blocker).toContain("board-one-changed");
-		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
+		const twoDispatched = yield* fleet.dispatch("two");
+		expect(twoDispatched.value.step).toBe("working");
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
+		const reconciled = yield* fleet.reconcile("one");
+		expect(reconciled.value.step).toBe("done");
+		const dependentDispatched = yield* fleet.dispatch("dependent");
+		expect(dependentDispatched.value.step).toBe("working");
 		expect((yield* fleet.get("dependent")).value.blocker).toBeUndefined();
 	},
 );

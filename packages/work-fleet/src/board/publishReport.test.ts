@@ -23,11 +23,12 @@ boardReadStory.it(
 			Effect.gen(function* () {
 				const published = yield* report(yield* read("item.0"), observation(FINDINGS));
 
-				expect(yield* read(published.itemId)).toMatchObject({
+				const readBack = yield* read(published.itemId);
+				expect({ context: readBack.context, revision: revisionOf(readBack.context), sourcePath: readBack.sourcePath }).toEqual({
 					context: expect.stringMatching(new RegExp(`${FINDINGS}$`, "u")),
+					revision: published.revision,
 					sourcePath: join(root, published.sourcePath),
 				});
-				expect(revisionOf((yield* read(published.itemId)).context)).toBe(published.revision);
 			}),
 		);
 	},

@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
 
@@ -42,8 +43,10 @@ host.it(
 		for (const workId of ["one", "two"]) {
 			expect((yield* daemon.appliedAnswer(workId)).step).toBe("released");
 		}
-		expect(yield* daemon.boardQuestions()).toEqual([]);
-		expect(yield* daemon.boardQuestions("orchestrator")).toEqual([]);
+		yield* outcomes([
+			["board questions", () => daemon.boardQuestions(), []],
+			["board questions orchestrator", () => daemon.boardQuestions("orchestrator"), []],
+		]);
 		expect(
 			daemon
 				.boardAcknowledgements()
