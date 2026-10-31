@@ -55,6 +55,7 @@ export function adminBackend() {
 							queue: "count-note-words-dlq",
 							sourceId: Option.some("original-job"),
 							sourceOutput: { _tag: "Error", message: "Original failed" },
+							sourceQueue: "count-note-words",
 						},
 					],
 					next: Option.none<string>(),

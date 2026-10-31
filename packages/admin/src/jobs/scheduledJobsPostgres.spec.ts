@@ -26,7 +26,7 @@ jobsStory.it(
 );
 
 jobsStory.it(
-	"the scheduled run's dead-letter copy waits unstarted in scheduled-dlq with a null payload, naming the run and its rejection",
+	"the scheduled run's dead-letter copy waits unstarted in scheduled-dlq with a null payload, naming scheduled as its source queue, the run and its rejection",
 	[admin, scheduledRunFails],
 	function* ({ deadLettered }) {
 		expect(yield* deadLettered("scheduled")).toEqual({
@@ -37,6 +37,7 @@ jobsStory.it(
 					queue: "scheduled-dlq",
 					source: "the scheduled run",
 					sourceOutput: "the worker rejected 0",
+					sourceQueue: "scheduled",
 					started: "not started",
 				},
 			],

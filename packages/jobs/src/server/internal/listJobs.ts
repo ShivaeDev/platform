@@ -50,7 +50,10 @@ export function failedJobsFor(client: PgBossClient, schema: string): PgBossServi
 }
 
 export function deadLetteredJobsFor(client: PgBossClient, schema: string): PgBossService["deadLetteredJobs"] {
-	return (queue, options) => listJobs(client, schema, "deadLetteredJobs", queue, options);
+	return (queue, options) =>
+		listJobs(client, schema, "deadLetteredJobs", queue, options).pipe(
+			Effect.map(({ jobs, next }) => ({ jobs: jobs.map((job) => ({ ...job, sourceQueue: queue.name })), next })),
+		);
 }
 
 const listJobs = Effect.fnUntraced(function* <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
@@ -59,7 +62,11 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 	listing: Listing,
 	queue: { readonly name: TName; readonly schema: TPayload },
 	options: JobPageOptions,
-): Effect.fn.Return<JobPage<DeadLetteredJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError | Schema.SchemaError, TPayload["DecodingServices"]> {
+): Effect.fn.Return<
+	JobPage<Omit<DeadLetteredJob<TPayload["Type"]>, "sourceQueue">>,
+	PgBossError | PgBossPayloadError | Schema.SchemaError,
+	TPayload["DecodingServices"]
+> {
 	const { cursor: after, limit } = yield* Schema.decodeUnknownEffect(PageOptions)(options);
 	const rows = yield* Effect.tryPromise({
 		catch: (error) => toPgBossError(listing, error, queue.name),

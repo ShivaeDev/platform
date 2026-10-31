@@ -33,6 +33,16 @@ export function installed(schema = "pgboss") {
 	);
 }
 
+export function installedByPgBoss(schema: string) {
+	return schemaKit.trait("database", `pg-boss installed ${schema} before Platform supplied dead-letter resolution`, (state) =>
+		Effect.acquireUseRelease(
+			Effect.sync(() => new PgBoss({ connectionString: Redacted.value(state.engine.url), schedule: false, schema, supervise: false })),
+			(client) => Effect.promise(() => client.start()),
+			(client) => Effect.promise(() => client.stop()),
+		),
+	);
+}
+
 export function brokenSchema(schema: string) {
 	return schemaKit.trait("database", `${schema} holds only a version table at version 44`, (state) => {
 		const sql = Context.get(state.services, SqlClient.SqlClient);

@@ -3,7 +3,7 @@ import type { ConstructorOptions, StopOptions } from "pg-boss";
 import type { PgBossClient, PgBossClientFactory } from "#client.ts";
 import { defaultClientFactory } from "#defaultClientFactory.ts";
 import { PgBossClientOptionsError, type PgBossError, toPgBossError } from "#error.ts";
-import { deferralStorePlan } from "#internal/deferralStorePlan.ts";
+import { jobStorePlans } from "#internal/jobStorePlans.ts";
 import { acquireCachedClient, releaseCachedClient } from "./clientCache.ts";
 import { observeClientErrors } from "./clientErrors.ts";
 
@@ -25,7 +25,9 @@ async function startClient(options: AcquireClientOptions, report: (error: Error)
 	try {
 		await client.start();
 		if (options.constructor.migrate !== false && client.getDb !== undefined) {
-			await client.getDb().executeSql(deferralStorePlan(options.constructor.schema ?? "pgboss"));
+			for (const plan of jobStorePlans(options.constructor.schema ?? "pgboss")) {
+				await client.getDb().executeSql(plan);
+			}
 		}
 		return client;
 	} catch (error) {
