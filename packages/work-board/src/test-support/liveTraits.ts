@@ -64,7 +64,7 @@ export const watcherCanFail = boardStory.trait("project", "the project's file wa
 		...fs,
 		watch: (path, options) =>
 			Stream.suspend(() => {
-				if (options?.recursive) {
+				if (watcher.broken || options?.recursive) {
 					watcher.attempts.push(performance.now());
 					watcher.restarts.bump();
 				}

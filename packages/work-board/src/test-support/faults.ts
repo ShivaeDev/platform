@@ -19,7 +19,7 @@ export function faultyWatch(): FaultyWatch {
 		...fs,
 		watch: (path, options) =>
 			Stream.suspend(() => {
-				if (options?.recursive) {
+				if (broken || options?.recursive) {
 					attempts.push(performance.now());
 				}
 				if (broken) {
