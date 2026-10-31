@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { screenAct } from "./screenAct.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 const SCREEN_LIMIT_MS = 10_000;
@@ -9,7 +10,7 @@ const UNREACHABLE = "Can't reach the Board server";
 
 // A live session keeps its update stream open and retries while the Board server is down, so its screen never settles; these verbs settle on what the reader sees instead.
 export function untilScreen(tell: (line: string) => void, shown: () => boolean) {
-	return screenDriver({ act: (action) => act(action), pending: () => !shown(), root: () => document.body, tell }).settle({
+	return screenDriver({ act: screenAct, pending: () => !shown(), root: () => document.body, tell }).settle({
 		timeoutMs: SCREEN_LIMIT_MS,
 	});
 }

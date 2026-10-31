@@ -4,6 +4,7 @@ import { vi } from "vitest";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { laterReads } from "./laterReads.ts";
 import { pendingSignal } from "./pendingSignal.ts";
+import { screenAct } from "./screenAct.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenPendingWork } from "./screenSettle.ts";
 
@@ -115,7 +116,7 @@ export const readingSettles = Effect.fn("ReadingSettle.readingSettles")(function
 	function pending() {
 		return (!laterReadWaits(engine) && screen()) || !routeRendered(engine) || framesPending(engine);
 	}
-	yield* screenDriver({ act: (action) => act(action), pending: pendingSignal(engine, pending), root: () => document.body, tell }).settle({
+	yield* screenDriver({ act: screenAct, pending: pendingSignal(engine, pending), root: () => document.body, tell }).settle({
 		timeoutMs: SETTLE_LIMIT_MS,
 	});
 });
@@ -126,7 +127,7 @@ export const framesSettle = Effect.fn("ReadingSettle.framesSettle")(function* (
 ) {
 	const screen = yield* screenPendingWork(engine);
 	yield* screenDriver({
-		act: (action) => act(action),
+		act: screenAct,
 		pending: pendingSignal(engine, () => screen() || framesPending(engine)),
 		root: () => document.body,
 		tell,

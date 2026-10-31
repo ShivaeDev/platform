@@ -3,6 +3,7 @@ import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { diagramPalette } from "./diagramPalette.ts";
 import { readingSettles } from "./readingSettle.ts";
+import { screenAct } from "./screenAct.ts";
 import type { DiagramDrawing } from "./screenDiagrams.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
@@ -77,7 +78,7 @@ export function diagramDrawingVerbs(engine: ScreenEngine, tell: (line: string) =
 			Effect.sync(() => tell(`wait until Mermaid is asked to draw ${diagram} in ${theme}`)).pipe(
 				Effect.andThen(
 					screenDriver({
-						act: (action) => act(action),
+						act: screenAct,
 						pending: () => waiting(diagram, theme) === undefined,
 						root: () => document.body,
 						tell: () => undefined,

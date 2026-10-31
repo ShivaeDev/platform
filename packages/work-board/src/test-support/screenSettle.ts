@@ -1,11 +1,11 @@
 import { Deferred, Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { act } from "react";
 import { screenPending } from "@shivaedev/react/client/screenPending.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { session } from "#client/session.ts";
 import { laterReads } from "./laterReads.ts";
 import { pendingSignal, registryOf } from "./pendingSignal.ts";
+import { screenAct } from "./screenAct.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 const SETTLE_LIMIT_MS = 10_000;
@@ -62,7 +62,7 @@ export const screenSettles = Effect.fn("ScreenSettle.screenSettles")(function* (
 	tell: (line: string) => void = (line) => engine.tell?.(line),
 ) {
 	const pending = yield* screenPendingWork(engine);
-	yield* screenDriver({ act: (action) => act(action), pending: pendingSignal(engine, pending), root: () => document.body, tell }).settle({
+	yield* screenDriver({ act: screenAct, pending: pendingSignal(engine, pending), root: () => document.body, tell }).settle({
 		timeoutMs: SETTLE_LIMIT_MS,
 	});
 });

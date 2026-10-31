@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { screenAct } from "./screenAct.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
 import { semanticElement } from "./semanticElement.ts";
@@ -63,7 +64,7 @@ export function workspaceScreenVerbs(engine: ScreenEngine, tell: (line: string) 
 						? root().querySelector(selector) === null
 						: articles.some((article) => article.querySelector(selector) === null);
 				}
-				yield* screenDriver({ act: (action) => act(action), pending, root: () => document.body, tell }).settle({ timeoutMs: RENDER_LIMIT_MS });
+				yield* screenDriver({ act: screenAct, pending, root: () => document.body, tell }).settle({ timeoutMs: RENDER_LIMIT_MS });
 			}),
 		footnotes: () =>
 			settled("the reader follows each footnote reference to its note", () =>
