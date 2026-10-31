@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import { SHADCN_FILE_GLOB } from "#inventory/shadcnFiles.ts";
 import type { RuleInputs } from "#rule.ts";
 import { KNIP_ISSUES } from "./findings.ts";
 
@@ -44,7 +45,7 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 		const migrations = sources.filter((path) => /(?:^|\/)server\/migrations\//u.test(path));
 		const ui = toolOwned
 			.filter((folder) => (packageOf(packages, `${folder}/component.ts`)?.directory ?? ".") === directory)
-			.map((folder) => `${posix.relative(directory, folder)}/**/*.{ts,tsx,js,jsx}`);
+			.map((folder) => `${posix.relative(directory, folder)}/**/${SHADCN_FILE_GLOB}`);
 		const styles = inputs.files
 			.filter((path) => path.endsWith(".css") && (packageOf(packages, path)?.directory ?? ".") === directory)
 			.map((path) => posix.relative(directory, path));
