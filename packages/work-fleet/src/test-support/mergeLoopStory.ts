@@ -8,6 +8,7 @@ import { type EngineStory, newEngineState } from "#test/engineState.ts";
 import { engineDefinition } from "#test/engineStory.ts";
 import { engineVerbs } from "#test/engineVerbs.ts";
 import { mergeQueueApi } from "#test/mergeQueueApi.ts";
+import { releaseWindowVerbs } from "#test/releaseWindowVerbs.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 export const mergeLoop = storyKit({
@@ -29,6 +30,7 @@ export const mergeLoop = storyKit({
 	},
 	verbs: (state, story) => ({
 		...engineVerbs(state, story),
+		...releaseWindowVerbs(state, story.tell),
 		dequeue: (number: string, reason: string, commit?: string, at = state.now) => {
 			state.queueApi?.dequeue(number, reason, commit, at);
 			story.tell(`GitHub removes PR ${number} from its queue: ${reason}`);

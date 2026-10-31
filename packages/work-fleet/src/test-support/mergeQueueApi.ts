@@ -2,9 +2,11 @@ import { Effect } from "effect";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
 import { httpGithubApi } from "#test/githubApi.ts";
+import { releaseWindowApi } from "#test/releaseWindowApi.ts";
 
 export const mergeQueueApi = Effect.gen(function* () {
 	const pulls = new Map<string, { result: typeof ChangeResult.Type; branch: string }>();
+	const release = releaseWindowApi((number) => pulls.get(number)?.result);
 	const queued = new Map<string, string>();
 	const removals = new Map<string, { reason: string; commit: string | undefined; createdAt: string }>();
 	const checks = new Map<string, { name: string; conclusion: string | null; url: string }>();
@@ -48,6 +50,7 @@ export const mergeQueueApi = Effect.gen(function* () {
 	}
 	const server = yield* fakeHttpService({
 		routes: {
+			...release.routes,
 			branch: {
 				path: "/repos/example/project/branches/main",
 				reply: () => ({ body: { protected: true, protection: { "required_status_checks": { contexts: ["verify"] } } } }),
@@ -101,6 +104,7 @@ export const mergeQueueApi = Effect.gen(function* () {
 		},
 	});
 	return {
+		...release,
 		client: yield* httpGithubApi(server.url),
 		dequeue: (number: string, reason: string, commit: string | undefined, at: number) => {
 			queued.delete(number);

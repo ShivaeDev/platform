@@ -5,6 +5,7 @@ import type { FleetHost } from "#host/config.ts";
 import { githubJson } from "#host/github.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { githubQueueStatus } from "#host/githubQueueStatus.ts";
+import { githubReleaseWindow } from "#host/githubReleaseWindow.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
 
 const PullRequest = Schema.Struct({
@@ -53,13 +54,21 @@ export function githubMergeQueue(host: FleetHost) {
 		if (pr.mergeable === null) {
 			return "pending" as const;
 		}
-		yield* github.write({ query: mutation, variables: { head: result.head, pr: pr.nodeId } }).pipe(
-			Effect.flatMap(Schema.decodeUnknownEffect(Response)),
-			Effect.mapError(() => new ServiceUnavailable({ message: "GitHub could not enable auto-merge for the reviewed head" })),
+		return (
+			(yield* githubReleaseWindow(pr.head.repo.fullName, host.repository.branch, `repos/${target.repository}/pulls/${target.number}`, result))
+			?? (yield* enableAutoMerge(pr.nodeId, result.head))
 		);
-		return "queued" as const;
 	});
 }
+
+const enableAutoMerge = Effect.fn("FleetHost.enableAutoMerge")(function* (pr: string, head: string) {
+	const github = yield* GithubApi;
+	yield* github.write({ query: mutation, variables: { head, pr } }).pipe(
+		Effect.flatMap(Schema.decodeUnknownEffect(Response)),
+		Effect.mapError(() => new ServiceUnavailable({ message: "GitHub could not enable auto-merge for the reviewed head" })),
+	);
+	return "queued" as const;
+});
 
 function humanMerge(pr: typeof PullRequest.Type, host: FleetHost, workId: string, repository: string) {
 	return (
