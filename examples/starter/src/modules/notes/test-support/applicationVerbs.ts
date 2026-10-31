@@ -1,5 +1,7 @@
-import { ConfigProvider, Effect, Exit, Layer, Predicate, Scope } from "effect";
+import { ConfigProvider, type Duration, Effect, Exit, Layer, Predicate, Scope } from "effect";
 import { SqlClient } from "effect/sql";
+import * as TestClock from "effect/testing/TestClock";
+import { signInAgain } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makeAuth } from "#client/auth.ts";
 import { CountWords } from "#modules/notes/server/jobs.ts";
@@ -80,8 +82,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 				return yield* Effect.die(`No account ${name}`);
 			}
 			const auth = yield* sessionPrecondition(host());
-			const { test } = yield* Effect.promise(() => auth.$context);
-			const { headers } = yield* Effect.promise(() => test.login({ userId: actor.userId }));
+			const { headers } = yield* signInAgain(auth, actor.userId);
 			return headers.get("cookie") ?? "";
 		}),
 		notes: (cookie: string) => http().notes(cookie),
@@ -96,8 +97,23 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		},
 		runningHost: host,
 		signOut: (cookie: string) => http().signOut(cookie),
+		signsInAgain: Effect.fn("AppStory.signsInAgain")(function* (name = "alice") {
+			story.tell(`${name} signs in again`);
+			const actor = engine.actors.get(name);
+			if (actor === undefined) {
+				return yield* Effect.die(`No account ${name}`);
+			}
+			const auth = yield* sessionPrecondition(host());
+			const { headers } = yield* signInAgain(auth, actor.userId);
+			const cookie = headers.get("cookie") ?? "";
+			engine.actors.set(name, { ...actor, cookie, notes: yield* http().notes(cookie) });
+		}),
 		sourceRequests: () => engine.sourceApi.requests.map(({ method, path, status }) => ({ method, path, status })),
 		startWorker,
+		timePasses: (duration: Duration.Input) => {
+			story.tell(`${duration} pass`);
+			return TestClock.adjust(duration);
+		},
 		wordCountCompletions: engine.workerQueue.completions,
 	};
 }

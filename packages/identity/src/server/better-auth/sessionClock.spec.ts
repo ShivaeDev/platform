@@ -90,3 +90,31 @@ sessionClock.it(
 		);
 	},
 );
+
+sessionClock.it(
+	"alice signs in again after 30 days on the same account for another configured hour",
+	[],
+	function* ({ request, requestUserId, timePasses, signsInAgain, mintedSession }) {
+		const original = yield* mintedSession("alice");
+		const userId = yield* requestUserId("alice");
+		expect(yield* request("alice")).toBe("alice");
+
+		yield* timePasses("30 days");
+
+		expect(yield* request("alice")).toBe("failed with unauthorized");
+
+		yield* signsInAgain("alice");
+
+		expect(yield* request("alice")).toBe("alice");
+		expect((yield* mintedSession("alice")).id).not.toBe(original.id);
+		expect(yield* requestUserId("alice")).toBe(userId);
+
+		yield* timePasses("1 hour");
+
+		expect(yield* request("alice")).toBe("failed with unauthorized");
+	},
+);
+
+sessionClock.it("Better Auth accepts alice's minted session with the default clock", [], function* ({ providerSession }) {
+	expect(yield* providerSession("alice")).toMatchObject({ user: { email: "alice@clock.test", name: "alice" } });
+});

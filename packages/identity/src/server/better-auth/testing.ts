@@ -14,13 +14,21 @@ export const signedInUser = Effect.fnUntraced(function* (
 		readonly providerAccounts?: readonly { readonly providerId: string; readonly accountId: string }[];
 	},
 ) {
-	const { test, internalAdapter, sessionConfig } = yield* Effect.promise(() => auth.$context);
+	const { test, internalAdapter } = yield* Effect.promise(() => auth.$context);
 	const user = yield* Effect.promise(() => test.saveUser(test.createUser(fields)));
 	for (const { providerId, accountId } of providerAccounts) {
 		yield* Effect.promise(() => internalAdapter.createAccount({ accountId, providerId, userId: user.id }));
 	}
+	return yield* signInAgain(auth, user.id);
+});
+
+export const signInAgain = Effect.fnUntraced(function* (
+	auth: { readonly $context: Promise<TestContext & AccountContext & Pick<AuthContext, "sessionConfig">> },
+	userId: string,
+) {
+	const { test, internalAdapter, sessionConfig } = yield* Effect.promise(() => auth.$context);
 	const now = yield* Clock.currentTimeMillis;
-	const login = yield* Effect.promise(() => test.login({ userId: user.id }));
+	const login = yield* Effect.promise(() => test.login({ userId }));
 	const expiresAt = new Date(now + sessionConfig.expiresIn * 1000);
 	yield* Effect.promise(() => internalAdapter.updateSession(login.token, { expiresAt }));
 	return { ...login, session: { ...login.session, expiresAt } };
