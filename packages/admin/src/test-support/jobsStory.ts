@@ -4,7 +4,9 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Access } from "./Access.ts";
 import { jobsEngine, postgresConfigured, postgresLayer } from "./jobsEngine.ts";
 import { describeCopy, describeJob, firstPage, idOf, nameCopies, named, nameOf, nextPage, type Page, refused, sourceOf, views } from "./jobsNames.ts";
-import { Mail, Scheduled, Sync } from "./jobsPages.ts";
+import { Mail, Sync } from "./jobsPages.ts";
+import { Scheduled } from "./Scheduled.ts";
+import { ScheduledWorker } from "./ScheduledWorker.ts";
 
 export type JobsView = keyof ReturnType<typeof views>;
 
@@ -186,7 +188,7 @@ export const invalidMailFails = jobsStory.trait(
 );
 
 export const scheduledRunFails = jobsStory.trait("jobs", "the scheduled run was triggered, failed and moved to scheduled-dlq", function* (engine) {
-	yield* engine.testing.trigger(Scheduled);
+	yield* engine.testing.trigger(ScheduledWorker);
 	yield* engine.testing.waitForIdle;
 	const { jobs } = yield* engine.jobs.failedJobs({ name: Scheduled.name, schema: Schema.Null }, { limit: 10 });
 	for (const run of jobs) {

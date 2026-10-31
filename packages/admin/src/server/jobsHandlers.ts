@@ -53,16 +53,7 @@ export function jobsReadHandlers<const TQueues extends readonly JobsEntry[], TSe
 		"admin.jobs.health": () =>
 			Effect.gen(function* () {
 				const jobs = yield* service;
-				const health = yield* jobsFailures(jobs.health());
-				const visible = health.jobs.filter((queue) => page.queues.some((candidate) => candidate.name === queue.name));
-				return {
-					activeTotal: visible.reduce((sum, queue) => sum + queue.activeCount, 0),
-					deadLetteredTotal: visible.reduce((sum, queue) => sum + queue.deadLetteredCount, 0),
-					failedTotal: visible.reduce((sum, queue) => sum + queue.failedCount, 0),
-					jobs: visible,
-					queuedTotal: visible.reduce((sum, queue) => sum + queue.queuedCount, 0),
-					readyTotal: visible.reduce((sum, queue) => sum + queue.readyCount, 0),
-				};
+				return yield* jobsFailures(jobs.health(page.queues));
 			}),
 		"admin.jobs.job": ({ id, queue }: { readonly id: string; readonly queue: string }) =>
 			Effect.gen(function* () {

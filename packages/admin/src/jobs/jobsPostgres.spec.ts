@@ -18,8 +18,8 @@ jobsStory.it(
 			failedTotal: 1,
 			jobs: [
 				{ activeCount: 0, deadLetteredCount: 1, failedCount: 1, name: "mail", queuedCount: 0, readyCount: 0 },
-				{ activeCount: 0, deadLetteredCount: 0, failedCount: 0, name: "scheduled", queuedCount: 0, readyCount: 0 },
 				{ activeCount: 0, deadLetteredCount: 0, failedCount: 0, name: "sync", queuedCount: 1, readyCount: 1 },
+				{ activeCount: 0, deadLetteredCount: 0, failedCount: 0, name: "scheduled", queuedCount: 0, readyCount: 0 },
 			],
 			queuedTotal: 1,
 			readyTotal: 1,

@@ -1,5 +1,6 @@
 import { type Context, Effect, Option, Scope } from "effect";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
+import { retireJobs } from "#adapters/retireJobs.ts";
 import type { PgBossClient } from "#client.ts";
 import type { JobRegistration } from "#definition.ts";
 import { toPgBossError } from "#error.ts";
@@ -12,12 +13,16 @@ export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 	replaceWorkers: boolean,
 	schema: string | undefined,
 	graceful: boolean,
+	retired: readonly string[] = [],
 ) {
 	const signal = yield* Effect.serviceOption(WorkerRelease);
 	const workers = jobs.filter((job) => job._tag !== "QueueDefinition");
 	const scope = yield* Effect.scope;
-	const register = registerJobs(client, jobs, context, replaceWorkers, schema, true, graceful).pipe(Effect.provideService(Scope.Scope, scope));
-	if (Option.isNone(signal) || workers.length === 0) {
+	const register = retireJobs(client, jobs, retired).pipe(
+		Effect.andThen(registerJobs(client, jobs, context, replaceWorkers, schema, true, graceful)),
+		Effect.provideService(Scope.Scope, scope),
+	);
+	if (Option.isNone(signal) || (workers.length === 0 && retired.length === 0)) {
 		return yield* register;
 	}
 	yield* registerJobs(client, jobs, context, replaceWorkers, schema, false, graceful);
