@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
 import { databasesPrepared, fullAppToCompare, generatedWithOwnDatabases, realSetup } from "#test/traits.ts";
 
-const REGISTRATIONS = ["src/modules.ts", "src/server/modules.ts", "src/server/workerModules.ts", "src/client/modules.ts"];
+const REGISTRATIONS = ["src/admin/modules.ts", "src/server/modules.ts", "src/server/workerModules.ts", "src/client/modules.ts"];
 const NOTES_REFERENCE = /notes(?:Registration|Worker|Migrations)|notesModule|noteQueue|#modules\/notes/u;
 
 application.it(
@@ -29,8 +29,8 @@ application.it(
 			".create-app.json",
 			".env.local",
 			"package.json",
+			"src/admin/modules.ts",
 			"src/client/modules.ts",
-			"src/modules.ts",
 			"src/server/modules.ts",
 			"src/server/workerModules.ts",
 		]);

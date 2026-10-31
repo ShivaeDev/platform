@@ -6,7 +6,7 @@ import { sessionsHandlers } from "@shivaedev/identity/server/better-auth/session
 import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { AppAccess } from "#AppAccess.ts";
-import { foundation } from "#modules.ts";
+import { foundation } from "#admin/modules.ts";
 
 const AdminJobs = makePgBoss(
 	"app/AdminJobs",
@@ -20,7 +20,7 @@ export function foundationRegistration(queues: readonly QueueDefinition[]) {
 			sessions: sessionsHandlers,
 			users: usersHandlers(foundation.UsersPage, AppAccess),
 		}),
-		migrations: resolve(import.meta.dirname, "migrations"),
+		migrations: resolve(import.meta.dirname, "../migrations"),
 		services: AdminJobs.layer({ jobs: queues }),
 	};
 }

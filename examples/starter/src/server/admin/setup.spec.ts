@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { adminSetup } from "#test-support/adminSetup.ts";
+import { adminSetup } from "#test-support/admin/setup.ts";
 
 adminSetup.it(
 	"a configured GitHub account receives owner permissions when the app boots",

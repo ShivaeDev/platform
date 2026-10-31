@@ -1,6 +1,6 @@
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
-import { StatisticsPage } from "#modules/notes/admin.ts";
+import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 
 export function makeAdminClient(url: string, options: Omit<ClientOptions, "url"> = {}) {
 	const { api: statistics } = makeClient(StatisticsPage.contract, { url, ...options });

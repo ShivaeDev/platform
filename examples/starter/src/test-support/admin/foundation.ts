@@ -3,10 +3,10 @@ import { Effect } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Admin, foundation } from "#modules.ts";
-import { startHost } from "./host.ts";
-import { postgres } from "./postgres.ts";
-import { mintUser } from "./sessionPrecondition.ts";
+import { Admin, foundation } from "#admin/modules.ts";
+import { startHost } from "#test-support/host.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 export const foundationAdmin = storyKit({
 	around: withIsolatedDatabase,

@@ -28,6 +28,8 @@ An admin page is a native `@shivaedev/contract` contract plus a stable id, route
 
 Declare each page's queries, commands and streams with `@shivaedev/contract`, then pass its native contract to `adminPage`. The stable id identifies the page at server registration; route metadata belongs to the application's view. Author RPC namespaces in the contract name, such as `admin.jobs`.
 
+For a wholly admin-only jobs feature, put this browser-safe declaration in `src/modules/admin/jobs/pages.ts`:
+
 ```ts
 import { Schema } from "effect";
 import { JobsPermission } from "@shivaedev/admin/permissions.ts";
@@ -40,18 +42,18 @@ const Failed = query("failed", {
 	reads: () => [],
 	success: Schema.Array(Schema.String),
 });
-const Jobs = adminPage({
+export const Jobs = adminPage({
 	id: "jobs",
 	permission: JobsPermission,
 	route: { path: "/admin/jobs", title: "Jobs" },
 	contract: contract("admin.jobs", { queries: [Failed] }),
 });
-const Admin = adminRegistry(Jobs);
+export const Admin = adminRegistry(Jobs);
 ```
 
 `Jobs.contract` keeps the native `.declaration` and `.application.toLayer` APIs. `adminRegistry(...pages)` returns `pages` and a native `group`. Duplicate page ids, route paths and RPC tags, including generated subscriptions, fail when the registry is created.
 
-Register server handler Layers by page id:
+Register server handler Layers by page id in `src/modules/admin/jobs/server/registration.ts`, importing `Admin` and `Jobs` from that module's `pages.ts`:
 
 ```ts
 import { Effect, Layer } from "effect";
@@ -91,6 +93,53 @@ const admin = mergeAdminRegistrations(foundation.admin, catalog.admin);
 Provide `AdminSessions` once to `admin.handlers` and pass it with `admin.group` to the application's RPC host. The combined registration exposes `pages` for navigation and preserves the handler Layers' errors and service requirements. Duplicate page ids across modules fail at the type level; duplicate paths and RPC tags fail at composition. A module cannot register a page without its handlers.
 
 Browser composition uses `mergeAdminRegistries` from `@shivaedev/admin/registry.ts` with the modules' browser-safe registries. A client module can also contribute its registry's `pages` directly to the application's navigation. A feature module adds pages to its own registry and handlers to its own registration; the foundation does not import feature pages.
+
+### Keep admin code in admin paths
+
+An `admin/` path segment means admin-only code. A wholly admin-only feature lives under `src/modules/admin/<name>`, with its shared declarations, `server/` and `client/` there. Admin tools for a member feature stay inside that feature: `admin/` for browser-safe page declarations, `server/admin/` for reads and handlers, and `client/admin/` for bindings and views. Each module reads only its own tables; compose another module's exposed operations for data it owns. Permissions enforce access regardless of the path.
+
+The starter declares `StatisticsPage` with `adminPage` in [`src/modules/notes/admin/pages.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/admin/pages.ts). Its all-user read lives in [`src/modules/notes/server/admin/readStatistics.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/server/admin/readStatistics.ts):
+
+```ts
+import { Effect, Schema } from "effect";
+import { SqlClient, SqlSchema } from "effect/sql";
+import { NoteStatistics } from "#modules/notes/admin/pages.ts";
+import { notesSqlFailure } from "#modules/notes/server/sqlFailure.ts";
+
+export const readStatistics = Effect.fn("Notes.readStatistics")(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const read = SqlSchema.findOne({
+		execute: () => sql`select count(*)::int as notes, count(*) filter (where word_count is null)::int as pending,
+			coalesce(sum(word_count), 0)::int as words from notes`,
+		Request: Schema.Void,
+		Result: NoteStatistics,
+	});
+	return yield* read(undefined).pipe(Effect.catchTag("SqlError", (cause) => Effect.fail(notesSqlFailure(cause))));
+});
+```
+
+[`src/modules/notes/server/admin/registration.ts`](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/server/admin/registration.ts) pairs that read with the page:
+
+```ts
+import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
+import { Admin, StatisticsPage } from "#modules/notes/admin/pages.ts";
+import { readStatistics } from "./readStatistics.ts";
+
+const statistics = StatisticsPage.contract.application.toLayer({
+	"admin.notes.statistics": () =>
+		readStatistics().pipe(
+			rpcBoundary(StatisticsPage.contract.declaration.queries[0].error, { unexpected: (message) => new InternalServerError({ message }) }),
+		),
+});
+
+export const adminRegistration = registerAdmin(Admin, {
+	"note-statistics": statistics,
+});
+```
+
+The read stays in notes because notes owns the table. The [client registration](https://github.com/ShivaeDev/platform/blob/main/examples/starter/src/modules/notes/client/admin/registration.tsx) and view stay in `src/modules/notes/client/admin/`. Application composition may import these registrations from its member and admin module lists without moving their implementation out of the owning module.
 
 ### Built-in Jobs page
 

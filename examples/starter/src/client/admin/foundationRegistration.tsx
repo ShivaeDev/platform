@@ -3,11 +3,11 @@ import type { ReactElement } from "react";
 import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
 import { AppAccess } from "#AppAccess.ts";
-import { type FoundationClient, makeFoundationClient } from "#client/admin/foundation.ts";
-import { AdminSessions } from "#client/admin/Sessions.tsx";
-import { AdminShell } from "#client/admin/Shell.tsx";
-import { foundation } from "#modules.ts";
-import type { RouteContext } from "./Module.ts";
+import { foundation } from "#admin/modules.ts";
+import type { RouteContext } from "#client/Module.ts";
+import { type FoundationClient, makeFoundationClient } from "./foundation.ts";
+import { AdminSessions } from "./Sessions.tsx";
+import { AdminShell } from "./Shell.tsx";
 
 export function foundationRegistration(client: FoundationClient = makeFoundationClient(new URL("/rpc", window.location.href).href)) {
 	return {

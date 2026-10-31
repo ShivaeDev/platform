@@ -19,7 +19,7 @@ export function appTemplate(template: Template, minimal = false): Template {
 			if (entry.path === "package.json" && minimalManifest !== undefined) {
 				return { ...entry, content: minimalManifest.content };
 			}
-			if (!["src/modules.ts", "src/server/modules.ts", "src/server/workerModules.ts", "src/client/modules.ts"].includes(entry.path)) {
+			if (!["src/admin/modules.ts", "src/server/modules.ts", "src/server/workerModules.ts", "src/client/modules.ts"].includes(entry.path)) {
 				return entry;
 			}
 			const source = Buffer.from(entry.content, "base64")
@@ -92,7 +92,7 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 }
 
 export function prepareFile(path: string, content: Buffer, versions: Readonly<Record<string, string>>) {
-	if (["src/test-support/adminCommand.ts", "src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"].includes(path)) {
+	if (["src/test-support/admin/command.ts", "src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"].includes(path)) {
 		return Buffer.from(content.toString().replaceAll('"--conditions=source", ', ""));
 	}
 	if (path === "package.json") {
