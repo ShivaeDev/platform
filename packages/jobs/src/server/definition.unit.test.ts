@@ -5,9 +5,8 @@ import { it } from "@shivaedev/test/it.ts";
 import { jobContext } from "#definition.ts";
 import { job } from "#test/fakeClient.ts";
 
-it.effect("recomputes a typed remaining budget from pg-boss start and expiry, clamped to zero", function* () {
-	const fetched = { ...job("budget", {}), expireInSeconds: 1, startedOn: new Date(1000) };
-	const context = jobContext(fetched);
+it.effect("recomputes a typed remaining budget from the runtime deadline, clamped to zero", function* () {
+	const context = jobContext(job("budget", {}), 2000);
 	yield* TestClock.adjust(1200);
 	expect(Duration.toMillis(yield* context.remainingBudget)).toBe(800);
 	yield* TestClock.adjust(400);
