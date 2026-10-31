@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.30.0 - 2026-10-31
+
+### Added
+
+- `test-story` exports `lessThan`, `atMost`, `greaterThan` and `atLeast` from `server/adapters/outcomeMatchers.ts` for numeric bounds, including in nested expected values. Failure diffs show the bound and received value.
+- Supply a native `Stream<boolean>` as the screen driver's `pending` signal to wake settlement and target searches when application work changes without a DOM mutation.
+- Wait for visible text with `findText`, removal or hiding with `gone`, and a destination URL prefix with `navigatedAway`. Wait failures name their targets in the story report.
+- Change native select controls with `select(target, value)` inside the renderer's `act` adapter.
+
+### Changed
+
+- The shared story-testing skill teaches ordered lazy outcomes, nested partial expectations and numeric bounds. Quality’s grouped-outcomes diagnostic recommends the ordered callback form.
+
+### Fixed
+
+- Reach portalled dialogs from the screen driver while keeping `within` scopes local, and find unnamed alerts by their visible text.
+- Avoid holding `act` open between DOM mutations when no pending signal is supplied.
+
+### Breaking
+
+- `test-story` outcomes now takes an ordered list of `[label, () => readout(), expected]` rows. Migrate each `label: [readout(), expected]` object entry to a tuple and wrap its readout in a callback. Keep labels natural and put rows in their intended run order. Readouts are built only when their row starts. Expected objects match partially at every depth with native `toMatchObject` semantics; arrays retain length and order. Use a plain `expect(...).toEqual(...)` when exact object equality is required.
+- Screen settlement and target searches react to DOM mutations instead of polling. Boolean pending samplers run on the initial check and mutations. Migrate samplers that complete work without a mutation to a pending stream. Target searches now wait for pending work to finish and for the target to render, with the existing timeout diagnostics.
+
 ## 0.29.0 - 2026-10-31
 
 ### Added

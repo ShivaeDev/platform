@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-10-31
+
+### Added
+
+- Configure `requiredMessages` per string field to replace the generic required message without rebuilding the schema. Field feedback, path feedback and invalid submission messages use the same wording; explicit schema messages keep precedence.
+
 ## 0.9.0 - 2026-10-30
 
 ### Added
