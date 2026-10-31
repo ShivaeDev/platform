@@ -873,15 +873,14 @@ pnpm add -D @shivaedev/test-story @effect/platform-node @effect/vitest vitest ha
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
 
 ```tsx
-import { Effect, Option, Ref, Schema } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
+import { Effect, Layer, Option, Ref, Schema, Stream } from "effect";
 import { act, createElement } from "react";
 import { expect } from "vitest";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { it } from "@shivaedev/test/it.ts";
@@ -890,7 +889,7 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 const notes = collection("notes", Schema.Number);
-const List = query("list", { reads: () => [notes.list], success: Schema.Array(Schema.String) });
+const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
 const Add = command("add", { invalidates: () => [notes.list], payload: { title: Schema.String } });
 const Notes = contract("notes", { commands: [Add], queries: [List] });
 
@@ -898,17 +897,17 @@ const handlers = Notes.toLayer(
 	Effect.gen(function* () {
 		const stored = yield* Ref.make<readonly string[]>([]);
 		return Notes.of({
+			"notes.$changes": () => Stream.never,
 			"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
 			"notes.list": () => Ref.get(stored).pipe(Effect.delay("20 millis")),
 		});
 	}),
 );
-class Client extends AtomRpc.Service<Client>()("test/Notes", {
-	group: Notes,
-	makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-	protocol: handlers,
-}) {}
-const api = bind(Notes, Client);
+const { api, Client } = makeClient(Notes, {
+	live: false,
+	protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+	url: "memory://notes",
+});
 const add = Client.runtime.fn(api.add.run);
 function NotesView() {
 	const list = useQuery(api.list.query());
