@@ -1,7 +1,9 @@
+import { themeStorage } from "#client/adapters/themeStorage.ts";
+
 export type Theme = "system" | "light" | "dark";
 
 export function savedTheme(): Theme {
-	const saved = localStorage.getItem("theme");
+	const saved = themeStorage.read();
 	return saved === "light" || saved === "dark" ? saved : "system";
 }
 
