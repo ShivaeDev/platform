@@ -1,12 +1,13 @@
 import { Schema } from "effect";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
+import { LastRoleAssigner } from "@shivaedev/access/roles.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable, Forbidden, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { adminPage } from "#page.ts";
 import { UsersPermission } from "#permissions.ts";
-import { LastRoleAssigner, UserList, UserListInput } from "#users/roles.ts";
+import { UserList, UserListInput } from "#users/roles.ts";
 
 const users = collection("admin.users", Schema.String);
 

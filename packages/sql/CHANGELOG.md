@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.27.0 - 2026-10-30
+
+### Added
+
+- `changes/keys.ts` exports `recordKey` for raw record dependencies and `compositeId` for composite identities, including bigint components encoded as decimal strings.
+
+### Changed
+
+- SQL repository writes and manual invalidations build record keys through `changes/keys.ts`, sharing the format used by subscriptions. Existing key strings remain unchanged.
+
 ## 0.26.1 - 2026-10-30
 
 ### Fixed

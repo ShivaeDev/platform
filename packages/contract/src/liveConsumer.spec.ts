@@ -52,18 +52,19 @@ liveNotesStory.it(
 
 		yield* streamDropsWhileRefused();
 
-		expect(yield* status()).toEqual({ connection: "reconnecting", failure: "failed with unavailable", needsResync: true, pending: 0 });
+		expect(yield* status()).toEqual({ connection: "failed", failure: "failed with unavailable", needsResync: true, pending: 0 });
 	},
 );
 
 liveNotesStory.it(
-	"when the server accepts streams again, the client re-reads note 1's change missed while refused, clears the failure and holds one server stream",
+	"a change hint reopens a refused stream once the server accepts it, re-reads missed changes and clears its failure",
 	[watching("note 1"), connected(), streamDroppedAndRefused()],
-	function* ({ changeUnannounced, openServerStreams, serverAcceptsStreamsAgain, shown, status }) {
+	function* ({ changeHintArrives, changeUnannounced, openServerStreams, serverAcceptsStreamsAgain, shown, status }) {
 		yield* changeUnannounced(1, "Missed while refused");
 		expect(yield* shown("note 1")).toBe("First");
 
 		yield* serverAcceptsStreamsAgain();
+		yield* changeHintArrives(1);
 
 		yield* outcomes([
 			["note 1", () => shown("note 1"), "Missed while refused"],

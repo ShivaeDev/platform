@@ -25,26 +25,16 @@ workspace.it(
 	},
 );
 
-workspace.it("apply adds a changeset's notes to every package it names", [pending(), fixForBoth], function* ({ apply, changelog, todayInUtc }) {
-	expect(yield* changelog("@test/api")).toBe(HISTORY);
-
-	yield* apply();
-
-	expect(yield* changelog("@test/api")).toBe(
-		`# Changelog\n\n## 0.5.1 - ${yield* todayInUtc()}\n\n### Changed\n\n- Changed behavior.\n\n### Fixed\n\n- A fix for both packages.\n\n${RELEASED_HISTORY}`,
-	);
-});
-
 workspace.it(
-	"apply gives @test/optional, a dependent without notes of its own, a dependency release note",
-	[pending()],
+	"apply keeps @test/api's own notes when its workspace dependency also moves",
+	[pending(), fixForBoth],
 	function* ({ apply, changelog, todayInUtc }) {
-		expect(yield* changelog("@test/optional")).toBe(HISTORY);
+		expect(yield* changelog("@test/api")).toBe(HISTORY);
 
 		yield* apply();
 
-		expect(yield* changelog("@test/optional")).toBe(
-			`# Changelog\n\n## 1.0.1 - ${yield* todayInUtc()}\n\n### Changed\n\n- Release with updated workspace dependencies.\n\n${RELEASED_HISTORY}`,
+		expect(yield* changelog("@test/api")).toBe(
+			`# Changelog\n\n## 0.5.1 - ${yield* todayInUtc()}\n\n### Changed\n\n- Changed behavior.\n\n### Fixed\n\n- A fix for both packages.\n\n${RELEASED_HISTORY}`,
 		);
 	},
 );

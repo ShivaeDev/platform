@@ -6,6 +6,7 @@ export type Source = typeof Source.Type;
 const Versions = Schema.Record(Schema.String, Schema.String);
 export const PackageManifest = Schema.Struct({
 	dependencies: Schema.optional(Versions),
+	files: Schema.optional(Schema.Array(Schema.String)),
 	name: Schema.String,
 	optionalDependencies: Schema.optional(Versions),
 	peerDependencies: Schema.optional(Versions),

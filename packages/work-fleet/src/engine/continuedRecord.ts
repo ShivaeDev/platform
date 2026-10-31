@@ -14,6 +14,7 @@ export function continuedRecord(record: FleetRecord, archivedAt: number): FleetR
 		decisionAcknowledged: undefined,
 		decisionPublished: undefined,
 		history: [...(record.history ?? []), { ...archived, archivedAt }],
+		mergeOrderFirst: undefined,
 		mergePrediction: undefined,
 		outcome: undefined,
 		predictedConflictHold: undefined,

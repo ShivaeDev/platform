@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/identity",
-	"version": "0.7.0",
+	"version": "0.10.0",
 	"description": "Request identity, sessions, transport trust and permission enforcement for Effect RPC servers",
 	"keywords": [
 		"effect"
@@ -41,6 +41,7 @@
 		"!src/**/*.spec.ts",
 		"!src/**/*.spec.tsx",
 		"!src/**/test-support",
+		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {
@@ -59,6 +60,7 @@
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
+		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/test": "workspace:*",

@@ -116,6 +116,20 @@ export function storyKit<
 	definition: InferredDefinition<TCreate, TStage, TVerbs, TProvided, TAfter, TStep, TFailed, TDiagnose>,
 ): StoryKit<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided>;
 export function storyKit<const TKits extends KitList>(definition: Composition<TKits>): ComposedKit<TKits>;
+// TypeScript reports the last overload's error, so it must check both definition shapes.
+export function storyKit<
+	TCreate extends () => unknown,
+	const TStage extends string = never,
+	TVerbs extends object = object,
+	TProvided = never,
+	TAfter extends AfterResults<TStage> = Record<never, never>,
+	TStep extends AnyEffect = never,
+	TFailed extends AnyEffect = never,
+	TDiagnose extends AnyEffect = never,
+	const TKits extends KitList = KitList,
+>(
+	definition: InferredDefinition<TCreate, TStage, TVerbs, TProvided, TAfter, TStep, TFailed, TDiagnose> | Composition<TKits>,
+): StoryKit<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided> | ComposedKit<TKits>;
 export function storyKit(input: LooseDefinition | Composition<KitList>): unknown {
 	const definition = "extends" in input ? compose(input.name, input.extends) : input;
 	return {

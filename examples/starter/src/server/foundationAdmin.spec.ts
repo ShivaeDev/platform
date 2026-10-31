@@ -3,6 +3,14 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { foundationAccount, foundationAdmin } from "#test-support/foundationAdmin.ts";
 
+for (const role of ["admin", "owner"]) {
+	foundationAdmin.it(`the default ${role} session grants session management`, [foundationAccount("operator", role)], function* ({ session }) {
+		expect(yield* session("operator")).toMatchObject({
+			user: { permissions: expect.arrayContaining([{ name: "sessions.manage", strength: "own" }]) },
+		});
+	});
+}
+
 foundationAdmin.it("the foundation serves Users and Jobs to an admin", [foundationAccount("operator", "admin")], function* ({ openAdmin }) {
 	const client = yield* openAdmin("operator");
 

@@ -16,7 +16,23 @@ lockStory.it(
 	liveCli,
 );
 
-for (const args of [[], ["--"]]) {
+for (const separators of [["--"], ["--", "--"]]) {
+	lockStory.it(
+		`heavy-lock ${separators.join(" ")} runs the command under its recorded lock`,
+		[],
+		function* ({ cli }) {
+			yield* cli.invokedWith("check", [...separators, ...cli.commands.reportsHolderId]);
+
+			yield* outcomes([
+				["exit code", () => cli.exitCodeOf("check"), 0],
+				["holder id", () => cli.holderIdGivenTo("check"), "check's holder id"],
+			]);
+		},
+		liveCli,
+	);
+}
+
+for (const args of [[], ["--"], ["--", "--"]]) {
 	lockStory.it(
 		`heavy-lock ${args.join(" ")} without a command shows usage and exits 1`,
 		[],
@@ -64,13 +80,15 @@ lockStory.it(
 	liveCli,
 );
 
-lockStory.it(
-	"arguments after -- reach the wrapped command unchanged, including help, unknown flags, empty arguments and spaces",
-	[],
-	function* ({ cli }) {
-		yield* cli.runs("check", cli.commands.reportsArguments("--help", "--unknown", "", "two words", "--"));
+for (const separators of [["--"], ["--", "--"]]) {
+	lockStory.it(
+		`arguments after ${separators.join(" ")} reach the wrapped command unchanged, including help, unknown flags, empty arguments and spaces`,
+		[],
+		function* ({ cli }) {
+			yield* cli.invokedWith("check", [...separators, ...cli.commands.reportsArguments("--help", "--unknown", "", "two words", "--")]);
 
-		expect(yield* cli.standardOutputOf("check")).toBe("running\n--help\n--unknown\n\ntwo words\n--\n");
-	},
-	liveCli,
-);
+			expect(yield* cli.standardOutputOf("check")).toBe("running\n--help\n--unknown\n\ntwo words\n--\n");
+		},
+		liveCli,
+	);
+}

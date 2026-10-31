@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { entries, names } from "#test/lifecycle.ts";
 
 names.it(
-	"a save receives the trimmed name while the input keeps the typed spaces",
+	"without a runtime, a save receives the trimmed name while the input keeps the typed spaces",
 	[names.edited("name", "  Saved  ")],
 	function* ({ savedValue, shown, submit }) {
 		yield* submit();

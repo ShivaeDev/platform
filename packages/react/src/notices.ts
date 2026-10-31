@@ -1,10 +1,11 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import type { Duration, Effect } from "effect";
+import { type Duration, type Effect, Layer } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
 import { createElement, Fragment, type ReactNode, useContext, useLayoutEffect, useMemo } from "react";
 import type { AtomServices } from "#fieldRejection.ts";
 import { NoticeContext } from "#internal/NoticeContext.ts";
-import type { NoticeEntry } from "#internal/noticeEntry.ts";
+import type { NoticeClock, NoticeEntry } from "#internal/noticeEntry.ts";
 import { noticeStore } from "#internal/noticeStore.ts";
 
 export interface NoticeDescriptor<R = never> {
@@ -47,9 +48,18 @@ function Entries({ store, render }: { readonly store: ReturnType<typeof noticeSt
 	const entries = useAtomValue(store.entries);
 	return entries.map((entry) => createElement(Entry, { entry, key: entry.id, render }));
 }
-export function NoticeHost({ children, render }: { readonly children: ReactNode; readonly render: (notice: Notice) => ReactNode }): ReactNode {
+const defaultClock = Atom.runtime(Layer.empty);
+export function NoticeHost({
+	children,
+	render,
+	runtime = defaultClock,
+}: {
+	readonly children: ReactNode;
+	readonly render: (notice: Notice) => ReactNode;
+	readonly runtime?: NoticeClock | undefined;
+}): ReactNode {
 	const registry = useContext(RegistryContext);
-	const store = useMemo(() => noticeStore(registry), [registry]);
+	const store = useMemo(() => noticeStore(registry, runtime), [registry, runtime]);
 	useLayoutEffect(() => {
 		store.active = true;
 		return () => {

@@ -1,5 +1,7 @@
 import { Effect } from "effect";
+import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
 import { type Engine, person } from "./host.ts";
+import { Roles } from "./tools.ts";
 
 function adminRequest(engine: Engine, route: string, actor: string, body: Record<string, string>) {
 	return Effect.promise(async () => {
@@ -24,8 +26,8 @@ export function adminVerbs(engine: Engine, tell: (line: string) => void) {
 			}),
 		stepsDown: (name: string) =>
 			Effect.suspend(() => {
-				tell(`${name} steps down from admin to user`);
-				return adminRequest(engine, "set-role", name, { role: "user", userId: person(engine, name).id });
+				tell(`${name} steps down from admin to user through identity’s operator verb`);
+				return assignRole(Roles, person(engine, name).id, "user").pipe(Effect.asVoid);
 			}),
 	};
 }

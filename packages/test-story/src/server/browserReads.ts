@@ -1,7 +1,13 @@
-import { Context, Effect, Layer, PubSub, Schema } from "effect";
+import { Effect, Layer } from "effect";
+import * as Atom from "effect/reactivity/Atom";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
-import { LiveHint } from "@shivaedev/contract/live.ts";
+import { browserReadObserver } from "#internal/browserReadObserver.ts";
+
+export type BrowserSubscription = {
+	readonly payload: unknown;
+	readonly tag: string;
+} & ({ readonly state: "open" | "answered" } | { readonly state: "refused"; readonly refusalTag: string });
 
 export interface BrowserRead {
 	readonly kind: "query" | "subscription";
@@ -19,59 +25,18 @@ export interface BrowserReadsOptions {
 }
 
 export const browserReads = Effect.fn("BrowserStory.browserReads")(function* (options: BrowserReadsOptions) {
-	const queries = new Set(options.contracts.flatMap(({ declaration }) => declaration.queries.map(({ name }) => `${declaration.name}.${name}`)));
-	const subscriptions = new Set(options.contracts.map(({ declaration }) => `${declaration.name}.$changes`));
-	const reads: BrowserRead[] = [];
-	const hints: LiveHint[] = [];
-	const deliveries = yield* PubSub.unbounded<LiveHint>();
-	yield* Effect.addFinalizer(() => PubSub.shutdown(deliveries));
-	const context = yield* Layer.build(
-		RpcClient.layerProtocolSocket().pipe(
-			Layer.provide(
-				Socket.layerWebSocket(options.url.replace(/^http/u, "ws"), { headers: options.headers }).pipe(
-					Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal),
-				),
-			),
-			Layer.provide(RpcSerialization.layerNdjson),
-		),
-	);
-	const underlying = Context.get(context, RpcClient.Protocol);
-	const listening = new Set<string>();
-	const protocol = Layer.succeed(RpcClient.Protocol, {
-		...underlying,
-		run: (clientId, receive) =>
-			underlying.run(clientId, (message) =>
-				Effect.gen(function* () {
-					if (message._tag === "Chunk" && listening.has(`${clientId}:${message.requestId}`)) {
-						for (const value of message.values) {
-							const hint = yield* Schema.decodeUnknownEffect(LiveHint)(value).pipe(Effect.orDie);
-							hints.push(hint);
-							yield* PubSub.publish(deliveries, hint);
-						}
-					} else if (message._tag === "Exit") {
-						listening.delete(`${clientId}:${message.requestId}`);
-					}
-					yield* receive(message);
-				}),
-			),
-		send: (clientId, request, transferables) =>
-			Effect.gen(function* () {
-				if (request._tag === "Request") {
-					if (subscriptions.has(request.tag)) {
-						listening.add(`${clientId}:${request.id}`);
-						reads.push({ kind: "subscription", payload: request.payload, tag: request.tag });
-					} else if (queries.has(request.tag)) {
-						reads.push({ kind: "query", payload: request.payload, tag: request.tag });
-					}
-				}
-				yield* underlying.send(clientId, request, transferables);
-			}),
+	const { observeProtocol, ...observed } = yield* browserReadObserver(options.contracts);
+	const memoMap = yield* Layer.makeMemoMap;
+	const protocol = Atom.family((_identity: string | undefined) => {
+		const layer = Layer.effect(RpcClient.Protocol, observeProtocol).pipe(Layer.provide(socketProtocol(options)));
+		return Layer.effectContext(Effect.flatMap(Effect.scope, (scope) => Layer.buildWithMemoMap(layer, memoMap, scope)));
 	});
-	return {
-		hints: () => [...hints],
-		protocol,
-		readCount: (tag?: string) => reads.filter((read) => tag === undefined || read.tag === tag).length,
-		reads: () => [...reads],
-		watchHints: () => Effect.map(PubSub.subscribe(deliveries), (queue) => ({ next: PubSub.take(queue) })),
-	};
+	return { ...observed, protocol };
 });
+
+function socketProtocol(options: BrowserReadsOptions) {
+	const socket = Socket.layerWebSocket(options.url.replace(/^http/u, "ws"), { headers: options.headers }).pipe(
+		Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal),
+	);
+	return RpcClient.layerProtocolSocket().pipe(Layer.provide(socket), Layer.provide(RpcSerialization.layerNdjson));
+}

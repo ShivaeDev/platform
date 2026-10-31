@@ -394,8 +394,6 @@
 {"path":"packages/work-board/src/server/rpc/native.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/rpc/native.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/work-board/src/server/rpc/native.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/work-board/src/server/rpc/projectionUpdates.spec.ts","rule":"tests/domain-outcomes","count":3}
-{"path":"packages/work-board/src/server/rpc/reconnect.spec.ts","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/work-board/src/server/rpc/rejectionTypes.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/server/rpc/rejectionTypes.spec.ts","rule":"tests/domain-outcomes","count":5}
 {"path":"packages/work-board/src/server/rpc/rootRemoval.spec.ts","rule":"effect/boundary","count":1}
