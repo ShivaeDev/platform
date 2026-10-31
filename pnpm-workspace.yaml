@@ -53,7 +53,7 @@ catalog:
   mdast-util-directive: 3.1.1
   remark-parse: 11.0.0
   rehype-raw: 7.0.0
-  unist-util-visit: 5.1.0
+  unist-util-visit: 5.2.0
   unified: 11.0.5
   happy-dom: 21.0.4
   dom-accessibility-api: 0.7.1
