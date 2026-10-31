@@ -1,24 +1,16 @@
 import { expect } from "vitest";
-import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { malformedSession, notesScreen, screens, signedOutNotesRoute } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
-	"shows the protected route's typed Unauthorized failure and links to sign-in",
+	"redirects a signed-out notes visitor before querying notes or rendering a route failure",
 	[signedOutNotesRoute()],
-	function* ({ closeScreen, consoleErrors, alert, signInLink, form }) {
-		yield* eventually(() => expect(alert()).toBe("Sign in to view your notes."));
-		yield* eventually(() => expect(signInLink()).toBe("/sign-in?returnTo=%2F"));
-		expect(form()).toBeNull();
+	function* ({ closeScreen, consoleErrors, heading, alert, reads }) {
+		yield* eventually(() => expect(heading()).toBe("Sign in"));
+		expect(alert()).toBeUndefined();
+		expect(reads()).toEqual([]);
 		yield* closeScreen();
-		expect(consoleErrors()).toEqual([
-			[
-				expect.any(String),
-				new Unauthorized({ message: "Authentication required" }),
-				"The above error occurred in the <MatchInnerImpl> component.",
-				"React will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundary.",
-			],
-		]);
+		expect(consoleErrors()).toEqual([]);
 	},
 );
 

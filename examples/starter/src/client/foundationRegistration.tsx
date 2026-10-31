@@ -1,7 +1,6 @@
 import { createRoute } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
-import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { routerRedirect } from "#client/adapters/routerRedirect.ts";
 import { type FoundationClient, makeFoundationClient } from "#client/admin/foundation.ts";
@@ -23,7 +22,6 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 				path: "/admin",
 			});
 			const users = createRoute({
-				beforeLoad: (route): void => permissionGuard({ session: route.context.session, signIn: "/sign-in" })(route),
 				component: (): ReactElement => {
 					const { client: routeClient, adminPages } = users.useRouteContext();
 					return (
@@ -37,7 +35,6 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 				staticData: { permission: foundation.UsersPage.route.permission },
 			});
 			const jobs = createRoute({
-				beforeLoad: (route): void => permissionGuard({ session: route.context.session, signIn: "/sign-in" })(route),
 				component: (): ReactElement => {
 					const { client: routeClient, adminPages } = jobs.useRouteContext();
 					return (

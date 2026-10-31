@@ -10,7 +10,7 @@ for (const [path, moduleLink] of [
 	["/resume?tab=history", true],
 ] as const) {
 	signInApp.it(
-		`returns to ${path} after signing in${moduleLink ? " from a module link" : " through a permission guard"}`,
+		`returns to ${path} after signing in${moduleLink ? " from a module link" : " through a signed-in guard"}`,
 		[signInVisitor(path, false, moduleLink)],
 		function* ({ heading, href, followLink, enter, submit, click }) {
 			if (moduleLink) {
@@ -65,12 +65,9 @@ for (const target of ["https://elsewhere.test/resume", "//elsewhere.test/resume"
 }
 
 signInApp.it(
-	"an Unauthorized route returns to the note and its query after sign-in",
+	"a signed-in-only route returns to the note and its query after sign-in",
 	[signInVisitor("/notes/1?tab=history")],
-	function* ({ alert, followLink, heading, enter, submit, href, caught, draft }) {
-		yield* eventually(() => expect(alert()).toBe("Sign in to view your notes."));
-		expect(caught()).toEqual([expect.objectContaining({ _tag: "Unauthorized" })]);
-		yield* followLink("Sign in");
+	function* ({ heading, enter, submit, href, draft }) {
 		yield* eventually(() => expect(heading()).toBe("Sign in"));
 		expect(new URL(href(), "http://app.test").searchParams.get("returnTo")).toBe("/notes/1?tab=history");
 		yield* enter("alice@app.test", "Email");
