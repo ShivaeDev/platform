@@ -88,15 +88,17 @@ signInApp.it(
 );
 
 signInApp.it(
-	"a refused save rechecks the still-signed-in session once",
+	"a refused save rechecks the still-signed-in session once and returns to Notes",
 	[signInVisitor("/", true)],
-	function* ({ settle, heading, expireSession, enter, submit, alert, authRequests }) {
+	function* ({ settle, heading, href, expireSession, enter, submit, alert, authRequests }) {
 		yield* settle();
 		expect(heading()).toBe("Notes");
 		yield* expireSession();
 		yield* enter("Retain this draft");
 		yield* submit();
 		yield* settle();
+		expect(heading()).toBe("Notes");
+		expect(href()).toBe("/");
 		expect(alert()).toBe("Sign in to add a note.");
 		expect(
 			authRequests()
@@ -104,6 +106,7 @@ signInApp.it(
 				.filter((path) => path === "/api/auth/get-session"),
 		).toEqual(["/api/auth/get-session", "/api/auth/get-session"]);
 		yield* enter("A newer draft");
+		yield* settle();
 		expect(
 			authRequests()
 				.map((url) => url.pathname)
