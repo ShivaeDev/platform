@@ -5,7 +5,7 @@ import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { AdminSessions } from "@shivaedev/admin/server/AdminSessions.ts";
 import { JobsPermission, ReadJobs } from "@shivaedev/admin/permissions.ts";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
@@ -17,17 +17,17 @@ const registry = adminRegistry(Jobs);
 const registered = registerAdmin(registry, {
   jobs: Jobs.contract.application.toLayer({ "admin.jobs.failed": () => Effect.service(JobStore) }),
 });
-const requiresStore: Layer.Layer<Layer.Success<typeof registered.handlers>, never, JobStore> = registered.handlers;
+const handlers: Layer.Layer<Layer.Success<typeof registered.handlers>, never, JobStore | AdminSessions> = registered.handlers;
 type Equal<A, B> = [A, B] extends [B, A] ? true : false;
-const preserved: Equal<Layer.Services<typeof registered.handlers>, JobStore> = true;
+const preserved: Equal<Layer.Services<typeof registered.handlers>, JobStore | AdminSessions> = true;
 void preserved;
 const changes = Jobs.contract.toLayerHandler("admin.jobs.$changes", () => Stream.empty);
-const auth = permissionLayer(JobsPermission, { roles: roleSet(role("operator", [ReadJobs])),
+const sessions = Layer.succeed(AdminSessions, { roles: roleSet(role("operator", [ReadJobs])),
   origin: () => true,
   provider: { get: () => Effect.succeed(Option.some({ user: { id: "operator", email: "operator@example.test", name: "Operator", role: "operator" } })) },
 });
 await Effect.runPromise(Effect.gen(function* () {
-  const client = yield* RpcTest.makeClient(registered.group).pipe(Effect.provide(Layer.mergeAll(requiresStore, changes, auth)), Effect.provideService(JobStore, ["mail-42"]));
+  const client = yield* RpcTest.makeClient(registered.group).pipe(Effect.provide(Layer.merge(handlers, changes).pipe(Layer.provide(sessions))), Effect.provideService(JobStore, ["mail-42"]));
   const result = yield* client["admin.jobs.failed"]();
   if (JSON.stringify(result) !== '["mail-42"]') throw new Error("Packed admin registry did not serve its handler result");
 }).pipe(Effect.scoped));

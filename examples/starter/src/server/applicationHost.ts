@@ -1,15 +1,13 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
-import { HttpStaticServer } from "effect/http";
-import { JobsPermission, UsersPermission } from "@shivaedev/admin/permissions.ts";
+import { HttpServerRespondable, HttpStaticServer } from "effect/http";
+import { AdminSessions } from "@shivaedev/admin/server/AdminSessions.ts";
+import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
-import { SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
-import { StatisticsPermission } from "#appPermissions.ts";
 import { User } from "#roles/User.ts";
 import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
@@ -18,6 +16,14 @@ import { JobsClientFactory } from "./JobsClientFactory.ts";
 import { jobsLayer } from "./jobsLayer.ts";
 import { serverModules } from "./modules.ts";
 import type { PoolSizes } from "./PoolSizes.ts";
+
+function adminDocumentRoutes() {
+	return Layer.unwrap(
+		Effect.map(HttpStaticServer.make({ root: "dist", spa: true }), (spa) =>
+			adminDocuments(serverModules.admin, () => spa.pipe(Effect.catch(HttpServerRespondable.toResponse))),
+		),
+	);
+}
 
 export function applicationHost<R = never, E = never, TRequirements = never>(config?: {
 	readonly poolSizes?: PoolSizes;
@@ -60,16 +66,9 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 					return {
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: modules.group,
-						handlers: Layer.mergeAll(
-							modules.handlers,
-							authenticatedUserLayer(sessions),
-							permissionLayer(JobsPermission, sessions),
-							permissionLayer(UsersPermission, sessions),
-							permissionLayer(SessionsPermission, sessions),
-							permissionLayer(StatisticsPermission, sessions),
-						),
-						routes: Layer.merge(routes, HttpStaticServer.layer({ root: "dist", spa: true })),
-						services,
+						handlers: Layer.merge(modules.handlers, authenticatedUserLayer(sessions)),
+						routes: Layer.mergeAll(routes, HttpStaticServer.layer({ root: "dist", spa: true }), adminDocumentRoutes()),
+						services: Layer.merge(services, Layer.succeed(AdminSessions, sessions)),
 						sessions,
 					};
 				}),

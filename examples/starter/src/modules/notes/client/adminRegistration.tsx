@@ -22,8 +22,7 @@ export function adminRegistration(client: AdminClient) {
 					);
 				},
 				getParentRoute: () => parent,
-				path: "/admin/notes",
-				staticData: { permission: StatisticsPage.route.permission },
+				path: StatisticsPage.route.path,
 			});
 			return [parent.addChildren([statistics])];
 		},

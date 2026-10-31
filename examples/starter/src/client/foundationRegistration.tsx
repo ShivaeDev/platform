@@ -31,8 +31,7 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 					);
 				},
 				getParentRoute: () => parent,
-				path: "/admin/users",
-				staticData: { permission: foundation.UsersPage.route.permission },
+				path: foundation.UsersPage.route.path,
 			});
 			const jobs = createRoute({
 				component: (): ReactElement => {
@@ -44,8 +43,7 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 					);
 				},
 				getParentRoute: () => parent,
-				path: "/admin/jobs",
-				staticData: { permission: foundation.JobsPage.route.permission },
+				path: foundation.JobsPage.route.path,
 			});
 			const sessions = createRoute({
 				component: (): ReactElement => {
@@ -57,8 +55,7 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 					);
 				},
 				getParentRoute: () => parent,
-				path: "/admin/sessions",
-				staticData: { permission: foundation.SessionsPage.route.permission },
+				path: foundation.SessionsPage.route.path,
 			});
 			return [parent.addChildren([index, users, jobs, sessions])];
 		},
