@@ -456,7 +456,7 @@ Each stream queues at most 256 hints. Overflow discards the pending hints and re
 
 ### Query policies, record keys and buckets
 
-A query declares its decoded input, result, `readPolicy` and `reads` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `signedIn` from `readPolicy.ts` allows any signed-in viewer and refuses a signed-out viewer. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. Declare policy errors in the query's `rejections` and provide its services when building the handler Layer; those requirements also apply to the generated change subscription. Policies may use browser-safe Effect service tags whose implementations the server supplies. A failing access check reaches the client as its declared error, including during live reads; only a successful `false` denies access.
+A query declares its decoded input, result, `readPolicy` and `reads` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `signedIn` from `readPolicy.ts` allows any signed-in viewer and refuses a signed-out viewer. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. Declare policy errors in the query's `rejections`; a failing access check reaches the client as its declared error, including during live reads. Only a successful `false` denies access. [Policy services](#policy-services) explains richer session requirements and where to provide implementations.
 
 ```ts
 import { Option, Schema } from "effect";
@@ -504,9 +504,70 @@ The server provides `NoteOwner`; the shared declaration holds only its browser-s
 
 A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Declare bucket fields on the collection model with their schemas. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. It reruns whenever any row in that bucket changes, including a row excluded by the filter. Writers explicitly announce the record and affected buckets with the same constructors from `@shivaedev/changes/keys.ts`.
 
-The same query policy guards running the query and subscribing to it. A subscription names query references, never arbitrary record or bucket keys. The entire subscription is refused with `QueryReadDenied` if any referenced query is denied. Every query requires `readPolicy` at declaration, including queries used only through one-off `run` calls. TypeScript rejects a policy-less declaration before handlers or a live server can be built. Platform’s application host validates the complete RPC group while building its Layer, before listening; untyped declarations missing policies fail with `MissingReadPolicies`, whose `queries` and `message` name every affected RPC. Native hosts can run `validateReadPolicies(group)` during their own Layer construction. `MissingReadPolicy` remains a request-time refusal for untyped declarations served through native servers that bypass that boot check, on plain calls and subscriptions alike. Reads outside a declared query acquire no automatic subscription.
+The same query policy guards running the query and subscribing to it. A subscription is meant to carry one query. It names query references, never arbitrary record or bucket keys. If a subscription mixes queries the viewer may and may not read, the entire subscription is refused with `QueryReadDenied`; it delivers no partial set of hints. Every query requires `readPolicy` at declaration, including queries used only through one-off `run` calls. TypeScript rejects a policy-less declaration before handlers or a live server can be built. Platform’s application host validates the complete RPC group while building its Layer, before listening; untyped declarations missing policies fail with `MissingReadPolicies`, whose `queries` and `message` name every affected RPC. Native hosts can run `validateReadPolicies(group)` during their own Layer construction. `MissingReadPolicy` remains a request-time refusal for untyped declarations served through native servers that bypass that boot check, on plain calls and subscriptions alike. Reads outside a declared query acquire no automatic subscription.
 
 The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering changed keys, the stream rechecks the owning query's policy without memoization. In a session-backed host, a signed-out, revoked or expired session ends the subscription with `Unauthorized`; a signed-in viewer whose policy refuses ends it with `QueryReadDenied`. This distinction is the same whether a change hint or the session revalidation interval detects session removal. A client refresh runs the same authorized query that produced its first value; hints carry no row values.
+
+### Policy services
+
+Use the policy's `viewer` argument for the viewer ID. Read richer session context from Effect requirements. For example, a policy service can require `SessionUserWithProviderAccounts` from `@shivaedev/identity/identity.ts` and yield its `providerAccounts` Effect. Apply `AuthenticatedUserWithProviderAccounts` middleware to the contract and supply `authenticatedUserWithProviderAccountsLayer(sessionPolicy)` from `@shivaedev/identity/server/session.ts` alongside its handlers. The middleware provides this request-local context for both RPC calls and live change hints, including each policy recheck before a hint is delivered.
+
+Keep the policy service tag and query declaration browser-safe; put its implementation on the server. Its method retains the session service in its requirements so the session is read when the policy runs:
+
+```ts
+import { Context, Effect, Option, Schema } from "effect";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { query } from "@shivaedev/contract/operation.ts";
+import type { Viewer } from "@shivaedev/contract/readPolicy.ts";
+import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
+import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
+
+class ReadAccess extends Context.Service<
+	ReadAccess,
+	{
+		readonly allows: (
+			accountId: string,
+			viewer: Option.Option<Viewer>,
+		) => Effect.Effect<boolean, AuthUnavailable | Unauthorized, SessionUserWithProviderAccounts>;
+	}
+>()("app/ReadAccess") {}
+
+const Get = query("get", {
+	payload: { accountId: Schema.String },
+	readPolicy: ({ accountId }, viewer) => Effect.flatMap(ReadAccess, (access) => access.allows(accountId, viewer)),
+	reads: () => [],
+	rejections: { AuthUnavailable, Unauthorized },
+	success: Schema.String,
+});
+const Documents = contract("documents", { queries: [Get] }).middleware(AuthenticatedUserWithProviderAccounts);
+```
+
+Provide the implementation from the query's handlers layer with native `Layer.provide`:
+
+```ts
+import { Effect, Layer, Option } from "effect";
+
+const ReadAccessLive = Layer.succeed(ReadAccess, {
+	allows: (accountId, viewer) =>
+		Effect.gen(function* () {
+			const user = yield* SessionUserWithProviderAccounts;
+			const accounts = yield* user.providerAccounts;
+			return (
+				Option.isSome(viewer)
+				&& viewer.value.id === user.id
+				&& accounts.some((account) => account.providerId === "github" && account.accountId === accountId)
+			);
+		}),
+});
+const DocumentHandlers = Documents.application
+	.toLayer({
+		"documents.get": ({ accountId }) => Effect.succeed(`Document for ${accountId}`),
+	})
+	.pipe(Layer.provide(ReadAccessLive));
+```
+
+The generated subscription uses the owning query handler's captured services too, so this handler-only provision serves subscriptions as well as RPC calls. Request-local services take precedence over captured services; a session value installed while building handlers cannot replace the current viewer's session. The policy runs again for live hints; its allow or deny result is not cached.
 
 ### Live hints in stories
 
