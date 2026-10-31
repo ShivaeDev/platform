@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.27.1 - 2026-10-31
+
+### Fixed
+
+- Detect stalled turns even when the provider supplies no progress snapshots, using the same threshold and retry decision for workers and reviewers.
+- Give the existing worker a merge-main repair turn when its PR conflicts during review.
+- Continue explicitly stopped work on its existing worker thread after confirmed cancellation.
+- Queue reviewed, green PRs when an exact-head advisory review satisfies delivery policy, including requested changes or unavailable review output. These PRs wait on automation instead of the orchestrator.
+
 ## 0.27.0 - 2026-10-31
 
 ### Added

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.5 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/errors` from 0.2.0 to 0.3.0.
+- Update `@shivaedev/github` from 0.8.2 to 0.8.3.
+- Update `@shivaedev/jobs` from 0.26.0 to 0.27.0.
+
 ## 0.3.4 - 2026-10-31
 
 ### Changed

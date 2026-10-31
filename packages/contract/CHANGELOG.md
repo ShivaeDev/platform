@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.29.0 - 2026-10-31
+
+### Added
+
+- `rpcBoundaryHandlers(group, boundary, handlers)` applies one boundary and unexpected mapping to a native RPC handler map, including Effect and Stream handlers and native RPC wrappers.
+- Contract changes streams declare `WebSocketRequired` so HTTP clients can decode the protocol error.
+- React query hooks, including `useLoaderQuery` and loader-backed editor queries, expose `denied` for a `QueryReadDenied` refusal so screens can replace retained data.
+- Queries can declare a `serverReads(payload, viewer)` Effect to load additional read keys on the server after every subscription policy allows access. Its services come from the owning query handler; failures use the query's declared rejections. Bound clients refresh from the resulting hints without receiving record IDs in their payloads.
+
+### Changed
+
+- A `$changes` batch remains all-or-nothing: one denied query rejects or ends live updates for the whole batch. Split queries with independent permissions into separate `$changes` requests; automatic bound queries already subscribe separately.
+
+### Fixed
+
+- Hosted `$changes` subscriptions over HTTP fail with a message saying they need the WebSocket protocol.
+- Live queries refused with `QueryReadDenied` remain refused through matching invalidations and resume events until their input or viewer changes. They stop automatic subscription attempts and refused reads.
+- `queryRoute` sends read denials to the route's not-found component, just like missing records.
+
+### Breaking
+
+- `queryKeys` moves from `serverMetadata.ts` to `queryKeys.ts` and now checks every referenced query's read policy before resolving payload and server-derived keys, and preserves their errors and service requirements. Change imports to `@shivaedev/contract/queryKeys.ts`. Custom adapters must provide those services, pass the server-resolved viewer, and handle declared rejections, `MissingReadPolicy` and `QueryReadDenied`; use `querySubscription` to capture handler services and ongoing authorization.
+
 ## 0.28.0 - 2026-10-31
 
 ### Added
