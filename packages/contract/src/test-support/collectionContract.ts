@@ -29,13 +29,16 @@ export const adminPolicy = permissionReadPolicy(ManageWorkspaces, (permission, v
 	}),
 );
 
-export const Workspaces = contract("workspaces", {
-	queries: [
-		query("all", {
-			readPolicy: adminPolicy,
-			reads: () => [],
-			readsCollections: [workspaces],
-			success: Schema.Array(Workspace),
-		}),
-	],
-}).middleware(Guard);
+export function collectionContract() {
+	return contract("workspaces", {
+		keyScope: "session",
+		queries: [
+			query("all", {
+				readPolicy: adminPolicy,
+				reads: () => [],
+				readsCollections: [workspaces],
+				success: Schema.Array(Workspace),
+			}),
+		],
+	}).middleware(Guard);
+}

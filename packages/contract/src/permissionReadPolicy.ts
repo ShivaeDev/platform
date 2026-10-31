@@ -16,6 +16,10 @@ export function permissionReadPolicy<TPermission extends { readonly name: string
 	});
 }
 
+export function isPermissionReadPolicy(policy: QueryReadPolicy<unknown, unknown, unknown>): boolean {
+	return PermissionReadPolicyId in policy;
+}
+
 export type CollectionReads<TPayload, E, R> =
 	| { readonly readsCollections?: never; readonly readPolicy: QueryReadPolicy<TPayload, E, R> }
 	| {

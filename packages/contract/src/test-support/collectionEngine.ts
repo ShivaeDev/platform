@@ -13,7 +13,7 @@ import { changesSuccess } from "#internal/changesSuccess.ts";
 import { LiveServer } from "#LiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
-import { Guard, ManageWorkspaces, Permissions, Workspace, Workspaces } from "./collectionContract.ts";
+import { collectionContract, Guard, ManageWorkspaces, Permissions, Workspace } from "./collectionContract.ts";
 
 const migrations = {
 	loader: Migrator.fromRecord({
@@ -32,6 +32,7 @@ export const collectionDatabase = makePostgresTestLayer({
 });
 
 export const collectionEngine = Effect.gen(function* () {
+	const Workspaces = collectionContract();
 	const database = yield* PostgresTestDatabase;
 	const services = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations }));
 	const repository = yield* makeRepository(Workspace, {
@@ -49,8 +50,9 @@ export const collectionEngine = Effect.gen(function* () {
 		"workspaces.$changes": ({ queries }, { rpc }) =>
 			Stream.unwrap(
 				Effect.gen(function* () {
-					const subscription = yield* querySubscription(rpc, queries, yield* CurrentViewer);
-					const stream = yield* live.subscribe(subscription);
+					const viewer = yield* CurrentViewer;
+					const subscription = yield* querySubscription(rpc, queries, viewer);
+					const stream = yield* live.subscribe(subscription, Option.isSome(viewer) ? { scope: viewer.value.id } : undefined);
 					return stream.pipe(
 						Stream.mapEffect((update) => Schema.decodeUnknownEffect(changesSuccess(Workspaces.declaration.queries))(update).pipe(Effect.orDie)),
 					);
@@ -75,8 +77,8 @@ export const collectionEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
 	);
-	const api = bind(Workspaces, Client);
+	const api = bind(Workspaces, Client, { registry });
 	registry.set(api[LiveConnection].coalesceWindow, 0);
 	const member = yield* RpcTest.makeClient(Workspaces, { flatten: true }).pipe(Effect.provide(protocol("member")));
-	return { api, member, permissions, query: api.all.query(), registry, repository, services };
+	return { api, definition: Workspaces.declaration.queries[0], member, permissions, query: api.all.query(), registry, repository, services };
 });

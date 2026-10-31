@@ -12,7 +12,7 @@ export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	let openStreams = 0;
 	const resyncKey = `@shivaedev/contract/resync/${yield* Random.nextInt}`;
-	function open(keys: readonly Key[], context?: KeyContext): Stream.Stream<LiveHint> {
+	function open(keys: readonly Key[], context?: KeyContext, globalKeys: readonly Key[] = []): Stream.Stream<LiveHint> {
 		return Stream.unwrap(
 			Effect.gen(function* () {
 				const { offer, queue } = yield* liveHintQueue;
@@ -20,6 +20,7 @@ export const makeLiveServer = Effect.gen(function* () {
 				let scheduled = false;
 				let resync = false;
 				let active = true;
+				const global = new Set(readKeys(globalKeys));
 				function flush() {
 					if (scheduled) {
 						return;
@@ -35,7 +36,8 @@ export const makeLiveServer = Effect.gen(function* () {
 					});
 				}
 				const cancel = keys.map((key) => {
-					const own = readKeys([key], context);
+					const bare = readKeys([key]);
+					const own = global.has(bare[0] ?? "") ? bare : readKeys([key], context);
 					return reactivity.registerUnsafe(own, () => {
 						pending.set(own[0] ?? "", key);
 						flush();
@@ -82,7 +84,7 @@ export const makeLiveServer = Effect.gen(function* () {
 					}
 					return yield* compare(hint);
 				});
-				return open(subscription.keys, context).pipe(Stream.mapEffect(next), Stream.flatMap(Stream.fromIterable));
+				return open(subscription.keys, context, subscription.globalKeys).pipe(Stream.mapEffect(next), Stream.flatMap(Stream.fromIterable));
 			}),
 		);
 	}

@@ -4,6 +4,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
+import { signedIn } from "#readPolicy.ts";
 import { answered, shown } from "./answers.ts";
 import { collectionDatabase, collectionEngine, configured } from "./collectionEngine.ts";
 import { settled } from "./settled.ts";
@@ -23,7 +24,7 @@ export const collectionStory = storyKit({
 	layer: collectionDatabase,
 	name: "permission-gated PostgreSQL collection reads",
 	runIf: configured,
-	stages: ["page"],
+	stages: ["policy", "page"],
 	verbs: (current, story) => ({
 		delete: (id: number) => {
 			story.tell(`the repository deletes workspace ${id}`);
@@ -36,6 +37,10 @@ export const collectionStory = storyKit({
 		insertMany: (rows: readonly { readonly tenant: string; readonly title: string }[]) => {
 			story.tell("the repository inserts a batch of workspaces");
 			return write(current, current.repository.insertMany(rows));
+		},
+		memberReads: () => {
+			story.tell("a member reads the all-workspaces query");
+			return answered(current.member("workspaces.all", undefined), (rows) => JSON.stringify(rows));
 		},
 		memberSubscribes: () => {
 			story.tell("a member without the admin permission subscribes to every workspace");
@@ -74,4 +79,8 @@ export const adminPage = collectionStory.trait("page", "an admin mounts the all-
 		name: "live admin collection query",
 	});
 	yield* settled(current.registry, current.query);
+});
+
+export const memberPolicy = collectionStory.trait("policy", "an untyped collection query declares only the signed-in member policy", (current) => {
+	Reflect.set(current.definition, "readPolicy", signedIn);
 });

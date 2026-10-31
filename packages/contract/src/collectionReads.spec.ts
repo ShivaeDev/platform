@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { adminPage, collectionStory } from "#test/collectionStory.ts";
+import { adminPage, collectionStory, memberPolicy } from "#test/collectionStory.ts";
 
 collectionStory.it(
 	"an admin's collection query refreshes for generated-id inserts in two tenants",
@@ -98,3 +98,11 @@ collectionStory.it(
 		expect(yield* shown()).toBe("failed with read denied");
 	},
 );
+
+collectionStory.it("an untyped member query cannot subscribe to collection-wide changes", [memberPolicy], function* ({ memberSubscribes }) {
+	expect(yield* memberSubscribes()).toBe("failed with read denied");
+});
+
+collectionStory.it("an untyped member query cannot read the collection", [memberPolicy], function* ({ memberReads }) {
+	expect(yield* memberReads()).toBe("failed with read denied");
+});

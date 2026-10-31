@@ -28,6 +28,7 @@ export interface QueryShape<E = unknown, R = unknown> extends OperationShape {
 	readonly live?: "rerun-and-compare" | undefined;
 	readonly readPolicy: Bivariant<QueryReadPolicy<unknown, E, R>>;
 	reads: Bivariant<(payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[]>;
+	readonly readsCollections?: readonly { readonly name: string }[] | undefined;
 	readonly serverReads?: Bivariant<QueryServerReads<unknown, E, R>>;
 }
 
@@ -64,6 +65,7 @@ export interface Query<
 	readonly live?: TLive;
 	readonly readPolicy: QueryReadPolicy<TPayload["Type"], RejectedBy<TSpecs>, R>;
 	reads: (payload: TPayload["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
+	readonly readsCollections?: readonly { readonly name: string }[] | undefined;
 	readonly serverReads?: QueryServerReads<TPayload["Type"], RejectedBy<TSpecs>, R>;
 }
 
@@ -106,6 +108,7 @@ export function query(
 		live: declaration.live,
 		readPolicy: declaration.readPolicy,
 		reads: (payload, viewer) => [...declaration.reads(payload, viewer), ...collections],
+		readsCollections: declaration.readsCollections,
 		...(declaration.serverReads === undefined ? {} : { serverReads: declaration.serverReads }),
 	};
 }
