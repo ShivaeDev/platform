@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.28.2 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/server` from 0.14.0 to 0.15.0.
+- Update `@shivaedev/sql` from 0.28.0 to 0.29.0.
+- Update `@shivaedev/work-board` from 0.40.0 to 0.40.1.
+
 ## 0.28.1 - 2026-10-31
 
 ### Fixed
