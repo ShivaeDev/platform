@@ -47,13 +47,13 @@ export const ruleStory = storyKit({
 	name: "Quality rule",
 	stages: ["repository"],
 	verbs: (engine, story) => ({
-		check: Effect.fn("RuleStory.check")(function* <TInput>(rule: Rule<string, TInput>, options?: TInput) {
+		check: Effect.fn("RuleStory.check")(function* <TInput>(rule: Rule<string, TInput>, options?: TInput, directory = ".") {
 			story.tell(options === undefined ? `quality checks ${rule.id}` : `quality checks ${rule.id} with ${JSON.stringify(options)}`);
 			const configured = yield* Effect.promise(() => rule.configure(options));
 			if (configured._tag === "Invalid") {
 				return yield* Effect.die(new Error(`${rule.id} refused its options: ${configured.issues.join("; ")}`));
 			}
-			const inputs = yield* Effect.promise(() => scanned(engine.root));
+			const inputs = yield* Effect.promise(() => scanned(join(engine.root, directory)));
 			engine.findings = yield* configured.check(inputs);
 			return engine.findings;
 		}),
