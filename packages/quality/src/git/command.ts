@@ -8,10 +8,11 @@ export interface GitResult {
 	readonly stdout: string;
 }
 
-export type Git = ChildProcessSpawner.ChildProcessSpawner;
-
-export function git(cwd: string, args: readonly string[]): Effect.Effect<GitResult, SetupFailure, Git> {
-	return Effect.scoped(
+export const run = Effect.fn("Git.run")(function* (
+	cwd: string,
+	args: readonly string[],
+): Effect.fn.Return<GitResult, SetupFailure, ChildProcessSpawner.ChildProcessSpawner> {
+	return yield* Effect.scoped(
 		Effect.gen(function* () {
 			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 			const child = yield* spawner.spawn(ChildProcess.make("git", [...args], { cwd, stdin: "ignore" }));
@@ -21,13 +22,13 @@ export function git(cwd: string, args: readonly string[]): Effect.Effect<GitResu
 			);
 			return { code: Number(code), stderr, stdout };
 		}),
-	).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot run git: ${error.message}` })));
-}
+	).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot run git in ${cwd}: ${error.message}` })));
+});
 
-export function gitOrFail(cwd: string, args: readonly string[]): Effect.Effect<string, SetupFailure, Git> {
-	return Effect.flatMap(git(cwd, args), (result) =>
+export function gitOrFail(cwd: string, args: readonly string[]): Effect.Effect<string, SetupFailure, ChildProcessSpawner.ChildProcessSpawner> {
+	return Effect.flatMap(run(cwd, args), (result) =>
 		result.code === 0
 			? Effect.succeed(result.stdout)
-			: Effect.fail(new SetupFailure({ message: `git ${args[0]} failed: ${result.stderr.trim() || `exit code ${result.code}`}` })),
+			: Effect.fail(new SetupFailure({ message: `git ${args[0]} exited ${result.code}: ${result.stderr.trim()}` })),
 	);
 }

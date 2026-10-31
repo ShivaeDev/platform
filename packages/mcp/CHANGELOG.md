@@ -1,5 +1,60 @@
 # Changelog
 
+## 0.1.9 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/identity` from 0.10.0 to 0.10.1.
+
+## 0.1.8 - 2026-10-31
+
+### Fixed
+
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+
+## 0.1.7 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.1.6 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.1.5 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.1.4 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.1.3 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.1.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.1.1 - 2026-10-30
+
+### Fixed
+
+- Return 503 without an OAuth restart challenge when bearer verification cannot reach the JWKS service, and log verification failures with secrets redacted. Invalid and expired tokens still receive 401.
+
 ## 0.1.0 - 2026-10-30
 
 ### Added

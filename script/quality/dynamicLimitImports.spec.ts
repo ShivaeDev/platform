@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { noLimitImports } from "@shivaedev/quality/rules/stories/noLimitImports.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { noLimitImports } from "#quality-internal/rules/stories/noLimitImports.ts";
 
 ruleKit.it(
 	"a spec cannot load implementation caps through literal dynamic limits imports",

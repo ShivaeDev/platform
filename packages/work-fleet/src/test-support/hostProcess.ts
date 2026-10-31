@@ -10,21 +10,35 @@ function diagnose(effect: Effect.Effect<void, unknown>, message: () => string) {
 	);
 }
 
-export function hostProcess(configFile: string) {
+export function hostProcess(configFile: string, pausePublication = false, report = false, entry = new URL("./cloudHostProcess.ts", import.meta.url)) {
 	return Effect.acquireRelease(
 		Effect.sync(() => {
-			const child = spawn(process.execPath, ["--conditions=source", fileURLToPath(new URL("./cloudHostProcess.ts", import.meta.url)), configFile], {
-				stdio: ["ignore", "pipe", "pipe"],
+			const child = spawn(
+				process.execPath,
+				["--conditions=source", fileURLToPath(entry), configFile, ...(pausePublication ? ["pause-publication"] : []), ...(report ? ["report"] : [])],
+				{
+					stdio: ["ignore", "pipe", "pipe", "ipc"],
+				},
+			);
+			const ready = Promise.withResolvers<string>();
+			const publication = Promise.withResolvers<void>();
+			child.on("message", (notification) => {
+				if (notification === "published") {
+					publication.resolve();
+				}
 			});
 			let url: string | undefined;
 			let output = "";
-			child.stdout.on("data", (chunk: Buffer) => {
+			child.stdout?.on("data", (chunk: Buffer) => {
 				output = `${output}${chunk.toString()}`.slice(-8192);
 				url = output.match(/http:\/\/127\.0\.0\.1:\d+(?=\s)/u)?.[0] ?? url;
+				if (url !== undefined) {
+					ready.resolve(url);
+				}
 			});
 			let errors = "";
 			let status = "running";
-			child.stderr.on("data", (chunk: Buffer) => {
+			child.stderr?.on("data", (chunk: Buffer) => {
 				errors += chunk.toString();
 			});
 			const closed = new Promise<void>((resolve) => {
@@ -54,6 +68,8 @@ export function hostProcess(configFile: string) {
 					),
 					message,
 				),
+				published: Effect.promise(() => publication.promise).pipe(Effect.timeout("15 seconds")),
+				ready: Effect.promise(() => ready.promise).pipe(Effect.timeout("15 seconds")),
 				until: (condition: Parameters<typeof until>[0]) =>
 					diagnose(
 						until(() => Effect.suspend(() => (status === "running" ? condition() : Effect.die(new Error(`Host ${status}`))))),

@@ -1,88 +1,140 @@
-import { Effect } from "effect";
-import { Migrator } from "effect/sql";
 import { expect } from "vitest";
-import { postgres } from "#test/sqlStory.ts";
-import { hasMigrationTables } from "#test/sqlTraits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { applied, migrationRuns } from "#test/migrationRuns.ts";
 
-postgres.it(
-	"migratePostgres initializes, upgrades and reruns without repeating writes",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres }) {
-		const { ledger, orders } = migrations();
+migrationRuns.it(
+	"an upgrade applies only the migrations above the ledger and leaves the applied ones unrun",
+	[applied(["1_create_orders", "2_add_order_two", "3_append_three"])],
+	function* ({ bodiesRun, ledger, migrate, orders, runs }) {
+		expect(yield* orders()).toEqual(["two-three"]);
 
-		const initial = {
-			"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
-		};
-		expect(yield* migratePostgres({ loader: Migrator.fromRecord(initial), lockTimeout: "5 seconds", table: ledger })).toEqual([[1, "create_orders"]]);
-		const loader = Migrator.fromRecord({
-			"2_seed_orders": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid),
-			...initial,
+		yield* migrate(["4_append_four", "1_create_orders", "2_add_order_two", "3_append_three"]);
+
+		yield* outcomes({
+			"bodies run": [bodiesRun(), ["append_four"]],
+			ledger: [
+				ledger(),
+				[
+					[1, "create_orders"],
+					[2, "add_order_two"],
+					[3, "append_three"],
+					[4, "append_four"],
+				],
+			],
+			orders: [orders(), ["two-three-four"]],
+			runs: [runs(), [[[4, "append_four"]]]],
 		});
-		expect(yield* migratePostgres({ loader, lockTimeout: "5 seconds", table: ledger })).toEqual([[2, "seed_orders"]]);
-		expect(yield* migratePostgres({ loader, lockTimeout: "5 seconds", table: ledger })).toEqual([]);
-		expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
-		expect(yield* sql`select migration_id, name from ${sql(ledger)} order by migration_id`).toEqual([
-			{ "migration_id": 1, name: "create_orders" },
-			{ "migration_id": 2, name: "seed_orders" },
-		]);
 	},
 );
 
-postgres.it(
-	"migratePostgres rolls back pending DDL, data and ledger as one batch",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres }) {
-		const { ledger, orders, audit } = migrations();
+migrationRuns.it(
+	"a rerun of a current ledger applies nothing and repeats no writes",
+	[applied(["1_create_orders", "2_add_printer_paper"])],
+	function* ({ bodiesRun, migrate, orders, runs }) {
+		yield* migrate(["1_create_orders", "2_add_printer_paper"]);
 
-		const initial = {
-			"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
-		};
-		yield* migratePostgres({ loader: Migrator.fromRecord(initial), lockTimeout: "5 seconds", table: ledger });
-		const failure = yield* migratePostgres({
-			loader: Migrator.fromRecord({
-				...initial,
-				"2_add_audit_and_seed": Effect.gen(function* () {
-					yield* sql`create table ${sql(audit)} (name text)`;
-					yield* sql`insert into ${sql(orders)} (name) values ('Printer paper')`;
-				}),
-				"3_duplicate_order": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid),
-			}),
-			lockTimeout: "5 seconds",
-			table: ledger,
-		}).pipe(Effect.flip);
-		expect(failure).toMatchObject({ _tag: "MigrationError", kind: "Failed" });
-		expect(yield* sql`select name from ${sql(orders)}`).toEqual([]);
-		expect(yield* sql`select to_regclass(${audit}) as table_name`).toEqual([{ "table_name": null }]);
-		expect(yield* sql`select migration_id from ${sql(ledger)}`).toEqual([{ "migration_id": 1 }]);
+		yield* outcomes({
+			"bodies run": [bodiesRun(), []],
+			orders: [orders(), ["Printer paper"]],
+			runs: [runs(), [[]]],
+		});
 	},
 );
 
-postgres.it(
-	"migratePostgres serializes upgrades on an existing ledger and applies each migration once",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres, advisoryXactLock, raceWithLock }) {
-		const { ledger, orders } = migrations();
-		yield* migratePostgres({
-			loader: Migrator.fromRecord({
-				"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
-			}),
-			lockTimeout: "5 seconds",
-			table: ledger,
-		});
-		const options = {
-			loader: Migrator.fromRecord({ "2_seed_orders": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid) }),
-			lockTimeout: "5 seconds",
-			table: ledger,
-		} as const;
+migrationRuns.it(
+	"a fresh ledger runs every migration in id order, whatever order the loader lists them in",
+	[],
+	function* ({ migrate, orders, runs }) {
+		yield* migrate(["3_append_three", "1_create_orders", "2_add_order_two"]);
 
-		const results = yield* raceWithLock({
-			effects: [migratePostgres(options), migratePostgres(options)],
-			lock: advisoryXactLock(`effect_sql_migrations:${ledger}`),
+		yield* outcomes({
+			orders: [orders(), ["two-three"]],
+			runs: [
+				runs(),
+				[
+					[
+						[1, "create_orders"],
+						[2, "add_order_two"],
+						[3, "append_three"],
+					],
+				],
+			],
 		});
-
-		expect(yield* Effect.forEach(results, Effect.fromResult)).toEqual(expect.arrayContaining([[[2, "seed_orders"]], []]));
-		expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
-		expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ "migration_id": 1 }, { "migration_id": 2 }]);
 	},
-	15_000,
 );
+
+migrationRuns.it(
+	"a failed batch rolls back its DDL, data and ledger entries and keeps the migrations committed before it",
+	[applied(["1_create_orders"])],
+	function* ({ existingTables, ledger, migrate, orders, runs }) {
+		yield* migrate(["1_create_orders", "2_create_audit_and_add_printer_paper", "3_add_printer_paper"]);
+
+		yield* outcomes({
+			"existing tables": [existingTables(), ["ledger", "orders"]],
+			ledger: [ledger(), [[1, "create_orders"]]],
+			orders: [orders(), []],
+			runs: [runs(), ['failed with a failed migration: Migration "3_add_printer_paper" failed, caused by a unique violation (SQLSTATE 23505)']],
+		});
+	},
+);
+
+migrationRuns.it(
+	"a migration missing below the latest applied id fails the run as a bad state naming it, and nothing is applied",
+	[applied(["1_create_orders", "3_add_order_three"])],
+	function* ({ ledger, migrate, orders, runs }) {
+		yield* migrate(["1_create_orders", "2_add_order_two", "3_add_order_three", "4_add_order_four"]);
+
+		yield* outcomes({
+			ledger: [
+				ledger(),
+				[
+					[1, "create_orders"],
+					[3, "add_order_three"],
+				],
+			],
+			orders: [orders(), ["three"]],
+			runs: [runs(), ["failed with a bad migration state: Migrations missing from the ledger at or below latest applied id 3: 2"]],
+		});
+	},
+);
+
+const RACES = [
+	{
+		given: [],
+		ledger: "a fresh ledger",
+		migrations: ["1_create_orders", "2_add_printer_paper"] as const,
+		winner: [
+			[1, "create_orders"],
+			[2, "add_printer_paper"],
+		],
+	},
+	{
+		given: [applied(["1_create_orders"])],
+		ledger: "an existing ledger",
+		migrations: ["2_add_printer_paper"] as const,
+		winner: [[2, "add_printer_paper"]],
+	},
+] as const;
+
+for (const race of RACES) {
+	migrationRuns.it(
+		`concurrent runners on ${race.ledger} wait on the ledger's advisory lock, and only the first applies the migrations`,
+		race.given,
+		function* ({ ledger, orders, runnersRaceForTheLedger, runs }) {
+			yield* runnersRaceForTheLedger(2, race.migrations);
+
+			yield* outcomes({
+				ledger: [
+					ledger(),
+					[
+						[1, "create_orders"],
+						[2, "add_printer_paper"],
+					],
+				],
+				orders: [orders(), ["Printer paper"]],
+				"runs, most applied first": [runs(), [race.winner, []]],
+			});
+		},
+		15_000,
+	);
+}

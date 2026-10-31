@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/http",
-	"version": "0.2.0",
+	"version": "0.3.1",
 	"description": "Bounded HTTP bodies, status failures and paginated clients over Effect HTTP",
 	"keywords": [
 		"effect"
@@ -41,6 +41,7 @@
 		"!src/**/*.spec.ts",
 		"!src/**/*.spec.tsx",
 		"!src/**/test-support",
+		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {

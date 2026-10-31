@@ -16,7 +16,7 @@ database.it(
 	],
 	function* ({ answered, ask, monitorPasses }) {
 		yield* monitorPasses(First.name, Second.name, "health-1-dlq", "health-2-dlq");
-		yield* ask("app", "report health", (jobs) => jobs.health);
+		yield* ask("app", "report health", (jobs) => jobs.health());
 
 		expect(yield* answered()).toEqual({
 			activeTotal: 3,

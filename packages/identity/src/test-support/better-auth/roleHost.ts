@@ -3,10 +3,10 @@ import { testUtils } from "better-auth/plugins";
 import { Cause, ConfigProvider, Effect, Exit, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser, RequestTracing } from "#middleware.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
@@ -19,8 +19,7 @@ const Api = RpcGroup.make(Rpc.make("Profile", { success: SessionUserSchema }))
 const handlers = Api.toLayer({ Profile: () => SessionUser });
 
 export const roleHost = Effect.fnUntraced(function* () {
-	const database = yield* PostgresTestDatabase;
-	const pool = yield* authDatabase(database.url);
+	const pool = yield* betterAuthDatabase();
 	const options = {
 		"baseURL": ORIGIN,
 		database: pool,

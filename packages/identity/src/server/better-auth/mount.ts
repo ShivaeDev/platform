@@ -1,6 +1,5 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
-import { Pool, type PoolClient, type PoolConfig } from "pg";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
@@ -10,6 +9,7 @@ import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
 import { admittedSessions } from "./admittedSessions.ts";
+import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
 import { mountedSessions } from "./mountedSessions.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
@@ -39,8 +39,9 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const rateLimit = options.rateLimit;
 	const customStorage =
 		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);
+	const configured = mount.roles === undefined ? options : closeRoleEndpoints(options);
 	const auth = betterAuth({
-		...withBearerSessions(options, mount.bearerSessions !== undefined),
+		...withBearerSessions(configured, mount.bearerSessions !== undefined),
 		advanced: {
 			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
 			...options.advanced,
@@ -79,38 +80,4 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const lookupSession: unknown = Reflect.get(auth.api, "getSession");
 	const sessions = mountedSessions(lookupSession, admit, mount.roles);
 	return { admittedSessions: admit, auth, revokeUnadmitted: revoke, routes: authRoutes, sessions };
-});
-
-export const authDatabase = Effect.fn("Platform.authDatabase")(function* (
-	url: Redacted.Redacted<string>,
-	options: Pick<PoolConfig, "max" | "application_name"> = {},
-) {
-	const clients = new Set<PoolClient>();
-	const run = Effect.runForkWith(yield* Effect.context<never>());
-	return yield* Effect.acquireRelease(
-		Effect.sync(() => {
-			const pool = new Pool({
-				...options,
-				connectionString: Redacted.value(url),
-			});
-			pool.on("connect", (client) => clients.add(client));
-			pool.on("remove", (client) => clients.delete(client));
-			pool.on("error", (error) => {
-				run(
-					Effect.logDebug({
-						event: "auth_database_idle_client_failed",
-						message: error.message,
-					}),
-				);
-			});
-			return pool;
-		}),
-		(pool) =>
-			Effect.promise(async () => {
-				// pg-pool resolves end before its clients finish disconnecting.
-				const disconnected = [...clients].map((client) => new Promise<void>((resolve) => client.once("end", resolve)));
-				await pool.end();
-				await Promise.all(disconnected);
-			}),
-	);
 });

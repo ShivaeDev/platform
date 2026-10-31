@@ -1,16 +1,20 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { poolTeardown } from "#test/app-host/poolTeardown.ts";
 
 poolTeardown.it(
-	"waits for query and listener sockets to disconnect before its scope closes",
+	"closing the application database waits for its query and listener connections to disconnect, then leaves none open",
 	[],
-	function* ({ backendQueries, backends, close, disconnecting, releaseDisconnects, shutdownResult, waitForShutdown }) {
-		expect(yield* backendQueries()).toEqual([{ query: expect.stringMatching(/^LISTEN /u) }, { query: "select 1" }]);
-		const shutdown = yield* close();
-		yield* disconnecting();
-		expect(yield* shutdownResult(shutdown)).toBeUndefined();
-		yield* releaseDisconnects();
-		yield* waitForShutdown(shutdown);
-		expect(yield* backends()).toEqual([]);
+	function* ({ backendQueries, closeProgress, openConnections, peerAcknowledgesDisconnects, theDatabaseCloses }) {
+		expect(yield* backendQueries()).toEqual([expect.stringMatching(/^LISTEN /u), "select 1"]);
+		yield* theDatabaseCloses();
+		expect(yield* closeProgress()).toBe("waiting for disconnects");
+
+		yield* peerAcknowledgesDisconnects();
+
+		yield* outcomes({
+			"close progress": [closeProgress(), "closed"],
+			"open connections": [openConnections(), 0],
+		});
 	},
 );

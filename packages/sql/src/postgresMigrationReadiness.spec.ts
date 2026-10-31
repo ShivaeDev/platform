@@ -1,75 +1,72 @@
-import { Effect, Result } from "effect";
-import { Migrator } from "effect/sql";
-import { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
-import { postgres } from "#test/sqlStory.ts";
-import { hasMigrationTables } from "#test/sqlTraits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { applied, ledgerLacksNameColumn, ledgerRenames, migrationRuns } from "#test/migrationRuns.ts";
 
-postgres.it(
-	"schema checks reject missing and pending migrations without executing them or creating a ledger",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres, assertPostgresMigrations, pendingPostgresMigrations }) {
-		const table = migrations().ledger;
+const NOT_CURRENT = "failed with a bad migration state: Database migrations are not current";
 
-		const executed: string[] = [];
-		const first = Migrator.fromRecord({ "1_first": Effect.sync(() => executed.push("first")) });
-		const loader = Migrator.fromRecord({
-			"1_first": Effect.sync(() => executed.push("first")),
-			"2_second": Effect.sync(() => executed.push("second")),
-		});
-		expect(yield* pendingPostgresMigrations({ loader, table })).toEqual({
-			components: [],
-			migrations: [
-				{ id: 1, name: "first" },
-				{ id: 2, name: "second" },
+migrationRuns.it(
+	"readiness on a missing ledger reports every migration pending, without running them or creating the ledger",
+	[],
+	function* ({ assertReady, bodiesRun, existingTables, pendingWork, verdicts }) {
+		yield* assertReady(["1_record_first", "2_record_second"]);
+
+		yield* outcomes({
+			"bodies run": [bodiesRun(), []],
+			"existing tables": [existingTables(), []],
+			"pending work": [
+				pendingWork(["1_record_first", "2_record_second"]),
+				{
+					components: [],
+					migrations: [
+						{ id: 1, name: "record_first" },
+						{ id: 2, name: "record_second" },
+					],
+				},
 			],
-		});
-		const missing = yield* assertPostgresMigrations({ loader, table }).pipe(Effect.result);
-		expect(Result.isFailure(missing) && missing.failure).toBeInstanceOf(Migrator.MigrationError);
-		expect(Result.isFailure(missing) && missing.failure).toMatchObject({ kind: "BadState" });
-		expect(yield* sql`select to_regclass(${table}) as ledger`).toEqual([{ ledger: null }]);
-		expect(executed).toEqual([]);
-		yield* migratePostgres({ loader: first, lockTimeout: "5 seconds", table });
-		expect(yield* pendingPostgresMigrations({ loader, table })).toEqual({ components: [], migrations: [{ id: 2, name: "second" }] });
-		const pending = yield* assertPostgresMigrations({ loader, table }).pipe(Effect.result);
-		expect(Result.isFailure(pending) && pending.failure).toBeInstanceOf(Migrator.MigrationError);
-		expect(Result.isFailure(pending) && pending.failure).toMatchObject({ kind: "BadState" });
-		expect(executed).toEqual(["first"]);
-		yield* migratePostgres({ loader, lockTimeout: "5 seconds", table });
-		yield* assertPostgresMigrations({ loader, table });
-		yield* assertPostgresMigrations({ loader: first, table });
-		expect(executed).toEqual(["first", "second"]);
-	},
-);
-
-postgres.it(
-	"schema checks reject a ledger whose required migration name does not match",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres, assertPostgresMigrations, pendingPostgresMigrations }) {
-		const table = migrations().ledger;
-
-		const loader = Migrator.fromRecord({ "1_original": Effect.void });
-		yield* migratePostgres({ loader, lockTimeout: "5 seconds", table });
-		yield* sql`update ${sql(table)} set name = 'different' where migration_id = 1`;
-		expect(yield* pendingPostgresMigrations({ loader, table })).toEqual({ components: [], migrations: [{ id: 1, name: "original" }] });
-		const result = yield* assertPostgresMigrations({ loader, table }).pipe(Effect.result);
-		expect(Result.isFailure(result) && result.failure).toBeInstanceOf(Migrator.MigrationError);
-		expect(Result.isFailure(result) && result.failure).toMatchObject({ kind: "BadState" });
-	},
-);
-
-postgres.it(
-	"schema checks preserve a database failure as a typed SqlError",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, assertPostgresMigrations }) {
-		const table = migrations().ledger;
-
-		const loader = Migrator.fromRecord({ "1_first": Effect.void });
-		yield* sql`create table ${sql(table)} (migration_id integer primary key)`;
-		const result = yield* assertPostgresMigrations({ loader, table }).pipe(Effect.result);
-		expect(Result.isFailure(result) && result.failure).toBeInstanceOf(SqlError);
-		expect(Result.isFailure(result) && result.failure).toMatchObject({
-			reason: { _tag: "SqlSyntaxError", cause: { code: "42703", message: 'column "name" does not exist' } },
+			verdicts: [verdicts(), [`${NOT_CURRENT}: migration 1 (record_first); migration 2 (record_second). Run the deployment migration command.`]],
 		});
 	},
 );
+
+migrationRuns.it(
+	"readiness reports the migrations above a partial ledger as pending, without running them",
+	[applied(["1_record_first"])],
+	function* ({ assertReady, bodiesRun, pendingWork, verdicts }) {
+		yield* assertReady(["1_record_first", "2_record_second"]);
+
+		yield* outcomes({
+			"bodies run": [bodiesRun(), []],
+			"pending work": [pendingWork(["1_record_first", "2_record_second"]), { components: [], migrations: [{ id: 2, name: "record_second" }] }],
+			verdicts: [verdicts(), [`${NOT_CURRENT}: migration 2 (record_second). Run the deployment migration command.`]],
+		});
+	},
+);
+
+migrationRuns.it(
+	"readiness accepts a ledger with later migrations than the loader, so an older release can start during a rolling deployment",
+	[applied(["1_record_first", "2_record_second"])],
+	function* ({ assertReady }) {
+		const verdict = yield* assertReady(["1_record_first"]);
+
+		expect(verdict).toBe("ready");
+	},
+);
+
+migrationRuns.it(
+	"readiness reports a migration whose recorded name differs as pending",
+	[applied(["1_record_first"]), ledgerRenames(1, "different")],
+	function* ({ assertReady, pendingWork, verdicts }) {
+		yield* assertReady(["1_record_first"]);
+
+		yield* outcomes({
+			"pending work": [pendingWork(["1_record_first"]), { components: [], migrations: [{ id: 1, name: "record_first" }] }],
+			verdicts: [verdicts(), [`${NOT_CURRENT}: migration 1 (record_first). Run the deployment migration command.`]],
+		});
+	},
+);
+
+migrationRuns.it("a database failure during readiness stays a typed SQL error", [ledgerLacksNameColumn()], function* ({ assertReady }) {
+	const verdict = yield* assertReady(["1_record_first"]);
+
+	expect(verdict).toBe("failed with a SQL syntax error (SQLSTATE 42703)");
+});

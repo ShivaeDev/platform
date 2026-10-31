@@ -40,6 +40,15 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				(client) => Effect.sync(() => client.registry.dispose()),
 			);
 		}),
+		edited: Effect.fn("Story.edited")(function* (path: string, source: string) {
+			tell(`an outside editor writes ${path} and the board index re-reads it`);
+			const events = yield* subscribe(served(engine).board);
+			// The first hint is the server's Resync, sent once the subscription listens.
+			yield* events.next();
+			engine.notes.write(path, source);
+			yield* changesUntil(events, path);
+			yield* events.close();
+		}),
 		moveDirectory: (from: string, to: string) => {
 			tell(`an outside process moves ${from} to ${to}`);
 			renameSync(join(engine.notes.root, from), join(engine.notes.root, to));
@@ -82,6 +91,10 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				yield* board.stop();
 			}
 		}),
+		watchIndex: () => {
+			tell("a native RPC client subscribes only to the Board index");
+			return subscribe(served(engine).board, true);
+		},
 		watchProject: Effect.fn("Story.watchProject")(function* () {
 			tell("a live RPC client subscribes to project changes");
 			const events = yield* subscribe(served(engine).board);

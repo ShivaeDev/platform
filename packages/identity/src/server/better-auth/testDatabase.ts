@@ -1,31 +1,20 @@
 import { Effect } from "effect";
-import type { Pool } from "pg";
+import { SqlClient } from "effect/sql";
 
-export function authTestDatabase(pool: Pool) {
+export const authTestDatabase = Effect.gen(function* () {
+	const sql = (yield* SqlClient.SqlClient).withoutTransforms();
 	return {
 		expireSessions: (userId?: string) =>
-			Effect.tryPromise(async () => {
-				await pool.query(
-					`update "session" set "expiresAt" = now() - interval '1 second'${userId === undefined ? "" : ' where "userId" = $1'}`,
-					userId === undefined ? [] : [userId],
-				);
-			}),
-		omitImageColumn: Effect.tryPromise(async () => {
-			await pool.query('alter table "user" drop column image');
-		}),
-		sessionIpAddresses: Effect.tryPromise(async () => {
-			const result = await pool.query<{ ipAddress: string | null }>('select "ipAddress" from "session" order by "createdAt", id');
-			return result.rows;
-		}),
-		sessions: Effect.tryPromise(async () => {
-			const result = await pool.query<{ email: string; id: string; userId: string }>(
-				'select s.id, s."userId", u.email from "session" s join "user" u on u.id = s."userId" order by u.email, s.id',
-			);
-			return result.rows;
-		}),
-		users: Effect.tryPromise(async () => {
-			const result = await pool.query<{ email: string; id: string }>('select id, email from "user" order by email');
-			return result.rows;
-		}),
+			sql`update "session" set "expiresAt" = now() - interval '1 second' ${userId === undefined ? sql.literal("") : sql`where "userId" = ${userId}`}`.pipe(
+				Effect.asVoid,
+			),
+		omitImageColumn: sql`alter table "user" drop column image`.pipe(Effect.asVoid),
+		sessionIpAddresses: sql<{ ipAddress: string | null }>`select "ipAddress" from "session" order by "createdAt", id`,
+		sessions: sql<{
+			email: string;
+			id: string;
+			userId: string;
+		}>`select s.id, s."userId", u.email from "session" s join "user" u on u.id = s."userId" order by u.email, s.id`,
+		users: sql<{ email: string; id: string }>`select id, email from "user" order by email`,
 	};
-}
+});

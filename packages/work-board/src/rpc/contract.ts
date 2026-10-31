@@ -12,6 +12,7 @@ import { OverviewProjection } from "#browser/views/OverviewProjection.ts";
 import { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { DiagnosticsProjection, HandoffProjection, StartProjection } from "#browser/views/remaining.ts";
 import { BoardProjection, InboxProjection, WorkProjection } from "#browser/views/schema.ts";
+import { ReadIndex } from "#rpc/BoardIndex.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { Indexing } from "#rpc/Indexing.ts";
 import { index, navigation, watcher, workspace } from "#rpc/keys.ts";
@@ -122,6 +123,7 @@ const ReadIndexing = query("indexing", {
 });
 export const workContract = contract("work-board", {
 	queries: [
+		ReadIndex,
 		ReadServer,
 		ReadIndexing,
 		ReadDocument,

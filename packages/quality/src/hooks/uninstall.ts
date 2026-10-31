@@ -1,7 +1,7 @@
 import { dirname } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { SetupFailure } from "#failure.ts";
-import { git, gitOrFail } from "#git/command.ts";
+import { gitOrFail, run } from "#git/command.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
 import { forwardingPath, removeForwarding } from "./forwarding.ts";
 import { hookLocation } from "./location.ts";
@@ -18,7 +18,7 @@ export const uninstallHook = Effect.fn("Hooks.uninstallHook")(function* (cwd: st
 		return yield* Console.error(`quality: kept ${file}: it is not quality's pre-commit hook.`);
 	}
 	yield* Effect.mapError(fs.remove(file), (error) => new SetupFailure({ cause: error, message: `cannot remove ${file}: ${error.message}` }));
-	const local = yield* git(cwd, ["config", "--local", "--get", "core.hooksPath"]);
+	const local = yield* run(cwd, ["config", "--local", "--get", "core.hooksPath"]);
 	yield* removeForwarding(file).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: error.message })));
 	if ([dirname(file), forwardingPath(file)].includes(local.stdout.trim())) {
 		yield* gitOrFail(cwd, ["config", "--local", "--unset-all", "core.hooksPath"]);

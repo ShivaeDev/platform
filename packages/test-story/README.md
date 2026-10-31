@@ -717,7 +717,7 @@ pnpm add --save-dev react react-dom @effect/atom-react @types/react @types/react
 
 ### Driving a screen
 
-`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is needed only for `settle()`; actions, lookups and readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
+`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is required for `settle()`; `nextLiveHint()` requires client activity in that option. DOM actions, lookups and synchronous readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
 
 To use `settle()`, supply a `pending()` function that reads the application's own request or atom state. Settlement then keeps its `Effect<void>` type with no typed errors and waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
 
@@ -731,6 +731,20 @@ verbs: ({ view, requests }, story) =>
 		tell: story.tell,
 	});
 ```
+
+For a real contract client, use its activity instead of maintaining request counters or reading loading markup:
+
+```ts
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+
+const screen = screenDriver({ act, pending: clientActivity(client), root, tell });
+yield* screen.click({ role: "button", name: "Save" });
+yield* screen.settle();
+expect(screen.text("output")).toBe("Saved title");
+```
+
+This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. With client activity, `find()` settles before looking up its target once. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
 
 `click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
@@ -750,6 +764,21 @@ For React, pass `act: async (action) => { await act(action); }` using React's `a
 
 Settlement has a live-time limit of 3 seconds, configurable with the driver's `timeoutMs` or per call with `settle({ timeoutMs })`, and fails with the current screen text and advice when that limit expires. Use the DOM environment above and scoped `routeOutbound` routing to reach `fakeHttpService`; the driver does not install another transport. The driver acts on happy-dom over loopback HTTP; it does not drive a real browser.
 
+### Counting a page's live reads
+
+Acquire `browserReads` from `server/browserReads.ts` in the browser story kit's `create` hook. Give it the page's RPC URL and contracts, then pass its `protocol` to each `makeClient` used by that page. Those clients share one native WebSocket transport per session identity. When the page signs in or out and updates the client's live identity, the client opens a socket for that session, and the same readout keeps counting across both sockets. `protocol` is a session identity factory; pass it directly to `makeClient`, or call `observed.protocol(identity)` when building a native Layer yourself. In Node stories, pass `layerWebSocketConstructorWS` from `@effect/platform-node/NodeSocket`; the default uses the global browser constructor. Optional `headers` travel on the socket handshake.
+
+```ts
+const observed = yield* browserReads({ contracts: [Notes], url });
+const client = makeClient(Notes, { protocol: observed.protocol, url });
+```
+
+Expose `observed.readCount`, `observed.reads`, `observed.hints` and `observed.watchHints` through the kit's verbs. `readCount()` counts query requests and `$changes` subscription openings; `readCount("notes.list")` selects one tag. `reads()` returns their `tag`, encoded `payload` and `kind` (`"query"` or `"subscription"`), in send order. Commands and protocol acknowledgements do not count. `hints()` returns the `LiveHint` values received for those subscriptions, including `Resync`.
+
+`observed.subscriptions()` returns each opening's `tag`, encoded `payload` and `state`: `"open"`, `"answered"` after its first streamed value, or `"refused"` with `refusalTag` from its failure Exit. A refusal is not a hint. Expose `observed.waitForSubscriptions` through the kit and `yield* waitForSubscriptions` after the page has opened its subscriptions. It waits on response signals until every opening has answered or been refused. It has no polling budget and resolves immediately when no opening is pending. It does not wait for future navigation to open subscriptions or for React to render.
+
+A story calls `const hints = yield* watchHints()` before the write, then `yield* hints.next` to await its browser delivery. Each watcher buffers its own future deliveries until the calling Scope closes. The wait uses the transport's signal with no polling budget. A hint means the browser received it; wait on the application's query or screen signal separately before asserting its rendered result or refetch count. Give another page its own readout to keep its traffic separate.
+
 ### API by module
 
 Import each module with the prefix `@shivaedev/test-story/`; there is no root entry.
@@ -758,6 +787,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `server/storyKit.ts`              | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
 | `server/outcomes.ts`              | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
+| `server/browserReads.ts`          | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`, `BrowserSubscription`                                                                                                                                                                                                                                                                                                |
 | `server/domFetch.ts`              | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
 | `server/seedCookies.ts`           | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |
 | `server/routeOutbound.ts`         | `routeOutbound(routes)`                                                                                                                                                                                                                                                                                                                                                             |

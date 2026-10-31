@@ -16,7 +16,7 @@ function isBinary(bytes: Uint8Array): boolean {
 	return bytes.includes(0);
 }
 
-export function snapshotOf(root: string): Effect.Effect<ReadonlyMap<string, string>, SetupFailure, FileSystem.FileSystem> {
+export function snapshotOf(root: string): Effect.Effect<ReadonlyMap<string, string>, SetupFailure, RuleServices> {
 	return Effect.gen(function* () {
 		const fs = yield* FileSystem.FileSystem;
 		const decoder = new TextDecoder();

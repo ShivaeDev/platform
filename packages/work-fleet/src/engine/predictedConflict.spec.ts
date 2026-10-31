@@ -57,7 +57,7 @@ isolatedEngine.it(
 		]);
 		expect(held.value.mergePrediction?.observedAt).toMatch(/Z$/u);
 		expect(predictionWorktree()).toEqual(worktree);
-		expect(reviewedHeads()).toEqual([first.value.result?.head]);
+		expect(reviewedHeads()).toEqual([first.value.result?.head, held.value.result?.head]);
 		yield* restart();
 		expect((yield* fleet.reconcile("two")).value.blocker).toBe(held.value.blocker);
 		mergeWatchedPr("one");

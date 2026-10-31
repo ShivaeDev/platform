@@ -1,46 +1,52 @@
-import { Effect, Schema } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { Aggregate } from "#aggregateQuery.ts";
-import { resultRows, type TestResult } from "#test/groupedResults.ts";
-import { hasGroupedResults } from "#test/repositoryTraits.ts";
-import { postgres } from "#test/sqlStory.ts";
+import { durationsAreNumeric, queries, testResults } from "#test/queries.ts";
+import type { TestResult } from "#test/queryModels.ts";
 
-postgres.it(
-	"aggregate rejects unknown names and invalid limits before executing SQL",
-	[hasGroupedResults()],
-	function* ({ groupedResults, captureStatement }) {
-		const { results } = groupedResults();
-		const invalid = [
-			'{"groupBy":["missing"],"aggregates":{"tests":{"count":"*"}}}',
-			'{"groupBy":["file"],"aggregates":{"tests":{"count":"missing"}}}',
-			'{"groupBy":["file"],"aggregates":{"tests":{"sum":"missing"}}}',
-			'{"groupBy":["file"],"aggregates":{"file":{"count":"*"}}}',
-			'{"groupBy":["file"],"aggregates":{"tests":{"count":"*"}},"orderBy":[{"field":"durationMs","direction":"asc"}]}',
-			'{"groupBy":["file"],"aggregates":{"tests":{"count":"*"}},"where":{"missing":1}}',
-			'{"groupBy":["file"],"aggregates":{"tests":{"count":"*"}},"limit":-1}',
-			'{"groupBy":["file"],"aggregates":{"tests":{"count":"*"}},"limit":1.5}',
-		];
-		for (const json of invalid) {
-			const query: Parameters<Aggregate<typeof TestResult>>[0] = JSON.parse(json);
-			const captured = yield* captureStatement(results.aggregate(query).pipe(Effect.flip));
-			expect(captured.rows).toBeInstanceOf(Schema.SchemaError);
-			expect(captured.statements).toEqual([]);
-		}
+type AggregateQuery = Parameters<Aggregate<typeof TestResult>>[0];
+
+const invalidQueries = [
+	{ json: '{"groupBy":["missing"],"aggregates":{"tests":{"count":"*"}}}', name: "an unknown group field" },
+	{ json: '{"groupBy":["file"],"aggregates":{"tests":{"count":"missing"}}}', name: "an unknown counted field" },
+	{ json: '{"groupBy":["file"],"aggregates":{"tests":{"sum":"missing"}}}', name: "an unknown summed field" },
+	{ json: '{"groupBy":["file"],"aggregates":{"file":{"count":"*"}}}', name: "an aggregate named like a group field" },
+	{
+		json: '{"groupBy":["file"],"aggregates":{"tests":{"count":"*"}},"orderBy":[{"field":"durationMs","direction":"asc"}]}',
+		name: "ordering by a field that is neither grouped nor aggregated",
 	},
-);
+	{ json: '{"groupBy":["file"],"aggregates":{"tests":{"count":"*"}},"where":{"missing":1}}', name: "an unknown filter field" },
+	{ json: '{"groupBy":["file"],"aggregates":{"tests":{"count":"*"}},"limit":-1}', name: "a negative limit" },
+	{ json: '{"groupBy":["file"],"aggregates":{"tests":{"count":"*"}},"limit":1.5}', name: "a fractional limit" },
+];
 
-postgres.it("aggregate decodes group columns and min/max through their model schemas", [hasGroupedResults()], function* ({ groupedResults, sql }) {
-	const { results, tableName } = groupedResults();
-	yield* results.insertMany(resultRows);
-	yield* sql`alter table ${sql(tableName)} alter column "durationMs" type numeric`;
-	yield* sql`update ${sql(tableName)} set "durationMs" = 1.5 where id = 1`;
-	expect(yield* results.aggregate({ aggregates: { tests: { count: "*" } }, groupBy: ["durationMs"] }).pipe(Effect.flip)).toBeInstanceOf(
-		Schema.SchemaError,
+for (const { json, name } of invalidQueries) {
+	queries.it(`aggregate rejects ${name} with a schema error before sending SQL`, [], function* ({ aggregateResults, lastResult, statementsSent }) {
+		const query: AggregateQuery = JSON.parse(json);
+
+		yield* aggregateResults(query);
+
+		yield* outcomes({
+			"aggregate result": [lastResult(), "failed with a schema error"],
+			"statements sent": [statementsSent(), 0],
+		});
+	});
+}
+
+const decodedAggregates = [
+	{ name: "a group of the duration", query: { aggregates: { tests: { count: "*" } }, groupBy: ["durationMs"] } },
+	{ name: "the smallest duration", query: { aggregates: { shortest: { min: "durationMs" } }, groupBy: ["file"] } },
+	{ name: "the largest duration", query: { aggregates: { longest: { max: "durationMs" } }, groupBy: ["file"] } },
+] as const;
+
+for (const { name, query } of decodedAggregates) {
+	queries.it(
+		`aggregate decodes ${name} through the model's integer field and fails with a schema error on a numeric duration`,
+		[testResults(), durationsAreNumeric()],
+		function* ({ aggregateResults }) {
+			const groups = yield* aggregateResults(query);
+
+			expect(groups).toBe("failed with a schema error");
+		},
 	);
-	expect(yield* results.aggregate({ aggregates: { smallest: { min: "durationMs" } }, groupBy: ["file"] }).pipe(Effect.flip)).toBeInstanceOf(
-		Schema.SchemaError,
-	);
-	expect(yield* results.aggregate({ aggregates: { largest: { max: "durationMs" } }, groupBy: ["file"] }).pipe(Effect.flip)).toBeInstanceOf(
-		Schema.SchemaError,
-	);
-});
+}

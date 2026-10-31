@@ -1,20 +1,14 @@
 import { Effect } from "effect";
 import { HttpClient, HttpClientResponse, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
-import { vi } from "vitest";
 import { otlpReceiver } from "#test/otlpReceiver.ts";
 import { host } from "./story.ts";
 
 export const callbackDiagnostics = host.trait("configured", "a callback traces client URLs and quoted Referer headers", (state) =>
 	Effect.promise(async () => {
-		// Random trace IDs can contain the short secret "c1" by coincidence.
-		const ids = vi.spyOn(Math, "random").mockReturnValue(0.5);
-		state.cleanup.push(() => {
-			ids.mockRestore();
-		});
 		const blob = await otlpReceiver();
 		state.cleanup.push(blob.close);
 		const client = HttpClient.make((request) =>
-			Effect.promise(async () => HttpClientResponse.fromWeb(request, await fetch(`${blob.url}/x?sv=1&sig=s2&se=3`))),
+			Effect.promise(async () => HttpClientResponse.fromWeb(request, await fetch(`${blob.url}/x?sv=1&sig=hidden-blob-signature&se=3`))),
 		);
 		state.routes = HttpRouter.add(
 			"GET",
@@ -22,7 +16,7 @@ export const callbackDiagnostics = host.trait("configured", "a callback traces c
 			Effect.gen(function* () {
 				const request = yield* HttpServerRequest.HttpServerRequest;
 				yield* Effect.annotateCurrentSpan({ "http.request.header.referer": request.headers.referer });
-				yield* client.get("https://blob.example/x?sv=1&sig=s2&se=3").pipe(Effect.orDie);
+				yield* client.get("https://blob.example/x?sv=1&sig=hidden-blob-signature&se=3").pipe(Effect.orDie);
 				return HttpServerResponse.text("ok");
 			}),
 		);

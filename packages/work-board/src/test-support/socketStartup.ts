@@ -30,10 +30,14 @@ export function nestedSocketFolder(): Folder {
 	};
 }
 
-export const socketStartup = Effect.fn("Test.socketStartup")(function* (root: string, phase = "none") {
+export const socketStartup = Effect.fn("Test.socketStartup")(function* (
+	root: string,
+	phase = "none",
+	entry = new URL("./socketStartupChild.ts", import.meta.url),
+) {
 	const child = yield* Effect.acquireRelease(
 		Effect.sync(() =>
-			spawn(process.execPath, ["--conditions=source", fileURLToPath(new URL("./socketStartupChild.ts", import.meta.url)), root, phase], {
+			spawn(process.execPath, ["--conditions=source", fileURLToPath(entry), root, phase], {
 				stdio: ["ignore", "ignore", "pipe", "ipc"],
 			}),
 		),
@@ -70,6 +74,13 @@ export const socketStartup = Effect.fn("Test.socketStartup")(function* (root: st
 	child.on("exit", (code, signal) => failed?.(new Error(`Socket startup exited ${code ?? signal}: ${output}`)));
 	child.on("error", (error) => failed?.(error));
 	return {
+		kill: Effect.promise(
+			() =>
+				new Promise<void>((resolve) => {
+					child.once("exit", () => resolve());
+					child.kill("SIGKILL");
+				}),
+		),
 		next: () =>
 			Effect.promise(
 				() =>

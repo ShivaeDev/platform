@@ -1,70 +1,79 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
-import { quality } from "#test/cli.ts";
-import { qualityTree } from "#test/qualityTree.ts";
-import { removeSeededTrees } from "#test/tree.ts";
-
-afterEach(removeSeededTrees);
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
+import { exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
 
 const FILE = "src/parse.ts";
 const REASON = "This parser preserves the external format.";
-const existing = { files: [FILE], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny"] };
-const legacy = { options: { declared: [{ includes: [FILE], reason: REASON, rule: "lint/suspicious/noExplicitAny" }] } };
-const registry = { content: JSON.stringify([{ file: FILE, reason: REASON, rule: "comments/no-jsdoc" }]), path: "custom-registry.json" };
-const biome = {
+const EXISTING = { files: [FILE], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny"] };
+const LEGACY = { options: { declared: [{ includes: [FILE], reason: REASON, rule: "lint/suspicious/noExplicitAny" }] } };
+const REGISTRY = { content: JSON.stringify([{ file: FILE, reason: REASON, rule: "comments/no-jsdoc" }]), path: "custom-registry.json" };
+const OVERRIDING_BIOME = {
 	content: JSON.stringify({ overrides: [{ includes: [FILE], linter: { rules: { suspicious: { noExplicitAny: "off" } } } }] }),
 	path: "biome.json",
 };
 
-it.each(['"', "`"])("migrates computed literal keys using %s without losing exceptions or retaining legacy declarations", (quote) => {
-	function key(name: string): string {
-		return `[${quote}${name}${quote}]`;
-	}
-	const root = qualityTree([
-		{
-			content: `export default {
-				sources: ["src"],
-				${key("exceptions")}: ${JSON.stringify([existing])},
-				${key("registry")}: "custom-registry.json",
-				${key("rules")}: { ${key("suppressions/biome-overrides")}: ${JSON.stringify(legacy)}, "comments/no-jsdoc": {} }
-			};`,
-			path: "quality.config.ts",
-		},
-		registry,
-		biome,
-	]);
-	expect(quality(root, "exceptions", "migrate")).toMatchObject({ status: 0 });
-	expect(existsSync(join(root, registry.path))).toBe(false);
-	const migrated = readFileSync(join(root, "quality.config.ts"), "utf8");
-	expect(migrated).not.toContain("suppressions/biome-overrides");
-	expect(migrated).not.toContain("custom-registry.json");
-	expect(migrated).toContain('"comments/no-jsdoc": {}');
-	expect(migrated.match(/This parser preserves/gu)).toEqual(["This parser preserves"]);
-	expect(migrated).toContain('"biome/lint/suspicious/noExplicitAny"');
-	expect(migrated).toContain('"comments/no-jsdoc"');
-	expect(readFileSync(join(root, "biome.json"), "utf8")).not.toContain("overrides");
-	expect(quality(root, "exceptions", "migrate")).toMatchObject({ status: 0 });
-	expect(readFileSync(join(root, "quality.config.ts"), "utf8")).toBe(migrated);
-});
+for (const quote of ['"', "`"]) {
+	const computedConfig = {
+		content: `export default {
+			sources: ["src"],
+			[${quote}exceptions${quote}]: ${JSON.stringify([EXISTING])},
+			[${quote}registry${quote}]: "custom-registry.json",
+			[${quote}rules${quote}]: { [${quote}suppressions/biome-overrides${quote}]: ${JSON.stringify(LEGACY)}, "comments/no-jsdoc": {} }
+		};`,
+		path: "quality.config.ts",
+	};
+	exceptionStory.it(
+		`quality exceptions migrate reads keys computed from ${quote}-quoted literals, merges their exceptions into one, keeps the other rules and deletes the registry`,
+		[repositoryHas(computedConfig, REGISTRY, OVERRIDING_BIOME)],
+		function* ({ config, outcome, reads, runs }) {
+			yield* runs("exceptions", "migrate");
 
-it.each([
-	`[key]: ${JSON.stringify([existing])}, rules: { "suppressions/biome-overrides": ${JSON.stringify(legacy)} }`,
-	`exceptions: [], rules: { [rule]: ${JSON.stringify(legacy)} }`,
-])("rejects dynamic computed keys before changing any migration inputs: %s", (properties) => {
-	const inputs = [
-		{
-			content: `const key = "exceptions"; const rule = "suppressions/biome-overrides";
-				export default { ${properties}, registry: "custom-registry.json", sources: ["src"] };`,
-			path: "quality.config.ts",
+			yield* outcomes({
+				"config": [
+					config(),
+					{
+						exceptions: [{ files: [FILE], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny", "comments/no-jsdoc"] }],
+						rules: { "comments/no-jsdoc": {} },
+						sources: ["src"],
+					},
+				],
+				"exit": [outcome(), "passed"],
+				"registry": [reads(REGISTRY.path), undefined],
+			});
 		},
-		registry,
-		biome,
-	];
-	const root = qualityTree(inputs);
-	const before = inputs.map(({ path }) => ({ content: readFileSync(join(root, path), "utf8"), path }));
-	expect(quality(root, "exceptions", "migrate")).toMatchObject({ status: 2, stderr: expect.stringContaining("computed property") });
-	for (const input of before) {
-		expect(readFileSync(join(root, input.path), "utf8")).toBe(input.content);
-	}
-});
+		CLI_TIMEOUT,
+	);
+}
+
+for (const [computed, properties] of [
+	["the exceptions key", `[key]: ${JSON.stringify([EXISTING])}, rules: { "suppressions/biome-overrides": ${JSON.stringify(LEGACY)} }`],
+	["a rule key", `exceptions: [], rules: { [rule]: ${JSON.stringify(LEGACY)} }`],
+]) {
+	exceptionStory.it(
+		`quality exceptions migrate refuses ${computed} computed from a variable and changes no file`,
+		[
+			repositoryHas(
+				{
+					content: `const key = "exceptions"; const rule = "suppressions/biome-overrides";
+						export default { ${properties}, registry: "custom-registry.json", sources: ["src"] };`,
+					path: "quality.config.ts",
+				},
+				REGISTRY,
+				OVERRIDING_BIOME,
+			),
+		],
+		function* ({ files, outcome, runs, stderr }) {
+			const before = yield* files();
+
+			yield* runs("exceptions", "migrate");
+
+			yield* outcomes({
+				"error": [stderr(), expect.stringContaining("computed property")],
+				"exit": [outcome(), "invalid"],
+				"files": [files(), before],
+			});
+		},
+		CLI_TIMEOUT,
+	);
+}

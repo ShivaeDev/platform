@@ -2,48 +2,42 @@ import { Deferred, Effect, Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useState } from "react";
-import { useAction, useQuery } from "#client/resultState.ts";
-import type { ResultEngine } from "./resultEngine.ts";
+import { type ResultState, useAction, useQuery } from "#client/resultState.ts";
+import { causeWords, dataWords, statusWords } from "./outcomeWords.ts";
+import type { Dispatch, ResultEngine } from "./resultEngine.ts";
 
-export function QueryValue({ atom }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<string>> }) {
-	return <span>{Option.getOrElse(useQuery(atom).data, () => "loading")}</span>;
+export function QueryValue<A>({ atom }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<A>> }) {
+	return <output>{Option.match(useQuery(atom).data, { onNone: () => "loading", onSome: String })}</output>;
 }
-export function Shared({ atom }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<number>> }) {
-	return <span>{Option.getOrNull(useQuery(atom).data)}</span>;
-}
-export function QueryResult({ atom }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<number, string>> }) {
-	const state = useQuery(atom);
+function Described({ state }: { readonly state: ResultState<unknown, string> }) {
 	return (
-		<button onClick={state.refresh} type="button">
-			{JSON.stringify({
-				data: Option.getOrNull(state.data),
-				failed: Option.isSome(state.cause),
-				pending: state.pending,
-				refreshing: state.refreshing,
-			})}
-		</button>
+		<dl>
+			<dd data-status="">{statusWords(state)}</dd>
+			<dd data-data="">{dataWords(state.data)}</dd>
+			<dd data-cause="">{causeWords(state.cause)}</dd>
+		</dl>
 	);
 }
-export function ActionResult({
-	atom,
-	engine,
-	overlap,
-}: {
-	readonly atom: Atom.AtomResultFn<number, number, string>;
-	readonly engine: ResultEngine;
-	readonly overlap: boolean;
-}) {
-	const state = useAction(atom);
-	function handleClick() {
-		state.dispatch(overlap ? engine.input : 5);
-		engine.input += 1;
-	}
+function QueryResult({ atom }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<number, string>> }) {
+	const state = useQuery(atom);
 	return (
-		<button onClick={handleClick} type="button">
-			{overlap
-				? Option.getOrElse(state.data, () => -1)
-				: JSON.stringify({ data: Option.getOrNull(state.data), failed: Option.isSome(state.cause), pending: state.pending })}
-		</button>
+		<section>
+			<button onClick={state.refresh} type="button">
+				Run
+			</button>
+			<Described state={state} />
+		</section>
+	);
+}
+function ActionResult({ atom, input }: { readonly atom: Atom.AtomResultFn<number, number, string>; readonly input: number }) {
+	const state = useAction(atom);
+	return (
+		<section>
+			<button onClick={() => state.dispatch(input)} type="button">
+				Run
+			</button>
+			<Described state={state} />
+		</section>
 	);
 }
 export function ResultView({ engine, mode }: { readonly engine: ResultEngine; readonly mode: "query" | "action" | "overlap" | "shared" }) {
@@ -60,23 +54,31 @@ function resultView(engine: ResultEngine, mode: "query" | "action" | "overlap" |
 		);
 		return (
 			<div>
-				<Shared atom={atom} />
-				<Shared atom={atom} />
+				<QueryValue atom={atom} />
+				<QueryValue atom={atom} />
 			</div>
 		);
 	}
 	if (mode === "query") {
 		return <QueryResult atom={Atom.make(Effect.suspend(() => Deferred.await(engine.gate)))} />;
 	}
-	const action = Atom.fn<number>()((input) => Effect.map(Deferred.await(engine.gate), (value) => input + value));
-	const overlapping = Atom.fn<number>()((input) =>
-		Deferred.await(input === 0 ? engine.first : engine.second).pipe(
-			Effect.onInterrupt(() =>
-				Effect.sync(() => {
-					engine.interrupted = true;
-				}),
-			),
-		),
+	if (mode === "action") {
+		return <ActionResult atom={Atom.fn<number>()((input) => Effect.map(Deferred.await(engine.gate), (value) => input + value))} input={5} />;
+	}
+	const overlapping = Atom.fn<number>()(() =>
+		Effect.gen(function* () {
+			const dispatch: Dispatch = { answer: yield* Deferred.make<number, string>(), outcome: "running" };
+			engine.dispatches.push(dispatch);
+			const answer = yield* Deferred.await(dispatch.answer).pipe(
+				Effect.onInterrupt(() =>
+					Effect.sync(() => {
+						dispatch.outcome = "interrupted";
+					}),
+				),
+			);
+			dispatch.outcome = "answered";
+			return answer;
+		}),
 	);
-	return <ActionResult atom={mode === "action" ? action : overlapping} engine={engine} overlap={mode === "overlap"} />;
+	return <ActionResult atom={overlapping} input={0} />;
 }

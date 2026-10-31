@@ -14,5 +14,6 @@
 ### Breaking
 
 - Import `schemaSensitiveKeys` from `@shivaedev/errors/schemaSensitiveKeys.ts` instead of server, and `redactRecord` from `@shivaedev/errors/redact.ts` instead of server's `redactingDiagnostics.ts`.
+- Import schema sensitivity AST helpers from `@shivaedev/errors/schemaSensitiveAst.ts` instead of `@shivaedev/server/schemaSensitiveAst.ts`.
 - Replace server's `redactOtlpUrl` with `redactUrl` from `@shivaedev/errors/sensitive.ts`. Replace server's `redactOtlpText(value, key, sensitive)` with `redactText(value, sensitive, undefined, key)` from `@shivaedev/errors/sensitive.ts`.
 - Errors' redaction helpers now apply the same URL and database-key masking previously applied only to exported traces. Consumers should expect `<redacted>` for URL user information, query values and fragments, and for `db.user`, `db.user.name` and `db.connection_string` values.

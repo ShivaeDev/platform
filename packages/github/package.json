@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/github",
-	"version": "0.7.2",
+	"version": "0.8.1",
 	"description": "Typed GitHub REST requests, conditional reads and resource budgets for Effect applications",
 	"keywords": [
 		"effect"
@@ -39,6 +39,7 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
+		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {

@@ -1,17 +1,15 @@
 import { Config, Effect, Layer, Option, type Redacted } from "effect";
-import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { appDatabase } from "@shivaedev/server/appHost.ts";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { migrations } from "#server/migrations.ts";
 
 export const migrateDatabase = Effect.fn("App.migrateDatabase")(function* (databaseUrl?: Redacted.Redacted<string>) {
 	const url = databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
-	const pool = yield* authDatabase(url);
 	const configuredRelease = yield* Config.option(Config.String("RAILWAY_GIT_COMMIT_SHA"));
 	yield* Layer.build(
 		appDatabase({
 			config: clientOptions({ databaseUrl: url }),
-			migrations: { ...migrations(pool), ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
+			migrations: { ...migrations(), ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
 		}),
 	);
 	yield* Effect.logInfo("Migrations applied");

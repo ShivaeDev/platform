@@ -1,66 +1,51 @@
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { branchedEncoding, scalarEncoding } from "#test/app-host/encodingProvenance.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-host.it(
-	"masks every possible output field in both boolean branches of a sensitive encoder",
-	[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" } }), branchedEncoding],
-	function* ({ postNdjson, logs, close, exportedSpans }) {
-		const value = "private branched contact";
-		const responses = yield* Effect.forEach([false, true], (swap) =>
-			postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: String(swap), payload: { swap, value }, tag: "branched" })}\n`, false),
-		);
-		for (const response of responses) {
-			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(response.body).toContain('"_tag":"Fail"');
-			expect(response.body).toContain('"left":"<redacted>"');
-			expect(response.body).toContain('"right":"<redacted>"');
-			expect(response.body).not.toContain(value);
-		}
-		const diagnostics = logs().filter((entry) => Array.isArray(entry.message) && entry.message.includes("branched diagnostic"));
-		expect(diagnostics).toHaveLength(responses.length);
-		for (const diagnostic of diagnostics) {
-			expect(diagnostic.annotations).toMatchObject({ left: "<redacted>", right: "<redacted>", visible: "public control" });
-		}
-		yield* close();
-		const spans = exportedSpans().filter((span) => span.name === "branched");
-		expect(spans).toHaveLength(responses.length);
-		for (const span of spans) {
-			expect(span.attributes).toEqual(
-				expect.arrayContaining([
-					{ key: "left", value: { stringValue: "<redacted>" } },
-					{ key: "right", value: { stringValue: "<redacted>" } },
-					{ key: "visible", value: { stringValue: "public control" } },
-				]),
-			);
-		}
-	},
-);
+const json = collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" } });
+
+for (const swap of [false, true]) {
+	host.it(
+		`a sensitive encoder that ${swap ? "swaps" : "keeps"} its output fields has both possible fields masked in the client failure, the diagnostic log and span attributes`,
+		[json, branchedEncoding],
+		function* ({ answerMentions, callRpc, close, diagnosticLog, spanAttributes, wireAnswers }) {
+			yield* callRpc("branched", { swap, value: "private branched contact" });
+
+			yield* close();
+
+			yield* outcomes({
+				"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ left: "<redacted>", right: "<redacted>" }) } }],
+				"diagnostic log": [
+					diagnosticLog("branched diagnostic"),
+					expect.objectContaining({ left: "<redacted>", right: "<redacted>", visible: "public control" }),
+				],
+				"leaked into the answer": [answerMentions("private branched contact"), []],
+				"span attributes": [
+					spanAttributes("branched"),
+					[expect.objectContaining({ left: "<redacted>", right: "<redacted>", visible: "public control" })],
+				],
+			});
+		},
+	);
+}
 
 for (const source of ["schema", "host"] as const) {
 	host.it(
-		`protects the enclosing field when a sensitive ${source} descendant encodes as a scalar`,
-		[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" } }), scalarEncoding(source)],
-		function* ({ postNdjson, logs, close, exportedSpans }) {
-			const value = "private scalar contact";
-			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { value }, tag: "scalar" })}\n`, false);
-			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(response.body).toContain('"_tag":"Fail"');
-			expect(response.body).toContain('"profile":"<redacted>"');
-			expect(response.body).toContain('"visible":"public control"');
-			expect(response.body).not.toContain(value);
-			const diagnostic = logs().find((entry) => Array.isArray(entry.message) && entry.message.includes("scalar diagnostic"));
-			expect(diagnostic?.annotations).toMatchObject({ profile: "<redacted>", visible: "public control" });
+		`a sensitive ${source} descendant that encodes as a scalar masks its enclosing field in the client failure, the diagnostic log and span attributes`,
+		[json, scalarEncoding(source)],
+		function* ({ answerMentions, callRpc, close, diagnosticLog, spanAttributes, wireAnswers }) {
+			yield* callRpc("scalar", { value: "private scalar contact" });
+
 			yield* close();
-			expect(exportedSpans().find((span) => span.name === "scalar")?.attributes).toEqual(
-				expect.arrayContaining([
-					{ key: "profile", value: { stringValue: "<redacted>" } },
-					{ key: "visible", value: { stringValue: "public control" } },
-				]),
-			);
+
+			yield* outcomes({
+				"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ profile: "<redacted>", visible: "public control" }) } }],
+				"diagnostic log": [diagnosticLog("scalar diagnostic"), expect.objectContaining({ profile: "<redacted>", visible: "public control" })],
+				"leaked into the answer": [answerMentions("private scalar contact"), []],
+				"span attributes": [spanAttributes("scalar"), [expect.objectContaining({ profile: "<redacted>", visible: "public control" })]],
+			});
 		},
 	);
 }

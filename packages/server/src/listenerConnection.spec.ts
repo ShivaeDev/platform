@@ -3,17 +3,15 @@ import { listenerConnectionStory } from "#test/listenerConnectionStory.ts";
 
 for (const source of ["fallback", "environment", "configuration"] as const) {
 	listenerConnectionStory.it(
-		`the ${source} listener connection delivers committed changes`,
+		`a host listening through the ${source} listener connection hints a subscriber about committed note 1`,
 		[],
-		function* ({ boot, nextHint, startupOutcome, subscribe, write }) {
-			yield* boot(source, false);
-			expect(yield* startupOutcome()).toBe("listening");
+		function* ({ hostStarts, nextHint, noteIsWritten, subscribe }) {
+			expect(yield* hostStarts(source)).toBe("listening");
 			yield* subscribe();
-			expect(yield* nextHint()).toEqual({ _tag: "Resync" });
 
-			yield* write();
+			yield* noteIsWritten();
 
-			expect(yield* nextHint()).toEqual({ _tag: "Changed", keys: [{ _tag: "Item", collection: "notes", id: 1 }] });
+			expect(yield* nextHint()).toBe("changed 1");
 		},
 	);
 }
@@ -24,11 +22,10 @@ for (const [source, setting] of [
 	["configuration", "config.listenDatabaseUrl"],
 ] as const) {
 	listenerConnectionStory.it(
-		`startup fails naming ${setting} when PostgreSQL cannot deliver the listener heartbeat`,
+		`startup fails naming ${setting} when the ${source} listener connection never delivers its heartbeat`,
 		[],
-		function* ({ boot, heartbeatDeadlinePasses, mutedHeartbeat, startupOutcome }) {
-			yield* boot(source, true);
-			yield* mutedHeartbeat();
+		function* ({ heartbeatDeadlinePasses, hostStartsWithMutedListener, startupOutcome }) {
+			yield* hostStartsWithMutedListener(source);
 
 			yield* heartbeatDeadlinePasses();
 

@@ -27,24 +27,24 @@ export const signOuts = storyKit(
 		"sign-out screen",
 		(): State => ({ destinations: [], requests: [], response: Promise.withResolvers<void>() }),
 		(state, screen) => ({
-			click: () => screen.act("click Sign out", () => clickButton(view(state).container, "Sign out")),
-			complete: () => screen.act("the sign-out request succeeds", () => state.response.resolve()),
-			destinations: () => state.destinations,
-			phase: () => view(state).container.querySelector("output")?.textContent,
-			requests: () => state.requests,
-			startFromAuthOwner: () =>
+			authOwnerStartsSignOut: () =>
 				screen.act("the auth owner dispatches sign-out", () => {
 					if (!state.owner) {
 						throw new Error("No sign-out owner");
 					}
 					state.owner.registry.set(state.owner.action, undefined);
 				}),
-			unmount: () => screen.act("unmount the sign-out component", () => view(state).render(null)),
+			clickSignOut: () => screen.act("click Sign out", () => clickButton(view(state).container, "Sign out")),
+			destinations: () => Effect.sync(() => [...state.destinations]),
+			leave: () => screen.act("the sign-out component unmounts", () => view(state).render(null)),
+			phase: () => Effect.sync(() => view(state).container.querySelector("output")?.textContent),
+			requests: () => Effect.sync(() => [...state.requests]),
+			signOutSucceeds: () => screen.act("the sign-out request succeeds", () => state.response.resolve()),
 		}),
 	),
 );
-export function pendingSignOut() {
-	return signOuts.trait("screen", "a sign-out request waiting for the server", function* ({ screen, state }) {
+export function signOutIsReady() {
+	return signOuts.trait("screen", "a signed-in route shows Sign out, and the server holds sign-out requests", function* ({ screen, state }) {
 		const registry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(owner) => Effect.sync(() => owner.dispose()),

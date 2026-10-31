@@ -1,101 +1,97 @@
 import { expect } from "vitest";
-import { exportsStory, filePathExports, standaloneWithExports, workspaceWithExports } from "#exports-story";
-import { CLI_EXIT } from "#test/cli.ts";
+import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
+import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#test/packageExports.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-exportsStory.it(
-	"a named alias directs the author to import the module at its file path through the wildcard",
-	[
-		workspaceWithExports({
-			...filePathExports,
-			"./better-auth.ts": {
-				default: "./dist/server/better-auth/mount.js",
-				source: "./src/server/better-auth/mount.ts",
-				types: "./dist/server/better-auth/mount.d.ts",
+const SERVER_WILDCARD = { "./server/*.ts": { default: "./dist/server/*.js", source: "./src/server/*.ts", types: "./dist/server/*.d.ts" } };
+
+const CLIENT_MODULE = { "./client.ts": { default: "./dist/client.js", source: "./src/client.ts", types: "./dist/client.d.ts" } };
+
+const ACCEPTED_EXPORTS = [
+	{ exports: { ".": "./dist/index.js", ...FILE_PATH_EXPORTS }, name: "an optional root export beside the wildcard" },
+	{ exports: SERVER_WILDCARD, name: "a single wildcard under a subpath that keeps the module's path" },
+	{
+		exports: { ...FILE_PATH_EXPORTS, "./biome/preset.json": "./biome/preset.json", "./tsconfig/base.json": "./tsconfig/base.json" },
+		name: "non-code assets at their exact paths beside the wildcard",
+	},
+	{ exports: { "./package.json": "./package.json" }, name: "a package without modules that exports only its exact assets" },
+];
+
+for (const path of ["./private.ts", "./internal/*", ".", "./preset.json"]) {
+	ruleStory.it(
+		`manifests/exports-shape asks to remove a null export at ${path} until it is removed`,
+		[repositoryHas(exportsWorkspace, packageExports({ ...FILE_PATH_EXPORTS, [path]: null }))],
+		function* ({ check, writes }) {
+			expect(yield* check(manifestsExportsShape)).toEqual([
+				{
+					file: LIBRARY_MANIFEST,
+					message: exportsShapeMessage(`Export "${path}" blocks module imports with null. Remove the null entry so callers can import each module.`),
+					subject: path,
+				},
+			]);
+
+			yield* writes(packageExports(FILE_PATH_EXPORTS));
+
+			expect(yield* check(manifestsExportsShape)).toEqual([]);
+		},
+	);
+}
+
+for (const { exports, name } of ACCEPTED_EXPORTS) {
+	ruleStory.it(`manifests/exports-shape accepts ${name}`, [repositoryHas(exportsWorkspace, packageExports(exports))], function* ({ check }) {
+		expect(yield* check(manifestsExportsShape)).toEqual([]);
+	});
+}
+
+ruleStory.it(
+	"manifests/exports-shape reports a second non-null wildcard even when both keep the module's path",
+	[repositoryHas(exportsWorkspace, packageExports({ ...FILE_PATH_EXPORTS, ...SERVER_WILDCARD }))],
+	function* ({ check }) {
+		const findings = yield* check(manifestsExportsShape);
+
+		expect(findings).toEqual([
+			{ file: LIBRARY_MANIFEST, message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 2."), subject: "exports" },
+		]);
+	},
+);
+
+ruleStory.it(
+	"manifests/exports-shape reports a root export without the wildcard as a missing wildcard",
+	[repositoryHas(exportsWorkspace, packageExports({ ".": "./dist/index.js", "./package.json": "./package.json" }))],
+	function* ({ check }) {
+		const findings = yield* check(manifestsExportsShape);
+
+		expect(findings).toEqual([
+			{ file: LIBRARY_MANIFEST, message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 0."), subject: "exports" },
+		]);
+	},
+);
+
+ruleStory.it(
+	"manifests/exports-shape checks a standalone package's own manifest like a workspace member's",
+	[repositoryHas(packageExports({ ...FILE_PATH_EXPORTS, "./alias.ts": "./src/server/module.ts" }, "package.json"))],
+	function* ({ check }) {
+		const findings = yield* check(manifestsExportsShape);
+
+		expect(findings).toEqual([
+			{ file: "package.json", message: exportsShapeMessage('Export "./alias.ts" does not preserve the module\'s file path.'), subject: "./alias.ts" },
+		]);
+	},
+);
+
+ruleStory.it(
+	"manifests/exports-shape reports a per-file module export without the wildcard as a missing wildcard and an unpreserved path",
+	[repositoryHas(packageExports(CLIENT_MODULE, "package.json"))],
+	function* ({ check }) {
+		const findings = yield* check(manifestsExportsShape);
+
+		expect(findings).toEqual([
+			{ file: "package.json", message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 0."), subject: "exports" },
+			{
+				file: "package.json",
+				message: exportsShapeMessage('Export "./client.ts" does not preserve the module\'s file path.'),
+				subject: "./client.ts",
 			},
-		}),
-	],
-	function* ({ lint }) {
-		const result = yield* lint();
-		expect(result.status).toBe(CLI_EXIT.rejected);
-		expect(result.stdout).toContain("manifests/exports-shape");
-		expect(result.stdout).toContain('Export "./better-auth.ts"');
-		expect(result.stdout).toContain("Import the module at its file path through the single");
-		expect(result.stdout).toContain("./server/better-auth/mount.ts");
-	},
-);
-
-exportsStory.it(
-	"a second non-null wildcard fails even when both patterns preserve paths",
-	[
-		workspaceWithExports({
-			...filePathExports,
-			"./server/*.ts": { default: "./dist/server/*.js", source: "./src/server/*.ts", types: "./dist/server/*.d.ts" },
-		}),
-	],
-	function* ({ lint }) {
-		const result = yield* lint();
-		expect(result.status).toBe(CLI_EXIT.rejected);
-		expect(result.stdout).toContain("exactly one non-null wildcard; found 2");
-	},
-);
-
-exportsStory.it(
-	"null entries block exact and wildcard paths without adding public exports",
-	[workspaceWithExports({ ...filePathExports, "./internal/*": "./src/internal/*", "./private.ts": "./src/private.ts" })],
-	function* ({ lint, writesExports }) {
-		expect((yield* lint()).stdout).toContain("manifests/exports-shape");
-		yield* writesExports({ ...filePathExports, "./internal/*": null, "./private.ts": null });
-		expect((yield* lint()).status).toBe(CLI_EXIT.passed);
-	},
-);
-
-exportsStory.it(
-	"the standard shape and an optional root replace flattened paths",
-	[workspaceWithExports({ "./*.ts": { default: "./dist/server/*.js", source: "./src/server/*.ts", types: "./dist/server/*.d.ts" } })],
-	function* ({ lint, writesExports }) {
-		expect((yield* lint()).stdout).toContain('Export "./*.ts"');
-		yield* writesExports({ ".": "./dist/index.js", ...filePathExports });
-		expect((yield* lint()).status).toBe(CLI_EXIT.passed);
-		yield* writesExports({ "./server/*.ts": { default: "./dist/server/*.js", source: "./src/server/*.ts", types: "./dist/server/*.d.ts" } });
-		expect((yield* lint()).status).toBe(CLI_EXIT.passed);
-	},
-);
-
-exportsStory.it(
-	"exact non-code asset paths replace JSON preset aliases",
-	[workspaceWithExports({ ...filePathExports, "./biome": "./biome/preset.json" })],
-	function* ({ lint, writesExports }) {
-		expect((yield* lint()).stdout).toContain('Export "./biome"');
-		yield* writesExports({ ...filePathExports, "./biome/preset.json": "./biome/preset.json", "./tsconfig/base.json": "./tsconfig/base.json" });
-		expect((yield* lint()).status).toBe(CLI_EXIT.passed);
-	},
-);
-
-exportsStory.it(
-	"the standalone package follows the same policy as workspace members",
-	[standaloneWithExports({ ...filePathExports, "./alias.ts": "./src/server/module.ts" })],
-	function* ({ lint, writesExports }) {
-		expect((yield* lint()).stdout).toContain('Export "./alias.ts"');
-		yield* writesExports(filePathExports, "package.json");
-		expect((yield* lint()).status).toBe(CLI_EXIT.passed);
-	},
-);
-
-exportsStory.it("a source tree can be checked without a package manifest", [], function* ({ lint, writesExports }) {
-	expect((yield* lint()).status).toBe(CLI_EXIT.passed);
-	yield* writesExports({ "./client.ts": { default: "./dist/client.js", source: "./src/client.ts", types: "./dist/client.d.ts" } }, "package.json");
-	const listed = yield* lint();
-	expect(listed.status).toBe(CLI_EXIT.rejected);
-	expect(listed.stdout).toContain("exactly one non-null wildcard; found 0");
-	expect(listed.stdout).toContain('Export "./client.ts"');
-});
-
-exportsStory.it(
-	"a package without modules exports only its exact assets",
-	[workspaceWithExports({ "./package.json": "./package.json" })],
-	function* ({ lint, writesExports }) {
-		expect((yield* lint()).status).toBe(CLI_EXIT.passed);
-		yield* writesExports({ ".": "./dist/index.js", "./package.json": "./package.json" });
-		expect((yield* lint()).stdout).toContain("exactly one non-null wildcard; found 0");
+		]);
 	},
 );

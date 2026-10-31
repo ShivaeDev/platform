@@ -1,11 +1,11 @@
 import { Effect, Fiber } from "effect";
+import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
-import type { DisconnectGate } from "./disconnectGate.ts";
 import { runningIn, until } from "./engine.ts";
 
 type Tell = (line: string) => void;
 
-function gateOf(engine: DatabaseEngine): DisconnectGate {
+function gateOf(engine: DatabaseEngine): Effect.Success<ReturnType<typeof disconnectProxy>> {
 	if (engine.gate === undefined) {
 		throw new Error("No disconnect gate stands in front of the database");
 	}

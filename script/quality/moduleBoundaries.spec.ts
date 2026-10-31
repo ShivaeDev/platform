@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { httpStatus } from "@shivaedev/quality/rules/stories/httpStatus.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { httpStatus } from "#quality-internal/rules/stories/httpStatus.ts";
 
 ruleKit.it(
 	"domain code handles typed errors instead of comparing HTTP error numbers",

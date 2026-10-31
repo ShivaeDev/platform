@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/browser-check",
-	"version": "0.1.0",
+	"version": "0.2.1",
 	"description": "Local screenshots and smoke checks for running Platform apps",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/browser-check#readme",
 	"bugs": {
@@ -34,6 +34,7 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
+		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {

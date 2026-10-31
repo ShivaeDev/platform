@@ -6,14 +6,14 @@ import { contract } from "#contract.ts";
 import type { LiveHint } from "#live.ts";
 import { command, query, stream } from "#operation.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
-import { type Denied, type Guard, Notes } from "#test/notes.ts";
+import { Denied, type Guard, type NoteMissing, Notes } from "#test/notes.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
 type Changes = Rpc.ExtractTag<Rpcs, "notes.$changes">;
 declare const client: RpcClient.RpcClient.Flat<Rpcs, RpcClientError>;
 
 const changes = client("notes.$changes", { queries: [{ payload: { id: 1 }, query: "get" }] });
-expectTypeOf(changes).toEqualTypeOf<Stream.Stream<LiveHint, Denied | MissingReadPolicy | QueryReadDenied | RpcClientError>>();
+expectTypeOf(changes).toEqualTypeOf<Stream.Stream<LiveHint, Denied | NoteMissing | MissingReadPolicy | QueryReadDenied | RpcClientError>>();
 expectTypeOf<Rpc.Payload<Changes>>().toEqualTypeOf<{
 	readonly queries: readonly (
 		| { readonly query: "get"; readonly payload: { readonly id: number } }
@@ -56,3 +56,21 @@ client("notes.$changes", { queries: [{ payload: { id: 1, title: "Changed" }, que
 client("notes.$changes", { queries: [{ payload: { id: "one" }, query: "get" }] });
 // @ts-expect-error Raw keys are not a subscription payload.
 client("notes.$changes", { keys: [] });
+
+const Pushed = contract("pushed", {
+	queries: [
+		query("read", { live: "rerun-and-compare", reads: () => [], rejections: { Denied }, success: Schema.BigIntFromString }),
+		query("hinted", { reads: () => [], success: Schema.String }),
+	],
+});
+type PushedChanges = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Pushed>, "pushed.$changes">;
+expectTypeOf<Rpc.SuccessChunk<PushedChanges>>().toEqualTypeOf<
+	| LiveHint
+	| {
+			readonly _tag: "Result";
+			readonly query: "read";
+			readonly queryIndex: number;
+			readonly value: bigint;
+	  }
+>();
+expectTypeOf<Rpc.ErrorExit<PushedChanges>>().toEqualTypeOf<MissingReadPolicy | QueryReadDenied | Denied>();

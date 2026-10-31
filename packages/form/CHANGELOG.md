@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.0 - 2026-10-30
+
+### Added
+
+- Forms without application service requirements can omit `runtime` and use an empty atom runtime. Handlers, advisory checks and schema decoding that require application services still need a matching runtime.
+
+### Breaking
+
+- `Config` is a conditional type so service requirements determine whether `runtime` is required. Extend generic configurations with an intersection type instead of an interface that extends `Config`.
+
+## 0.8.0 - 2026-10-30
+
+### Fixed
+
+- Work Board reads draft timestamps and expiry through its form client’s runtime Clock.
+
+### Breaking
+
+- Persisted drafts require a `now: () => number` callback in core forms, `usePersistedDraft`, `useEditor` and `useCreate`. Capture `Clock.Clock` in the application’s Effect setup and pass `now: () => clock.currentTimeMillisUnsafe()` so timestamps and expiry follow that clock, including TestClock in stories.
+- Form no longer exports the identity cast helpers `holder`, `fieldOf`, `choicesOf` or `checkOf` from `shape.ts`, or `keySelector` from `paths.ts`. Use declared reference, field, check and selector types directly; get field refs and choices through the form’s typed `field` and `choices` methods.
+
 ## 0.7.1 - 2026-10-30
 
 ### Changed

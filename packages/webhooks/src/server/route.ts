@@ -1,4 +1,4 @@
-import { Cause, type Context, Effect, Layer, type Redacted } from "effect";
+import { Cause, type Config, type Context, Effect, Layer, Predicate, type Redacted } from "effect";
 import { HttpRouter, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
@@ -8,13 +8,20 @@ import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { receive } from "#server/internal/receive.ts";
 import type { WebhookSource } from "#server/registration.ts";
 
-export interface WebhookRouteOptions<TJobs, R> {
+export interface WebhookRouteOptions<TJobs, R, E = never> {
 	readonly basePath: `/${string}`;
 	readonly jobs: Context.Key<TJobs, PgBossService>;
-	readonly sources: Readonly<Record<string, WebhookSource<R>>>;
+	readonly sources: Readonly<Record<string, WebhookSource<R, E>>>;
 }
 
-export function webhookRoute<TJobs, R>(options: WebhookRouteOptions<TJobs, R>) {
+type SourceServices<T> = T extends WebhookSource<infer R, unknown> ? R : never;
+type RouteLayer<TJobs, R> = Layer.Layer<never, Config.ConfigError, HttpRouter.HttpRouter | TJobs | R | SqlClient.SqlClient>;
+
+export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<TJobs, R, E>): RouteLayer<TJobs, R>;
+export function webhookRoute<TJobs, const TSources extends Readonly<Record<string, WebhookSource<unknown, unknown>>>>(
+	options: Pick<WebhookRouteOptions<TJobs, never>, "basePath" | "jobs"> & { readonly sources: TSources },
+): RouteLayer<TJobs, SourceServices<TSources[keyof TSources]>>;
+export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<TJobs, R, E>) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const context = yield* Effect.context<TJobs | R | SqlClient.SqlClient>();
@@ -43,9 +50,12 @@ export function webhookRoute<TJobs, R>(options: WebhookRouteOptions<TJobs, R>) {
 					Effect.catch((error) => {
 						const response = HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") });
 						// Preserve the failure for HTTP tracing without attaching the request's credentials to a synthetic 503 error.
-						const cause = redactDiagnosticCause(Cause.fail(Object.assign(error, { [HttpServerRespondable.symbol]: () => Effect.succeed(response) })));
+						const failure = Predicate.isObject(error) ? error : new Error("Webhook receipt failed", { cause: error });
+						const cause = redactDiagnosticCause(
+							Cause.fail(Object.assign(failure, { [HttpServerRespondable.symbol]: () => Effect.succeed(response) })),
+						);
 						return Effect.logError("Webhook receipt failed", cause).pipe(
-							Effect.annotateLogs({ errorTag: error._tag }),
+							Effect.annotateLogs({ errorTag: Predicate.hasProperty(error, "_tag") ? error._tag : "Unknown" }),
 							Effect.andThen(Effect.failCause(cause)),
 						);
 					}),

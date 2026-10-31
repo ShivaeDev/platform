@@ -2,7 +2,7 @@ import { Effect, Layer } from "effect";
 import type { OtlpResource, OtlpTracer } from "effect/observability";
 import { OtlpSerialization } from "effect/observability";
 import { REDACTED, redactText, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
-import { RedactionPolicy } from "#RedactionPolicy.ts";
+import { type HostRedactionPolicy, RedactionPolicy, redactionForRpc } from "#RedactionPolicy.ts";
 
 function attributeValue(value: OtlpResource.AnyValue, key: string, sensitive: SensitiveKey): OtlpResource.AnyValue {
 	return {
@@ -30,25 +30,30 @@ function spanName(span: { readonly name: string; readonly kind: number; readonly
 	return span.name;
 }
 
-function redactTraces(data: OtlpTracer.TraceData, sensitive: SensitiveKey): OtlpTracer.TraceData {
-	function text(value: string) {
-		return redactText(value, sensitive);
-	}
+function redactTraces(data: OtlpTracer.TraceData, policy: HostRedactionPolicy): OtlpTracer.TraceData {
+	const resourceSensitive = policy;
 	return {
 		...data,
 		resourceSpans: data.resourceSpans.map((resource) => ({
 			...resource,
-			resource: { ...resource.resource, attributes: attributes(resource.resource.attributes, sensitive) },
+			resource: { ...resource.resource, attributes: attributes(resource.resource.attributes, resourceSensitive) },
 			scopeSpans: resource.scopeSpans.map((scope) => ({
 				...scope,
-				spans: scope.spans.map((span) => ({
-					...span,
-					attributes: attributes(span.attributes, sensitive),
-					events: span.events.map((event) => ({ ...event, attributes: attributes(event.attributes, sensitive), name: text(event.name) })),
-					links: span.links.map((link) => ({ ...link, attributes: attributes(link.attributes, sensitive) })),
-					name: text(spanName(span)),
-					status: { ...span.status, ...(span.status.message === undefined ? {} : { message: text(span.status.message) }) },
-				})),
+				spans: scope.spans.map((span) => {
+					const method = span.attributes.find(({ key }) => key === "rpc.method")?.value.stringValue;
+					const sensitive = redactionForRpc(policy, method);
+					function text(value: string) {
+						return redactText(value, sensitive);
+					}
+					return {
+						...span,
+						attributes: attributes(span.attributes, sensitive),
+						events: span.events.map((event) => ({ ...event, attributes: attributes(event.attributes, sensitive), name: text(event.name) })),
+						links: span.links.map((link) => ({ ...link, attributes: attributes(link.attributes, sensitive) })),
+						name: text(spanName(span)),
+						status: { ...span.status, ...(span.status.message === undefined ? {} : { message: text(span.status.message) }) },
+					};
+				}),
 			})),
 		})),
 	};

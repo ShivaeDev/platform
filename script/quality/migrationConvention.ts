@@ -1,6 +1,6 @@
+import { MIGRATIONS_DIRECTORY as QUALITY_DIRECTORY, MIGRATION_FILE_PATTERN as QUALITY_PATTERN } from "@shivaedev/quality/naming/migrationFile.ts";
 import { defineRule } from "@shivaedev/quality/rule.ts";
 import { MIGRATION_FILE_PATTERN, MIGRATIONS_DIRECTORY } from "@shivaedev/sql/migrationConvention.ts";
-import { MIGRATIONS_DIRECTORY as QUALITY_DIRECTORY, MIGRATION_FILE_PATTERN as QUALITY_PATTERN } from "#quality-internal/naming/migrationFile.ts";
 
 export const migrationConvention = defineRule({
 	check: async () =>

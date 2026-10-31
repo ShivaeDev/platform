@@ -15,7 +15,7 @@ runtime.it(
 		running("app", [worker(Reports, "succeeds")]),
 	],
 	function* ({ answered, ask }) {
-		yield* ask("app", "report health", (jobs) => jobs.health);
+		yield* ask("app", "report health", (jobs) => jobs.health());
 
 		expect(yield* answered()).toEqual({
 			activeTotal: 2,
@@ -29,7 +29,7 @@ runtime.it(
 );
 
 runtime.it("health covers producer-only queues", [running("app", [Reports])], function* ({ answered, ask }) {
-	yield* ask("app", "report health", (jobs) => jobs.health);
+	yield* ask("app", "report health", (jobs) => jobs.health());
 
 	expect(yield* answered()).toMatchObject({ jobs: [{ name: "reports" }] });
 });

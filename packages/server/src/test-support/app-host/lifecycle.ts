@@ -1,15 +1,15 @@
-import { ConfigProvider, Context, Effect, Exit, Layer, Logger, References } from "effect";
+import { ConfigProvider, Context, Effect, Exit, Layer, Logger, Option, References } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { makePlatformRuntime } from "#runtime/makePlatform.ts";
 import { runtimeLayer } from "./runtimeLayer.ts";
-import { type HostState, io, runtimeOf } from "./state.ts";
+import { type HostState, io, recordLog, runtimeOf } from "./state.ts";
 
 export function start(state: HostState) {
 	return io(async () => {
 		const logger = Logger.make((options) =>
-			state.logs.push({
+			recordLog(state, {
 				annotations: options.fiber.getRef(References.CurrentLogAnnotations),
 				attempt: state.receiver?.requests.length ?? 0,
 				level: options.logLevel,
@@ -64,5 +64,5 @@ export function context(state: HostState) {
 	return io(() => runtimeOf(state).runPromise(Effect.context()));
 }
 export function hasService<TIdentifier, TService>(state: HostState, service: Context.Key<TIdentifier, TService>) {
-	return context(state).pipe(Effect.map((services) => Context.getOption(services, service)._tag === "Some"));
+	return context(state).pipe(Effect.map((services) => Option.isSome(Context.getOption(services, service))));
 }

@@ -3,6 +3,7 @@ import { Effect, ManagedRuntime, Stream } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { LiveOrders, Order, Orders } from "./contract.ts";
+import { recorded } from "./recorded.ts";
 
 export async function processClient(url: string) {
 	const connection = makeClient(Orders, {
@@ -13,7 +14,7 @@ export async function processClient(url: string) {
 	});
 	const runtime = ManagedRuntime.make(connection);
 	const client = await runtime.runPromise(connection.Client);
-	const hints: LiveHint[] = [];
+	const hints = recorded<LiveHint>();
 	runtime.runFork(client("subscribe", { id: 1 }).pipe(Stream.runForEach((hint) => Effect.sync(() => hints.push(hint)))));
 	return {
 		close: () => runtime.dispose(),

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.12.0 - 2026-10-30
+
+### Added
+
+- A scoped PostgreSQL disconnect proxy supports disconnecting, refusing and stalling traffic, holding disconnect acknowledgements, observing open clients and dropping LISTEN notifications. Test kits can share the environment reader and empty PostgreSQL template.
+- Shared story answer readouts translate Effect failures into words for package test kits.
+
+## 0.11.0 - 2026-10-30
+
+### Added
+
+- Export every engine module through the package's existing `.ts` wildcard, including modules under `internal/` in `test` and `vitest-rerun` and `server/internal/` in `test-story` and `test-sql`, so downstream kits can reuse them directly. Importing the rerun worker leaves test execution to its direct launch.
+
+### Fixed
+
+- Limit per-test scope cleanup after a test timeout to five seconds. A stuck finalizer now fails the test with its scope name and lets the runner continue. Remove duplicate failure logging into the captured test console; Vitest reports the failure.
+
 ## 0.10.1 - 2026-10-30
 
 ### Changed

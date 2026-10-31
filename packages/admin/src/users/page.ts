@@ -1,14 +1,13 @@
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
+import { LastRoleAssigner } from "@shivaedev/access/roles.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable, Forbidden, NotFound } from "@shivaedev/errors/taxonomy.ts";
-import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { hasPermission } from "@shivaedev/identity/permission.ts";
 import { adminPage } from "#page.ts";
 import { UsersPermission } from "#permissions.ts";
-import { LastRoleAssigner, UserList, UserListInput } from "#users/roles.ts";
+import { UserList, UserListInput } from "#users/roles.ts";
 
 const users = collection("admin.users", Schema.String);
 
@@ -26,7 +25,6 @@ export function usersPage<const TRole extends string>(access: Pick<AccessPolicy<
 			queries: [
 				query("list", {
 					payload: UserListInput.fields,
-					readPolicy: () => Effect.map(SessionUser, (user) => hasPermission(user, UsersPermission.permission)),
 					reads: () => [users.list],
 					rejections: { AuthUnavailable, Forbidden },
 					success: UsersList,

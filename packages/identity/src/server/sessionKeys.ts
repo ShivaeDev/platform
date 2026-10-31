@@ -1,9 +1,10 @@
 import { Context, Effect, Option } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { KeyContext } from "@shivaedev/changes/keys.ts";
-import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
-import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
-import { ChangesQueries, KeyScope, type QueryReference } from "@shivaedev/contract/serverMetadata.ts";
+import { type QuerySubscription, querySubscription } from "@shivaedev/contract/querySubscription.ts";
+import { CurrentViewer, type PolicyChannels } from "@shivaedev/contract/readPolicy.ts";
+import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
+import { KeyScope, type QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Identity } from "#identity.ts";
 
 export function sessionKeyContext(rpc: Pick<Rpc.AnyWithProps, "annotations">): Effect.Effect<KeyContext | undefined> {
@@ -19,11 +20,23 @@ export function sessionKeyContext(rpc: Pick<Rpc.AnyWithProps, "annotations">): E
 	});
 }
 
-export const resolveChanges = Effect.fnUntraced(function* (rpc: Pick<Rpc.AnyWithProps, "annotations">, references: readonly QueryReference[]) {
-	const identity = yield* Effect.serviceOption(Identity);
-	const current = yield* CurrentViewer;
-	const viewer = Option.orElse(identity, () => current);
-	const queries = yield* Context.getUnsafe(rpc.annotations, ChangesQueries).resolve(references);
-	const subscription = yield* querySubscription(queries, viewer);
-	return { context: yield* sessionKeyContext(rpc), subscription };
-});
+export function resolveChanges<TRpc extends Rpc.Any>(
+	rpc: TRpc,
+	references: readonly QueryReference[],
+): Effect.Effect<
+	{
+		readonly context: KeyContext | undefined;
+		readonly subscription: QuerySubscription<PolicyChannels<TRpc>["error"], PolicyChannels<TRpc>["services"]>;
+	},
+	PolicyChannels<TRpc>["error"] | MissingReadPolicy | QueryReadDenied,
+	PolicyChannels<TRpc>["services"]
+>;
+export function resolveChanges(rpc: Rpc.Any, references: readonly QueryReference[]) {
+	return Effect.fnUntraced(function* () {
+		const identity = yield* Effect.serviceOption(Identity);
+		const current = yield* CurrentViewer;
+		const viewer = Option.orElse(identity, () => current);
+		const subscription = yield* querySubscription(rpc, references, viewer);
+		return { context: yield* sessionKeyContext(rpc), subscription };
+	})();
+}

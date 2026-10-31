@@ -26,6 +26,8 @@ export function raceVerbs(state: InboxState, tell: (line: string) => void) {
 				yield* holdReceiptUpdates(state.firstReceiptUpdateFails);
 				const sql = yield* SqlClient.SqlClient;
 				yield* raceWithLock({
+					// The copies run on the app host's handler fibers, which cannot carry raceWithLock's contender tag.
+					count: "every blocked session",
 					effects: [deliver(state, "the signed issue 42 delivery"), deliver(state, "the signed issue 42 delivery")],
 					lock: sql`select pg_advisory_xact_lock(${RACE_LOCK})`,
 				});

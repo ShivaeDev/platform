@@ -1,12 +1,12 @@
 import { expect } from "vitest";
-import { publicConfigStory } from "#test/public-config/story.ts";
+import { hostConfigured, publicConfigStory } from "#test/public-config/story.ts";
 
-publicConfigStory.it("useQuery renders public configuration from a real platform HTTP host", [], function* ({ serve, open, view, observe }) {
-	yield* serve({ "INSTALL_URL": "https://example.com/install", "SERVER_SECRET": "private-server-key" });
-	yield* open();
-	yield* observe("the install link receives the decoded public URL", () => {
-		const link = view().querySelector("a");
-		expect(link?.href).toBe("https://example.com/install");
-		expect(link?.textContent).toBe("Install application");
-	});
-});
+publicConfigStory.it(
+	"a screen reading public configuration from a platform host links to the configured install URL",
+	[hostConfigured({ "INSTALL_URL": "https://example.com/install", "SERVER_SECRET": "private-server-key" })],
+	function* ({ installLink, open }) {
+		yield* open();
+
+		expect(yield* installLink()).toEqual({ href: "https://example.com/install", text: "Install application" });
+	},
+);

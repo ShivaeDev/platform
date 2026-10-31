@@ -11,7 +11,7 @@ export const registerWorker = Effect.fnUntraced(function* (
 	client: PgBossClient,
 	name: string,
 	options: WorkOptions,
-	run: (job: Job<unknown>) => Effect.Effect<unknown, unknown, unknown>,
+	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown, unknown>,
 	scope: Scope.Scope,
 	schema: string,
 	maxDeferrals: number,
@@ -20,15 +20,15 @@ export const registerWorker = Effect.fnUntraced(function* (
 	graceful: boolean,
 ) {
 	const fibers = yield* Scope.fork(scope);
-	function runJob(job: Job<unknown>) {
-		return Effect.provide(traceJob(deferrableAttempt(run(job), client, schema, job, maxDeferrals), job, name), context);
+	function runJob(job: Job<unknown>, deadline: number) {
+		return Effect.provide(traceJob(deferrableAttempt(run(job, deadline), client, schema, job, maxDeferrals), job, name), context);
 	}
 	function afterFailure(attempt: Job<unknown>) {
 		return retryWake(client, name, attempt.id, registration).pipe(Effect.forkIn(fibers), Effect.asVoid);
 	}
 	const handle = yield* Effect.try({
 		catch: (error) => toPgBossError("register", error, name),
-		try: () => batchHandler(client, name, runJob, afterFailure),
+		try: () => batchHandler(client, name, schema, runJob, afterFailure),
 	});
 	const registration: Promise<string> = yield* Effect.try({
 		catch: (error) => toPgBossError("register", error, name),

@@ -2,10 +2,9 @@ import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { migrationUpgrade } from "@shivaedev/test-sql/server/migrationUpgrade.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -19,8 +18,7 @@ export const migration = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const database = yield* PostgresTestDatabase;
-		const pool = yield* authDatabase(database.url);
+		const pool = yield* betterAuthDatabase();
 		return { pool, userId: "" };
 	},
 	layer: postgres,
@@ -29,7 +27,7 @@ export const migration = storyKit({
 	verbs: (engine, story) => ({
 		addNotes: Effect.fn("NotesStory.addNotes")(function* () {
 			story.tell("add the notes module to the foundation schema");
-			return yield* migrationUpgrade({ migrations: { ...migrations(engine.pool), lockTimeout: "5 seconds" }, table: "notes", upTo: 1 });
+			return yield* migrationUpgrade({ migrations: { ...migrations(), lockTimeout: "5 seconds" }, table: "notes", upTo: 1 });
 		}),
 		addUserReference: () => {
 			story.tell("apply the user foreign-key migration to existing notes");
@@ -42,7 +40,7 @@ export const migration = storyKit({
 		deleteUser: () =>
 			Effect.promise(async () => {
 				story.tell("delete the auth user who owns the existing note");
-				const auth = betterAuth({ ...authOptions(engine.pool), plugins: [testUtils()] });
+				const auth = betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] });
 				const { internalAdapter } = await auth.$context;
 				await internalAdapter.deleteUser(engine.userId);
 			}),
@@ -54,9 +52,9 @@ export const migration = storyKit({
 });
 
 export const existingNotes = migration.trait("schema", "Alice has an owned note and a legacy note exists before the foreign key", function* (engine) {
-	const steps = yield* migrationSteps({ ...migrations(engine.pool), lockTimeout: "5 seconds" });
+	const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
 	yield* steps.migrateTo("0002_notes");
-	const auth = betterAuth({ ...authOptions(engine.pool), plugins: [testUtils()] });
+	const auth = betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] });
 	const { user } = yield* Effect.promise(() => signedInUser(auth, { email: "alice@migration.test", name: "Alice" }));
 	engine.userId = user.id;
 	const sql = yield* SqlClient.SqlClient;

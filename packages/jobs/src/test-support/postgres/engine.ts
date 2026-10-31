@@ -1,17 +1,18 @@
-import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, References, Scope, Tracer } from "effect";
+import { Cause, Clock, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope, Tracer } from "effect";
 import { PgBoss } from "pg-boss";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import { defaultClientFactory, type PgBossClient } from "#client.ts";
 import { PgBossError } from "#error.ts";
 import { registrationName } from "#internal/register.ts";
-import type { PgBossLayerOptions } from "#service.ts";
+import { makePgBoss, type PgBossOptions, pgBossLayer } from "#service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { ApplicationLog, Jobs, notifyWork, type Registration, registrations } from "#test/workers.ts";
 import { makePgBossTesting, testRetryPolicy } from "#testing.ts";
 import { observeStops, observeWakes, pauseCompletion, sortBatches } from "./clientObservers.ts";
 import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
-export type StartOptions = Omit<Partial<PgBossLayerOptions<readonly [], never>>, "jobs" | "onError"> & {
+export type StartOptions = PgBossOptions & {
+	readonly queueNames?: readonly string[];
 	readonly controller?: "production retries" | "test retries" | "none";
 	readonly finalizesInParallel?: true;
 	readonly handsBatchesOver?: "by priority";
@@ -68,6 +69,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 	options: StartOptions = {},
 ) {
 	const {
+		queueNames,
 		controller,
 		finalizesInParallel,
 		handsBatchesOver,
@@ -83,7 +85,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 	const factory = layerOptions.clientFactory ?? testing?.clientFactory ?? defaultClientFactory;
 	let client: PgBossClient | undefined;
 	const registered = registrations(engine.work, jobs);
-	const layer = Jobs.layer({
+	const clientLayer = pgBossLayer({
 		connectionString: engine.url,
 		...layerOptions,
 		clientFactory: (construct) => {
@@ -100,9 +102,15 @@ export const startRuntime = Effect.fnUntraced(function* (
 			}
 			return client;
 		},
-		jobs: registered,
-		...(reportsErrors === true ? { onError: (error: Error) => Effect.sync(() => engine.reported.push(error.message)) } : {}),
 	});
+	const service = queueNames === undefined ? Jobs : makePgBoss(Jobs.key, queueNames);
+	const layer = service
+		.layer({
+			jobs: registered,
+			...(reportsErrors === true ? { onError: (error: Error) => Effect.sync(() => engine.reported.push(error.message)) } : {}),
+		})
+		.pipe(Layer.provide(clientLayer));
+
 	const startedAt = yield* Clock.currentTimeMillis;
 	const built = yield* provided(engine, name, Layer.buildWithScope(layer, scope)).pipe(
 		Effect.annotateLogs(startsUnderLogAnnotations ?? {}),
@@ -154,7 +162,7 @@ export const admin = Effect.fnUntraced(function* (engine: DatabaseEngine, schema
 	if (existing !== undefined) {
 		return existing;
 	}
-	const client = new PgBoss({ connectionString: engine.url, schedule: false, schema, supervise: false });
+	const client = new PgBoss({ connectionString: Redacted.value(engine.url), schedule: false, schema, supervise: false });
 	client.on("error", (error) =>
 		engine.logs.push({ annotations: {}, level: "Error", message: error.message, runtime: "administrator", spanId: undefined }),
 	);

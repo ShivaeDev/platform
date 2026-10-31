@@ -5,6 +5,7 @@ import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
 import { MergePrediction } from "#MergePrediction.ts";
+import { MergeState } from "#MergeState.ts";
 import { Checks, Decision, DecisionResponse, Delivery, Priority, Review, SupersededDecision, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionObservation, SessionReceipt } from "#session/schema.ts";
@@ -48,6 +49,8 @@ export const Attempt = Schema.Struct({
 });
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {
+	...MergeState.fields,
+	areaQueuedAt: Schema.optional(Schema.Number),
 	areas: Schema.optional(Schema.Array(Schema.String)),
 	attempts: Schema.Array(Attempt),
 	attentionOwner: Schema.optional(AttentionOwner),
@@ -69,11 +72,9 @@ const cycleFields = {
 	launchRetry: Schema.optional(
 		Schema.Struct({ prompt: Schema.optional(Schema.String), rejectedAt: Schema.Number, rejections: Schema.Number, retryAt: Schema.Number }),
 	),
-	mergeAreasReleased: Schema.optional(Schema.Boolean),
 	mergedDelivery: Schema.optional(Schema.Struct({ ...Delivery.fields, revision: Schema.optional(Schema.String) })),
+	mergeOrderFirst: Schema.optional(Schema.Struct({ head: Schema.String, prs: Schema.Array(Schema.String) })),
 	mergePrediction: Schema.optional(MergePrediction),
-	mergeReadyAt: Schema.optional(Schema.Number),
-	mergeReadyHead: Schema.optional(Schema.String),
 	outcome: Schema.optional(Schema.Union([Delivery, Schema.Struct({ evidence: Schema.Array(Schema.String) })])),
 	pendingAnswers: Schema.optional(Schema.Array(Schema.String)),
 	predictedConflictHold: Schema.optional(Schema.Struct({ head: Schema.String, prs: Schema.Array(Schema.String) })),

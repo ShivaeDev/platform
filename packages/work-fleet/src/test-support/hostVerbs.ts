@@ -1,5 +1,6 @@
-import { Effect } from "effect";
+import { Context, Effect, Stream, SubscriptionRef } from "effect";
 import { withBoardReadPass } from "#board/readPass.ts";
+import { SchedulerPasses } from "#engine/health.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
@@ -34,6 +35,7 @@ import { hostScenarioVerbs } from "#test/hostScenarioVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
 import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
 import { publicationReadouts } from "#test/publishedHostBranch.ts";
+import { restartCloudVerbs } from "#test/restartCloud.ts";
 import { steeringCloudVerbs } from "#test/steeringCloud.ts";
 import { watchEventVerbs } from "#test/watchEventVerbs.ts";
 import { watchReview } from "#test/watchReview.ts";
@@ -62,6 +64,7 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		...continuationCloudVerbs(engine),
 		...steeringCloudVerbs(engine),
 		...interruptedCloudVerbs(engine),
+		...restartCloudVerbs(engine),
 		...hostProviderReadouts(engine, tell),
 		...hostScenarioVerbs(engine, tell),
 		...hostAcknowledgementVerbs(engine, tell),
@@ -128,6 +131,16 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			tell(`main moves to ${snapshot.revision}`);
 			engine.main = snapshot;
 		},
+		passesComplete: (count: number) =>
+			Effect.gen(function* () {
+				tell(`wait for ${count} more scheduler ${count === 1 ? "pass" : "passes"} to complete`);
+				const passes = Context.get(engine.running.context, SchedulerPasses);
+				const target = (yield* SubscriptionRef.get(passes)) + count;
+				yield* SubscriptionRef.changes(passes).pipe(
+					Stream.takeUntil((completed) => completed >= target),
+					Stream.runDrain,
+				);
+			}),
 		port: () => engine.running.port,
 		reconcile: (workId: string) => {
 			tell(`reconcile ${workId} through the daemon`);

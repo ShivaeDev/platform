@@ -1,5 +1,109 @@
 # Changelog
 
+## 0.12.3 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.26.0 to 0.27.0.
+- Update `@shivaedev/identity` from 0.10.0 to 0.10.1.
+- Update `@shivaedev/jobs` from 0.24.0 to 0.25.0.
+- Update `@shivaedev/react` from 0.26.0 to 0.27.0.
+
+## 0.12.2 - 2026-10-31
+
+### Fixed
+
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+- Server RPC failures, request diagnostics and traces use the sensitive keys from their own RPC schemas, so registering another RPC cannot redact their public failure tags or messages.
+- Admin Jobs schemas mark job payload and failure-detail containers sensitive without marking generic `_tag` or `message` fields sensitive.
+
+## 0.12.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.12.0 - 2026-10-30
+
+### Added
+
+- Access exports `AssignRoles` and `LastRoleAssigner` from `@shivaedev/access/roles.ts` for shared role policy declarations.
+- Identity provides `assignRole(access, userId, role)` for trusted seeds and operator commands. Supply `SqlClient` and `Reactivity`; it returns whether storage changed and uses the Users page's PostgreSQL lock, last-role-assigner guard and commit invalidation.
+
+### Breaking
+
+- Identity mounts with `roles` close Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` HTTP endpoints and set its admin plugin's `adminRoles` to `[]`. Remove that setup from applications. Use the admin Users page for authorized requests and identity's `assignRole` for trusted server commands.
+- Admin consumers import `AssignRoles` and `LastRoleAssigner` from `@shivaedev/access/roles.ts` instead of `@shivaedev/admin/permissions.ts` and `@shivaedev/admin/users/roles.ts`. The Users page uses identity's shared assignment operation; its permission checks, typed refusal and audit log remain.
+
+## 0.11.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.11.1 - 2026-10-30
+
+### Fixed
+
+- Stack UsersView users as labelled cards below 640px so role controls fit on phone screens, while retaining the desktop table.
+
+## 0.11.0 - 2026-10-30
+
+### Fixed
+
+- Live reads and change subscriptions preserve policy failures instead of reporting read denial. Generated starter apps report notes database connection failures as `ServiceUnavailable` during the owner's live read.
+
+### Breaking
+
+- Query read policies declare their error and service channels with `QueryReadPolicy<Payload, E, R>`. Declare policy errors in the query's `rejections` and provide policy services when building its handler Layer. Custom subscription adapters call `querySubscription(rpc, references, viewer)` instead of resolving requests themselves. Use the native RPC type when calling `authorizeReads` or `resolveChanges` so their inferred channels include policy requirements and errors. The generated change stream includes the queries' declared rejections and service requirements; consumers handling that stream must handle those errors too.
+- Admin pages install their permission's read policy for every query, preserving additional query restrictions. Remove repeated page-grant policies from individual queries and supply the page's permission middleware with the handler Layers.
+
+## 0.10.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.10.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.10.0 - 2026-10-30
+
+### Added
+
+- Access exports the `Permission` Schema and derives its type from it. Role resolution and identity session decoding use that Schema.
+- Access exports `forbidden(permission)` and `unauthorized()` from `refusal.ts` for consistent permission refusals.
+- Jobs services share one scoped pg-boss client through the Effect environment. Registration, worker and producer Layers use the same connection and pool settings.
+- Service definitions accept marked generic methods alongside declared dependencies. Generic signatures retain their caller requirements unchanged; initialization can capture declared dependencies as private state.
+
+### Changed
+
+- User reads validate rows with `SqlSchema` using the shared `AppUser` fields. User operation spans are named `Admin.listUsers` and `Admin.changeUserRole`; adjust trace filters that used the `Platform` names.
+
+### Fixed
+
+- Retry wake-up reads run within the worker scope and log redacted failures without failing other jobs in the batch or spending their retries.
+- Default pg-boss client error logs redact secrets in messages through `@shivaedev/errors`.
+
+### Breaking
+
+- Retrying failed jobs now requires `RetryJobs` (`jobs.retry`) in addition to `ReadJobs` (`jobs.read`). Add `RetryJobs` from `@shivaedev/admin/permissions.ts` to application roles that should keep retrying jobs; roles with only `ReadJobs` can still inspect jobs but receive `Forbidden` when retrying.
+- `AppUser` now decodes PostgreSQL `Date` timestamps into UTC `DateTime` values. Direct Schema callers must pass a `Date` for `createdAt`; use `Schema.toCodecJson(AppUser)` when decoding or encoding JSON timestamps. Native RPC keeps ISO strings on the wire and UTC `DateTime` values for callers.
+- Jobs handler failures persist only `JobFailure` (`_tag` and a redacted `message`); failed and dead-letter listings and admin job responses expose that shape or `null`. Consumers can import the shared `JobFailure` Schema from `@shivaedev/jobs/JobFailure.ts` and must read these fields instead of arbitrary error properties, stacks or causes. Older and native pg-boss failures without a tag decode with `_tag: "Error"`, and their messages are redacted when read; outputs without a string message fail decoding.
+- Jobs listings reject invalid page limits and cursors with `SchemaError`; consumers must handle it alongside `PgBossError` and `PgBossPayloadError`. Admin listings report these inputs as `BadRequest`; clients must handle that rejection instead of `JobsUnavailable`.
+- Access, identity and React now share access's grant evaluator: an `any` grant covers an `own` check for the same permission name. An `own` grant still cannot cover an `any` check. Applications that need separate capabilities must declare separate permission names; record ownership checks still belong in `canAccess` or `requireAccess`.
+- Replace `Access.requirePermission(user, permission)` with `requirePermission(yield* Access.resolve(user.role), permission)` from `@shivaedev/access/requirePermission.ts`. The new function takes a signed-in user; reject an absent session with `unauthorized()` from `@shivaedev/access/refusal.ts` before resolving its role. `requireAccess` continues to handle signed-out users itself.
+- Replace identity's `requirePermission(permission)` with access's `requirePermission(yield* SessionUser, permission)`. There is no identity re-export. Admin's built-in handlers use this shared enforcement.
+- Access's `requireAccess` now uses the shared permission refusal message, `Permission required: <name> (<strength>)`, instead of `Access denied: <name>`. Consumers should branch on the `Forbidden` tag.
+- Move connection, pool, client factory, cache key and stop options from each `Jobs.layer` call into one `pgBossLayer` from `@shivaedev/jobs/server/service.ts`. Supply `connectionString` as `Redacted<string>` and provide that Layer to the merged jobs services. Keep only `jobs` and `onError` in `Jobs.layer`.
+- Call `jobs.health()` instead of yielding `jobs.health`. Custom jobs service implementations must expose health as a method. Admin's built-in jobs handlers call the method automatically. Jobs services passed to webhook routes and enqueue helpers must also implement the new method shape.
+- Identity treats an undeclared stored user role as a defect naming the role, rather than `AuthUnavailable`. RPC request tracing logs the defect and Better Auth's session endpoint returns HTTP 500. Consumers must correct the user's stored role or restore its application declaration; reserve `AuthUnavailable` handling for provider outages.
+- Admin role assignment trusts its typed role input and leaves session role resolution to identity. RPC consumers need no change: the contract decodes the role. Direct callers of `changeUserRole` must decode untrusted role input with the application's `Role` schema before calling it.
+
 ## 0.9.0 - 2026-10-30
 
 ### Changed

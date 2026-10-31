@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import type { privateClient } from "./privateClient.ts";
 import { processClient } from "./processClient.ts";
-import { startProcess, until } from "./processHarness.ts";
+import { startProcess } from "./startProcess.ts";
 
 export const createProcesses = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
@@ -19,13 +19,13 @@ export const createProcesses = Effect.gen(function* () {
 		table: `order_rows_${suffix}`,
 	};
 	const sql = yield* SqlClient.SqlClient;
-	const beforeRollback: number[] = [];
 	const privateSaving: { pending?: ReturnType<Awaited<ReturnType<typeof privateClient>>["save"]> } = {};
+	const answers: string[] = [];
 	return {
-		anotherBeforeLoss: 0,
-		beforeRollback,
+		answers,
 		clients: new Map<string, Awaited<ReturnType<typeof processClient>>>(),
 		configuration,
+		marks: new Map<string, number>(),
 		privateClients: new Map<string, Awaited<ReturnType<typeof privateClient>>>(),
 		privateSaving,
 		servers: new Map<string, Awaited<ReturnType<typeof startProcess>>>(),
@@ -71,5 +71,5 @@ export const openCluster = Effect.fn("OrderProcesses.openCluster")(function* (en
 		);
 		engine.clients.set(name, remote);
 	}
-	yield* Effect.promise(() => until(() => [...engine.clients.values()].every((remote) => remote.hints.length > 0)));
+	yield* Effect.promise(() => Promise.all([...engine.clients.values()].map((remote) => remote.hints.when((hints) => hints.length > 0))));
 });

@@ -7,26 +7,20 @@ function messageOf(error: unknown) {
 }
 
 function described(error: unknown) {
-	if (error instanceof PostgresVersionMismatch && error._tag === "PostgresVersionMismatch") {
-		return `version mismatch: expected ${error.expectedVersion}, observed ${error.observedVersion ?? "none"}`;
+	if (error instanceof PostgresVersionMismatch) {
+		return `version mismatch: expected ${error.expectedVersion}, observed ${error.observedVersion}`;
 	}
-	if (error instanceof PostgresSettingError && error._tag === "PostgresSettingError") {
+	if (error instanceof PostgresSettingError) {
 		return `${error.setting} refused in ${error.container}: ${messageOf(error.cause)}`;
 	}
 	return `failed: ${messageOf(error)}`;
 }
 
-export interface Attempt {
-	readonly failure: unknown;
-	readonly outcome: string;
-}
-
-export function attempt(run: () => string): Attempt {
-	try {
-		return { failure: undefined, outcome: run() };
-	} catch (failure) {
-		return { failure, outcome: described(failure) };
-	}
+export function attempt<E, R>(run: Effect.Effect<string, E, R>) {
+	return Effect.match(run, {
+		onFailure: (failure) => ({ failure, outcome: described(failure) }),
+		onSuccess: (outcome) => ({ failure: undefined, outcome }),
+	});
 }
 
 export function recorded(outcome: string | undefined) {

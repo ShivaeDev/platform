@@ -1,64 +1,54 @@
 import { expect } from "vitest";
-import { answerList, answers } from "#test/answerStories.ts";
+import {
+	answers,
+	answersShown,
+	thirdClosedByServer,
+	thirdFilledAndMovedFirst,
+	thirdRequired,
+	thirdRequiredAfterFirstRemoved,
+} from "#test/answerStories.ts";
 
-answers.it("Schema and server messages follow their answer through array edits", [answerList()], function* ({ click, type, messages, observe }) {
-	yield* observe("the initial answers have no messages", () => {
-		expect(messages()).toEqual([
-			["first", undefined],
-			["second", undefined],
-			["third", undefined],
-		]);
-	});
-	yield* click("Save");
-	yield* observe("the required answer has a Schema message", () => {
-		expect(messages()).toEqual([
-			["first", undefined],
-			["second", undefined],
-			["third", "Required"],
-		]);
-	});
-	yield* click("Remove first");
-	yield* click("Move third first");
-	yield* observe("the Schema message follows reordering", () => {
-		expect(messages()).toEqual([
-			["third", "Required"],
-			["second", undefined],
-		]);
-	});
-	yield* type("third", "Valid");
-	yield* click("Save");
-	yield* observe("the server rejection attaches to its answer", () => {
-		expect(messages()).toEqual([
-			["third", "Answer is closed"],
-			["second", undefined],
-		]);
-	});
-	yield* click("Restore first");
-	yield* click("Move second first");
-	yield* click("Move first first");
-	yield* observe("the server message survives restoring and reordering", () => {
-		expect(messages()).toEqual([
-			["first", undefined],
-			["second", undefined],
-			["third", "Answer is closed"],
-		]);
-	});
-	yield* click("Remove first");
-	yield* observe("the server message survives removal", () => {
-		expect(messages()).toEqual([
-			["second", undefined],
-			["third", "Answer is closed"],
-		]);
-	});
-	yield* click("Move third first");
-	yield* observe("the server message follows its moved answer", () => {
-		expect(messages()).toEqual([
-			["third", "Answer is closed"],
-			["second", undefined],
-		]);
-	});
-	yield* click("Remove third");
-	yield* observe("removing the rejected answer removes its message", () => {
-		expect(messages()).toEqual([["second", undefined]]);
-	});
+answers.it("saving with an empty answer shows Required on that answer", [answersShown()], function* ({ messages, save }) {
+	expect(yield* messages()).toEqual(["first", "second", "third"]);
+
+	yield* save();
+
+	expect(yield* messages()).toEqual(["first", "second", "third: Required"]);
 });
+
+answers.it("removing another answer keeps Required on its answer", [thirdRequired()], function* ({ messages, remove }) {
+	yield* remove("first");
+
+	expect(yield* messages()).toEqual(["second", "third: Required"]);
+});
+
+answers.it("moving a required answer to the top moves its Required with it", [thirdRequiredAfterFirstRemoved()], function* ({ messages, moveFirst }) {
+	expect(yield* messages()).toEqual(["second", "third: Required"]);
+
+	yield* moveFirst("third");
+
+	expect(yield* messages()).toEqual(["third: Required", "second"]);
+});
+
+answers.it("the server's rejection shows on the answer it names after a reorder", [thirdFilledAndMovedFirst()], function* ({ messages, save }) {
+	yield* save();
+
+	expect(yield* messages()).toEqual(["third: Answer is closed", "first", "second"]);
+});
+
+const edits = [
+	["stays with its answer when it moves to the top", "moveFirst", "third", ["third: Answer is closed", "first", "second"]],
+	["stays with its answer when another answer moves above it", "moveFirst", "second", ["second", "first", "third: Answer is closed"]],
+	["stays with its answer when another answer is removed", "remove", "first", ["second", "third: Answer is closed"]],
+	["leaves with its answer when that answer is removed", "remove", "third", ["first", "second"]],
+] as const;
+
+for (const [claim, verb, id, expected] of edits) {
+	answers.it(`the server's rejection ${claim}`, [thirdClosedByServer()], function* (story) {
+		expect(yield* story.messages()).toEqual(["first", "second", "third: Answer is closed"]);
+
+		yield* story[verb](id);
+
+		expect(yield* story.messages()).toEqual(expected);
+	});
+}

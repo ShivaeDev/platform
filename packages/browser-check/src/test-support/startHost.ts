@@ -1,12 +1,22 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Effect } from "effect";
 
+export interface SignIn {
+	readonly email: string;
+	readonly password: string;
+}
+
 export const startHost = Effect.gen(function* () {
 	const visits: string[] = [];
-	const signIns: unknown[] = [];
+	const signIns: SignIn[] = [];
 	const server = createServer(async (request, response) => {
 		if (request.url === "/api/auth/sign-in/email") {
 			await signIn(request, response, signIns);
+			return;
+		}
+		if (request.url === "/favicon.ico") {
+			response.writeHead(404);
+			response.end();
 			return;
 		}
 		visits.push(request.url ?? "");
@@ -33,12 +43,12 @@ export const startHost = Effect.gen(function* () {
 	return { signIns, url: `http://127.0.0.1:${address.port}`, visits };
 });
 
-async function signIn(request: IncomingMessage, response: ServerResponse, signIns: unknown[]) {
+async function signIn(request: IncomingMessage, response: ServerResponse, signIns: SignIn[]) {
 	const chunks: Buffer[] = [];
 	for await (const chunk of request) {
 		chunks.push(chunk);
 	}
-	const body = JSON.parse(Buffer.concat(chunks).toString());
+	const body: SignIn = JSON.parse(Buffer.concat(chunks).toString());
 	signIns.push(body);
 	response.writeHead(body.email === "alice@example.com" && body.password === "alice-password" ? 200 : 401, {
 		"content-type": "application/json",

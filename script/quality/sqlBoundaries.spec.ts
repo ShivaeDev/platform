@@ -1,8 +1,8 @@
 import { expect } from "vitest";
+import { authSql } from "@shivaedev/quality/rules/stories/authSql.ts";
+import { queueSql } from "@shivaedev/quality/rules/stories/queueSql.ts";
 import sqlInputs from "#quality/test-support/fixtures/story-sql.json" with { type: "json" };
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { authSql } from "#quality-internal/rules/stories/authSql.ts";
-import { queueSql } from "#quality-internal/rules/stories/queueSql.ts";
 
 ruleKit.it(
 	"an app author cannot purge queues through SQL in source, specs or test-support",

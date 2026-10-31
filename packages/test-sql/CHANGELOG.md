@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.15.0 - 2026-10-30
+
+### Added
+
+- `observeUntil(read, settled, waitingFor, options?)` from `@shivaedev/test-sql/server/observeUntil.ts` waits for PostgreSQL state that sends no notification, such as sessions in `pg_stat_activity` or lock waiters. It repeats one read on live time, even under a paused test clock, and returns the value once `settled` holds for `stableReads` reads in a row (default 2), so a value that flips back is not accepted. When `within` (default 5 seconds) runs out it fails with a typed `NeverSettled` whose message names what it waited for, the read count and the last value.
+
+### Breaking
+
+- `raceWithLock` waits for its contenders to block through `observeUntil`, so that wait runs on live time. Its `timeout` now bounds each phase on its own: taking the lock and the contenders' finish after release still fail with `TimeoutError`, while contenders that never all block fail with `NeverSettled` naming how many blocked. Handle `NeverSettled` wherever you handled the `TimeoutError` of contenders that never queued on the lock.
+
+## 0.14.0 - 2026-10-30
+
+### Added
+
+- A scoped PostgreSQL disconnect proxy supports disconnecting, refusing and stalling traffic, holding disconnect acknowledgements, observing open clients and dropping LISTEN notifications. Test kits can share the environment reader and empty PostgreSQL template.
+- Shared story answer readouts translate Effect failures into words for package test kits.
+
+## 0.13.0 - 2026-10-30
+
+### Added
+
+- `raceWithLock` takes `count: "every blocked session"` for contenders whose SQL runs on other fibers, such as an HTTP server's handlers. The holder then releases once it blocks as many sessions as there are effects.
+
+### Fixed
+
+- `raceWithLock` releases its holder once its own contenders wait, instead of hanging until its timeout when another session also waits on the holder. Each contender's statements now start with a `/* raceWithLock <holder pid>.<index> */` comment.
+
+## 0.12.0 - 2026-10-30
+
+### Added
+
+- Export every engine module through the package's existing `.ts` wildcard, including modules under `internal/` in `test` and `vitest-rerun` and `server/internal/` in `test-story` and `test-sql`, so downstream kits can reuse them directly. Importing the rerun worker leaves test execution to its direct launch.
+
+### Changed
+
+- Generate disposable PostgreSQL database names through Effect's Random service.
+
+### Fixed
+
+- SQL decodes migration ledger, release ownership and change-coverage rows before using them. Malformed rows fail with `SchemaError` instead of being treated as current, pending or a different owner.
+- SQL generates worker identities and change-listener heartbeat tokens through Effect's `Random` service.
+
+### Breaking
+
+- Schema component failures now reach SQL migration and readiness callers, server startup and test-sql migration helpers with their original error, tag and cause, and log the component name. Handle the component's own error instead of a wrapping `MigrationError` with kind `Failed`. When annotating migration options with fallible components, supply their error type as the second generic parameter; the default describes components that cannot fail.
+- Declare `WorkerRelease` through `defineService`. Consumers using the old class as a type must use `Context.Service.Identifier<typeof WorkerRelease>`; yielding the service and providing its value stay the same.
+
 ## 0.11.0 - 2026-10-30
 
 ### Added

@@ -17,6 +17,7 @@ export function requestRework(state: EngineState) {
 		return yield* state
 			.save(stored, {
 				...record,
+				areaQueuedAt: state.policy.now(),
 				attentionOwner: undefined,
 				blocker: undefined,
 				checks: undefined,
@@ -24,8 +25,11 @@ export function requestRework(state: EngineState) {
 				decision: undefined,
 				decisionAcknowledged: undefined,
 				decisionPublished: undefined,
+				mergeMainRepair: mainRevision === undefined ? undefined : true,
+				mergeQueue: undefined,
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
+				predictedConflictHold: undefined,
 				prompt: [
 					"Requested changes to the existing PR:",
 					body,

@@ -106,5 +106,27 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				yield* sql`alter table ${sql(childTable(namespace, path))} add column "answerTurn" boolean`;
 			}
 		}),
+		"31_area_queue_time": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "areaQueuedAt" double precision`;
+			}
+		}),
+		"32_merge_order_first": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "mergeOrderFirst" boolean,
+					add column "mergeOrderFirst__head" text, add column "mergeOrderFirst__prs" text[]`;
+			}
+		}),
+		"33_merge_loop": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "mergeMainRepair" boolean, add column "mergeQueue" boolean,
+					add column "mergeQueue__head" text, add column "mergeQueue__status" text`;
+			}
+		}),
+		"34_merge_queue_repair": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "mergeQueueRepair" boolean`;
+			}
+		}),
 	});
 });

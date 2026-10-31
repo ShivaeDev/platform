@@ -69,7 +69,6 @@ const runWatchStream = Effect.fnUntraced(function* (options: WatchStreamOptions)
 				yield* print({ kind: "daemon-back" });
 			}
 			states = undefined;
-			transitions.reset();
 		}
 		epoch = snapshot.epoch;
 		if (snapshot.states) {

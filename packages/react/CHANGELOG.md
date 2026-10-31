@@ -1,5 +1,84 @@
 # Changelog
 
+## 0.27.0 - 2026-10-31
+
+### Added
+
+- `@shivaedev/react`: `queryRoute` passes the loader's router context to its query factory alongside params and validated search. Annotate `context` with the parent route's `types.allContext` to read declared clients and viewer state with type checking.
+
+### Changed
+
+- `@shivaedev/create-app`: generated starter routes read clients and session state from native router context instead of taking them as route factory parameters.
+
+## 0.26.0 - 2026-10-31
+
+### Added
+
+- Screen kits can build a screen driver's `pending` signal with `screenPending({ router })` from `client/screenPending.ts`, which reads the `AtomRegistry` from the environment: it reports pending while a read `AsyncResult` is waiting or the TanStack router is loading a route, and ignores results left waiting by unmounted components.
+
+### Breaking
+
+- `loadQuery` moved from `@shivaedev/react/loadQuery.ts` to `@shivaedev/react/adapters/loadQuery.ts`, beside the other bridges from outside libraries into Effect. Change the import path; the function and its behavior are unchanged.
+
+## 0.25.0 - 2026-10-30
+
+### Added
+
+- `authCall` turns a Better Auth client callback into an input-taking Effect for form `onSubmit` handlers.
+
+### Breaking
+
+- `authAction` now fails with `AuthFailure`. Map its closed `code` union to application text instead of reading raw Better Auth error fields or HTTP statuses. Core Better Auth codes pass through; code-less rate limiting becomes `RATE_LIMITED`, and unsupported codes and rejected promises become `UNKNOWN`. Read the original error from `cause`. Replace action error annotations that include `AuthActionUnavailable` with `AuthFailure`; `authQuery` retains its existing failures.
+
+## 0.24.0 - 2026-10-30
+
+### Added
+
+- `useLoaderQuery` accepts the shared query options, including `coalesceWindow`, so loader-backed screens can configure live refetches directly.
+- `NoticeHost` accepts an optional `runtime` and runs notice expiry as an Effect sleep on that atom runtime's `Clock`, so a story's `TestClock` drives expiry. Without it, expiry uses Effect's default clock as before.
+
+## 0.23.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.23.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.23.0 - 2026-10-30
+
+### Added
+
+- Expose the native submission `cause` on `useEditor`, `useCreate` and `SaveState` so applications can render failures that include defects.
+- Export modules under `internal/` in `contract` and `react` and `server/internal/` in `jobs` through the existing `.ts` wildcard, so consumers can import those modules directly by their file paths.
+- Access exports the `Permission` Schema and derives its type from it. Role resolution and identity session decoding use that Schema.
+- Access exports `forbidden(permission)` and `unauthorized()` from `refusal.ts` for consistent permission refusals.
+
+### Changed
+
+- Generated applications import React test helpers from their existing `@shivaedev/test-story` development dependency.
+
+### Fixed
+
+- Work Board reads draft timestamps and expiry through its form client’s runtime Clock.
+- Ignore repeated sign-out dispatch while sign-out is pending.
+- Generated apps send an explicitly signed-out visitor to sign-in when the replacement session receives `Unauthorized` from the notes route.
+
+### Breaking
+
+- Persisted drafts require a `now: () => number` callback in core forms, `usePersistedDraft`, `useEditor` and `useCreate`. Capture `Clock.Clock` in the application’s Effect setup and pass `now: () => clock.currentTimeMillisUnsafe()` so timestamps and expiry follow that clock, including TestClock in stories.
+- Form no longer exports the identity cast helpers `holder`, `fieldOf`, `choicesOf` or `checkOf` from `shape.ts`, or `keySelector` from `paths.ts`. Use declared reference, field, check and selector types directly; get field refs and choices through the form’s typed `field` and `choices` methods.
+- `useSignOut` stops follow-up navigation on component unmount or registry disposal. Keep the component mounted until the request completes, or let the replacement session's route policy navigate to sign-in when a session refresh unmounts it first.
+- Move the React test helpers to `@shivaedev/test-story/client/react.ts`. Replace imports from `@shivaedev/react/client/testing.ts` with this path for `render`, `eventually`, `captureReactWarnings`, `expectNoReactWarnings` and their types. Add `@shivaedev/test-story` as a development dependency and install its React helpers' optional peers `react`, `react-dom` and `@effect/atom-react` when using them. React no longer brings `@shivaedev/test` into applications as a runtime dependency.
+- Access, identity and React now share access's grant evaluator: an `any` grant covers an `own` check for the same permission name. An `own` grant still cannot cover an `any` check. Applications that need separate capabilities must declare separate permission names; record ownership checks still belong in `canAccess` or `requireAccess`.
+- Replace `Access.requirePermission(user, permission)` with `requirePermission(yield* Access.resolve(user.role), permission)` from `@shivaedev/access/requirePermission.ts`. The new function takes a signed-in user; reject an absent session with `unauthorized()` from `@shivaedev/access/refusal.ts` before resolving its role. `requireAccess` continues to handle signed-out users itself.
+- Replace identity's `requirePermission(permission)` with access's `requirePermission(yield* SessionUser, permission)`. There is no identity re-export. Admin's built-in handlers use this shared enforcement.
+- Access's `requireAccess` now uses the shared permission refusal message, `Permission required: <name> (<strength>)`, instead of `Access denied: <name>`. Consumers should branch on the `Forbidden` tag.
+
 ## 0.22.1 - 2026-10-30
 
 ### Changed

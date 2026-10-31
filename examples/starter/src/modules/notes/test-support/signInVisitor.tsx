@@ -14,7 +14,7 @@ export function signInVisitor(initial: string, signedIn = false, moduleLink = fa
 	return screens.trait("screen", `a ${signedIn ? "signed-in" : "signed-out"} visitor opens ${initial}`, function* (engine) {
 		const history = createMemoryHistory({ initialEntries: [initial] });
 		engine.history = history;
-		engine.client = notesClient([{ id: 1, title: "Deep note", version: 0, wordCount: null }]);
+		engine.client = yield* notesClient([{ id: 1, title: "Deep note", version: 0, wordCount: null }]);
 		engine.client.session.signedIn = signedIn;
 		const fixture = appAuth({
 			baseUrl: "http://return.story.test",
@@ -39,18 +39,19 @@ export function signInVisitor(initial: string, signedIn = false, moduleLink = fa
 function resumeModule(moduleLink: boolean) {
 	return {
 		api: {},
-		routes: ({ root, auth, session }: RouteContext) => [
-			createRoute({
-				component: () => <Home auth={auth} />,
-				getParentRoute: () => root,
+		routes: ({ getParentRoute }: RouteContext) => {
+			const route = createRoute({
+				component: () => <Home auth={route.useRouteContext().auth} />,
+				getParentRoute,
 				path: "/resume",
 				...(moduleLink
 					? {}
 					: {
-							beforeLoad: permissionGuard({ session, signIn: "/sign-in" }),
+							beforeLoad: (loader): void => permissionGuard({ session: loader.context.session, signIn: "/sign-in" })(loader),
 							staticData: { permission: { name: "resume", strength: "own" as const } },
 						}),
-			}),
-		],
+			});
+			return [route];
+		},
 	};
 }

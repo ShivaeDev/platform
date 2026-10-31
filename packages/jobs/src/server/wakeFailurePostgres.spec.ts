@@ -8,7 +8,7 @@ import { workerBy } from "#test/workers.ts";
 const WakeReads = defineQueue({ name: "wake-read-failure", queue: { retryLimit: 1 }, schema: Schema.Struct({ id: Schema.Number }) });
 
 database.it(
-	"when the lookup that would wake a retry fails, the failure is logged as a settle error and the rest of the batch completes",
+	"when a retry-wake lookup fails, the settle log keeps its failure summary and the rest of the batch completes",
 	[
 		storedTogether(
 			WakeReads,
@@ -24,7 +24,7 @@ database.it(
 		yield* untilLogged("wake-read-failure");
 
 		yield* outcomes({
-			"logs": [logged("app"), [{ level: "Error", message: "pg-boss settle for queue wake-read-failure failed: Error" }]],
+			"logs": [logged("app"), [{ level: "Error", message: "pg-boss settle for queue wake-read-failure failed: Error: retry lookup failed" }]],
 			"stored states": [storedStates(WakeReads.name), { "job 0": "failed", "job 1": "completed", "job 2": "completed" }],
 		});
 	},

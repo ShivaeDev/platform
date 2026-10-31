@@ -41,7 +41,6 @@
 {"path":"packages/work-fleet/src/engine/areaMergeWait.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/work-fleet/src/engine/areaPaths.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/work-fleet/src/engine/areaPrefix.spec.ts","rule":"tests/grouped-outcomes","count":2}
-{"path":"packages/work-fleet/src/engine/areaRepair.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/work-fleet/src/engine/areaScheduling.spec.ts","rule":"tests/grouped-outcomes","count":4}
 {"path":"packages/work-fleet/src/engine/areaWaiterAdmission.spec.ts","rule":"tests/grouped-outcomes","count":6}
 {"path":"packages/work-fleet/src/engine/areaWaiters.ts","rule":"effect/service-parameters","count":1}
@@ -297,7 +296,6 @@
 {"path":"packages/work-fleet/src/host/stopPreparation.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/work-fleet/src/host/supervision.spec.ts","rule":"effect/boundary","count":7}
 {"path":"packages/work-fleet/src/host/supervision.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/work-fleet/src/host/supervisorCode.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/supervisorPort.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/supervisorState.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-fleet/src/host/watchScheduler.spec.ts","rule":"effect/boundary","count":1}

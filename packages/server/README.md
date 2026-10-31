@@ -29,7 +29,7 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 ### Prepare local development
 
-`setupDatabases()` from `@shivaedev/server/setupDatabases.ts` reads `DATABASE_URL` and `TEST_DATABASE_URL` through Effect Config and prepares both local databases with `@shivaedev/local-postgres`. Database names come from those URLs. `DOCKER_HOST` and `DOCKER_CONTEXT` are optional. Missing database URLs fail with a typed Config error; migrations remain the application's responsibility.
+`setupDatabases()` from `@shivaedev/server/setupDatabases.ts` reads `DATABASE_URL` and `TEST_DATABASE_URL` through Effect Config and prepares both local databases with `@shivaedev/local-postgres`. Database names come from those URLs. `DOCKER_HOST` and `DOCKER_CONTEXT` are optional. Missing database URLs fail with a typed Config error; setup command failures retain their local-postgres error tags. Provide `ChildProcessSpawner` at the setup entry point, for example with `Effect.provide(NodeServices.layer)` before `NodeRuntime.runMain`. Migrations remain the application's responsibility.
 
 `development({ server, worker, conditions? })` from `@shivaedev/server/development.ts` starts the two application entry points with Node's watch mode and runs `pnpm exec vite`. Supply paths relative to the application directory and any export conditions its code needs. Provide `NodeServices.layer` to run it. When a process exits, the other processes stop and the Effect returns the first exit code, which the entry point can assign to `process.exitCode`. Use `runDevelopment(options)` from the same module for the Node entry point with that runtime wiring included.
 
@@ -212,7 +212,7 @@ Render inside the application's native registry provider. The query's `data` is 
 
 Tracing logs declared failures with `RPC failure` and their tag, and defects with `RPC defect`. Interrupt-only causes emit `RPC interrupted` at debug instead, with `rpc.method`, `requestId`, the `rpc.duration` log span and the same redacted payload. The RPC trace span carries `rpc.interrupted: true`; Effect exports interruption with an unset span status. Completed and failed RPCs receive no interruption marker. The diagnostic payload masks nested credential-shaped keys and Effect `Redacted` values. Credential-shaped strings, such as bearer tokens, URL passwords and sensitive `key=value` text, are masked too. Strings retain at most 2,048 characters before a truncation marker; collections retain at most 50 entries with a marker for the remainder, and binary values become size summaries.
 
-`appHost` derives sensitive field names from the served RPC group's payload, success, error, defect and middleware error schemas, including nested schemas. Use `Schema.Redacted(...)`, `Schema.RedactedFromValue(...)`, or annotate a field with `sensitive: true`. The host treats those names as sensitive throughout that app, even when a diagnostic contains an unwrapped value. Add other exact, case-sensitive names once in `config.sensitiveKeys`:
+`appHost` derives sensitive field names from the served RPC group's payload, success, error, defect and middleware error schemas, including nested schemas. Use `Schema.Redacted(...)`, `Schema.RedactedFromValue(...)`, or annotate a field with `sensitive: true`. The host applies each RPC's schema-derived names to that RPC's diagnostics and failures, even when a diagnostic contains an unwrapped value. Application-wide keys configured below apply to every RPC. Add other exact, case-sensitive names once in `config.sensitiveKeys`:
 
 ```ts
 import { Schema } from "effect";
@@ -238,7 +238,7 @@ Diagnostic failure, defect and interruption reasons are rebuilt with sanitized a
 
 The shared errors policy also masks `db.user`, `db.user.name` and `db.connection_string` in logs, error reports and exported traces. It matches field names, not arbitrary occurrences of their values in prose. Free text uses credential-shaped string, key-assignment and URL rules; it does not scan for personal data. Keep sensitive values out of ordinary prose and span names.
 
-For native RPC serialization, `schemaSensitiveKeys(group, extraKeys?)` from `@shivaedev/errors/schemaSensitiveKeys.ts` returns a key predicate with `maskFailure(tag: string | undefined, reason: "Fail" | "Die")`. Pass both to `redactingRpcSerialization(wire, sensitive, sensitive.maskFailure)`. The serializer correlates request tags and response IDs, including batches, before masking a whole error or defect root. Unassociated defects use the conservative policy across the host's defect schemas.
+For native RPC serialization, `schemaSensitiveKeys(group, extraKeys?)` from `@shivaedev/errors/schemaSensitiveKeys.ts` returns a key predicate with `forRpc(tag)` and `maskFailure(tag: string | undefined, reason: "Fail" | "Die")`. Pass them to `redactingRpcSerialization(wire, sensitive, sensitive.maskFailure, sensitive.forRpc)`. The serializer correlates request tags and response IDs, including batches, before masking a whole error or defect root. Unassociated defects use the conservative policy across the host's defect schemas.
 
 The masking primitives, `redact`, `redactWire`, `redactRecord`, `redactText`, `redactUrl`, `redactCause`, `schemaSensitiveKeys` and `isSensitiveKey`, live in [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme).
 

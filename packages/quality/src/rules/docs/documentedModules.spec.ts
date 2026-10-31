@@ -1,101 +1,127 @@
 import { expect } from "vitest";
-import { repositoryHas, ruleKit } from "#rule-story";
 import { docsReferences } from "#rules/docs/references.ts";
-import { docsWorkspace, markdown } from "#test/docsRepository.ts";
+import { docsWorkspace, guide, markdown, noModule } from "#test/docsRepository.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-const readme = markdown(
-	"packages/lib/README.md",
-	"# @acme/lib",
-	"",
-	"```ts",
-	'import { makeRepository, missingName } from "@acme/lib/repository.ts";',
-	'import { hidden } from "@acme/lib/internal/secret.ts";',
-	'import { Effect } from "effect";',
-	'import { notes } from "./notes.ts";',
-	"```",
-	"",
-	"Call `makeRepository` from `@acme/lib/repository.ts`, not `nothing` from `@acme/lib/repository.ts`, and skip `@acme/lib/gone.ts`.",
-	"",
-	"### API",
-	"",
-	"| Module | Exports |",
-	"| --- | --- |",
-	"| `repository.ts` | `makeRepository` |",
-	"| `absent.ts` | `absent` |",
-	"",
-	"```js",
-	'import { forwarded } from "@acme/lib/forwarded.ts";',
-	'import { lost } from "@acme/lib/lost.ts";',
-	"```",
-);
+const MODULES = [
+	...docsWorkspace,
+	{ content: 'export { makeRepository } from "./repository.ts";\n', path: "packages/lib/src/forwarded.ts" },
+	{ content: JSON.stringify({ exports: { "./run.ts": "./src/run.ts" }, name: "@acme/tool" }), path: "packages/tool/package.json" },
+	{ content: "export default function run(): number {\n\treturn 1;\n}\n", path: "packages/tool/src/run.ts" },
+	{ content: "export const stop = 1;\n", path: "packages/tool/src/stop.ts" },
+	{ content: "export const main = 1;\n", path: "packages/app/main.ts" },
+];
 
-ruleKit.it(
-	"documented imports, module paths and API rows name modules a workspace package exports and names those modules export",
-	[
-		repositoryHas(...docsWorkspace, readme, {
-			content: 'export { makeRepository } from "./repository.ts";\n',
-			path: "packages/lib/src/forwarded.ts",
-		}),
-	],
-	function* ({ checks, writes }) {
-		const findings = yield* checks(docsReferences);
-		expect(findings.map((finding) => [finding.line, finding.message])).toEqual([
-			[
-				4,
-				'"@acme/lib/repository.ts" does not export missingName. Name an export of packages/lib/src/repository.ts, or the module that exports missingName.',
-			],
-			[5, '"@acme/lib/internal/secret.ts" is private: the package.json "exports" of @acme/lib blocks it. Document a module the package exports.'],
-			[10, '"@acme/lib/gone.ts" names no module of @acme/lib. Use the path of a module its package.json "exports" maps.'],
-			[
-				10,
-				'"@acme/lib/repository.ts" does not export nothing. Name an export of packages/lib/src/repository.ts, or the module that exports nothing.',
-			],
-			[17, '"@acme/lib/absent.ts" names no module of @acme/lib. Use the path of a module its package.json "exports" maps.'],
-			[21, '"@acme/lib/lost.ts" names no module of @acme/lib. Use the path of a module its package.json "exports" maps.'],
-		]);
-		yield* writes(
-			{
-				content: "export function makeRepository(): number {\n\treturn 1;\n}\nexport const missingName = 2;\nexport const nothing = 0;\n",
-				path: "packages/lib/src/repository.ts",
-			},
-			{ content: "export const absent = 1;\n", path: "packages/lib/src/absent.ts" },
-			{ content: "export const gone = 1;\n", path: "packages/lib/src/gone.ts" },
-			{ content: "export const lost = 1;\n", path: "packages/lib/src/lost.ts" },
-		);
-		expect((yield* checks(docsReferences)).map((finding) => finding.line)).toEqual([5]);
+const REPOSITORY = "packages/lib/src/repository.ts";
+
+const BROKEN_REFERENCES = [
+	{
+		document: guide("```ts", 'import { missingName } from "@acme/lib/repository.ts";', "```"),
+		line: 6,
+		message: `"@acme/lib/repository.ts" does not export missingName. Name an export of ${REPOSITORY}, or the module that exports missingName.`,
+		name: "a code import of a name the module does not export",
+		subject: "@acme/lib/repository.ts",
 	},
-);
-
-ruleKit.it(
-	"a default import needs a default export, a package without an exports map resolves paths as files, and a path no export key maps is missing",
-	[
-		repositoryHas(
-			...docsWorkspace,
-			{ content: JSON.stringify({ exports: { "./run.ts": "./src/run.ts" }, name: "@acme/tool" }), path: "packages/tool/package.json" },
-			{ content: "export default function run(): number {\n\treturn 1;\n}\n", path: "packages/tool/src/run.ts" },
-			{ content: "export const main = 1;\n", path: "packages/app/main.ts" },
-			markdown(
-				"docs/guide.md",
-				"# Guide",
-				"",
-				"```ts",
-				'import makeRepository from "@acme/lib/repository.ts";',
-				'import run from "@acme/tool/run.ts";',
-				'import { stop } from "@acme/tool/stop.ts";',
-				'import { main } from "@acme/app/main.ts";',
-				'import { start } from "@acme/app/start.ts";',
-				"```",
-			),
+	{
+		document: guide("```ts", 'import makeRepository from "@acme/lib/repository.ts";', "```"),
+		line: 6,
+		message: `"@acme/lib/repository.ts" has no default export. Import a named export of ${REPOSITORY}, or the module whose default export you mean.`,
+		name: "a default import of a module without a default export",
+		subject: "@acme/lib/repository.ts",
+	},
+	{
+		document: guide("```js", 'import { lost } from "@acme/lib/lost.ts";', "```"),
+		line: 6,
+		message: noModule("@acme/lib/lost.ts", "@acme/lib"),
+		name: "a JavaScript code import of a module the package does not have",
+		subject: "@acme/lib/lost.ts",
+	},
+	{
+		document: guide("Call `nothing` from `@acme/lib/repository.ts`."),
+		line: 5,
+		message: `"@acme/lib/repository.ts" does not export nothing. Name an export of ${REPOSITORY}, or the module that exports nothing.`,
+		name: "a name in prose that its module does not export",
+		subject: "@acme/lib/repository.ts",
+	},
+	{
+		document: guide("Skip `@acme/lib/gone.ts`."),
+		line: 5,
+		message: noModule("@acme/lib/gone.ts", "@acme/lib"),
+		name: "a module path in inline code that names no module",
+		subject: "@acme/lib/gone.ts",
+	},
+	{
+		document: markdown(
+			"packages/lib/README.md",
+			"# @acme/lib",
+			"",
+			"### API",
+			"",
+			"| Module | Exports |",
+			"| --- | --- |",
+			"| `absent.ts` | `absent` |",
 		),
-	],
-	function* ({ checks }) {
-		expect((yield* checks(docsReferences)).map((finding) => [finding.line, finding.message])).toEqual([
-			[
-				4,
-				'"@acme/lib/repository.ts" has no default export. Import a named export of packages/lib/src/repository.ts, or the module whose default export you mean.',
-			],
-			[6, '"@acme/tool/stop.ts" names no module of @acme/tool. Use the path of a module its package.json "exports" maps.'],
-			[8, '"@acme/app/start.ts" names no module of @acme/app. Use the path of a module its package.json "exports" maps.'],
-		]);
+		line: 7,
+		message: noModule("@acme/lib/absent.ts", "@acme/lib"),
+		name: "a row of a package README's API table that names no module of the package",
+		subject: "@acme/lib/absent.ts",
 	},
-);
+	{
+		document: guide("```ts", 'import { stop } from "@acme/tool/stop.ts";', "```"),
+		line: 6,
+		message: noModule("@acme/tool/stop.ts", "@acme/tool"),
+		name: "a module path that no key of its package's exports map maps, though the file exists",
+		subject: "@acme/tool/stop.ts",
+	},
+	{
+		document: guide("```ts", 'import { start } from "@acme/app/start.ts";', "```"),
+		line: 6,
+		message: noModule("@acme/app/start.ts", "@acme/app"),
+		name: "a module path of a package without an exports map that names no file",
+		subject: "@acme/app/start.ts",
+	},
+];
+
+const RESOLVED_REFERENCES = [
+	{
+		document: guide("```ts", 'import { makeRepository } from "@acme/lib/repository.ts";', "```"),
+		name: "a code import of a name the module exports",
+	},
+	{ document: guide("```ts", 'import run from "@acme/tool/run.ts";', "```"), name: "a default import of a module with a default export" },
+	{
+		document: guide("```ts", 'import { anything } from "@acme/lib/forwarded.ts";', "```"),
+		name: "any name imported from a module that re-exports another",
+	},
+	{ document: guide("Call `makeRepository` from `@acme/lib/repository.ts`."), name: "a name in prose that its module exports" },
+	{
+		document: markdown(
+			"packages/lib/README.md",
+			"# @acme/lib",
+			"",
+			"### API",
+			"",
+			"| Module | Exports |",
+			"| --- | --- |",
+			"| `repository.ts` | `makeRepository` |",
+		),
+		name: "a row of a package README's API table that names a module of the package",
+	},
+	{
+		document: guide("```ts", 'import { main } from "@acme/app/main.ts";', "```"),
+		name: "a module path of a package without an exports map that names a file",
+	},
+];
+
+for (const { document, line, message, name, subject } of BROKEN_REFERENCES) {
+	ruleStory.it(`docs/references reports ${name} at its line`, [repositoryHas(...MODULES, document)], function* ({ check }) {
+		const findings = yield* check(docsReferences);
+
+		expect(findings).toEqual([{ file: document.path, line, message, subject }]);
+	});
+}
+
+for (const { document, name } of RESOLVED_REFERENCES) {
+	ruleStory.it(`docs/references accepts ${name}`, [repositoryHas(...MODULES, document)], function* ({ check }) {
+		expect(yield* check(docsReferences)).toEqual([]);
+	});
+}

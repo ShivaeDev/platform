@@ -3,20 +3,18 @@ import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { authDatabase } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { userReference } from "#server/better-auth/userReference.ts";
-import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
 
 export const userReferences = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const database = yield* PostgresTestDatabase;
-		const pool = yield* authDatabase(database.url);
+		const pool = yield* betterAuthDatabase();
 		const options = { database: pool, logger: { disabled: true }, secret: "user-reference-story-secret-at-least-32-characters" };
 		yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
 		return { auth: betterAuth({ ...options, plugins: [testUtils()] }), users: new Map<string, string>() };

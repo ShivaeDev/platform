@@ -1,56 +1,69 @@
-import { Result } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { AuthUnavailable, Conflict, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { postgresFeature } from "#test/app-host/database.ts";
 import { forwarded } from "#test/app-host/options.ts";
 import { configuration, environment, host } from "#test/app-host/story.ts";
 
-for (const { config, env, accepted, host: bindAddress, name } of [
-	{ accepted: true, config: undefined, env: { "HOST": "0.0.0.0", "TRUSTED_PROXY": "127.0.0.1" }, host: "0.0.0.0", name: "environment" },
-	{
-		accepted: true,
-		config: { host: "0.0.0.0", trustedProxy: "127.0.0.1" },
-		env: { "HOST": "127.0.0.1", "TRUSTED_PROXY": "127.0.0.3" },
-		host: "0.0.0.0",
-		name: "config overrides environment",
-	},
-	{ accepted: false, config: undefined, env: {}, host: "127.0.0.1", name: "no trust" },
-	{ accepted: false, config: { trustedProxy: "127.0.0.2" }, env: { "TRUSTED_PROXY": "127.0.0.1" }, host: "127.0.0.1", name: "wrong configured peer" },
-	{ accepted: true, config: undefined, env: { "TRUSTED_PROXY": "127.0.0.0/31" }, host: "127.0.0.1", name: "environment range" },
-	{ accepted: true, config: { trustedProxy: "192.0.2.1, 127.0.0.0/31, 2001:db8::/32" }, env: {}, host: "127.0.0.1", name: "configured list" },
-	{ accepted: false, config: { trustedProxy: "127.0.0.2/31" }, env: {}, host: "127.0.0.1", name: "peer just outside range" },
+const fromTheApp = { origin: "https://app.example", "x-forwarded-for": "127.0.0.2" };
+
+for (const { bind, config, env, name } of [
+	{ bind: "127.0.0.1", config: {}, env: {}, name: "by default" },
+	{ bind: "0.0.0.0", config: {}, env: { "HOST": "0.0.0.0", "TRUSTED_PROXY": "127.0.0.1" }, name: "from HOST" },
+	{ bind: "0.0.0.0", config: { host: "0.0.0.0", trustedProxy: "127.0.0.1" }, env: { "HOST": "127.0.0.1" }, name: "from config over HOST" },
+]) {
+	host.it(`a session host binds ${bind} ${name}`, [postgresFeature, configuration(config), environment(env)], function* ({ bindAddress }) {
+		expect(yield* bindAddress()).toBe(bind);
+	});
+}
+
+for (const { config, env, name } of [
+	{ config: {}, env: { "TRUSTED_PROXY": "127.0.0.1" }, name: "TRUSTED_PROXY naming the proxy" },
+	{ config: { trustedProxy: "127.0.0.1" }, env: { "TRUSTED_PROXY": "127.0.0.3" }, name: "config.trustedProxy overriding TRUSTED_PROXY" },
+	{ config: {}, env: { "TRUSTED_PROXY": "127.0.0.0/31" }, name: "a TRUSTED_PROXY range containing the proxy" },
+	{ config: { trustedProxy: "192.0.2.1, 127.0.0.0/31, 2001:db8::/32" }, env: {}, name: "a configured list containing the proxy" },
 ]) {
 	host.it(
-		`forwards real HTTP RPC with ${name}`,
-		[postgresFeature, configuration(config ?? {}), environment(env), forwarded],
-		function* ({ hostAddress, call, post, lookups }) {
-			expect(hostAddress()).toBe(bindAddress);
-			const headers = { origin: "https://app.example", "x-forwarded-for": "127.0.0.2" };
-			if (!accepted) {
-				const refused = yield* call("alice", false, headers);
-				expect(Result.isFailure(refused) && refused.failure._tag).toBe("RpcClientError");
-				const status = yield* post(headers);
-				expect(status).toBe(HttpStatus.fromLiteral("Forbidden"));
-				expect(lookups()).toEqual([]);
-				return;
-			}
-			const result = yield* call("alice", false, headers);
-			expect(Result.isSuccess(result) && result.success).toBe("Hello, alice");
-			for (const [token, reject, expected] of [
-				["", false, Unauthorized],
-				["alice", true, Conflict],
-				["outage", false, AuthUnavailable],
-			] as const) {
-				const refused = yield* call(token, reject, { origin: "https://app.example" });
-				expect(Result.isFailure(refused) && refused.failure).toBeInstanceOf(expected);
-			}
-			const before = [...lookups()];
-			for (const refusedHeaders of [{ origin: "https://elsewhere.example" }, { "content-type": "application/json" }]) {
-				const status = yield* post(refusedHeaders);
-				expect(status).toBe(HttpStatus.fromLiteral("Forbidden"));
-			}
-			expect(lookups()).toEqual(before);
+		`a forwarded RPC from the app's origin answers through a proxy trusted by ${name}`,
+		[postgresFeature, configuration(config), environment(env), forwarded],
+		function* ({ greet }) {
+			expect(yield* greet("alice", fromTheApp)).toBe("Hello, alice");
 		},
 	);
 }
+
+for (const { config, env, name } of [
+	{ config: {}, env: {}, name: "no proxy trust" },
+	{
+		config: { trustedProxy: "127.0.0.2" },
+		env: { "TRUSTED_PROXY": "127.0.0.1" },
+		name: "config.trustedProxy naming another peer over TRUSTED_PROXY",
+	},
+	{ config: { trustedProxy: "127.0.0.2/31" }, env: {}, name: "a configured range just past the proxy" },
+]) {
+	host.it(
+		`a forwarded RPC post is forbidden before any session lookup with ${name}`,
+		[postgresFeature, configuration(config), environment(env), forwarded],
+		function* ({ postRpc, responseStatus, sessionLookups }) {
+			yield* postRpc(fromTheApp);
+
+			yield* outcomes({
+				"response status": [responseStatus(), HttpStatus.fromLiteral("Forbidden")],
+				"session lookups": [sessionLookups(), []],
+			});
+		},
+	);
+}
+
+host.it(
+	"a trusted proxy still forbids a forwarded RPC post from a foreign origin before any session lookup",
+	[postgresFeature, environment({ "TRUSTED_PROXY": "127.0.0.1" }), forwarded],
+	function* ({ postRpc, responseStatus, sessionLookups }) {
+		yield* postRpc({ origin: "https://elsewhere.example" });
+
+		yield* outcomes({
+			"response status": [responseStatus(), HttpStatus.fromLiteral("Forbidden")],
+			"session lookups": [sessionLookups(), []],
+		});
+	},
+);

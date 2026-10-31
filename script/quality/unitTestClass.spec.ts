@@ -1,9 +1,9 @@
 import { expect } from "vitest";
+import { storySpecs } from "@shivaedev/quality/rules/stories/specs.ts";
+import { testsColocated } from "@shivaedev/quality/rules/test-names/colocated.ts";
+import { testsFollow } from "@shivaedev/quality/rules/test-names/follow.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 import { orders, ordersPackage, pureOrders, unitSpec } from "#quality/test-support/unitFiles.ts";
-import { storySpecs } from "#quality-internal/rules/stories/specs.ts";
-import { testsColocated } from "#quality-internal/rules/test-names/colocated.ts";
-import { testsFollow } from "#quality-internal/rules/test-names/follow.ts";
 
 const KIT = "Drive the engine through the package's story kit";
 

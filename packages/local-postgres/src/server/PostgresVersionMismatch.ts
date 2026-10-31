@@ -1,10 +1,10 @@
-export class PostgresVersionMismatch extends Error {
-	readonly _tag = "PostgresVersionMismatch";
-	readonly expectedVersion = "18.6";
-	readonly observedVersion: string | undefined;
+import { Schema } from "effect";
 
-	constructor(observedVersion: string | undefined) {
-		super("Expected local PostgreSQL 18.6. Check the existing service; setup never removes containers or data.");
-		this.observedVersion = observedVersion;
+export class PostgresVersionMismatch extends Schema.TaggedError<PostgresVersionMismatch>()("PostgresVersionMismatch", {
+	expectedVersion: Schema.Literal("18.6"),
+	observedVersion: Schema.String,
+}) {
+	override get message() {
+		return "Expected local PostgreSQL 18.6. Check the existing service; setup never removes containers or data.";
 	}
 }

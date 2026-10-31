@@ -1,5 +1,6 @@
 import { Deferred, Effect, PlatformError, Stream } from "effect";
 import type { FileSystemWrapper } from "./board.ts";
+import { readinessEvents } from "./readinessEvents.ts";
 
 export interface FaultyWatch {
 	readonly attempts: readonly number[];
@@ -47,7 +48,10 @@ export function faultyWatch(): FaultyWatch {
 	};
 }
 
-export const silentWatch: FileSystemWrapper = (fs) => ({ ...fs, watch: () => Stream.never });
+export const silentWatch: FileSystemWrapper = (fs) => ({
+	...fs,
+	watch: (path, options) => (options?.recursive ? readinessEvents(fs, path, options) : Stream.never),
+});
 
 export function countingPaths(): { readonly wrap: FileSystemWrapper; readonly visited: readonly string[]; readonly listed: readonly string[] } {
 	const visited: string[] = [];

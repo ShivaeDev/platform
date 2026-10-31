@@ -10,5 +10,5 @@ export const postChanges = Effect.fnUntraced(function* (url: string, cookie: str
 	}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
 	const services = yield* Layer.build(protocol);
 	const client = yield* RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(services));
-	return yield* client("account.$changes", { queries: [{ payload: { id: "theme" }, query: "get" }] }).pipe(Stream.runHead, Effect.exit);
+	return yield* client("account.$changes", { queries: [{ payload: { id: "theme" }, query: "get" }] }).pipe(Stream.runHead);
 });

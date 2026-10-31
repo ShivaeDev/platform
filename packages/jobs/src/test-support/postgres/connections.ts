@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Redacted, Schema } from "effect";
 import type { Registration } from "#test/workers.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { runningIn, startRuntime } from "./engine.ts";
@@ -36,13 +36,13 @@ export function connectionVerbs(engine: DatabaseEngine, tell: (line: string) => 
 			),
 		startWithSslMode: (name: string, jobs: readonly Registration[], mode: "require" | undefined) => {
 			tell(`${name} starts the jobs runtime with sslmode ${mode ?? "unset"}`);
-			const url = new URL(engine.url);
+			const url = new URL(Redacted.value(engine.url));
 			url.searchParams.delete("sslmode");
 			url.searchParams.set("application_name", name);
 			if (mode !== undefined) {
 				url.searchParams.set("sslmode", mode);
 			}
-			return startRuntime(engine, name, jobs, { connectionString: url.toString() });
+			return startRuntime(engine, name, jobs, { connectionString: Redacted.make(url.toString()) });
 		},
 		terminateIdleConnections: (name: string) => {
 			tell(`an administrator terminates ${name}'s idle PostgreSQL connections`);

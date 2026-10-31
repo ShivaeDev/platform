@@ -1,5 +1,105 @@
 # Changelog
 
+## 0.10.0 - 2026-10-31
+
+### Fixed
+
+- End open authenticated streams with `AuthUnavailable` when a session revalidation cannot reach the auth provider. Revoked sessions still end with `Unauthorized`, and live-change subscriptions use identity's shared stream revalidation.
+- Generated applications provide Node services when running database setup, so setup commands participate in Effect interruption and typed failure handling.
+
+### Breaking
+
+- `@shivaedev/local-postgres`: `assertLocalDatabase`, `sql`, `startPostgres`, `prepareDatabases` and lower-level command helpers return Effects. Yield them in an Effect program and provide `ChildProcessSpawner` for commands, for example with `NodeServices.layer` at a Node entry point. Replace synchronous try/catch with Effect error handling. Command failures use `PostgresCommandError`; local-target and image refusals use `LocalPostgresError`. Construct the Schema tagged errors as `new PostgresVersionMismatch({ expectedVersion: "18.6", observedVersion })` or `new PostgresSettingError({ container: "development-postgres", setting: "max_connections", cause })`. Exhausted readiness checks retain their final failure instead of reporting an unobserved version mismatch.
+- `@shivaedev/server`: `setupDatabases()` requires `ChildProcessSpawner` and exposes local PostgreSQL failures in its typed error channel. Provide `NodeServices.layer` at the setup entry point instead of relying on synchronous commands hidden inside the host.
+
+## 0.9.3 - 2026-10-31
+
+### Fixed
+
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+- Server RPC failures, request diagnostics and traces use the sensitive keys from their own RPC schemas, so registering another RPC cannot redact their public failure tags or messages.
+- Admin Jobs schemas mark job payload and failure-detail containers sensitive without marking generic `_tag` or `message` fields sensitive.
+- End hosted live subscriptions with `Unauthorized` when the original session is signed out, revoked or expired, whether detected during a change hint or periodic revalidation. Keep `QueryReadDenied` for a signed-in viewer whose query policy refuses the read.
+- Batch shared socket session lookups with an Effect scheduler yield so advancing `TestClock` past `streamRevalidationInterval` completes revalidation without another clock advance.
+- Preserve typed session-provider failures during hint-time authorization instead of reporting them as read-policy refusals.
+
+## 0.9.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.9.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.9.0 - 2026-10-30
+
+### Added
+
+- Queries can opt into `live: "rerun-and-compare"`. Hosted subscriptions rerun the authorized query as the subscribed viewer, hash its JSON-schema-encoded result with SHA-256, and push a typed `Result` only when it changes. Bound queries consume those results without a client refetch. Other queries keep hint-and-refetch delivery.
+- Rerun subscriptions end with `QueryReadDenied` when access is denied. The host registers change listeners before its initial result read, and reconciliation reruns the query through the same read policy.
+
+### Breaking
+
+- `@shivaedev/contract`'s `ChangesClient` transport helper now covers result messages and erases query-specific stream failures. Consumers using that helper to read changes must use their contract's native AtomRpc client type instead; derive message and failure types with `Rpc.SuccessChunk` and `Rpc.ErrorExit` of the contract's `$changes` RPC. Contract-derived bound query types remain specific to their query.
+
+## 0.8.0 - 2026-10-30
+
+### Fixed
+
+- Live reads and change subscriptions preserve policy failures instead of reporting read denial. Generated starter apps report notes database connection failures as `ServiceUnavailable` during the owner's live read.
+
+### Breaking
+
+- Query read policies declare their error and service channels with `QueryReadPolicy<Payload, E, R>`. Declare policy errors in the query's `rejections` and provide policy services when building its handler Layer. Custom subscription adapters call `querySubscription(rpc, references, viewer)` instead of resolving requests themselves. Use the native RPC type when calling `authorizeReads` or `resolveChanges` so their inferred channels include policy requirements and errors. The generated change stream includes the queries' declared rejections and service requirements; consumers handling that stream must handle those errors too.
+- Admin pages install their permission's read policy for every query, preserving additional query restrictions. Remove repeated page-grant policies from individual queries and supply the page's permission middleware with the handler Layers.
+
+## 0.7.0 - 2026-10-30
+
+### Added
+
+- Identity exposes a socket-scoped session coordinator for hosts to share session rechecks within a batch and drive stream revalidation from one timer.
+
+### Fixed
+
+- Hosted live subscriptions on one socket share hint-time session lookups and periodic session revalidation while retaining per-query read-policy checks and typed revocation failures.
+
+## 0.6.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.6.0 - 2026-10-30
+
+### Added
+
+- `@shivaedev/server`: Configure a direct or session-mode change listener with `config.listenDatabaseUrl` or `LISTEN_DATABASE_URL`, falling back to the application connection when unset.
+- `@shivaedev/sql`: Supply `listenerClient` separately from the writing `client` to `postgresChanges`; set `connectionSetting` to identify that connection in diagnostics.
+- `@shivaedev/sql/postgresLayer.ts` provides `postgresLayer(url, options)` with one native `PgPool` shared by `PgClient` and `SqlClient`. Reserved connections and client queries share `maxConnections`, and Layer shutdown waits for every socket to close.
+- `appDatabase` and database-backed `appHost` expose the application's native `PgPool` service for packages that need reserved PostgreSQL connections.
+
+### Fixed
+
+- A denied per-hint session or query policy recheck ends the hosted live subscription with `QueryReadDenied` instead of silently dropping the hint. Custom consumers must handle this declared failure; automatic bound queries rerun their authorized read so the screen can show the denial.
+- Retry worker-release heartbeat and poll failures on a bounded schedule, log their causes, and close the worker scope with the original cause when recovery fails. Heartbeats continue while jobs drain after a connection blip.
+- Log change-listener loss and reconnect causes, and bound listener sub-scope cleanup without rewriting scope finalizers.
+- Fail application database startup when its first PostgreSQL LISTEN or heartbeat fails, instead of waiting indefinitely.
+- SQL decodes migration ledger, release ownership and change-coverage rows before using them. Malformed rows fail with `SchemaError` instead of being treated as current, pending or a different owner.
+- SQL generates worker identities and change-listener heartbeat tokens through Effect's `Random` service.
+
+### Breaking
+
+- Listener startup deadlines now fail with `PostgresListenerError`, naming the connection setting, instead of `SqlError`. Consumers handling startup failures must also handle `PostgresListenerError` from `@shivaedev/sql/PostgresListenerError.ts`. Hosts using transaction-pooled application URLs must set `LISTEN_DATABASE_URL` or `config.listenDatabaseUrl` to a direct or session-mode connection to the same database. Native SQL startup failures still use `SqlError`.
+- Server's PostgreSQL construction and address helpers move to sql. Consumers of `@shivaedev/server/adapters/postgresClient.ts` must compose `postgresLayer` from `@shivaedev/sql/postgresLayer.ts` and read the native `PgPool` or `PgClient` service instead. Address-only consumers import `databaseAddress` from `@shivaedev/sql/databaseAddress.ts` instead of `@shivaedev/server/databaseAddress.ts`.
+- `postgresChanges` and `listenForChanges` now expose `SqlError` during acquisition. Consumers that required an infallible Layer or Effect must handle or propagate this error. `heartbeatTimeout` bounds the first LISTEN acquisition and its first heartbeat; retry startup at the application boundary if desired. Established listeners continue to reconnect.
+- Schema component failures now reach SQL migration and readiness callers, server startup and test-sql migration helpers with their original error, tag and cause, and log the component name. Handle the component's own error instead of a wrapping `MigrationError` with kind `Failed`. When annotating migration options with fallible components, supply their error type as the second generic parameter; the default describes components that cannot fail.
+- Declare `WorkerRelease` through `defineService`. Consumers using the old class as a type must use `Context.Service.Identifier<typeof WorkerRelease>`; yielding the service and providing its value stay the same.
+
 ## 0.5.0 - 2026-10-30
 
 ### Changed

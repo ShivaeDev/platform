@@ -1,91 +1,117 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminApplication, adminRole, unavailableAdminProvider } from "#test/app-host/admin.ts";
+import type { AdminCaller } from "#test/app-host/adminVerbs.ts";
 import { host } from "#test/app-host/story.ts";
 
-for (const { name, traits, token, status, failure } of [
-	{ failure: "Unauthorized", name: "signed-out", status: HttpStatus.fromLiteral("Unauthorized"), token: "", traits: [] },
-	{ failure: "Forbidden", name: "non-admin", status: HttpStatus.fromLiteral("Forbidden"), token: "member", traits: [adminRole("user")] },
-	{ failure: "Forbidden", name: "owner without admin", status: HttpStatus.fromLiteral("Forbidden"), token: "member", traits: [adminRole("owner")] },
+const adminPages = ["/admin", "/admin/", "/admin/tools.js", "/admin/jobs/detail"];
+
+for (const { caller, name, traits, status, refusal } of [
+	{ caller: "signed-out caller", name: "signed-out caller", refusal: "unauthorized", status: HttpStatus.fromLiteral("Unauthorized"), traits: [] },
 	{
-		failure: "AuthUnavailable",
-		name: "provider-unavailable",
+		caller: "member",
+		name: "member with the user role",
+		refusal: "forbidden",
+		status: HttpStatus.fromLiteral("Forbidden"),
+		traits: [adminRole("user")],
+	},
+	{
+		caller: "member",
+		name: "member with the owner role",
+		refusal: "forbidden",
+		status: HttpStatus.fromLiteral("Forbidden"),
+		traits: [adminRole("owner")],
+	},
+	{
+		caller: "member",
+		name: "member during a session provider outage",
+		refusal: "auth unavailable",
 		status: HttpStatus.fromLiteral("ServiceUnavailable"),
-		token: "member",
 		traits: [unavailableAdminProvider],
 	},
-]) {
+] satisfies { caller: AdminCaller; name: string; refusal: string; status: number; traits: unknown[] }[]) {
+	for (const path of adminPages) {
+		host.it(`the ${name} receives an empty uncacheable ${status} from ${path}`, [adminApplication, ...traits], function* ({ visit }) {
+			expect(yield* visit(path, caller)).toEqual({ body: "", cacheControl: "private, no-store", status });
+		});
+	}
+
 	host.it(
-		`the ${name} caller cannot enter admin routes or RPCs and rejections cannot be cached`,
+		`the ${name}'s admin RPCs fail as ${refusal} in an uncacheable response before any handler runs`,
 		[adminApplication, ...traits],
-		function* ({ request, adminRpc, calls }) {
-			for (const path of ["/admin", "/admin/", "/admin/tools.js", "/admin/jobs/detail"]) {
-				const response = yield* request(path, { headers: { accept: "text/html", authorization: token } });
-				expect(response.status).toBe(status);
-				expect(response.headers.get("cache-control")).toBe("private, no-store");
-				expect(response.body).toBe("");
-			}
-			const rpc = yield* adminRpc(["adminRead", "adminReject", "adminStream"], token);
-			expect(rpc.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(rpc.cacheControl).toBe("private, no-store");
-			for (const id of ["1", "2", "3"]) {
-				expect(rpc.messages).toContainEqual(
-					expect.objectContaining({
-						_tag: "Exit",
-						exit: expect.objectContaining({
-							_tag: "Failure",
-							cause: expect.arrayContaining([expect.objectContaining({ _tag: "Fail", error: expect.objectContaining({ _tag: failure }) })]),
-						}),
-						requestId: id,
-					}),
-				);
-			}
-			expect(calls()).toEqual([]);
+		function* ({ adminRpc, handledCalls, responseCacheControl, rpcAnswers }) {
+			yield* adminRpc(["adminRead", "adminReject", "adminStream"], caller);
+
+			yield* outcomes({
+				"answers": [
+					rpcAnswers(),
+					{ adminRead: `failed with ${refusal}`, adminReject: `failed with ${refusal}`, adminStream: `failed with ${refusal}` },
+				],
+				"cache control": [responseCacheControl(), "private, no-store"],
+				"handled calls": [handledCalls(), []],
+			});
 		},
 	);
 }
 
+for (const [path, body] of [
+	["/admin", "<main>Hosted app</main>"],
+	["/admin/", "<main>Hosted app</main>"],
+	["/admin/tools.js", "admin tools"],
+	["/admin/jobs/detail", "<main>Hosted app</main>"],
+] as const) {
+	host.it(`an admin member receives ${body} from ${path}`, [adminApplication, adminRole("admin")], function* ({ visit }) {
+		expect(yield* visit(path, "member")).toMatchObject({ body, status: HttpStatus.fromLiteral("OK") });
+	});
+}
+
 host.it(
-	"an admin reaches the root, descendants and HTML fallback while the public SPA stays accessible",
+	"an admin member's admin RPC answers with their email in an uncacheable response",
 	[adminApplication, adminRole("admin")],
-	function* ({ request, adminRpc }) {
-		for (const [path, body] of [
-			["/admin", "<main>Hosted app</main>"],
-			["/admin/", "<main>Hosted app</main>"],
-			["/admin/tools.js", "admin tools"],
-			["/admin/jobs/detail", "<main>Hosted app</main>"],
-		]) {
-			const response = yield* request(path, { headers: { accept: "text/html", authorization: "member" } });
-			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(response.body).toBe(body);
-		}
-		const rpc = yield* adminRpc(["adminRead"], "member");
-		expect(rpc.cacheControl).toBe("private, no-store");
-		expect(rpc.messages).toContainEqual(expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: "member@example.test" } }));
-		const publicPage = yield* request("/sign-in", { headers: { accept: "text/html" } });
-		expect(publicPage.status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(publicPage.body).toBe("<main>Hosted app</main>");
+	function* ({ adminRpc }) {
+		expect(yield* adminRpc(["adminRead"], "member")).toEqual({
+			answers: { adminRead: "member@example.test" },
+			cacheControl: "private, no-store",
+			status: HttpStatus.fromLiteral("OK"),
+		});
+	},
+);
+
+host.it("a signed-out caller still reaches the public SPA beside the admin area", [adminApplication], function* ({ visit }) {
+	expect(yield* visit("/sign-in", "signed-out caller")).toMatchObject({ body: "<main>Hosted app</main>", status: HttpStatus.fromLiteral("OK") });
+});
+
+host.it(
+	"losing admin refuses the member's next admin page uncacheably on the same session",
+	[adminApplication, adminRole("admin")],
+	function* ({ memberLosesAdmin, visit }) {
+		expect(yield* visit("/admin/jobs/detail", "member")).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
+
+		yield* memberLosesAdmin();
+
+		expect(yield* visit("/admin/jobs/detail", "member")).toEqual({
+			body: "",
+			cacheControl: "private, no-store",
+			status: HttpStatus.fromLiteral("Forbidden"),
+		});
 	},
 );
 
 host.it(
-	"revoking admin blocks the next route and RPC with the same session",
+	"losing admin refuses the member's next admin RPC uncacheably on the same session without running its handler",
 	[adminApplication, adminRole("admin")],
-	function* ({ request, adminRpc, setAdminRole, calls, clearCalls }) {
-		expect((yield* request("/admin", { headers: { accept: "text/html", authorization: "member" } })).status).toBe(HttpStatus.fromLiteral("OK"));
-		expect((yield* adminRpc(["adminRead"], "member")).messages).toContainEqual(
-			expect.objectContaining({ exit: { _tag: "Success", value: "member@example.test" } }),
-		);
-		setAdminRole("user");
-		clearCalls();
-		const route = yield* request("/admin/jobs/detail", { headers: { accept: "text/html", authorization: "member" } });
-		expect(route.status).toBe(HttpStatus.fromLiteral("Forbidden"));
-		expect(route.headers.get("cache-control")).toBe("private, no-store");
-		const rpc = yield* adminRpc(["adminRead"], "member");
-		expect(rpc.cacheControl).toBe("private, no-store");
-		expect(rpc.messages).toMatchObject([
-			{ _tag: "Exit", exit: { _tag: "Failure", cause: [{ _tag: "Fail", error: { _tag: "Forbidden" } }] }, requestId: "1" },
-		]);
-		expect(calls()).toEqual([]);
+	function* ({ adminRpc, handledCalls, memberLosesAdmin, responseCacheControl, rpcAnswers }) {
+		yield* adminRpc(["adminRead"], "member");
+		expect(yield* rpcAnswers()).toEqual({ adminRead: "member@example.test" });
+
+		yield* memberLosesAdmin();
+
+		yield* adminRpc(["adminRead"], "member");
+		yield* outcomes({
+			"answers": [rpcAnswers(), { adminRead: "failed with forbidden" }],
+			"cache control": [responseCacheControl(), "private, no-store"],
+			"handled calls": [handledCalls(), ["adminRead"]],
+		});
 	},
 );
