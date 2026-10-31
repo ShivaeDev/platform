@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
-import { Context, type Duration, Effect, Fiber, Layer, Option, Queue, Result, Schema, Stream } from "effect";
+import { Context, DateTime, type Duration, Effect, Fiber, Layer, Option, Queue, Result, Schema, Stream } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
@@ -40,10 +40,11 @@ function ending(result: Result.Result<void, unknown>) {
 
 export const streamSession = storyKit({
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const provider = yield* createProvider();
 		const mintingAuth = betterAuth({ ...provider.auth.options, plugins: [testUtils()] });
-		const session = yield* Effect.promise(() => signedInUser(mintingAuth, { email: "alice@example.test", name: "Alice" }));
+		const session = yield* signedInUser(mintingAuth, { email: "alice@example.test", name: "Alice" });
 		const cookie = session.headers.get("cookie");
 		if (cookie === null) {
 			return yield* Effect.die("The minted session did not supply a cookie");

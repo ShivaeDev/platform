@@ -78,8 +78,8 @@ export const accountRoleHost = Effect.fnUntraced(function* () {
 		},
 		// Minted sessions isolate boot-time grants from OAuth registration.
 		mint: (person: Person, storedRole: SeedRole = "user") =>
-			Effect.promise(async () => {
-				const session = await signedInUser(base.auth, {
+			Effect.gen(function* () {
+				const session = yield* signedInUser(base.auth, {
 					email: `${person}@github.test`,
 					name: person,
 					providerAccounts: [{ accountId: people[person], providerId: "github" }],

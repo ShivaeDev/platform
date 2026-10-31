@@ -42,8 +42,8 @@ const create = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql`create table preferences (owner text not null, id text not null, value text not null, primary key (owner, id))`;
 	const provider = yield* createProvider();
-	const alice = yield* Effect.promise(() => signedInUser(provider.auth, { email: "alice@example.test", name: "alice" }));
-	const bob = yield* Effect.promise(() => signedInUser(provider.auth, { email: "bob@example.test", name: "bob" }));
+	const alice = yield* signedInUser(provider.auth, { email: "alice@example.test", name: "alice" });
+	const bob = yield* signedInUser(provider.auth, { email: "bob@example.test", name: "bob" });
 	const second = yield* Effect.promise(async () => {
 		const { test } = await provider.auth.$context;
 		return test.login({ userId: alice.user.id });

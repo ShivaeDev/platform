@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
-import { ConfigProvider, DateTime, Effect, Option } from "effect";
+import { ConfigProvider, DateTime, type Duration, Effect, Option } from "effect";
 import { Headers as HttpHeaders } from "effect/http";
 import * as TestClock from "effect/testing/TestClock";
 import { role } from "@shivaedev/access/role.ts";
@@ -40,9 +40,9 @@ export const sessionClock = storyKit({
 		);
 		const context = yield* Effect.promise(() => mounted.auth.$context);
 		yield* Effect.promise(() => context.runMigrations());
-		const alice = yield* Effect.promise(() => signedInUser(mounted.auth, { email: "alice@clock.test", name: "alice" }));
+		const alice = yield* signedInUser(mounted.auth, { email: "alice@clock.test", name: "alice" });
 		const longerLived = betterAuth({ ...mounted.auth.options, session: { ...options.session, expiresIn: 7200 } });
-		const bob = yield* Effect.promise(() => signedInUser(longerLived, { email: "bob@clock.test", name: "bob" }));
+		const bob = yield* signedInUser(longerLived, { email: "bob@clock.test", name: "bob" });
 		return {
 			accounts: { alice, bob },
 			extraSession: Option.none<{ readonly id: string; readonly expiresAt: Date }>(),
@@ -94,6 +94,10 @@ export const sessionClock = storyKit({
 					engine.swept = Option.some(yield* sweepExpiredSessions);
 				}),
 			sweptSessions: () => Effect.sync(() => Option.getOrThrow(engine.swept)),
+			timePasses: (duration: Duration.Input) => {
+				story.tell(`${duration} pass on the test clock`);
+				return TestClock.adjust(duration);
+			},
 		};
 	},
 });

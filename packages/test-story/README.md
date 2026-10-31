@@ -772,10 +772,10 @@ const cookieApp = storyKit({
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 
-const { cookies } = yield* Effect.promise(() => signedInUser(testAuth, {
+const { cookies } = yield* signedInUser(testAuth, {
   email: "alice@example.test",
   name: "Alice",
-}));
+});
 yield* seedCookies(cookies);
 ```
 

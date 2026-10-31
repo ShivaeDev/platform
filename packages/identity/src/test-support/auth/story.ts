@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -21,7 +20,7 @@ export const auth = storyKit({
 
 export function signedInWithRole(role?: string) {
 	return auth.trait("session", `a session is minted for a user with role ${role ?? "unset"}`, function* (host) {
-		const session = yield* Effect.promise(() => signedInUser(host.auth, { email: "member@example.test", ...(role === undefined ? {} : { role }) }));
+		const session = yield* signedInUser(host.auth, { email: "member@example.test", ...(role === undefined ? {} : { role }) });
 		host.userId = session.user.id;
 		host.headers = session.headers;
 	});

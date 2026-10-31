@@ -1,4 +1,4 @@
-import { Effect, Queue } from "effect";
+import { DateTime, Effect, Queue } from "effect";
 import { TestClock } from "effect/testing";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -9,6 +9,7 @@ import { expireSession, signOut } from "./sessionLifecycle.ts";
 
 export const liveSubscriptionStory = storyKit({
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	create: () => liveSubscriptionEngine,
 	layer: postgres,
 	name: "live subscription session",
