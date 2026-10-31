@@ -1,5 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import { bearer } from "better-auth/plugins/bearer";
+import { Result } from "effect";
 
 export interface BearerSessionsOptions {
 	readonly origins: readonly string[];
@@ -41,10 +42,15 @@ export async function cookieSessionResponse(response: Response): Promise<Respons
 				.join(","),
 		);
 	}
-	if (!headers.get("content-type")?.includes("application/json")) {
-		return new Response(response.body, { headers, status: response.status });
+	const init = { headers, status: response.status, statusText: response.statusText };
+	if ((response.status >= 300 && response.status < 400) || response.body === null || !headers.get("content-type")?.includes("application/json")) {
+		return new Response(response.body, init);
 	}
-	const body: unknown = JSON.parse(await response.text(), (key, value: unknown) => (key === "token" ? undefined : value));
+	const bytes = await response.arrayBuffer();
+	const body = Result.try((): unknown => JSON.parse(new TextDecoder().decode(bytes), (key, value: unknown) => (key === "token" ? undefined : value)));
+	if (Result.isFailure(body)) {
+		return new Response(bytes, init);
+	}
 	headers.delete("content-length");
-	return Response.json(body, { headers, status: response.status });
+	return Response.json(body.success, init);
 }
