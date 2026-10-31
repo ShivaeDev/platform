@@ -2,9 +2,9 @@ import { Cause, Effect, Exit, Schema, Stream } from "effect";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { AppChanges } from "#appHost.ts";
 
 export interface ClientAbortState {
 	applicationName: string;
@@ -75,7 +75,7 @@ export function abortHandlers(state: ClientAbortState) {
 		reject: () => Effect.fail("rejected"),
 		rows: () => SqlClient.SqlClient.use((sql) => sql<{ value: string }>`select value from ${sql(state.table)}`).pipe(Effect.orDie),
 		watch: () =>
-			Stream.unwrap(Effect.map(AppChanges, (changes) => changes.stream([{ _tag: "List", collection: CHANGED_KEY }]))).pipe(
+			Stream.unwrap(Effect.flatMap(LiveServer, (changes) => changes.stream([{ _tag: "List", collection: CHANGED_KEY }]))).pipe(
 				Stream.onExit((exit) =>
 					Effect.sync(() => {
 						state.interrupted = Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause);

@@ -2,7 +2,8 @@ import { Data, Effect, type Layer, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { expectTypeOf } from "vitest";
-import { appDatabase, appHost } from "#appHost.ts";
+import { appDatabase } from "#appDatabase.ts";
+import { appHost } from "#appHost.ts";
 
 class ComponentUnavailable extends Data.TaggedError("ComponentUnavailable")<{ readonly message: string }> {}
 

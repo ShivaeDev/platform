@@ -1,6 +1,5 @@
 import { ByteSize, Effect, FileSystem, Layer, Option, Path, PlatformError, PubSub, Ref } from "effect";
 import { stringify } from "yaml";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { FleetHealth } from "#diagnostics/health.ts";
@@ -99,7 +98,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 				]),
 				Layer.provide([fixtureFileSystem(memory), Path.layer, Highlighter.layer]),
 			);
-			return hostChanges(workRpcs, AppChanges).pipe(Layer.provideMerge(services));
+			return hostChanges(workRpcs).pipe(Layer.provideMerge(services));
 		}),
 	);
 }

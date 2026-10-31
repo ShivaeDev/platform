@@ -2,12 +2,12 @@ import { Context, Effect, Layer, Option, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { collection, type Key } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { IdentityValue } from "@shivaedev/identity/identity.ts";
 import { Authenticated, AuthenticatedUser, MaybeAuthenticated } from "@shivaedev/identity/middleware.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
-import { AppChanges, appHost } from "#appHost.ts";
+import { appHost } from "#appHost.ts";
 import type { HostState } from "#test/app-host/state.ts";
 
 class ReadChecks extends Context.Service<ReadChecks, Check[]>()("test/ReadChecks") {}
@@ -92,7 +92,7 @@ export function policyHost(state: HostState, checks: Check[], revoked: Set<strin
 		services: Layer.mergeAll(
 			Layer.succeed(ReadChecks, checks),
 			Layer.succeed(ReadStore, rows),
-			Layer.effect(AppChanges, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer)),
+			LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer)),
 		),
 		sessions,
 	});

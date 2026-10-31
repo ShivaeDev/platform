@@ -1,5 +1,5 @@
 import { Config, Effect, Layer, Option, type Redacted } from "effect";
-import { appDatabase } from "@shivaedev/server/appHost.ts";
+import { appDatabase } from "@shivaedev/server/appDatabase.ts";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { migrations } from "#server/migrations.ts";
 

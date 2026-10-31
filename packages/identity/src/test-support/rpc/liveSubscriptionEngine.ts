@@ -8,10 +8,10 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { AppChanges, appHost } from "@shivaedev/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { answered } from "@shivaedev/test/answers.ts";
 import { Authenticated } from "#middleware.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
@@ -40,14 +40,14 @@ export const liveSubscriptionEngine = Effect.gen(function* () {
 		],
 	}).middleware(Authenticated);
 	const reactivity = yield* Reactivity.make;
-	const live = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
+	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity)))));
 	const clock = yield* Clock.Clock;
 	const services = yield* Layer.build(
 		appHost({
 			config: { port: 0 },
 			group: Api,
 			handlers: Api.application.toLayer({ "documents.get": () => Effect.succeed("alice's document") }),
-			services: Layer.merge(Layer.succeed(AppChanges, live), Layer.succeed(Reactivity.Reactivity, reactivity)),
+			services: Layer.merge(Layer.succeed(LiveServer, live), Layer.succeed(Reactivity.Reactivity, reactivity)),
 			sessions: {
 				origin: () => true,
 				provider: {

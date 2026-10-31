@@ -3,7 +3,6 @@ import { RpcTest } from "effect/rpc";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -25,7 +24,7 @@ const emptyJobsEngine = Effect.gen(function* () {
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const auth = permissionLayer(JobsPermission, { origin: () => true, provider: { get: () => Ref.get(session) }, roles: Access });
 	const client = yield* RpcTest.makeClient(page.contract).pipe(
-		Effect.provide(Layer.merge(registration.handlers, hostChanges(registration.group, AppChanges))),
+		Effect.provide(Layer.merge(registration.handlers, hostChanges(registration.group))),
 		Effect.provide(auth),
 		Effect.provideService(Jobs, Context.get(context, Jobs)),
 	);

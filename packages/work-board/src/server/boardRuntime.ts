@@ -1,8 +1,7 @@
 import { Context, Effect, FileSystem, Layer, Path, Stream, SubscriptionRef } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { DiagnosticsConfig, DiagnosticsSources } from "#diagnostics/source.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import { index as indexKeys } from "#rpc/keys.ts";
@@ -25,7 +24,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	yield* checkBrowserAssets();
 	const indexing = yield* SubscriptionRef.make<Indexing | undefined>(undefined);
 	const { changes, read: index } = yield* watchIndex(options.root, home, options.maintainer).pipe(Effect.provideService(IndexProgress, indexing));
-	const liveContext = yield* Layer.build(Layer.effect(AppChanges, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer)));
+	const liveContext = yield* Layer.build(LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer)));
 	const live = Layer.succeedContext(liveContext);
 	const path = yield* Path.Path;
 	const fleetFolder = path.relative(path.resolve(), options.root) || ".";

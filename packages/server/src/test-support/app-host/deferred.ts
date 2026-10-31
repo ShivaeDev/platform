@@ -1,7 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { appDatabase, appHost } from "#appHost.ts";
+import { appDatabase } from "#appDatabase.ts";
+import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 import type { HostState } from "./state.ts";
 import { host } from "./story.ts";

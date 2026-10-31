@@ -2,6 +2,7 @@ import { Context, Effect, type Layer, Option, Schema, type Stream } from "effect
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import { contract } from "#contract.ts";
+import type { LiveServer } from "#LiveServer.ts";
 import type { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
@@ -43,6 +44,11 @@ declare const subscription: Effect.Success<typeof pending>;
 const pushed = live.subscribe(subscription, undefined, () => Effect.asVoid(Database));
 expectTypeOf<Stream.Services<typeof pushed>>().toEqualTypeOf<Database>();
 expectTypeOf<Stream.Error<typeof pushed>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy>();
+declare const sharedLive: Context.Service.Shape<typeof LiveServer>;
+const sharedPushed = sharedLive.subscribe(subscription, undefined, () => Effect.asVoid(Database));
+expectTypeOf<Effect.Services<typeof sharedPushed>>().toEqualTypeOf<never>();
+expectTypeOf<Stream.Services<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<Database>();
+expectTypeOf<Stream.Error<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy>();
 expectTypeOf<Rpc.ExtractRequires<PushedChanges, "pushed.$changes">>().toEqualTypeOf<Database>();
 
 const validated = validateReadPolicies(Reads);

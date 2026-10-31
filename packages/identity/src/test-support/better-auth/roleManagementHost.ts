@@ -10,8 +10,7 @@ import { AssignRoles } from "@shivaedev/access/roles.ts";
 import { ReadUsers, UsersPermission } from "@shivaedev/admin/permissions.ts";
 import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
 import { usersPage } from "@shivaedev/admin/users/page.ts";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
@@ -48,9 +47,9 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 	const bob = yield* Effect.promise(() => signedInUser(mounted.auth, { email: "bob@roles.test", name: "bob", role: "user" }));
 	const accounts = { alice, bob };
 	const sql = yield* SqlClient.SqlClient;
-	const live = yield* makeLiveServer;
-	const handlers = Layer.merge(usersHandlers(Page, Access), hostChanges(Page.contract, AppChanges)).pipe(
-		Layer.provide([Layer.succeed(AppChanges, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
+	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer));
+	const handlers = Layer.merge(usersHandlers(Page, Access), hostChanges(Page.contract)).pipe(
+		Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
 	);
 	const rpcRoutes = RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([handlers, permissionLayer(UsersPermission, { ...mounted.sessions, origin: () => true }), RpcSerialization.layerJson]),

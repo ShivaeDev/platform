@@ -70,7 +70,7 @@ For an application on the app host of `@shivaedev/server`, register `pgBossSchem
 
 ```ts
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
-import { appDatabase } from "@shivaedev/server/appHost.ts";
+import { appDatabase } from "@shivaedev/server/appDatabase.ts";
 
 const database = appDatabase({
 	migrations: {

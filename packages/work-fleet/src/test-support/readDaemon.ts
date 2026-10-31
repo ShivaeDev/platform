@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Clock, Context, Effect, Layer, Stream } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonHostOptions, daemonHttpLayer, daemonLayer } from "#host/daemon.ts";
@@ -38,9 +38,9 @@ export function readDaemonLayer(
 		onCommitSubscriptionStop === undefined
 			? options.handlers
 			: options.handlers.pipe(
-					Layer.updateService(AppChanges, (changes) => ({
+					Layer.updateService(LiveServer, (changes) => ({
 						...changes,
-						stream: (keys) => changes.stream(keys).pipe(Stream.ensuring(onCommitSubscriptionStop)),
+						stream: (keys) => changes.stream(keys).pipe(Effect.map(Stream.ensuring(onCommitSubscriptionStop))),
 					})),
 				);
 	const observed = onSnapshot === undefined ? subscriptions : observeSnapshots(subscriptions, onSnapshot);

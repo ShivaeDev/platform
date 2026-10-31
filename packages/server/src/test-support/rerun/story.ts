@@ -3,8 +3,8 @@ import { Context, Effect, Fiber, Layer, Predicate, Stream, SubscriptionRef } fro
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { AppChanges } from "#appHost.ts";
 import { close, context, start } from "#test/app-host/lifecycle.ts";
 import { emptyHost } from "#test/app-host/state.ts";
 import { Api, Note, type RerunState, rerunHost } from "./fixture.ts";
@@ -89,7 +89,7 @@ export const rerunStory = storyKit({
 			story.tell(`rename note ${id} to ${title}`);
 			return engine.rpc("rerun.rename", { id, title });
 		},
-		resync: () => Effect.flatMap(context(engine.state), (services) => Context.getUnsafe(services, AppChanges).resync),
+		resync: () => Effect.flatMap(context(engine.state), (services) => Context.getUnsafe(services, LiveServer).resync()),
 		shown: () => AtomRegistry.getResult(engine.registry, engine.client.api.compare.query({ title: "One" })),
 		subscriptionEnd: () =>
 			Fiber.join(engine.finished).pipe(

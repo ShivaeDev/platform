@@ -7,7 +7,6 @@ import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "@shivaedev/identity/server/session.ts";
-import type { AppChanges } from "#appHost.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import { hostChanges } from "#hostChanges.ts";
 import type { HostPolicy } from "#hostOptions.ts";
@@ -23,7 +22,6 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 		readonly handlers: Layer.Layer<THandlers, TError, TRequirements>;
 		readonly rpcPath?: HttpRouter.PathInput;
 	} & HostPolicy<TSession>,
-	changesService: typeof AppChanges,
 	{ bodySize, trustedProxy, nativeOrigins }: Effect.Success<ReturnType<typeof hostTransport>>,
 	sensitive: ReturnType<typeof schemaSensitiveKeys>,
 ) {
@@ -64,9 +62,7 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 		Layer.provide(
 			Layer.merge(
 				middleware,
-				hostChanges(options.group, changesService, options.policy === "loopback" ? undefined : options.sessions).pipe(
-					Layer.provideMerge(options.handlers),
-				),
+				hostChanges(options.group, options.policy === "loopback" ? undefined : options.sessions).pipe(Layer.provideMerge(options.handlers)),
 			),
 		),
 		Layer.provide(RpcSerialization.layerNdjson),
