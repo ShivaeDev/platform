@@ -1,6 +1,5 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -8,28 +7,34 @@ import { routedScreen } from "#test/screenTraits.ts";
 import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
-const source = questionnaireSource.replace(
+
+const withAuthoredMarkup = questionnaireSource.replace(
 	"### How should replies appear?",
 	'### How should replies appear?\n\n<form id="forged"><input name="author"></form>\n\n<script>globalThis.authoredPacketRan = true</script>\n',
 );
+const ITEM = "/_board/item/investigation.choices/";
+
 screenStory.it(
-	"keeps authored form and script markup outside live packet controls",
+	"a question's authored form and script markup neither reaches the live answer form nor runs",
+	[routedScreen({ "proposal.md": withAuthoredMarkup }, ITEM, { home: undefined, writable: true })],
+	function* ({ foreignPacketMarkup }) {
+		expect(yield* foreignPacketMarkup()).toEqual([]);
+	},
+);
+
+screenStory.it(
+	"an authored author field in the question does not replace the remembered author on the saved answer",
 	[
 		screenWorkspace("authored-packet"),
 		storedScreenState({ "work-board:author:authored-packet": "Reviewer" }),
-		routedScreen({ "proposal.md": source }, "/_board/item/investigation.choices/", { home: undefined, writable: true }),
+		routedScreen({ "proposal.md": withAuthoredMarkup }, ITEM, { home: undefined, writable: true }),
 	],
-	function* ({ findElement, input, submit, readResponses, readText }) {
-		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
-		expect(findElement("#response-form #forged")).toBeNull();
-		expect(findElement("#response-form script")).toBeNull();
-		expect(readText("#response-form")).not.toContain("<form");
-		expect(readText("#response-form")).not.toContain("globalThis.authoredPacketRan");
-		input('#response-form [data-prompt="display"] textarea', "Keep the history.");
-		input('#response-form [data-prompt="checks"] textarea', "Test keyboard use.");
-		submit("#response-form");
-		yield* eventually(() => expect(readText("#response-status")).toContain("Answer saved"));
-		const saved = yield* Effect.promise(() => readResponses("investigation.choices", "direction"));
-		expect(saved.responses[0]?.response.author).toBe("Reviewer");
+	function* ({ answerPrompt, recordedPacketAuthors, sendPacket }) {
+		yield* answerPrompt("display", "Keep the history.");
+		yield* answerPrompt("checks", "Test keyboard use.");
+
+		yield* sendPacket();
+
+		expect(yield* recordedPacketAuthors("investigation.choices", "direction")).toEqual(["Reviewer"]);
 	},
 );

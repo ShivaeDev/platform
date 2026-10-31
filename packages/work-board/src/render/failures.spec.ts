@@ -1,29 +1,27 @@
-import { Effect, Schema } from "effect";
 import { expect } from "vitest";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { highlighterStartupFails, markdownPluginFails, renderFailureStory } from "#test/renderFailureStory.ts";
-import { RenderFailed } from "./Failed.ts";
 
-const startupCause = new BadRequest({ message: "Unable to load themes" });
 renderFailureStory.it(
-	"keeps highlighter startup failures typed for the host",
-	[highlighterStartupFails(startupCause)],
-	function* ({ startHighlighter }) {
-		const failure = yield* startHighlighter().pipe(Effect.flip);
-		expect(failure).toBeInstanceOf(RenderFailed);
-		expect(Schema.is(RenderFailed)(failure)).toBe(true);
-		expect(failure.cause).toBe(startupCause);
-		expect(failure.message).toContain("restart Work Board");
+	"a highlighter that cannot load its themes fails startup as a render failure that keeps its cause and asks for a restart",
+	[highlighterStartupFails(new BadRequest({ message: "Unable to load themes" }))],
+	function* ({ hostStartsHighlighter }) {
+		expect(yield* hostStartsHighlighter()).toEqual({
+			carriesCause: true,
+			failure: "render failed",
+			message: expect.stringContaining("restart Work Board"),
+		});
 	},
 );
-const markdownCause = new BadRequest({ message: "Invalid Markdown" });
+
 renderFailureStory.it(
-	"keeps Markdown plugin failures typed for the rendering caller",
-	[markdownPluginFails(markdownCause)],
-	function* ({ renderFile }) {
-		const failure = yield* renderFile("note.md").pipe(Effect.flip);
-		expect(failure).toBeInstanceOf(RenderFailed);
-		expect(failure.cause).toBe(markdownCause);
-		expect(failure.message).toContain("Check the Markdown source and retry");
+	"a Markdown plugin that rejects the source fails rendering as a render failure that keeps its cause and asks to check the source",
+	[markdownPluginFails(new BadRequest({ message: "Invalid Markdown" }))],
+	function* ({ rendererRenders }) {
+		expect(yield* rendererRenders("note.md")).toEqual({
+			carriesCause: true,
+			failure: "render failed",
+			message: expect.stringContaining("Check the Markdown source and retry"),
+		});
 	},
 );

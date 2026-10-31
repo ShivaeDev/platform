@@ -6,9 +6,13 @@ import { componentScreen } from "#test/screenTraits.ts";
 import { KeyboardHints } from "./KeyboardHints.tsx";
 
 expectNoReactWarnings();
-for (const points of [0, 1]) {
+
+for (const { points, shown } of [
+	{ points: 0, shown: "Ctrl K" },
+	{ points: 1, shown: undefined },
+]) {
 	screenStory.it(
-		`shows keyboard help only without touch points when the pointer is fine (${points} touch points)`,
+		`keyboard hints ${shown ? "show" : "stay hidden"} with a fine pointer and ${points} touch points`,
 		[
 			screenMedia([], points),
 			componentScreen(
@@ -17,8 +21,8 @@ for (const points of [0, 1]) {
 				</KeyboardHints>,
 			),
 		],
-		({ readText }) => {
-			expect(readText("kbd")).toBe(points === 0 ? "Ctrl K" : undefined);
+		function* ({ keyboardHint }) {
+			expect(yield* keyboardHint()).toBe(shown);
 		},
 	);
 }

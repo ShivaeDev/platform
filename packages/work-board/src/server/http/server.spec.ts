@@ -1,15 +1,11 @@
-import { chmodSync, readFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
-import { describe, expect } from "vitest";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
-import { countingPaths, silentWatch } from "#test/faults.ts";
-import { changesUntil, rpcPaths } from "#test/nativeRpc.ts";
-import { referenceLink } from "#test/referenceLink.ts";
+import { directoryReadsRecorded, watchBlind, workspaceLink } from "#test/servingStoryTraits.ts";
 import { outsideFiles } from "#test/servingTraits.ts";
 
-const readingProject = [
+const OUTSIDE = "# Outside the folder\n";
+const workspace = [
 	projectFiles({
 		".drafts/hidden.md": "# Hidden\n",
 		"node_modules/pkg/readme.md": "# Dependency\n",
@@ -18,151 +14,159 @@ const readingProject = [
 		"plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n",
 	}),
 	boardHome("plan.md"),
-	outsideFiles({ "private.md": "# Outside the folder\n" }),
+	outsideFiles({ "private.md": OUTSIDE }),
 ];
 
-describe("pages", () => {
-	boardStory.it("skips dot folders, node_modules and files that are not markdown", readingProject, function* ({ board, request }) {
-		expect(yield* rpcPaths(board)).toEqual(["/notes/log.md", "/plan.md"]);
-		expect((yield* request("/.drafts/hidden.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
-		expect((yield* request("/node_modules/pkg/readme.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
-		expect((yield* request("/notes/raw.txt")).status).toBe(HttpStatus.fromLiteral("NotFound"));
+boardStory.it("the library lists only Markdown files outside dot folders and node_modules", workspace, function* ({ libraryPaths }) {
+	expect(yield* libraryPaths()).toEqual(["/notes/log.md", "/plan.md"]);
+});
+
+for (const [path, kind] of [
+	["/.drafts/hidden.md", "a file in a dot folder"],
+	["/node_modules/pkg/readme.md", "a file in node_modules"],
+	["/notes/raw.txt", "a file that is not Markdown"],
+	["/%E0%A4%A.md", "a path that is not valid percent-encoding"],
+] as const) {
+	boardStory.it(`${path}, ${kind}, answers Not Found`, workspace, function* ({ statusOf }) {
+		expect(yield* statusOf(path)).toBe("Not Found");
 	});
+}
 
-	boardStory.it("never enters dot folders or node_modules while listing", readingProject, function* ({ board, notes, start }) {
-		yield* board.stop();
-		const counting = countingPaths();
-		board = yield* start({ home: "plan.md", wrap: counting.wrap });
-		expect(yield* rpcPaths(board)).toContain("/notes/log.md");
-		expect(counting.visited).toContain(`${notes.root}/notes`);
-		expect(counting.visited.filter((path) => path.includes("/.drafts") || path.includes("/node_modules"))).toEqual([]);
-	});
+boardStory.it(
+	"listing the workspace never visits dot folders or node_modules",
+	[...workspace, directoryReadsRecorded],
+	function* ({ libraryPaths, visitedPaths }) {
+		yield* libraryPaths();
 
-	boardStory.it("never serves a file outside the folder", readingProject, function* ({ outside, get }) {
-		const outsidePath = `/..%2f${outside.root.split("/").at(-1)}%2fprivate.md`;
-		const response = yield* get(outsidePath);
-		expect(response.status).toBe(HttpStatus.fromLiteral("NotFound"));
-		expect(response.body).not.toContain("Outside the folder");
-	});
+		expect(yield* visitedPaths()).toEqual(["", "notes", "notes/log.md", "notes/raw.txt", "plan.md"]);
+	},
+);
 
-	boardStory.it(
-		"includes explicit linked folders but refuses escaping file links and ancestor folders",
-		readingProject,
-		function* ({ board, notes, outside, start, request }) {
-			yield* board.stop();
-			referenceLink(notes, "leak.md", join(outside.root, "private.md"));
-			referenceLink(notes, "up", "..");
-			referenceLink(notes, "notes/elsewhere", outside.root);
-			referenceLink(notes, "notes/alias.md", join(notes.root, "plan.md"));
-			board = yield* start({ home: "plan.md" });
-			const html = yield* Effect.promise(async () => (await fetch(`${board.url}/`)).text());
-			expect(html).not.toContain("leak.md");
-			expect(yield* rpcPaths(board)).toContain("/notes/elsewhere/private.md");
-			expect((yield* request("/notes/elsewhere/private.md")).status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(html).not.toContain("Outside the folder");
-			expect(yield* rpcPaths(board)).toContain("/notes/alias.md");
-			for (const path of ["/leak.md", `/up/${outside.root.split("/").at(-1)}/private.md`]) {
-				const response = yield* request(path);
-				expect(response.status).toBe(HttpStatus.fromLiteral("NotFound"));
-				expect(yield* Effect.promise(() => response.text())).not.toContain("Outside the folder");
-			}
-			expect((yield* request("/notes/alias.md")).status).toBe(HttpStatus.fromLiteral("OK"));
-		},
-	);
-
-	boardStory.it("checks where a listed file leads again before reading it", readingProject, function* ({ board, notes, outside, start, request }) {
-		yield* board.stop();
-		board = yield* start({ home: "plan.md", wrap: silentWatch });
-		expect((yield* request("/notes/log.md")).status).toBe(HttpStatus.fromLiteral("OK"));
-		rmSync(join(notes.root, "notes/log.md"));
-		referenceLink(notes, "notes/log.md", join(outside.root, "private.md"));
-		const response = yield* request("/notes/log.md");
-		expect(response.status).toBe(HttpStatus.fromLiteral("NotFound"));
-		expect(yield* Effect.promise(() => response.text())).not.toContain("Outside the folder");
-	});
-
-	boardStory.it("links and serves files whose names contain # or ?", readingProject, function* ({ board, request, editFile, watchProject }) {
-		const events = yield* watchProject();
-		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		editFile("notes/c# & more?.md", "# Sharp\n");
-		yield* changesUntil(events, "notes/c# & more?.md");
-		expect(yield* rpcPaths(board)).toContain("/notes/c%23%20%26%20more%3F.md");
-		expect((yield* request("/notes/c%23%20%26%20more%3F.md")).status).toBe(HttpStatus.fromLiteral("OK"));
-	});
-
-	boardStory.it("shows a readable error page for a listed file it cannot read", readingProject, function* ({ board, notes, request }) {
-		chmodSync(join(notes.root, "notes/log.md"), 0o000);
-		const response = yield* request("/notes/log.md");
-		expect(response.status).toBe(HttpStatus.fromLiteral("InternalServerError"));
-		const html = yield* Effect.promise(() => response.text());
-		expect(html).toContain("data-board-react-root");
-		expect(yield* rpcPaths(board)).toContain("/plan.md");
-		chmodSync(join(notes.root, "notes/log.md"), 0o644);
-	});
-
-	boardStory.it(
-		"retains the folder listing and adds a watched file without rescanning directories",
-		readingProject,
-		function* ({ board, start, request, editFile, watchProject }) {
-			yield* board.stop();
-			const counting = countingPaths();
-			board = yield* start({ home: "plan.md", wrap: counting.wrap });
-			function listings() {
-				return counting.listed.filter((path) => path.endsWith("/notes")).length;
-			}
-			yield* request("/notes/log.md");
-			const once = listings();
-			yield* request("/");
-			yield* request("/notes/log.md");
-			expect(listings()).toBe(once);
-			const events = yield* watchProject();
-			expect(yield* events.next()).toEqual({ _tag: "Resync" });
-			editFile("notes/new.md", "# New\n");
-			expect(yield* changesUntil(events, "notes/new.md")).toMatchObject({
-				_tag: "Changed",
-				keys: [{ _tag: "Bucket", collection: "work-board/index", field: "workspace", value: "local" }],
-			});
-			yield* events.close();
-			expect(yield* rpcPaths(board)).toContain("/notes/new.md");
-			expect(listings()).toBe(once);
-		},
-	);
-
-	boardStory.it("answers 404 for a path that is not valid percent-encoding", readingProject, function* ({ request }) {
-		expect((yield* request("/%E0%A4%A.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
+boardStory.it("a path that climbs out of the workspace answers Not Found without the outside file", workspace, function* ({ download, outside }) {
+	expect(yield* download(`/..%2f${outside.root.split("/").at(-1)}%2fprivate.md`)).toMatchObject({
+		status: "Not Found",
+		text: expect.not.stringContaining(OUTSIDE),
 	});
 });
 
-describe("local-only safety", () => {
-	boardStory.it("refuses a request addressed to a host that is not loopback", readingProject, function* ({ board, get }) {
-		expect(yield* get("/", "board.example")).toEqual({ body: "Only loopback hosts are served", status: HttpStatus.fromLiteral("Forbidden") });
-		expect((yield* get("/_board/client.js", "board.example:4747")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-		expect((yield* get("/", `localhost:${board.port}`)).status).toBe(HttpStatus.fromLiteral("OK"));
-	});
+boardStory.it(
+	"a folder linked into the workspace from outside is listed and served",
+	[...workspace, workspaceLink("notes/elsewhere", "the outside folder")],
+	function* ({ libraryPaths, statusOf }) {
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/notes/elsewhere/private.md"])],
+			["page", () => statusOf("/notes/elsewhere/private.md"), "OK"],
+		]);
+	},
+);
 
-	boardStory.it("sends a policy that allows only the board's own scripts and forbids caching", readingProject, function* ({ request }) {
-		const response = yield* request("/");
-		expect(response.headers.get("content-security-policy")).toContain("script-src 'self' 'wasm-unsafe-eval';");
-		expect(response.headers.get("content-security-policy")).toContain("default-src 'self'");
-		expect(response.headers.get("cache-control")).toBe("no-store");
-		expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+boardStory.it(
+	"a file link to another workspace file is listed and served",
+	[...workspace, workspaceLink("notes/alias.md", "plan.md")],
+	function* ({ libraryPaths, statusOf }) {
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/notes/alias.md"])],
+			["page", () => statusOf("/notes/alias.md"), "OK"],
+		]);
+	},
+);
+
+for (const [path, link, target] of [
+	["/leak.md", "leak.md", "the outside file"],
+	["/up/<outside>/private.md", "up", "the parent folder"],
+] as const) {
+	boardStory.it(
+		`a link to ${target} is neither listed nor served`,
+		[...workspace, workspaceLink(link, target)],
+		function* ({ download, libraryPaths, outside }) {
+			yield* outcomes([
+				["library", () => libraryPaths(), ["/notes/log.md", "/plan.md"]],
+				[
+					"page",
+					() => download(path.replace("<outside>", outside.root.split("/").at(-1) ?? "")),
+					expect.objectContaining({ status: "Not Found", text: expect.not.stringContaining(OUTSIDE) }),
+				],
+			]);
+		},
+	);
+}
+
+boardStory.it(
+	"a listed file replaced by a link to an outside file answers Not Found before the watcher notices",
+	[...workspace, watchBlind],
+	function* ({ download, replaceWithLink }) {
+		expect(yield* download("/notes/log.md")).toMatchObject({ status: "OK" });
+
+		replaceWithLink("notes/log.md", "the outside file");
+
+		expect(yield* download("/notes/log.md")).toMatchObject({ status: "Not Found", text: expect.not.stringContaining(OUTSIDE) });
+	},
+);
+
+boardStory.it(
+	"a file named c# & more?.md is listed under its encoded path and served there",
+	[...workspace, projectFiles({ "notes/c# & more?.md": "# Sharp\n" })],
+	function* ({ libraryPaths, statusOf }) {
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/notes/c%23%20%26%20more%3F.md"])],
+			["page", () => statusOf("/notes/c%23%20%26%20more%3F.md"), "OK"],
+		]);
+	},
+);
+
+boardStory.it(
+	"a listed file the board cannot read answers Internal Server Error with the board's shell",
+	workspace,
+	function* ({ pageShell, permissions }) {
+		permissions("notes/log.md", 0o000);
+
+		expect(yield* pageShell("/notes/log.md")).toMatchObject({ skeleton: ["aside", "header", "nav"], status: "Internal Server Error" });
+	},
+);
+
+boardStory.it("repeated page requests reuse the folder listing", [...workspace, directoryReadsRecorded], function* ({ folderListings, statusOf }) {
+	yield* statusOf("/notes/log.md");
+	const listed = yield* folderListings("notes");
+
+	yield* statusOf("/");
+	yield* statusOf("/notes/log.md");
+
+	expect(yield* folderListings("notes")).toBe(listed);
+});
+
+boardStory.it(
+	"a file added while the board watches is listed without listing its folder again",
+	[...workspace, directoryReadsRecorded],
+	function* ({ folderListings, libraryPaths, writeWatched }) {
+		yield* libraryPaths();
+		const listed = yield* folderListings("notes");
+
+		yield* writeWatched("notes/new.md", "# New\n");
+
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/notes/new.md"])],
+			["listings of notes", () => folderListings("notes"), listed],
+		]);
+	},
+);
+
+boardStory.it("the page shell allows only the board's own scripts and forbids MIME sniffing", workspace, function* ({ download }) {
+	expect(yield* download("/")).toMatchObject({
+		contentSecurityPolicy: expect.stringMatching(/default-src 'self'.*script-src 'self' 'wasm-unsafe-eval';/u),
+		sniffing: "refused",
 	});
 });
 
-describe("assets", () => {
-	boardStory.it("serves the browser client in one React bundle from a source checkout", readingProject, function* ({ request }) {
-		const response = yield* request("/_board/react.js");
-		expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(response.headers.get("content-type")).toBe("text/javascript");
-		expect(yield* Effect.promise(() => response.text())).toBe(readFileSync(new URL("../../../assets/react.js", import.meta.url), "utf8"));
-		expect((yield* request("/_board/native.js")).status).toBe(HttpStatus.fromLiteral("NotFound"));
-	});
+boardStory.it("the browser client is served as JavaScript from the package's built React bundle", workspace, function* ({ builtAsset, download }) {
+	const bundle = yield* builtAsset("react.js");
 
-	boardStory.it("serves Mermaid's modules from the installed package and nothing else", readingProject, function* ({ request, get }) {
-		const mermaid = yield* request("/_board/mermaid/mermaid.esm.min.mjs");
-		expect(mermaid.status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(mermaid.headers.get("content-type")).toBe("text/javascript");
-		expect((yield* request("/_board/mermaid/mermaid.esm.min.mjs.map")).status).toBe(HttpStatus.fromLiteral("NotFound"));
-		expect((yield* get("/_board/mermaid/..%2f..%2fpackage.json")).status).toBe(HttpStatus.fromLiteral("NotFound"));
-	});
+	expect(yield* download("/_board/react.js")).toMatchObject({ status: "OK", text: bundle, type: "text/javascript" });
+});
+
+boardStory.it("Mermaid's entry module is served as JavaScript from the installed package", workspace, function* ({ download }) {
+	expect(yield* download("/_board/mermaid/mermaid.esm.min.mjs")).toMatchObject({ status: "OK", type: "text/javascript" });
+});
+
+boardStory.it("a path that climbs out of Mermaid's package answers Not Found", workspace, function* ({ statusOf }) {
+	expect(yield* statusOf("/_board/mermaid/..%2f..%2fpackage.json")).toBe("Not Found");
 });

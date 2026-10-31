@@ -3,6 +3,7 @@ import { Config, Effect, Option, Redacted } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
+import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
 import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
@@ -13,12 +14,11 @@ import { admittedSessions } from "./admittedSessions.ts";
 import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
 import { mountedSessions } from "./mountedSessions.ts";
 
-export interface BetterAuthMountOptions<E = never, R = never> {
+export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly hardening?: BetterAuthHardeningOptions;
-	readonly roles?: RoleSet;
 	readonly signIn?: SignInPolicy<E, R> | undefined;
-}
+} & ({ readonly roles?: undefined } | (StoredRoleOptions & { readonly roles: RoleSet }));
 
 export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <const TOptions extends BetterAuthOptions, E = never, R = never>(
 	options: TOptions,
@@ -35,11 +35,11 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		yield* policy.accounts;
 	}
 	const gate = yield* signInGate(policy);
-	const gated = yield* signInPolicyOptions(options, gate, (): Promise<PolicyStorage> => auth.$context);
+	const configured = mount.roles === undefined ? options : storedRoleOptions(closeRoleEndpoints(options), mount);
+	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
 	const rateLimit = options.rateLimit;
 	const customStorage =
 		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);
-	const configured = mount.roles === undefined ? options : closeRoleEndpoints(options);
 	const auth = betterAuth({
 		...withHardening(withBearerSessions(configured, mount.bearerSessions !== undefined), mount.hardening),
 		advanced: {
@@ -66,7 +66,7 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		secret,
 		trustedOrigins:
 			options.trustedOrigins ?? Option.match(origin, { onNone: () => ["http://127.0.0.1:*", "http://localhost:*"], onSome: (url) => [url] }),
-		user: gate.active ? gated.user : options.user,
+		user: gate.active ? gated.user : configured.user,
 	});
 	const authRoutes = mountRoutes(auth, {
 		bearerSessions: mount.bearerSessions,

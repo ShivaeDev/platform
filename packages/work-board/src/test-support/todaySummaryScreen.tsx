@@ -5,6 +5,7 @@ import { screenData } from "./screenData.ts";
 import { trackScreen } from "./screenEngine.ts";
 import { screenClient } from "./screenFeatures.tsx";
 import { screenOptions } from "./screenReads.ts";
+import { screenSettles } from "./screenSettle.ts";
 import { screenStory } from "./screenStory.ts";
 
 export function todaySummaryScreen(workspace: "failed" | "pending") {
@@ -36,5 +37,6 @@ export function todaySummaryScreen(workspace: "failed" | "pending") {
 			throw new Error("The Board screen has no client");
 		}
 		yield* Effect.promise(() => view.render(<TodayPage api={api} data={inbox} />));
+		yield* screenSettles(engine, tell);
 	});
 }

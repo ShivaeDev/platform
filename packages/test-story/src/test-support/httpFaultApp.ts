@@ -1,9 +1,9 @@
-import { Effect, Exit, Scope } from "effect";
+import { type Duration, Effect, Exit, Scope } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { type FakeHttpRequest, fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
-import { httpClient, listensForHangUps } from "./httpClient.ts";
+import { httpClient } from "./httpClient.ts";
 
 async function* replyChunks(pieces: readonly (string | Uint8Array)[], gates: readonly { promise: Promise<void> }[]) {
 	for (const [index, piece] of pieces.entries()) {
@@ -24,7 +24,6 @@ function httpFaultKit(clock: "live" | "test") {
 					trigger: { path: "/trigger", reply: () => ({ body: { triggered: true } }) },
 				},
 			}).pipe(Effect.provideService(Scope.Scope, scope));
-			const hangUps = yield* listensForHangUps(service.url);
 			const chunkReleases: (() => void)[] = [];
 			yield* Effect.addFinalizer(() =>
 				Effect.sync(() => {
@@ -33,19 +32,19 @@ function httpFaultKit(clock: "live" | "test") {
 					}
 				}),
 			);
-			return { chunkReleases, hangUps, scope, service };
+			return { chunkReleases, scope, service };
 		},
 		inspect: ({ service }) => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`),
 		name: "HTTP fault controls",
 		stages: ["ready"],
-		verbs: ({ chunkReleases, hangUps, scope, service }, story) => {
+		verbs: ({ chunkReleases, scope, service }, story) => {
 			service.narrate(story.tell);
 			return {
 				...httpClient(
 					() => service.url,
 					story.tell,
 					() => ({}),
-					hangUps,
+					(path) => service.untilAbandoned((request) => request.path === path, { name: `abandoned ${path}` }),
 				),
 				closesService: () => {
 					story.tell("the fake HTTP service's scope closes");
@@ -81,6 +80,8 @@ function httpFaultKit(clock: "live" | "test") {
 					story.tell(`${millis / 1000} seconds pass`);
 					return TestClock.adjust(millis);
 				},
+				waitsForAbandoned: (path: string, timeout: Duration.Input = "5 seconds") =>
+					service.untilAbandoned((request) => request.path === path, { name: `abandoned ${path}`, timeout }),
 			};
 		},
 	});

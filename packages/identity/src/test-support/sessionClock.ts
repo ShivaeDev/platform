@@ -34,15 +34,14 @@ export const sessionClock = storyKit({
 			plugins: [testUtils()],
 			secret: "session-clock-story-secret-with-at-least-32-characters",
 			session: { cookieCache: { enabled: false }, disableSessionRefresh: true, expiresIn: 3600 },
-			user: { additionalFields: { role: { defaultValue: "admin", input: false, type: "string" as const } } },
 		};
-		const mounted = yield* betterAuthMount(options, { roles: Roles }).pipe(
+		const mounted = yield* betterAuthMount(options, { defaultRole: "admin", roles: Roles }).pipe(
 			Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
 		);
 		const context = yield* Effect.promise(() => mounted.auth.$context);
 		yield* Effect.promise(() => context.runMigrations());
 		const alice = yield* Effect.promise(() => signedInUser(mounted.auth, { email: "alice@clock.test", name: "alice" }));
-		const longerLived = betterAuth({ ...options, session: { ...options.session, expiresIn: 7200 } });
+		const longerLived = betterAuth({ ...mounted.auth.options, session: { ...options.session, expiresIn: 7200 } });
 		const bob = yield* Effect.promise(() => signedInUser(longerLived, { email: "bob@clock.test", name: "bob" }));
 		return {
 			accounts: { alice, bob },

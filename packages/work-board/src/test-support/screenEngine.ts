@@ -35,6 +35,7 @@ export interface ScreenEngine {
 	indexFailed?: boolean;
 	indexGate?: Deferred.Deferred<void>;
 	indexReads: number;
+	indexWaiting?: boolean;
 	lastView?: ReturnType<typeof screenView>;
 	media?: Map<string, MediaQueryList>;
 	motion?: {

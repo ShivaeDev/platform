@@ -6,17 +6,13 @@ import { refusedLine, waitingLine } from "#lines.ts";
 import { isRecord, RPC_URL, readExits, rpcInit, text } from "#rpc.ts";
 import type { WorkboardBoard } from "#types/index.d.ts";
 
-const connections = new WeakMap<EngineInterface, Promise<ReturnType<typeof platformClient>>>();
+let current: Promise<ReturnType<typeof platformClient>> | undefined;
 export function connect($: EngineInterface): Promise<Board> {
 	return Promise.all([connection($), $.clock.now()]).then(([live, now]) => ({ ask: live.ask, now }));
 }
 
 export function connection($: EngineInterface, changed: (board: WorkboardBoard) => void = () => undefined) {
-	let current = connections.get($);
-	if (current === undefined) {
-		current = open($, changed);
-		connections.set($, current);
-	}
+	current ??= open($, changed);
 	return current;
 }
 
@@ -40,5 +36,5 @@ async function open($: EngineInterface, changed: (board: WorkboardBoard) => void
 	if (url === undefined) {
 		throw new Error(`The Work Board for ${directory} did not say where it is served.`);
 	}
-	return platformClient(url, directory, $.clock.now, changed);
+	return platformClient(url, directory, () => $.clock.now(), changed);
 }

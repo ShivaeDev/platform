@@ -49,8 +49,8 @@ export default [
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/work-board/src/client/handoffs/form.ts", external("node:fs")],
-			legal: ["packages/work-board/src/client/handoffs/form.ts", "packages/form/src/form.ts"],
+			illegal: ["packages/work-board/src/client/formStatus.ts", external("node:fs")],
+			legal: ["packages/work-board/src/client/formStatus.ts", "packages/form/src/form.ts"],
 		}),
 	fence("document-rendering-stays-browser-safe")
 		.because(

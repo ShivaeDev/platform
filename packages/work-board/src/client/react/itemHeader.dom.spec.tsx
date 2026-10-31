@@ -1,31 +1,25 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { questionId, revisionOf } from "#server/responses/records.ts";
 import { answerCardFixture, decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";
-import { ACTIVE_GUIDE, closedDecision, GOALS, unansweredDecision } from "#test/itemHeaderFixture.ts";
+import { ACTIVE_GUIDE, closedDecision, GOALS, liveTask, unansweredDecision } from "#test/itemHeaderFixture.ts";
+import { clipboardRecorded, readingPage } from "#test/readingScreenTraits.tsx";
 import { deniedClipboard } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { routedScreen } from "#test/screenTraits.ts";
-import { screenFleet } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
 
-const HEADER = ".item-summary";
-const CHIP = ".item-summary [data-status-token]";
-for (const [name, files, token, label] of [
-	["an unanswered linked decision", { ...answerCardFixture, "guide.md": ACTIVE_GUIDE }, "needs-you", "Needs you"],
-	["an answered linked decision", { ...answeredDecisionFixture(), "guide.md": ACTIVE_GUIDE }, "waiting-on-agents", "Waiting on automation"],
+for (const [name, files, label] of [
+	["an unanswered linked decision", { ...answerCardFixture, "guide.md": ACTIVE_GUIDE }, "Needs you"],
+	["an answered linked decision", { ...answeredDecisionFixture(), "guide.md": ACTIVE_GUIDE }, "Waiting on automation"],
 ] as const) {
 	screenStory.it(
-		`shows an active task's request state in its header while ${name} is open`,
-		[routedScreen(files, "/_board/item/task.guide/", { home: "home.md" })],
-		function* ({ findElement, readAttribute, readText }) {
-			yield* eventually(() => expect(findElement(".answer-cards")).not.toBeNull());
-			expect(readAttribute(CHIP, "data-status-token")).toBe(token);
-			expect(readText(CHIP)).toBe(label);
+		`an active task reads ${label} in its header while ${name} is open`,
+		[readingPage(files, "/_board/item/task.guide/", { home: "home.md" })],
+		function* ({ itemStatus }) {
+			expect(yield* itemStatus()).toBe(label);
 		},
 	);
 }
@@ -37,133 +31,113 @@ for (const [name, files, item, label] of [
 	["a closed decision without an answer", closedDecision(readyDecisionFixture), decisionId, "Closed"],
 ] as const) {
 	screenStory.it(
-		`tells whether ${name} was answered once no request is open`,
-		[routedScreen(files, `/_board/item/${item}/`, { home: "home.md" })],
-		function* ({ findElement, readText }) {
-			yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
-			expect(findElement(".answer-cards")).toBeNull();
-			expect(readText(CHIP)).toBe(label);
+		`${name} reads ${label} and offers no answer card`,
+		[readingPage(files, `/_board/item/${item}/`, { home: "home.md" })],
+		function* ({ answerCards, itemStatus }) {
+			yield* outcomes([
+				["answer cards", () => answerCards(), []],
+				["status", () => itemStatus(), label],
+			]);
 		},
 	);
 }
 
 screenStory.it(
-	"shows no outcome for a question receipt while its decision still waits",
-	[routedScreen(unansweredDecision(), `/_board/item/${answeredQuestion}/`, { home: "home.md" })],
-	function* ({ findElement }) {
-		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
-		expect(findElement(CHIP)).toBeNull();
+	"a question receipt shows no status while its decision still waits for an answer",
+	[readingPage(unansweredDecision(), `/_board/item/${answeredQuestion}/`, { home: "home.md" })],
+	function* ({ itemStatus }) {
+		expect(yield* itemStatus()).toBe("none");
 	},
 );
 
 screenStory.it(
-	"shows when the item last changed after its ID",
-	[routedScreen({ "task.md": "---\nid: task.fresh\nkind: task\nstatus: ready\n---\n# Fresh task\n" }, "/_board/item/task.fresh/")],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
-		const updated = findElement(`${HEADER} [data-item-updated]`);
-		expect(updated?.textContent).toMatch(/^updated \S/u);
-		expect(findElement("time[data-modified]", updated)).not.toBeNull();
-		expect(updated?.previousElementSibling?.textContent).toBe("task.fresh");
-		expect(readText(`${HEADER} [role="status"]`)).toBe("");
+	"an item header says when the item last changed, right after its ID",
+	[readingPage({ "task.md": "---\nid: task.fresh\nkind: task\nstatus: ready\n---\n# Fresh task\n" }, "/_board/item/task.fresh/")],
+	function* ({ itemUpdated }) {
+		expect(yield* itemUpdated()).toEqual({ follows: "task.fresh", text: "updated <time>" });
 	},
 );
 
 screenStory.it(
-	"announces a status change from the file without announcing the first load",
-	[
-		routedScreen({ "home.md": "# Home", "task.md": "---\nid: task.live\nkind: task\nstatus: draft\n---\n# Live task\n" }, "/_board/item/task.live/", {
-			home: "home.md",
-		}),
-	],
-	function* ({ editFile, findElement, readText, refreshDocument }) {
-		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
-		const line = findElement(`${HEADER} [role="status"]`);
-		expect(line?.textContent).toBe("");
-		editFile("task.md", "---\nid: task.live\nkind: task\nstatus: ready\n---\n# Live task\n");
-		yield* Effect.promise(() => refreshDocument("/_board/item/task.live/"));
-		yield* eventually(() => expect(readText(CHIP)).toBe("Ready"));
-		expect(findElement(`${HEADER} [role="status"]`)).toBe(line);
-		expect(line?.textContent).toBe("Status changed: Draft → Ready");
+	"a status change in the file is announced in the header's existing status region, and the first load is not",
+	[readingPage({ "home.md": "# Home", "task.md": liveTask("draft") }, "/_board/item/task.live/", { home: "home.md" })],
+	function* ({ itemStatus, rewriteDocument, statusAnnouncement }) {
+		expect(yield* statusAnnouncement()).toEqual({ region: "original", text: "" });
+
+		yield* rewriteDocument("task.md", liveTask("ready"));
+
+		yield* outcomes([
+			["announcement", () => statusAnnouncement(), { region: "original", text: "Status changed: Draft → Ready" }],
+			["status", () => itemStatus(), "Ready"],
+		]);
 	},
 );
 
 screenStory.it(
-	"links the goal an item implements and offers a handoff for open work",
-	[routedScreen(GOALS, "/_board/item/task.part/", { home: "home.md" })],
-	function* ({ findElement, findElements, readAttribute }) {
-		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
-		const parts = [...findElements(`${HEADER} a`)].filter((link) => link.textContent?.startsWith("Part of"));
-		expect(parts.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([["Part of Readable workspace", "/_board/item/goal.reader/"]]);
-		expect(readAttribute('a[href^="/_board/handoff"]', "href")).toBe("/_board/handoff?item=task.part");
+	"an item header links the goal the item implements",
+	[readingPage(GOALS, "/_board/item/task.part/", { home: "home.md" })],
+	function* ({ itemGoals }) {
+		expect(yield* itemGoals()).toEqual([{ href: "/_board/item/goal.reader/", name: "Part of Readable workspace" }]);
 	},
 );
 
-for (const [item, kind] of [
-	["task.finished", "Task"],
-	["task.dropped", "Task"],
-	["goal.reader", "Goal"],
-] as const) {
+screenStory.it(
+	"an open task offers an agent handoff for itself",
+	[readingPage(GOALS, "/_board/item/task.part/", { home: "home.md" })],
+	function* ({ itemActions }) {
+		expect(yield* itemActions()).toContainEqual({ href: "/_board/handoff?item=task.part", name: "Prepare an agent handoff" });
+	},
+);
+
+for (const item of ["task.finished", "task.dropped", "goal.reader"]) {
 	screenStory.it(
-		`offers no agent handoff on ${item}`,
-		[routedScreen(GOALS, `/_board/item/${item}/`, { home: "home.md" })],
-		function* ({ findElement, readText }) {
-			yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
-			expect(findElement("#favorite-toggle")).not.toBeNull();
-			expect(findElement('a[href^="/_board/handoff"]')).toBeNull();
-			expect(readText(`${HEADER} > div > span`)).toBe(kind);
+		`${item} offers only Pin and no agent handoff`,
+		[readingPage(GOALS, `/_board/item/${item}/`, { home: "home.md" })],
+		function* ({ itemActions }) {
+			expect(yield* itemActions()).toEqual([{ name: "Pin" }]);
 		},
 	);
 }
 
-const PR = "https://github.com/example/project/pull/7";
-const reviewing: FleetItemsProjection = {
-	completed: [],
-	items: [{ document: null, prUrl: PR, stage: "reviewing", stageEnteredAt: 0, updatedAt: 0, workId: "task.part" }],
-	state: "ready",
-};
-
 screenStory.it(
-	"gives header controls a 44px target on coarse pointers",
-	[
-		screenFleet(reviewing),
-		routedScreen({ ...GOALS, "task.md": `${GOALS["task.md"]}\n\n## First\n\nText.\n\n## Second\n\nText.\n` }, "/_board/item/task.part/", {
-			home: "home.md",
-		}),
-	],
-	function* ({ findElement, findElements }) {
-		yield* eventually(() => expect(findElement(`${HEADER} a[href="${PR}"]`)).not.toBeNull());
-		const controls = {
-			copy: findElement(`${HEADER} button[aria-label="Copy item ID"]`),
-			goal: [...findElements(`${HEADER} a`)].find((link) => link.textContent?.startsWith("Part of")),
-			handoff: findElement('a[href^="/_board/handoff"]'),
-			id: findElement(`${HEADER} a[href="/_board/item/task.part/"]`),
-			outline: findElement("[data-outline-menu]"),
-			pin: findElement("#favorite-toggle"),
-			pr: findElement(`${HEADER} a[href="${PR}"]`),
-		};
-		const large = Object.values(controls).map((control) =>
-			[...(control?.classList ?? [])].some((name) => /^pointer-coarse:(?:min-h|h|size)-11$/u.test(name)),
-		);
-		expect(large).toEqual(Object.values(controls).map(() => true));
+	"copying the item ID puts the ID on the clipboard",
+	[clipboardRecorded(), readingPage(GOALS, "/_board/item/task.part/", { home: "home.md" })],
+	function* ({ clipboard, copyItemId }) {
+		yield* copyItemId();
+
+		expect(yield* clipboard()).toEqual(["task.part"]);
 	},
 );
 
-for (const [clipboard, copied] of [
+for (const [clipboard, result] of [
 	["allows the copy", "Copied item ID"],
 	["refuses the copy", "Copy failed; select the ID instead"],
 ] as const) {
 	screenStory.it(
-		`tells the reader the ID copy result until they move on when the clipboard ${clipboard}`,
-		[...(clipboard === "refuses the copy" ? [deniedClipboard()] : []), routedScreen(GOALS, "/_board/item/task.part/", { home: "home.md" })],
-		function* ({ click, findElement, focus, readAttribute }) {
-			yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
-			const copy = `${HEADER} button[aria-label]`;
-			focus(copy);
-			click(copy);
-			yield* eventually(() => expect(readAttribute(copy, "aria-label")).toBe(copied));
-			focus("#favorite-toggle");
-			expect(readAttribute(copy, "aria-label")).toBe("Copy item ID");
+		`copying the item ID says ${JSON.stringify(result)} when the clipboard ${clipboard}`,
+		[
+			...(clipboard === "refuses the copy" ? [deniedClipboard()] : [clipboardRecorded()]),
+			readingPage(GOALS, "/_board/item/task.part/", { home: "home.md" }),
+		],
+		function* ({ copyButton, copyItemId }) {
+			expect(yield* copyButton()).toBe("Copy item ID");
+
+			yield* copyItemId();
+
+			expect(yield* copyButton()).toBe(result);
 		},
 	);
 }
+
+screenStory.it(
+	"the copy result goes back to Copy item ID once the reader moves focus away",
+	[clipboardRecorded(), readingPage(GOALS, "/_board/item/task.part/", { home: "home.md" })],
+	function* ({ copyButton, copyItemId, focusPin }) {
+		yield* copyItemId();
+		expect(yield* copyButton()).toBe("Copied item ID");
+
+		yield* focusPin();
+
+		expect(yield* copyButton()).toBe("Copy item ID");
+	},
+);

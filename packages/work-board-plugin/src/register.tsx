@@ -1,4 +1,4 @@
-import type { EngineInterface, Register, UiOpenResult } from "claude-code";
+import type { EngineInterface, On, UiOpenResult } from "claude-code";
 import { atom, read, update } from "claude-code";
 import { connection } from "#connect.ts";
 import { clip, updatedLabel } from "#lines.ts";
@@ -16,6 +16,7 @@ const board = atom({ key: "board", plugin: "workboard" } as const, { kind: "load
 const seenAsks = atom({ key: "seenAsks", plugin: "workboard" } as const, null);
 const updatedAt = atom({ key: "updatedAt", plugin: "workboard" } as const, null);
 const achievedOpen = atom({ key: "achievedOpen", plugin: "workboard" } as const, false);
+const openArea = atom({ key: "openArea", plugin: "workboard" } as const, null);
 
 async function receive($: EngineInterface, next: WorkboardBoard): Promise<void> {
 	if (next.kind === "ready") {
@@ -63,7 +64,7 @@ async function openPane($: EngineInterface): Promise<UiOpenResult> {
 	return opened;
 }
 
-export const register: Register = (on) => {
+export function register(on: On): void {
 	serveTools(on);
 
 	on("session.start", async ($, e, next) => {
@@ -85,7 +86,7 @@ export const register: Register = (on) => {
 
 	on("ui.render", { component: "Pane", requestId: PANE }, async ($, e) => {
 		const state = await read($, board);
-		const stamp = await read($, updatedAt);
+		const [stamp, selectedArea] = await Promise.all([read($, updatedAt), read($, openArea)]);
 
 		return paneView($.ui.resolve(e), {
 			achievedOpen: await read($, achievedOpen),
@@ -94,6 +95,8 @@ export const register: Register = (on) => {
 			onOpen: (ask) => openUrl($, ask.url),
 			onRefresh: () => void refresh($),
 			onToggleAchieved: () => void update($, achievedOpen, (open) => !open),
+			onToggleArea: (area) => void update($, openArea, (open) => (open === area ? null : area)),
+			openArea: selectedArea,
 			surface: e.surface,
 			updated: updatedLabel(stamp, await $.clock.now()),
 		});
@@ -120,4 +123,4 @@ export const register: Register = (on) => {
 			</Box>
 		);
 	});
-};
+}

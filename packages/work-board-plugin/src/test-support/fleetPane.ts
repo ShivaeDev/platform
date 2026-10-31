@@ -5,6 +5,7 @@ import { host } from "@shivaedev/work-fleet/test-support/hostStory.ts";
 import { boardInit, readBoard } from "#board.ts";
 import { answersTo, overview } from "#boardTools.ts";
 import { rpcInit } from "#rpc.ts";
+import { areaReadouts } from "#test/areaReadouts.ts";
 import { legacyFleetBoard } from "#test/legacyFleetBoard.ts";
 import { agentsShown, goalLines, inFlightShown } from "#test/paneReadouts.ts";
 import { createPane } from "#test/pluginPane.ts";
@@ -38,6 +39,7 @@ export const openPane = Effect.fnUntraced(function* ({ engine, tell }: HostStory
 		return pane.container;
 	});
 	return {
+		...areaReadouts(pane.container, tell),
 		agentsOf: (title: string) => {
 			tell(`refresh the pane and read the agents of ${title} in flight`);
 			return Effect.map(refreshed, (container) => agentsShown(container, title, { turns: false }));
@@ -59,6 +61,10 @@ export const openPane = Effect.fnUntraced(function* ({ engine, tell }: HostStory
 				);
 				return "items" in fleet ? { state: fleet.state, work: fleet.items.map(({ title, workId }) => ({ title, workId })) } : fleet;
 			}),
+		refresh: () => {
+			tell("refresh the pane from the Board");
+			return refreshed;
+		},
 		restartFleet: () =>
 			Effect.suspend(() => {
 				if (fleetPort === undefined) {

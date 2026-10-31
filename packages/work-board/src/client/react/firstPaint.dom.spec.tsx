@@ -1,6 +1,6 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { hostedHealthScreen } from "#test/hostedHealthScreen.tsx";
 import { heldWorkspace, startingBoard } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -8,44 +8,50 @@ import { openScreen, pausedDocument } from "#test/screenTraits.ts";
 import { screenRoute, todayScreen } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
+
 screenStory.it(
-	"paints the shell with a Today-shaped skeleton before the workspace index answers",
+	"before the workspace index answers, the shell paints its breadcrumb over a Today-shaped loading state, and Today opens once the index answers",
 	[todayScreen(), heldWorkspace(), openScreen()],
-	function* ({ findElement, readText, releaseWorkspace }) {
-		yield* eventually(() => expect(readText("#doc [role=status]")).toBe("Loading Today"));
-		expect(findElement('#doc [data-loading-shape="rows"] [data-slot="skeleton"]')).not.toBeNull();
-		expect(readText("#doc")).not.toMatch(/Opening|…/u);
-		expect(readText("header")).toContain("Today");
-		expect(findElement("#doc h1")).toBeNull();
-		yield* Effect.promise(releaseWorkspace);
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Today"));
+	function* ({ breadcrumb, loadingPage, shownPage, workspaceAnswers }) {
+		yield* outcomes([
+			["breadcrumb", () => breadcrumb(), expect.stringContaining("Workspace")],
+			["loading", () => loadingPage(), { message: "Loading Today", shape: "today" }],
+			["page", () => shownPage(), "none"],
+		]);
+
+		yield* workspaceAnswers();
+
+		expect(yield* shownPage()).toBe("Today");
 	},
 );
 
 screenStory.it(
-	"opens the page the reader navigates to while the first page is still loading",
+	"the reader can open Goals while the first page's read has not answered",
 	[todayScreen(), screenRoute("/home.md"), pausedDocument("/home.md"), openScreen()],
-	function* ({ navigate, readText }) {
-		yield* eventually(() => expect(readText("#doc [role=status]")).toBe("Loading page"));
-		yield* Effect.promise(() => navigate("/_board/goals"));
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Goals"));
+	function* ({ loadingPage, navigateTo, shownPage }) {
+		expect(yield* loadingPage()).toEqual({ message: "Loading page", shape: "document" });
+
+		yield* navigateTo("/_board/goals");
+
+		expect(yield* shownPage()).toBe("Goals");
 	},
 );
 
 screenStory.it(
-	"reads connecting before the first live update instead of reporting a lost connection",
+	"the live status reads Connecting… before the first live update arrives",
 	[hostedHealthScreen("connecting")],
-	function* ({ readAttribute, readText }) {
-		yield* eventually(() => expect(readText("#live")).toBe("Connecting…"));
-		expect(readAttribute("#live", "data-state")).toBe("connecting");
+	function* ({ liveIndicator }) {
+		expect(yield* liveIndicator()).toMatchObject({ announced: "Connecting…", state: "connecting" });
 	},
 );
 
 screenStory.it(
-	"reads connecting while the stream is live but the source watcher has not answered yet",
+	"the live status reads Connecting… while the stream is live but the source watcher has not answered, and its tooltip says why",
 	[startingBoard(), hostedHealthScreen("live")],
-	function* ({ readAttribute, readText }) {
-		yield* eventually(() => expect(readText("#live")).toBe("Connecting…"));
-		expect(readAttribute("#live", "title")).toContain("last observed source watcher: not yet observed");
+	function* ({ liveIndicator, liveTooltip }) {
+		yield* outcomes([
+			["status", () => liveIndicator(), expect.objectContaining({ announced: "Connecting…" })],
+			["tooltip", () => liveTooltip(), expect.stringContaining("last observed source watcher: not yet observed")],
+		]);
 	},
 );

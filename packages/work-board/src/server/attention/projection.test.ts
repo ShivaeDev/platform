@@ -1,78 +1,124 @@
 import { expect } from "vitest";
-import { inboxCount } from "#server/navigation/model.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { attentionLanesFixture } from "#test/attentionLanesFixture.ts";
-import { boardStory, deferredServing } from "#test/boardStory.ts";
+import { attentionSources } from "#test/attentionLaneTraits.ts";
+import { boardStory } from "#test/boardStory.ts";
 import { responseRecords } from "#test/responseRecords.ts";
-import { anInbox } from "#test/storyTraits.ts";
-import { attentionProjection } from "./projection.ts";
+import { anUnreadableSource } from "#test/storyTraits.ts";
+
+function lanes(
+	change: (files: Record<string, string>) => void = () => undefined,
+	line = "asks wait on the maintainer, the orchestrator and automation",
+) {
+	const files = attentionLanesFixture();
+	change(files);
+	return attentionSources(files, line);
+}
 
 boardStory.it(
-	"partitions asks and reports source diagnostics separately with one count for all queries",
-	[deferredServing, anInbox()],
-	function* ({ readAttention, readInbox }) {
-		const snapshot = { ...(yield* readAttention(attentionLanesFixture("Casey"))), maintainer: "Casey" };
-		const projection = attentionProjection(snapshot);
-		expect(projection.you.map((item) => item.id)).toEqual(["decision.reader", "question.storage", "task.person"]);
-		expect(projection.agents.map((item) => item.id)).toEqual(["task.draft", "decision.orchestrator", "decision.automation"]);
-		expect(projection.agents.map((item) => item.responseFrom)).toEqual([["maintainer"], ["orchestrator"], ["automation"]]);
-		expect(projection.resolved.map((item) => item.id)).toEqual(["task.done", "task.done", "task.done", "task.dropped"]);
-		expect(projection.parked.map((item) => item.id)).toEqual(["task.deferred"]);
-		expect(projection.issues.map((issue) => issue.file)).toEqual(["unknown.md", "unresolved.md"]);
-		const inbox = yield* readInbox(snapshot);
-		expect([inbox.you.length, inboxCount(snapshot)]).toEqual([3, 3]);
-		expect(inbox).toEqual(projection);
+	"the inbox puts asks for the maintainer and a person's next action under you and other responders' asks under agents",
+	[lanes()],
+	function* ({ inboxLane, inboxResponders }) {
+		yield* outcomes([
+			[
+				"agents",
+				() => inboxResponders(),
+				[
+					["decision.orchestrator", ["orchestrator"]],
+					["decision.automation", ["automation"]],
+				],
+			],
+			["you", () => inboxLane("you"), ["task.draft", "decision.reader", "question.storage", "task.person"]],
+		]);
 	},
 );
 
-boardStory.it(
-	"includes unregistered asks and isolates audiences when they share a target",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const files = attentionLanesFixture();
-		files["reader.md"] = files["reader.md"]?.replace("managed: true", "managed: false").replace("[maintainer]", "[orchestrator, maintainer]") ?? "";
-		files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [decision.reader]") ?? "";
-		const data = attentionProjection(yield* readAttention(files));
-		expect(data.you.map((item) => item.id)).toEqual(["task.draft", "decision.reader", "question.storage", "task.person"]);
-		expect(data.agents.map((item) => item.responseFrom)).toEqual([["orchestrator"], ["automation"]]);
-		expect(data.agents[0]?.id).toBe("decision.reader");
-	},
-);
+boardStory.it("the inbox reports source diagnostics apart from its lanes", [lanes()], function* ({ sourceProblems }) {
+	expect((yield* sourceProblems()).map((problem) => problem.file)).toEqual(["unknown.md", "unresolved.md"]);
+});
 
-boardStory.it("withholds all lanes and the badge when the workspace is incomplete", [deferredServing, anInbox()], function* ({ readAttention }) {
-	const snapshot = yield* readAttention(attentionLanesFixture(), ["unreadable.md"]);
-	const data = attentionProjection(snapshot);
-	expect(data.complete).toBe(false);
-	expect([data.you, data.agents, data.resolved, data.parked]).toEqual([[], [], [], []]);
-	expect(inboxCount(snapshot)).toBeNull();
+boardStory.it("the Inbox badge counts the asks waiting on you", [lanes()], function* ({ needsYouBadge }) {
+	expect(yield* needsYouBadge()).toBe(4);
 });
 
 boardStory.it(
-	"preserves a person's next action when an agent request targets the same item",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const files = attentionLanesFixture();
-		files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [task.person]") ?? "";
-		const data = attentionProjection(yield* readAttention(files));
-		expect(data.you.find((item) => item.id === "task.person")?.reason).toBe("Read the evidence");
-		expect(data.agents.find((item) => item.id === "task.person")?.responseFrom).toEqual(["orchestrator"]);
+	"asks for the maintainer and the orchestrator on the same target stay in separate lanes",
+	[
+		lanes((files) => {
+			files["reader.md"] = files["reader.md"]?.replace("managed: true", "managed: false").replace("[maintainer]", "[orchestrator, maintainer]") ?? "";
+			files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [decision.reader]") ?? "";
+		}, "an unregistered reader ask names the orchestrator and the maintainer, and the orchestrator's ask targets the reader decision"),
+	],
+	function* ({ inboxLane, inboxResponders }) {
+		yield* outcomes([
+			[
+				"agents",
+				() => inboxResponders(),
+				[
+					["decision.reader", ["orchestrator"]],
+					["decision.automation", ["automation"]],
+				],
+			],
+			["you", () => inboxLane("you"), ["task.draft", "decision.reader", "question.storage", "task.person"]],
+		]);
 	},
 );
 
-for (const audience of ["reader", "orchestrator"]) {
+boardStory.it(
+	"an incomplete workspace withholds every lane and the Inbox badge",
+	[lanes(), anUnreadableSource("unreadable.md")],
+	function* ({ inboxComplete, inboxLane, needsYouBadge }) {
+		yield* outcomes([
+			["agents", () => inboxLane("agents"), []],
+			["badge", () => needsYouBadge(), null],
+			["complete", () => inboxComplete(), false],
+			["parked", () => inboxLane("parked"), []],
+			["resolved", () => inboxLane("resolved"), []],
+			["you", () => inboxLane("you"), []],
+		]);
+	},
+);
+
+boardStory.it(
+	"a person's next action keeps its reason when an agent's ask targets the same item",
+	[
+		lanes((files) => {
+			files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [task.person]") ?? "";
+		}, "the orchestrator's ask targets the person's task"),
+	],
+	function* ({ inboxAsk, inboxResponders }) {
+		yield* outcomes([
+			["agents", () => inboxResponders(), expect.arrayContaining([["task.person", ["orchestrator"]]])],
+			["person's task", () => inboxAsk("task.person"), expect.objectContaining({ reason: "Read the evidence" })],
+		]);
+	},
+);
+
+for (const { audience, lane, remaining } of [
+	{ audience: "reader", lane: "you", remaining: ["task.draft", "question.storage", "task.person"] },
+	{ audience: "orchestrator", lane: "agents", remaining: ["decision.automation"] },
+] as const) {
+	const file = `${audience}.md`;
+	const item = `decision.${audience}`;
+	function answered(context = "") {
+		return lanes(
+			(files) => {
+				const source = files[file]?.replace("managed: true", "managed: false").replace("id: direction", "id: choose") ?? "";
+				Object.assign(files, responseRecords(1, item, file, source), { [file]: `${source}${context}` });
+			},
+			`the ${audience} ask is ordinary and has a recorded answer${context ? ", and its source changed since" : ""}`,
+		);
+	}
+
+	boardStory.it(`an answered ordinary ask for the ${audience} leaves the ${lane} lane`, [answered()], function* ({ inboxLane }) {
+		expect(yield* inboxLane(lane)).toEqual(remaining);
+	});
+
 	boardStory.it(
-		`retires an answered ordinary request for ${audience} only in its current context`,
-		[deferredServing, anInbox()],
-		function* ({ readAttention }) {
-			const files = attentionLanesFixture();
-			const file = `${audience}.md`;
-			const item = `decision.${audience}`;
-			const source = files[file]?.replace("managed: true", "managed: false").replace("id: direction", "id: choose") ?? "";
-			const answered = { ...files, ...responseRecords(1, item, file, source), [file]: source };
-			const lane = audience === "reader" ? "you" : "agents";
-			expect(attentionProjection(yield* readAttention(answered))[lane].some((ask) => ask.id === item)).toBe(false);
-			expect(attentionProjection(yield* readAttention({ ...answered, [file]: `${source}\nNew context` }))[lane].some((ask) => ask.id === item)).toBe(
-				true,
-			);
+		`an answered ordinary ask for the ${audience} returns to the ${lane} lane when its source changes`,
+		[answered("\nNew context")],
+		function* ({ inboxLane }) {
+			expect(yield* inboxLane(lane)).toContain(item);
 		},
 	);
 }

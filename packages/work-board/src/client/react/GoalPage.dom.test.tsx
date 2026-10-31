@@ -1,104 +1,83 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
-import { goalFleetFixture, goalPageFixture } from "#test/goalPageFixture.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { goalPageFixture } from "#test/goalPageFixture.ts";
+import { goalFleetReports } from "#test/goalTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
-import { screenFleet } from "#test/screenWorkspaceTraits.ts";
 
-for (const [stage, label] of [
-	["working", "Working"],
-	["reviewing", "Reviewing"],
-	["waiting", "Waiting"],
+const GOAL_PAGE = "/_board/item/project.example/";
+const fixture = goalPageFixture();
+const quiet = { ...fixture, "asks.md": "# No open asks" };
+
+for (const [stage, label, counted] of [
+	["working", "Working", "running"],
+	["reviewing", "Reviewing", "running"],
+	["waiting", "Waiting", "blocked"],
 ] as const) {
-	const files: Record<string, string> = { ...goalPageFixture(), "asks.md": "# No open asks" };
-	const fleet = goalFleetFixture(stage);
 	screenStory.it(
-		`shows live progress before the goal's prose while showing Fleet ${stage} separately`,
-		[
-			screenFleet({
-				...fleet,
-				completed: fleet.completed.map((item) => ({ ...item, document: null })),
-				items: fleet.items.map((item) => ({ ...item, document: null })),
-				state: "ready",
-			}),
-			routedScreen(files, "/_board/item/project.example/", { home: "home.md" }),
-		],
-		function* ({ readGoals, findElement, findElements, readText }) {
-			yield* eventually(() => expect(findElement('[data-goal-item="task.first"]')).not.toBeNull());
-			const goal = (yield* Effect.promise(readGoals)).goals.find((entry) => entry.id === "project.example");
-			expect(goal?.counts).toEqual({ blocked: stage === "waiting" ? 1 : 0, done: 2, parked: 2, running: stage === "waiting" ? 0 : 1, scheduled: 0 });
-			const progress = findElement('[data-goal-section="progress"]');
-			expect(findElement(".item-introduction")?.nextElementSibling).toBe(progress);
-			expect(readText('[data-goal-section="progress"]')).toContain("5 linked items");
-			expect(
-				findElements("[data-goal-counts] [data-count]").map((entry) => [entry.getAttribute("data-status"), entry.getAttribute("data-count")]),
-			).toEqual([
-				["done", "2"],
-				["running", stage === "waiting" ? "0" : "1"],
-				["blocked", stage === "waiting" ? "1" : "0"],
-				["scheduled", "0"],
-				["parked", "2"],
+		`a draft task Fleet reports as ${stage} counts as ${counted} on its goal page and shows ${label} in the Draft group`,
+		[goalFleetReports(stage), routedScreen(quiet, GOAL_PAGE, { home: "home.md" })],
+		function* ({ criterionCard, goalPageStateCounts, linkedWorkRow }) {
+			yield* outcomes([
+				["first criterion", () => criterionCard("first"), expect.objectContaining({ progress: `1 done · 1 ${counted}` })],
+				["first task's row", () => linkedWorkRow("task.first"), expect.objectContaining({ group: "Draft", states: [label] })],
+				[
+					"linked work by state",
+					() => goalPageStateCounts(),
+					[
+						"2 done",
+						counted === "running" ? "1 running" : "0 running (quiet)",
+						counted === "blocked" ? "1 blocked" : "0 blocked (quiet)",
+						"0 scheduled (quiet)",
+						"2 parked",
+					],
+				],
 			]);
-			expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe(label);
-			expect(findElement('[data-goal-item="task.first"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Draft");
-			expect(findElement('[data-goal-item="task.third"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Deferred");
-			expect(findElement('[data-goal-item="task.fourth"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Done");
-			expect(findElement('a[href="https://github.com/example/project/pull/1"]', findElement('[data-goal-item="task.first"]'))).not.toBeNull();
-			expect(readText("#criterion-first [data-criterion-progress]")).toBe(stage === "waiting" ? "1 done · 1 blocked" : "1 done · 1 running");
-			expect(progress?.textContent).not.toContain("%");
-			yield* eventually(() => expect(findElement('.document-outline a[href="#heading-why-this-goal-matters"]')).not.toBeNull());
 		},
 	);
 }
 
 screenStory.it(
-	"leaves the PR cell empty for linked work in a group where another row has a PR",
-	[
-		screenFleet({
-			...goalFleetFixture(),
-			items: goalFleetFixture().items.map((item) => (item.workId === "task.third" ? { ...item, stage: "working" } : item)),
-		}),
-		routedScreen(
-			{
-				...goalPageFixture(),
-				"asks.md": "# No open asks",
-				"first.md": (goalPageFixture()["first.md"] ?? "").replace("status: draft", "status: ready"),
-				"third.md": (goalPageFixture()["third.md"] ?? "").replace("status: deferred", "status: ready"),
-			},
-			"/_board/item/project.example/",
-			{ home: "home.md" },
-		),
-	],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElement('[data-goal-group="Ready"] [data-goal-item="task.third"]')).not.toBeNull());
-		expect([...findElements('[data-goal-group="Ready"] th[scope="col"]')].map((head) => head.textContent)).toEqual([
-			"Work",
-			"Criteria",
-			"State",
-			"Owner",
-			"Updated",
-			"PR",
-		]);
-		expect(readText('[data-goal-item="task.first"] td:last-child')).toBe("PR");
-		expect(readText('[data-goal-item="task.third"] td:last-child')).toBe("");
-		expect(findElement('[data-goal-item="task.third"] a[href*="/pull/"]')).toBeNull();
+	"a goal page shows its progress between its introduction and the goal's prose",
+	[goalFleetReports("working"), routedScreen(quiet, GOAL_PAGE, { home: "home.md" })],
+	function* ({ goalPageParts }) {
+		expect(yield* goalPageParts()).toEqual(["introduction", "progress", "prose"]);
 	},
 );
 
 screenStory.it(
-	"shows no linked work for a project page without an id",
+	"a linked work row links to the pull request Fleet recorded, and a row without one leaves its PR cell empty",
 	[
-		routedScreen({ ...goalPageFixture(), "unnamed.md": "---\nkind: goal\nstatus: draft\n---\n# Unnamed goal" }, "/unnamed.md", {
-			home: "home.md",
-		}),
+		goalFleetReports("working", (fleet) => ({
+			...fleet,
+			items: fleet.items.map((item) => (item.workId === "task.third" ? { ...item, stage: "working" } : item)),
+		})),
+		routedScreen(
+			{
+				...quiet,
+				"first.md": (fixture["first.md"] ?? "").replace("status: draft", "status: ready"),
+				"third.md": (fixture["third.md"] ?? "").replace("status: deferred", "status: ready"),
+			},
+			GOAL_PAGE,
+			{ home: "home.md" },
+		),
 	],
-	function* ({ findElement, readText }) {
-		yield* eventually(() =>
-			expect(readText('[data-goal-section="progress"] [role="status"]')).toBe("Progress is available for uniquely identified goals."),
-		);
-		yield* eventually(() => expect(readText(".goal-page")).not.toContain("Loading linked work"));
-		expect(findElement('[data-goal-section="work"]')).toBeNull();
-		expect(readText(".goal-page")).not.toContain("Linked work unavailable.");
+	function* ({ linkedWorkColumns, linkedWorkRow }) {
+		yield* outcomes([
+			["first task's PR", () => linkedWorkRow("task.first"), expect.objectContaining({ pr: "https://github.com/example/project/pull/1" })],
+			["ready columns", () => linkedWorkColumns("Ready"), ["Work", "Criteria", "State", "Owner", "Updated", "PR"]],
+			["third task's PR", () => linkedWorkRow("task.third"), expect.objectContaining({ pr: "empty" })],
+		]);
+	},
+);
+
+screenStory.it(
+	"a goal without an id says progress needs a unique id and lists no linked work",
+	[routedScreen({ ...goalPageFixture(), "unnamed.md": "---\nkind: goal\nstatus: draft\n---\n# Unnamed goal" }, "/unnamed.md", { home: "home.md" })],
+	function* ({ goalProgressNotice, linkedWork }) {
+		yield* outcomes([
+			["linked work", () => linkedWork(), {}],
+			["progress", () => goalProgressNotice(), "Progress is available for uniquely identified goals."],
+		]);
 	},
 );

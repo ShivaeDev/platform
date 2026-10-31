@@ -39,18 +39,16 @@ function activeRule(rule: Rule, check: ActiveRule["check"]): ActiveRule {
 
 function activate(rule: Rule, setting: Setting | undefined): Effect.Effect<Decoded<ActiveRule>> {
 	return Effect.tryPromise({ catch: messageOf, try: () => rule.configure(optionsOf(setting)) }).pipe(
-		Effect.map(
-			(configured): Decoded<ActiveRule> =>
+		Effect.match({
+			onFailure: (failure): Decoded<ActiveRule> => ({ _tag: "Invalid", issues: [`rules.${rule.id}.options: validation threw: ${failure}`] }),
+			onSuccess: (configured): Decoded<ActiveRule> =>
 				configured._tag === "Invalid"
 					? { _tag: "Invalid", issues: configured.issues.map((issue) => `rules.${rule.id}.options: ${issue}`) }
 					: {
 							_tag: "Valid",
 							value: activeRule(rule, configured.check),
 						},
-		),
-		Effect.catch((failure: string) =>
-			Effect.succeed<Decoded<ActiveRule>>({ _tag: "Invalid", issues: [`rules.${rule.id}.options: validation threw: ${failure}`] }),
-		),
+		}),
 	);
 }
 

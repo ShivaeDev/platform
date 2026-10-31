@@ -1,23 +1,35 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
-import { responseInput } from "#test/coverageEdges.ts";
 import { questionnaireAnswers, questionnaireSource } from "#test/questionnaire.ts";
+import { questionRegistered } from "#test/questionRecordTraits.ts";
+
+const REQUIRED = questionnaireSource.replace('select="one"', 'select="one" required="selection"');
+const WITHOUT_A_CHOICE = [{ ...questionnaireAnswers[0], selected: [] }, questionnaireAnswers[1]];
+
+boardStory.it("a prompt marked required=selection is shown as needing a choice", [aQuestionnaire(REQUIRED)], function* ({ promptRequirements }) {
+	expect(yield* promptRequirements("proposal.md")).toEqual(["display: choice required", "checks: choice optional"]);
+});
 
 boardStory.it(
-	"requires an option before recording an answer while allowing explanatory clarification",
-	[aQuestionnaire(questionnaireSource.replace('select="one"', 'select="one" required="selection"'))],
-	function* ({ workspace: { client, register } }) {
-		const page = yield* Effect.promise(() => client.read(client.api.board.query({ url: "/proposal.md" })));
-		expect(page.document.requests[0]?.prompts?.[0]?.requireSelection).toBe(true);
-		const question = yield* Effect.promise(register);
-		const input = { ...responseInput, answers: [{ ...questionnaireAnswers[0], selected: [] }, questionnaireAnswers[1]], question: question.id };
-		const failure = yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(input)).catch((error: unknown) => error));
-		expect(failure).toBeInstanceOf(Conflict);
-		expect(failure).toMatchObject({ message: expect.stringContaining("Choose an option") });
-		const saved = yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run({ ...input, type: "clarify" })));
-		expect(saved.response.type).toBe("clarify");
-		expect(saved.body).toContain(questionnaireAnswers[0].text);
+	"an answer that leaves a required choice empty is refused",
+	[aQuestionnaire(REQUIRED), questionRegistered()],
+	function* ({ recordReply }) {
+		expect(yield* recordReply({ answers: WITHOUT_A_CHOICE, body: "", id: "response.edge" })).toBe(
+			"conflict: Choose an option before recording this answer. Keep your instructions in the note, or use Clarify / Not now.",
+		);
+	},
+);
+
+boardStory.it(
+	"a clarification that leaves a required choice empty is recorded with its explanation",
+	[aQuestionnaire(REQUIRED), questionRegistered()],
+	function* ({ recordedReply, recordReply }) {
+		yield* recordReply({ answers: WITHOUT_A_CHOICE, body: "", id: "response.edge", type: "clarify" });
+
+		expect(yield* recordedReply("response.edge")).toEqual({
+			body: expect.stringContaining(questionnaireAnswers[0].text),
+			supersedes: undefined,
+			type: "clarify",
+		});
 	},
 );

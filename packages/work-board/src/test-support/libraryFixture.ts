@@ -31,15 +31,6 @@ export function nestedLibraryScreen() {
 	return routedScreen({ "notes/deep/plan.md": "# A nested plan\n", "notes/first.md": "# A first note\n" }, "/_board/library?view=folders");
 }
 
-export function libraryParams() {
-	const route = new URL(document.querySelector<HTMLElement>("#doc")?.dataset.route ?? "", "http://board");
-	return route.pathname === "/_board/library" ? Object.fromEntries(route.searchParams) : undefined;
-}
-
-export function libraryTitles() {
-	return [...document.querySelectorAll("#library-results li a")].map((link) => link.textContent);
-}
-
-export function pressedView() {
-	return document.querySelector('#library-filters [role="group"] [aria-pressed="true"]')?.textContent;
+export function documentTitles(count: number) {
+	return Array.from({ length: count }, (_, index) => `Document ${String(index).padStart(3, "0")}`);
 }

@@ -2,11 +2,13 @@ import { testUtils } from "better-auth/plugins";
 import { Cause, ConfigProvider, Effect, Exit, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
+import { causeWords } from "@shivaedev/test/answers.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser, RequestTracing } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
@@ -26,10 +28,9 @@ export const roleHost = Effect.fnUntraced(function* () {
 		logger: { disabled: true },
 		plugins: [testUtils()],
 		secret: "stored-role-story-secret-at-least-32-characters",
-		user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" as const } } },
 	};
-	yield* migrateBetterAuth(options);
-	const mounted = yield* betterAuthMount(options, { roles: TestRoles }).pipe(
+	yield* migrateBetterAuth(options, { defaultRole: "user" });
+	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles }).pipe(
 		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
 	);
 	const recorded = recorder();
@@ -38,9 +39,12 @@ export const roleHost = Effect.fnUntraced(function* () {
 	);
 	const app = HttpRouter.toWebHandler(Layer.merge(mounted.routes, rpc).pipe(Layer.provide(recorded.layer)), { disableLogger: true });
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
+	const storage = yield* authTestDatabase;
 	const headers = new Headers({ origin: ORIGIN });
+	let userId = "";
 	return {
 		defectLogs: () => Effect.sync(() => annotationsOf(recorded.logs, "RPC defect").map((log) => log["rpc.defect"])),
+		missingRole: () => storage.omitRole(userId),
 		profile: () =>
 			Effect.gen(function* () {
 				const client = yield* RpcClient.make(Api);
@@ -48,13 +52,15 @@ export const roleHost = Effect.fnUntraced(function* () {
 				if (Exit.isSuccess(exit)) {
 					return { permissions: exit.value.permissions, role: exit.value.role };
 				}
-				return Cause.hasDies(exit.cause) ? "defect" : Cause.pretty(exit.cause);
+				return Cause.hasFails(exit.cause) ? causeWords(exit.cause) : "defect";
 			}).pipe(Effect.provide(httpClient(app, Object.fromEntries(headers))), Effect.scoped),
+		recordedLogs: () => Effect.sync(() => recorded.logs.map((log) => log.message)),
 		session: () => Effect.promise(() => app.handler(new Request(`${ORIGIN}/api/auth/get-session`, { headers }))),
 		// A minted session isolates stored-role resolution from the sign-in flow.
 		signedInAs: (role: string) =>
 			Effect.promise(async () => {
 				const session = await signedInUser(mounted.auth, { email: "alice@roles.test", name: "alice", role });
+				userId = session.user.id;
 				headers.set("cookie", session.headers.get("cookie") ?? "");
 			}),
 	};

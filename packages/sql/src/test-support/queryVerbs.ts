@@ -1,3 +1,4 @@
+import * as PgTypes from "@effect/sql-pg/PgTypes";
 import { BigDecimal, DateTime, Effect, Exit, Option, Predicate } from "effect";
 import * as Statement from "effect/sql/Statement";
 import type { FindManyFilter } from "#repositoryFilter.ts";
@@ -6,24 +7,16 @@ import type { Body, Step } from "./body.ts";
 import { attempt, outcomeOf } from "./outcome.ts";
 import { type QueryEngine, TABLES } from "./queryEngine.ts";
 import { copyColumns, type Payment, payment } from "./queryModels.ts";
+import { queryPlan } from "./queryPlan.ts";
 import { onSqlError, Rejected } from "./transactionEngine.ts";
 
 type Engine = QueryEngine;
 type Query<TMethod extends (...args: never) => unknown> = Parameters<TMethod>[0];
 
-interface PlanNode {
-	readonly "Actual Loops": number;
-	readonly "Actual Rows": number;
-	readonly "Node Type": string;
-	readonly Plans?: readonly PlanNode[];
-	readonly "Relation Name"?: string;
-}
-
-function planNodes(plan: PlanNode): readonly PlanNode[] {
-	return [plan, ...(plan.Plans ?? []).flatMap(planNodes)];
-}
-
 export function shown(value: unknown): unknown {
+	if (PgTypes.isParameter(value)) {
+		return shown(value.value);
+	}
 	if (BigDecimal.isBigDecimal(value)) {
 		return `decimal ${BigDecimal.format(BigDecimal.normalize(value))}`;
 	}
@@ -88,6 +81,7 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 		aggregateResults: (query: Query<Engine["results"]["aggregate"]>) =>
 			read(`the test results are aggregated ${described(query)}`, engine.results.aggregate(query)),
 		announced: () => Effect.sync(() => engine.announced.map(domainKey)),
+		boundParameterCounts: () => Effect.sync(() => engine.statements.map(([, parameters]) => parameters.length)),
 		boundParameters: () => Effect.sync(() => engine.statements.map(([, parameters]) => shown(parameters))),
 		copies: () => stored(engine.copies.findMany({ orderBy: { direction: "asc", field: "copiedKey" }, select: ["copiedKey", "name", "amount"] })),
 		copySelected: (query: Query<Engine["sources"]["select"]>) =>
@@ -161,25 +155,12 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 			),
 		partialRows: () => stored(engine.partialRows.findMany({ orderBy: { direction: "asc", field: "id" }, select: ["a", "b"] })),
 		readPlan: () =>
-			Effect.gen(function* () {
-				const [statement] = engine.statements;
-				if (statement === undefined) {
-					return yield* Effect.die(new Error("Read the runs before explaining the read"));
-				}
-				const [result] = yield* Effect.orDie(
-					sql.unsafe<{ readonly "QUERY PLAN": readonly { readonly Plan: PlanNode }[] }>(
-						`explain (analyze, format json) ${statement[0]}`,
-						statement[1],
-					),
-				);
-				const nodes = planNodes(result?.["QUERY PLAN"][0]?.Plan ?? { "Actual Loops": 0, "Actual Rows": 0, "Node Type": "none" });
-				const scans = nodes.filter((node) => node["Relation Name"] === tables.runs && node["Actual Loops"] > 0);
-				return {
-					rankedByWindow: nodes.some((node) => node["Node Type"] === "WindowAgg"),
-					rowsRead: scans.reduce((total, node) => total + node["Actual Rows"] * node["Actual Loops"], 0),
-					scans: [...new Set(scans.map((node) => node["Node Type"]))],
-				};
-			}),
+			Effect.map(queryPlan(engine, "runs"), ({ nodes, scans }) => ({
+				rankedByWindow: nodes.some((node) => node["Node Type"] === "WindowAgg"),
+				rowsRead: scans.reduce((total, node) => total + node["Actual Rows"] * node["Actual Loops"], 0),
+				scans: [...new Set(scans.map((node) => node["Node Type"]))],
+			})),
+
 		rejects: () =>
 			Effect.suspend(() => {
 				tell("the transaction rejects its work");
@@ -211,6 +192,15 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 		statementsSent: () => Effect.sync(() => engine.statements.length),
 		storedCopyAmounts: () => stored(sql<{ readonly amount: unknown }>`select amount from ${sql(tables.copies)} order by "copiedKey"`),
 		transactionEndings: () => Effect.sync(() => [...engine.endings]),
+		tupleIndexPlan: (options: { readonly preferIndexes?: boolean } = {}) =>
+			Effect.map(queryPlan(engine, "partialRows", options.preferIndexes), ({ nodes }) =>
+				nodes
+					.filter((node) => node["Index Name"] !== undefined && node["Actual Loops"] > 0)
+					.map((node) => ({
+						condition: node["Index Cond"],
+						index: node["Index Name"]?.replace(`tuple_${tables.partialRows.slice(-32)}_idx`, "tuple_idx"),
+					})),
+			),
 		watch: (...keys: readonly string[]) =>
 			Effect.gen(function* () {
 				tell(`a subscriber starts watching ${keys.join(", ")}`);

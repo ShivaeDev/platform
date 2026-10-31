@@ -41,7 +41,7 @@ export const startAdminHost = Effect.gen(function* () {
 		lockTimeout: "5 seconds",
 		table: "auth_migrations",
 	});
-	const { auth, sessions: authSessions, routes } = yield* betterAuthMount(options, { roles: TestRoles });
+	const { auth, sessions: authSessions, routes } = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles });
 	yield* Effect.promise(async () => {
 		const context = await auth.$context;
 		await context.checkSchema?.();

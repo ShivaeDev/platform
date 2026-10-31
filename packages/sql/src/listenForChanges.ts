@@ -1,4 +1,4 @@
-import { Clock, Deferred, type Duration, Effect, Queue, Random, Scope } from "effect";
+import { Clock, Deferred, Duration, Effect, Queue, Random, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlError } from "effect/sql/SqlError";
 import { decodeKeys, resyncPayload } from "./notifyPayload.ts";
@@ -30,6 +30,9 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 		Effect.gen(function* () {
 			const scope = yield* listenerScope(timeout);
 			const notifications = yield* (options.listenerClient ?? client).listen(channel).pipe(Scope.provide(scope), deadline);
+			const interval = Duration.toMillis(Duration.fromInputUnsafe(options.heartbeatInterval ?? "5 seconds"));
+			const lifetime = Duration.toMillis(Duration.fromInputUnsafe(options.connectionTTL ?? Duration.infinity));
+			const renewAt = (yield* Clock.currentTimeMillis) + (lifetime === 0 ? interval : lifetime);
 			const token = JSON.stringify({ heartbeat: `${yield* Random.nextInt}:${yield* Random.nextInt}` });
 			let ack = yield* Deferred.make<void>();
 			function receive(payload: string) {
@@ -64,13 +67,14 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 					lostAt = undefined;
 				}
 				yield* Deferred.succeed(ready, undefined);
-				yield* Effect.forever(
-					Effect.gen(function* () {
-						yield* Effect.sleep(options.heartbeatInterval ?? "5 seconds");
-						ack = yield* Deferred.make<void>();
-						yield* Effect.andThen(send, Deferred.await(ack)).pipe(deadline);
-					}),
-				);
+				while (true) {
+					yield* Effect.sleep(Math.min(interval, Math.max(0, renewAt - (yield* Clock.currentTimeMillis))));
+					if ((yield* Clock.currentTimeMillis) >= renewAt) {
+						return;
+					}
+					ack = yield* Deferred.make<void>();
+					yield* Effect.andThen(send, Deferred.await(ack)).pipe(deadline);
+				}
 			});
 			yield* Effect.raceFirst(listening, monitor);
 		}).pipe(Effect.onExit(() => resync)),
@@ -90,9 +94,8 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 					}
 					lostAt = yield* Clock.currentTimeMillis;
 					yield* Effect.logWarning("PostgreSQL change listener lost; resynchronizing live streams", cause);
-				}),
+				}).pipe(Effect.andThen(Effect.sleep(options.retryDelay ?? "1 second"))),
 			),
-			Effect.andThen(Effect.sleep(options.retryDelay ?? "1 second")),
 		),
 	).pipe(Effect.forkScoped);
 	yield* Deferred.await(ready);

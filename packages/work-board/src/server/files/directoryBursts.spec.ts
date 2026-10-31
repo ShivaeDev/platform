@@ -1,49 +1,51 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fileWatcherStory, watchedFiles } from "#test/fileWatcherStory.ts";
 
 fileWatcherStory.it(
-	"coalesces directory bursts and names edited, added and removed Markdown files",
+	"twelve reports of one folder are coalesced into one rescan that announces its edited, added and removed notes",
 	[watchedFiles({ "notes/log.md": "# Before", "notes/removed.md": "# Removed" })],
-	function* ({ writeFile, removeFile, notify, nextChange, story }) {
-		const scans = story.engine.scans;
-		writeFile("notes/log.md", "# After");
-		writeFile("notes/added.md", "# Added");
-		removeFile("notes/removed.md");
-		yield* notify(Array.from({ length: 12 }, () => "notes"));
-		expect(yield* nextChange()).toEqual({
-			_tag: "Changed",
-			paths: expect.arrayContaining(["notes/log.md", "notes/added.md", "notes/removed.md"]),
-			sequence: expect.any(Number),
-		});
-		expect(story.engine.scans).toBe(scans + 1);
-		expect(story.engine.watchedPaths).toEqual([story.engine.notes.root]);
+	function* ({ editorRemoves, editorWrites, nextAnnouncedChange, rootRescans, watcherReports, watchesStarted }) {
+		yield* editorWrites("notes/log.md", "# After");
+		yield* editorWrites("notes/added.md", "# Added");
+		yield* editorRemoves("notes/removed.md");
+
+		yield* watcherReports(Array.from({ length: 12 }, () => "notes"));
+
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["notes/added.md", "notes/log.md", "notes/removed.md"]],
+			["root rescans", () => rootRescans(), 1],
+			["watches started", () => watchesStarted(), ["."]],
+		]);
 	},
 );
 
+const IGNORED = [".git", ".git/objects", "node_modules", "node_modules/dependency", "notes/.cache", "notes/node_modules"];
+
 fileWatcherStory.it(
-	"ignores hidden and dependency directories before inspecting or rescanning them",
+	"reports inside hidden and dependency folders are neither inspected nor rescanned, and only the edited note is announced",
 	[watchedFiles({ ".git/state.md": "# Hidden", "node_modules/dependency/note.md": "# Dependency", "notes/log.md": "# Before" })],
-	function* ({ writeFile, notify, nextChange, story }) {
-		const scans = story.engine.scans;
-		const ignored = [".git", ".git/objects", "node_modules", "node_modules/dependency", "notes/.cache", "notes/node_modules"];
-		writeFile("notes/log.md", "# After");
-		yield* notify([...ignored, "notes/log.md"]);
-		expect(yield* nextChange()).toMatchObject({ _tag: "Changed", paths: ["notes/log.md"] });
-		expect(story.engine.scans).toBe(scans);
-		expect(story.engine.checked.some((path) => ignored.includes(path))).toBe(false);
+	function* ({ editorWrites, inspectedAmong, nextAnnouncedChange, rootRescans, watcherReports }) {
+		yield* editorWrites("notes/log.md", "# After");
+
+		yield* watcherReports([...IGNORED, "notes/log.md"]);
+
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["notes/log.md"]],
+			["ignored paths inspected", () => inspectedAmong(IGNORED), []],
+			["root rescans", () => rootRescans(), 0],
+		]);
 	},
 );
 
 fileWatcherStory.it(
-	"announces removed descendants when only their removed directory is reported",
+	"a removed folder reported alone announces every note it held",
 	[watchedFiles({ "notes/log.md": "# Log", "notes/nested/plan.md": "# Plan" })],
-	function* ({ removeFile, notify, nextChange, story }) {
-		removeFile("notes");
-		yield* notify(["notes"]);
-		expect(yield* nextChange()).toMatchObject({
-			_tag: "Changed",
-			paths: expect.arrayContaining(["notes/log.md", "notes/nested/plan.md"]),
-		});
-		expect(story.engine.watchedPaths).toEqual([story.engine.notes.root]);
+	function* ({ editorRemoves, nextAnnouncedChange, watcherReports }) {
+		yield* editorRemoves("notes");
+
+		yield* watcherReports(["notes"]);
+
+		expect(yield* nextAnnouncedChange()).toEqual(["notes/log.md", "notes/nested/plan.md"]);
 	},
 );

@@ -64,13 +64,3 @@ export function savedInboxAnswer(notes: Folder) {
 	}
 	return metadataParse(readFileSync(join(notes.root, "responses", saved), "utf8"));
 }
-
-export function responseDraft(question: string, id = "response.first", body = "Use explicit requests.") {
-	return {
-		author: "maintainer",
-		body,
-		id,
-		question,
-		type: "answer" as const,
-	};
-}

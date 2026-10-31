@@ -1,62 +1,63 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
 import { sharedVocabularyFixture } from "#test/sharedVocabularyFixture.ts";
 
+const vocabulary = projectFiles(sharedVocabularyFixture);
+
 boardStory.it(
-	"uses authored states for task counts and shows each implementing lane's own progress",
-	[projectFiles(sharedVocabularyFixture)],
-	function* ({ rpc }) {
-		const data = yield* rpc((client) => client("work-board.goals", undefined));
-		const goal = data.goals.find((entry) => entry.id === "goal");
-		expect(goal?.counts).toEqual({ blocked: 0, done: 1, parked: 2, running: 0, scheduled: 1 });
-		expect(goal?.lanes).toEqual([
-			{ counts: { blocked: 0, done: 1, parked: 1, running: 0, scheduled: 1 }, id: "lane.board", title: "Board lane" },
-			{ counts: { blocked: 0, done: 0, parked: 1, running: 0, scheduled: 0 }, id: "lane.fleet", title: "Fleet lane" },
-		]);
-		const work = yield* rpc((client) => client("work-board.work", { url: "/_board/work" }));
-		expect(work.items.find((entry) => entry.id === "task.draft")).toMatchObject({
-			fleetApproved: false,
-			metadata: { fleet: "manual", owner: "claude", status: "draft" },
+	"a goal counts tasks by their authored states and shows each implementing lane's own progress",
+	[vocabulary],
+	function* ({ goalCounts }) {
+		expect(yield* goalCounts("goal")).toMatchObject({
+			counts: { blocked: 0, done: 1, parked: 2, running: 0, scheduled: 1 },
+			lanes: [
+				{ counts: { blocked: 0, done: 1, parked: 1, running: 0, scheduled: 1 }, id: "lane.board", title: "Board lane" },
+				{ counts: { blocked: 0, done: 0, parked: 1, running: 0, scheduled: 0 }, id: "lane.fleet", title: "Fleet lane" },
+			],
 		});
-		expect(work.items.find((entry) => entry.id === "task.ready")).toMatchObject({
-			fleetApproved: true,
-			metadata: { delivers: "pr", owner: "codex", status: "ready" },
-		});
-		expect(work.items.find((entry) => entry.id === "task.done")).toMatchObject({
-			fleetApproved: false,
-			metadata: { delivers: "report", fleet: "held", status: "done" },
-		});
-		const library = yield* rpc((client) => client("work-board.library", { showFleet: true }));
-		expect(library.kinds).toEqual(["goal", "question", "report", "task"]);
 	},
 );
 
+for (const [id, approved, metadata] of [
+	["task.draft", false, { fleet: "manual", owner: "claude", status: "draft" }],
+	["task.ready", true, { delivers: "pr", owner: "codex", status: "ready" }],
+	["task.done", false, { delivers: "report", fleet: "held", status: "done" }],
+] as const) {
+	boardStory.it(
+		`Work shows ${id} with its shared vocabulary and ${approved ? "approved" : "not approved"} for Fleet`,
+		[vocabulary],
+		function* ({ workItem }) {
+			expect(yield* workItem(id)).toMatchObject({ fleetApproved: approved, metadata });
+		},
+	);
+}
+
+boardStory.it("the library offers each kind of the shared vocabulary as a filter", [vocabulary], function* ({ libraryKinds }) {
+	expect(yield* libraryKinds()).toEqual(["goal", "question", "report", "task"]);
+});
+
+boardStory.it("blocking questions come before questions that can wait", [vocabulary, responsesEnabled()], function* ({ inboxQuestions }) {
+	expect(yield* inboxQuestions()).toEqual(["question.z: blocking task", "question.a: whenever area"]);
+});
+
+boardStory.it("a task shows the standing ruling that applies to it", [vocabulary], function* ({ itemRulings }) {
+	expect(yield* itemRulings("/ready.md")).toEqual([
+		{ answer: "# Engine ruling\n\nUse the existing engine.\n", href: "/ruling.md", title: "Engine ruling" },
+	]);
+});
+
 boardStory.it(
-	"sorts blocking questions first, shows standing rulings and keeps recorded answers on their question",
-	[projectFiles(sharedVocabularyFixture), responsesEnabled()],
-	function* ({ rpc }) {
-		const inbox = yield* rpc((client) => client("work-board.inbox", undefined));
-		expect(inbox.you.map((entry) => ({ id: entry.id, scope: entry.scope, urgency: entry.urgency }))).toEqual([
-			{ id: "question.z", scope: "task", urgency: "blocking" },
-			{ id: "question.a", scope: "area", urgency: "whenever" },
+	"a recorded answer shows on its question and its answer file stays out of the library",
+	[vocabulary, responsesEnabled()],
+	function* ({ fleetLibraryPaths, itemResponseBodies, maintainerAnswers }) {
+		expect(yield* itemResponseBodies("/blocking.md")).toEqual([]);
+
+		yield* maintainerAnswers("question.z", "Keep the engine");
+
+		yield* outcomes([
+			["library", () => fleetLibraryPaths(), expect.not.arrayContaining([expect.stringMatching(/answer\.question\.z\.md$/u)])],
+			["responses", () => itemResponseBodies("/blocking.md"), ["Keep the engine"]],
 		]);
-		const task = yield* rpc((client) => client("work-board.document", { url: "/ready.md" }));
-		expect(task.rulings).toEqual([{ answer: "# Engine ruling\n\nUse the existing engine.\n", href: "/ruling.md", title: "Engine ruling" }]);
-		const question = yield* rpc((client) => client("work-board-responses.question", { item: "question.z", request: "answer" }));
-		yield* rpc((client) =>
-			client("work-board-responses.answerQuestion", {
-				author: "marvin",
-				body: "Keep the engine",
-				id: "answer.blocking",
-				item: "question.z",
-				request: "answer",
-				revision: question.reviewedRevision,
-				type: "answer",
-			}),
-		);
-		const answered = yield* rpc((client) => client("work-board.document", { url: "/blocking.md" }));
-		expect(answered.requests[0]?.responses?.map((record) => record.body)).toEqual(["Keep the engine"]);
-		const library = yield* rpc((client) => client("work-board.library", { showFleet: true }));
-		expect(library.files.some((entry) => entry.path.endsWith("answer.blocking.md"))).toBe(false);
 	},
 );

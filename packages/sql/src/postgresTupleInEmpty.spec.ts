@@ -4,7 +4,7 @@ import { queries, sourceRows } from "#test/queries.ts";
 import { SourceRow } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
-const noTuples = tupleIn(SourceRow, ["sourceKey", "amount"], []);
+const noTuples = tupleIn(SourceRow, ["sourceKey", "amount"], [], { "amount": "text", "sourceKey": "int4" });
 
 queries.it("findMany with an empty tuple list reads no sources", [sourceRows()], function* ({ findSources }) {
 	const found = yield* findSources({ where: noTuples });

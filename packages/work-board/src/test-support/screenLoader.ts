@@ -43,8 +43,14 @@ export function loaderObservations(engine: ScreenEngine, tell: (line: string) =>
 	}
 	return {
 		loaderFailure: () => {
-			tell("the reader inspects the canceled loader's failure");
-			return Effect.promise(() => observation().failed.promise);
+			tell("the reader reads why the canceled loader stopped");
+			return Effect.map(
+				Effect.promise(() => observation().failed.promise),
+				(failure) =>
+					failure instanceof Error
+						? `${failure.name}: ${failure.cause instanceof Error ? failure.cause.message : String(failure.cause)}`
+						: String(failure),
+			);
 		},
 		loaderStarted: () => {
 			tell("the router starts loading the destination");

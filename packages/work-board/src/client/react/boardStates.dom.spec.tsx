@@ -1,13 +1,13 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { boardDocumentScreen } from "#test/boardDocumentScreen.tsx";
 import { heldWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { boardScreen, chromeScreen, openScreen, routedScreen } from "#test/screenTraits.ts";
 import { screenRoute, todayScreen } from "#test/screenWorkspaceTraits.ts";
 import { searchScreen } from "#test/searchScreen.tsx";
 import { DocumentMain } from "./DocumentMain.tsx";
-import { ProjectionMain } from "./ProjectionMain.tsx";
 
 expectNoReactWarnings();
 
@@ -20,67 +20,81 @@ for (const { label, shape, url } of [
 	{ label: "Loading System", shape: "cards", url: "/_board/system" },
 ]) {
 	screenStory.it(
-		`holds a ${shape}-shaped skeleton on ${url} until its data arrives`,
+		`${url} holds a ${shape}-shaped skeleton until its data arrives`,
 		[todayScreen(), screenRoute(url), heldWorkspace(), openScreen()],
-		function* ({ findElement, findElements, readText, releaseWorkspace }) {
-			yield* eventually(() => expect(readText('#doc [role="status"][aria-busy="true"]')).toBe(label));
-			expect(findElement(`#doc [data-loading-shape="${shape}"]`)).not.toBeNull();
-			expect(findElements('#doc [data-slot="skeleton"]').length).toBeGreaterThan(4);
-			expect(findElement("#doc h1")).toBeNull();
-			yield* Effect.promise(releaseWorkspace);
-			yield* eventually(() => expect(findElement("#doc h1")).not.toBeNull());
-			yield* eventually(() => expect(findElement("#doc > [data-loading]")).toBeNull());
+		function* ({ loadingState, mainHeading, releaseWorkspace }) {
+			yield* outcomes([
+				["heading", () => mainHeading(), "no heading"],
+				["loading", () => loadingState(), { shape, skeletons: "shown", status: label }],
+			]);
+
+			yield* releaseWorkspace();
+
+			yield* outcomes([
+				["heading", () => mainHeading(), expect.not.stringMatching(/^no heading$/u)],
+				["loading", () => loadingState(), "not loading"],
+			]);
 		},
 	);
 }
 
 screenStory.it(
-	"holds a lanes-shaped skeleton while a board document's lanes load",
+	"A board document holds a lanes-shaped skeleton while its lanes load",
 	[
-		boardScreen(
-			{ "board.md": "---\nid: board.held\nitems: []\n---\n# Held board\n", "home.md": "# Home" },
-			(api) => <ProjectionMain api={api} onPage={() => undefined} route="board" url="/board.md" />,
-			{ beforeIndex: () => Effect.never, home: "home.md" },
-		),
+		heldWorkspace(),
+		boardDocumentScreen({ "board.md": "---\nid: board.held\nitems: []\n---\n# Held board\n", "home.md": "# Home" }, "/board.md", { home: "home.md" }),
 	],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(readText('#doc [role="status"][aria-busy="true"]')).toBe("Loading board"));
-		expect(findElement('#doc [data-loading-shape="lanes"]')).not.toBeNull();
+	function* ({ loadingState }) {
+		expect(yield* loadingState()).toEqual({ shape: "lanes", skeletons: "shown", status: "Loading board" });
 	},
 );
 
 screenStory.it(
-	"tells an empty Today what fills Needs you and Goals and where to go next",
+	"An empty Today says what fills Needs you and Goals and where to go next",
 	[routedScreen({}, "/")],
-	function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText('#needs-you [data-slot="empty-title"]')).toBe("Nothing needs you"));
-		expect(readText('#needs-you [data-slot="empty-description"]')).toBe(
-			"Questions and reviews from your agents appear here when they need your answer.",
-		);
-		expect(readText('#needs-you [data-slot="empty"] a[href="/_board/start"]')).toBe("Getting started");
-		yield* eventually(() => expect(readText('#today-goals [data-slot="empty-title"]')).toBe("No active goals"));
-		expect(readText('#today-goals [data-slot="empty"] a[href="/_board/goals"]')).toBe("All goals");
-		expect(findElement("#doc [data-loading]")).toBeNull();
+	function* ({ emptyState, loadingState }) {
+		yield* outcomes([
+			[
+				"goals",
+				() => emptyState("Today goals"),
+				expect.objectContaining({ action: { href: "/_board/goals", label: "All goals" }, title: "No active goals" }),
+			],
+			["loading", () => loadingState(), "not loading"],
+			[
+				"needs you",
+				() => emptyState("Needs you"),
+				{
+					action: { href: "/_board/start", label: "Getting started" },
+					description: "Questions and reviews from your agents appear here when they need your answer.",
+					title: "Nothing needs you",
+				},
+			],
+		]);
 	},
 );
 
 screenStory.it(
-	"shows one empty state instead of empty lanes when a workspace declares no work",
+	"Now shows one empty state instead of empty lanes when the workspace declares no work",
 	[routedScreen({ "notes.md": "# Notes" }, "/_board/work")],
-	function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText('#work-results [data-slot="empty-title"]')).toBe("No work yet"));
-		expect(readText('#work-results [data-slot="empty"] a[href="/_board/start"]')).toBe("Getting started");
-		expect(findElement("#work-results .work-columns")).toBeNull();
-		expect(readText("#work-results")).not.toContain("No identified work");
+	function* ({ emptyState, nowLanes }) {
+		yield* outcomes([
+			[
+				"empty",
+				() => emptyState("work results"),
+				expect.objectContaining({ action: { href: "/_board/start", label: "Getting started" }, title: "No work yet" }),
+			],
+			["lanes", () => nowLanes(), []],
+		]);
 	},
 );
 
 screenStory.it(
-	"offers All work when the chosen board lists no work",
+	"A board that lists no work offers All work",
 	[routedScreen({ "board.md": "---\nid: board.empty\nitems: []\n---\n# Empty board\n" }, "/_board/work?view=board&board=board.empty")],
-	function* ({ readText, readAttribute }) {
-		yield* eventually(() => expect(readText('#work-results [data-slot="empty-title"]')).toBe("No work on this board"));
-		expect(readAttribute('#work-results [data-slot="empty"] a', "href")).toBe("/_board/work?view=board&sort=title");
+	function* ({ emptyState }) {
+		expect(yield* emptyState("work results")).toEqual(
+			expect.objectContaining({ action: expect.objectContaining({ href: "/_board/work?view=board&sort=title" }), title: "No work on this board" }),
+		);
 	},
 );
 
@@ -89,49 +103,67 @@ const work = {
 };
 
 screenStory.it(
-	"replaces a zero-row table with a matching-work empty state that clears the filters",
+	"A table filtered to no rows becomes a No matching work state whose link clears the filters",
 	[routedScreen(work, "/_board/work?view=table&q=nothing-matches")],
-	function* ({ readText, readAttribute, findElement }) {
-		yield* eventually(() => expect(readText('#work-results [data-slot="empty-title"]')).toBe("No matching work"));
-		expect(findElement("#work-results table")).toBeNull();
-		expect(readText('#work-results [data-slot="empty"] a')).toBe("Clear filters");
-		expect(readAttribute('#work-results [data-slot="empty"] a', "href")).toBe("/_board/work?view=table&sort=title#work-results");
+	function* ({ emptyState, tableRows }) {
+		yield* outcomes([
+			[
+				"empty",
+				() => emptyState("work results"),
+				expect.objectContaining({
+					action: { href: "/_board/work?view=table&sort=title#work-results", label: "Clear filters" },
+					title: "No matching work",
+				}),
+			],
+			["rows", () => tableRows(), []],
+		]);
 	},
 );
 
-screenStory.it("names what fills each empty Now lane", [routedScreen(work, "/_board/work")], function* ({ readText, findElement }) {
-	yield* eventually(() => expect(readText('[aria-label="Queued"]')).toContain("Build"));
-	expect(findElement('[aria-label="Queued"] [data-slot="empty"]')).toBeNull();
-	expect(readText('[aria-label="Working"] [data-slot="empty-title"]')).toBe("Nothing working");
-	expect(readText('[aria-label="Working"] [data-slot="empty-description"]')).toBe("Work an agent is building appears here.");
-	expect(readText('[aria-label="Reviewing"] [data-slot="empty-title"]')).toBe("Nothing in review");
-	expect(readText('[aria-label="Waiting on you"] [data-slot="empty-title"]')).toBe("Nothing waiting on you");
+screenStory.it("Now names what fills each empty lane", [routedScreen(work, "/_board/work")], function* ({ nowLane }) {
+	yield* outcomes([
+		["queued", () => nowLane("Queued"), expect.objectContaining({ cards: ["task.build"], empty: "none" })],
+		["reviewing", () => nowLane("Reviewing"), expect.objectContaining({ empty: expect.objectContaining({ title: "Nothing in review" }) })],
+		[
+			"waiting on you",
+			() => nowLane("Waiting on you"),
+			expect.objectContaining({ empty: expect.objectContaining({ title: "Nothing waiting on you" }) }),
+		],
+		[
+			"working",
+			() => nowLane("Working"),
+			expect.objectContaining({ empty: { description: "Work an agent is building appears here.", title: "Nothing working" } }),
+		],
+	]);
 });
 
-screenStory.it("tells an empty Library what fills it", [routedScreen({}, "/_board/library")], function* ({ readText }) {
-	yield* eventually(() => expect(readText('#doc [data-slot="empty-title"]')).toBe("No documents yet"));
-	expect(readText('#doc [data-slot="empty"] a[href="/_board/start"]')).toBe("Getting started");
+screenStory.it("An empty Library says what fills it", [routedScreen({}, "/_board/library")], function* ({ emptyState }) {
+	expect(yield* emptyState()).toEqual(
+		expect.objectContaining({ action: { href: "/_board/start", label: "Getting started" }, title: "No documents yet" }),
+	);
 });
 
 screenStory.it(
-	"lets the reader clear Library filters that match no document",
+	"Show all documents clears Library filters that match nothing",
 	[routedScreen({ ...work, "notes.md": "---\nstatus: done\n---\n# Closed notes\n" }, "/_board/library")],
-	function* ({ findElement, findElements, readText, roles }) {
-		yield* eventually(() => expect(readText('#doc a[href="/task.md"]')).toBe("Build the page"));
-		expect(readText('#doc li:has(a[href="/task.md"]) p')).toBe("Task · Ready");
-		yield* roles.click({ name: "Kind", role: "combobox" });
-		yield* roles.click({ name: "Task", role: "option" });
-		yield* roles.click({ name: "Status", role: "combobox" });
-		yield* roles.click({ name: "Done", role: "option" });
-		yield* eventually(() => expect(readText('#doc [data-slot="empty-title"]')).toBe("No matching documents"));
-		yield* roles.click({ name: "Show all documents", role: "link" });
-		yield* eventually(() => expect(findElements("#doc li a").map((link) => link.getAttribute("href"))).toEqual(["/notes.md", "/task.md"]));
-		expect(findElement('#doc [data-slot="empty"]')).toBeNull();
+	function* ({ emptyState, filterLibrary, followEmptyState, libraryTitles }) {
+		yield* filterLibrary("Kind", "Task");
+		yield* filterLibrary("Status", "Done");
+		expect(yield* emptyState()).toEqual(
+			expect.objectContaining({ action: expect.objectContaining({ label: "Show all documents" }), title: "No matching documents" }),
+		);
+
+		yield* followEmptyState();
+
+		yield* outcomes([
+			["empty", () => emptyState(), "no empty state"],
+			["titles", () => libraryTitles(), ["Closed notes", "Build the page"]],
+		]);
 	},
 );
 
 screenStory.it(
-	"tells a goal page that it has no criteria and no linked work yet",
+	"A goal with no criteria and no linked work says so instead of showing progress",
 	[
 		boardScreen(
 			{ "bare.md": "---\nid: project.bare\nkind: goal\nstatus: draft\n---\n# Empty goal\n", "home.md": "# Home" },
@@ -139,62 +171,84 @@ screenStory.it(
 			{ home: "home.md" },
 		),
 	],
-	function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText('[data-goal-section="progress"] [data-slot="empty-title"]')).toBe("No linked work"));
-		expect(readText('[data-goal-section="criteria"] [data-slot="empty-title"]')).toBe("No criteria");
-		expect(findElement('[data-goal-section="progress"] [data-goal-counts], [data-goal-section="progress"] [role="progressbar"]')).toBeNull();
-		expect(readText('[data-goal-section="progress"]')).not.toContain("linked items");
-		expect(findElement('[data-goal-section="work"]')).toBeNull();
+	function* ({ emptyState, goalPageProgress, goalPageStateCounts, linkedWork }) {
+		yield* outcomes([
+			["criteria", () => emptyState("criteria"), expect.objectContaining({ title: "No criteria" })],
+			["linked work", () => emptyState("linked work"), expect.objectContaining({ title: "No linked work" })],
+			["linked work groups", () => linkedWork(), {}],
+			["progress", () => goalPageProgress(), "no progress bar"],
+			["state counts", () => goalPageStateCounts(), []],
+		]);
 	},
 );
 
+screenStory.it("The sidebar names each empty list", [chromeScreen({ "notes/plan.md": "# Plan\n" }, "/_board/library")], function* ({ emptyState }) {
+	yield* outcomes([
+		["active goals", () => emptyState("sidebar Active goals"), expect.objectContaining({ title: "No active goals" })],
+		[
+			"pinned",
+			() => emptyState("sidebar Pinned"),
+			expect.objectContaining({ description: "Pin a document to keep it here.", title: "No pinned documents" }),
+		],
+	]);
+});
+
 screenStory.it(
-	"names each empty sidebar list and the empty reading history",
+	"Reading history says when nothing has been read yet",
 	[chromeScreen({ "notes/plan.md": "# Plan\n" }, "/_board/library")],
-	function* ({ click, readText }) {
-		yield* eventually(() => expect(readText('#sidebar [aria-label="Active goals"] [data-slot="empty-title"]')).toBe("No active goals"));
-		expect(readText('#sidebar [aria-label="Pinned"] [data-slot="empty-title"]')).toBe("No pinned documents");
-		expect(readText('#sidebar [aria-label="Pinned"] [data-slot="empty-description"]')).toBe("Pin a document to keep it here.");
-		click("#library-open");
-		yield* eventually(() => expect(readText('#library-dialog [data-slot="empty-title"]', document)).toBe("No reading history"));
+	function* ({ emptyState, openReadingHistory }) {
+		yield* openReadingHistory();
+
+		expect(yield* emptyState("reading history")).toEqual(expect.objectContaining({ title: "No reading history" }));
 	},
 );
 
 screenStory.it(
-	"shows a search empty state that can widen the search to files Fleet writes",
+	"Search with no matches offers to include files Fleet writes",
 	[searchScreen({ "notes.md": "# Notes\n\nPlain text." }, { home: undefined })],
-	function* ({ click, findByRole, findElement, readAttribute, readText, typeText }) {
-		const field = findElement<HTMLInputElement>('#search-dialog [role="combobox"]', document);
-		if (!field) {
-			throw new Error("Missing palette input");
-		}
-		typeText(field, "zzzz");
-		yield* eventually(() => expect(readText('#search-dialog [data-slot="empty-title"]', document)).toBe("No matches"));
-		expect(readText('#search-dialog [data-slot="empty-description"]', document)).toBe(
-			"Nothing in this workspace matches “zzzz”. Try fewer or different words.",
-		);
-		expect(readText('#search-dialog [data-slot="empty"] button', document)).toBe("Include files Fleet writes");
-		expect(findByRole("checkbox", "Include files Fleet writes", document)).not.toBeNull();
-		click(findElement('#search-dialog [data-slot="empty"] button', document));
-		yield* eventually(() => expect(readAttribute('#search-dialog [role="checkbox"]', "aria-checked", document)).toBe("true"));
+	function* ({ emptyState, followEmptyState, searchFor, searchIncludesFleetFiles }) {
+		yield* searchFor("zzzz");
+		yield* outcomes([
+			[
+				"empty",
+				() => emptyState("search"),
+				{
+					action: { label: "Include files Fleet writes" },
+					description: "Nothing in this workspace matches “zzzz”. Try fewer or different words.",
+					title: "No matches",
+				},
+			],
+			["includes Fleet files", () => searchIncludesFleetFiles(), false],
+		]);
+
+		yield* followEmptyState("search");
+
+		expect(yield* searchIncludesFleetFiles()).toBe(true);
 	},
 );
 
 screenStory.it(
-	"shows empty states for a result without feedback and an item without handoffs",
+	"A result without review or feedback says nothing was requested",
 	[
 		routedScreen(
-			{
-				"README.md": "# Workspace\n",
-				"result.md": "---\nid: result.bare\nkind: report\nstatus: done\n---\n# A bare result\n",
-				"task.md": "---\nid: task.handoff\nkind: task\nstatus: draft\n---\n# A task\n",
-			},
+			{ "README.md": "# Workspace\n", "result.md": "---\nid: result.bare\nkind: report\nstatus: done\n---\n# A bare result\n" },
 			"/_board/item/result.bare/",
 		),
 	],
-	function* ({ navigate, readText }) {
-		yield* eventually(() => expect(readText("[data-result-empty]")).toBe("No review requested, no checks listed and no feedback yet."));
-		yield* Effect.promise(() => navigate("/_board/handoff?item=task.handoff"));
-		yield* eventually(() => expect(readText('#handoff-history [data-slot="empty-title"]')).toBe("No handoffs yet"));
+	function* ({ resultReviewNote }) {
+		expect(yield* resultReviewNote()).toBe("No review requested, no checks listed and no feedback yet.");
+	},
+);
+
+screenStory.it(
+	"An item without handoffs says none were made",
+	[
+		routedScreen(
+			{ "README.md": "# Workspace\n", "task.md": "---\nid: task.handoff\nkind: task\nstatus: draft\n---\n# A task\n" },
+			"/_board/handoff?item=task.handoff",
+		),
+	],
+	function* ({ emptyState }) {
+		expect(yield* emptyState("handoff history")).toEqual(expect.objectContaining({ title: "No handoffs yet" }));
 	},
 );

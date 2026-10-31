@@ -1,107 +1,119 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
 const goal = { ...goalPageFixture(), "home.md": "# Home" };
-const LANDMARKS: ReadonlySet<string> = new Set(["complementary", "navigation", "region"]);
-const LINKED_WORK = '[data-goal-section="work"] [data-goal-item]';
+const documents = {
+	"home.md": "# Home",
+	"notes/first.md": "# First\n\n[Earlier](earlier.md) and [Next](next.md)\n",
+	"notes/next.md": "# Next\n",
+	"notes/plain.md": "# Plain\n\n## Section\n\nText.\n",
+	"notes/record.md": "---\nid: report.record\nkind: report\n---\n# Record\n",
+};
 
 screenStory.it(
-	"reads and tabs through a goal's content before its context",
-	[routedScreen(goal, "/goal.md")],
-	function* ({ findElement, findElements, readAttribute, readTabStops }) {
-		yield* eventually(() => expect(findElement(LINKED_WORK)).not.toBeNull());
-		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/goal.md"));
-		const article = findElement("#doc article.doc");
-		const context = findElement("#doc .item-context");
-		expect(article && context && article.compareDocumentPosition(context)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-		const stops = readTabStops("#doc");
-		const lastContent = stops.findLastIndex((stop) => stop.closest("article.doc") !== null);
-		const firstContext = stops.findIndex((stop) => stop.closest(".item-context") !== null);
-		expect(findElements<HTMLElement>(`#doc article.doc ${LINKED_WORK} a`).every((link) => stops.includes(link))).toBe(true);
-		expect(lastContent).toBeGreaterThan(-1);
-		expect(firstContext).toBeGreaterThan(lastContent);
-	},
-);
-
-screenStory.it(
-	"names only the goal's main sections and its context as landmarks",
-	[routedScreen(goal, "/goal.md")],
-	function* ({ findElement, findElements, roles }) {
-		yield* eventually(() => expect(findElement(LINKED_WORK)).not.toBeNull());
-		yield* eventually(() => expect(findElement('#doc .item-context [data-context-group="linked-from"]')).not.toBeNull());
-		const landmarks = findElements("#doc :is(section, aside, nav, [role])")
-			.filter((element) => element.closest(".item-introduction, .answer-cards") === null)
-			.map((element) => roles.accessible(element))
-			.filter(({ name, role }) => name !== "" && role !== null && LANDMARKS.has(role));
-		expect(landmarks).toEqual([
-			{ name: "Progress", role: "region" },
-			{ name: "Criteria and recorded evidence", role: "region" },
-			{ name: "Linked work", role: "region" },
-			{ name: "Item context", role: "complementary" },
-			{ name: "Document outline", role: "navigation" },
+	"Tab passes through a goal's progress, criteria, linked work groups and text before its item context",
+	[readingPage(goal, "/goal.md")],
+	function* ({ tabOrder, tabStopsIn }) {
+		yield* outcomes([
+			["linked work", () => tabStopsIn("Linked work"), ["button Draft (3)", "button Done (1)", "button Deferred (1)"]],
+			[
+				"order",
+				() => tabOrder(),
+				[
+					"the page header",
+					"Item overview",
+					"the page header",
+					"Progress",
+					"Criteria and recorded evidence",
+					"Linked work",
+					"the document text",
+					"Item context",
+					"Document outline",
+				],
+			],
 		]);
-		expect(findElements("#doc .item-context [data-source-group] > :is(h4, ul)").length).toBeGreaterThan(0);
 	},
 );
 
 screenStory.it(
-	"links the outline to stable goal section anchors and lands a shared link on Linked work",
-	[routedScreen(goal, "/goal.md#linked-work")],
-	function* ({ findElements, readFocus, readText }) {
-		yield* eventually(() => expect(readFocus()?.id).toBe("linked-work"));
-		expect(readText("#navigation-status")).not.toContain("no longer in the document");
-		expect(findElements(".document-outline a").map((link) => link.getAttribute("href"))).toEqual(
-			expect.arrayContaining(["#progress", "#criteria", "#linked-work"]),
-		);
+	"a goal page names its overview, progress, each open ask, criteria, linked work, item context and outline as landmarks",
+	[readingPage(goal, "/goal.md")],
+	function* ({ landmarks }) {
+		expect(yield* landmarks()).toEqual([
+			"Item overview",
+			"Progress",
+			"Answer: Example goal",
+			"Answer: Example goal",
+			"Criteria and recorded evidence",
+			"Linked work",
+			"Item context",
+			"Document outline",
+		]);
+	},
+);
+
+screenStory.it("a goal's outline links each of its sections to the section's anchor", [readingPage(goal, "/goal.md")], function* ({ outline }) {
+	expect(yield* outline()).toEqual({
+		links: [
+			"#heading-example-goal",
+			"#progress",
+			"#by-criterion",
+			"#answer-title-decision.review/criterion",
+			"#answer-title-decision.review/goal",
+			"#criteria",
+			"#linked-work",
+			"#heading-why-this-goal-matters",
+		],
+		within: "the item context",
+	});
+});
+
+screenStory.it(
+	"a shared link to a goal's Linked work lands focus on that section without a missing-section notice",
+	[readingPage(goal, "/goal.md#linked-work")],
+	function* ({ navigationStatus, readerFocus }) {
+		yield* outcomes([
+			["focus", () => readerFocus(), "heading Linked work"],
+			["status", () => navigationStatus(), { state: "normal", text: "" }],
+		]);
 	},
 );
 
 screenStory.it(
-	"returns focus to the link that opened a page when the reader goes back",
-	[
-		routedScreen(
-			{ "home.md": "# Home", "notes/first.md": "# First\n\n[Earlier](earlier.md) and [Next](next.md)\n", "notes/next.md": "# Next\n" },
-			"/notes/first.md",
-		),
-	],
-	function* ({ back, click, findElement, findElements, focus, readFocus, readText }) {
-		yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md"));
-		const next = findElements<HTMLAnchorElement>("#doc article.doc a").find((link) => link.textContent === "Next");
-		focus(next);
-		click(next);
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Next"));
-		yield* Effect.promise(back);
-		yield* eventually(() => expect(readText("#doc h1")).toBe("First"));
-		yield* eventually(() => expect(readFocus()?.textContent).toBe("Next"));
-		expect(readFocus()?.closest("article.doc")).not.toBeNull();
+	"going Back returns focus to the link in the document text that opened the next page",
+	[readingPage(documents, "/notes/first.md")],
+	function* ({ focusPlace, followDocumentLink, goBack, readerFocus, shownPage }) {
+		yield* followDocumentLink("Next");
+		expect(yield* shownPage()).toBe("Next");
+
+		yield* goBack();
+
+		yield* outcomes([
+			["focus", () => readerFocus(), "link Next"],
+			["page", () => shownPage(), "First"],
+			["place", () => focusPlace(), "the document text"],
+		]);
 	},
 );
 
 screenStory.it(
-	"shows no context card for a plain document and keeps an empty Details panel out of the Tab order",
-	[
-		routedScreen(
-			{
-				"home.md": "# Home",
-				"notes/plain.md": "# Plain\n\n## Section\n\nText.\n",
-				"notes/record.md": "---\nid: report.record\nkind: report\n---\n# Record\n",
-			},
-			"/notes/plain.md",
-		),
-	],
-	function* ({ findElement, navigate, readAttribute, readTabStops }) {
-		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/plain.md"));
-		expect(findElement("#doc .item-context")).not.toBeNull();
-		expect(findElement('#doc .item-context [role="tablist"]')).toBeNull();
-		yield* Effect.promise(() => navigate("/notes/record.md"));
-		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/record.md"));
-		expect(findElement('#doc .item-context [role="tab"][aria-selected="true"]')?.textContent).toBe("Details");
-		expect(readTabStops("#doc .item-context").filter((stop) => stop.getAttribute("role") === "tabpanel")).toEqual([]);
+	"moving from a plain document to a record gives the item context its tabs with Details selected",
+	[readingPage(documents, "/notes/plain.md")],
+	function* ({ itemContextTabs, navigateTo }) {
+		expect(yield* itemContextTabs()).toBe("no tabs");
+
+		yield* navigateTo("/notes/record.md");
+
+		expect(yield* itemContextTabs()).toEqual({ selected: "Details", tabs: ["Details", "Source"] });
 	},
 );
+
+screenStory.it("a record's empty Details panel stays out of the Tab order", [readingPage(documents, "/notes/record.md")], function* ({ tabStopsIn }) {
+	expect(yield* tabStopsIn("Item context")).toEqual(["tab Details"]);
+});

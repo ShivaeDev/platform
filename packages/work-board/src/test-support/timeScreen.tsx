@@ -18,6 +18,10 @@ function fixedTime(row: boolean) {
 
 export const TIME_NOW = new Date(2026, 9, 19, 12, 0);
 
+export function isoBeforeNow(milliseconds: number) {
+	return new Date(TIME_NOW.getTime() - milliseconds).toISOString();
+}
+
 export function timeScreen(millisecondsAgo = 0, place: "content" | "row" = "content") {
 	const view = fixedTime(place === "row");
 	return screenStory.trait(

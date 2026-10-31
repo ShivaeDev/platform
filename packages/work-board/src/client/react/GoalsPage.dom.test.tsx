@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { goalsFixture } from "#test/goalsFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { goalsScreen } from "#test/screenTraits.ts";
@@ -7,62 +8,73 @@ import { goalsScreen } from "#test/screenTraits.ts";
 expectNoReactWarnings();
 
 screenStory.it(
-	"shows linked criterion progress and next actions without zero-count metadata or untargeted criteria",
+	"a goal card shows the goal's done share, next action, open asks and the done share of each criterion work targets",
 	[goalsScreen({ ...goalsFixture(), "claims.md": "" })],
-	({ read, findElement, findElements, readText }) => {
-		expect(read().text).not.toMatch(/0 linked|0 evidence|0 open|0 of 0|0\/0/u);
-		const card = findElement('[data-goal-id="project.example"]');
-		expect(card?.textContent).toContain("2/5 done");
-		expect(card?.textContent).toContain("Review linked work");
-		expect(card?.textContent).toContain("2 open asks");
-		const criteria = findElements("li", card);
-		expect([...(criteria ?? [])].map((row) => row.textContent)).toEqual(["First criterion1/2", "Second criterion0/1"]);
-		expect(findElement('a[href="/_board/item/project.example/#criterion-first"]', card)).not.toBeNull();
-		expect(read().text).not.toContain("No linked work");
-		expect(readText('[data-goal-id="project.empty"]')).toBe("Empty goal");
+	function* ({ goalCardFacts }) {
+		expect(yield* goalCardFacts("project.example")).toEqual({
+			criteria: ["First criterion 1/2", "Second criterion 0/1"],
+			nextAction: "Review linked work",
+			openAsks: "2 open asks",
+			progress: "2/5 done",
+			title: "Example goal",
+		});
 	},
 );
 
-screenStory.it("keeps closed goals in one collapsed section after active goals", [goalsScreen()], ({ findElement, readText, findElements }) => {
-	const closed = findElement<HTMLDetailsElement>("details:last-of-type");
-	expect(closed).not.toBeNull();
-	expect(closed?.open).toBe(false);
-	expect(readText("summary", closed)).toBe("Closed goals");
-	expect(readText('[data-goal-id="project.closed"]', closed)).toBe("Closed goal1 open ask");
-	expect(findElements("[data-goal-id]", findElement("details")?.previousElementSibling)).toHaveLength(1);
+screenStory.it(
+	"a goal card without linked work, asks or a next action shows only its title",
+	[goalsScreen({ ...goalsFixture(), "claims.md": "" })],
+	function* ({ goalCardFacts }) {
+		expect(yield* goalCardFacts("project.empty")).toEqual({
+			criteria: [],
+			nextAction: undefined,
+			openAsks: undefined,
+			progress: undefined,
+			title: "Empty goal",
+		});
+	},
+);
+
+screenStory.it("a goal card links each criterion to its place on the goal page", [goalsScreen()], function* ({ goalCardLinks }) {
+	expect(yield* goalCardLinks("project.example")).toEqual([
+		"/_board/item/project.example/",
+		"/_board/item/project.example/#criterion-first",
+		"/_board/item/project.example/#criterion-second",
+	]);
+});
+
+screenStory.it("a goal card's progress bar tells a screen reader the goal's counts", [goalsScreen()], function* ({ goalCardProgress }) {
+	expect(yield* goalCardProgress("project.example")).toMatchObject({ spoken: "2 of 5 done, 2 done, 0 running, 1 blocked, 0 scheduled, 2 parked" });
+});
+
+screenStory.it("the Goals page folds deferred and closed goals into sections of their own", [goalsScreen()], function* ({ goalList }) {
+	expect(yield* goalList()).toEqual({
+		active: ["project.example"],
+		closed: { ids: ["project.closed"], open: false },
+		deferred: { ids: ["project.empty"], open: false },
+	});
+});
+
+screenStory.it("the Goals page counts only its active goals in its summary", [goalsScreen()], function* ({ pageSummary }) {
+	expect(yield* pageSummary()).toBe("1 active goal");
 });
 
 screenStory.it(
-	"keeps deferred goals out of the active count in their own collapsed section",
-	[goalsScreen()],
-	({ findElement, findElements, readText }) => {
-		expect(readText("[data-page-summary]")).toBe("1 active goal");
-		const deferred = findElement<HTMLDetailsElement>("details");
-		expect(deferred?.open).toBe(false);
-		expect(readText("summary", deferred)).toBe("Deferred goals");
-		expect(findElements("[data-goal-id]", deferred).map((card) => card.getAttribute("data-goal-id"))).toEqual(["project.empty"]);
-		expect(findElements("[data-goal-id]", deferred?.previousElementSibling).map((card) => card.getAttribute("data-goal-id"))).toEqual([
-			"project.example",
+	"a workspace without goals gets the empty Goals state pointing to Getting started, with no summary or folded sections",
+	[goalsScreen({})],
+	function* ({ emptyState, goalList, pageSummary }) {
+		yield* outcomes([
+			[
+				"empty state",
+				() => emptyState(),
+				{
+					action: { href: "/_board/start", label: "Getting started" },
+					description: "A goal appears here when a file in this workspace declares one.",
+					title: "No active goals",
+				},
+			],
+			["sections", () => goalList(), { active: [], closed: "no section", deferred: "no section" }],
+			["summary", () => pageSummary(), "no summary"],
 		]);
-	},
-);
-
-screenStory.it("omits an empty closed section and keeps the empty active state", [goalsScreen({})], ({ findElement, readText }) => {
-	expect(readText('[data-slot="empty-title"]')).toBe("No active goals");
-	expect(readText('[data-slot="empty-description"]')).toBe("A goal appears here when a file in this workspace declares one.");
-	expect(readText('[data-slot="empty"] a[href="/_board/start"]')).toBe("Getting started");
-	expect(findElement("[data-page-summary]")).toBeNull();
-	expect(findElement("details")).toBeNull();
-});
-
-screenStory.it(
-	"aligns goal cards at the top and shows each goal's done share on the stock progress bar",
-	[goalsScreen()],
-	({ findElement, readAttribute }) => {
-		const card = findElement('[data-goal-id="project.example"]');
-		expect(card?.parentElement?.classList.contains("items-start")).toBe(true);
-		expect(readAttribute('[role="progressbar"][data-slot="progress"]', "aria-valuetext", card)).toBe(
-			"2 of 5 done, 2 done, 0 running, 1 blocked, 0 scheduled, 2 parked",
-		);
 	},
 );

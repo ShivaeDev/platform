@@ -31,7 +31,7 @@ The work has three parts: describe the model and provide its database once, choo
 
 ### One PostgreSQL pool per application
 
-`postgresLayer(url, options)` from `@shivaedev/sql/postgresLayer.ts` provides the native `PgPool` service from `@effect/sql-pg/PgPool`, `PgClient` and `SqlClient` together. `options` accepts `applicationName`, `maxConnections`, `transformQueryNames` and `transformResultNames`. Queries, transactions and raw connections reserved with `yield* pool.reserve` share the same `maxConnections` budget. A reservation holds its connection until its scope closes; release it before waiting for work that needs that slot.
+`postgresLayer(url, options)` from `@shivaedev/sql/postgresLayer.ts` provides the native `PgPool` service from `@effect/sql-pg/PgPool`, `PgClient` and `SqlClient` together. `options` accepts `applicationName`, `maxConnections`, `minConnections`, `connectionTTL`, `idleTimeout`, `transformQueryNames` and `transformResultNames`. Queries, transactions and raw connections reserved with `yield* pool.reserve` share the same `maxConnections` budget. A reservation holds its connection until its scope closes; release it before waiting for work that needs that slot.
 
 ```ts
 import * as PgPool from "@effect/sql-pg/PgPool";
@@ -200,14 +200,14 @@ import { tupleIn } from "@shivaedev/sql/tupleIn.ts";
 
 yield* lines.findMany({
   where: {
-    ...tupleIn(InvoiceLine, ["name", "amount"], [["Consulting", 52], ["Travel", 20]]),
+    ...tupleIn(InvoiceLine, ["name", "amount"], [["Consulting", 52], ["Travel", 20]], { name: "text", amount: "text" }),
     note: null,
   },
   select: ["name", "amount"],
 });
 ```
 
-Each tuple matches all its fields together, so this filter does not match `("Consulting", 20)`. The field list has at least two model fields, and each tuple's length and decoded types follow that list. Every value passes through its field codec. Spread the filter beside other entries to combine them with `AND`, or pass it directly as `where`. The same filter works in `select` and unversioned `delete`. An empty tuple list matches nothing, including deleting no rows. Large lists keep every value in a bound parameter.
+Each tuple matches all its fields together, so this filter does not match `("Consulting", 20)`. The field list has at least two model fields, and each tuple's length and decoded types follow that list. Every value passes through its field codec. Spread the filter beside other entries to combine them with `AND`, or pass it directly as `where`. The same filter works in `select` and unversioned `delete`. An empty tuple list matches nothing, including deleting no rows. On PostgreSQL, the fourth argument names each stored column’s scalar type using the names in `PgTypes.OID`, such as `text`, `int4` (integer), `int8` (bigint), `uuid`, `numeric` and `timestamptz`. Choose the database type, independently of the model’s decoded type: this example stores amounts as text. The helper binds one array per column, casts it to the declared type and matches through `unnest`; duplicate tuples do not duplicate results, and null tuple entries retain ordinary equality semantics. Array-valued and custom PostgreSQL columns use explicit native SQL.
 
 Use `gt`, `gte`, `lt` and `lte` for exclusive or inclusive bounds, and `like` for a text pattern:
 
@@ -570,7 +570,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
-- `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
+- `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
 - `@shivaedev/sql/upsertResult.ts`: `UpsertRow` — The `{ row, inserted }` result of an unconditional upsert.
 - `@shivaedev/sql/conditionalUpsert.ts`: `UpsertFilter`, `UpsertResult` — The `updateWhere` filter shape and the tagged `Inserted`, `Updated` or `Unchanged` result of a conditional upsert.
 - `@shivaedev/sql/mapSqlError.ts`: `mapSqlError({ constraints, fallback })` — Mapper from named constraint violations to application errors, with a fallback for every other `SqlError`.

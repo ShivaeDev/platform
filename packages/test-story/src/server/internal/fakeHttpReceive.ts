@@ -63,6 +63,7 @@ export async function fakeHttpReceive(
 	requests: FakeHttpRequestRecord[],
 	controls: ReturnType<typeof fakeHttpControls>,
 	tell: (line: string) => void,
+	abandoned: (request: FakeHttpRequestRecord) => void,
 ) {
 	try {
 		const path = incoming.url ?? "/";
@@ -89,6 +90,11 @@ export async function fakeHttpReceive(
 			},
 		};
 		requests.push(request);
+		response.once("close", () => {
+			if (!response.writableFinished) {
+				abandoned(request);
+			}
+		});
 		tell(`fake HTTP received ${method} ${path}`);
 		if (!decodeParams(params)) {
 			tell(`fake HTTP rejected ${method} ${path} with 400`);

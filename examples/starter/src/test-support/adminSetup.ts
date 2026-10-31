@@ -34,7 +34,7 @@ export const adminSetup = storyKit({
 			prepareAuth: Effect.fn("AdminSetup.prepareAuth")(function* () {
 				story.tell("prepare the app authentication tables");
 				const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
-				yield* steps.migrateTo("0001_auth");
+				yield* steps.migrateTo("0004_stored_roles");
 			}),
 			session: Effect.fn("AdminSetup.session")(function* () {
 				const session = yield* Effect.promise(() => fetch(`${host().baseUrl}/api/auth/get-session`, { headers: { cookie: engine.cookie } }));

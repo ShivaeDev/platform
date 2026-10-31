@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import type { EngineState } from "#engine/makeState.ts";
 import { missingBoardItem } from "#engine/missingBoardWork.ts";
+import { qualifyAreaWaiter } from "#engine/qualifyAreaWaiter.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Priority } from "#policy.ts";
-import { qualifyDependencies } from "#qualifyDependencies.ts";
 import { areaQueueOrder, areaWaiter } from "#scheduling/areaQueue.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS, holdsAreas, overlappingArea } from "#scheduling/areas.ts";
 
@@ -31,12 +31,7 @@ export const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: Engi
 					? Effect.void
 					: state.store.compareAndSet(entry.workId, version, { ...entry, queuePriority: work.priority }),
 			),
-			Effect.flatMap((work) =>
-				qualifyDependencies(work.dependsOn, records, state.board.get).pipe(
-					Effect.as(work.approved),
-					Effect.catchTag("Forbidden", () => Effect.succeed(false)),
-				),
-			),
+			Effect.flatMap((work) => qualifyAreaWaiter(work, records, state.board.get)),
 			Effect.catchTag("BoardFailure", (error) =>
 				missingBoardItem(error) || areaQueueOrder(entry, contender, records.indexOf(entry), index) >= 0 ? Effect.succeed(false) : Effect.fail(error),
 			),

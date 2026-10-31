@@ -1,6 +1,7 @@
 import { Clock, Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fleetWorkspace, fleetWorkspaceItems } from "#test/fleetWorkspaceFixture.ts";
 import { nowScreen } from "#test/nowScreen.tsx";
 import { nowFleet } from "#test/nowWork.ts";
@@ -8,157 +9,189 @@ import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFiles, screenFleet, screenRoute } from "#test/screenWorkspaceTraits.ts";
-import { labelledCombobox, menuOptions, workRouteParams, workTableScreen, workTableTitles } from "#test/workScreens.ts";
+import { workTableScreen } from "#test/workTableScreen.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
 expectNoReactWarnings();
 
+const BY_TITLE = ["Draft the pricing page", "Fix the flaky upload test", "Ship the onboarding email", "Write the install guide"];
+const UPLOAD = ["Fix the flaky upload test"];
+const BY_OWNER_DESC = { order: "desc", sort: "owner", view: "table" };
+
 screenStory.it(
-	"sorts the Table by its column headers and reverses the order on a second click",
+	"The Table sorts by title and reverses the order when the reader clicks Work again",
 	[workTableScreen("/_board/work?view=table")],
-	function* ({ roles }) {
-		yield* eventually(() => expect(workTableTitles().length).toBeGreaterThan(2));
-		const ascending = workTableTitles();
-		expect(ascending).toEqual([...ascending].sort((left, right) => (left ?? "").localeCompare(right ?? "", "en")));
-		expect(roles.accessible("#work-results th[aria-sort]")).toEqual({ name: "Work", role: "columnheader" });
-		expect(document.querySelector("#work-results th[aria-sort]")?.getAttribute("aria-sort")).toBe("ascending");
-		yield* roles.click({ name: "Work", role: "link" });
-		yield* eventually(() => expect(workRouteParams().get("order")).toBe("desc"));
-		yield* eventually(() => expect(workTableTitles()).toEqual([...ascending].reverse()));
-		expect(document.querySelector("#work-results th[aria-sort]")?.getAttribute("aria-sort")).toBe("descending");
-		yield* roles.click({ name: "Owner", role: "link" });
-		yield* eventually(() => expect(workRouteParams().get("sort")).toBe("owner"));
-		expect(workRouteParams().get("order")).toBeNull();
-		yield* eventually(() => expect(roles.accessible("#work-results th[aria-sort]")).toEqual({ name: "Owner", role: "columnheader" }));
+	function* ({ sortTableBy, tableSort, tableTitles, workAddress }) {
+		yield* outcomes([
+			["sort", () => tableSort(), { column: "Work", order: "ascending" }],
+			["titles", () => tableTitles(), BY_TITLE],
+		]);
+
+		yield* sortTableBy("Work");
+
+		yield* outcomes([
+			["address", () => workAddress(), { order: "desc", sort: "title", view: "table" }],
+			["sort", () => tableSort(), { column: "Work", order: "descending" }],
+			["titles", () => tableTitles(), [...BY_TITLE].reverse()],
+		]);
 	},
 );
 
 screenStory.it(
-	"heads each Table row with a link named by its title and shows the ID beside it",
-	[workTableScreen("/_board/work?view=table")],
-	function* ({ roles }) {
-		yield* eventually(() => expect(workTableTitles().length).toBeGreaterThan(2));
-		for (const row of document.querySelectorAll<HTMLElement>("#work-results tbody tr[data-item]")) {
-			const header = row.querySelector("th[scope='row']");
-			const link = header?.querySelector("a");
-			expect(link && roles.accessible(link)).toEqual({ name: link?.textContent, role: "link" });
-			expect(link?.textContent).not.toBe(row.dataset.item);
-			expect(new URL(link?.href ?? "", "http://board").searchParams.get("item")).toBe(row.dataset.item);
-			expect(header?.querySelector(".font-mono")?.textContent).toBe(row.dataset.item);
-		}
+	"The Table sorts by owner from the first owner when the reader clicks Owner",
+	[workTableScreen("/_board/work?view=table&order=desc")],
+	function* ({ sortTableBy, tableSort, tableTitles, workAddress }) {
+		expect(yield* tableSort()).toEqual({ column: "Work", order: "descending" });
+
+		yield* sortTableBy("Owner");
+
+		yield* outcomes([
+			["address", () => workAddress(), { sort: "owner", view: "table" }],
+			["sort", () => tableSort(), { column: "Owner", order: "ascending" }],
+			[
+				"titles",
+				() => tableTitles(),
+				["Ship the onboarding email", "Write the install guide", "Fix the flaky upload test", "Draft the pricing page"],
+			],
+		]);
 	},
 );
 
 screenStory.it(
-	"filters All work by text and offers Reset only while a filter applies",
+	"Each Table row is headed by a link named for its title that opens the item, with its ID beside it",
 	[workTableScreen("/_board/work?view=table")],
-	function* ({ roles }) {
-		yield* eventually(() => expect(workTableTitles().length).toBeGreaterThan(2));
-		const all = workTableTitles();
-		expect(document.querySelector("#work-filters a")).toBeNull();
-		yield* roles.enter({ name: "Find work", role: "searchbox" }, "upload");
-		yield* roles.click({ name: "Apply", role: "button" });
-		yield* eventually(() => expect(workTableTitles()).toEqual(["Fix the flaky upload test"]));
-		expect(Object.fromEntries(workRouteParams())).toEqual({ q: "upload", sort: "title", view: "table" });
-		yield* roles.click({ name: "Reset", role: "link" });
-		yield* eventually(() => expect(workTableTitles()).toEqual(all));
-		expect(document.querySelector("#work-filters a")).toBeNull();
+	function* ({ tableRows }) {
+		expect(yield* tableRows()).toEqual(
+			[
+				["task.pricing", "Draft the pricing page"],
+				["task.upload", "Fix the flaky upload test"],
+				["task.email", "Ship the onboarding email"],
+				["task.guide", "Write the install guide"],
+			].map(([id, title]) => ({ current: false, id, idShown: id, link: { name: title, opens: id }, selected: false, title })),
+		);
 	},
 );
 
 screenStory.it(
-	"saves the sorted Table as a local view that opens with its order and can be removed",
+	"Find work narrows the Table to matching work and offers Reset",
+	[workTableScreen("/_board/work?view=table")],
+	function* ({ findWork, tableTitles, workAddress, workFilterReset }) {
+		yield* outcomes([
+			["reset", () => workFilterReset(), "not offered"],
+			["titles", () => tableTitles(), BY_TITLE],
+		]);
+
+		yield* findWork("upload");
+
+		yield* outcomes([
+			["address", () => workAddress(), { q: "upload", sort: "title", view: "table" }],
+			["reset", () => workFilterReset(), "offered"],
+			["titles", () => tableTitles(), UPLOAD],
+		]);
+	},
+);
+
+screenStory.it(
+	"Reset clears the text filter and shows all work again",
+	[workTableScreen("/_board/work?view=table&q=upload")],
+	function* ({ resetWorkFilters, tableTitles, workFilterReset }) {
+		yield* outcomes([
+			["reset", () => workFilterReset(), "offered"],
+			["titles", () => tableTitles(), UPLOAD],
+		]);
+
+		yield* resetWorkFilters();
+
+		yield* outcomes([
+			["reset", () => workFilterReset(), "not offered"],
+			["titles", () => tableTitles(), BY_TITLE],
+		]);
+	},
+);
+
+screenStory.it(
+	"Saving the sorted Table as a view offers a link that opens it with the same order",
 	[workTableScreen("/_board/work?view=table&sort=owner&order=desc")],
-	function* ({ roles }) {
-		yield* eventually(() => expect(workTableTitles().length).toBeGreaterThan(2));
-		expect(document.querySelector("#open-saved-view")).toHaveProperty("hidden", true);
-		yield* roles.enter({ name: "View name", role: "textbox" }, "By owner");
-		yield* roles.click({ name: "Save view", role: "button" });
-		yield* eventually(() => expect(roles.text("#saved-view")).toBe("By owner"));
-		const open = new URL(document.querySelector<HTMLAnchorElement>("#open-saved-view")?.href ?? "", "http://board");
-		expect(Object.fromEntries(open.searchParams)).toMatchObject({ order: "desc", sort: "owner", view: "table" });
-		function saved() {
-			return document.querySelector("#saved-view") ?? undefined;
-		}
-		yield* roles.click("#saved-view");
-		yield* roles.click({ name: "Choose a saved view", role: "option" });
-		yield* eventually(() => expect(document.querySelector("#open-saved-view")).toHaveProperty("hidden", true));
-		yield* roles.click("#saved-view");
-		expect(menuOptions(saved()).map((option) => option.textContent)).toEqual(["Choose a saved view", "By owner"]);
-		yield* roles.click({ name: "By owner", role: "option" });
-		yield* eventually(() => expect(document.querySelector("#open-saved-view")).toHaveProperty("hidden", false));
-		yield* roles.click({ name: "Remove", role: "button" });
-		yield* eventually(() => expect(document.querySelector("#open-saved-view")).toHaveProperty("hidden", true));
-		expect(roles.text("#saved-view")).toBe("No saved views");
+	function* ({ savedViews, saveTableView }) {
+		expect(yield* savedViews()).toEqual({ chosen: "No saved views", opens: "nothing" });
+
+		yield* saveTableView("By owner");
+
+		expect(yield* savedViews()).toEqual({ chosen: "By owner", opens: BY_OWNER_DESC });
 	},
 );
 
 screenStory.it(
-	"marks empty Now lanes and keeps Done closed until the reader opens it",
+	"Choosing a saved view again offers its link again",
+	[workTableScreen("/_board/work?view=table&sort=owner&order=desc")],
+	function* ({ chooseSavedView, savedViews, saveTableView }) {
+		yield* saveTableView("By owner");
+		yield* chooseSavedView("Choose a saved view");
+		expect(yield* savedViews()).toEqual({ chosen: "Choose a saved view", opens: "nothing" });
+
+		yield* chooseSavedView("By owner");
+
+		expect(yield* savedViews()).toEqual({ chosen: "By owner", opens: BY_OWNER_DESC });
+	},
+);
+
+screenStory.it(
+	"Remove deletes the chosen saved view",
+	[workTableScreen("/_board/work?view=table&sort=owner&order=desc")],
+	function* ({ removeChosenView, savedViews, saveTableView }) {
+		yield* saveTableView("By owner");
+		expect(yield* savedViews()).toEqual({ chosen: "By owner", opens: BY_OWNER_DESC });
+
+		yield* removeChosenView();
+
+		expect(yield* savedViews()).toEqual({ chosen: "No saved views", opens: "nothing" });
+	},
+);
+
+screenStory.it(
+	"Now lays out its lanes in workflow order",
 	[nowScreen(6, WorkNow, nowFleet(3, Effect.runSync(Clock.currentTimeMillis)))],
-	function* ({ findElements, readText, roles }) {
-		expect(readText('section[aria-label="Waiting on automation"]')).toBe(
-			"Waiting on automation0Nothing waiting on automationWork waiting on automation appears here.",
-		);
-		expect(findElements(".work-columns > section").map((lane) => lane.getAttribute("aria-label"))).toEqual([
-			"Queued",
-			"Working",
-			"Reviewing",
-			"Waiting on you",
-			"Waiting on orchestrator",
-			"Waiting on automation",
+	function* ({ nowLanes }) {
+		expect(yield* nowLanes()).toEqual([
+			"Queued: 1",
+			"Working: 1",
+			"Reviewing: 1",
+			"Waiting on you: 0",
+			"Waiting on orchestrator: 0",
+			"Waiting on automation: 0",
+			"Done in the last 7 days: 1",
 		]);
-		const done = { name: "Done in the last 7 days", role: "button" } as const;
-		expect(document.querySelector('section[aria-label="Done in the last 7 days"] [data-item]')).toBeNull();
-		expect(document.querySelector('section[aria-label="Done in the last 7 days"] [aria-expanded]')?.getAttribute("aria-expanded")).toBe("false");
-		yield* roles.click(done);
-		yield* eventually(() =>
-			expect(
-				[...document.querySelectorAll('section[aria-label="Done in the last 7 days"] [data-item]')].map((card) => card.getAttribute("data-item")),
-			).toEqual(["task-5"]),
-		);
-		expect(document.querySelector('section[aria-label="Done in the last 7 days"] [aria-expanded]')?.getAttribute("aria-expanded")).toBe("true");
 	},
 );
 
 screenStory.it(
-	"announces unavailable Fleet data in one status alert above the Now lanes",
+	"Now announces unavailable Fleet data in one alert above the lanes",
 	[nowScreen(6, WorkNow, { reason: "Fleet is offline.", state: "unavailable" })],
-	({ findElements }) => {
-		expect(findElements('[role="status"][data-slot="alert"]').map((alert) => alert.textContent)).toEqual([
-			"Lanes show the status written in each file. Fleet is offline.",
-		]);
+	function* ({ fleetAlert }) {
+		expect(yield* fleetAlert()).toEqual(["Lanes show the status written in each file. Fleet is offline."]);
 	},
 );
 
 screenStory.it(
-	"shows one Now lane at a time on a phone and switches lanes from the lane tabs",
+	"A phone shows one Now lane at a time and switches lanes from the lane tabs",
 	[screenMedia(["(max-width: 767px)"]), nowScreen(6, WorkNow, nowFleet(3, Effect.runSync(Clock.currentTimeMillis)))],
-	function* ({ findElements, roles }) {
-		function shown() {
-			return findElements("[role='tabpanel'] section.work-column").map((lane) => lane.getAttribute("aria-label"));
-		}
-		function cards() {
-			return findElements("[role='tabpanel'] [data-item]").map((card) => card.getAttribute("data-item"));
-		}
-		expect(roles.accessible("[role='tablist']")).toEqual({ name: "Lanes", role: "tablist" });
-		expect(shown()).toEqual(["Queued"]);
-		yield* roles.click({ name: "Reviewing 1", role: "tab" });
-		yield* eventually(() => expect(shown()).toEqual(["Reviewing"]));
-		expect(cards()).toEqual(["task-2"]);
+	function* ({ chooseLaneTab, phoneLane }) {
+		expect(yield* phoneLane()).toEqual({ cards: ["task-0"], lanes: ["Queued"], tabs: "Lanes" });
+
+		yield* chooseLaneTab("Reviewing 1");
+
+		expect(yield* phoneLane()).toEqual({ cards: ["task-2"], lanes: ["Reviewing"], tabs: "Lanes" });
 	},
 );
 
 screenStory.it(
-	"heads each All work status group with a count badge for its cards",
+	"All work heads each status group with a badge counting its cards",
 	[workTableScreen("/_board/work?view=board")],
-	function* ({ findElements }) {
-		yield* eventually(() => expect(findElements(".work-column").length).toBeGreaterThan(1));
-		for (const column of findElements(".work-column")) {
-			expect(findElements("h2 .work-count[data-slot='badge']", column).map((badge) => badge.textContent)).toEqual([
-				String(findElements("[data-item]", column).length),
-			]);
-		}
+	function* ({ allWorkGroups }) {
+		expect(yield* allWorkGroups()).toEqual([
+			{ badge: "2", cards: ["task.pricing", "task.guide"], group: "Draft" },
+			{ badge: "2", cards: ["task.upload", "task.email"], group: "Ready" },
+		]);
 	},
 );
 
@@ -167,14 +200,13 @@ for (const [route, name] of [
 	["/_board/work?view=board", "All work"],
 	["/_board/work?view=table", "Table"],
 ] as const) {
-	screenStory.it(`names the ${name} view in the page heading and its pressed tab`, [workTableScreen(route)], function* ({ readText }) {
-		yield* eventually(() => expect(readText("main h1")).toBe(name));
-		expect(readText('nav[aria-label="Work layout"] [aria-current="page"]')).toBe(name);
+	screenStory.it(`${name} names itself in the page heading and its pressed layout tab`, [workTableScreen(route)], function* ({ workLayout }) {
+		expect(yield* workLayout()).toEqual({ chosen: name, heading: name });
 	});
 }
 
 screenStory.it(
-	"counts in the sidebar the same open tasks the Now lanes show",
+	"The sidebar counts the same open tasks the Now lanes show",
 	[
 		screenFiles(
 			{ ...fleetWorkspace, "tasks/later.md": "---\nid: task.later\nkind: task\nstatus: draft\n---\n# Plan the later work\n" },
@@ -184,58 +216,63 @@ screenStory.it(
 		screenRoute("/_board/work"),
 		openScreen(),
 	],
-	function* ({ findElements }) {
-		yield* eventually(() =>
-			expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toContain(
-				`Now, ${findElements(".work-columns [data-item]").length} open tasks`,
-			),
-		);
-		expect(findElements(".work-columns [data-item]").map((card) => card.getAttribute("data-item"))).toEqual([
-			"task.pricing",
-			"task.guide",
-			"task.upload",
-			"task.email",
+	function* ({ navigationLabels, workItems }) {
+		yield* outcomes([
+			["navigation", () => navigationLabels(), expect.arrayContaining(["Now, 4 open tasks"])],
+			["work in the lanes", () => workItems(), ["task.pricing", "task.guide", "task.upload", "task.email"]],
 		]);
 	},
 );
 
 screenStory.it(
-	"filters All work by owner and sorts it from the toolbar menus",
+	"The Owner menu narrows All work to that owner's work",
 	[workTableScreen("/_board/work?view=board")],
-	function* ({ findElements, roles }) {
-		function menu(label: string) {
-			return labelledCombobox(findElements("main [role='combobox']"), label);
-		}
-		yield* eventually(() => expect(menu("Sort by")).toBeDefined());
-		yield* roles.click(`#${CSS.escape(menu("Owner")?.id ?? "")}`);
-		yield* roles.click({ name: "marvin", role: "option" });
-		yield* eventually(() => expect(workRouteParams().get("owner")).toBe("value:marvin"));
-		yield* eventually(() => expect(findElements("[data-item]").map((card) => card.getAttribute("data-item"))).toEqual(["task.pricing"]));
-		yield* roles.click(`#${CSS.escape(menu("Sort by")?.id ?? "")}`);
-		yield* roles.click({ name: "Owner", role: "option" });
-		yield* eventually(() => expect(Object.fromEntries(workRouteParams())).toEqual({ owner: "value:marvin", sort: "owner", view: "board" }));
+	function* ({ chooseInToolbar, toolbarChoice, workAddress, workItems }) {
+		yield* outcomes([
+			["owner", () => toolbarChoice("Owner"), "All owners"],
+			["work shown", () => workItems(), ["task.pricing", "task.guide", "task.upload", "task.email"]],
+		]);
+
+		yield* chooseInToolbar("Owner", "marvin");
+
+		yield* outcomes([
+			["address", () => workAddress(), { owner: "value:marvin", sort: "title", view: "board" }],
+			["owner", () => toolbarChoice("Owner"), "marvin"],
+			["work shown", () => workItems(), ["task.pricing"]],
+		]);
 	},
 );
 
 screenStory.it(
-	"keeps an unavailable board and an unmatched status visible in the toolbar menus",
+	"The Sort by menu sorts All work and keeps its owner filter",
+	[workTableScreen("/_board/work?view=board&owner=value:marvin")],
+	function* ({ chooseInToolbar, toolbarChoice, workAddress }) {
+		expect(yield* toolbarChoice("Sort by")).toBe("Title");
+
+		yield* chooseInToolbar("Sort by", "Owner");
+
+		yield* outcomes([
+			["address", () => workAddress(), { owner: "value:marvin", sort: "owner", view: "board" }],
+			["sort by", () => toolbarChoice("Sort by"), "Owner"],
+		]);
+	},
+);
+
+screenStory.it(
+	"The toolbar keeps an unavailable board and an unmatched status visible",
 	[workTableScreen("/_board/work?view=table&board=board.missing&status=value:paused")],
-	function* ({ findElements, readText }) {
-		function chosen(label: string) {
-			return readText("[data-slot='select-value']", labelledCombobox(findElements("main [role='combobox']"), label));
-		}
-		yield* eventually(() => expect(chosen("Board")).toBe("board.missing (unavailable)"));
-		expect(chosen("Status")).toBe("Paused (no current matches)");
+	function* ({ toolbarChoice }) {
+		yield* outcomes([
+			["board", () => toolbarChoice("Board"), "board.missing (unavailable)"],
+			["status", () => toolbarChoice("Status"), "Paused (no current matches)"],
+		]);
 	},
 );
 
 screenStory.it(
-	"marks the selected item's Table row and its title link",
+	"The Table marks the selected item's row and its title link",
 	[workTableScreen("/_board/work?view=table&item=task.upload")],
-	function* ({ findElements }) {
-		yield* eventually(() =>
-			expect(findElements("#work-results tr[data-state='selected']").map((row) => row.getAttribute("data-item"))).toEqual(["task.upload"]),
-		);
-		expect(findElements("#work-results tbody a[aria-current='true']").map((link) => link.textContent)).toEqual(["Fix the flaky upload test"]);
+	function* ({ tableSelection }) {
+		expect(yield* tableSelection()).toEqual({ current: UPLOAD, selected: ["task.upload"] });
 	},
 );

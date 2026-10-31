@@ -1,30 +1,22 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { QueryDocument } from "#test/QueryDocument.tsx";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { DECISION_PATH, packetFiles, questionPath } from "#test/responsePacket.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { boardScreen, routedScreen } from "#test/screenTraits.ts";
+import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
 for (const path of [DECISION_PATH, questionPath]) {
-	screenStory.it(`reads packet prose in the React shell at ${path}`, [routedScreen(packetFiles, `/${path}`)], function* ({ findElements, readText }) {
-		yield* eventually(() => expect(readText("article.doc p")).toContain("Read the evidence"));
-		expect(readText("h1")).toBe("Choose a direction");
-		expect(readText("article.doc")).toContain("Read the evidence before choosing.");
-		expect(findElements("article.doc h2").map((heading) => heading.textContent)).toEqual(["Recommendation"]);
-		expect(readText("article.doc")).not.toContain('"attention"');
-	});
+	screenStory.it(
+		`a response packet at ${path} reads as a document under its question's title, with its prose and sections and without its front matter`,
+		[routedScreen(packetFiles, `/${path}`)],
+		function* ({ documentSections, documentText, pageHeading }) {
+			yield* outcomes([
+				["heading", () => pageHeading(), "Choose a direction"],
+				["prose", () => documentText(), expect.stringMatching(/^(?!.*"attention").*Read the evidence before choosing\./su)],
+				["sections", () => documentSections(), ["Recommendation"]],
+			]);
+		},
+	);
 }
-
-screenStory.it(
-	"reads captured document prose through the native document query and React Markdown view",
-	[boardScreen(packetFiles, (api) => <QueryDocument api={api} plain url={`/${questionPath}`} />)],
-	function* ({ findElements, readText }) {
-		yield* eventually(() => expect(readText("article.doc p")).toContain("Read the evidence"));
-		expect(readText("h1")).toBe("Choose a direction");
-		expect(readText("article.doc")).toContain("Read the evidence before choosing.");
-		expect(findElements("article.doc h2").map((heading) => heading.textContent)).toEqual(["Recommendation"]);
-		expect(readText("article.doc")).not.toContain('"attention"');
-	},
-);

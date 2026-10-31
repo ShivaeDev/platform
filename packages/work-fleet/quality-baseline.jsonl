@@ -1,5 +1,6 @@
 {"path":"packages/work-fleet/src/admit.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/board/answerPublication.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/board/documents.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/board/documents.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/board/markdown.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/board/publicationFailure.spec.ts","rule":"effect/boundary","count":1}
@@ -24,6 +25,7 @@
 {"path":"packages/work-fleet/src/engine/closeDecisions.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/completeBoardWork.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/completeReport.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/engine/continueCommand.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/engine/continueCommand.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/continueWorker.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/decisionPublication.spec.ts","rule":"effect/boundary","count":1}
@@ -37,6 +39,7 @@
 {"path":"packages/work-fleet/src/engine/ensureDecisionOwner.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/ensurePublication.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/finishedDecisions.spec.ts","rule":"effect/boundary","count":3}
+{"path":"packages/work-fleet/src/engine/guardLostTurn.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/engine/guardLostTurn.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/inspectRenewal.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/integrationReadRetry.spec.ts","rule":"effect/boundary","count":1}
@@ -44,6 +47,7 @@
 {"path":"packages/work-fleet/src/engine/makeAdopt.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/makeAdvance.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/makeDeliver.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/engine/makeHuman.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/engine/makeHuman.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/makeLaunch.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/makeObserve.ts","rule":"effect/service-parameters","count":1}
@@ -95,6 +99,7 @@
 {"path":"packages/work-fleet/src/engine/retireUnacknowledged.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/retryLostThread.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/retryTerminal.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/engine/reviewChecks.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/engine/reviewChecks.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/saveLaunch.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/sessionCleanup.ts","rule":"effect/service-parameters","count":1}
@@ -108,6 +113,7 @@
 {"path":"packages/work-fleet/src/engine/submissionFailure.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/submitLaunch.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/sweepPriority.spec.ts","rule":"effect/boundary","count":2}
+{"path":"packages/work-fleet/src/engine/visibility.ts","rule":"effect/failure-honesty","count":2}
 {"path":"packages/work-fleet/src/engine/visibility.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/watchedPrs.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/engine/workerReport.ts","rule":"effect/service-parameters","count":1}
@@ -117,20 +123,25 @@
 {"path":"packages/work-fleet/src/host/answerQueue.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/answerRecords.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/answerRequests.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/host/answerWork.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/attentionOwner.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/briefRetryApproval.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/bulkRelease.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/closedDecisionRelease.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/commands.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/continueReport.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/daemonCommands.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/daemonContract.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/daemonDiagnostics.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/daemonHandlers.ts","rule":"biome/plugin","count":1}
+{"path":"packages/work-fleet/src/host/dispatchRequests.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/fleetStatus.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/followCommands.ts","rule":"biome/plugin","count":3}
 {"path":"packages/work-fleet/src/host/freshRetry.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/healthPublication.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/localOnlyCriteria.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/mergePrediction.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/host/nameThreads.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/readWaitStates.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/report.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/reportAttachmentSafety.spec.ts","rule":"effect/boundary","count":1}
@@ -144,11 +155,13 @@
 {"path":"packages/work-fleet/src/host/supervisorPort.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/supervisorState.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-fleet/src/host/watchScheduler.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/host/watchStream.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/policyGuidance.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/providers/codexCloud.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/providers/codexCloudConnection.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/providers/codexLocal.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/providers/codexRpc.ts","rule":"effect/boundary","count":3}
+{"path":"packages/work-fleet/src/providers/startCodexTurn.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/reportFileFailure.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/storage/answerStore.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/storage/dispatchStore.ts","rule":"biome/plugin","count":1}

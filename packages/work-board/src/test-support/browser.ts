@@ -1,4 +1,4 @@
-import { Clock, Effect, type Scope } from "effect";
+import { Effect, type Scope } from "effect";
 import { Browser, type BrowserWindow } from "happy-dom";
 import { THEME_ROUTE } from "#server/page/initialTheme.ts";
 import { type RunningBoard, rawGet } from "#test/board.ts";
@@ -40,6 +40,8 @@ export interface OpenPage {
 	readonly streams: readonly LiveStream[];
 	readonly window: BrowserWindow;
 }
+
+const SHELL_START_LIMIT = "20 seconds";
 
 export const openPage = Effect.fn("Test.openPage")(function* (
 	board: RunningBoard,
@@ -83,22 +85,17 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		yield* Effect.promise(async () => prepared);
 	}
 	page.content = html;
-	const deadline = (yield* Clock.currentTimeMillis) + 5000;
-	function opened() {
-		return (
-			(window.document.documentElement.dataset.boardReady || !ready)
-			&& window.document.getElementById("doc")
-			&& window.document.querySelector("#primary-navigation[data-inbox-count]")
-		);
-	}
-	while (!opened()) {
-		if ((yield* Clock.currentTimeMillis) >= deadline) {
-			throw new Error(
-				`The React shell did not initialize: ${page.virtualConsolePrinter.readAsString()} · ${window.document.getElementById("doc")?.textContent}`,
-			);
-		}
-		yield* Effect.sleep("10 millis");
-	}
+	yield* shellOpened(window, ready).pipe(
+		Effect.timeoutOrElse({
+			duration: SHELL_START_LIMIT,
+			orElse: () =>
+				Effect.die(
+					new Error(
+						`The React shell did not initialize: ${page.virtualConsolePrinter.readAsString()} · ${window.document.getElementById("doc")?.textContent}`,
+					),
+				),
+		}),
+	);
 
 	async function close() {
 		window.dispatchEvent(new window.Event("pagehide"));
@@ -124,6 +121,31 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		window,
 	};
 });
+
+// The shell marks the root element with data-board-ready once React has rendered; the page's own MutationObserver reports that change.
+function shellOpened(window: BrowserWindow, ready: boolean) {
+	function opened() {
+		return Boolean(
+			(window.document.documentElement.dataset.boardReady || !ready)
+				&& window.document.getElementById("doc")
+				&& window.document.querySelector("#primary-navigation[data-inbox-count]"),
+		);
+	}
+	return Effect.callback<void>((resume) => {
+		if (opened()) {
+			resume(Effect.void);
+			return;
+		}
+		const observer = new window.MutationObserver(() => {
+			if (opened()) {
+				observer.disconnect();
+				resume(Effect.void);
+			}
+		});
+		observer.observe(window.document, { attributes: true, childList: true, subtree: true });
+		return Effect.sync(() => observer.disconnect());
+	});
+}
 
 export function held(): { readonly gate: Promise<void>; readonly release: () => void } {
 	const { promise, resolve } = Promise.withResolvers<void>();

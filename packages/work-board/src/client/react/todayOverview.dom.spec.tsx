@@ -1,61 +1,60 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { screenFleet, todayScreen } from "#test/screenWorkspaceTraits.ts";
 import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 
 expectNoReactWarnings();
+const TODAY = [todayScreen(), screenFleet(todayFleetFixture()), openScreen()];
+
+screenStory.it("Today lists the asks that need the reader under Needs you", TODAY, function* ({ needsYouItems }) {
+	expect(yield* needsYouItems()).toEqual([
+		"decision.reader",
+		"decision.review",
+		"project.closed",
+		"question.storage",
+		"task.draft",
+		"task.fifth",
+		"task.person",
+	]);
+});
+
+screenStory.it("Today shows a card for each active goal and leaves deferred and closed goals out", TODAY, function* ({ todayGoalIds }) {
+	expect(yield* todayGoalIds()).toEqual(["project.alpha", "project.beta", "project.example"]);
+});
 
 screenStory.it(
-	"opens Today with the exact human lane and one honest card per goal, linking the home document by its title",
-	[todayScreen(), screenFleet(todayFleetFixture()), openScreen()],
-	function* ({ openDetails, readInbox, readGoals, readText, readAttribute, findElements, findElement }) {
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Today"));
-		expect(readAttribute('#primary-navigation [aria-current="page"]', "href")).toBe("/");
-		const inbox = yield* Effect.promise(readInbox);
-		const goals = yield* Effect.promise(readGoals);
-		expect([...findElements("[data-attention-id]")].map((row) => row.getAttribute("data-attention-id"))).toEqual(inbox.you.map((item) => item.id));
-		expect([...findElements("[data-goal-id]")].map((card) => card.getAttribute("data-goal-id"))).toEqual(goals.goals.map((goal) => goal.id));
-		expect(findElements("[data-goal-next-action]").map((action) => action.textContent)).toEqual(
-			goals.goals.filter((goal) => goal.nextAction).map((goal) => goal.nextAction),
-		);
-		for (const goal of goals.goals) {
-			const next = findElement(`[data-goal-id='${goal.id}'] [data-goal-next-action]`);
-			if (goal.nextAction) {
-				expect(next?.textContent).toBe(goal.nextAction);
-				expect(next?.getAttribute("title")).toBe(goal.nextAction);
-				expect(next?.classList.contains("line-clamp-2")).toBe(true);
-			} else {
-				expect(next).toBeNull();
-			}
-		}
-		expect(readText(".today-strip")).toBe(`${inbox.you.length} need you·9 in progress·${goals.goals.length} active goals·2 files have problems`);
-		expect([...findElements(".today-strip a")].map((link) => link.getAttribute("href"))).toEqual([
-			"#needs-you",
-			"#in-progress",
-			"#today-goals",
-			"/_board/system#source-problems",
+	"a goal card on Today shows the goal's next action, with the full text on hover, and its criteria's linked work and evidence",
+	TODAY,
+	function* ({ todayGoalCard }) {
+		expect(yield* todayGoalCard("project.example")).toEqual({
+			criteria: ["First criterion: 2 linked · 2 with evidence", "Second criterion: 51 linked · 1 with evidence"],
+			criteriaOpen: false,
+			nextAction: { text: "Review linked work", title: "Review linked work" },
+			title: "Example goal",
+		});
+	},
+);
+
+screenStory.it("Today's summary counts each section and links to it", TODAY, function* ({ todaySummaryParts }) {
+	expect(yield* todaySummaryParts()).toEqual([
+		"7 need you → #needs-you",
+		"9 in progress → #in-progress",
+		"3 active goals → #today-goals",
+		"2 files have problems → /_board/system#source-problems",
+	]);
+});
+
+screenStory.it(
+	"Today puts Needs you above In progress in its main column and Goals in a column of its own",
+	TODAY,
+	function* ({ currentDestination, todayColumns, todayHomeLink }) {
+		yield* outcomes([
+			["columns", () => todayColumns(), [["Needs you", "In progress"], ["Goals"]]],
+			["current destination", () => currentDestination(), "Today, 7 need you"],
+			["home link", () => todayHomeLink(), { href: "/home.md", text: "Workspace notes" }],
 		]);
-		expect(readText("[data-goal-id='project.example']")).toContain("51 linked · 1 with evidence");
-		expect(findElement("[data-goal-id='project.empty']")).toBeNull();
-		expect(readText("#today-goals")).not.toContain("not linked");
-		expect(readText("#today-goals")).not.toContain("%");
-		expect(readText("#doc")).not.toContain("Resolved elsewhere");
-		expect(readText("#doc")).not.toContain("Parked");
-		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual(
-			Array.from({ length: 8 }, (_, index) => `task.sample.${index}`),
-		);
-		expect(readText("#in-progress a[href='/_board/work']")).toBe("All in Now →");
-		const criteria = [...findElements<HTMLDetailsElement>(".today-goal details")];
-		expect(criteria).toHaveLength(goals.goals.length);
-		expect(criteria.every((entry) => !entry.open)).toBe(true);
-		openDetails(criteria[0]);
-		expect(criteria[0]?.open).toBe(true);
-		expect([...findElements(".today-grid h2")].map((node) => node.textContent)).toEqual(["Needs you", "In progress", "Goals"]);
-		expect(findElement("#needs-you")?.nextElementSibling?.id).toBe("in-progress");
-		expect(findElement("#needs-you")?.parentElement).not.toBe(findElement("#today-goals")?.parentElement);
-		expect(readText(".today-page a[href='/home.md']")).toBe("Workspace notes");
 	},
 );

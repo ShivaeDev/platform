@@ -1,15 +1,17 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failingSectionRender } from "#test/failingSectionRender.ts";
 import { LONG_REPORT } from "#test/longReportFixture.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { routedScreen } from "#test/screenTraits.ts";
 
 screenStory.it(
-	"shows the route error when a later section of a long report fails to render",
-	[failingSectionRender("Finding 1"), routedScreen({ "home.md": "# Home", "report.md": LONG_REPORT }, "/report.md")],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(readText("pre code")).toBe("Rendering failed on Finding 1"));
-		expect(findElement("#heading-finding-1")).toBeNull();
+	"a long report whose later section fails to render shows the rendering error instead of a partial report",
+	[failingSectionRender("Finding 1"), readingPage({ "home.md": "# Home", "report.md": LONG_REPORT }, "/report.md")],
+	function* ({ headingAnchors, renderingError }) {
+		yield* outcomes([
+			["error", () => renderingError(), "Rendering failed on Finding 1"],
+			["report headings", () => headingAnchors(), expect.not.arrayContaining(["heading-finding-1"])],
+		]);
 	},
 );

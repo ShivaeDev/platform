@@ -5,19 +5,18 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 import { TodayProgress } from "./TodayProgress.tsx";
 
 screenStory.it(
-	"caps Fleet-held work at eight rows with titles, PR links and a Now link and names no stage",
+	"Today lists the first eight pieces of Fleet-held work by title with a Fleet badge, its pull request and a link to Now",
 	[componentScreen(<TodayProgress data={todayFleetFixture()} failed={false} />)],
-	({ findElements, readText, readAttribute }) => {
-		expect([...findElements("[data-progress-id]")].map((row) => row.getAttribute("data-progress-id"))).toEqual(
-			Array.from({ length: 8 }, (_, index) => `task.sample.${index}`),
+	function* ({ inProgressList }) {
+		expect(yield* inProgressList()).toEqual(
+			expect.objectContaining({
+				now: "All in Now →",
+				rows: [
+					{ badge: "Fleet", id: "task.sample.0", pr: "https://github.com/example/project/pull/1", title: "Workspace task 0" },
+					...Array.from({ length: 7 }, (_, index) => expect.objectContaining({ badge: "Fleet", id: `task.sample.${index + 1}` })),
+				],
+			}),
 		);
-		expect(readText('[data-progress-id="task.sample.0"]')).toBe("Workspace task 0FleetPR ↗");
-		for (const stage of ["working", "reviewing", "working", "working"]) {
-			expect(readText()).not.toContain(stage);
-		}
-		expect(readText("[data-progress-id] a")).toBe("Workspace task 0");
-		expect(readAttribute('a[aria-label="Pull request for Workspace task 0"]', "href")).toBe("https://github.com/example/project/pull/1");
-		expect(readText('a[href="/_board/work"]')).toBe("All in Now →");
 	},
 );
 
@@ -27,12 +26,10 @@ for (const [data, status] of [
 	[{ reason: UNANSWERED, state: "unavailable" }, UNANSWERED],
 ] as const) {
 	screenStory.it(
-		`reports unavailable Fleet work instead of an empty list: ${status}`,
+		`Today says why Fleet work is unavailable instead of showing an empty list: ${status}`,
 		[componentScreen(<TodayProgress data={data} failed />)],
-		({ readText, findElements }) => {
-			expect(readText('[role="status"]')).toBe(status);
-			expect(findElements("[data-progress-id]")).toHaveLength(0);
-			expect(readText()).not.toContain("holds no work");
+		function* ({ inProgressList }) {
+			expect(yield* inProgressList()).toEqual(expect.objectContaining({ empty: "none", rows: [], status: [status] }));
 		},
 	);
 }
@@ -43,31 +40,27 @@ if (data.state !== "ready" || !data.items[0]) {
 }
 const { prUrl, ...item } = data.items[0];
 screenStory.it(
-	"keeps held work visible when its source or PR is missing and reports retained refresh failure",
+	"Today keeps held work without a source file or pull request listed by id and says its refresh failed",
 	[componentScreen(<TodayProgress data={{ ...data, items: [{ ...item, document: null }] }} failed />)],
-	({ readText, findElement }) => {
-		expect(readText("[data-progress-id] a")).toBe("task.sample.0");
-		expect(findElement('[aria-label^="Pull request"]')).toBeNull();
-		expect(readText()).not.toMatch(/not recorded/iu);
-		expect(readText('[role="status"]')).toContain("Displayed work is retained");
+	function* ({ inProgressList }) {
+		expect(yield* inProgressList()).toEqual(
+			expect.objectContaining({
+				rows: [{ badge: "Fleet", id: "task.sample.0", pr: "none", title: "task.sample.0" }],
+				status: ["Fleet refresh failed. Displayed work is retained."],
+			}),
+		);
 	},
 );
 
-for (const ready of [false, true]) {
-	const progress = ready ? { completed: [], items: [], state: "ready" as const } : undefined;
+for (const [name, progress, expected] of [
+	["still loading", undefined, { empty: "none", loading: "Loading work in progress with skeleton rows" }],
+	["empty", { completed: [], items: [], state: "ready" as const }, { empty: "No work in progress", loading: "none" }],
+] as const) {
 	screenStory.it(
-		`distinguishes loading Fleet work from an available empty list (${ready})`,
+		`Today tells Fleet work that is ${name} apart from the other state`,
 		[componentScreen(<TodayProgress data={progress} failed={false} />)],
-		({ readText, findElement, findElements }) => {
-			if (ready) {
-				expect(readText('[data-slot="empty-title"]')).toBe("No work in progress");
-				expect(findElement("[data-loading]")).toBeNull();
-			} else {
-				expect(readText('[role="status"][aria-busy="true"]')).toBe("Loading work in progress");
-				expect(findElements('[data-loading] [data-slot="skeleton"]').length).toBeGreaterThan(0);
-				expect(findElement('[data-slot="empty"]')).toBeNull();
-			}
-			expect(findElement('a[href="/_board/work"]')).not.toBeNull();
+		function* ({ inProgressList }) {
+			expect(yield* inProgressList()).toEqual(expect.objectContaining({ ...expected, now: "All in Now →" }));
 		},
 	);
 }

@@ -1,12 +1,9 @@
 import { Effect } from "effect";
-import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 import { fileUrl } from "#files/url.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
 import { rawGet } from "./board.ts";
-import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
-import { renderRemaining } from "./renderRemaining.tsx";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function readingVerbs(engine: BoardEngine, tell: (line: string) => void) {
@@ -51,23 +48,11 @@ export function readingVerbs(engine: BoardEngine, tell: (line: string) => void) 
 				questionActions: new Map(Object.entries(document.questionActions)),
 			}).pipe(Effect.provide(Highlighter.layer));
 		}),
-		restartDiagnostics: (snapshot: DiagnosticsSnapshot) => {
-			tell("the diagnostics daemon starts listening again");
-			if (!engine.fleetPort) {
-				throw new Error("No diagnostics daemon port was configured");
-			}
-			return diagnosticsDaemon(() => snapshot, engine.fleetPort);
-		},
 		search: (query: string) =>
 			Effect.promise(() => {
 				tell(`the reader searches for ${JSON.stringify(query)}`);
 				const { client } = served(engine);
 				return client.run(client.api.search.run({ query }));
-			}),
-		systemHtml: () =>
-			Effect.promise(() => {
-				tell("the reader reads System through HTTP RPC");
-				return renderRemaining(served(engine).board.url, "/_board/system", engine.readAt);
 			}),
 	};
 }

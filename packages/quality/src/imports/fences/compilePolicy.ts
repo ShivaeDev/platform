@@ -31,8 +31,16 @@ function crossedBy(policy: readonly CompiledFence[], graph: FenceGraph): readonl
 	return policy.filter((compiled) => compiled.evaluate(graph).length > 0).map((compiled) => compiled.fence.name);
 }
 
-function exampleIssues(policy: readonly CompiledFence[], fence: Fence): readonly string[] {
+function exampleIssues(policy: readonly CompiledFence[], fence: Fence, scope: PolicyScope): readonly string[] {
 	const where = `fence "${fence.name}"`;
+	const missing = (["illegal", "legal"] as const).flatMap((kind) =>
+		fence.examples[kind].flatMap((step) =>
+			typeof step === "string" && !scope.files.includes(step) ? [`${where}: the ${kind} example names "${step}", which is no checked file`] : [],
+		),
+	);
+	if (missing.length > 0) {
+		return missing;
+	}
 	const illegal = graphOf(fence.examples.illegal);
 	const legal = graphOf(fence.examples.legal);
 	if (illegal === undefined || legal === undefined) {
@@ -62,7 +70,7 @@ export function compilePolicy(fences: readonly Fence[], scope: PolicyScope): rea
 	const issues = [...declarationIssues(fences)];
 	const policy = fences.map((fence) => compileFence({ issues, scope }, fence));
 	if (issues.length === 0) {
-		issues.push(...fences.flatMap((fence) => exampleIssues(policy, fence)));
+		issues.push(...fences.flatMap((fence) => exampleIssues(policy, fence, scope)));
 	}
 	if (issues.length > 0) {
 		throw new Error(`the fence policy is invalid:\n${issues.map((issue) => `  - ${issue}`).join("\n")}`);

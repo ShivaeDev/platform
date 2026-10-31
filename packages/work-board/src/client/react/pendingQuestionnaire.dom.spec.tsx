@@ -1,11 +1,12 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { answerContext, answerDraft, answerPreview } from "#test/answerDraft.tsx";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { answerContext } from "#test/answerDraft.tsx";
 import { screenStory } from "#test/screenStory.ts";
 import { answerScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
 const prompts = [
 	{
 		id: "direction",
@@ -18,28 +19,24 @@ const prompts = [
 	},
 ];
 const context = answerContext(prompts);
+
 screenStory.it(
-	"retains new questionnaire choices, text and reviewed context after a save, refresh and reload",
+	"a choice and note changed while an answer is saving are still on screen after the save completes",
 	[answerScreen(context.preview, 0, prompts, context.source)],
-	function* ({ responseClick, answerPrompt, check, holdWorkspace, releaseWorkspace, readText, readAttribute, readFocus, selectText, refreshScreen }) {
-		check("local");
-		responseClick("preview");
-		holdWorkspace();
-		responseClick("submit");
-		yield* eventually(() => expect(readText("#response-status")).toContain("Saving your answer…"));
-		check("export");
-		answerPrompt("direction", "A newer rationale");
-		yield* Effect.promise(releaseWorkspace);
-		yield* eventually(() => expect(readText("#response-status")).toContain("Answer saved"));
-		expect(readAttribute('[data-choice="export"]', "aria-checked")).toBe("true");
-		expect(answerPrompt("direction").value).toBe("A newer rationale");
-		const revised = { ...answerPreview, id: "question.revised", reviewedRevision: "b".repeat(64) };
-		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 0, prompts)));
-		expect(readText("#response-status")).toContain("Source changed");
-		selectText(answerPrompt("direction"), 3, 7, "backward");
-		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 1, prompts)));
-		expect(answerPrompt("direction").value).toBe("A newer rationale");
-		expect(readFocus()).toBe(answerPrompt("direction"));
-		expect([answerPrompt("direction").selectionStart, answerPrompt("direction").selectionEnd]).toEqual([3, 7]);
+	function* ({ answerBoxState, answerStatusLine, chooseAnswer, chosenOptions, holdWorkspace, recordAnswer, releaseWorkspace, writeAnswer }) {
+		yield* chooseAnswer("local");
+		yield* holdWorkspace();
+		yield* recordAnswer();
+		expect(yield* answerStatusLine()).toContain("Saving your answer…");
+		yield* chooseAnswer("export");
+		yield* writeAnswer("A newer rationale", "direction");
+
+		yield* releaseWorkspace();
+
+		yield* outcomes([
+			["chosen", () => chosenOptions(), ["export"]],
+			["note", () => answerBoxState("direction"), expect.objectContaining({ text: "A newer rationale" })],
+			["status", () => answerStatusLine(), expect.stringContaining("Answer saved")],
+		]);
 	},
 );

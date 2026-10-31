@@ -1,35 +1,37 @@
-import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { boardScreen } from "#test/screenTraits.ts";
-import { boardRouter } from "./boardRouter.ts";
+import { routedScreen } from "#test/screenTraits.ts";
 
-for (const [route, target, title] of [
+expectNoReactWarnings();
+
+const files = { "note.md": "# Note", "result.md": "---\nid: result.note\nkind: report\n---\n# Returned note\n" };
+
+for (const [route, target, heading] of [
 	["overview", "/", "Today"],
 	["inbox", "/", "Today"],
 	["changes", "/_board/library?view=recently-changed", "Library"],
 	["diagnostics", "/_board/system", "System"],
 	["result?item=result.note", "/_board/item/result.note/", "Returned note"],
 	["result", "/_board/library?kind=result", "Library"],
-]) {
-	let router: ReturnType<typeof boardRouter> | undefined;
+] as const) {
 	screenStory.it(
-		`redirects client navigation from ${route}`,
-		[
-			boardScreen({ "note.md": "# Note", "result.md": "---\nid: result.note\nkind: report\n---\n# Returned note\n" }, (api, registry) => {
-				router = boardRouter({ api, registry });
-				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/_board/${route}`] }) });
-				return <RouterProvider router={router} />;
-			}),
-		],
-		function* ({ readText, findElements }) {
-			yield* eventually(() => expect(readText("h1")).toBe(title));
-			expect(router?.state.location.href).toBe(target);
-			if (route === "changes") {
-				const recent = [...findElements("button")].find((button) => button.textContent === "Recently changed");
-				expect(recent?.getAttribute("aria-pressed")).toBe("true");
-			}
+		`sends the retired /_board/${route} to ${target}`,
+		[routedScreen(files, `/_board/${route}`)],
+		function* ({ currentPage, mainHeading }) {
+			yield* outcomes([
+				["the heading", () => mainHeading(), heading],
+				["the page", () => currentPage(), target],
+			]);
 		},
 	);
 }
+
+screenStory.it(
+	"opens the retired /_board/changes on the Library's Recently changed view",
+	[routedScreen(files, "/_board/changes")],
+	function* ({ libraryFilters }) {
+		expect((yield* libraryFilters()).view).toBe("Recently changed");
+	},
+);

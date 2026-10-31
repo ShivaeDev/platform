@@ -9,8 +9,8 @@ import { importStory, repositoryHas, repositoryHolds } from "#test/importStory.t
 const GAME = repositoryHolds(fixtureTree("fence"));
 
 const examples = {
-	illegal: ["packages/game/src/a.ts", "packages/cms/src/b.ts"],
-	legal: ["packages/game/src/a.ts", "packages/simulation/src/b.ts"],
+	illegal: ["packages/game/src/play.ts", "packages/cms/src/edit.ts"],
+	legal: ["packages/game/src/play.ts", "packages/simulation/src/step.ts"],
 } as const;
 
 const EMPTY_SELECTORS = [
@@ -101,7 +101,7 @@ importStory.it("imports/fences refuses an example that imports from an external 
 		.because("A reason.")
 		.from(packages("game"))
 		.mayNotReach(modules("effect"))
-		.demonstratedBy({ illegal: ["packages/game/src/a.ts", external("bridge"), external("effect")], legal: examples.legal });
+		.demonstratedBy({ illegal: ["packages/game/src/play.ts", external("bridge"), external("effect")], legal: examples.legal });
 
 	expect(yield* refusal(importFences, { fences: [policy] })).toContain(
 		'fence "game": an example imports from an external module; only its last step may be external()',
@@ -132,10 +132,13 @@ importStory.it(
 			.because("The game is a leaf.")
 			.from(folders("packages/game/src"))
 			.mayNotImport(workspace.except(packages("game")))
-			.demonstratedBy({ illegal: ["packages/game/src/a.ts", "packages/cms/src/b.ts"], legal: ["packages/game/src/a.ts", external("effect")] });
+			.demonstratedBy({
+				illegal: ["packages/game/src/play.ts", "packages/cms/src/edit.ts"],
+				legal: ["packages/game/src/play.ts", external("effect")],
+			});
 
 		expect(yield* refusal(importFences, { fences: [gameFences.gameKeepsOutOfCms, overlapping] })).toContain(
-			'fence "game-keeps-out-of-workspace": the illegal example packages/game/src/a.ts -> packages/cms/src/b.ts must cross this fence alone, and crosses game-keeps-out-of-cms, game-keeps-out-of-workspace',
+			'fence "game-keeps-out-of-workspace": the illegal example packages/game/src/play.ts -> packages/cms/src/edit.ts must cross this fence alone, and crosses game-keeps-out-of-cms, game-keeps-out-of-workspace',
 		);
 	},
 );
@@ -160,8 +163,8 @@ importStory.it("imports/fences refuses a vocabulary that names a subject its fol
 		.mayImportOnly("cards", "stories")
 		.of(packages("vocabulary"))
 		.demonstratedBy({
-			illegal: ["packages/game/src/a.ts", "packages/vocabulary/src/session.ts"],
-			legal: ["packages/game/src/a.ts", "packages/vocabulary/src/voyage/b.ts"],
+			illegal: ["packages/game/src/play.ts", "packages/vocabulary/src/session.ts"],
+			legal: ["packages/game/src/play.ts", "packages/vocabulary/src/voyage/route.ts"],
 		});
 
 	expect(yield* refusal(importFences, { fences: [wrong] })).toContain(
@@ -179,14 +182,14 @@ importStory.it(
 			.mayImportOnly("cards", "session")
 			.of(packages("vocabulary"))
 			.demonstratedBy({
-				illegal: ["packages/game/src/a.ts", "packages/vocabulary/src/session.ts"],
-				legal: ["packages/game/src/a.ts", "packages/vocabulary/src/voyage/b.ts"],
+				illegal: ["packages/game/src/play.ts", "packages/vocabulary/src/session.ts"],
+				legal: ["packages/game/src/play.ts", "packages/vocabulary/src/voyage/route.ts"],
 			});
 
 		expect(yield* refusal(importFences, { fences: [wrong] })).toContain(
 			[
-				'  - fence "wrong": the illegal example packages/game/src/a.ts -> packages/vocabulary/src/session.ts must cross this fence alone, and crosses none',
-				'  - fence "wrong": the legal example packages/game/src/a.ts -> packages/vocabulary/src/voyage/b.ts crosses wrong',
+				'  - fence "wrong": the illegal example packages/game/src/play.ts -> packages/vocabulary/src/session.ts must cross this fence alone, and crosses none',
+				'  - fence "wrong": the legal example packages/game/src/play.ts -> packages/vocabulary/src/voyage/route.ts crosses wrong',
 			].join("\n"),
 		);
 	},

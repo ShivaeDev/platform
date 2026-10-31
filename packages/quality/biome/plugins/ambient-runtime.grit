@@ -75,7 +75,7 @@ or {
 			$message = "Ambient scheduling is banned. Use Effect's sleep, scheduling and fibers in the current runtime; bridge callback APIs in adapters/."
 		}
 	} where {
-		! $filename <: r"(?:^|.*[/\\])(?:adapters|test-support)[/\\].*|(?:^|.*[/\\])(?:cli|main|.*-cli)\.[cm]?[jt]sx?$|.*\.(?:config|test|spec)\.[cm]?[jt]sx?$",
+		! $filename <: r"(?:^|.*[/\\])(?:adapters|test-support)[/\\].*|(?:^|.*[/\\])(?:cli|main|entry|.*-cli)\.[cm]?[jt]sx?$|.*\.(?:config|test|spec)\.[cm]?[jt]sx?$",
 		! $program <: contains or {
 			`NodeRuntime.runMain`,
 			`runMain($...)`,

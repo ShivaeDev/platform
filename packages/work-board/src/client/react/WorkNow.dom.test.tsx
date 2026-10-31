@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { nowWork } from "#test/nowWork.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen } from "#test/screenTraits.ts";
@@ -14,9 +15,10 @@ const facts = [
 	{ attentionOwner: "orchestrator", stage: "waiting", waitingReason: "Approve the brief" },
 	{ attentionOwner: "automation", stage: "waiting", waitingReason: "waiting for PR #12 to merge: conflicting app.ts" },
 ] as const;
+
 for (const sort of ["title", "owner", "status"] as const) {
 	screenStory.it(
-		`shows each Fleet stage and names the owner and reason of each wait under ${sort} sorting`,
+		`Now puts each Fleet stage in its lane and says who each wait is on and why, sorted by ${sort}`,
 		[
 			componentScreen(
 				<FleetItemsContext.Provider
@@ -30,13 +32,19 @@ for (const sort of ["title", "owner", "status"] as const) {
 				</FleetItemsContext.Provider>,
 			),
 		],
-		({ findElement, readText }) => {
-			expect(findElement('[aria-label="Queued"] [data-item="task-0"]')).not.toBeNull();
-			expect(findElement('[aria-label="Working"] [data-item="task-1"]')).not.toBeNull();
-			expect(findElement('[aria-label="Reviewing"] [data-item="task-2"]')).not.toBeNull();
-			expect(readText('[aria-label="Waiting on you"]')).toContain("Choose a direction");
-			expect(readText('[aria-label="Waiting on orchestrator"]')).toContain("Approve the brief");
-			expect(readText('[aria-label="Waiting on automation"]')).toContain("waiting for PR #12 to merge: conflicting app.ts");
+		function* ({ nowCard }) {
+			yield* outcomes([
+				["task-0", () => nowCard("task-0"), expect.objectContaining({ lane: "Queued" })],
+				["task-1", () => nowCard("task-1"), expect.objectContaining({ lane: "Working" })],
+				["task-2", () => nowCard("task-2"), expect.objectContaining({ lane: "Reviewing" })],
+				["task-3", () => nowCard("task-3"), expect.objectContaining({ lane: "Waiting on you", reason: "Choose a direction" })],
+				["task-4", () => nowCard("task-4"), expect.objectContaining({ lane: "Waiting on orchestrator", reason: "Approve the brief" })],
+				[
+					"task-5",
+					() => nowCard("task-5"),
+					expect.objectContaining({ lane: "Waiting on automation", reason: "waiting for PR #12 to merge: conflicting app.ts" }),
+				],
+			]);
 		},
 	);
 }

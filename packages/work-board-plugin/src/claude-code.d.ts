@@ -123,7 +123,6 @@ declare module "claude-code" {
 			hook: ($: EngineInterface, e: ToolCall<T>) => ToolAnswer | Promise<ToolAnswer>,
 		): void;
 	}
-	type Register = (on: On) => unknown;
 
 	interface Atom<T> {
 		readonly initial: T;

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.39.0 - 2026-10-31
+
+### Added
+
+- Fleet exposes area holders and approved queues using its scheduler's ownership, eligibility and priority rules.
+- Board carries optional area availability through its existing Fleet queries for the Work Board plugin's compact area view.
+
+### Fixed
+
+- Resolve live item and index references to settled items through the archive catalogue, keeping Files with problems clear while still reporting unknown IDs.
+
+### Breaking
+
+- `daemonDiagnostics` now takes the Board directory to discover idle repository areas. Replace `Layer.unwrap(daemonDiagnostics)` with `Layer.unwrap(daemonDiagnostics(boardDir))` when constructing daemon handlers.
+
 ## 0.38.1 - 2026-10-31
 
 ### Changed

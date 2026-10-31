@@ -1,34 +1,62 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
-import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
-const source = questionnaireSource.replace('select="one"', 'select="one" required="selection"');
+
+const REQUIRED = routedScreen(
+	{ "proposal.md": questionnaireSource.replace('select="one"', 'select="one" required="selection"') },
+	"/_board/item/investigation.choices/",
+	{ writable: true },
+);
+const NOTE = "Keep the context with the answer.";
+
+screenStory.it("a question that needs an option asks for one and offers the note as optional", [REQUIRED], function* ({ questionReading }) {
+	expect(yield* questionReading("display")).toEqual(
+		expect.objectContaining({ block: expect.stringMatching(/Choose an option to continue\..*Add a note \(optional\)/su) }),
+	);
+});
 
 screenStory.it(
-	"asks for an option before saving text and retains the note when the reader chooses",
-	[screenWorkspace("required-selection"), routedScreen({ "proposal.md": source }, "/_board/item/investigation.choices/", { writable: true })],
-	function* ({ answerPrompt, check, responseClick, readResponses, readText, findElement }) {
-		yield* eventually(() => expect(findElement('[data-prompt="display"]')).not.toBeNull());
-		expect(readText('[data-prompt="display"]')).toContain("Choose an option to continue.");
-		expect(readText('[data-prompt="display"]')).toContain("Add a note (optional)");
-		answerPrompt("display", "Keep the context with the answer.");
-		answerPrompt("checks", "Verify navigation.");
-		responseClick("submit");
-		expect(findElement("[data-answered]")).toBeNull();
-		expect(readText('[data-prompt="display"]')).toContain("Choose an option before recording this answer.");
-		check("latest");
-		responseClick("submit");
-		yield* eventually(() => expect(findElement("#response-status")?.dataset.outcome).toBe("saved"));
-		const saved = yield* Effect.promise(() => readResponses("investigation.choices", "direction"));
-		expect(saved.responses[0]?.response.answers?.[0]).toEqual({
-			prompt: "display",
-			selected: ["latest"],
-			text: "Keep the context with the answer.",
-		});
+	"recording only a note on a question that needs an option asks the reader to choose one and records nothing",
+	[REQUIRED],
+	function* ({ answeredNote, questionReading, recordAnswer, recordedAnswers, writeAnswer }) {
+		yield* writeAnswer(NOTE, "display");
+		yield* writeAnswer("Verify navigation.", "checks");
+
+		yield* recordAnswer();
+
+		yield* outcomes([
+			["answered note", () => answeredNote(), "none"],
+			[
+				"question",
+				() => questionReading("display"),
+				expect.objectContaining({ block: expect.stringContaining("Choose an option before recording this answer.") }),
+			],
+			["recorded", () => recordedAnswers("investigation.choices", "direction"), []],
+		]);
+	},
+);
+
+screenStory.it(
+	"choosing an option after being asked records it with the note the reader already wrote",
+	[REQUIRED],
+	function* ({ chooseAnswer, questionReading, recordAnswer, recordedAnswers, writeAnswer }) {
+		yield* writeAnswer(NOTE, "display");
+		yield* writeAnswer("Verify navigation.", "checks");
+		yield* recordAnswer();
+		expect(yield* questionReading("display")).toEqual(
+			expect.objectContaining({ block: expect.stringContaining("Choose an option before recording") }),
+		);
+
+		yield* chooseAnswer("latest");
+		yield* recordAnswer();
+
+		expect(yield* recordedAnswers("investigation.choices", "direction")).toEqual([
+			expect.objectContaining({ answers: expect.arrayContaining([{ prompt: "display", selected: ["latest"], text: NOTE }]) }),
+		]);
 	},
 );

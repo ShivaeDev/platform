@@ -1,82 +1,124 @@
-import * as HttpStatus from "effect/http/HttpStatus";
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { archiveFixture, finishedBrief } from "#test/archiveFixture.ts";
 import { boardStory, deferredServing } from "#test/boardStory.ts";
 
+const ALL_ACTIVE = ["tasks/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"];
+const OLD_ARCHIVED = ["archive/board/dropped.md", "archive/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"];
+const OLD_DEPENDENCY = { diagnostics: [], target: expect.objectContaining({ kind: "task", status: "done", title: "old" }) };
+
 boardStory.it(
-	"the archive command moves old terminal briefs and keeps recent and open briefs active",
+	"the archive command moves briefs finished over two weeks ago into the archive unchanged, keeps recent and open briefs active and reports how many it moved",
 	[archiveFixture(), deferredServing],
-	function* (board) {
-		expect(yield* board.archive()).toContain("Moved 2 records.");
-		expect(board.fileSource("archive/board/old.md")).toBe(finishedBrief("old"));
-		expect(board.fileSource("archive/board/dropped.md")).toBe(finishedBrief("dropped", "dropped"));
-		expect(board.fileExists("tasks/board/old.md")).toBe(false);
-		expect(board.fileExists("tasks/board/dropped.md")).toBe(false);
-		expect(board.fileExists("tasks/board/recent.md")).toBe(true);
-		expect(board.fileExists("tasks/board/open.md")).toBe(true);
+	function* ({ archivePass, briefFiles, sourcesAt }) {
+		expect(yield* briefFiles()).toEqual(ALL_ACTIVE);
+
+		const report = yield* archivePass();
+
+		yield* outcomes([
+			[
+				"archived sources",
+				() => sourcesAt(["archive/board/old.md", "archive/board/dropped.md"]),
+				{ "archive/board/dropped.md": finishedBrief("dropped", "dropped"), "archive/board/old.md": finishedBrief("old") },
+			],
+			["briefs", () => briefFiles(), OLD_ARCHIVED],
+			["the report", () => Effect.succeed(report), "Moved 2 records."],
+		]);
 	},
 );
 
 boardStory.it(
-	"Board housekeeping archives old briefs without changing goal progress, dependencies or identity lookup",
-	[archiveFixture(false), deferredServing],
-	function* (board) {
-		yield* board.start({ fleetPort: null });
-		const before = yield* board.readGoals();
-		const dependencyBefore = yield* board.readItem("open");
-		const events = yield* board.watchProject();
-		yield* events.next();
-		board.ageFile("tasks/board/old.md", 15 * 24 * 60 * 60);
-		board.ageFile("tasks/board/dropped.md", 15 * 24 * 60 * 60);
-		yield* events.changed("tasks/board/dropped.md");
-		const dependency = yield* board.readItem("open");
-		expect(dependency.referenceDetails).toEqual(dependencyBefore.referenceDetails);
-		expect(dependency.metadata.relationships).toEqual(dependencyBefore.metadata.relationships);
-		expect(before.goals[0]).toMatchObject({ counts: { done: 2, parked: 1 }, linked: 3 });
-		expect(dependency.referenceDetails?.old).toMatchObject({ kind: "task", status: "done", title: "old" });
-		expect(dependency.diagnostics).toEqual([]);
-		expect(board.fileExists("archive/board/old.md")).toBe(true);
-		expect(board.fileExists("tasks/board/recent.md")).toBe(true);
-		expect(yield* board.readItem("old")).toMatchObject({ file: "archive/board/old.md", identity: "old", metadata: { status: "done" } });
-		expect((yield* board.readGoals()).goals[0]?.counts).toEqual(before.goals[0]?.counts);
+	"at startup the Board archives briefs finished over two weeks ago and keeps recent and open briefs active",
+	[archiveFixture(), deferredServing],
+	function* ({ boardStarts, briefFiles }) {
+		expect(yield* briefFiles()).toEqual(ALL_ACTIVE);
+
+		yield* boardStarts();
+
+		expect(yield* briefFiles()).toEqual(OLD_ARCHIVED);
 	},
 );
 
-boardStory.it("an archived identity refuses a new brief", [archiveFixture()], function* (board) {
-	yield* board.readItem("old");
-	const events = yield* board.watchProject();
-	yield* events.next();
-	board.editFile("tasks/new.md", finishedBrief("old", "ready"));
-	yield* events.changed("tasks/new.md");
-	expect((yield* board.get("/_board/item/old/")).status).toBe(HttpStatus.fromLiteral("Conflict"));
-	expect((yield* board.readDocument("tasks/new.md")).diagnostics).toContainEqual(
-		expect.objectContaining({ field: "id", message: expect.stringContaining("Duplicate") }),
-	);
-	expect(board.fileSource("archive/board/old.md")).toBe(finishedBrief("old"));
+boardStory.it(
+	"when finished briefs age past two weeks the running Board moves them to the archive",
+	[archiveFixture(false)],
+	function* ({ ageBriefs, briefFiles }) {
+		expect(yield* briefFiles()).toEqual(ALL_ACTIVE);
+
+		yield* ageBriefs(["tasks/board/old.md", "tasks/board/dropped.md"], 15);
+
+		expect(yield* briefFiles()).toEqual(OLD_ARCHIVED);
+	},
+);
+
+boardStory.it("archiving aged briefs leaves goal progress unchanged", [archiveFixture(false)], function* ({ ageBriefs, goalProgress }) {
+	const progress = [{ counts: expect.objectContaining({ done: 2, parked: 1 }), linked: 3 }];
+	expect(yield* goalProgress()).toEqual(progress);
+
+	yield* ageBriefs(["tasks/board/old.md", "tasks/board/dropped.md"], 15);
+
+	expect(yield* goalProgress()).toEqual(progress);
 });
 
-boardStory.it("housekeeping moves old briefs while recent ones stay active", [archiveFixture()], function* (board) {
-	yield* board.readItem("old");
-	expect(board.fileExists("archive/board/old.md")).toBe(true);
-	expect(board.fileExists("tasks/board/recent.md")).toBe(true);
+boardStory.it(
+	"an open brief still shows its archived dependency without diagnostics",
+	[archiveFixture(false)],
+	function* ({ ageBriefs, dependencyOn }) {
+		expect(yield* dependencyOn("open", "old")).toEqual(OLD_DEPENDENCY);
+
+		yield* ageBriefs(["tasks/board/old.md", "tasks/board/dropped.md"], 15);
+
+		expect(yield* dependencyOn("open", "old")).toEqual(OLD_DEPENDENCY);
+	},
+);
+
+boardStory.it("an archived brief is found by its identity at its archive path", [archiveFixture()], function* ({ briefStatus, foundAt }) {
+	yield* outcomes([
+		["path", () => foundAt("old"), "archive/board/old.md"],
+		["status", () => briefStatus("old"), "done"],
+	]);
 });
 
-boardStory.it("reopening an archived brief makes it active on the next Board read", [archiveFixture()], function* (board) {
-	yield* board.readItem("old");
-	const events = yield* board.watchProject();
-	yield* events.next();
-	board.editFile("archive/board/old.md", finishedBrief("old", "ready"));
-	yield* events.changed("archive/board/old.md");
-	expect(yield* board.readItem("old")).toMatchObject({ file: "tasks/board/old.md", metadata: { status: "ready" } });
-	expect(board.fileExists("archive/board/old.md")).toBe(false);
-});
+boardStory.it(
+	"a new brief reusing an archived identity leaves the identity ambiguous and the archived brief unchanged",
+	[archiveFixture()],
+	function* ({ edited, foundAt, idDiagnostics, itemLink, sourcesAt }) {
+		expect(yield* foundAt("old")).toBe("archive/board/old.md");
 
-boardStory.it("moving an archived brief out by hand makes it active", [archiveFixture()], function* (board) {
-	yield* board.readItem("old");
-	const events = yield* board.watchProject();
-	yield* events.next();
-	board.moveFile("archive/board/old.md", "tasks/board/old.md");
-	yield* events.changed("tasks/board/old.md");
-	expect(yield* board.readItem("old")).toMatchObject({ file: "tasks/board/old.md", metadata: { status: "done" } });
-	expect(board.fileExists("archive/board/old.md")).toBe(false);
+		yield* edited("tasks/new.md", finishedBrief("old", "ready"));
+
+		yield* outcomes([
+			["archived brief", () => sourcesAt(["archive/board/old.md"]), { "archive/board/old.md": finishedBrief("old") }],
+			["item link", () => itemLink("old"), "HTTP 409"],
+			["new brief", () => idDiagnostics("tasks/new.md"), [expect.stringContaining("Duplicate")]],
+		]);
+	},
+);
+
+boardStory.it(
+	"reopening an archived brief moves it back to the active briefs on the next Board read",
+	[archiveFixture()],
+	function* ({ briefFiles, briefStatus, edited, foundAt }) {
+		expect(yield* foundAt("old")).toBe("archive/board/old.md");
+
+		yield* edited("archive/board/old.md", finishedBrief("old", "ready"));
+
+		yield* outcomes([
+			["briefs", () => briefFiles(), ["archive/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"]],
+			["path", () => foundAt("old"), "tasks/board/old.md"],
+			["status", () => briefStatus("old"), "ready"],
+		]);
+	},
+);
+
+boardStory.it("moving an archived brief out by hand keeps it active", [archiveFixture()], function* ({ briefFiles, briefMoved, foundAt }) {
+	expect(yield* foundAt("old")).toBe("archive/board/old.md");
+
+	yield* briefMoved("archive/board/old.md", "tasks/board/old.md");
+
+	yield* outcomes([
+		["briefs", () => briefFiles(), ["archive/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"]],
+		["path", () => foundAt("old"), "tasks/board/old.md"],
+	]);
 });

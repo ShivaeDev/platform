@@ -1,11 +1,11 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { TIME_NOW, tickingTimeScreen, timeScreen } from "#test/timeScreen.tsx";
+import { isoBeforeNow, TIME_NOW, tickingTimeScreen, timeScreen } from "#test/timeScreen.tsx";
 import { exactTime } from "./timeLabel.ts";
 
 expectNoReactWarnings();
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
@@ -13,32 +13,25 @@ const relative = new Intl.RelativeTimeFormat(undefined, { style: "narrow" });
 const shortDate = { day: "numeric", hour: "2-digit", minute: "2-digit", month: "short" } as const;
 
 screenStory.it(
-	"updates a mounted relative time when the runtime clock advances",
+	"A mounted time moves from just now to a minute ago as the runtime clock passes a minute",
 	[tickingTimeScreen()],
-	function* ({ advanceClock, readText }) {
-		expect(readText("time")).toBe("just now");
+	function* ({ advanceClock, timeShown }) {
+		expect(yield* timeShown()).toEqual(expect.objectContaining({ label: "just now" }));
 
 		yield* advanceClock(MINUTE);
 
-		expect(readText("time")).toBe(relative.format(-1, "minute"));
+		expect(yield* timeShown()).toEqual(expect.objectContaining({ label: relative.format(-1, "minute") }));
 	},
 	{ clock: "test" },
 );
 
-screenStory.it(
-	"refreshes a timestamp without replacing its element",
-	[tickingTimeScreen()],
-	function* ({ refreshTime, findElement, readText }) {
-		const time = findElement("time");
-		expect(readText("time")).toBe("just now");
+screenStory.it("A refreshed timestamp reads its new time", [timeScreen()], function* ({ refreshTime, timeShown }) {
+	expect(yield* timeShown()).toEqual(expect.objectContaining({ label: "just now" }));
 
-		yield* Effect.promise(() => refreshTime(HOUR));
+	yield* refreshTime(HOUR);
 
-		expect(findElement("time")).toBe(time);
-		expect(readText("time")).toBe(relative.format(-1, "hour"));
-	},
-	{ clock: "test" },
-);
+	expect(yield* timeShown()).toEqual(expect.objectContaining({ datetime: isoBeforeNow(HOUR), label: relative.format(-1, "hour") }));
+});
 
 for (const [name, ago, label] of [
 	["under a minute", 59_000, "just now"],
@@ -52,50 +45,34 @@ for (const [name, ago, label] of [
 	["more than a week ahead", -8 * DAY, new Intl.DateTimeFormat(undefined, shortDate).format(TIME_NOW.getTime() + 8 * DAY)],
 	["from last year", 400 * DAY, new Intl.DateTimeFormat(undefined, { ...shortDate, year: "numeric" }).format(TIME_NOW.getTime() - 400 * DAY)],
 ] as const) {
-	screenStory.it(`reads a time ${name} as ${label}`, [timeScreen(ago)], ({ findElement }) => {
-		const time = findElement("time");
-		expect(time?.textContent).toBe(label);
-		expect(time?.getAttribute("datetime")).toBe(new Date(TIME_NOW.getTime() - ago).toISOString());
-		expect(time?.closest("button")?.className).toContain("font-sans");
+	screenStory.it(`A time ${name} reads as ${label}`, [timeScreen(ago)], function* ({ timeShown }) {
+		expect(yield* timeShown()).toEqual({ datetime: isoBeforeNow(ago), exact: "on request", label, tabStop: "yes" });
 	});
 }
 
-for (const [reach, open] of [
-	["points at", "hover"],
-	["taps", "tap"],
-	["focuses and activates", "keyboard"],
-] as const) {
+for (const how of ["hover", "tap", "keyboard"] as const) {
 	screenStory.it(
-		`shows the exact time when the reader ${reach} it`,
+		`The exact time opens when the reader reaches the time by ${how}`,
 		[timeScreen(3 * HOUR)],
-		function* ({ advanceTime, click, findElement, focus, hover, readText, tap }) {
-			const time = findElement("time");
-			const trigger = time?.closest("button");
-			expect(trigger?.tabIndex).toBe(0);
-			if (open === "hover") {
-				yield* Effect.promise(() => hover(trigger));
-			} else if (open === "tap") {
-				yield* Effect.promise(() => tap(trigger));
-			} else {
-				focus(trigger);
-				expect(document.activeElement).toBe(trigger);
-				click(trigger);
-			}
-			yield* Effect.promise(() => advanceTime(1000));
-			expect(readText("[data-slot=popover-content]", document)).toBe(exactTime(TIME_NOW.getTime() - 3 * HOUR));
+		function* ({ exactTimeShown, openExactTime }) {
+			expect(yield* exactTimeShown()).toBe("closed");
+
+			yield* openExactTime(how);
+
+			expect(yield* exactTimeShown()).toBe(exactTime(TIME_NOW.getTime() - 3 * HOUR));
 		},
 	);
 }
 
 screenStory.it(
-	"keeps a time in a list row as plain text that adds no Tab stop and names its exact time",
+	"A time in a list row is plain text that adds no Tab stop and names its exact time",
 	[timeScreen(3 * HOUR, "row")],
-	({ findElement, readTabStops }) => {
-		const time = findElement("time");
-		expect(time?.textContent).toBe(relative.format(-3, "hour"));
-		expect(time?.getAttribute("datetime")).toBe(new Date(TIME_NOW.getTime() - 3 * HOUR).toISOString());
-		expect(time?.className).toContain("font-sans");
-		expect(time?.getAttribute("title")).toBe(exactTime(TIME_NOW.getTime() - 3 * HOUR));
-		expect(readTabStops(".time-host")).toEqual([]);
+	function* ({ timeShown }) {
+		expect(yield* timeShown()).toEqual({
+			datetime: isoBeforeNow(3 * HOUR),
+			exact: exactTime(TIME_NOW.getTime() - 3 * HOUR),
+			label: relative.format(-3, "hour"),
+			tabStop: "no",
+		});
 	},
 );

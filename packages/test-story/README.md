@@ -652,6 +652,40 @@ The helpers subscribe by running the stream before inspecting its values. Use a 
 
 A deadline or stream ending without a match fails with `SignalNotReceived` in the error channel. Its message names the missing signal, shows the last observation (the collection for `collectUntil`, or that no value arrived), and includes a `help:` line. Source failures pass through.
 
+### Waiting for process output, spans and abandoned requests
+
+Acquire `lineSignals(child.stdout)` or `lineSignals(child.stderr)` in the kit's scoped `create` hook before driving the child. Its `untilLine(matches, options)` waits for a complete line and returns it; `lines` reads the captured lines. It handles lines split across writes, CRLF, UTF-8 characters split across writes, and the final line without a newline. Closing the story scope closes the line reader; the kit owns the child process lifetime.
+
+```ts
+import { lineSignals } from "@shivaedev/test-story/server/lineSignals.ts";
+
+const output = yield* lineSignals(child.stdout);
+const readyLine = yield* output.untilLine(
+	(line) => line === "Worker ready",
+	{ name: "worker readiness", timeout: "2 seconds" },
+);
+```
+
+The OTLP receiver offers `untilSpan(matches, options)` and returns the decoded matching `OtlpSpan`. Use it to wait for a real exporter without polling `receiver.spans`.
+
+```ts
+const completed = yield* receiver.untilSpan(
+	(span) => span.name === "process-order",
+	{ name: "order processing span" },
+);
+```
+
+`fakeHttpService` offers `untilAbandoned(matches, options)`. It returns the request record when the connection closes before its response finishes, including a held request or a stalled response body. Completed responses do not emit this signal. An unfinished connection closed by a scripted fault also qualifies; the signal observes the connection, not who closed it.
+
+```ts
+const abandoned = yield* service.untilAbandoned(
+	(request) => request.path === "/orders/42",
+	{ name: "abandoned order request" },
+);
+```
+
+All three adapters retain observations from acquisition, so a wait can start before or after its matching event. Each wait observes independently. They use `until` and its live-time deadline and `SignalNotReceived` diagnostics. Ending child output without a match fails immediately with the last line; a missing span or abandoned request fails at the deadline with the last observation. A silent source reports that no values arrived.
+
 ### When a story fails
 
 After the engine has been created, a failing story test adds the story to its first error, as in the examples above:
@@ -876,6 +910,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/storyKit.ts`                 | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
 | `server/adapters/outcomeMatchers.ts` | `lessThan(limit)`, `atMost(limit)`, `greaterThan(limit)`, `atLeast(limit)`, `NumericBound`                                                                                                                                                                                                                                                                                          |
 | `server/outcomes.ts`                 | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
+| `server/lineSignals.ts`              | `lineSignals(output)` with `lines` and `untilLine(matches, options)`                                                                                                                                                                                                                                                                                                                |
 | `server/until.ts`                    | `until(stream, matches, options)`, `collectUntil(stream, matches, options)`, `UntilOptions`, `SignalNotReceived`                                                                                                                                                                                                                                                                    |
 | `server/watchedClock.ts`             | `watchedClock`, `WatchedClock`, `untilTimer(interval, options?)`, `passes(interval, then)`                                                                                                                                                                                                                                                                                          |
 | `server/browserReads.ts`             | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`, `BrowserSubscription`                                                                                                                                                                                                                                                                                                |

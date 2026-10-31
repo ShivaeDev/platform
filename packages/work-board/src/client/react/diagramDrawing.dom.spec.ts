@@ -1,112 +1,125 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { diagram } from "#test/diagram.ts";
-import { documentData } from "#test/documentRendering.ts";
-import { gatedDiagrams } from "#test/screenDiagrams.ts";
+import { diagramPlan } from "#test/diagramPlans.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { documentScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
+const EVIDENCE = "\n<details><summary>Evidence</summary>Kept.</details>\n";
+
 screenStory.it(
-	"reserves space and hides source until Mermaid finishes",
-	[gatedDiagrams(), documentScreen(documentData(diagram("Pending-->Done")))],
-	function* ({ drawings, finishDiagram, findElement, readAttribute }) {
-		yield* eventually(() => expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; Pending-->Done"]));
-		expect(readAttribute("figure.diagram", "data-state")).toBe("pending");
-		expect(findElement(".diagram-source")).toHaveProperty("hidden", true);
-		expect(findElement("svg")).toBeNull();
-		yield* Effect.promise(() => finishDiagram(0));
-		expect(readAttribute("figure.diagram", "data-state")).toBe("drawn");
-		expect(readAttribute("figure svg", "data-source")).toBe(encodeURIComponent("graph TD; Pending-->Done"));
-		expect(findElement(".diagram-source")).toHaveProperty("hidden", true);
+	"a diagram keeps its place with its source hidden until Mermaid finishes, then shows the drawing",
+	diagramPlan(diagram("Pending-->Done")),
+	function* ({ diagramFigures, mermaidDraws, mermaidIsAskedToDraw }) {
+		yield* mermaidIsAskedToDraw("Pending-->Done");
+		expect(yield* diagramFigures()).toEqual([{ drawing: "none", source: "hidden", state: "pending" }]);
+
+		yield* mermaidDraws("Pending-->Done");
+
+		expect(yield* diagramFigures()).toEqual([{ drawing: "Pending-->Done in light", source: "hidden", state: "drawn" }]);
+	},
+);
+
+for (const [edit, after, stable] of [
+	["a paragraph is added before it", "Added first.\n\nBefore.", "Stable-->Added"],
+	["the paragraph before it is edited", "Before, edited.", "Stable-->Edited"],
+] as const) {
+	screenStory.it(
+		`a drawn diagram is not redrawn and an open section stays open when ${edit}`,
+		diagramPlan(`\n\nBefore.${diagram(stable)}${EVIDENCE}`),
+		function* ({
+			diagramFigures,
+			documentParagraphs,
+			drawingRequests,
+			mermaidDraws,
+			mermaidIsAskedToDraw,
+			openSection,
+			openSections,
+			rewriteDocument,
+		}) {
+			yield* mermaidIsAskedToDraw(stable);
+			yield* mermaidDraws(stable);
+			yield* openSection("Evidence");
+
+			yield* rewriteDocument("notes/plan.md", `# Plan\n\n${after}${diagram(stable)}${EVIDENCE}`);
+
+			yield* outcomes([
+				["diagrams", () => diagramFigures(), [{ drawing: `${stable} in light`, source: "hidden", state: "drawn" }]],
+				["Mermaid requests", () => drawingRequests(), [`${stable} in light`]],
+				["open sections", () => openSections(), ["Evidence"]],
+				["paragraphs", () => documentParagraphs(), after.split("\n\n")],
+			]);
+		},
+	);
+}
+
+screenStory.it(
+	"an edited diagram keeps its previous drawing until Mermaid draws the new source",
+	diagramPlan(diagram("Edit-->Old")),
+	function* ({ diagramFigures, mermaidDraws, mermaidIsAskedToDraw, rewriteDocument }) {
+		yield* mermaidIsAskedToDraw("Edit-->Old");
+		yield* mermaidDraws("Edit-->Old");
+
+		yield* rewriteDocument("notes/plan.md", `# Plan${diagram("Edit-->New")}`);
+
+		yield* mermaidIsAskedToDraw("Edit-->New");
+		expect(yield* diagramFigures()).toEqual([{ drawing: "Edit-->Old in light", source: "hidden", state: "redrawing" }]);
+
+		yield* mermaidDraws("Edit-->New");
+
+		expect(yield* diagramFigures()).toEqual([{ drawing: "Edit-->New in light", source: "hidden", state: "drawn" }]);
 	},
 );
 
 screenStory.it(
-	"keeps a drawing and open details while surrounding paragraphs change",
-	[gatedDiagrams(), documentScreen(documentData(`Before.${diagram("Stable-->Drawing")}\n<details><summary>Evidence</summary>Kept.</details>\n`))],
-	function* ({ drawings, finishDiagram, refreshDocumentSource, openDetails, findElement, readText }) {
-		yield* eventually(() => expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; Stable-->Drawing"]));
-		yield* Effect.promise(() => finishDiagram(0));
-		const figure = findElement("figure");
-		const details = findElement("details");
-		openDetails("details");
-		for (const paragraph of ["Added first.\n\nBefore.", "After, edited."]) {
-			yield* Effect.promise(() =>
-				refreshDocumentSource(documentData(`${paragraph}${diagram("Stable-->Drawing")}\n<details><summary>Evidence</summary>Kept.</details>\n`)),
-			);
-			expect(readText()).toContain(paragraph.replace("\n\n", "\n"));
-			expect(findElement("figure")).toBe(figure);
-			expect(findElement("details")).toBe(details);
-			expect(details).toHaveProperty("open", true);
-			expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; Stable-->Drawing"]);
-		}
+	"a newly added diagram keeps its place with its source hidden while Mermaid draws it",
+	diagramPlan(diagram("First-->Ready")),
+	function* ({ diagramFigures, mermaidDraws, mermaidIsAskedToDraw, rewriteDocument }) {
+		yield* mermaidIsAskedToDraw("First-->Ready");
+		yield* mermaidDraws("First-->Ready");
+
+		yield* rewriteDocument("notes/plan.md", `# Plan${diagram("First-->Ready")}${diagram("New-->Pending")}`);
+
+		yield* mermaidIsAskedToDraw("New-->Pending");
+		expect(yield* diagramFigures()).toEqual([
+			{ drawing: "First-->Ready in light", source: "hidden", state: "drawn" },
+			{ drawing: "none", source: "hidden", state: "pending" },
+		]);
 	},
 );
 
 screenStory.it(
-	"keeps an edited diagram's drawing until its replacement is ready",
-	[gatedDiagrams(), documentScreen(documentData(diagram("Edit-->Old")))],
-	function* ({ drawings, finishDiagram, refreshDocumentSource, findElement, readAttribute }) {
-		yield* eventually(() => expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; Edit-->Old"]));
-		yield* Effect.promise(() => finishDiagram(0));
-		yield* Effect.promise(() => refreshDocumentSource(documentData(diagram("Edit-->New"))));
-		yield* eventually(() => expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; Edit-->Old", "graph TD; Edit-->New"]));
-		expect(readAttribute("figure", "data-state")).toBe("redrawing");
-		expect(readAttribute("figure svg", "data-source")).toBe(encodeURIComponent("graph TD; Edit-->Old"));
-		expect(findElement(".diagram-source")).toHaveProperty("hidden", true);
-		yield* Effect.promise(() => finishDiagram(1));
-		expect(readAttribute("figure svg", "data-source")).toBe(encodeURIComponent("graph TD; Edit-->New"));
+	"an edited diagram that Mermaid cannot draw drops its previous drawing and shows its source and the error",
+	diagramPlan(diagram("Valid-->Drawing")),
+	function* ({ diagramFigures, mermaidDraws, mermaidFails, mermaidIsAskedToDraw, rewriteDocument }) {
+		yield* mermaidIsAskedToDraw("Valid-->Drawing");
+		yield* mermaidDraws("Valid-->Drawing");
+		yield* rewriteDocument("notes/plan.md", `# Plan${diagram("broken")}`);
+		yield* mermaidIsAskedToDraw("broken");
+
+		yield* mermaidFails("broken", "Parse error in the diagram");
+
+		expect(yield* diagramFigures()).toEqual([
+			{ drawing: "none", error: "Diagram could not be drawn: Parse error in the diagram", source: "broken", state: "failed" },
+		]);
 	},
 );
 
 screenStory.it(
-	"reserves space for a newly inserted diagram without exposing source",
-	[gatedDiagrams(), documentScreen(documentData(diagram("First-->Ready")))],
-	function* ({ drawings, finishDiagram, refreshDocumentSource, findElements }) {
-		yield* eventually(() => expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; First-->Ready"]));
-		yield* Effect.promise(() => finishDiagram(0));
-		yield* Effect.promise(() => refreshDocumentSource(documentData(diagram("First-->Ready") + diagram("New-->Pending"))));
-		yield* eventually(() =>
-			expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; First-->Ready", "graph TD; New-->Pending"]),
-		);
-		const added = findElements("figure")[1];
-		expect(added?.getAttribute("data-state")).toBe("pending");
-		expect(added?.querySelector("svg")).toBeNull();
-		expect(added?.querySelector("pre")).toHaveProperty("hidden", true);
-	},
-);
+	"a diagram edited back to its earlier source is drawn again while the edited drawing stays in place",
+	diagramPlan(diagram("Return-->Original")),
+	function* ({ diagramFigures, mermaidDraws, mermaidIsAskedToDraw, rewriteDocument }) {
+		yield* mermaidIsAskedToDraw("Return-->Original");
+		yield* mermaidDraws("Return-->Original");
+		yield* rewriteDocument("notes/plan.md", `# Plan${diagram("Return-->Edited")}`);
+		yield* mermaidIsAskedToDraw("Return-->Edited");
+		yield* mermaidDraws("Return-->Edited");
 
-screenStory.it(
-	"drops the previous SVG and exposes source when the edited diagram fails",
-	[gatedDiagrams(), documentScreen(documentData(diagram("Valid-->Drawing")))],
-	function* ({ drawings, finishDiagram, refreshDocumentSource, findElement, readText, readAttribute }) {
-		yield* eventually(() => expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; Valid-->Drawing"]));
-		yield* Effect.promise(() => finishDiagram(0));
-		yield* Effect.promise(() => refreshDocumentSource(documentData(diagram("broken"))));
-		yield* eventually(() => expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; Valid-->Drawing", "graph TD; broken"]));
-		yield* Effect.promise(() => finishDiagram(1, "Parse error in the diagram"));
-		expect(readAttribute("figure", "data-state")).toBe("failed");
-		expect(findElement("svg")).toBeNull();
-		expect(findElement("pre")).toHaveProperty("hidden", false);
-		expect(readText("pre")).toContain("broken");
-		expect(readText("[role=status]")).toContain("Parse error in the diagram");
-	},
-);
+		yield* rewriteDocument("notes/plan.md", `# Plan${diagram("Return-->Original")}`);
 
-screenStory.it(
-	"forgets the replaced source drawing before that source returns",
-	[gatedDiagrams(), documentScreen(documentData(diagram("Return-->Original")))],
-	function* ({ drawings, finishDiagram, refreshDocumentSource, readAttribute }) {
-		yield* eventually(() => expect(drawings().map((drawing) => drawing.source.trim())).toEqual(["graph TD; Return-->Original"]));
-		yield* Effect.promise(() => finishDiagram(0));
-		for (const [index, source] of ["Return-->Edited", "Return-->Original"].entries()) {
-			yield* Effect.promise(() => refreshDocumentSource(documentData(diagram(source))));
-			yield* eventually(() => expect(drawings()).toHaveLength(index + 2));
-			yield* Effect.promise(() => finishDiagram(index + 1));
-			expect(readAttribute("figure svg", "data-source")).toBe(encodeURIComponent(`graph TD; ${source}`));
-		}
+		yield* mermaidIsAskedToDraw("Return-->Original");
+		expect(yield* diagramFigures()).toEqual([{ drawing: "Return-->Edited in light", source: "hidden", state: "redrawing" }]);
 	},
 );

@@ -1,66 +1,117 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { screenWorkspace } from "#test/screenEnvironment.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
-const SOURCE =
+
+const TASK =
 	"---\nid: task.fixture\nkind: task\nnext_action: Inspect the proof\nattention:\n - id: direction\n   kind: decision\n   state: open\n   reason: Choose a direction\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n";
-const cases = [
-	{ field: '[name="body"]', kind: "response", query: "document" as const, source: SOURCE, url: "/_board/item/task.fixture/", writable: true },
-	{
-		field: '[data-prompt="answer"] textarea',
-		kind: "response",
-		query: "document" as const,
-		source:
-			"---\nid: task.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
-		url: "/_board/item/task.fixture/",
-		writable: true,
-	},
-	{
-		field: '[name="body"]',
-		kind: "response",
-		query: "document" as const,
-		source:
-			"---\nid: task.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
-		url: "/_board/item/task.fixture/",
-		writable: true,
-	},
-	{ field: '[name="goal"]', kind: "handoff", query: "handoff" as const, source: SOURCE, url: "/_board/handoff?item=task.fixture", writable: false },
+const QUESTION =
+	"---\nid: task.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n";
+const URL = "/_board/item/task.fixture/";
+const DRAFT = "Direction in progress";
+const CHANGED = "\nChanged source context.\n";
+
+const answerBoxes = [
+	{ box: "the answer box on a task's decision", prompt: undefined, source: TASK, underMoreOptions: false },
+	{ box: "a question's prompt answer box", prompt: "answer", source: QUESTION, underMoreOptions: false },
+	{ box: "a question's own-words box under More options", prompt: undefined, source: QUESTION, underMoreOptions: true },
 ];
-for (const { kind, query, field, url, source: content, writable } of cases) {
-	const files = { "home.md": "# Home", "task.md": content };
-	const selector = `#${kind}-form ${field}`;
+
+for (const { box, prompt, source, underMoreOptions } of answerBoxes) {
+	const files = { "home.md": "# Home", "task.md": source };
+
 	screenStory.it(
-		`retains ${query} ${field} draft, source notice and caret through query refresh and reload`,
-		[screenWorkspace("forms-fixture"), routedScreen(files, url, { writable })],
-		function* ({ findElement, readText, readFocus, typeText, selectText, editFile, refreshQuery, browserEvent, closeScreen, renderRouter }) {
-			yield* eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull());
-			const original = findElement<HTMLTextAreaElement>(selector);
-			typeText(original, "Direction in progress");
-			selectText(selector, 4, 9, "backward");
-			editFile("task.md", `${content}\nChanged source context.\n`);
-			yield* Effect.promise(() => refreshQuery(query, { url }));
-			yield* eventually(() => expect(readText(`#${kind}-status`)).toContain("Source changed"));
-			expect(findElement(selector)).toBe(original);
-			expect(original?.value).toBe("Direction in progress");
-			expect(readFocus()).toBe(original);
-			expect([original?.selectionStart, original?.selectionEnd, original?.selectionDirection]).toEqual([4, 9, "backward"]);
-			browserEvent("pagehide");
-			yield* Effect.promise(closeScreen);
-			yield* Effect.promise(() => renderRouter(undefined, url));
-			yield* eventually(() => expect(readText(`#${kind}-status`)).toContain("Source changed"));
-			const restored = findElement<HTMLTextAreaElement>(selector);
-			expect(restored?.value).toBe("Direction in progress");
-			const details = restored?.closest("details");
-			if (details) {
-				expect(details.open).toBe(true);
+		`${box} keeps its draft, focus and backward selection when the page refreshes after an outside edit, and says the source changed`,
+		[routedScreen(files, URL, { writable: true })],
+		function* ({ answerBoxState, answerStatusLine, editFile, openMoreOptions, refreshQuery, selectInAnswer, writeAnswer }) {
+			if (underMoreOptions) {
+				yield* openMoreOptions();
 			}
-			expect(readFocus()).toBe(restored);
-			expect([restored?.selectionStart, restored?.selectionEnd, restored?.selectionDirection]).toEqual([4, 9, "backward"]);
-			expect(findElement(`#${kind}-submit`)).toHaveProperty("disabled", !writable);
+			yield* writeAnswer(DRAFT, prompt);
+			yield* selectInAnswer(4, 9, prompt);
+			expect(yield* answerStatusLine()).not.toContain("Source changed");
+
+			yield* editFile("task.md", `${source}${CHANGED}`);
+			yield* refreshQuery("document", { url: URL });
+
+			yield* outcomes([
+				["draft", () => answerBoxState(prompt), { focused: true, selection: [4, 9], text: DRAFT }],
+				["status", () => answerStatusLine(), expect.stringContaining("Source changed")],
+			]);
+		},
+	);
+
+	screenStory.it(
+		`after a reload ${box} comes back with its draft, focus, selection and source-changed notice${underMoreOptions ? ", with More options open" : ""}`,
+		[routedScreen(files, URL, { writable: true })],
+		function* ({
+			answerBoxState,
+			answerStatusLine,
+			editFile,
+			moreOptionsState,
+			openMoreOptions,
+			refreshQuery,
+			reloadPage,
+			selectInAnswer,
+			writeAnswer,
+		}) {
+			if (underMoreOptions) {
+				yield* openMoreOptions();
+			}
+			yield* writeAnswer(DRAFT, prompt);
+			yield* selectInAnswer(4, 9, prompt);
+			yield* editFile("task.md", `${source}${CHANGED}`);
+			yield* refreshQuery("document", { url: URL });
+
+			yield* reloadPage();
+
+			yield* outcomes([
+				["draft", () => answerBoxState(prompt), { focused: true, selection: [4, 9], text: DRAFT }],
+				["More options", () => moreOptionsState(), underMoreOptions ? "open" : "closed"],
+				["status", () => answerStatusLine(), expect.stringContaining("Source changed")],
+			]);
 		},
 	);
 }
+
+const HANDOFF_URL = "/_board/handoff?item=task.fixture";
+const handoffFiles = { "home.md": "# Home", "task.md": TASK };
+
+screenStory.it(
+	"a handoff goal keeps its draft, focus and selection when the handoff page refreshes after an outside edit, and says the source changed",
+	[routedScreen(handoffFiles, HANDOFF_URL)],
+	function* ({ editFile, fillHandoff, handoffField, handoffStatus, refreshQuery, selectInHandoff }) {
+		yield* fillHandoff("Goal", DRAFT);
+		yield* selectInHandoff("Goal", 4, 9);
+		expect(yield* handoffStatus()).not.toContain("Source changed");
+
+		yield* editFile("task.md", `${TASK}${CHANGED}`);
+		yield* refreshQuery("handoff", { url: HANDOFF_URL });
+
+		yield* outcomes([
+			["goal", () => handoffField("Goal"), expect.objectContaining({ focused: true, selection: [4, 9], text: DRAFT })],
+			["status", () => handoffStatus(), expect.stringContaining("Source changed")],
+		]);
+	},
+);
+
+screenStory.it(
+	"after a reload the handoff goal comes back with its draft, focus, selection and source-changed notice",
+	[routedScreen(handoffFiles, HANDOFF_URL)],
+	function* ({ editFile, fillHandoff, handoffField, handoffStatus, refreshQuery, reloadPage, selectInHandoff }) {
+		yield* fillHandoff("Goal", DRAFT);
+		yield* selectInHandoff("Goal", 4, 9);
+		yield* editFile("task.md", `${TASK}${CHANGED}`);
+		yield* refreshQuery("handoff", { url: HANDOFF_URL });
+
+		yield* reloadPage();
+
+		yield* outcomes([
+			["goal", () => handoffField("Goal"), expect.objectContaining({ focused: true, selection: [4, 9], text: DRAFT })],
+			["status", () => handoffStatus(), expect.stringContaining("Source changed")],
+		]);
+	},
+);

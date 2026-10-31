@@ -1,25 +1,25 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
-import { waitFor } from "#test/live.ts";
+import { aKeyboardTask, HANDOFF_RECORD } from "#test/handoffTraits.ts";
 import { recordedReads } from "#test/readTraits.ts";
-import { aHandoffTask } from "#test/storyTraits.ts";
-
-const SOURCE =
-	"---\nid: task.keyboard\nkind: task\nstatus: ready\nnext_action: Verify focus before changing the implementation\n---\n# Keyboard focus\n";
 
 boardStory.it(
-	"prepares a handoff by rereading only the handoff it wrote",
-	[projectFiles({ "notes/first.md": "# First\n", "notes/second.md": "# Second\n" }), aHandoffTask(SOURCE), recordedReads()],
-	function* ({ client, handoffDraft, readFiles }) {
-		yield* Effect.promise(() => waitFor(() => expect(readFiles()).toEqual(expect.arrayContaining(["notes/first.md", "notes/second.md"]))));
-		const draft = yield* handoffDraft();
-		const before = readFiles().length;
-		const saved = yield* Effect.promise(() => client.mutate(client.handoffs.prepareHandoff.run(draft)));
-		const reading = yield* Effect.promise(() => client.run(client.handoffs.handoffs.run({ item: draft.item })));
-		expect(reading.records.map((record) => record.id)).toEqual([saved.id]);
-		const prepared = readFiles().slice(before);
-		expect(prepared).toContain(saved.file);
-		expect(prepared.filter((file) => file !== saved.file && file !== draft.source)).toEqual([]);
+	"preparing and listing a handoff reads only its task source and the record it wrote, not the other project notes",
+	[
+		projectFiles({ "notes/first.md": "# First\n", "notes/second.md": "# Second\n" }, "the project holds two unrelated notes"),
+		aKeyboardTask(),
+		recordedReads(),
+	],
+	function* ({ handoffHistory, noteReadsSoFar, prepareHandoff, readsSinceNoted, reviewHandoff }) {
+		yield* reviewHandoff();
+		expect(yield* noteReadsSoFar()).toEqual(expect.arrayContaining(["notes/first.md", "notes/second.md"]));
+
+		yield* prepareHandoff();
+
+		yield* outcomes([
+			["handoffs listed", () => handoffHistory(), { records: ["handoff.keyboard.1 requested"], unreadable: [] }],
+			["reads since the mark", () => readsSinceNoted(), [HANDOFF_RECORD, "items/keyboard.md"]],
+		]);
 	},
 );

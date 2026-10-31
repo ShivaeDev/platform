@@ -4,7 +4,9 @@ import { blockedStorage, screenMedia, screenWorkspace } from "#test/screenEnviro
 import { screenStory } from "#test/screenStory.ts";
 import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
 
-for (const [saved, system, expected] of [
+const workspace = screenWorkspace("initial-appearance");
+
+for (const [saved, system, scheme] of [
 	['{"theme":"dark"}', "light", "dark"],
 	['{"theme":"light"}', "dark", "light"],
 	['{"theme":"system"}', "dark", "dark"],
@@ -15,16 +17,16 @@ for (const [saved, system, expected] of [
 	[undefined, "dark", "dark"],
 ] as const) {
 	screenStory.it(
-		`initializes saved ${saved} with system ${system} before React`,
+		`${saved === undefined ? "with storage blocked" : `with ${saved} saved`} and a ${system} system, the shell applies the ${scheme} scheme before React starts`,
 		[
-			screenWorkspace("initial-appearance"),
+			workspace,
 			screenMedia(system === "dark" ? ["(prefers-color-scheme: dark)"] : []),
 			saved === undefined ? blockedStorage() : storedScreenState({ "work-board:appearance:initial-appearance": saved }),
 		],
-		({ initializeAppearance, readRootAttribute }) => {
-			initializeAppearance(INITIAL_THEME_SCRIPT);
-			expect(readRootAttribute("data-scheme")).toBe(expected);
-			expect(document.documentElement.classList.contains("dark")).toBe(expected === "dark");
+		function* ({ appliedScheme, initializeAppearance }) {
+			yield* initializeAppearance(INITIAL_THEME_SCRIPT);
+
+			expect(yield* appliedScheme()).toBe(scheme);
 		},
 	);
 }
@@ -35,11 +37,12 @@ for (const [saved, sidebar] of [
 	['{"closed":"yes"}', "open"],
 ] as const) {
 	screenStory.it(
-		`outlines the ${sidebar} sidebar before React when the reader saved ${saved}`,
-		[screenWorkspace("initial-appearance"), storedScreenState({ "work-board:appearance:initial-appearance": saved })],
-		({ initializeAppearance, readRootAttribute }) => {
-			initializeAppearance(INITIAL_THEME_SCRIPT);
-			expect(readRootAttribute("data-sidebar")).toBe(sidebar);
+		`with ${saved} saved, the shell outlines the ${sidebar} sidebar before React starts`,
+		[workspace, storedScreenState({ "work-board:appearance:initial-appearance": saved })],
+		function* ({ initializeAppearance, outlinedSidebar }) {
+			yield* initializeAppearance(INITIAL_THEME_SCRIPT);
+
+			expect(yield* outlinedSidebar()).toBe(sidebar);
 		},
 	);
 }

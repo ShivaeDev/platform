@@ -1,101 +1,107 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { indexedBriefs, watchedIndexStory } from "#test/watchedIndexStory.ts";
 
 const BRIEF = "---\nid: brief\nkind: task\n---\n# Before";
-const project = [indexedBriefs({ "brief.md": BRIEF, "unchanged.md": "# Unchanged" })];
+const briefs = indexedBriefs({ "brief.md": BRIEF, "unchanged.md": "# Unchanged" });
 
-watchedIndexStory.it("editing a brief updates its metadata and emits one change without touching unchanged files", project, function* (board) {
-	expect((yield* board.read()).documents[0]?.parsed.body).toBe("# Before");
-	board.clearAccesses();
+watchedIndexStory.it(
+	"a reported edit to a brief updates its body and announces one change after reading only that brief",
+	[briefs],
+	function* ({ announcedChanges, bodyOf, editorChanges, filesRead, foldersScanned, watcherReports }) {
+		expect(yield* bodyOf("brief.md")).toBe("# Before");
 
-	board.edit("brief.md", BRIEF.replace("Before", "After"));
-	yield* board.notify(["brief.md"]);
+		yield* editorChanges("brief.md", BRIEF.replace("Before", "After"));
+		yield* watcherReports("brief.md");
 
-	const changes = yield* board.changeEvents();
-	yield* outcomes([
-		["edited body", () => board.read().pipe(Effect.map((snapshot) => snapshot.documents[0]?.parsed.body)), "# After"],
-		["files read", () => Effect.sync(board.readFiles), ["brief.md"]],
-		["folders scanned", () => Effect.sync(board.scannedFolders), []],
-		["one change", () => Effect.succeed(changes), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
-	]);
-});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["brief.md"]]],
+			["body of brief.md", () => bodyOf("brief.md"), "# After"],
+			["files read", () => filesRead(), ["brief.md"]],
+			["folders scanned", () => foldersScanned(), []],
+		]);
+	},
+);
 
-watchedIndexStory.it("adding a brief indexes its identity and emits one change without scanning the folder", project, function* (board) {
-	expect((yield* board.read()).model.ids.has("added")).toBe(false);
-	board.clearAccesses();
+watchedIndexStory.it(
+	"a reported new brief is indexed under its identity and announced once, without scanning the folder",
+	[briefs],
+	function* ({ announcedChanges, editorAdds, filesRead, filesWithIdentity, foldersScanned, watcherReports }) {
+		expect(yield* filesWithIdentity("added")).toEqual([]);
 
-	board.add("added.md", "---\nid: added\n---\n# Added");
-	yield* board.notify(["added.md"]);
+		yield* editorAdds("added.md", "---\nid: added\n---\n# Added");
+		yield* watcherReports("added.md");
 
-	const changes = yield* board.changeEvents();
-	yield* outcomes([
-		["files read", () => Effect.sync(board.readFiles), ["added.md"]],
-		["folders scanned", () => Effect.sync(board.scannedFolders), []],
-		["new identity", () => board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.get("added")?.[0]?.file)), "added.md"],
-		["one change", () => Effect.succeed(changes), [{ _tag: "Changed", paths: ["added.md"], sequence: expect.any(Number) }]],
-	]);
-});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["added.md"]]],
+			["files read", () => filesRead(), ["added.md"]],
+			["files under added", () => filesWithIdentity("added"), ["added.md"]],
+			["folders scanned", () => foldersScanned(), []],
+		]);
+	},
+);
 
-watchedIndexStory.it("moving a brief replaces its indexed path and emits one change", project, function* (board) {
-	expect((yield* board.read()).model.ids.get("brief")?.map((document) => document.file)).toEqual(["brief.md"]);
-	board.clearAccesses();
+watchedIndexStory.it(
+	"a reported move indexes the brief at its new path after reading only that path, and announces one change for both paths",
+	[briefs],
+	function* ({ announcedChanges, editorMoves, filesRead, filesWithIdentity, watcherReports }) {
+		expect(yield* filesWithIdentity("brief")).toEqual(["brief.md"]);
 
-	board.move("brief.md", "moved.md");
-	yield* board.notify(["brief.md", "moved.md"]);
+		yield* editorMoves("brief.md", "moved.md");
+		yield* watcherReports("brief.md", "moved.md");
 
-	const changes = yield* board.changeEvents();
-	yield* outcomes([
-		["files read", () => Effect.sync(board.readFiles), ["moved.md"]],
-		[
-			"moved identity",
-			() => board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.get("brief")?.map((document) => document.file))),
-			["moved.md"],
-		],
-		[
-			"one change",
-			() => Effect.succeed(changes),
-			[{ _tag: "Changed", paths: expect.arrayContaining(["brief.md", "moved.md"]), sequence: expect.any(Number) }],
-		],
-	]);
-});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["brief.md", "moved.md"]]],
+			["files read", () => filesRead(), ["moved.md"]],
+			["files under brief", () => filesWithIdentity("brief"), ["moved.md"]],
+		]);
+	},
+);
 
-watchedIndexStory.it("deleting a brief removes its identity and emits one change without rereading other files", project, function* (board) {
-	expect((yield* board.read()).model.ids.has("brief")).toBe(true);
-	board.clearAccesses();
+watchedIndexStory.it(
+	"a reported deletion removes the brief's identity and announces one change without reading any file",
+	[briefs],
+	function* ({ announcedChanges, editorDeletes, filesRead, filesWithIdentity, watcherReports }) {
+		expect(yield* filesWithIdentity("brief")).toEqual(["brief.md"]);
 
-	board.remove("brief.md");
-	yield* board.notify(["brief.md"]);
+		yield* editorDeletes("brief.md");
+		yield* watcherReports("brief.md");
 
-	const changes = yield* board.changeEvents();
-	yield* outcomes([
-		["files read", () => Effect.sync(board.readFiles), []],
-		["one change", () => Effect.succeed(changes), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
-		["removed identity", () => board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.has("brief"))), false],
-	]);
-});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["brief.md"]]],
+			["files read", () => filesRead(), []],
+			["files under brief", () => filesWithIdentity("brief"), []],
+		]);
+	},
+);
 
-watchedIndexStory.it("the full check repairs an edit the watcher missed even with its timestamp preserved", project, function* (board) {
-	expect((yield* board.read()).documents[0]?.parsed.body).toBe("# Before");
+watchedIndexStory.it(
+	"the full check repairs and announces an edit the watcher missed, even with its timestamp preserved",
+	[briefs],
+	function* ({ announcedChanges, bodyOf, editorChanges, fullCheckRuns }) {
+		expect(yield* bodyOf("brief.md")).toBe("# Before");
 
-	board.edit("brief.md", BRIEF.replace("Before", "Missed"));
-	yield* board.checkPasses();
+		yield* editorChanges("brief.md", BRIEF.replace("Before", "Missed"));
+		yield* fullCheckRuns();
 
-	yield* outcomes([
-		["repair change", () => board.changeEvents(), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
-		["repaired body", () => board.read().pipe(Effect.map((snapshot) => snapshot.documents[0]?.parsed.body)), "# Missed"],
-	]);
-});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["brief.md"]]],
+			["body of brief.md", () => bodyOf("brief.md"), "# Missed"],
+		]);
+	},
+);
 
-watchedIndexStory.it("reads after startup touch no unchanged files or directories", project, function* (board) {
-	const first = yield* board.read();
-	board.clearAccesses();
+watchedIndexStory.it(
+	"reading the index again after startup returns the startup snapshot without touching any file or folder",
+	[briefs],
+	function* ({ filesChecked, filesRead, foldersScanned, readerReadsAgain }) {
+		const read = yield* readerReadsAgain();
 
-	const next = yield* board.read();
-
-	expect(next).toBe(first);
-	expect(board.readFiles()).toEqual([]);
-	expect(board.scannedFolders()).toEqual([]);
-	expect(board.checkedFiles()).toEqual([]);
-});
+		expect(read).toBe("the startup snapshot");
+		yield* outcomes([
+			["files checked", () => filesChecked(), []],
+			["files read", () => filesRead(), []],
+			["folders scanned", () => foldersScanned(), []],
+		]);
+	},
+);

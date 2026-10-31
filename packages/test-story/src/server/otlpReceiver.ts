@@ -3,6 +3,8 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { loopbackServer } from "#internal/loopback.ts";
 import { otlpReadout } from "#internal/otlpReadout.ts";
+import { recordedSignals } from "#internal/recordedSignals.ts";
+import { type UntilOptions, until } from "#until.ts";
 
 export type OtlpSpan = ReturnType<typeof otlpReadout>[number];
 export interface OtlpExport {
@@ -17,7 +19,13 @@ export interface OtlpReceiverOptions {
 	readonly status?: number | ((attempt: number) => number | undefined);
 }
 
-async function receive(request: IncomingMessage, response: ServerResponse, requests: OtlpExport[], spans: OtlpSpan[], options: OtlpReceiverOptions) {
+async function receive(
+	request: IncomingMessage,
+	response: ServerResponse,
+	requests: OtlpExport[],
+	record: (span: OtlpSpan) => void,
+	options: OtlpReceiverOptions,
+) {
 	try {
 		const chunks: Buffer[] = [];
 		for await (const chunk of request) {
@@ -34,7 +42,9 @@ async function receive(request: IncomingMessage, response: ServerResponse, reque
 			response.writeHead(HttpStatus.fromLiteral("UnsupportedMediaType")).end();
 			return;
 		}
-		spans.push(...otlpReadout(body, contentType));
+		for (const span of otlpReadout(body, contentType)) {
+			record(span);
+		}
 		const status = typeof options.status === "function" ? options.status(requests.length) : (options.status ?? HttpStatus.fromLiteral("OK"));
 		if (status === undefined) {
 			return;
@@ -52,13 +62,18 @@ async function receive(request: IncomingMessage, response: ServerResponse, reque
 
 export const otlpReceiver = Effect.fnUntraced(function* (options: OtlpReceiverOptions = {}) {
 	const requests: OtlpExport[] = [];
-	const spans: OtlpSpan[] = [];
-	const server = createServer((request, response) => receive(request, response, requests, spans, options));
+	const signals = recordedSignals<OtlpSpan>();
+	const server = createServer((request, response) => receive(request, response, requests, signals.push, options));
 	const url = yield* loopbackServer(server);
-	const receiver: { readonly requests: readonly OtlpExport[]; readonly spans: readonly OtlpSpan[]; readonly url: string } = {
-		requests,
-		spans,
+	yield* Effect.addFinalizer(() => Effect.sync(() => signals.end()));
+	return {
+		get requests(): readonly OtlpExport[] {
+			return requests;
+		},
+		get spans(): readonly OtlpSpan[] {
+			return signals.values;
+		},
+		untilSpan: (matches: (span: OtlpSpan) => boolean, wait: UntilOptions) => until(signals.stream, matches, wait),
 		url,
 	};
-	return receiver;
 });

@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { act } from "react";
-import { eventually, render } from "@shivaedev/test-story/client/react.ts";
+import { render } from "@shivaedev/test-story/client/react.ts";
 import { ANSWER_SOURCE, answerDraft, answerFiles, answerPreview } from "./answerDraft.tsx";
 import { mountDocument } from "./documentRendering.ts";
 import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
@@ -11,6 +11,7 @@ import { screenView, trackScreen } from "./screenEngine.ts";
 import { goalsContent, readingContent, screenClient, screenContent, systemContent } from "./screenFeatures.tsx";
 import { observeLoader } from "./screenLoader.ts";
 import { screenOptions } from "./screenReads.ts";
+import { screenSettles } from "./screenSettle.ts";
 import { screenStory } from "./screenStory.ts";
 import { screenFiles, screenRoute } from "./screenWorkspaceTraits.ts";
 
@@ -27,6 +28,7 @@ export function openScreen() {
 		);
 		engine.router = view.router;
 		engine.routed = trackScreen(engine, view, (line) => engine.tell?.(line));
+		yield* screenSettles(engine);
 	});
 }
 export function routedScreen(files: Parameters<typeof renderRouter>[0], path: string, options?: BoardFixtureOptions) {
@@ -36,11 +38,11 @@ export function chromeScreen(files: Parameters<typeof renderRouter>[0], path = "
 	return screenStory.traits(
 		routedScreen(files, path, options),
 		screenStory.trait("screen", `the shell finishes opening ${path}`, function* (engine) {
-			yield* eventually(() => {
-				if (engine.view?.container.querySelector("#doc")?.getAttribute("data-route") !== path) {
-					throw new Error(`The shell is still opening ${path}`);
-				}
-			});
+			yield* screenSettles(engine);
+			const route = engine.view?.container.querySelector("#doc")?.getAttribute("data-route");
+			if (route !== path) {
+				return yield* Effect.die(new Error(`The shell settled on ${route} instead of ${path}`));
+			}
 		}),
 	);
 }
@@ -60,6 +62,7 @@ export function componentScreen(...args: Parameters<typeof render>) {
 			),
 			(line) => engine.tell?.(line),
 		);
+		yield* screenSettles(engine);
 	});
 }
 export function boardScreen(...args: Parameters<typeof renderBoard>) {
@@ -80,6 +83,7 @@ export function boardScreen(...args: Parameters<typeof renderBoard>) {
 			),
 			(line) => engine.tell?.(line),
 		);
+		yield* screenSettles(engine);
 	});
 }
 
@@ -112,6 +116,7 @@ export function goalsScreen(files?: Parameters<typeof goalsContent>[0]) {
 	return screenStory.trait("screen", "the reader opens the goals", function* (engine) {
 		const content = yield* goalsContent(files);
 		trackScreen(engine, yield* Effect.promise(() => render(content)), (line) => engine.tell?.(line));
+		yield* screenSettles(engine);
 	});
 }
 export function systemScreen(fleet: Parameters<typeof systemContent>[0]) {
@@ -128,6 +133,7 @@ export function documentScreen(...args: Parameters<typeof mountDocument>) {
 			}
 			await view.unmount();
 		});
+		yield* screenSettles(engine);
 	});
 }
 

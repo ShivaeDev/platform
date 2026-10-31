@@ -1,20 +1,23 @@
-import { Clock } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { drainingBoard } from "#test/liveTraits.ts";
 
-for (const tcp of [true, false]) {
+for (const over of ["TCP", "socket"] as const) {
 	boardStory.it(
-		`cuts an unfinished ${tcp ? "TCP" : "socket"} request after draining and unpublishes the socket`,
-		[deferredServing, projectFiles({ "home.md": "# Home" })],
-		function* (board) {
-			yield* board.start({ drainRequests: true });
-			const unfinished = yield* board.openShutdownConnection(tcp);
-			const started = yield* Clock.currentTimeMillis;
-			yield* board.stop();
-			expect((yield* Clock.currentTimeMillis) - started).toBeGreaterThanOrEqual(4900);
-			expect([0, HttpStatus.fromLiteral("ServiceUnavailable")]).toContain((yield* unfinished.closed).status);
-			expect(board.socketState()).toBeUndefined();
+		`a draining shutdown waits the full drain period, then cuts an unfinished ${over} request and removes the socket`,
+		[projectFiles({ "home.md": "# Home" }), drainingBoard],
+		function* ({ socketFile, shutdownWait, stopTimed, unfinishedRequestEnd, unfinishedRequestOpens }) {
+			yield* unfinishedRequestOpens(over);
+			expect(yield* socketFile()).toBe("owner read-write socket");
+
+			yield* stopTimed();
+
+			yield* outcomes([
+				["the shutdown wait", () => shutdownWait(), "the full drain period"],
+				["the socket", () => socketFile(), "missing"],
+				["the unfinished request", () => unfinishedRequestEnd(), "cut off"],
+			]);
 		},
 	);
 }

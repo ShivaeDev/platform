@@ -6,39 +6,48 @@ import { githubLimits } from "#server/diagnostics/githubLimits.ts";
 import { health } from "#test/diagnostics.ts";
 import { configuredSources, diagnosticsStory } from "#test/diagnosticsStory.ts";
 
-for (const github of [undefined, []]) {
+for (const [recorded, github] of [
+	["no GitHub field", undefined],
+	["an empty GitHub list", []],
+] as const) {
 	diagnosticsStory.it(
-		`discloses unrecorded GitHub observations (${JSON.stringify(github)})`,
+		`a Fleet health snapshot with ${recorded} shows GitHub as not configured because Fleet has not recorded a response`,
 		[configuredSources({ github: githubLimits(Effect.succeed({ ...health, github })) })],
-		function* ({ readDiagnostics }) {
-			expect((yield* readDiagnostics()).github).toMatchObject({ cause: "Fleet has not recorded a GitHub response yet", state: "not-configured" });
+		function* ({ sourceStates }) {
+			expect(yield* sourceStates()).toMatchObject({ github: "not-configured: Fleet has not recorded a GitHub response yet" });
 		},
 	);
 }
+
 diagnosticsStory.it(
-	"keeps Fleet's failure when GitHub observations cannot be read",
+	"GitHub keeps Fleet's failure when the health snapshot cannot be read",
 	[
 		configuredSources({
 			github: githubLimits(Effect.fail(new SourceFailure({ kind: "error", message: "Fleet health snapshot could not be read" }))),
 		}),
 	],
-	function* ({ readDiagnostics }) {
-		expect((yield* readDiagnostics()).github).toMatchObject({ cause: "Fleet health snapshot could not be read", state: "error" });
+	function* ({ sourceStates }) {
+		expect(yield* sourceStates()).toMatchObject({ github: "error: Fleet health snapshot could not be read" });
 	},
 );
-for (const value of [{}, { rateLimits: { primary: { usedPercent: -1 }, secondary: null } }]) {
+
+for (const [shape, value] of [
+	["an answer without rate limits", {}],
+	["a negative used percentage", { rateLimits: { primary: { usedPercent: -1 }, secondary: null } }],
+] as const) {
 	diagnosticsStory.it(
-		`rejects invalid Codex usage windows (${JSON.stringify(value)})`,
+		`Codex ${shape} is an error naming invalid usage windows`,
 		[configuredSources({ codex: codexLimits(Effect.succeed(value)) })],
-		function* ({ readDiagnostics }) {
-			expect((yield* readDiagnostics()).codex).toMatchObject({ cause: "Codex returned invalid usage windows", state: "error" });
+		function* ({ sourceStates }) {
+			expect(yield* sourceStates()).toMatchObject({ codex: "error: Codex returned invalid usage windows" });
 		},
 	);
 }
+
 diagnosticsStory.it(
-	"keeps unreported Codex windows distinct from a failed source",
+	"Codex reporting no usage windows is ready with both windows empty",
 	[configuredSources({ codex: codexLimits(Effect.succeed({ rateLimits: { primary: null, secondary: null } })) })],
-	function* ({ readDiagnostics }) {
-		expect((yield* readDiagnostics()).codex).toMatchObject({ state: "ready", value: { primary: null, secondary: null } });
+	function* ({ codexWindows }) {
+		expect(yield* codexWindows()).toEqual({ primary: null, secondary: null });
 	},
 );

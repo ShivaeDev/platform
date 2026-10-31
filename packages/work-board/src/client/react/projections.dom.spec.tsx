@@ -1,10 +1,11 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
 const files = {
 	"home.md":
 		"---\nid: board.fixture\nitems: [task.fixture]\n---\n# Project board\n\nIntro.\n\n## Plans\n\nSection note.\n\n### Task\n\n[Read task](task.md)\n\n## Waiting\n\n### Task\n\nSecond card.\n\n---\n\nFooter.\n",
@@ -13,58 +14,70 @@ const files = {
 	"task.md":
 		"---\nid: task.fixture\nkind: task\nstatus: draft\nowner: marvin\nnext_action: Read evidence\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# A task\n\nTask details.\n",
 };
-const routes = [
-	{ kind: "today", selector: "#needs-you", text: "A question", url: "/" },
-	{ kind: "board", selector: ".board .item", text: "Read task", url: "/home.md" },
-	{ kind: "board", selector: ".board .item", text: "Read task", url: "/_board/item/board.fixture/" },
-	{ kind: "work", selector: ".work-card[data-item='task.fixture']", text: "A task", url: "/_board/work?view=board" },
-	{ kind: "work", selector: "#work-results table", text: "A task", url: "/_board/work?view=table&owner=value%3Amarvin&q=task&item=task.fixture" },
-];
-for (const { url, selector, text, kind } of routes) {
+
+for (const { kind, text, url } of [
+	{ kind: "today", text: "A question", url: "/" },
+	{ kind: "board", text: "Read task", url: "/home.md" },
+	{ kind: "board", text: "Read task", url: "/_board/item/board.fixture/" },
+	{ kind: "work", text: "A task", url: "/_board/work?view=board" },
+	{ kind: "work", text: "A task", url: "/_board/work?view=table&owner=value%3Amarvin&q=task&item=task.fixture" },
+]) {
+	screenStory.it(`${url} renders its content from the ${kind} projection`, [routedScreen(files, url)], function* ({ mainText, pageProjection }) {
+		yield* outcomes([
+			["page", () => mainText(), expect.stringContaining(text)],
+			["projection", () => pageProjection(), kind],
+		]);
+	});
+}
+
+for (const url of ["/home.md", "/_board/item/board.fixture/"]) {
 	screenStory.it(
-		`renders ${url} from its typed projection`,
-		[routedScreen(files, url, undefined)],
-		function* ({ readText, findElement, findElements }) {
-			yield* eventually(() => expect(readText(selector)).toContain(text));
-			expect(findElement("main")?.dataset.projection).toBe(kind);
-			if (kind === "board") {
-				expect(readText(".item-introduction h1")).toBe("Project board");
-				expect(findElement(".item-introduction")?.classList.contains("sticky")).toBe(true);
-				expect(findElement('.document-outline a[href="#heading-plans"]')).not.toBeNull();
-				expect(readText(".board .notes")).toContain("Section note");
-				expect(readText(".counts")).toBe("1 plans · 1 waiting");
-				expect(readText("footer")).toContain("Footer");
-				expect(findElement("#heading-task-2")).not.toBeNull();
-				expect(findElement(".item a[href='/task.md']")).not.toBeNull();
-			}
-			if (url.includes("item=task.fixture")) {
-				expect(findElements("#work-results tbody tr").map((row) => row.getAttribute("data-item"))).toEqual(["task.fixture"]);
-				yield* eventually(() => expect(readText("#work-detail article.doc")).toContain("Task details"));
-				expect(readText("#work-detail .item-summary")).toContain("Read evidence");
-			}
+		`The board at ${url} shows its sections as cards with their notes, counts and footer`,
+		[routedScreen(files, url)],
+		function* ({ boardDocument }) {
+			expect(yield* boardDocument()).toEqual({
+				counts: "1 plans · 1 waiting",
+				footer: expect.stringContaining("Footer"),
+				items: [
+					{ link: "/task.md", text: "TaskRead task" },
+					{ link: "none", text: "TaskSecond card." },
+				],
+				notes: [expect.stringContaining("Section note")],
+				title: "Project board",
+			});
 		},
 	);
 }
 
 screenStory.it(
-	"retains inline answer edits and selected detail through a Work projection refresh",
-	[routedScreen({ ...files }, "/_board/work?view=board&item=question.fixture&q=task", { writable: true })],
-	function* ({ refreshQuery, selectText, findElement, readText, typeText }) {
-		yield* eventually(() => expect(findElement("#response-form textarea")).not.toBeNull());
-		expect(readText(".detail-notice")).toContain("outside the current board or filters");
-		const body = findElement<HTMLTextAreaElement>("#response-form textarea");
-		if (!body) {
-			throw new Error("Missing answer textarea");
-		}
-		typeText(body, "Keep my answer");
-		const selectionStart = 5;
-		const selectionEnd = 7;
-		selectText(body, selectionStart, selectionEnd);
-		yield* Effect.promise(() => refreshQuery("work", { url: "/_board/work?view=board&item=question.fixture&q=task" }));
-		yield* eventually(() => expect(findElement("main")?.dataset.route).toBe("/_board/work?view=board&item=question.fixture&q=task"));
-		expect(findElement("#response-form textarea")).toBe(body);
-		expect(body.value).toBe("Keep my answer");
-		expect(body.selectionStart).toBe(selectionStart);
-		expect(body.selectionEnd).toBe(selectionEnd);
+	"A table filtered to one item opens that item beside the list",
+	[routedScreen(files, "/_board/work?view=table&owner=value%3Amarvin&q=task&item=task.fixture")],
+	function* ({ tableRows, workDetail }) {
+		yield* outcomes([
+			[
+				"detail",
+				() => workDetail(),
+				expect.objectContaining({ document: expect.stringContaining("Task details"), summary: expect.stringContaining("Read evidence") }),
+			],
+			["rows", () => tableRows(), [expect.objectContaining({ id: "task.fixture" })]],
+		]);
+	},
+);
+
+const OUTSIDE = "/_board/work?view=board&item=question.fixture&q=task";
+screenStory.it(
+	"An answer being written in the selected work keeps its text and selection when the Work projection refreshes",
+	[routedScreen(files, OUTSIDE, { writable: true })],
+	function* ({ refreshQuery, selectText, typeText, workDetail, workDetailAnswer }) {
+		yield* typeText("#work-detail #response-form textarea", "Keep my answer");
+		yield* selectText("#work-detail #response-form textarea", 5, 7);
+		yield* outcomes([
+			["answer", () => workDetailAnswer(), { selection: [5, 7], value: "Keep my answer" }],
+			["notice", () => workDetail(), expect.objectContaining({ notice: "This selected item is outside the current board or filters." })],
+		]);
+
+		yield* refreshQuery("work", { url: OUTSIDE });
+
+		expect(yield* workDetailAnswer()).toEqual({ selection: [5, 7], value: "Keep my answer" });
 	},
 );

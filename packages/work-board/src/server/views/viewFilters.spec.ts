@@ -5,17 +5,24 @@ const tasks = projectFiles({
 	"missing.md": "---\nid: missing\nkind: task\n---\n# No owner",
 	"owned.md": "---\nid: owned\nkind: task\nowner: marvin\n---\n# Owned task",
 });
-boardStory.it("distinguishes missing owners from a canonical owner and preserves selection outside a filter", [tasks], function* ({ rpc }) {
-	const absent = yield* rpc((client) => client("work-board.work", { url: "/_board/work?view=table&owner=missing" }));
-	expect(absent.rows.map((row) => row.id)).toEqual(["missing"]);
-	const literal = yield* rpc((client) => client("work-board.work", { url: "/_board/work?view=table&owner=value%3Amarvin&item=missing" }));
-	expect(literal.rows.map((row) => row.id)).toEqual(["owned"]);
-	expect(literal.selected?.file).toBe("missing.md");
-	expect(literal.selectedOutside).toBe(true);
+
+for (const [filter, url, rows] of [
+	["the missing owner", "/_board/work?view=table&owner=missing", ["missing"]],
+	["the owner value marvin", "/_board/work?view=table&owner=value%3Amarvin", ["owned"]],
+] as const) {
+	boardStory.it(`filtering Work by ${filter} lists only ${rows.join(", ")}`, [tasks], function* ({ workRowIds }) {
+		expect(yield* workRowIds(url)).toEqual(rows);
+	});
+}
+
+boardStory.it("an item selected outside the owner filter stays selected and is marked as outside it", [tasks], function* ({ workSelection }) {
+	expect(yield* workSelection("/_board/work?view=table&owner=value%3Amarvin&item=missing")).toEqual({ file: "missing.md", outsideFilter: true });
 });
-boardStory.it("bounds search text and normalizes unknown views and sorting at the HTTP contract", [tasks], function* ({ rpc }) {
-	const work = yield* rpc((client) => client("work-board.work", { url: `/_board/work?view=unknown&sort=mtime&q=${"a".repeat(500)}` }));
-	expect(work.state.view).toBe("now");
-	expect(work.state.sort).toBe("title");
-	expect(work.state.query).toBe("a".repeat(200));
+
+boardStory.it("an unknown view and sort fall back to Now and title, and a 500-character search keeps 200", [tasks], function* ({ workState }) {
+	expect(yield* workState(`/_board/work?view=unknown&sort=mtime&q=${"a".repeat(500)}`)).toMatchObject({
+		query: "a".repeat(200),
+		sort: "title",
+		view: "now",
+	});
 });

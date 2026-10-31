@@ -1,4 +1,5 @@
 import { flightsOf, goalsOf, goalTitlesOf } from "#answers.ts";
+import { areasOf } from "#areasOf.ts";
 import { refusedLine, silentLine } from "#lines.ts";
 import { isRecord, type RpcExit, type RpcInit, type RpcReply, readExits, records, rpcInit, text } from "#rpc.ts";
 import type { WorkboardAsk, WorkboardBlock, WorkboardBoard } from "#types/index.d.ts";
@@ -35,6 +36,7 @@ function snapshot(exits: Exits, now: number): WorkboardBoard {
 	const overview = answerTo(exits, "overview");
 	const titles = goalTitlesOf(isRecord(overview) ? overview.goals : undefined);
 	return {
+		areas: block(exits, "overview", (value) => areasOf(isRecord(value) ? value.fleet : undefined)),
 		asks: block(exits, "inbox", (value) => asksOf(value, url)),
 		flights: block(exits, "overview", (value) => flightsOf(isRecord(value) ? value.fleet : undefined, now, titles)),
 		goals: block(exits, "overview", (value) => goalsOf(isRecord(value) ? value.goals : undefined)),

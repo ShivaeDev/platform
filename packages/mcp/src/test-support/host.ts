@@ -51,7 +51,7 @@ const startHost = Effect.fnUntraced(function* (inProcess: boolean) {
 		trustedOrigins: [baseUrl],
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, { roles: Roles });
+	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: Roles });
 	const oauth = yield* betterAuthMcp({
 		auth: mounted.auth,
 		...(inProcess ? { jwks: () => mounted.auth.api.getJwks() } : {}),

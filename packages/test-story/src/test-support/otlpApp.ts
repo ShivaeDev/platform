@@ -1,8 +1,9 @@
-import { Effect, Exit, Layer, ManagedRuntime, Scope, Tracer } from "effect";
+import { type Duration, Effect, Exit, Layer, ManagedRuntime, Scope, Tracer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
 import { type OtlpSpan, otlpReceiver } from "#otlpReceiver.ts";
 import { storyKit } from "#storyKit.ts";
+import { background } from "./attempt.ts";
 import { bytesInWords } from "./httpClient.ts";
 
 const exportWork = Effect.gen(function* () {
@@ -65,28 +66,40 @@ export function otlpApp(protobuf: boolean) {
 		inspect: ({ receiver }) => receiver.spans.map(({ name }) => name),
 		name: protobuf ? "protobuf traces" : "JSON traces",
 		stages: ["ready"],
-		verbs: ({ receiver, runtime, traced }, story) => ({
-			exportedSpan: (name: string) => Effect.sync(() => exported(receiver, name)),
-			exportedSpanIds: (name: string) =>
-				Effect.sync(() => {
-					const { parentSpanId, spanId, traceId } = exported(receiver, name);
-					return { parentSpanId, spanId, traceId };
-				}),
-			exportedSpanNames: () => Effect.sync(() => receiver.spans.map(({ name }) => name).sort()),
-			exportRequests: () =>
-				Effect.sync(() =>
-					receiver.requests.map(({ headers, path }) => `${path} as ${headers["content-type"]} with token "${headers["x-collector-token"]}"`),
-				),
-			exportsCarrying: (text: string) => Effect.sync(() => receiver.requests.filter(({ body }) => body.includes(Buffer.from(text))).length),
-			exportsItsWork: () =>
-				Effect.promise(async () => {
-					story.tell("the application traces work, traces a failure and shuts down its runtime");
-					traced.ids = await runtime.runPromise(exportWork);
-					await runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore));
-					await runtime.dispose();
-				}),
-			tracedIds: () => Effect.sync(() => traced.ids),
-		}),
+		verbs: ({ receiver, runtime, traced }, story) => {
+			const running = background();
+			return {
+				exportedSpan: (name: string) => Effect.sync(() => exported(receiver, name)),
+				exportedSpanIds: (name: string) =>
+					Effect.sync(() => {
+						const { parentSpanId, spanId, traceId } = exported(receiver, name);
+						return { parentSpanId, spanId, traceId };
+					}),
+				exportedSpanNames: () => Effect.sync(() => receiver.spans.map(({ name }) => name).sort()),
+				exportRequests: () =>
+					Effect.sync(() =>
+						receiver.requests.map(({ headers, path }) => `${path} as ${headers["content-type"]} with token "${headers["x-collector-token"]}"`),
+					),
+				exportsCarrying: (text: string) => Effect.sync(() => receiver.requests.filter(({ body }) => body.includes(Buffer.from(text))).length),
+				exportsItsWork: () =>
+					Effect.promise(async () => {
+						story.tell("the application traces work, traces a failure and shuts down its runtime");
+						traced.ids = await runtime.runPromise(exportWork);
+						await runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore));
+						await runtime.dispose();
+					}),
+				finished: running.finished,
+				startsWaitingForSpan: (name: string) =>
+					running.starts(
+						name,
+						receiver.untilSpan((span) => span.name === name, { name: `exported ${name} span` }),
+						(span) => span.name,
+					),
+				tracedIds: () => Effect.sync(() => traced.ids),
+				waitsForSpan: (name: string, timeout: Duration.Input = "5 seconds") =>
+					receiver.untilSpan((span) => span.name === name, { name: `exported ${name} span`, timeout }),
+			};
+		},
 	});
 }
 

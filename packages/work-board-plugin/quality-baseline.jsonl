@@ -2,7 +2,6 @@
 {"path":"packages/work-board-plugin/src/board.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board-plugin/src/boardTools.ts","rule":"effect/boundary","count":10}
 {"path":"packages/work-board-plugin/src/boardTools.unit.test.ts","rule":"effect/boundary","count":4}
-{"path":"packages/work-board-plugin/src/claude-code.d.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board-plugin/src/claude-code.d.ts","rule":"effect/boundary","count":7}
 {"path":"packages/work-board-plugin/src/connect.ts","rule":"effect/boundary","count":10}
 {"path":"packages/work-board-plugin/src/findBoard.ts","rule":"code/unused","count":1}

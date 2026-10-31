@@ -1,4 +1,4 @@
-import { symlinkSync, truncateSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { folder, startBoard } from "./board.ts";
@@ -30,12 +30,6 @@ export const visualWorkspace = Effect.fn("Test.visualWorkspace")(function* () {
 	return {
 		board,
 		get: (path: string) => fetch(`${board.url}${path}`),
-		outsideLinks: () => {
-			symlinkSync(join(outside.root, "outside.png"), join(notes.root, "shots/leak.png"));
-			symlinkSync(outside.root, join(notes.root, "reference"));
-		},
-		oversize: () => truncateSync(join(notes.root, "shots/second.png"), 16 * 1024 * 1024 + 1),
-		replaceImage: () => writeFileSync(join(notes.root, "shots/second.png"), Buffer.concat([SCREENSHOT, Buffer.from("Updated")])),
 	};
 });
 

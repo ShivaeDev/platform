@@ -60,4 +60,5 @@
 {"path":"packages/quality/src/rules/suppressions/biomeOverrides.ts","rule":"effect/boundary","count":3}
 {"path":"packages/quality/src/rules/suppressions/biomeRecommended.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/rules/suppressions/noInline.ts","rule":"effect/boundary","count":6}
+{"path":"packages/quality/src/test-support/exceptionConfigStory.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/boundary","count":5}

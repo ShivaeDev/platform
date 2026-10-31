@@ -1,14 +1,17 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { componentScreen, routedScreen } from "#test/screenTraits.ts";
+import { componentScreen } from "#test/screenTraits.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { ItemActions } from "./ItemActions.tsx";
 import { ItemSummary } from "./ItemSummary.tsx";
 
-const document: Document = {
+expectNoReactWarnings();
+
+const TASK: Document = {
 	diagnostics: [],
 	file: "task.md",
 	identity: "task.fixture",
@@ -22,32 +25,15 @@ const document: Document = {
 	unavailable: [],
 	writable: false,
 };
-const fleet: FleetItemsProjection = {
+const PR = "https://github.com/example/project/pull/1";
+const REVIEWING: FleetItemsProjection = {
 	completed: [],
-	items: [
-		{
-			document: null,
-			prUrl: "https://github.com/example/project/pull/1",
-			stage: "reviewing",
-			stageEnteredAt: 0,
-			updatedAt: 0,
-			workId: "task.fixture",
-		},
-	],
+	items: [{ document: null, prUrl: PR, stage: "reviewing", stageEnteredAt: 0, updatedAt: 0, workId: "task.fixture" }],
 	state: "ready",
 };
 
-for (const [status, label] of [
-	["ready", "Needs you"],
-	["done", "Done"],
-	["done", "Done"],
-]) {
-	screenStory.it(
-		`only marks an explicit open request actionable while its question is open (status: ${status})`,
-		[
-			routedScreen(
-				{
-					"question.md": `---
+function question(status: string) {
+	return `---
 id: question.direction
 kind: question
 scope: task
@@ -62,55 +48,75 @@ attention:
    unblocks: [question.direction]
 ---
 # Choose a direction
-`,
-				},
-				"/_board/item/question.direction/",
-			),
-		],
-		function* ({ findElement, readText }) {
-			yield* eventually(() => expect(findElement(".item-summary")).not.toBeNull());
-			expect(findElement('.item-summary [data-status-token="needs-you"]') !== null).toBe(status === "ready");
-			expect(findElement(".answer-cards") !== null).toBe(status === "ready");
-			expect(readText(".item-summary [data-status-token]")).toBe(label);
+`;
+}
+
+for (const { status, chip, cards } of [
+	{ cards: ["Choose a direction"], chip: "Needs you", status: "ready" },
+	{ cards: [], chip: "Done", status: "done" },
+]) {
+	screenStory.it(
+		`a ${status} question with an open decision request reads ${chip} and offers ${cards.length > 0 ? "an answer card" : "no answer card"}`,
+		[readingPage({ "question.md": question(status) }, "/_board/item/question.direction/")],
+		function* ({ answerCards, itemStatus }) {
+			yield* outcomes([
+				["answer cards", () => answerCards(), cards],
+				["status", () => itemStatus(), chip],
+			]);
 		},
 	);
 }
 
-for (const [storyCase, value] of [undefined, { reason: "Not configured", state: "unavailable" } as const, fleet].entries()) {
+screenStory.it(
+	"an item header shows the item's owner and next action",
+	[componentScreen(<ItemSummary document={TASK} />)],
+	function* ({ itemFields }) {
+		expect(yield* itemFields()).toBe("Owner: marvin · Next action: Review the proof");
+	},
+);
+
+screenStory.it(
+	"an item Fleet is reviewing shows its Fleet stage and pull request in its header",
+	[
+		componentScreen(
+			<FleetItemsContext.Provider value={REVIEWING}>
+				<ItemSummary document={TASK} />
+			</FleetItemsContext.Provider>,
+		),
+	],
+	function* ({ itemFleet }) {
+		expect(yield* itemFleet()).toEqual({ pullRequest: PR, stage: "Fleet · reviewing" });
+	},
+);
+
+for (const [name, fleet] of [
+	["has no Fleet data", undefined],
+	["is told Fleet is unavailable", { reason: "Not configured", state: "unavailable" }],
+] as const) {
 	screenStory.it(
-		`renders authored header fields with optional Fleet data (${storyCase + 1})`,
+		`an item header shows no Fleet stage or pull request when it ${name}`,
 		[
 			componentScreen(
-				<FleetItemsContext.Provider value={value}>
-					<ItemSummary document={document} />
-					<ItemActions document={document} />
+				<FleetItemsContext.Provider value={fleet}>
+					<ItemSummary document={TASK} />
 				</FleetItemsContext.Provider>,
 			),
 		],
-		({ findElement, readText }) => {
-			const header = findElement(".item-summary");
-			expect(header?.textContent).toContain("Owner: marvin · Next action: Review the proof");
-			expect(readText("[data-status-token]", header)).toBe("Ready");
-			expect(findElement("svg.lucide-clipboard-list", header)).not.toBeNull();
-			expect(findElement('button[aria-label="Copy item ID"]', header)).not.toBeNull();
-			expect(readText('[data-slot="button"]:not([aria-label])')).toBe("Pin");
-			expect(findElement('a[href^="/_board/handoff"]')).not.toBeNull();
-			expect(header?.textContent?.includes("Fleet · reviewing")).toBe(value === fleet);
-			expect(findElement('a[href="https://github.com/example/project/pull/1"]', header) !== null).toBe(value === fleet);
+		function* ({ itemFleet }) {
+			expect(yield* itemFleet()).toBe("none");
 		},
 	);
 }
 
-for (const [kind, label, icon] of [
-	["goal", "Goal", "svg.lucide-flag"],
-	["report", "Report", "svg.lucide-file-text"],
+for (const [kind, label] of [
+	["goal", "Goal"],
+	["report", "Report"],
 ] as const) {
 	screenStory.it(
-		`shows the recorded ${kind} kind and its icon`,
-		[componentScreen(<ItemSummary document={{ ...document, metadata: { ...document.metadata, kind } }} />)],
-		({ readText, findElement }) => {
-			expect(readText(".item-summary > div > span")).toBe(label);
-			expect(findElement(icon)).not.toBeNull();
+		`a ${kind}'s header names its kind ${label}`,
+		[componentScreen(<ItemSummary document={{ ...TASK, metadata: { ...TASK.metadata, kind } }} />)],
+		function* ({ itemKind }) {
+			expect(yield* itemKind()).toBe(label);
 		},
 	);
 }

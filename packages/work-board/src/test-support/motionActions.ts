@@ -44,17 +44,9 @@ export function motionActions(engine: ScreenEngine, tell: (line: string) => void
 			tell("the reader reads the restoration status");
 			return engine.readingStatus;
 		},
-		readScrollAnchoring: () => {
-			tell("the reader checks browser scroll anchoring");
-			return document.documentElement.style.overflowAnchor;
-		},
 		readScrollPosition: () => {
 			tell("the reader checks the scroll position");
 			return window.scrollY;
-		},
-		rememberHistory: (state: unknown) => {
-			tell("the browser retains the current history entry");
-			window.history.replaceState(state, "");
 		},
 		setScrollPosition: (position: number) => {
 			tell(`the reader scrolls to ${position}`);
