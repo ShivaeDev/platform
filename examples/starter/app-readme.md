@@ -38,6 +38,12 @@ The Quality baseline only goes down. Use `pnpm baseline write --rule <id> --file
 
 With a clean Git working tree, run `pnpm dlx @shivaedev/create-app@latest update` from this app to merge later template changes while preserving your edits and deleted files. Review the changes and any listed Git conflicts, run `pnpm install`, and commit them yourself; `.create-app.json` records the generator version after a successful merge.
 
+### Auth schema changes
+
+Numbered auth migrations contain frozen SQL. After changing `src/server/authOptions.ts` or the default role, follow identity's [frozen migration workflow](https://github.com/ShivaeDev/platform/tree/main/packages/identity#frozen-auth-migrations): apply the existing migrations to a disposable PostgreSQL database, generate the next module with `generateBetterAuthMigration`, then review and commit its SQL. Register the generated file in `boundaries/auth-sql`'s `options.owners` in `quality.config.ts`. Run `pnpm migrate` to apply it. Keep earlier migrations unchanged.
+
+The auth migration stories call `assertBetterAuthSchema` after all numbered migrations, so missing schema changes fail with their names. A migration calling Better Auth's `getMigrations` or identity's `migrateBetterAuth` live is not frozen; option changes and Better Auth upgrades can change its DDL.
+
 ## Build and deploy
 
 ```sh

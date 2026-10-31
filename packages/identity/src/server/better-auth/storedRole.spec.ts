@@ -1,5 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { signedInWithRole, storedRole } from "#test/better-auth/storedRole.ts";
 
 storedRole.it("alice's declared operator role supplies her grants to the RPC handler", [signedInWithRole("operator")], function* ({ profile }) {
@@ -30,8 +31,14 @@ storedRole.it(
 	function* ({ removeRole, profile, recordedLogs }) {
 		yield* removeRole();
 
-		expect(yield* profile()).toBe("failed with forbidden");
-		expect(JSON.stringify(yield* recordedLogs())).toContain("Run migrateBetterAuth with defaultRole");
+		yield* outcomes([
+			["RPC refusal", () => profile(), "failed with forbidden"],
+			[
+				"migration guidance",
+				() => recordedLogs(),
+				expect.arrayContaining([expect.arrayContaining([expect.stringContaining("Generate and apply an auth migration with defaultRole")])]),
+			],
+		]);
 	},
 );
 
