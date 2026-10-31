@@ -2,6 +2,16 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { clockReadsTenSeconds, httpClient, remoteAnswers } from "#test/http-client/story.ts";
 
+httpClient.it(
+	"a remote 503 names the status, method, host and path without the query, headers or body in its failure message",
+	[remoteAnswers(HttpStatus.fromLiteral("ServiceUnavailable"), { "x-private-header": "header-secret" })],
+	function* ({ failureMessage, post, remoteHost }) {
+		yield* post();
+
+		expect(yield* failureMessage()).toBe(`HTTP 503: POST ${yield* remoteHost()}/answer`);
+	},
+);
+
 for (const [status, outcome] of [
 	[HttpStatus.fromLiteral("Unauthorized"), "unauthorized"],
 	[HttpStatus.fromLiteral("NotFound"), "not found"],

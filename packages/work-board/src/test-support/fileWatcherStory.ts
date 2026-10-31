@@ -6,6 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type Change, type Changes, watchChanges } from "#server/files/changes.ts";
 import { searchSnapshot } from "#server/search/snapshot.ts";
 import { type Folder, folder } from "./board.ts";
+import { readinessEvents } from "./readinessEvents.ts";
 import { watcherIndexVerbs } from "./watcherIndexVerbs.ts";
 
 export interface WatcherEngine {
@@ -51,13 +52,13 @@ export const fileWatcherStory = storyKit({
 						}
 						return yield* fs.stat(path);
 					}),
-				watch: (_path: string, options?: FileSystem.WatchOptions) => {
+				watch: (path: string, options?: FileSystem.WatchOptions) => {
 					if (!options?.recursive) {
 						return Stream.never;
 					}
 					engine.starts += 1;
-					engine.watchedPaths.push(_path);
-					return Stream.fromPubSub(engine.input);
+					engine.watchedPaths.push(path);
+					return Stream.merge(readinessEvents(fs, path, options), Stream.fromPubSub(engine.input));
 				},
 			};
 			engine.changes = yield* watchChanges(engine.notes.root).pipe(Effect.provideService(FileSystem.FileSystem, boundary));

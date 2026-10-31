@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/admin",
-	"version": "0.11.1",
+	"version": "0.12.1",
 	"description": "Explicit admin page contracts and a protected native Effect RPC registry",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/admin#readme",
 	"bugs": {
@@ -53,8 +53,7 @@
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
-		"@shivaedev/react": "workspace:*",
-		"@shivaedev/sql": "workspace:*"
+		"@shivaedev/react": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",

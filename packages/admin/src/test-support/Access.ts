@@ -1,6 +1,7 @@
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { AssignRoles, ReadJobs, ReadUsers, RetryJobs } from "#permissions.ts";
+import { AssignRoles } from "@shivaedev/access/roles.ts";
+import { ReadJobs, ReadUsers, RetryJobs } from "#permissions.ts";
 
 export const Access = roleSet(
 	role("user", []),

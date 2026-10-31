@@ -7,7 +7,10 @@ import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { foundation } from "#modules.ts";
 
-const AdminJobs = makePgBoss("app/AdminJobs");
+const AdminJobs = makePgBoss(
+	"app/AdminJobs",
+	foundation.queues.map(({ name }) => name),
+);
 
 export function foundationRegistration(queues: readonly QueueDefinition[]) {
 	return {

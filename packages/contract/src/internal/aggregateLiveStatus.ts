@@ -9,6 +9,9 @@ export function aggregateLiveStatus(values: readonly LiveStatus<unknown>[]): Liv
 	if (values.some((value) => value.connection === "reconnecting")) {
 		connection = "reconnecting";
 	}
+	if (values.some((value) => value.connection === "failed")) {
+		connection = "failed";
+	}
 	return {
 		connection,
 		failure: values.find((value) => Option.isSome(value.failure))?.failure ?? Option.none(),

@@ -3,6 +3,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { act } from "react";
 import { vi } from "vitest";
+import { LastRoleAssigner } from "@shivaedev/access/roles.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
@@ -12,7 +13,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { UsersView } from "#client/UsersView.ts";
 import { UsersPermission } from "#permissions.ts";
 import { usersPage } from "#users/page.ts";
-import { type ChangeRoleInput, LastRoleAssigner } from "#users/roles.ts";
+import type { ChangeRoleInput } from "#users/roles.ts";
 import { Access } from "./Access.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

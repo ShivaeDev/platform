@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
+import { AssignRoles } from "@shivaedev/access/roles.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
-import { AssignRoles } from "#permissions.ts";
 import { changeUserRole, listUsers } from "#server/users.ts";
 import type { usersPage } from "#users/page.ts";
 

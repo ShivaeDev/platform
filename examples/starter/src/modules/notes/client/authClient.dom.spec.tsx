@@ -27,7 +27,7 @@ screens.it(
 	function* ({ closeScreen, consoleErrors, screenText, click, alert, authRequests }) {
 		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
 		yield* click("Sign out");
-		yield* eventually(() => expect(alert()).toBe("Provider refused sign-out"));
+		yield* eventually(() => expect(alert()).toBe("Could not sign out. Try again."));
 		yield* eventually(() => expect(authRequests().some((url) => url.pathname === "/api/auth/sign-out")).toBe(true));
 		expect(authRequests().every((url) => url.origin === "http://actions.story.test")).toBe(true);
 		yield* closeScreen();
