@@ -13,6 +13,7 @@ ruleStory.it(
 			{ content: "export const app = 1;", path: "src/server/app.test.ts" },
 			{ content: MIGRATION, path: "src/server/migrations/0001_accounts.ts" },
 			{ content: MIGRATION, path: "src/modules/billing/server/migrations/0002_invoices.ts" },
+			{ content: MIGRATION, path: "src/modules/admin/billing/server/migrations/0002_invoices.ts" },
 			{ content: MIGRATION, path: "src/server/migrations/helpers.ts" },
 			{ content: MIGRATION, path: "src/server/abandoned.ts" },
 		),
