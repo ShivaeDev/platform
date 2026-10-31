@@ -20,7 +20,11 @@ export function aSilentWatcher() {
 			FileSystem.FileSystem,
 			Effect.map(FileSystem.FileSystem, (fs) => ({
 				...fs,
-				watch: () => Stream.never,
+				watch: (_path, options) =>
+					Stream.suspend(() => {
+						options?.onReady?.();
+						return Stream.never;
+					}),
 				writeFileString: (path, data, options) =>
 					fs
 						.writeFileString(path, data, options)

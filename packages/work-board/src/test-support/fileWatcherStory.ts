@@ -55,7 +55,7 @@ export const fileWatcherStory = storyKit({
 					}),
 				watch: (path: string, options?: FileSystem.WatchOptions) => {
 					if (!options?.recursive) {
-						return Stream.never;
+						return fs.watch(path, options);
 					}
 					engine.starts += 1;
 					engine.watchedPaths.push(path);

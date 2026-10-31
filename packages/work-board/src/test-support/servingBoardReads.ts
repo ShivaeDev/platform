@@ -6,8 +6,9 @@ import { Window } from "happy-dom";
 import { boardInit, readBoard } from "@shivaedev/work-board-plugin/board.ts";
 import { answersTo, type Board } from "@shivaedev/work-board-plugin/boardTools.ts";
 import { rpcInit } from "@shivaedev/work-board-plugin/rpc.ts";
+import { fileUrl } from "#files/url.ts";
 import type { Exchange } from "./board.ts";
-import { rpcDocument, rpcWatcher, subscribe } from "./nativeRpc.ts";
+import { rpcCall, rpcDocument, rpcWatcher, subscribe } from "./nativeRpc.ts";
 import { type ServingOptions, startProject } from "./servingEngine.ts";
 import { type LinkTarget, resolvedTarget } from "./servingLinks.ts";
 import { servingObservations } from "./servingObservations.ts";
@@ -83,7 +84,7 @@ export function servingBoardReads(engine: BoardEngine, tell: (line: string) => v
 		}
 		return engine.linked;
 	}
-	// Each live hint is the board announcing that its index moved; the read after it shows whether this change has landed yet.
+	// Watcher status hints can arrive before indexing finishes; completion must come from the index as well as the live document.
 	function changeSeen(line: string, change: (() => void) | Effect.Effect<unknown>, landed: Effect.Effect<boolean, unknown>) {
 		return Effect.scoped(
 			Effect.gen(function* () {
@@ -108,7 +109,11 @@ export function servingBoardReads(engine: BoardEngine, tell: (line: string) => v
 		);
 	}
 	function shows(url: string, source: string) {
-		return Effect.map(documentAt(url), (read) => read === bodyOf(source));
+		return Effect.map(
+			Effect.all([documentAt(url), rpcCall(served(engine).board, (client) => client("work-board.index", undefined))]),
+			([read, index]) =>
+				read === bodyOf(source) && index.documents.find((document) => fileUrl(document.file) === url)?.parsed.body === bodyOf(source),
+		);
 	}
 	function gone(url: string) {
 		return Effect.map(documentAt(url), (read) => read === "not found");

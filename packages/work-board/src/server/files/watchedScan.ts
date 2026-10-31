@@ -1,6 +1,6 @@
-import { Effect, FileSystem, Path, Stream } from "effect";
+import { Deferred, Effect, FileSystem, Path, Queue, Stream } from "effect";
 import { scanMarkdown } from "./list.ts";
-import { watchSentinel } from "./watchSentinel.ts";
+import { watcherEnded, watchSentinel } from "./watchSentinel.ts";
 
 export type WatchRoots = readonly { readonly real: string; readonly relative: string }[];
 
@@ -11,6 +11,16 @@ export interface WatchedFolder {
 	readonly recursive: boolean;
 	readonly relative: string;
 }
+
+const installedWatch = Effect.fn("WorkBoard.installedWatch")(function* (root: string, options?: FileSystem.WatchOptions) {
+	const fs = yield* FileSystem.FileSystem;
+	const ready = yield* Deferred.make<void>();
+	const events = yield* Stream.toQueue(fs.watch(root, { ...options, onReady: () => Deferred.doneUnsafe(ready, Effect.void) }), {
+		capacity: "unbounded",
+	});
+	yield* Effect.raceFirst(Deferred.await(ready), Effect.andThen(Queue.await(events), Effect.fail(watcherEnded())));
+	return Stream.fromQueue(events);
+});
 
 export const folderEvents = Effect.fn("WorkBoard.folderEvents")(function* (folder: WatchedFolder) {
 	const fs = yield* FileSystem.FileSystem;
@@ -24,16 +34,17 @@ export const folderEvents = Effect.fn("WorkBoard.folderEvents")(function* (folde
 });
 
 export const watchedScan = Effect.fn("WorkBoard.watchedScan")(function* (root: string, realRoot: string, unconfirmed?: Effect.Effect<void>) {
-	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const rootEvents = yield* Stream.toQueue(yield* folderEvents({ real: realRoot, recursive: true, relative: "" }), { capacity: "unbounded" });
 	// When writable, scanning only after the root watch reports its own sentinel leaves no change unseen. The removal watch, for a root removed without
 	// descendant events, starts first because adding a watcher restarts macOS's shared event stream and drops the events in between. Linked
 	// folders are watched only once the scan finds them, so their workspace offers no listing and is listed again after those watches settle.
-	const removals = yield* Stream.toQueue(
-		fs.watch(path.dirname(realRoot)).pipe(
-			Stream.filter((event) => event._tag === "Remove" && path.resolve(path.dirname(realRoot), event.path) === realRoot),
-			Stream.map(() => ""),
+	const removals = (yield* installedWatch(path.dirname(realRoot))).pipe(
+		Stream.filter((event) => event._tag === "Remove" && path.resolve(path.dirname(realRoot), event.path) === realRoot),
+		Stream.map(() => ""),
+	);
+	const rootEvents = yield* Stream.toQueue(
+		(yield* installedWatch(realRoot, { recursive: true })).pipe(
+			Stream.map((event) => (path.isAbsolute(event.path) ? path.relative(realRoot, event.path) : event.path).split(path.sep).join("/")),
 		),
 		{ capacity: "unbounded" },
 	);
@@ -42,7 +53,7 @@ export const watchedScan = Effect.fn("WorkBoard.watchedScan")(function* (root: s
 	return {
 		files,
 		listing: roots.length > 1 ? undefined : files,
-		rootEvents: Stream.merge(Stream.fromQueue(rootEvents), Stream.fromQueue(removals)),
+		rootEvents: Stream.merge(Stream.fromQueue(rootEvents), removals),
 		roots,
 	};
 });

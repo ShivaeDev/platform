@@ -24,6 +24,6 @@ export function watchedIndexFilesystem(fs: FileSystem.FileSystem, accesses: Inde
 		realPath: (path) => track(accesses.checks, path, fs.realPath(path)),
 		stat: (path) => track(accesses.checks, path, fs.stat(path)),
 		watch: (path, options) =>
-			options?.recursive ? Stream.merge(readinessEvents(fs, path, options), Stream.fromPubSub(accesses.input)) : Stream.never,
+			options?.recursive ? Stream.merge(readinessEvents(fs, path, options), Stream.fromPubSub(accesses.input)) : fs.watch(path, options),
 	};
 }

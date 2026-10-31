@@ -88,6 +88,14 @@ jobs:
           src/server/http/server.spec.ts
           src/server/http/symlinks.spec.ts
           src/server/rpc/rootRemoval.spec.ts
+      - name: Repeat watcher restart and retarget delivery on macOS
+        run: |
+          for iteration in {1..20}; do
+            echo "Watcher delivery iteration $iteration/20"
+            pnpm --filter @shivaedev/work-board exec vitest run \
+              src/server/files/watchReadiness.spec.ts src/server/http/symlinks.spec.ts \
+              --testNamePattern="an unwritable root warns only once|after the reference link points at another folder, edits there reach search"
+          done
 
   browser-check:
     name: Local browser tool
