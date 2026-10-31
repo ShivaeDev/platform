@@ -35,13 +35,14 @@ sessionsScreen.it(
 );
 
 sessionsScreen.it(
-	"requesting revocation asks for confirmation and leaves the session listed",
+	"requesting revocation focuses the confirmation and leaves the session listed",
 	[sessionsViewOpen],
-	function* ({ requestRevoke, shownSessions, confirmation }) {
+	function* ({ requestRevoke, shownSessions, confirmation, confirmationFocused }) {
 		yield* requestRevoke("bob");
 
 		yield* outcomes({
 			confirmation: [confirmation(), expect.stringContaining("End the session for bob@app.test?")],
+			focused: [confirmationFocused(), true],
 			sessions: [shownSessions(), [alice, bob]],
 		});
 	},

@@ -33,7 +33,7 @@ export const adminSessions = storyKit({
 	},
 	inspect: (engine) => ({ text: engine.view?.container.textContent }),
 	layer: postgres,
-	name: "starter admin sessions",
+	name: "admin sessions page",
 	stages: ["viewer", "screen"],
 	verbs: (engine) => {
 		function driver() {

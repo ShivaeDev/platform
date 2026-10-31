@@ -36,15 +36,17 @@ export const sessionsScreen = storyKit({
 		const driver = driverFor(engine, story.tell);
 		return {
 			alerts: () => Effect.sync(() => [...screenOf(engine).querySelectorAll('[role="alert"]')].map(({ textContent }) => textContent)),
-			cancelRevoke: () => driver.click({ name: "Cancel", role: "button" }),
+			cancelRevoke: () => Effect.andThen(driver.click({ name: "Cancel", role: "button" }), driver.settle()),
 			confirmation: () =>
 				Effect.sync(() => screenOf(engine).querySelector('[aria-label="Confirm session revocation"]')?.textContent ?? "no confirmation"),
+			confirmationFocused: () =>
+				Effect.sync(() => screenOf(engine).querySelector('[aria-label="Confirm session revocation"]') === document.activeElement),
 			confirmRevoke: () => Effect.andThen(driver.click({ name: "Confirm revoke", role: "button" }), driver.settle()),
 			content: () => Effect.sync(() => screenOf(engine).textContent),
 			nextSessions: () => Effect.andThen(driver.click({ name: "Next sessions", role: "button" }), driver.settle()),
 			previousSessions: () => Effect.andThen(driver.click({ name: "Previous sessions", role: "button" }), driver.settle()),
 			refreshSessions: () => Effect.andThen(driver.click({ name: "Refresh sessions", role: "button" }), driver.settle()),
-			requestRevoke: (name: string) => driver.click({ name: `Revoke session for ${name}@app.test`, role: "button" }),
+			requestRevoke: (name: string) => Effect.andThen(driver.click({ name: `Revoke session for ${name}@app.test`, role: "button" }), driver.settle()),
 			revokeElsewhere: engine.revokeElsewhere,
 			shownEmails: () => Effect.sync(() => [...screenOf(engine).querySelectorAll("li")].map((row) => row.querySelectorAll("p")[1]?.textContent)),
 			shownSessions: () =>

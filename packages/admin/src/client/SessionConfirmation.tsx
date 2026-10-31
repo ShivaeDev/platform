@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { SignedInSession } from "@shivaedev/identity/sessions.ts";
 
 export function SessionConfirmation({
@@ -13,11 +14,22 @@ export function SessionConfirmation({
 	readonly onCancel: () => void;
 	readonly onConfirm: (input: { readonly id: string }) => void;
 }) {
+	const confirmationRef = useRef<HTMLFieldSetElement>(null);
+	useEffect(() => {
+		if (selected !== undefined) {
+			confirmationRef.current?.focus();
+		}
+	}, [selected]);
 	if (selected === undefined) {
 		return null;
 	}
 	return (
-		<fieldset aria-label="Confirm session revocation" className="min-w-0 space-y-3 rounded-md border p-4 wrap-anywhere">
+		<fieldset
+			aria-label="Confirm session revocation"
+			className="min-w-0 space-y-3 rounded-md border p-4 wrap-anywhere"
+			ref={confirmationRef}
+			tabIndex={-1}
+		>
 			<p>{`End the session for ${selected.user.email}?${selected.id === currentSessionId ? " This signs you out." : ""}`}</p>
 			<div className="flex flex-wrap gap-3">
 				<button className="rounded-md border px-3 py-2" disabled={pending} onClick={onCancel} type="button">
