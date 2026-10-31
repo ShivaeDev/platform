@@ -50,7 +50,7 @@ export function faultyWatch(): FaultyWatch {
 
 export const silentWatch: FileSystemWrapper = (fs) => ({
 	...fs,
-	watch: (path, options) => (options?.recursive ? readinessEvents(fs, path, options) : Stream.never),
+	watch: (path, options) => (options?.recursive ? readinessEvents(fs, path, options) : fs.watch(path, options)),
 });
 
 export function countingPaths(): { readonly wrap: FileSystemWrapper; readonly visited: readonly string[]; readonly listed: readonly string[] } {
