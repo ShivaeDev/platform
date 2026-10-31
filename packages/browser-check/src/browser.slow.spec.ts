@@ -1,37 +1,54 @@
 import { expect } from "vitest";
-import { browser } from "#test/browser.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { aliceCredentialsSet, browser } from "#test/browser.ts";
 
-browser.it("captures each requested page and reports successful visible-text smoke checks", [], function* ({ run, screenshot, visits }) {
-	const result = yield* run(["--page", "/", "--page", "/notes", "--text", "Local app"]);
+browser.it(
+	"a check of / and /notes visits both pages in order and saves each as a numbered PNG screenshot",
+	[],
+	function* ({ checks, pagesVisited, screenshots }) {
+		yield* checks("--page", "/", "--page", "/notes");
 
-	expect(result.code, result.output).toBe(0);
-	expect(result.output).toContain("smoke passed");
-	expect(visits()).toEqual(expect.arrayContaining(["/", "/notes"]));
-	for (const index of [1, 2]) {
-		const png = screenshot(index);
-		expect([...png.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
-	}
-});
+		yield* outcomes({
+			"pages the app served": [pagesVisited(), ["/", "/notes"]],
+			"screenshots": [screenshots(), ["1.png: a PNG image", "2.png: a PNG image"]],
+		});
+	},
+);
 
-browser.it("signs in with test-user credentials and carries the session to the page", [], function* ({ run, signIns }) {
-	const result = yield* run(["--page", "/account", "--text", "Alice's account"], {
-		"BROWSER_CHECK_EMAIL": "alice@example.com",
-		"BROWSER_CHECK_PASSWORD": "alice-password",
+browser.it("a check whose text shows on every page passes with a smoke pass for each page", [], function* ({ checks, outcome, smokeChecks }) {
+	yield* checks("--page", "/", "--page", "/notes", "--text", "Local app");
+
+	yield* outcomes({
+		"outcome": [outcome(), "passed"],
+		"smoke checks": [smokeChecks(), ["smoke passed (the app/)", "smoke passed (the app/notes)"]],
 	});
-
-	expect(result.code, result.output).toBe(0);
-	expect(signIns()).toEqual([{ email: "alice@example.com", password: "alice-password" }]);
 });
 
-for (const [name, args, output] of [
-	["live notes without disposable-user credentials", ["--live-notes"], "--live-notes requires BROWSER_CHECK_EMAIL and BROWSER_CHECK_PASSWORD"],
-	["unsuccessful HTTP response", ["--page", "/missing"], "returned HTTP 404"],
-	["missing visible text", ["--text", "Text absent from the app"], "Timeout"],
-] as const) {
-	browser.it(`fails a smoke run for ${name}`, [], function* ({ run }) {
-		const result = yield* run(args);
+browser.it(
+	"with alice's credentials set, the check signs in as alice and her session opens her account page",
+	[aliceCredentialsSet()],
+	function* ({ checks, outcome, signIns }) {
+		yield* checks("--page", "/account", "--text", "Alice's account");
 
-		expect(result.code, result.output).not.toBe(0);
-		expect(result.output).toContain(output);
+		yield* outcomes({
+			"outcome": [outcome(), "passed"],
+			"sign-ins": [signIns(), ["alice@example.com with password alice-password"]],
+		});
+	},
+);
+
+for (const [name, args, failure] of [
+	[
+		"live notes without test-user credentials",
+		["--live-notes"],
+		"--live-notes requires BROWSER_CHECK_EMAIL and BROWSER_CHECK_PASSWORD for an existing disposable user.",
+	],
+	["a page that answers HTTP 404", ["--page", "/missing"], "Error: Page the app/missing returned HTTP 404."],
+	["text absent from the page", ["--text", "Text absent from the app"], "TimeoutError: locator.waitFor: Timeout 5000ms exceeded."],
+] as const) {
+	browser.it(`a check of ${name} fails with "${failure}"`, [], function* ({ checks, outcome }) {
+		yield* checks(...args);
+
+		expect(yield* outcome()).toBe(`failed: ${failure}`);
 	});
 }

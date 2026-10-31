@@ -1,29 +1,26 @@
-import { Context, Effect, Layer } from "effect";
-import { expect, it } from "vitest";
+import { Context, Data, Effect, Layer } from "effect";
+import { it } from "vitest";
 import { makeEffectIt } from "#makeEffectIt.ts";
+import { note, releasedOnClose } from "./lifecycleLog.ts";
+
+class StartupFailure extends Data.TaggedError("StartupFailure")<{ readonly message: string }> {}
 
 class Connection extends Context.Service<Connection, string>()("@test/Connection") {}
 
-let releases = 0;
 const { effectApp } = makeEffectIt({
 	layer: Layer.effect(
 		Connection,
 		Effect.gen(function* () {
-			yield* Effect.acquireRelease(Effect.succeed("connection"), () =>
-				Effect.sync(() => {
-					releases += 1;
-				}),
-			);
-			return yield* Effect.fail(new Error("database connection refused during worker startup"));
+			yield* releasedOnClose("the worker's connection");
+			return yield* new StartupFailure({ message: "database connection refused during worker startup" });
 		}),
 	),
 	makeHarness: () => Effect.void,
 });
 
-effectApp("cannot start the application", function* () {
-	yield* Effect.sync(() => expect.unreachable("a failed worker Layer must not run the test body"));
+effectApp("a test of a worker whose Layer fails to start", function* () {
+	yield* Connection;
+	yield* note("the test body ran");
 });
 
-it("releases the acquired connection before the next test", () => {
-	expect(releases).toBe(1);
-});
+it("the test after the failed worker startup", () => Effect.runSync(note("the next test ran")));
