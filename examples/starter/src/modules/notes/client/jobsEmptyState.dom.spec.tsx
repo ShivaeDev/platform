@@ -1,10 +1,10 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { adminScreens, emptyJobsScreen } from "#modules/notes/test-support/admin/screens.tsx";
 
-adminScreens.it("shows an empty state and health with no registered queues", [emptyJobsScreen], function* ({ screenContent }) {
+adminScreens.it("shows an empty state and health with no registered queues", [emptyJobsScreen], function* ({ settle, screenContent }) {
 	const content = yield* screenContent();
-	yield* eventually(() => expect(content.querySelector('[aria-label="Jobs health"]')?.textContent).toContain("Failed0"));
+	yield* settle();
+	expect(content.querySelector('[aria-label="Jobs health"]')?.textContent).toContain("Failed0");
 	expect(content.textContent).toContain("No queues or schedules registered.");
 	expect(content.querySelector("select")).toBeNull();
 	expect(content.querySelector('[aria-label="Queue counts"]')).toBeNull();

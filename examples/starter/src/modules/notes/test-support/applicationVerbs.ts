@@ -8,7 +8,7 @@ import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { authPost, credentials } from "#test-support/authHttp.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
-import type { Engine } from "./applicationState.ts";
+import type { Engine } from "./Engine.ts";
 import { liveVerbs } from "./liveVerbs.ts";
 import { requests } from "./requests.ts";
 import { storedNotes } from "./stored.ts";

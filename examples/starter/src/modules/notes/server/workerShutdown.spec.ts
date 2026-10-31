@@ -1,11 +1,12 @@
 import { Effect, Fiber } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 
 notesDeployment.it(
 	"SIGTERM lets an active CountWords job finish before the worker exits cleanly",
 	[],
-	function* ({ startProcess, signUpAt, notesAt, holdJob }) {
+	function* ({ startProcess, signUpAt, notesAt, holdJob, workerPollPasses }) {
 		const release = { "RAILWAY_GIT_COMMIT_SHA": "shutdown" };
 		const migration = yield* startProcess("migrate", 0, release);
 		expect(yield* migration.child.exitCode).toBe(0);
@@ -19,12 +20,14 @@ notesDeployment.it(
 		yield* worker.ready;
 		yield* held.blocked;
 		const stopping = yield* worker.child.kill().pipe(Effect.forkScoped);
-		yield* Effect.sleep("1200 millis");
+		yield* workerPollPasses();
 		expect(yield* worker.child.isRunning).toBe(true);
 		yield* held.release;
 		yield* Fiber.join(stopping);
-		expect(yield* worker.child.exitCode).toBe(0);
-		expect(yield* notes["notes.get"]({ id: note.id })).toMatchObject({ wordCount: 3 });
+		yield* outcomes({
+			"finished note": [notes["notes.get"]({ id: note.id }), expect.objectContaining({ wordCount: 3 })],
+			"worker exit code": [worker.child.exitCode.pipe(Effect.map(Number)), 0],
+		});
 	},
 	3 * 20_000 + 40_000,
 );

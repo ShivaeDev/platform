@@ -5,8 +5,9 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import type { Credentials } from "#client/auth.ts";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import type { appAuth } from "#test-support/appAuth.ts";
+import type { ScreenSurface } from "#test-support/screenState.ts";
 
-export interface Screen {
+export interface Screen extends ScreenSurface {
 	auth: ReturnType<typeof appAuth> | undefined;
 	client: Effect.Success<ReturnType<typeof notesClient>>;
 	consoleErrors: () => readonly (readonly unknown[])[];

@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
+import { requestOutcome } from "#test-support/requestOutcome.ts";
 
 adminHost.it(
 	"serves admin routes and guarded native jobs data through the development server",
@@ -14,17 +16,25 @@ adminHost.it(
 		for (const name of ["visitor", "reader", "reader-two"]) {
 			const client = yield* openAdmin(name);
 			for (const operation of [
-				Effect.result(client["admin.jobs.counts"]({ queue: "count-note-words" })),
-				Effect.result(client["admin.notes.statistics"]()),
-				Effect.result(client["admin.users.list"]({ limit: 20 })),
+				requestOutcome(client["admin.jobs.counts"]({ queue: "count-note-words" })),
+				requestOutcome(client["admin.notes.statistics"]()),
+				requestOutcome(client["admin.users.list"]({ limit: 20 })),
 			]) {
 				const result = yield* operation;
-				expect(result._tag === "Failure" && result.failure._tag, JSON.stringify(result)).toBe(name === "visitor" ? "Unauthorized" : "Forbidden");
+				expect(result).toBe(name === "visitor" ? "sign in required" : "permission denied");
 			}
 		}
 		const client = yield* openAdmin("operator");
-		expect(yield* client["admin.jobs.counts"]({ queue: "count-note-words" })).toMatchObject({ queuedCount: 1, totalCount: 1 });
-		expect((yield* client["admin.users.list"]({ limit: 20 })).users.map(({ email }) => email)).toContain("operator@app.test");
-		expect(yield* client["admin.notes.statistics"]()).toEqual({ notes: 1, pending: 1, words: 0 });
+		yield* outcomes({
+			"listed user emails": [
+				Effect.map(client["admin.users.list"]({ limit: 20 }), ({ users }) => users.map(({ email }) => email)),
+				expect.arrayContaining(["operator@app.test"]),
+			],
+			"note statistics": [client["admin.notes.statistics"](), { notes: 1, pending: 1, words: 0 }],
+			"queued word-count jobs": [
+				client["admin.jobs.counts"]({ queue: "count-note-words" }),
+				expect.objectContaining({ queuedCount: 1, totalCount: 1 }),
+			],
+		});
 	},
 );

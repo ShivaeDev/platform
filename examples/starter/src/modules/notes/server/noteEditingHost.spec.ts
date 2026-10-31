@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it(
@@ -9,15 +10,24 @@ app.it(
 	function* ({ actor, storedNotes, collector }) {
 		const { notes: client } = actor();
 		const original = yield* client.create({ title: "Original" });
-		expect(original).toMatchObject({ version: 0 });
-		expect(yield* client.get({ id: original.id })).toEqual(original);
+		yield* outcomes({
+			"get": [client.get({ id: original.id }), original],
+			"original": [Effect.sync(() => original), expect.objectContaining({ version: 0 })],
+		});
 		const saved = yield* client.update({ ...original, title: "Saved note" });
 		expect(saved).toEqual({ ...original, title: "Saved note", version: 1 });
 		const before = yield* storedNotes();
-		expect(yield* client.update({ ...original, title: "Stale draft" }).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
-		expect(yield* storedNotes()).toEqual(before);
-		expect(yield* client.delete({ id: original.id, version: original.version }).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
-		expect(yield* storedNotes()).toEqual(before);
+		const staleEdit = yield* client.update({ ...original, title: "Stale draft" }).pipe(Effect.flip);
+		yield* outcomes({
+			"edit rejection": [Effect.succeed(staleEdit), expect.objectContaining({ _tag: "Conflict" })],
+			"saved notes": [storedNotes(), before],
+		});
+		const staleDelete = yield* client.delete({ id: original.id, version: original.version }).pipe(Effect.flip);
+		yield* outcomes({
+			"delete rejection": [Effect.succeed(staleDelete), expect.objectContaining({ _tag: "Conflict" })],
+			"saved notes": [storedNotes(), before],
+		});
+
 		const receiver = yield* collector();
 		const stopWorker = yield* receiver.startWorker();
 		yield* Effect.promise(() =>
@@ -32,10 +42,12 @@ app.it(
 		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1, 1]);
 		const counted = yield* client.get({ id: saved.id });
 		yield* client.delete({ id: counted.id, version: counted.version });
-		expect(yield* client.list()).toEqual([]);
-		expect(yield* client.get({ id: saved.id }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
-		expect(yield* client.update({ ...saved, title: "Missing" }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
-		expect(yield* client.delete({ id: saved.id, version: saved.version }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
+		yield* outcomes({
+			"delete": [client.delete({ id: saved.id, version: saved.version }).pipe(Effect.flip), expect.objectContaining({ _tag: "NotFound" })],
+			"get": [client.get({ id: saved.id }).pipe(Effect.flip), expect.objectContaining({ _tag: "NotFound" })],
+			"list": [client.list(), []],
+			"update": [client.update({ ...saved, title: "Missing" }).pipe(Effect.flip), expect.objectContaining({ _tag: "NotFound" })],
+		});
 	},
 );
 
@@ -46,9 +58,11 @@ app.it(
 		const { notes: alice } = actor();
 		const original = yield* alice.create({ title: "Alice's note" });
 		const bob = actor("bob").notes;
-		expect(yield* bob.get({ id: original.id }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
-		expect(yield* bob.update({ ...original, title: "Another account" }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
-		expect(yield* bob.delete({ id: original.id, version: original.version }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
+		yield* outcomes({
+			"bob delete": [bob.delete({ id: original.id, version: original.version }).pipe(Effect.flip), expect.objectContaining({ _tag: "NotFound" })],
+			"bob get": [bob.get({ id: original.id }).pipe(Effect.flip), expect.objectContaining({ _tag: "NotFound" })],
+			"bob update": [bob.update({ ...original, title: "Another account" }).pipe(Effect.flip), expect.objectContaining({ _tag: "NotFound" })],
+		});
 		const signedOut = yield* anonymous();
 		const signedOutRead = yield* signedOut.get({ id: original.id }).pipe(Effect.flip);
 		expect(signedOutRead).toMatchObject({ _tag: "Unauthorized" });
@@ -57,8 +71,10 @@ app.it(
 		expect(signedOutUpdate).toMatchObject({ _tag: "Unauthorized" });
 		expect(signedOutUpdate).toBeInstanceOf(Unauthorized);
 		const signedOutDelete = yield* signedOut.delete({ id: original.id, version: original.version }).pipe(Effect.flip);
-		expect(signedOutDelete).toMatchObject({ _tag: "Unauthorized" });
-		expect(signedOutDelete).toBeInstanceOf(Unauthorized);
-		expect(yield* alice.get({ id: original.id })).toEqual(original);
+		yield* outcomes({
+			"alice get": [alice.get({ id: original.id }), original],
+			"signed-out deletion error": [Effect.sync(() => signedOutDelete), expect.objectContaining({ _tag: "Unauthorized" })],
+			"signed-out deletion error class": [Effect.sync(() => signedOutDelete), expect.any(Unauthorized)],
+		});
 	},
 );

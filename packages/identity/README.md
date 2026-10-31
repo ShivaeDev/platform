@@ -107,7 +107,7 @@ const authentication = Effect.gen(function* () {
 });
 ```
 
-`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. The adapter also works with Better Auth’s `getMigrations`; create it inside a SQL transaction when auth writes must commit or roll back with application writes. The application SQL Layer owns shutdown.
+`betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Use `migrateBetterAuth(options)` from `@shivaedev/identity/server/better-auth/migrate.ts` for the auth schema migration. It takes Better Auth options without a database and reads the SQL service itself. Create the database adapter inside a SQL transaction when auth writes must commit or roll back with application writes. The application SQL Layer owns shutdown.
 
 Run this Effect in the host's scope; the application SQL Layer manages its connections. A rejected auth handler returns HTTP 503 with `Authentication is temporarily unavailable`.
 

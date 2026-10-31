@@ -15,6 +15,11 @@ function Title<A, E, TRuntimeError>({ form }: { readonly form: Form<typeof NoteE
 	const title = useField(form, "title");
 	const titleId = useId();
 	const errorId = useId();
+	const titleError = Boolean(title.error) && (
+		<p className="text-destructive text-sm" id={errorId} role="alert">
+			{title.error}
+		</p>
+	);
 	return (
 		<div className="space-y-2">
 			<label className="block text-sm font-medium" htmlFor={titleId}>
@@ -28,11 +33,7 @@ function Title<A, E, TRuntimeError>({ form }: { readonly form: Form<typeof NoteE
 				onChange={(event) => title.onChange(event.target.value)}
 				value={title.value}
 			/>
-			{Boolean(title.error) && (
-				<p className="text-destructive text-sm" id={errorId} role="alert">
-					{title.error}
-				</p>
-			)}
+			{titleError}
 		</div>
 	);
 }
@@ -66,6 +67,12 @@ export function NoteEdit({
 		}
 		return "Could not save the note. Try again.";
 	});
+	const loadFailure = Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>;
+	const saveFailure = Option.isSome(failure) && (
+		<p className="text-destructive text-sm" role="alert">
+			{failure.value}
+		</p>
+	);
 	return (
 		<main className="mx-auto w-full max-w-2xl space-y-6 px-4 py-12 sm:px-6">
 			<Link className="underline" to="/">
@@ -75,7 +82,7 @@ export function NoteEdit({
 			<Button disabled={editor.query.pending} onClick={editor.query.refresh} variant="outline">
 				Refresh
 			</Button>
-			{Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>}
+			{loadFailure}
 
 			<form
 				className="bg-card space-y-4 rounded-lg border p-5 shadow-sm"
@@ -88,11 +95,7 @@ export function NoteEdit({
 				<Button disabled={editor.saving} type="submit">
 					{editor.saving ? "Saving…" : "Save note"}
 				</Button>
-				{Option.isSome(failure) && (
-					<p className="text-destructive text-sm" role="alert">
-						{failure.value}
-					</p>
-				)}
+				{saveFailure}
 				<p aria-live="polite" className="text-muted-foreground text-sm">
 					{editor.dirty ? "Unsaved changes" : "All changes saved"}
 				</p>

@@ -24,16 +24,17 @@ export function NoteDelete({
 		}
 	}, [action.data, onDeleted]);
 	const failure = Option.flatMap(action.cause, Cause.findErrorOption);
+	const failureMessage = Option.isSome(failure) && (
+		<p className="text-destructive text-sm" role="alert">
+			{Predicate.isTagged(failure.value, "Conflict") ? failure.value.message : "Could not delete the note. Try again."}
+		</p>
+	);
 	return (
 		<div className="space-y-3">
 			<Button disabled={saving || action.pending} onClick={() => action.dispatch({ id: note.id, version: note.version })} variant="outline">
 				{action.pending ? "Deleting…" : "Delete note"}
 			</Button>
-			{Option.isSome(failure) && (
-				<p className="text-destructive text-sm" role="alert">
-					{Predicate.isTagged(failure.value, "Conflict") ? failure.value.message : "Could not delete the note. Try again."}
-				</p>
-			)}
+			{failureMessage}
 		</div>
 	);
 }

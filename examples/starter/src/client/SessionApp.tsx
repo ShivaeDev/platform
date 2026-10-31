@@ -1,5 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
+import { Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useRef, useState } from "react";
 import { PermissionBoundary } from "@shivaedev/react/client/permissionBoundary.ts";
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
@@ -23,7 +25,11 @@ function RoutedApp({ client, auth, history, session, recheck }: Routing) {
 	const registry = useContext(RegistryContext);
 	const currentRef = useRef(session);
 	currentRef.current = session;
-	const [router] = useState(() => appRouter(registry, client, auth, history, () => currentRef.current, recheck));
+	const [router] = useState(() =>
+		Effect.runSync(
+			appRouter(client, auth, history, () => currentRef.current, recheck).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry)),
+		),
+	);
 	return (
 		<PermissionBoundary
 			fallback={

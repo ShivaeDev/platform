@@ -1,5 +1,7 @@
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, behindProxy } from "#modules/notes/test-support/application.ts";
 
 app.it(
@@ -11,7 +13,14 @@ app.it(
 		expect(result.cookies.some((value) => value.startsWith("__Secure-better-auth.session_token=") && /; Secure(?:;|$)/iv.test(value))).toBe(true);
 		const cookie = result.cookie;
 		const client = yield* notes(cookie);
-		expect(yield* client.list()).toEqual([]);
-		expect((yield* foreignRequest(cookie)).status).toBe(HttpStatus.fromLiteral("Forbidden"));
+		yield* outcomes({
+			"foreign origin response": [
+				Effect.gen(function* () {
+					return (yield* foreignRequest(cookie)).status;
+				}),
+				HttpStatus.fromLiteral("Forbidden"),
+			],
+			"protected notes": [client.list(), []],
+		});
 	},
 );
