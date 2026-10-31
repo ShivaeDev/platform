@@ -1,7 +1,7 @@
 import { mergeAdminRegistries } from "@shivaedev/admin/registry.ts";
-import { foundationPages } from "#foundationPages.ts";
-import { Admin as notesModule } from "#modules/notes/admin.ts";
+import { Admin as notesModule } from "#modules/notes/admin/pages.ts";
 import { noteQueue } from "#modules/notes/queue.ts";
+import { foundationPages } from "./foundationPages.ts";
 
 const modules = [notesModule] as const;
 const queues = [noteQueue] as const;

@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
 
 const WORKSPACE_PIECES = ["@shivaedev/platform", "@shivaedev/quality", "@shivaedev/test-story"];
-const LAUNCHERS = ["src/test-support/adminCommand.ts", "src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"];
+const LAUNCHERS = ["src/test-support/admin/command.ts", "src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"];
 const CONDITION_CONFIGS = ["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"];
 const RENAMED = [
 	["app-agents.md", "AGENTS.md"],

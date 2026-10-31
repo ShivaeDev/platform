@@ -1,5 +1,5 @@
+import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
-import { foundationRegistration } from "./foundationRegistration.tsx";
 import { connectModules } from "./Module.ts";
 
 const modules = [foundationRegistration, notesRegistration] as const;

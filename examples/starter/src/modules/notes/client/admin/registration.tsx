@@ -2,8 +2,8 @@ import { createRoute } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { AdminShell } from "#client/admin/Shell.tsx";
 import type { RouteContext } from "#client/Module.ts";
-import { Admin, StatisticsPage } from "#modules/notes/admin.ts";
-import type { AdminClient } from "./admin.ts";
+import { Admin, StatisticsPage } from "#modules/notes/admin/pages.ts";
+import type { AdminClient } from "./make.ts";
 import { NoteStatisticsView } from "./StatisticsView.tsx";
 
 export function adminRegistration(client: AdminClient) {

@@ -11,14 +11,14 @@ export function runAdminStories(app: string, foundationOnly = false) {
 		app,
 		"test",
 		[
-			"src/server/foundationAdmin.spec.ts",
+			"src/server/admin/foundation.spec.ts",
 			...(foundationOnly
 				? []
 				: [
-						"src/modules/notes/server/adminDevelopment.spec.ts",
-						"src/modules/notes/server/adminUsers.spec.ts",
-						"src/modules/notes/server/adminUserPolicy.spec.ts",
-						"src/modules/notes/client/adminViews.dom.spec.tsx",
+						"src/modules/notes/server/admin/development.spec.ts",
+						"src/modules/notes/server/admin/users.spec.ts",
+						"src/modules/notes/server/admin/userPolicy.spec.ts",
+						"src/modules/notes/client/admin/views.dom.spec.tsx",
 					]),
 			"--config",
 			"admin-stories.config.ts",

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { foundationAccount, foundationAdmin } from "#test-support/foundationAdmin.ts";
+import { foundationAccount, foundationAdmin } from "#test-support/admin/foundation.ts";
 
 for (const role of ["admin", "owner"]) {
 	foundationAdmin.it(`the default ${role} session grants session management`, [foundationAccount("operator", role)], function* ({ session }) {
