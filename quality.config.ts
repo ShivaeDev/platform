@@ -60,7 +60,16 @@ export default defineConfig({
 		workspaceSection,
 	],
 	rules: {
-		"boundaries/auth-sql": { options: { owners: ["packages/admin/src/server/users.ts", "packages/identity/src/server/better-auth/**"] } },
+		"boundaries/auth-sql": {
+			options: {
+				owners: [
+					"packages/admin/src/server/users.ts",
+					"packages/identity/src/server/better-auth/**",
+					"examples/starter/src/server/migrations/0001_auth.ts",
+					"examples/starter/src/server/migrations/0004_stored_roles.ts",
+				],
+			},
+		},
 		"boundaries/http-status": {
 			options: {
 				edge: [
