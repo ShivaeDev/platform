@@ -1,5 +1,5 @@
+import type { BrowserClient } from "#adapters/browserClient.ts";
 import { libraryInput, libraryState } from "#browser/navigation/library.ts";
-import type { BrowserClient } from "#browserClient.ts";
 import { resultUrl } from "#responses/url.ts";
 
 interface PageApi {

@@ -1,6 +1,6 @@
 import { Effect, Fiber } from "effect";
+import { browserClient } from "#adapters/browserClient.ts";
 import type { AnswerInput } from "#browser/responses/schema.ts";
-import { browserClient } from "#browserClient.ts";
 import { socketStartup } from "#test/socketStartup.ts";
 import { type BoardEngine, served } from "#test/storyEngine.ts";
 

@@ -2,7 +2,7 @@ import { useAtomSuspense } from "@effect/atom-react";
 import { Clock } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { createContext, useContext } from "react";
-import type { BrowserClient } from "#browserClient.ts";
+import type { BrowserClient } from "#adapters/browserClient.ts";
 
 export type FormClient = Pick<BrowserClient, "handoffs" | "responses" | "runtime"> & {
 	readonly updates: Pick<BrowserClient["updates"], "status">;

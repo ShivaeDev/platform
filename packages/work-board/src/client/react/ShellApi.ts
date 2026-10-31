@@ -1,4 +1,4 @@
-import type { BrowserClient } from "#browserClient.ts";
+import type { BrowserClient } from "#adapters/browserClient.ts";
 export interface ShellApi {
 	readonly board: Pick<BrowserClient["api"]["board"], "query">;
 	readonly diagnostics: Pick<BrowserClient["api"]["diagnostics"], "query">;

@@ -1,19 +1,14 @@
-import { Effect } from "effect";
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
+import { itemIdCopy } from "#client/react/adapters/copyText.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#client/react/components/ui/tooltip.tsx";
 
 export function ItemId({ id, href }: { readonly id: string; readonly href: string | undefined }) {
 	const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
+	const Icon = { copied: Check, failed: Copy, idle: Copy }[copy];
 	const label = { copied: "Copied item ID", failed: "Copy failed; select the ID instead", idle: "Copy item ID" }[copy];
-	function handleCopy() {
-		void Effect.runPromise(
-			Effect.tryPromise(() => navigator.clipboard.writeText(id)).pipe(
-				Effect.match({ onFailure: () => setCopy("failed"), onSuccess: () => setCopy("copied") }),
-			),
-		);
-	}
+	const handleCopy = itemIdCopy(id, setCopy);
 	return (
 		<span className="text-muted-foreground inline-flex items-center gap-0.5">
 			<a
@@ -34,7 +29,7 @@ export function ItemId({ id, href }: { readonly id: string; readonly href: strin
 							type="button"
 							variant="ghost"
 						>
-							{copy === "copied" ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+							<Icon aria-hidden="true" />
 						</Button>
 					}
 				/>

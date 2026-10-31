@@ -9,6 +9,7 @@ import { renderRouter } from "./renderRouter.tsx";
 import { screenData } from "./screenData.ts";
 import { screenView, trackScreen } from "./screenEngine.ts";
 import { goalsContent, readingContent, screenClient, screenContent, systemContent } from "./screenFeatures.tsx";
+import { observeLoader } from "./screenLoader.ts";
 import { screenOptions } from "./screenReads.ts";
 import { screenStory } from "./screenStory.ts";
 import { screenFiles, screenRoute } from "./screenWorkspaceTraits.ts";
@@ -128,4 +129,8 @@ export function documentScreen(...args: Parameters<typeof mountDocument>) {
 			await view.unmount();
 		});
 	});
+}
+
+export function observedLoader(url: string) {
+	return screenStory.trait("screen", `the reader observes the loader for ${url}`, (engine) => observeLoader(engine, url));
 }

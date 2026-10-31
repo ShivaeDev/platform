@@ -1,8 +1,8 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
-import type { RemainingRoute } from "./remainingRoute.ts";
-import { libraryQuery, routeQueryOptions } from "./routeQuery.ts";
-import type { ShellApi } from "./ShellApi.ts";
+import type { RemainingRoute } from "#client/react/remainingRoute.ts";
+import { libraryQuery, routeQueryOptions } from "#client/react/routeQuery.ts";
+import type { ShellApi } from "#client/react/ShellApi.ts";
 export function loadRemaining(
 	registry: AtomRegistry.AtomRegistry,
 	api: ShellApi,

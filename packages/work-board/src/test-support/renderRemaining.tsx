@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { prerender } from "react-dom/static";
-import { browserClient } from "#browserClient.ts";
+import { browserClient } from "#adapters/browserClient.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { HandoffPage } from "#client/react/HandoffPage.tsx";
 import { ResultReview } from "#client/react/ResultReview.tsx";

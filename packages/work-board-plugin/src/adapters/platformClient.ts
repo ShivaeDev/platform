@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { browserClient } from "@shivaedev/work-board/browserClient.ts";
+import { browserClient } from "@shivaedev/work-board/adapters/browserClient.ts";
 import { readSnapshot } from "#board.ts";
 import type { Board } from "#boardTools.ts";
 import { isRecord, text } from "#rpc.ts";

@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
-import { browserClient } from "@shivaedev/work-board/browserClient.ts";
+import { browserClient } from "@shivaedev/work-board/adapters/browserClient.ts";
 import { boardLayer } from "@shivaedev/work-board/server/board.ts";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { storedBoardSource } from "#test/storedBoard.ts";

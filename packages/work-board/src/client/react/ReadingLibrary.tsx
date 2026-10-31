@@ -1,8 +1,8 @@
 import { type ReactNode, useCallback, useLayoutEffect, useRef, useState } from "react";
+import { currentTime } from "#client/react/adapters/now.ts";
 import { LibraryContext, restoreLibrary } from "#client/react/LibraryContext.ts";
 import { HistoryDialog } from "./HistoryDialog.tsx";
 import { useMainLocation } from "./MainLocationContext.ts";
-import { currentTime } from "./now.ts";
 import type { ShellApi } from "./ShellApi.ts";
 
 const HISTORY_LIMIT = 30;
