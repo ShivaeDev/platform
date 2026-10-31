@@ -1,10 +1,9 @@
 import { type AnyRoute, createRoute, createRouter, type RouterHistory, useRouterState } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement, ReactNode } from "react";
-import type { PermissionSession } from "@shivaedev/react/permissions.ts";
 import { signInSearch } from "@shivaedev/react/signInSearch.ts";
 import { routerRedirect } from "#client/adapters/routerRedirect.ts";
-import type { AuthActions } from "./auth.ts";
+import type { AppSession, AuthActions } from "./auth.ts";
 import { Home } from "./Home.tsx";
 import { LoginScreen } from "./LoginScreen.tsx";
 import type { ClientModule } from "./Module.ts";
@@ -17,7 +16,7 @@ export function appRouter<TRoute extends AnyRoute>(
 	client: { readonly modules: readonly ClientModule<TRoute>[] },
 	auth: AuthActions,
 	history?: RouterHistory,
-	session: () => PermissionSession | null | undefined = () => undefined,
+	session: () => AppSession | null | undefined = () => undefined,
 ) {
 	const root = rootRoute();
 	const login = createRoute({

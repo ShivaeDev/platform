@@ -6,6 +6,7 @@ import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
+import { SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { StatisticsPermission } from "#appPermissions.ts";
@@ -62,6 +63,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 							authenticatedUserLayer(sessions),
 							permissionLayer(JobsPermission, sessions),
 							permissionLayer(UsersPermission, sessions),
+							permissionLayer(SessionsPermission, sessions),
 							permissionLayer(StatisticsPermission, sessions),
 						),
 						routes: Layer.merge(routes, HttpStaticServer.layer({ root: "dist", spa: true })),

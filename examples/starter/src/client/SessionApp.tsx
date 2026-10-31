@@ -3,9 +3,8 @@ import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
 import { useContext, useRef, useState } from "react";
 import { PermissionBoundary } from "@shivaedev/react/client/permissionBoundary.ts";
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
-import type { PermissionSession } from "@shivaedev/react/permissions.ts";
 import { appRouter } from "./appRouter.tsx";
-import type { AuthActions } from "./auth.ts";
+import type { AppSession, AuthActions } from "./auth.ts";
 import type { AppConnection } from "./Module.ts";
 import { clientModules } from "./modules.ts";
 
@@ -16,7 +15,7 @@ interface Routing {
 	readonly auth: AuthActions;
 	readonly client: AppConnection;
 	readonly history: RouterHistory | undefined;
-	readonly session?: PermissionSession | null | undefined;
+	readonly session?: AppSession | null | undefined;
 }
 
 function RoutedApp({ client, auth, history, session }: Routing) {
@@ -51,7 +50,7 @@ export function SessionApp({
 	connect: connection = clientModules,
 	history,
 }: {
-	readonly session?: PermissionSession | null | undefined;
+	readonly session?: AppSession | null | undefined;
 	readonly sessionId: string;
 	readonly recheck: () => void;
 	readonly auth: AuthActions;
