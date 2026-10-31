@@ -10,9 +10,11 @@ export interface Viewer {
 export type QueryReadPolicy<TPayload, E = never, R = never> = (payload: TPayload, viewer: Option.Option<Viewer>) => Effect.Effect<boolean, E, R>;
 
 export const CurrentViewer = Context.Reference<Option.Option<Viewer>>("@shivaedev/contract/CurrentViewer", { defaultValue: Option.none });
+export const signedIn: QueryReadPolicy<unknown> = (_payload, viewer) => Effect.succeed(Option.isSome(viewer));
+
 export const checkQuery = Effect.fnUntraced(function* <E, R>(query: QueryShape<E, R>, payload: unknown, viewer: Option.Option<Viewer>) {
 	if (query.readPolicy === undefined) {
-		return yield* new MissingReadPolicy({ message: `Declare a readPolicy on query ${query.name} before running it live or subscribing` });
+		return yield* new MissingReadPolicy({ message: `Declare a readPolicy on query ${query.name} before reading it or subscribing` });
 	}
 	if (!(yield* query.readPolicy(payload, viewer))) {
 		return yield* new QueryReadDenied({ message: `Read not allowed for query ${query.name}` });
@@ -41,7 +43,7 @@ export function authorizeReads(
 ) {
 	return Effect.fnUntraced(function* () {
 		const definition = Context.getOption(request.rpc.annotations, QueryDefinition);
-		if (Option.isSome(definition) && definition.value.definition.readPolicy !== undefined) {
+		if (Option.isSome(definition)) {
 			yield* checkQuery(definition.value.definition, request.payload, viewer);
 		}
 		return yield* Effect.provideService(effect, CurrentViewer, viewer);

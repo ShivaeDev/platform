@@ -10,6 +10,15 @@ The authenticated route loaders and screens share the same native query registry
 
 The `/notes/$noteId` route parses a numeric ID and loads `notes.get` through `loadQuery`. Its form uses `useEditor`: a live refresh keeps edited fields, a rejected save keeps the input, and a successful save applies the returned title. Updates and deletes send the version the client read. A stale version returns Platform's `Conflict` without changing the row; refresh and review the retained draft before saving again. Another account receives `NotFound` for an individual note. The word-count worker uses the same versioned notes repository and recalculates the count after an edit. The request runtime registers queue definitions through `NoteJobs.layer`, which creates queues and dead-letter queues without starting a worker. Create and edit enqueue after their write transaction; queue errors are logged and the saved note is returned with a pending word count.
 
+The list query uses contract’s built-in `signedIn` read policy. The item query refuses a signed-out viewer with `false` (`QueryReadDenied` when evaluated without authentication middleware), and delegates signed-in access to `NoteReadAccess`. Its server implementation reads by both item ID and owner, failing with `NotFound({ message: "Note not found" })` for another viewer’s item and a nonexistent item alike:
+
+```ts
+readPolicy: ({ id }, viewer) =>
+	Option.isNone(viewer) ? Effect.succeed(false) : Effect.flatMap(NoteReadAccess, (canRead) => canRead(id, viewer.value.id)),
+```
+
+`NotFound` is declared in the query’s `rejections`, so this private-item answer also applies to live reads and subscriptions. Returning `false` instead would disclose denial as `QueryReadDenied`; use that case only when the viewer may know the item exists.
+
 To remove the example, delete `src/modules/notes` and its import and entry in `src/server/modules.ts`, `src/server/workerModules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server, worker and client pieces in those same registries.
 
 ## Create or run it

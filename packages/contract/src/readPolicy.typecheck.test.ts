@@ -6,7 +6,8 @@ import type { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { authorizeReads, type QueryReadPolicy } from "#readPolicy.ts";
-import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import type { MissingReadPolicies, MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import { validateReadPolicies } from "#validateReadPolicies.ts";
 
 class Database extends Context.Service<Database, boolean>()("test/PolicyDatabase") {}
 class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", {}) {}
@@ -43,3 +44,8 @@ const pushed = live.subscribe(subscription, undefined, () => Effect.asVoid(Datab
 expectTypeOf<Stream.Services<typeof pushed>>().toEqualTypeOf<Database>();
 expectTypeOf<Stream.Error<typeof pushed>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy>();
 expectTypeOf<Rpc.ExtractRequires<PushedChanges, "pushed.$changes">>().toEqualTypeOf<Database>();
+
+const validated = validateReadPolicies(Reads);
+expectTypeOf<Effect.Error<typeof validated>>().toEqualTypeOf<MissingReadPolicies>();
+// @ts-expect-error Every query declares its read policy, including plain reads.
+query("unprotected", { reads: () => [] });

@@ -6,7 +6,7 @@ import { contract } from "#contract.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { command, query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
-import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
+import { authorizeReads, CurrentViewer, signedIn } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
@@ -28,7 +28,7 @@ const Get = query("get", {
 });
 const List = query("list", {
 	payload: { title: Schema.String },
-	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	readPolicy: signedIn,
 	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
 	success: Schema.Array(Row),
 });
@@ -38,9 +38,8 @@ const ListFor = query("listFor", {
 	reads: ({ userId }) => [notes.bucket.userId(userId)],
 	success: Schema.Array(Row),
 });
-const Unprotected = query("unprotected", { reads: () => [notes.list], success: Schema.Array(Row) });
 const Rename = command("rename", { invalidates: ({ id }) => [notes.item(id)], payload: { id: Schema.Number, title: Schema.String } });
-export const Notes = contract("notes", { commands: [Rename], keyScope: "session", queries: [Get, List, ListFor, Unprotected] }).middleware(Guard);
+export const Notes = contract("notes", { commands: [Rename], keyScope: "session", queries: [Get, List, ListFor] }).middleware(Guard);
 
 export const viewerEngine = Effect.gen(function* () {
 	const stored = yield* Ref.make<ReadonlyMap<number, Row>>(
@@ -91,7 +90,6 @@ export const viewerEngine = Effect.gen(function* () {
 				yield* Ref.update(stored, (rows) => new Map([...rows, [id, new Row({ ...row, title })]]));
 				yield* reactivity.invalidate(invalidationKeys([notes.item(id), notes.bucket.userId(row.owner)], { scope: row.owner }));
 			}),
-		"notes.unprotected": () => Ref.get(stored).pipe(Effect.map((rows) => [...rows.values()])),
 	});
 	const services = Layer.merge(Layer.succeed(Rows, stored), Layer.succeed(PolicyChecks, checks));
 	const providedHandlers = handlers.pipe(Layer.provide(services));
