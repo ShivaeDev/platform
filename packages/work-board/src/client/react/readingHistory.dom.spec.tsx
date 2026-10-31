@@ -58,7 +58,9 @@ screenStory.it(
 			"Earlier",
 		]);
 		expect(roles.text({ name: "Today", role: "list" })).toMatch(/^Planread just now(?:·Document)?$/u);
-		yield* eventually(() => expect(roles.text({ name: "Yesterday", role: "list" })).toMatch(/^Nextread .+ago·Task·ReadyFirstread .+ago·Document$/u));
+		yield* eventually(() =>
+			expect(roles.text({ name: "Yesterday", role: "list" })).toMatch(/^Nextread .+ago·Task·Ready\nFirstread .+ago·Document$/u),
+		);
 		expect(roles.text({ name: dated, role: "list" })).toMatch(/^Oldread .+ago·Question$/u);
 		expect(roles.text({ name: "Earlier", role: "list" })).toBe("Gone (missing)");
 		expect(
