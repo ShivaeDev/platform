@@ -7,6 +7,7 @@
 ### Fixed
 
 - Derive encoded sensitive names separately for each RPC schema, keeping private fields in one method from changing public state and native failure decoding in another method.
+- Keep the child key names of a fully masked field public elsewhere, including through native `OptionFromNullOr` encoding.
 
 ### Breaking
 

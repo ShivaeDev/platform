@@ -37,6 +37,10 @@ for (const [method, fail, expected] of [
 	["privateState", true, { rejected: expect.objectContaining({ _tag: "Conflict", message: "Private call rejected" }) }],
 	["publicState", false, { received: { state: "active" } }],
 	["publicState", true, { rejected: { _tag: "Blocked", state: "active" } }],
+	["containedState", false, { received: { output: { _tag: "PrivateOutput", state: "private-state" }, state: "active" } }],
+	["containedState", true, { rejected: { _tag: "Blocked", state: "active" } }],
+	["optionalState", false, { received: { output: { _tag: "PrivateOutput", state: "private-state" }, state: "active" } }],
+	["optionalState", true, { rejected: { _tag: "Blocked", state: "active" } }],
 ] as const) {
 	host.it(
 		`the native client decodes a ${fail ? "failed" : "successful"} ${method} call in a group with private and public state schemas`,
@@ -51,19 +55,25 @@ for (const [method, fail, expected] of [
 
 for (const protocol of ["http/json", "http/protobuf"]) {
 	host.it(
-		`private state is redacted in logs and ${protocol} traces while the other RPC's public state stays readable`,
+		`private fields are redacted in logs and ${protocol} traces while public state outside a private field and in another RPC stays readable`,
 		[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol } }), scopedFields],
 		function* ({ close, diagnosticLog, exportMentions, logMentions, readState, spanAttributes }) {
 			yield* readState("privateState");
 			yield* readState("publicState");
+			yield* readState("containedState");
+			yield* readState("optionalState");
 
 			yield* close();
 
 			yield* outcomes([
 				["private log", () => diagnosticLog("private state"), expect.objectContaining({ state: "<redacted>" })],
 				["public log", () => diagnosticLog("public state"), expect.objectContaining({ state: "active" })],
+				["contained log", () => diagnosticLog("contained state"), expect.objectContaining({ output: "<redacted>", state: "active" })],
+				["optional log", () => diagnosticLog("optional state"), expect.objectContaining({ output: "<redacted>", state: "active" })],
 				["private span", () => spanAttributes("privateState"), [expect.objectContaining({ state: "<redacted>" })]],
 				["public span", () => spanAttributes("publicState"), [expect.objectContaining({ state: "active" })]],
+				["contained span", () => spanAttributes("containedState"), [expect.objectContaining({ output: "<redacted>", state: "active" })]],
+				["optional span", () => spanAttributes("optionalState"), [expect.objectContaining({ output: "<redacted>", state: "active" })]],
 				["private log leaks", () => logMentions("private-state"), []],
 				["private trace leaks", () => exportMentions("private-state"), []],
 			]);

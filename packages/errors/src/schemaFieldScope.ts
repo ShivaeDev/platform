@@ -87,7 +87,10 @@ export const validateFieldScope = Effect.fn("Errors.validateFieldScope")(functio
 ) {
 	const candidates = new Set(schemas.flatMap(({ ast }) => [...schemaFieldKeys(ast, [])]));
 	const fields = schemas.flatMap(({ ast, name }) => fieldsOf(ast, name, extra, candidates));
-	for (const hidden of fields.filter((field) => field.sensitive && !extra.includes(field.key) && !isSensitiveKey(field.key))) {
+	// A masked container protects its children without making each child name sensitive.
+	for (const hidden of fields.filter(
+		(field) => candidates.has(field.key) && field.sensitive && !extra.includes(field.key) && !isSensitiveKey(field.key),
+	)) {
 		const publicField = fields.find((field) => field.key === hidden.key && !field.sensitive);
 		if (publicField !== undefined) {
 			return yield* new SensitiveFieldConflict({

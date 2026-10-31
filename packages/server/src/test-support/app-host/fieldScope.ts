@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcGroup, RpcMiddleware } from "effect/rpc";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "#appHost.ts";
@@ -8,7 +8,18 @@ import { host } from "./story.ts";
 function diagnostic(name: string, state: string) {
 	return Effect.logInfo(name).pipe(Effect.annotateLogs({ state }), Effect.andThen(Effect.annotateCurrentSpan({ state })));
 }
+const containedState = Effect.fnUntraced(function* (fail: boolean, message: string) {
+	const value = { output: { _tag: "PrivateOutput" as const, state: "private-state" as const }, state: "active" as const };
+	yield* Effect.logInfo(message).pipe(Effect.annotateLogs(value));
+	yield* Effect.annotateCurrentSpan(value);
+	if (fail) {
+		return yield* Effect.fail({ _tag: "Blocked" as const, state: "active" as const });
+	}
+	return value;
+});
 const scopedHandlers = scoped.toLayer({
+	containedState: ({ fail }) => containedState(fail, "contained state"),
+	optionalState: ({ fail }) => containedState(fail, "optional state").pipe(Effect.map(Option.some)),
 	privateState: ({ fail }) =>
 		diagnostic("private state", "private-state").pipe(
 			Effect.andThen(fail ? Effect.fail(new Conflict({ message: "Private call rejected" })) : Effect.succeed({ state: "private-state" as const })),
