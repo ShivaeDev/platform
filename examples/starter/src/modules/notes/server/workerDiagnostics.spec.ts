@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { app } from "#modules/notes/test-support/application.ts";
 
-app.it("the starter worker exports its startup log through OTLP without an HTTP request", [], function* ({ collector }) {
+app.it("the worker exports its startup log through OTLP without an HTTP request", [], function* ({ collector }) {
 	const receiver = yield* collector();
 	const stopWorker = yield* receiver.startWorker();
 
