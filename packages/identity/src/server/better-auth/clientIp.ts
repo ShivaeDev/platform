@@ -19,10 +19,13 @@ export function clientIpHeaders(options: {
 			trustedProxies: trustedProxyRanges(options.trustedProxy),
 		},
 	};
+	const resolved = {
+		advanced: { ipAddress: { ...advanced.ipAddress, ipAddressHeaders: [PEER_IP_HEADER], trustedProxies: [] } },
+	};
 	return (request: HttpServerRequest.HttpServerRequest, web: Request) => {
 		web.headers.delete(PEER_IP_HEADER);
 		const trusted = Option.exists(request.remoteAddress, trustedPeer);
-		const forwardedIp = trusted ? getIP(web, { advanced }) : null;
+		const forwardedIp = trusted && web.headers.has(options.clientIpHeader) ? getIP(web, { advanced }) : null;
 		if (!trusted) {
 			web.headers.delete("x-forwarded-for");
 			web.headers.delete(options.clientIpHeader);
@@ -31,5 +34,6 @@ export function clientIpHeaders(options: {
 		if (address !== undefined) {
 			web.headers.set(PEER_IP_HEADER, address);
 		}
+		return { address: getIP(web, resolved), source: forwardedIp === null ? "peer" : "forwarded" };
 	};
 }
