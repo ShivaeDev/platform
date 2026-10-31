@@ -15,7 +15,8 @@ export const postgresFeature = host.trait("configured", "PostgreSQL migrations p
 	const { loader, services } = feature(table, state.lifecycle);
 	state.env.DATABASE_URL = destination;
 	state.env.PORT = "0";
-	delete state.config.port;
+	const { port: _port, ...config } = state.config;
+	state.config = config;
 	state.cleanup.push(() =>
 		Effect.runPromise(
 			SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}, ${sql(ledger)}`).pipe(

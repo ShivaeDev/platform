@@ -1,5 +1,7 @@
-import { Effect, Schema } from "effect";
+import { matchesGlob } from "node:path";
+import { Schema } from "effect";
 import ts from "typescript";
+import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { defineRule } from "#rule.ts";
 import { matchesAny } from "./matchesAny.ts";
 import { memberName, nodesWhere, numericValue, syntaxFindings, unwrapped } from "./syntax.ts";
@@ -8,7 +10,7 @@ const MESSAGE =
 	"Branches on an HTTP error status outside the HTTP edge. Handle the typed domain error here and translate it to an HTTP status in the configured edge module.";
 
 const HttpStatusOptions = Schema.Struct({
-	edge: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+	edge: GlobDeclarations,
 });
 
 const COMPARISONS = new Set([
@@ -48,9 +50,10 @@ function statusBranch(node: ts.Node): boolean {
 export const httpStatus = defineRule({
 	check: ({ sources, options }) =>
 		sources
-			.filter((file) => !matchesAny(file.path, options.edge))
+			.filter((file) => !matchesAny(file.path, globPatterns(options.edge)))
 			.flatMap((file) => syntaxFindings(file, (source) => nodesWhere(source, statusBranch), MESSAGE)),
 	description: "HTTP status numbers belong at the repository's HTTP edge; domain code handles typed errors.",
 	id: "boundaries/http-status",
 	options: Schema.toStandardSchemaV1(HttpStatusOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	validate: (context) => validateGlobs(context, matchesGlob),
 });

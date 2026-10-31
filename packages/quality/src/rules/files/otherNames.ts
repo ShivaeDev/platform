@@ -1,6 +1,7 @@
 import { posix } from "node:path";
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import ignore, { type Ignore } from "ignore";
+import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { CAMEL, KEBAB } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";
@@ -39,8 +40,8 @@ const SNAKE = /^[a-z0-9]+(?:__?[a-z0-9]+)*$/u;
 const CODE = /\.[cm]?[jt]sx?$/u;
 
 const OtherNamesOptions = Schema.Struct({
-	content: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
-	toolOwned: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+	content: GlobDeclarations,
+	toolOwned: GlobDeclarations,
 });
 
 function stylesheetMessage(path: string, stem: string, importedBy: readonly string[]): string | undefined {
@@ -88,10 +89,10 @@ function messageFor(path: string, context: Context): string | undefined {
 export const otherNames = defineRule({
 	check: async ({ files, options, readText, sources }) => {
 		const context: Context = {
-			content: ignore().add([...options.content]),
+			content: ignore().add([...globPatterns(options.content)]),
 			native: nativeNames(files),
 			stylesheets: await stylesheetImporters({ files, readText, sources }),
-			toolOwned: ignore().add([...DEFAULT_TOOL_OWNED, ...options.toolOwned]),
+			toolOwned: ignore().add([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]),
 		};
 		return files.flatMap((path): readonly Finding[] => {
 			const message = messageFor(path, context);
@@ -102,4 +103,5 @@ export const otherNames = defineRule({
 		"Documents, data, assets and GritQL files are kebab-case, a stylesheet that one component imports is named after it, a Prisma schema is camelCase and content is snake_case.",
 	id: "files/other-names",
 	options: Schema.toStandardSchemaV1(OtherNamesOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	validate: validateGlobs,
 });

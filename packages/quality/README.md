@@ -30,7 +30,7 @@ The work has three parts: connect the repository to the shared tools once; descr
 
 ### Rule lifecycle
 
-`defineRule` accepts synchronous, Promise and Effect checks. Promise checks receive an abort signal as `context.signal`; pass it to cancellable APIs. Effect checks compose filesystem and child-process work in the run's scope. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
+`defineRule` accepts synchronous, Promise and Effect checks. Promise checks receive an abort signal as `context.signal`; pass it to cancellable APIs. Effect checks compose filesystem and child-process work in the run's scope. An optional `validate(context)` callback returns inventory-dependent configuration issues before `check`; those issues stop the run as invalid configuration. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
 
 Interrupting a run stops its Biome and knip processes and removes their scoped temporary configs before it ends. A rule crash is a defect; the CLI prints the rule id and original stack. Expected setup failures retain their underlying cause without including it in enumerable error data.
 
@@ -209,13 +209,23 @@ Three more rules keep a spec readable as a story, as the [story-testing skill](h
 
 `boundaries/http-status` rejects comparisons with HTTP error status numbers, switch cases and literal status-list membership outside `options.edge`. Domain code handles typed errors; the named HTTP edge translates them into transport responses. Process exit codes remain ordinary domain values.
 
-Declare these architectural facts in the repository's quality config; paths and patterns are relative to that config's directory:
+Glob options (`toolOwned`, `content`, `edge`, `owners` and `suites`) use `{ glob, reason }` declarations. Every declaration needs a nonblank reason and must match a current inventoried file; otherwise configuration fails. Remove declarations when their files disappear. Paths and patterns are relative to the config's directory. Naming and suite options use gitignore patterns; `edge` and `owners` use Node glob patterns.
+
+Declare these architectural facts in the repository's quality config:
 
 ```ts
 export default defineConfig({
 	rules: {
-		"boundaries/auth-sql": { options: { owners: ["packages/identity/src/server/better-auth/**", "examples/starter/src/server/migrations/**"] } },
-		"boundaries/http-status": { options: { edge: ["src/http/**"] } },
+		"boundaries/auth-sql": {
+			options: {
+				owners: [{ glob: "src/auth/**", reason: "This module implements the auth storage API." }],
+			},
+		},
+		"boundaries/http-status": {
+			options: {
+				edge: [{ glob: "src/http/**", reason: "These HTTP adapters translate transport statuses into domain errors." }],
+			},
+		},
 	},
 });
 ```

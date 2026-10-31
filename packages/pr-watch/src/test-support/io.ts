@@ -28,7 +28,7 @@ export const makeIo = Effect.gen(function* () {
 	const control: {
 		changed: () => void;
 		failing?: FileOperation;
-		rename?: Gate;
+		rename?: Gate | undefined;
 		stalled: number;
 		transport: "works" | "fails" | "stalls";
 	} = { changed: () => undefined, stalled: 0, transport: "works" };

@@ -10,7 +10,7 @@ export type Field = "name" | "quantity";
 
 export interface State {
 	editor?: ReturnType<typeof editing>;
-	held?: () => void;
+	held?: (() => void) | undefined;
 	inputs?: readonly (Element | null)[];
 	root?: Rendered;
 	server?: Server | undefined;
@@ -69,7 +69,7 @@ export function invoiceVerbs(state: State, screen: Screen) {
 					if (!release) {
 						throw new Error("No held invoice request");
 					}
-					delete state.held;
+					state.held = undefined;
 					release();
 				})
 				.pipe(Effect.andThen(settle(state, screen))),

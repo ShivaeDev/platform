@@ -1,6 +1,7 @@
 import { Effect, type FileSystem } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
+import { validOrFail } from "#decoded.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { describeIssue, type StandardSchemaV1 } from "./standardSchema.ts";
 
@@ -57,6 +58,7 @@ interface RuleDefinition<TId extends string, TOptions, TServices> {
 	readonly description: string;
 	readonly id: TId;
 	readonly registrable?: false;
+	readonly validate?: (context: RuleContext<TOptions>) => readonly string[];
 }
 
 interface RuleDefinitionWithOptions<TId extends string, TInput, TOptions, TServices> extends RuleDefinition<TId, TOptions, TServices> {
@@ -78,7 +80,9 @@ const noOptions: StandardSchemaV1<undefined, undefined> = {
 function configureWith<TInput, TOptions, TServices>(
 	schema: StandardSchemaV1<TInput, TOptions>,
 	check: RuleDefinition<string, TOptions, TServices>["check"],
+	id: string,
 	absent: unknown,
+	validate?: RuleDefinition<string, TOptions, TServices>["validate"],
 ) {
 	return async (options: unknown): Promise<Configured<TServices>> => {
 		const result = await schema["~standard"].validate(options ?? absent);
@@ -91,6 +95,12 @@ function configureWith<TInput, TOptions, TServices>(
 			check: (inputs) =>
 				Effect.scoped(
 					Effect.gen(function* () {
+						const context = { ...inputs, options: value };
+						const issues = validate?.(context).map((issue) => `rules.${id}.options: ${issue}`) ?? [];
+						yield* validOrFail(
+							inputs.configFile ?? "quality.config.ts",
+							issues.length === 0 ? { _tag: "Valid", value: undefined } : { _tag: "Invalid", issues },
+						);
 						const signal = yield* Effect.abortSignal;
 						const checked = check({ ...inputs, options: value, signal });
 						return yield* Effect.isEffect(checked) ? checked : Effect.promise(() => Promise.resolve(checked));
@@ -111,7 +121,7 @@ export function defineRule<const TId extends string, TInput, TOptions, TServices
 ): Rule<TId, TInput, TServices> | Rule<TId, undefined, TServices> {
 	const configure =
 		definition.options === undefined
-			? configureWith(noOptions, definition.check, undefined)
-			: configureWith(definition.options, definition.check, {});
+			? configureWith(noOptions, definition.check, definition.id, undefined, definition.validate)
+			: configureWith(definition.options, definition.check, definition.id, {}, definition.validate);
 	return { configure, description: definition.description, id: definition.id, registrable: definition.registrable ?? true };
 }

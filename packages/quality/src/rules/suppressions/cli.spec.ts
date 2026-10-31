@@ -31,8 +31,8 @@ const EMPTY_PATTERN_DECLARED = {
 };
 
 const NO_INLINE_REGISTERED = {
-	content: JSON.stringify([{ file: "src/a.ts", reason: "Legacy code.", rule: "suppressions/no-inline" }]),
-	path: "quality/registry.json",
+	content: 'export default { exceptions: [{ files: ["src/a.ts"], reason: "Legacy code.", rules: ["suppressions/no-inline"] }] };\n',
+	path: "quality.config.ts",
 };
 
 repositoryStory.it(
@@ -82,7 +82,7 @@ repositoryStory.it(
 );
 
 repositoryStory.it(
-	"quality lint refuses a registry entry for suppressions/no-inline and still reports the suppression it names",
+	"quality lint refuses a config exception for suppressions/no-inline and still reports the suppression it names",
 	[qualityInstalled(), repositoryHas(SUPPRESSED, NO_INLINE_REGISTERED), biomeFormatted()],
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");

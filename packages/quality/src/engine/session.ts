@@ -3,8 +3,7 @@ import { Effect } from "effect";
 import { setManifestFiles } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
-import { validOrFail } from "#decoded.ts";
-import { decodeRegistry, type RegistryEntry } from "#exceptions/registry.ts";
+import type { RegistryEntry } from "#exceptions/registry.ts";
 import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { collectInventory, type Inventory } from "#inventory/collect.ts";
@@ -52,9 +51,15 @@ export const openSession = Effect.fn("Engine.openSession")(function* (
 	configPath: string | undefined,
 ): Effect.fn.Return<Session, SetupFailure, RuleServices> {
 	const config = yield* loadConfig(cwd, configPath);
-	const registryRaw = yield* readInput(config.root, config.registry);
-	const registry = yield* validOrFail(config.registry, yield* Effect.promise(() => decodeRegistry(registryRaw)));
+	const selection = configPath === undefined ? "" : ` --config ${configPath}`;
+	for (const path of new Set([config.registry, "quality/registry.json"])) {
+		if ((yield* readInput(config.root, path)) !== undefined) {
+			return yield* new SetupFailure({
+				message: `${path} holds legacy exceptions. Run \`quality exceptions migrate${selection} --from ${path}\` to move them into ${config.file}.`,
+			});
+		}
+	}
 	const baseline = yield* readBaseline(config);
 	const { inventory, violations } = yield* scan(config);
-	return { baseline, config, inventory, registry: [...registry, ...registryEntries(config.exceptions)], violations };
+	return { baseline, config, inventory, registry: registryEntries(config.exceptions), violations };
 });
