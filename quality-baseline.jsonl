@@ -28,7 +28,6 @@
 {"path":"examples/starter/src/modules/notes/client/notesFlow.dom.spec.ts","rule":"tests/wait-on-events","count":21}
 {"path":"examples/starter/src/modules/notes/client/sessionSwitch.dom.spec.tsx","rule":"tests/wait-on-events","count":3}
 {"path":"examples/starter/src/modules/notes/client/signInReturn.dom.spec.tsx","rule":"tests/wait-on-events","count":15}
-{"path":"examples/starter/src/modules/notes/notes.ts","rule":"code/unused","count":3}
 {"path":"examples/starter/src/modules/notes/server/adminAccess.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"examples/starter/src/modules/notes/server/adminAccess.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"examples/starter/src/modules/notes/server/adminDevelopment.spec.ts","rule":"tests/domain-outcomes","count":2}

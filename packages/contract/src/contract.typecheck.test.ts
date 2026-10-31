@@ -35,7 +35,7 @@ expectTypeOf(Notes.application).toEqualTypeOf<typeof Explicit>();
 
 const Mixed = contract("mixed", {
 	commands: [command("write", { invalidates: () => [] })],
-	queries: [query("read", { reads: () => [], success: Schema.Number })],
+	queries: [query("read", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.Number })],
 	streams: [stream("follow", { reads: () => [], success: Schema.String })],
 });
 type MixedRead = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Mixed>, "mixed.read">;
@@ -59,8 +59,14 @@ client("notes.$changes", { keys: [] });
 
 const Pushed = contract("pushed", {
 	queries: [
-		query("read", { live: "rerun-and-compare", reads: () => [], rejections: { Denied }, success: Schema.BigIntFromString }),
-		query("hinted", { reads: () => [], success: Schema.String }),
+		query("read", {
+			live: "rerun-and-compare",
+			readPolicy: () => Effect.succeed(true),
+			reads: () => [],
+			rejections: { Denied },
+			success: Schema.BigIntFromString,
+		}),
+		query("hinted", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String }),
 	],
 });
 type PushedChanges = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Pushed>, "pushed.$changes">;

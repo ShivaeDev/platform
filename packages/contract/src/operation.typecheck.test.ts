@@ -1,4 +1,4 @@
-import { type Effect, Layer, Schema, Stream } from "effect";
+import { Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { Rpc, RpcClient, RpcGroup, type RpcSchema, RpcSerialization } from "effect/rpc";
@@ -34,7 +34,7 @@ expectTypeOf<Rpc.SuccessSchema<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Notes>, "note
 // @ts-expect-error A stream has no query atom member.
 api.subscribe.query();
 // @ts-expect-error Streams participate in the same operation namespace as queries.
-contract("duplicate", { queries: [query("subscribe", { reads: () => [] })], streams: [Subscribe] });
+contract("duplicate", { queries: [query("subscribe", { readPolicy: () => Effect.succeed(true), reads: () => [] })], streams: [Subscribe] });
 // @ts-expect-error Streams participate in the same operation namespace as commands.
 contract("duplicate", { commands: [command("subscribe", { invalidates: () => [] })], streams: [Subscribe] });
 // @ts-expect-error Literal stream names must be unique.

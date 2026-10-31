@@ -14,7 +14,6 @@ import { bindingOwner } from "#internal/bindingOwner.ts";
 import { boundCommand, boundQuery, boundStream } from "#internal/clientOperations.ts";
 import { type RpcSource, rpcClient } from "#internal/rpcClient.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
-import type { MissingReadPolicy } from "#readPolicyErrors.ts";
 import type { ResumeSource, ResumeWindow } from "#resume.ts";
 
 export type Failure<R extends Rpc.Any> =
@@ -34,10 +33,7 @@ export interface QueryOptions {
 }
 
 export interface BoundQuery<R extends Rpc.Any, TSelf> {
-	readonly query: (
-		payload: Rpc.Payload<R>,
-		options?: QueryOptions,
-	) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R> | MissingReadPolicy>>;
+	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R>>>;
 	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>;
 }
 
