@@ -28,10 +28,10 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 			yield* close();
 
-			yield* outcomes({
-				"leaked secrets": [exportMentions("hidden-"), []],
-				"masked URLs": [exportMentions(...callbackForms), callbackForms],
-			});
+			yield* outcomes([
+				["leaked secrets", () => exportMentions("hidden-"), []],
+				["masked URLs", () => exportMentions(...callbackForms), callbackForms],
+			]);
 		},
 	);
 	host.it(
@@ -42,10 +42,10 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 			yield* close();
 
-			yield* outcomes({
-				"leaked secrets": [exportMentions("hidden-"), []],
-				"masked URLs": [exportMentions(...nestedForms), nestedForms],
-			});
+			yield* outcomes([
+				["leaked secrets", () => exportMentions("hidden-"), []],
+				["masked URLs", () => exportMentions(...nestedForms), nestedForms],
+			]);
 		},
 	);
 }

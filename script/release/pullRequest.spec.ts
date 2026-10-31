@@ -99,10 +99,10 @@ for (const [body, status, tag] of [
 		function* ({ replyToSnapshot, failedRun, readGitHub }) {
 			yield* replyToSnapshot(body, status);
 			const failure = yield* failedRun();
-			yield* outcomes({
-				"pull request writes": [readGitHub().pipe(Effect.map(({ requests }) => requests)), []],
-				"release failure": [Effect.succeed(failure), tag],
-			});
+			yield* outcomes([
+				["pull request writes", () => readGitHub().pipe(Effect.map(({ requests }) => requests)), []],
+				["release failure", () => Effect.succeed(failure), tag],
+			]);
 		},
 	);
 }

@@ -38,10 +38,10 @@ auth.it(
 auth.it("an empty profile lookup returns no profiles without a storage query", [], function* ({ lookupProfiles, profileQueries }) {
 	const profiles = yield* lookupProfiles([]);
 
-	yield* outcomes({
-		"profiles": [Effect.succeed(profiles), []],
-		"storage queries": [profileQueries(), []],
-	});
+	yield* outcomes([
+		["profiles", () => Effect.succeed(profiles), []],
+		["storage queries", () => profileQueries(), []],
+	]);
 });
 
 auth.it(
@@ -53,10 +53,11 @@ auth.it(
 
 		expect(yield* lookupProfiles([ada.user.id])).toBe("failed with auth unavailable");
 
-		yield* outcomes({
-			failure: [lookupFailure(), { cause: "none", text: "AuthUnavailable: Authentication is temporarily unavailable" }],
-			"provider logs": [
-				providerLogs(),
+		yield* outcomes([
+			["failure", () => lookupFailure(), { cause: "none", text: "AuthUnavailable: Authentication is temporarily unavailable" }],
+			[
+				"provider logs",
+				() => providerLogs(),
 				[
 					[
 						"Authentication provider failed",
@@ -64,6 +65,6 @@ auth.it(
 					],
 				],
 			],
-		});
+		]);
 	},
 );

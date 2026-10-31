@@ -6,10 +6,10 @@ adminSessions.it(
 	"the mounted Sessions page lists signed-in users and marks alice's current session",
 	[adminSessionsOpen],
 	function* ({ content, sessionEmails }) {
-		yield* outcomes({
-			content: [content(), expect.stringContaining("Your current session")],
-			sessions: [sessionEmails(), expect.arrayContaining(["alice@app.test", "bob@app.test"])],
-		});
+		yield* outcomes([
+			["content", () => content(), expect.stringContaining("Your current session")],
+			["sessions", () => sessionEmails(), expect.arrayContaining(["alice@app.test", "bob@app.test"])],
+		]);
 	},
 );
 
@@ -31,7 +31,10 @@ adminSessions.it(
 
 		yield* click("Confirm revoke");
 
-		yield* outcomes({ "admin sessions": [sessionEmails(), []], content: [content(), expect.stringContaining("Sign in")] });
+		yield* outcomes([
+			["admin sessions", () => sessionEmails(), []],
+			["content", () => content(), expect.stringContaining("Sign in")],
+		]);
 	},
 );
 
@@ -39,6 +42,9 @@ adminSessions.it(
 	"the mounted page refuses a viewer without the sessions permission",
 	[withoutSessionsPermission, adminSessionsOpen],
 	function* ({ content, sessionEmails }) {
-		yield* outcomes({ content: [content(), expect.stringContaining("Permission denied")], sessions: [sessionEmails(), []] });
+		yield* outcomes([
+			["content", () => content(), expect.stringContaining("Permission denied")],
+			["sessions", () => sessionEmails(), []],
+		]);
 	},
 );

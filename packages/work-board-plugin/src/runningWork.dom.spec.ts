@@ -57,10 +57,10 @@ host.it(
 
 		yield* askWorker("task.build");
 
-		yield* outcomes({
-			"Goals": [goals(), ["Ship the pane · drawn 0 of 1 done, 0 done, 1 running, 0 blocked, 0 scheduled, 0 parked · 0/1"]],
-			"In flight": [inFlight(), [{ goal: "Ship the pane", work: ["Build the pane"] }]],
-		});
+		yield* outcomes([
+			["Goals", () => goals(), ["Ship the pane · drawn 0 of 1 done, 0 done, 1 running, 0 blocked, 0 scheduled, 0 parked · 0/1"]],
+			["In flight", () => inFlight(), [{ goal: "Ship the pane", work: ["Build the pane"] }]],
+		]);
 	},
 );
 

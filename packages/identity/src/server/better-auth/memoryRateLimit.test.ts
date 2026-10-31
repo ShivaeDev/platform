@@ -32,10 +32,10 @@ buckets.it(
 );
 
 buckets.it("alice using up her allowance leaves bob's own allowance untouched", [allowanceUsed("alice", "once per second")], function* ({ request }) {
-	yield* outcomes({
-		alice: [request("alice", "once per second"), "retry after 1 second"],
-		bob: [request("bob", "once per second"), "allowed"],
-	});
+	yield* outcomes([
+		["alice", () => request("alice", "once per second"), "retry after 1 second"],
+		["bob", () => request("bob", "once per second"), "allowed"],
+	]);
 });
 
 buckets.it(
@@ -67,8 +67,8 @@ buckets.it("past capacity, a new client's bucket evicts the oldest bucket and ke
 
 	yield* request("a new client", "once per minute");
 
-	yield* outcomes({
-		"the newest client": [request("the newest client", "once per minute"), "retry after 60 seconds"],
-		"the oldest client": [request("the oldest client", "once per minute"), "allowed"],
-	});
+	yield* outcomes([
+		["the newest client", () => request("the newest client", "once per minute"), "retry after 60 seconds"],
+		["the oldest client", () => request("the oldest client", "once per minute"), "allowed"],
+	]);
 });

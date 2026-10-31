@@ -12,10 +12,10 @@ changeFeed.it(
 
 		yield* heartbeatGoesUnanswered();
 
-		yield* outcomes({
-			"listener history": [listenerHistory(), ["listen", "cleanup"]],
-			"live stream resyncs": [liveStreamResyncs(), { "orders board": 1 }],
-		});
+		yield* outcomes([
+			["listener history", () => listenerHistory(), ["listen", "cleanup"]],
+			["live stream resyncs", () => liveStreamResyncs(), { "orders board": 1 }],
+		]);
 	},
 );
 
@@ -30,10 +30,10 @@ changeFeed.it(
 		yield* listenerCleanupDeadlinePasses();
 		yield* listenerReconnects();
 
-		yield* outcomes({
-			"listener connections": [listenerConnections(), ["listening on the feed channel"]],
-			"listener history": [listenerHistory(), ["listen", "cleanup", "listen"]],
-		});
+		yield* outcomes([
+			["listener connections", () => listenerConnections(), ["listening on the feed channel"]],
+			["listener history", () => listenerHistory(), ["listen", "cleanup", "listen"]],
+		]);
 	},
 );
 

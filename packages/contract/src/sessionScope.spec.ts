@@ -13,12 +13,12 @@ for (const runtime of ["alice", "bob"] as const) {
 			yield* untilReRead("alice", "preferences");
 			yield* untilReRead("alice", "list");
 
-			yield* outcomes({
-				"alice's list": [shown("alice", "list"), ["Changed"]],
-				"alice's preference 1": [timesRead("alice", "preference 1"), "read once"],
-				"alice's preferences": [shown("alice", "preferences"), "Changed"],
-				"bob's preferences": [timesRead("bob", "preferences"), "read once"],
-			});
+			yield* outcomes([
+				["alice's list", () => shown("alice", "list"), ["Changed"]],
+				["alice's preference 1", () => timesRead("alice", "preference 1"), "read once"],
+				["alice's preferences", () => shown("alice", "preferences"), "Changed"],
+				["bob's preferences", () => timesRead("bob", "preferences"), "read once"],
+			]);
 		},
 	);
 }
@@ -29,10 +29,10 @@ sessionStory.it(
 	function* ({ save, timesRead }) {
 		expect(yield* save("alice", "")).toBe("failed with rejected");
 
-		yield* outcomes({
-			"alice's list": [timesRead("alice", "list"), "read once"],
-			"alice's preferences": [timesRead("alice", "preferences"), "read once"],
-		});
+		yield* outcomes([
+			["alice's list", () => timesRead("alice", "list"), "read once"],
+			["alice's preferences", () => timesRead("alice", "preferences"), "read once"],
+		]);
 	},
 );
 
@@ -46,10 +46,10 @@ sessionStory.it(
 		yield* announce("alice");
 		yield* untilReRead("alice", "preferences");
 
-		yield* outcomes({
-			"alice's preferences": [shown("alice", "preferences"), "Hinted"],
-			"bob's preferences": [timesRead("bob", "preferences"), "read once"],
-		});
+		yield* outcomes([
+			["alice's preferences", () => shown("alice", "preferences"), "Hinted"],
+			["bob's preferences", () => timesRead("bob", "preferences"), "read once"],
+		]);
 	},
 );
 
@@ -64,10 +64,10 @@ sessionStory.it(
 		yield* untilReRead("alice", "preferences");
 		yield* untilReRead("bob", "preferences");
 
-		yield* outcomes({
-			"alice's preferences": [shown("alice", "preferences"), "Reconciled"],
-			"bob's preferences": [shown("bob", "preferences"), "Reconciled too"],
-		});
+		yield* outcomes([
+			["alice's preferences", () => shown("alice", "preferences"), "Reconciled"],
+			["bob's preferences", () => shown("bob", "preferences"), "Reconciled too"],
+		]);
 	},
 );
 
@@ -107,10 +107,10 @@ sessionStory.it(
 
 		yield* runKeptSaveAgain();
 
-		yield* outcomes({
-			"alice's preferences": [timesRead("alice", "preferences"), "read 3 times"],
-			"alice's stored title": [stored("alice"), "Saved"],
-		});
+		yield* outcomes([
+			["alice's preferences", () => timesRead("alice", "preferences"), "read 3 times"],
+			["alice's stored title", () => stored("alice"), "Saved"],
+		]);
 	},
 );
 

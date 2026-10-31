@@ -8,11 +8,11 @@ app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [s
 	const { notes: client } = actor();
 	expect(yield* client.list()).toEqual([]);
 	const created = yield* client.create({ title: "First note" });
-	yield* outcomes({
-		"created title": [Effect.sync(() => created.title), "First note"],
-		"list": [client.list(), [created]],
-		"stored notes": [storedNotes(), [created].map((note) => expect.objectContaining(note))],
-	});
+	yield* outcomes([
+		["created title", () => Effect.sync(() => created.title), "First note"],
+		["list", () => client.list(), [created]],
+		["stored notes", () => storedNotes(), [created].map((note) => expect.objectContaining(note))],
+	]);
 });
 
 app.it(
@@ -29,15 +29,15 @@ app.it(
 		const { cookie: aliceCookie, notes: alice } = actor();
 		const note = yield* alice.create({ title: "Alice's note" });
 		const bob = actor("bob").notes;
-		yield* outcomes({
-			"alice list": [alice.list(), [note]],
-			"bob list": [bob.list(), []],
-		});
+		yield* outcomes([
+			["alice list", () => alice.list(), [note]],
+			["bob list", () => bob.list(), []],
+		]);
 		const user = actor();
-		yield* outcomes({
-			"legacy note owner": [storedNoteOwners("Legacy note"), [{ userId: null }]],
-			"new note owner": [storedNoteOwners(note.title), [{ userId: user.userId }]],
-		});
+		yield* outcomes([
+			["legacy note owner", () => storedNoteOwners("Legacy note"), [{ userId: null }]],
+			["new note owner", () => storedNoteOwners(note.title), [{ userId: user.userId }]],
+		]);
 		yield* signOut(aliceCookie);
 		const revokedCreate = yield* alice.create({ title: "Revoked note" }).pipe(Effect.flip);
 		expect(revokedCreate).toMatchObject({ _tag: "Unauthorized" });

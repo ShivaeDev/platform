@@ -8,18 +8,20 @@ migrationRuns.it(
 	function* ({ assertReady, pendingWork, verdicts }) {
 		yield* assertReady(["1_create_orders"], { components: ["order index"] });
 
-		yield* outcomes({
-			"pending work": [
-				pendingWork(["1_create_orders"], { components: ["order index"] }),
+		yield* outcomes([
+			[
+				"pending work",
+				() => pendingWork(["1_create_orders"], { components: ["order index"] }),
 				{ components: [{ detail: "index missing", name: "order index" }], migrations: [{ id: 1, name: "create_orders" }] },
 			],
-			verdicts: [
-				verdicts(),
+			[
+				"verdicts",
+				() => verdicts(),
 				[
 					"failed with a bad migration state: Database migrations are not current: migration 1 (create_orders); component order index: index missing. Run the deployment migration command.",
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -41,10 +43,10 @@ migrationRuns.it(
 	function* ({ assertReady, migrate, runs }) {
 		yield* migrate(["1_create_orders"], { components: ["order index"] });
 
-		yield* outcomes({
-			readiness: [assertReady(["1_create_orders"], { components: ["order index"] }), "ready"],
-			runs: [runs(), [[[1, "create_orders"]]]],
-		});
+		yield* outcomes([
+			["readiness", () => assertReady(["1_create_orders"], { components: ["order index"] }), "ready"],
+			["runs", () => runs(), [[[1, "create_orders"]]]],
+		]);
 	},
 );
 
@@ -59,10 +61,10 @@ migrationRuns.it(
 
 		yield* migrate(["1_create_orders"], { components: ["order index"] });
 
-		yield* outcomes({
-			"pending work": [pendingWork(["1_create_orders"], { components: ["order index"] }), { components: [], migrations: [] }],
-			runs: [runs(), [[]]],
-		});
+		yield* outcomes([
+			["pending work", () => pendingWork(["1_create_orders"], { components: ["order index"] }), { components: [], migrations: [] }],
+			["runs", () => runs(), [[]]],
+		]);
 	},
 );
 
@@ -72,10 +74,10 @@ migrationRuns.it(
 	function* ({ ledger, loggedErrors, migrate, runs }) {
 		yield* migrate(["1_create_orders"], { components: ["failing jobs storage"] });
 
-		yield* outcomes({
-			ledger: [ledger(), [[1, "create_orders"]]],
-			"logged errors": [loggedErrors(), ["Schema component failing jobs storage failed. Error: jobs storage unavailable"]],
-			runs: [runs(), ["failed with jobs storage unavailable"]],
-		});
+		yield* outcomes([
+			["ledger", () => ledger(), [[1, "create_orders"]]],
+			["logged errors", () => loggedErrors(), ["Schema component failing jobs storage failed. Error: jobs storage unavailable"]],
+			["runs", () => runs(), ["failed with jobs storage unavailable"]],
+		]);
 	},
 );

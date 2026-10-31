@@ -50,10 +50,10 @@ host.it(
 
 		yield* close();
 
-		yield* outcomes({
-			"exports mentioning the header value": [exportsMentioning("collector secret"), 0],
-			"span names": [exportedSpanNames(), expect.arrayContaining(["POST /rpc"])],
-		});
+		yield* outcomes([
+			["exports mentioning the header value", () => exportsMentioning("collector secret"), 0],
+			["span names", () => exportedSpanNames(), expect.arrayContaining(["POST /rpc"])],
+		]);
 	},
 );
 

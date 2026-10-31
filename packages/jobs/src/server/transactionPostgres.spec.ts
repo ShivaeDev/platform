@@ -14,10 +14,10 @@ database.it(
 	function* ({ enqueueInTransaction, job, seenBeforeCommit }) {
 		yield* enqueueInTransaction("app", Transactional, { id: 42 }, { as: "job 42" }, "commits");
 
-		yield* outcomes({
-			"job 42": [job("job 42"), expect.objectContaining({ data: { id: 42 }, state: "created" })],
-			"job 42 before the commit": [seenBeforeCommit(), "missing"],
-		});
+		yield* outcomes([
+			["job 42", () => job("job 42"), expect.objectContaining({ data: { id: 42 }, state: "created" })],
+			["job 42 before the commit", () => seenBeforeCommit(), "missing"],
+		]);
 	},
 );
 
@@ -27,9 +27,9 @@ database.it(
 	function* ({ answered, enqueueInTransaction, storedJobs }) {
 		yield* enqueueInTransaction("app", Transactional, { id: 42 }, { as: "job 42" }, "rolls back");
 
-		yield* outcomes({
-			"enqueue answer": [answered(), "job 42"],
-			"stored jobs": [storedJobs("transactional"), []],
-		});
+		yield* outcomes([
+			["enqueue answer", () => answered(), "job 42"],
+			["stored jobs", () => storedJobs("transactional"), []],
+		]);
 	},
 );

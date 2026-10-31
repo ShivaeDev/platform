@@ -1,4 +1,4 @@
-import { ConfigProvider, Effect, Exit, Layer, Scope } from "effect";
+import { ConfigProvider, Effect, Exit, Layer, Predicate, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makeAuth } from "#client/auth.ts";
@@ -85,6 +85,15 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			return headers.get("cookie") ?? "";
 		}),
 		notes: (cookie: string) => http().notes(cookie),
+		recordedEnqueueFailures: () => {
+			story.tell("read the recorded note enqueue failures");
+			return Effect.sync(() =>
+				host().logs.filter(
+					({ message }) =>
+						Array.isArray(message) && message.some((entry) => Predicate.hasProperty(entry, "event") && entry.event === "note_enqueue_failed"),
+				),
+			);
+		},
 		runningHost: host,
 		signOut: (cookie: string) => http().signOut(cookie),
 		sourceRequests: () => engine.sourceApi.requests.map(({ method, path, status }) => ({ method, path, status })),

@@ -12,10 +12,10 @@ workerHandover.it(
 
 		yield* retryDelayPasses();
 
-		yield* outcomes({
-			"after the retry": [nextHeartbeat(), "a heartbeat"],
-			"the second release's claim": [secondReleaseClaims(), "refused"],
-		});
+		yield* outcomes([
+			["after the retry", () => nextHeartbeat(), "a heartbeat"],
+			["the second release's claim", () => secondReleaseClaims(), "refused"],
+		]);
 	},
 );
 
@@ -25,10 +25,10 @@ workerHandover.it(
 	function* ({ connectionBlipsOnce, drainStarts, drainState, nextWarning, pollIntervalPasses, retryDelayPasses }) {
 		yield* connectionBlipsOnce("poll");
 		yield* pollIntervalPasses();
-		yield* outcomes({
-			"logged warning": [nextWarning(), "Worker release poll failed: connection closed"],
-			"the drain before the retry": [drainState(), "not draining"],
-		});
+		yield* outcomes([
+			["logged warning", () => nextWarning(), "Worker release poll failed: connection closed"],
+			["the drain before the retry", () => drainState(), "not draining"],
+		]);
 
 		yield* retryDelayPasses();
 
@@ -45,10 +45,10 @@ for (const loop of ["heartbeat", "poll"] as const) {
 
 			yield* retriesRunOut();
 
-			yield* outcomes({
-				"logged warnings": [loggedWarnings(), Array.from({ length: 4 }, () => `Worker release ${loop} failed: connection closed`)],
-				"owning scope": [owningScopeEnding(), "failed with connection closed"],
-			});
+			yield* outcomes([
+				["logged warnings", () => loggedWarnings(), Array.from({ length: 4 }, () => `Worker release ${loop} failed: connection closed`)],
+				["owning scope", () => owningScopeEnding(), "failed with connection closed"],
+			]);
 		},
 	);
 }

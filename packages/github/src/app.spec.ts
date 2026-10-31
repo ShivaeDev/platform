@@ -50,10 +50,10 @@ appGithub.it(
 
 		yield* readConcurrently(12);
 
-		yield* outcomes({
-			"pull request reads": [pullReadTally(), { "installation token 1: 200": 1, "installation token 2: 200": 12 }],
-			"tokens issued": [tokensIssued(), ["installation token 1", "installation token 2"]],
-		});
+		yield* outcomes([
+			["pull request reads", () => pullReadTally(), { "installation token 1: 200": 1, "installation token 2: 200": 12 }],
+			["tokens issued", () => tokensIssued(), ["installation token 1", "installation token 2"]],
+		]);
 	},
 );
 

@@ -65,10 +65,10 @@ watch.it(
 
 		yield* timePasses("1 hour");
 
-		yield* outcomes({
-			"cooldowns": [cooldowns(), ["00:00:00 until 01:00:00: GitHub quota pacing (core: 0/5000 remaining; reset 1970-01-01T01:00:00.000Z)"]],
-			"PR 1 reads": [pollTimes(1), ["00:00:00", "01:00:00"]],
-		});
+		yield* outcomes([
+			["cooldowns", () => cooldowns(), ["00:00:00 until 01:00:00: GitHub quota pacing (core: 0/5000 remaining; reset 1970-01-01T01:00:00.000Z)"]],
+			["PR 1 reads", () => pollTimes(1), ["00:00:00", "01:00:00"]],
+		]);
 	},
 );
 
@@ -80,10 +80,10 @@ watch.it(
 
 		yield* timePasses("2 minutes");
 
-		yield* outcomes({
-			"cooldowns": [cooldowns(), []],
-			"PR 1 reads": [pollTimes(1), ["00:00:00", "00:01:00", "00:02:00"]],
-		});
+		yield* outcomes([
+			["cooldowns", () => cooldowns(), []],
+			["PR 1 reads", () => pollTimes(1), ["00:00:00", "00:01:00", "00:02:00"]],
+		]);
 	},
 );
 
@@ -95,10 +95,10 @@ watch.it(
 
 		yield* runOnce();
 
-		yield* outcomes({
-			"errors": [errors(), ["GitHub quota cooldown (core: 0/5000 remaining; reset 1970-01-01T01:00:00.000Z)"]],
-			"requests": [lastRoundRequests(), []],
-		});
+		yield* outcomes([
+			["errors", () => errors(), ["GitHub quota cooldown (core: 0/5000 remaining; reset 1970-01-01T01:00:00.000Z)"]],
+			["requests", () => lastRoundRequests(), []],
+		]);
 	},
 );
 
@@ -128,18 +128,18 @@ watch.it(
 	function* ({ errors, howItStopped, runOnce }) {
 		yield* runOnce();
 
-		yield* outcomes({
-			"errors": [errors(), ["GitHub HTTP 500 (GET /repos/acme/project/pulls/1)"]],
-			"stop": [howItStopped(), "failed at 00:00:00"],
-		});
+		yield* outcomes([
+			["errors", () => errors(), ["GitHub HTTP 500 (GET /repos/acme/project/pulls/1)"]],
+			["stop", () => howItStopped(), "failed at 00:00:00"],
+		]);
 	},
 );
 
 watch.it("--help prints the available watch settings without authentication", [signedOut], function* ({ cliExit, cliStdout, runCli }) {
 	yield* runCli("--help");
 
-	yield* outcomes({
-		"exit": [cliExit(), "exit code 0"],
-		"help": [cliStdout(), expect.stringContaining("--repo")],
-	});
+	yield* outcomes([
+		["exit", () => cliExit(), "exit code 0"],
+		["help", () => cliStdout(), expect.stringContaining("--repo")],
+	]);
 });

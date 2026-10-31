@@ -53,11 +53,11 @@ changeFeed.it(
 			yield* rejects();
 		});
 
-		yield* outcomes({
-			"published payloads": [published(), []],
-			"stored rows": [storedRows(), []],
-			"transaction endings": [endings(), ["failed with rejected"]],
-		});
+		yield* outcomes([
+			["published payloads", () => published(), []],
+			["stored rows", () => storedRows(), []],
+			["transaction endings", () => endings(), ["failed with rejected"]],
+		]);
 	},
 );
 
@@ -73,11 +73,11 @@ changeFeed.it(
 			});
 		});
 
-		yield* outcomes({
-			"published payloads": [published(), [["rows", "rows:2"]]],
-			"stored rows": [storedRows(), [2]],
-			"transaction endings": [endings(), ["failed with rejected", "committed"]],
-		});
+		yield* outcomes([
+			["published payloads", () => published(), [["rows", "rows:2"]]],
+			["stored rows", () => storedRows(), [2]],
+			["transaction endings", () => endings(), ["failed with rejected", "committed"]],
+		]);
 	},
 );
 

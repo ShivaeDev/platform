@@ -10,9 +10,9 @@ constraints.it(
 			{ name: "Shared", quantity: 3 },
 		]);
 
-		yield* outcomes({
-			"losing transaction": [endings(), ["failed with name taken"]],
-			"stored items": [storedItems(), [{ name: "Shared", quantity: 1 }]],
-		});
+		yield* outcomes([
+			["losing transaction", () => endings(), ["failed with name taken"]],
+			["stored items", () => storedItems(), [{ name: "Shared", quantity: 1 }]],
+		]);
 	},
 );

@@ -60,6 +60,6 @@ sessionKeys.it("a forwarded WebSocket upgrade from the trusted proxy switches pr
 	expect(yield* upgrade(forwarded, "127.0.0.1")).toBe(HttpStatus.fromLiteral("SwitchingProtocols"));
 });
 
-sessionKeys.it("the reserved changes stream over POST dies as an unknown request tag", [], function* ({ postSubscription }) {
-	expect(yield* postSubscription()).toBe("died with Unknown request tag: account.$changes");
+sessionKeys.it("the reserved changes stream over POST says it needs the WebSocket protocol", [], function* ({ postSubscription }) {
+	expect(yield* postSubscription()).toBe("failed with account.$changes needs the WebSocket protocol");
 });

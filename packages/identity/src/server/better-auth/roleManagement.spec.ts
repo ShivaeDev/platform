@@ -14,10 +14,10 @@ for (const actor of ["alice", "bob", "visitor"] as const) {
 
 				const status = yield* requestRoleEndpoint(actor, endpoint);
 
-				yield* outcomes({
-					"closed endpoint": [Effect.succeed(status), HttpStatus.fromLiteral("NotFound")],
-					"roles on the users page": [rolesOnUsersPage(), { alice: "admin", bob: "user" }],
-				});
+				yield* outcomes([
+					["closed endpoint", () => Effect.succeed(status), HttpStatus.fromLiteral("NotFound")],
+					["roles on the users page", () => rolesOnUsersPage(), { alice: "admin", bob: "user" }],
+				]);
 			},
 		);
 	}
@@ -42,10 +42,10 @@ roleManagement.it("an operator seed assigns bob's role through identity", [], fu
 roleManagement.it("assignRole refuses to remove the last role assigner and preserves alice's role", [], function* ({ seedRole, sessionRole }) {
 	const answer = yield* seedRole("alice", "user");
 
-	yield* outcomes({
-		"alice's session role": [sessionRole("alice"), "admin"],
-		"assignment refusal": [Effect.succeed(answer), "last role assigner"],
-	});
+	yield* outcomes([
+		["alice's session role", () => sessionRole("alice"), "admin"],
+		["assignment refusal", () => Effect.succeed(answer), "last role assigner"],
+	]);
 });
 
 roleManagement.it("concurrent operator assignments leave one role assigner", [], function* ({ seedRole, sessionRole }) {
@@ -53,20 +53,22 @@ roleManagement.it("concurrent operator assignments leave one role assigner", [],
 
 	const answers = yield* Effect.all([seedRole("alice", "user"), seedRole("bob", "user")], { concurrency: "unbounded" });
 
-	yield* outcomes({
-		"assignment answers": [Effect.succeed(answers.sort()), ["assigned", "last role assigner"]],
-		"remaining role assigner": [
-			Effect.all({ alice: sessionRole("alice"), bob: sessionRole("bob") }).pipe(
-				Effect.map((roles) =>
-					Object.entries(roles)
-						.filter(([, role]) => role !== "user")
-						.map(([person]) => person)
-						.join(", "),
+	yield* outcomes([
+		["assignment answers", () => Effect.succeed(answers.sort()), ["assigned", "last role assigner"]],
+		[
+			"remaining role assigner",
+			() =>
+				Effect.all({ alice: sessionRole("alice"), bob: sessionRole("bob") }).pipe(
+					Effect.map((roles) =>
+						Object.entries(roles)
+							.filter(([, role]) => role !== "user")
+							.map(([person]) => person)
+							.join(", "),
+					),
 				),
-			),
 			expect.stringMatching(/^(?:alice|bob)$/u),
 		],
-	});
+	]);
 });
 
 roleManagement.it("mounting roles keeps the app's disabled profile endpoint closed", [], function* ({ updateProfile }) {

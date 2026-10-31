@@ -33,10 +33,10 @@ signOuts.it(
 		yield* clickSignOut();
 		yield* signOutSucceeds();
 
-		yield* outcomes({
-			"navigation destinations": [destinations(), ["/sign-in"]],
-			"sign-out requests": [requests(), ["sign-out"]],
-		});
+		yield* outcomes([
+			["navigation destinations", () => destinations(), ["/sign-in"]],
+			["sign-out requests", () => requests(), ["sign-out"]],
+		]);
 	},
 );
 

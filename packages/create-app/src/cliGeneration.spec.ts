@@ -57,12 +57,12 @@ application.it(
 	function* ({ createApp, gitState, uncommittedChanges }) {
 		yield* createApp("my-app");
 
-		yield* outcomes({
-			".env.local": [gitState(".env.local"), "ignored"],
-			".github/workflows/ci.yml": [gitState(".github/workflows/ci.yml"), "tracked"],
-			"pnpm-lock.yaml": [gitState("pnpm-lock.yaml"), "tracked"],
-			"uncommitted changes": [uncommittedChanges(), []],
-		});
+		yield* outcomes([
+			[".env.local", () => gitState(".env.local"), "ignored"],
+			[".github/workflows/ci.yml", () => gitState(".github/workflows/ci.yml"), "tracked"],
+			["pnpm-lock.yaml", () => gitState("pnpm-lock.yaml"), "tracked"],
+			["uncommitted changes", () => uncommittedChanges(), []],
+		]);
 	},
 );
 
@@ -73,10 +73,10 @@ for (const [why, given, flags] of [
 	application.it(`create-app creates my-app without a repository when ${why}`, given, function* ({ answer, createApp, exists }) {
 		yield* createApp("my-app", ...flags);
 
-		yield* outcomes({
-			".git in my-app": [exists(".git"), false],
-			answer: [answer(), "created"],
-		});
+		yield* outcomes([
+			[".git in my-app", () => exists(".git"), false],
+			["answer", () => answer(), "created"],
+		]);
 	});
 }
 
@@ -86,11 +86,11 @@ application.it(
 	function* ({ createApp, enclosingCommits, enclosingStaged, exists }) {
 		yield* createApp("apps/my-app");
 
-		yield* outcomes({
-			".git in my-app": [exists(".git"), false],
-			"enclosing commits": [enclosingCommits(), []],
-			"enclosing staged files": [enclosingStaged(), []],
-		});
+		yield* outcomes([
+			[".git in my-app", () => exists(".git"), false],
+			["enclosing commits", () => enclosingCommits(), []],
+			["enclosing staged files", () => enclosingStaged(), []],
+		]);
 	},
 );
 
@@ -100,10 +100,10 @@ application.it(
 	function* ({ answer, createApp, exists }) {
 		yield* createApp("my-app", "--no-git");
 
-		yield* outcomes({
-			answer: [answer(), "created"],
-			"src/modules/notes/notes.ts": [exists("src/modules/notes/notes.ts"), true],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "created"],
+			["src/modules/notes/notes.ts", () => exists("src/modules/notes/notes.ts"), true],
+		]);
 	},
 );
 
@@ -118,10 +118,10 @@ for (const [kind, contents] of [
 		function* ({ answer, createApp, destinationContents }) {
 			yield* createApp("my-app");
 
-			yield* outcomes({
-				answer: [answer(), NOT_EMPTY],
-				"my-app": [destinationContents(), contents],
-			});
+			yield* outcomes([
+				["answer", () => answer(), NOT_EMPTY],
+				["my-app", () => destinationContents(), contents],
+			]);
 		},
 	);
 }
@@ -132,11 +132,11 @@ application.it(
 	function* ({ answer, commits, createApp, exists }) {
 		yield* createApp("my-app");
 
-		yield* outcomes({
-			answer: [answer(), "create-app: pnpm run setup failed (exit 7). Run pnpm run setup in my-app to retry."],
-			commits: [commits(), []],
-			"package.json": [exists("package.json"), true],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "create-app: pnpm run setup failed (exit 7). Run pnpm run setup in my-app to retry."],
+			["commits", () => commits(), []],
+			["package.json", () => exists("package.json"), true],
+		]);
 	},
 );
 
@@ -149,10 +149,10 @@ application.it(
 
 		yield* createApp("my-app", "--no-git");
 
-		yield* outcomes({
-			".env.local": [file(".env.local"), environment],
-			answer: [answer(), NOT_EMPTY],
-		});
+		yield* outcomes([
+			[".env.local", () => file(".env.local"), environment],
+			["answer", () => answer(), NOT_EMPTY],
+		]);
 	},
 );
 
@@ -160,10 +160,10 @@ for (const name of ["Bad Name", "node_modules", "favicon.ico"]) {
 	application.it(`create-app refuses the folder name "${name}" and creates no folder`, [], function* ({ answer, createApp, workspaceHas }) {
 		yield* createApp(name);
 
-		yield* outcomes({
-			answer: [answer(), "create-app: The final folder name must be a lowercase npm package name."],
-			[name]: [workspaceHas(name), false],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "create-app: The final folder name must be a lowercase npm package name."],
+			[name, () => workspaceHas(name), false],
+		]);
 	});
 }
 
@@ -175,9 +175,9 @@ application.it(
 
 		yield* createApp(name);
 
-		yield* outcomes({
-			answer: [answer(), "create-app: The final folder name must be a lowercase npm package name."],
-			folder: [workspaceHas(name), false],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "create-app: The final folder name must be a lowercase npm package name."],
+			["folder", () => workspaceHas(name), false],
+		]);
 	},
 );

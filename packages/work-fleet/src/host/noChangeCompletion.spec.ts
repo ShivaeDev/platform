@@ -13,10 +13,10 @@ host.it(
 		work.finishTurn(launched.value, NO_CHANGE);
 		const reviewing = yield* work.reconcile("one");
 		expect(reviewing.step).toBe("reviewing");
-		yield* outcomes({
-			"Board progress": [work.boardProgress(), ["one"]],
-			"Fleet active work": [work.status().pipe(Effect.map((overview) => overview.active.map((item) => item.workId))), ["one"]],
-		});
+		yield* outcomes([
+			["Board progress", () => work.boardProgress(), ["one"]],
+			["Fleet active work", () => work.status().pipe(Effect.map((overview) => overview.active.map((item) => item.workId))), ["one"]],
+		]);
 		expect(work.readBoard("one.md")).not.toContain("status: done");
 		work.finishTurn(reviewing);
 

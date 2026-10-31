@@ -19,11 +19,12 @@ schemaInbox.it(
 		yield* applyReceipts();
 		yield* applyReceipts();
 
-		yield* outcomes({
-			"job ids column": [receiptJobIdsType(), [{ type: "text[]" }]],
-			"pending migrations": [pending(), "nothing pending"],
-			"preserved receipts": [
-				receipts(),
+		yield* outcomes([
+			["job ids column", () => receiptJobIdsType(), [{ type: "text[]" }]],
+			["pending migrations", () => pending(), "nothing pending"],
+			[
+				"preserved receipts",
+				() => receipts(),
 				[
 					{
 						deliveryId: "delivery-1",
@@ -43,7 +44,7 @@ schemaInbox.it(
 					},
 				],
 			],
-		});
+		]);
 	},
 );
 

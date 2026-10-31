@@ -33,10 +33,10 @@ changeKeys.it(
 	function* ({ ownedRows, publishedKeys, writeOwnedInsertForTakenId }) {
 		yield* writeOwnedInsertForTakenId();
 
-		yield* outcomes({
-			"owned rows": [ownedRows(), ["1/2 Draft at version 0"]],
-			"published keys": [publishedKeys(), []],
-		});
+		yield* outcomes([
+			["owned rows", () => ownedRows(), ["1/2 Draft at version 0"]],
+			["published keys", () => publishedKeys(), []],
+		]);
 	},
 );
 
@@ -53,10 +53,10 @@ for (const { entries, given, operation } of ledgerWrites) {
 		function* ({ ledgerEntries, publishedKeys, writeLedger }) {
 			yield* writeLedger(operation);
 
-			yield* outcomes({
-				"ledger entries": [ledgerEntries(), [...entries]],
-				"published keys": [publishedKeys(), ['record ["cash","9007199254740993"]', "the table"]],
-			});
+			yield* outcomes([
+				["ledger entries", () => ledgerEntries(), [...entries]],
+				["published keys", () => publishedKeys(), ['record ["cash","9007199254740993"]', "the table"]],
+			]);
 		},
 	);
 }

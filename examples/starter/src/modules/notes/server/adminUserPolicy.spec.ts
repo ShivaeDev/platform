@@ -12,21 +12,24 @@ adminHost.it("the last owner cannot be demoted", [adminAccount("owner", "owner")
 	if (owner === undefined) {
 		return yield* Effect.die(new Error("Owner was not listed"));
 	}
-	yield* outcomes({
-		"admin users change role": [
-			Effect.flip(client["admin.users.changeRole"]({ role: "admin", userId: owner.id })),
+	yield* outcomes([
+		[
+			"admin users change role",
+			() => Effect.flip(client["admin.users.changeRole"]({ role: "admin", userId: owner.id })),
 			expect.objectContaining({
 				_tag: "LastRoleAssigner",
 				userId: owner.id,
 			}),
 		],
-		"remaining owner role": [
-			Effect.gen(function* () {
-				return (yield* client["admin.users.list"]({ limit: 20 })).users[0]?.role;
-			}),
+		[
+			"remaining owner role",
+			() =>
+				Effect.gen(function* () {
+					return (yield* client["admin.users.list"]({ limit: 20 })).users[0]?.role;
+				}),
 			"owner",
 		],
-	});
+	]);
 });
 
 adminHost.it(
@@ -40,26 +43,32 @@ adminHost.it(
 			return yield* Effect.die(new Error("Owner was not listed"));
 		}
 		for (const name of ["owner", "operator"]) {
-			yield* outcomes({
-				"native create-user endpoint": [
-					Effect.gen(function* () {
-						return (yield* postAuthAdmin(name, "create-user", { email: "bypass@app.test", name: "Bypass", role: "owner" })).status;
-					}),
+			yield* outcomes([
+				[
+					"native create-user endpoint",
+					() =>
+						Effect.gen(function* () {
+							return (yield* postAuthAdmin(name, "create-user", { email: "bypass@app.test", name: "Bypass", role: "owner" })).status;
+						}),
 					HttpStatus.fromLiteral("NotFound"),
 				],
-				"native set-role endpoint": [
-					Effect.gen(function* () {
-						return (yield* postAuthAdmin(name, "set-role", { role: "user", userId: owner.id })).status;
-					}),
+				[
+					"native set-role endpoint",
+					() =>
+						Effect.gen(function* () {
+							return (yield* postAuthAdmin(name, "set-role", { role: "user", userId: owner.id })).status;
+						}),
 					HttpStatus.fromLiteral("NotFound"),
 				],
-				"native update-user endpoint": [
-					Effect.gen(function* () {
-						return (yield* postAuthAdmin(name, "update-user", { data: { role: "user" }, userId: owner.id })).status;
-					}),
+				[
+					"native update-user endpoint",
+					() =>
+						Effect.gen(function* () {
+							return (yield* postAuthAdmin(name, "update-user", { data: { role: "user" }, userId: owner.id })).status;
+						}),
 					HttpStatus.fromLiteral("NotFound"),
 				],
-			});
+			]);
 		}
 		expect((yield* client["admin.users.list"]({ limit: 20 })).users).toEqual(users);
 	},

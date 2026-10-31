@@ -34,10 +34,10 @@ queries.it(
 	function* ({ boundParameters, lastResult, listReports }) {
 		yield* listReports(DateTime.makeUnsafe("2026-10-25T13:00:00+02:00"));
 
-		yield* outcomes({
-			"bound parameters": [boundParameters(), [[new Date("2026-10-25T11:00:00Z")]]],
-			"reported pull requests": [lastResult(), [latest]],
-		});
+		yield* outcomes([
+			["bound parameters", () => boundParameters(), [[new Date("2026-10-25T11:00:00Z")]]],
+			["reported pull requests", () => lastResult(), [latest]],
+		]);
 	},
 );
 

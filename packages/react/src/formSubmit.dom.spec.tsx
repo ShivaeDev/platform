@@ -10,10 +10,10 @@ submissions.it(
 
 		yield* submit("Form submit");
 
-		yield* outcomes({
-			created: [created(), { id: 1, name: "Desk lamps" }],
-			"form name": [formName(), ""],
-		});
+		yield* outcomes([
+			["created", () => created(), { id: 1, name: "Desk lamps" }],
+			["form name", () => formName(), ""],
+		]);
 	},
 );
 
@@ -29,10 +29,10 @@ submissions.it(
 	function* ({ created, formName, submit }) {
 		yield* submit("Atom submit");
 
-		yield* outcomes({
-			created: [created(), { id: 2, name: "Office chairs" }],
-			"form name": [formName(), ""],
-		});
+		yield* outcomes([
+			["created", () => created(), { id: 2, name: "Office chairs" }],
+			["form name", () => formName(), ""],
+		]);
 	},
 );
 
@@ -42,10 +42,10 @@ submissions.it(
 	function* ({ created, finishDecode, formName }) {
 		yield* finishDecode();
 
-		yield* outcomes({
-			created: [created(), { id: 1, name: "Desk lamps" }],
-			"form name": [formName(), "Desk lamps and chairs"],
-		});
+		yield* outcomes([
+			["created", () => created(), { id: 1, name: "Desk lamps" }],
+			["form name", () => formName(), "Desk lamps and chairs"],
+		]);
 	},
 );
 
@@ -57,10 +57,10 @@ submissions.it(
 
 		yield* submit("Atom submit");
 
-		yield* outcomes({
-			dirty: [dirty(), "clean"],
-			"form name": [formName(), "TONER"],
-		});
+		yield* outcomes([
+			["dirty", () => dirty(), "clean"],
+			["form name", () => formName(), "TONER"],
+		]);
 	},
 );
 
@@ -72,11 +72,11 @@ submissions.it(
 
 		yield* submit("Form submit");
 
-		yield* outcomes({
-			created: [created(), "none"],
-			"field error": [fieldError(), "Name is already used"],
-			"form name": [formName(), "Taken"],
-		});
+		yield* outcomes([
+			["created", () => created(), "none"],
+			["field error", () => fieldError(), "Name is already used"],
+			["form name", () => formName(), "Taken"],
+		]);
 	},
 );
 
@@ -94,10 +94,10 @@ submissions.it(
 
 		yield* submit("Form submit");
 
-		yield* outcomes({
-			created: [created(), { id: 1, name: "Available" }],
-			"field error": [fieldError(), "none"],
-			"form name": [formName(), ""],
-		});
+		yield* outcomes([
+			["created", () => created(), { id: 1, name: "Available" }],
+			["field error", () => fieldError(), "none"],
+			["form name", () => formName(), ""],
+		]);
 	},
 );

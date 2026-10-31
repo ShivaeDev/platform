@@ -23,9 +23,9 @@ database.it(
 		yield* untilSettled(WakeReads, 3);
 		yield* untilLogged("wake-read-failure");
 
-		yield* outcomes({
-			"logs": [logged("app"), [{ level: "Error", message: "pg-boss settle for queue wake-read-failure failed: Error: retry lookup failed" }]],
-			"stored states": [storedStates(WakeReads.name), { "job 0": "failed", "job 1": "completed", "job 2": "completed" }],
-		});
+		yield* outcomes([
+			["logs", () => logged("app"), [{ level: "Error", message: "pg-boss settle for queue wake-read-failure failed: Error: retry lookup failed" }]],
+			["stored states", () => storedStates(WakeReads.name), { "job 0": "failed", "job 1": "completed", "job 2": "completed" }],
+		]);
 	},
 );

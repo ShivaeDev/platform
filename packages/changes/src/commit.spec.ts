@@ -13,10 +13,10 @@ changes.it(
 			expect(yield* published()).toEqual([]);
 		});
 
-		yield* outcomes({
-			"committed rows": [committedRows(), ["ada's order"]],
-			"published changes": [published(), [["ada:orders"]]],
-		});
+		yield* outcomes([
+			["committed rows", () => committedRows(), ["ada's order"]],
+			["published changes", () => published(), [["ada:orders"]]],
+		]);
 	},
 );
 
@@ -40,11 +40,11 @@ for (const ending of ["rejected", "died", "interrupted", "commit failed"] as con
 		function* ({ saveOrder, orderEnding, committedRows, published }) {
 			yield* saveOrder("ada");
 
-			yield* outcomes({
-				"committed rows": [committedRows(), []],
-				"how the transaction ended": [orderEnding(), ending],
-				"published changes": [published(), []],
-			});
+			yield* outcomes([
+				["committed rows", () => committedRows(), []],
+				["how the transaction ended", () => orderEnding(), ending],
+				["published changes", () => published(), []],
+			]);
 		},
 	);
 }
@@ -75,10 +75,10 @@ changes.it(
 			});
 		});
 
-		yield* outcomes({
-			"committed rows": [committedRows(), ["ada's order"]],
-			"published changes": [published(), [["ada:orders"]]],
-		});
+		yield* outcomes([
+			["committed rows", () => committedRows(), ["ada's order"]],
+			["published changes", () => published(), [["ada:orders"]]],
+		]);
 	},
 );
 
@@ -111,10 +111,10 @@ changes.it(
 
 		yield* interruptOrder();
 
-		yield* outcomes({
-			"committed rows": [committedRows(), ["ada's order"]],
-			"how the transaction ended": [orderEnding(), "interrupted"],
-			"published changes": [published(), [["ada:orders"]]],
-		});
+		yield* outcomes([
+			["committed rows", () => committedRows(), ["ada's order"]],
+			["how the transaction ended", () => orderEnding(), "interrupted"],
+			["published changes", () => published(), [["ada:orders"]]],
+		]);
 	},
 );

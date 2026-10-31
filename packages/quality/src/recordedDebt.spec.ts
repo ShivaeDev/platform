@@ -22,10 +22,10 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [stdout(), expect.stringContaining("quality: passed. 3 source files checked; 2 registered violations not shown.")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), expect.stringContaining("quality: passed. 3 source files checked; 2 registered violations not shown.")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -54,14 +54,15 @@ repositoryStory.it(
 
 		yield* runs("baseline", "write");
 
-		yield* outcomes({
-			"baseline": [
-				reads(BASELINE),
+		yield* outcomes([
+			[
+				"baseline",
+				() => reads(BASELINE),
 				'{"path":"src/long.ts","rule":"structure/max-lines","count":1}\n{"path":"src/longer.ts","rule":"structure/max-lines","count":3}\n',
 			],
-			"exit": [outcome(), "passed"],
-			"report": [stdout(), "quality: recorded 2 entries in quality-baseline.jsonl.\n"],
-		});
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), "quality: recorded 2 entries in quality-baseline.jsonl.\n"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -72,10 +73,10 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [stdout(), expect.stringContaining("2 baselined violations not shown")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), expect.stringContaining("2 baselined violations not shown")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -105,12 +106,12 @@ repositoryStory.it(
 		yield* writes(LONG_FIXED, LONGER_SHRUNK);
 
 		yield* runs("lint");
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"fixed file": [stdout(), expect.stringContaining("structure/max-lines src/long.ts has no violations left.")],
-			"note": [stdout(), expect.stringContaining("note quality-baseline.jsonl: 2 stale entries")],
-			"shrunk file": [stdout(), expect.stringContaining("structure/max-lines src/longer.ts allows more than is left")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["fixed file", () => stdout(), expect.stringContaining("structure/max-lines src/long.ts has no violations left.")],
+			["note", () => stdout(), expect.stringContaining("note quality-baseline.jsonl: 2 stale entries")],
+			["shrunk file", () => stdout(), expect.stringContaining("structure/max-lines src/longer.ts allows more than is left")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -124,10 +125,10 @@ repositoryStory.it(
 
 		yield* runs("baseline", "prune");
 
-		yield* outcomes({
-			"baseline": [reads(BASELINE), '{"path":"src/longer.ts","rule":"structure/max-lines","count":2}\n'],
-			"report": [stdout(), "quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n"],
-		});
+		yield* outcomes([
+			["baseline", () => reads(BASELINE), '{"path":"src/longer.ts","rule":"structure/max-lines","count":2}\n'],
+			["report", () => stdout(), "quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -138,10 +139,10 @@ repositoryStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("baseline", "write");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("a baseline exists. Record a rule with --rule <id>")],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("a baseline exists. Record a rule with --rule <id>")],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );

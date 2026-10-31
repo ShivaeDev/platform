@@ -12,10 +12,10 @@ for (const [stableReads, reads] of [
 		function* ({ readsAtTheEnd, waitForNoSessions, waitOutcome }) {
 			yield* waitForNoSessions(stableReads === undefined ? {} : { stableReads });
 
-			yield* outcomes({
-				"reads taken": [readsAtTheEnd(), `${reads} reads of 0 open sessions`],
-				"wait outcome": [waitOutcome(), "settled on 0 open sessions"],
-			});
+			yield* outcomes([
+				["reads taken", () => readsAtTheEnd(), `${reads} reads of 0 open sessions`],
+				["wait outcome", () => waitOutcome(), "settled on 0 open sessions"],
+			]);
 		},
 	);
 }
@@ -26,11 +26,11 @@ observation.it(
 	function* ({ readsAtTheEnd, sessionCountsSeen, waitForNoSessions, waitOutcome }) {
 		yield* waitForNoSessions({ during: "alice closes after the first read" });
 
-		yield* outcomes({
-			"reads at the end": [readsAtTheEnd(), "2 reads of 0 open sessions"],
-			"session counts seen": [sessionCountsSeen(), ["1 open session", "0 open sessions"]],
-			"wait outcome": [waitOutcome(), "settled on 0 open sessions"],
-		});
+		yield* outcomes([
+			["reads at the end", () => readsAtTheEnd(), "2 reads of 0 open sessions"],
+			["session counts seen", () => sessionCountsSeen(), ["1 open session", "0 open sessions"]],
+			["wait outcome", () => waitOutcome(), "settled on 0 open sessions"],
+		]);
 	},
 );
 
@@ -40,10 +40,10 @@ observation.it(
 	function* ({ sessionCountsSeen, waitForNoSessions, waitOutcome }) {
 		yield* waitForNoSessions({ during: "bob connects after the first read", within: "500 millis" });
 
-		yield* outcomes({
-			"session counts seen": [sessionCountsSeen(), ["0 open sessions", "1 open session"]],
-			"wait outcome": [waitOutcome(), "never settled, last read 1 open session"],
-		});
+		yield* outcomes([
+			["session counts seen", () => sessionCountsSeen(), ["0 open sessions", "1 open session"]],
+			["wait outcome", () => waitOutcome(), "never settled, last read 1 open session"],
+		]);
 	},
 );
 

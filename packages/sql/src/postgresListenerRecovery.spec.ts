@@ -19,14 +19,15 @@ changeFeed.it(
 		yield* listenerReconnects();
 
 		yield* insertRow(1);
-		yield* outcomes({
-			"listener history": [listenerHistory(), ["listen", "listen"]],
-			"listener log": [
-				listenerLog(),
+		yield* outcomes([
+			["listener history", () => listenerHistory(), ["listen", "listen"]],
+			[
+				"listener log",
+				() => listenerLog(),
 				[expect.stringMatching(new RegExp(`^${LOST} after .*heartbeat timed out`, "u")), expect.stringMatching(new RegExp(`^${RECOVERED}`, "u"))],
 			],
-			"published payloads": [published(), [["rows", "rows:1"]]],
-		});
+			["published payloads", () => published(), [["rows", "rows:1"]]],
+		]);
 	},
 );
 

@@ -7,10 +7,10 @@ import { clockReading } from "#test/clockReading.ts";
 const GENERATOR_STORY = "it.effect runs a generator body on the test clock from 0 ms with this test's Vitest context";
 
 it.effect(GENERATOR_STORY, function* ({ task }) {
-	yield* outcomes({
-		"body's clock": [clockReading, "the test clock at 0 ms"],
-		"test the body was given": [Effect.succeed(task.name), GENERATOR_STORY],
-	});
+	yield* outcomes([
+		["body's clock", () => clockReading, "the test clock at 0 ms"],
+		["test the body was given", () => Effect.succeed(task.name), GENERATOR_STORY],
+	]);
 });
 
 it.live("it.live runs its body on the live clock", function* () {

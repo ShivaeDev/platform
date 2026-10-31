@@ -12,21 +12,25 @@ integration.it(
 	"the writer's PostgreSQL commit reaches the reader's open editor over live HTTP",
 	[writerCommitHeld()],
 	function* ({ deliveries, editor, publications, releaseCommit, storedOrder }) {
-		yield* outcomes({
-			"publications before the commit": [publications(), []],
-			"reader before the commit": [editor("reader"), { name: "Printer paper", quantity: "300", server: "Printer paper / 300", status: "Saved" }],
-			"stored before the commit": [storedOrder(), ["Printer paper / 300"]],
-		});
+		yield* outcomes([
+			["publications before the commit", () => publications(), []],
+			[
+				"reader before the commit",
+				() => editor("reader"),
+				{ name: "Printer paper", quantity: "300", server: "Printer paper / 300", status: "Saved" },
+			],
+			["stored before the commit", () => storedOrder(), ["Printer paper / 300"]],
+		]);
 
 		yield* releaseCommit();
 
-		yield* outcomes({
-			deliveries: [deliveries(), ["Office chairs / 450", "Office chairs / 450"]],
-			publications: [publications(), ["orders:1"]],
-			reader: [editor("reader"), saved],
-			stored: [storedOrder(), ["Office chairs / 450"]],
-			writer: [editor("writer"), saved],
-		});
+		yield* outcomes([
+			["deliveries", () => deliveries(), ["Office chairs / 450", "Office chairs / 450"]],
+			["publications", () => publications(), ["orders:1"]],
+			["reader", () => editor("reader"), saved],
+			["stored", () => storedOrder(), ["Office chairs / 450"]],
+			["writer", () => editor("writer"), saved],
+		]);
 	},
 	20_000,
 );
@@ -66,11 +70,11 @@ for (const [caller, token, answer] of [
 		function* ({ answers, forbiddenSave, publications, storedOrder }) {
 			yield* forbiddenSave(token);
 
-			yield* outcomes({
-				answer: [answers(), [answer]],
-				publications: [publications(), []],
-				stored: [storedOrder(), ["Printer paper / 300"]],
-			});
+			yield* outcomes([
+				["answer", () => answers(), [answer]],
+				["publications", () => publications(), []],
+				["stored", () => storedOrder(), ["Printer paper / 300"]],
+			]);
 		},
 		20_000,
 	);
@@ -82,14 +86,14 @@ integration.it(
 	function* ({ answers, deliveries, editor, publications, readsSinceAction, rejectedSave, storedOrder }) {
 		yield* rejectedSave();
 
-		yield* outcomes({
-			answers: [answers(), ["rejected as Rejected", "saved"]],
-			deliveries: [deliveries(), ["After rollback / 300"]],
-			publications: [publications(), ["orders:1"]],
-			reader: [editor("reader"), { name: "After rollback", quantity: "300", server: "After rollback / 300", status: "Saved" }],
-			"reader reads": [readsSinceAction(), [1]],
-			stored: [storedOrder(), ["After rollback / 300"]],
-		});
+		yield* outcomes([
+			["answers", () => answers(), ["rejected as Rejected", "saved"]],
+			["deliveries", () => deliveries(), ["After rollback / 300"]],
+			["publications", () => publications(), ["orders:1"]],
+			["reader", () => editor("reader"), { name: "After rollback", quantity: "300", server: "After rollback / 300", status: "Saved" }],
+			["reader reads", () => readsSinceAction(), [1]],
+			["stored", () => storedOrder(), ["After rollback / 300"]],
+		]);
 	},
 	20_000,
 );

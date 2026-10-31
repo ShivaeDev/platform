@@ -54,10 +54,10 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"printed": [printed(), []],
-			"saved head": [savedHead(1), "new-branch: New title"],
-		});
+		yield* outcomes([
+			["printed", () => printed(), []],
+			["saved head", () => savedHead(1), "new-branch: New title"],
+		]);
 	},
 );
 

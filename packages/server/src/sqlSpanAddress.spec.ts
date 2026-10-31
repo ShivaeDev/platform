@@ -36,10 +36,10 @@ for (const source of ["authority", "parameters"] as const) {
 		function* ({ queryThroughHost, sqlSpanDestination, sqlSpanSecrets }) {
 			yield* queryThroughHost();
 
-			yield* outcomes({
-				"leaked secrets": [sqlSpanSecrets(), []],
-				"recorded SQL span": [sqlSpanDestination(), expect.objectContaining({ address: "127.0.0.1" })],
-			});
+			yield* outcomes([
+				["leaked secrets", () => sqlSpanSecrets(), []],
+				["recorded SQL span", () => sqlSpanDestination(), expect.objectContaining({ address: "127.0.0.1" })],
+			]);
 		},
 	);
 }

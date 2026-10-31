@@ -16,13 +16,13 @@ supervisorLog.it("rotation retains the latest three older logs in order and drop
 		yield* log.append(message);
 	}
 
-	yield* outcomes({
-		"current log": [log.read(), messages.fifth],
-		"newest backup": [log.read(".1"), messages.fourth],
-		"next backup": [log.read(".2"), messages.third],
-		"oldest backup": [log.read(".3"), messages.second],
-		"retained files": [log.files(), [".work-up.log", ".work-up.log.1", ".work-up.log.2", ".work-up.log.3"]],
-	});
+	yield* outcomes([
+		["current log", () => log.read(), messages.fifth],
+		["newest backup", () => log.read(".1"), messages.fourth],
+		["next backup", () => log.read(".2"), messages.third],
+		["oldest backup", () => log.read(".3"), messages.second],
+		["retained files", () => log.files(), [".work-up.log", ".work-up.log.1", ".work-up.log.2", ".work-up.log.3"]],
+	]);
 });
 
 supervisorLog.it("an oversized existing log rotates before the next supervisor message", [], function* (log) {
@@ -31,10 +31,10 @@ supervisorLog.it("an oversized existing log rotates before the next supervisor m
 
 	yield* log.supervisor("Fleet is running");
 
-	yield* outcomes({
-		"new supervisor message": [log.read(), expect.stringMatching(/^\S+ supervisor: Fleet is running\n$/u)],
-		"previous output": [log.read(".1"), previous],
-	});
+	yield* outcomes([
+		["new supervisor message", () => log.read(), expect.stringMatching(/^\S+ supervisor: Fleet is running\n$/u)],
+		["previous output", () => log.read(".1"), previous],
+	]);
 });
 
 supervisorLog.it("concurrent writers preserve every message across rotation", [], function* (log) {
@@ -44,10 +44,10 @@ supervisorLog.it("concurrent writers preserve every message across rotation", []
 
 	yield* Effect.all(messages.map(log.append), { concurrency: "unbounded" });
 
-	yield* outcomes({
-		"both writers": [log.read(), messages.join("")],
-		"previous output": [log.read(".1"), previous],
-	});
+	yield* outcomes([
+		["both writers", () => log.read(), messages.join("")],
+		["previous output", () => log.read(".1"), previous],
+	]);
 });
 
 supervisorLog.it("rotation counts UTF-8 bytes at the size boundary", [], function* (log) {
@@ -58,8 +58,8 @@ supervisorLog.it("rotation counts UTF-8 bytes at the size boundary", [], functio
 
 	yield* log.append("next\n");
 
-	yield* outcomes({
-		"full previous output": [log.read(".1"), `${previous}é`],
-		"next output": [log.read(), "next\n"],
-	});
+	yield* outcomes([
+		["full previous output", () => log.read(".1"), `${previous}é`],
+		["next output", () => log.read(), "next\n"],
+	]);
 });

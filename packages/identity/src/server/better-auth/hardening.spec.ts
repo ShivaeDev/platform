@@ -19,13 +19,14 @@ for (const [description, password] of Object.entries({
 
 			yield* changeEmail(password);
 
-			yield* outcomes({
-				"alice's email": [sessionEmail(), "alice@example.test"],
-				"email change response": [
-					response(),
+			yield* outcomes([
+				["alice's email", () => sessionEmail(), "alice@example.test"],
+				[
+					"email change response",
+					() => response(),
 					{ body: expect.objectContaining({ code: "INVALID_PASSWORD" }), status: HttpStatus.fromLiteral("BadRequest") },
 				],
-			});
+			]);
 		},
 	);
 }
@@ -38,10 +39,10 @@ hardening.it(
 
 		yield* changeEmail(yield* currentPassword());
 
-		yield* outcomes({
-			"alice's email": [sessionEmail(), "alice-new@example.test"],
-			"email change response": [response(), { body: { status: true }, status: HttpStatus.fromLiteral("OK") }],
-		});
+		yield* outcomes([
+			["alice's email", () => sessionEmail(), "alice-new@example.test"],
+			["email change response", () => response(), { body: { status: true }, status: HttpStatus.fromLiteral("OK") }],
+		]);
 	},
 );
 
@@ -51,13 +52,14 @@ hardening.it(
 	function* ({ changeEmail, response, sessionEmail }) {
 		yield* changeEmail("any-password");
 
-		yield* outcomes({
-			"alice's email": [sessionEmail(), "alice@example.test"],
-			"email change response": [
-				response(),
+		yield* outcomes([
+			["alice's email", () => sessionEmail(), "alice@example.test"],
+			[
+				"email change response",
+				() => response(),
 				{ body: expect.objectContaining({ code: "INVALID_PASSWORD" }), status: HttpStatus.fromLiteral("BadRequest") },
 			],
-		});
+		]);
 	},
 );
 
@@ -67,10 +69,10 @@ hardening.it(
 	function* ({ changeEmail, response, sessionEmail }) {
 		yield* changeEmail();
 
-		yield* outcomes({
-			"alice's email": [sessionEmail(), "alice-new@example.test"],
-			"email change response": [response(), { body: { status: true }, status: HttpStatus.fromLiteral("OK") }],
-		});
+		yield* outcomes([
+			["alice's email", () => sessionEmail(), "alice-new@example.test"],
+			["email change response", () => response(), { body: { status: true }, status: HttpStatus.fromLiteral("OK") }],
+		]);
 	},
 );
 
@@ -81,10 +83,10 @@ for (const correct of [false, true]) {
 		function* ({ changeEmail, currentPassword, response, verificationSent }) {
 			yield* changeEmail(correct ? yield* currentPassword() : undefined);
 
-			yield* outcomes({
-				"email change response": [response(), expect.objectContaining({ status: HttpStatus.fromLiteral(correct ? "OK" : "BadRequest") })],
-				"verification email sent": [verificationSent(), correct],
-			});
+			yield* outcomes([
+				["email change response", () => response(), expect.objectContaining({ status: HttpStatus.fromLiteral(correct ? "OK" : "BadRequest") })],
+				["verification email sent", () => verificationSent(), correct],
+			]);
 		},
 	);
 }
@@ -96,10 +98,10 @@ for (const correct of [false, true]) {
 		function* ({ changeEmail, currentPassword, response, sessionEmail }) {
 			yield* changeEmail(correct ? yield* currentPassword() : undefined, true);
 
-			yield* outcomes({
-				"alice's email": [sessionEmail(), correct ? "alice-new@example.test" : "alice@example.test"],
-				"email change response": [response(), expect.objectContaining({ status: HttpStatus.fromLiteral(correct ? "OK" : "BadRequest") })],
-			});
+			yield* outcomes([
+				["alice's email", () => sessionEmail(), correct ? "alice-new@example.test" : "alice@example.test"],
+				["email change response", () => response(), expect.objectContaining({ status: HttpStatus.fromLiteral(correct ? "OK" : "BadRequest") })],
+			]);
 		},
 	);
 }
@@ -114,10 +116,10 @@ for (const retain of [false, true]) {
 
 			const status = yield* resetPassword();
 
-			yield* outcomes({
-				"alice's existing session": [sessionEmail(), retain ? "alice@example.test" : "signed out"],
-				"reset response": [Effect.succeed(status), HttpStatus.fromLiteral("OK")],
-			});
+			yield* outcomes([
+				["alice's existing session", () => sessionEmail(), retain ? "alice@example.test" : "signed out"],
+				["reset response", () => Effect.succeed(status), HttpStatus.fromLiteral("OK")],
+			]);
 		},
 	);
 }

@@ -8,10 +8,10 @@ for (const origin of [NATIVE_ORIGIN, ANDROID_ORIGIN]) {
 	origins.it(`${origin} reads the profile over RPC with its bearer and gets CORS without credentials`, [], function* ({ lastCors, profile }) {
 		const answer = yield* profile({ bearer: true, origin });
 
-		yield* outcomes({
-			"answer": [Effect.succeed(answer), "answered with the profile"],
-			"cors": [lastCors(), { allowOrigin: origin, credentials: "not allowed", exposed: "none", vary: "Origin" }],
-		});
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "answered with the profile"],
+			["cors", () => lastCors(), { allowOrigin: origin, credentials: "not allowed", exposed: "none", vary: "Origin" }],
+		]);
 	});
 
 	origins.it(
@@ -20,10 +20,10 @@ for (const origin of [NATIVE_ORIGIN, ANDROID_ORIGIN]) {
 		function* ({ authSession, lastCors }) {
 			const session = yield* authSession({ bearer: true, origin });
 
-			yield* outcomes({
-				"cors": [lastCors(), { allowOrigin: origin, credentials: "not allowed", exposed: "set-auth-token", vary: "Origin" }],
-				"session": [Effect.succeed(session), "the native user"],
-			});
+			yield* outcomes([
+				["cors", () => lastCors(), { allowOrigin: origin, credentials: "not allowed", exposed: "set-auth-token", vary: "Origin" }],
+				["session", () => Effect.succeed(session), "the native user"],
+			]);
 		},
 	);
 }
@@ -32,20 +32,20 @@ for (const origin of ["https://attacker.example", "capacitor://localhost.evil", 
 	origins.it(`${origin} is refused over RPC before any session lookup and gets no CORS`, [], function* ({ lastCors, profile, sessionLookups }) {
 		const answer = yield* profile({ bearer: true, origin });
 
-		yield* outcomes({
-			"answer": [Effect.succeed(answer), "forbidden: Local same-origin requests only"],
-			"cors": [lastCors(), { allowOrigin: "none", credentials: "not allowed", exposed: "none", vary: "none" }],
-			"session lookups": [sessionLookups(), 0],
-		});
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "forbidden: Local same-origin requests only"],
+			["cors", () => lastCors(), { allowOrigin: "none", credentials: "not allowed", exposed: "none", vary: "none" }],
+			["session lookups", () => sessionLookups(), 0],
+		]);
 	});
 
 	origins.it(`${origin} is refused on the auth route and gets no CORS`, [], function* ({ authSession, lastCors }) {
 		const session = yield* authSession({ bearer: true, origin });
 
-		yield* outcomes({
-			"cors": [lastCors(), { allowOrigin: "none", credentials: "not allowed", exposed: "none", vary: "none" }],
-			"session": [Effect.succeed(session), "forbidden: Local same-origin requests only"],
-		});
+		yield* outcomes([
+			["cors", () => lastCors(), { allowOrigin: "none", credentials: "not allowed", exposed: "none", vary: "none" }],
+			["session", () => Effect.succeed(session), "forbidden: Local same-origin requests only"],
+		]);
 	});
 }
 
@@ -76,20 +76,20 @@ for (const [path, methods, exposed] of [
 	origins.it(`another origin's preflight for ${path} is refused before any session lookup`, [], function* ({ preflight, sessionLookups }) {
 		const answer = yield* preflight(path, "https://attacker.example");
 
-		yield* outcomes({
-			"preflight": [Effect.succeed(answer), expect.objectContaining({ allowOrigin: "none", status: 403 })],
-			"session lookups": [sessionLookups(), 0],
-		});
+		yield* outcomes([
+			["preflight", () => Effect.succeed(answer), expect.objectContaining({ allowOrigin: "none", status: 403 })],
+			["session lookups", () => sessionLookups(), 0],
+		]);
 	});
 }
 
 origins.it("a same-origin browser reads the profile with its cookie and gets no CORS", [], function* ({ lastCors, profile }) {
 	const answer = yield* profile({ cookie: true, sameOrigin: true });
 
-	yield* outcomes({
-		"answer": [Effect.succeed(answer), "answered with the profile"],
-		"cors": [lastCors(), expect.objectContaining({ allowOrigin: "none" })],
-	});
+	yield* outcomes([
+		["answer", () => Effect.succeed(answer), "answered with the profile"],
+		["cors", () => lastCors(), expect.objectContaining({ allowOrigin: "none" })],
+	]);
 });
 
 origins.it("a native client's browser cookie does not authorize RPC", [], function* ({ profile }) {
@@ -122,10 +122,10 @@ origins.it(
 	function* ({ profile, sessionLookups }) {
 		const answer = yield* profile({ bearer: true, origin: NATIVE_ORIGIN });
 
-		yield* outcomes({
-			"answer": [Effect.succeed(answer), "forbidden: Local same-origin requests only"],
-			"session lookups": [sessionLookups(), 0],
-		});
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "forbidden: Local same-origin requests only"],
+			["session lookups", () => sessionLookups(), 0],
+		]);
 	},
 );
 
@@ -151,10 +151,10 @@ origins.it(
 	function* ({ profile, sessionLookups }) {
 		const answer = yield* profile({ bearer: true, origin: NATIVE_ORIGIN });
 
-		yield* outcomes({
-			"answer": [Effect.succeed(answer), "forbidden: Local same-origin requests only"],
-			"session lookups": [sessionLookups(), 0],
-		});
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "forbidden: Local same-origin requests only"],
+			["session lookups", () => sessionLookups(), 0],
+		]);
 	},
 );
 
@@ -168,10 +168,10 @@ for (const [authority, protocol] of [
 		function* ({ profile, sessionLookups }) {
 			const answer = yield* profile({ bearer: true, origin: NATIVE_ORIGIN });
 
-			yield* outcomes({
-				"answer": [Effect.succeed(answer), "forbidden: Local same-origin requests only"],
-				"session lookups": [sessionLookups(), 0],
-			});
+			yield* outcomes([
+				["answer", () => Effect.succeed(answer), "forbidden: Local same-origin requests only"],
+				["session lookups", () => sessionLookups(), 0],
+			]);
 		},
 	);
 }
@@ -202,10 +202,10 @@ origins.it(
 
 		const openStreams = yield* hostResyncs();
 
-		yield* outcomes({
-			"next update": [nextUpdate(), "resync"],
-			"open streams": [Effect.succeed(openStreams), "one open stream"],
-		});
+		yield* outcomes([
+			["next update", () => nextUpdate(), "resync"],
+			["open streams", () => Effect.succeed(openStreams), "one open stream"],
+		]);
 	},
 );
 

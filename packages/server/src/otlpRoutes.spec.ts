@@ -36,12 +36,13 @@ host.it(
 
 		yield* close();
 
-		yield* outcomes({
-			"server span names": [serverSpanNames(), ["GET"]],
-			"the GET span's attributes": [
-				serverSpan("GET"),
+		yield* outcomes([
+			["server span names", () => serverSpanNames(), ["GET"]],
+			[
+				"the GET span's attributes",
+				() => serverSpan("GET"),
 				expect.objectContaining({ attributes: expect.not.objectContaining({ "http.route": expect.anything() }) }),
 			],
-		});
+		]);
 	},
 );

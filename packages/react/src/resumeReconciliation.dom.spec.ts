@@ -11,10 +11,10 @@ for (const source of ["native", "browser"] as const) {
 
 			yield* liveResume(source);
 
-			yield* outcomes({
-				shown: [shown(), "Changed while away / Also changed while away"],
-				subscriptions: [subscriptions(), ["open", "open"]],
-			});
+			yield* outcomes([
+				["shown", () => shown(), "Changed while away / Also changed while away"],
+				["subscriptions", () => subscriptions(), ["open", "open"]],
+			]);
 		},
 	);
 
@@ -26,10 +26,10 @@ for (const source of ["native", "browser"] as const) {
 
 			yield* liveReconnect(source);
 
-			yield* outcomes({
-				shown: [shown(), "Changed while disconnected / Two"],
-				subscriptions: [subscriptions(), ["closed", "closed", "open", "open"]],
-			});
+			yield* outcomes([
+				["shown", () => shown(), "Changed while disconnected / Two"],
+				["subscriptions", () => subscriptions(), ["closed", "closed", "open", "open"]],
+			]);
 		},
 	);
 

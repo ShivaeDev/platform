@@ -18,10 +18,10 @@ app.it(
 		const counted = { ...edited, version: 2, wordCount: 3 };
 		yield* Effect.promise(() => expect.poll(() => Effect.runPromise(client.get({ id: edited.id })), { timeout: 8000 }).toEqual(counted));
 		const rejectedEdit = yield* client.update({ ...edited, title: "Before counting" }).pipe(Effect.flip);
-		yield* outcomes({
-			"edit rejection": [Effect.succeed(rejectedEdit), expect.objectContaining({ _tag: "Conflict" })],
-			"saved notes": [client.list(), [counted]],
-		});
+		yield* outcomes([
+			["edit rejection", () => Effect.succeed(rejectedEdit), expect.objectContaining({ _tag: "Conflict" })],
+			["saved notes", () => client.list(), [counted]],
+		]);
 
 		yield* Effect.promise(() =>
 			expect

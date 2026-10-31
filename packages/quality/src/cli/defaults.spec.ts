@@ -23,10 +23,10 @@ repositoryStory.it(
 	function* ({ outcome, spawns, stdout }) {
 		yield* spawns();
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [stdout(), expect.stringContaining("quality: passed.")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), expect.stringContaining("quality: passed.")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -37,10 +37,10 @@ repositoryStory.it(
 	function* ({ outcome, spawns, stdout }) {
 		yield* spawns("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"report": [stdout(), expect.stringContaining("comments/no-todo")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["report", () => stdout(), expect.stringContaining("comments/no-todo")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -67,10 +67,10 @@ repositoryStory.it(
 
 		yield* spawns("baseline", "prune");
 
-		yield* outcomes({
-			"baseline": [reads("quality-baseline.jsonl"), recorded],
-			"exit": [outcome(), "passed"],
-		});
+		yield* outcomes([
+			["baseline", () => reads("quality-baseline.jsonl"), recorded],
+			["exit", () => outcome(), "passed"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -81,10 +81,10 @@ repositoryStory.it(
 	function* ({ outcome, spawns, stderr }) {
 		yield* spawns("lint", "--config", "missing.ts");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("Check the --config path")],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("Check the --config path")],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );

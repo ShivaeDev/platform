@@ -15,9 +15,9 @@ packageBuild.it(
 	function* ({ builds, declaration, diagnostics }) {
 		yield* builds();
 
-		yield* outcomes({
-			"diagnostics": [diagnostics(), []],
-			"users/issued.d.ts": [declaration("users/issued.d.ts"), expect.stringContaining('import("../token.ts").Token')],
-		});
+		yield* outcomes([
+			["diagnostics", () => diagnostics(), []],
+			["users/issued.d.ts", () => declaration("users/issued.d.ts"), expect.stringContaining('import("../token.ts").Token')],
+		]);
 	},
 );

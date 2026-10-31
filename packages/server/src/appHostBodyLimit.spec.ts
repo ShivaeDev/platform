@@ -18,10 +18,10 @@ for (const { config, env, limit, name } of [
 			function* ({ handledCalls, postNdjson, responseKind }) {
 				yield* postNdjson(oversizedBatch(limit), { chunked });
 
-				yield* outcomes({
-					"handled calls": [handledCalls(), []],
-					"response": [responseKind(), "client error"],
-				});
+				yield* outcomes([
+					["handled calls", () => handledCalls(), []],
+					["response", () => responseKind(), "client error"],
+				]);
 			},
 		);
 

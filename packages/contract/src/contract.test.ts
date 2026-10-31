@@ -22,9 +22,9 @@ liveNotesStory.it(
 	"when the guard denies the session, reading note 1 over HTTP fails with denied and the server reads nothing",
 	[denied()],
 	function* ({ get, serverReads }) {
-		yield* outcomes({
-			"server reads": [serverReads(), []],
-			"the read": [get(1), "failed with denied"],
-		});
+		yield* outcomes([
+			["server reads", () => serverReads(), []],
+			["the read", () => get(1), "failed with denied"],
+		]);
 	},
 );

@@ -7,11 +7,11 @@ for (const outcome of ["success", "failure"] as const) {
 		`${outcome} callbacks and notices read props and query data committed while the action was pending`,
 		[firstHeld()],
 		function* ({ answerList, callbackShown, complete, listShown, publishedNotices, refreshList, reject, switchCallback }) {
-			yield* outcomes({
-				"callback presentation": [callbackShown(), ""],
-				notices: [publishedNotices(), []],
-				"shown list": [listShown(), "initial"],
-			});
+			yield* outcomes([
+				["callback presentation", () => callbackShown(), ""],
+				["notices", () => publishedNotices(), []],
+				["shown list", () => listShown(), "initial"],
+			]);
 
 			yield* switchCallback("current");
 			yield* refreshList();
@@ -26,10 +26,10 @@ for (const outcome of ["success", "failure"] as const) {
 			}
 
 			const feedback = outcome === "success" ? "current: first -> A / fresh rows" : "current: first rejected: Rejected / fresh rows";
-			yield* outcomes({
-				"callback presentation": [callbackShown(), feedback],
-				notices: [publishedNotices(), [feedback]],
-			});
+			yield* outcomes([
+				["callback presentation", () => callbackShown(), feedback],
+				["notices", () => publishedNotices(), [feedback]],
+			]);
 		},
 	);
 }

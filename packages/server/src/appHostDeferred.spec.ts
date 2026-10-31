@@ -5,10 +5,10 @@ import { host, startupFails } from "#test/app-host/story.ts";
 
 for (const mode of ["migrate", "check"] as const) {
 	host.it(`migration mode ${mode} finishes before the deferred application is constructed`, [deferred(mode)], function* ({ ping, serviceLifecycle }) {
-		yield* outcomes({
-			"construction steps": [serviceLifecycle(), ["migrated", "constructing", "constructed"]],
-			"native RPC": [ping(), "pong"],
-		});
+		yield* outcomes([
+			["construction steps", () => serviceLifecycle(), ["migrated", "constructing", "constructed"]],
+			["native RPC", () => ping(), "pong"],
+		]);
 	});
 
 	host.it(
@@ -27,10 +27,10 @@ for (const mode of ["migrate", "check"] as const) {
 		`a failed migration in mode ${mode} fails startup before the deferred application is constructed`,
 		[deferred(mode, true), startupFails],
 		function* ({ serviceLifecycle, startup }) {
-			yield* outcomes({
-				"construction steps": [serviceLifecycle(), []],
-				"startup": [startup(), "failed with migration error"],
-			});
+			yield* outcomes([
+				["construction steps", () => serviceLifecycle(), []],
+				["startup", () => startup(), "failed with migration error"],
+			]);
 		},
 	);
 }

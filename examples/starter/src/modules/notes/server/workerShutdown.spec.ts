@@ -24,10 +24,10 @@ notesDeployment.it(
 		expect(yield* worker.child.isRunning).toBe(true);
 		yield* held.release;
 		yield* Fiber.join(stopping);
-		yield* outcomes({
-			"finished note": [notes["notes.get"]({ id: note.id }), expect.objectContaining({ wordCount: 3 })],
-			"worker exit code": [worker.child.exitCode.pipe(Effect.map(Number)), 0],
-		});
+		yield* outcomes([
+			["finished note", () => notes["notes.get"]({ id: note.id }), expect.objectContaining({ wordCount: 3 })],
+			["worker exit code", () => worker.child.exitCode.pipe(Effect.map(Number)), 0],
+		]);
 	},
 	3 * 20_000 + 40_000,
 );

@@ -36,10 +36,14 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeRecommends("a11y/useAltText", "suspicious/noDebugger", "suspicious/noExplicitAny", "correctness/noUnusedImports"));
 
-		yield* outcomes({
-			locations: [locations(), [PRESET]],
-			messages: [messages(), [`Biome recommends "lint/correctness/noUnusedImports", which the preset leaves at Biome's default level. ${FIX}`]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), [PRESET]],
+			[
+				"messages",
+				() => messages(),
+				[`Biome recommends "lint/correctness/noUnusedImports", which the preset leaves at Biome's default level. ${FIX}`],
+			],
+		]);
 	},
 );
 
@@ -49,16 +53,17 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(RECOMMENDED);
 
-		yield* outcomes({
-			locations: [locations(), [`${PRESET}:11`, `${PRESET}:12`]],
-			messages: [
-				messages(),
+		yield* outcomes([
+			["locations", () => locations(), [`${PRESET}:11`, `${PRESET}:12`]],
+			[
+				"messages",
+				() => messages(),
 				[
 					`Biome recommends "lint/suspicious/noDebugger", which the preset sets to "warn". ${FIX}`,
 					`Biome recommends "lint/suspicious/noExplicitAny", which the preset sets to "off". ${FIX}`,
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -75,10 +80,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(RECOMMENDED);
 
-		yield* outcomes({
-			locations: [locations(), [`${PRESET}:11`]],
-			messages: [messages(), [`Biome recommends "lint/suspicious/noDebugger", which the preset sets to "off". ${FIX}`]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), [`${PRESET}:11`]],
+			["messages", () => messages(), [`Biome recommends "lint/suspicious/noDebugger", which the preset sets to "off". ${FIX}`]],
+		]);
 	},
 );
 
@@ -105,10 +110,10 @@ for (const [what, preset, reason] of [
 		function* ({ check, locations, messages }) {
 			yield* check(RECOMMENDED);
 
-			yield* outcomes({
-				locations: [locations(), [PRESET]],
-				messages: [messages(), [`Cannot read the preset "@shivaedev/quality/biome/preset.json": ${reason}.`]],
-			});
+			yield* outcomes([
+				["locations", () => locations(), [PRESET]],
+				["messages", () => messages(), [`Cannot read the preset "@shivaedev/quality/biome/preset.json": ${reason}.`]],
+			]);
 		},
 	);
 }
@@ -119,13 +124,14 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(RECOMMENDED);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json"]],
-			messages: [
-				messages(),
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json"]],
+			[
+				"messages",
+				() => messages(),
 				['Cannot resolve "@shivaedev/quality/biome/preset.json" from node_modules. Install @shivaedev/quality at the repository root.'],
 			],
-		});
+		]);
 	},
 );
 
@@ -135,9 +141,13 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(RECOMMENDED);
 
-		yield* outcomes({
-			locations: [locations(), ["node_modules/@shivaedev/quality/biome/declarations.json"]],
-			messages: [messages(), [expect.stringMatching(/^Cannot read the declarations shipped with "@shivaedev\/quality\/biome\/preset\.json": /u)]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["node_modules/@shivaedev/quality/biome/declarations.json"]],
+			[
+				"messages",
+				() => messages(),
+				[expect.stringMatching(/^Cannot read the declarations shipped with "@shivaedev\/quality\/biome\/preset\.json": /u)],
+			],
+		]);
 	},
 );

@@ -52,10 +52,10 @@ for (const [label, config] of [
 		function* ({ files, outcome, runsCommand }) {
 			yield* runsCommand(UNTYPED_PARSER);
 
-			yield* outcomes({
-				"files": [files(), ["biome.json"]],
-				"outcome": [outcome(), expect.stringContaining("failed: Cannot merge exceptions into invalid biome.json")],
-			});
+			yield* outcomes([
+				["files", () => files(), ["biome.json"]],
+				["outcome", () => outcome(), expect.stringContaining("failed: Cannot merge exceptions into invalid biome.json")],
+			]);
 		},
 	);
 }
@@ -66,9 +66,10 @@ exceptionConfigStory.it(
 	function* ({ configPath, generatedConfig, runsCommand }) {
 		yield* runsCommand(UNTYPED_PARSER);
 
-		yield* outcomes({
-			"config": [
-				generatedConfig(),
+		yield* outcomes([
+			[
+				"config",
+				() => generatedConfig(),
 				expect.objectContaining({
 					extends: [expect.stringMatching(/^<root>\/\.quality-biome-/u)],
 					formatter: { lineWidth: 150 },
@@ -79,8 +80,8 @@ exceptionConfigStory.it(
 					plugins: ["<root>/imports.grit"],
 				}),
 			],
-			"config path": [configPath(), expect.stringMatching(/^<root>\/\.quality-biome-/u)],
-		});
+			["config path", () => configPath(), expect.stringMatching(/^<root>\/\.quality-biome-/u)],
+		]);
 	},
 );
 
@@ -100,10 +101,10 @@ exceptionConfigStory.it(
 	function* ({ files, filesDuringCommand, outcome, runsCommand }) {
 		yield* runsCommand(UNTYPED_PARSER);
 
-		yield* outcomes({
-			"files after the command": [files(), ["biome.jsonc", "node_modules"]],
-			"files during the command": [filesDuringCommand(), expect.arrayContaining([expect.stringMatching(/^\.quality-biome-/u)])],
-			"outcome": [outcome(), "ran"],
-		});
+		yield* outcomes([
+			["files after the command", () => files(), ["biome.jsonc", "node_modules"]],
+			["files during the command", () => filesDuringCommand(), expect.arrayContaining([expect.stringMatching(/^\.quality-biome-/u)])],
+			["outcome", () => outcome(), "ran"],
+		]);
 	},
 );

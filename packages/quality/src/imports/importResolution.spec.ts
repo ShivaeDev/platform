@@ -8,12 +8,13 @@ importStory.it(
 	function* ({ importsOf, mapsImports, unresolvedImports }) {
 		yield* mapsImports();
 
-		yield* outcomes({
-			"src/main.ts imports": [
-				importsOf("src/main.ts"),
+		yield* outcomes([
+			[
+				"src/main.ts imports",
+				() => importsOf("src/main.ts"),
 				["src/aliased.ts", "src/lib/imported.ts", "packages/shared/src/index.ts", "src/config.json", "src/required.cjs"],
 			],
-			"unresolved imports": [unresolvedImports(), []],
-		});
+			["unresolved imports", () => unresolvedImports(), []],
+		]);
 	},
 );

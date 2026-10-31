@@ -11,10 +11,14 @@ adminHost.it(
 		yield* createNote("alice", "Alice's note");
 		yield* createNote("bob", "Bob's note");
 		const client = yield* openAdmin("operator");
-		yield* outcomes({
-			"admin jobs counts": [client["admin.jobs.counts"]({ queue: "count-note-words" }), expect.objectContaining({ queuedCount: 2, totalCount: 2 })],
-			"admin notes statistics": [client["admin.notes.statistics"](), { notes: 2, pending: 2, words: 0 }],
-		});
+		yield* outcomes([
+			[
+				"admin jobs counts",
+				() => client["admin.jobs.counts"]({ queue: "count-note-words" }),
+				expect.objectContaining({ queuedCount: 2, totalCount: 2 }),
+			],
+			["admin notes statistics", () => client["admin.notes.statistics"](), { notes: 2, pending: 2, words: 0 }],
+		]);
 		const health = yield* client["admin.jobs.health"]();
 		expect(health.jobs.map((queue) => queue.name)).toEqual(["count-note-words"]);
 		yield* startWorker();

@@ -30,25 +30,27 @@ for (const partition of [false, true]) {
 			yield* enqueue("app", Stately, { value: 2 }, { as: "second sibling", singletonKey: "shared-account" });
 			yield* untilDeferred("app", Stately, 2);
 
-			yield* outcomes({
-				"dead-lettered": [deadLettered(Stately), []],
-				"deferrals": [
-					deferrals("app", Stately),
+			yield* outcomes([
+				["dead-lettered", () => deadLettered(Stately), []],
+				[
+					"deferrals",
+					() => deferrals("app", Stately),
 					[
 						{ at: "the time the worker asked for", reason: "Quota" },
 						{ at: "the time the worker asked for", reason: "Quota" },
 					],
 				],
-				"reported errors": [reported(), []],
-				"stored jobs": [
-					storedJobs("stately"),
+				["reported errors", () => reported(), []],
+				[
+					"stored jobs",
+					() => storedJobs("stately"),
 					expect.arrayContaining(
 						["first sibling", "second sibling"].map((job) =>
 							expect.objectContaining({ job, retryCount: 0, singletonKey: "shared-account", state: "retry" }),
 						),
 					),
 				],
-			});
+			]);
 		},
 	);
 
@@ -74,17 +76,18 @@ for (const partition of [false, true]) {
 			yield* open("resumed");
 			yield* untilSettled(Stately, 2);
 
-			yield* outcomes({
-				"attempts": [attemptCounts(Stately), { "first sibling": 2, "second sibling": 2 }],
-				"dead-lettered": [deadLettered(Stately), []],
-				"reported errors": [reported(), []],
-				"stored jobs": [
-					storedJobs("stately"),
+			yield* outcomes([
+				["attempts", () => attemptCounts(Stately), { "first sibling": 2, "second sibling": 2 }],
+				["dead-lettered", () => deadLettered(Stately), []],
+				["reported errors", () => reported(), []],
+				[
+					"stored jobs",
+					() => storedJobs("stately"),
 					expect.arrayContaining(
 						["first sibling", "second sibling"].map((job) => expect.objectContaining({ job, retryCount: 0, state: "completed" })),
 					),
 				],
-			});
+			]);
 		},
 	);
 }

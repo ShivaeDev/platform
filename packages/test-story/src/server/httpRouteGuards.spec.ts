@@ -33,10 +33,10 @@ scopedHttpApp.it("lets an accepted request reach the route's hold and scripted f
 scopedHttpApp.it("keeps a one-shot reply for the request the route's guard accepts", [], function* ({ asks, scriptFault }) {
 	yield* scriptFault("installation", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } });
 
-	yield* outcomes({
-		"a request the guard refuses": [asks("/installations/4", { token: "wrong" }), "HTTP 401"],
-		"the next accepted request": [asks("/installations/4"), "HTTP 503"],
-	});
+	yield* outcomes([
+		["a request the guard refuses", () => asks("/installations/4", { token: "wrong" }), "HTTP 401"],
+		["the next accepted request", () => asks("/installations/4"), "HTTP 503"],
+	]);
 });
 
 scopedHttpApp.it(
@@ -47,10 +47,10 @@ scopedHttpApp.it(
 		yield* releaseOnArrival("pull", "installation");
 		yield* sends("pull request", "/repos/team/platform/pulls/7");
 		yield* paused.waiting;
-		yield* outcomes({
-			"a release the guard refuses": [asks("/installations/4", { token: "wrong" }), "HTTP 401"],
-			"the pull request": [progress("pull request"), "waiting for an answer"],
-		});
+		yield* outcomes([
+			["a release the guard refuses", () => asks("/installations/4", { token: "wrong" }), "HTTP 401"],
+			["the pull request", () => progress("pull request"), "waiting for an answer"],
+		]);
 
 		yield* asks("/installations/4");
 

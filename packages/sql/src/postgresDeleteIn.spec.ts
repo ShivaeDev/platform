@@ -32,10 +32,10 @@ queries.it(
 
 		yield* deleteSamples({ id: { in: [] } });
 
-		yield* outcomes({
-			"announced keys": [announced(), []],
-			"stored samples": [samples(), [{ id: 1, values: [] }]],
-		});
+		yield* outcomes([
+			["announced keys", () => announced(), []],
+			["stored samples", () => samples(), [{ id: 1, values: [] }]],
+		]);
 	},
 );
 
@@ -63,16 +63,17 @@ queries.it(
 
 		yield* deleteLedgerEntries({ account: "a", sequence: { in: [1n, 3n] } });
 
-		yield* outcomes({
-			"announced keys": [announced(), ["ledger", 'ledger:["a","1"]']],
-			"stored entries": [
-				ledgerEntries(),
+		yield* outcomes([
+			["announced keys", () => announced(), ["ledger", 'ledger:["a","1"]']],
+			[
+				"stored entries",
+				() => ledgerEntries(),
 				[
 					{ account: "a", amount: "20", sequence: 2n },
 					{ account: "b", amount: "30", sequence: 1n },
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -97,10 +98,10 @@ queries.it(
 
 		yield* deleteSamples({ id: { in: [1, 3, 99] } });
 
-		yield* outcomes({
-			"announced keys": [announced(), ["samples", "samples:1", "samples:3"]],
-			"stored samples": [samples(), [{ id: 2, values: [] }]],
-		});
+		yield* outcomes([
+			["announced keys", () => announced(), ["samples", "samples:1", "samples:3"]],
+			["stored samples", () => samples(), [{ id: 2, values: [] }]],
+		]);
 	},
 );
 
@@ -116,16 +117,17 @@ queries.it(
 			yield* rejects();
 		});
 
-		yield* outcomes({
-			"announced keys": [announced(), []],
-			"stored samples": [
-				samples(),
+		yield* outcomes([
+			["announced keys", () => announced(), []],
+			[
+				"stored samples",
+				() => samples(),
 				[
 					{ id: 1, values: [] },
 					{ id: 2, values: [] },
 				],
 			],
-			"transaction endings": [transactionEndings(), ["failed with rejected"]],
-		});
+			["transaction endings", () => transactionEndings(), ["failed with rejected"]],
+		]);
 	},
 );

@@ -9,10 +9,10 @@ changeKeys.it(
 			yield* insertRecord(1, "alice");
 		});
 
-		yield* outcomes({
-			"expectation endings": [endings(), ["matched"]],
-			"published keys": [publishedKeys(), ["listId 1", 'owner "alice"', "record 1", "the table"]],
-		});
+		yield* outcomes([
+			["expectation endings", () => endings(), ["matched"]],
+			["published keys", () => publishedKeys(), ["listId 1", 'owner "alice"', "record 1", "the table"]],
+		]);
 	},
 );
 
@@ -27,10 +27,10 @@ changeKeys.it(
 			});
 		});
 
-		yield* outcomes({
-			"endings, innermost first": [endings(), ["failed with rejected", "matched"]],
-			"stored records": [storedRecords(), []],
-		});
+		yield* outcomes([
+			["endings, innermost first", () => endings(), ["failed with rejected", "matched"]],
+			["stored records", () => storedRecords(), []],
+		]);
 	},
 );
 
@@ -45,12 +45,13 @@ changeKeys.it(
 			});
 		});
 
-		yield* outcomes({
-			"endings, innermost first": [
-				endings(),
+		yield* outcomes([
+			[
+				"endings, innermost first",
+				() => endings(),
 				["committed", 'failed with Expected published keys ["activity:missing"]; actual published keys ["activity:recent"]'],
 			],
-			"stored records": [storedRecords(), ["record 1 in list 1 for alice"]],
-		});
+			["stored records", () => storedRecords(), ["record 1 in list 1 for alice"]],
+		]);
 	},
 );

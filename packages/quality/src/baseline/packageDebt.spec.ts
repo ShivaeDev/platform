@@ -21,11 +21,11 @@ baselineStory.it(
 	function* ({ recorded, runs }) {
 		yield* runs("baseline", "write");
 
-		yield* outcomes({
-			"alpha shard": [recorded(ALPHA_SHARD), ALPHA_DEBT],
-			"beta shard": [recorded(BETA_SHARD), BETA_DEBT],
-			"root shard": [recorded(ROOT_SHARD), ["src/root.ts structure/max-lines 3"]],
-		});
+		yield* outcomes([
+			["alpha shard", () => recorded(ALPHA_SHARD), ALPHA_DEBT],
+			["beta shard", () => recorded(BETA_SHARD), BETA_DEBT],
+			["root shard", () => recorded(ROOT_SHARD), ["src/root.ts structure/max-lines 3"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -53,11 +53,11 @@ baselineStory.it(
 
 		yield* runs("baseline", "tighten");
 
-		yield* outcomes({
-			"alpha shard": [recorded(ALPHA_SHARD), ALPHA_DEBT.slice(1)],
-			"beta shard": [reads(BETA_SHARD), beta],
-			"root shard": [reads(ROOT_SHARD), root],
-		});
+		yield* outcomes([
+			["alpha shard", () => recorded(ALPHA_SHARD), ALPHA_DEBT.slice(1)],
+			["beta shard", () => reads(BETA_SHARD), beta],
+			["root shard", () => reads(ROOT_SHARD), root],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -70,10 +70,10 @@ baselineStory.it(
 
 		yield* runs("baseline", "prune");
 
-		yield* outcomes({
-			"alpha shard": [recorded(ALPHA_SHARD), ALPHA_DEBT],
-			"beta shard": [recorded(BETA_SHARD), "no baseline file"],
-		});
+		yield* outcomes([
+			["alpha shard", () => recorded(ALPHA_SHARD), ALPHA_DEBT],
+			["beta shard", () => recorded(BETA_SHARD), "no baseline file"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -86,10 +86,10 @@ baselineStory.it(
 
 		yield* runs("baseline", "tighten");
 
-		yield* outcomes({
-			"beta shard": [recorded(BETA_SHARD), "no baseline file"],
-			"clean shard": [recorded(CLEAN_SHARD), ["packages/clean/src/b.ts structure/max-lines 3"]],
-		});
+		yield* outcomes([
+			["beta shard", () => recorded(BETA_SHARD), "no baseline file"],
+			["clean shard", () => recorded(CLEAN_SHARD), ["packages/clean/src/b.ts structure/max-lines 3"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -107,12 +107,12 @@ baselineStory.it(
 	function* ({ recorded, runs }) {
 		yield* runs("baseline", "migrate", "--from", "quality/baseline.jsonl");
 
-		yield* outcomes({
-			"alpha shard": [recorded(ALPHA_SHARD), ["packages/alpha/src/a.ts structure/max-lines 2"]],
-			"beta shard": [recorded(BETA_SHARD), "no baseline file"],
-			"root shard": [recorded(ROOT_SHARD), ["src/root.ts structure/max-lines 3"]],
-			"single baseline": [recorded("quality/baseline.jsonl"), "no baseline file"],
-		});
+		yield* outcomes([
+			["alpha shard", () => recorded(ALPHA_SHARD), ["packages/alpha/src/a.ts structure/max-lines 2"]],
+			["beta shard", () => recorded(BETA_SHARD), "no baseline file"],
+			["root shard", () => recorded(ROOT_SHARD), ["src/root.ts structure/max-lines 3"]],
+			["single baseline", () => recorded("quality/baseline.jsonl"), "no baseline file"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -123,10 +123,10 @@ baselineStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("packages/alpha/src/a.ts belongs in packages/alpha/quality-baseline.jsonl")],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("packages/alpha/src/a.ts belongs in packages/alpha/quality-baseline.jsonl")],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );

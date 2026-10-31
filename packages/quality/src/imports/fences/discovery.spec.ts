@@ -21,17 +21,22 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"bridge.ts": [stdout(), expect.stringContaining("packages/ui/src/bridge.ts:1  Reaches node:fs through packages/ui/src/bridge.ts -> node:fs")],
-			"exit": [outcome(), "rejected"],
-			"fence findings": [stdout(), expect.stringContaining("error imports/fences (2)")],
-			"main.ts": [
-				stdout(),
+		yield* outcomes([
+			[
+				"bridge.ts",
+				() => stdout(),
+				expect.stringContaining("packages/ui/src/bridge.ts:1  Reaches node:fs through packages/ui/src/bridge.ts -> node:fs"),
+			],
+			["exit", () => outcome(), "rejected"],
+			["fence findings", () => stdout(), expect.stringContaining("error imports/fences (2)")],
+			[
+				"main.ts",
+				() => stdout(),
 				expect.stringContaining(
 					'packages/ui/src/main.ts:1  Reaches node:fs through packages/ui/src/main.ts -> packages/ui/src/bridge.ts -> node:fs across the fence "browser-stays-off-disk": The browser code runs without Node.',
 				),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );

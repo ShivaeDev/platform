@@ -16,10 +16,10 @@ import {
 feedback.it("a failed first load offers Retry and publishes Load failed", [notesLoading()], function* ({ failRead, notices, queryError }) {
 	yield* failRead();
 
-	yield* outcomes({
-		notices: [notices(), ["Load failed"]],
-		"query error": [queryError(), "Could not load notes Retry"],
-	});
+	yield* outcomes([
+		["notices", () => notices(), ["Load failed"]],
+		["query error", () => queryError(), "Could not load notes Retry"],
+	]);
 });
 
 feedback.it("Retry reads the notes again and shows them when the server answers", [firstLoadFailed()], function* ({ answerRead, retry, rows }) {
@@ -38,12 +38,12 @@ feedback.it(
 
 		yield* submit();
 
-		yield* outcomes({
-			draft: [draft(), "blocked"],
-			"field error": [fieldError(), "Choose another title"],
-			notices: [notices(), []],
-			"save status": [saveStatus(), "Unsaved"],
-		});
+		yield* outcomes([
+			["draft", () => draft(), "blocked"],
+			["field error", () => fieldError(), "Choose another title"],
+			["notices", () => notices(), []],
+			["save status", () => saveStatus(), "Unsaved"],
+		]);
 	},
 );
 
@@ -52,10 +52,10 @@ feedback.it("a submitted save shows Saving while the server holds it", [notesSho
 
 	yield* submit();
 
-	yield* outcomes({
-		"save status": [saveStatus(), "Saving"],
-		saves: [saves(), ["new note"]],
-	});
+	yield* outcomes([
+		["save status", () => saveStatus(), "Saving"],
+		["saves", () => saves(), ["new note"]],
+	]);
 });
 
 feedback.it(
@@ -64,14 +64,14 @@ feedback.it(
 	function* ({ completeSave, draft, fieldError, loading, notices, rows, saveStatus }) {
 		yield* completeSave();
 
-		yield* outcomes({
-			draft: [draft(), "next draft"],
-			"field error": [fieldError(), "none"],
-			loading: [loading(), "Refreshing notes"],
-			notices: [notices(), ["Saved new note"]],
-			rows: [rows(), "existing"],
-			"save status": [saveStatus(), "Unsaved"],
-		});
+		yield* outcomes([
+			["draft", () => draft(), "next draft"],
+			["field error", () => fieldError(), "none"],
+			["loading", () => loading(), "Refreshing notes"],
+			["notices", () => notices(), ["Saved new note"]],
+			["rows", () => rows(), "existing"],
+			["save status", () => saveStatus(), "Unsaved"],
+		]);
 	},
 );
 
@@ -84,11 +84,11 @@ feedback.it("the refetch a save caused shows the saved note", [saveCompleted()],
 feedback.it("Refresh reads again while keeping the draft", [notesShownWithDraft("next draft")], function* ({ draft, loading, reads, refresh }) {
 	yield* refresh();
 
-	yield* outcomes({
-		draft: [draft(), "next draft"],
-		loading: [loading(), "Refreshing notes"],
-		reads: [reads(), 2],
-	});
+	yield* outcomes([
+		["draft", () => draft(), "next draft"],
+		["loading", () => loading(), "Refreshing notes"],
+		["reads", () => reads(), 2],
+	]);
 });
 
 feedback.it(
@@ -97,12 +97,12 @@ feedback.it(
 	function* ({ draft, failRead, notices, queryError, rows }) {
 		yield* failRead();
 
-		yield* outcomes({
-			draft: [draft(), "next draft"],
-			notices: [notices(), ["Refresh failed"]],
-			"query error": [queryError(), "Could not load notes Retry"],
-			rows: [rows(), "existing"],
-		});
+		yield* outcomes([
+			["draft", () => draft(), "next draft"],
+			["notices", () => notices(), ["Refresh failed"]],
+			["query error", () => queryError(), "Could not load notes Retry"],
+			["rows", () => rows(), "existing"],
+		]);
 	},
 );
 
@@ -112,10 +112,10 @@ feedback.it(
 	function* ({ completeRemove, notices, saveStatus }) {
 		yield* completeRemove("second");
 
-		yield* outcomes({
-			notices: [notices(), ["Removed second"]],
-			"save status": [saveStatus(), "Saving"],
-		});
+		yield* outcomes([
+			["notices", () => notices(), ["Removed second"]],
+			["save status", () => saveStatus(), "Saving"],
+		]);
 	},
 );
 
@@ -137,16 +137,17 @@ feedback.it(
 	function* ({ completeRestore, notice, restoreCalls }) {
 		yield* completeRestore("first");
 
-		yield* outcomes({
-			"Removed first": [notice("Removed first"), expect.stringContaining("Conflict")],
-			"Removed second": [notice("Removed second"), "Restored second"],
-			"restore calls": [
-				restoreCalls(),
+		yield* outcomes([
+			["Removed first", () => notice("Removed first"), expect.stringContaining("Conflict")],
+			["Removed second", () => notice("Removed second"), "Restored second"],
+			[
+				"restore calls",
+				() => restoreCalls(),
 				[
 					{ expectedVersion: 8, title: "second" },
 					{ expectedVersion: 8, title: "first" },
 				],
 			],
-		});
+		]);
 	},
 );

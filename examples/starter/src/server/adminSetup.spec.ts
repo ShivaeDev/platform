@@ -12,15 +12,18 @@ adminSetup.it(
 		const bootstrap = yield* createAdmin("first-admin@app.test", "first-admin-password-123");
 		expect(bootstrap.code, bootstrap.output + bootstrap.errors).toBe(0);
 		yield* startApp();
-		yield* outcomes({
-			"sign-in response": [
-				Effect.gen(function* () {
-					return (yield* signIn("first-admin@app.test", "first-admin-password-123")).status;
-				}),
+		yield* outcomes([
+			[
+				"sign-in response",
+				() =>
+					Effect.gen(function* () {
+						return (yield* signIn("first-admin@app.test", "first-admin-password-123")).status;
+					}),
 				HttpStatus.fromLiteral("OK"),
 			],
-			"signed-in session": [
-				session(),
+			[
+				"signed-in session",
+				() => session(),
 				expect.objectContaining({
 					user: expect.objectContaining({
 						email: "first-admin@app.test",
@@ -34,7 +37,7 @@ adminSetup.it(
 					}),
 				}),
 			],
-		});
+		]);
 		const duplicate = yield* createAdmin("first-admin@app.test", "another-admin-password-123");
 		expect(duplicate.code).not.toBe(0);
 	},

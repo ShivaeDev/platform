@@ -8,12 +8,12 @@ suspended.it(
 	function* ({ loading, name, stored, suspendingTransition, suspensions }) {
 		yield* suspendingTransition("second");
 
-		yield* outcomes({
-			loading: [loading(), "not shown"],
-			name: [name(), "Visible draft"],
-			stored: [stored(), "Visible draft"],
-			suspensions: [suspensions(), "suspended"],
-		});
+		yield* outcomes([
+			["loading", () => loading(), "not shown"],
+			["name", () => name(), "Visible draft"],
+			["stored", () => stored(), "Visible draft"],
+			["suspensions", () => suspensions(), "suspended"],
+		]);
 	},
 );
 

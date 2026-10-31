@@ -6,6 +6,7 @@ import { changesSuccess } from "#internal/changesSuccess.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { Viewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import { WebSocketRequired } from "#WebSocketRequired.ts";
 
 export class QueryDefinition extends Context.Service<QueryDefinition, { readonly definition: QueryShape }>()("@shivaedev/contract/QueryDefinition") {}
 export interface QueryRequest<E = unknown, R = unknown> {
@@ -59,7 +60,7 @@ function referenceSchemas(queries: readonly QueryShape[]) {
 }
 
 type ChangesError<TQueries extends readonly QueryShape[]> = Schema.Union<
-	readonly [typeof MissingReadPolicy, typeof QueryReadDenied, ...TQueries[number]["error"][]]
+	readonly [typeof MissingReadPolicy, typeof QueryReadDenied, typeof WebSocketRequired, ...TQueries[number]["error"][]]
 >;
 
 export function changesRpc<const TName extends string, const TQueries extends readonly QueryShape[]>(
@@ -75,7 +76,7 @@ export function changesRpc<const TName extends string, const TQueries extends re
 >;
 export function changesRpc(name: string, queries: readonly QueryShape[]) {
 	return Rpc.make(`${name}.$changes`, {
-		error: Schema.Union([MissingReadPolicy, QueryReadDenied, ...queries.map((query) => query.error)]),
+		error: Schema.Union([MissingReadPolicy, QueryReadDenied, WebSocketRequired, ...queries.map((query) => query.error)]),
 		payload: { queries: referenceSchemas(queries) },
 		stream: true,
 		success: changesSuccess(queries),

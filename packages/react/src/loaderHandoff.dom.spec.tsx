@@ -7,10 +7,10 @@ loaderScreen.it(
 	"a route that mounts after the idle window passed renders its loader's value first, with one server read",
 	[noteMountedAfterIdleWindow("Delayed note")],
 	function* ({ firstRenders, serverCalls }) {
-		yield* outcomes({
-			"first render": [Effect.map(firstRenders(), (titles) => titles[0]), "Delayed note"],
-			"server calls": [serverCalls(), ["get"]],
-		});
+		yield* outcomes([
+			["first render", () => Effect.map(firstRenders(), (titles) => titles[0]), "Delayed note"],
+			["server calls", () => serverCalls(), ["get"]],
+		]);
 	},
 );
 
@@ -45,9 +45,9 @@ loaderScreen.it(
 
 		yield* respond("Refreshed note");
 
-		yield* outcomes({
-			"server calls": [serverCalls(), ["get", "get"]],
-			"shown title": [shownTitle(), "Refreshed note"],
-		});
+		yield* outcomes([
+			["server calls", () => serverCalls(), ["get", "get"]],
+			["shown title", () => shownTitle(), "Refreshed note"],
+		]);
 	},
 );

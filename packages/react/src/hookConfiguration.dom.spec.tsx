@@ -15,10 +15,10 @@ for (const kind of ["create", "editor"] as const) {
 
 			yield* reconfigure("inline callbacks");
 
-			yield* outcomes({
-				draft: [input(), "draft"],
-				form: [form(), "original form"],
-			});
+			yield* outcomes([
+				["draft", () => input(), "draft"],
+				["form", () => form(), "original form"],
+			]);
 		},
 	);
 
@@ -82,10 +82,10 @@ for (const kind of ["create", "editor"] as const) {
 
 			yield* type("draft");
 
-			yield* outcomes({
-				"created key": [storedDraft("before"), "draft"],
-				"rendered key": [storedDraft("after"), "none"],
-			});
+			yield* outcomes([
+				["created key", () => storedDraft("before"), "draft"],
+				["rendered key", () => storedDraft("after"), "none"],
+			]);
 		},
 	);
 
@@ -111,10 +111,10 @@ for (const kind of ["create", "editor"] as const) {
 
 				yield* reconfigure(change);
 
-				yield* outcomes({
-					draft: [input(), initial("after")],
-					form: [form(), "replaced form"],
-				});
+				yield* outcomes([
+					["draft", () => input(), initial("after")],
+					["form", () => form(), "replaced form"],
+				]);
 			},
 		);
 

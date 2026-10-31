@@ -5,21 +5,21 @@ import { answerPaths, profiles, twoUnanswered, UNANSWERED_MESSAGE } from "#test/
 answerPaths.it("an answer's text path gives the same error atom each time, even written anew", [], function* ({ sameErrorAtom }) {
 	const path = ["answers", 0, "text"] as const;
 
-	yield* outcomes({
-		"an equal path written anew": [sameErrorAtom(path, ["answers", 0, "text"]), true],
-		"the same path asked twice": [sameErrorAtom(path, path), true],
-	});
+	yield* outcomes([
+		["an equal path written anew", () => sameErrorAtom(path, ["answers", 0, "text"]), true],
+		["the same path asked twice", () => sameErrorAtom(path, path), true],
+	]);
 });
 
 answerPaths.it("another answer, a string index, a sibling part or the parent path each give their own error atom", [], function* ({ sameErrorAtom }) {
 	const path = ["answers", 0, "text"] as const;
 
-	yield* outcomes({
-		"a sibling part": [sameErrorAtom(path, ["answers", 0, "selected"]), false],
-		"a string index": [sameErrorAtom(path, ["answers", "0", "text"]), false],
-		"another answer": [sameErrorAtom(path, ["answers", 1, "text"]), false],
-		"the parent path": [sameErrorAtom(path, ["answers", 0]), false],
-	});
+	yield* outcomes([
+		["a sibling part", () => sameErrorAtom(path, ["answers", 0, "selected"]), false],
+		["a string index", () => sameErrorAtom(path, ["answers", "0", "text"]), false],
+		["another answer", () => sameErrorAtom(path, ["answers", 1, "text"]), false],
+		["the parent path", () => sameErrorAtom(path, ["answers", 0]), false],
+	]);
 });
 
 twoUnanswered.it(
@@ -30,12 +30,12 @@ twoUnanswered.it(
 
 		yield* submit();
 
-		yield* outcomes({
-			"answers summary": [feedbackOn("answers"), UNANSWERED_MESSAGE],
-			"first answer's selection": [answerSelectionError(0), undefined],
-			"first answer's text": [answerTextError(0), UNANSWERED_MESSAGE],
-			"second answer's text": [answerTextError(1), UNANSWERED_MESSAGE],
-		});
+		yield* outcomes([
+			["answers summary", () => feedbackOn("answers"), UNANSWERED_MESSAGE],
+			["first answer's selection", () => answerSelectionError(0), undefined],
+			["first answer's text", () => answerTextError(0), UNANSWERED_MESSAGE],
+			["second answer's text", () => answerTextError(1), UNANSWERED_MESSAGE],
+		]);
 	},
 );
 
@@ -47,10 +47,10 @@ twoUnanswered.it(
 
 		yield* chooseOption(0, "yes");
 
-		yield* outcomes({
-			"first answer's text": [answerTextError(0), undefined],
-			"second answer's text": [answerTextError(1), UNANSWERED_MESSAGE],
-		});
+		yield* outcomes([
+			["first answer's text", () => answerTextError(0), undefined],
+			["second answer's text", () => answerTextError(1), UNANSWERED_MESSAGE],
+		]);
 	},
 );
 
@@ -62,10 +62,10 @@ profiles.it(
 
 		yield* leave("profile");
 
-		yield* outcomes({
-			profile: [feedbackAt(["profile"]), "Required"],
-			"profile name": [feedbackAt(["profile", "name"]), "Required"],
-			"profile's other field": [feedbackAt(["profile", "other"]), undefined],
-		});
+		yield* outcomes([
+			["profile", () => feedbackAt(["profile"]), "Required"],
+			["profile name", () => feedbackAt(["profile", "name"]), "Required"],
+			["profile's other field", () => feedbackAt(["profile", "other"]), undefined],
+		]);
 	},
 );

@@ -18,12 +18,13 @@ jobsRedaction.it(
 	function* ({ callRpc, wireAnswers, answerMentions }) {
 		yield* callRpc("jobFailure", null);
 
-		yield* outcomes({
-			"job failure": [
-				wireAnswers(),
+		yield* outcomes([
+			[
+				"job failure",
+				() => wireAnswers(),
 				{ "1": { failed: expect.objectContaining({ data: "<redacted>", output: "<redacted>", queue: "mail", state: "failed" }) } },
 			],
-			"private payload on the wire": [answerMentions("private-recipient@example.test", "private job failure detail"), []],
-		});
+			["private payload on the wire", () => answerMentions("private-recipient@example.test", "private job failure detail"), []],
+		]);
 	},
 );

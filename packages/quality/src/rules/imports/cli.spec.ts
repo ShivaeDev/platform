@@ -27,12 +27,12 @@ repositoryStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "invalid"],
-			"problem": [stderr(), expect.stringContaining("the import graph covers no modules")],
-			"repair": [stderr(), expect.stringContaining("Point `sources` at the TypeScript or JavaScript code.")],
-			"turning the rules off": [stderr(), expect.not.stringContaining("turn the imports rules off")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "invalid"],
+			["problem", () => stderr(), expect.stringContaining("the import graph covers no modules")],
+			["repair", () => stderr(), expect.stringContaining("Point `sources` at the TypeScript or JavaScript code.")],
+			["turning the rules off", () => stderr(), expect.not.stringContaining("turn the imports rules off")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -43,12 +43,16 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"repair": [stdout(), expect.stringContaining("Move the shared code into a production module and import it from both production and tests.")],
-			"test file import": [stdout(), expect.stringContaining('src/app.ts:1  Imports test code through "./app.test.ts".')],
-			"test support import": [stdout(), expect.stringContaining('src/app.ts:2  Imports test code through "./test-support/fixture.ts".')],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			[
+				"repair",
+				() => stdout(),
+				expect.stringContaining("Move the shared code into a production module and import it from both production and tests."),
+			],
+			["test file import", () => stdout(), expect.stringContaining('src/app.ts:1  Imports test code through "./app.test.ts".')],
+			["test support import", () => stdout(), expect.stringContaining('src/app.ts:2  Imports test code through "./test-support/fixture.ts".')],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -79,10 +83,10 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"refused exception": [stdout(), expect.stringContaining("names a rule that takes no exceptions")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["refused exception", () => stdout(), expect.stringContaining("names a rule that takes no exceptions")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -100,12 +104,12 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"browser global": [stdout(), expect.stringContaining('Shared code uses browser global "window"')],
-			"exit": [outcome(), "rejected"],
-			"node built-in": [stdout(), expect.stringContaining("Shared code imports Node built-in")],
-			"runtime findings": [stdout(), expect.stringContaining("error imports/runtime (2)")],
-		});
+		yield* outcomes([
+			["browser global", () => stdout(), expect.stringContaining('Shared code uses browser global "window"')],
+			["exit", () => outcome(), "rejected"],
+			["node built-in", () => stdout(), expect.stringContaining("Shared code imports Node built-in")],
+			["runtime findings", () => stdout(), expect.stringContaining("error imports/runtime (2)")],
+		]);
 	},
 	CLI_TIMEOUT,
 );

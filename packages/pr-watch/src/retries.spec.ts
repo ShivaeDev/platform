@@ -32,10 +32,10 @@ watch.it(
 
 		yield* startWatch();
 
-		yield* outcomes({
-			"errors": [errors(), ["GitHub network error at /repos/acme/project/git/matching-refs/heads/gh-readonly-queue/"]],
-			"stop": [howItStopped(), "still running"],
-		});
+		yield* outcomes([
+			["errors", () => errors(), ["GitHub network error at /repos/acme/project/git/matching-refs/heads/gh-readonly-queue/"]],
+			["stop", () => howItStopped(), "still running"],
+		]);
 	},
 );
 
@@ -48,10 +48,10 @@ watch.it(
 
 		yield* stalledRequestWaits("30 seconds");
 
-		yield* outcomes({
-			"errors": [errors(), ["GitHub request timed out after 30 seconds"]],
-			"stop": [howItStopped(), "still running"],
-		});
+		yield* outcomes([
+			["errors", () => errors(), ["GitHub request timed out after 30 seconds"]],
+			["stop", () => howItStopped(), "still running"],
+		]);
 	},
 );
 
@@ -62,10 +62,10 @@ for (const status of [HttpStatus.fromLiteral("Unauthorized"), HttpStatus.fromLit
 		function* ({ errors, howItStopped, startWatch }) {
 			yield* startWatch();
 
-			yield* outcomes({
-				"errors": [errors(), [`GitHub HTTP ${status} (GET /repos/acme/project/pulls/1)`]],
-				"stop": [howItStopped(), "failed at 00:00:00"],
-			});
+			yield* outcomes([
+				["errors", () => errors(), [`GitHub HTTP ${status} (GET /repos/acme/project/pulls/1)`]],
+				["stop", () => howItStopped(), "failed at 00:00:00"],
+			]);
 		},
 	);
 }
@@ -81,10 +81,10 @@ watch.it(
 	function* ({ errors, howItStopped, startWatch }) {
 		yield* startWatch();
 
-		yield* outcomes({
-			"errors": [errors(), ["GitHub HTTP 401 (GET /repos/acme/project/pulls/1)", "GitHub HTTP 503 (GET /repos/acme/project/pulls/2)"]],
-			"stop": [howItStopped(), "failed at 00:00:00"],
-		});
+		yield* outcomes([
+			["errors", () => errors(), ["GitHub HTTP 401 (GET /repos/acme/project/pulls/1)", "GitHub HTTP 503 (GET /repos/acme/project/pulls/2)"]],
+			["stop", () => howItStopped(), "failed at 00:00:00"],
+		]);
 	},
 );
 
@@ -179,10 +179,10 @@ watch.it(
 
 		yield* timePasses("1 hour");
 
-		yield* outcomes({
-			"last error": [lastError(), "GitHub outage exceeded 1 hour: GitHub HTTP 502 (GET /repos/acme/project/pulls/1)"],
-			"stop": [howItStopped(), "failed at 01:00:00"],
-		});
+		yield* outcomes([
+			["last error", () => lastError(), "GitHub outage exceeded 1 hour: GitHub HTTP 502 (GET /repos/acme/project/pulls/1)"],
+			["stop", () => howItStopped(), "failed at 01:00:00"],
+		]);
 	},
 );
 

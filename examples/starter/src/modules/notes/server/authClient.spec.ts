@@ -10,21 +10,25 @@ app.it("targets its own host for auth actions and session checks", [signedIn("cl
 	const { cookie, notes: client } = actor("client-user");
 	const authenticated = authClient(cookie);
 	const session = yield* Effect.promise(() => authenticated.client.getSession());
-	yield* outcomes({
-		"session user": [Effect.sync(() => session.data?.user), expect.objectContaining({ email: "client-user@app.test", name: "client-user" })],
-		"session user id": [Effect.sync(() => session.data?.user.id), actor("client-user").userId],
-		"sign-out error": [
-			Effect.gen(function* () {
-				return (yield* Effect.promise(() => authenticated.client.signOut())).error;
-			}),
+	yield* outcomes([
+		["session user", () => Effect.sync(() => session.data?.user), expect.objectContaining({ email: "client-user@app.test", name: "client-user" })],
+		["session user id", () => Effect.sync(() => session.data?.user.id), actor("client-user").userId],
+		[
+			"sign-out error",
+			() =>
+				Effect.gen(function* () {
+					return (yield* Effect.promise(() => authenticated.client.signOut())).error;
+				}),
 			null,
 		],
-		"signed-out session": [
-			Effect.gen(function* () {
-				return (yield* Effect.promise(() => authenticated.client.getSession())).data;
-			}),
+		[
+			"signed-out session",
+			() =>
+				Effect.gen(function* () {
+					return (yield* Effect.promise(() => authenticated.client.getSession())).data;
+				}),
 			null,
 		],
-	});
+	]);
 	expect(yield* requestOutcome(client.list())).toBe("sign in required");
 });

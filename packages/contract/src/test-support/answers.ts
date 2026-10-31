@@ -18,6 +18,10 @@ export function refusal(error: unknown): string {
 	switch (error._tag) {
 		case "NotFound":
 			return tagged(error, "not found");
+		case "InternalServerError":
+			return tagged(error, `internal server error: ${field(error, "message")}`);
+		case "Conflict":
+			return tagged(error, `conflict: ${field(error, "message")}`);
 		case "NoteMissing":
 			return tagged(error, `note ${field(error, "id")} is missing`);
 		case "Invalid":
@@ -30,6 +34,8 @@ export function refusal(error: unknown): string {
 			return tagged(error, "unavailable");
 		case "QueryReadDenied":
 			return tagged(error, "read denied");
+		case "WebSocketRequired":
+			return tagged(error, field(error, "message"));
 		case "MissingReadPolicy":
 			return tagged(error, `missing read policy: ${field(error, "message")}`);
 		case "Rejected":

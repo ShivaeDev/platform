@@ -8,13 +8,14 @@ changeFeed.it(
 	function* ({ endings, listenerLog, startFeedListeningOn }) {
 		yield* startFeedListeningOn("");
 
-		yield* outcomes({
-			"feed endings": [endings(), ["failed with a SQL syntax error (SQLSTATE 42601)"]],
-			"listener log": [
-				listenerLog(),
+		yield* outcomes([
+			["feed endings", () => endings(), ["failed with a SQL syntax error (SQLSTATE 42601)"]],
+			[
+				"listener log",
+				() => listenerLog(),
 				[expect.stringMatching(/^Error: PostgreSQL change listener startup failed after .*zero-length delimited identifier/u)],
 			],
-		});
+		]);
 	},
 );
 

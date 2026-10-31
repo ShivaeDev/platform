@@ -36,10 +36,10 @@ numberedAnswers.it(
 
 		yield* moveAnswerToFront(2);
 
-		yield* outcomes({
-			"answer One": [answerError(1), REJECTED_ELEMENT],
-			"answer Two, now where answer One was": [answerError(2), undefined],
-		});
+		yield* outcomes([
+			["answer One", () => answerError(1), REJECTED_ELEMENT],
+			["answer Two, now where answer One was", () => answerError(2), undefined],
+		]);
 	},
 );
 

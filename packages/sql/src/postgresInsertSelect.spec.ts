@@ -13,16 +13,17 @@ queries.it(
 			where: { status: "flaky" },
 		});
 
-		yield* outcomes({
-			"returned copies": [
-				lastResult(),
+		yield* outcomes([
+			[
+				"returned copies",
+				() => lastResult(),
 				[
 					{ amount: 20, copiedKey: 2, createdAt: expect.any(Date), id: expect.any(Number), name: "second" },
 					{ amount: 40, copiedKey: 4, createdAt: expect.any(Date), id: expect.any(Number), name: "fourth" },
 				],
 			],
-			"stored amounts": [storedCopyAmounts(), [{ amount: "20" }, { amount: "40" }]],
-		});
+			["stored amounts", () => storedCopyAmounts(), [{ amount: "20" }, { amount: "40" }]],
+		]);
 	},
 );
 
@@ -34,20 +35,22 @@ queries.it(
 
 		yield* copySelectedOrIgnore({ where: { status: "flaky" } });
 
-		yield* outcomes({
-			"returned copies": [
-				lastResult(),
+		yield* outcomes([
+			[
+				"returned copies",
+				() => lastResult(),
 				[expect.objectContaining({ copiedKey: 1, name: "first" }), expect.objectContaining({ copiedKey: 4, name: "fourth" })],
 			],
-			"stored copies": [
-				copies(),
+			[
+				"stored copies",
+				() => copies(),
 				[
 					{ amount: 10, copiedKey: 1, name: "first" },
 					{ amount: 99, copiedKey: 2, name: "existing" },
 					{ amount: 40, copiedKey: 4, name: "fourth" },
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -62,10 +65,10 @@ for (const { name, verb } of modes) {
 
 		yield* copy({ where: { status: "missing" } });
 
-		yield* outcomes({
-			"returned copies": [verbs.lastResult(), []],
-			"stored copies": [verbs.copies(), []],
-		});
+		yield* outcomes([
+			["returned copies", () => verbs.lastResult(), []],
+			["stored copies", () => verbs.copies(), []],
+		]);
 	});
 }
 
@@ -83,9 +86,9 @@ queries.it(
 			yield* rejects();
 		});
 
-		yield* outcomes({
-			"stored copies": [copies(), []],
-			"transaction endings": [transactionEndings(), ["failed with rejected"]],
-		});
+		yield* outcomes([
+			["stored copies", () => copies(), []],
+			["transaction endings", () => transactionEndings(), ["failed with rejected"]],
+		]);
 	},
 );

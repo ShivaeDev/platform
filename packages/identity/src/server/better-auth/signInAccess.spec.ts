@@ -24,10 +24,10 @@ signInPolicy.it(
 	function* ({ signIn, signInAnswer, storedUsers }) {
 		yield* signIn("bob");
 
-		yield* outcomes({
-			"bob's sign-in": [signInAnswer("bob"), "refused"],
-			"stored users": [storedUsers(), []],
-		});
+		yield* outcomes([
+			["bob's sign-in", () => signInAnswer("bob"), "refused"],
+			["stored users", () => storedUsers(), []],
+		]);
 	},
 );
 
@@ -45,12 +45,12 @@ signInPolicy.it(
 
 		yield* remove("bob");
 
-		yield* outcomes({
-			"alice's next request": [request("alice"), "ok"],
-			"bob signs in again": [signIn("bob"), "refused"],
-			"bob's next request": [request("bob"), "unauthorized"],
-			"bob's stored sessions": [storedSessions("bob"), []],
-		});
+		yield* outcomes([
+			["alice's next request", () => request("alice"), "ok"],
+			["bob signs in again", () => signIn("bob"), "refused"],
+			["bob's next request", () => request("bob"), "unauthorized"],
+			["bob's stored sessions", () => storedSessions("bob"), []],
+		]);
 	},
 );
 
@@ -77,11 +77,11 @@ signInPolicy.it(
 		yield* leaveOrganization("alice");
 		yield* recheckIntervalPasses();
 
-		yield* outcomes({
-			"alice signs in again": [signIn("alice"), "refused"],
-			"alice's next request": [request("alice"), "unauthorized"],
-			"alice's stored sessions": [storedSessions("alice"), []],
-		});
+		yield* outcomes([
+			["alice signs in again", () => signIn("alice"), "refused"],
+			["alice's next request", () => request("alice"), "unauthorized"],
+			["alice's stored sessions", () => storedSessions("alice"), []],
+		]);
 	},
 );
 
@@ -91,10 +91,10 @@ signInPolicy.it(
 	function* ({ recheckIntervalPasses, request, storedSessions }) {
 		yield* recheckIntervalPasses();
 
-		yield* outcomes({
-			"alice's next request": [request("alice"), "auth unavailable"],
-			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
-		});
+		yield* outcomes([
+			["alice's next request", () => request("alice"), "auth unavailable"],
+			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
+		]);
 	},
 );
 
@@ -106,10 +106,10 @@ signInPolicy.it(
 
 		yield* signIn("alice");
 
-		yield* outcomes({
-			"alice's sign-in": [signInAnswer("alice"), "unavailable"],
-			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
-		});
+		yield* outcomes([
+			["alice's sign-in", () => signInAnswer("alice"), "unavailable"],
+			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
+		]);
 	},
 );
 
@@ -119,10 +119,10 @@ signInPolicy.it(
 	function* ({ signIn, signInAnswer, storedUsers }) {
 		yield* signIn("carol");
 
-		yield* outcomes({
-			"carol's sign-in": [signInAnswer("carol"), "unavailable"],
-			"stored users": [storedUsers(), []],
-		});
+		yield* outcomes([
+			["carol's sign-in", () => signInAnswer("carol"), "unavailable"],
+			["stored users", () => storedUsers(), []],
+		]);
 	},
 );
 
@@ -134,10 +134,10 @@ signInPolicy.it(
 
 		yield* revoke();
 
-		yield* outcomes({
-			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
-			"the revocation": [revocation(), "stopped by a failed policy check"],
-		});
+		yield* outcomes([
+			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
+			["the revocation", () => revocation(), "stopped by a failed policy check"],
+		]);
 	},
 );
 
@@ -145,21 +145,21 @@ signInPolicy.it(
 	"revoking after bob and carol leave the list ends their three sessions and keeps alice's",
 	[allowed("alice", "bob", "carol"), signedIn("alice"), signedInOnTwoDevices("bob"), signedIn("carol")],
 	function* ({ remove, revocation, revoke, storedSessions }) {
-		yield* outcomes({
-			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
-			"bob's stored sessions": [storedSessions("bob"), ["laptop", "phone"]],
-			"carol's stored sessions": [storedSessions("carol"), ["browser"]],
-		});
+		yield* outcomes([
+			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
+			["bob's stored sessions", () => storedSessions("bob"), ["laptop", "phone"]],
+			["carol's stored sessions", () => storedSessions("carol"), ["browser"]],
+		]);
 
 		yield* remove("bob", "carol");
 		yield* revoke();
 
-		yield* outcomes({
-			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
-			"bob's stored sessions": [storedSessions("bob"), []],
-			"carol's stored sessions": [storedSessions("carol"), []],
-			"the revocation": [revocation(), { sessions: 3, users: 2 }],
-		});
+		yield* outcomes([
+			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
+			["bob's stored sessions", () => storedSessions("bob"), []],
+			["carol's stored sessions", () => storedSessions("carol"), []],
+			["the revocation", () => revocation(), { sessions: 3, users: 2 }],
+		]);
 	},
 );
 
@@ -183,10 +183,10 @@ signInPolicy.it(
 	function* ({ revocation, revoke, sessionHolders }) {
 		yield* revoke();
 
-		yield* outcomes({
-			"the revocation": [revocation(), { sessions: 120, users: 120 }],
-			"users still holding a session": [sessionHolders(), ["alice"]],
-		});
+		yield* outcomes([
+			["the revocation", () => revocation(), { sessions: 120, users: 120 }],
+			["users still holding a session", () => sessionHolders(), ["alice"]],
+		]);
 	},
 );
 
@@ -196,10 +196,10 @@ signInPolicy.it(
 	function* ({ corruptList, request, storedSessions }) {
 		yield* corruptList("a provider without an account id");
 
-		yield* outcomes({
-			"alice's next request": [request("alice"), "auth unavailable"],
-			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
-		});
+		yield* outcomes([
+			["alice's next request", () => request("alice"), "auth unavailable"],
+			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
+		]);
 	},
 );
 
@@ -211,10 +211,10 @@ signInPolicy.it(
 
 		yield* revoke();
 
-		yield* outcomes({
-			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
-			"the revocation": [revocation(), "stopped by a configuration error"],
-		});
+		yield* outcomes([
+			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
+			["the revocation", () => revocation(), "stopped by a configuration error"],
+		]);
 	},
 );
 
@@ -224,10 +224,10 @@ signInPolicy.it(
 	function* ({ signIn, signInAnswer, storedSessions }) {
 		yield* signIn("alice");
 
-		yield* outcomes({
-			"alice's sign-in": [signInAnswer("alice"), "failed: unable_to_create_session"],
-			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
-		});
+		yield* outcomes([
+			["alice's sign-in", () => signInAnswer("alice"), "failed: unable_to_create_session"],
+			["alice's stored sessions", () => storedSessions("alice"), ["browser"]],
+		]);
 	},
 );
 
@@ -243,10 +243,10 @@ signInPolicy.it(
 	function* ({ signUpAnswer, signUpWithEmail, storedSessions }) {
 		yield* signUpWithEmail("dana");
 
-		yield* outcomes({
-			"dana's sign-up": [signUpAnswer("dana"), "signed up"],
-			"dana's stored sessions": [storedSessions("dana"), ["browser"]],
-		});
+		yield* outcomes([
+			["dana's sign-up", () => signUpAnswer("dana"), "signed up"],
+			["dana's stored sessions", () => storedSessions("dana"), ["browser"]],
+		]);
 	},
 );
 
@@ -256,10 +256,10 @@ signInPolicy.it(
 	function* ({ revocation, revoke, storedSessions }) {
 		yield* revoke();
 
-		yield* outcomes({
-			"bob's stored sessions": [storedSessions("bob"), ["browser"]],
-			"the revocation": [revocation(), { sessions: 0, users: 0 }],
-		});
+		yield* outcomes([
+			["bob's stored sessions", () => storedSessions("bob"), ["browser"]],
+			["the revocation", () => revocation(), { sessions: 0, users: 0 }],
+		]);
 	},
 );
 

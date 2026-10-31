@@ -13,14 +13,16 @@ app.it(
 		expect(result.cookies.some((value) => value.startsWith("__Secure-better-auth.session_token=") && /; Secure(?:;|$)/iv.test(value))).toBe(true);
 		const cookie = result.cookie;
 		const client = yield* notes(cookie);
-		yield* outcomes({
-			"foreign origin response": [
-				Effect.gen(function* () {
-					return (yield* foreignRequest(cookie)).status;
-				}),
+		yield* outcomes([
+			[
+				"foreign origin response",
+				() =>
+					Effect.gen(function* () {
+						return (yield* foreignRequest(cookie)).status;
+					}),
 				HttpStatus.fromLiteral("Forbidden"),
 			],
-			"protected notes": [client.list(), []],
-		});
+			["protected notes", () => client.list(), []],
+		]);
 	},
 );

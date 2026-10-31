@@ -11,10 +11,10 @@ for (const phase of ["before", "after"] as const) {
 
 			yield* sends("client", "/data?value=first");
 
-			yield* outcomes({
-				answer: [answer("client"), 'HTTP 429 {"value":"first"}'],
-				"rate limit reset": [header("client", "x-ratelimit-reset"), "72000"],
-			});
+			yield* outcomes([
+				["answer", () => answer("client"), 'HTTP 429 {"value":"first"}'],
+				["rate limit reset", () => header("client", "x-ratelimit-reset"), "72000"],
+			]);
 		},
 	);
 }
@@ -31,10 +31,10 @@ for (const phase of ["before", "after"] as const) {
 
 			yield* sends("second", "/data?value=second");
 
-			yield* outcomes({
-				answer: [answer("second"), 'HTTP 429 {"value":"second"}'],
-				"rate limit reset": [header("second", "x-ratelimit-reset"), "75000"],
-			});
+			yield* outcomes([
+				["answer", () => answer("second"), 'HTTP 429 {"value":"second"}'],
+				["rate limit reset", () => header("second", "x-ratelimit-reset"), "75000"],
+			]);
 		},
 	);
 }
@@ -50,9 +50,9 @@ timedHttpApp.it(
 
 		yield* fault("data", { kind: "status", reply: rateLimited });
 
-		yield* outcomes({
-			answer: [answer("client"), 'HTTP 429 {"value":"held"}'],
-			"rate limit reset": [header("client", "x-ratelimit-reset"), "102000"],
-		});
+		yield* outcomes([
+			["answer", () => answer("client"), 'HTTP 429 {"value":"held"}'],
+			["rate limit reset", () => header("client", "x-ratelimit-reset"), "102000"],
+		]);
 	},
 );

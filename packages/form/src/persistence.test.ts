@@ -102,9 +102,9 @@ payloads.it(
 
 		yield* enter("payload", unstorable);
 
-		yield* outcomes({
-			"shown payload": [shown("payload"), unstorable],
-			"stored draft": [storedDraft(), undefined],
-		});
+		yield* outcomes([
+			["shown payload", () => shown("payload"), unstorable],
+			["stored draft", () => storedDraft(), undefined],
+		]);
 	},
 );

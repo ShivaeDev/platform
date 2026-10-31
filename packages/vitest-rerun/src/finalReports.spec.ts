@@ -76,19 +76,21 @@ rerunStory.it("a rerun keeps the reports of each attempt beside the final ones",
 rerunStory.it("the first attempt's kept reports show its failure", [failsTimes(1)], function* ({ jsonResults, junitResults, run }) {
 	yield* run();
 
-	yield* outcomes({
-		"first attempt's JSON results": [
-			jsonResults("tests.attempt-1.json"),
+	yield* outcomes([
+		[
+			"first attempt's JSON results",
+			() => jsonResults("tests.attempt-1.json"),
 			{ "checkout > passes beside it": "passed", "checkout > recovers only in a fresh process": "failed" },
 		],
-		"first attempt's JUnit results": [
-			junitResults("tests.attempt-1.junit.xml"),
+		[
+			"first attempt's JUnit results",
+			() => junitResults("tests.attempt-1.junit.xml"),
 			[
 				{ classname: "flaky.spec.ts", file: "flaky.spec.ts", name: "checkout > passes beside it", result: "passed" },
 				{ classname: "flaky.spec.ts", file: "flaky.spec.ts", name: "checkout > recovers only in a fresh process", result: "failed" },
 			],
 		],
-	});
+	]);
 });
 
 rerunStory.it(
@@ -97,11 +99,11 @@ rerunStory.it(
 	function* ({ exitCode, reports, run, timesRan }) {
 		yield* run();
 
-		yield* outcomes({
-			"exit code": [exitCode(), 0],
-			reports: [reports(), ["tests.json", "tests.junit.xml"]],
-			"times each test ran": [timesRan(), { passes: 1 }],
-		});
+		yield* outcomes([
+			["exit code", () => exitCode(), 0],
+			["reports", () => reports(), ["tests.json", "tests.junit.xml"]],
+			["times each test ran", () => timesRan(), { passes: 1 }],
+		]);
 	},
 );
 

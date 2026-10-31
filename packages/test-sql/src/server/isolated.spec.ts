@@ -31,10 +31,10 @@ database.it(
 
 		yield* writeItem("first", "the first block");
 
-		yield* outcomes({
-			"items in the first block": [items("the first block"), ["first"]],
-			"items in the second block": [items("the second block"), ["seed"]],
-		});
+		yield* outcomes([
+			["items in the first block", () => items("the first block"), ["first"]],
+			["items in the second block", () => items("the second block"), ["seed"]],
+		]);
 	},
 );
 
@@ -59,10 +59,10 @@ for (const [ending, outcome] of [
 
 			yield* end("the isolated block", ending);
 
-			yield* outcomes({
-				"its clone": [cloneDatabase("the isolated block"), "dropped"],
-				"the isolated block": [blockOutcome("the isolated block"), outcome],
-			});
+			yield* outcomes([
+				["its clone", () => cloneDatabase("the isolated block"), "dropped"],
+				["the isolated block", () => blockOutcome("the isolated block"), outcome],
+			]);
 		},
 	);
 }
@@ -75,10 +75,10 @@ database.it(
 
 		yield* interrupt("the isolated block");
 
-		yield* outcomes({
-			"its clone": [cloneDatabase("the isolated block"), "dropped"],
-			"the isolated block": [blockOutcome("the isolated block"), "interrupted"],
-		});
+		yield* outcomes([
+			["its clone", () => cloneDatabase("the isolated block"), "dropped"],
+			["the isolated block", () => blockOutcome("the isolated block"), "interrupted"],
+		]);
 	},
 );
 

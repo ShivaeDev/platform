@@ -91,10 +91,10 @@ lockStory.it(
 	function* ({ interrupts, lock, stateOf }) {
 		yield* interrupts("ready");
 
-		yield* outcomes({
-			"files beside the lock": [lock.filesBesideLock(), ["heavy-process.lock"]],
-			"lock holder": [lock.holder(), "build"],
-			"ready": [stateOf("ready"), "interrupted"],
-		});
+		yield* outcomes([
+			["files beside the lock", () => lock.filesBesideLock(), ["heavy-process.lock"]],
+			["lock holder", () => lock.holder(), "build"],
+			["ready", () => stateOf("ready"), "interrupted"],
+		]);
 	},
 );

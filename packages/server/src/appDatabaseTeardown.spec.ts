@@ -12,9 +12,9 @@ poolTeardown.it(
 
 		yield* peerAcknowledgesDisconnects();
 
-		yield* outcomes({
-			"close progress": [closeProgress(), "closed"],
-			"open connections": [openConnections(), 0],
-		});
+		yield* outcomes([
+			["close progress", () => closeProgress(), "closed"],
+			["open connections", () => openConnections(), 0],
+		]);
 	},
 );

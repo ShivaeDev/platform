@@ -15,12 +15,12 @@ socialApp.it(
 	function* ({ aliceSignsInWithGitHub, pageHeading, pagePath, sessionCookieVisibility, sessionEmail }) {
 		yield* aliceSignsInWithGitHub();
 
-		yield* outcomes({
-			heading: [pageHeading(), "Signed in as alice@social.test"],
-			path: [pagePath(), "/signed-in"],
-			"session cookie": [sessionCookieVisibility(), "hidden from page scripts"],
-			"session email": [sessionEmail(), "alice@social.test"],
-		});
+		yield* outcomes([
+			["heading", () => pageHeading(), "Signed in as alice@social.test"],
+			["path", () => pagePath(), "/signed-in"],
+			["session cookie", () => sessionCookieVisibility(), "hidden from page scripts"],
+			["session email", () => sessionEmail(), "alice@social.test"],
+		]);
 	},
 );
 
@@ -30,11 +30,11 @@ socialApp.it(
 	function* ({ aliceSignsInWithGitHub, providerAccounts, storedSessionCount, storedUserEmails }) {
 		yield* aliceSignsInWithGitHub();
 
-		yield* outcomes({
-			"provider accounts": [providerAccounts(), [{ accountId: "123", providerId: "github" }]],
-			"stored sessions": [storedSessionCount(), 1],
-			"stored users": [storedUserEmails(), ["alice@social.test"]],
-		});
+		yield* outcomes([
+			["provider accounts", () => providerAccounts(), [{ accountId: "123", providerId: "github" }]],
+			["stored sessions", () => storedSessionCount(), 1],
+			["stored users", () => storedUserEmails(), ["alice@social.test"]],
+		]);
 	},
 );
 
@@ -44,11 +44,11 @@ socialApp.it(
 	function* ({ aliceSignsInWithGitHub, codeExchange, providerCookiesSent, providerRoutes }) {
 		yield* aliceSignsInWithGitHub();
 
-		yield* outcomes({
-			"code exchange": [codeExchange(), "sent the callback code"],
-			"cookies sent to GitHub": [providerCookiesSent(), 0],
-			"GitHub routes": [providerRoutes(), ["GET /login/oauth/authorize", "POST /login/oauth/access_token", "GET /user", "GET /user/emails"]],
-		});
+		yield* outcomes([
+			["code exchange", () => codeExchange(), "sent the callback code"],
+			["cookies sent to GitHub", () => providerCookiesSent(), 0],
+			["GitHub routes", () => providerRoutes(), ["GET /login/oauth/authorize", "POST /login/oauth/access_token", "GET /user", "GET /user/emails"]],
+		]);
 	},
 );
 
@@ -92,10 +92,10 @@ socialApp.it(
 	function* ({ accountLookupUsers, identityOnly, userIdOf }) {
 		const answer = yield* identityOnly();
 
-		yield* outcomes({
-			"account lookups": [accountLookupUsers(), []],
-			identity: [Effect.succeed(answer), yield* userIdOf("Bob")],
-		});
+		yield* outcomes([
+			["account lookups", () => accountLookupUsers(), []],
+			["identity", () => Effect.succeed(answer), yield* userIdOf("Bob")],
+		]);
 	},
 );
 

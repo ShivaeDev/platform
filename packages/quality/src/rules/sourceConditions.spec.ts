@@ -24,15 +24,16 @@ for (const { field, manifest, name } of LATE_SOURCE) {
 		function* ({ check, locations, messages }) {
 			yield* check(manifestsSourceFirst);
 
-			yield* outcomes({
-				location: [locations(), ["packages/a/package.json:5"]],
-				message: [
-					messages(),
+			yield* outcomes([
+				["location", () => locations(), ["packages/a/package.json:5"]],
+				[
+					"message",
+					() => messages(),
 					[
 						`Lists the "source" condition after "types" in ${field}. TypeScript takes the first condition that matches, so once built output exists it reads that instead of the sources the "source" condition names. Move "source" to the top of this condition block.`,
 					],
 				],
-			});
+			]);
 		},
 	);
 }

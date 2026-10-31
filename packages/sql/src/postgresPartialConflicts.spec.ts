@@ -12,10 +12,10 @@ partialTargets.it(
 	function* ({ insertOrIgnore, returned, storedRows }) {
 		yield* insertOrIgnore({ ...oneX, value: 99 });
 
-		yield* outcomes({
-			"returned value": [returned(), ["ignored"]],
-			"stored rows": [storedRows(), [oneX]],
-		});
+		yield* outcomes([
+			["returned value", () => returned(), ["ignored"]],
+			["stored rows", () => storedRows(), [oneX]],
+		]);
 	},
 );
 
@@ -35,10 +35,10 @@ partialTargets.it(
 	function* ({ insertManyOrIgnore, returned, storedRows }) {
 		yield* insertManyOrIgnore([{ ...oneX, value: 99 }, oneY, twoX]);
 
-		yield* outcomes({
-			"returned rows": [returned(), [[oneY, twoX]]],
-			"stored rows": [storedRows(), [oneX, oneY, twoX]],
-		});
+		yield* outcomes([
+			["returned rows", () => returned(), [[oneY, twoX]]],
+			["stored rows", () => storedRows(), [oneX, oneY, twoX]],
+		]);
 	},
 );
 
@@ -48,10 +48,10 @@ partialTargets.it(
 	function* ({ returned, storedRows, upsert }) {
 		yield* upsert({ ...oneX, value: 99 });
 
-		yield* outcomes({
-			"returned value": [returned(), [{ inserted: false, row: { ...oneX, value: 99 } }]],
-			"stored rows": [storedRows(), [{ ...oneX, value: 99 }]],
-		});
+		yield* outcomes([
+			["returned value", () => returned(), [{ inserted: false, row: { ...oneX, value: 99 } }]],
+			["stored rows", () => storedRows(), [{ ...oneX, value: 99 }]],
+		]);
 	},
 );
 
@@ -61,10 +61,10 @@ partialTargets.it(
 	function* ({ returned, storedRows, upsert }) {
 		yield* upsert(oneY);
 
-		yield* outcomes({
-			"returned value": [returned(), [{ inserted: true, row: oneY }]],
-			"stored rows": [storedRows(), [oneX, oneY]],
-		});
+		yield* outcomes([
+			["returned value", () => returned(), [{ inserted: true, row: oneY }]],
+			["stored rows", () => storedRows(), [oneX, oneY]],
+		]);
 	},
 );
 
@@ -77,9 +77,10 @@ partialTargets.it(
 			{ ...oneY, value: 40 },
 		]);
 
-		yield* outcomes({
-			"returned results": [
-				returned(),
+		yield* outcomes([
+			[
+				"returned results",
+				() => returned(),
 				[
 					[
 						{ inserted: false, row: { ...oneX, value: 30 } },
@@ -87,8 +88,8 @@ partialTargets.it(
 					],
 				],
 			],
-			"stored rows": [storedRows(), [{ ...oneX, value: 30 }, oneY, { ...oneY, value: 40 }]],
-		});
+			["stored rows", () => storedRows(), [{ ...oneX, value: 30 }, oneY, { ...oneY, value: 40 }]],
+		]);
 	},
 );
 
@@ -99,11 +100,11 @@ for (const write of ["insertManyOrIgnore", "insertOrIgnore", "upsert", "upsertMa
 		function* ({ endings, storedRows, unmatchedPredicate, writeThroughUnmatchedTarget }) {
 			yield* writeThroughUnmatchedTarget(write, twoX);
 
-			yield* outcomes({
-				"stored rows": [storedRows(), [oneX]],
-				"unmatched predicate": [unmatchedPredicate(), { bound: UNMATCHED_KIND, inlined: false }],
-				[`${write} ending`]: [endings(), ["failed with a SQL syntax error (SQLSTATE 42P10)"]],
-			});
+			yield* outcomes([
+				["stored rows", () => storedRows(), [oneX]],
+				["unmatched predicate", () => unmatchedPredicate(), { bound: UNMATCHED_KIND, inlined: false }],
+				[`${write} ending`, () => endings(), ["failed with a SQL syntax error (SQLSTATE 42P10)"]],
+			]);
 		},
 	);
 }

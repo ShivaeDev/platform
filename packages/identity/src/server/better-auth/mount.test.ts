@@ -28,13 +28,14 @@ mount.it(
 
 		yield* request();
 
-		yield* outcomes({
-			"logged failure": [
-				loggedFailure(),
+		yield* outcomes([
+			[
+				"logged failure",
+				() => loggedFailure(),
 				{ cause: "password=<redacted>", cookie: "<redacted>", message: "Authentication provider is down: token=<redacted>" },
 			],
-			"secrets anywhere in the logs": [logsMentionProviderSecrets(), []],
-		});
+			["secrets anywhere in the logs", () => logsMentionProviderSecrets(), []],
+		]);
 	},
 );
 
@@ -52,10 +53,10 @@ for (const header of ["x-forwarded-for", "x-real-ip"]) {
 			function* ({ clientAuthSaw, forwardedHeadersAuthSaw, request }) {
 				yield* request("alice");
 
-				yield* outcomes({
-					"client auth saw": [clientAuthSaw(), "the connecting peer"],
-					"forwarded headers auth saw": [forwardedHeadersAuthSaw(), []],
-				});
+				yield* outcomes([
+					["client auth saw", () => clientAuthSaw(), "the connecting peer"],
+					["forwarded headers auth saw", () => forwardedHeadersAuthSaw(), []],
+				]);
 			},
 		);
 	}
@@ -66,10 +67,10 @@ for (const header of ["x-forwarded-for", "x-real-ip"]) {
 			function* ({ clientAuthSaw, forwardedHeadersAuthSaw, request }) {
 				yield* request("alice");
 
-				yield* outcomes({
-					"client auth saw": [clientAuthSaw(), "alice"],
-					"forwarded headers auth saw": [forwardedHeadersAuthSaw(), [...new Set(["x-forwarded-for", header])]],
-				});
+				yield* outcomes([
+					["client auth saw", () => clientAuthSaw(), "alice"],
+					["forwarded headers auth saw", () => forwardedHeadersAuthSaw(), [...new Set(["x-forwarded-for", header])]],
+				]);
 			},
 		);
 	}
@@ -102,10 +103,10 @@ for (const header of ["x-forwarded-for", "x-real-ip"]) {
 		function* ({ request, useAllowance }) {
 			expect(yield* useAllowance("alice")).toEqual(["accepted", "accepted"]);
 
-			yield* outcomes({
-				alice: [request("alice"), "rate limited"],
-				bob: [request("bob"), "accepted"],
-			});
+			yield* outcomes([
+				["alice", () => request("alice"), "rate limited"],
+				["bob", () => request("bob"), "accepted"],
+			]);
 		},
 	);
 }
@@ -119,10 +120,10 @@ for (const [storage, traits] of Object.entries({ "default storage": [], "explici
 
 			yield* startSecondHost();
 
-			yield* outcomes({
-				"first host": [request(), "rate limited"],
-				"second host": [requestSecondHost(), "accepted"],
-			});
+			yield* outcomes([
+				["first host", () => request(), "rate limited"],
+				["second host", () => requestSecondHost(), "accepted"],
+			]);
 		},
 	);
 }
@@ -135,9 +136,10 @@ mount.it(
 
 		yield* request();
 
-		yield* outcomes({
-			"storage calls": [
-				storageCalls(),
+		yield* outcomes([
+			[
+				"storage calls",
+				() => storageCalls(),
 				{
 					clients: 1,
 					rules: [
@@ -147,7 +149,7 @@ mount.it(
 					],
 				},
 			],
-			"third request": [lastAnswer(), "accepted"],
-		});
+			["third request", () => lastAnswer(), "accepted"],
+		]);
 	},
 );

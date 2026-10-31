@@ -8,10 +8,10 @@ notifications.it(
 	function* ({ breakRefresh, notices, rows }) {
 		yield* breakRefresh();
 
-		yield* outcomes({
-			notices: [notices(), ["Refresh failed"]],
-			rows: [rows(), "existing"],
-		});
+		yield* outcomes([
+			["notices", () => notices(), ["Refresh failed"]],
+			["rows", () => rows(), "existing"],
+		]);
 	},
 );
 
@@ -90,9 +90,9 @@ notifications.it(
 	function* ({ breakRefresh, notices, rows }) {
 		yield* breakRefresh();
 
-		yield* outcomes({
-			notices: [notices(), ["Editor refresh failed"]],
-			rows: [rows(), "existing"],
-		});
+		yield* outcomes([
+			["notices", () => notices(), ["Editor refresh failed"]],
+			["rows", () => rows(), "existing"],
+		]);
 	},
 );

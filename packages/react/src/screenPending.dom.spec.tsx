@@ -10,10 +10,10 @@ loaderScreen.it(
 
 		yield* routeMounts();
 
-		yield* outcomes({
-			"screen work": [screenWork(), "settled"],
-			shown: [shownTitle(), "Routed note"],
-		});
+		yield* outcomes([
+			["screen work", () => screenWork(), "settled"],
+			["shown", () => shownTitle(), "Routed note"],
+		]);
 	},
 );
 
@@ -25,10 +25,10 @@ loaderScreen.it(
 
 		yield* respond("Refreshed note");
 
-		yield* outcomes({
-			"screen work": [screenWork(), "settled"],
-			shown: [shownTitle(), "Refreshed note"],
-		});
+		yield* outcomes([
+			["screen work", () => screenWork(), "settled"],
+			["shown", () => shownTitle(), "Refreshed note"],
+		]);
 	},
 );
 
@@ -40,9 +40,9 @@ loaderScreen.it(
 
 		yield* leave();
 
-		yield* outcomes({
-			"screen work": [screenWork(), "settled"],
-			shown: [shownTitle(), "Other screen"],
-		});
+		yield* outcomes([
+			["screen work", () => screenWork(), "settled"],
+			["shown", () => shownTitle(), "Other screen"],
+		]);
 	},
 );

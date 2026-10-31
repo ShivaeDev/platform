@@ -31,15 +31,16 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"report": [
-				stdout(),
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			[
+				"report",
+				() => stdout(),
 				expect.stringContaining(
 					'error local/no-console-log (1)\n  Log through the logger.\n  src/log.ts  logs to the console. For a permanent exception, add to exceptions in quality.config.ts: {"files":["src/log.ts"],"reason":"Explain why this exception is permanent.","rules":["local/no-console-log"]}.',
 				),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -50,11 +51,11 @@ repositoryStory.it(
 	function* ({ runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"absolute": [stdout(), expect.stringContaining("  src/b.ts  absolute")],
-			"backslashed": [stdout(), expect.stringContaining("  src/c.ts  backslashed")],
-			"dotted": [stdout(), expect.stringContaining("  src/a.ts  dotted")],
-		});
+		yield* outcomes([
+			["absolute", () => stdout(), expect.stringContaining("  src/b.ts  absolute")],
+			["backslashed", () => stdout(), expect.stringContaining("  src/c.ts  backslashed")],
+			["dotted", () => stdout(), expect.stringContaining("  src/a.ts  dotted")],
+		]);
 	},
 	CLI_TIMEOUT,
 );

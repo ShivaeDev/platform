@@ -23,9 +23,10 @@ host.it(
 	function* ({ answerMentions, callRpc, wireAnswers }) {
 		yield* callRpc("diagnose", hiddenPayload);
 
-		yield* outcomes({
-			"client answer": [
-				wireAnswers(),
+		yield* outcomes([
+			[
+				"client answer",
+				() => wireAnswers(),
 				{
 					"1": {
 						failed: expect.objectContaining({
@@ -38,8 +39,8 @@ host.it(
 					},
 				},
 			],
-			"leaked secrets": [answerMentions("hidden-", "unmatched-private-fragment"), []],
-		});
+			["leaked secrets", () => answerMentions("hidden-", "unmatched-private-fragment"), []],
+		]);
 	},
 );
 
@@ -49,12 +50,12 @@ host.it(
 	function* ({ callRpc, diagnosticLog, logMentions, reportedErrors, reportMentions }) {
 		yield* callRpc("diagnose", hiddenPayload);
 
-		yield* outcomes({
-			"diagnostic log": [diagnosticLog("diagnostic"), expect.objectContaining(masked)],
-			"leaked into logs": [logMentions("hidden-", "unmatched-private-fragment"), []],
-			"leaked into reports": [reportMentions("hidden-", "unmatched-private-fragment"), []],
-			"reported failure": [reportedErrors(), [expect.objectContaining(masked)]],
-		});
+		yield* outcomes([
+			["diagnostic log", () => diagnosticLog("diagnostic"), expect.objectContaining(masked)],
+			["leaked into logs", () => logMentions("hidden-", "unmatched-private-fragment"), []],
+			["leaked into reports", () => reportMentions("hidden-", "unmatched-private-fragment"), []],
+			["reported failure", () => reportedErrors(), [expect.objectContaining(masked)]],
+		]);
 	},
 );
 
@@ -72,10 +73,10 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 			yield* close();
 
-			yield* outcomes({
-				"leaked secrets": [exportMentions("hidden-", "unmatched-private-fragment"), []],
-				"span attributes": [spanAttributes("diagnose"), [expect.objectContaining(masked)]],
-			});
+			yield* outcomes([
+				["leaked secrets", () => exportMentions("hidden-", "unmatched-private-fragment"), []],
+				["span attributes", () => spanAttributes("diagnose"), [expect.objectContaining(masked)]],
+			]);
 		},
 	);
 }
@@ -88,10 +89,14 @@ host.it(
 
 		yield* close();
 
-		yield* outcomes({
-			"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ sealed: "<redacted>" }) } }],
-			"native span failure": [nativeSpanFailure("diagnose"), expect.objectContaining({ customerRef: "customer-123", sensitiveNote: "private note" })],
-		});
+		yield* outcomes([
+			["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining({ sealed: "<redacted>" }) } }],
+			[
+				"native span failure",
+				() => nativeSpanFailure("diagnose"),
+				expect.objectContaining({ customerRef: "customer-123", sensitiveNote: "private note" }),
+			],
+		]);
 	},
 );
 
@@ -103,10 +108,10 @@ host.it(
 
 		yield* callRpc("diagnose", { customerRef: "customer-123", sealed: "plain-code", sensitiveNote: "private note", visible: prose });
 
-		yield* outcomes({
-			"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ sealed: "<redacted>", visible: prose }) } }],
-			"diagnostic log": [diagnosticLog("diagnostic"), expect.objectContaining({ sealed: "<redacted>", visible: prose })],
-		});
+		yield* outcomes([
+			["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining({ sealed: "<redacted>", visible: prose }) } }],
+			["diagnostic log", () => diagnosticLog("diagnostic"), expect.objectContaining({ sealed: "<redacted>", visible: prose })],
+		]);
 	},
 );
 
@@ -124,11 +129,11 @@ host.it(
 
 		yield* close();
 
-		yield* outcomes({
-			"client answer": [answerMentions("diagnostic defect", "hidden-"), ["diagnostic defect"]],
-			"leaked into exports": [exportMentions("hidden-"), []],
-			"leaked into logs": [logMentions("hidden-"), []],
-		});
+		yield* outcomes([
+			["client answer", () => answerMentions("diagnostic defect", "hidden-"), ["diagnostic defect"]],
+			["leaked into exports", () => exportMentions("hidden-"), []],
+			["leaked into logs", () => logMentions("hidden-"), []],
+		]);
 	},
 );
 

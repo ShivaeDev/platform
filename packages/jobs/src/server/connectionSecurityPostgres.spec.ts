@@ -8,10 +8,10 @@ database.it(
 	function* ({ connectionsOf, startWithSslMode, startup }) {
 		yield* startWithSslMode("plain", [], undefined);
 
-		yield* outcomes({
-			"connections": [connectionsOf("plain"), "all without TLS"],
-			"startup": [startup("plain"), "started"],
-		});
+		yield* outcomes([
+			["connections", () => connectionsOf("plain"), "all without TLS"],
+			["startup", () => startup("plain"), "started"],
+		]);
 	},
 );
 
@@ -21,9 +21,9 @@ database.it(
 	function* ({ connectionsOf, startWithSslMode, startup }) {
 		yield* startWithSslMode("secure", [], "require");
 
-		yield* outcomes({
-			"connections": [connectionsOf("secure"), "none"],
-			"startup": [startup("secure"), "start failed with The server does not support SSL connections"],
-		});
+		yield* outcomes([
+			["connections", () => connectionsOf("secure"), "none"],
+			["startup", () => startup("secure"), "start failed with The server does not support SSL connections"],
+		]);
 	},
 );

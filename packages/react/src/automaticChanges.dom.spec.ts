@@ -13,11 +13,11 @@ automatic.it(
 
 		yield* workerCommits(1, "From worker");
 
-		yield* outcomes({
-			"note 1": [shown(1), "From worker"],
-			"note 2": [shown(2), "Second"],
-			reads: [reads(), [1, 1, 2]],
-		});
+		yield* outcomes([
+			["note 1", () => shown(1), "From worker"],
+			["note 2", () => shown(2), "Second"],
+			["reads", () => reads(), [1, 1, 2]],
+		]);
 	},
 );
 
@@ -27,10 +27,10 @@ automatic.it(
 	function* ({ notifications, publications, workerCommits }) {
 		yield* workerCommits(1, "From worker");
 
-		yield* outcomes({
-			notifications: [notifications(), [["notes", "notes:1"]]],
-			publications: [publications(), ["notes", "notes:1"]],
-		});
+		yield* outcomes([
+			["notifications", () => notifications(), [["notes", "notes:1"]]],
+			["publications", () => publications(), ["notes", "notes:1"]],
+		]);
 	},
 );
 
@@ -40,10 +40,10 @@ automatic.it(
 	function* ({ notifications, shown, workerRollsBack }) {
 		yield* workerRollsBack(1, "Rolled back");
 
-		yield* outcomes({
-			"note 1": [shown(1), "From worker"],
-			notifications: [notifications(), [["notes", "notes:1"]]],
-		});
+		yield* outcomes([
+			["note 1", () => shown(1), "From worker"],
+			["notifications", () => notifications(), [["notes", "notes:1"]]],
+		]);
 	},
 );
 
@@ -53,9 +53,9 @@ automatic.it(
 	function* ({ commandRenames, notifiedKeys, publications }) {
 		yield* commandRenames(1, "From command");
 
-		yield* outcomes({
-			"notified keys": [notifiedKeys(), ["notes", "notes:1", "summary"]],
-			publications: [publications(), ["notes", "notes:1", "summary"]],
-		});
+		yield* outcomes([
+			["notified keys", () => notifiedKeys(), ["notes", "notes:1", "summary"]],
+			["publications", () => publications(), ["notes", "notes:1", "summary"]],
+		]);
 	},
 );

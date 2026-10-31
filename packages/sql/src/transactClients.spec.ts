@@ -18,12 +18,12 @@ for (const transactions of transactionKits) {
 				yield* rejects();
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), ["orders", "orders:2"]],
-				"orders on the main client": [orders(), []],
-				"orders on the other client": [otherOrders(), [2]],
-				"transaction endings, innermost first": [endings(), ["committed", "failed with rejected"]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), ["orders", "orders:2"]],
+				["orders on the main client", () => orders(), []],
+				["orders on the other client", () => otherOrders(), [2]],
+				["transaction endings, innermost first", () => endings(), ["committed", "failed with rejected"]],
+			]);
 		},
 	);
 
@@ -45,12 +45,12 @@ for (const transactions of transactionKits) {
 				yield* rejects();
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), ["orders", "orders:1"]],
-				"orders on the main client": [orders(), [1]],
-				"orders on the other client": [otherOrders(), []],
-				"transaction endings, innermost first": [endings(), ["committed", "committed", "failed with rejected"]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), ["orders", "orders:1"]],
+				["orders on the main client", () => orders(), [1]],
+				["orders on the other client", () => otherOrders(), []],
+				["transaction endings, innermost first", () => endings(), ["committed", "committed", "failed with rejected"]],
+			]);
 		},
 	);
 
@@ -68,12 +68,12 @@ for (const transactions of transactionKits) {
 				yield* rejects();
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), []],
-				"orders on the main client": [orders(), [1]],
-				"orders on the other client": [otherOrders(), []],
-				"transaction endings, innermost first": [endings(), ["committed", "failed with rejected"]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), []],
+				["orders on the main client", () => orders(), [1]],
+				["orders on the other client", () => otherOrders(), []],
+				["transaction endings, innermost first", () => endings(), ["committed", "failed with rejected"]],
+			]);
 		},
 	);
 }

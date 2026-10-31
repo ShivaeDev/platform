@@ -12,12 +12,12 @@ for (const content of ['{"name":', '{"dependencies":[]}', '{"bin":[]}']) {
 		function* ({ reportLines, outcome, runs, stderr, stdout }) {
 			yield* runs("lint");
 
-			yield* outcomes({
-				"error output": [stderr(), ""],
-				"exit": [outcome(), "rejected"],
-				"lines naming the manifest": [reportLines(BROKEN), [expect.stringContaining("Invalid package manifest")]],
-				"rule": [stdout(), expect.stringContaining("manifests/valid")],
-			});
+			yield* outcomes([
+				["error output", () => stderr(), ""],
+				["exit", () => outcome(), "rejected"],
+				["lines naming the manifest", () => reportLines(BROKEN), [expect.stringContaining("Invalid package manifest")]],
+				["rule", () => stdout(), expect.stringContaining("manifests/valid")],
+			]);
 		},
 		CLI_TIMEOUT,
 	);
@@ -29,10 +29,10 @@ manifestStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringMatching(/cannot read.*package\.json/u)],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringMatching(/cannot read.*package\.json/u)],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -43,10 +43,10 @@ manifestStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("fix");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringMatching(/packages\/broken\/package\.json.*Invalid package manifest/u)],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringMatching(/packages\/broken\/package\.json.*Invalid package manifest/u)],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -57,11 +57,11 @@ manifestStory.it(
 	function* ({ decodedManifests, fileReads, sharedManifest, twoRulesReadAtOnce }) {
 		yield* twoRulesReadAtOnce("package.json");
 
-		yield* outcomes({
-			"decoded manifests": [decodedManifests(), [{ name: "app" }, { name: "app" }]],
-			"file reads": [fileReads(), ["package.json"]],
-			"one shared manifest": [sharedManifest(), true],
-		});
+		yield* outcomes([
+			["decoded manifests", () => decodedManifests(), [{ name: "app" }, { name: "app" }]],
+			["file reads", () => fileReads(), ["package.json"]],
+			["one shared manifest", () => sharedManifest(), true],
+		]);
 	},
 	CLI_TIMEOUT,
 );

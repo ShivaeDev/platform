@@ -24,10 +24,10 @@ postgres.it(
 
 		yield* prepareAppDatabase();
 
-		yield* outcomes({
-			"rows": [appRows(), ["existing data"]],
-			"setup": [outcome(), "prepared"],
-		});
+		yield* outcomes([
+			["rows", () => appRows(), ["existing data"]],
+			["setup", () => outcome(), "prepared"],
+		]);
 	},
 );
 
@@ -37,9 +37,9 @@ postgres.it(
 	function* ({ failureKind, outcome, prepareAppDatabaseAsQueryRole }) {
 		yield* prepareAppDatabaseAsQueryRole();
 
-		yield* outcomes({
-			"diagnostic": [outcome(), "failed: ERROR:  permission denied to create database"],
-			"failure": [failureKind(), "setup command failed"],
-		});
+		yield* outcomes([
+			["diagnostic", () => outcome(), "failed: ERROR:  permission denied to create database"],
+			["failure", () => failureKind(), "setup command failed"],
+		]);
 	},
 );

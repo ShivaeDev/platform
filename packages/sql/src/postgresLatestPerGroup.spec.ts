@@ -21,9 +21,10 @@ queries.it(
 			partitionBy: ["name", "note"],
 		});
 
-		yield* outcomes({
-			"latest lines": [
-				lastResult(),
+		yield* outcomes([
+			[
+				"latest lines",
+				() => lastResult(),
 				[
 					{ amount: 3, id: 3, name: "A", note: "build" },
 					{ amount: 2, id: 2, name: "A", note: "build" },
@@ -33,8 +34,8 @@ queries.it(
 					{ amount: 2, id: 8, name: "B", note: "build" },
 				],
 			],
-			"statements sent": [statementsSent(), 1],
-		});
+			["statements sent", () => statementsSent(), 1],
+		]);
 	},
 );
 
@@ -222,10 +223,10 @@ for (const { name, where } of emptyPins) {
 		function* ({ lastResult, latestRuns, statementsSent }) {
 			yield* latestRuns({ ...newestTwenty, partitionBy: ["repository"], where });
 
-			yield* outcomes({
-				"latest runs": [lastResult(), []],
-				"statements sent": [statementsSent(), 0],
-			});
+			yield* outcomes([
+				["latest runs", () => lastResult(), []],
+				["statements sent", () => statementsSent(), 0],
+			]);
 		},
 	);
 }

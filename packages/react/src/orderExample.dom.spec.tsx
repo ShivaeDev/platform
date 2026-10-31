@@ -26,12 +26,12 @@ app.it(
 
 		yield* submitOrder();
 
-		yield* outcomes({
-			name: [field("name"), "Office chairs"],
-			"server order": [serverOrder(), "Office chairs / 450"],
-			status: [status(), "Saved"],
-			stored: [storedOrder("paper"), "Office chairs / 450"],
-		});
+		yield* outcomes([
+			["name", () => field("name"), "Office chairs"],
+			["server order", () => serverOrder(), "Office chairs / 450"],
+			["status", () => status(), "Saved"],
+			["stored", () => storedOrder("paper"), "Office chairs / 450"],
+		]);
 	},
 );
 
@@ -43,11 +43,11 @@ app.it(
 
 		yield* submitOrder();
 
-		yield* outcomes({
-			alert: [alert(), "Quantity must be a whole number between 0 and 5000"],
-			quantity: [field("quantity"), "-1"],
-			stored: [storedOrder("paper"), "Printer paper / 3"],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "Quantity must be a whole number between 0 and 5000"],
+			["quantity", () => field("quantity"), "-1"],
+			["stored", () => storedOrder("paper"), "Printer paper / 3"],
+		]);
 	},
 );
 
@@ -59,10 +59,10 @@ app.it(
 
 		yield* submitOrder();
 
-		yield* outcomes({
-			status: [status(), "Saved"],
-			stored: [storedOrder("paper"), "Printer paper / 12"],
-		});
+		yield* outcomes([
+			["status", () => status(), "Saved"],
+			["stored", () => storedOrder("paper"), "Printer paper / 12"],
+		]);
 	},
 );
 
@@ -75,12 +75,12 @@ app.it(
 
 		yield* refreshOrder();
 
-		yield* outcomes({
-			name: [field("name"), "Unsubmitted local edit"],
-			quantity: [field("quantity"), "900"],
-			"server order": [serverOrder(), "Remote update / 900"],
-			status: [status(), "Unsaved changes"],
-		});
+		yield* outcomes([
+			["name", () => field("name"), "Unsubmitted local edit"],
+			["quantity", () => field("quantity"), "900"],
+			["server order", () => serverOrder(), "Remote update / 900"],
+			["status", () => status(), "Unsaved changes"],
+		]);
 	},
 );
 
@@ -96,20 +96,20 @@ app.it(
 	function* ({ field, releaseSave, serverOrder, status, storedOrder }) {
 		yield* releaseSave();
 
-		yield* outcomes({
-			name: [field("name"), "Newer local edit"],
-			"server order": [serverOrder(), "Submitted order / 3"],
-			status: [status(), "Unsaved changes"],
-			stored: [storedOrder("paper"), "Submitted order / 3"],
-		});
+		yield* outcomes([
+			["name", () => field("name"), "Newer local edit"],
+			["server order", () => serverOrder(), "Submitted order / 3"],
+			["status", () => status(), "Unsaved changes"],
+			["stored", () => storedOrder("paper"), "Submitted order / 3"],
+		]);
 	},
 );
 
 app.it("an owner's session opens their own order", [lamps, editorIsOpen("bob", "lamps", "bob-session")], function* ({ field }) {
-	yield* outcomes({
-		name: [field("name", "bob"), "Desk lamps"],
-		quantity: [field("quantity", "bob"), "200"],
-	});
+	yield* outcomes([
+		["name", () => field("name", "bob"), "Desk lamps"],
+		["quantity", () => field("quantity", "bob"), "200"],
+	]);
 });
 
 for (const [who, token] of [
@@ -117,10 +117,10 @@ for (const [who, token] of [
 	["an anonymous caller", undefined],
 ] as const) {
 	app.it(`${who} cannot open Alice's order`, [aliceHasOrder("paper"), editorIsOpen("caller", "paper", token)], function* ({ alert, serverOrder }) {
-		yield* outcomes({
-			alert: [alert("caller"), "Could not load your order. Try again."],
-			"server order": [serverOrder("caller"), "none"],
-		});
+		yield* outcomes([
+			["alert", () => alert("caller"), "Could not load your order. Try again."],
+			["server order", () => serverOrder("caller"), "none"],
+		]);
 	});
 }
 
@@ -132,10 +132,10 @@ for (const [who, token, refusal] of [
 	app.it(`${who} cannot save Alice's order`, [aliceHasOrder("paper")], function* ({ answers, forbiddenSave, storedOrder }) {
 		yield* forbiddenSave("paper", token);
 
-		yield* outcomes({
-			answers: [answers(), [refusal]],
-			stored: [storedOrder("paper"), "Printer paper / 3"],
-		});
+		yield* outcomes([
+			["answers", () => answers(), [refusal]],
+			["stored", () => storedOrder("paper"), "Printer paper / 3"],
+		]);
 	});
 }
 
@@ -148,10 +148,10 @@ app.it(
 
 		yield* submitOrder();
 
-		yield* outcomes({
-			alert: [alert(), "Could not save your order. Try again."],
-			stored: [storedOrder("paper"), "Printer paper / 3"],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "Could not save your order. Try again."],
+			["stored", () => storedOrder("paper"), "Printer paper / 3"],
+		]);
 	},
 );
 
@@ -167,10 +167,10 @@ app.it(
 
 		yield* submitOrder("toner");
 
-		yield* outcomes({
-			list: [list(), ["Printer paper / 300", "Black toner / 150"]],
-			reads: [readsPerOrder(), { paper: 1, toner: 2 }],
-			"toner server order": [serverOrder("toner"), "Black toner / 150"],
-		});
+		yield* outcomes([
+			["list", () => list(), ["Printer paper / 300", "Black toner / 150"]],
+			["reads", () => readsPerOrder(), { paper: 1, toner: 2 }],
+			["toner server order", () => serverOrder("toner"), "Black toner / 150"],
+		]);
 	},
 );

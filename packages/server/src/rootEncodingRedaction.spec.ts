@@ -15,17 +15,18 @@ for (const source of ["schema", "host"] as const) {
 					{ id: "3", payload: { contact: "successful application value" }, tag: "succeed" },
 				]);
 
-				yield* outcomes({
-					"client answers": [
-						wireAnswers(),
+				yield* outcomes([
+					[
+						"client answers",
+						() => wireAnswers(),
 						{
 							"1": { failed: "<redacted>" },
 							"2": { failed: expect.objectContaining({ detail: "public rejection" }) },
 							"3": { succeeded: "successful application value" },
 						},
 					],
-					"leaked into the answers": [answerMentions("private root contact"), []],
-				});
+					["leaked into the answers", () => answerMentions("private root contact"), []],
+				]);
 			},
 		);
 	}
@@ -41,10 +42,10 @@ for (const [interrupt, answer] of [
 		function* ({ answerMentions, callRpc, wireAnswers }) {
 			yield* callRpc("hiddenDefect", { interrupt, value: "private root defect" });
 
-			yield* outcomes({
-				"client answer": [wireAnswers(), answer],
-				"leaked into the answer": [answerMentions("private root defect"), []],
-			});
+			yield* outcomes([
+				["client answer", () => wireAnswers(), answer],
+				["leaked into the answer", () => answerMentions("private root defect"), []],
+			]);
 		},
 	);
 }
@@ -58,10 +59,10 @@ host.it(
 			{ id: "1", payload: { detail: "public rejection" }, tag: "visibleFailure" },
 		]);
 
-		yield* outcomes({
-			"client answers": [wireAnswers(), { "1": expect.arrayContaining([{ failed: "<redacted>" }]) }],
-			"leaked into the answers": [answerMentions("private repeated request contact"), []],
-		});
+		yield* outcomes([
+			["client answers", () => wireAnswers(), { "1": expect.arrayContaining([{ failed: "<redacted>" }]) }],
+			["leaked into the answers", () => answerMentions("private repeated request contact"), []],
+		]);
 	},
 );
 
@@ -71,9 +72,9 @@ host.it(
 	function* ({ answerMentions, callRpcs, wireAnswers }) {
 		yield* callRpcs([{ id: 1, payload: { contact: "private numeric request contact", slot: "unused" }, tag: "hidden" }]);
 
-		yield* outcomes({
-			"client answer": [wireAnswers(), { "1": { failed: "<redacted>" } }],
-			"leaked into the answer": [answerMentions("private numeric request contact"), []],
-		});
+		yield* outcomes([
+			["client answer", () => wireAnswers(), { "1": { failed: "<redacted>" } }],
+			["leaked into the answer", () => answerMentions("private numeric request contact"), []],
+		]);
 	},
 );

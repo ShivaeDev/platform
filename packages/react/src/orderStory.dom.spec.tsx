@@ -12,21 +12,21 @@ app.it(
 	function* ({ changes, saveOrder, storedOrder }) {
 		yield* saveOrder("paper", "Office chairs", 8);
 
-		yield* outcomes({
-			changes: [changes(), ["orders"]],
-			stored: [storedOrder("paper"), "Office chairs / 8"],
-		});
+		yield* outcomes([
+			["changes", () => changes(), ["orders"]],
+			["stored", () => storedOrder("paper"), "Office chairs / 8"],
+		]);
 	},
 );
 
 app.it("a rejected write rolls back and publishes nothing", [aliceHasOrder("paper")], function* ({ answers, changes, rejectOrder, storedOrder }) {
 	yield* rejectOrder("paper", -1);
 
-	yield* outcomes({
-		answers: [answers(), ["rejected as OrderValidation on quantity"]],
-		changes: [changes(), []],
-		stored: [storedOrder("paper"), "Printer paper / 3"],
-	});
+	yield* outcomes([
+		["answers", () => answers(), ["rejected as OrderValidation on quantity"]],
+		["changes", () => changes(), []],
+		["stored", () => storedOrder("paper"), "Printer paper / 3"],
+	]);
 });
 
 app.it("Bob cannot read Alice's order", [aliceHasOrder("paper")], function* ({ answers, readAsBob }) {
@@ -41,9 +41,9 @@ app.it(
 	function* ({ list, renameFromList, storedOrder }) {
 		yield* renameFromList();
 
-		yield* outcomes({
-			list: [list(), ["Office chairs / 8"]],
-			stored: [storedOrder("paper"), "Office chairs / 8"],
-		});
+		yield* outcomes([
+			["list", () => list(), ["Office chairs / 8"]],
+			["stored", () => storedOrder("paper"), "Office chairs / 8"],
+		]);
 	},
 );

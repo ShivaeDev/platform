@@ -17,11 +17,11 @@ for (const field of fields) {
 
 				yield* callRpc("errorField", { field, kind, value: secret });
 
-				yield* outcomes({
-					"leaked into reports": [reportMentions(secret), []],
-					"leaked into the answer": [answerMentions(secret), []],
-					"reported error": [reportedErrorField(field), [`an Error whose ${field} is <redacted>`]],
-				});
+				yield* outcomes([
+					["leaked into reports", () => reportMentions(secret), []],
+					["leaked into the answer", () => answerMentions(secret), []],
+					["reported error", () => reportedErrorField(field), [`an Error whose ${field} is <redacted>`]],
+				]);
 			},
 		);
 	}
@@ -57,10 +57,10 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 					yield* close();
 
-					yield* outcomes({
-						"exception stack": [exceptionStack("errorField"), stack],
-						"leaked secrets": [exportMentions(secret), []],
-					});
+					yield* outcomes([
+						["exception stack", () => exceptionStack("errorField"), stack],
+						["leaked secrets", () => exportMentions(secret), []],
+					]);
 				},
 			);
 		}

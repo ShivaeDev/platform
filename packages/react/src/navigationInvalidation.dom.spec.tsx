@@ -11,10 +11,10 @@ loaderScreen.it(
 
 		yield* clickLink("Note");
 
-		yield* outcomes({
-			"renders since the visit": [Effect.map(firstRenders(), (titles) => [...new Set(titles.slice(before))]), ["Changed note"]],
-			"server calls": [serverCalls(), ["get", "get"]],
-			"shown title": [shownTitle(), "Changed note"],
-		});
+		yield* outcomes([
+			["renders since the visit", () => Effect.map(firstRenders(), (titles) => [...new Set(titles.slice(before))]), ["Changed note"]],
+			["server calls", () => serverCalls(), ["get", "get"]],
+			["shown title", () => shownTitle(), "Changed note"],
+		]);
 	},
 );

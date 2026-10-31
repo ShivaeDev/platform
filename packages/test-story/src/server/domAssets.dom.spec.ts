@@ -7,10 +7,10 @@ assetDocument.it(
 	function* ({ loadsPage, heading, loggedErrors, receivedRequests }) {
 		yield* loadsPage();
 
-		yield* outcomes({
-			"the heading": [heading(), "Page with external assets"],
-			"the host's requests": [receivedRequests(), ["GET /page"]],
-			"the logged errors": [loggedErrors(), []],
-		});
+		yield* outcomes([
+			["the heading", () => heading(), "Page with external assets"],
+			["the host's requests", () => receivedRequests(), ["GET /page"]],
+			["the logged errors", () => loggedErrors(), []],
+		]);
 	},
 );

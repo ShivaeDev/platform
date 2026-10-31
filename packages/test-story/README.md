@@ -308,10 +308,10 @@ app.it("exports the work span without the planted secret", [], function* ({ runW
 	yield* runWork();
 	yield* disposeRuntime();
 
-	yield* outcomes({
-		"exported spans": [exportedSpanNames(), ["CountWords"]],
-		"exports with the planted secret": [exportsContaining("planted-secret"), 0],
-	});
+	yield* outcomes([
+		["exported spans", () => exportedSpanNames(), ["CountWords"]],
+		["exports with the planted secret", () => exportsContaining("planted-secret"), 0],
+	]);
 });
 ```
 
@@ -489,7 +489,7 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
-For several outcomes after one action, use `outcomes` from `@shivaedev/test-story/server/outcomes.ts`. Each row puts its label beside an Effect readout and its expected value:
+For several outcomes after one action, use `outcomes` from `@shivaedev/test-story/server/outcomes.ts`. Each row is `[label, () => readout(), expected]`. The list states the run order, independently of alphabetical key sorting:
 
 ```ts
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -497,15 +497,33 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 accounts.it("removing Bob leaves Alice signed in", [bobAndAliceAreSignedIn()], function* ({ remove, request, sessions }) {
 	yield* remove("bob");
 
-	yield* outcomes({
-		"bob's next request": [request("bob"), "unauthorized"],
-		"bob's sessions": [sessions("bob"), 0],
-		"alice's next request": [request("alice"), "ok"],
-	});
+	yield* outcomes([
+		["bob's next request", () => request("bob"), "unauthorized"],
+		["bob's sessions", () => sessions("bob"), 0],
+		["alice's next request", () => request("alice"), "ok"],
+	]);
 });
 ```
 
-`outcomes` runs readouts in row order, then compares the actual and expected label-keyed objects with one native Vitest `toEqual`. Expected values follow their readout's success type and accept Vitest asymmetric matchers such as `expect.objectContaining(...)`. A failing readout keeps its typed error; an equality failure shows one labelled diff and the story report points to the `outcomes` call. For one outcome, keep a plain `expect`:
+`outcomes` builds and runs each readout only when its row starts, so a verb that tells its line before returning an Effect still prints in row order. It compares all results with one native Vitest `toMatchObject`: objects match partially at every depth, arrays keep their length and order, and asymmetric matchers such as `expect.any(Number)` still work. Each expected value is checked against its own readout’s success type. Repeated labels remain separate rows. A failing readout keeps its typed error and stops later rows; a mismatch shows a labelled diff and the story report points to the `outcomes` call.
+
+Import `lessThan`, `atMost`, `greaterThan` or `atLeast` from `@shivaedev/test-story/server/adapters/outcomeMatchers.ts` to state numeric bounds, including inside nested partial values:
+
+```ts
+import { atMost, lessThan } from "@shivaedev/test-story/server/adapters/outcomeMatchers.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+
+accounts.it("removing Bob leaves no sessions within the request budget", [bobIsSignedIn()], function* ({ remove, details, elapsed }) {
+	yield* remove("bob");
+
+	yield* outcomes([
+		["bob’s account", () => details("bob"), { account: { sessions: atMost(0) } }],
+		["request time", () => elapsed(), lessThan(100)],
+	]);
+});
+```
+
+`lessThan` and `greaterThan` exclude the limit; `atMost` and `atLeast` include it. A bound mismatch prints its name and limit beside the received value. For one outcome, keep a plain `expect`:
 
 ```ts
 accounts.it("removing Bob ends his session", [bobIsSignedIn()], function* ({ remove, request }) {
@@ -810,23 +828,24 @@ A story calls `const hints = yield* watchHints()` before the write, then `yield*
 
 Import each module with the prefix `@shivaedev/test-story/`; there is no root entry.
 
-| Module                            | Exports                                                                                                                                                                                                                                                                                                                                                                             |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server/storyKit.ts`              | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
-| `server/outcomes.ts`              | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
-| `server/until.ts`                 | `until(stream, matches, options)`, `collectUntil(stream, matches, options)`, `UntilOptions`, `SignalNotReceived`                                                                                                                                                                                                                                                                    |
-| `server/browserReads.ts`          | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`, `BrowserSubscription`                                                                                                                                                                                                                                                                                                |
-| `server/domFetch.ts`              | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
-| `server/seedCookies.ts`           | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |
-| `server/routeOutbound.ts`         | `routeOutbound(routes)`                                                                                                                                                                                                                                                                                                                                                             |
-| `server/screenDriver.ts`          | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget`, `MissingScreenPending`                                                                                                                                                                                                                                                                              |
-| `server/memberScreens.ts`         | `memberScreens(options)`, `MemberScreen`                                                                                                                                                                                                                                                                                                                                            |
-| `server/domNavigate.ts`           | `domNavigate(url?)`                                                                                                                                                                                                                                                                                                                                                                 |
-| `server/genreTags.ts`             | `genreTags(...kitNames)`, `GenreTag`                                                                                                                                                                                                                                                                                                                                                |
-| `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport                                                                                                                                                                                                                                                                                            |
-| `server/fakeHttpService.ts`       | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
-| `server/forwardingProxy.ts`       | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
-| `server/otlpReceiver.ts`          | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`                                                                                                                                                                                                                                                                                                           |
+| Module                               | Exports                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server/storyKit.ts`                 | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
+| `server/adapters/outcomeMatchers.ts` | `lessThan(limit)`, `atMost(limit)`, `greaterThan(limit)`, `atLeast(limit)`, `NumericBound`                                                                                                                                                                                                                                                                                          |
+| `server/outcomes.ts`                 | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
+| `server/until.ts`                    | `until(stream, matches, options)`, `collectUntil(stream, matches, options)`, `UntilOptions`, `SignalNotReceived`                                                                                                                                                                                                                                                                    |
+| `server/browserReads.ts`             | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`, `BrowserSubscription`                                                                                                                                                                                                                                                                                                |
+| `server/domFetch.ts`                 | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
+| `server/seedCookies.ts`              | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |
+| `server/routeOutbound.ts`            | `routeOutbound(routes)`                                                                                                                                                                                                                                                                                                                                                             |
+| `server/screenDriver.ts`             | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget`, `MissingScreenPending`                                                                                                                                                                                                                                                                              |
+| `server/memberScreens.ts`            | `memberScreens(options)`, `MemberScreen`                                                                                                                                                                                                                                                                                                                                            |
+| `server/domNavigate.ts`              | `domNavigate(url?)`                                                                                                                                                                                                                                                                                                                                                                 |
+| `server/genreTags.ts`                | `genreTags(...kitNames)`, `GenreTag`                                                                                                                                                                                                                                                                                                                                                |
+| `server/domEnvironment.config.ts`    | Default Vitest environment preserving Node host globals and happy-dom document transport                                                                                                                                                                                                                                                                                            |
+| `server/fakeHttpService.ts`          | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
+| `server/forwardingProxy.ts`          | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
+| `server/otlpReceiver.ts`             | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`                                                                                                                                                                                                                                                                                                           |
 
 ### Install and limits
 

@@ -20,9 +20,9 @@ bigintStory.it(
 		yield* announce(1n);
 		yield* untilReRead(1n);
 
-		yield* outcomes({
-			"record 1": [shown(1n), "Changed"],
-			"record 2's reads": [timesRead(2n), "read once"],
-		});
+		yield* outcomes([
+			["record 1", () => shown(1n), "Changed"],
+			["record 2's reads", () => timesRead(2n), "read once"],
+		]);
 	},
 );

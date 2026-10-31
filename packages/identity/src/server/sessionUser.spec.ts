@@ -19,10 +19,10 @@ profile.it(
 	function* ({ answer, sessionLookups, whoami }) {
 		yield* whoami();
 
-		yield* outcomes({
-			answer: [answer(), "forbidden"],
-			"session lookups": [sessionLookups(), 0],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "forbidden"],
+			["session lookups", () => sessionLookups(), 0],
+		]);
 	},
 );
 

@@ -18,11 +18,11 @@ for (const kind of ["query", "action"] as const) {
 		`a ${kind} that answers undefined has present data, settled and without a cause`,
 		[answersUndefined(kind)],
 		function* ({ cause, data, status }) {
-			yield* outcomes({
-				cause: [cause(), "none"],
-				data: [data(), "present: undefined"],
-				status: [status(), "settled"],
-			});
+			yield* outcomes([
+				["cause", () => cause(), "none"],
+				["data", () => data(), "present: undefined"],
+				["status", () => status(), "settled"],
+			]);
 		},
 	);
 
@@ -31,10 +31,10 @@ for (const kind of ["query", "action"] as const) {
 		["is interrupted", interrupted, "interrupted"],
 	] as const) {
 		results.it(`a ${kind} that ${ending} shows ${shown} and asks for no session recheck`, [trait(kind)], function* ({ cause, rechecks }) {
-			yield* outcomes({
-				cause: [cause(), shown],
-				rechecks: [rechecks(), []],
-			});
+			yield* outcomes([
+				["cause", () => cause(), shown],
+				["rechecks", () => rechecks(), []],
+			]);
 		});
 	}
 }
@@ -44,10 +44,10 @@ resultHooks.it("a query shows loading until its work answers, then its data", [q
 
 	yield* workSucceeds(7);
 
-	yield* outcomes({
-		data: [data(), "present: 7"],
-		status: [status(), "settled"],
-	});
+	yield* outcomes([
+		["data", () => data(), "present: 7"],
+		["status", () => status(), "settled"],
+	]);
 });
 
 resultHooks.it("a refreshing query keeps its data while its work runs", [queryAnswered(7)], function* ({ data, run, status }) {
@@ -55,10 +55,10 @@ resultHooks.it("a refreshing query keeps its data while its work runs", [queryAn
 
 	yield* run();
 
-	yield* outcomes({
-		data: [data(), "present: 7"],
-		status: [status(), "refreshing"],
-	});
+	yield* outcomes([
+		["data", () => data(), "present: 7"],
+		["status", () => status(), "refreshing"],
+	]);
 });
 
 resultHooks.it(
@@ -67,11 +67,11 @@ resultHooks.it(
 	function* ({ cause, data, status, workFails }) {
 		yield* workFails();
 
-		yield* outcomes({
-			cause: [cause(), "failed with unavailable"],
-			data: [data(), "present: 7"],
-			status: [status(), "settled"],
-		});
+		yield* outcomes([
+			["cause", () => cause(), "failed with unavailable"],
+			["data", () => data(), "present: 7"],
+			["status", () => status(), "settled"],
+		]);
 	},
 );
 
@@ -84,10 +84,10 @@ resultHooks.it(
 
 		yield* workSucceeds(2);
 
-		yield* outcomes({
-			data: [data(), "present: 7"],
-			status: [status(), "settled"],
-		});
+		yield* outcomes([
+			["data", () => data(), "present: 7"],
+			["status", () => status(), "settled"],
+		]);
 	},
 );
 
@@ -99,10 +99,10 @@ resultHooks.it(
 
 		yield* workFails();
 
-		yield* outcomes({
-			cause: [cause(), "failed with unavailable"],
-			data: [data(), "present: 7"],
-		});
+		yield* outcomes([
+			["cause", () => cause(), "failed with unavailable"],
+			["data", () => data(), "present: 7"],
+		]);
 	},
 );
 
@@ -115,10 +115,10 @@ resultHooks.it("showing a different query drops the previous query's data", [acc
 });
 
 resultHooks.it("two components that read one query share its one run", [twoReadersOfOneQuery()], function* ({ executions, readers }) {
-	yield* outcomes({
-		"runs of the query's work": [executions(), 1],
-		"what each reader shows": [readers(), ["1", "1"]],
-	});
+	yield* outcomes([
+		["runs of the query's work", () => executions(), 1],
+		["what each reader shows", () => readers(), ["1", "1"]],
+	]);
 });
 
 resultHooks.it("dispatching the action again interrupts its running dispatch", [oneDispatchRunning()], function* ({ dispatchOutcome, run }) {

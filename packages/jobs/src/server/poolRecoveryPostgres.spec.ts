@@ -14,13 +14,14 @@ database.it(
 		yield* untilLogged("administrator command");
 		yield* enqueue("app", Notes, { id: 1 }, { as: "note 1" });
 
-		yield* outcomes({
-			"connection": [connectionAfterwards("app"), "a new connection"],
-			"enqueue answer": [answered(), "note 1"],
-			"logged": [
-				logged("app"),
+		yield* outcomes([
+			["connection", () => connectionAfterwards("app"), "a new connection"],
+			["enqueue answer", () => answered(), "note 1"],
+			[
+				"logged",
+				() => logged("app"),
 				[{ level: "Debug", message: { event: "pg_boss_error", message: "terminating connection due to administrator command" } }],
 			],
-		});
+		]);
 	},
 );

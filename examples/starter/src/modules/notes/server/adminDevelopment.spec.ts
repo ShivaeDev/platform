@@ -25,16 +25,18 @@ adminHost.it(
 			}
 		}
 		const client = yield* openAdmin("operator");
-		yield* outcomes({
-			"listed user emails": [
-				Effect.map(client["admin.users.list"]({ limit: 20 }), ({ users }) => users.map(({ email }) => email)),
+		yield* outcomes([
+			[
+				"listed user emails",
+				() => Effect.map(client["admin.users.list"]({ limit: 20 }), ({ users }) => users.map(({ email }) => email)),
 				expect.arrayContaining(["operator@app.test"]),
 			],
-			"note statistics": [client["admin.notes.statistics"](), { notes: 1, pending: 1, words: 0 }],
-			"queued word-count jobs": [
-				client["admin.jobs.counts"]({ queue: "count-note-words" }),
+			["note statistics", () => client["admin.notes.statistics"](), { notes: 1, pending: 1, words: 0 }],
+			[
+				"queued word-count jobs",
+				() => client["admin.jobs.counts"]({ queue: "count-note-words" }),
 				expect.objectContaining({ queuedCount: 1, totalCount: 1 }),
 			],
-		});
+		]);
 	},
 );

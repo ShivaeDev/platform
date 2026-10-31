@@ -22,10 +22,14 @@ database.it(
 		yield* enqueue("app", Ruled, { id: 14 }, { as: "job", expireInSeconds: 1, retryLimit: 0 });
 		yield* untilIdle("app");
 
-		yield* outcomes({
-			attempts: [attempts(Ruled), ["job"]],
-			job: [job("job"), expect.objectContaining({ error: expect.stringContaining("handler execution exceeded 1s"), retryCount: 0, state: "failed" })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Ruled), ["job"]],
+			[
+				"job",
+				() => job("job"),
+				expect.objectContaining({ error: expect.stringContaining("handler execution exceeded 1s"), retryCount: 0, state: "failed" }),
+			],
+		]);
 	},
 );
 
@@ -46,11 +50,19 @@ database.it(
 		yield* enqueue("app", Ruled, { id: 13 }, { as: "third-claim job again", sameIdAs: "third-claim job" });
 		yield* untilIdle("app");
 
-		yield* outcomes({
-			"attempts": [attemptCounts(Ruled), { "third-claim job": 2, "unruled job": 1 }],
-			"first-claim job": [job("first-claim job"), expect.objectContaining({ error: "job timed out", retryCount: 0, retryLimit: 0, state: "failed" })],
-			"third-claim job": [job("third-claim job"), expect.objectContaining({ error: "job timed out", retryCount: 2, retryLimit: 2, state: "failed" })],
-			"unruled job": [job("unruled job"), expect.objectContaining({ retryCount: 0, retryLimit: 0, state: "failed" })],
-		});
+		yield* outcomes([
+			["attempts", () => attemptCounts(Ruled), { "third-claim job": 2, "unruled job": 1 }],
+			[
+				"first-claim job",
+				() => job("first-claim job"),
+				expect.objectContaining({ error: "job timed out", retryCount: 0, retryLimit: 0, state: "failed" }),
+			],
+			[
+				"third-claim job",
+				() => job("third-claim job"),
+				expect.objectContaining({ error: "job timed out", retryCount: 2, retryLimit: 2, state: "failed" }),
+			],
+			["unruled job", () => job("unruled job"), expect.objectContaining({ retryCount: 0, retryLimit: 0, state: "failed" })],
+		]);
 	},
 );

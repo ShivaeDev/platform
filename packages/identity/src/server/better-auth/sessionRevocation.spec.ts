@@ -6,15 +6,18 @@ sessionAdmin.it(
 	"alice revokes bob's laptop session, refusing its next request while his phone keeps working",
 	[],
 	function* ({ request, revoke, revokeAnswer }) {
-		yield* outcomes({ "bob's laptop before": [request("bobLaptop"), "bob"], "bob's phone before": [request("bobPhone"), "bob"] });
+		yield* outcomes([
+			["bob's laptop before", () => request("bobLaptop"), "bob"],
+			["bob's phone before", () => request("bobPhone"), "bob"],
+		]);
 
 		yield* revoke("bobLaptop");
 
-		yield* outcomes({
-			"bob's laptop after": [request("bobLaptop"), "failed with unauthorized"],
-			"bob's phone after": [request("bobPhone"), "bob"],
-			"revocation": [revokeAnswer(), "revoked"],
-		});
+		yield* outcomes([
+			["bob's laptop after", () => request("bobLaptop"), "failed with unauthorized"],
+			["bob's phone after", () => request("bobPhone"), "bob"],
+			["revocation", () => revokeAnswer(), "revoked"],
+		]);
 	},
 );
 
@@ -60,7 +63,10 @@ for (const [actor, refusal] of [
 		function* ({ request, revoke, revokeAnswer }) {
 			yield* revoke("bobLaptop", actor);
 
-			yield* outcomes({ "bob's laptop": [request("bobLaptop"), "bob"], "revocation": [revokeAnswer(), refusal] });
+			yield* outcomes([
+				["bob's laptop", () => request("bobLaptop"), "bob"],
+				["revocation", () => revokeAnswer(), refusal],
+			]);
 		},
 	);
 }

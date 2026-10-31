@@ -11,10 +11,10 @@ batchReadings.it(
 	function* ({ insertedPerStatement, returned, writeBatch }) {
 		yield* writeBatch("insertManyOrIgnore", batch);
 
-		yield* outcomes({
-			"inserted per statement": [insertedPerStatement(), [1000, 1]],
-			"returned rows": [returned(), [batch.map((row) => ({ ...row, note: "default note" }))]],
-		});
+		yield* outcomes([
+			["inserted per statement", () => insertedPerStatement(), [1000, 1]],
+			["returned rows", () => returned(), [batch.map((row) => ({ ...row, note: "default note" }))]],
+		]);
 	},
 );
 
@@ -38,11 +38,11 @@ batchReadings.it(
 	function* ({ insertedPerStatement, returned, storedCount, writeBatch }) {
 		yield* writeBatch("insertManyOrIgnore", batch);
 
-		yield* outcomes({
-			"inserted per statement": [insertedPerStatement(), [0, 0]],
-			"returned rows": [returned(), [[]]],
-			"stored count": [storedCount(), 1001],
-		});
+		yield* outcomes([
+			["inserted per statement", () => insertedPerStatement(), [0, 0]],
+			["returned rows", () => returned(), [[]]],
+			["stored count", () => storedCount(), 1001],
+		]);
 	},
 );
 
@@ -54,11 +54,12 @@ batchReadings.it(
 
 		yield* writeBatch("upsertMany", changes);
 
-		yield* outcomes({
-			"inserted per statement": [insertedPerStatement(), [0, 1]],
-			"meter-1000": [storedReading("meter-1000"), [{ amount: 1010, label: "original", note: "default note", source: "meter-1000" }]],
-			"returned results": [
-				returned(),
+		yield* outcomes([
+			["inserted per statement", () => insertedPerStatement(), [0, 1]],
+			["meter-1000", () => storedReading("meter-1000"), [{ amount: 1010, label: "original", note: "default note", source: "meter-1000" }]],
+			[
+				"returned results",
+				() => returned(),
 				[
 					[
 						...batch.map((row) => ({ ...row, amount: row.amount + 10, inserted: false, note: "default note" })),
@@ -66,7 +67,7 @@ batchReadings.it(
 					],
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -77,11 +78,11 @@ for (const write of ["insertMany", "insertManyOrIgnore", "upsertMany"] as const 
 		function* ({ endings, statementsRun, storedCount, writeBatch }) {
 			yield* writeBatch(write, [...meterReadings(1000), { amount: -1, label: "invalid", source: "invalid" }]);
 
-			yield* outcomes({
-				"insert statements that ran": [statementsRun(), 1],
-				"stored count": [storedCount(), 0],
-				[`${write} ending`]: [endings(), ["failed with a constraint violation (SQLSTATE 23514)"]],
-			});
+			yield* outcomes([
+				["insert statements that ran", () => statementsRun(), 1],
+				["stored count", () => storedCount(), 0],
+				[`${write} ending`, () => endings(), ["failed with a constraint violation (SQLSTATE 23514)"]],
+			]);
 		},
 	);
 
@@ -91,10 +92,10 @@ for (const write of ["insertMany", "insertManyOrIgnore", "upsertMany"] as const 
 		function* ({ returned, statementsRun, writeBatch }) {
 			yield* writeBatch(write, []);
 
-			yield* outcomes({
-				"insert statements that ran": [statementsRun(), 0],
-				"returned rows": [returned(), [[]]],
-			});
+			yield* outcomes([
+				["insert statements that ran", () => statementsRun(), 0],
+				["returned rows", () => returned(), [[]]],
+			]);
 		},
 	);
 }
@@ -105,11 +106,11 @@ batchShapes.it(
 	function* ({ endings, insertWideRows, returned, storedWideRow }) {
 		yield* insertWideRows(1001);
 
-		yield* outcomes({
-			"insertMany ending": [endings(), ["succeeded"]],
-			"last row": [storedWideRow(1000), wideRow(1000)],
-			"returned count": [returned(), [1001]],
-		});
+		yield* outcomes([
+			["insertMany ending", () => endings(), ["succeeded"]],
+			["last row", () => storedWideRow(1000), wideRow(1000)],
+			["returned count", () => returned(), [1001]],
+		]);
 	},
 );
 
@@ -122,16 +123,17 @@ batchShapes.it(
 			{ amount: 10, sequence: 2, source: "meter" },
 		]);
 
-		yield* outcomes({
-			"returned rows": [returned(), [[{ amount: 10, sequence: 2, source: "meter" }]]],
-			"stored measurements": [
-				storedMeasurements(),
+		yield* outcomes([
+			["returned rows", () => returned(), [[{ amount: 10, sequence: 2, source: "meter" }]]],
+			[
+				"stored measurements",
+				() => storedMeasurements(),
 				[
 					{ amount: "10", sequence: 1, source: "encoded/meter" },
 					{ amount: "10", sequence: 2, source: "encoded/meter" },
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -144,9 +146,10 @@ batchShapes.it(
 			{ amount: 10, sequence: 3, source: "meter" },
 		]);
 
-		yield* outcomes({
-			"returned results": [
-				returned(),
+		yield* outcomes([
+			[
+				"returned results",
+				() => returned(),
 				[
 					[
 						{ amount: 20, inserted: false, sequence: 1, source: "meter" },
@@ -154,14 +157,15 @@ batchShapes.it(
 					],
 				],
 			],
-			"stored measurements": [
-				storedMeasurements(),
+			[
+				"stored measurements",
+				() => storedMeasurements(),
 				[
 					{ amount: "20", sequence: 1, source: "encoded/meter" },
 					{ amount: "10", sequence: 3, source: "encoded/meter" },
 				],
 			],
-		});
+		]);
 	},
 );
 

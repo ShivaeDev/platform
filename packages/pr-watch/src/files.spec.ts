@@ -13,10 +13,10 @@ for (const operation of ["read", "write", "rename"] as const) {
 
 			yield* poll();
 
-			yield* outcomes({
-				"poll": [lastPoll(), `failed: PermissionDenied: FileSystem.${operation}`],
-				"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
-			});
+			yield* outcomes([
+				["poll", () => lastPoll(), `failed: PermissionDenied: FileSystem.${operation}`],
+				["saved snapshot of PR 1", () => savedSnapshot(1), "open, auto-merge"],
+			]);
 		},
 	);
 }
@@ -36,10 +36,10 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"poll": [lastPoll(), "failed: GitHub network error at /repos/acme/project/git/matching-refs/heads/gh-readonly-queue/"],
-			"printed": [printed(), []],
-			"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
-		});
+		yield* outcomes([
+			["poll", () => lastPoll(), "failed: GitHub network error at /repos/acme/project/git/matching-refs/heads/gh-readonly-queue/"],
+			["printed", () => printed(), []],
+			["saved snapshot of PR 1", () => savedSnapshot(1), "open, auto-merge"],
+		]);
 	},
 );

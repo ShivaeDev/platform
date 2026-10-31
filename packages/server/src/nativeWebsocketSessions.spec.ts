@@ -15,10 +15,10 @@ nativeSessions.it(
 
 		yield* announceProfiles();
 
-		yield* outcomes({
-			profile: [profileShown("alice", "Alice on native"), expect.objectContaining({ name: "Alice on native" })],
-			sockets: [socketUrls("alice"), ["/rpc?auth=frame"]],
-		});
+		yield* outcomes([
+			["profile", () => profileShown("alice", "Alice on native"), expect.objectContaining({ name: "Alice on native" })],
+			["sockets", () => socketUrls("alice"), ["/rpc?auth=frame"]],
+		]);
 	},
 );
 

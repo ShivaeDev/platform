@@ -33,10 +33,11 @@ host.it(
 	function* ({ logMentions, pingOutcome, rpcLogs }) {
 		yield* pingOutcome();
 
-		yield* outcomes({
-			"leaked secrets": [logMentions("hidden-defect-password"), []],
-			"ping logs": [
-				rpcLogs("ping"),
+		yield* outcomes([
+			["leaked secrets", () => logMentions("hidden-defect-password"), []],
+			[
+				"ping logs",
+				() => rpcLogs("ping"),
 				[
 					expect.objectContaining({
 						annotations: expect.objectContaining({ requestId, "rpc.defect": [expect.objectContaining({ message: "password=<redacted>" })] }),
@@ -45,7 +46,7 @@ host.it(
 					}),
 				],
 			],
-		});
+		]);
 	},
 );
 

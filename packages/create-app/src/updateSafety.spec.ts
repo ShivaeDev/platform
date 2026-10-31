@@ -18,14 +18,15 @@ updates.it(
 	function* ({ answer, exitCode, generationRecord, update }) {
 		yield* update();
 
-		yield* outcomes({
-			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
-			answer: [
-				answer(),
+		yield* outcomes([
+			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.2.0" }],
+			[
+				"answer",
+				() => answer(),
 				"create-app: Recorded create-app 0.2.0. Finish the update before committing:\nFiles with conflict markers:\nanother file.txt\napp-only.txt\npartly-resolved.txt",
 			],
-			"exit code": [exitCode(), 1],
-		});
+			["exit code", () => exitCode(), 1],
+		]);
 	},
 );
 
@@ -42,13 +43,13 @@ updates.it(
 	function* ({ answer, conflictedFiles, exitCode, generationRecord, update }) {
 		yield* update();
 
-		yield* outcomes({
-			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
-			"compiler error": [answer(), expect.stringContaining("Cannot find name 'address'.")],
-			"conflicted files": [conflictedFiles(), []],
-			"exit code": [exitCode(), 1],
-			"failed typecheck": [answer(), expect.stringContaining("pnpm run typecheck failed (exit ")],
-		});
+		yield* outcomes([
+			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.2.0" }],
+			["compiler error", () => answer(), expect.stringContaining("Cannot find name 'address'.")],
+			["conflicted files", () => conflictedFiles(), []],
+			["exit code", () => exitCode(), 1],
+			["failed typecheck", () => answer(), expect.stringContaining("pnpm run typecheck failed (exit ")],
+		]);
 	},
 );
 
@@ -58,11 +59,15 @@ updates.it(
 	function* ({ answer, exitCode, printedMentions, update }) {
 		yield* update();
 
-		yield* outcomes({
-			"exit code": [exitCode(), 1],
-			"rejected version": [answer(), expect.stringContaining('ERR_PNPM_TRUST_DOWNGRADE High-risk trust downgrade for "transitive-package@1.2.3"')],
-			"trust-policy fix": [answer(), expect.stringContaining("run pnpm update --depth Infinity, then pnpm run typecheck")],
-			"typecheck ran": [printedMentions("Running pnpm run typecheck..."), true],
-		});
+		yield* outcomes([
+			["exit code", () => exitCode(), 1],
+			[
+				"rejected version",
+				() => answer(),
+				expect.stringContaining('ERR_PNPM_TRUST_DOWNGRADE High-risk trust downgrade for "transitive-package@1.2.3"'),
+			],
+			["trust-policy fix", () => answer(), expect.stringContaining("run pnpm update --depth Infinity, then pnpm run typecheck")],
+			["typecheck ran", () => printedMentions("Running pnpm run typecheck..."), true],
+		]);
 	},
 );

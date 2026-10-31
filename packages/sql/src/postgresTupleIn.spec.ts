@@ -125,16 +125,17 @@ queries.it(
 			value: 10,
 		});
 
-		yield* outcomes({
-			"announced keys": [announced(), ["partialRows", "partialRows:1"]],
-			"stored rows": [
-				storedRows(),
+		yield* outcomes([
+			["announced keys", () => announced(), ["partialRows", "partialRows:1"]],
+			[
+				"stored rows",
+				() => storedRows(),
 				[
 					{ a: "one", b: 2 },
 					{ a: "two", b: 1 },
 					{ a: "two", b: 2 },
 				],
 			],
-		});
+		]);
 	},
 );

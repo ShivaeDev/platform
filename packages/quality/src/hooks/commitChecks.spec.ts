@@ -25,10 +25,10 @@ checkoutStory.it(
 	function* ({ outcome, reported, runs }) {
 		yield* runs("hooks", "pre-commit");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [reported(), [LINT_PASSED]],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => reported(), [LINT_PASSED]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -39,11 +39,11 @@ checkoutStory.it(
 	function* ({ outcome, reported, runs, scriptLog }) {
 		yield* runs("hooks", "pre-commit");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [reported(), [LINT_PASSED, "quality: running `npm run typecheck`", "quality: running `npm run quality:commit`"]],
-			"script log": [scriptLog(), ["typechecked", "repository checked"]],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => reported(), [LINT_PASSED, "quality: running `npm run typecheck`", "quality: running `npm run quality:commit`"]],
+			["script log", () => scriptLog(), ["typechecked", "repository checked"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -54,11 +54,11 @@ checkoutStory.it(
 	function* ({ outcome, reported, runs, scriptLog }) {
 		yield* runs("hooks", "pre-commit");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [reported(), [LINT_PASSED, "quality: running `npm run quality:commit`"]],
-			"script log": [scriptLog(), ["repository checked"]],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => reported(), [LINT_PASSED, "quality: running `npm run quality:commit`"]],
+			["script log", () => scriptLog(), ["repository checked"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -69,10 +69,10 @@ checkoutStory.it(
 	function* ({ reported, runs, scriptLog }) {
 		yield* runs("hooks", "pre-commit");
 
-		yield* outcomes({
-			"report": [reported(), [LINT_PASSED, "quality: running `pnpm run typecheck`"]],
-			"script log": [scriptLog(), ["typechecked"]],
-		});
+		yield* outcomes([
+			["report", () => reported(), [LINT_PASSED, "quality: running `pnpm run typecheck`"]],
+			["script log", () => scriptLog(), ["typechecked"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -83,10 +83,10 @@ checkoutStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("hooks", "pre-commit");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("package.json is invalid")],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("package.json is invalid")],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -97,14 +97,15 @@ checkoutStory.it(
 	function* ({ outcome, runs, scriptLog, stderr }) {
 		yield* runs("hooks", "pre-commit");
 
-		yield* outcomes({
-			"error": [
-				stderr(),
+		yield* outcomes([
+			[
+				"error",
+				() => stderr(),
 				`quality: pre-commit failed: quality lint, \`npm run typecheck\` (exit code 3), \`npm run quality:commit\` (exit code 4).\n${COMMIT_AGAIN}\n`,
 			],
-			"exit": [outcome(), "rejected"],
-			"script log": [scriptLog(), ["still ran"]],
-		});
+			["exit", () => outcome(), "rejected"],
+			["script log", () => scriptLog(), ["still ran"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -115,12 +116,12 @@ checkoutStory.it(
 	function* ({ commitErrors, commitOutcome, commits, history }) {
 		yield* commits("Too long");
 
-		yield* outcomes({
-			"commit": [commitOutcome(), "rejected"],
-			"finding": [commitErrors(), expect.stringContaining("src/full.ts  4 lines exceeds the 3-line limit.")],
-			"history": [history(), ["Base"]],
-			"verdict": [commitErrors(), expect.stringContaining(`quality: pre-commit failed: quality lint.\n${COMMIT_AGAIN}\n`)],
-		});
+		yield* outcomes([
+			["commit", () => commitOutcome(), "rejected"],
+			["finding", () => commitErrors(), expect.stringContaining("src/full.ts  4 lines exceeds the 3-line limit.")],
+			["history", () => history(), ["Base"]],
+			["verdict", () => commitErrors(), expect.stringContaining(`quality: pre-commit failed: quality lint.\n${COMMIT_AGAIN}\n`)],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -133,10 +134,10 @@ checkoutStory.it(
 
 		yield* commits("Checked");
 
-		yield* outcomes({
-			"commit": [commitOutcome(), "committed"],
-			"script log": [scriptLog(), ["typechecked"]],
-		});
+		yield* outcomes([
+			["commit", () => commitOutcome(), "committed"],
+			["script log", () => scriptLog(), ["typechecked"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -149,10 +150,10 @@ checkoutStory.it(
 
 		yield* commits("Checked from app");
 
-		yield* outcomes({
-			"commit": [commitOutcome(), "committed"],
-			"script log": [scriptLog(), ["checked from app"]],
-		});
+		yield* outcomes([
+			["commit", () => commitOutcome(), "committed"],
+			["script log", () => scriptLog(), ["checked from app"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -163,10 +164,10 @@ checkoutStory.it(
 	function* ({ commitErrors, commitOutcome, commitsIn }) {
 		yield* commitsIn("stricter", "Stricter");
 
-		yield* outcomes({
-			"commit": [commitOutcome(), "rejected"],
-			"verdict": [commitErrors(), expect.stringContaining("quality: pre-commit failed: `npm run quality:commit` (exit code 4).")],
-		});
+		yield* outcomes([
+			["commit", () => commitOutcome(), "rejected"],
+			["verdict", () => commitErrors(), expect.stringContaining("quality: pre-commit failed: `npm run quality:commit` (exit code 4).")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -179,13 +180,14 @@ checkoutStory.it(
 
 		yield* commitsIn("fresh", "Unchecked");
 
-		yield* outcomes({
-			"commit": [commitOutcome(), "rejected"],
-			"error": [
-				commitErrors(),
+		yield* outcomes([
+			["commit", () => commitOutcome(), "rejected"],
+			[
+				"error",
+				() => commitErrors(),
 				`quality: cannot check this commit: ${fresh}/node_modules/.bin/quality does not exist.\nhelp: install the dependencies of this worktree, then commit again.\n`,
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );

@@ -18,10 +18,10 @@ for (const mode of ["http", "migrate", "check", "wait"] as const) {
 			`an empty APP_ID fails ${label} at preflight before migrations or application startup`,
 			[preflight(mode, deferred), environment({ "APP_ID": "" }), startupFails],
 			function* ({ serviceLifecycle, startup }) {
-				yield* outcomes({
-					"construction steps": [serviceLifecycle(), ["preflight"]],
-					"startup": [startup(), "failed with preflight failure"],
-				});
+				yield* outcomes([
+					["construction steps", () => serviceLifecycle(), ["preflight"]],
+					["startup", () => startup(), "failed with preflight failure"],
+				]);
 			},
 		);
 
@@ -37,10 +37,10 @@ for (const mode of ["http", "migrate", "check", "wait"] as const) {
 			`${label} shares the preflight's app ID with the host and its handlers`,
 			[preflight(mode, deferred), environment({ "APP_ID": "valid-app" })],
 			function* ({ ping, provided }) {
-				yield* outcomes({
-					"app ID in a handler": [ping(), "valid-app"],
-					"app ID in the host": [provided(AppId), "provided"],
-				});
+				yield* outcomes([
+					["app ID in a handler", () => ping(), "valid-app"],
+					["app ID in the host", () => provided(AppId), "provided"],
+				]);
 			},
 		);
 

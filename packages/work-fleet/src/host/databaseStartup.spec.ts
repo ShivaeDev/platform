@@ -5,14 +5,15 @@ import { databaseStartup } from "#test/databaseStartup.ts";
 databaseStartup.it("the original daemon backs off, logs its wait and serves requests once PostgreSQL starts", [], function* (daemon) {
 	yield* daemon.startDaemon();
 
-	yield* outcomes({
-		"daemon remains running": [daemon.isRunning(), true],
-		"next retry delay": [daemon.nextRetry(), "1s"],
-		"recorded startup log": [
-			daemon.logs(),
+	yield* outcomes([
+		["daemon remains running", () => daemon.isRunning(), true],
+		["next retry delay", () => daemon.nextRetry(), "1s"],
+		[
+			"recorded startup log",
+			() => daemon.logs(),
 			expect.arrayContaining(["Waiting for PostgreSQL at database.url; retrying with backoff (1–10 seconds) for up to 5 minutes"]),
 		],
-	});
+	]);
 
 	yield* daemon.advance("1 second");
 
@@ -21,11 +22,11 @@ databaseStartup.it("the original daemon backs off, logs its wait and serves requ
 	yield* daemon.startDatabase();
 	yield* daemon.advance("2 seconds");
 
-	yield* outcomes({
-		"daemon remains running": [daemon.isRunning(), true],
-		"daemon snapshot": [daemon.snapshot(), [[]]],
-		"recorded ready log": [daemon.logs(), expect.arrayContaining(["PostgreSQL at database.url is ready; starting Fleet daemon"])],
-	});
+	yield* outcomes([
+		["daemon remains running", () => daemon.isRunning(), true],
+		["daemon snapshot", () => daemon.snapshot(), [[]]],
+		["recorded ready log", () => daemon.logs(), expect.arrayContaining(["PostgreSQL at database.url is ready; starting Fleet daemon"])],
+	]);
 });
 
 databaseStartup.it("an unavailable database fails only after five minutes with a typed error naming database.url", [], function* (daemon) {

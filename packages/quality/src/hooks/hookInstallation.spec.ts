@@ -15,14 +15,15 @@ checkoutStory.it(
 
 		yield* runs("hooks", "install");
 
-		yield* outcomes({
-			"error": [
-				stderr(),
+		yield* outcomes([
+			[
+				"error",
+				() => stderr(),
 				`quality: ${project} is not in a git work tree, so there is no hook to manage.\nhelp: run quality from inside the repository, or run \`git init\` first.\n`,
 			],
-			"exit": [outcome(), "invalid"],
-			"report": [stdout(), ""],
-		});
+			["exit", () => outcome(), "invalid"],
+			["report", () => stdout(), ""],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -50,14 +51,15 @@ checkoutStory.it(
 
 		yield* runs("hooks", "install");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"hook": [hookScript(), OWN_HOOK],
-			"warning": [
-				stderr(),
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["hook", () => hookScript(), OWN_HOOK],
+			[
+				"warning",
+				() => stderr(),
 				`quality: kept ${hook}: it is not quality's pre-commit hook, so quality does not check commits.\nhelp: call \`node_modules/.bin/quality hooks pre-commit\` from that hook, or replace it with \`quality hooks install --force\`.\n`,
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -71,10 +73,10 @@ checkoutStory.it(
 
 		yield* runs("hooks", "install", "--force");
 
-		yield* outcomes({
-			"hook": [hook(), "quality's"],
-			"report": [stdout(), expect.stringContaining(`quality: replaced ${path}, which was not quality's hook;`)],
-		});
+		yield* outcomes([
+			["hook", () => hook(), "quality's"],
+			["report", () => stdout(), expect.stringContaining(`quality: replaced ${path}, which was not quality's hook;`)],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -87,10 +89,10 @@ checkoutStory.it(
 
 		yield* runsIn("feature", "hooks", "install");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"hook": [hook(), "quality's"],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["hook", () => hook(), "quality's"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -101,13 +103,14 @@ checkoutStory.it(
 	function* ({ hookLines, outcome, runsOwnQuality }) {
 		yield* runsOwnQuality("hooks", "install");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"hook": [
-				hookLines(),
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			[
+				"hook",
+				() => hookLines(),
 				expect.arrayContaining(["quality=tools/quality.ts", 'node --conditions=source "$quality" hooks pre-commit || status=$?']),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -120,10 +123,10 @@ checkoutStory.it(
 
 		yield* runs("hooks", "uninstall");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [stdout(), `quality: there is no pre-commit hook at ${hook}.\n`],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), `quality: there is no pre-commit hook at ${hook}.\n`],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -137,10 +140,10 @@ checkoutStory.it(
 
 		yield* runs("hooks", "uninstall");
 
-		yield* outcomes({
-			"hook": [hook(), "none"],
-			"report": [stdout(), `quality: removed the pre-commit hook at ${path}.\n`],
-		});
+		yield* outcomes([
+			["hook", () => hook(), "none"],
+			["report", () => stdout(), `quality: removed the pre-commit hook at ${path}.\n`],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -153,10 +156,10 @@ checkoutStory.it(
 
 		yield* runs("hooks", "uninstall");
 
-		yield* outcomes({
-			"hook": [hookScript(), OWN_HOOK],
-			"warning": [stderr(), `quality: kept ${hook}: it is not quality's pre-commit hook.\n`],
-		});
+		yield* outcomes([
+			["hook", () => hookScript(), OWN_HOOK],
+			["warning", () => stderr(), `quality: kept ${hook}: it is not quality's pre-commit hook.\n`],
+		]);
 	},
 	CLI_TIMEOUT,
 );

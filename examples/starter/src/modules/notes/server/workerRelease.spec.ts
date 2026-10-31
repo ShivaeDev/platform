@@ -29,19 +29,19 @@ notesDeployment.it(
 		expect(yield* nextMigration.child.exitCode).toBe(0);
 		yield* nextWorker.ready;
 		yield* heartbeatWindowPasses();
-		yield* outcomes({
-			"draining note": [notes["notes.get"]({ id: first.id }), expect.objectContaining({ wordCount: null })],
-			"queued note": [notes["notes.get"]({ id: second.id }), expect.objectContaining({ wordCount: null })],
-		});
+		yield* outcomes([
+			["draining note", () => notes["notes.get"]({ id: first.id }), expect.objectContaining({ wordCount: null })],
+			["queued note", () => notes["notes.get"]({ id: second.id }), expect.objectContaining({ wordCount: null })],
+		]);
 		yield* held.release;
 		yield* oldWorker.paused;
 		yield* Effect.promise(() =>
 			expect.poll(() => Effect.runPromise(notes["notes.get"]({ id: second.id })), { timeout: 8000 }).toMatchObject({ wordCount: 4 }),
 		);
-		yield* outcomes({
-			"paused worker process": [oldWorker.child.isRunning, true],
-			"queued note": [notes["notes.get"]({ id: first.id }), expect.objectContaining({ wordCount: 3 })],
-		});
+		yield* outcomes([
+			["paused worker process", () => oldWorker.child.isRunning, true],
+			["queued note", () => notes["notes.get"]({ id: first.id }), expect.objectContaining({ wordCount: 3 })],
+		]);
 		const rollback = yield* startProcess("migrate", 0, oldRelease);
 		expect(yield* rollback.child.exitCode).toBe(0);
 		yield* nextWorker.paused;

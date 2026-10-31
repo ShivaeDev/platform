@@ -24,13 +24,14 @@ repositoryStory.it(
 	function* ({ runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"duplicate keys": [stdout(), expect.stringContaining("error biome/lint/suspicious/noDuplicateObjectKeys (1)\n  src/b.ts:2")],
-			"unsorted keys": [
-				stdout(),
+		yield* outcomes([
+			["duplicate keys", () => stdout(), expect.stringContaining("error biome/lint/suspicious/noDuplicateObjectKeys (1)\n  src/b.ts:2")],
+			[
+				"unsorted keys",
+				() => stdout(),
 				expect.stringContaining("error biome/assist/source/useSortedKeys (1)\n  src/b.ts:1  The object properties are not sorted by key."),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -41,10 +42,11 @@ repositoryStory.it(
 	function* ({ reads, runs, stdout }) {
 		yield* runs("fix");
 
-		yield* outcomes({
-			"fixed source": [reads("src/is-a.ts"), 'export function isA(text: string): boolean {\n\treturn text.startsWith("a");\n}\n'],
-			"report": [
-				stdout(),
+		yield* outcomes([
+			["fixed source", () => reads("src/is-a.ts"), 'export function isA(text: string): boolean {\n\treturn text.startsWith("a");\n}\n'],
+			[
+				"report",
+				() => stdout(),
 				expect.stringContaining(
 					[
 						"quality: Biome round 1 rewrote 1 file with fixes and 0 files with the format pass.",
@@ -53,7 +55,7 @@ repositoryStory.it(
 					].join("\n"),
 				),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );

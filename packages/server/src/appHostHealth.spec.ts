@@ -13,10 +13,10 @@ for (const source of ["migrations", "services"] as const) {
 		`health answers an empty uncacheable 200 beside the SPA without a session lookup while PostgreSQL from ${source} is reachable`,
 		[databaseHealth(source), assets],
 		function* ({ health, sessionLookups }) {
-			yield* outcomes({
-				"health": [health(), healthy],
-				"session lookups": [sessionLookups(), []],
-			});
+			yield* outcomes([
+				["health", () => health(), healthy],
+				["session lookups", () => sessionLookups(), []],
+			]);
 		},
 	);
 

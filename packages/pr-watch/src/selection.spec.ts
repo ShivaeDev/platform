@@ -31,10 +31,10 @@ watch.it(
 		yield* liftSelection();
 		yield* restart();
 
-		yield* outcomes({
-			"printed": [printed(), ["PR 1 dequeued", "PR 1 checks-failed"]],
-			"saved snapshot of PR 1": [savedSnapshot(1), "open, conflict, failing checks"],
-		});
+		yield* outcomes([
+			["printed", () => printed(), ["PR 1 dequeued", "PR 1 checks-failed"]],
+			["saved snapshot of PR 1", () => savedSnapshot(1), "open, conflict, failing checks"],
+		]);
 	},
 );
 
@@ -44,14 +44,15 @@ watch.it(
 	function* ({ errors, printed, requestsTo, startWatch }) {
 		yield* startWatch("--events", "dequed");
 
-		yield* outcomes({
-			"errors": [
-				errors(),
+		yield* outcomes([
+			[
+				"errors",
+				() => errors(),
 				['Unknown event kind "dequed". Valid kinds: merged, closed, conflict, queued, dequeued, auto-merge-off, checks-failed, stuck'],
 			],
-			"printed": [printed(), ["error", "stopped: failed"]],
-			"requests": [requestsTo("/repos/acme/project/pulls/1"), []],
-		});
+			["printed", () => printed(), ["error", "stopped: failed"]],
+			["requests", () => requestsTo("/repos/acme/project/pulls/1"), []],
+		]);
 	},
 );
 

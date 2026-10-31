@@ -10,13 +10,13 @@ compilerStory.it(
 	function* ({ compile, diagnostics, output, status }) {
 		yield* compile();
 
-		yield* outcomes({
-			"compilation fails": [status(), 1],
-			"effect creation": [diagnostics("effectCreate"), expect.stringContaining("Layer<PgBoss")],
-			"generator creation with after": [diagnostics("missingLayer"), expect.stringContaining("Layer<PgBoss")],
-			"no unrelated after error": [output(), expect.not.stringContaining("'after' does not exist")],
-			"partial layer": [diagnostics("partialLayer"), expect.stringContaining("Type 'PgBoss' is not assignable to type 'Ledger'")],
-		});
+		yield* outcomes([
+			["compilation fails", () => status(), 1],
+			["effect creation", () => diagnostics("effectCreate"), expect.stringContaining("Layer<PgBoss")],
+			["generator creation with after", () => diagnostics("missingLayer"), expect.stringContaining("Layer<PgBoss")],
+			["no unrelated after error", () => output(), expect.not.stringContaining("'after' does not exist")],
+			["partial layer", () => diagnostics("partialLayer"), expect.stringContaining("Type 'PgBoss' is not assignable to type 'Ledger'")],
+		]);
 	},
 	COMPILER_TIMEOUT,
 );

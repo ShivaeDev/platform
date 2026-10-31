@@ -16,17 +16,18 @@ const REPAIR = "Two fixes probably undo each other there. Repair the conflicting
 fixRounds.it("quality fix settles after the first Biome round that rewrites nothing", [fixPassReports(3, 1)], function* ({ fixes, outcome, rounds }) {
 	yield* fixes();
 
-	yield* outcomes({
-		"fix": [outcome(), "settled"],
-		"rounds": [
-			rounds(),
+	yield* outcomes([
+		["fix", () => outcome(), "settled"],
+		[
+			"rounds",
+			() => rounds(),
 			[
 				"quality: Biome round 1 rewrote 3 files with fixes and 0 files with the format pass.",
 				"quality: Biome round 2 rewrote 1 file with fixes and 0 files with the format pass.",
 				"quality: Biome round 3 rewrote 0 files with fixes and 0 files with the format pass.",
 			],
 		],
-	});
+	]);
 });
 
 fixRounds.it(
@@ -35,17 +36,18 @@ fixRounds.it(
 	function* ({ failure, fixes, outcome, rounds }) {
 		yield* fixes();
 
-		yield* outcomes({
-			"failure": [failure(), [`${STOPPED} These files changed in the last round:`, "  src/flip.ts", REPAIR].join("\n")],
-			"fix": [outcome(), "stopped"],
-			"rounds": [
-				rounds(),
+		yield* outcomes([
+			["failure", () => failure(), [`${STOPPED} These files changed in the last round:`, "  src/flip.ts", REPAIR].join("\n")],
+			["fix", () => outcome(), "stopped"],
+			[
+				"rounds",
+				() => rounds(),
 				Array.from(
 					{ length: MAX_FIX_ROUNDS },
 					(_, index) => `quality: Biome round ${index + 1} rewrote 1 file with fixes and 0 files with the format pass.`,
 				),
 			],
-		});
+		]);
 	},
 );
 

@@ -32,10 +32,10 @@ app.it(
 
 		yield* migrateTo("1_create_contacts");
 
-		yield* outcomes({
-			"applied migrations": [appliedMigrations(), [1, 2]],
-			"the migration": [migration(), "failed with BadState: Cannot migrate to 1: later migrations are already applied."],
-		});
+		yield* outcomes([
+			["applied migrations", () => appliedMigrations(), [1, 2]],
+			["the migration", () => migration(), "failed with BadState: Cannot migrate to 1: later migrations are already applied."],
+		]);
 	},
 );
 

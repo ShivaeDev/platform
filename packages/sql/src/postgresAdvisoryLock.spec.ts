@@ -30,10 +30,10 @@ for (const [how, ending] of ENDINGS) {
 
 			yield* holderEnds(how);
 
-			yield* outcomes({
-				contender: [contenderEnding(), "acquired"],
-				holder: [holderEnding(), ending],
-			});
+			yield* outcomes([
+				["contender", () => contenderEnding(), "acquired"],
+				["holder", () => holderEnding(), ending],
+			]);
 		},
 	);
 }
@@ -44,10 +44,10 @@ advisoryLocks.it(
 	function* ({ contenderTakes, holderState }) {
 		const taken = yield* contenderTakes("sql-stories:held-advisory-key:other");
 
-		yield* outcomes({
-			contender: [contenderTakes("sql-stories:held-advisory-key:other"), "acquired"],
-			holder: [holderState(), "still holding"],
-		});
+		yield* outcomes([
+			["contender", () => contenderTakes("sql-stories:held-advisory-key:other"), "acquired"],
+			["holder", () => holderState(), "still holding"],
+		]);
 		expect(taken).toBe("acquired");
 	},
 );
