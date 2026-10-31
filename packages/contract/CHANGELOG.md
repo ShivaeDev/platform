@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.26.0 - 2026-10-31
+
+### Added
+
+- Browser readouts expose each subscription opening's state and an Effect that waits for all openings to receive a first response or a tagged refusal, without polling.
+- Contract clients accept a session identity protocol factory so custom transports can follow sign-in and sign-out.
+
+### Fixed
+
+- End hosted live subscriptions with `Unauthorized` when the original session is signed out, revoked or expired, whether detected during a change hint or periodic revalidation. Keep `QueryReadDenied` for a signed-in viewer whose query policy refuses the read.
+- Batch shared socket session lookups with an Effect scheduler yield so advancing `TestClock` past `streamRevalidationInterval` completes revalidation without another clock advance.
+- Preserve typed session-provider failures during hint-time authorization instead of reporting them as read-policy refusals.
+
+### Breaking
+
+- `browserReads().protocol` is now a session identity protocol factory. Continue passing it directly to `makeClient`; native Layer consumers must call `observed.protocol(undefined)` for an anonymous client, or pass the session identity. The same readout counts traffic across session sockets.
+
 ## 0.25.0 - 2026-10-30
 
 ### Added

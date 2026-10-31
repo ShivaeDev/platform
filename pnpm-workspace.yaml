@@ -60,7 +60,7 @@ catalog:
   dom-accessibility-api: 0.7.1
   mermaid: 12.2.0
   knip: 6.42.1
-  ignore: 7.0.13
+  ignore: 7.0.14
   sort-package-json: 4.1.0
   "@types/hast": 3.0.5
   "@types/mdast": 4.0.4

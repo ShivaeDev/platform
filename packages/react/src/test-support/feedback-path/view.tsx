@@ -6,7 +6,7 @@ import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { type Notice, NoticeHost } from "#notices.ts";
 import type { NoticeClient } from "#test/notices/client.ts";
 import { NoticeCard } from "#test/notices/view.tsx";
-import { RegistryProbe } from "#test/sessionProbes.ts";
+import { SessionRegistry } from "#test/SessionRegistry.tsx";
 import { Commands } from "./Commands.tsx";
 import { Form } from "./Form.tsx";
 
@@ -50,6 +50,11 @@ function Feature({ state }: { readonly state: FeatureScreen }) {
 	);
 }
 export function FeedbackView({ state }: { readonly state: FeatureScreen }) {
+	function handleRegistry(registry: AtomRegistry.AtomRegistry) {
+		if (!state.registries.includes(registry)) {
+			state.registries.push(registry);
+		}
+	}
 	return (
 		<StrictMode>
 			<SessionBoundary connect={() => state.client} identify={(id: string) => id} recheck={() => undefined} session={state.session}>
@@ -60,7 +65,7 @@ export function FeedbackView({ state }: { readonly state: FeatureScreen }) {
 							return <NoticeCard {...notice} />;
 						}}
 					>
-						<RegistryProbe registries={state.registries} />
+						<SessionRegistry onRegistry={handleRegistry} />
 						<Feature state={{ ...state, client }} />
 					</NoticeHost>
 				)}

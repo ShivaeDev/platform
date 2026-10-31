@@ -1,52 +1,48 @@
 import { expect } from "vitest";
-import { loaderScreen } from "#test/loaderScreen.tsx";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { loaderScreen, noteLoadedButNotMounted, refreshHeld } from "#test/loaderScreen.tsx";
 
 loaderScreen.it(
-	"the screen stays pending while the router finishes a route whose query has answered",
-	[],
-	function* ({ respond, loaded, pending, settle, text }) {
-		yield* respond("Routed note");
-		yield* loaded();
+	"a route whose query has answered keeps the screen pending until the router mounts it",
+	[noteLoadedButNotMounted("Routed note")],
+	function* ({ routeMounts, screenWork, shownTitle }) {
+		expect(yield* screenWork()).toBe("pending");
 
-		expect(yield* pending()).toBe(true);
+		yield* routeMounts();
 
-		yield* settle();
-
-		expect(yield* pending()).toBe(false);
-		expect(text("h1")).toBe("Routed note");
+		yield* outcomes({
+			"screen work": [screenWork(), "settled"],
+			shown: [shownTitle(), "Routed note"],
+		});
 	},
 );
 
 loaderScreen.it(
-	"a refresh on a settled route keeps the screen pending until the server answers",
-	[],
-	function* ({ respond, settle, next, click, pending }) {
-		yield* respond("Original note");
-		yield* settle();
-		yield* next();
+	"a refresh the server still holds keeps the settled route's screen pending until the answer arrives",
+	[refreshHeld("Original note")],
+	function* ({ respond, screenWork, shownTitle }) {
+		expect(yield* screenWork()).toBe("pending");
 
-		yield* click("button");
-
-		expect(yield* pending()).toBe(true);
 		yield* respond("Refreshed note");
-		yield* settle();
-		expect(yield* pending()).toBe(false);
+
+		yield* outcomes({
+			"screen work": [screenWork(), "settled"],
+			shown: [shownTitle(), "Refreshed note"],
+		});
 	},
 );
 
 loaderScreen.it(
 	"a refresh left behind by a screen that is gone does not keep the screen pending",
-	[],
-	function* ({ respond, settle, next, click, leave, pending, text }) {
-		yield* respond("Original note");
-		yield* settle();
-		yield* next();
-		yield* click("button");
-		expect(yield* pending()).toBe(true);
+	[refreshHeld("Original note")],
+	function* ({ leave, screenWork, shownTitle }) {
+		expect(yield* screenWork()).toBe("pending");
 
 		yield* leave();
 
-		expect(text("h1")).toBe("Other screen");
-		expect(yield* pending()).toBe(false);
+		yield* outcomes({
+			"screen work": [screenWork(), "settled"],
+			shown: [shownTitle(), "Other screen"],
+		});
 	},
 );

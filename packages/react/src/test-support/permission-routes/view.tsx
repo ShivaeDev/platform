@@ -40,7 +40,7 @@ export function PermissionApp({ app }: { readonly app: App }): ReactNode {
 	return (
 		<ApplySessionContext.Provider value={apply}>
 			<CatchBoundary errorComponent={ApplicationFailure} getResetKey={() => "app"}>
-				<PermissionBoundary fallback={<h1>Permission denied</h1>} session={current}>
+				<PermissionBoundary fallback={<h1 data-boundary="permission">Permission denied</h1>} session={current}>
 					<RouterProvider router={app.router} />
 				</PermissionBoundary>
 			</CatchBoundary>
@@ -49,7 +49,7 @@ export function PermissionApp({ app }: { readonly app: App }): ReactNode {
 }
 
 function ApplicationFailure() {
-	return <h1>Application unavailable</h1>;
+	return <h1 data-boundary="application">Application unavailable</h1>;
 }
 
 export function SignOutButton({ action }: { readonly action: Atom.AtomResultFn<void, undefined, unknown> }) {

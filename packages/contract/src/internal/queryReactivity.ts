@@ -33,15 +33,25 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 				let pending: (() => boolean) | undefined;
 				let queued: (() => void) | undefined;
 				function dequeue() {
-					if (timer === undefined && pending === undefined) {
+					if (!scheduled && pending === undefined) {
 						queued?.();
 						queued = undefined;
 					}
 				}
-				let timer: ReturnType<typeof setTimeout> | undefined;
+				let scheduled = false;
+				const timer = runtime.fn(({ delay, active }: { readonly delay: number; readonly active: () => boolean }) =>
+					Effect.andThen(
+						Effect.sleep(delay),
+						Effect.sync(() => {
+							scheduled = false;
+							refresh(active);
+						}),
+					),
+				);
+				get.mount(timer);
 				function clear() {
-					clearTimeout(timer);
-					timer = undefined;
+					get.set(timer, Atom.Interrupt);
+					scheduled = false;
 					pending = undefined;
 					dequeue();
 				}
@@ -68,12 +78,10 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 					if (delay === 0) {
 						clear();
 						get.refresh(source);
-					} else {
+					} else if (!scheduled) {
 						queued ??= queue?.();
-						timer ??= setTimeout(() => {
-							timer = undefined;
-							refresh(batch.active);
-						}, delay);
+						scheduled = true;
+						get.set(timer, { active: batch.active, delay });
 					}
 				}
 				get.addFinalizer(clear);

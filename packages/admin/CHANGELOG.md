@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.2 - 2026-10-31
+
+### Fixed
+
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+- Server RPC failures, request diagnostics and traces use the sensitive keys from their own RPC schemas, so registering another RPC cannot redact their public failure tags or messages.
+- Admin Jobs schemas mark job payload and failure-detail containers sensitive without marking generic `_tag` or `message` fields sensitive.
+
 ## 0.12.1 - 2026-10-30
 
 ### Changed
