@@ -1,4 +1,4 @@
-import { type Duration, Effect, Fiber, Queue } from "effect";
+import { Deferred, type Duration, Effect, Fiber, Queue, Stream } from "effect";
 import { act, createElement } from "react";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
@@ -52,8 +52,11 @@ export const activityPage = storyKit({
 				}),
 			startSettling: () =>
 				Effect.gen(function* () {
-					const fiber = yield* driver.settle().pipe(Effect.forkScoped({ startImmediately: true }));
-					yield* Effect.yieldNow;
+					const observing = yield* Deferred.make<void>();
+					const observed = Object.assign(pending.pipe(Stream.tap(() => Deferred.succeed(observing, undefined))), { current: pending.current });
+					const settling = screenDriver({ act, pending: observed, root: view.container, tell: story.tell });
+					const fiber = yield* settling.settle().pipe(Effect.forkScoped({ startImmediately: true }));
+					yield* Effect.raceFirst(Deferred.await(observing), Fiber.join(fiber));
 					return { finish: Fiber.join(fiber), state: Effect.sync(() => (fiber.pollUnsafe() === undefined ? "waiting" : "settled")) };
 				}),
 			writeElsewhere: (title: string) => writer["page.write"]({ id: 1, title }),
