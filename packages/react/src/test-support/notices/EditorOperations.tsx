@@ -24,7 +24,9 @@ export function EditorOperations({ client }: { readonly client: NoticeClient }) 
 			<button onClick={() => breakReads.dispatch(undefined)} type="button">
 				Break refresh
 			</button>
-			<output data-rows="">{editor.query.data}</output>
+			<output data-pending={editor.query.pending || breakReads.pending} data-rows="">
+				{editor.query.data}
+			</output>
 		</>
 	);
 }
