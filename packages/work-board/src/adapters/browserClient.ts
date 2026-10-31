@@ -1,8 +1,9 @@
-import { Effect } from "effect";
+import { Effect, type Layer } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as Reactivity from "effect/reactivity/Reactivity";
+import type { RpcClient } from "effect/rpc";
 import { type LiveBound, LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { type Bound, bind, makeClient } from "@shivaedev/contract/bind.ts";
 import type { Contract } from "@shivaedev/contract/contract.ts";
@@ -12,8 +13,18 @@ import { handoffContract } from "#rpc/handoffContract.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 
-function connection(url: string) {
-	return makeClient(workContract, { group: workRpcs, url: `${url.replace(/\/$/u, "")}/_board/rpc` });
+export interface BrowserClientOptions extends ResumeOptions {
+	readonly live?: boolean;
+	readonly protocol?: Layer.Layer<RpcClient.Protocol>;
+}
+
+function connection(url: string, { live, protocol }: BrowserClientOptions = {}) {
+	return makeClient(workContract, {
+		group: workRpcs,
+		url: `${url.replace(/\/$/u, "")}/_board/rpc`,
+		...(live === undefined ? {} : { live }),
+		...(protocol === undefined ? {} : { protocol }),
+	});
 }
 export type Reader = ReturnType<typeof connection>["Client"]["Identifier"];
 
@@ -34,9 +45,10 @@ export interface BrowserClient {
 	readonly updates: LiveBound[typeof LiveConnection];
 }
 
-export function browserClient(url: string, options: ResumeOptions = {}): BrowserClient {
-	const { Client } = connection(url);
+export function browserClient(url: string, options: BrowserClientOptions = {}): BrowserClient {
+	const { Client } = connection(url, options);
 	const bindOptions = {
+		...(options.live === undefined ? {} : { live: options.live }),
 		...(options.native === undefined ? {} : { resume: options.native }),
 		...(options.window === undefined ? {} : { resumeWindow: options.window }),
 	};
