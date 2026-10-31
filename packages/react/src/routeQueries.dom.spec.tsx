@@ -135,3 +135,29 @@ routes.it(
 		});
 	},
 );
+
+routes.it(
+	"the query factory reads the client and viewer from router context to load the viewer's data",
+	[routeRequested("/notes/first", undefined, 3)],
+	function* ({ answer, queryText, requests }) {
+		yield* answer("first", "Viewer's note", 3);
+
+		yield* outcomes({
+			query: [queryText(), "Viewer's note"],
+			requests: [requests(), ["first page 3"]],
+		});
+	},
+);
+
+routes.it(
+	"a reloaded query factory reads the current viewer context",
+	[firstNoteShown("First viewer's note")],
+	function* ({ answer, changeViewer, queryText }) {
+		expect(yield* queryText()).toBe("First viewer's note");
+
+		yield* changeViewer(2);
+		yield* answer("first", "Second viewer's note", 2);
+
+		expect(yield* queryText()).toBe("Second viewer's note");
+	},
+);
