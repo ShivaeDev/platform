@@ -1,4 +1,4 @@
-import { ConfigProvider, Effect, Fiber, Layer, Queue, Redacted, Schema, Stream } from "effect";
+import { Clock, ConfigProvider, Effect, Fiber, Layer, Queue, Redacted, Schema, Stream } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { collection } from "@shivaedev/changes/keys.ts";
@@ -53,6 +53,7 @@ const engine = Effect.gen(function* () {
 		};
 		const config = {
 			changes: { channel: "listener_connection_story", heartbeatTimeout: "1 second" as const },
+			clock: yield* Clock.Clock,
 			maxConnections: source === "fallback" ? 2 : 1,
 			...(source === "configuration" ? { listenDatabaseUrl: Redacted.make(listenerUrl) } : {}),
 		};

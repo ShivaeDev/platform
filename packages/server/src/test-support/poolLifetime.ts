@@ -1,4 +1,4 @@
-import { Context, Duration, Effect, Layer, Redacted, Schema, Stream } from "effect";
+import { Clock, Context, Duration, Effect, Layer, Redacted, Schema, Stream } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { collection } from "@shivaedev/changes/keys.ts";
@@ -32,9 +32,10 @@ export const poolLifetime = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: State) {
 			const database = yield* PostgresTestDatabase;
+			const clock = yield* Clock.Clock;
 			state.context = yield* Layer.build(
 				appDatabase({
-					config: { applicationName: APPLICATION_NAME, databaseUrl: database.url, ...state.config },
+					config: { applicationName: APPLICATION_NAME, databaseUrl: database.url, ...state.config, clock },
 					migrations: {
 						loader: Migrator.fromRecord({ "001_notes": SqlClient.SqlClient.use((sql) => sql`create table notes (id integer primary key)`) }),
 					},

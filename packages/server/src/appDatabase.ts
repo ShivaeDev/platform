@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Context, Duration, Effect, Fiber, Layer, Option, Redacted, Schedule } from "effect";
+import { Clock, Config, Context, Duration, Effect, Fiber, Layer, Option, Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator } from "effect/sql";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
@@ -15,6 +15,7 @@ import type { AppDatabaseOptions } from "#appHost.ts";
 
 export interface DatabaseConfig extends PostgresOptions {
 	readonly changes?: Partial<Omit<PostgresChangesOptions, "client" | "listenerClient" | "connectionSetting" | "connectionTTL" | "resync">>;
+	readonly clock?: Clock.Clock;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly listenDatabaseUrl?: Redacted.Redacted<string>;
 }
@@ -25,9 +26,10 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 		"connectionTTL": options.config?.connectionTTL ?? "10 minutes",
 		idleTimeout: options.config?.idleTimeout ?? "1 minute",
 	} satisfies DatabaseConfig;
+	const clock = Layer.succeed(Clock.Clock, config.clock ?? Clock.Clock.defaultValue());
 	const pool = Layer.unwrap(
 		Effect.map(options.config?.databaseUrl === undefined ? Config.Redacted("DATABASE_URL") : Effect.succeed(options.config.databaseUrl), (url) =>
-			postgresLayer(url, config),
+			postgresLayer(url, config).pipe(Layer.provide(clock)),
 		),
 	);
 	const prepared = Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(pool));
@@ -50,8 +52,9 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 			const listenerClient =
 				listenUrl === undefined
 					? client
-					: yield* Effect.map(Layer.build(postgresLayer(listenUrl, { ...config, maxConnections: 1, minConnections: 0 })), (context) =>
-							Context.get(context, PgClient.PgClient),
+					: yield* Effect.map(
+							Layer.build(postgresLayer(listenUrl, { ...config, maxConnections: 1, minConnections: 0 }).pipe(Layer.provide(clock))),
+							(context) => Context.get(context, PgClient.PgClient),
 						);
 			let connectionSetting = options.config?.databaseUrl === undefined ? "DATABASE_URL" : "config.databaseUrl";
 			if (listenUrl !== undefined) {
@@ -65,7 +68,7 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 				"connectionTTL": config.connectionTTL,
 				listenerClient,
 				resync: hints.resync(),
-			});
+			}).pipe(Layer.provide(clock));
 		}),
 	).pipe(Layer.provideMerge(base));
 }
