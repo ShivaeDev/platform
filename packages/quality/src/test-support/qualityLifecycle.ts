@@ -1,121 +1,94 @@
-import { existsSync, readdirSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Cause, Console, Deferred, Effect, Exit, Fiber } from "effect";
-import { ChildProcessSpawner } from "effect/process";
+import { Deferred, Effect, Fiber } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { program } from "#cli/program.ts";
-import { exitCode, explained, services } from "#cli/runMain.ts";
-import { SetupFailure } from "#failure.ts";
-import { capturing, type Output } from "#test/cli.ts";
-import { config, defaultTree, removeSeededTrees } from "#test/tree.ts";
+import { exitCode, services } from "#cli/runMain.ts";
+import { type Output, qualityArgs } from "./cli.ts";
+import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
+import { ISOLATED_ENV } from "./git.ts";
+import { config, defaultTree, removeSeededTrees } from "./tree.ts";
 
-interface RunningTool {
+export interface RunningTool {
 	readonly child: ChildProcessSpawner.ChildProcessHandle;
 	readonly path: string;
 }
 
-interface Lifecycle {
-	failure: unknown;
+export interface Lifecycle {
+	answer: CliAnswer | undefined;
 	fiber: Fiber.Fiber<unknown, unknown> | undefined;
-	readonly originalEntries: string[];
-	output: Output;
+	readonly output: Output;
 	readonly promiseReady: Deferred.Deferred<void>;
 	promiseSignal: AbortSignal | undefined;
 	readonly root: string;
 	readonly started: Deferred.Deferred<RunningTool>;
-	status: number | undefined;
+}
+
+function closedReaderRun(engine: Lifecycle, args: readonly string[]): Promise<CliAnswer> {
+	return new Promise((resolve) => {
+		const child = spawn("node", qualityArgs(args), { cwd: engine.root, env: ISOLATED_ENV, stdio: ["ignore", "pipe", "pipe"] });
+		child.stdout.destroy();
+		let stderr = "";
+		child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
+			stderr += chunk;
+		});
+		child.on("close", (status) => {
+			engine.answer = answerOf({ status, stderr, stdout: "" });
+			resolve(engine.answer);
+		});
+	});
+}
+
+function runningTool(engine: Lifecycle): Effect.Effect<RunningTool> {
+	return Deferred.await(engine.started);
 }
 
 export const qualityLifecycle = storyKit({
 	clock: "live",
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.sync(removeSeededTrees));
-		const root = defaultTree(config('{ sources: ["src"] }'));
 		const engine: Lifecycle = {
-			failure: undefined,
+			answer: undefined,
 			fiber: undefined,
-			originalEntries: readdirSync(root).toSorted(),
 			output: { stderr: "", stdout: "" },
 			promiseReady: yield* Deferred.make<void>(),
 			promiseSignal: undefined,
-			root,
+			root: defaultTree(config('{ sources: ["src"] }')),
 			started: yield* Deferred.make<RunningTool>(),
-			status: undefined,
 		};
 		return engine;
 	},
 	layer: services,
-	name: "Quality rule lifecycle",
+	name: "Quality lifecycle",
 	stages: ["repository", "running"],
-	verbs: (engine, story) => ({
-		check: Effect.fn("QualityLifecycle.check")(function* () {
-			story.tell("the author runs quality lint");
-			const result = yield* Effect.exit(
-				program(["lint"], { cwd: engine.root, launch: { options: [], script: "quality" } }).pipe(
-					explained,
-					Effect.provideService(Console.Console, capturing(engine.output)),
-				),
-			);
-			engine.status = exitCode(result);
-			engine.failure = Exit.isFailure(result) ? Cause.squash(result.cause) : undefined;
-		}),
-		childRunning: () => Deferred.await(engine.started).pipe(Effect.flatMap(({ child }) => child.isRunning)),
-		interrupt: Effect.fn("QualityLifecycle.interrupt")(function* () {
-			story.tell("the author interrupts quality");
-			if (engine.fiber === undefined) {
-				return yield* Effect.die(new Error("Quality has not started"));
-			}
-			yield* Fiber.interrupt(engine.fiber);
-			const exit = yield* Fiber.await(engine.fiber);
-			engine.status = exitCode(exit);
-		}),
-		originalEntries: () => engine.originalEntries,
-		promiseAborted: () => Effect.sync(() => engine.promiseSignal?.aborted),
-		rootEntries: () => Effect.sync(() => readdirSync(engine.root).toSorted()),
-		setupFailure: () => {
-			if (!(engine.failure instanceof SetupFailure)) {
-				throw new Error("Quality did not report a setup failure");
-			}
-			return {
-				cause: engine.failure.cause instanceof Error ? engine.failure.cause.message : undefined,
-				enumerableCause: Object.keys(engine.failure).includes("cause"),
-				serialized: JSON.stringify(engine.failure),
-			};
-		},
-		status: () => engine.status,
-		stderr: () => engine.output.stderr,
-		temporaryConfigExists: () => Deferred.await(engine.started).pipe(Effect.map(({ path }) => existsSync(path))),
-	}),
-});
-
-export const biomeRunning = qualityLifecycle.trait("running", "Biome has started and its process handle is awaiting delivery", function* (engine) {
-	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	const tracked = ChildProcessSpawner.ChildProcessSpawner.of({
-		...spawner,
-		spawn: (command) =>
-			Effect.gen(function* () {
-				const child = yield* spawner.spawn(command);
-				if (command._tag === "StandardCommand" && command.args.includes("check") && command.args.some((arg) => arg.endsWith("/biome/bin/biome"))) {
-					const configArgument = command.args.find((arg) => arg.startsWith("--config-path="));
-					if (configArgument === undefined) {
-						return yield* Effect.die(new Error("Biome started without its exception config"));
-					}
-					yield* Deferred.succeed(engine.started, { child, path: configArgument.slice("--config-path=".length) });
-					yield* Effect.never;
+	verbs: (engine, story) => {
+		const cli = cliVerbs(engine, story.tell);
+		return {
+			...cli,
+			biomeIsRunning: () => Effect.flatMap(runningTool(engine), ({ child }) => child.isRunning),
+			interrupts: Effect.fn("QualityLifecycle.interrupts")(function* () {
+				story.tell("the author interrupts quality");
+				if (engine.fiber === undefined) {
+					return yield* Effect.die(new Error("Start quality with a running trait before interrupting it"));
 				}
-				return child;
+				yield* Fiber.interrupt(engine.fiber);
+				const status = exitCode(yield* Fiber.await(engine.fiber));
+				engine.answer = answerOf({ status, ...engine.output });
 			}),
-	});
-	engine.fiber = yield* program(["lint"], { cwd: engine.root, launch: { options: [], script: "quality" } }).pipe(
-		explained,
-		Effect.provideService(Console.Console, capturing(engine.output)),
-		Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, tracked),
-		Effect.forkScoped,
-	);
-	yield* Deferred.await(engine.started);
+			outcome: () => Effect.map(cli.outcome(), (outcome) => (outcome === "exited 130" ? "interrupted" : outcome)),
+			pipesToClosedReader: (...args: readonly string[]) =>
+				Effect.promise(() => {
+					story.tell(`the author pipes quality ${args.join(" ")} into a reader that has already exited`);
+					return closedReaderRun(engine, args);
+				}),
+			promiseSignalAborted: () => Effect.sync(() => engine.promiseSignal?.aborted),
+			temporaryBiomeConfigExists: () => Effect.map(runningTool(engine), ({ path }) => existsSync(path)),
+		};
+	},
 });
 
-export const crashingRule = qualityLifecycle.trait("repository", "a local rule crashes at its named check", (engine) => {
+export const crashingRule = qualityLifecycle.trait("repository", "a local rule's named check function throws", (engine) => {
 	writeFileSync(
 		join(engine.root, "quality.config.ts"),
 		`import { defineRule } from "@shivaedev/quality/rule.ts";
@@ -124,12 +97,8 @@ export default { local: [defineRule({ id: "local/crash", description: "Checks a 
 	);
 });
 
-export const brokenConfig = qualityLifecycle.trait("repository", "loading the config throws an error", (engine) => {
-	writeFileSync(join(engine.root, "quality.config.ts"), 'throw new Error("config crashed");\n');
-});
-
 export function malformedBiomeVcs(value: unknown) {
-	return qualityLifecycle.trait("repository", "the Biome config has a malformed VCS setting", (engine) => {
+	return qualityLifecycle.trait("repository", `biome.json extends the quality preset and sets vcs to ${JSON.stringify(value)}`, (engine) => {
 		writeFileSync(join(engine.root, "biome.json"), JSON.stringify({ extends: ["@shivaedev/quality/biome/preset.json"], vcs: value }));
 	});
 }

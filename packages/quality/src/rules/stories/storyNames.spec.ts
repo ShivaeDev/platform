@@ -1,9 +1,8 @@
 import { expect } from "vitest";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { repositoryHas, ruleKit } from "#rule-story";
 import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { inStory } from "#test/storySpecFiles.ts";
 
 const STORY = [
@@ -11,36 +10,28 @@ const STORY = [
 	inStory('yield* Effect.sleep("50 millis");', 'expect((yield* order())._tag).toBe("Cancelled");', 'expect(yield* refunds()).toEqual(["order 1"]);'),
 ].join("\n");
 
-const STORIES = ["src/orders.slow.test.ts", "src/orders.test.ts", "src/pane.dom.test.ts"];
+const RULES = [
+	{ line: 4, rule: domainOutcomes },
+	{ line: 4, rule: groupedOutcomes },
+	{ line: 3, rule: waitOnEvents },
+];
 
-const EVERY_STORY = STORIES.map((file) => expect.objectContaining({ file }));
+for (const { line, rule } of RULES) {
+	for (const path of ["src/orders.test.ts", "src/orders.slow.test.ts", "src/pane.dom.test.ts"]) {
+		ruleStory.it(
+			`${rule.id} holds ${path}, a test named after its module, to the story rules`,
+			[repositoryHas({ content: STORY, path })],
+			function* ({ check, locations }) {
+				yield* check(rule);
 
-ruleKit.it(
-	"a story named after its module, with or without an environment modifier, is held to the story rules like a spec",
-	[repositoryHas(...STORIES.map((path) => ({ content: STORY, path })))],
-	function* ({ checks }) {
-		yield* outcomes({
-			"domain outcomes": [checks(domainOutcomes), EVERY_STORY],
-			"grouped outcomes": [checks(groupedOutcomes), EVERY_STORY],
-			"wait on events": [checks(waitOnEvents), EVERY_STORY],
+				expect(yield* locations()).toEqual([`${path}:${line}`]);
+			},
+		);
+	}
+
+	for (const path of ["src/test-support/orders.test.ts", "src/orders.unit.test.ts", "src/orders.typecheck.test.ts"]) {
+		ruleStory.it(`${rule.id} leaves ${path} alone, as it is no story`, [repositoryHas({ content: STORY, path })], function* ({ check }) {
+			expect(yield* check(rule)).toEqual([]);
 		});
-	},
-);
-
-ruleKit.it(
-	"the same code in test support, a unit test or a type test is not a story and passes",
-	[
-		repositoryHas(
-			{ content: STORY, path: "src/test-support/orders.test.ts" },
-			{ content: STORY, path: "src/orders.unit.test.ts" },
-			{ content: STORY, path: "src/orders.typecheck.test.ts" },
-		),
-	],
-	function* ({ checks }) {
-		yield* outcomes({
-			"domain outcomes": [checks(domainOutcomes), []],
-			"grouped outcomes": [checks(groupedOutcomes), []],
-			"wait on events": [checks(waitOnEvents), []],
-		});
-	},
-);
+	}
+}

@@ -13,7 +13,6 @@ import { query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { AppChanges, appHost } from "@shivaedev/server/appHost.ts";
 import { answered } from "@shivaedev/test/answers.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { Authenticated } from "#middleware.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
@@ -22,8 +21,7 @@ import { createProvider } from "./harness.ts";
 export const documents = collection("documents", Schema.String);
 
 export const liveSubscriptionEngine = Effect.gen(function* () {
-	const database = yield* PostgresTestDatabase;
-	const provider = yield* createProvider(database.url);
+	const provider = yield* createProvider();
 	const mintingAuth = betterAuth({ ...provider.auth.options, plugins: [testUtils()] });
 	const session = yield* Effect.promise(() => signedInUser(mintingAuth, { email: "alice@example.test", name: "alice" }));
 	const cookie = session.headers.get("cookie");

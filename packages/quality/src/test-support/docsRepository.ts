@@ -18,3 +18,12 @@ export const docsWorkspace: readonly SeedFile[] = [
 export function markdown(path: string, ...lines: readonly string[]): SeedFile {
 	return { content: `${lines.join("\n")}\n`, path };
 }
+
+// Stories link to the heading "Set up once" to prove that a link to an existing heading passes.
+export function guide(...lines: readonly string[]): SeedFile {
+	return markdown("docs/guide.md", "# Guide", "", "## Set up once", "", ...lines);
+}
+
+export function noModule(specifier: string, owner: string): string {
+	return `"${specifier}" names no module of ${owner}. Use the path of a module its package.json "exports" maps.`;
+}

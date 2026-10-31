@@ -1,8 +1,27 @@
 import { createServer } from "node:http";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { createViteServer } from "vitest/node";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appViteConfig } from "#appViteConfig.ts";
+
+const HostRecord = Schema.fromJsonString(Schema.Struct({ host: Schema.String, path: Schema.String }));
+
+interface Answer {
+	readonly body: string;
+	readonly status: number;
+}
+
+interface DevelopmentEngine {
+	answer: Answer | undefined;
+	readonly origin: string;
+}
+
+function forwarded(answer: Answer | undefined) {
+	if (answer === undefined) {
+		throw new Error("Request a path through Vite before reading what the application host received");
+	}
+	return answer.status === 200 ? Schema.decodeUnknownSync(HostRecord)(answer.body) : `not forwarded: Vite answered HTTP ${answer.status}`;
+}
 
 export const development = storyKit({
 	clock: "live",
@@ -25,17 +44,20 @@ export const development = storyKit({
 		if (origin === undefined) {
 			throw new Error("Vite has no listening URL");
 		}
-		return { origin };
+		const engine: DevelopmentEngine = { answer: undefined, origin };
+		return engine;
 	},
+	inspect: ({ answer, origin }) => ({ answer, origin }),
 	name: "Vite development proxy",
 	stages: [],
 	verbs: (engine, story) => ({
-		origin: () => engine.origin,
-		request: (path: string) =>
+		hostReceived: () => Effect.sync(() => forwarded(engine.answer)),
+		requests: (path: string) =>
 			Effect.promise(async () => {
-				story.tell(`request ${path} through Vite`);
+				story.tell(`the browser requests ${path} from Vite`);
 				const response = await fetch(new URL(path, engine.origin));
-				return { body: await response.text(), status: response.status };
+				engine.answer = { body: await response.text(), status: response.status };
 			}),
+		viteHost: () => Effect.sync(() => new URL(engine.origin).host),
 	}),
 });

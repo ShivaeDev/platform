@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.28.0 - 2026-10-31
+
+### Added
+
+- `@shivaedev/react`: `queryRoute` passes the loader's router context to its query factory alongside params and validated search. Annotate `context` with the parent route's `types.allContext` to read declared clients and viewer state with type checking.
+
+### Changed
+
+- `@shivaedev/create-app`: generated starter routes read clients and session state from native router context instead of taking them as route factory parameters.
+
+### Fixed
+
+- Generated applications provide Node services when running database setup, so setup commands participate in Effect interruption and typed failure handling.
+
+### Breaking
+
+- `@shivaedev/local-postgres`: `assertLocalDatabase`, `sql`, `startPostgres`, `prepareDatabases` and lower-level command helpers return Effects. Yield them in an Effect program and provide `ChildProcessSpawner` for commands, for example with `NodeServices.layer` at a Node entry point. Replace synchronous try/catch with Effect error handling. Command failures use `PostgresCommandError`; local-target and image refusals use `LocalPostgresError`. Construct the Schema tagged errors as `new PostgresVersionMismatch({ expectedVersion: "18.6", observedVersion })` or `new PostgresSettingError({ container: "development-postgres", setting: "max_connections", cause })`. Exhausted readiness checks retain their final failure instead of reporting an unobserved version mismatch.
+- `@shivaedev/server`: `setupDatabases()` requires `ChildProcessSpawner` and exposes local PostgreSQL failures in its typed error channel. Provide `NodeServices.layer` at the setup entry point instead of relying on synchronous commands hidden inside the host.
+
+## 0.27.0 - 2026-10-31
+
+### Added
+
+- `makePgBoss(identifier, queueNames)` accepts names from a browser-safe module shared with queue definitions and client filters. Each jobs Layer checks that its queue and schedule registrations match the declaration, and fails boot with `PgBossQueueNamesError` listing missing and unexpected names.
+- List active sessions with user details and activity times, and revoke one session through the permission-guarded `identity.sessions` contract. Session revocation uses the existing request and live subscription revalidation path.
+- Generated applications grant session management to their admin and owner roles.
+
+### Changed
+
+- Generated applications validate server queue registrations against the shared browser-safe declarations used by the admin Jobs page.
+
+### Breaking
+
+- Jobs Layers include `PgBossQueueNamesError` in their typed startup errors. Consumers with explicit error unions must add this error or handle its tag. Existing services that omit the optional name declaration keep their registration behavior.
+
 ## 0.26.4 - 2026-10-30
 
 ### Changed

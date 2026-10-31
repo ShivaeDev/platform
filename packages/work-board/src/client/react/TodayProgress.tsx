@@ -37,7 +37,7 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 					data-progress-source={progress.source}
 				>
 					{progress.rows.slice(0, 8).map((item) => (
-						<ProgressRow fleet={progress.source === "fleet"} item={item} key={item.workId} />
+						<ProgressRow item={item} key={item.workId} />
 					))}
 				</ul>
 			)}
@@ -53,14 +53,14 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 	);
 }
 
-function ProgressRow({ fleet, item }: { readonly fleet: boolean; readonly item: Row }) {
+function ProgressRow({ item }: { readonly item: Row }) {
 	return (
 		<li className="flex h-10 min-w-0 items-center gap-2 px-2" data-progress-id={item.workId}>
 			<a className="min-w-0 flex-1 truncate text-sm" href={`/_board/item/${encodeURIComponent(item.workId)}/`} title={item.title}>
 				{item.title}
 			</a>
 			<Badge className="border-agent-working/25 bg-agent-working/10 text-agent-working shrink-0 text-xs" variant="outline">
-				{fleet ? "Fleet" : item.state}
+				{item.state}
 			</Badge>
 			{item.prUrl ? (
 				<a aria-label={`Pull request for ${item.title}`} className="shrink-0 text-xs" href={item.prUrl}>

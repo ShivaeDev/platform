@@ -4,6 +4,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys, Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
 import { invalidateLive } from "#internal/liveInvalidation.ts";
+import { livePending } from "#internal/livePending.ts";
 import { liveRetry } from "#internal/liveRetry.ts";
 import { retryOnChange } from "#internal/retryOnChange.ts";
 
@@ -45,17 +46,22 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 				function update(value: Partial<LiveStatus<E>>) {
 					get.set(status, { ...get.once(status), ...value });
 				}
-				const pending = new Set<string>();
-				let timer: ReturnType<typeof setTimeout> | undefined;
-				function clear() {
-					clearTimeout(timer);
-					timer = undefined;
-					pending.clear();
+				function flush() {
+					const queued = pending.take();
+					if (!get.once(paused)) {
+						invalidateLive(reactivity, queued, () => active && !get.once(paused));
+					}
 				}
+				const timer = runtime.fn((delay: Duration.Input) => Effect.andThen(Effect.sleep(delay), Effect.sync(flush)));
+				get.mount(timer);
+				const pending = livePending(
+					(window) => get.set(timer, window),
+					() => get.set(timer, Atom.Interrupt),
+				);
 				let active = true;
 				get.addFinalizer(() => {
 					active = false;
-					clear();
+					pending.clear();
 					if (get.registry.getNodes().has(status)) {
 						update({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
 					}
@@ -69,22 +75,13 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						invalidateLive(reactivity, keys, () => active && !get.once(paused));
 						return;
 					}
-					for (const key of invalidationKeys(changedKeys, options.keyContext)) {
-						pending.add(key);
-					}
-					timer ??= setTimeout(() => {
-						const queued = [...pending];
-						clear();
-						if (!get.once(paused)) {
-							invalidateLive(reactivity, queued, () => active && !get.once(paused));
-						}
-					}, delay);
+					pending.add(keys, window);
 				}
 				function resync() {
 					if (get.once(status).connection === "failed") {
 						return;
 					}
-					clear();
+					pending.clear();
 					if (get.once(paused)) {
 						update({ needsResync: true });
 						return;

@@ -271,6 +271,10 @@ The dependency rule is deliberately asymmetric:
 
 Client invalidation follows RPC success. Database hosts from `@shivaedev/server` also publish declared command invalidations automatically after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`sql`](https://github.com/ShivaeDev/platform/tree/main/packages/sql); commit-bound changes belong to [`changes`](https://github.com/ShivaeDev/platform/tree/main/packages/changes).
 
+### Client activity
+
+`clientActivity(client)` from `@shivaedev/contract/clientActivity.ts` returns a native Effect `Stream` with a `current` Effect for a client made by `makeClient`. Its state reports `rpcCalls` for finite calls, `liveInvalidations` for queued live refreshes, `refreshingAtoms` for mounted query atoms awaiting values, and a `liveHints` sequence for received subscription updates. Long-lived streams do not count as finite calls. `isClientIdle(state)` is true when all three work counts are zero. Observe its stream or pass it to a test-story screen driver's `pending` option and call `settle()` before screen assertions. Coalesced work stays pending until its refresh completes.
+
 ### Session-owned keys
 
 A self-only feature, such as a user's preferences, reads and changes only the signed-in account's records. Declare its contract with `keyScope: "session"`. The server chooses the account from request-local identity, so payloads carry no owner field, and reads and invalidations name a logical item key for the record:
@@ -281,6 +285,7 @@ const Preferences = contract("preferences", {
 	keyScope: "session",
 	queries: [
 		query("self", {
+			readPolicy: signedIn,
 			reads: () => [preferences.item("self")],
 			success: Schema.String,
 		}),
@@ -415,7 +420,7 @@ const releaseConnection = registry.mount(updates.connection);
 | `Resync`                                  | The exact `resyncKeys` read scope.                     |
 | First hint on a new or reconnected stream | The full explicit scope, even if the hint is targeted. |
 
-Changed hints share a fixed 20 ms window by default. Their keys merge, and each affected bound query refetches once per window. A bound query already fetching keeps its request and refetches once more after it settles if further hints arrive. Set `coalesceWindow` in `live()` to a native Duration, or set `SessionBoundary`'s `liveCoalesceWindow` for automatic session connections. Zero restores immediate per-hint invalidation, including interruption of in-flight reads. Full reconciliation on first hint, reconnect, resume and unpause stays immediate. Registry teardown cancels a pending window.
+Changed hints share a fixed 20 ms window by default. Their keys merge, and each affected bound query refetches once per window. A bound query already fetching keeps its request and refetches once more after it settles if further hints arrive. Set `coalesceWindow` in `live()` to a native Duration, or set `SessionBoundary`'s `liveCoalesceWindow` for automatic session connections. Zero restores immediate per-hint invalidation, including interruption of in-flight reads. Full reconciliation on first hint, reconnect, resume and unpause stays immediate. Registry teardown and resyncs cancel a pending window. Windows sleep on the atom runtime's Clock, so `TestClock` drives them.
 
 `queryCoalesceWindow(query)` from `@shivaedev/contract/queryCoalesceWindow.ts` returns a writable native atom for that bound query's live changed-hint window. Set it through the query's registry to a Duration, or `undefined` to use the live connection's default. Changing it does not refetch or reconnect; the next window uses the new value. React consumers can set it with `useQuery(query, { coalesceWindow: "2 seconds" })`.
 
@@ -449,25 +454,55 @@ Each stream queues at most 256 hints. Overflow discards the pending hints and re
 
 ### Query policies, record keys and buckets
 
-A query declares its decoded input, result, `readPolicy` and `reads` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. Declare policy errors in the query's `rejections` and provide its services when building the handler Layer; those requirements also apply to the generated change subscription. Policies may use browser-safe Effect service tags whose implementations the server supplies. A failing access check reaches the client as its declared error, including during live reads; only a successful `false` denies access.
+A query declares its decoded input, result, `readPolicy` and `reads` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. `signedIn` from `readPolicy.ts` allows any signed-in viewer and refuses a signed-out viewer. `QueryReadPolicy<Payload, E, R>` preserves typed failures and required services. Declare policy errors in the query's `rejections` and provide its services when building the handler Layer; those requirements also apply to the generated change subscription. Policies may use browser-safe Effect service tags whose implementations the server supplies. A failing access check reaches the client as its declared error, including during live reads; only a successful `false` denies access.
 
 ```ts
-import { Effect, Option, Schema } from "effect";
+import { Option, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { query } from "@shivaedev/contract/operation.ts";
+import { signedIn } from "@shivaedev/contract/readPolicy.ts";
 
 const notes = collection("notes", Schema.Number, { userId: Schema.String });
 const Mine = query("mine", {
 	payload: { title: Schema.String },
 	success: Schema.Array(Schema.String),
-	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	readPolicy: signedIn,
 	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
 });
 ```
 
+Return `false` when denial may be disclosed; the caller receives `QueryReadDenied`. For a private item whose existence the viewer must not learn, fail with a declared `NotFound` for both an absent item and an item owned by someone else:
+
+```ts
+import { Context, Effect, Option, Schema } from "effect";
+import { query } from "@shivaedev/contract/operation.ts";
+import { NotFound } from "@shivaedev/errors/taxonomy.ts";
+
+class NoteOwner extends Context.Service<NoteOwner, (id: number) => Effect.Effect<Option.Option<string>>>()("app/NoteOwner") {}
+const PrivateNote = query("privateNote", {
+	payload: { id: Schema.Number },
+	readPolicy: ({ id }, viewer) =>
+		Effect.gen(function* () {
+			if (Option.isNone(viewer)) {
+				return false;
+			}
+			const owner = yield* (yield* NoteOwner)(id);
+			if (Option.isNone(owner) || owner.value !== viewer.value.id) {
+				return yield* new NotFound({ message: "Note not found" });
+			}
+			return true;
+		}),
+	reads: () => [],
+	rejections: { NotFound },
+	success: Schema.String,
+});
+```
+
+The server provides `NoteOwner`; the shared declaration holds only its browser-safe service tag. The same typed rejection reaches ordinary reads and live subscriptions.
+
 A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Declare bucket fields on the collection model with their schemas. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. It reruns whenever any row in that bucket changes, including a row excluded by the filter. Writers explicitly announce the record and affected buckets with the same constructors from `@shivaedev/changes/keys.ts`.
 
-The same query policy guards running the query and subscribing to it. A subscription names query references, never arbitrary record or bucket keys. The entire subscription is refused with `QueryReadDenied` if any referenced query is denied. Without `readPolicy`, a query has no authorized live subscription: `MissingReadPolicy` tells its author to declare one. Bound query atoms also refuse a missing policy before their first read. Ordinary one-off `run` calls remain available. Reads outside a declared query acquire no automatic subscription.
+The same query policy guards running the query and subscribing to it. A subscription names query references, never arbitrary record or bucket keys. The entire subscription is refused with `QueryReadDenied` if any referenced query is denied. Every query requires `readPolicy` at declaration, including queries used only through one-off `run` calls. TypeScript rejects a policy-less declaration before handlers or a live server can be built. Platform’s application host validates the complete RPC group while building its Layer, before listening; untyped declarations missing policies fail with `MissingReadPolicies`, whose `queries` and `message` name every affected RPC. Native hosts can run `validateReadPolicies(group)` during their own Layer construction. `MissingReadPolicy` remains a request-time refusal for untyped declarations served through native servers that bypass that boot check, on plain calls and subscriptions alike. Reads outside a declared query acquire no automatic subscription.
 
 The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering changed keys, the stream rechecks the owning query's policy without memoization. In a session-backed host, a signed-out, revoked or expired session ends the subscription with `Unauthorized`; a signed-in viewer whose policy refuses ends it with `QueryReadDenied`. This distinction is the same whether a change hint or the session revalidation interval detects session removal. A client refresh runs the same authorized query that produced its first value; hints carry no row values.
 
@@ -489,21 +524,23 @@ expect(yield* heard(bob, [notes.item(1)], { within: "50 millis" })).toBe(false);
 
 Import the module that defines the name; the package has no root entry.
 
-| Module                   | Functions and schemas                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `operation.ts`           | `query(name, { payload?, success?, rejections?, readPolicy?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`.                                                                                                                                                                                                                  |
-| `contract.ts`            | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`.                                                                                                                                                                                                                                                       |
-| `rejection.ts`           | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations.                                                                                                                                                                                                                                                     |
-| `bind.ts`                | `bind(contract, atomRpcService, { registry?, live?, resume?, resumeWindow? }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, protocol?, headers?, webSocketConstructor?, group?, registry?, live? })`, which builds the shared WebSocket client and binds it. |
-| `queryCoalesceWindow.ts` | `queryCoalesceWindow(query)`, a writable atom for a bound query's live changed-hint window.                                                                                                                                                                                                                                                                                                                            |
-| `live.ts`                | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, initialResync?, keyContext?, resume?, retryDelay?, retryKeys? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`.                                                                                                                                                                                                            |
-| `querySubscription.ts`   | `querySubscription(rpc, references, viewer)` checks each referenced query and captures its scopes and ongoing authorization.                                                                                                                                                                                                                                                                                           |
-| `makeLiveServer.ts`      | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect.                                                                                                                                                                                                                                                                                                      |
-| `readPolicy.ts`          | `QueryReadPolicy`, `Viewer`, `authorizeReads(effect, request, viewer)`, `CurrentViewer`.                                                                                                                                                                                                                                                                                                                               |
-| `readPolicyErrors.ts`    | `MissingReadPolicy` and `QueryReadDenied`.                                                                                                                                                                                                                                                                                                                                                                             |
-| `serverMetadata.ts`      | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.resolve(references)`, the Effect `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters.                                                                                                                                                                                                    |
-| `resume.ts`              | `resumeSignal({ window?, native? })`, returning a native numeric signal atom.                                                                                                                                                                                                                                                                                                                                          |
-| `testing.ts`             | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                                                                                                                                         |
+| Module                    | Functions and schemas                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operation.ts`            | `query(name, { payload?, success?, rejections?, readPolicy, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`.                                                                                                                                                                                                                   |
+| `contract.ts`             | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`.                                                                                                                                                                                                                                                       |
+| `rejection.ts`            | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations.                                                                                                                                                                                                                                                     |
+| `bind.ts`                 | `bind(contract, atomRpcService, { registry?, live?, resume?, resumeWindow? }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, protocol?, headers?, webSocketConstructor?, group?, registry?, live? })`, which builds the shared WebSocket client and binds it. |
+| `queryCoalesceWindow.ts`  | `queryCoalesceWindow(query)`, a writable atom for a bound query's live changed-hint window.                                                                                                                                                                                                                                                                                                                            |
+| `live.ts`                 | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, initialResync?, keyContext?, resume?, retryDelay?, retryKeys? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`.                                                                                                                                                                                                            |
+| `querySubscription.ts`    | `querySubscription(rpc, references, viewer)` checks each referenced query and captures its scopes and ongoing authorization.                                                                                                                                                                                                                                                                                           |
+| `makeLiveServer.ts`       | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect.                                                                                                                                                                                                                                                                                                      |
+| `readPolicy.ts`           | `QueryReadPolicy`, `Viewer`, `signedIn`, `authorizeReads(effect, request, viewer)`, `CurrentViewer`.                                                                                                                                                                                                                                                                                                                   |
+| `validateReadPolicies.ts` | `validateReadPolicies(group)`, an Effect that fails with `MissingReadPolicies` when any served or subscribable query omits its policy.                                                                                                                                                                                                                                                                                 |
+| `readPolicyErrors.ts`     | `MissingReadPolicies` (boot), `MissingReadPolicy` (native-server request fallback) and `QueryReadDenied`.                                                                                                                                                                                                                                                                                                              |
+| `serverMetadata.ts`       | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.queries`, `ChangesQueries.resolve(references)`, the Effect `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters.                                                                                                                                                                          |
+| `resume.ts`               | `resumeSignal({ window?, native? })`, returning a native numeric signal atom.                                                                                                                                                                                                                                                                                                                                          |
+| `clientActivity.ts`       | `clientActivity(client)` exposes a native activity Stream with a `current` Effect; `isClientIdle(state)` checks finite work.                                                                                                                                                                                                                                                                                           |
+| `testing.ts`              | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                                                                                                                                         |
 
 A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.
 

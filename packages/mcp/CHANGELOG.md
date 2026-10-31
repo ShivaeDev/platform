@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.9 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/identity` from 0.10.0 to 0.10.1.
+
+## 0.1.8 - 2026-10-31
+
+### Fixed
+
+- Include `CHANGELOG.md` in published package contents so release notes are available in `node_modules`.
+- Release checks reject published package `files` lists that omit `CHANGELOG.md`, naming the package and how to include it.
+
 ## 0.1.7 - 2026-10-30
 
 ### Changed

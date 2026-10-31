@@ -1,45 +1,53 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
-import { loaderScreen } from "#test/loaderScreen.tsx";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { loaderScreen, noteLoadedButNotMounted, noteMountedAfterIdleWindow, noteShown } from "#test/loaderScreen.tsx";
 
 loaderScreen.it(
-	"a route mounted beyond the idle window reads its loader value on its first render with one server execution",
-	[],
-	function* ({ respond, settle, calls, text, firstRenders }) {
-		yield* respond("Delayed note");
-		yield* settle();
-		expect(text("h1")).toBe("Delayed note");
-		expect(firstRenders()[0]).toBe("Delayed note");
-		expect(calls()).toEqual(["get"]);
+	"a route that mounts after the idle window passed renders its loader's value first, with one server read",
+	[noteMountedAfterIdleWindow("Delayed note")],
+	function* ({ firstRenders, serverCalls }) {
+		yield* outcomes({
+			"first render": [Effect.map(firstRenders(), (titles) => titles[0]), "Delayed note"],
+			"server calls": [serverCalls(), ["get"]],
+		});
 	},
 );
 
 loaderScreen.it(
-	"leaving an unread loader releases its atom after the session registry's idle window",
-	[],
-	function* ({ respond, loaded, leave, hasQuery, hasSource, idle, text, firstRenders, calls }) {
-		yield* respond("Unread note");
-		yield* loaded();
-		expect(firstRenders()).toEqual([]);
-		expect(hasQuery()).toBe(true);
+	"leaving a loaded route before it renders releases its loader's query source once the idle window passes",
+	[noteLoadedButNotMounted("Unread note")],
+	function* ({ idleWindowPasses, leave, loaderSource }) {
 		yield* leave();
-		expect(text("h1")).toBe("Other screen");
-		expect(hasSource()).toBe(true);
-		yield* idle();
-		expect(hasQuery()).toBe(false);
-		expect(hasSource()).toBe(false);
-		expect(firstRenders()).toEqual([]);
-		expect(calls()).toEqual(["get"]);
+		expect(yield* loaderSource()).toBe("held");
+
+		yield* idleWindowPasses();
+
+		expect(yield* loaderSource()).toBe("released");
 	},
 );
 
-loaderScreen.it("a later refresh keeps the loaded value while the server is pending", [], function* ({ respond, settle, next, click, text, calls }) {
-	yield* respond("Original note");
-	yield* settle();
-	yield* next();
-	yield* click("button");
-	expect(text("h1")).toBe("Original note");
-	yield* respond("Refreshed note");
-	yield* settle();
-	expect(text("h1")).toBe("Refreshed note");
-	expect(calls()).toEqual(["get", "get"]);
-});
+loaderScreen.it(
+	"while a refresh waits for the server, the note keeps showing its loaded title",
+	[noteShown("Original note")],
+	function* ({ refresh, shownTitle }) {
+		yield* refresh();
+
+		expect(yield* shownTitle()).toBe("Original note");
+	},
+);
+
+loaderScreen.it(
+	"a refresh the server answers shows the new title after a second server read",
+	[noteShown("Original note")],
+	function* ({ refresh, respond, serverCalls, shownTitle }) {
+		yield* refresh();
+
+		yield* respond("Refreshed note");
+
+		yield* outcomes({
+			"server calls": [serverCalls(), ["get", "get"]],
+			"shown title": [shownTitle(), "Refreshed note"],
+		});
+	},
+);

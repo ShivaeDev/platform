@@ -13,9 +13,9 @@ import { usersPage } from "@shivaedev/admin/users/page.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { permissionLayer } from "#server/permissions.ts";
 
@@ -28,8 +28,7 @@ export type Person = "alice" | "bob";
 export type RoleActor = Person | "visitor";
 
 export const roleManagementHost = Effect.fnUntraced(function* () {
-	const database = yield* PostgresTestDatabase;
-	const pool = yield* authDatabase(database.url);
+	const pool = yield* betterAuthDatabase();
 	const mounted = yield* betterAuthMount(
 		{
 			"baseURL": ORIGIN,

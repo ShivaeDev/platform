@@ -160,7 +160,7 @@ export const nativeSessions = storyKit({
 				}),
 			sessionExpires: () => {
 				story.tell("every stored session expires");
-				return authTestDatabase(host.pool).expireSessions();
+				return Effect.flatMap(authTestDatabase, (storage) => storage.expireSessions());
 			},
 			sessionTokens: (caller: Caller) =>
 				Effect.gen(function* () {

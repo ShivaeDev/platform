@@ -57,7 +57,9 @@ export function CreateSubmitView({ state, slow, rejected }: { readonly state: Su
 			<button onClick={current.save} type="button">
 				Save
 			</button>
-			<output>{JSON.stringify({ created: Option.getOrNull(current.created), values: current.form.values.value })}</output>
+			<output data-saving={current.saving}>
+				{JSON.stringify({ created: Option.getOrNull(current.created), values: current.form.values.value })}
+			</output>
 		</section>
 	);
 }

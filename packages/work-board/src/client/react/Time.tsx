@@ -1,15 +1,14 @@
 import { cn } from "cn";
-import { type ReactNode, useEffect, useState } from "react";
-import { currentTime, NowContext, useNow } from "#client/react/adapters/now.ts";
+import { type ReactNode, useContext } from "react";
+import { useNow as useRuntimeNow } from "@shivaedev/react/client/useNow.ts";
+import { NowContext, useNow } from "#client/react/adapters/now.ts";
 import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";
+import { FormContext } from "#client/react/FormContext.ts";
 import { exactTime, timeLabel } from "./timeLabel.ts";
 
 export function TimeTicker({ children }: { readonly children: ReactNode }) {
-	const [now, setNow] = useState(currentTime);
-	useEffect(() => {
-		const timer = setInterval(() => setNow(currentTime()), 5000);
-		return () => clearInterval(timer);
-	}, []);
+	const client = useContext(FormContext);
+	const now = useRuntimeNow(5000, client?.runtime);
 	return <NowContext.Provider value={now}>{children}</NowContext.Provider>;
 }
 

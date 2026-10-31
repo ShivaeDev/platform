@@ -5,7 +5,7 @@ import { type FleetWork, type NowLane, nowLanes } from "#browser/views/now.ts";
 import { doneLane, laneRows } from "#browser/views/nowLanes.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
-import { currentTime } from "#client/react/adapters/now.ts";
+import { useNow } from "#client/react/adapters/now.ts";
 import { Alert, AlertDescription } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#client/react/components/ui/tabs.tsx";
@@ -18,7 +18,7 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 	const fleet = useContext(FleetItemsContext);
 	const phone = useMedia("(max-width: 767px)");
 	const ready = fleet?.state === "ready";
-	const { fleet: items, lanes } = laneRows(data.rows, fleet, currentTime());
+	const { fleet: items, lanes } = laneRows(data.rows, fleet, useNow());
 	const shared = { done: ready ? undefined : "Needs Fleet to show finished work.", fleet: items, state: data.state, virtual: data.rows.length > 200 };
 	const [chosen, setChosen] = useState<NowLane | undefined>(undefined);
 	const shown = chosen ?? lanes.find(({ rows }) => rows.length > 0)?.lane ?? nowLanes[0];

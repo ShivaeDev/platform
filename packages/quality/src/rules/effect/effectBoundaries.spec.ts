@@ -1,100 +1,153 @@
 import { expect } from "vitest";
-import { effectPolicyStory, policyFiles } from "#effect-policy-story";
-import { PROMISE_BRIDGE } from "#test/effectPolicyFiles.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { effectBoundary } from "#rules/effect/boundary.ts";
+import { CLI_TIMEOUT } from "#test/cli.ts";
+import { usesAt } from "#test/effectPolicyFiles.ts";
+import { qualityInstalled, repositoryHas as repositoryContains, repositoryStory } from "#test/repositoryStory.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-effectPolicyStory.it(
-	"source, specs and tooling report every non-Effect construct",
-	[
-		policyFiles(
-			{ content: PROMISE_BRIDGE, path: "src/bridge.ts" },
-			{ content: PROMISE_BRIDGE, path: "src/bridge.spec.ts" },
-			{ content: PROMISE_BRIDGE, path: "tooling/bridge.ts" },
-			{
-				content: "export async function iteration(source: AsyncIterable<unknown>) { for await (const value of source) String(value); }",
-				path: "src/iteration.ts",
-			},
-			{
-				content: "export async function disposal(resource: AsyncDisposable) { await using current = resource; return current; }",
-				path: "src/disposal.ts",
-			},
-			{ content: "export const arrows = async () => 1; export class Methods { async run() { return 1; } }", path: "src/arrows.ts" },
-		),
-	],
-	function* ({ lint }) {
-		const result = yield* lint();
-		const exitCode = result.status;
-		expect(exitCode).toBe(1);
-		expect(result.stdout).toContain("effect/boundary");
-		expect(result.stdout).toMatch(/src\/iteration\.ts:\d+ {2}Uses await\./u);
-		expect(result.stdout).toMatch(/src\/disposal\.ts:\d+ {2}Uses await\./u);
-		for (const path of ["src/bridge.ts", "src/bridge.spec.ts", "tooling/bridge.ts"]) {
-			expect(result.stdout).toContain(`${path}:1  Uses async function.`);
-		}
-		for (const construct of [
-			"async function",
-			"async arrow",
-			"async method",
-			"await",
-			"new Promise(...)",
-			".then(...)",
-			"try statement",
-			"throw statement",
-		]) {
-			expect(result.stdout).toContain(`Uses ${construct}.`);
-		}
+const CONSTRUCTS = [
+	{ code: "export async function run() {\n\treturn 1;\n}", found: [[1, "async function"]], name: "an async function" },
+	{ code: "export const run = async () => 1;", found: [[1, "async arrow"]], name: "an async arrow" },
+	{ code: "export class Runner {\n\tasync run() {\n\t\treturn 1;\n\t}\n}", found: [[2, "async method"]], name: "an async method" },
+	{
+		code: "export async function run(work: Promise<number>) {\n\treturn await work;\n}",
+		found: [
+			[1, "async function"],
+			[2, "await"],
+		],
+		name: "an await and the async function around it",
 	},
+	{
+		code: "export async function iteration(source: AsyncIterable<unknown>) {\n\tfor await (const value of source) String(value);\n}",
+		found: [
+			[1, "async function"],
+			[2, "await"],
+		],
+		name: "a for await loop and the async function around it",
+	},
+	{
+		code: "export async function disposal(resource: AsyncDisposable) {\n\tawait using current = resource;\n\treturn current;\n}",
+		found: [
+			[1, "async function"],
+			[2, "await"],
+		],
+		name: "an await using declaration and the async function around it",
+	},
+	{ code: "export const pending = new Promise((resolve) => resolve(1));", found: [[1, "new Promise(...)"]], name: "a new Promise" },
+	{ code: "export const text = Promise.resolve(1).then(String);", found: [[1, ".then(...)"]], name: "a .then call" },
+	{ code: 'export const text = Promise.resolve(1)["then"](String);', found: [[1, ".then(...)"]], name: "a .then call by its string key" },
+	{
+		code: "export function read() {\n\ttry {\n\t\treturn 1;\n\t} finally {\n\t\tString(2);\n\t}\n}",
+		found: [[2, "try statement"]],
+		name: "a try statement",
+	},
+	{ code: 'export function fail() {\n\tthrow new Error("bad");\n}', found: [[2, "throw statement"]], name: "a throw statement" },
+] as const;
+
+const BRIDGE = "export async function bridge() {\n\treturn 1;\n}";
+
+for (const { code, found, name } of CONSTRUCTS) {
+	ruleStory.it(
+		`effect/boundary reports ${name} at its line`,
+		[repositoryHas({ content: code, path: "src/bridge.ts" })],
+		function* ({ check }) {
+			const findings = yield* check(effectBoundary);
+
+			expect(findings).toEqual(found.map(([line, construct]) => usesAt("src/bridge.ts", line, construct)));
+		},
+		CLI_TIMEOUT,
+	);
+}
+
+ruleStory.it(
+	"effect/boundary checks a spec like any other source",
+	[repositoryHas({ content: BRIDGE, path: "src/bridge.spec.ts" })],
+	function* ({ check }) {
+		expect(yield* check(effectBoundary)).toEqual([usesAt("src/bridge.spec.ts", 1, "async function")]);
+	},
+	CLI_TIMEOUT,
 );
 
-effectPolicyStory.it(
-	"adapter and test-support folders work at every depth with only the shared preset",
-	[
-		policyFiles(
-			{ content: PROMISE_BRIDGE, path: "src/sentinel.ts" },
-			...["src/adapters/bridge.ts", "src/nested/adapters/bridge.ts", "src/test-support/bridge.ts", "tooling/nested/test-support/bridge.ts"].map(
-				(path) => ({ content: PROMISE_BRIDGE, path }),
+for (const path of [
+	"src/adapters/bridge.ts",
+	"src/nested/adapters/bridge.ts",
+	"src/test-support/bridge.ts",
+	"tooling/nested/test-support/bridge.ts",
+]) {
+	ruleStory.it(
+		`effect/boundary exempts ${path}`,
+		[repositoryHas({ content: BRIDGE, path })],
+		function* ({ check }) {
+			expect(yield* check(effectBoundary)).toEqual([]);
+		},
+		CLI_TIMEOUT,
+	);
+}
+
+for (const rule of ["effect/boundary", "effect/service-parameters"]) {
+	repositoryStory.it(
+		`quality lint refuses a config exception for ${rule}, which takes no exceptions`,
+		[
+			qualityInstalled(),
+			repositoryContains(
+				{ content: "export const value = 1;\n", path: "src/value.ts" },
+				{
+					content: `export default { exceptions: [{ files: ["src/value.ts"], reason: "An old bridge.", rules: ["${rule}"] }] };\n`,
+					path: "quality.config.ts",
+				},
 			),
-		),
-	],
-	function* ({ lint, writes }) {
-		expect((yield* lint()).stdout).toContain("Uses async function.");
-		yield* writes({ content: "export function sentinel() { return 1; }", path: "src/sentinel.ts" });
-		const result = yield* lint();
-		expect(result.stdout).not.toContain("effect/boundary");
-		yield* writes({
-			content: 'export function ambient() { console.log(Date.now(), Math.random(), process.env["MODE"]); }',
-			path: "src/adapters/ambient.ts",
-		});
-		const ambient = yield* lint();
-		for (const message of [
-			"Ambient time is banned",
-			"Ambient randomness is banned. Use Effect's Crypto service for secure values and Random for non-secure values.",
-			"console.* is banned",
-			"process.env is banned",
-		]) {
-			expect(ambient.stdout).toContain(message);
-		}
-	},
-);
+		],
+		function* ({ outcome, runs, stdout }) {
+			yield* runs("lint");
 
-effectPolicyStory.it(
-	"config exceptions and inline suppressions cannot excuse a boundary finding, but the baseline records it",
+			yield* outcomes({
+				"exit": [outcome(), "rejected"],
+				"report": [stdout(), expect.stringContaining(`${rule} src/value.ts names a rule that takes no exceptions`)],
+			});
+		},
+		CLI_TIMEOUT,
+	);
+}
+
+repositoryStory.it(
+	"quality lint still reports the effect/boundary finding that a refused config exception names",
 	[
-		policyFiles(
-			{ content: "// biome-ignore lint/plugin: bridge\nexport const BRIDGE = async () => 1;", path: "src/bridge.ts" },
+		qualityInstalled(),
+		repositoryContains(
+			{ content: "export const BRIDGE = async () => 1;\n", path: "src/bridge.ts" },
 			{
-				content:
-					'export default { sources: ["src", "tooling"], exceptions: [{ files: ["src/bridge.ts"], rules: ["effect/boundary"], reason: "An old bridge." }] };',
+				content: 'export default { exceptions: [{ files: ["src/bridge.ts"], reason: "An old bridge.", rules: ["effect/boundary"] }] };\n',
 				path: "quality.config.ts",
 			},
 		),
 	],
-	function* ({ lint, writes, baseline }) {
-		const refused = yield* lint();
-		expect(refused.stdout).toContain("effect/boundary src/bridge.ts names a rule that takes no exceptions");
-		expect(refused.stdout).toContain("Uses async arrow.");
-		expect(refused.stdout).toContain("Suppresses a check");
-		yield* writes({ content: 'export default { sources: ["src", "tooling"] };', path: "quality.config.ts" });
-		expect((yield* baseline("effect/boundary")).status).toBe(0);
-		expect((yield* lint()).stdout).not.toContain("Uses async arrow.");
+	function* ({ runs, stdout }) {
+		yield* runs("lint");
+
+		expect(yield* stdout()).toContain("src/bridge.ts:1  Uses async arrow.");
 	},
+	CLI_TIMEOUT,
+);
+
+repositoryStory.it(
+	"quality lint keeps the ambient time, randomness, console and process.env bans inside an adapters/ folder",
+	[
+		qualityInstalled(),
+		repositoryContains({
+			content: 'export function ambient() {\n\tconsole.log(Date.now(), Math.random(), process.env["MODE"]);\n}\n',
+			path: "src/adapters/ambient.ts",
+		}),
+	],
+	function* ({ runs, stdout }) {
+		yield* runs("lint");
+
+		yield* outcomes({
+			"console": [stdout(), expect.stringContaining("console.* is banned")],
+			"process.env": [stdout(), expect.stringContaining("process.env is banned")],
+			"randomness": [stdout(), expect.stringContaining("Ambient randomness is banned")],
+			"time": [stdout(), expect.stringContaining("Ambient time is banned")],
+		});
+	},
+	CLI_TIMEOUT,
 );

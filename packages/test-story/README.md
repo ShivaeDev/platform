@@ -717,7 +717,7 @@ pnpm add --save-dev react react-dom @effect/atom-react @types/react @types/react
 
 ### Driving a screen
 
-`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is needed only for `settle()`; actions, lookups and readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
+`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is required for `settle()`; `nextLiveHint()` requires client activity in that option. DOM actions, lookups and synchronous readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
 
 To use `settle()`, supply a `pending()` function that reads the application's own request or atom state. Settlement then keeps its `Effect<void>` type with no typed errors and waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
 
@@ -731,6 +731,20 @@ verbs: ({ view, requests }, story) =>
 		tell: story.tell,
 	});
 ```
+
+For a real contract client, use its activity instead of maintaining request counters or reading loading markup:
+
+```ts
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+
+const screen = screenDriver({ act, pending: clientActivity(client), root, tell });
+yield* screen.click({ role: "button", name: "Save" });
+yield* screen.settle();
+expect(screen.text("output")).toBe("Saved title");
+```
+
+This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. With client activity, `find()` settles before looking up its target once. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
 
 `click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 

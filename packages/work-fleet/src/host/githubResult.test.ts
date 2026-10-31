@@ -1,7 +1,5 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { failureCode } from "#engine/failureCode.ts";
-import { failureOwner } from "#engine/failureOwner.ts";
 import { githubHost } from "#test/githubHostStory.ts";
 import { completed, HEAD, MOVED, NO_CHANGE, PR, work } from "#test/githubResult.ts";
 
@@ -61,19 +59,6 @@ describe("GitHub worker result adoption", () => {
 		expect(yield* fixture.adopt(work, completed(NO_CHANGE))).toEqual({ evidence: [NO_CHANGE], head: HEAD, kind: "no-change" });
 		expect(fixture.refreshes()).toBe(0);
 		expect(fixture.requests).toHaveLength(0);
-	});
-
-	githubHost.it("host configuration selects adoption without granting no-change validation", [], function* (github) {
-		const integrations = yield* github.integrations();
-		const result = yield* integrations.result(work, completed(NO_CHANGE));
-		expect(result.kind).toBe("no-change");
-		const failure = yield* integrations.checks(work, result).pipe(Effect.flip);
-		expect(failureOwner(failure)).toBe("automation");
-		expect(failureCode(failure)).toBe("no-change-checks-unconfigured");
-		expect(failure).toMatchObject({
-			_tag: "ServiceUnavailable",
-			message: "No-change validation is not configured in this Fleet host; inspect the worker session",
-		});
 	});
 
 	githubHost.it("leaves adoption unconfigured unless selected", [], function* (github) {

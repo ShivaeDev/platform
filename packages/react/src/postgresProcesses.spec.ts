@@ -1,105 +1,122 @@
 import { expect } from "vitest";
-import { processes, twoServersAndWorker } from "#test/postgres-example/processKit.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { failedOver, processes, twoServersAndWorker } from "#test/postgres-example/processKit.ts";
+
+processes.it("every subscribed client starts with a resync hint", [twoServersAndWorker()], function* ({ initialHints }) {
+	yield* outcomes({
+		a: [initialHints("a"), ["resync"]],
+		another: [initialHints("another"), ["resync"]],
+		b: [initialHints("b"), ["resync"]],
+	});
+});
+
+for (const [writer, server] of [
+	["a", "first"],
+	["b", "second"],
+] as const) {
+	processes.it(
+		`a commit through the ${server} server reaches subscribers on both servers`,
+		[twoServersAndWorker()],
+		function* ({ hintsSinceAction, order, saveFromServer }) {
+			yield* saveFromServer(writer, `server ${server}`);
+
+			yield* outcomes({
+				"a hints": [hintsSinceAction("a"), ["changed orders 1"]],
+				"a reads": [order("a"), `server ${server}`],
+				"b hints": [hintsSinceAction("b"), ["changed orders 1"]],
+				"b reads": [order("b"), `server ${server}`],
+			});
+		},
+		30_000,
+	);
+}
 
 processes.it(
-	"commits from two HTTP servers and a pg-boss worker wake both servers; rollback stays silent and listener loss resyncs",
+	"a commit from the pg-boss worker reaches subscribers on both servers",
 	[twoServersAndWorker()],
-	function* ({ hints, saveFromServer, saveFromWorker, rejectWrite, loseListener, localResyncs, saveAfterReconnect }) {
-		expect(hints("a")).toEqual([{ _tag: "Resync" }]);
-		expect(hints("b")).toEqual([{ _tag: "Resync" }]);
-		for (const [writer, name] of [
-			["a", "server one"],
-			["b", "server two"],
-		] as const) {
-			const saved = yield* saveFromServer(writer, name);
-			expect(saved.result).toMatchObject({ _tag: "Success" });
-			expect(saved.a.name).toBe(name);
-			expect(saved.b.name).toBe(name);
-			expect(saved.hints.at(-1)).toEqual({ _tag: "Changed", keys: [{ _tag: "Item", collection: "orders", id: 1 }] });
-		}
-		const handled = yield* saveFromWorker();
-		expect(handled.a.name).toBe("worker");
-		expect(handled.b.name).toBe("worker");
-		const rejected = yield* rejectWrite();
-		expect(rejected.result).toMatchObject({ _tag: "Failure", failure: { _tag: "Rejected" } });
-		expect(rejected.after).toEqual(rejected.before);
-		expect(rejected.order.name).toBe("worker");
-		expect(yield* loseListener()).toEqual([{ terminated: true }]);
-		const resyncs = yield* localResyncs();
-		expect(resyncs.a.filter((hint) => hint._tag === "Resync")).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]);
-		expect(resyncs.another).toContainEqual({ _tag: "Resync" });
-		const reconnected = yield* saveAfterReconnect();
-		expect(reconnected.result).toMatchObject({ _tag: "Success" });
-		expect(reconnected.order.name).toBe("after reconnect");
+	function* ({ hintsSinceAction, order, saveFromWorker }) {
+		yield* saveFromWorker();
+
+		yield* outcomes({
+			"a hints": [hintsSinceAction("a"), ["changed orders 1"]],
+			"a reads": [order("a"), "worker"],
+			"b hints": [hintsSinceAction("b"), ["changed orders 1"]],
+			"b reads": [order("b"), "worker"],
+		});
 	},
 	30_000,
 );
 
 processes.it(
-	"both servers and the worker recover together after every database backend is terminated",
+	"a rolled-back write publishes no hint",
 	[twoServersAndWorker()],
-	function* ({
-		hints,
-		processLogs,
-		lockOrders,
-		beginGetFromServer,
-		blockedReads,
-		pendingReadResult,
-		terminateBackends,
-		waitForRecovery,
-		waitForResyncs,
-		getFromServer,
-		saveFromWorker,
-		saveFromServer,
-	}) {
-		for (const name of ["first", "second"]) {
-			expect(
-				processLogs(name).filter(
-					(log) =>
-						Array.isArray(log.message)
-						&& log.message.some((message) => typeof message === "string" && message.startsWith("PostgreSQL change listener")),
-				),
-			).toEqual([]);
-		}
-		yield* lockOrders();
-		yield* beginGetFromServer("a");
-		expect(yield* blockedReads()).toEqual([{ query: expect.stringContaining('select * from "'), "wait_event_type": "Lock" }]);
-		const terminated = yield* terminateBackends();
-		expect(terminated.length).toBeGreaterThanOrEqual(5);
-		expect(terminated).toEqual(terminated.map(() => ({ terminated: true })));
-		expect(yield* pendingReadResult("a")).toMatchObject({ _tag: "Failure", failure: { _tag: "Unavailable" } });
-		yield* waitForRecovery();
-		expect(yield* getFromServer("a")).toMatchObject({ id: 1 });
-		expect(yield* getFromServer("b")).toMatchObject({ id: 1 });
-		yield* waitForResyncs();
-		for (const name of ["a", "b", "another"]) {
-			expect(hints(name).slice(1)).toContainEqual({ _tag: "Resync" });
-		}
-		const handled = yield* saveFromWorker();
-		expect(handled.a.name).toBe("worker");
-		expect(handled.b.name).toBe("worker");
-		const saved = yield* saveFromServer("a", "after failover");
-		expect(saved.result).toMatchObject({ _tag: "Success" });
-		expect(saved.b.name).toBe("after failover");
-		for (const [name, streamCount] of [
-			["first", 2],
-			["second", 1],
-		] as const) {
-			const logs = processLogs(name).filter(
-				(log) =>
-					Array.isArray(log.message)
-					&& log.message.some((message) => typeof message === "string" && message.startsWith("PostgreSQL change listener")),
-			);
-			expect(logs).toEqual([
-				{ _tag: "Log", annotations: {}, level: "Warn", message: ["PostgreSQL change listener lost; resynchronizing live streams"] },
-				{
-					_tag: "Log",
-					annotations: { downtimeMs: expect.any(Number), streamCount },
-					level: "Info",
-					message: ["PostgreSQL change listener recovered; resynchronized live streams"],
-				},
-			]);
-		}
+	function* ({ answers, hintsSinceAction, rejectWrite }) {
+		yield* rejectWrite();
+
+		yield* outcomes({
+			"a hints": [hintsSinceAction("a"), ["changed orders 1"]],
+			answers: [answers(), ["rejected as Rejected", "saved"]],
+			"b hints": [hintsSinceAction("b"), ["changed orders 1"]],
+		});
+	},
+	30_000,
+);
+
+processes.it(
+	"a server that loses its listener resyncs its streams and receives later commits",
+	[twoServersAndWorker()],
+	function* ({ hintsSinceAction, loseListener, order }) {
+		yield* loseListener();
+
+		yield* outcomes({
+			"a hints": [hintsSinceAction("a"), ["resync", "resync", "changed orders 1"]],
+			"a reads": [order("a"), "after reconnect"],
+			"another hints": [hintsSinceAction("another"), ["resync", "resync", "changed orders 1"]],
+		});
+	},
+	30_000,
+);
+
+processes.it(
+	"after every backend is terminated both servers log the loss and recovery and resync every stream",
+	[twoServersAndWorker()],
+	function* ({ hintsSinceAction, listenerLogs, order, terminateBackends }) {
+		yield* terminateBackends();
+
+		yield* outcomes({
+			"a hints": [hintsSinceAction("a"), expect.arrayContaining(["resync", "changed orders 1"])],
+			"another hints": [hintsSinceAction("another"), expect.arrayContaining(["resync", "changed orders 1"])],
+			"b hints": [hintsSinceAction("b"), expect.arrayContaining(["resync", "changed orders 1"])],
+			"b reads": [order("b"), "after failover"],
+			"first server logs": [
+				listenerLogs("first"),
+				[
+					"Warn: PostgreSQL change listener lost; resynchronizing live streams",
+					"Info: PostgreSQL change listener recovered; resynchronized live streams (2 streams)",
+				],
+			],
+			"second server logs": [
+				listenerLogs("second"),
+				[
+					"Warn: PostgreSQL change listener lost; resynchronizing live streams",
+					"Info: PostgreSQL change listener recovered; resynchronized live streams (1 streams)",
+				],
+			],
+		});
+	},
+	30_000,
+);
+
+processes.it(
+	"after a failover the pg-boss worker's commits reach both servers",
+	[failedOver()],
+	function* ({ order, saveFromWorker }) {
+		yield* saveFromWorker();
+
+		yield* outcomes({
+			"a reads": [order("a"), "worker"],
+			"b reads": [order("b"), "worker"],
+		});
 	},
 	30_000,
 );

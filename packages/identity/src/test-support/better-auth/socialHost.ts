@@ -1,18 +1,19 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
-import { Effect, Layer, type Redacted } from "effect";
+import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
-import { authDatabase } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
-export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databaseUrl: Redacted.Redacted<string>) {
-	const pool = yield* authDatabase(databaseUrl);
+export const socialHost = Effect.fn("SocialStory.socialHost")(function* () {
+	const pool = yield* betterAuthDatabase();
+	const storage = yield* authTestDatabase;
 	const options = {
 		advanced: { useSecureCookies: false },
 		"baseURL": { allowedHosts: ["localhost:*"], protocol: "http" },
@@ -41,7 +42,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databas
 				accountLookups += 1;
 				accountRequests.push(headers.get("cookie") ?? "");
 				if (expireBeforeAccounts) {
-					await Effect.runPromise(authTestDatabase(pool).expireSessions());
+					await Effect.runPromise(storage.expireSessions());
 				}
 				if (accountLookupFails) {
 					throw new Error("Account storage unavailable");
@@ -88,6 +89,6 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databas
 		failAccountLookup: () => {
 			accountLookupFails = true;
 		},
-		pool,
+		storage,
 	};
 });

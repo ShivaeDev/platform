@@ -570,7 +570,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` renders the route’s `notFoundComponent`; other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` renders the route’s `notFoundComponent`; other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -586,7 +586,7 @@ import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()();
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api }>()();
 const Search = Schema.Struct({
 	page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
 		Schema.catchDecoding(() => Effect.succeed(Option.some(1))),
@@ -597,13 +597,15 @@ const note = createRoute({
 	getParentRoute: () => root,
 	path: "/notes/$id",
 	validateSearch: Schema.toStandardSchemaV1(Search),
-	...queryRoute(({ params, search }: { params: { id: string }; search: typeof Search.Type }) => api.get.query({ id: params.id, page: search.page })),
+	...queryRoute(({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof Search.Type }) =>
+		context.api.get.query({ id: params.id, page: search.page }),
+	),
 	notFoundComponent: () => <h1>Note not found</h1>,
 	component: Note,
 	errorComponent: Failure,
 });
 const router = createRouter({
-	context: { registry },
+	context: { registry, api },
 	routeTree: root.addChildren([note]),
 	defaultPendingMs: Infinity,
 	InnerWrap: Shell,
@@ -672,14 +674,16 @@ import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
 
 const ReadNotes = permission("notes.read");
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()({
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api }>()({
 	beforeLoad: permissionGuard({ session: () => auth.session, signIn: "/login" }),
 });
 const note = createRoute({
 	getParentRoute: () => root,
 	path: "/notes/$id",
 	staticData: { permission: ReadNotes },
-	...queryRoute(({ params }: { params: { id: string }; search: Record<string, never> }) => api.get.query({ id: params.id, page: 1 })),
+	...queryRoute(({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
+		context.api.get.query({ id: params.id, page: 1 }),
+	),
 	component: () => {
 		const query = useLoaderQuery(api.get.query({ ...note.useParams(), page: 1 }), note.useLoaderData());
 		return <h1>{query.data.title}</h1>;
@@ -697,7 +701,7 @@ const login = createRoute({
 	},
 });
 const router = createRouter({
-	context: { registry },
+	context: { registry, api },
 	routeTree: root.addChildren([note, login]),
 	disableGlobalCatchBoundary: true,
 });

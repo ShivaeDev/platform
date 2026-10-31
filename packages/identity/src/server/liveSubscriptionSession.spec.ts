@@ -39,15 +39,16 @@ for (let repetition = 1; repetition <= 20; repetition += 1) {
 	);
 }
 
-liveSubscriptionStory.it(
-	"a session-store failure at a change hint ends with AuthUnavailable",
-	[],
-	function* ({ nextHint, publish, sessionStoreBecomesUnavailable, subscriptionEnding }) {
-		expect(yield* nextHint()).toBe("resync");
+for (const [trigger, detect] of [
+	["a change hint", "publish"],
+	["the revalidation interval", "revalidationIntervalPasses"],
+] as const) {
+	liveSubscriptionStory.it(`a session-store outage ends an open WebSocket subscription with AuthUnavailable after ${trigger}`, [], function* (verbs) {
+		expect(yield* verbs.nextHint()).toBe("resync");
 
-		yield* sessionStoreBecomesUnavailable();
-		yield* publish();
+		yield* verbs.sessionStoreBecomesUnavailable();
+		yield* verbs[detect]();
 
-		expect(yield* subscriptionEnding()).toBe("failed with auth unavailable");
-	},
-);
+		expect(yield* verbs.subscriptionEnding()).toBe("failed with auth unavailable");
+	});
+}

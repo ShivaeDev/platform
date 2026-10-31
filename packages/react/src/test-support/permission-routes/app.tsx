@@ -47,7 +47,9 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 		getParentRoute: () => root,
 		path: "/notes/$id",
 		staticData: { permission: ReadNotes },
-		...queryRoute(({ params }: { params: { id: string }; search: Record<string, never> }) => host.api.get.query(params)),
+		...queryRoute(({ context, params }: { context: typeof root.types.allContext; params: { id: string }; search: Record<string, never> }) =>
+			context.host.api.get.query(params),
+		),
 	});
 	const direct = createRoute({
 		component: () => {

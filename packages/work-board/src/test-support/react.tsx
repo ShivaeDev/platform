@@ -14,11 +14,12 @@ import { responseContract } from "#rpc/responseContract.ts";
 import { BoardFixture } from "#test/BoardFixture.tsx";
 import { type BoardFixtureOptions, inMemoryBoard } from "#test/inMemoryBoard.ts";
 
-function boardClient(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions) {
+function boardClient(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions, runtime?: Atom.RuntimeFactory) {
 	class Client extends AtomRpc.Service<Reader>()("WorkBoard/RenderTest", {
 		group: workRpcs,
 		makeEffect: RpcTest.makeClient(workRpcs, { flatten: true }),
 		protocol: inMemoryBoard(files, options),
+		runtime,
 	}) {}
 	const live: Atom.Type<BrowserClient["updates"]["status"]> = { connection: "live", failure: Option.none(), needsResync: false, pending: 0 };
 	const status = Atom.make(live).pipe(Atom.keepAlive);
@@ -35,8 +36,13 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 export type BoardTestApi = ReturnType<typeof boardClient>;
 type BoardRender = (api: BoardTestApi, registry: AtomRegistry.AtomRegistry) => ReactNode;
 
-export async function renderBoard(files: Readonly<Record<string, string>>, component: BoardRender, options?: BoardFixtureOptions) {
-	const api = boardClient(files, options);
+export async function renderBoard(
+	files: Readonly<Record<string, string>>,
+	component: BoardRender,
+	options?: BoardFixtureOptions,
+	runtime?: Atom.RuntimeFactory,
+) {
+	const api = boardClient(files, options, runtime);
 	const view = await render(
 		<FormContext.Provider value={api.forms}>
 			<BoardFixture create={(registry) => component(api, registry)} />

@@ -1,13 +1,13 @@
 import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
-import { Effect, type Redacted } from "effect";
-import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { Effect } from "effect";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 
 export const ORIGIN = "http://localhost:3000";
 
-export const createProvider = Effect.fnUntraced(function* (url: Redacted.Redacted<string>) {
-	const database = yield* authDatabase(url, { max: 2 });
+export const createProvider = Effect.fnUntraced(function* () {
+	const database = yield* betterAuthDatabase();
 	const options = {
 		"baseURL": ORIGIN,
 		database,

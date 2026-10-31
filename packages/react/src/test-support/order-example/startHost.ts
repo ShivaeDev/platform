@@ -7,6 +7,8 @@ import { migrations } from "./postgres.ts";
 import { type OrderServerOptions, orderHandlers } from "./runtime.ts";
 import { makeOrdersRepository, OrderService, OrdersRepository } from "./service.ts";
 
+export const ORDER_CHANGES = "order_changes";
+
 export function signedInSessions() {
 	// Sign-in is a precondition; identity owns authentication and request context.
 	return new Map([
@@ -22,7 +24,7 @@ export const startHost = Effect.fn("Orders.startHost")(function* (
 ) {
 	const context = yield* Layer.build(
 		appHost({
-			config: { databaseUrl, port: 0 },
+			config: { changes: { channel: ORDER_CHANGES }, databaseUrl, port: 0 },
 			group: Orders,
 			handlers: orderHandlers(options),
 			migrations,
