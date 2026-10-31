@@ -1,6 +1,9 @@
-import { getMigrations } from "better-auth/db/migration";
+import { testUtils } from "better-auth/plugins";
 import { Effect } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
+import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -11,19 +14,31 @@ import { postgres } from "#test-support/postgres.ts";
 export const migration = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
-	create: () => ({}),
+	*create() {
+		const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
+		return { steps, storage: yield* authTestDatabase };
+	},
 	layer: postgres,
 	name: "app authentication schema",
 	stages: ["schema"],
-	verbs: (_engine, story) => ({
+	verbs: (engine, story) => ({
+		adoptRoles: () => engine.steps.migrateTo("0004_stored_roles"),
 		migrate: Effect.fn("AppStory.migrate")(function* () {
 			story.tell("apply every numbered application migration");
-			const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
-			yield* steps.migrateTo("0001_auth");
+			yield* engine.steps.migrateTo("0004_stored_roles");
 		}),
-		pendingAuthMigrations: Effect.fn("AppStory.pendingAuthMigrations")(function* () {
-			const pool = yield* betterAuthDatabase();
-			return yield* Effect.tryPromise(() => getMigrations({ ...authOptions(), database: pool }));
-		}),
+		roleColumn: () => engine.storage.roleColumn,
+		storedRoles: () => engine.storage.userRoles,
 	}),
+});
+
+export const legacyUser = migration.trait("schema", "alice has a user before the role field exists", function* (engine) {
+	yield* engine.storage.migrate(authOptions());
+	const { auth } = yield* betterAuthMount({
+		...authOptions(),
+		database: yield* betterAuthDatabase(),
+		plugins: [testUtils()],
+		secret: "migration-story-secret-at-least-32-characters",
+	});
+	yield* Effect.promise(() => signedInUser(auth, { email: "alice@migration.test", name: "alice" }));
 });

@@ -49,7 +49,7 @@ const startHost = Effect.gen(function* () {
 		trustedOrigins: [baseUrl],
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, { roles: Roles });
+	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: Roles });
 	const oauth = yield* betterAuthMcp({ auth: mounted.auth, origin: trustedOrigins({ allow: [baseUrl], missing: "allow" }), resource, roles: Roles });
 	const group = RpcGroup.make();
 	const jwks = jwksEndpoint(mounted.auth);
