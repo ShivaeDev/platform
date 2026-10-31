@@ -82,12 +82,12 @@ jobsStory.it("the waiting sync job's detail decodes its sync payload and counts 
 });
 
 jobsStory.it(
-	"the failed mail list carries mail 42's payload in the mail schema's encoded form on the wire",
+	"the failed mail list carries mail 42's decoded inspection payload on the wire",
 	[admin, mailFails(42)],
 	function* ({ failedJobs, lastAnswerOnTheWire }) {
 		yield* failedJobs("mail");
 
-		expect(yield* lastAnswerOnTheWire()).toContain('"data":{"id":"42"}');
+		expect(yield* lastAnswerOnTheWire()).toContain('"data":{"id":42}');
 	},
 );
 

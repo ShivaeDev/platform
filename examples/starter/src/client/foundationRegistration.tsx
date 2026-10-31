@@ -1,10 +1,10 @@
 import { createRoute } from "@tanstack/react-router";
 import type { ReactElement } from "react";
+import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { routerRedirect } from "#client/adapters/routerRedirect.ts";
 import { type FoundationClient, makeFoundationClient } from "#client/admin/foundation.ts";
-import { JobsView } from "#client/admin/JobsView.tsx";
 import { AdminShell } from "#client/admin/Shell.tsx";
 import { foundation } from "#modules.ts";
 import type { RouteContext } from "./Module.ts";
@@ -39,7 +39,7 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 					const { client: routeClient, adminPages } = jobs.useRouteContext();
 					return (
 						<AdminShell pages={adminPages} title={foundation.JobsPage.route.title}>
-							<JobsView api={routeClient.jobs} queues={foundation.JobsPage.queues} retry={routeClient.retry} />
+							<JobsView api={routeClient.jobs} queues={foundation.queues.map(({ name }) => name)} retry={routeClient.retry} />
 						</AdminShell>
 					);
 				},

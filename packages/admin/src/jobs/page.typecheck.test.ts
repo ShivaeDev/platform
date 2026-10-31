@@ -29,10 +29,10 @@ expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<"test
 expectTypeOf<Layer.Error<typeof registration.handlers>>().toEqualTypeOf<never>();
 expectTypeOf(page.contract.declaration.commands).toEqualTypeOf<readonly []>();
 type JobRpc = Extract<RpcGroup.Rpcs<typeof page.contract>, { readonly _tag: "admin.jobs.job" }>;
-expectTypeOf<JobRpc["successSchema"]["EncodingServices"]>().toEqualTypeOf<EncodePayload>();
-expectTypeOf<JobRpc["successSchema"]["DecodingServices"]>().toEqualTypeOf<DecodePayload>();
+expectTypeOf<JobRpc["successSchema"]["EncodingServices"]>().toEqualTypeOf<never>();
+expectTypeOf<JobRpc["successSchema"]["DecodingServices"]>().toEqualTypeOf<never>();
 type Job = JobRpc["successSchema"]["Type"] extends Option.Option<infer A> ? A : never;
-expectTypeOf<Job["data"]>().toEqualTypeOf<{ readonly id: string } | { readonly count: number }>();
+expectTypeOf<Job["data"]>().toEqualTypeOf<unknown>();
 
 expectTypeOf<Job["output"]>().toEqualTypeOf<JobFailure | null>();
 
@@ -55,5 +55,5 @@ const scheduledRegistration = registerAdmin(adminRegistry(scheduledPage), { jobs
 expectTypeOf<Layer.Services<typeof scheduledRegistration.handlers>>().toEqualTypeOf<"test/AdminJobs" | DecodePayload>();
 type ScheduledJobRpc = Extract<RpcGroup.Rpcs<typeof scheduledPage.contract>, { readonly _tag: "admin.jobs.job" }>;
 type ScheduledJob = ScheduledJobRpc["successSchema"]["Type"] extends Option.Option<infer A> ? A : never;
-expectTypeOf<ScheduledJob["data"]>().toEqualTypeOf<{ readonly id: string } | { readonly count: number } | null>();
-expectTypeOf<ScheduledJobRpc["successSchema"]["EncodingServices"]>().toEqualTypeOf<EncodePayload>();
+expectTypeOf<ScheduledJob["data"]>().toEqualTypeOf<unknown>();
+expectTypeOf<ScheduledJobRpc["successSchema"]["EncodingServices"]>().toEqualTypeOf<never>();

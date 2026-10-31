@@ -5,6 +5,7 @@ import { awaitHumanMerge } from "#engine/mergeReadiness.ts";
 import { observeDeliveryFailure } from "#engine/observeDeliveryFailure.ts";
 import { reconcileSweepHold } from "#engine/reconcileSweepHold.ts";
 import { requestRework } from "#engine/requestRework.ts";
+import type { MergeQueueResult } from "#MergeQueueResult.ts";
 import type { FleetRecord } from "#model.ts";
 import type { ChangeResult } from "#policy.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -35,7 +36,7 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 		current.value.mergeQueue?.status === "queued",
 		current.value.mergeReadyAt,
 	).pipe(Effect.catch((error) => observeDeliveryFailure(state, current, result, error)));
-	if (typeof status !== "string") {
+	if (typeof status !== "string" && ("value" in status || status.status === "failed")) {
 		return "value" in status
 			? status
 			: yield* requestRework(state)({ ...current, value: { ...current.value, mergeQueueRepair: true } }, status.repairPrompt);
@@ -47,7 +48,7 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 		.save(current, {
 			...current.value,
 			attentionOwner: "automation",
-			blocker: status === "queued" ? "Waiting for GitHub auto-merge" : "Waiting for GitHub mergeability",
+			blocker: queueBlocker(status),
 			decision: undefined,
 			decisionAcknowledged: undefined,
 			decisionPublished: undefined,
@@ -62,3 +63,10 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 		})
 		.pipe(Effect.flatMap(closeDecisions(state)));
 });
+
+function queueBlocker(status: Exclude<MergeQueueResult, { readonly status: "failed" }>) {
+	if (typeof status !== "string") {
+		return `Waiting for release PR #${status.releasePr.split("/").at(-1)} to merge`;
+	}
+	return status === "queued" ? "Waiting for GitHub auto-merge" : "Waiting for GitHub mergeability";
+}

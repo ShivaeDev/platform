@@ -21,7 +21,7 @@ export const repairParkedChecks = Effect.fn("Fleet.repairParkedChecks")(function
 	const status = yield* state.integrations
 		.queue?.(work, result, true, record.mergeReadyAt)
 		.pipe(Effect.catch((error) => observeDeliveryFailure(state, stored, result, error))) ?? Effect.succeed("pending");
-	if (typeof status === "string") {
+	if (typeof status === "string" || (!("value" in status) && status.status === "held")) {
 		return stored;
 	}
 	return "value" in status ? status : yield* requestRework(state)({ ...stored, value: { ...record, mergeQueueRepair: true } }, status.repairPrompt);

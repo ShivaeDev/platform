@@ -1,4 +1,5 @@
 import { Effect, Option } from "effect";
+import { redact } from "@shivaedev/errors/redact.ts";
 import type { PgBossClient } from "#client.ts";
 import { toPgBossError } from "#error.ts";
 import { decodeStoredData } from "#internal/storedRows.ts";
@@ -18,7 +19,7 @@ export function getJobFor(client: PgBossClient): PgBossService["getJob"] {
 			Effect.flatMap((job) =>
 				job === undefined
 					? Effect.succeed(Option.none())
-					: decodeStoredData(queue, job.data).pipe(Effect.map((data) => Option.some({ ...job, data }))),
+					: decodeStoredData(queue, job.data).pipe(Effect.map((data) => Option.some({ ...job, data: redact(data) }))),
 			),
 		);
 }

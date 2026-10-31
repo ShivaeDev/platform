@@ -11,7 +11,7 @@ export function decodeStoredData<const TName extends string, const TPayload exte
 	queue: { readonly name: TName; readonly schema: TPayload },
 	data: unknown,
 ): Effect.Effect<TPayload["Type"], PgBossPayloadError, TPayload["DecodingServices"]> {
-	return Schema.decodeUnknownEffect(queue.schema)(payloadOf(data)).pipe(
+	return Schema.decodeUnknownEffect(Schema.toCodecJson(queue.schema))(payloadOf(data)).pipe(
 		Effect.mapError((error) => new PgBossPayloadError({ direction: "decode", original: Redacted.make(error), queue: queue.name })),
 	);
 }

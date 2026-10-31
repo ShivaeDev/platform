@@ -373,7 +373,7 @@ export const inspectEmail = (id: string) =>
 
 `counts(queue)` reads the job table directly on each call. `queuedCount` includes created and retry-waiting jobs, including future jobs; `activeCount` counts running jobs, `failedCount` counts retained failures, and `totalCount` includes retained terminal jobs. A queue has drained when queued and active counts are both zero. These counts are a snapshot, so a producer can enqueue more work after the query returns.
 
-`getJob(queue, id)` returns `None` when the ID is absent, or `Some` pg-boss job metadata with `data` decoded by the queue's Schema. Invalid stored data fails with `PgBossPayloadError`, and the Effect requires the Schema's decoding services. `retry(queue, id)` reuses the original ID: it makes a failed job eligible for another attempt and pulls a retry-waiting job forward to run now. Missing IDs and jobs in other states are left unchanged. Its dead-letter copies stay listed while the retry is pending or fails again; a successful completion removes those copies in the same database transaction.
+`getJob(queue, id)` returns `None` when the ID is absent, or `Some` pg-boss job metadata with masked inspection `data: unknown`. The queue's Schema decodes the stored payload before the errors package's redactor masks native `Redacted` values and sensitive keys, including nested objects and arrays. Invalid stored data fails with `PgBossPayloadError`, and the Effect requires the Schema's decoding services. `retry(queue, id)` reuses the original ID: it makes a failed job eligible for another attempt and pulls a retry-waiting job forward to run now. Missing IDs and jobs in other states are left unchanged. Its dead-letter copies stay listed while the retry is pending or fails again; a successful completion removes those copies in the same database transaction.
 
 ### List failed and dead-lettered jobs
 
@@ -389,7 +389,7 @@ export const failedEmails = (cursor?: string) =>
 		const deadLettered = yield* jobs.deadLetteredJobs(SendEmail, { limit: 20 });
 		return {
 			deadLettered: deadLettered.jobs.map((job) => ({ id: job.id, original: Option.getOrNull(job.sourceId), error: job.sourceOutput })),
-			failed: failed.jobs.map((job) => ({ id: job.id, attempt: job.attempt, error: job.output, userId: job.data.userId })),
+			failed: failed.jobs.map((job) => ({ id: job.id, attempt: job.attempt, error: job.output, data: job.data })),
 			next: Option.getOrUndefined(failed.next),
 		};
 	});
@@ -399,7 +399,7 @@ export const failedEmails = (cursor?: string) =>
 
 Each page holds at most `limit` jobs, newest first by creation time; a dead-letter copy is created when its original fails for good. `limit` must be a positive integer. When more jobs remain, `next` is `Some` opaque cursor; pass it back as `cursor` for the following page, and stop when `next` is `None`. Paging continues from the last job it returned, so jobs that fail while you page appear in a fresh listing instead of shifting later pages, and no job appears twice. A malformed cursor or limit fails with `SchemaError` before pg-boss is called.
 
-An entry carries the job's `id`, `queue`, native `state`, `retryCount`, `retryLimit` and `attempt`, the one-based number of its last started attempt (zero for a job that never started). `createdOn` is a UTC `DateTime`; `startedOn` and `completedOn` are `Option`s of UTC `DateTime`s. `output` is `JobFailure | null`, decoded through `JobFailure` from `@shivaedev/jobs/JobFailure.ts`. Handler failures store only `{ _tag: string, message: string }`, with the message redacted through `@shivaedev/errors`; stack traces, cause chains and other error fields are omitted. `null` means pg-boss stored no output. Native pg-boss failures without a tag decode with `_tag: "Error"`; decoding also redacts messages from older stored failures. Stored output that does not match the Schema fails the listing with `PgBossPayloadError`. `data` is decoded by the queue's Schema, including traced payloads; invalid stored data fails the listing with `PgBossPayloadError`, as `getJob` does, and the Effect requires the Schema's decoding services. A dead-letter entry adds `sourceQueue`, the source queue name without the dead-letter suffix, `sourceId`, the original job's ID as an `Option`, and `sourceOutput`, the original's decoded `JobFailure | null`. The copy has not run, so its own `output` stays `null` and its `attempt` is zero.
+An entry carries the job's `id`, `queue`, native `state`, `retryCount`, `retryLimit` and `attempt`, the one-based number of its last started attempt (zero for a job that never started). `createdOn` is a UTC `DateTime`; `startedOn` and `completedOn` are `Option`s of UTC `DateTime`s. `output` is `JobFailure | null`, decoded through `JobFailure` from `@shivaedev/jobs/JobFailure.ts`. Handler failures store only `{ _tag: string, message: string }`, with the message redacted through `@shivaedev/errors`; stack traces, cause chains and other error fields are omitted. `null` means pg-boss stored no output. Native pg-boss failures without a tag decode with `_tag: "Error"`; decoding also redacts messages from older stored failures. Stored output that does not match the Schema fails the listing with `PgBossPayloadError`. `data: unknown` is decoded by the queue's JSON codec and masked through the errors package's redactor, including traced payloads; invalid stored data fails the listing with `PgBossPayloadError`, as `getJob` does, and the Effect requires the Schema's decoding services. A dead-letter entry adds `sourceQueue`, the source queue name without the dead-letter suffix, `sourceId`, the original job's ID as an `Option`, and `sourceOutput`, the original's decoded `JobFailure | null`. The copy has not run, so its own `output` stays `null` and its `attempt` is zero.
 
 Pass a failed entry's `id` to `retry(queue, id)` to run that job again under its original ID; once it completes it leaves the failed listing and its copies leave the dead-letter listing. Dead-letter IDs belong to the `-dlq` queue, so `retry(queue, id)` does not find them and leaves them unchanged.
 
@@ -564,3 +564,17 @@ The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` 
 `connectionString` configures pg-boss's own `pg` Pool, separately from the application's Effect SQL pool, and pg-boss's driver decides how its `sslmode` behaves. Set the TLS mode in that URL; the [framework database connection security guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#database-connection-security) compares the drivers and the application's connection paths.
 
 Provide the database connection and job registrations at the application runtime boundary. Application services own the domain work and provider calls; pg-boss owns queue execution. When `SqlClient` is provided and a SQL transaction is active, `enqueue` uses pg-boss’s per-call `db` option on that transaction’s connection. The application write and queued jobs commit or roll back together. The jobs client and SQL client must use the same PostgreSQL database. Outside a transaction, enqueueing keeps using the jobs client as usual. To keep enqueueing independent of an application transaction, move it after the transaction returns and handle its failure separately.
+
+### Secret payload fields
+
+Use native `Schema.Redacted` or `Schema.RedactedFromValue` for fields such as one-time links. Jobs uses Effect's JSON codec at the durable boundary, so PostgreSQL stores the real value and the worker receives a `Redacted` value it can unwrap with `Redacted.value`. This masks inspection data; it does not encrypt queue storage.
+
+```ts
+const Confirmation = defineQueue({
+	name: "confirmation",
+	schema: Schema.Struct({ href: Schema.Redacted(Schema.String) }),
+});
+const sendConfirmation = Confirmation.handle(({ href }) => sendMail(Redacted.value(href)));
+```
+
+`getJob`, `failedJobs` and `deadLetteredJobs` expose masked diagnostic data, without recoverable `Redacted` wrappers. Worker log messages and annotations use the errors package's redaction policy too. Keep secrets wrapped when logging or constructing errors; unwrapping a value into arbitrary text removes its sensitivity marker. The existing errors redactor bounds diagnostic depth, collection size and text length.

@@ -1,4 +1,5 @@
 import { Effect, Option, Redacted, Schema } from "effect";
+import { redact } from "@shivaedev/errors/redact.ts";
 import type { PgBossClient } from "#client.ts";
 import type { JobPayloadSchema } from "#definition.ts";
 import { type PgBossError, PgBossPayloadError, toPgBossError } from "#error.ts";
@@ -63,7 +64,7 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 	queue: { readonly name: TName; readonly schema: TPayload },
 	options: JobPageOptions,
 ): Effect.fn.Return<
-	JobPage<Omit<DeadLetteredJob<TPayload["Type"]>, "sourceQueue">>,
+	JobPage<Omit<DeadLetteredJob<unknown>, "sourceQueue">>,
 	PgBossError | PgBossPayloadError | Schema.SchemaError,
 	TPayload["DecodingServices"]
 > {
@@ -109,7 +110,7 @@ const listJobs = Effect.fnUntraced(function* <const TName extends string, const 
 	const next = decodedRows.length > limit && last !== undefined ? Option.some(Schema.encodeSync(Cursor)([last.cursorAt, last.id])) : Option.none();
 	return yield* Effect.forEach(page, ({ cursorAt: _, data, ...row }) =>
 		decodeStoredData(queue, data).pipe(
-			Effect.map((decoded) => ({ ...row, attempt: Option.isSome(row.startedOn) ? row.retryCount + 1 : 0, data: decoded })),
+			Effect.map((decoded) => ({ ...row, attempt: Option.isSome(row.startedOn) ? row.retryCount + 1 : 0, data: redact(decoded) })),
 		),
 	).pipe(Effect.map((jobs) => ({ jobs, next })));
 });

@@ -75,7 +75,7 @@ runtime.it(
 		yield* deliver("typed", [{ data: { id: "invalid" }, id: "job-1" }]);
 
 		expect((yield* spans()).map(({ name, outcome }) => ({ name, outcome }))).toEqual([
-			{ name: "typed", outcome: 'failed with decode typed payload failed with Expected number\n  at ["id"]' },
+			{ name: "typed", outcome: 'failed with decode typed payload failed with Expected "Infinity" | "-Infinity" | "NaN"\n  at ["id"]' },
 		]);
 	},
 );

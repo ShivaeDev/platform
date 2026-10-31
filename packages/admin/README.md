@@ -110,15 +110,29 @@ const registration = registerAdmin(Admin, {
 });
 ```
 
-The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `admin.jobs.deadLettered` and `admin.jobs.job`. Counts take `{ queue }`; listings take `{ queue, limit, cursor? }` and return `{ jobs, next }`, where `next` is an `Option<string>`. Job lookup takes `{ queue, id }` and returns `Option<Job>`. Each job carries its queue, decoded payload, state, attempt and retry counts, output and timestamps. Dead-letter listings also carry `sourceQueue`, `sourceId` and `sourceOutput`. `sourceQueue` names the original queue, so readers can route to it directly. Once the original succeeds, its copies leave the dead-letter listing. Output and source output use the jobs package's `JobFailure | null` shape (`_tag` and redacted `message`). A zero page limit or malformed listing cursor is rejected as `BadRequest`. Timestamps use UTC `DateTime` values; the RPC encodes timestamps as strings and Options as nullable values. The queue's original codec encodes and decodes its payload across RPC, preserving its service requirements.
+The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `admin.jobs.deadLettered` and `admin.jobs.job`. Counts take `{ queue }`; listings take `{ queue, limit, cursor? }` and return `{ jobs, next }`, where `next` is an `Option<string>`. Job lookup takes `{ queue, id }` and returns `Option<Job>`. Each job carries its queue, decoded payload, state, attempt and retry counts, output and timestamps. Dead-letter listings also carry `sourceQueue`, `sourceId` and `sourceOutput`. `sourceQueue` names the original queue, so readers can route to it directly. Once the original succeeds, its copies leave the dead-letter listing. Output and source output use the jobs package's `JobFailure | null` shape (`_tag` and redacted `message`). A zero page limit or malformed listing cursor is rejected as `BadRequest`. Timestamps use UTC `DateTime` values; the RPC encodes timestamps as strings and Options as nullable values. Jobs decodes the durable payload and masks native `Redacted` values and sensitive keys before the RPC response. Payloads are diagnostic `data: unknown`; narrow them before reading fields. Result serialization does not run the queue's payload encoder or require its encoding services.
 
 Schedule definitions from `defineSchedule` can be passed beside queues. A browser declaration can share just `{ _tag: "ScheduleDefinition", name }`; scheduled runs use a null payload schema for failed and dead-letter listings and job lookup. Calling `jobsPage()` with no arguments registers the same read-only page and serves health with no jobs and zero totals.
 
 Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as jobs health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
 
-The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. The application supplies the Jobs view and mounts the registration on its existing RPC host.
+The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. The application mounts the registration on its existing RPC host.
 
-#### Declare retry explicitly
+#### Mount the Jobs view
+
+Bind the page contract to the application's AtomRpc client and pass the shared queue names to `JobsView`. The view lists failed and dead-lettered jobs with readable failure messages, health, counts, pagination and detail. A caller without `jobs.read` sees a permission refusal. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client";` in their client CSS.
+
+```tsx
+import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+
+const jobs = bind(JobsPage.contract, Client);
+
+<JobsView api={jobs} queues={queueNames} />;
+```
+
+For a retry-enabled page, pass `retry={Client.runtime.fn(jobs.retry.run)}`. The view offers retry on failed originals; the server also requires `jobs.retry`. Omitting `retry` leaves the view read-only. Keep the view inside the application's admin shell and protect its route with `JobsPage.route.permission`.
+
+## Declare retry explicitly
 
 Use `jobsPageWithRetry` and `jobsHandlersWithRetry` when administrators should be able to retry failed original jobs:
 
@@ -170,6 +184,6 @@ Keep Better Auth cookie caching disabled so requests see current permissions. Ro
 
 Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react` as peers. The package has no root entry; import the module that defines the name.
 
-Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the built-in Users view under `/client` uses React. Applications own route composition and styling.
+Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the built-in Jobs and Users views under `/client` use React. Applications own route composition and styling.
 
 This package declares the permission middleware and does not resolve sessions. `permissionLayer` from `@shivaedev/identity/server/permissions.ts` resolves each request's session through the session policy the application supplies, then checks the page's permission.

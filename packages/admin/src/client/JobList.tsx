@@ -3,9 +3,9 @@ import { useState } from "react";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { JobDetail, JobRecord } from "./JobDetail.tsx";
 import { JobPagination } from "./JobPagination.tsx";
+import { JobsQueryPanel } from "./JobsQueryPanel.tsx";
 import { JobTable } from "./JobTable.tsx";
 import type { AdminJob, JobsViewClient, RetryJob } from "./jobsTypes.ts";
-import { QueryPanel } from "./QueryPanel.tsx";
 
 export function JobList({
 	api,
@@ -32,7 +32,7 @@ export function JobList({
 	}
 	return (
 		<div className="space-y-6">
-			<QueryPanel state={state}>
+			<JobsQueryPanel state={state}>
 				{(page) => (
 					<>
 						{page.jobs.length === 0 ? (
@@ -43,7 +43,7 @@ export function JobList({
 						<JobPagination change={changePage} cursors={cursors} next={page.next} pending={state.pending} />
 					</>
 				)}
-			</QueryPanel>
+			</JobsQueryPanel>
 			{selectedId !== undefined
 				&& (kind === "failed" ? (
 					<JobDetail api={api} id={selectedId} key={selectedId} queue={queue} retry={retry} />
