@@ -732,6 +732,20 @@ verbs: ({ view, requests }, story) =>
 	});
 ```
 
+For a real contract client, use its activity instead of maintaining request counters or reading loading markup:
+
+```ts
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+
+const screen = screenDriver({ act, pending: clientActivity(client), root, tell });
+yield* screen.click({ role: "button", name: "Save" });
+yield* screen.settle();
+expect(screen.text("output")).toBe("Saved title");
+```
+
+This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. With client activity, `find()` settles before looking up its target once. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
+
 `click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
 `within(container)` returns the same driver scoped to that container, including nested `within` calls. Pass a selector, a role/name target or an `HTMLElement`. Selector and role containers must resolve to one rendered descendant and use the usual missing or ambiguous target diagnostics. For example, `within({ role: "region", name: "Billing" }).click({ role: "button", name: "Save" })` can address a Save button when Delivery has an identical button. Settlement keeps the original pending signal and error type.

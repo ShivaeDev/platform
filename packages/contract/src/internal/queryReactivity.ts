@@ -6,7 +6,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { liveBatches, liveKeys } from "./liveInvalidation.ts";
 
-export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
+export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: () => () => void) {
 	const service = runtime.atom(Effect.service(Reactivity.Reactivity));
 	type Query = Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>;
 	const cached = new WeakMap<Query, Query>();
@@ -31,14 +31,23 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 				}
 				const reactivity = context.value;
 				let pending: (() => boolean) | undefined;
+				let queued: (() => void) | undefined;
+				function dequeue() {
+					if (timer === undefined && pending === undefined) {
+						queued?.();
+						queued = undefined;
+					}
+				}
 				let timer: ReturnType<typeof setTimeout> | undefined;
 				function clear() {
 					clearTimeout(timer);
 					timer = undefined;
 					pending = undefined;
+					dequeue();
 				}
 				function refresh(active: () => boolean) {
 					if (!active()) {
+						dequeue();
 						return;
 					}
 					if (get.once(source).waiting) {
@@ -46,6 +55,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 					} else {
 						pending = undefined;
 						get.refresh(source);
+						dequeue();
 					}
 				}
 				function changed() {
@@ -59,6 +69,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 						clear();
 						get.refresh(source);
 					} else {
+						queued ??= queue?.();
 						timer ??= setTimeout(() => {
 							timer = undefined;
 							refresh(batch.active);
@@ -83,6 +94,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 						if (active()) {
 							get.refresh(source);
 						}
+						dequeue();
 					}
 				});
 				return get.once(source);
