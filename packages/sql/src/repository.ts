@@ -6,6 +6,7 @@ import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeR
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
 import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
+import { type BucketRegistrationError, type RepositoryOptions, validateRepositoryCollection } from "#repositoryCollection.ts";
 import type { FindManyFilter, RepositoryFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
 import { type IdColumn, makeVersionedWrites, type VersionColumn, type VersionedWrites } from "#versionedRepository.ts";
@@ -39,12 +40,6 @@ export class OptimisticConcurrencyError extends Data.TaggedError("OptimisticConc
 	readonly reason: "missing" | "stale";
 }> {}
 
-interface RepositoryOptions<TId> {
-	readonly idColumn: TId;
-	readonly spanPrefix: string;
-	readonly tableName: string;
-}
-
 type VersionedRepository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = Omit<
 	Repository<TModel, TId>,
 	keyof VersionedWrites<TModel, TId>
@@ -67,7 +62,7 @@ export function makeRepository<
 ): Effect.Effect<
 	VersionedRepository<TModel, TId> &
 		Pick<ConflictWrites<TModel, never, TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]>, "insertOrIgnore">,
-	never,
+	BucketRegistrationError,
 	SqlClient.SqlClient
 >;
 export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>>(
@@ -77,7 +72,7 @@ export function makeRepository<TModel extends Model.Any, const TId extends Prima
 		readonly conflictColumns?: never;
 		readonly conflictWhere?: never;
 	},
-): Effect.Effect<VersionedRepository<TModel, TId>, never, SqlClient.SqlClient>;
+): Effect.Effect<VersionedRepository<TModel, TId>, BucketRegistrationError, SqlClient.SqlClient>;
 export function makeRepository<
 	TModel extends Model.Any,
 	const TId extends PrimaryKey<TModel>,
@@ -100,13 +95,17 @@ export function makeRepository<
 			TConflict[number] | (TId extends readonly PropertyKey[] ? TId[number] : TId),
 			TModel["fields"][Extract<TWhere, keyof TModel["fields"]>]["EncodingServices"]
 		>,
-	never,
+	BucketRegistrationError,
 	SqlClient.SqlClient
 >;
 export function makeRepository<TModel extends Model.Any, const TId extends PrimaryKey<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId> & { readonly versionColumn?: never; readonly conflictColumns?: never; readonly conflictWhere?: never },
-): Effect.Effect<Repository<TModel, TId> & BatchWrites<TModel> & SelectWrites<TModel> & Queries<TModel>, never, SqlClient.SqlClient>;
+): Effect.Effect<
+	Repository<TModel, TId> & BatchWrites<TModel> & SelectWrites<TModel> & Queries<TModel>,
+	BucketRegistrationError,
+	SqlClient.SqlClient
+>;
 export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TModel>>(
 	model: TModel,
 	options: RepositoryOptions<TId | readonly [TId, TId, ...TId[]]> & {
@@ -114,8 +113,9 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		readonly conflictColumns?: readonly string[];
 		readonly conflictWhere?: Readonly<Record<string, unknown>>;
 	},
-): Effect.Effect<unknown, never, SqlClient.SqlClient> {
+): Effect.Effect<unknown, BucketRegistrationError, SqlClient.SqlClient> {
 	return Effect.fnUntraced(function* () {
+		yield* validateRepositoryCollection(model.fields, options);
 		const sql = yield* SqlClient.SqlClient;
 		const composite = typeof options.idColumn === "object";
 		const idColumns = (composite ? options.idColumn : [options.idColumn]).map(String);

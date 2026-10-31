@@ -1,11 +1,15 @@
 import { Effect, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
+import type { RepositoryCollection } from "@shivaedev/sql/repositoryCollection.ts";
+import { expectPublished } from "@shivaedev/sql/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { signedIn } from "#readPolicy.ts";
 import { answered, shown } from "./answers.ts";
+import { Workspace } from "./collectionContract.ts";
 import { collectionDatabase, collectionEngine, configured } from "./collectionEngine.ts";
 import { settled } from "./settled.ts";
 
@@ -38,6 +42,10 @@ export const collectionStory = storyKit({
 			story.tell("the repository inserts a batch of workspaces");
 			return write(current, current.repository.insertMany(rows));
 		},
+		insertWithExpectedKeys: (tenant: string, title: string, keys: (row: Workspace) => readonly unknown[]) => {
+			story.tell(`insert ${title} and check its published keys against its generated result`);
+			return write(current, current.repository.insert({ tenant, title }).pipe(expectPublished(keys)));
+		},
 		memberReads: () => {
 			story.tell("a member reads the all-workspaces query");
 			return answered(current.member("workspaces.all", undefined), (rows) => JSON.stringify(rows));
@@ -45,6 +53,27 @@ export const collectionStory = storyKit({
 		memberSubscribes: () => {
 			story.tell("a member without the admin permission subscribes to every workspace");
 			return answered(Stream.runHead(current.member("workspaces.$changes", { queries: [{ payload: undefined, query: "all" }] })), () => "subscribed");
+		},
+		register: (collection?: RepositoryCollection) => {
+			story.tell("register the workspace repository against its contract collection");
+			return makeRepository(Workspace, {
+				...(collection === undefined ? {} : { collection }),
+				idColumn: "id",
+				spanPrefix: "Registration",
+				tableName: "workspaces",
+			}).pipe(
+				Effect.provideContext(current.services),
+				Effect.as("registered"),
+				Effect.catchTag("BucketRegistrationError", (error) =>
+					Effect.succeed({
+						collection: error.collectionName,
+						collectionFields: error.collectionFields,
+						error: error._tag,
+						modelFields: error.modelFields,
+						table: error.tableName,
+					}),
+				),
+			);
 		},
 		revokePermission: () => {
 			story.tell("the admin loses the workspace management permission");

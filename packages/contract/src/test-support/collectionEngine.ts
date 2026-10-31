@@ -13,7 +13,7 @@ import { changesSuccess } from "#internal/changesSuccess.ts";
 import { LiveServer } from "#LiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
-import { collectionContract, Guard, ManageWorkspaces, Permissions, Workspace } from "./collectionContract.ts";
+import { collectionContract, Guard, ManageWorkspaces, Permissions, Workspace, workspaces } from "./collectionContract.ts";
 
 const migrations = {
 	loader: Migrator.fromRecord({
@@ -36,6 +36,7 @@ export const collectionEngine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
 	const services = yield* Layer.build(appDatabase({ config: { databaseUrl: database.url }, migrations }));
 	const repository = yield* makeRepository(Workspace, {
+		collection: workspaces,
 		conflictColumns: ["title"],
 		idColumn: "id",
 		spanPrefix: "CollectionWorkspaces",
