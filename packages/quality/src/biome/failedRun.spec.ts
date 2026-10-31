@@ -1,10 +1,14 @@
 import { expect } from "vitest";
 import { biomeReports } from "#test/biomeReports.ts";
 
-biomeReports.it("a failing Biome run reports its exit code and stderr", [], function* ({ failure, runUnsupportedCommand }) {
-	yield* runUnsupportedCommand();
+biomeReports.it(
+	"a Biome run that exits without a report fails with the command Biome ran, its exit code and Biome's error output",
+	[],
+	function* ({ failure, requestsReportForUnknownCommand }) {
+		yield* requestsReportForUnknownCommand();
 
-	expect(failure()).toBe(
-		"biome unknown-command --reporter=json --max-diagnostics=none . exited 1 without a report:\nError: expected `COMMAND ...`, got `unknown-command`. Pass `--help` for usage information",
-	);
-});
+		expect(yield* failure()).toBe(
+			"biome unknown-command --reporter=json --max-diagnostics=none . exited 1 without a report:\nError: expected `COMMAND ...`, got `unknown-command`. Pass `--help` for usage information",
+		);
+	},
+);

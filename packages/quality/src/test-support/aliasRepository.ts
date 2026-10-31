@@ -1,4 +1,5 @@
-import { type SeedFile, seedTree } from "./tree.ts";
+import type { Fixture } from "./fixtureTree.ts";
+import type { SeedFile } from "./tree.ts";
 
 function json(path: string, value: unknown): SeedFile {
 	return { content: `${JSON.stringify(value, undefined, "\t")}\n`, path };
@@ -79,6 +80,8 @@ const aliasTree: readonly SeedFile[] = [
 	code("script/lib/tool.ts", "export const tool = 1;"),
 ];
 
-export function aliasRepository(): string {
-	return seedTree(aliasTree);
-}
+export const aliasRepository: Fixture = {
+	files: aliasTree,
+	story:
+		"an app package whose modules import inside and outside their folders in every import form, a reach into the kit workspace package and into node_modules, and a script that leaves its folder",
+};

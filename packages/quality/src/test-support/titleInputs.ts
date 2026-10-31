@@ -1,12 +1,4 @@
-import { ruleKit } from "#rule-story";
-import { linkPackage, type SeedFile } from "./tree.ts";
-
-export const qualityInstalled = ruleKit.trait("repository", "Quality is installed", (engine) => linkPackage(engine.root));
-
-export const testTitlePreset: readonly SeedFile[] = [
-	{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
-	{ content: "node_modules/\n", path: ".gitignore" },
-];
+import type { SeedFile } from "./tree.ts";
 
 export function helperNamed(name: string): SeedFile {
 	return {

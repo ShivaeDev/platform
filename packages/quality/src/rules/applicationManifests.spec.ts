@@ -1,65 +1,80 @@
 import { expect } from "vitest";
-import { repositoryHas, ruleKit } from "#rule-story";
 import { manifestsApplication } from "#rules/manifestsApplication.ts";
 import { application, entryPointWorkspace, HOIST_WORKSPACE, PLAIN_WORKSPACE, platformApp } from "#test/applicationFiles.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-const app = application("modules/app/package.json", platformApp);
+const APP = application("modules/app/package.json", platformApp);
 
-ruleKit.it(
-	"an application's workspace hoists the pieces platform brings",
-	[repositoryHas(...entryPointWorkspace, PLAIN_WORKSPACE, app)],
-	function* ({ checks, writes }) {
-		const findings = yield* checks(manifestsApplication);
-		expect(findings.map((finding) => [finding.file, finding.subject])).toEqual([["modules/app/package.json", "publicHoistPattern"]]);
-		expect(findings[0]?.message).toContain('Add `publicHoistPattern: ["@shivaedev/*"]` to pnpm-workspace.yaml');
+const UNHOISTED = {
+	file: "modules/app/package.json",
+	message:
+		'Depends on "@shivaedev/platform", but pnpm-workspace.yaml does not hoist @shivaedev/*. Add `publicHoistPattern: ["@shivaedev/*"]` to pnpm-workspace.yaml so the pieces platform brings resolve by their own names.',
+	subject: "publicHoistPattern",
+};
+
+const REPEATED_PIECES = [
+	{ entry: "@shivaedev/platform", field: "dependencies", piece: "@shivaedev/sql" },
+	{ entry: "@shivaedev/test-story", field: "devDependencies", piece: "@shivaedev/test" },
+] as const;
+
+ruleStory.it(
+	"manifests/application asks an application on platform to hoist @shivaedev/* until its pnpm workspace does",
+	[repositoryHas(...entryPointWorkspace, PLAIN_WORKSPACE, APP)],
+	function* ({ check, writes }) {
+		expect(yield* check(manifestsApplication)).toEqual([UNHOISTED]);
+
 		yield* writes(HOIST_WORKSPACE);
-		expect(yield* checks(manifestsApplication)).toEqual([]);
+
+		expect(yield* check(manifestsApplication)).toEqual([]);
 	},
 );
 
-ruleKit.it(
-	"a negated hoist pattern does not count as hoisting the pieces",
+ruleStory.it(
+	"manifests/application does not count a negated pattern as hoisting @shivaedev/*",
 	[
-		repositoryHas(...entryPointWorkspace, app, {
+		repositoryHas(...entryPointWorkspace, APP, {
 			content: 'packages: [modules/*]\npublicHoistPattern:\n  - "*"\n  - "!@shivaedev/*"\n',
 			path: "pnpm-workspace.yaml",
 		}),
 	],
-	function* ({ checks }) {
-		expect((yield* checks(manifestsApplication)).map((finding) => finding.subject)).toEqual(["publicHoistPattern"]);
+	function* ({ check }) {
+		expect(yield* check(manifestsApplication)).toEqual([UNHOISTED]);
 	},
 );
 
-ruleKit.it(
-	"an application lists no piece beside the entry point that brings it",
-	[
-		repositoryHas(
-			...entryPointWorkspace,
-			HOIST_WORKSPACE,
-			application("modules/app/package.json", {
-				dependencies: { ...platformApp.dependencies, "@shivaedev/sql": "workspace:*" },
-				devDependencies: { ...platformApp.devDependencies, "@shivaedev/test": "workspace:*" },
-			}),
-		),
-	],
-	function* ({ checks }) {
-		const findings = yield* checks(manifestsApplication);
-		expect(findings.map((finding) => finding.subject)).toEqual(["@shivaedev/sql", "@shivaedev/test"]);
-		expect(findings[0]?.message).toBe(
-			'Lists "@shivaedev/sql" in dependencies beside "@shivaedev/platform", which already brings it. Remove "@shivaedev/sql" from dependencies and keep importing it by its own name.',
-		);
-	},
-);
+for (const { entry, field, piece } of REPEATED_PIECES) {
+	ruleStory.it(
+		`manifests/application reports ${piece} that an application lists in ${field} beside ${entry}, which brings it`,
+		[
+			repositoryHas(
+				...entryPointWorkspace,
+				HOIST_WORKSPACE,
+				application("modules/app/package.json", { ...platformApp, [field]: { ...platformApp[field], [piece]: "workspace:*" } }),
+			),
+		],
+		function* ({ check }) {
+			const findings = yield* check(manifestsApplication);
 
-ruleKit.it(
-	"a library declares its pieces directly without the hoist setting",
+			expect(findings).toEqual([
+				{
+					file: "modules/app/package.json",
+					message: `Lists "${piece}" in ${field} beside "${entry}", which already brings it. Remove "${piece}" from ${field} and keep importing it by its own name.`,
+					subject: piece,
+				},
+			]);
+		},
+	);
+}
+
+ruleStory.it(
+	"manifests/application lets a library declare its pieces directly without hoisting them",
 	[
 		repositoryHas(...entryPointWorkspace, PLAIN_WORKSPACE, {
 			content: `${JSON.stringify({ dependencies: { "@shivaedev/sql": "workspace:*" }, devDependencies: { "@shivaedev/test": "workspace:*", "@shivaedev/test-story": "workspace:*" }, name: "@shivaedev/library" })}\n`,
 			path: "modules/library/package.json",
 		}),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(manifestsApplication)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(manifestsApplication)).toEqual([]);
 	},
 );

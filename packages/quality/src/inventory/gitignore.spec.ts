@@ -1,64 +1,83 @@
-import { Order, Schema } from "effect";
-import { afterEach, expect } from "vitest";
-import { services } from "#cli/runMain.ts";
-import rawTree from "#test/fixtures/gitignore-tree.json" with { type: "json" };
-import { git } from "#test/git.ts";
-import { pathsOf, sourceFiles } from "#test/inventoryPaths.ts";
-import { it as effectIt } from "#test/it.ts";
-import { removeSeededTrees, seedTree } from "#test/tree.ts";
+import { expect } from "vitest";
+import { gitTracks, inventoryStory, repositoryHas } from "#test/inventoryStory.ts";
 
-afterEach(removeSeededTrees);
+const GITIGNORES = [
+	{ content: ".worktree/\nbuild/\n*.scratch.ts\n", path: ".gitignore" },
+	{ content: "generated/*\n!generated/keep.ts\n", path: "packages/y/.gitignore" },
+	{ content: "!build/\n", path: "packages/z/.gitignore" },
+];
 
-const Seeded = Schema.Struct({ content: Schema.String, path: Schema.String });
-const tree = Schema.decodeUnknownSync(
-	Schema.Struct({ gitignores: Schema.Array(Seeded), ignoredPaths: Schema.Array(Schema.String), keptPaths: Schema.Array(Schema.String) }),
-)(rawTree);
+// git check-ignore sorts these paths against the .gitignore files above.
+const IGNORED = ["packages/x/.worktree/scratch.ts", "packages/y/generated/drop.ts", "packages/z/build/a.scratch.ts", "packages/w/build/drop.ts"];
+const KEPT = ["packages/x/src/mod.ts", "packages/y/generated/keep.ts", "packages/z/build/keep.ts", "packages/z/build/sub/deep.ts"];
 
-const ignored = sourceFiles(tree.ignoredPaths);
-const kept = sourceFiles(tree.keptPaths);
+const IGNORED_FILES = IGNORED.map((path) => ({ content: "export const value = 1;\n", path }));
+const KEPT_FILES = KEPT.map((path) => ({ content: "export const value = 1;\n", path }));
 
-// Expected paths were captured from git check-ignore against the same fixture.
-effectIt.layer(services)("gitignore-aware discovery", (it) => {
-	it.effect("keeps gitignored files out of the inventory", function* () {
-		const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept));
-		for (const path of tree.ignoredPaths) {
-			expect(paths).not.toContain(path);
-		}
-		for (const path of tree.keptPaths) {
-			expect(paths).toContain(path);
-		}
-	});
+inventoryStory.it(
+	"the inventory leaves out the files that .gitignore files ignore once the author adds them",
+	[repositoryHas(...IGNORED_FILES, ...KEPT_FILES)],
+	function* ({ collects, sourcePaths, writes }) {
+		yield* collects({ extensions: [".ts"] });
+		expect(yield* sourcePaths()).toEqual([
+			"packages/w/build/drop.ts",
+			"packages/x/.worktree/scratch.ts",
+			"packages/x/src/mod.ts",
+			"packages/y/generated/drop.ts",
+			"packages/y/generated/keep.ts",
+			"packages/z/build/a.scratch.ts",
+			"packages/z/build/keep.ts",
+			"packages/z/build/sub/deep.ts",
+		]);
 
-	it.effect("walks the identical tree in full when nothing is ignored", function* () {
-		const paths = yield* pathsOf(seedTree(ignored, kept));
-		expect(paths).toEqual([...tree.ignoredPaths, ...tree.keptPaths].sort(Order.String));
-	});
+		yield* writes(...GITIGNORES);
+		yield* collects({ extensions: [".ts"] });
 
-	it.effect("applies the ignore files above a nested source directory", function* () {
-		const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept), ["packages/y", "packages/w"]);
-		expect(paths).toEqual(["packages/y/generated/keep.ts"]);
-	});
+		expect(yield* sourcePaths()).toEqual(KEPT);
+	},
+);
 
-	it.effect("prunes vendored directories with no .gitignore present", function* () {
-		const root = seedTree([
+inventoryStory.it(
+	"the inventory applies the .gitignore files above a nested source folder",
+	[repositoryHas(...GITIGNORES, ...IGNORED_FILES, ...KEPT_FILES)],
+	function* ({ collects, sourcePaths }) {
+		yield* collects({ extensions: [".ts"], sources: ["packages/y", "packages/w"] });
+
+		expect(yield* sourcePaths()).toEqual(["packages/y/generated/keep.ts"]);
+	},
+);
+
+inventoryStory.it(
+	"the inventory leaves out node_modules without a .gitignore",
+	[
+		repositoryHas(
 			{ content: "export const k = 1;\n", path: "packages/x/src/mod.ts" },
 			{ content: "export const v = 1;\n", path: "packages/x/node_modules/v/index.ts" },
-		]);
-		expect(yield* pathsOf(root)).toEqual(["packages/x/src/mod.ts"]);
-	});
+		),
+	],
+	function* ({ collects, sourcePaths }) {
+		yield* collects();
 
-	it.effect("keeps tracked files in ignored directories while pruning untracked output beside them", function* () {
-		const root = seedTree([
-			{ content: "generated/\n", path: ".gitignore" },
-			{ content: "export const authored = 1;", path: "src/generated/Nested/authored.ts" },
-			{ content: "!output.ts\n", path: "src/generated/Nested/.gitignore" },
-			{ content: "export const output = 1;", path: "src/generated/Nested/output.ts" },
-			{ content: "export const loose = 1;", path: "src/generated/loose.ts" },
-		]);
-		git(root, "init", "--quiet");
-		git(root, "add", "--force", "src/generated/Nested/authored.ts");
-		expect(yield* pathsOf(root)).toEqual(["src/generated/Nested/authored.ts"]);
-		expect(yield* pathsOf(root, ["src/generated"])).toEqual(["src/generated/Nested/authored.ts"]);
-		expect(yield* pathsOf(root, ["src/generated/Nested"])).toEqual(["src/generated/Nested/authored.ts"]);
-	});
-});
+		expect(yield* sourcePaths()).toEqual(["packages/x/src/mod.ts"]);
+	},
+);
+
+const GENERATED = [
+	{ content: "generated/\n", path: ".gitignore" },
+	{ content: "export const authored = 1;", path: "src/generated/Nested/authored.ts" },
+	{ content: "!output.ts\n", path: "src/generated/Nested/.gitignore" },
+	{ content: "export const output = 1;", path: "src/generated/Nested/output.ts" },
+	{ content: "export const loose = 1;", path: "src/generated/loose.ts" },
+];
+
+for (const source of [".", "src/generated", "src/generated/Nested"]) {
+	inventoryStory.it(
+		`the inventory of the source ${source} keeps a file git tracks in an ignored folder and leaves out the untracked files beside it`,
+		[repositoryHas(...GENERATED), gitTracks("src/generated/Nested/authored.ts")],
+		function* ({ collects, sourcePaths }) {
+			yield* collects({ sources: [source] });
+
+			expect(yield* sourcePaths()).toEqual(["src/generated/Nested/authored.ts"]);
+		},
+	);
+}
