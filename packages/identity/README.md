@@ -86,7 +86,7 @@ export const sessions = {
 
 To also accept the transport guard's same-origin requests, pass `sameOrigin: { trustedProxy }`, with the same proxy IP addresses or CIDR ranges as the host. This admits direct loopback HTTP and the forwarded HTTP or HTTPS authority only from a matching transport peer. Session resolution supplies that peer from the HTTP request, including the WebSocket upgrade; RPC message headers cannot supply it. Missing Origins still follow `missing`. Leave `sameOrigin` absent when an explicit public-origin allowlist should be the only authority.
 
-The application's `auth` owns its storage and session configuration. A null lookup becomes a missing session. A thrown or rejected lookup is logged in redacted form and fails with the generic `AuthUnavailable` message. It remains a failure even on an RPC with optional authentication.
+The application's `auth` owns its storage and session configuration. A null lookup becomes a missing session. When the lookup returns Better Auth’s `session.expiresAt` as a `Date`, identity also rejects the session at or after that instant using Effect’s current clock. A thrown or rejected lookup is logged in redacted form and fails with the generic `AuthUnavailable` message. It remains a failure even on an RPC with optional authentication.
 
 ### Mount Better Auth
 
@@ -491,6 +491,8 @@ Use `testUtils()` from `better-auth/plugins` in a test-only Better Auth instance
 
 Use `authTestDatabase` from `@shivaedev/identity/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus the test-only faults `expireSessions(userId?)` and `omitImageColumn`. Pass a user id to expire only that user's sessions, or call `expireSessions()` to expire every session. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and read `SqlClient` from the Effect environment; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
 
+`authTestDatabase` also exposes `sessionsFor(userId)`, returning that user’s stored sessions as `{ id, expiresAt, expired }`. `expiresAt` is a native Effect UTC value; `expired` compares it with Effect’s current clock. Expired sessions remain visible until removed. Revocation deletes a session, so its id disappears from this readout; it keeps no revocation history. For expiry stories, advance `TestClock` to the minted session’s expiry instead of rewriting storage timestamps. Identity’s Better Auth session provider, session administration list and expired-session sweep use Effect’s clock. Better Auth’s own auth endpoints, session creation and refresh still use the provider’s clock.
+
 ```ts
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
@@ -551,7 +553,7 @@ With database-backed sessions and cookie caching disabled, revocation rejects th
 
 ### Sweep expired sessions in a worker
 
-Better Auth removes an expired session when it is presented. Use `sweepExpiredSessions` from `@shivaedev/identity/server/better-auth/sweepExpiredSessions.ts` to remove expired rows that are never presented again. The Effect reads the application's `SqlClient`, deletes sessions whose `expiresAt` is at or before PostgreSQL's current time, and returns the number removed. It preserves live sessions and needs no Better Auth mount or auth pool. It assumes the default Better Auth PostgreSQL table and column mappings.
+Better Auth removes an expired session when it is presented. Use `sweepExpiredSessions` from `@shivaedev/identity/server/better-auth/sweepExpiredSessions.ts` to remove expired rows that are never presented again. The Effect reads the application's `SqlClient`, deletes sessions whose `expiresAt` is at or before Effect's current time, and returns the number removed. It preserves live sessions and needs no Better Auth mount or auth pool. It assumes the default Better Auth PostgreSQL table and column mappings.
 
 Register the Effect with a worker schedule, as the starter does at midnight UTC. SQL and result-decoding failures stay in the Effect's error channel.
 
