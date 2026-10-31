@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { act } from "react";
-import { loadQuery } from "@shivaedev/react/loadQuery.ts";
+import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { documentQuery } from "#client/react/routeQuery.ts";
 import { archive } from "#server/archive/run.ts";
 import { watchChanges } from "#server/files/changes.ts";

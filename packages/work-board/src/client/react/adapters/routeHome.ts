@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { loadQuery } from "@shivaedev/react/loadQuery.ts";
+import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { documentRoute } from "#client/react/documentRoute.ts";
 import { navigationQuery } from "#client/react/routeQuery.ts";
 import type { RouterShell } from "./loadBoardPage.ts";
