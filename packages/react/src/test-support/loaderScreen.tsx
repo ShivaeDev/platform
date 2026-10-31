@@ -5,6 +5,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { screenPending } from "#client/screenPending.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { loadQuery } from "#loadQuery.ts";
@@ -21,8 +22,9 @@ type Host = Effect.Success<ReturnType<typeof loaderHost>>;
 interface Engine {
 	readonly host: Host;
 	readonly loaded: PromiseWithResolvers<void>;
+	readonly mount: PromiseWithResolvers<void>;
 	readonly mountGate: { wait: (registry: AtomRegistry.AtomRegistry) => Promise<void> };
-	refreshing: boolean;
+	pending?: () => boolean;
 	registry?: AtomRegistry.AtomRegistry;
 	readonly renders: string[];
 	router?: AnyRouter;
@@ -37,10 +39,10 @@ function sessionRegistry(engine: Engine) {
 }
 
 function opened(engine: Engine) {
-	if (engine.view === undefined || engine.router === undefined) {
+	if (engine.view === undefined || engine.router === undefined || engine.pending === undefined) {
 		throw new Error("The note screen is not open");
 	}
-	return { router: engine.router, view: engine.view };
+	return { pending: engine.pending, router: engine.router, view: engine.view };
 }
 
 function removed(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<unknown>) {
@@ -64,12 +66,8 @@ function idleWindowPasses(registry: AtomRegistry.AtomRegistry) {
 }
 
 function settle(engine: Engine, tell: (line: string) => void) {
-	const { router, view } = opened(engine);
-	return settleScreen(
-		view.container,
-		() => router.state.isLoading || router.state.matches.some((match) => match.isFetching) || engine.refreshing,
-		tell,
-	);
+	const { pending, view } = opened(engine);
+	return settleScreen(view.container, pending, tell);
 }
 
 function remember(engine: Engine, registry: AtomRegistry.AtomRegistry) {
@@ -87,7 +85,6 @@ const openNote = Effect.fn("LoaderScreen.openNote")(function* (engine: Engine) {
 		component: () => {
 			const query = useLoaderQuery(host.atom, note.useLoaderData());
 			engine.renders.push(query.data.title);
-			engine.refreshing = query.pending;
 			return (
 				<article>
 					<h1>{query.data.title}</h1>
@@ -128,6 +125,7 @@ const openNote = Effect.fn("LoaderScreen.openNote")(function* (engine: Engine) {
 			</SessionBoundary>,
 		),
 	);
+	engine.pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, sessionRegistry(engine)));
 });
 
 export const loaderScreen = storyKit({
@@ -137,8 +135,8 @@ export const loaderScreen = storyKit({
 		const engine: Engine = {
 			host,
 			loaded: Promise.withResolvers<void>(),
+			mount: Promise.withResolvers<void>(),
 			mountGate: { wait: () => Promise.resolve() },
-			refreshing: false,
 			renders: [],
 		};
 		return engine;
@@ -169,22 +167,13 @@ export const loaderScreen = storyKit({
 				}),
 			leave: () =>
 				Effect.promise(async () => {
-					story.tell("leave the note before it renders");
+					story.tell("navigate away from the note route");
 					await act(async () => {
 						await opened(engine).router.navigate({ to: "/" });
 					});
 				}),
 			loaderSource: () => Effect.sync(() => presence(host.source)),
-			refresh: () =>
-				Effect.promise(async () => {
-					story.tell("click Refresh while the server holds its answer");
-					host.next();
-					const button = opened(engine).view.container.querySelector("button");
-					if (button === null) {
-						throw new Error("Missing Refresh button");
-					}
-					await act(async () => button.click());
-				}),
+			refresh: () => refresh(engine, story.tell),
 			rename: (title: string) =>
 				Effect.promise(async () => {
 					story.tell(`rename the note to ${title}, which invalidates it`);
@@ -193,11 +182,29 @@ export const loaderScreen = storyKit({
 					});
 				}),
 			respond: (title: string) => respond(engine, title, story.tell),
+			routeMounts: () =>
+				Effect.promise(async () => {
+					story.tell("the router mounts the note route");
+					await act(async () => engine.mount.resolve());
+				}).pipe(Effect.andThen(settle(engine, story.tell))),
+			screenWork: () => Effect.sync(() => (opened(engine).pending() ? "pending" : "settled")),
 			serverCalls: () => Effect.sync(() => [...host.calls]),
 			shownTitle: () => Effect.sync(() => opened(engine).view.container.querySelector("h1")?.textContent),
 		};
 	},
 });
+
+function refresh(engine: Engine, tell: (line: string) => void) {
+	return Effect.promise(async () => {
+		tell("click Refresh while the server holds its answer");
+		engine.host.next();
+		const button = opened(engine).view.container.querySelector("button");
+		if (button === null) {
+			throw new Error("Missing Refresh button");
+		}
+		await act(async () => button.click());
+	});
+}
 
 function respond(engine: Engine, title: string, tell: (line: string) => void) {
 	return Effect.promise(async () => {
@@ -227,7 +234,7 @@ export function noteMountedAfterIdleWindow(title: string) {
 
 export function noteLoadedButNotMounted(title: string) {
 	return loaderScreen.trait("screen", `the note's loader read ${title} and its route has not mounted yet`, function* (engine) {
-		engine.mountGate.wait = () => new Promise<void>(() => undefined);
+		engine.mountGate.wait = () => engine.mount.promise;
 		yield* openNote(engine);
 		yield* Effect.promise(async () => {
 			await act(async () => engine.host.respond(title));
@@ -254,4 +261,12 @@ export function noteLeftAfterShowing(title: string) {
 			yield* settle(engine, () => undefined);
 		},
 	);
+}
+
+export function refreshHeld(title: string) {
+	return loaderScreen.trait("screen", `the note route shows ${title} and the server holds the answer to its Refresh`, function* (engine) {
+		yield* openNote(engine);
+		yield* respond(engine, title, () => undefined);
+		yield* refresh(engine, () => undefined);
+	});
 }
