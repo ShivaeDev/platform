@@ -66,6 +66,18 @@ describe("adopt", () => {
 });
 
 describe("prune", () => {
+	it("keeps the reason when moved debt is lowered", () => {
+		const reason = "The row schema must come from its caller.";
+		const result = prune(
+			[{ count: 2, file: "src/before.ts", reason, rule: "local/new" }],
+			[violation({ file: "src/after.ts", rule: "local/new" })],
+			known,
+			{ moves: new Map([["src/before.ts", "src/after.ts"]]) },
+		);
+
+		expect(result.entries).toEqual([{ count: 1, file: "src/after.ts", reason, rule: "local/new" }]);
+	});
+
 	it("drops fixed debt and lowers what shrank", () => {
 		const pruned = prune(
 			[

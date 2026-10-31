@@ -1,8 +1,13 @@
+{"path":"packages/server/src/appDatabase.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The shared pool release wrapper needs a native lease-ownership replacement, preserving exactly-once release across request scopes (likelihood 3 x severity 6 = 18)."}
 {"path":"packages/server/src/boundedRpcRequest.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/boundedRpcRequest.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/server/src/hostRpc.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Native RPC middleware order keeps read policy inside identity middleware; removing mutation requires rebuilding the group without changing authorization order (likelihood 3 x severity 6 = 18)."}
 {"path":"packages/server/src/nativeClientOrigins.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingDiagnostics.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingRpcSerialization.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/server/src/rerunQuery.ts","rule":"suppressions/no-double-cast","count":2,"reason":"Dynamically selected handler requirements are erased twice; repair must carry the handler service type through query reruns and authorization (likelihood 3 x severity 5 = 15)."}
 {"path":"packages/server/src/runtime/makePlatform.ts","rule":"effect/boundary","count":6}
+{"path":"packages/server/src/runtime/makePlatform.ts","rule":"suppressions/no-double-cast","count":1,"reason":"A development cache key owns its runtime service and build-error types; removing the identity overload requires typed cache ownership (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/server/src/runtime/types.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/server/src/test-support/app-host/taxonomyGuards.ts","rule":"effect/failure-honesty","count":1}
+{"path":"packages/server/src/tracedGroup.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Native middleware() cannot reorder an already attached tracing middleware; rebuilding must retain tracing and identity order (likelihood 3 x severity 6 = 18)."}

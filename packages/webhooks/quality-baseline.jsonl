@@ -1,2 +1,3 @@
 {"path":"packages/webhooks/src/server/internal/receive.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/webhooks/src/server/registration.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/webhooks/src/server/webhookReceipts.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The fixed to_regclass probe returns a PostgreSQL-owned text-or-null relation name; a decoder for this invariant adds ceremony (likelihood 1 x severity 2 = 2)."}

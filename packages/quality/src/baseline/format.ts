@@ -5,6 +5,7 @@ import { keyOf } from "#engine/violation.ts";
 const Line = Schema.Struct({
 	count: Schema.Int.check(Schema.isGreaterThan(0)),
 	path: Schema.NonEmptyString,
+	reason: Schema.optionalKey(Schema.NonEmptyString),
 	rule: Schema.NonEmptyString,
 });
 
@@ -13,6 +14,7 @@ const BaselineLine = Schema.fromJsonString(Line);
 export interface BaselineEntry {
 	readonly count: number;
 	readonly file: string;
+	readonly reason?: string;
 	readonly rule: string;
 }
 
@@ -51,10 +53,10 @@ export async function decodeBaseline(raw: string | undefined): Promise<Decoded<r
 	return issues.length === 0 ? { _tag: "Valid", value: entries } : { _tag: "Invalid", issues };
 }
 
-const LINE_KEYS = ["path", "rule", "count"];
+const LINE_KEYS = ["path", "rule", "count", "reason"];
 
 export function encodeEntry(entry: BaselineEntry): string {
-	return JSON.stringify({ count: entry.count, path: entry.file, rule: entry.rule }, LINE_KEYS);
+	return JSON.stringify({ count: entry.count, path: entry.file, reason: entry.reason, rule: entry.rule }, LINE_KEYS);
 }
 
 export function encodeBaseline(entries: readonly BaselineEntry[]): string {

@@ -1,4 +1,7 @@
 {"path":"packages/test-sql/src/server/internal/databaseOwner.ts","rule":"effect/boundary","count":1}
+{"path":"packages/test-sql/src/server/migrationSteps.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The fixed to_regclass query observes PostgreSQL-owned catalog metadata in a test kit; additional decoding adds no useful behavior here (likelihood 1 x severity 2 = 2)."}
+{"path":"packages/test-sql/src/server/migrationUpgrade.ts","rule":"suppressions/no-double-cast","count":2,"reason":"Fixed catalog queries observe relation names and column metadata during migration tests; additional decoders would add test-only ceremony (likelihood 1 x severity 2 = 2)."}
+{"path":"packages/test-sql/src/server/raceWithLock.ts","rule":"suppressions/no-double-cast","count":2,"reason":"Fixed pid and waiting-count queries observe PostgreSQL locks for test synchronization; PostgreSQL owns these result shapes (likelihood 1 x severity 2 = 2)."}
 {"path":"packages/test-sql/src/test-support/databaseTraits.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/test-sql/src/test-support/disconnectProxy.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/test-sql/src/test-support/upgradeStory.ts","rule":"effect/failure-honesty","count":1}
