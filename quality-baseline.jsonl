@@ -41,7 +41,6 @@
 {"path":"examples/starter/src/modules/notes/server/noteJobsEditing.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"examples/starter/src/modules/notes/server/noteLifecycle.spec.ts","rule":"tests/grouped-outcomes","count":3}
 {"path":"examples/starter/src/modules/notes/server/queueFailure.spec.ts","rule":"tests/grouped-outcomes","count":2}
-{"path":"examples/starter/src/modules/notes/server/sessionUser.spec.ts","rule":"effect/boundary","count":1}
 {"path":"examples/starter/src/modules/notes/server/workerCrash.spec.ts","rule":"tests/wait-on-events","count":1}
 {"path":"examples/starter/src/modules/notes/server/workerRelease.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"examples/starter/src/modules/notes/server/workerRelease.spec.ts","rule":"tests/wait-on-events","count":2}
