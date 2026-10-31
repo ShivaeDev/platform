@@ -3,7 +3,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
-import { requestOutcome } from "#test-support/requestOutcome.ts";
+import { requestOutcome } from "#modules/notes/test-support/requestOutcome.ts";
 
 adminHost.it("the last owner cannot be demoted", [adminAccount("owner", "owner")], function* ({ openAdmin }) {
 	const client = yield* openAdmin("owner");

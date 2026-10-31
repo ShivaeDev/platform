@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
-import { requestOutcome } from "#test-support/requestOutcome.ts";
+import { requestOutcome } from "#modules/notes/test-support/requestOutcome.ts";
 
 app.it("targets its own host for auth actions and session checks", [signedIn("client-user")], function* ({ authClient, actor }) {
 	const auth = authClient();

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
-import { requestOutcome } from "#test-support/requestOutcome.ts";
+import { requestOutcome } from "#modules/notes/test-support/requestOutcome.ts";
 
 adminHost.it(
 	"serves admin routes and guarded native jobs data through the development server",

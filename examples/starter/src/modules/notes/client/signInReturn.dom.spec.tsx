@@ -37,17 +37,19 @@ for (const [path, moduleLink] of [
 signInApp.it(
 	"an explicit sign-out forgets the protected deep link across session refresh",
 	[signInVisitor(SIGNED_TARGET, true)],
-	function* ({ settle, heading, click, href, authRequests }) {
+	function* ({ settle, heading, click, href, refreshSession }) {
 		yield* settle();
 		expect(heading()).toBe("Your app");
+		expect(href()).toBe(SIGNED_TARGET);
 		yield* click("Sign out");
 		yield* settle();
 		expect(heading()).toBe("Sign in");
-		expect(
-			authRequests()
-				.map((url) => url.pathname)
-				.filter((path) => path === "/api/auth/get-session").length,
-		).toBeGreaterThanOrEqual(2);
+		expect(href()).toBe("/sign-in");
+
+		yield* refreshSession();
+		yield* settle();
+
+		expect(heading()).toBe("Sign in");
 		expect(href()).toBe("/sign-in");
 	},
 );
