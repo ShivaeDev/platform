@@ -1,23 +1,17 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
-import { Context, type Effect, Layer } from "effect";
+import { Layer } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput, HostPreflight } from "#AppHostInput.ts";
+import { appDatabase, type DatabaseConfig } from "#appDatabase.ts";
 import { appHostHttp, deferredHost, migratedHost } from "#appHostHttp.ts";
-import { type DatabaseConfig, databaseLayer } from "#databaseLayer.ts";
 import type { HostCoreOptions, HostPolicy, HostRouteRequirements, HostRoutes } from "#hostOptions.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 
-export class AppChanges extends Context.Service<AppChanges, Effect.Success<typeof makeLiveServer>>()("@shivaedev/server/AppChanges") {}
 export interface AppDatabaseOptions<R = never, E = never> {
 	readonly config?: DatabaseConfig;
 	readonly migrations: MigrationOptions<R, E>;
-}
-
-export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
-	return databaseLayer(options, AppChanges);
 }
 
 export type AppHostOptions<
@@ -125,14 +119,14 @@ export const appHost: AppHostFactory = <
 	>,
 ) => {
 	if ("application" in options) {
-		return deferredHost(options.application, appDatabase(options), AppChanges).pipe(
+		return deferredHost(options.application, appDatabase(options)).pipe(
 			Layer.provideMerge(options.preflight ?? Layer.empty),
 			Layer.provide(NodeCrypto.layer),
 		);
 	}
 	return options.migrations === undefined
-		? appHostHttp(options, AppChanges).pipe(Layer.provideMerge(options.preflight ?? Layer.empty), Layer.provide(NodeCrypto.layer))
-		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations }), AppChanges).pipe(
+		? appHostHttp(options).pipe(Layer.provideMerge(options.preflight ?? Layer.empty), Layer.provide(NodeCrypto.layer))
+		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations })).pipe(
 				Layer.provideMerge(options.preflight ?? Layer.empty),
 				Layer.provide(NodeCrypto.layer),
 			);

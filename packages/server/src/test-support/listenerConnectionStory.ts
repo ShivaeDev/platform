@@ -2,6 +2,7 @@ import { ConfigProvider, Effect, Fiber, Layer, Queue, Redacted, Schema, Stream }
 import { Migrator, SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { collection } from "@shivaedev/changes/keys.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { PostgresListenerError } from "@shivaedev/sql/PostgresListenerError.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -9,8 +10,8 @@ import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { AppChanges, appHost } from "#appHost.ts";
-import type { DatabaseConfig } from "#databaseLayer.ts";
+import type { DatabaseConfig } from "#appDatabase.ts";
+import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 import { hintWords } from "#test/rpc/followHints.ts";
 
@@ -93,8 +94,10 @@ const engine = Effect.gen(function* () {
 		startupOutcome,
 		subscribe: () =>
 			Effect.gen(function* () {
-				yield* AppChanges.pipe(
-					Effect.flatMap((changes) => changes.stream([notes.item(1)]).pipe(Stream.runForEach((hint) => Queue.offer(hints, hintWords(hint))))),
+				yield* LiveServer.pipe(
+					Effect.flatMap((changes) =>
+						Stream.unwrap(changes.stream([notes.item(1)])).pipe(Stream.runForEach((hint) => Queue.offer(hints, hintWords(hint)))),
+					),
 					Effect.provideContext(services()),
 					Effect.forkScoped,
 				);

@@ -8,14 +8,13 @@ import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { sessionsHandlers } from "@shivaedev/identity/server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { ManageSessions, SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { nodeHttpServer } from "@shivaedev/server/nodeHttpServer.ts";
 import { SessionsPage } from "#sessions/Page.ts";
@@ -64,9 +63,9 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		roles: Access,
 	};
 	const sql = yield* SqlClient.SqlClient;
-	const live = yield* makeLiveServer.pipe(Effect.provide(Reactivity.layer));
-	const handlers = Layer.merge(sessionsHandlers, hostChanges(SessionsPage.contract, AppChanges)).pipe(
-		Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(AppChanges, live), Reactivity.layer]),
+	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
+	const handlers = Layer.merge(sessionsHandlers, hostChanges(SessionsPage.contract)).pipe(
+		Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live), Reactivity.layer]),
 	);
 	const routes = RpcServer.layerHttp({ group: SessionsPage.contract, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([handlers, permissionLayer(SessionsPermission, policy), RpcSerialization.layerJson]),

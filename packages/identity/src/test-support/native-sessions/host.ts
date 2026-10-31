@@ -5,8 +5,8 @@ import { ConfigProvider, Effect, Exit, Layer, Logger, Scope, Stream } from "effe
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
-import { AppChanges, appHost } from "@shivaedev/server/appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
@@ -49,7 +49,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		streamRevalidationInterval: "50 millis" as const,
 	};
 	const logs: unknown[] = [];
-	const changes = yield* makeLiveServer.pipe(Effect.provide(Reactivity.layer));
+	const changes = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
 	const streams = { released: 0, waiters: new Set<() => void>() };
 	function streamReleased() {
 		streams.released += 1;
@@ -70,12 +70,12 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 			routes: Layer.mergeAll(
 				mounted.routes,
 				HttpRouter.add("GET", "/diagnostic", diagnostic.pipe(Effect.map(HttpServerResponse.text))),
-				HttpRouter.add("POST", "/resync", changes.resync.pipe(Effect.map(HttpServerResponse.jsonUnsafe))),
+				HttpRouter.add("POST", "/resync", changes.resync().pipe(Effect.map(HttpServerResponse.jsonUnsafe))),
 			),
-			services: Layer.succeed(AppChanges, {
+			services: Layer.succeed(LiveServer, {
 				...changes,
-				subscribe: (subscription, requestContext) =>
-					changes.subscribe(subscription, requestContext).pipe(Stream.ensuring(Effect.sync(streamReleased))),
+				subscribe: (subscription, requestContext, read) =>
+					changes.subscribe(subscription, requestContext, read).pipe(Effect.map(Stream.ensuring(Effect.sync(streamReleased)))),
 			}),
 			sessions,
 		}).pipe(

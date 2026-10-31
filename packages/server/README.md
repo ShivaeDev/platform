@@ -35,7 +35,7 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 ### Host the application
 
-`appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
+`appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` to those Layers.
 
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
@@ -111,7 +111,7 @@ The host provides Effect's native `Crypto` service (`effect/Crypto`) to prefligh
 
 Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements other than `Crypto` remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
 
-When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `AppChanges` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
+When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 
 ```ts
 const host = appHost({
@@ -310,7 +310,8 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 | Module                                                                          | Names and purpose                                                                                                                                                             |
 | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appHost.ts`                                                                    | `appHost`, `appDatabase`, `AppChanges`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust.                                               |
+| `appHost.ts`                                                                    | `appHost`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust.                                                                            |
+| `appDatabase.ts`                                                                | `appDatabase`, `DatabaseConfig`: PostgreSQL composition with migrations, Reactivity and contract's `LiveServer`.                                                              |
 | `setupDatabases.ts`                                                             | `setupDatabases()`: prepare the local development and test databases.                                                                                                         |
 | `development.ts`                                                                | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode.                                                     |
 | `rpc-server/publicConfigLayer.ts`                                               | `publicConfigLayer(declaration, path?)`: serve a `publicConfig` declaration from native Config.                                                                               |

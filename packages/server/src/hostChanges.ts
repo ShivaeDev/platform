@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Option, Stream } from "effect";
 import { Headers } from "effect/http";
 import { Rpc, type RpcGroup } from "effect/rpc";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
@@ -8,17 +9,12 @@ import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
 import { revalidateStream } from "@shivaedev/identity/server/revalidateStream.ts";
 import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
-import type { AppChanges } from "#appHost.ts";
 import { rerunQuery } from "#rerunQuery.ts";
 
-export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
-	group: RpcGroup.RpcGroup<R>,
-	changesService: typeof AppChanges,
-	sessions?: SessionPolicy<TSession>,
-) {
+export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(group: RpcGroup.RpcGroup<R>, sessions?: SessionPolicy<TSession>) {
 	return Layer.effectContext(
 		Effect.gen(function* () {
-			const changes = yield* Effect.serviceOption(changesService);
+			const changes = yield* Effect.serviceOption(LiveServer);
 			const services = yield* Effect.context<never>();
 			const handlers = new Map<string, unknown>();
 			function subscribe(rpc: Rpc.AnyWithProps, queries: readonly QueryReference[], options: Parameters<Rpc.Handler<string>["handler"]>[1]) {
@@ -28,7 +24,7 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 						const viewer = yield* CurrentViewer;
 						const authorized = authorizeSession(sessions, rpc._tag, viewer, subscription.authorized);
 						const stream = Option.isSome(changes)
-							? changes.value.subscribe({ ...subscription, authorized }, context, rerunQuery(group, options))
+							? Stream.unwrap(changes.value.subscribe({ ...subscription, authorized }, context, rerunQuery(group, options)))
 							: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
 						if (sessions === undefined || Option.isNone(viewer)) {
 							return stream;

@@ -50,6 +50,7 @@
 	},
 	"dependencies": {
 		"@shivaedev/changes": "workspace:*",
+		"@shivaedev/service": "workspace:*",
 		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {

@@ -5,7 +5,8 @@ import { Migrator, SqlClient } from "effect/sql";
 import { answered } from "@shivaedev/test/answers.ts";
 import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appDatabase, appHost } from "#appHost.ts";
+import { appDatabase } from "#appDatabase.ts";
+import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "./ping.ts";
 
 interface PoolState {

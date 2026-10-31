@@ -4,8 +4,8 @@ import { Clock, Context, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
-import { AppChanges, appHost } from "#appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { appHost } from "#appHost.ts";
 import { RestartNotes } from "./Notes.ts";
 
 NodeRuntime.runMain(
@@ -18,7 +18,7 @@ NodeRuntime.runMain(
 					"restartNotes.get": ({ id, tab }) => Effect.map(Clock.currentTimeMillis, (readAt) => ({ id, pid: process.pid, readAt, tab })),
 				}),
 				policy: "loopback",
-				services: Layer.effect(AppChanges, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer)),
+				services: LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer)),
 			}),
 		);
 		const { address } = Context.get(context, HttpServer.HttpServer);

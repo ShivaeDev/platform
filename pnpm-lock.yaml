@@ -634,6 +634,9 @@ importers:
       '@shivaedev/changes':
         specifier: workspace:*
         version: link:../changes
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types
