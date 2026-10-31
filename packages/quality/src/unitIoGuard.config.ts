@@ -7,9 +7,9 @@ const installed = Symbol.for("@shivaedev/quality/unitIoGuard");
 let loading = 0;
 
 function assertUnitIoAllowed(call: string, boundary: (...args: never[]) => unknown): void {
-	const worker: { readonly filepath?: string } | undefined = Reflect.get(globalThis, "__vitest_worker__");
-	const file = worker?.filepath;
-	if (loading > 0 || file === undefined || !/\.unit\.(?:test|spec)\.[cm]?[jt]sx?$/u.test(file)) {
+	const worker: unknown = Reflect.get(globalThis, "__vitest_worker__");
+	const file = typeof worker === "object" && worker !== null && "filepath" in worker ? worker.filepath : undefined;
+	if (loading > 0 || typeof file !== "string" || !/\.unit\.(?:test|spec)\.[cm]?[jt]sx?$/u.test(file)) {
 		return;
 	}
 	const error = new Error(`Unit test ${file} cannot call ${call}; use a story through the package's kit for I/O.`);

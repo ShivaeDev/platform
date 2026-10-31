@@ -21,6 +21,17 @@ describe("encodeBaseline", () => {
 });
 
 describe("decodeBaseline", () => {
+	it("preserves a retained finding's reason when its count is serialized again", () => {
+		const retained = {
+			count: 1,
+			file: "src/rows.ts",
+			reason: "Dynamic rows need a schema supplied by the caller.",
+			rule: "suppressions/no-double-cast",
+		};
+
+		return expect(decodeBaseline(encodeBaseline([retained]))).resolves.toEqual({ _tag: "Valid", value: [retained] });
+	});
+
 	it("reads back what encodeBaseline writes, in file order", () =>
 		expect(decodeBaseline(encodeBaseline(entries))).resolves.toEqual({ _tag: "Valid", value: [entries[1], entries[2], entries[0]] }));
 

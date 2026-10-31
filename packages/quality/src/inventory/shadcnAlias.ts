@@ -16,7 +16,7 @@ function capture(pattern: string, alias: string): string | undefined {
 }
 
 function pathTarget(alias: string, options: ts.CompilerOptions, directory: string): string | undefined {
-	const pathsBase = Reflect.get(options, "pathsBasePath");
+	const pathsBase: unknown = Reflect.get(options, "pathsBasePath");
 	const base = options.baseUrl ?? (typeof pathsBase === "string" ? pathsBase : directory);
 	const patterns = Object.entries(options.paths ?? {}).toSorted(([left], [right]) => right.indexOf("*") - left.indexOf("*"));
 	const exact = options.paths?.[alias]?.[0];

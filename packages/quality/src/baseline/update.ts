@@ -96,7 +96,7 @@ export function prune(
 			return [];
 		}
 		moved += Number(now.file !== before.file);
-		return [{ after: { count: Math.min(before.count, now.count), file: now.file, rule: before.rule }, before }];
+		return [{ after: { ...before, count: Math.min(before.count, now.count), file: now.file }, before }];
 	});
 	return {
 		entries: kept.map(({ after }) => after),
