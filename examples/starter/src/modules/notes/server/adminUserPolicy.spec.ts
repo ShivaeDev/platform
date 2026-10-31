@@ -1,20 +1,35 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
+import { requestOutcome } from "#modules/notes/test-support/requestOutcome.ts";
 
 adminHost.it("the last owner cannot be demoted", [adminAccount("owner", "owner")], function* ({ openAdmin }) {
 	const client = yield* openAdmin("owner");
 	const { users } = yield* client["admin.users.list"]({ limit: 20 });
 	const owner = users[0];
 	if (owner === undefined) {
-		throw new Error("Owner was not listed");
+		return yield* Effect.die(new Error("Owner was not listed"));
 	}
-	expect(yield* Effect.flip(client["admin.users.changeRole"]({ role: "admin", userId: owner.id }))).toMatchObject({
-		_tag: "LastRoleAssigner",
-		userId: owner.id,
-	});
-	expect((yield* client["admin.users.list"]({ limit: 20 })).users[0]?.role).toBe("owner");
+	yield* outcomes([
+		[
+			"admin users change role",
+			() => Effect.flip(client["admin.users.changeRole"]({ role: "admin", userId: owner.id })),
+			expect.objectContaining({
+				_tag: "LastRoleAssigner",
+				userId: owner.id,
+			}),
+		],
+		[
+			"remaining owner role",
+			() =>
+				Effect.gen(function* () {
+					return (yield* client["admin.users.list"]({ limit: 20 })).users[0]?.role;
+				}),
+			"owner",
+		],
+	]);
 });
 
 adminHost.it(
@@ -25,16 +40,35 @@ adminHost.it(
 		const { users } = yield* client["admin.users.list"]({ limit: 20 });
 		const owner = users.find(({ name }) => name === "owner");
 		if (owner === undefined) {
-			throw new Error("Owner was not listed");
+			return yield* Effect.die(new Error("Owner was not listed"));
 		}
 		for (const name of ["owner", "operator"]) {
-			expect((yield* postAuthAdmin(name, "set-role", { role: "user", userId: owner.id })).status).toBe(HttpStatus.fromLiteral("NotFound"));
-			expect((yield* postAuthAdmin(name, "update-user", { data: { role: "user" }, userId: owner.id })).status).toBe(
-				HttpStatus.fromLiteral("NotFound"),
-			);
-			expect((yield* postAuthAdmin(name, "create-user", { email: "bypass@app.test", name: "Bypass", role: "owner" })).status).toBe(
-				HttpStatus.fromLiteral("NotFound"),
-			);
+			yield* outcomes([
+				[
+					"native create-user endpoint",
+					() =>
+						Effect.gen(function* () {
+							return (yield* postAuthAdmin(name, "create-user", { email: "bypass@app.test", name: "Bypass", role: "owner" })).status;
+						}),
+					HttpStatus.fromLiteral("NotFound"),
+				],
+				[
+					"native set-role endpoint",
+					() =>
+						Effect.gen(function* () {
+							return (yield* postAuthAdmin(name, "set-role", { role: "user", userId: owner.id })).status;
+						}),
+					HttpStatus.fromLiteral("NotFound"),
+				],
+				[
+					"native update-user endpoint",
+					() =>
+						Effect.gen(function* () {
+							return (yield* postAuthAdmin(name, "update-user", { data: { role: "user" }, userId: owner.id })).status;
+						}),
+					HttpStatus.fromLiteral("NotFound"),
+				],
+			]);
 		}
 		expect((yield* client["admin.users.list"]({ limit: 20 })).users).toEqual(users);
 	},
@@ -48,16 +82,13 @@ adminHost.it(
 		const bob = yield* openAdmin("bob");
 		const { users } = yield* alice["admin.users.list"]({ limit: 20 });
 		const clients = { alice, bob };
-		const outcomes = yield* Effect.all(
+		const changes = yield* Effect.all(
 			users.map((user) => {
 				const client = user.name === "alice" ? clients.alice : clients.bob;
-				return Effect.result(client["admin.users.changeRole"]({ role: "admin", userId: user.id }));
+				return requestOutcome(client["admin.users.changeRole"]({ role: "admin", userId: user.id }));
 			}),
 			{ concurrency: "unbounded" },
 		);
-		expect(outcomes.map((outcome) => outcome._tag).sort((left, right) => left.localeCompare(right))).toEqual(["Failure", "Success"]);
-		expect(outcomes.filter((outcome) => outcome._tag === "Failure").map((outcome) => outcome.failure)).toEqual([
-			expect.objectContaining({ _tag: "LastRoleAssigner" }),
-		]);
+		expect(changes.sort((left, right) => left.localeCompare(right))).toEqual(["allowed", "last owner"]);
 	},
 );

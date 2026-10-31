@@ -5,6 +5,7 @@ import type { Indexing } from "#rpc/Indexing.ts";
 import { archiveDocuments, refreshArchived } from "#server/archive/documents.ts";
 import { loadSettled } from "#server/archive/loadSettled.ts";
 import { archiveSettled } from "#server/archive/settled.ts";
+import { readCatalogue } from "#server/archive/settledCatalogue.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { invalidationsSince } from "#server/files/invalidations.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
@@ -121,7 +122,8 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 			yield* refreshArchived(changes, moved);
 			return yield* buildSnapshot(hit);
 		}
-		const model = updateModel(hit?.model, documents, unavailable, home ?? files[0]?.path);
+		const settled = new Map((yield* readCatalogue(root)).map((record) => [record.id, record.file]));
+		const model = updateModel(hit?.model, documents, unavailable, home ?? files[0]?.path, settled);
 		const enriched = enrich(next, model);
 		const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
 		const snapshot: Snapshot = {

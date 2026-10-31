@@ -18,14 +18,14 @@ export const stylesheets = storyKit({
 					Effect.promise(() => createServer({ configLoader: "native", logLevel: "silent", root, server: { middlewareMode: true } })),
 					(acquired) => Effect.promise(() => acquired.close()),
 				);
-				const result = yield* Effect.promise(() => server.transformRequest("/src/client/entry.css?direct"));
+				const result = yield* Effect.promise(() => server.transformRequest("/src/client/main.css?direct"));
 				if (result === null) {
 					throw new Error("The application stylesheet was not served");
 				}
 				engine.css = result.code;
 			} else {
 				const result = yield* Effect.promise(() =>
-					build({ build: { rolldownOptions: { input: "src/client/entry.css" }, write: false }, configLoader: "native", logLevel: "silent", root }),
+					build({ build: { rolldownOptions: { input: "src/client/main.css" }, write: false }, configLoader: "native", logLevel: "silent", root }),
 				);
 				const outputs = Array.isArray(result) ? result : [result];
 				engine.css = outputs

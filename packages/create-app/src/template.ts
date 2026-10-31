@@ -9,8 +9,7 @@ export const decodeTemplate = Schema.decodeUnknownSync(Schema.fromJsonString(Tem
 
 export function appTemplate(template: Template, minimal = false): Template {
 	const minimalManifest = template.find((entry) => entry.path === "package.minimal.json");
-	const minimalBaseline = template.find((entry) => entry.path === "quality-baseline.minimal.jsonl");
-	const files = template.filter((entry) => !["quality-baseline.minimal.jsonl", "package.minimal.json"].includes(entry.path));
+	const files = template.filter((entry) => entry.path !== "package.minimal.json");
 	if (!minimal) {
 		return files;
 	}
@@ -19,9 +18,6 @@ export function appTemplate(template: Template, minimal = false): Template {
 		.map((entry) => {
 			if (entry.path === "package.json" && minimalManifest !== undefined) {
 				return { ...entry, content: minimalManifest.content };
-			}
-			if (entry.path === "quality-baseline.jsonl" && minimalBaseline !== undefined) {
-				return { ...entry, content: minimalBaseline.content };
 			}
 			if (!["src/modules.ts", "src/server/modules.ts", "src/server/workerModules.ts", "src/client/modules.ts"].includes(entry.path)) {
 				return entry;

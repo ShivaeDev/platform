@@ -4,7 +4,7 @@ import type { HostOptions, RunningHost } from "#test-support/host.ts";
 import type { requests } from "./requests.ts";
 import type { workerQueue } from "./workerQueue.ts";
 
-export interface Actor {
+interface Actor {
 	readonly cookie: string;
 	readonly notes: Effect.Success<ReturnType<ReturnType<typeof requests>["notes"]>>;
 	readonly userId: string;

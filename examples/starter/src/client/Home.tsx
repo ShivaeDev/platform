@@ -10,6 +10,7 @@ import type { AuthActions } from "./auth.ts";
 export function Home({ auth }: { readonly auth: AuthActions }): ReactElement {
 	const signOut = useSignOut(auth.signOut, { signIn: "/sign-in" });
 	const location = useLocation();
+	const signOutFailure = Option.isSome(AsyncResult.error(signOut.result)) && <p role="alert">Could not sign out. Try again.</p>;
 	return (
 		<main className="mx-auto max-w-2xl space-y-4 px-4 py-12">
 			<h1 className="text-3xl font-semibold">Your app</h1>
@@ -19,7 +20,7 @@ export function Home({ auth }: { readonly auth: AuthActions }): ReactElement {
 			<Button disabled={signOut.pending} onClick={() => signOut.dispatch()} variant="outline">
 				Sign out
 			</Button>
-			{Option.isSome(AsyncResult.error(signOut.result)) && <p role="alert">Could not sign out. Try again.</p>}
+			{signOutFailure}
 		</main>
 	);
 }

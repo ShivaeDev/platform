@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
+import { requestOutcome } from "#modules/notes/test-support/requestOutcome.ts";
 
 adminHost.it(
 	"serves app statistics across owners and the registered job queue on the existing RPC host",
@@ -9,8 +11,14 @@ adminHost.it(
 		yield* createNote("alice", "Alice's note");
 		yield* createNote("bob", "Bob's note");
 		const client = yield* openAdmin("operator");
-		expect(yield* client["admin.notes.statistics"]()).toEqual({ notes: 2, pending: 2, words: 0 });
-		expect(yield* client["admin.jobs.counts"]({ queue: "count-note-words" })).toMatchObject({ queuedCount: 2, totalCount: 2 });
+		yield* outcomes([
+			[
+				"admin jobs counts",
+				() => client["admin.jobs.counts"]({ queue: "count-note-words" }),
+				expect.objectContaining({ queuedCount: 2, totalCount: 2 }),
+			],
+			["admin notes statistics", () => client["admin.notes.statistics"](), { notes: 2, pending: 2, words: 0 }],
+		]);
 		const health = yield* client["admin.jobs.health"]();
 		expect(health.jobs.map((queue) => queue.name)).toEqual(["count-note-words"]);
 		yield* startWorker();
@@ -26,9 +34,9 @@ adminHost.it(
 	function* ({ openAdmin }) {
 		for (const name of ["reader", "reader-two", "visitor"]) {
 			const client = yield* openAdmin(name);
-			for (const query of [Effect.result(client["admin.notes.statistics"]()), Effect.result(client["admin.jobs.health"]())]) {
+			for (const query of [requestOutcome(client["admin.notes.statistics"]()), requestOutcome(client["admin.jobs.health"]())]) {
 				const result = yield* query;
-				expect(result._tag === "Failure" && result.failure._tag).toBe(name === "visitor" ? "Unauthorized" : "Forbidden");
+				expect(result).toBe(name === "visitor" ? "sign in required" : "permission denied");
 			}
 		}
 	},

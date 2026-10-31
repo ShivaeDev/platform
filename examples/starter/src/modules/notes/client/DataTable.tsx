@@ -2,6 +2,7 @@ import {
 	type ColumnDef,
 	createSortedRowModel,
 	FlexRender,
+	type Header,
 	type HeaderGroup,
 	type Row,
 	type RowData,
@@ -29,13 +30,16 @@ function sortDirection(sorted: false | "asc" | "desc") {
 	return sorted === "asc" ? "ascending" : "descending";
 }
 
+function HeadingCell<TData extends RowData>({ header }: { readonly header: Header<DataTableFeatures, TData> }) {
+	const content = header.isPlaceholder ? null : <FlexRender header={header} />;
+	return <TableHead aria-sort={sortDirection(header.column.getIsSorted())}>{content}</TableHead>;
+}
+
 function HeadingRow<TData extends RowData>({ group }: { readonly group: HeaderGroup<DataTableFeatures, TData> }) {
 	return (
 		<TableRow>
 			{group.headers.map((header) => (
-				<TableHead aria-sort={sortDirection(header.column.getIsSorted())} key={header.id}>
-					{header.isPlaceholder ? null : <FlexRender header={header} />}
-				</TableHead>
+				<HeadingCell header={header} key={header.id} />
 			))}
 		</TableRow>
 	);
@@ -73,6 +77,8 @@ export function DataTable<TData extends RowData>({
 	readonly data: readonly TData[];
 }) {
 	const table = useTable({ columns, data, features });
+	const rows = table.getRowModel().rows;
+	const content = rows.length === 0 ? <EmptyRow columns={columns.length} /> : rows.map((row) => <DataRow key={row.id} row={row} />);
 	return (
 		<div className="overflow-hidden rounded-md border">
 			<Table aria-label={ariaLabel}>
@@ -81,13 +87,7 @@ export function DataTable<TData extends RowData>({
 						<HeadingRow group={group} key={group.id} />
 					))}
 				</TableHeader>
-				<TableBody>
-					{table.getRowModel().rows.length === 0 ? (
-						<EmptyRow columns={columns.length} />
-					) : (
-						table.getRowModel().rows.map((row) => <DataRow key={row.id} row={row} />)
-					)}
-				</TableBody>
+				<TableBody>{content}</TableBody>
 			</Table>
 		</div>
 	);

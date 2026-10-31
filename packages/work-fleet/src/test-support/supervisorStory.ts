@@ -12,6 +12,7 @@ import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { SupervisorStoryEngine } from "#test/SupervisorStoryEngine.ts";
 import { supervisorBoardCall } from "#test/supervisorBoardCall.ts";
 import { supervisorCodeChanges } from "#test/supervisorCodeChanges.ts";
+import { supervisorPluginFiles, supervisorPluginInstallation } from "#test/supervisorPluginInstallation.ts";
 import { supervisorSocketCall } from "#test/supervisorSocketCall.ts";
 
 const layer = Layer.merge(postgresLayer, NodeServices.layer);
@@ -57,6 +58,7 @@ export const fleetSupervisor = storyKit({
 			story.tell(`change ${kind} installed code`);
 			return engine.editCode(kind);
 		},
+		editPlugin: (source: string) => Effect.sync(() => supervisorPluginFiles(engine.fixture.root).edit(source)),
 		exit: () => {
 			const child = engine.process;
 			if (child === undefined) {
@@ -74,6 +76,8 @@ export const fleetSupervisor = storyKit({
 		log: () => engine.log(),
 		logBackup: (index: number) => readFileSync(join(engine.fixture.boardDir, `.work-up.log.${index}`), "utf8"),
 		navigation: (port: number) => supervisorBoardCall(port, (client) => client("work-board.navigation", { current: "" })),
+		pluginBundle: () => supervisorPluginFiles(engine.fixture.root).bundle(),
+		pluginRegisterExists: () => supervisorPluginFiles(engine.fixture.root).registerExists(),
 		preview: (port: number) =>
 			supervisorBoardCall(port, (client) => client("work-board-responses.question", { item: "decision.operator", request: "direction" })),
 		ready: (name: "daemon" | "board", previousPid?: number | null) => engine.ready(name, previousPid),
@@ -119,11 +123,14 @@ export const fleetSupervisor = storyKit({
 				story.tell("upgrade the installed Fleet package");
 				engine.fixture.upgrade();
 			}),
-		waitForLog: (text: string) => engine.until(() => Effect.sync(() => engine.log().includes(text))),
+		waitForLog: (text: string, offset = 0) => engine.until(() => Effect.sync(() => engine.log().slice(offset).includes(text))),
 	}),
 });
 
 export const staleSupervisor = fleetSupervisor.trait("ownership", "a dead supervisor left its lease", (engine) => engine.leaveStaleLock());
+export const pluginCheckout = fleetSupervisor.trait("ownership", "the checkout has plugin sources without generated bundles", (engine) => {
+	supervisorPluginInstallation(engine.fixture.root);
+});
 export const loadedCodeFixture = fleetSupervisor.trait("ownership", "the daemon imports a response module and merge files", (engine) => {
 	engine.codeChanges = supervisorCodeChanges(engine.fixture.daemonFile, engine.fixture.root);
 });

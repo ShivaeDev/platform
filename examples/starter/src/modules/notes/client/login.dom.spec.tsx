@@ -1,11 +1,11 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { loginScreen, screens } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
 	"submits signup and sign-in, retains rejected input, and shows provider and network failures",
 	[loginScreen("Email is already registered")],
 	function* ({
+		settle,
 		closeScreen,
 		consoleErrors,
 		click,
@@ -24,25 +24,25 @@ screens.it(
 		yield* enter("alice@app.test", "Email");
 		yield* enter("correct-horse", "Password");
 		yield* submit();
-		yield* eventually(() =>
-			expect(authenticationCalls()).toEqual([
-				{ credentials: { email: "alice@app.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" },
-			]),
-		);
-		yield* eventually(() => expect(alert()).toBe("Email is already registered"));
-		yield* eventually(() => expect(draft("Email")).toBe("alice@app.test"));
-		yield* eventually(() => expect(authenticated()).toEqual([]));
+		yield* settle();
+		expect(authenticationCalls()).toEqual([{ credentials: { email: "alice@app.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" }]);
+		expect(alert()).toBe("Email is already registered");
+		expect(draft("Email")).toBe("alice@app.test");
+		expect(authenticated()).toEqual([]);
 		yield* authenticationAccepts();
 		yield* submit();
-		yield* eventually(() => expect(authenticated()).toEqual(["sign-up"]));
+		yield* settle();
+		expect(authenticated()).toEqual(["sign-up"]);
 		yield* click("Use an existing account");
 		yield* authenticationGoesOffline();
 		yield* submit();
-		yield* eventually(() => expect(lastAuthenticationMode()).toBe("sign-in"));
-		yield* eventually(() => expect(alert()).toBe("Could not reach authentication. Try again."));
+		yield* settle();
+		expect(lastAuthenticationMode()).toBe("sign-in");
+		expect(alert()).toBe("Could not reach authentication. Try again.");
 		yield* authenticationAccepts();
 		yield* submit();
-		yield* eventually(() => expect(authenticated()).toEqual(["sign-up", "sign-in"]));
+		yield* settle();
+		expect(authenticated()).toEqual(["sign-up", "sign-in"]);
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},

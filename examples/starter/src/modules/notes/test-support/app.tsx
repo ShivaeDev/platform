@@ -3,6 +3,7 @@ import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { SqlClient } from "effect/sql";
+import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -21,6 +22,7 @@ import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
+import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
 const alice = credentials("alice");
 
@@ -51,6 +53,7 @@ export const notesApp = storyKit({
 	stages: ["account", "transport", "screen"],
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),
+		...uiScreenVerbs(engine, story.tell),
 		...engine.members.verbs(story.tell),
 		...screenObservations(engine),
 		button: (label: string) => {
@@ -114,17 +117,18 @@ export function notesHostScreen(initial = "/sign-in") {
 	return notesApp.trait("screen", `the real app is open at ${initial}`, function* (engine) {
 		engine.history.replace(initial);
 		const view = yield* acquireScreen(engine);
+		engine.pending = () =>
+			(engine.auth.client.$store.atoms.session?.get().isPending ?? false)
+			|| view.registry.get(engine.auth.actions.submit).waiting
+			|| view.registry.get(engine.auth.actions.signOut).waiting;
 		function connect() {
-			return connectModules([
-				notesRegistration(
-					makeNotesClient(`${engine.baseUrl}/rpc`, {
-						...(engine.headers.has("cookie")
-							? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructorWS }
-							: {}),
-					}),
-				),
-			]);
+			const client = makeNotesClient(`${engine.baseUrl}/rpc`, {
+				...(engine.headers.has("cookie") ? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructorWS } : {}),
+			});
+			engine.activity = clientActivity(client);
+			return connectModules([notesRegistration(client)]);
 		}
+
 		yield* Effect.promise(() => view.render(<App auth={engine.auth} connect={connect} history={engine.history} />));
 	});
 }
@@ -136,6 +140,7 @@ export function signInResponseHeld() {
 export function authScreen() {
 	return notesApp.trait("screen", "the sign-in screen uses the real auth host", function* (engine) {
 		const view = yield* acquireScreen(engine);
+		engine.pending = () => view.registry.get(engine.auth.actions.submit).waiting;
 		yield* Effect.promise(() => view.render(<LoginScreen auth={engine.auth.actions} onAuthenticated={() => undefined} />));
 	});
 }
