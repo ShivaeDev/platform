@@ -1,28 +1,27 @@
+import { join } from "node:path";
 import { Clock, Effect } from "effect";
 import type { readSnapshot } from "@shivaedev/work-board-plugin/board.ts";
+import { rpcPost } from "@shivaedev/work-board-plugin/rpc.ts";
 import { bundledClient } from "@shivaedev/work-board-plugin/test-support/bundledClient.ts";
+import { socketExchange } from "#test/socketRpc.ts";
 import { type BoardEngine, connected, served } from "#test/storyEngine.ts";
-import type { Tally } from "#test/Tally.ts";
 
 type WorkboardBoard = ReturnType<typeof readSnapshot>;
 
 export interface SocketObservations {
 	readonly connections: string[];
-	plugin?: WorkboardBoard;
-	readonly requests: { tag: string; payload: unknown }[];
-	readonly snapshots: Tally;
 }
 
-function progressOf(snapshot: WorkboardBoard | undefined) {
-	if (snapshot?.kind !== "ready") {
-		return snapshot?.kind ?? "nothing yet";
+function progressOf(snapshot: WorkboardBoard) {
+	if (snapshot.kind !== "ready") {
+		return snapshot.kind;
 	}
 	const goal = snapshot.goals.items[0];
 	return goal === undefined ? "no goals" : `${goal.done} of ${goal.total} done`;
 }
 
 export function socketVerbs(engine: BoardEngine, tell: (line: string) => void) {
-	const marks = { progress: "nothing yet", requests: 0, seen: 0 };
+	let plugin: { readonly board: () => Promise<WorkboardBoard> } | undefined;
 	function observations() {
 		if (!engine.sockets) {
 			throw new Error("Socket observations are not enabled; add observedSockets");
@@ -32,18 +31,11 @@ export function socketVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	function socketName(url: string) {
 		return url === `${served(engine).board.url.replace(/^http/u, "ws")}/_board/rpc` ? "the board's RPC socket" : url;
 	}
-	const nextProgress = Effect.fn("Story.nextProgress")(function* () {
-		const sockets = observations();
-		for (;;) {
-			marks.seen += 1;
-			yield* sockets.snapshots.reaches(marks.seen);
-			const progress = progressOf(sockets.plugin);
-			if (progress !== marks.progress && sockets.plugin?.kind === "ready") {
-				marks.progress = progress;
-				return progress;
-			}
-		}
-	});
+	function boardSocket(body: string) {
+		return socketExchange(join(engine.notes.root, "board.sock"), rpcPost(engine.notes.root, body)).then((reply) =>
+			reply.ok ? reply.text : Promise.reject(new Error(`The board refused the plugin's request (${reply.status})`)),
+		);
+	}
 	return {
 		followDocument: (url: string) =>
 			Effect.gen(function* () {
@@ -56,41 +48,28 @@ export function socketVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				);
 				yield* Effect.promise(() => client.read(query));
 			}),
-		nextPluginProgress: () => {
-			tell("the reader waits for the plugin to show new goal progress");
-			return nextProgress();
-		},
 		openPlugin: () =>
 			Effect.acquireRelease(
 				Effect.gen(function* () {
 					const clock = yield* Clock.Clock;
 					const { platformClient } = yield* bundledClient();
-					tell("the Claude plugin follows the Board through its shipped socket client");
-					const sockets = observations();
-					return platformClient(
-						served(engine).board.url,
-						engine.notes.root,
-						() => Promise.resolve(clock.currentTimeMillisUnsafe()),
-						(board: WorkboardBoard) => {
-							sockets.plugin = board;
-							sockets.snapshots.bump();
-						},
-					);
+					tell("the Claude plugin opens its shipped client, which posts each request over board.sock as the host's fetch does");
+					const client = platformClient(engine.notes.root, boardSocket, () => Promise.resolve(clock.currentTimeMillisUnsafe()));
+					plugin = client;
+					return client;
 				}),
 				(client) => Effect.sync(client.close),
 			),
-		pluginReadsSinceMark: () =>
-			Effect.sync(() => {
-				tell("the reader lists what the plugin asked the board for since the mark");
-				return observations()
-					.requests.slice(marks.requests)
-					.map(({ tag }) => tag)
-					.filter((tag) => !tag.endsWith(".$changes"))
-					.sort((left, right) => left.localeCompare(right));
-			}),
-		socketsMarked: () => {
-			tell("the reader notes the socket requests sent so far");
-			marks.requests = observations().requests.length;
+		pluginProgress: () => {
+			tell("the plugin reads the board, as its Refresh button and timer do, and shows its goal progress");
+			const client = plugin;
+			if (client === undefined) {
+				return Effect.die(new Error("The plugin is not open; call openPlugin first"));
+			}
+			return Effect.map(
+				Effect.promise(() => client.board()),
+				progressOf,
+			);
 		},
 		socketsOpened: () =>
 			Effect.sync(() => {
