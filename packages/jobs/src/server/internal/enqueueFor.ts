@@ -1,8 +1,8 @@
 import { Effect, Option, Redacted, Schema } from "effect";
+import { transactionDb } from "#adapters/transactionDb.ts";
 import type { PgBossClient } from "#client.ts";
 import { PgBossPayloadError, toPgBossError } from "#error.ts";
 import { capturePayload } from "#internal/tracing.ts";
-import { transactionDb } from "#internal/transactionDb.ts";
 import type { PgBossService } from "#service.ts";
 
 export function enqueueFor(client: PgBossClient): PgBossService["enqueue"] {
