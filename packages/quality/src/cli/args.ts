@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 import { Result } from "effect";
 import { SUBCOMMANDS } from "./messages.ts";
+import { ACCEPTS, misplaced, OPTIONS, type Values } from "./options.ts";
 
 export type Command =
 	| { readonly _tag: "Ci"; readonly coverage: boolean }
@@ -10,7 +11,13 @@ export type Command =
 	| { readonly _tag: "Fix"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselineMerge"; readonly base: string; readonly ours: string; readonly theirs: string }
 	| { readonly _tag: "BaselineInstallDriver" }
-	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[]; readonly files: readonly string[] }
+	| {
+			readonly _tag: "BaselineWrite";
+			readonly config: string | undefined;
+			readonly rules: readonly string[];
+			readonly files: readonly string[];
+			readonly firstAdoption: boolean;
+	  }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineTighten"; readonly config: string | undefined; readonly staged: boolean }
 	| { readonly _tag: "BaselineMigrate"; readonly config: string | undefined; readonly from: string | undefined }
@@ -22,53 +29,12 @@ export type Command =
 
 export type Parsed = { readonly _tag: "Parsed"; readonly command: Command } | { readonly _tag: "Usage"; readonly problem: string };
 
-const OPTIONS = {
-	against: { type: "string" },
-	config: { type: "string" },
-	coverage: { type: "boolean" },
-	file: { multiple: true, type: "string" },
-	force: { type: "boolean" },
-	from: { type: "string" },
-	help: { short: "h", type: "boolean" },
-	rule: { multiple: true, type: "string" },
-	staged: { type: "boolean" },
-} as const;
-
 function usage(problem: string): Parsed {
 	return { _tag: "Usage", problem };
 }
 
 function parsed(command: Command): Parsed {
 	return { _tag: "Parsed", command };
-}
-
-type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositionals: true }>>["values"];
-
-type Option = Exclude<keyof Values, "config" | "help">;
-
-const COMMAND_OPTIONS: readonly Option[] = ["against", "coverage", "file", "force", "from", "rule", "staged"];
-
-const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
-	"baseline install-driver": [],
-	"baseline migrate": ["from"],
-	"baseline prune": ["against"],
-	"baseline tighten": ["staged"],
-	"baseline write": ["rule", "file"],
-	ci: ["coverage"],
-	"exceptions migrate": ["from"],
-	fix: ["rule"],
-	"hooks install": ["force"],
-	"hooks pre-commit": [],
-	"hooks status": [],
-	"hooks uninstall": [],
-	lint: [],
-	setup: [],
-};
-
-function misplaced(name: string, values: Values): string | undefined {
-	const option = COMMAND_OPTIONS.find((key) => values[key] !== undefined && !(ACCEPTS[name] ?? []).includes(key));
-	const owners = Object.keys(ACCEPTS).filter((owner) => option !== undefined && (ACCEPTS[owner] ?? []).includes(option));
-	return option === undefined ? undefined : `--${option} applies only to ${owners.join(" and ")}.`;
 }
 
 function ref(against: string | undefined, command: Command): Parsed {
@@ -91,7 +57,13 @@ function commandFor(name: string, values: Values): Parsed {
 		case "baseline install-driver":
 			return parsed({ _tag: "BaselineInstallDriver" });
 		case "baseline write":
-			return parsed({ _tag: "BaselineWrite", config, files: values.file ?? [], rules: values.rule ?? [] });
+			return parsed({
+				_tag: "BaselineWrite",
+				config,
+				files: values.file ?? [],
+				firstAdoption: values["first-adoption"] === true,
+				rules: values.rule ?? [],
+			});
 		case "baseline prune":
 			return ref(values.against, { _tag: "BaselinePrune", against: values.against, config });
 		case "baseline tighten":

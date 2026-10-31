@@ -38,6 +38,10 @@ Interrupting a run stops its Biome and knip processes and removes their scoped t
 
 `effect/boundary` checks every TypeScript or JavaScript source in Quality's inventory, including shipped code, tooling and specs. It reports async functions, methods and arrows, await (including `for await`), `new Promise(...)`, `.then(...)`, try statements and throw statements. Model the work with Effect, fail with a tagged error, and use `Effect.die` for defects. Effect's resource and finalizer primitives model cleanup.
 
+It also reports synchronous calls imported from `node:fs` and `node:child_process` (including aliases, namespace imports and string member keys), parameters typed as Promise or callbacks returning Promise, and each call to a helper whose body throws. A guard called 31 times contributes 31 call findings, in addition to its throw statement. `Effect.sync` reports a throwing body: explicit throws, throwing helpers, synchronous Node IO, `JSON.parse`, URI encoding/decoding, `BigInt` and synchronous Schema decoders/encoders. Use `FileSystem` and `ChildProcessSpawner` for IO, and `Effect.try` with a tagged error for fallible synchronous work.
+
+`Effect.run*` references in core are reported even without Clock, Config or Random. Yield the computation so it uses the caller's runtime. Runners are accepted in `cli.ts`, `main.ts`, `*-cli.ts`, tool configs and tests, modules that call `runMain`, and modules with the `fileURLToPath(import.meta.url) === process.argv[1]` entry guard. These entry-point conventions accept runners only; the other boundary checks still apply.
+
 Only folders named `adapters/` or `test-support/`, at any depth, are exempt from this boundary rule. An `adapters/` folder bridges an outside library and hands the rest of the application Effect values. The name is fixed by convention, with no config or copied Biome plugin globs. Code that cannot be Effect belongs in that bridge or calls for a better Effect primitive. Adapter code still follows `effect/service-parameters` and the ambient time, randomness, console and environment bans.
 
 The `ambient-runtime` Biome plugin also reports `Effect.run*` calls whose computation contains `Clock`, `Config` or `Random`, `currentTimeMillisUnsafe`, crypto UUIDs and bytes, `performance.now`, process arguments, working directory and exit state, `globalThis.process.env`, timeouts and microtasks. Yield service computations in the caller's Effect so its environment controls them. These additional checks apply to core TypeScript code. They accept `cli.ts`, `main.ts`, `*-cli.ts`, modules that call `runMain`, use `NodeRuntime.runMain` or guard execution with `fileURLToPath(import.meta.url) === process.argv[1]`, tool configs, tests, `adapters/` and `test-support/`. The existing `Date.now()`, `new Date()`, `Math.random()`, console and direct `process.env` bans still apply there.
@@ -45,6 +49,8 @@ The `ambient-runtime` Biome plugin also reports `Effect.run*` calls whose comput
 `effect/service-parameters` reports parameters carrying a service in exported functions and public methods, including returned factories. It follows service classes and tags, non-empty Contexts and service implementation shapes through aliases, interfaces, generic constraints, inferred parameters and destructuring. Read services from Effect's environment instead. An Effect or Stream requiring a service is a computation and is accepted. Methods implementing a service and functions constructing Layers may take services as parameters. Only `test-support/` folders are exempt from this rule; `adapters/` folders are checked.
 
 Both rules refuse config exceptions and inline suppressions. Record existing debt with `quality baseline write --rule effect/boundary --file src/legacy.ts` and `quality baseline write --rule effect/service-parameters --file src/legacy.ts`; the normal report and baseline burn-down apply.
+
+When an upgrade expands these checks, inspect the new findings, repair the small ones and record retained debt with `quality baseline write --first-adoption --rule effect/boundary` (or `--rule effect/service-parameters`). This explicit first-adoption mode requires named rules that refuse config exceptions and may record unchanged files. Review each raised count and explain its reason in the pull request. Ordinary writes still require changed `--file` selections. Run `quality baseline tighten` after repairs to lower the touched files' counts.
 
 ### 1. Once per repository: connect the shared policy
 
@@ -87,7 +93,7 @@ quality hooks install
 
 For an application setup script, use `quality setup`. It installs the same hook when the current folder has its own `.git` entry, including a linked worktree. An unversioned app or an app inside another repository leaves hooks alone.
 
-Installing the package does not install a hook. `hooks install` writes the repository's pre-commit hook. A hook Quality did not write is kept unless `--force` replaces it. For an existing repository, `quality baseline write` records error-level findings when there is no baseline; later writes require `--rule <id>` and `--file <path>`. Each selected path must be changed since `HEAD`; stage new files first. Initial adoption without a baseline may record the repository once.
+Installing the package does not install a hook. `hooks install` writes the repository's pre-commit hook. A hook Quality did not write is kept unless `--force` replaces it. For an existing repository, `quality baseline write` records error-level findings when there is no baseline; ordinary later writes require `--rule <id>` and `--file <path>`. Each selected path must be changed since `HEAD`; stage new files first. Initial adoption without a baseline may record the repository once.
 
 When upgrading Quality, the starter and apps generated by create-app provide `pnpm baseline write --rule <id> --file <path>`. Record each new rule’s findings in the changed files, review the baseline diff, and land the upgrade before burning down that debt. Checks remain strict for findings above the recorded counts. After repairs, run `pnpm baseline tighten` to lower the touched files’ debt.
 
@@ -406,7 +412,7 @@ quality fix [--config <file>]
 quality exceptions migrate [--config <file>] [--from <registry>]
 quality baseline merge <ancestor> <current> <other>
 quality baseline install-driver
-quality baseline write [--config <file>] [--rule <id>]... [--file <path>]...
+quality baseline write [--config <file>] [--rule <id>]... [--file <path>]... [--first-adoption]
 quality baseline prune [--config <file>] [--against <ref>]
 quality baseline tighten [--config <file>] [--staged]
 quality baseline migrate [--config <file>] [--from <file>]
