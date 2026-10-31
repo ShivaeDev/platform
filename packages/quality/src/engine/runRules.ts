@@ -51,7 +51,11 @@ function violationOf(rule: ActiveRule, root: string, finding: Finding, exception
 
 function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure, RuleServices> {
 	return Effect.suspend(() => rule.check(inputs)).pipe(
-		Effect.catch((cause) => (cause instanceof SetupFailure ? Effect.fail(cause) : Effect.die(cause))),
+		Effect.catch((cause) =>
+			cause instanceof SetupFailure
+				? Effect.fail(new SetupFailure({ cause, message: `rule ${rule.id} failed: ${cause.message}` }))
+				: Effect.die(cause),
+		),
 		Effect.map((findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile))),
 		Effect.catchDefect((cause) =>
 			cause instanceof ManifestFailure
