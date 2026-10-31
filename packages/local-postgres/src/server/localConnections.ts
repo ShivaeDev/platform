@@ -1,35 +1,46 @@
+import { Effect, Schema } from "effect";
+import type { ChildProcessSpawner } from "effect/process";
+import { LocalPostgresError } from "./LocalPostgresError.ts";
 import { POSTGRES_IMAGE } from "./localContainer.ts";
+import type { docker as localDocker } from "./localDocker.ts";
+import type { PostgresCommandError } from "./PostgresCommandError.ts";
+import type { PostgresVersionMismatch } from "./PostgresVersionMismatch.ts";
 
-export class PostgresSettingError extends Error {
-	readonly _tag = "PostgresSettingError";
-	readonly container = "development-postgres";
-	readonly setting = "max_connections";
-
-	constructor(message: string, options: ErrorOptions) {
-		super(message, options);
-		this.name = "PostgresSettingError";
+export class PostgresSettingError extends Schema.TaggedError<PostgresSettingError>()("PostgresSettingError", {
+	cause: Schema.Unknown,
+	container: Schema.Literal("development-postgres"),
+	setting: Schema.Literal("max_connections"),
+}) {
+	override get message() {
+		return "Could not set max_connections to at least 500 in container development-postgres.";
 	}
 }
 
-export function ensureConnections(docker: (args: readonly string[]) => string, sql: (query: string) => string, ready: () => void) {
-	try {
-		const current = Number(sql("SHOW max_connections"));
+type Query = (query: string) => Effect.Effect<string, LocalPostgresError | PostgresCommandError, ChildProcessSpawner.ChildProcessSpawner>;
+
+export const ensureConnections = Effect.fn("LocalPostgres.ensureConnections")(function* (
+	docker: (args: readonly string[]) => ReturnType<typeof localDocker>,
+	sql: Query,
+	ready: () => Effect.Effect<void, LocalPostgresError | PostgresCommandError | PostgresVersionMismatch, ChildProcessSpawner.ChildProcessSpawner>,
+) {
+	yield* Effect.gen(function* () {
+		const current = Number(yield* sql("SHOW max_connections"));
 		if (!Number.isInteger(current) || current <= 0) {
-			throw new Error("PostgreSQL returned an invalid max_connections value.");
+			return yield* new LocalPostgresError({ message: "PostgreSQL returned an invalid max_connections value." });
 		}
 		if (current >= 500) {
 			return;
 		}
-		if (docker(["inspect", "--format", "{{.Config.Image}}", "development-postgres"]).trim() !== POSTGRES_IMAGE) {
-			throw new Error("The shared PostgreSQL container uses a different image. Preserve its data and upgrade it explicitly.");
+		if ((yield* docker(["inspect", "--format", "{{.Config.Image}}", "development-postgres"])) !== POSTGRES_IMAGE) {
+			return yield* new LocalPostgresError({
+				message: "The shared PostgreSQL container uses a different image. Preserve its data and upgrade it explicitly.",
+			});
 		}
-		sql("ALTER SYSTEM SET max_connections = 500");
-		docker(["restart", "development-postgres"]);
-		ready();
-		if (!(Number(sql("SHOW max_connections")) >= 500)) {
-			throw new Error("PostgreSQL did not apply max_connections after restarting.");
+		yield* sql("ALTER SYSTEM SET max_connections = 500");
+		yield* docker(["restart", "development-postgres"]);
+		yield* ready();
+		if (!(Number(yield* sql("SHOW max_connections")) >= 500)) {
+			return yield* new LocalPostgresError({ message: "PostgreSQL did not apply max_connections after restarting." });
 		}
-	} catch (cause) {
-		throw new PostgresSettingError("Could not set max_connections to at least 500 in container development-postgres.", { cause });
-	}
-}
+	}).pipe(Effect.mapError((cause) => new PostgresSettingError({ cause, container: "development-postgres", setting: "max_connections" })));
+});

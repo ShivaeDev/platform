@@ -1,27 +1,28 @@
-import { type ExecFileSyncOptionsWithStringEncoding, execFileSync } from "node:child_process";
+import { Effect } from "effect";
+import { LocalPostgresError } from "./LocalPostgresError.ts";
+import { type CommandOptions, runCommand } from "./runCommand.ts";
 
 export type DockerEnvironment = Readonly<{ "DOCKER_CONTEXT"?: string | undefined; "DOCKER_HOST"?: string | undefined }>;
 
-export function docker(
+export const docker = Effect.fn("LocalPostgres.docker")(function* (
 	environment: DockerEnvironment,
 	args: readonly string[],
-	options: ExecFileSyncOptionsWithStringEncoding = { encoding: "utf8" },
+	options: CommandOptions = {},
 ) {
 	const context = environment.DOCKER_CONTEXT;
 	const host = environment.DOCKER_HOST;
+	const settings = { ...options, env: { ...environment, ...options.env }, extendEnv: true };
 	const endpoint =
 		(!context && host)
-		|| execFileSync("docker", ["context", "inspect", ...(context ? [context] : []), "--format", "{{.Endpoints.docker.Host}}"], {
-			encoding: "utf8",
-		}).trim();
-	const url = new URL(endpoint);
+		|| (yield* runCommand("docker", ["context", "inspect", ...(context ? [context] : []), "--format", "{{.Endpoints.docker.Host}}"], settings));
+	const url = yield* Effect.try({ catch: () => new LocalPostgresError({ message: "Invalid Docker endpoint." }), try: () => new URL(endpoint) });
 	if (
 		!(
 			(["unix:", "npipe:"].includes(url.protocol) && ["", "localhost"].includes(url.hostname))
 			|| (url.protocol === "tcp:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname))
 		)
 	) {
-		throw new Error("Local database setup requires a local Docker endpoint; remote contexts are refused.");
+		return yield* new LocalPostgresError({ message: "Local database setup requires a local Docker endpoint; remote contexts are refused." });
 	}
-	return execFileSync("docker", args, options);
-}
+	return yield* runCommand("docker", args, settings);
+});
