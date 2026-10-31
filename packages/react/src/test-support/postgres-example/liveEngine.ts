@@ -32,14 +32,13 @@ function start(databaseUrl: Redacted.Redacted<string>, options: ServerOptions) {
 	);
 }
 
-export function rejectedSave(url: string) {
-	const client = makeClient(url, "alice-session");
-	return call(client, client.api.save.run({ id: 1, name: "Rolled back", quantity: 999 }).pipe(Effect.result));
+export function apiSave(url: string, name: string, quantity: number, token: string | undefined) {
+	const client = makeClient(url, token);
+	return call(client, client.api.save.run({ id: 1, name, quantity }).pipe(Effect.result));
 }
 
 export const createLiveEngine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
-	const saving: { pending?: Promise<Awaited<ReturnType<typeof rejectedSave>>> } = {};
 	const gate = { entered: yield* Deferred.make<void>(), held: false, rejected: false, released: yield* Deferred.make<void>() };
 	const server = yield* start(database.url, {
 		beforeCommit: Effect.gen(function* () {
@@ -48,16 +47,18 @@ export const createLiveEngine = Effect.gen(function* () {
 				yield* Deferred.await(gate.released);
 			}
 			if (gate.rejected) {
+				gate.rejected = false;
 				return yield* new Rejected();
 			}
 		}),
 	});
 	yield* Effect.addFinalizer(() => Deferred.succeed(gate.released, undefined));
+	const answers: string[] = [];
 	return {
-		baseline: { deliveries: 0, reads: 0 },
+		answers,
+		baseline: { deliveries: 0, publications: 0, reads: 0 },
 		database,
 		gate,
-		saving,
 		server,
 		views: new Map<string, Awaited<ReturnType<typeof mountView>>>(),
 	};
