@@ -40,6 +40,8 @@ for (const repair of ["checks", "answer"] as const) {
 			for (const id of ["two", "three"]) {
 				yield* fleet.dispatch(id);
 				pushWorkerBranch(id, { [MIGRATION_PATH]: `export const migrations = { ${id}: ${id} };\n` });
+				const result = publishedPredictionResult(id);
+				checksRespond(result.head, [[checkRun({ conclusion: null, headSha: result.head, name: "verify", status: "in_progress" })]]);
 				finishWorkers();
 				const held = (yield* fleet.reconcile(id)).value;
 				expect(held.blocker).toContain(`waiting for ${first.pr} to merge`);

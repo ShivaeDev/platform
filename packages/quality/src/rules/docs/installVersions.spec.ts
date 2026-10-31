@@ -1,40 +1,60 @@
 import { expect } from "vitest";
-import { repositoryHas, ruleKit } from "#rule-story";
 import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
 import { markdown } from "#test/docsRepository.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-ruleKit.it(
-	"install commands in shell blocks and inline code name packages without versions, while tags, other code and changelogs pass",
-	[
-		repositoryHas(
-			markdown(
-				"README.md",
-				"# Tools",
-				"",
-				"```sh",
-				"pnpm add @acme/lib effect@4.0.5",
-				"pnpm dlx @acme/create@latest my-app",
-				"```",
-				"",
-				"Run `npm install -D vitest@^5 typescript` before `pnpm add @acme/lib`.",
-				"",
-				"```ts",
-				'const command = "pnpm add effect@4.0.5";',
-				"```",
-			),
-			markdown("CHANGELOG.md", "# Changelog", "", "- Install with `pnpm add effect@4.0.4`."),
-		),
-	],
-	function* ({ checks, writes }) {
-		const findings = yield* checks(docsUnversionedInstalls);
-		expect(findings.map((finding) => [finding.line, finding.subject])).toEqual([
-			[4, "effect@4.0.5"],
-			[8, "vitest@^5"],
-		]);
-		expect(findings[0]?.message).toBe(
-			'"effect@4.0.5" pins a version in an install command. Name the package alone, effect: its manifest\'s version ranges decide what installs, and a version written in documentation goes stale with the next release.',
-		);
-		yield* writes(markdown("README.md", "# Tools", "", "```sh", "pnpm add @acme/lib effect", "```", "", "Run `npm install -D vitest typescript`."));
-		expect(yield* checks(docsUnversionedInstalls)).toEqual([]);
+const PINNED_INSTALLS = [
+	{
+		line: 4,
+		lines: ["```sh", "pnpm add @acme/lib effect@4.0.5", "```"],
+		name: "an exact version in a shell block",
+		owner: "effect",
+		token: "effect@4.0.5",
+	},
+	{
+		line: 3,
+		lines: ["Run `npm install -D vitest@^5 typescript` first."],
+		name: "a version range in inline code",
+		owner: "vitest",
+		token: "vitest@^5",
+	},
+];
+
+const UNPINNED_INSTALLS = [
+	{ lines: ["```sh", "pnpm add @acme/lib effect", "```"], name: "an install command that names packages alone" },
+	{ lines: ["```sh", "pnpm dlx @acme/create@latest my-app", "```"], name: "a dist-tag such as latest" },
+	{ lines: ["```ts", 'const command = "pnpm add effect@4.0.5";', "```"], name: "an install command inside TypeScript code" },
+];
+
+for (const { line, lines, name, owner, token } of PINNED_INSTALLS) {
+	ruleStory.it(
+		`docs/unversioned-installs reports ${name} and names the package to install alone`,
+		[repositoryHas(markdown("README.md", "# Tools", "", ...lines))],
+		function* ({ check }) {
+			const findings = yield* check(docsUnversionedInstalls);
+
+			expect(findings).toEqual([
+				{
+					file: "README.md",
+					line,
+					message: `"${token}" pins a version in an install command. Name the package alone, ${owner}: its manifest's version ranges decide what installs, and a version written in documentation goes stale with the next release.`,
+					subject: token,
+				},
+			]);
+		},
+	);
+}
+
+for (const { lines, name } of UNPINNED_INSTALLS) {
+	ruleStory.it(`docs/unversioned-installs accepts ${name}`, [repositoryHas(markdown("README.md", "# Tools", "", ...lines))], function* ({ check }) {
+		expect(yield* check(docsUnversionedInstalls)).toEqual([]);
+	});
+}
+
+ruleStory.it(
+	"docs/unversioned-installs leaves CHANGELOG.md unchecked, because a released entry keeps the commands of its release",
+	[repositoryHas(markdown("CHANGELOG.md", "# Changelog", "", "- Install with `pnpm add effect@4.0.4`."))],
+	function* ({ check }) {
+		expect(yield* check(docsUnversionedInstalls)).toEqual([]);
 	},
 );

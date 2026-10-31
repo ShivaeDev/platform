@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { TIME_NOW, timeScreen } from "#test/timeScreen.tsx";
+import { TIME_NOW, tickingTimeScreen, timeScreen } from "#test/timeScreen.tsx";
 import { exactTime } from "./timeLabel.ts";
 
 expectNoReactWarnings();
@@ -13,17 +13,31 @@ const relative = new Intl.RelativeTimeFormat(undefined, { style: "narrow" });
 const shortDate = { day: "numeric", hour: "2-digit", minute: "2-digit", month: "short" } as const;
 
 screenStory.it(
-	"ticks mounted times and updates a refreshed timestamp without replacing its element",
-	[timeScreen()],
-	function* ({ advanceTime, refreshTime, findElement, readText }) {
+	"updates a mounted relative time when the runtime clock advances",
+	[tickingTimeScreen()],
+	function* ({ advanceClock, readText }) {
+		expect(readText("time")).toBe("just now");
+
+		yield* advanceClock(MINUTE);
+
+		expect(readText("time")).toBe(relative.format(-1, "minute"));
+	},
+	{ clock: "test" },
+);
+
+screenStory.it(
+	"refreshes a timestamp without replacing its element",
+	[tickingTimeScreen()],
+	function* ({ refreshTime, findElement, readText }) {
 		const time = findElement("time");
 		expect(readText("time")).toBe("just now");
-		yield* Effect.promise(() => advanceTime(MINUTE));
-		expect(readText("time")).toBe(relative.format(-1, "minute"));
+
 		yield* Effect.promise(() => refreshTime(HOUR));
+
 		expect(findElement("time")).toBe(time);
 		expect(readText("time")).toBe(relative.format(-1, "hour"));
 	},
+	{ clock: "test" },
 );
 
 for (const [name, ago, label] of [

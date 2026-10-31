@@ -5,7 +5,7 @@ import { notes } from "#test/notes.ts";
 
 const Inline = contract("inline", {
 	commands: [command("touch", { invalidates: () => [notes.list] })],
-	queries: [query("list", { reads: () => [notes.list] })],
+	queries: [query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list] })],
 });
 
 Inline.of({

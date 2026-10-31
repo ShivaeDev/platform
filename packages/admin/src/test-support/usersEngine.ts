@@ -5,11 +5,11 @@ import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { UsersPermission } from "#permissions.ts";
 import { usersHandlers } from "#server/usersHandlers.ts";
 import { usersPage } from "#users/page.ts";
@@ -25,8 +25,7 @@ export interface LogRecord {
 
 export const usersEngine = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
-	const database = yield* PostgresTestDatabase;
-	const pool = yield* authDatabase(database.url);
+	const pool = yield* betterAuthDatabase();
 	const { auth } = yield* betterAuthMount({
 		"baseURL": "http://localhost",
 		database: pool,

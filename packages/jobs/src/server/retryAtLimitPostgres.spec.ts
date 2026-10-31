@@ -1,10 +1,11 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { deferred, enqueued, running, stoppedAfterwards } from "#test/postgres/traits.ts";
 import { type Attempt, scheduled, worker } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const DEFAULT_LIMIT = 10;
 const Limited = defineQueue({
@@ -84,14 +85,19 @@ database.it(
 );
 
 database.it(
-	"a scheduled run with a deferral limit of zero fails its deferral like any other failure",
+	"a scheduled run with a deferral limit of zero fails with its deferral reason and spends no retry",
 	[running("app", [scheduled(Undeferrable, { defers: "Disabled", until: "tomorrow" })])],
 	function* ({ adminSends, storedJobs, untilSettled }) {
 		yield* adminSends("undeferrable", null, { as: "undeferrable run" });
 		yield* untilSettled(Undeferrable, 1);
 
 		expect(yield* storedJobs("undeferrable")).toEqual([
-			expect.objectContaining({ error: "RetryAt", job: "undeferrable run", retryCount: 0, state: "failed" }),
+			expect.objectContaining({
+				error: expect.stringMatching(/^RetryAt: .*"reason":"Disabled"\}$/u),
+				job: "undeferrable run",
+				retryCount: 0,
+				state: "failed",
+			}),
 		]);
 	},
 );

@@ -1,4 +1,4 @@
-import type { MetadataDocument, MetadataModel } from "./model.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { metadataProblems } from "./problems.ts";
 import { referencesOf } from "./referencesOf.ts";
 

@@ -7,7 +7,7 @@ import { fieldRejection } from "@shivaedev/contract/rejection.ts"
 class Missing extends Schema.TaggedError<Missing>()("Missing", {}) {}
 const Draft = Schema.Struct({ title: Schema.String })
 const notes = collection("notes", Schema.Number)
-const Get = query("get", { payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] })
+const Get = query("get", { readPolicy: () => Effect.succeed(true), payload: { id: Schema.Number }, success: Schema.String, rejections: { Missing }, reads: ({ id }) => [notes.item(id)] })
 const Rename = command("rename", {
   payload: { id: Schema.Number, title: Schema.String },
   rejections: { Missing, Invalid: fieldRejection(Draft) },
@@ -43,4 +43,4 @@ api.subscribe.run({ id: "1" })
 // @ts-expect-error Bound streams expose run, without a query atom.
 api.subscribe.query()
 // @ts-expect-error Literal stream operation names share the contract namespace.
-contract("feed", { queries: [query("subscribe", { reads: () => [] })], streams: [Subscribe] })
+contract("feed", { queries: [query("subscribe", { readPolicy: () => Effect.succeed(true), reads: () => [] })], streams: [Subscribe] })

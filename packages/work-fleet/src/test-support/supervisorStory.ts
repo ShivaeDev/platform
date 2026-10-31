@@ -5,12 +5,13 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
+import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
 import { boardSubscription } from "#test/boardSubscription.ts";
 import { holdBoardRequest } from "#test/holdBoardRequest.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { SupervisorStoryEngine } from "#test/SupervisorStoryEngine.ts";
 import { supervisorBoardCall } from "#test/supervisorBoardCall.ts";
+import { supervisorCodeChanges } from "#test/supervisorCodeChanges.ts";
 import { supervisorSocketCall } from "#test/supervisorSocketCall.ts";
 
 const layer = Layer.merge(postgresLayer, NodeServices.layer);
@@ -42,6 +43,7 @@ export const fleetSupervisor = storyKit({
 				engine.fixture.changeCode();
 			}),
 		cli: (args: readonly string[]) => engine.run(args),
+		codeSettled: (name: "daemon" | "board") => engine.codeSettled(name),
 		crash: (pid: number) =>
 			Effect.sync(() => {
 				story.tell(`kill supervised pid ${pid}`);
@@ -50,6 +52,10 @@ export const fleetSupervisor = storyKit({
 		down: () => {
 			story.tell("stop Fleet and Board with down");
 			return engine.run(["down", engine.fixture.boardDir]);
+		},
+		editCode: (kind: "loaded" | "unrelated" | "burst") => {
+			story.tell(`change ${kind} installed code`);
+			return engine.editCode(kind);
 		},
 		exit: () => {
 			const child = engine.process;
@@ -118,6 +124,9 @@ export const fleetSupervisor = storyKit({
 });
 
 export const staleSupervisor = fleetSupervisor.trait("ownership", "a dead supervisor left its lease", (engine) => engine.leaveStaleLock());
+export const loadedCodeFixture = fleetSupervisor.trait("ownership", "the daemon imports a response module and merge files", (engine) => {
+	engine.codeChanges = supervisorCodeChanges(engine.fixture.daemonFile, engine.fixture.root);
+});
 export const slowLiveRequest = fleetSupervisor.trait("installation", "the installed daemon has a slow live request", (engine) => {
 	engine.delayedLive = true;
 });

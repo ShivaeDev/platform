@@ -1,5 +1,5 @@
 import type { DecisionCode } from "#DecisionCode.ts";
-import { type Situation, stopOnly } from "#engine/situations/choices.ts";
+import { blocked, type Situation, stopOnly } from "#engine/situations/choices.ts";
 
 export const stopSituations = {
 	"checks-result-invalid": stopOnly(
@@ -29,9 +29,9 @@ export const stopSituations = {
 		happened: "Fleet could not get a complete view of the Board or the repository.",
 		recommendation: "Fleet cannot continue from an incomplete view. Stop here so the task can be prepared again.",
 	},
-	"no-change-checks-unconfigured": stopOnly(
-		"The worker changed nothing, and this Fleet setup cannot check a result without changes.",
-		"Trying again cannot verify this result here. Stop here so the task can run where such results can be checked.",
+	"no-change-checks-unconfigured": blocked(
+		"The worker reported that the task is already done on main, but validation stopped.",
+		"Retry validation to check the reported commit on main and finish the task using its existing review.",
 	),
 	"not-ancestor": stopOnly(
 		"The main branch no longer contains the commit this work was prepared on.",

@@ -1,5 +1,6 @@
 import type { Question, QuestionPreview } from "#browser/responses/schema.ts";
-import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import { migrateSource } from "#server/migration/source.ts";
 
 export function questionSourceMatches(question: Question | QuestionPreview, document: MetadataDocument): boolean {

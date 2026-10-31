@@ -9,6 +9,7 @@ export const collectChangelog = Effect.fn("Changesets.collectChangelog")(functio
 	release: Release,
 	plan: ReleasePlan,
 	date: string,
+	dependencies: readonly string[] = [],
 ) {
 	const timestamp = Date.parse(`${date}T00:00:00Z`);
 	if (!(/^\d{4}-\d{2}-\d{2}$/u.test(date) && Number.isFinite(timestamp)) || new Date(timestamp).toISOString().slice(0, 10) !== date) {
@@ -24,7 +25,14 @@ export const collectChangelog = Effect.fn("Changesets.collectChangelog")(functio
 	}
 	const changesets = yield* Effect.forEach(plan.changesets, parseChangeset);
 	const entries = changesets.flatMap((changeset) => (Object.hasOwn(changeset.packages, release.name) ? changeset.entries : []));
-	const dependencyNotes = entries.length === 0 ? [{ section: "Changed" as const, text: "- Release with updated workspace dependencies." }] : [];
+	const moved = plan.releases.filter((candidate) => dependencies.includes(candidate.name));
+	const dependencyNotes =
+		moved.length === 0
+			? [{ section: "Changed" as const, text: "- Release with updated workspace dependencies." }]
+			: moved.map((dependency) => ({
+					section: "Changed" as const,
+					text: `- Update \`${dependency.name}\` from ${dependency.from} to ${dependency.to}.`,
+				}));
 	const history = previous.slice("# Changelog\n".length).trimStart();
-	return `# Changelog\n\n## ${release.to} - ${date}\n\n${renderEntries([...entries, ...dependencyNotes])}${history === "" ? "" : `\n${history}`}`;
+	return `# Changelog\n\n## ${release.to} - ${date}\n\n${renderEntries(entries.length === 0 ? dependencyNotes : entries)}${history === "" ? "" : `\n${history}`}`;
 });

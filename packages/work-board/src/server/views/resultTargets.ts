@@ -1,7 +1,7 @@
 import type { Document } from "#browser/document/schema.ts";
 import type { ResultProjection } from "#browser/views/ResultProjection.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 export function resultTargets(result: MetadataDocument, data: Snapshot, document: Document): ResultProjection["targets"] {
 	const targets = new Set(result.parsed.fields.relationships?.map((entry) => entry.target));

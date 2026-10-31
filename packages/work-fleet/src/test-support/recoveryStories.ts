@@ -1,3 +1,9 @@
+export const mergeQueueRecoveryStory = {
+	name: "reconciles an accepted auto-merge request after its reply is lost and Fleet restarts",
+	sites: ['engine/queueReviewedPr.ts: step: "waiting"'],
+	spec: "mergeQueueRecovery.spec.ts",
+};
+
 export const publicationRecoveryStory = {
 	code: "session-turn-missing",
 	name: "an answer to a lost-turn question repairs its existing PR after publication reads recover",
@@ -27,6 +33,7 @@ export const stopWorkStory = {
 };
 
 export const recoveryStories = [
+	mergeQueueRecoveryStory,
 	stopWorkStory,
 	publicationRecoveryStory,
 	terminalBriefRecoveryStory,

@@ -1,8 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { biomeReport } from "#biome/report.ts";
-import { expected, type Line, nameOf } from "#test/namingFindings.ts";
-import { run } from "#test/run.ts";
-import { linkPackage, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
+import { expect } from "vitest";
+import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
+import { expectedPlugins, type Line, namingSource } from "#test/namingFindings.ts";
 
 const IMPORTS: Line = ['import { Effect, Layer, Schema } from "effect";'];
 
@@ -191,39 +189,14 @@ const fixtures: Readonly<Record<string, readonly Line[]>> = {
 	],
 };
 
-const PRESET: readonly SeedFile[] = [
-	{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
-	{ content: "node_modules/\n", path: ".gitignore" },
-];
+for (const [path, lines] of Object.entries(fixtures)) {
+	biomeStory.it(
+		`the preset's naming plugins report exactly the lines of ${path} that break a naming rule`,
+		[presetInstalled(), repositoryHas(namingSource(path, lines))],
+		function* ({ checks, plugins }) {
+			yield* checks();
 
-let found: ReadonlyMap<string, readonly string[]> = new Map();
-
-beforeAll(async () => {
-	const root = seedTree(
-		PRESET,
-		Object.entries(fixtures).map(([path, lines]) => ({ content: `${lines.map(([code]) => code).join("\n")}\n`, path })),
+			expect(yield* plugins(path)).toEqual(expectedPlugins(lines));
+		},
 	);
-	linkPackage(root);
-	const report = await run(biomeReport(root, ["lint"]));
-	const named = report.diagnostics.flatMap((diagnostic) => {
-		const name = nameOf(diagnostic);
-		return name === undefined ? [] : [{ file: diagnostic.location.path ?? "", finding: `${diagnostic.location.start?.line ?? 0} ${name}` }];
-	});
-	found = new Map(
-		Object.keys(fixtures).map((path) => [
-			path,
-			named
-				.filter((entry) => entry.file === path)
-				.map((entry) => entry.finding)
-				.toSorted(),
-		]),
-	);
-}, 60_000);
-
-afterAll(removeSeededTrees);
-
-describe("the repository naming plugins", () => {
-	it.each(Object.keys(fixtures))("report in %s exactly the lines that break a naming rule", (path) => {
-		expect(found.get(path)).toEqual(expected(fixtures[path] ?? []));
-	});
-});
+}

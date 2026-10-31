@@ -3,9 +3,10 @@ import { reviewSatisfied, validateChecks, validateReviewRequirement } from "#com
 import { authorizeBriefContext, briefChanged, isChangedBriefDecision, stopChangedBrief } from "#engine/boardBrief.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
-import type { EngineState } from "#engine/makeState.ts";
+import { EngineContext, type EngineState } from "#engine/makeState.ts";
 import { awaitHumanMerge, expireMergeAreas } from "#engine/mergeReadiness.ts";
 import { observeDeliveryFailure } from "#engine/observeDeliveryFailure.ts";
+import { queueReviewedPr } from "#engine/queueReviewedPr.ts";
 import { recordClosedSweep } from "#engine/recordClosedSweep.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { settleMergedDelivery } from "#engine/settleMergedDelivery.ts";
@@ -95,7 +96,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	}
 	if (
 		deliveryPending(record)
-		|| !["delivering", "waiting"].includes(record.step)
+		|| (!["delivering", "waiting"].includes(record.step) && record.mergeQueue?.status !== "queued")
 		|| !reviewSatisfied(record, result.head)
 		|| record.checks?.passed !== true
 	) {
@@ -107,7 +108,9 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	}
 	yield* validateReviewRequirement(record, result.head);
 	yield* validateChecks(record.checks, result.head);
-	return yield* awaitHumanMerge(state, stored, result.head);
+	return (
+		(yield* queueReviewedPr(stored, result).pipe(Effect.provideService(EngineContext, state))) ?? (yield* awaitHumanMerge(state, stored, result.head))
+	);
 });
 
 function canObserveDeliveryFailure(record: FleetRecord, error: FleetError) {

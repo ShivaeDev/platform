@@ -1,10 +1,10 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { renderStatus } from "#host/renderStatus.ts";
-import { WAIT_EXIT } from "#host/wait.ts";
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 import { scheduledHost } from "#test/scheduledHost.ts";
+import { WAIT_EXIT } from "./waitOutcome.ts";
 
 const files = { "a.md": task("a", "approved"), "b.md": task("b"), "c.md": task("c", "draft") };
 

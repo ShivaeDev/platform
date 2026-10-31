@@ -39,18 +39,19 @@ export function signInVisitor(initial: string, signedIn = false, moduleLink = fa
 function resumeModule(moduleLink: boolean) {
 	return {
 		api: {},
-		routes: ({ root, auth, session }: RouteContext) => [
-			createRoute({
-				component: () => <Home auth={auth} />,
-				getParentRoute: () => root,
+		routes: ({ getParentRoute }: RouteContext) => {
+			const route = createRoute({
+				component: () => <Home auth={route.useRouteContext().auth} />,
+				getParentRoute,
 				path: "/resume",
 				...(moduleLink
 					? {}
 					: {
-							beforeLoad: permissionGuard({ session, signIn: "/sign-in" }),
+							beforeLoad: (loader): void => permissionGuard({ session: loader.context.session, signIn: "/sign-in" })(loader),
 							staticData: { permission: { name: "resume", strength: "own" as const } },
 						}),
-			}),
-		],
+			});
+			return [route];
+		},
 	};
 }

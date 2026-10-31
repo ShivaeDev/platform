@@ -3,7 +3,6 @@ import { answered } from "@shivaedev/test/answers.ts";
 import { domNavigate } from "@shivaedev/test-story/server/domNavigate.ts";
 import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser, storedProviderAccounts } from "#server/better-auth/testing.ts";
 import { readProviderAccounts } from "./providerAccounts.ts";
 import type { socialEngine } from "./socialEngine.ts";
@@ -11,7 +10,7 @@ import type { socialEngine } from "./socialEngine.ts";
 type SocialEngine = Effect.Success<ReturnType<typeof socialEngine>>;
 
 export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
-	const { auth, baseUrl, fetch, pool, provider, client, minted } = engine;
+	const { auth, baseUrl, fetch, storage, provider, client, minted } = engine;
 	provider.narrate(story.tell);
 	function signInWithGitHub() {
 		return Effect.promise(async () => {
@@ -110,8 +109,8 @@ export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
 					return storedProviderAccounts(auth, session?.user?.id ?? "");
 				}),
 			),
-		storedSessionCount: () => authTestDatabase(pool).sessions.pipe(Effect.map((sessions) => sessions.length)),
-		storedUserEmails: () => authTestDatabase(pool).users.pipe(Effect.map((users) => users.map(({ email }) => email))),
+		storedSessionCount: () => storage.sessions.pipe(Effect.map((sessions) => sessions.length)),
+		storedUserEmails: () => storage.users.pipe(Effect.map((users) => users.map(({ email }) => email))),
 		userIdOf: (name: string) => Effect.sync(() => minted.get(name) ?? `no minted session for ${name}`),
 	};
 }

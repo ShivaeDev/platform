@@ -6,11 +6,11 @@ import { views } from "#engine/views.ts";
 import { fleetRejections } from "#errors.ts";
 import { exposeFailure } from "#exposeFailure.ts";
 import { Fleet } from "#fleet.ts";
-import { fleetRecords as recordKeys } from "#fleetRecords.ts";
+import { fleetRecords } from "#fleetRecords.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings } from "#session/schema.ts";
-export const fleetRecords = recordKeys;
+
 const rejections = fleetRejections;
 export const Prepare = command("prepare", {
 	invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],

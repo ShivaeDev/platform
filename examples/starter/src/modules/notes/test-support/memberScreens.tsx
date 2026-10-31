@@ -5,6 +5,7 @@ import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { type ClientActivity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { memberScreens } from "@shivaedev/test-story/server/memberScreens.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { appRouter } from "#client/appRouter.tsx";
@@ -14,7 +15,7 @@ import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 
 export function notesMemberScreens(baseUrl: string) {
-	const pending = new Map<string, () => boolean>();
+	const pending = new Map<string, ClientActivity>();
 	return memberScreens({
 		baseUrl,
 		mount: Effect.fnUntraced(function* (member) {
@@ -30,10 +31,7 @@ export function notesMemberScreens(baseUrl: string) {
 				auth.actions,
 				createMemoryHistory({ initialEntries: ["/"] }),
 			);
-			pending.set(
-				member.name,
-				() => router.state.isLoading || member.registry.get(client.api.list.query()).waiting || member.root.querySelector("button:disabled") !== null,
-			);
+			pending.set(member.name, clientActivity(client));
 			yield* Effect.addFinalizer(() =>
 				Effect.sync(() => {
 					pending.delete(member.name);
@@ -56,6 +54,12 @@ export function notesMemberScreens(baseUrl: string) {
 				});
 			});
 		}),
-		verbs: (member, tell) => screenDriver({ act, pending: () => pending.get(member.name)?.() ?? false, root: member.root, tell }),
+		verbs: (member, tell) => {
+			const activity = pending.get(member.name);
+			if (activity === undefined) {
+				throw new Error(`No client for ${member.name}`);
+			}
+			return screenDriver({ act, pending: activity, root: member.root, tell });
+		},
 	});
 }

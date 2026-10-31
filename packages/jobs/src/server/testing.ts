@@ -1,9 +1,10 @@
 import { type DateTime, Duration, Effect, Redacted } from "effect";
 import type { PgBoss } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
+import { defaultClientFactory } from "#defaultClientFactory.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
 import { PgBossTestingError } from "#error.ts";
-import { nativeClient } from "#internal/nativeClient.ts";
+import { type TestingFetches, testingFetches } from "#internal/adapters/testingFetches.ts";
 import { testingClient } from "#internal/testingClient.ts";
 import { testingDeferrals } from "#internal/testingDeferrals.ts";
 import { type TestingWork, testingIdle } from "#internal/testingIdle.ts";
@@ -11,6 +12,7 @@ import { testingOperation, testingReadout } from "#internal/testingReadout.ts";
 import { testingSchedules } from "#internal/testingSchedules.ts";
 import { testingSignal } from "#internal/testingSignal.ts";
 import { testingSnapshot } from "#internal/testingSnapshot.ts";
+import { testingWaits } from "#internal/testingWaits.ts";
 
 export type SnapshotQueue = Pick<QueueDefinition<string, JobPayloadSchema>, "name" | "schema">;
 
@@ -22,6 +24,10 @@ export interface UnfinishedJob<TQueue extends SnapshotQueue> {
 	readonly state: "active" | "created" | "failed" | "retry";
 }
 
+export interface PgBossTestingWaitOptions {
+	readonly within?: Duration.Input;
+}
+
 export const testRetryPolicy = Object.freeze({ retryBackoff: false, retryDelay: 0 });
 
 export interface PgBossTestingOptions {
@@ -30,6 +36,7 @@ export interface PgBossTestingOptions {
 
 export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 	let current: PgBoss | undefined;
+	let fetches: TestingFetches | undefined;
 	let schema = "pgboss";
 	const signal = testingSignal();
 	const work: TestingWork = { batches: new Set(), queues: new Set() };
@@ -52,12 +59,14 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 			throw new Error("A testing controller owns one jobs client; create a controller per runtime");
 		}
 		schema = clientOptions.schema ?? "pgboss";
-		current = nativeClient({ ...clientOptions, "__test__enableSpies": true });
+		current = defaultClientFactory({ ...clientOptions, "__test__enableSpies": true });
+		fetches = testingFetches(current.getDb(), signal.changed);
 		return testingClient(current, clientOptions.schema ?? "pgboss", controls);
 	};
 	return {
 		...testingDeferrals(client, () => schema, signal.changed),
 		...testingSchedules(client, signal.changed),
+		...testingWaits(client, () => fetches, signal),
 		checkBatchWindow: (queue: Pick<QueueDefinition, "name" | "workerOptions">, millisecondsPerJob: number) =>
 			testingOperation(
 				"checkBatchWindow",

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { metadataModel } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { entriesOf } from "#server/search/entries.ts";

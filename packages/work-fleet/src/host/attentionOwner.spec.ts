@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
-import { WAIT_EXIT } from "#host/wait.ts";
 import { approvedWork, host, storedWork } from "#test/hostStory.ts";
+import { WAIT_EXIT } from "./waitOutcome.ts";
 
 const owners = ["maintainer", "orchestrator", "automation"] as const;
 const stages = ["done", "released"] as const;

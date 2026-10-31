@@ -1,4 +1,4 @@
-import { Duration } from "effect";
+import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -8,6 +8,7 @@ export interface NoticeAction {
 	readonly atom: Atom.AtomResultFn<void, unknown, unknown>;
 	readonly label: NoticeDescriptor["message"];
 }
+export type NoticeClock = Pick<Atom.AtomRuntime<never, unknown>, "atom">;
 export interface NoticeEntry {
 	readonly action?: { readonly label: NoticeDescriptor["message"]; readonly run: () => void } | undefined;
 	readonly dismiss: () => void;
@@ -19,6 +20,7 @@ export interface NoticeEntry {
 const idle = Atom.make(AsyncResult.initial<unknown, unknown>());
 export function noticeEntry(
 	registry: AtomRegistry.AtomRegistry,
+	clock: NoticeClock,
 	id: number,
 	descriptor: Pick<NoticeDescriptor, "message" | "expiresIn">,
 	remove: (id: number) => void,
@@ -36,13 +38,16 @@ export function noticeEntry(
 			registry.set(action.atom, undefined);
 		}
 	}
+	const expiry =
+		descriptor.expiresIn === undefined
+			? undefined
+			: clock.atom(Effect.andThen(Effect.sleep(descriptor.expiresIn), Effect.sync(dismiss))).pipe(Atom.setIdleTTL(0));
 	const resource = Atom.make((get) => {
 		if (action) {
 			get.mount(action.atom);
 		}
-		if (descriptor.expiresIn !== undefined) {
-			const timer = setTimeout(dismiss, Duration.toMillis(descriptor.expiresIn));
-			get.addFinalizer(() => clearTimeout(timer));
+		if (expiry) {
+			get.mount(expiry);
 		}
 		return true;
 	}).pipe(Atom.setIdleTTL(0));

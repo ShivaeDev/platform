@@ -7,12 +7,12 @@ import { ConfigProvider, Effect, Layer, Option, Schema } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as NetAddress from "effect/net/NetAddress";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
@@ -58,8 +58,7 @@ export const authStorage = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const database = yield* PostgresTestDatabase;
-		const pool = yield* authDatabase(database.url);
+		const pool = yield* betterAuthDatabase();
 		const options = {
 			advanced: { database: { validateSchema: true } },
 			database: pool,
@@ -75,7 +74,7 @@ export const authStorage = storyKit({
 			baseUrl: "",
 			hosting: true,
 			options,
-			storage: authTestDatabase(pool),
+			storage: yield* authTestDatabase,
 			swept: Option.none<number>(),
 		};
 	},

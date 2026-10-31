@@ -5,8 +5,9 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { allowedAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
-import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -26,10 +27,11 @@ const handlers = Api.toLayer({ Accounts: () => Effect.flatMap(SessionUserWithPro
 export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (env: Record<string, string>) {
 	const database = yield* PostgresTestDatabase;
 	yield* Effect.scoped(migrateDatabase(database.url));
-	const pool = yield* authDatabase(database.url);
+	const pool = yield* betterAuthDatabase();
 	const mounted = yield* betterAuthMount(
 		{
-			...authOptions(pool),
+			...authOptions(),
+			database: pool,
 			secret: Redacted.value(secret),
 			socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 		},

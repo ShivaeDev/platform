@@ -6,7 +6,7 @@ import { expireAttempt } from "#internal/expireAttempt.ts";
 import type { Registration } from "#test/workers.ts";
 import type { PgBossTesting } from "#testing.ts";
 import { serverTlsAbsent } from "./connections.ts";
-import { countIdleReads, startIdleWait, watchChange } from "./controller.ts";
+import { countIdleReads, startFetchWatch, startIdleWait, watchChange } from "./controller.ts";
 import { database } from "./database.ts";
 import type { StoryPayload } from "./databaseEngine.ts";
 import { admin, runningIn, type StartOptions, startRuntime } from "./engine.ts";
@@ -248,6 +248,12 @@ export function idleReadsCounted(name: string, gate: string) {
 
 export function idleWaitStarted(name: string) {
 	return database.trait("jobs", `the testing controller of ${name} has started waiting for idle`, (engine) => startIdleWait(engine, name));
+}
+
+export function fetchesWatched(name: string, queue: Pick<QueueDefinition, "name">, count: number) {
+	return database.trait("jobs", `the testing controller of ${name} is waiting for ${count} ${queue.name} fetches to pass`, (engine) =>
+		startFetchWatch(engine, name, queue, count),
+	);
 }
 
 export function watchingForChange(name: string) {

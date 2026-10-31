@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/contract",
-	"version": "0.23.0",
+	"version": "0.27.0",
 	"description": "Typed query and command contracts over native Effect RPC and reactivity",
 	"keywords": [
 		"effect"
@@ -56,6 +56,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/server": "workspace:*",
 		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",

@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { notes } from "#test/viewerEngine.ts";
-import { listening, othersPageOpen, pageOpen, unprotectedPageOpen, viewerStory } from "#test/viewerStory.ts";
+import { listening, othersPageOpen, pageOpen, viewerStory } from "#test/viewerStory.ts";
 
 for (const [viewer, answer] of [
 	["alice", "note 1 titled One"],
@@ -21,26 +21,6 @@ for (const query of ["note 1", "alice's notes"] as const) {
 viewerStory.it("bob's page of alice's notes fails with read denied", [othersPageOpen("bob", "alice")], function* ({ shown }) {
 	expect(yield* shown("bob")).toBe("failed with read denied");
 });
-
-viewerStory.it(
-	"a page of a query without a read policy fails with a message telling its author to declare one",
-	[unprotectedPageOpen("alice")],
-	function* ({ shown }) {
-		expect(yield* shown("alice")).toBe(
-			"failed with missing read policy: Declare a readPolicy on query unprotected before running it live or subscribing",
-		);
-	},
-);
-
-viewerStory.it(
-	"subscribing to changes of a query without a read policy fails with a message telling its author to declare one",
-	[],
-	function* ({ subscribe }) {
-		expect(yield* subscribe("alice", "the unprotected notes")).toBe(
-			"failed with missing read policy: Declare a readPolicy on query unprotected before running it live or subscribing",
-		);
-	},
-);
 
 viewerStory.it(
 	"renaming alice's note 3, which her title filter excludes, still reaches her filtered subscription through her bucket",

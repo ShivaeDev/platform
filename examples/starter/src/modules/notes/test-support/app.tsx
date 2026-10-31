@@ -3,9 +3,7 @@ import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { SqlClient } from "effect/sql";
-import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
@@ -32,8 +30,7 @@ export const notesApp = storyKit({
 	*create() {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const host = yield* createCookieHost();
-		const database = yield* PostgresTestDatabase;
-		const authStorage = authTestDatabase(yield* authDatabase(database.url));
+		const authStorage = yield* authTestDatabase;
 		const signIn = heldSignIn(host.fetch);
 		const auth = makeAuth({ baseUrl: host.baseUrl, fetchOptions: { customFetchImpl: signIn.fetch } });
 		const screen: ScreenSurface = { view: undefined };

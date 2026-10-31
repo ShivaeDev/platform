@@ -1,19 +1,16 @@
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { ConfigProvider, Effect, Layer, Option, type Redacted } from "effect";
+import { ConfigProvider, Effect, Layer, Option } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
-import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 
-export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (
-	databaseUrl: Redacted.Redacted<string>,
-	env: Record<string, string>,
-	proxyPeer?: string,
-) {
-	const pool = yield* authDatabase(databaseUrl);
+export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (env: Record<string, string>, proxyPeer?: string) {
+	const pool = yield* betterAuthDatabase();
 	const options = {
 		database: pool,
 		emailAndPassword: { autoSignIn: false, enabled: true },

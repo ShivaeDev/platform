@@ -1,13 +1,7 @@
 import { Deferred, Effect, Stream } from "effect";
 import { waitingOwner } from "#attention.ts";
 import { type FollowOptions, follow } from "#host/follow.ts";
-import * as Outcome from "#host/waitOutcome.ts";
-
-export const WAIT_EXIT = Outcome.WAIT_EXIT;
-export const WaitState = Outcome.WaitState;
-export type WaitState = typeof WaitState.Type;
-export const settled = Outcome.settled;
-export type WaitOutcome = Outcome.WaitOutcome;
+import { settled, WAIT_EXIT, type WaitOutcome } from "#host/waitOutcome.ts";
 
 export interface WaitOptions extends FollowOptions {
 	readonly workId: string;

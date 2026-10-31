@@ -1,4 +1,6 @@
 import { Effect, Fiber, Ref, Stream, SubscriptionRef } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import type { LiveHint } from "#live.ts";
 import { ending, hintWords, streams } from "./answers.ts";
@@ -11,7 +13,6 @@ import {
 	type LiveView,
 	readsBegunOf,
 	reload,
-	reReadDelayOf,
 	shownOf,
 	shownWithoutReadingOf,
 	statusOf,
@@ -22,7 +23,7 @@ import {
 	untilReadAfterLastHint,
 	viewAtom,
 } from "./liveEngine.ts";
-import { Note } from "./notes.ts";
+import { Note, notes } from "./notes.ts";
 import { signal, waited } from "./settle.ts";
 
 export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>, "tell">) {
@@ -41,6 +42,13 @@ export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>
 		);
 	}
 	return {
+		changeHintArrives: (id: number) =>
+			Effect.gen(function* () {
+				story.tell(`a change hint arrives for note ${id}`);
+				const before = yield* hintsHandled(engine);
+				yield* called(engine, Reactivity.invalidate(invalidationKeys([notes.item(id)])));
+				yield* untilHandledBeyond(engine, before);
+			}),
 		changeUnannounced: (id: number, body: string) => {
 			story.tell(`note ${id}'s body becomes ${body} without any hint`);
 			return Effect.promise(() => server.store(id, body));
@@ -118,18 +126,14 @@ export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>
 				ending(exit, (note) => `renamed note ${note.id} to ${note.title}`),
 			);
 		},
-		reReadDelay: (view: LiveView) => reReadDelayOf(engine, view),
 		resume: () => {
 			story.tell("the client resumes");
 			registry.set(engine.client.resume, registry.get(engine.client.resume) + 1);
 		},
-		serverAcceptsStreamsAgain: () =>
-			Effect.gen(function* () {
-				story.tell("the server accepts live streams again and the client reconnects");
-				const before = yield* hintsHandled(engine);
-				yield* Ref.set(server.streamUnavailable, false);
-				yield* untilHandledBeyond(engine, before);
-			}),
+		serverAcceptsStreamsAgain: () => {
+			story.tell("the server accepts live streams again");
+			return Ref.set(server.streamUnavailable, false);
+		},
 		serverReads: () => Effect.map(SubscriptionRef.get(server.served), (served) => served.map((read) => read.label)),
 		serverSendsResyncs: (count: number) =>
 			Effect.gen(function* () {

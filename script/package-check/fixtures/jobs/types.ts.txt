@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Redacted, Schema } from "effect"
-import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts"
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts"
+import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts"
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts"
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts"
 

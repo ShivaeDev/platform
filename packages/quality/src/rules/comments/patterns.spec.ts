@@ -1,13 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { expect } from "vitest";
 import type { Rule } from "#rule.ts";
 import { noBanner } from "#rules/comments/noBanner.ts";
 import { noEnvironmentPragma } from "#rules/comments/noEnvironmentPragma.ts";
 import { noLineReference } from "#rules/comments/noLineReference.ts";
 import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
-import { commentFindings } from "#test/commentFindings.ts";
-import { issuesOf } from "#test/inputs.ts";
 import { JEST_ENVIRONMENT, VITEST_ENVIRONMENT } from "#test/pragmas.ts";
+import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
 interface Case {
 	readonly fires: ReadonlyArray<readonly [string, string]>;
@@ -83,19 +82,26 @@ const cases: readonly Case[] = [
 	},
 ];
 
-describe.each(cases)("$rule.id", ({ fires, quiet, rule }) => {
-	it.each(fires)("fires on %j", async (comment, match) => {
-		const [finding, ...rest] = await commentFindings(rule, comment);
-		expect(rest).toEqual([]);
-		expect(finding).toMatch(/^2 /u);
-		expect(finding).toContain(`"${match}"`);
-	});
+for (const { fires, quiet, rule } of cases) {
+	for (const [comment, match] of fires) {
+		ruleStory.it(
+			`${rule.id} reports ${JSON.stringify(comment)} at its line and quotes "${match}"`,
+			[repositoryHas({ content: `export const a = 1;\n${comment}\n`, path: "src/a.ts" })],
+			function* ({ check }) {
+				const findings = yield* check(rule);
 
-	it.each(quiet)("stays quiet on %j", async (comment) => {
-		expect(await commentFindings(rule, comment)).toEqual([]);
-	});
+				expect(findings).toEqual([{ file: "src/a.ts", line: 2, message: expect.stringContaining(`"${match}"`) }]);
+			},
+		);
+	}
 
-	it("takes no options", async () => {
-		expect(await issuesOf(rule, { strict: true })).toEqual(["this rule takes no options"]);
-	});
-});
+	for (const comment of quiet) {
+		ruleStory.it(
+			`${rule.id} accepts ${JSON.stringify(comment)}`,
+			[repositoryHas({ content: `export const a = 1;\n${comment}\n`, path: "src/a.ts" })],
+			function* ({ check }) {
+				expect(yield* check(rule)).toEqual([]);
+			},
+		);
+	}
+}

@@ -2,13 +2,14 @@ import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { ConfigProvider, Effect, Layer, type Redacted } from "effect";
+import { ConfigProvider, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/mount.ts";
 
-export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (databaseUrl: Redacted.Redacted<string>, env: Record<string, string>) {
-	const pool = yield* authDatabase(databaseUrl);
+export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (env: Record<string, string>) {
+	const pool = yield* betterAuthDatabase();
 	const options = {
 		database: pool,
 		emailAndPassword: { autoSignIn: false, enabled: true },

@@ -6,10 +6,7 @@ import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
 import { Notes, type viewerEngine } from "./viewerEngine.ts";
 
-export type PageQuery =
-	| { readonly kind: "list"; readonly title: string }
-	| { readonly kind: "listFor"; readonly userId: string }
-	| { readonly kind: "unprotected" };
+export type PageQuery = { readonly kind: "list"; readonly title: string } | { readonly kind: "listFor"; readonly userId: string };
 
 export const viewerPage = Effect.fnUntraced(function* (engine: Effect.Success<typeof viewerEngine>, viewer: string, page: PageQuery) {
 	class Client extends AtomRpc.Service<Client>()(`test/ViewerPage/${viewer}`, {
@@ -28,8 +25,6 @@ export const viewerPage = Effect.fnUntraced(function* (engine: Effect.Success<ty
 				return api.list.query({ title: page.title });
 			case "listFor":
 				return api.listFor.query({ userId: page.userId });
-			case "unprotected":
-				return api.unprotected.query(undefined);
 		}
 	}
 	const query = queryOf();

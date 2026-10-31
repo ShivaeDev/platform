@@ -19,7 +19,6 @@ const QUERIES = {
 	"note 1": { payload: { id: 1 }, query: "get" },
 	"note 2": { payload: { id: 2 }, query: "get" },
 	"note 3": { payload: { id: 3 }, query: "get" },
-	"the unprotected notes": { payload: undefined, query: "unprotected" },
 	"their notes titled One": { payload: { title: "One" }, query: "list" },
 } as const satisfies Record<string, QueryReferences[number]>;
 type ViewerQuery = keyof typeof QUERIES;
@@ -160,14 +159,6 @@ export function othersPageOpen(viewer: Viewer, owner: Viewer) {
 	return viewerStory.trait("pages", `${viewer} has opened a page of ${owner}'s notes`, (engine) =>
 		Effect.gen(function* () {
 			engine.pages.set(viewer, yield* viewerPage(engine, viewer, { kind: "listFor", userId: owner }));
-		}),
-	);
-}
-
-export function unprotectedPageOpen(viewer: Viewer) {
-	return viewerStory.trait("pages", `${viewer} has opened a page of the notes query that declares no read policy`, (engine) =>
-		Effect.gen(function* () {
-			engine.pages.set(viewer, yield* viewerPage(engine, viewer, { kind: "unprotected" }));
 		}),
 	);
 }

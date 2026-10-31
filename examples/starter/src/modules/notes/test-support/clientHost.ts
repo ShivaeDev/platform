@@ -6,6 +6,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { type Rpc, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { Activity, clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import type { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import { browserReads } from "@shivaedev/test-story/server/browserReads.ts";
 import { Notes } from "#modules/notes/notes.ts";
@@ -26,6 +27,6 @@ export const notesClientHost = Effect.fnUntraced(function* (
 	}
 	const url = `http://127.0.0.1:${server.address.port}/rpc`;
 	const observed = yield* browserReads({ contracts: [Notes], url, webSocketConstructor: layerWebSocketConstructorWS });
-	const { api, runtime } = makeClient(Notes, { protocol: observed.protocol, url });
-	return { api, observed, runtime };
+	const client = makeClient(Notes, { protocol: observed.protocol, url });
+	return { api: client.api, observed, runtime: client.runtime, [Activity]: clientActivity(client) };
 });

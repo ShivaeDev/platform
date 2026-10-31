@@ -24,7 +24,7 @@ const serveCommand = Command.make(
 	Effect.fn("WorkFleetCli.serve")(function* (input) {
 		return yield* Effect.scoped(
 			Effect.gen(function* () {
-				const { processes } = yield* Effect.promise(() => import("@shivaedev/work-board/server/integration/processes.ts"));
+				const { processes } = yield* Effect.promise(() => import("@shivaedev/work-board/server/processOwnership.ts"));
 				const { DAEMON_PORT, serveFleet } = yield* Effect.promise(() => import("#host/daemon.ts"));
 				const daemonPort = Option.getOrElse(input.port, () => DAEMON_PORT);
 				yield* processes.claimProcess(input.board, "daemon", { daemonPort });

@@ -1,12 +1,25 @@
-import type { LoaderFnContext } from "@tanstack/react-router";
+import { createRootRouteWithContext, createRoute, type LoaderFnContext } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { loadQuery } from "@shivaedev/react/loadQuery.ts";
+import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
+import { queryRoute } from "@shivaedev/react/queryRoute.ts";
 
 const registry = AtomRegistry.make();
 const atom = Atom.make(Effect.succeed({ id: "first", title: "First note" }));
 export const loader = (context: LoaderFnContext): Promise<{ id: string; title: string }> => loadQuery(registry, atom, context);
 // @ts-expect-error The loader keeps the query's success type.
 export const wrong = (context: LoaderFnContext): Promise<number> => loadQuery(registry, atom, context);
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; client: { note: typeof atom }; viewer: { id: string } }>()();
+export const route = createRoute({
+	getParentRoute: () => root,
+	path: "/notes/$id",
+	...queryRoute(({ context }: { context: typeof root.types.allContext }) => {
+		const id: string = context.viewer.id;
+		void id;
+		// @ts-expect-error Query factories can only read context fields declared by the route.
+		context.session;
+		return context.client.note;
+	}),
+});
 registry.dispose();

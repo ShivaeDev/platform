@@ -93,7 +93,13 @@ export async function openScreen(url: string) {
 			});
 			await act(() => button("Rename").click());
 		},
-		separateNote: () => separate[0]?.container.textContent,
+		separateContainer: () => {
+			const root = separate[0];
+			if (root === undefined) {
+				throw new Error("No separate screen is open");
+			}
+			return root.container;
+		},
 		unmount: async () => {
 			for (const root of separate) {
 				await root.unmount();

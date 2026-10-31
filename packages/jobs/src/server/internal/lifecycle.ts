@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import type { ConstructorOptions, StopOptions } from "pg-boss";
-import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "#client.ts";
+import type { PgBossClient, PgBossClientFactory } from "#client.ts";
+import { defaultClientFactory } from "#defaultClientFactory.ts";
 import { PgBossClientOptionsError, type PgBossError, toPgBossError } from "#error.ts";
 import { deferralStorePlan } from "#internal/deferralStorePlan.ts";
 import { acquireCachedClient, releaseCachedClient } from "./clientCache.ts";
