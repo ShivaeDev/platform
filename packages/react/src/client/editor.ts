@@ -79,10 +79,7 @@ export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError,
 	}, [form, values, received]);
 	const settled = useCallback((saved: TRow) => (form && values ? form.receive(values(saved)) : undefined), [form, values]);
 	const saveState = useSaveState(form, settled);
-	if ("loaded" in config) {
-		if (!form) {
-			throw new Error("A loaded editor requires a row");
-		}
+	if ("loaded" in config && form !== undefined) {
 		return { ...saveState, form, query: loadedQuery(query, config.loaded) };
 	}
 	return { ...saveState, form, query };

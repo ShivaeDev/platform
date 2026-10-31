@@ -72,16 +72,16 @@ for (const [present, missing] of [
 	["users", "jobs"],
 ] as const) {
 	registrationStory.it(
-		`registering handlers for the ${present} page alone is refused for the missing ${missing} handlers`,
+		`starting handlers for the ${present} page alone is refused for the missing ${missing} handlers`,
 		[],
-		function* ({ registerHandlersFor }) {
-			expect(yield* registerHandlersFor(present)).toBe(`Missing admin handlers: ${missing}`);
+		function* ({ startHandlersFor }) {
+			expect(yield* startHandlersFor(present)).toBe(`Missing admin handlers: ${missing}`);
 		},
 	);
 }
 
-registrationStory.it("registering handlers for a reports page the registry does not hold is refused", [], function* ({ registerHandlersFor }) {
-	expect(yield* registerHandlersFor("jobs", "users", "reports")).toBe("Unregistered admin handlers: reports");
+registrationStory.it("starting handlers for a reports page the registry does not hold is refused", [], function* ({ startHandlersFor }) {
+	expect(yield* startHandlersFor("jobs", "users", "reports")).toBe("Unregistered admin handlers: reports");
 });
 
 for (const [role, answer] of [

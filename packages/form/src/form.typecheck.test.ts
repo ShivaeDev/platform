@@ -10,6 +10,20 @@ const Fields = Schema.Struct({ name: Schema.String });
 
 form(Fields, {
 	initialValues: { name: "" },
+	onSubmit: Effect.succeed,
+	// @ts-expect-error Required messages must name an existing field.
+	requiredMessages: { missing: "Enter a name" },
+});
+
+form(Schema.Struct({ count: Schema.Number }), {
+	initialValues: { count: 0 },
+	onSubmit: Effect.succeed,
+	// @ts-expect-error Required messages configure string fields.
+	requiredMessages: { count: "Enter a count" },
+});
+
+form(Fields, {
+	initialValues: { name: "" },
 	onSubmit: (values) =>
 		Effect.gen(function* () {
 			yield* Scope.Scope;

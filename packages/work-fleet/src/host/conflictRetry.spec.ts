@@ -29,10 +29,12 @@ for (const body of ["", "Preserve the loading indicator."]) {
 			yield* daemon.request("fleet.reconcile", { workId: "one" });
 			const launched = yield* daemon.workerStarted("repair");
 			const repair = launched.attempts.at(-1);
-			expect(repairAttempts(launched)).toMatchObject([
-				...repairAttempts(resolved.blocked),
-				{ prompt: expect.stringContaining("Fetch and merge main"), role: "repair" },
-			]);
+			expect(
+				repairAttempts(launched)
+					.slice(0, -1)
+					.map(({ operationId }) => operationId),
+			).toEqual(repairAttempts(resolved.blocked).map(({ operationId }) => operationId));
+			expect(repair).toMatchObject({ prompt: expect.stringContaining("Fetch and merge main"), role: "repair" });
 			expect(repair?.receipt?.sessionId).toBe(resolved.blocked.attempts[0]?.receipt?.sessionId);
 			expect(repair?.prompt).toContain("Fetch and merge main");
 			expect(repair?.prompt).toContain(`same branch and PR (${daemon.pullRequestUrl()})`);

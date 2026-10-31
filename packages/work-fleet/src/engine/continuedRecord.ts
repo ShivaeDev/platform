@@ -21,6 +21,7 @@ export function continuedRecord(record: FleetRecord, archivedAt: number): FleetR
 		mergeQueueRepair: undefined,
 		outcome: undefined,
 		predictedConflictHold: undefined,
+		releaseReason: undefined,
 		report: undefined,
 		responses: [],
 		result: record.result?.kind === "change" && record.outcome === undefined ? record.result : undefined,

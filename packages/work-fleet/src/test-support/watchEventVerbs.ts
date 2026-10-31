@@ -53,7 +53,7 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 			tell(`the provider reports progress on ${record.workId}`);
 			engine.observedProvider.observations.set(observation.receipt.turnId, {
 				...observation,
-				progress: [{ id: "review-inspection", status: "running" }],
+				progress: [...(observation.progress ?? []), { id: `review-inspection-${(observation.progress?.length ?? 0) + 1}`, status: "running" }],
 			});
 		},
 		prApi: () => watchPrApi,

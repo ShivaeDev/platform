@@ -165,6 +165,18 @@ Only a Layer whose `jobs` list contains a schedule registration such as `cleanup
 
 The Layer requires the workers' Effect services. Leaving `Mail` unprovided leaves that requirement in the resulting Effect's type. A primitive Schema such as `Schema.String` is rejected as a queue definition because the durable contract must be an object.
 
+### Retire queues and schedules
+
+Declare obsolete queue names in the worker Layer:
+
+```ts
+const live = Jobs.layer({ jobs: [sendEmailWorker, cleanupWorker], retired: ["old-mail", "old-cleanup"] });
+```
+
+Startup stops local workers for each retired name and deletes its queue through pg-boss, including its schedules and queued jobs, before registering current workers. Missing queues can be retired again on subsequent starts. With `WorkerRelease`, retirement waits until this deployment holds the database release, including Layers with no current jobs. Names still registered by the Layer, and their dead-letter queue names, are rejected before any deletion.
+
+Dead-letter queues remain unless explicitly included in `retired`; list a source queue before its dead-letter queue when retiring both. Put retirement in the worker deployment that owns those queues and remove the old registrations from other running deployments. Custom clients need the native `deleteQueue` capability for retirement; `PgBossClient` also exposes optional native `unschedule` for removing a single schedule while keeping its queue.
+
 ### Backlog throughput and concurrency
 
 Queue and schedule workers default to `batchSize: 10` and `burstWhenBatchFull: true`. pg-boss fetches again immediately after a full batch completes, until a fetch returns fewer than ten jobs. The adapter runs handlers sequentially within each batch, and pg-boss defaults `localConcurrency` to one. Set native `localConcurrency` to run multiple batches at once:
@@ -351,6 +363,8 @@ export const readJobCounts = Effect.gen(function* () {
 ```
 
 `health` exposes pg-boss cached queue counts as data. It stays cheap and follows the pg-boss monitor interval; it does not establish that a queue has just drained. Its total fields include the registered queue's active, failed, queued and ready counts, plus the dead-letter queue's queued count. Decide in the application which values affect an HTTP health response or an alert.
+
+`health([{ name: "cleanup-mail" }])` reads only the supplied queues, in order, even when another runtime registered them. Omitting the argument keeps the Layer's registered names. Admin pages use this to include worker-only schedules without registering those schedules in the request runtime.
 
 ### Read live counts and retry a job
 

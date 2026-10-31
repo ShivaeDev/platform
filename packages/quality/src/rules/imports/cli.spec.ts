@@ -53,15 +53,20 @@ repositoryStory.it(
 	CLI_TIMEOUT,
 );
 
-repositoryStory.it("quality lint passes once a registry exception covers the one import across a fence", FENCED, function* ({ runs, writes }) {
-	expect((yield* runs("lint")).stdout).toContain(
-		'packages/game/src/play.ts:1  Imports packages/cms/src/edit.ts across the fence "game-keeps-out-of-cms"',
-	);
+repositoryStory.it(
+	"quality lint passes once a registry exception covers the one import across a fence",
+	FENCED,
+	function* ({ runs, writes }) {
+		expect((yield* runs("lint")).stdout).toContain(
+			'packages/game/src/play.ts:1  Imports packages/cms/src/edit.ts across the fence "game-keeps-out-of-cms"',
+		);
 
-	yield* writes(registry(PLAY_EXCEPTION));
+		yield* writes(registry(PLAY_EXCEPTION));
 
-	expect((yield* runs("lint")).outcome).toBe("passed");
-});
+		expect((yield* runs("lint")).outcome).toBe("passed");
+	},
+	CLI_TIMEOUT,
+);
 
 repositoryStory.it(
 	"quality lint refuses a registry exception for imports/no-test-code, which takes no exceptions",

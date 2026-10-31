@@ -10,6 +10,14 @@ export function engineProviderVerbs(fixture: EngineFixture<unknown>, tell: (line
 			fixture.loseAcknowledgement();
 			tell("the next accepted turn loses its acknowledgement");
 		},
+		reportTurnActivity: (receipt: SessionReceipt | undefined, at: number) => {
+			const observation = receipt === undefined ? undefined : fixture.observations.get(receipt.turnId);
+			if (observation === undefined) {
+				throw new Error("No matching provider turn is available");
+			}
+			fixture.observations.set(observation.receipt.turnId, { ...observation, activityAt: at });
+			tell(`the provider reports activity for ${observation.receipt.turnId}`);
+		},
 		setTurnExecution: (receipt: SessionReceipt, execution: SessionObservation["execution"], output = "") => {
 			if (!fixture.observations.has(receipt.turnId)) {
 				throw new Error("No matching provider turn is available");

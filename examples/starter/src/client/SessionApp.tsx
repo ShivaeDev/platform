@@ -1,11 +1,8 @@
-import { RegistryContext } from "@effect/atom-react";
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
-import { Effect } from "effect";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { useContext, useRef, useState } from "react";
+import { useState } from "react";
 import { PermissionBoundary } from "@shivaedev/react/client/permissionBoundary.ts";
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
-import { appRouter } from "./appRouter.tsx";
+import { type Routing, useAppRouter } from "#client/adapters/useAppRouter.ts";
 import type { AppSession, AuthActions } from "./auth.ts";
 import type { AppConnection } from "./Module.ts";
 import { clientModules } from "./modules.ts";
@@ -13,23 +10,8 @@ import { clientModules } from "./modules.ts";
 interface Session {
 	readonly id: string;
 }
-interface Routing {
-	readonly auth: AuthActions;
-	readonly client: AppConnection;
-	readonly history: RouterHistory | undefined;
-	readonly recheck: () => void;
-	readonly session?: AppSession | null | undefined;
-}
-
-function RoutedApp({ client, auth, history, session, recheck }: Routing) {
-	const registry = useContext(RegistryContext);
-	const currentRef = useRef(session);
-	currentRef.current = session;
-	const [router] = useState(() =>
-		Effect.runSync(
-			appRouter(client, auth, history, () => currentRef.current, recheck).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry)),
-		),
-	);
+function RoutedApp(routing: Routing) {
+	const router = useAppRouter(routing);
 	return (
 		<PermissionBoundary
 			fallback={
@@ -38,7 +20,7 @@ function RoutedApp({ client, auth, history, session, recheck }: Routing) {
 					<p>You do not have access to this page.</p>
 				</main>
 			}
-			session={session}
+			session={routing.session}
 		>
 			<RouterProvider router={router} />
 		</PermissionBoundary>

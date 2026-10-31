@@ -11,7 +11,7 @@ adminHost.it(
 		yield* createNote("reader", "Waiting for word count");
 		yield* startDevelopment();
 		for (const path of ["/admin", "/admin/jobs", "/admin/notes", "/admin/users"]) {
-			expect(yield* request(path)).toContain("/src/client/entry.tsx");
+			expect(yield* request(path)).toContain("/src/client/main.tsx");
 		}
 		for (const name of ["visitor", "reader", "reader-two"]) {
 			const client = yield* openAdmin(name);

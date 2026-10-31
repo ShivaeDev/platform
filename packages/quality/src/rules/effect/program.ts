@@ -3,7 +3,7 @@ import ts from "typescript";
 import { projectsFor } from "#imports/projects.ts";
 import type { RuleInputs } from "#rule.ts";
 
-export function effectProgram(inputs: RuleInputs): ts.Program {
+export function effectProgram(inputs: RuleInputs, externalTypes = true): ts.Program {
 	const projectOf = projectsFor(inputs.root);
 	const options: ts.CompilerOptions = {
 		allowJs: true,
@@ -19,6 +19,9 @@ export function effectProgram(inputs: RuleInputs): ts.Program {
 	host.readFile = (path) => texts.get(path) ?? read(path);
 	host.resolveModuleNames = (names, from) =>
 		names.map((name) => {
+			if (!(externalTypes || name.startsWith(".") || name.startsWith("#") || name.startsWith("@shivaedev/"))) {
+				return undefined;
+			}
 			const project = projectOf(from);
 			return ts.resolveModuleName(name, from, project.typesOptions, host, project.typesCache).resolvedModule;
 		});

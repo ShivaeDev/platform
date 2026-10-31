@@ -1,7 +1,13 @@
 ---
 "@shivaedev/identity": minor
 "@shivaedev/create-app": minor
+"@shivaedev/admin": minor
+"@shivaedev/react": minor
 ---
+
+### Breaking
+
+- `registerAdmin` reports missing or extra page handlers as defects when its handler Layer is built. Consumers that catch synchronous registration errors must instead observe Layer acquisition failures.
 
 ### Added
 
@@ -10,3 +16,4 @@
 ### Fixed
 
 - Generated applications start with no quality baseline and rely on the jobs package’s peer installation of `pg-boss`.
+- Loaded editors construct their form from the supplied row without an unreachable synchronous guard.

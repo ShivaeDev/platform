@@ -15,6 +15,7 @@ import type {
 export interface PgBossClient {
 	readonly complete?: PgBoss["complete"];
 	readonly createQueue: (name: string, options?: Omit<Queue, "name">) => Promise<void>;
+	readonly deleteQueue?: PgBoss["deleteQueue"];
 	readonly fail?: PgBoss["fail"];
 	readonly findJobs?: (name: string, options?: FindJobsOptions) => Promise<readonly JobWithMetadata<unknown>[]>;
 	readonly getDb?: PgBoss["getDb"];
@@ -29,6 +30,7 @@ export interface PgBossClient {
 	readonly send: (name: string, data?: object | null, options?: SendOptions) => Promise<string | null>;
 	readonly start: () => Promise<unknown>;
 	readonly stop: (options?: StopOptions) => Promise<void>;
+	readonly unschedule?: PgBoss["unschedule"];
 	readonly update?: PgBoss["update"];
 	readonly updateQueue?: PgBoss["updateQueue"];
 	readonly work: (name: string, options: WorkOptions, handler: (jobs: readonly Job<unknown>[]) => Promise<unknown>) => Promise<string>;

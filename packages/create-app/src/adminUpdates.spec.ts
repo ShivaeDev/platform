@@ -73,7 +73,7 @@ updates.it(
 );
 
 updates.it(
-	"update lists an overlapping admin shell edit as a conflict, still removes the old dashboard and keeps 0.1.0 recorded",
+	"update lists an overlapping admin shell edit as a conflict, still removes the old dashboard and records 0.2.0",
 	[
 		shipsDashboard,
 		createdWith010(),
@@ -90,8 +90,11 @@ updates.it(
 		yield* update();
 
 		yield* outcomes({
-			".create-app.json": [generationRecord(), { name: "my-app", version: "0.1.0" }],
-			answer: [answer(), `create-app: Resolve these conflicts, then commit your changes:\n${SHELL}\nThe recorded version remains 0.1.0.`],
+			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
+			answer: [
+				answer(),
+				`create-app: Recorded create-app 0.2.0. Finish the update before committing:\nFiles with conflict markers:\n${SHELL}\n\nUnresolved Git conflicts:\n${SHELL}`,
+			],
 			"conflict between both titles": [fileMentions(SHELL, "<<<<<<< ours"), true],
 			"conflicted files": [conflictedFiles(), [SHELL]],
 			"dashboard files left": [filesPresent(DASHBOARD), []],

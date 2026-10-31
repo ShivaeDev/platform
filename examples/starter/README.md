@@ -27,7 +27,7 @@ Follow the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/fra
 
 `pnpm dev` first runs `pnpm db:setup`, which prepares both local databases through `@shivaedev/local-postgres`. Have PostgreSQL 18.6 on loopback port 55432 or local Docker available. Then `pnpm migrate` applies migrations before the watchers start. Run `pnpm db:setup` separately to prepare databases without starting the app.
 
-The app uses Tailwind's neutral theme and stock shadcn components in `src/client/ui`, configured by `components.json`. The notes list uses the TanStack React Table data-table pattern. The notes module’s `CodePreview` renders added, removed and context lines outside the shadcn folder. Server entry points are in `src/server`; the notes contract is `src/modules/notes/notes.ts`; the browser starts in `src/client/entry.tsx`.
+The app uses Tailwind's neutral theme and stock shadcn components in `src/client/ui`, configured by `components.json`. The notes list uses the TanStack React Table data-table pattern. The notes module’s `CodePreview` renders added, removed and context lines outside the shadcn folder. Server entry points are in `src/server`; the notes contract is `src/modules/notes/notes.ts`; the browser starts in `src/client/main.tsx`.
 
 Use `LabelledSwitch` for a setting with a visible label, controlled `checked` state and `onCheckedChange` callback. Its Base UI field associates the setting label with the stock shadcn Switch; the separate On/Off text is hidden from the accessible name. Put the setting text in `Field.Label`, since its association supplies the switch's name through `aria-labelledby`.
 

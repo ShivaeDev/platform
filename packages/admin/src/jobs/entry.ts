@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import type { JobsQueue } from "./schemas.ts";
 
-export type JobsEntry = JobsQueue | { readonly _tag: "ScheduleDefinition"; readonly name: string };
+export type JobsEntry = JobsQueue | { readonly name: string };
 
 export type JobsPayload<TEntry extends JobsEntry> = [TEntry] extends [never]
 	? typeof Schema.Never

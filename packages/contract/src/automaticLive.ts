@@ -77,7 +77,7 @@ export function automaticLive(
 		}
 		const ready = Atom.make(false);
 		const delivery = queryDelivery(atom, decode, paused);
-		const source = delivery.atom;
+		const source = decode === undefined ? delivery.atom.pipe(Atom.setIdleTTL(0)) : delivery.atom;
 		const subscription = live(service.runtime, {
 			initialResync: false,
 			keyContext: owner?.context,
