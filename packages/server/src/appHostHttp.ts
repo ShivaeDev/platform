@@ -44,34 +44,31 @@ export function appHostHttp<
 		HostPolicy<TSession>,
 ) {
 	return Layer.unwrap(
-		Effect.gen(function* () {
-			const sensitive = yield* schemaSensitiveKeys(options.group, options.config?.sensitiveKeys);
-			const transport = yield* hostTransport(options);
-			const { bodySize, host, trustedProxy, nativeOrigins } = transport;
-			const routes = hostRpcRoutes(options, transport, sensitive);
-			const assets =
-				options.assets === undefined
-					? Layer.empty
-					: HttpStaticServer.layer(typeof options.assets === "string" ? { root: options.assets } : options.assets);
-			const application = Layer.mergeAll(options.services ?? Layer.empty);
-			const server = nodeHttpServer(host, options.config);
-			const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
-			const httpRoutes = Layer.mergeAll(routes, healthRoute, assets, applicationRoutes).pipe(
-				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
-				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, options.nativeOrigins === undefined ? "preflight" : true)),
-			);
-			return Layer.unwrap(
-				HttpRouter.toHttpEffect(httpRoutes).pipe(
-					Effect.map((handler) => HttpServer.serve(handler).pipe(HttpServer.withLogAddress, Layer.provideMerge(server))),
-				),
-			).pipe(
-				Layer.provideMerge(application),
-				Layer.provideMerge(NodeHttpServer.layerHttpServices),
-				Layer.provide(redactingDiagnostics(sensitive)),
-				Layer.provide(otlpTracing),
-				Layer.provide(Layer.succeed(RedactionPolicy, sensitive)),
-			);
-		}),
+		Effect.map(schemaSensitiveKeys(options.group, options.config?.sensitiveKeys), (sensitive) =>
+			Layer.unwrap(
+				Effect.gen(function* () {
+					const transport = yield* hostTransport(options);
+					const { bodySize, host, trustedProxy, nativeOrigins } = transport;
+					const routes = hostRpcRoutes(options, transport, sensitive);
+					const assets =
+						options.assets === undefined
+							? Layer.empty
+							: HttpStaticServer.layer(typeof options.assets === "string" ? { root: options.assets } : options.assets);
+					const application = Layer.mergeAll(options.services ?? Layer.empty);
+					const server = nodeHttpServer(host, options.config);
+					const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
+					const httpRoutes = Layer.mergeAll(routes, healthRoute, assets, applicationRoutes).pipe(
+						Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
+						Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, options.nativeOrigins === undefined ? "preflight" : true)),
+					);
+					return Layer.unwrap(
+						HttpRouter.toHttpEffect(httpRoutes).pipe(
+							Effect.map((handler) => HttpServer.serve(handler).pipe(HttpServer.withLogAddress, Layer.provideMerge(server))),
+						),
+					).pipe(Layer.provideMerge(application), Layer.provideMerge(NodeHttpServer.layerHttpServices));
+				}),
+			).pipe(Layer.provide(redactingDiagnostics(sensitive)), Layer.provide(otlpTracing), Layer.provide(Layer.succeed(RedactionPolicy, sensitive))),
+		),
 	);
 }
 
