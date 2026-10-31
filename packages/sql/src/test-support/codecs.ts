@@ -4,7 +4,7 @@ import { vi } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
 import { transact } from "#transact.ts";
-import { Payment, payment, Receipt, Sample } from "./codecModels.ts";
+import { Payment, payment, Sample } from "./codecModels.ts";
 import { onPostgres } from "./engines.ts";
 import { attempt, endingOf } from "./outcome.ts";
 import { ownTable, records, uniqueTable } from "./writeTables.ts";
@@ -19,7 +19,7 @@ function paymentRepository(tableName: string) {
 
 const codecEngine = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
-	const tables = { payments: uniqueTable("codec_payments"), receipts: uniqueTable("codec_receipts"), samples: uniqueTable("codec_samples") };
+	const tables = { payments: uniqueTable("codec_payments"), samples: uniqueTable("codec_samples") };
 	yield* ownTable(
 		sql,
 		tables.payments,
@@ -27,11 +27,9 @@ const codecEngine = Effect.fnUntraced(function* () {
 			due_on date not null, settled_at timestamptz not null, local_time timestamp without time zone not null, note text,
 			created_at timestamptz not null default current_timestamp`,
 	);
-	yield* ownTable(sql, tables.receipts, sql`id integer generated always as identity primary key, details jsonb not null`);
 	yield* ownTable(sql, tables.samples, sql`id integer primary key, values int4[] not null`);
 	return {
 		payments: yield* paymentRepository(tables.payments),
-		receipts: yield* makeRepository(Receipt, { idColumn: "id", spanPrefix: "Receipt", tableName: tables.receipts }),
 		records: records(),
 		samples: yield* makeRepository(Sample, { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Sample", tableName: tables.samples }),
 		sql,
@@ -57,7 +55,7 @@ function sampleRows(rows: readonly Sample[]) {
 	return rows.map(({ id, values }) => ({ id, values }));
 }
 
-function codecVerbs({ payments, receipts, records: { endings, returned }, samples, sql, tables }: CodecEngine, tell: (line: string) => void) {
+function codecVerbs({ payments, records: { endings, returned }, samples, sql, tables }: CodecEngine, tell: (line: string) => void) {
 	function returning<A>(result: A) {
 		returned.push(result);
 	}
@@ -95,11 +93,6 @@ function codecVerbs({ payments, receipts, records: { endings, returned }, sample
 				);
 				return Effect.asVoid(payments.insertMany(Array.from({ length: count }, () => ({ ...payment, ...changes }))));
 			}),
-		insertReceipt: (details: { readonly attempts: number; readonly channel: string }) =>
-			Effect.suspend(() => {
-				tell(`a receipt with the plain object ${JSON.stringify(details)} as its JSON column is inserted`);
-				return Effect.map(endingOf(receipts.insert({ details })), recorded);
-			}),
 		insertSample: (id: number, values: Values) =>
 			Effect.suspend(() => {
 				samplesWritten("insert", [{ id, values }]);
@@ -124,8 +117,6 @@ function codecVerbs({ payments, receipts, records: { endings, returned }, sample
 				}>`select to_char(settled_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') as precise from ${sql(tables.payments)}`,
 				(rows) => rows.map(({ precise }) => precise),
 			),
-		receiptCount: () =>
-			Effect.map(sql<{ readonly count: number }>`select count(*)::int as count from ${sql(tables.receipts)}`, ([row]) => row?.count),
 		returned: () => Effect.sync(() => returned.at(-1)),
 		rewriteTimesWithMicroseconds: () =>
 			Effect.suspend(() => {

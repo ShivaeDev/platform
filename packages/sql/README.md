@@ -91,7 +91,7 @@ const makeInvoiceLines = makeRepository(InvoiceLine, {
 });
 ```
 
-The database supplies `id` on insert. Its `Model.Field` includes the ID in selected rows, updates and JSON, and leaves it out of insertion. Keep the repository's ID field in the update variant. An ordinary field such as `name` participates in the writable variants; native update takes that update shape, so pass the complete input the model requires.
+The database supplies `id` on insert. Its `Model.Field` includes the ID in selected rows, updates and JSON, and leaves it out of insertion. Keep the repository's ID field in the update variant. An ordinary field such as `name` participates in the writable variants. By default, `update` takes the complete update shape; select particular columns when changing only part of a row.
 
 `amount` uses a text column in this example. `Schema.NumberFromString` encodes a number for storage and decodes the driver's string on reads. The SQL schema still owns column types, constraints and defaults.
 
@@ -128,6 +128,29 @@ class Sample extends Model.Class<Sample>("Sample")({
 
 The decoded value is an integer array in every variant. The database variants encode a native typed `int4[]` parameter; JSON retains the ordinary array. The same storage codec on `select` lets equality filters encode empty arrays too. `PgTypes.array` resolves the built-in `int4` array OID; `getOrThrow` unwraps that known constructor result. PostgreSQL still enforces its integer range on writes.
 
+For a PostgreSQL `jsonb` column, wrap the value schema with `jsonb`:
+
+```ts
+import { jsonb } from "@shivaedev/sql/jsonb.ts";
+
+const Details = Schema.Struct({
+	amount: Schema.NumberFromString,
+	routes: Schema.Array(Schema.Struct({ routeKey: Schema.String })),
+});
+
+class Receipt extends Model.Class<Receipt>("Receipt")({
+	id: Schema.Int,
+	details: Model.Field({
+		select: jsonb(Details),
+		insert: jsonb(Details),
+		update: jsonb(Details),
+		json: Details,
+	}),
+}) {}
+```
+
+`jsonb` uses native `PgTypes.jsonb` parameters. The supplied schema encodes nested values for storage and decodes PostgreSQL's returned object through the repository, including projections. Here `amount` is a number in application code and a string inside the stored JSON. Invalid input or stored data fails with `SchemaError`. Use `jsonb(Schema.NullOr(Details))` for a nullable column: a null input binds SQL `NULL`. The application still owns the column's DDL.
+
 ### 2. Per feature: write and query through the model
 
 ```ts
@@ -158,6 +181,18 @@ yield* lines.update(input, { onMissing: "fail" });
 ```
 
 This returns the decoded model or fails with `NoSuchElementError` in the error channel, just like `findById`. It supports single-column and composite keys and executes one `UPDATE … RETURNING` statement without checking existence first. A successful update announces changes after commit; a missing row announces nothing. Without the option, a missing row remains a defect. Versioned repositories use their existing `OptimisticConcurrencyError` contract instead.
+
+To change chosen columns without reading the row first, pass their names beside an input containing the primary key and those values:
+
+```ts
+yield* lines.update({ id: 1, amount: 55 }, { columns: ["amount"] });
+yield* lines.updateVoid({ id: 1, note: null }, { columns: ["note"] });
+yield* lines.update({ id: 2, name: "Travel" }, { columns: ["name"], onMissing: "fail" });
+```
+
+Each call executes one `UPDATE … RETURNING` without a preliminary read, encodes only the selected fields and every primary-key component through the model's update schemas, and publishes its table, record and old/new bucket keys after commit. Other columns retain their stored values, including omitted update timestamps. The column list is nonempty and contains writable fields other than the primary key; invalid selections fail with `SchemaError`. Composite-key inputs include every key component. `updateVoid` discards the returned row; `update` returns the decoded model and keeps the same missing-row behavior as a complete update. Column selection is available on unversioned repositories.
+
+A selected row can be passed unchanged to `update` or `updateVoid`, including a model with native `Model.DateTimeUpdateFromDate`. Repository update inputs accept its ordinary read-back date-time value without requiring `Model.Override`; a supplied value is preserved.
 
 For lists, choose the fields the caller needs:
 

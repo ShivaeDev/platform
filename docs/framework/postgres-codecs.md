@@ -16,9 +16,11 @@ Values below use the native client of `@effect/sql-pg` with its default type han
 | Generated integer ID             | `Model.Field({ select, update, json })`                                             | Database supplies identity on insert; repository uses returned ID for update/read.                                                 | ID is intentionally absent from the insert variant but present in update, as native repository typing requires.                                                                                                                                                                                                             |
 | Database-generated creation time | `Model.Field({ select: Schema.Date, json: Schema.DateFromString })`                 | Omitted from insert/update; `RETURNING` decodes the database default as a Date.                                                    | PostgreSQL owns the default; model variants describe it but do not generate DDL.                                                                                                                                                                                                                                            |
 
-## JSON columns are not supported
+## JSONB columns use the model's value schema
 
-`sql` models rows as columns. A repository write of a plain object to a `json` or `jsonb` column fails with a typed `SqlError` and writes no row. Give structured data its own columns, or its own table when it repeats. JSON stored in a column hides its shape from PostgreSQL constraints, indexes and migrations, and from the model that should describe it once.
+Use `jsonb(valueSchema)` from `@shivaedev/sql/jsonb.ts` on a PostgreSQL `jsonb` model field. It encodes nested values through the supplied schema and binds a native `PgTypes.jsonb` parameter; repository reads, returned rows and projections decode the driver's object through the same schema. See the [model declaration](../../packages/sql/README.md#1-once-per-model-fields-and-writable-variants).
+
+Keep the ordinary value schema in the model's JSON variant. Null inputs bind SQL `NULL`, so use a nullable SQL column and `jsonb(Schema.NullOr(valueSchema))` when null is part of the application value. The application owns SQL constraints and indexes; the codec does not derive DDL.
 
 ## The model remains the source of application types
 
