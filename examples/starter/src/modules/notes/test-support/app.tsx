@@ -140,10 +140,7 @@ export function signInResponseHeld() {
 export function authScreen() {
 	return notesApp.trait("screen", "the sign-in screen uses the real auth host", function* (engine) {
 		const view = yield* acquireScreen(engine);
-		engine.pending = () =>
-			(engine.auth.client.$store.atoms.session?.get().isPending ?? false)
-			|| view.registry.get(engine.auth.actions.submit).waiting
-			|| view.registry.get(engine.auth.actions.signOut).waiting;
+		engine.pending = () => view.registry.get(engine.auth.actions.submit).waiting;
 		yield* Effect.promise(() => view.render(<LoginScreen auth={engine.auth.actions} onAuthenticated={() => undefined} />));
 	});
 }
