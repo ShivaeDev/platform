@@ -60,15 +60,8 @@ function summary(outcome: Outcome, context: ReportContext): string {
 	return `${verdict}. ${plural(context.checked, "source file")} checked${suppressed}.`;
 }
 
-function rerecord(outcome: Outcome): readonly string[] {
-	const rules = [...new Set(outcome.errors.map((violation) => violation.rule))].sort((left, right) => left.localeCompare(right));
-	if (rules.length === 0) {
-		return [];
-	}
-	const command = ["quality baseline write", ...rules.map((rule) => `--rule ${rule}`)].join(" ");
-	return [
-		`If the baseline should keep these findings, such as the debt of a moved or renamed file, record them again with \`${command}\` and call out the baseline growth in the pull request description.`,
-	];
+function movedDebt(outcome: Outcome): readonly string[] {
+	return passes(outcome) ? [] : ["For moved files, carry their existing debt with `quality baseline prune --against <base>`."];
 }
 
 export function render(outcome: Outcome, context: ReportContext): string {
@@ -77,6 +70,6 @@ export function render(outcome: Outcome, context: ReportContext): string {
 		...ruleSections(outcome.errors, context, regressions),
 		...staleSections(outcome, context),
 		summary(outcome, context),
-		...rerecord(outcome),
+		...movedDebt(outcome),
 	].join("\n\n");
 }

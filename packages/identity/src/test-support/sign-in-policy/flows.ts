@@ -11,7 +11,7 @@ function cookiesOf(response: Response) {
 		.join("; ");
 }
 
-export async function gitHubSignIn(baseUrl: string, accountId: string, device: string) {
+export async function gitHubSignIn(baseUrl: string, accountId: string, device: string, signal?: AbortSignal) {
 	const start = await fetch(`${baseUrl}/api/auth/sign-in/social`, {
 		body: JSON.stringify({ "callbackURL": `${baseUrl}/signed-in`, "errorCallbackURL": `${baseUrl}/refused`, provider: "github" }),
 		headers: { "content-type": "application/json", origin: baseUrl },
@@ -22,6 +22,7 @@ export async function gitHubSignIn(baseUrl: string, accountId: string, device: s
 	const callback = await fetch(authorize.headers.get("location") ?? "", {
 		headers: { cookie: cookiesOf(start), "user-agent": device },
 		redirect: "manual",
+		signal: signal ?? null,
 	});
 	const location = new URL(callback.headers.get("location") ?? "", baseUrl);
 	const cookie = cookiesOf(callback);

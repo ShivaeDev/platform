@@ -8,6 +8,25 @@ const First = defineQueue({ name: "health-1", queue: { retryLimit: 0 }, schema: 
 const Second = defineQueue({ name: "health-2", queue: { retryLimit: 0 }, schema: Schema.Struct({}) });
 
 database.it(
+	"health can report only a named queue registered by another runtime",
+	[running("app", [First]), running("worker", [Second], { supervise: false }), holds(Second, { active: 1, failed: 1, later: 0, ready: 0 })],
+	function* ({ answered, ask, monitorPasses }) {
+		yield* monitorPasses(Second.name, "health-2-dlq");
+
+		yield* ask("app", "report worker queue health", (jobs) => jobs.health([Second]));
+
+		expect(yield* answered()).toEqual({
+			activeTotal: 1,
+			deadLetteredTotal: 1,
+			failedTotal: 1,
+			jobs: [{ activeCount: 1, deadLetteredCount: 1, failedCount: 1, name: "health-2", queuedCount: 0, readyCount: 0 }],
+			queuedTotal: 0,
+			readyTotal: 0,
+		});
+	},
+);
+
+database.it(
 	"after a monitor pass, health reports each queue's failed, active, queued, ready and dead-lettered counts and their totals",
 	[
 		running("app", [First, Second], { supervise: false }),

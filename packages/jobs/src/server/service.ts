@@ -34,7 +34,7 @@ export interface PgBossService {
 		queue: { readonly name: TName; readonly schema: TPayload },
 		id: string,
 	) => Effect.Effect<Option.Option<JobWithMetadata<unknown>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
-	readonly health: () => Effect.Effect<JobsHealth, PgBossError>;
+	readonly health: (queues?: readonly Pick<QueueDefinition, "name">[]) => Effect.Effect<JobsHealth, PgBossError>;
 	readonly retry: (queue: Pick<QueueDefinition, "name">, id: string) => Effect.Effect<void, PgBossError>;
 }
 
@@ -73,6 +73,7 @@ export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossE
 export interface PgBossLayerOptions<TRegistrations extends readonly JobRegistration[], TErrorRequirements> {
 	readonly jobs: TRegistrations;
 	readonly onError?: (error: Error) => Effect.Effect<unknown, never, TErrorRequirements>;
+	readonly retired?: readonly string[];
 }
 
 export interface PgBossDefinition<TIdentifier extends string = string> extends Context.Service<TIdentifier, PgBossService> {
@@ -99,10 +100,15 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 				const report = yield* clientErrorReporter(reportError).pipe(Effect.provide(context));
 				const unsubscribe = subscribeClientErrors(acquired.client, report);
 				yield* Effect.addFinalizer(() => Scope.close(workerScope, Exit.void).pipe(Effect.ensuring(Effect.sync(unsubscribe))));
-				yield* registerReleasedJobs(acquired.client, options.jobs, context, acquired.reused, acquired.schema, acquired.stop?.graceful !== false).pipe(
-					Effect.provideService(Scope.Scope, workerScope),
-					Effect.provide(dependencies),
-				);
+				yield* registerReleasedJobs(
+					acquired.client,
+					options.jobs,
+					context,
+					acquired.reused,
+					acquired.schema,
+					acquired.stop?.graceful !== false,
+					options.retired,
+				).pipe(Effect.provideService(Scope.Scope, workerScope), Effect.provide(dependencies));
 				return service;
 			}),
 			methods: (service) => ({

@@ -112,9 +112,9 @@ const registration = registerAdmin(Admin, {
 
 The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `admin.jobs.deadLettered` and `admin.jobs.job`. Counts take `{ queue }`; listings take `{ queue, limit, cursor? }` and return `{ jobs, next }`, where `next` is an `Option<string>`. Job lookup takes `{ queue, id }` and returns `Option<Job>`. Each job carries its queue, decoded payload, state, attempt and retry counts, output and timestamps. Dead-letter listings also carry `sourceQueue`, `sourceId` and `sourceOutput`. `sourceQueue` names the original queue, so readers can route to it directly. Once the original succeeds, its copies leave the dead-letter listing. Output and source output use the jobs package's `JobFailure | null` shape (`_tag` and redacted `message`). A zero page limit or malformed listing cursor is rejected as `BadRequest`. Timestamps use UTC `DateTime` values; the RPC encodes timestamps as strings and Options as nullable values. Jobs decodes the durable payload and masks native `Redacted` values and sensitive keys before the RPC response. Payloads are diagnostic `data: unknown`; narrow them before reading fields. Result serialization does not run the queue's payload encoder or require its encoding services.
 
-Schedule definitions from `defineSchedule` can be passed beside queues. A browser declaration can share just `{ _tag: "ScheduleDefinition", name }`; scheduled runs use a null payload schema for failed and dead-letter listings and job lookup. Calling `jobsPage()` with no arguments registers the same read-only page and serves health with no jobs and zero totals.
+Schedule definitions from `defineSchedule` can be passed beside queues. For a worker-only schedule, share a browser-safe object such as `const Cleanup = { name: "cleanup" } as const`. Pass `Cleanup` to `jobsPage` and spread it into the worker's `defineSchedule({ ...Cleanup, cron: "17 3 * * *" })`. The page needs no server import or worker registration. Scheduled runs use a null payload schema for failed and dead-letter listings and job lookup. Calling `jobsPage()` with no arguments registers the same read-only page and serves health with no jobs and zero totals.
 
-Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as jobs health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
+Health reads the page's declared queues in declaration order, including schedules registered by a separate worker service, and totals only those queues. It has the same refresh timing as jobs health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
 
 The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. The application mounts the registration on its existing RPC host.
 
@@ -176,6 +176,26 @@ Applications can call `listUsers(AppAccess, input)` and `changeUserRole(AppAcces
 
 Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through this operation to retain the final-assigner policy: the policy covers only `admin.users.changeRole`, so disable Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints, which write roles outside it. Better Auth's server-side APIs stay available for trusted code such as a bootstrap command.
 
+### Built-in Sessions page
+
+Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registry and register `sessions: sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Supply `permissionLayer(SessionsPermission, sessions)` from identity alongside the other permission Layers. The page uses identity's `identity.sessions` contract and `sessions.manage` permission.
+
+```tsx
+import { SessionsView } from "@shivaedev/admin/client/SessionsView.ts";
+
+const sessions = bind(SessionsPage.contract, Client);
+
+<SessionsView
+	currentSessionId={currentSession.id}
+	list={sessions.list.query}
+	revoke={sessions.revoke.run}
+	runtime={Client.runtime}
+	onCurrentSessionRevoked={signOut}
+/>;
+```
+
+The view lists signed-in sessions with the user's name and email, started, last activity and expiry times. It marks the supplied current session id and asks for confirmation in the page before revoking. A successful revoke refreshes the bound list. Revoking the current session calls `onCurrentSessionRevoked`; the application uses that callback to clear its auth state and navigate to sign-in. The starter mounts this page at `/admin/sessions` and connects the callback to its sign-out flow.
+
 ### Client permission routes
 
 `adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract, installs a read policy checking the page grant on every query, and exposes its permission as `page.route.permission`. Queries need no repeated page-grant policy. An additional query policy can restrict access further. Bound live queries use the same page grant as one-off reads. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback.
@@ -184,6 +204,6 @@ Keep Better Auth cookie caching disabled so requests see current permissions. Ro
 
 Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react` as peers. The package has no root entry; import the module that defines the name.
 
-Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the built-in Jobs and Users views under `/client` use React. Applications own route composition and styling.
+Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the built-in Jobs, Users and Sessions views under `/client` use React. Applications own route composition and styling.
 
 This package declares the permission middleware and does not resolve sessions. `permissionLayer` from `@shivaedev/identity/server/permissions.ts` resolves each request's session through the session policy the application supplies, then checks the page's permission.

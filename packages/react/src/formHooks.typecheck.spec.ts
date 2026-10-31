@@ -1,10 +1,10 @@
 import type { Option } from "effect";
 import { expectTypeOf } from "vitest";
+import type { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import type { CreateConfig } from "#client/create.ts";
 import type { EditorConfig } from "#client/editor.ts";
 import type { useEditorExample, useOptionalFieldExample, useRejectionExample } from "#test/formHookExamples.ts";
 import type {
-	Conflict,
 	Described,
 	NameRejected,
 	query,

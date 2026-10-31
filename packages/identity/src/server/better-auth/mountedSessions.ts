@@ -2,9 +2,9 @@ import { Schema } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { SessionUserSchema } from "#identity.ts";
 import type { GetSession } from "#server/adapters/betterAuthSessions.ts";
-import type { SessionProvider, SessionShape } from "#server/session.ts";
+import type { SessionProvider, SessionShape, UserSessionShape } from "#server/session.ts";
 
-const AuthSession = Schema.NullOr(Schema.Struct({ user: SessionUserSchema }));
+const AuthSession = Schema.NullOr(Schema.Struct({ session: Schema.Struct({ expiresAt: Schema.Date }), user: SessionUserSchema }));
 type SessionLookup = (options: {
 	readonly asResponse: false;
 	readonly headers: Headers;
@@ -17,7 +17,7 @@ export function mountedSessions(
 	lookup: unknown,
 	admit: <TSession extends SessionShape>(getSession: GetSession<TSession>) => SessionProvider<TSession>,
 	roles?: RoleSet,
-) {
+): { readonly roles?: RoleSet; readonly provider: SessionProvider<UserSessionShape> } {
 	const getSession = Schema.decodeUnknownSync(SessionLookup)(lookup);
 	return {
 		...(roles === undefined ? {} : { roles }),

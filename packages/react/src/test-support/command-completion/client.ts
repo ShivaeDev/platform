@@ -6,9 +6,9 @@ import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 
 export class Rejected extends Schema.TaggedError<Rejected>()("Rejected", { reason: Schema.String }) {}
-export class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", {}) {}
 const rows = collection("completion-rows", Schema.String);
 const Rename = command("rename", {
 	invalidates: () => [rows.list],

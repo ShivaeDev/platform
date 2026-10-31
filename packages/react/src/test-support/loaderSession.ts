@@ -1,6 +1,6 @@
 import { Data, Deferred, Effect } from "effect";
+import type { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 
-export class Unauthorized extends Data.TaggedError("Unauthorized") {}
 export class Unavailable extends Data.TaggedError("Unavailable") {}
 export interface LoaderSession {
 	busy: () => boolean;

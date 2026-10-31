@@ -23,6 +23,7 @@ export const policyProbe = Effect.gen(function* () {
 				return yield* check;
 			}),
 		interrupted: Deferred.isDone(interrupted),
+		waitForInterruption: Deferred.await(interrupted),
 		waiting: false,
 	};
 	return probe;

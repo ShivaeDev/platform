@@ -3,6 +3,7 @@ import { Predicate } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { isNotFound } from "@shivaedev/errors/taxonomy.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
 
 export function queryRoute<
@@ -23,7 +24,7 @@ export function queryRoute<
 			try {
 				return await loadQuery(context.context.registry, query({ context: context.context, params: context.params, search: context.deps }), context);
 			} catch (error) {
-				if (Predicate.isTagged(error, "NotFound")) {
+				if (isNotFound(error) || Predicate.isTagged(error, "QueryReadDenied")) {
 					throw notFound({ data: error });
 				}
 				throw error;

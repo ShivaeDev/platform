@@ -7,6 +7,7 @@ import { useContext, useEffect, useState } from "react";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
 import type { AtomServices } from "#fieldRejection.ts";
 import { acceptLoaderQuery } from "#internal/queryHandoff.ts";
+import { requestsRecheck } from "#internal/sessionRecheck.ts";
 import { usePermissionFailure } from "#internal/usePermissionFailure.ts";
 import { useQueryNotice } from "#internal/useQueryNotice.ts";
 import type { NoticeDescriptor } from "#notices.ts";
@@ -29,18 +30,16 @@ function state<A, E>(result: AsyncResult.AsyncResult<A, E>, data = AsyncResult.v
 		result,
 	};
 }
-export function isUnauthorized<E>(cause: Cause.Cause<E>): boolean {
-	return Option.match(Cause.findErrorOption(cause), { onNone: () => false, onSome: (error) => Predicate.isTagged(error, "Unauthorized") });
-}
 function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>, enabled = true): void {
 	const recheck = useSessionRecheck();
 	useEffect(() => {
-		if (enabled && AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
+		if (enabled && AsyncResult.isFailure(result) && Option.exists(Cause.findErrorOption(result.cause), requestsRecheck)) {
 			recheck();
 		}
 	}, [enabled, recheck, result]);
 }
 export interface QueryState<A, E> extends ResultState<A, E> {
+	readonly denied: boolean;
 	readonly refresh: () => void;
 }
 export interface QueryOptions<E = unknown> {
@@ -82,7 +81,11 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 	useQueryNotice(result, Option.isSome(data), options.notice);
 	const refresh = useAtomRefresh(atom);
 	usePermissionFailure(AsyncResult.cause(result));
-	return { ...state(result, data), refresh };
+	return {
+		...state(result, data),
+		denied: Option.exists(AsyncResult.cause(result), (cause) => Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied"))),
+		refresh,
+	};
 }
 export interface ActionState<TInput, A, E> extends ResultState<A, E> {
 	readonly dispatch: (input: TInput) => void;

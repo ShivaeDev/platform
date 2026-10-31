@@ -3,10 +3,11 @@ import type { Rpc, RpcGroup } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { type HintViewer, heard, watchHints } from "#testing.ts";
 import { answered, hintWords, shown, times } from "./answers.ts";
 import { type Mark, reRead } from "./reRead.ts";
-import { settled, signal } from "./settle.ts";
+import { settled } from "./settled.ts";
 import { type Notes, notes, Row, viewerEngine } from "./viewerEngine.ts";
 import { type ViewerPage, viewerPage } from "./viewerPage.ts";
 
@@ -72,7 +73,7 @@ export const viewerStory = storyKit({
 				story.tell(`the server announces a change to note ${id} in ${viewer}'s session and rechecks the read policy before delivering it`);
 				const before = yield* SubscriptionRef.get(engine.checks);
 				yield* engine.reactivity.invalidate(invalidationKeys([notes.item(id)], { scope: viewer }));
-				yield* signal(SubscriptionRef.changes(engine.checks), (count) => count > before);
+				yield* until(SubscriptionRef.changes(engine.checks), (count) => count > before, { name: "policy check" });
 			}),
 		changesHeard: (viewer: Viewer) =>
 			Effect.map(SubscriptionRef.get(listenerOf(engine, viewer).hints), (hints) => hints.filter((hint) => hint._tag === "Changed").map(hintWords)),
@@ -116,13 +117,17 @@ export const viewerStory = storyKit({
 		subscriptionEnd: (viewer: Viewer) => answered(listenerOf(engine, viewer).finished, () => "completed"),
 		untilChangeArrives: (viewer: Viewer, id: number) => {
 			story.tell(`the change to note ${id} reaches ${viewer}`);
-			return signal(SubscriptionRef.changes(listenerOf(engine, viewer).hints), (hints) =>
-				hints.some((hint) => hint._tag === "Changed" && hint.keys.some((key) => key._tag === "Item" && key.id === id)),
+			return until(
+				SubscriptionRef.changes(listenerOf(engine, viewer).hints),
+				(hints) => hints.some((hint) => hint._tag === "Changed" && hint.keys.some((key) => key._tag === "Item" && key.id === id)),
+				{ name: "live hint" },
 			);
 		},
 		untilHintArrives: (viewer: Viewer) => {
 			story.tell(`a changed hint reaches ${viewer}`);
-			return signal(SubscriptionRef.changes(listenerOf(engine, viewer).hints), (hints) => hints.some((hint) => hint._tag === "Changed"));
+			return until(SubscriptionRef.changes(listenerOf(engine, viewer).hints), (hints) => hints.some((hint) => hint._tag === "Changed"), {
+				name: "live hint",
+			});
 		},
 		untilPageReRead: (viewer: Viewer) =>
 			Effect.gen(function* () {

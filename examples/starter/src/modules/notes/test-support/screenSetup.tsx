@@ -46,7 +46,7 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 		connectModules([notesRegistration(engine.client)]),
 		screenAuth(),
 		createMemoryHistory({ initialEntries: [route] }),
-		() => (signedIn ? { user: {} } : undefined),
+		() => (signedIn ? { user: { id: "alice" } } : undefined),
 	);
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
@@ -149,8 +149,8 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 				connect={(session) => connectModules([notesRegistration(connection(session))])}
 				history={history}
 				recheck={recheck}
-				session={{ user: {} }}
-				sessionId={id}
+				session={{ user: { id } }}
+				userId={id}
 			/>,
 		);
 	}

@@ -2,10 +2,10 @@ import { Effect, Fiber, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { collectUntil, until } from "@shivaedev/test-story/server/until.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { hintWords, streams } from "./answers.ts";
-import { waited } from "./settle.ts";
 
 export type HintServer = "the first server" | "the second server";
 
@@ -70,19 +70,20 @@ export const liveHints = storyKit({
 				yield* Effect.promise(() => Promise.resolve());
 				yield* engine.reactivity.invalidate(invalidationKeys([barrierOf(name)]));
 				const heard: string[] = [];
-				for (;;) {
-					const hint = yield* waited(Queue.take(listening.hints), () => undefined);
-					if (hint === undefined) {
-						return heard;
-					}
-					const { arrived, rest } = withoutBarrier(hint, name);
+				const hints = yield* collectUntil(
+					Stream.fromEffectRepeat(Queue.take(listening.hints)),
+					(all) => all.some((hint) => withoutBarrier(hint, name).arrived),
+					{
+						name: `${name}'s barrier hint`,
+					},
+				);
+				for (const hint of hints) {
+					const { rest } = withoutBarrier(hint, name);
 					if (rest !== undefined) {
 						heard.push(hintWords(rest));
 					}
-					if (arrived) {
-						return heard;
-					}
 				}
+				return heard;
 			}),
 		invalidate: (keys: readonly string[]) => {
 			story.tell(`the server's Reactivity invalidates ${keys.join(", ")}`);
@@ -90,8 +91,8 @@ export const liveHints = storyKit({
 		},
 		nextHint: (name: string) =>
 			Effect.map(
-				waited(Queue.take(watcherOf(engine, name).hints), () => undefined),
-				(hint) => (hint === undefined ? "nothing" : hintWords(hint)),
+				until(Stream.fromEffectRepeat(Queue.take(watcherOf(engine, name).hints)), () => true, { name: `${name}'s next live hint` }),
+				hintWords,
 			),
 		resync: (server: HintServer = "the first server") => {
 			story.tell(`${server} resyncs its streams`);

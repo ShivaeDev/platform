@@ -67,6 +67,18 @@ try {
 
 The input quantity is a string; the successful result contains quantity `350`. Invalid input fails with `Invalid` before `onSubmit` runs. The handler can fail a named field with `submitter.fail`; changing that field clears the rejection, and another submission uses the new input.
 
+Set `requiredMessages` to give a top-level string field its own wording while keeping `Schema.NonEmptyString`:
+
+```ts
+const order = form(fields, {
+	initialValues: { name: "", quantity: "300" },
+	onSubmit: Effect.succeed,
+	requiredMessages: { name: "Enter the order name" },
+});
+```
+
+An empty name shows that message after blur or submission, including through `errorAt(["name"])` and `Invalid.messages`. Entering a name clears it. Explicit schema messages take precedence; longer minimum lengths keep their validation message. Fields without a configured message keep the default `"Required"`.
+
 The handler has three arguments: decoded values, the submitter, and the submitted encoded snapshot. Use the third argument when coordinating work against what was submitted, rather than reading live fields after an asynchronous decode. The `react` create adapter uses that snapshot to preserve input typed while decoding.
 
 ### In the UI: bind the same form

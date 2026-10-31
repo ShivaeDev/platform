@@ -1,4 +1,4 @@
-import type { Effect } from "effect";
+import type { Effect, Stream } from "effect";
 import { expectTypeOf, it } from "vitest";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { type MissingScreenPending, type ScreenDriver, type ScreenDriverOptions, screenDriver } from "#screenDriver.ts";
@@ -28,4 +28,12 @@ it("keeps client settlement and live hint waiting infallible", () => {
 	}
 	expectTypeOf<ReturnType<typeof forActivity>>().toEqualTypeOf<ScreenDriver<never, never>>();
 	expectTypeOf<ReturnType<ReturnType<typeof forActivity>["nextLiveHint"]>>().toEqualTypeOf<Effect.Effect<void>>();
+});
+
+it("keeps settlement infallible with a native pending stream", () => {
+	function forPending(pending: Stream.Stream<boolean>) {
+		return screenDriver({ ...options, pending });
+	}
+	expectTypeOf<ReturnType<typeof forPending>>().toEqualTypeOf<ScreenDriver>();
+	expectTypeOf<ReturnType<ReturnType<typeof forPending>["settle"]>>().toEqualTypeOf<Effect.Effect<void>>();
 });

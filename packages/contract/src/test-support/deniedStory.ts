@@ -3,12 +3,13 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { TestClock } from "effect/testing";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { socketIdentity } from "#internal/rpcClient.ts";
 import { shown } from "./answers.ts";
 import { records } from "./deniedContract.ts";
 import { type DeniedEngine, deniedEngine } from "./deniedEngine.ts";
-import { settled, signal } from "./settle.ts";
+import { settled } from "./settled.ts";
 
 function shownOf(engine: DeniedEngine) {
 	return Effect.map(settled(engine.registry, engine.view), (result) => shown(result, (value) => value));
@@ -51,10 +52,18 @@ export const deniedStory = storyKit({
 		signIn: () => {
 			story.tell("alice signs in with access to the record");
 			engine.registry.set(socketIdentity, "alice");
-			return signal(AtomRegistry.toStream(engine.registry, engine.api[LiveConnection].status), (status) => status.connection === "live");
+			return until(AtomRegistry.toStream(engine.registry, engine.api[LiveConnection].status), (status) => status.connection === "live", {
+				name: "live connection status",
+			});
 		},
-		untilFailed: () => signal(AtomRegistry.toStream(engine.registry, engine.api[LiveConnection].status), (status) => status.connection === "failed"),
-		untilLive: () => signal(AtomRegistry.toStream(engine.registry, engine.api[LiveConnection].status), (status) => status.connection === "live"),
+		untilFailed: () =>
+			until(AtomRegistry.toStream(engine.registry, engine.api[LiveConnection].status), (status) => status.connection === "failed", {
+				name: "live connection status",
+			}),
+		untilLive: () =>
+			until(AtomRegistry.toStream(engine.registry, engine.api[LiveConnection].status), (status) => status.connection === "live", {
+				name: "live connection status",
+			}),
 	}),
 });
 export function rejected(rejection: "denied" | "NotFound" | "Rejected") {
@@ -68,9 +77,10 @@ export function watching(delivery: "hints" | "pushed") {
 			engine.view = engine.api[delivery].query();
 			engine.registry.mount(engine.view);
 			yield* shownOf(engine);
-			yield* signal(
+			yield* until(
 				AtomRegistry.toStream(engine.registry, engine.api[LiveConnection].status),
 				(status) => status.connection === (engine.access.allowed ? "live" : "failed"),
+				{ name: "live connection status" },
 			);
 		}),
 	);

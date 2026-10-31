@@ -2,7 +2,7 @@ import { Effect, type Stream } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { signal } from "./settle.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 
 export interface Mark<A, E> {
 	readonly reads: number;
@@ -16,7 +16,7 @@ export function reRead<A, E>(
 	reads: Stream.Stream<number>,
 	mark: Mark<A, E> | undefined,
 ) {
-	return signal(reads, (count) => count > (mark?.reads ?? 0)).pipe(
-		Effect.andThen(signal(AtomRegistry.toStream(registry, atom), (result) => result !== mark?.shown && !result.waiting)),
+	return until(reads, (count) => count > (mark?.reads ?? 0), { name: "query read" }).pipe(
+		Effect.andThen(until(AtomRegistry.toStream(registry, atom), (result) => result !== mark?.shown && !result.waiting, { name: "query result" })),
 	);
 }

@@ -60,16 +60,15 @@ import { makeOrderClient, OrderScreens } from "./orders.tsx";
 
 interface Session {
 	readonly id: string;
-	readonly credentialGeneration: number;
-	readonly token: string;
+	readonly user: { readonly id: string };
 }
 
 export function App({ session, recheck }: { readonly session: Session | undefined; readonly recheck: () => void }) {
 	return (
 		<SessionBoundary
 			session={session}
-			identify={(current) => `${current.id}:${current.credentialGeneration}`}
-			connect={(current) => makeOrderClient(current.token)}
+			identify={(current) => current.user.id}
+			connect={() => makeOrderClient()}
 			recheck={recheck}
 			signedOut={<p>Signed out</p>}
 		>
@@ -79,9 +78,11 @@ export function App({ session, recheck }: { readonly session: Session | undefine
 }
 ```
 
-`makeOrderClient` and `OrderScreens` belong to the application. A changed generation creates a new client and registry, acquires a socket with the current session cookie, remounts the screens and disposes the outgoing registry. Independent registries for the same generation share the socket. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. Include the credential generation when the client captures its token, as above.
+`makeOrderClient` and `OrderScreens` belong to the application; this example uses the current session cookie. Identify by user id by default: rotating a session after a password change keeps the signed-in screen's state. Identifying by session id is an explicit choice that discards state on rotation. A changed generation creates a new client and registry, acquires a socket with the current session cookie, remounts the screens and disposes the outgoing registry. Independent registries for the same generation share the socket. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. If a client captures a token, either read the current token per request or explicitly include the session id or credential generation in `identify`, accepting a remount on rotation.
 
-A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. A live socket failure also asks the auth owner to recheck, since the host closes revoked sessions. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
+Pass the signed-out router as `signedOut` and the requested continuation address as `redirectTo` (for example, the sign-in route's `returnTo` search value). On successful sign-in, the auth owner supplies the new `session`; the boundary unmounts the signed-out tree before replacing the URL, then mounts the signed-in tree at that address. The sign-in screen requests a session recheck after success; it leaves navigation to the boundary. Off-site, non-HTTP and malformed targets fall back to `/`. A same-origin destination keeps its path, query and fragment. The default replacement uses browser history. Supply `navigate={(href) => history.replace(href)}` for a router history such as TanStack's memory history; the callback receives only the checked local path. Navigation happens once when entering a generation, so a same-user session rotation does not navigate again.
+
+A query that fails with an `Unauthorized` from `@shivaedev/errors/taxonomy.ts` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. A live socket failure also asks the auth owner to recheck, since the host closes revoked sessions. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 
 #### Session-scoped bindings
 
@@ -93,8 +94,8 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 <SessionBoundary
 	session={session}
-	identify={(current) => current.generation}
-	connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
+	identify={(current) => current.user.id}
+	connect={(_, registry) => bind(Preferences, makePreferencesClient(), { registry })}
 	recheck={recheck}
 	signedOut={<p>Signed out</p>}
 >
@@ -102,7 +103,7 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 </SessionBoundary>;
 ```
 
-`Preferences` is the application's session-scoped contract, and `makePreferencesClient(token)` creates its native AtomRpc service with the transport credentials. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
+`Preferences` is the application's session-scoped contract, and `makePreferencesClient()` creates its native AtomRpc service using the current session cookie. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Use the user id for cookie-based clients so session rotation keeps state. A sign-out followed by sign-in creates a new registry even for the same user.
 
 #### Resume from a native shell
 
@@ -224,7 +225,7 @@ export function App() {
 
 The hook owns retained display data and the native atom owns execution and caching. `QueryView` creates neither. Expected query rejections stay in its failure renderer; defects are thrown to the application's error boundary. It leaves field and command failures with the editor, form or action that owns them. Native `useAtomSuspense` is unchanged and still throws failures.
 
-For both queries and actions, a successful `undefined` is `Option.some(undefined)` in `data`, with `pending` and `refreshing` false. A defect or interruption is available as `Option.some(cause)` in `cause`; `isUnauthorized` returns false for those causes and they do not request a session recheck, even when the defect has an `Unauthorized` tag.
+For both queries and actions, a successful `undefined` is `Option.some(undefined)` in `data`, with `pending` and `refreshing` false. A defect or interruption is available as `Option.some(cause)` in `cause`; they do not request a session recheck, even when the defect has an `Unauthorized` tag.
 
 The example's action returns a value; it does not persist the report or invalidate its query. In an application, use the native RPC query and mutation atoms instead:
 
@@ -570,7 +571,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message and typed fields. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -647,7 +648,7 @@ export function App() {
 }
 ```
 
-`SharedNotFound` narrows `data` with the application's rejection schema before reading the server's message. Use a custom `NotFound` schema when the screen also needs domain fields. The fallback handles not-found results without that rejection, such as unmatched URLs.
+`SharedNotFound` narrows `data` with the shared rejection schema before reading the server's message. The fallback handles not-found results without that rejection, such as unmatched URLs.
 
 `validateSearch` stays native: `Schema.toStandardSchemaV1(Search)` supplies TanStack’s search input and output types. The schema defaults a missing or invalid page to `1`. The query callback names its params and schema output type because TypeScript cannot infer them backward through an object spread. Changing search changes the loader dependencies and queries the new payload. Keep `params`, `validateSearch`, `component` and `errorComponent` on the route, with an optional `notFoundComponent` to override the shared screen; options after the spread can override its `loaderDeps` or `loader`.
 
@@ -655,7 +656,7 @@ For a loader that coordinates more work, use `loadQuery(registry, atom, loaderCo
 
 `defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window: the first render has the loaded value and the RPC handler runs once.
 
-`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
+`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. `useQuery`, `useLoaderQuery` and a loader-backed editor’s `query` expose `denied: true` for `QueryReadDenied`, alongside the typed `cause`. Use this state to replace retained content with the application’s not-found screen after access is revoked. Refused live queries stay refused through change notifications until their input or viewer changes. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
 
 `SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount, and the atom is gone after the idle window. A new `useLoaderQuery` reader suspends until its active `loadQuery` completes, so revisiting a cached route after invalidation renders the changed data on its first frame. Already mounted readers keep their data during refreshes.
 
@@ -740,7 +741,7 @@ const showNotes = can(auth.session, ReadNotes);
 
 `auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native.
 
-`PermissionBoundary` renders the app's one fallback at the denied URL for a refused route, a loader's `Forbidden`, or a `useQuery`/`useLoaderQuery` result tagged `Forbidden`. Other errors propagate to an enclosing error boundary. Set TanStack's `disableGlobalCatchBoundary: true` and leave permission failures to this boundary; a route-specific `errorComponent` that consumes an error owns its rendering instead. Without a permission boundary, query failures keep their normal typed state. Like a React error boundary, remount it to clear a caught failure.
+`PermissionBoundary` renders the app's one fallback at the denied URL for a refused route, a loader's `Forbidden`, or a `useQuery`/`useLoaderQuery` result containing the shared `Forbidden` class. Other errors propagate to an enclosing error boundary. Set TanStack's `disableGlobalCatchBoundary: true` and leave permission failures to this boundary; a route-specific `errorComponent` that consumes an error owns its rendering instead. Without a permission boundary, query failures keep their normal typed state. Like a React error boundary, remount it to clear a caught failure.
 
 #### Better Auth actions
 
@@ -801,7 +802,7 @@ function Account() {
 }
 ```
 
-The example uses `Option` from `effect` and the application's Better Auth client. The mutation stays pending until the refreshed session settles; the query retains its previous data while refreshing and exposes `pending` for `aria-busy`. Compose email verification with `session.refresh` the same way. Reads preserve returned auth errors and use `AuthActionUnavailable` for rejected promises; a failed refresh fails the composed mutation. A successful `null` session represents sign-out.
+The example uses `Option` from `effect` and the application's Better Auth client. The mutation stays pending until the refreshed session settles; the query retains its previous data while refreshing and exposes `pending` for `aria-busy`. Compose email verification with `session.refresh` the same way. Reads preserve returned auth errors and use `AuthUnavailable` from `@shivaedev/errors/taxonomy.ts` for rejected promises; a failed refresh fails the composed mutation. A successful `null` session represents sign-out.
 
 `session.refresh` uses the native `AtomRegistry` service supplied by action atoms and atom runtimes. For an Effect run outside an atom, provide the registry that renders the session with `Effect.provideService(AtomRegistry.AtomRegistry, registry)`. Keep the session atom in the auth owner's registry, above any session boundary whose subtree it replaces. The application owns when to refresh; this adapter does not subscribe to Better Auth's hook or store.
 
@@ -873,15 +874,14 @@ pnpm add -D @shivaedev/test-story @effect/platform-node @effect/vitest vitest ha
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
 
 ```tsx
-import { Effect, Option, Ref, Schema } from "effect";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
+import { Effect, Layer, Option, Ref, Schema, Stream } from "effect";
 import { act, createElement } from "react";
 import { expect } from "vitest";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { it } from "@shivaedev/test/it.ts";
@@ -890,7 +890,7 @@ Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
 const notes = collection("notes", Schema.Number);
-const List = query("list", { reads: () => [notes.list], success: Schema.Array(Schema.String) });
+const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
 const Add = command("add", { invalidates: () => [notes.list], payload: { title: Schema.String } });
 const Notes = contract("notes", { commands: [Add], queries: [List] });
 
@@ -898,17 +898,17 @@ const handlers = Notes.toLayer(
 	Effect.gen(function* () {
 		const stored = yield* Ref.make<readonly string[]>([]);
 		return Notes.of({
+			"notes.$changes": () => Stream.never,
 			"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
 			"notes.list": () => Ref.get(stored).pipe(Effect.delay("20 millis")),
 		});
 	}),
 );
-class Client extends AtomRpc.Service<Client>()("test/Notes", {
-	group: Notes,
-	makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-	protocol: handlers,
-}) {}
-const api = bind(Notes, Client);
+const { api, Client } = makeClient(Notes, {
+	live: false,
+	protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+	url: "memory://notes",
+});
 const add = Client.runtime.fn(api.add.run);
 function NotesView() {
 	const list = useQuery(api.list.query());

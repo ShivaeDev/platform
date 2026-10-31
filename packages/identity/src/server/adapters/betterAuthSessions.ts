@@ -1,10 +1,13 @@
-import { Effect, Option, Predicate } from "effect";
+import { Clock, Effect, Option, Predicate, Schema } from "effect";
 import type { Headers } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#identity.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 import type { SessionProvider, SessionShape } from "#server/session.ts";
+
+const ExpiringSession = Schema.Struct({ session: Schema.Struct({ expiresAt: Schema.Date }) });
+
 export type GetSession<TSession extends SessionShape> = (headers: globalThis.Headers) => Promise<TSession | null>;
 export type GetProviderAccounts = (headers: globalThis.Headers) => Promise<readonly ProviderAccountValue[]>;
 export type SessionWithProviderAccounts<TSession extends SessionShape> = TSession & {
@@ -19,6 +22,9 @@ export function betterAuthSessions<TSession extends SessionShape>(getSession: Ge
 	const betterAuthSession = Effect.fn("PlatformRpc.betterAuthSession")(function* (headers: Headers.Headers) {
 		const transport = new globalThis.Headers(headers);
 		const session = yield* Effect.tryPromise(() => getSession(transport)).pipe(Effect.catch((error) => providerFailure(error.cause)));
+		if (Schema.is(ExpiringSession)(session) && session.session.expiresAt.getTime() <= (yield* Clock.currentTimeMillis)) {
+			return Option.none();
+		}
 		if (session === null || getProviderAccounts === undefined) {
 			return Option.fromNullishOr(session);
 		}

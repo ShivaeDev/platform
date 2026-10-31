@@ -2,6 +2,7 @@ import { Effect, Fiber, Ref, Stream, SubscriptionRef } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import type { LiveHint } from "#live.ts";
 import { ending, hintWords, streams } from "./answers.ts";
 import {
@@ -24,7 +25,6 @@ import {
 	viewAtom,
 } from "./liveEngine.ts";
 import { Note, notes } from "./notes.ts";
-import { signal, waited } from "./settle.ts";
 
 export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>, "tell">) {
 	const { registry, server } = engine;
@@ -68,7 +68,7 @@ export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>
 				story.tell("the client disposes its registry");
 				const open = yield* SubscriptionRef.get(server.active);
 				registry.dispose();
-				yield* signal(SubscriptionRef.changes(server.active), (count) => count < open);
+				yield* until(SubscriptionRef.changes(server.active), (count) => count < open, { name: "active subscriptions" });
 			}),
 		edit: (id: number, body: string) => {
 			story.tell(`note ${id}'s body becomes ${body} and the server announces the change`);
@@ -91,7 +91,7 @@ export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>
 		hintsHeard: () => {
 			const { fiber, hints } = subscription();
 			return Effect.map(
-				waited(Effect.asVoid(Fiber.await(fiber)), () => undefined),
+				until(Stream.fromEffect(Fiber.await(fiber)), () => true, { name: "closed subscription" }),
 				() => hints.map(hintWords),
 			);
 		},
@@ -141,13 +141,13 @@ export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>
 				for (let sent = 0; sent < count; sent += 1) {
 					const before = yield* SubscriptionRef.get(engine.client.handled);
 					yield* Effect.promise(() => server.emit({ _tag: "Resync" }));
-					yield* signal(SubscriptionRef.changes(engine.client.handled), (counts) => counts.Resync > before.Resync);
+					yield* until(SubscriptionRef.changes(engine.client.handled), (counts) => counts.Resync > before.Resync, { name: "handled live hint" });
 				}
 			}),
 		serverStreamClosed: () =>
 			Effect.gen(function* () {
 				const { opened } = subscription();
-				yield* signal(SubscriptionRef.changes(server.active), (count) => count <= opened);
+				yield* until(SubscriptionRef.changes(server.active), (count) => count <= opened, { name: "active subscriptions" });
 				return (yield* SubscriptionRef.get(server.active)) <= opened ? "closed" : "still open";
 			}),
 		serverStreamsOpened: () => Effect.map(SubscriptionRef.get(server.connections), (count) => streams(count, "opened")),
@@ -179,15 +179,12 @@ export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>
 				).pipe(Effect.forkScoped);
 				engine.subscription = { controller, fiber, hints, opened };
 				yield* Effect.raceFirst(
-					signal(SubscriptionRef.changes(server.active), (count) => count > opened),
+					until(SubscriptionRef.changes(server.active), (count) => count > opened, { name: "active subscriptions" }),
 					Effect.asVoid(Fiber.await(fiber)),
 				);
 			}),
 		subscriptionEnding: () =>
-			waited(
-				Effect.map(Fiber.join(subscription().fiber), (exit) => ending(exit)),
-				() => "still running",
-			),
+			until(Stream.fromEffect(Effect.map(Fiber.join(subscription().fiber), (exit) => ending(exit))), () => true, { name: "subscription ending" }),
 		timesRead: (view: LiveView) => timesReadOf(engine, view),
 		unmount: (view: LiveView) => {
 			story.tell(`the client unmounts ${view}`);

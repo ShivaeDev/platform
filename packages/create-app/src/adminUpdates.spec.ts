@@ -11,7 +11,6 @@ const DASHBOARD = [
 	"src/server/readOnlyDashboard.ts",
 	"src/server/readOnlyDashboardWorker.ts",
 ];
-const USERS_IMPORT = 'import { usersPage } from "@shivaedev/admin/users/page.ts"';
 const retitled = appCommits("retitles its admin shell Acme operations", { [SHELL]: (shell) => shell.replace("Your app", "Acme operations") });
 const shipsDashboard = starterAt010(
 	"still ships the old dashboard",
@@ -20,33 +19,29 @@ const shipsDashboard = starterAt010(
 const dropsDashboard = Object.fromEntries(DASHBOARD.map((path) => [path, null]));
 
 updates.it(
-	"update registers the 0.2.0 Users page in the foundation and keeps my-app's admin title",
+	"update delivers the released foundation pages and keeps my-app's admin title",
 	[
 		starterAt010("registers no Users page", {
 			[PAGES]: (pages) =>
 				pages
 					.replace(/^import \{ usersPage \}.*\n/gmu, "")
 					.replace(/^const UsersPage =.*\n/gmu, "")
-					.replace("adminRegistry(JobsPage, UsersPage)", "adminRegistry(JobsPage)"),
+					.replace("adminRegistry(JobsPage, UsersPage", "adminRegistry(JobsPage"),
 		}),
 		createdWith010(),
 		published010,
 		retitled,
 		starterAt020("registers the Users page", { [PAGES]: AS_RELEASED }),
 	],
-	function* ({ fileMentions, update }) {
-		yield* outcomes([
-			["admin title", () => fileMentions(SHELL, "Acme operations"), true],
-			["Users import", () => fileMentions(PAGES, USERS_IMPORT), false],
-			["Users registered", () => fileMentions(PAGES, "adminRegistry(JobsPage, UsersPage)"), false],
-		]);
+	function* ({ file, fileMentions, starterFile, update }) {
+		const released = yield* starterFile(PAGES);
+		expect(yield* file(PAGES)).not.toBe(released);
 
 		yield* update();
 
 		yield* outcomes([
 			["admin title", () => fileMentions(SHELL, "Acme operations"), true],
-			["Users import", () => fileMentions(PAGES, USERS_IMPORT), true],
-			["Users registered", () => fileMentions(PAGES, "adminRegistry(JobsPage, UsersPage)"), true],
+			["foundation pages", () => file(PAGES), released],
 		]);
 	},
 );
@@ -78,7 +73,7 @@ updates.it(
 );
 
 updates.it(
-	"update lists an overlapping admin shell edit as a conflict, still removes the old dashboard and keeps 0.1.0 recorded",
+	"update lists an overlapping admin shell edit as a conflict, still removes the old dashboard and records 0.2.0",
 	[
 		shipsDashboard,
 		createdWith010(),
@@ -95,8 +90,12 @@ updates.it(
 		yield* update();
 
 		yield* outcomes([
-			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.1.0" }],
-			["answer", () => answer(), `create-app: Resolve these conflicts, then commit your changes:\n${SHELL}\nThe recorded version remains 0.1.0.`],
+			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.2.0" }],
+			[
+				"answer",
+				() => answer(),
+				`create-app: Recorded create-app 0.2.0. Finish the update before committing:\nFiles with conflict markers:\n${SHELL}\n\nUnresolved Git conflicts:\n${SHELL}`,
+			],
 			["conflict between both titles", () => fileMentions(SHELL, "<<<<<<< ours"), true],
 			["conflicted files", () => conflictedFiles(), [SHELL]],
 			["dashboard files left", () => filesPresent(DASHBOARD), []],

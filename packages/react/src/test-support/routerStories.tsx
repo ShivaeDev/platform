@@ -1,10 +1,11 @@
 import { RouterProvider } from "@tanstack/react-router";
 import { Deferred, Effect } from "effect";
 import { act } from "react";
+import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { routerApp } from "./routerApp.ts";
-import { type NoteMissing, NotFound, routerClient } from "./routerClient.ts";
+import { type NoteMissing, routerClient } from "./routerClient.ts";
 import { clickButton, type Screen, screenWarnings, typeInput } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
@@ -45,12 +46,10 @@ function answer(state: State, screen: Screen, id: string, title: string, page: n
 		.pipe(Effect.andThen(settle(state, screen)));
 }
 
-function reject(state: State, screen: Screen, failure: NoteMissing | NotFound) {
+function reject(state: State, screen: Screen, id: string, failure: NoteMissing | NotFound) {
 	const answerLine = failure instanceof NotFound ? "not found" : "missing";
 	return screen
-		.act(`the server answers that note ${failure.id} is ${answerLine}`, () =>
-			Effect.runPromise(Deferred.fail(state.client.gate(failure.id), failure)),
-		)
+		.act(`the server answers that note ${id} is ${answerLine}`, () => Effect.runPromise(Deferred.fail(state.client.gate(id), failure)))
 		.pipe(Effect.andThen(settle(state, screen)));
 }
 
@@ -83,7 +82,6 @@ function routeVerbs(state: State, screen: Screen) {
 		clientRuntimes: () => Effect.sync(() => state.client.builds()),
 		firstFrame: () => Effect.sync(() => state.client.frames[0] ?? "none"),
 		heading: () => Effect.sync(() => text(state, "h1")),
-		missingId: () => Effect.sync(() => text(state, "[data-missing-id]")),
 		navigating: () => Effect.sync(() => text(state, "[data-pending]")),
 		openSecondNote: () =>
 			screen
@@ -96,7 +94,7 @@ function routeVerbs(state: State, screen: Screen) {
 				})
 				.pipe(Effect.andThen(requestArrives(state, screen))),
 		queryText: () => Effect.sync(() => text(state, "[data-query]")),
-		reject: (failure: NoteMissing | NotFound) => reject(state, screen, failure),
+		reject: (id: string, failure: NoteMissing | NotFound) => reject(state, screen, id, failure),
 		requests: () => Effect.sync(() => state.client.calls.map(({ id, page }) => `${id} page ${page}`)),
 		retry: () => {
 			state.client.next("first");
@@ -165,7 +163,7 @@ export function secondNoteRequested() {
 
 function* failLoader(engine: Engine, failure: NoteMissing, draft: string) {
 	yield* openRoute(engine, "/notes/first", failure);
-	yield* reject(engine.state, engine.screen, failure);
+	yield* reject(engine.state, engine.screen, failure.id, failure);
 	yield* routeVerbs(engine.state, engine.screen).typeShellDraft(draft);
 	const { container } = current(engine.state).root;
 	engine.state.marked = { input: container.querySelector('[name="shell"]'), shell: container.querySelector("main") };

@@ -6,6 +6,7 @@ import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
+import { Conflict, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 
 export class InvoiceLine extends Schema.Class<InvoiceLine>("InvoiceLine")({
 	id: Schema.Number,
@@ -15,7 +16,6 @@ export class InvoiceLine extends Schema.Class<InvoiceLine>("InvoiceLine")({
 }) {}
 export const InvoiceLineDraft = Schema.Struct({ name: InvoiceLine.fields.name, quantity: InvoiceLine.fields.quantity });
 export class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
-export class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", {}) {}
 class Principal extends Context.Service<Principal, { readonly user: string }>()("invoice/Principal") {}
 class Guard extends RpcMiddleware.Service<Guard, { provides: Principal }>()("invoice/Guard", { error: Unauthorized }) {}
 
@@ -30,7 +30,7 @@ const GetInvoiceLine = query("get", {
 const SaveInvoiceLine = command("save", {
 	invalidates: ({ id }) => [invoiceLines.item(id)],
 	payload: { expectedVersion: Schema.Number, id: Schema.Number, ...InvoiceLineDraft.fields },
-	rejections: { Conflict: {}, InvoiceLineNotFound: {}, InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
+	rejections: { Conflict, InvoiceLineNotFound: {}, InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
 	success: InvoiceLine,
 });
 const CreateInvoiceLine = command("create", {
@@ -109,7 +109,7 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 							return yield* SaveInvoiceLine.reject.InvoiceLineNotFound();
 						}
 						if (current.version !== expectedVersion) {
-							return yield* SaveInvoiceLine.reject.Conflict();
+							return yield* SaveInvoiceLine.reject.Conflict({ message: "Invoice line changed" });
 						}
 						return yield* stored(new InvoiceLine({ id, ...values, version: current.version + 1 }));
 					}),
@@ -118,7 +118,9 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 	});
 	const guard = Layer.succeed(Guard, (effect) =>
 		Effect.suspend(() =>
-			control.mode === "unauthorized" ? Effect.fail(new Unauthorized()) : Effect.provideService(effect, Principal, { user: "ada" }),
+			control.mode === "unauthorized"
+				? Effect.fail(new Unauthorized({ message: "Authentication required" }))
+				: Effect.provideService(effect, Principal, { user: "ada" }),
 		),
 	);
 	class Client extends AtomRpc.Service<Client>()("test/InvoiceLineClient", {

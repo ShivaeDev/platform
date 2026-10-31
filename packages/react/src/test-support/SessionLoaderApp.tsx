@@ -1,8 +1,9 @@
 import { RegistryContext } from "@effect/atom-react";
 import { createMemoryHistory, createRootRoute, createRoute, createRouter, Outlet, RouterProvider, redirect } from "@tanstack/react-router";
-import { Deferred, Predicate } from "effect";
+import { Deferred } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useState } from "react";
+import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { LoaderSession } from "./loaderSession.ts";
@@ -22,7 +23,7 @@ function RouteApp({ session }: { readonly session: LoaderSession }) {
 			component: () => <p>Private data</p>,
 			errorComponent: ({ error }) => (
 				<div>
-					<p role="alert">{Predicate.isTagged(error, "Unauthorized") ? "Session expired" : "Load unavailable"}</p>
+					<p role="alert">{isUnauthorized(error) ? "Session expired" : "Load unavailable"}</p>
 					<button onClick={() => void router.navigate({ to: "/sign-in" })} type="button">
 						Sign in
 					</button>
@@ -64,7 +65,7 @@ function DirectApp({ session }: { readonly session: LoaderSession }) {
 		try {
 			show(await loadQuery(registry, atom, { abortController: new AbortController() }));
 		} catch (error) {
-			show(Predicate.isTagged(error, "Unauthorized") ? "Session expired" : "Load unavailable");
+			show(isUnauthorized(error) ? "Session expired" : "Load unavailable");
 		} finally {
 			session.busy = () => false;
 		}

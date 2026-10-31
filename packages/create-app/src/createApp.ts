@@ -52,6 +52,10 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (
 		}
 	}
 	if (initialized) {
+		const pruned = yield* spawner.exitCode(ChildProcess.make("pnpm", ["baseline", "prune"], { cwd: target, stderr: "inherit", stdout: "inherit" }));
+		if (pruned !== 0) {
+			return yield* new CreateAppError({ message: `pnpm baseline prune failed (exit ${pruned}). Run pnpm baseline prune in ${folder} to retry.` });
+		}
 		yield* commitGit(target);
 	}
 	const quotedFolder = `'${folder.replaceAll("'", "'\"'\"'")}'`;

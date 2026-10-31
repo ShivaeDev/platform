@@ -53,7 +53,7 @@ const authResponse = Effect.fnUntraced(function* (auth: MountedAuth, web: Reques
 		url.searchParams.set("disableCookieCache", "true");
 	}
 	const request = sessionRequest ? new Request(url, web) : web;
-	const response = yield* Effect.tryPromise(() => providerResponse(auth, request, options));
+	const response = yield* Effect.tryPromise((signal) => providerResponse(auth, new Request(request, { signal }), options));
 	return sessionRequest && response.ok && options.roles !== undefined ? yield* sessionPermissions(response, options.roles) : response;
 });
 export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {
@@ -62,7 +62,11 @@ export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {
 		router.add("*", "/api/auth/*", (request) =>
 			Effect.gen(function* () {
 				const web = yield* HttpServerRequest.toWeb(request);
-				setClientIp(request, web);
+				const clientIp = setClientIp(request, web);
+				yield* Effect.annotateCurrentSpan({
+					"auth.rate_limit.address": clientIp.address,
+					"auth.rate_limit.address_source": clientIp.source,
+				});
 				return HttpServerResponse.fromWeb(yield* authResponse(auth, web, options).pipe(Effect.catch(providerFailure)));
 			}).pipe(
 				Effect.catch(() =>

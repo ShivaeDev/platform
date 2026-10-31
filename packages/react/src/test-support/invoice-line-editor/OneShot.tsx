@@ -1,6 +1,8 @@
 import { Option } from "effect";
 import { useEffect, useState } from "react";
+import { isConflict } from "@shivaedev/errors/taxonomy.ts";
 import { useCreate } from "#client/create.ts";
+import { fieldRejectionOf } from "#fieldRejection.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
 import { InvoiceLineDraft, InvoiceLineForm, values } from "./Screen.ts";
 
@@ -18,6 +20,7 @@ export function InvoiceLineOneShot({
 		create: (draft) => api.save.run({ expectedVersion: original.version, id: original.id, ...draft }),
 		fields: InvoiceLineDraft,
 		initialValues: values(original),
+		rejectField: fieldRejectionOf(InvoiceLineDraft),
 		runtime,
 	});
 	useEffect(() => {
@@ -25,7 +28,7 @@ export function InvoiceLineOneShot({
 			onSaved(edit.created.value);
 		}
 	}, [edit.created, onSaved]);
-	const conflict = Option.isSome(edit.failure) && edit.failure.value._tag === "Conflict";
+	const conflict = Option.isSome(edit.failure) && isConflict(edit.failure.value);
 	return <InvoiceLineForm editor={edit} failureMessage={conflict ? "This line changed. Reopen it to use the latest version." : "Could not save"} />;
 }
 

@@ -4,9 +4,10 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { live } from "#live.ts";
 import { hintWords, shown } from "./answers.ts";
-import { settled, signal } from "./settle.ts";
+import { settled } from "./settled.ts";
 import { Notes, notes, viewerEngine } from "./viewerEngine.ts";
 
 const slowConsumerEngine = Effect.gen(function* () {
@@ -77,7 +78,7 @@ export const slowConsumer = storyKit({
 		shown: () => Effect.map(settled(engine.registry, engine.query), (result) => shown(result, (rows) => rows.map((row) => row.title))),
 		untilReRead: () => {
 			story.tell("alice's notes are read again after delivery resumes");
-			return signal(SubscriptionRef.changes(engine.server.reads), (reads) => reads.length > engine.initialReads);
+			return until(SubscriptionRef.changes(engine.server.reads), (reads) => reads.length > engine.initialReads, { name: "query read" });
 		},
 	}),
 });

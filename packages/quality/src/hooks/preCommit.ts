@@ -42,7 +42,7 @@ const runScript = Effect.fnUntraced(
 export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: string, path: string | undefined) {
 	const config = yield* loadConfig(cwd, path);
 	const { manager, scripts } = yield* commitScripts(config.root);
-	const linted = yield* lint(cwd, path).pipe(
+	const linted = yield* lint(cwd, path, true).pipe(
 		Effect.as(true),
 		Effect.catchTag("GateFailed", () => Effect.succeed(false)),
 	);

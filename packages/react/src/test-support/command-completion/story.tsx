@@ -1,11 +1,12 @@
 import { Deferred, Effect } from "effect";
 import { startTransition } from "react";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { timesWords } from "#test/outcomeWords.ts";
 import { clickButton, type Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
-import { completionClient, Rejected, Unauthorized } from "./client.ts";
+import { completionClient, Rejected } from "./client.ts";
 import { type CompletionScreen, CompletionView } from "./view.tsx";
 
 type Title = "first" | "second";
@@ -60,7 +61,10 @@ function commandVerbs(state: State, screen: Screen) {
 			}),
 		reject: (title: Title, failure: "Rejected" | "Unauthorized") =>
 			finish(state, screen, title, `the server rejects ${title} as ${failure}`, (gate) =>
-				Deferred.doneUnsafe(gate, Effect.fail(failure === "Unauthorized" ? new Unauthorized() : new Rejected({ reason: "Locked" }))),
+				Deferred.doneUnsafe(
+					gate,
+					Effect.fail(failure === "Unauthorized" ? new Unauthorized({ message: "Authentication required" }) : new Rejected({ reason: "Locked" })),
+				),
 			),
 	};
 }

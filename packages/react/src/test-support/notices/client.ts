@@ -2,7 +2,8 @@ import { Deferred, Effect, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
-import { Api, Conflict, Rejected, type Removed, TitleRejected } from "./Api.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { Api, Rejected, type Removed, TitleRejected } from "./Api.ts";
 
 export type HeldKind = "remove" | "restore" | "save";
 
@@ -94,7 +95,7 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 				yield* gate;
 				const current = versions.get(input.title) ?? 7;
 				if (current !== input.expectedVersion) {
-					return yield* Effect.fail(new Conflict({ current, expected: input.expectedVersion }));
+					return yield* Effect.fail(new Conflict({ message: `Expected version ${input.expectedVersion}, found ${current}` }));
 				}
 				restored.push(`${input.title}@${current + 1}`);
 				versions.set(input.title, current + 1);

@@ -13,13 +13,14 @@ function unavailable() {
 export const listSessions = Effect.fn("Identity.listSessions")(function* (input: typeof SessionListInput.Type) {
 	yield* requirePermission(yield* SessionUser, ManageSessions);
 	const sql = yield* SqlClient.SqlClient;
+	const now = DateTime.toDateUtc(yield* DateTime.now);
 	const cursor = input.cursor;
 	const before = cursor === undefined ? sql`true` : sql`(s."updatedAt", s.id) < (${DateTime.toDateUtc(cursor.lastActivityAt)}, ${cursor.id})`;
 	const read = SqlSchema.findAll({
 		execute: () => sql`select s.id, s."createdAt" as "startedAt", s."updatedAt" as "lastActivityAt", s."expiresAt",
 			json_build_object('id', u.id, 'name', u.name, 'email', u.email) as "user"
 			from "session" s join "user" u on u.id = s."userId"
-			where s."expiresAt" > now() and ${before}
+			where s."expiresAt" > ${now} and ${before}
 			order by s."updatedAt" desc, s.id desc limit ${input.limit + 1}`,
 		Request: Schema.Void,
 		Result: SignedInSession,

@@ -6,7 +6,7 @@ import { LiveConnection } from "#automaticLive.ts";
 import { answered, shown, times } from "./answers.ts";
 import { type LocalEngine, localEngine } from "./localEngine.ts";
 import type { Note } from "./notes.ts";
-import { settled } from "./settle.ts";
+import { settled } from "./settled.ts";
 
 export type View = "note 1" | "note 2" | "note 3" | "the list";
 

@@ -1,11 +1,10 @@
-import { Deferred, Effect, Exit, Schema, Stream } from "effect";
+import { Deferred, Effect, Exit, Layer, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import { collection } from "@shivaedev/changes/keys.ts";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
 
 export class ToggleRejected extends Schema.TaggedError<ToggleRejected>()("ToggleRejected", { reason: Schema.String }) {}
 const items = collection("items", Schema.Number);
@@ -55,12 +54,11 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 			}),
 		),
 	);
-	class Client extends AtomRpc.Service<Client>()("test/PendingCommand", {
-		group: Items,
-		makeEffect: RpcTest.makeClient(Items, { flatten: true }),
-		protocol: handlers,
-	}) {}
-	const api = bind(Items, Client, { live: false });
+	const { api, Client } = makeClient(Items, {
+		live: false,
+		protocol: layerMemoryProtocol(Items).pipe(Layer.provide(handlers)),
+		url: "memory://items",
+	});
 	const toggles = Atom.family((id: number) => Client.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })));
 	return { command: toggles, commands: commandFor, count: api.count.query(), countHeld: count, list: api.list.query(), listHeld: list };
 }

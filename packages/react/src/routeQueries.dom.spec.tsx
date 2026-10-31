@@ -1,6 +1,7 @@
 import { expect } from "vitest";
+import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { NoteMissing, NotFound } from "#test/routerClient.ts";
+import { NoteMissing } from "#test/routerClient.ts";
 import { firstNoteShown, loaderFailed, pageTwoRequested, retryRequested, routeRequested, routes, secondNoteRequested } from "#test/routerStories.tsx";
 
 for (const initial of ["/notes/first", "/notes/first?page=invalid"]) {
@@ -24,15 +25,14 @@ for (const initial of ["/notes/first", "/notes/first?page=invalid"]) {
 }
 
 routes.it(
-	"a NotFound answer shows its server message and typed id on the root not-found screen without an alert",
+	"a NotFound answer shows its server message on the root not-found screen without an alert",
 	[routeRequested("/notes/missing")],
-	function* ({ alert, heading, missingId, reject }) {
-		yield* reject(new NotFound({ id: "missing", message: "This note was removed by its owner" }));
+	function* ({ alert, heading, reject }) {
+		yield* reject("missing", new NotFound({ message: "This note was removed by its owner" }));
 
 		yield* outcomes([
 			["alert", () => alert(), "none"],
 			["heading", () => heading(), "This note was removed by its owner"],
-			["missing note id", () => missingId(), "missing"],
 		]);
 	},
 );
@@ -41,7 +41,7 @@ routes.it(
 	"a route-level not-found screen wins over the shared root screen for a NotFound answer",
 	[routeRequested("/custom-notes/missing")],
 	function* ({ heading, reject }) {
-		yield* reject(new NotFound({ id: "missing", message: "This note was removed by its owner" }));
+		yield* reject("missing", new NotFound({ message: "This note was removed by its owner" }));
 
 		expect(yield* heading()).toBe("Note not found");
 	},
@@ -79,7 +79,7 @@ routes.it(
 	"a declared RPC failure reaches the route's error component as its tagged error",
 	[routeRequested("/notes/missing", missing)],
 	function* ({ alert, reject, routeError }) {
-		yield* reject(missing);
+		yield* reject("missing", missing);
 
 		yield* outcomes([
 			["alert", () => alert(), "NoteMissing:missing"],

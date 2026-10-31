@@ -5,6 +5,7 @@ import type { Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import { QueryView } from "#client/QueryView.ts";
+import { fieldRejectionOf } from "#fieldRejection.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
 
 export const InvoiceLineDraft = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
@@ -82,6 +83,7 @@ export function InvoiceLineScreen({ id, server: { api, runtime } }: { readonly i
 	const editor = useEditor({
 		fields: InvoiceLineDraft,
 		query: api.get.query({ id }),
+		rejectField: fieldRejectionOf(InvoiceLineDraft),
 		runtime,
 		save: (line) => api.save.run({ expectedVersion: version, id, ...line }),
 		values,

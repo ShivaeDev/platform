@@ -436,7 +436,9 @@ const status = registry.get(updates.status);
 
 While paused, live coordination keeps observing hints and suppresses automatic refresh. `status.pending` saturates at 256 observations. Unpausing reconciles the explicit scope and resets the count. A resume signal also requests reconciliation: an injected native source and visible browser `online` and `visibilitychange` events request it, while hidden events do not.
 
-`status` exposes `connection`, `failure`, `needsResync` and `pending`. Expected stream rejections settle with `connection: "failed"` and their typed cause in `failure`. A denied read, `NotFound`, or another declared rejection makes no further subscription attempts while the page remains open. Automatic queries reopen when the viewer identity changes or a matching change invalidation arrives; resume events and unrelated hints leave them settled. Low-level `live()` listens to `retryKeys`, defaulting to its `resyncKeys`, for matching invalidations. Transport errors and server defects reconnect with jittered exponential backoff, starting at `retryDelay` (one second by default) and capped at a nominal 30 seconds. A reconnection reconciles changes missed while disconnected, and successful delivery clears the stream failure. Native query atoms keep previous successful data during a read failure and reject stale responses after invalidation. Query failures remain in their own `AsyncResult`; stream failures appear in `status.failure`.
+`status` exposes `connection`, `failure`, `needsResync` and `pending`. Expected stream rejections settle with `connection: "failed"` and their typed cause in `failure`. Typed rejections do not retry on a timer. A `QueryReadDenied` refusal stays settled through matching change invalidations and resume events; changing the query input or viewer identity starts a new subscription. Other expected rejections can reopen on matching invalidations. Low-level `live()` listens to `retryKeys`, defaulting to its `resyncKeys`, for matching invalidations. Transport errors and server defects reconnect with jittered exponential backoff, starting at `retryDelay` (one second by default) and capped at a nominal 30 seconds. A reconnection reconciles changes missed while disconnected, and successful delivery clears the stream failure. Native query atoms keep previous successful data during a read failure and reject stale responses after invalidation. Query failures remain in their own `AsyncResult`; stream failures appear in `status.failure`.
+
+A `$changes` request is authorized as a whole: one denied member rejects or ends the entire batch, including its other queries. Split queries with independent permissions into separate `$changes` requests. Automatic bound query atoms already subscribe separately.
 
 The resume signal is a scoped native atom. Disposing the registry removes its browser listeners, cleans up an injected source, including one used only through `live`, and releases the stream subscription:
 
@@ -571,6 +573,23 @@ const DocumentHandlers = Documents.application
 
 The generated subscription uses the owning query handler's captured services too, so this handler-only provision serves subscriptions as well as RPC calls. Request-local services take precedence over captured services; a session value installed while building handlers cannot replace the current viewer's session. The policy runs again for live hints; its allow or deny result is not cached.
 
+### In-memory clients in story kits
+
+`layerMemoryProtocol(group)` from `@shivaedev/contract/testing.ts` connects the native RPC client and server in the same process. Provide the group's handlers and middleware with `Layer.provide`, then pass the protocol to the application's client factory:
+
+```ts
+import { Layer } from "effect";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
+
+const client = makeClient(Notes, {
+	protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+	url: "memory://notes",
+});
+```
+
+The URL identifies the client configuration; the in-memory protocol opens no socket. The client's direct calls and bound query atoms use the real handlers, schema decoding and middleware. Live subscriptions deliver the server's initial resync and changed hints, and mounted queries refresh from those hints. Closing a subscription interrupts its server stream. The protocol does not add handlers or publish changes: provide the same live handlers and change source that the application serves over WebSocket.
+
 ### Live hints in stories
 
 Use `watchHints` and `heard` from `@shivaedev/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle.
@@ -606,7 +625,7 @@ Import the module that defines the name; the package has no root entry.
 | `serverMetadata.ts`       | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.queries`, `ChangesQueries.resolve(references)`, the Effect `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters.                                                                                                                                                                          |
 | `resume.ts`               | `resumeSignal({ window?, native? })`, returning a native numeric signal atom.                                                                                                                                                                                                                                                                                                                                          |
 | `clientActivity.ts`       | `clientActivity(client)` exposes a native activity Stream with a `current` Effect; `isClientIdle(state)` checks finite work.                                                                                                                                                                                                                                                                                           |
-| `testing.ts`              | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                                                                                                                                         |
+| `testing.ts`              | `layerMemoryProtocol(group)` supplies an in-memory native RPC protocol backed by the group’s handlers and middleware; `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                   |
 
 A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.
 

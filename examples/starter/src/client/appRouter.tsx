@@ -1,40 +1,28 @@
 import { type AnyRoute, createRoute, createRouter, type RouterHistory, useRouterState } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement, ReactNode } from "react";
-import type { PermissionSession } from "@shivaedev/react/permissions.ts";
-import { signInSearch } from "@shivaedev/react/signInSearch.ts";
-import { routerRedirect } from "#client/adapters/routerRedirect.ts";
-import type { AuthActions } from "./auth.ts";
+import type { AppSession, AuthActions } from "./auth.ts";
 import { Home } from "./Home.tsx";
 import { LoginScreen } from "./LoginScreen.tsx";
 import type { ClientModule } from "./Module.ts";
 import type { clientModules } from "./modules.ts";
 import { rootRoute } from "./rootRoute.ts";
-import { parseSearch, returnPath, stringifySearch } from "./search.ts";
+import { parseSearch, stringifySearch } from "./search.ts";
 
 export function appRouter<TRoute extends AnyRoute>(
 	registry: AtomRegistry.AtomRegistry,
 	client: { readonly modules: readonly ClientModule<TRoute>[] },
 	auth: AuthActions,
 	history?: RouterHistory,
-	session: () => PermissionSession | null | undefined = () => undefined,
+	session: () => AppSession | null | undefined = () => undefined,
+	onAuthenticated: () => void = () => undefined,
 ) {
 	const root = rootRoute();
 	const login = createRoute({
-		beforeLoad: ({ search, location }) => {
-			const { returnTo } = signInSearch({ ...location, href: search.returnTo ?? "/" });
-			const current = session();
-			if (current !== null && current !== undefined && returnTo !== undefined) {
-				routerRedirect(returnTo);
-			}
-		},
-		component: (): ReactElement => {
-			const { returnTo } = login.useSearch();
-			return <LoginScreen auth={auth} onAuthenticated={() => void router.navigate({ href: returnTo ?? "/" })} />;
-		},
+		component: (): ReactElement => <LoginScreen auth={auth} onAuthenticated={onAuthenticated} />,
 		getParentRoute: () => root,
 		path: "/sign-in",
-		validateSearch: (search: Record<string, unknown>) => (search.returnTo === undefined ? {} : { returnTo: returnPath(search.returnTo) }),
+		validateSearch: (search: Record<string, unknown>) => (typeof search.returnTo === "string" ? { returnTo: search.returnTo } : {}),
 	});
 	const adminPages = client.modules.flatMap((module) => module.admin?.pages ?? []);
 	const routes = client.modules.flatMap((module) => module.routes({ getParentRoute: () => root }));

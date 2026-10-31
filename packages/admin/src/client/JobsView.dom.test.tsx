@@ -2,9 +2,23 @@ import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { jobsScreen, jobsViewOpen } from "#test/jobsScreen.tsx";
-import { mailFails, signedInAs } from "#test/jobsStory.ts";
+import { mailFails, scheduledRunFails, signedInAs } from "#test/jobsStory.ts";
 
 expectNoReactWarnings();
+
+jobsScreen.it(
+	"a jobs reader can select a worker-only schedule by its shared name and see its failed run",
+	[signedInAs("operator"), scheduledRunFails, jobsViewOpen],
+	function* ({ chooseQueue, shownJobs, shownQueues }) {
+		expect(yield* shownQueues()).toContain("scheduled");
+
+		yield* chooseQueue("scheduled");
+
+		expect(yield* shownJobs()).toEqual([
+			{ attempt: "1", failure: "the worker rejected 0: password=<redacted>", job: "the scheduled run", state: "failed" },
+		]);
+	},
+);
 
 jobsScreen.it(
 	"a jobs reader sees failed mail with its readable redacted failure and the page's shared queues",

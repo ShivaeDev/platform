@@ -2,8 +2,8 @@ import { Effect, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 
-export class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { current: Schema.Number, expected: Schema.Number }) {}
 export class Rejected extends Schema.TaggedError<Rejected>()("Rejected", {}) {}
 export class TitleRejected extends Schema.TaggedError<TitleRejected>()("TitleRejected", { field: Schema.Literal("title"), message: Schema.String }) {}
 const rows = collection("notice-rows", Schema.String);

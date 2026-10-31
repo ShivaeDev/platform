@@ -12,8 +12,9 @@ import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { adminRpc } from "./adminRpc.ts";
 import { jobsClient } from "./jobsClient.ts";
-import { Mail, Private, pages, Scheduled, Sync } from "./jobsPages.ts";
+import { Mail, Private, pages, Sync } from "./jobsPages.ts";
 import { Users } from "./pages.ts";
+import { ScheduledWorker } from "./ScheduledWorker.ts";
 
 const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_JOBS_TEST_DATABASE_URL"))));
 export const postgresConfigured = url !== undefined && url !== "";
@@ -32,6 +33,7 @@ class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: n
 	}
 }
 const Jobs = makePgBoss("test/AdminJobs");
+const ScheduledJobs = makePgBoss("test/AdminScheduledJobs");
 const InvalidMail = defineQueue({ name: Mail.name, schema: Schema.Struct({ invalid: Schema.String }) });
 
 export const jobsEngine = Effect.gen(function* () {
@@ -44,20 +46,22 @@ export const jobsEngine = Effect.gen(function* () {
 		return 0;
 	};
 	const context = yield* Layer.build(
-		Jobs.layer({
-			jobs: [
-				Mail.handle(({ id }, job) =>
-					Effect.suspend(() => {
-						const repeated = deliveries.includes(job.id);
-						deliveries.push(job.id);
-						return repeated ? Effect.succeed({ sent: id }) : Effect.fail(new WorkerRejected({ id }));
-					}),
-				),
-				Scheduled.run(Effect.fail(new WorkerRejected({ id: 0 }))),
-				Sync,
-				Private,
-			],
-		}).pipe(
+		Layer.merge(
+			Jobs.layer({
+				jobs: [
+					Mail.handle(({ id }, job) =>
+						Effect.suspend(() => {
+							const repeated = deliveries.includes(job.id);
+							deliveries.push(job.id);
+							return repeated ? Effect.succeed({ sent: id }) : Effect.fail(new WorkerRejected({ id }));
+						}),
+					),
+					Sync,
+					Private,
+				],
+			}),
+			ScheduledJobs.layer({ jobs: [ScheduledWorker.run(Effect.fail(new WorkerRejected({ id: 0 })))] }),
+		).pipe(
 			Layer.provide(
 				pgBossLayer({
 					clientFactory: (options) => {

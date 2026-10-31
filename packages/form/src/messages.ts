@@ -22,17 +22,39 @@ function refusesEmpty(check: SchemaAST.Filter<unknown>): boolean {
 	return payload.minLength === 1;
 }
 
-const checkHook: SchemaIssue.CheckHook = (issue) => SchemaIssue.defaultCheckHook(issue) ?? (refusesEmpty(issue.filter) ? REQUIRED : undefined);
+function formatter(required = REQUIRED) {
+	return SchemaIssue.makeFormatterStandardSchemaV1({
+		checkHook: (issue) => SchemaIssue.defaultCheckHook(issue) ?? (refusesEmpty(issue.filter) ? required : undefined),
+	});
+}
 
-const formatIssue = SchemaIssue.makeFormatterStandardSchemaV1({ checkHook });
+const formatIssue = formatter();
+
+function formattedIssues(issue: SchemaIssue.Issue, requiredMessages: Readonly<Partial<Record<string, string>>>) {
+	const issues = formatIssue(issue).issues;
+	const customized = new Map<string, ReturnType<typeof formatIssue>["issues"]>();
+	return issues.map((entry, index) => {
+		const head = entry.path?.[0];
+		const required = head === undefined ? undefined : messageAt(requiredMessages, segmentKey(head));
+		if (required === undefined) {
+			return entry;
+		}
+		let entries = customized.get(required);
+		if (entries === undefined) {
+			entries = formatter(required)(issue).issues;
+			customized.set(required, entries);
+		}
+		return entries[index] ?? entry;
+	});
+}
 
 function segmentKey(segment: PropertyKey | StandardSchema.StandardSchemaV1.PathSegment): string {
 	return typeof segment === "object" ? String(segment.key) : String(segment);
 }
 
-export function messagesByField(issue: SchemaIssue.Issue): FieldMessages {
+export function messagesByField(issue: SchemaIssue.Issue, requiredMessages: Readonly<Partial<Record<string, string>>> = noMessages): FieldMessages {
 	const messages: Record<string, string> = Object.create(null);
-	for (const entry of formatIssue(issue).issues) {
+	for (const entry of formattedIssues(issue, requiredMessages)) {
 		const head = entry.path?.[0];
 		if (head === undefined) {
 			continue;
@@ -45,8 +67,12 @@ export function messagesByField(issue: SchemaIssue.Issue): FieldMessages {
 	return messages;
 }
 
-export function messageAtPath(issue: SchemaIssue.Issue, path: readonly PropertyKey[]): string | undefined {
-	for (const entry of formatIssue(issue).issues) {
+export function messageAtPath(
+	issue: SchemaIssue.Issue,
+	path: readonly PropertyKey[],
+	requiredMessages: Readonly<Partial<Record<string, string>>> = noMessages,
+): string | undefined {
+	for (const entry of formattedIssues(issue, requiredMessages)) {
 		if (
 			path.every((segment, index) => {
 				const found = entry.path?.[index];
@@ -87,15 +113,18 @@ export function literalChoices(input: SchemaAST.AST): readonly SchemaAST.Literal
 	return choices;
 }
 
-export function messageAt(messages: FieldMessages, name: string): string | undefined {
+export function messageAt(messages: Readonly<Partial<Record<string, string>>>, name: string): string | undefined {
 	return Object.hasOwn(messages, name) ? messages[name] : undefined;
 }
 
-export function schemaFeedback<A, E>(decoded: Atom.Atom<AsyncResult.AsyncResult<Result.Result<A, SchemaIssue.Issue>, E>>) {
+export function schemaFeedback<A, E>(
+	decoded: Atom.Atom<AsyncResult.AsyncResult<Result.Result<A, SchemaIssue.Issue>, E>>,
+	requiredMessages: Readonly<Partial<Record<string, string>>> = noMessages,
+) {
 	const messages = Atom.map(decoded, (result) =>
 		Option.match(AsyncResult.value(result), {
 			onNone: () => noMessages,
-			onSome: (value) => (Result.isFailure(value) ? messagesByField(value.failure) : noMessages),
+			onSome: (value) => (Result.isFailure(value) ? messagesByField(value.failure, requiredMessages) : noMessages),
 		}),
 	);
 	return {
@@ -106,7 +135,7 @@ export function schemaFeedback<A, E>(decoded: Atom.Atom<AsyncResult.AsyncResult<
 				}
 				return Option.match(AsyncResult.value(result), {
 					onNone: () => undefined,
-					onSome: (value) => (Result.isFailure(value) ? messageAtPath(value.failure, path) : undefined),
+					onSome: (value) => (Result.isFailure(value) ? messageAtPath(value.failure, path, requiredMessages) : undefined),
 				});
 			}),
 		field: Atom.family((name: string) => Atom.map(messages, (value) => messageAt(value, name))),

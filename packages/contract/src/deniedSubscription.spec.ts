@@ -37,18 +37,18 @@ for (const delivery of ["hints", "pushed"] as const) {
 		},
 	);
 	deniedStory.it(
-		`${delivery}: a matching change hint reopens a settled denial`,
+		`${delivery}: restored access and a matching change leave a refusal settled`,
 		[watching(delivery)],
-		function* ({ allow, announce, attempts, shown, untilLive }) {
+		function* ({ allow, announce, attempts, shown, minutePasses }) {
 			expect(yield* shown()).toBe("failed with read denied");
 			allow();
 
 			yield* announce(1);
-			yield* untilLive();
+			yield* minutePasses();
 
 			yield* outcomes([
-				["query", () => shown(), "Alice's record"],
-				["subscriptions", () => attempts(), 2],
+				["query", () => shown(), "failed with read denied"],
+				["subscriptions", () => attempts(), 1],
 			]);
 		},
 	);
@@ -70,16 +70,16 @@ for (const delivery of ["hints", "pushed"] as const) {
 		},
 	);
 	deniedStory.it(
-		`${delivery}: a matching hint rechecks a still-denied subscription once`,
+		`${delivery}: a matching hint leaves a still-denied subscription settled`,
 		[watching(delivery)],
 		function* ({ announce, attempts, minutePasses, policyChecks, shown }) {
 			yield* announce(1);
 			yield* minutePasses();
 
 			yield* outcomes([
-				["policy checks", () => policyChecks(), 2],
+				["policy checks", () => policyChecks(), 1],
 				["query", () => shown(), "failed with read denied"],
-				["subscriptions", () => attempts(), 2],
+				["subscriptions", () => attempts(), 1],
 			]);
 		},
 	);
@@ -95,6 +95,40 @@ for (const delivery of ["hints", "pushed"] as const) {
 				["policy checks", () => policyChecks(), 1],
 				["query", () => shown(), "failed with read denied"],
 				["subscriptions", () => attempts(), 1],
+			]);
+		},
+	);
+	deniedStory.it(
+		`${delivery}: a new viewer recovers a query whose mounted read lost access`,
+		[readable(), watching(delivery)],
+		function* ({ announceOnServer, attempts, minutePasses, revoke, shown, signIn, untilFailed }) {
+			revoke();
+			yield* announceOnServer();
+			yield* untilFailed();
+			expect(yield* shown()).toBe("failed with read denied");
+
+			yield* signIn();
+			yield* minutePasses();
+
+			yield* outcomes([
+				["query", () => shown(), "Alice's record"],
+				["subscriptions", () => attempts(), 2],
+			]);
+		},
+	);
+	deniedStory.it(
+		`${delivery}: matching changes can still recover other expected rejections`,
+		[rejected("NotFound"), watching(delivery)],
+		function* ({ allow, announce, attempts, shown, untilLive }) {
+			expect(yield* shown()).toBe("failed with not found");
+			allow();
+
+			yield* announce(1);
+			yield* untilLive();
+
+			yield* outcomes([
+				["query", () => shown(), "Alice's record"],
+				["subscriptions", () => attempts(), 2],
 			]);
 		},
 	);

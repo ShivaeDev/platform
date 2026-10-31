@@ -26,9 +26,9 @@ export function releaseWindowVerbs(state: { queueApi: Effect.Success<typeof merg
 			api().openRelease(options);
 			tell("A release PR opens");
 		},
-		releaseCheck: (conclusion: string | null) => {
-			api().mergeGroupCheck(RELEASE_HEAD, { conclusion, name: "verify", url: "https://github.com/example/project/actions/runs/99" });
-			tell(`The release PR's required check is ${conclusion ?? "pending"}`);
+		releaseCiRun: (status: string, conclusion: string | null = null, head = RELEASE_HEAD) => {
+			api().ciRun(status, conclusion, head);
+			tell(`The release PR's CI run is ${status}${conclusion === null ? "" : `: ${conclusion}`}`);
 		},
 	};
 }

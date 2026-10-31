@@ -1,5 +1,5 @@
 import { Cause, Option } from "effect";
-import { AuthActionUnavailable } from "#client/authAction.ts";
+import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { authQuery } from "#client/authQuery.ts";
 import { useQuery } from "#client/resultState.ts";
 
@@ -9,11 +9,10 @@ export interface AuthError {
 }
 export type AuthReadQuery = ReturnType<ReturnType<typeof authQuery<string, string | null, AuthError>>>;
 
-function failureText(cause: Cause.Cause<AuthError | AuthActionUnavailable>) {
+function failureText(cause: Cause.Cause<AuthError | AuthUnavailable>) {
 	return Option.match(Cause.findErrorOption(cause), {
 		onNone: () => "defect",
-		onSome: (error) =>
-			error instanceof AuthActionUnavailable ? `auth unavailable: ${String(error.cause)}` : `refused: ${error.code} (${error.status})`,
+		onSome: (error) => (error instanceof AuthUnavailable ? `auth unavailable: ${error.message}` : `refused: ${error.code} (${error.status})`),
 	});
 }
 

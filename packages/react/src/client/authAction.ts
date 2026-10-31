@@ -1,10 +1,6 @@
-import { Data, Effect, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as Atom from "effect/reactivity/Atom";
-
-export class AuthActionUnavailable extends Data.TaggedError("AuthActionUnavailable")<{
-	readonly cause: unknown;
-}> {}
 
 export interface AuthActionResult<A, E> {
 	readonly data: A;

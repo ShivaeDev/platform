@@ -13,6 +13,7 @@ import { observeStops, observeWakes, pauseCompletion, sortBatches } from "./clie
 import type { DatabaseEngine, Runtime } from "./databaseEngine.ts";
 
 export type StartOptions = PgBossOptions & {
+	readonly retired?: readonly string[];
 	readonly queueNames?: readonly string[];
 	readonly controller?: "production retries" | "test retries" | "none";
 	readonly finalizesInParallel?: true;
@@ -70,6 +71,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 	options: StartOptions = {},
 ) {
 	const {
+		retired,
 		queueNames,
 		controller,
 		finalizesInParallel,
@@ -108,6 +110,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 	const layer = service
 		.layer({
 			jobs: registered,
+			...(retired === undefined ? {} : { retired }),
 			...(reportsErrors === true ? { onError: (error: Error) => Effect.sync(() => engine.reported.push(error.message)) } : {}),
 		})
 		.pipe(Layer.provide(clientLayer));

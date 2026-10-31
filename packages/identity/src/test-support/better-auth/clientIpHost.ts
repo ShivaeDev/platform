@@ -7,8 +7,10 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { recorder } from "#test/rpc/harness.ts";
 
 export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (env: Record<string, string>) {
+	const recorded = recorder();
 	const pool = yield* betterAuthDatabase();
 	const options = {
 		database: pool,
@@ -21,12 +23,15 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (e
 	const context = yield* Effect.gen(function* () {
 		const mounted = yield* betterAuthMount(options);
 		return yield* Layer.build(
-			HttpRouter.serve(mounted.routes).pipe(Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 }))),
+			HttpRouter.serve(mounted.routes).pipe(
+				Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),
+				Layer.provide(recorded.layer),
+			),
 		);
 	}).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("The client IP story needs a TCP listener");
 	}
-	return { baseUrl: `http://127.0.0.1:${server.address.port}`, pool };
+	return { baseUrl: `http://127.0.0.1:${server.address.port}`, pool, spans: recorded.spans };
 });

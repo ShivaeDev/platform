@@ -591,6 +591,30 @@ help: either the bakery never gets there, so check the setup and the engine, or 
 
 That is what `oven.bakesEverything(12)` dies with when the baker keeps a sourdough starter, so the dough never runs out. The typed failures of `step`, `failed`, `diagnose` and the condition stay in the Effect's error channel: a step that fails with `BurntLoaf` gives the test a `BurntLoaf` to assert on. A kit without `run` hooks dies with a message that says to add them.
 
+### Waiting for a signal
+
+Use `until` in a kit verb to consume a native stream through its first matching value. `collectUntil` collects values in arrival order and stops when its predicate matches the collection, including the value that completes it. Supply a name that says what the story is waiting for.
+
+```ts
+import { SubscriptionRef } from "effect";
+import { collectUntil, until } from "@shivaedev/test-story/server/until.ts";
+
+const ready = yield* until(
+	SubscriptionRef.changes(status),
+	(value) => value === "ready",
+	{ name: "worker ready" },
+);
+const deliveries = yield* collectUntil(
+	deliveryStream,
+	(values) => values.some((delivery) => delivery.id === requestedId),
+	{ name: "requested delivery", timeout: "2 seconds" },
+);
+```
+
+The helpers subscribe by running the stream before inspecting its values. Use a stream that includes the current value, such as `SubscriptionRef.changes` or `AtomRegistry.toStream`, when readiness may already hold. They release the subscription on completion or timeout. Their default deadline is five seconds of live time; `timeout` accepts an Effect duration. Only the deadline uses live time: the source keeps the story's clock, and neither helper advances its TestClock.
+
+A deadline or stream ending without a match fails with `SignalNotReceived` in the error channel. Its message names the missing signal, shows the last observation (the collection for `collectUntil`, or that no value arrived), and includes a `help:` line. Source failures pass through.
+
 ### When a story fails
 
 After the engine has been created, a failing story test adds the story to its first error, as in the examples above:
@@ -737,15 +761,18 @@ pnpm add --save-dev react react-dom @effect/atom-react @types/react @types/react
 
 `screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is required for `settle()`; `nextLiveHint()` requires client activity in that option. DOM actions, lookups and synchronous readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
 
-To use `settle()`, supply a `pending()` function that reads the application's own request or atom state. Settlement then keeps its `Effect<void>` type with no typed errors and waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
+To use `settle()`, supply a native `Stream<boolean>` as `pending`, emitting the current pending state on subscription and every subsequent change. For example, a package that tracks work in a native `SubscriptionRef<boolean>` supplies `pending: SubscriptionRef.changes(requests.pending)`. For a native boolean atom, use `AtomRegistry.toStream(view.registry, pendingAtom)` from `effect/reactivity/AtomRegistry`. Keep pending true until the resulting screen work is ready to render. Settlement keeps its `Effect<void>` type with no typed errors and waits until the stream emits false; DOM mutations also wake the driver, and repeated identical renders never count as completion. `find()` waits for pending work to finish and its target to appear, reacting to both signals and mutations.
+
+A `pending: () => boolean` sampler remains available for packages whose pending work completes with a DOM mutation. It is sampled after the initial renderer flush and on mutations, without a polling timer. Use the stream when pending can become false without changing the DOM.
 
 ```ts
+import { SubscriptionRef } from "effect";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
 verbs: ({ view, requests }, story) =>
 	screenDriver({
 		root: view.container,
-		pending: () => requests.pending,
+		pending: SubscriptionRef.changes(requests.pending),
 		tell: story.tell,
 	});
 ```
@@ -762,7 +789,7 @@ yield* screen.settle();
 expect(screen.text("output")).toBe("Saved title");
 ```
 
-This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. With client activity, `find()` settles before looking up its target once. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
+This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
 
 `click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
@@ -804,8 +831,9 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | Module                               | Exports                                                                                                                                                                                                                                                                                                                                                                             |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `server/storyKit.ts`                 | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
-| `server/outcomes.ts`                 | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
 | `server/adapters/outcomeMatchers.ts` | `lessThan(limit)`, `atMost(limit)`, `greaterThan(limit)`, `atLeast(limit)`, `NumericBound`                                                                                                                                                                                                                                                                                          |
+| `server/outcomes.ts`                 | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
+| `server/until.ts`                    | `until(stream, matches, options)`, `collectUntil(stream, matches, options)`, `UntilOptions`, `SignalNotReceived`                                                                                                                                                                                                                                                                    |
 | `server/browserReads.ts`             | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`, `BrowserSubscription`                                                                                                                                                                                                                                                                                                |
 | `server/domFetch.ts`                 | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
 | `server/seedCookies.ts`              | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |

@@ -1,7 +1,7 @@
 import { CatchBoundary } from "@tanstack/react-router";
-import { Predicate } from "effect";
 import { createElement, type ReactNode, useContext } from "react";
 import type { Permission } from "@shivaedev/access/permission.ts";
+import { isForbidden } from "@shivaedev/errors/taxonomy.ts";
 import { PermissionContext } from "#internal/PermissionContext.ts";
 import { can, type PermissionSession } from "#permissions.ts";
 
@@ -18,7 +18,7 @@ export function useCan(): (permission: Permission) => boolean {
 
 function PermissionFailure({ error }: { readonly error: unknown }): ReactNode {
 	const context = useContext(PermissionContext);
-	if (!Predicate.isTagged(error, "Forbidden")) {
+	if (!isForbidden(error)) {
 		throw error;
 	}
 	return context?.fallback;
