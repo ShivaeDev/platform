@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.30.1 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/access` from 0.3.3 to 0.3.4.
+- Update `@shivaedev/contract` from 0.29.0 to 0.30.0.
+- Update `@shivaedev/errors` from 0.3.0 to 0.4.0.
+
 ## 0.30.0 - 2026-10-31
 
 ### Added
