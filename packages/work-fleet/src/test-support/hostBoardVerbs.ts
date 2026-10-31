@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { Context, Effect } from "effect";
 import { inProgress } from "@shivaedev/work-board/browser/views/inProgress.ts";
+import { BoardIndex } from "#board/Index.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
 import type { Decision } from "#policy.ts";
@@ -9,6 +10,7 @@ import { BoardGateway } from "#policy.ts";
 import { boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 import { until } from "#test/cloudRestart.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { indexedBoard } from "#test/indexedBoard.ts";
 import { questionPublicationVerbs } from "#test/questionPublicationVerbs.ts";
 import { storedBoardPath, storedBoardResponses, storedBoardSource } from "#test/storedBoard.ts";
 
@@ -28,6 +30,13 @@ export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			tell(`wait for the generated Board source ${file}`);
 			const path = storedBoardPath(engine.fixture.host.boardDir, file);
 			return until(() => Effect.sync(() => existsSync(path) && ready(readFileSync(path, "utf8")))).pipe(Effect.map(() => readFileSync(path, "utf8")));
+		},
+		awaitIndexedSource: (file: string, source: string) => {
+			tell(`wait for the Board index to observe ${file}`);
+			const { index } = Context.get(engine.running.context, BoardIndex);
+			return indexedBoard(index, (snapshot) =>
+				snapshot.documents.some((document) => document.file === file && (document.parsed.raw ?? "") + document.parsed.body === source),
+			);
 		},
 		publishBoardDecision: (workId: string, decision: Decision) => {
 			tell(`publish a Fleet decision for ${workId}`);

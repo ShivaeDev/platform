@@ -1,5 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Console, Effect, Layer, Stream } from "effect";
+import { Console, Effect, Layer, PubSub, Queue, Stream } from "effect";
+import { BoardIndex } from "#board/Index.ts";
+import { watchedBoard } from "#board/watched.ts";
 import type { ReportInspection } from "#engine/ReportInspection.ts";
 import { run } from "#engine/scheduler.ts";
 import { admitApproved } from "#host/admission.ts";
@@ -41,13 +43,17 @@ export function hostLayer(
 				host.boardDir,
 				Effect.map(live.current, ({ host: applied }) => ({
 					concurrency: applied.concurrency,
-					staleAfterMs: Math.max(60_000, applied.interval * 3000),
+					staleAfterMs: Math.max(180_000, applied.interval * 3000),
 				})),
 				backgroundPublication,
 			),
 		),
 	);
-	return status.pipe(Layer.provideMerge(runtime), Layer.provideMerge(config));
+	return status.pipe(
+		Layer.provideMerge(runtime),
+		Layer.provideMerge(config),
+		Layer.provideMerge(watchedBoard(host.boardDir).pipe(Layer.provide(NodeServices.layer))),
+	);
 }
 
 // An applied config edit starts the next pass at once instead of after the interval it replaced, and a low GitHub budget stretches that interval.
@@ -56,7 +62,8 @@ export const schedulerPause = Effect.gen(function* () {
 	const github = yield* GithubApi;
 	const { host: applied } = yield* live.current;
 	const interval = applied.interval * 1000;
-	const delay = yield* github.pace(interval);
+	const watched = yield* Effect.serviceOption(BoardIndex);
+	const delay = yield* github.pace(watched._tag === "Some" ? Math.max(60_000, interval) : interval);
 	const pause = delay > interval ? Effect.raceFirst(Effect.sleep(delay), providerReadPause(interval)) : Effect.sleep(delay);
 	yield* Effect.raceFirst(pause, live.changes.pipe(Stream.drop(1), Stream.take(1), Stream.runDrain));
 });
@@ -74,5 +81,15 @@ export function hostScheduler(host: FleetHost) {
 			}),
 		),
 	);
-	return run(schedulerPause, admission);
+	return Effect.gen(function* () {
+		const { index } = yield* BoardIndex;
+		const events = yield* PubSub.subscribe(index.changes.events);
+		const pending = yield* Queue.sliding<void>(1);
+		yield* Stream.fromSubscription(events).pipe(
+			Stream.filter((change) => change._tag === "Watching" || change.paths.some((path) => path !== "fleet/status.md")),
+			Stream.runForEach(() => Queue.offer(pending, undefined)),
+			Effect.forkScoped,
+		);
+		return yield* run(Effect.raceFirst(schedulerPause, Queue.take(pending)), admission);
+	});
 }

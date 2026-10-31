@@ -1,10 +1,8 @@
 import { Context, Effect } from "effect";
 import type { SqlClient } from "effect/sql";
-import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { Fleet } from "#fleet.ts";
 import type { HostSettings } from "#host/config.ts";
-import { daemonLayer } from "#host/daemon.ts";
-import { type ApprovedPrFixture, approvedPrFixture, schedulerReady } from "#test/approvedPrDaemon.ts";
+import { type ApprovedPrFixture, approvedPrFixture } from "#test/approvedPrDaemon.ts";
 import { type HostFixture, hostFixture, task } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
@@ -64,17 +62,20 @@ export class AnswerHostEngine {
 				if (engine.#runtime !== undefined) {
 					return yield* Effect.die("The daemon is already running");
 				}
-				const { host, parts: originalParts } = engine.host;
-				const fixtureParts = engine.boardOverride === undefined ? originalParts : { ...originalParts, board: engine.boardOverride };
-				const parts = fixtureParts.board === undefined ? fixtureParts : { ...fixtureParts, board: engine.resolution.board(fixtureParts.board) };
-				const previous = engine.#pr === undefined ? undefined : yield* fleetHealth(host.boardDir).pipe(Effect.option);
-				const layer = engine.#pr === undefined ? readDaemonLayer(host, { parts }) : daemonLayer(host, engine.#pr.parts, 0);
+				const { host } = engine.host;
+				const layer = readDaemonLayer(host, { parts: engine.#parts() });
 				engine.#runtime = yield* startHostDaemon(layer);
-				if (previous !== undefined) {
-					yield* schedulerReady(host.boardDir, previous._tag === "Some" ? previous.value.lastSchedulerPass : null);
-				}
 			}),
 		);
+	}
+
+	#parts() {
+		if (this.#pr !== undefined) {
+			return this.#pr.parts;
+		}
+		const original = this.host.parts;
+		const parts = this.boardOverride === undefined ? original : { ...original, board: this.boardOverride };
+		return parts.board === undefined ? parts : { ...parts, board: this.resolution.board(parts.board) };
 	}
 
 	stop() {

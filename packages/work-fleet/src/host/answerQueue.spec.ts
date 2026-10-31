@@ -21,7 +21,11 @@ for (const step of ["repairing", "working"] as const) {
 			current = yield* daemon.answerPullRequest(ready, "Preserve the empty state.");
 		}
 		expect(current.step).toBe(step);
-		expect(yield* daemon.cliAnswer("one", TEXT)).toEqual({ code: 0, stderr: "", stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}` });
+		expect(yield* daemon.cliAnswer("one", TEXT)).toEqual({
+			code: 0,
+			stderr: "",
+			stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}`,
+		});
 		const queued = yield* daemon.waitForRecord("one", (record) => record.pendingAnswers?.length === 1);
 		expect(queued.pendingAnswers).toEqual([TEXT]);
 		expect(queued.attempts).toEqual(current.attempts);

@@ -4,12 +4,11 @@ import { BadRequest, Conflict, Forbidden, NotFound } from "@shivaedev/errors/tax
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 import { prepared } from "#test/preparation.ts";
-import { readyScheduledHost } from "#test/scheduledHost.ts";
 import { unavailableMain } from "#test/unavailableMain.ts";
 
 host.it(
 	"clients retain missing, invalid, denied and stale errors in the error channel",
-	[boardWork({}, { intervalSeconds: 60 }), readyScheduledHost],
+	[boardWork({}, { intervalSeconds: 60 })],
 	function* (daemon) {
 		daemon.writeBoard("one.md", task("one", "approved"));
 		const missing = yield* daemon.request("fleet.get", { workId: "missing" }).pipe(Effect.flip);

@@ -23,6 +23,7 @@ import { serveRecovery } from "#test/serveRecovery.ts";
 const acknowledgedResponse = Effect.fn("Test.acknowledgedResponse")(function* (
 	client: Effect.Success<ReturnType<typeof daemonClient>>,
 	responseId: string,
+	action: "retry" | "release",
 ) {
 	const receipt = yield* eventually(
 		Effect.result(client("fleet.get", { workId: "one" })).pipe(
@@ -33,6 +34,7 @@ const acknowledgedResponse = Effect.fn("Test.acknowledgedResponse")(function* (
 						: Effect.succeed(observed);
 				}
 				return observed.success.responses?.some((response) => response.responseId === responseId && response.boardAcknowledged === true)
+					&& (action === "release" || (observed.success.step === "working" && observed.success.attempts.at(-1)?.receipt !== undefined))
 					? Effect.succeed(observed)
 					: Effect.fail("Wait for the exact acknowledged response");
 			}),
@@ -71,27 +73,31 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (state:
 	};
 
 	rmSync(join(state.root, "one.md"));
-	const initial = yield* serveRecovery(host, parts, (client) =>
-		Effect.gen(function* () {
-			writeFileSync(join(state.root, "one.md"), state.source);
-			yield* client("fleet.prepare", {
-				cwd: "/synthetic-repository",
-				preparation: prepared({ ownedPaths: ["src/one.ts"] }),
-				prompt: "Implement scoped work",
-				workId: "one",
-			});
-			const dispatched = yield* client("fleet.dispatch", { workId: "one" });
-			const [turn, observation] = [...runtime.fixture.observations.entries()][0] ?? [];
-			if (turn === undefined || observation === undefined) {
-				return yield* Effect.die("Missing worker");
-			}
-			runtime.fixture.observations.set(turn, { ...observation, execution: "failed" });
-			const stopped = yield* client("fleet.reconcile", { workId: "one" });
-			if (stopped.decision?.published === undefined) {
-				return yield* Effect.die("Missing published decision");
-			}
-			return { decision: stopped.decision, dispatched, stopped };
-		}),
+	const initial = yield* serveRecovery(
+		host,
+		parts,
+		(client) =>
+			Effect.gen(function* () {
+				writeFileSync(join(state.root, "one.md"), state.source);
+				yield* client("fleet.prepare", {
+					cwd: "/synthetic-repository",
+					preparation: prepared({ ownedPaths: ["src/one.ts"] }),
+					prompt: "Implement scoped work",
+					workId: "one",
+				});
+				const dispatched = yield* client("fleet.dispatch", { workId: "one" });
+				const [turn, observation] = [...runtime.fixture.observations.entries()][0] ?? [];
+				if (turn === undefined || observation === undefined) {
+					return yield* Effect.die("Missing worker");
+				}
+				runtime.fixture.observations.set(turn, { ...observation, execution: "failed" });
+				const stopped = yield* client("fleet.reconcile", { workId: "one" });
+				if (stopped.decision?.published === undefined) {
+					return yield* Effect.die("Missing published decision");
+				}
+				return { decision: stopped.decision, dispatched, stopped };
+			}),
+		false,
 	);
 	const { decision } = initial;
 	if (decision.published === undefined) {
@@ -104,9 +110,8 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (state:
 		restart: (action: "retry" | "release", responseId: string) =>
 			serveRecovery(host, parts, (client) =>
 				Effect.gen(function* () {
-					const resolved = yield* acknowledgedResponse(client, responseId);
-					const fresh = action === "retry" && resolved.step === "queued" ? yield* client("fleet.dispatch", { workId: "one" }) : resolved;
-					return { fresh, resolved };
+					const resolved = yield* acknowledgedResponse(client, responseId, action);
+					return { fresh: resolved, resolved };
 				}),
 			),
 	};

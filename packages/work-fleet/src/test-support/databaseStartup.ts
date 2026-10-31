@@ -19,6 +19,7 @@ export const databaseStartup = storyKit({
 		const database = yield* delayedPostgres(fixture.host.databaseUrl);
 		const logs = captureLogs();
 		const clock = yield* Clock.Clock;
+		const filesystemClock = Clock.Clock.defaultValue();
 		const sleeps = yield* Queue.unbounded<number>();
 		const ready = yield* Deferred.make<number>();
 		const host = resolveHost(fixture.host.boardDir, { ...fixture.host.config, database: { ...fixture.host.config.database, url: database.url } });
@@ -42,7 +43,7 @@ export const databaseStartup = storyKit({
 						if (millis >= 1000 && millis <= 10_000 && millis !== 5000) {
 							yield* Queue.offer(sleeps, millis);
 						}
-						yield* clock.sleep(duration);
+						yield* millis < 1000 ? filesystemClock.sleep(duration) : clock.sleep(duration);
 					}),
 			}),
 		);

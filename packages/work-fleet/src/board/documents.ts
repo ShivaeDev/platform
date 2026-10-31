@@ -1,6 +1,7 @@
 import { Array as Arr, Effect, FileSystem, Path } from "effect";
 import type { MetadataDocument } from "@shivaedev/work-board/integration/metadata.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
+import { BoardIndex } from "#board/Index.ts";
 import { readDocument } from "#board/readDocument.ts";
 import { BoardSnapshot, readSnapshot } from "#board/readPass.ts";
 import { BoardFailure } from "#policy.ts";
@@ -84,9 +85,10 @@ export const refreshSnapshotDocument = Effect.fn("FleetBoard.refreshSnapshotDocu
 	return yield* snapshotDocument(snapshot, workId);
 });
 
-export function boardSnapshot(root: string, realRoot: string) {
-	return readSnapshot(realRoot, readDocuments(root, realRoot));
-}
+export const boardSnapshot = Effect.fn("FleetBoard.boardSnapshot")(function* (root: string, realRoot: string) {
+	const watched = yield* Effect.serviceOption(BoardIndex);
+	return yield* readSnapshot(realRoot, watched._tag === "Some" ? watched.value.snapshot : readDocuments(root, realRoot));
+});
 
 export function boardDocuments(root: string, realRoot: string) {
 	return boardSnapshot(root, realRoot).pipe(Effect.map((snapshot) => snapshot.documents.filter((document) => !snapshot.problems.has(document.file))));

@@ -2,7 +2,7 @@ import { queryObjects } from "node:v8";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, FileSystem, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { BoardSnapshot, publishAfterBoardPass } from "#board/readPass.ts";
+import { BoardSnapshot, publishAfterBoardPass, withBoardReadPass } from "#board/readPass.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { BoardGateway } from "#policy.ts";
@@ -22,7 +22,7 @@ export const boardReadStory = storyKit({
 	name: "Board folder reads",
 	stages: ["files"],
 	verbs: (state, story) => {
-		const { fixture, board, fs } = state;
+		const { fixture, fs } = state;
 		const publish = writeStatus(fixture.root, fixture.root, [statusRecord("item.0")]).pipe(
 			Effect.orDie,
 			Effect.tap(() =>
@@ -34,22 +34,22 @@ export const boardReadStory = storyKit({
 		return {
 			...reportAttachmentVerbs(fixture),
 			board: {
-				...board,
-				decision: (...args: Parameters<typeof board.decision>) => {
+				...state.board,
+				decision: (...args: Parameters<typeof state.board.decision>) => {
 					story.tell(`publish decision for ${args[0]}`);
-					return board.decision(...args);
+					return state.board.decision(...args);
 				},
-				get: (...args: Parameters<typeof board.get>) => {
+				get: (...args: Parameters<typeof state.board.get>) => {
 					story.tell(`read Board work ${args[0]}`);
-					return board.get(...args);
+					return state.board.get(...args);
 				},
-				readDecision: (...args: Parameters<typeof board.readDecision>) => {
+				readDecision: (...args: Parameters<typeof state.board.readDecision>) => {
 					story.tell(`read decision ${args[0].questionId}`);
-					return board.readDecision(...args);
+					return state.board.readDecision(...args);
 				},
-				report: (...args: Parameters<typeof board.report>) => {
+				report: (...args: Parameters<typeof state.board.report>) => {
 					story.tell(`publish report for ${args[0].workId}`);
-					return board.report(...args);
+					return state.board.report(...args);
 				},
 			},
 			deferStatus: () => {
@@ -78,6 +78,10 @@ export const boardReadStory = storyKit({
 					const path = `${fixture.root}/fleet/status.md`;
 					return (yield* fs.exists(path)) ? yield* fs.readFileString(path) : undefined;
 				}),
+			readInPass: (...args: Parameters<typeof state.board.get>) => {
+				story.tell(`read Board work ${args[0]} in a new pass`);
+				return withBoardReadPass(state.board.get(...args));
+			},
 			savedRevision: (revision: string, context?: string) => workRevision(revision, context),
 		};
 	},
