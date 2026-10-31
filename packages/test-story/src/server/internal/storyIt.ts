@@ -9,6 +9,7 @@ import { type Genre, genreOf } from "#internal/genre.ts";
 import { type AnyEffect, hooked } from "#internal/hooked.ts";
 import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";
 import { start } from "#internal/start.ts";
+import { withWatchedClock } from "#internal/withWatchedClock.ts";
 import { routeOutbound } from "#routeOutbound.ts";
 
 type LooseBody = (told: object, context: TestContext) => Generator<AnyEffect, unknown, never> | undefined;
@@ -64,7 +65,7 @@ export function storyIt(definition: LooseDefinition): LooseIt {
 					yield* routeOutbound(outbound, { passthrough: definition.outboundPassthrough === true });
 				}
 				return yield* definition.around?.(effect) ?? effect;
-			}).pipe(Effect.provide(TestCrypto.layer(0).pipe(Layer.provide(NodeCrypto.layer)))),
+			}).pipe(Effect.provide(TestCrypto.layer(0).pipe(Layer.provide(NodeCrypto.layer))), withWatchedClock),
 		clock: definition.clock,
 		layer: definition.layer ?? Layer.empty,
 		makeHarness: () => Effect.void,

@@ -19,6 +19,11 @@ function adminRequest(engine: Engine, route: string, actor: string, body: Record
 
 export function adminVerbs(engine: Engine, tell: (line: string) => void) {
 	return {
+		bans: (admin: string, name: string) =>
+			Effect.suspend(() => {
+				tell(`${admin} bans ${name}`);
+				return adminRequest(engine, "ban-user", admin, { userId: person(engine, name).id });
+			}),
 		removesAccount: (admin: string, name: string) =>
 			Effect.suspend(() => {
 				tell(`${admin} removes ${name}'s account`);
