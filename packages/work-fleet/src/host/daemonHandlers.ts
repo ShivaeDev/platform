@@ -53,7 +53,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 			Stream.merge(Stream.tick("1 second").pipe(Stream.map(() => ({ epoch }))), { haltStrategy: "left" }),
 		);
 	}
-	const diagnostics = yield* daemonDiagnostics;
+	const diagnostics = yield* daemonDiagnostics(host.boardDir);
 	const dispatch = yield* dispatchRequests(host);
 	const live = yield* LiveConfig;
 	const status = Effect.zipWith(read(fleetStatus(host)), live.current, (views, applied) => ({ ...views, config: configStatus(applied) }));

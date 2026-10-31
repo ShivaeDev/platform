@@ -28,6 +28,8 @@ The plugin only reads the Board. Answer decisions in the Board itself or through
 
 The pane folds goals with status `done` under an “Achieved (N)” row, closed by default. Click it to show those goals. Open goals stay visible, including goals whose tasks are all done. In flight and goal running counts use the same Board overview snapshot. If Fleet cannot be reached, In flight shows why it is unavailable.
 
+Areas appear as wrapping chips. Green means no holder and no approved task queued; amber marks a held area or a queue of fewer than five tasks; red marks five or more queued tasks. Each chip names its state and queue count. Open a chip to read its holders, stages and PR links, followed by the approved queue in Fleet's order. Package folders and the Board's other repository areas stay visible even when idle. A Fleet daemon that does not supply availability is shown as unknown.
+
 ### Install
 
 Install it from this repository's marketplace. The install command needs Git, Node.js 24 or later and pnpm on your PATH. Claude Code asks you to approve the marketplace command, which fetches this repository and builds the plugin automatically. At the prompt of a terminal session, on Claude Code 2.1.299 or later:

@@ -24,7 +24,7 @@ export const unavailableFleetItems = Effect.fn("HostStory.unavailableFleetItems"
 		appHost({
 			config: { disablePreemptiveShutdown: true, host: "127.0.0.1", port: 0 },
 			group: diagnostics.DiagnosticsContract,
-			handlers: Layer.unwrap(daemonDiagnostics),
+			handlers: Layer.unwrap(daemonDiagnostics("/unused")),
 			policy: "loopback",
 			rpcPath: diagnostics.DAEMON_RPC_PATH,
 			services,

@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -26,7 +27,7 @@ function briefRefusals(engine: typeof Fleet.Service, briefs: readonly Brief[]) {
 	).pipe(Effect.map((refusals) => refusals.flat()));
 }
 
-export const daemonDiagnostics = Effect.gen(function* () {
+export const daemonDiagnostics = Effect.fn("FleetDaemon.daemonDiagnostics")(function* (boardDir: string) {
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);
 	const fleet = yield* HealthSnapshot;
 	const sources = {
@@ -37,6 +38,14 @@ export const daemonDiagnostics = Effect.gen(function* () {
 	const read = yield* diagnostics(sources);
 	const items = yield* fleetItems;
 	const engine = yield* Effect.serviceOption(Fleet);
+	const areas = Effect.gen(function* () {
+		if (engine._tag === "None") {
+			return undefined;
+		}
+		const root = yield* boardApi.repositoryRoot(boardDir);
+		const folders = yield* boardApi.areaFolders(root);
+		return yield* withBoardReadPass(engine.value.areaLanes([...folders.keys()]));
+	});
 	return DiagnosticsContract.application.toLayer(
 		Effect.succeed(
 			DiagnosticsContract.application.of({
@@ -45,7 +54,10 @@ export const daemonDiagnostics = Effect.gen(function* () {
 						? briefRefusals(engine.value, briefs)
 						: Effect.fail(new ServiceUnavailable({ message: "Fleet brief validation is unavailable" })),
 				"daemon.diagnostics": () => read,
-				"daemon.fleetItems": () => items.pipe(Effect.mapError((error) => new ServiceUnavailable({ message: failureMessage(error) }))),
+				"daemon.fleetItems": () =>
+					Effect.zipWith(items, areas, (result, lanes) => ({ ...result, ...(lanes === undefined ? {} : { areas: lanes }) })).pipe(
+						Effect.mapError((error) => new ServiceUnavailable({ message: failureMessage(error) })),
+					),
 			}),
 		),
 	);

@@ -45,12 +45,26 @@ export interface WorkboardBlock<T> {
 	problem: string | null;
 }
 
+export interface WorkboardAreaTask {
+	prUrl: string | null;
+	stage: string;
+	title: string;
+	workId: string;
+}
+
+export interface WorkboardArea {
+	area: string;
+	holders: WorkboardAreaTask[];
+	queue: WorkboardAreaTask[];
+}
+
 export type WorkboardBoard =
 	| { kind: "loading" }
 	| { cwd: string; kind: "none" }
 	| { directory: string; kind: "down" }
 	| { kind: "error"; message: string }
 	| {
+			areas: WorkboardBlock<WorkboardArea>;
 			asks: WorkboardBlock<WorkboardAsk>;
 			flights: WorkboardBlock<WorkboardFlight>;
 			goals: WorkboardBlock<WorkboardGoal>;
@@ -59,7 +73,13 @@ export type WorkboardBoard =
 
 declare module "claude-code" {
 	interface PluginState {
-		workboard: { achievedOpen: boolean; board: WorkboardBoard; seenAsks: readonly string[] | null; updatedAt: number | null };
+		workboard: {
+			achievedOpen: boolean;
+			board: WorkboardBoard;
+			openArea: string | null;
+			seenAsks: readonly string[] | null;
+			updatedAt: number | null;
+		};
 	}
 	interface McpToolInputs {
 		"mcp__workboard__board_overview": Record<never, never>;
