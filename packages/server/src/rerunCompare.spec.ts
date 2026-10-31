@@ -14,7 +14,7 @@ rerunStory.it("a change excluded by alice's filter sends no result or hint about
 });
 
 rerunStory.it(
-	"a visible change pushes alice's typed result into her bound query without a client read",
+	"contract's LiveServer Layer pushes a change into alice's hosted query without a client read",
 	[pageOpen],
 	function* ({ clientReads, rename, shown, untilShown }) {
 		expect((yield* shown()).map((note) => note.title)).toEqual(["One"]);

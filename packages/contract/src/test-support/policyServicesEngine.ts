@@ -6,8 +6,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
-import { AppChanges, appHost } from "@shivaedev/server/appHost.ts";
-import { makeLiveServer } from "#makeLiveServer.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
+import { LiveServer } from "#LiveServer.ts";
 import { Documents, ReadAccess, readAccess } from "./policyServicesContract.ts";
 
 export type Person = "alice" | "bob";
@@ -54,7 +54,7 @@ export const policyServicesEngine = Effect.gen(function* () {
 			config: { port: 0 },
 			group: Documents,
 			handlers,
-			services: Layer.effect(AppChanges, makeLiveServer).pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity))),
+			services: LiveServer.layer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity))),
 			sessions,
 		}),
 	);

@@ -2,7 +2,7 @@ import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Effect, Layer } from "effect";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
-import { appDatabase } from "#appHost.ts";
+import { appDatabase } from "#appDatabase.ts";
 import { migrationLoader } from "./migrationLoader.ts";
 
 NodeRuntime.runMain(

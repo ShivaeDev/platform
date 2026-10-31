@@ -1,7 +1,9 @@
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts"
 import { Effect, Layer, Option, Schema } from "effect"
 import { Rpc, RpcGroup } from "effect/rpc"
 import { Migrator } from "effect/sql"
-import { appHost, appDatabase, AppChanges } from "@shivaedev/server/appHost.ts"
+import { appDatabase } from "@shivaedev/server/appDatabase.ts"
+import { appHost } from "@shivaedev/server/appHost.ts"
 
 const Api = RpcGroup.make(Rpc.make("ping", { success: Schema.String }))
 const migrations = { loader: Migrator.fromRecord({}) }
@@ -15,6 +17,6 @@ const host = appHost({
   config,
 })
 const database = appDatabase({ migrations })
-if (!Layer.isLayer(host) || !Layer.isLayer(database) || typeof AppChanges.key !== "string") {
+if (!Layer.isLayer(host) || !Layer.isLayer(database) || typeof LiveServer.key !== "string") {
   throw new Error("The packed host entry did not expose its native Layers and live service")
 }

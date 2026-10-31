@@ -1,6 +1,6 @@
 import { Context, Deferred, Effect, Fiber, Stream } from "effect";
 import { TestClock } from "effect/testing";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { invalidateOnCommit } from "@shivaedev/sql/transact.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -88,10 +88,10 @@ export const daemonFollow = storyKit({
 			storeDone: () =>
 				Effect.gen(function* () {
 					story.tell("commit one as done and await its change hint");
-					const changes = Context.get(engine.running.context, AppChanges);
+					const changes = Context.get(engine.running.context, LiveServer);
 					const ready = yield* Deferred.make<void>();
 					// Commit completion can precede PostgreSQL hint delivery to a restarted follower.
-					const committed = yield* changes.stream([fleetRecords.list]).pipe(
+					const committed = yield* Stream.unwrap(changes.stream([fleetRecords.list])).pipe(
 						Stream.tap(() => Deferred.succeed(ready, undefined)),
 						Stream.filter((hint) => hint._tag === "Changed"),
 						Stream.take(1),

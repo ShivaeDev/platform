@@ -5,11 +5,11 @@ import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { answered } from "@shivaedev/test/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { AppChanges, appHost } from "#appHost.ts";
+import { appHost } from "#appHost.ts";
 import { hintWords } from "#test/rpc/followHints.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("test/ChangesGreeting") {}
@@ -33,7 +33,7 @@ const openHost = Effect.fn("Test.openHost")(function* (live: boolean) {
 						),
 					),
 					policy: "loopback",
-					services: live ? Layer.effect(AppChanges, makeLiveServer).pipe(Layer.provide(Reactivity.layer)) : Layer.empty,
+					services: live ? LiveServer.layer.pipe(Layer.provide(Reactivity.layer)) : Layer.empty,
 				}),
 			),
 		),

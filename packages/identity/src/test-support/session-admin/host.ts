@@ -7,9 +7,8 @@ import { SqlClient } from "effect/sql";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
@@ -46,15 +45,11 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 	yield* Effect.promise(() => context.runMigrations());
 	const sessions = { ...mounted.sessions, origin: () => true, streamRevalidationInterval: "50 millis" as const };
 	const sql = yield* SqlClient.SqlClient;
-	const live = yield* makeLiveServer;
-	const handlers = Layer.mergeAll(
-		sessionsHandlers,
-		Profile.application.toLayer({ "profile.read": () => SessionUser }),
-		hostChanges(Api, AppChanges, sessions),
-	);
+	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer));
+	const handlers = Layer.mergeAll(sessionsHandlers, Profile.application.toLayer({ "profile.read": () => SessionUser }), hostChanges(Api, sessions));
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([
-			handlers.pipe(Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(AppChanges, live)])),
+			handlers.pipe(Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live)])),
 			permissionLayer(SessionsPermission, sessions),
 			authenticatedUserLayer(sessions),
 			RpcSerialization.layerNdjson,

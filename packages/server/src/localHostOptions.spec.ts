@@ -1,8 +1,8 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { AppChanges } from "#appHost.ts";
 import { failedRoute, lifecycleServices, rpcPath } from "#test/app-host/options.ts";
 import { configuration, environment, host, sessionPolicy } from "#test/app-host/story.ts";
 
@@ -19,9 +19,9 @@ host.it("a host without migrations answers health as service unavailable", [life
 	expect(yield* health()).toMatchObject({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
 });
 
-host.it("a host without migrations provides neither SQL nor app changes", [lifecycleServices], function* ({ provided }) {
+host.it("a host without migrations provides neither SQL nor a live server", [lifecycleServices], function* ({ provided }) {
 	yield* outcomes({
-		"app changes": [provided(AppChanges), "missing"],
+		"live server": [provided(LiveServer), "missing"],
 		"SQL client": [provided(SqlClient.SqlClient), "missing"],
 	});
 });

@@ -2,8 +2,8 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
-import { AppChanges, appHost } from "#appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { appHost } from "#appHost.ts";
 import { AbortApi, abortHandlers, CHANGED_KEY, type ClientAbortState, changed } from "./clientAbortFixture.ts";
 import { host } from "./story.ts";
 
@@ -75,7 +75,7 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 			);
 		}
 		state.build = () => {
-			const singleConnection = Layer.effect(AppChanges, makeLiveServer).pipe(
+			const singleConnection = LiveServer.layer.pipe(
 				Layer.provideMerge(Reactivity.layer),
 				Layer.provideMerge(PgClient.layer({ applicationName: table, maxConnections: 1, url: databaseUrl })),
 			);

@@ -2,7 +2,7 @@ import { Effect, Option, PubSub, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeChannel } from "@shivaedev/changes/channel.ts";
 import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { watcher } from "#rpc/keys.ts";
 import type { Change } from "#server/files/changes.ts";
 import { affected } from "#server/rpc/affected.ts";
@@ -13,7 +13,7 @@ export const publishChanges = Effect.gen(function* () {
 	const { changes } = yield* workspace.settings();
 	const index = workspace.index();
 	const reactivity = yield* Reactivity.Reactivity;
-	const live = yield* AppChanges;
+	const live = yield* LiveServer;
 	const channel = makeChannel<Key>({
 		name: "work-board",
 		owner: Effect.succeed(changes),
@@ -34,7 +34,7 @@ export const publishChanges = Effect.gen(function* () {
 				? affected(previous.value, current.value, change.paths)
 				: undefined;
 		previous = current;
-		yield* keys === undefined ? live.resync : channel.record(keys);
+		yield* keys === undefined ? live.resync() : channel.record(keys);
 	});
 	yield* Stream.fromSubscription(subscription).pipe(Stream.runForEach(publish));
 });
