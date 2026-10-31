@@ -6,7 +6,6 @@ import { fromStorage, type PolicyStorage, type SignInGate } from "#server/better
 
 type SessionCreateBefore = NonNullable<NonNullable<NonNullable<NonNullable<BetterAuthOptions["databaseHooks"]>["session"]>["create"]>["before"]>;
 type ValidateUserInfo = NonNullable<NonNullable<BetterAuthOptions["user"]>["validateUserInfo"]>;
-export type PolicyRun = <A, E>(effect: Effect.Effect<A, E>) => Promise<A>;
 
 const REFUSED_MESSAGE = "This account may not sign in";
 const UNAVAILABLE_MESSAGE = "Sign-in is temporarily unavailable";
@@ -30,7 +29,12 @@ async function signingInAccount(
 	return typeof subject === "string" || typeof subject === "number" ? { accountId: String(subject), providerId: provider.id } : undefined;
 }
 
-export function signInPolicyOptions<E>(options: BetterAuthOptions, gate: SignInGate<E>, run: PolicyRun, storage: () => Promise<PolicyStorage>) {
+export const signInPolicyOptions = Effect.fnUntraced(function* <E>(
+	options: BetterAuthOptions,
+	gate: SignInGate<E>,
+	storage: () => Promise<PolicyStorage>,
+) {
+	const run = Effect.runPromiseWith(yield* Effect.context<never>());
 	const sessionBefore = options.databaseHooks?.session?.create?.before;
 	const before: SessionCreateBefore = async (session, endpoint) => {
 		const own = await sessionBefore?.(session, endpoint);
@@ -38,7 +42,9 @@ export function signInPolicyOptions<E>(options: BetterAuthOptions, gate: SignInG
 			return own;
 		}
 		const userId = typeof own === "object" && typeof own.data.userId === "string" ? own.data.userId : session.userId;
-		const exit = await run(Effect.exit(logged(Effect.flatMap(fromStorage(storage), (auth) => gate.admitsUser(auth, userId)))));
+		const exit = await run(Effect.exit(logged(Effect.flatMap(fromStorage(storage), (auth) => gate.admitsUser(auth, userId)))), {
+			signal: endpoint?.request?.signal,
+		});
 		if (Exit.isFailure(exit)) {
 			throw new APIError("SERVICE_UNAVAILABLE", { code: unavailable.error, message: UNAVAILABLE_MESSAGE });
 		}
@@ -56,7 +62,7 @@ export function signInPolicyOptions<E>(options: BetterAuthOptions, gate: SignInG
 		if (account === undefined) {
 			return refused;
 		}
-		const exit = await run(Effect.exit(logged(gate.admits([account]))));
+		const exit = await run(Effect.exit(logged(gate.admits([account]))), { signal: endpoint.request?.signal });
 		if (Exit.isFailure(exit)) {
 			return unavailable;
 		}
@@ -69,4 +75,4 @@ export function signInPolicyOptions<E>(options: BetterAuthOptions, gate: SignInG
 		},
 		user: { ...options.user, validateUserInfo },
 	};
-}
+});

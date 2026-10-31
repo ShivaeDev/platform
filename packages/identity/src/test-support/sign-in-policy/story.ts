@@ -117,6 +117,11 @@ export const signInPolicy = storyKit({
 			...configurationVerbs(engine, () => policyHost(engine.env, engine.policy, engine.app), story.tell),
 			...requestWork(engine.app.policy, engine.cookies, () => host(engine), story.tell),
 			...accountVerbs(() => host(engine), engine.cookies, story.tell),
+			cancelledSignInPolicy: () => engine.app.policy.waitForInterruption.pipe(Effect.as("interrupted")),
+			cancelSignIn: (person: Person) => {
+				story.tell(`${person} cancels a GitHub sign-in while its policy check is waiting`);
+				return engine.app.policy.cancel(Effect.tryPromise((signal) => gitHubSignIn(host(engine).baseUrl, people[person], "browser", signal)));
+			},
 			corruptList: (kind: MalformedList) =>
 				Effect.sync(() => {
 					story.tell(`the operator sets AUTH_ALLOWED_ACCOUNTS to ${JSON.stringify(malformedLists[kind])}, ${kind}`);
