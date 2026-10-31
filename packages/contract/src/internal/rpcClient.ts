@@ -1,4 +1,4 @@
-import { type Context, Effect, Layer, Schedule, Stream } from "effect";
+import { Clock, type Context, Effect, Layer, Schedule, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
@@ -78,6 +78,8 @@ const socketProtocol = Atom.family(
 				),
 			),
 			Layer.provide(RpcSerialization.layerNdjson),
+			// Socket deadlines follow network time even when application time is simulated.
+			Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue())),
 		);
 		return Layer.effectContext(Effect.flatMap(Effect.scope, (scope) => Layer.buildWithMemoMap(protocol, socketMemoMap, scope)));
 	},
