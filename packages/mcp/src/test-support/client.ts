@@ -49,7 +49,7 @@ function connect(engine: Engine, token: string | undefined): Effect.Effect<McpCl
 			McpClient.http({
 				headers: token === undefined ? {} : { authorization: `Bearer ${token}` },
 				protocol: McpProtocol.v2026_07_28,
-				url: engine.resource,
+				url: `${engine.baseUrl}/mcp`,
 			}),
 		),
 		Effect.provide(FetchHttpClient.layer),
