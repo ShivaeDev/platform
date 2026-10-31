@@ -1,9 +1,10 @@
-import { Clock, Effect, Option } from "effect";
+import { Option } from "effect";
 import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { inProgress } from "#browser/views/inProgress.ts";
 import type { InboxProjection, RecentAnswer } from "#browser/views/schema.ts";
+import { currentTime } from "#client/react/adapters/now.ts";
 import { fileUrl } from "#files/url.ts";
 import { LinkButton } from "./LinkButton.tsx";
 import { LoadingCards } from "./loading.tsx";
@@ -72,7 +73,7 @@ const WEEK = 604_800_000;
 
 // An answer still waiting on its agent stays whatever its age; one the agent acted on stays a week as a trail.
 function recentRows(rows: readonly RecentAnswer[]) {
-	const since = Effect.runSync(Clock.currentTimeMillis) - WEEK;
+	const since = currentTime() - WEEK;
 	return rows.filter((row) => row.state === "waiting" || row.state === "fleet" || row.answeredAt >= since);
 }
 

@@ -1,5 +1,5 @@
-import { Clock, Effect } from "effect";
 import { useEffect, useRef } from "react";
+import { currentTime } from "#client/react/adapters/now.ts";
 import { useMainLocation } from "./MainLocationContext.ts";
 
 export interface VisualSource {
@@ -24,7 +24,7 @@ export function useVisualSources(inspect: (selection: VisualSelection) => void) 
 				graphic.setAttribute("role", "button");
 				graphic.setAttribute("aria-label", `Inspect image: ${graphic.alt || "Local image"}`);
 				const url = new URL(graphic.dataset.localImage ?? graphic.src, location.href);
-				url.searchParams.set("_wb", `${Effect.runSync(Clock.currentTimeMillis)}-${revisionRef.current}`);
+				url.searchParams.set("_wb", `${currentTime()}-${revisionRef.current}`);
 				graphic.src = url.href;
 				graphic.onerror = () => {
 					if (!graphic.isConnected || graphic.nextElementSibling?.hasAttribute("data-image-error")) {

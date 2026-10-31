@@ -1,7 +1,7 @@
 import { cn } from "cn";
 import { type ReactNode, useEffect, useState } from "react";
+import { currentTime, NowContext, useNow } from "#client/react/adapters/now.ts";
 import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";
-import { currentTime, NowContext, useNow } from "./now.ts";
 import { exactTime, timeLabel } from "./timeLabel.ts";
 
 export function TimeTicker({ children }: { readonly children: ReactNode }) {
