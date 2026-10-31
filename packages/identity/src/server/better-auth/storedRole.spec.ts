@@ -23,3 +23,24 @@ storedRole.it(
 		expect(yield* sessionStatus()).toBe(HttpStatus.fromLiteral("InternalServerError"));
 	},
 );
+
+storedRole.it(
+	"alice's missing role refuses her RPC request and logs the migration fix",
+	[signedInWithRole("user")],
+	function* ({ removeRole, profile, recordedLogs }) {
+		yield* removeRole();
+
+		expect(yield* profile()).toBe("failed with forbidden");
+		expect(JSON.stringify(yield* recordedLogs())).toContain("Run migrateBetterAuth with defaultRole");
+	},
+);
+
+storedRole.it(
+	"alice's missing role refuses her session request with HTTP 403",
+	[signedInWithRole("user")],
+	function* ({ removeRole, sessionStatus }) {
+		yield* removeRole();
+
+		expect(yield* sessionStatus()).toBe(HttpStatus.fromLiteral("Forbidden"));
+	},
+);

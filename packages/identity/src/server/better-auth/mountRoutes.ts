@@ -67,7 +67,14 @@ export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {
 					"auth.rate_limit.address": clientIp.address,
 					"auth.rate_limit.address_source": clientIp.source,
 				});
-				return HttpServerResponse.fromWeb(yield* authResponse(auth, web, options).pipe(Effect.catch(providerFailure)));
+				return HttpServerResponse.fromWeb(
+					yield* authResponse(auth, web, options).pipe(
+						Effect.catchTag("Forbidden", (error) =>
+							Effect.succeed(Response.json({ message: error.message }, { status: HttpStatus.fromLiteral("Forbidden") })),
+						),
+						Effect.catch(providerFailure),
+					),
+				);
 			}).pipe(
 				Effect.catch(() =>
 					Effect.succeed(
