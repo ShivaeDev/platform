@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { Button } from "#client/ui/button.tsx";
+import { JobButton } from "./JobButton.tsx";
 
 export function JobPagination({
 	cursors,
@@ -18,14 +18,14 @@ export function JobPagination({
 		}
 	}
 	return (
-		<div className="flex items-center gap-3">
-			<Button disabled={cursors.length === 0 || pending} onClick={() => change(cursors.slice(0, -1))} variant="outline">
+		<div className="flex flex-wrap items-center gap-3">
+			<JobButton disabled={cursors.length === 0 || pending} onClick={() => change(cursors.slice(0, -1))}>
 				Previous
-			</Button>
+			</JobButton>
 			<span className="text-sm">Page {cursors.length + 1}</span>
-			<Button disabled={Option.isNone(next) || pending} onClick={handleClick} variant="outline">
+			<JobButton disabled={Option.isNone(next) || pending} onClick={handleClick}>
 				Next
-			</Button>
+			</JobButton>
 		</div>
 	);
 }
