@@ -1,4 +1,4 @@
-import type { EngineInterface, Register, UiOpenResult } from "claude-code";
+import type { EngineInterface, On, UiOpenResult } from "claude-code";
 import { atom, read, update } from "claude-code";
 import { connection } from "#connect.ts";
 import { clip, updatedLabel } from "#lines.ts";
@@ -64,7 +64,7 @@ async function openPane($: EngineInterface): Promise<UiOpenResult> {
 	return opened;
 }
 
-export const register: Register = (on) => {
+export function register(on: On): void {
 	serveTools(on);
 
 	on("session.start", async ($, e, next) => {
@@ -123,4 +123,4 @@ export const register: Register = (on) => {
 			</Box>
 		);
 	});
-};
+}
