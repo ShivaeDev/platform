@@ -31,22 +31,35 @@ export function makeActivity() {
 				get.once(queryCoalesceWindow(watched));
 				get.subscribe(queryCoalesceWindow(watched), (duration) => get.set(queryCoalesceWindow(atom), duration), { immediate: true });
 				let busy = false;
+				let active = true;
+				let published = false;
 				function observe(result: AsyncResult.AsyncResult<A, E>) {
+					if (!active) {
+						return;
+					}
 					const next = result.waiting || AsyncResult.isInitial(result);
 					if (busy !== next) {
-						change("refreshingAtoms", next ? 1 : -1);
 						busy = next;
+						change("refreshingAtoms", next ? 1 : -1);
 					}
-					get.setSelf(result);
 				}
 				get.addFinalizer(() => {
+					active = false;
 					if (busy) {
 						change("refreshingAtoms", -1);
 					}
 				});
-				get.subscribe(atom, observe);
-				const value = get.once(atom);
-				observe(value);
+				function publish(result: AsyncResult.AsyncResult<A, E>) {
+					published = true;
+					observe(result);
+					get.setSelf(result);
+				}
+				// An extra query listener would make abandoned screen work look observed.
+				const context = new Proxy(get, { get: (target, key, receiver) => (key === "setSelf" ? publish : Reflect.get(target, key, receiver)) });
+				const value = atom.read(context);
+				if (!published) {
+					observe(value);
+				}
 				return value;
 			},
 			{ initialValueTarget: atom },
