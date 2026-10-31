@@ -1,8 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Cause, Effect, Option } from "effect";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useAction, useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
+import { NoticeHost } from "#notices.ts";
 import type { CompletionClient } from "./client.ts";
 
 export interface CompletionScreen {
@@ -21,6 +22,8 @@ function Commands({ state }: { readonly state: CompletionScreen }) {
 	const { client, callback, defect, notices } = state;
 	useAtomValue(client.watcher);
 	const list = useQuery(client.list);
+	const currentList = Option.getOrElse(list.data, () => "loading");
+	const [feedback, present] = useState("");
 	const action = useAction(
 		client.runtime,
 		(input: { readonly title: string }) => {
@@ -29,14 +32,20 @@ function Commands({ state }: { readonly state: CompletionScreen }) {
 		},
 		{
 			concurrent: state.concurrent,
+			notices: {
+				onFailure: (error, input) => ({ message: `${callback}: ${input.title} rejected: ${error._tag} / ${currentList}` }),
+				onSuccess: (value, input) => ({ message: `${callback}: ${input.title} -> ${value} / ${currentList}` }),
+			},
 			onFailure: (error, input) => {
 				notices.push(`${callback}: ${input.title} rejected: ${error._tag}`);
+				present(`${callback}: ${input.title} rejected: ${error._tag} / ${currentList}`);
 			},
 			onSuccess: (value, input) => {
 				if (defect) {
 					throw new Error("Presentation failed");
 				}
 				notices.push(`${callback}: ${input.title} -> ${value}`);
+				present(`${callback}: ${input.title} -> ${value} / ${currentList}`);
 			},
 		},
 	);
@@ -46,6 +55,9 @@ function Commands({ state }: { readonly state: CompletionScreen }) {
 	}
 	return (
 		<>
+			<button onClick={list.refresh} type="button">
+				Refresh list
+			</button>
 			{["first", "second"].map((title) => (
 				<button key={title} onClick={() => action.dispatch({ title })} type="button">
 					{title}
@@ -55,6 +67,8 @@ function Commands({ state }: { readonly state: CompletionScreen }) {
 				{Option.getOrElse(action.data, () => "")}
 			</output>
 			<pre>{Option.match(action.cause, { onNone: () => "", onSome: Cause.pretty })}</pre>
+			<p data-list="">{currentList}</p>
+			<p data-callback="">{feedback}</p>
 		</>
 	);
 }
@@ -72,7 +86,11 @@ export function CompletionView({ state }: { readonly state: CompletionScreen }) 
 				}}
 				session={state.session}
 			>
-				{() => <Commands state={state} />}
+				{() => (
+					<NoticeHost render={(notice) => <article>{notice.message}</article>}>
+						<Commands state={state} />
+					</NoticeHost>
+				)}
 			</SessionBoundary>
 		</Suspense>
 	);
