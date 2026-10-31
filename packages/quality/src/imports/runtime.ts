@@ -1,7 +1,7 @@
-import { statSync } from "node:fs";
 import { join, posix } from "node:path";
-import { Effect } from "effect";
+import { Effect, FileSystem } from "effect";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import { orWhenAbsent } from "#inventory/filesystem.ts";
 import type { RuleInputs } from "#rule.ts";
 import { classifyRuntime } from "./classifyRuntime.ts";
 import type { WorkspacePackage } from "./workspace.ts";
@@ -29,29 +29,26 @@ function declaredRuntime(manifest: object | undefined): DeclaredRuntime | undefi
 	return value === "client" || value === "server" ? value : undefined;
 }
 
-function directoryExists(path: string): boolean {
-	try {
-		return statSync(path).isDirectory();
-	} catch (cause) {
-		if (cause instanceof Error && "code" in cause && (cause.code === "ENOENT" || cause.code === "ENOTDIR")) {
-			return false;
-		}
-		throw cause;
-	}
-}
-
 type Owner = Pick<WorkspacePackage, "directory">;
 
-function runtimeFoldersOf(root: string, owner: Owner): readonly string[] {
-	return ["client", "server"].filter((folder) => directoryExists(join(root, owner.directory, "src", folder)));
-}
+const runtimeFoldersOf = Effect.fn("Imports.runtimeFoldersOf")(function* (root: string, owner: Owner) {
+	const fs = yield* FileSystem.FileSystem;
+	return yield* Effect.filter(["client", "server"], (folder) => {
+		const path = join(root, owner.directory, "src", folder);
+		return orWhenAbsent(
+			path,
+			Effect.map(fs.stat(path), (info) => info.type === "Directory"),
+			false,
+		);
+	});
+});
 
 export interface RuntimeDeclarationProblem {
 	readonly directory: string;
 	readonly message: string;
 }
 
-function problemsFor(root: string, owner: Owner, manifest: object | undefined): readonly RuntimeDeclarationProblem[] {
+const problemsFor = Effect.fn("Imports.problemsFor")(function* (root: string, owner: Owner, manifest: object | undefined) {
 	const value = declaredValue(manifest);
 	if (value === undefined) {
 		return [];
@@ -64,7 +61,7 @@ function problemsFor(root: string, owner: Owner, manifest: object | undefined): 
 			},
 		];
 	}
-	const folders = runtimeFoldersOf(root, owner);
+	const folders = yield* runtimeFoldersOf(root, owner);
 	return folders.length === 0
 		? []
 		: [
@@ -73,14 +70,14 @@ function problemsFor(root: string, owner: Owner, manifest: object | undefined): 
 					message: `"quality.runtime" declares the whole package ${value} code, but it also has ${folders.map((folder) => `src/${folder}/`).join(" and ")}. Keep one convention: remove the declaration and classify code by runtime folders, or move the code out of the runtime folders.`,
 				},
 			];
-}
+});
 
 export const runtimeDeclarationProblems = Effect.fn("Imports.runtimeDeclarationProblems")(function* (
 	inputs: RuleInputs,
 	packages: readonly WorkspacePackage[],
 ) {
 	const problems = yield* Effect.forEach([...packages, { directory: ".", name: "." }], (owner) =>
-		Effect.map(
+		Effect.flatMap(
 			Effect.promise(() => readPackageManifest(inputs.readText, posix.join(owner.directory, "package.json"))),
 			(manifest) => problemsFor(inputs.root, owner, manifest),
 		),
@@ -98,7 +95,8 @@ export const runtimeOf = Effect.fn("Imports.runtimeOf")(function* (inputs: RuleI
 			),
 		),
 	);
-	const adopted = new Set(owners.filter((owner) => runtimeFoldersOf(inputs.root, owner).length > 0).map((owner) => owner.directory));
+	const folders = yield* Effect.filter(owners, (owner) => Effect.map(runtimeFoldersOf(inputs.root, owner), (found) => found.length > 0));
+	const adopted = new Set(folders.map((owner) => owner.directory));
 	const declared = new Map(
 		owners.flatMap((owner) => {
 			const runtime = declaredRuntime(manifests.get(owner.directory));

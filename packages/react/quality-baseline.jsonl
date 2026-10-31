@@ -1,11 +1,17 @@
 {"path":"packages/react/src/adapters/loadQuery.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/QueryView.ts","rule":"effect/boundary","count":1}
+{"path":"packages/react/src/client/authAction.ts","rule":"effect/boundary","count":2}
+{"path":"packages/react/src/client/authQuery.ts","rule":"effect/boundary","count":1}
+{"path":"packages/react/src/client/authSession.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/editor.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/mountLive.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/permissionBoundary.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/reactWarnings.dom.spec.tsx","rule":"effect/boundary","count":1}
+{"path":"packages/react/src/client/resultState.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/sessionBoundary.ts","rule":"biome/plugin","count":2}
 {"path":"packages/react/src/client/sessionBoundary.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/react/src/client/useLoaderQuery.ts","rule":"effect/boundary","count":1}
+{"path":"packages/react/src/client/useLoaderQuery.typecheck.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/internal/noticeEntry.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/noticeStore.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/queryHandoff.ts","rule":"effect/service-parameters","count":3}
