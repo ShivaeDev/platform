@@ -8,9 +8,9 @@ export function Note() {
 	const { id } = noteRoute.useParams<Router>();
 	const { client } = noteRoute.useRouteContext<Router>();
 	const loaded = noteRoute.useLoaderData<Router>();
-	const note = useLoaderQuery(client.api.get.query({ id }), loaded);
-	const details = useLoaderQuery(client.api.get.query({ id: `${id}-details` }), `${loaded}-details`);
-	const counts = useLoaderQuery(client.api.get.query({ id: `${id}-counts` }), `${loaded}-counts`);
+	const note = useLoaderQuery(client.api.get.query({ id }), loaded.note);
+	const details = useLoaderQuery(client.api.get.query({ id: `${id}-details` }), loaded.details);
+	const counts = useLoaderQuery(client.api.get.query({ id: `${id}-counts` }), loaded.counts);
 	const queries = [
 		{ name: "note", query: note },
 		{ name: "details", query: details },
