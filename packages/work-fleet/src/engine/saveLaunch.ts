@@ -13,7 +13,7 @@ function launched(record: FleetRecord, attempt: Attempt): FleetRecord {
 		attempts: [...record.attempts, attempt],
 		blocker: undefined,
 		launchRetry: undefined,
-		mergeAreasReleased: undefined,
+		mergeAreasReleased: record.mergeMainRepair ? record.mergeAreasReleased : undefined,
 		mergeReadyAt: undefined,
 		mergeReadyHead: undefined,
 		pendingAnswers: undefined,
@@ -32,7 +32,10 @@ export const saveLaunch = Effect.fn("Fleet.saveLaunch")(function* (
 ) {
 	const implementer = stored.value.step === "queued";
 	const priorityRepair = openSweep(record) && attempt.role === "repair";
-	const ignoreAreas = priorityRepair || (implementer && stored.value.dispatchNow?.ignoreAreas === true);
+	const ignoreAreas =
+		(attempt.role === "repair" && record.mergeMainRepair === true)
+		|| priorityRepair
+		|| (implementer && stored.value.dispatchNow?.ignoreAreas === true);
 	const admission: LaunchAdmission = {
 		areaWaiters: ignoreAreas ? [] : yield* areaWaiters(state, stored.value, launch.priority),
 		ignoreAreas,

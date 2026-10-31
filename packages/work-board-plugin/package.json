@@ -10,7 +10,10 @@
 		"#*.ts": "./src/*.ts",
 		"#types/*": "./types/*",
 		"#*.tsx": "./src/*.tsx",
-		"#bundled-client": "./src/adapters/generated/platformClient.js"
+		"#bundled-client": {
+			"types": "./src/adapters/platformClient.ts",
+			"default": "./src/adapters/generated/platformClient.js"
+		}
 	},
 	"exports": {
 		"./*.ts": {
@@ -20,10 +23,10 @@
 		}
 	},
 	"scripts": {
-		"build": "tsc --project tsconfig.build.json",
+		"build": "pnpm build:client && tsc --project tsconfig.build.json",
 		"build:client": "node --conditions=source script/build-client.ts",
 		"test": "pnpm test:prepare && vitest run",
-		"test:prepare": "pnpm build:client --check",
+		"test:prepare": "pnpm build:client",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {

@@ -2,7 +2,6 @@
 {"path":"examples/starter/src/client/Home.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"examples/starter/src/client/LabelledSwitch.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"examples/starter/src/client/LoginScreen.tsx","rule":"react/jsx-conditionals","count":5}
-{"path":"examples/starter/src/client/Module.ts","rule":"effect/service-parameters","count":1}
 {"path":"examples/starter/src/client/admin/JobDetail.tsx","rule":"react/jsx-conditionals","count":8}
 {"path":"examples/starter/src/client/admin/JobList.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"examples/starter/src/client/admin/JobsView.tsx","rule":"react/jsx-conditionals","count":1}
