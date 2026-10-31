@@ -4,7 +4,13 @@ import { anything, external, files, folders, modules, packages } from "@shivaede
 const server = folders("packages/admin/src/server", "packages/admin/src/test-support");
 const client = folders("packages/admin/src/client");
 const browser = folders("packages/admin/src").except(server, client);
-const identityDeclarations = files("packages/identity/src/identity.ts", "packages/identity/src/middleware.ts", "packages/identity/src/permission.ts");
+const identityDeclarations = files(
+	"packages/identity/src/identity.ts",
+	"packages/identity/src/middleware.ts",
+	"packages/identity/src/permission.ts",
+	"packages/identity/src/sessions.ts",
+	"packages/identity/src/sessionPermissions.ts",
+);
 
 export default [
 	fence("admin-declarations-stay-browser-safe")
