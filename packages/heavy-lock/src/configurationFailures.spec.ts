@@ -1,6 +1,19 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { ci, lockPathsFrom, lockStory, unreadableConfiguration } from "#test/kit.ts";
+import { ci, lockPathsFrom, lockStory, unreadableConfiguration, unreadableLock } from "#test/kit.ts";
+
+lockStory.it(
+	"an unreadable lock fails acquisition with the filesystem cause instead of treating the holder as absent",
+	[unreadableLock()],
+	function* ({ failureCauseOf, starts, stateOf }) {
+		yield* starts("ready");
+
+		yield* outcomes([
+			["ready", () => stateOf("ready"), expect.stringContaining("failed with heavy-lock error")],
+			["the read failure", () => failureCauseOf("ready"), expect.stringContaining("FileSystem.readFile")],
+		]);
+	},
+);
 
 lockStory.it(
 	"with no lock path, HEAVY_PROCESS_LOCK or HOME, ready fails with a heavy-lock error saying how to locate the lock",

@@ -11,7 +11,7 @@ export const readHolder = Effect.fn("HeavyLock.readHolder")(function* (lock: str
 	const fs = yield* FileSystem.FileSystem;
 	return yield* fs.readFileString(lock).pipe(
 		Effect.map(decodeHolder),
-		Effect.orElseSucceed(() => Option.none<Holder>()),
+		Effect.catchIf(hasReason("NotFound"), () => Effect.succeed(Option.none<Holder>())),
 	);
 });
 

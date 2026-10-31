@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { CLI_TIMEOUT } from "#test/cli.ts";
 import { qualityInstalled, repositoryHas as repositoryContains, repositoryStory } from "#test/repositoryStory.ts";
 
-for (const rule of ["effect/boundary", "effect/service-parameters"]) {
+for (const rule of ["effect/boundary", "effect/service-parameters", "effect/failure-honesty"]) {
 	repositoryStory.it(
 		`quality lint refuses a config exception for ${rule}, which takes no exceptions`,
 		[

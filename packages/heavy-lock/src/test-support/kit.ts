@@ -113,6 +113,12 @@ export function unreadableConfiguration() {
 	});
 }
 
+export function unreadableLock() {
+	return lockStory.trait("holder", "the lock path is a directory that cannot be read as a holder file", (engine) => {
+		mkdirSync(engine.lock, { recursive: true });
+	});
+}
+
 export function invalidHolder(kind: "without a process start time" | "that is not JSON") {
 	return lockStory.trait("holder", `the lock holds a holder ${kind}`, (engine) => {
 		writeLock(

@@ -35,7 +35,7 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 	if (settings.ci) {
 		return { env: {} } satisfies HeldLockShape;
 	}
-	const current = yield* readHolder(settings.lock);
+	const current = yield* readHolder(settings.lock).pipe(Effect.mapError(failWith(`Could not read the heavy-process lock at ${settings.lock}.`)));
 	const inherited = Option.filter(settings.inherited, (id) => Option.exists(current, (currentHolder) => currentHolder.id === id));
 	if (Option.isSome(inherited)) {
 		return heldBy(inherited.value);
