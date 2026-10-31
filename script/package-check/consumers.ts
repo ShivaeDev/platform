@@ -1,6 +1,5 @@
 import { statfs } from "node:fs/promises";
-import { performance } from "node:perf_hooks";
-import { Console, Effect, FileSystem } from "effect";
+import { Clock, Console, Duration, Effect, FileSystem } from "effect";
 import { balancedShards, type Shard } from "#ci/shard.ts";
 import { decodeTimingSnapshot, durationEstimates } from "#ci/timings.ts";
 import { checkBins } from "#package-check/bins.ts";
@@ -33,7 +32,7 @@ export function checkConsumers(
 			)[shard.index - 1] ?? [];
 		for (const pkg of selected) {
 			yield* Effect.gen(function* () {
-				const start = performance.now();
+				const start = yield* Clock.currentTimeNanos;
 				yield* Console.log(`Checking packed ${pkg.manifest.name}`);
 				const prefix = `${pkg.manifest.name.replace("/", "-")}-`;
 				yield* Effect.gen(function* () {
@@ -47,7 +46,8 @@ export function checkConsumers(
 						yield* checkConsumer(root, pkg, packages, catalog, consumer, store, scenario);
 					}).pipe(Effect.scoped);
 				}
-				timings.push({ durationMs: Math.round(performance.now() - start), name: pkg.manifest.name });
+				const end = yield* Clock.currentTimeNanos;
+				timings.push({ durationMs: Math.round(Duration.toMillis(Duration.nanos(end - start))), name: pkg.manifest.name });
 				yield* Console.log(`Passed packed ${pkg.manifest.name} (${timings.at(-1)?.durationMs}ms)`);
 			}).pipe(Effect.ensuring(logFreeDisk(temporary, pkg.manifest.name)));
 		}
