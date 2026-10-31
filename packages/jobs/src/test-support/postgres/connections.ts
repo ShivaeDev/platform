@@ -1,4 +1,5 @@
 import { Effect, Redacted, Schema } from "effect";
+import { observeUntil } from "@shivaedev/test-sql/server/observeUntil.ts";
 import type { Registration } from "#test/workers.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { runningIn, startRuntime } from "./engine.ts";
@@ -19,6 +20,8 @@ function backendOf(engine: DatabaseEngine, name: string) {
 export function connectionVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
 	const terminated = new Set<number>();
 	return {
+		backendIsConnected: (pid: number) => engine.sql`select pid from pg_stat_activity where pid = ${pid}`.pipe(Effect.map((rows) => rows.length > 0)),
+		backendPid: (name: string) => backendOf(engine, name),
 		connectionAfterwards: (name: string) =>
 			Effect.map(backendOf(engine, name), (pid) => (terminated.has(pid) ? "the terminated connection" : "a new connection")),
 		connectionsOf: (applicationName: string) =>
@@ -51,6 +54,14 @@ export function connectionVerbs(engine: DatabaseEngine, tell: (line: string) => 
 				yield* engine.sql`select pg_terminate_backend(pid) from pg_stat_activity
 					where datname = current_database() and application_name = ${name} and state = 'idle'`;
 			});
+		},
+		untilBackendDisconnects: (pid: number) => {
+			tell(`PostgreSQL reports backend ${pid} disconnected after the pool timeout`);
+			return observeUntil(
+				engine.sql`select pid from pg_stat_activity where pid = ${pid}`,
+				(rows) => rows.length === 0,
+				"the jobs backend to disconnect",
+			);
 		},
 	};
 }

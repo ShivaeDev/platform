@@ -40,6 +40,8 @@ export interface PgBossService {
 
 export type PgBossOptions = Omit<ConstructorOptions, "connectionString"> & {
 	readonly connectionString?: Redacted.Redacted<string>;
+	readonly idleTimeoutMillis?: number;
+	readonly maxLifetimeSeconds?: number;
 	readonly clientFactory?: PgBossClientFactory;
 	readonly clientCacheKey?: string | symbol | undefined;
 	readonly stop?: StopOptions;
@@ -47,6 +49,12 @@ export type PgBossOptions = Omit<ConstructorOptions, "connectionString"> & {
 
 export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossError | PgBossClientOptionsError> {
 	const { connectionString, clientFactory, clientCacheKey, stop, ...settings } = options;
+	const constructorOptions = {
+		...settings,
+		idleTimeoutMillis: settings.idleTimeoutMillis ?? 60_000,
+		maxLifetimeSeconds: settings.maxLifetimeSeconds ?? 600,
+		...(connectionString === undefined ? {} : { connectionString: Redacted.value(connectionString) }),
+	};
 	return Layer.effect(
 		PgBoss,
 		Effect.gen(function* () {
@@ -56,10 +64,7 @@ export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossE
 					{
 						clientCacheKey,
 						clientFactory,
-						constructor: {
-							...settings,
-							...(connectionString === undefined ? {} : { connectionString: Redacted.value(connectionString) }),
-						},
+						constructor: constructorOptions,
 					},
 					report,
 				),

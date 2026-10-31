@@ -31,7 +31,7 @@ The work has three parts: describe the model and provide its database once, choo
 
 ### One PostgreSQL pool per application
 
-`postgresLayer(url, options)` from `@shivaedev/sql/postgresLayer.ts` provides the native `PgPool` service from `@effect/sql-pg/PgPool`, `PgClient` and `SqlClient` together. `options` accepts `applicationName`, `maxConnections`, `transformQueryNames` and `transformResultNames`. Queries, transactions and raw connections reserved with `yield* pool.reserve` share the same `maxConnections` budget. A reservation holds its connection until its scope closes; release it before waiting for work that needs that slot.
+`postgresLayer(url, options)` from `@shivaedev/sql/postgresLayer.ts` provides the native `PgPool` service from `@effect/sql-pg/PgPool`, `PgClient` and `SqlClient` together. `options` accepts `applicationName`, `maxConnections`, `minConnections`, `connectionTTL`, `idleTimeout`, `transformQueryNames` and `transformResultNames`. Queries, transactions and raw connections reserved with `yield* pool.reserve` share the same `maxConnections` budget. A reservation holds its connection until its scope closes; release it before waiting for work that needs that slot.
 
 ```ts
 import * as PgPool from "@effect/sql-pg/PgPool";
