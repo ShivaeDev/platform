@@ -4,13 +4,14 @@ import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
-import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueOptionsError } from "#error.ts";
+import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#health.ts";
 import { logClientError, subscribeClientErrors } from "#internal/clientErrors.ts";
 import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
 import { makeService } from "#internal/makeService.ts";
 import { registrationName } from "#internal/register.ts";
 import { registerReleasedJobs } from "#internal/registerReleasedJobs.ts";
+import { validateQueueNames } from "#internal/validateQueueNames.ts";
 import { PgBoss } from "#PgBoss.ts";
 
 export interface PgBossService {
@@ -81,16 +82,17 @@ export interface PgBossDefinition<TIdentifier extends string = string> extends C
 		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
 	) => Layer.Layer<
 		TIdentifier,
-		PgBossError | PgBossQueueOptionsError,
+		PgBossError | PgBossQueueNamesError | PgBossQueueOptionsError,
 		PgBoss | Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
 	>;
 }
 
-export function makePgBoss<const TIdentifier extends string>(identifier: TIdentifier): PgBossDefinition<TIdentifier> {
+export function makePgBoss<const TIdentifier extends string>(identifier: TIdentifier, queueNames?: readonly string[]): PgBossDefinition<TIdentifier> {
 	function definition<R>(options: PgBossLayerOptions<readonly JobRegistration[], R>, dependencies: Context.Context<R>) {
 		return defineService({
 			id: identifier,
 			initialize: Effect.gen(function* () {
+				yield* validateQueueNames(options.jobs, queueNames);
 				const acquired = yield* PgBoss;
 				const execute = Effect.runPromiseWith(dependencies);
 				const workerScope = yield* Scope.make();
