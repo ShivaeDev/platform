@@ -1,9 +1,9 @@
 import { basename, dirname, join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 import { Effect, FileSystem, Schema } from "effect";
+import { checkServer } from "#package-check/adapters/server.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { bins, type Package, Versions } from "#package-check/model.ts";
-import { checkServer } from "#package-check/server.ts";
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 
 const Case = Schema.Struct({

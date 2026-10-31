@@ -3,12 +3,12 @@ import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { ConfigProvider, Effect, FileSystem } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { checkServer } from "#package-check/adapters/server.ts";
 import { checkPackedArchive } from "#package-check/archive.ts";
 import { prepareArchives, verifyArchives, workspaceArchives } from "#package-check/archives.ts";
 import cases from "#package-check/bin-cases.json" with { type: "json" };
 import { blockedEntries, exportEntries, packedFiles } from "#package-check/exports.ts";
 import { command } from "#package-check/io.ts";
-import { checkServer } from "#package-check/server.ts";
 
 export const archives = storyKit({
 	after: {

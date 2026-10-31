@@ -16,5 +16,71 @@ or {
 	or {
 		JsStaticMemberExpression() as $match where { $match <: `process.env` },
 		JsComputedMemberExpression() as $match where { $match <: `process["env"]` }
-	} where { register_diagnostic(span=$match, message="process.env is banned. Read configuration through Effect's Config service.") }
+	} where { register_diagnostic(span=$match, message="process.env is banned. Read configuration through Effect's Config service.") },
+	or {
+		or {
+			`Clock.$member.pipe($...)` as $match,
+			`Config.$member($...).pipe($...)` as $match,
+			`Random.$member.pipe($...)` as $match
+		} where {
+			$match <: contains `Effect.$runner` where { $runner <: r"run.*" },
+			$message = "Running Clock, Config or Random outside the current runtime is banned. Yield the computation in the caller's Effect so its services are preserved."
+		},
+		`Effect.$method($value, $...)` as $match where {
+			$method <: r"run.*",
+			$value <: contains or {
+				`Clock.$member`,
+				`Config.$member`,
+				`Random.$member`
+			},
+			$message = "Running Clock, Config or Random outside the current runtime is banned. Yield the computation in the caller's Effect so its services are preserved."
+		},
+		`$clock.currentTimeMillisUnsafe` as $match where {
+			$message = "Unsafe clock reads are banned. Yield Clock.currentTimeMillis in the caller's Effect; bridge a synchronous callback in adapters/."
+		},
+		or {
+			`crypto.randomUUID($...)` as $match,
+			`globalThis.crypto.randomUUID($...)` as $match,
+			`globalThis.crypto.randomBytes($...)` as $match,
+			`randomUUID($...)` as $match,
+			`randomBytes($...)` as $match
+		} where { $message = "Ambient cryptographic randomness is banned. Read secure values through Effect's Crypto service." },
+		`crypto.randomBytes($...)` as $match where {
+			$program <: contains or {
+				`import * as crypto from "node:crypto"`,
+				`import * as crypto from "crypto"`,
+				`import crypto from "node:crypto"`,
+				`import crypto from "crypto"`
+			},
+			$message = "Ambient cryptographic randomness is banned. Read secure values through Effect's Crypto service."
+		},
+		`performance.now()` as $match where { $message = "Ambient performance time is banned. Read time through Effect's Clock service." },
+		or {
+			`process.$member` as $match,
+			`globalThis.process.$member` as $match,
+			`process.$member = $value` as $match,
+			`globalThis.process.$member = $value` as $match
+		} where {
+			$member <: r"argv|cwd|exit|exitCode",
+			! $match <: within JsYieldExpression(argument=JsYieldArgument(expression=`process.exitCode`)),
+			$message = "Ambient process state is banned. Read arguments and the working directory at the entry point and use the runtime to exit; bridge process APIs in adapters/."
+		},
+		`globalThis.process.env` as $match where { $message = "Global process.env is banned. Read configuration through Effect's Config service." },
+		or {
+			`setTimeout($...)` as $match,
+			`queueMicrotask($...)` as $match,
+			`globalThis.setTimeout($...)` as $match,
+			`globalThis.queueMicrotask($...)` as $match
+		} where {
+			$message = "Ambient scheduling is banned. Use Effect's sleep, scheduling and fibers in the current runtime; bridge callback APIs in adapters/."
+		}
+	} where {
+		! $filename <: r"(?:^|.*[/\\])(?:adapters|test-support)[/\\].*|(?:^|.*[/\\])(?:cli|main|.*-cli)\.[cm]?[jt]sx?$|.*\.(?:config|test|spec)\.[cm]?[jt]sx?$",
+		! $program <: contains or {
+			`NodeRuntime.runMain`,
+			`runMain($...)`,
+			`fileURLToPath(import.meta.url) === process.argv[1]`
+		},
+		register_diagnostic(span=$match, message=$message)
+	}
 }
