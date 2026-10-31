@@ -87,7 +87,6 @@ export const jobsEngine = Effect.gen(function* () {
 		jobs: jobsHandlersWithRetry(page, Jobs),
 		users: Users.contract.application.toLayer({ "admin.users.profile": () => Effect.map(SessionUser, (user) => user.email) }),
 	});
-	yield* Layer.build(registration.handlers.pipe(Layer.provide(Layer.succeed(Jobs, jobs))));
 	const rpc = yield* adminRpc(
 		registration.group,
 		Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(Layer.provide(Layer.succeed(Jobs, jobs))),

@@ -5,6 +5,7 @@ import type { Bound } from "@shivaedev/contract/bind.ts";
 import type { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { adminRegistry } from "#registry.ts";
+import type { AdminSessions } from "#server/AdminSessions.ts";
 import { jobsHandlers } from "#server/jobsHandlers.ts";
 import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
@@ -24,7 +25,7 @@ const Payload = Schema.Struct({
 const Jobs = makePgBoss("test/AdminJobs");
 const page = jobsPage({ name: "mail", schema: Payload }, { name: "sync", schema: Schema.Struct({ count: Schema.NumberFromString }) });
 const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
-expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<"test/AdminJobs" | DecodePayload>();
+expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<"test/AdminJobs" | DecodePayload | AdminSessions>();
 expectTypeOf<Layer.Error<typeof registration.handlers>>().toEqualTypeOf<never>();
 expectTypeOf(page.contract.declaration.commands).toEqualTypeOf<readonly []>();
 type JobRpc = Extract<RpcGroup.Rpcs<typeof page.contract>, { readonly _tag: "admin.jobs.job" }>;
@@ -37,7 +38,7 @@ expectTypeOf<Job["output"]>().toEqualTypeOf<JobFailure | null>();
 
 const retryPage = jobsPageWithRetry(...page.queues);
 const retryRegistration = registerAdmin(adminRegistry(retryPage), { jobs: jobsHandlersWithRetry(retryPage, Jobs) });
-expectTypeOf<Layer.Services<typeof retryRegistration.handlers>>().toEqualTypeOf<"test/AdminJobs" | DecodePayload>();
+expectTypeOf<Layer.Services<typeof retryRegistration.handlers>>().toEqualTypeOf<"test/AdminJobs" | DecodePayload | AdminSessions>();
 expectTypeOf(retryPage.contract.declaration.commands[0].name).toEqualTypeOf<"retry">();
 type ReadOnly = typeof page.contract.declaration;
 type ReadOnlyClient = Bound<ReadOnly["name"], ReadOnly["queries"], ReadOnly["commands"], RpcGroup.Rpcs<typeof page.contract>, never>;
@@ -47,11 +48,11 @@ expectTypeOf<RetryRpc["payloadSchema"]["Type"]>().toEqualTypeOf<{ readonly id: s
 
 const emptyPage = jobsPage();
 const emptyRegistration = registerAdmin(adminRegistry(emptyPage), { jobs: jobsHandlers(emptyPage, Jobs) });
-expectTypeOf<Layer.Services<typeof emptyRegistration.handlers>>().toEqualTypeOf<"test/AdminJobs">();
+expectTypeOf<Layer.Services<typeof emptyRegistration.handlers>>().toEqualTypeOf<"test/AdminJobs" | AdminSessions>();
 expectTypeOf(emptyPage.queues).toEqualTypeOf<readonly []>();
 const scheduledPage = jobsPage(...page.queues, { name: "scheduled" });
 const scheduledRegistration = registerAdmin(adminRegistry(scheduledPage), { jobs: jobsHandlers(scheduledPage, Jobs) });
-expectTypeOf<Layer.Services<typeof scheduledRegistration.handlers>>().toEqualTypeOf<"test/AdminJobs" | DecodePayload>();
+expectTypeOf<Layer.Services<typeof scheduledRegistration.handlers>>().toEqualTypeOf<"test/AdminJobs" | DecodePayload | AdminSessions>();
 type ScheduledJobRpc = Extract<RpcGroup.Rpcs<typeof scheduledPage.contract>, { readonly _tag: "admin.jobs.job" }>;
 type ScheduledJob = ScheduledJobRpc["successSchema"]["Type"] extends Option.Option<infer A> ? A : never;
 expectTypeOf<ScheduledJob["data"]>().toEqualTypeOf<unknown>();

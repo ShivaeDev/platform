@@ -9,6 +9,7 @@ import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { adminPage } from "#page.ts";
 import { JobsPermission } from "#permissions.ts";
 import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
+import type { AdminSessions } from "#server/AdminSessions.ts";
 import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Failed, Jobs, JobsContract, Registry, Users } from "#test/pages.ts";
@@ -32,7 +33,7 @@ const jobs = Jobs.contract.application.toLayer(
 );
 const users = Users.contract.application.toLayer({ "admin.users.profile": () => Effect.map(SessionUser, (user) => user.email) });
 const registration = registerAdmin(Registry, { jobs, users });
-expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<JobStore | Configuration>();
+expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<JobStore | Configuration | AdminSessions>();
 expectTypeOf<Layer.Error<typeof registration.handlers>>().toEqualTypeOf<SetupFailed>();
 expectTypeOf(Jobs.contract.declaration.commands).toEqualTypeOf(JobsContract.declaration.commands);
 expectTypeOf(Jobs.contract.declaration.queries[0].payload).toEqualTypeOf(Failed.payload);
