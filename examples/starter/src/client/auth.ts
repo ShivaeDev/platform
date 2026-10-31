@@ -10,6 +10,8 @@ export const SessionAccess = Schema.Struct({
 	}),
 });
 
+export type AppSession = Pick<typeof SessionAccess.Type, "user"> & { readonly session?: { readonly id: string } };
+
 type AuthClient = ReturnType<typeof createAuthClient>;
 export type Credentials = Parameters<AuthClient["signUp"]["email"]>[0];
 

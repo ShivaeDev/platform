@@ -5,6 +5,7 @@ import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { routerRedirect } from "#client/adapters/routerRedirect.ts";
 import { type FoundationClient, makeFoundationClient } from "#client/admin/foundation.ts";
+import { AdminSessions } from "#client/admin/Sessions.tsx";
 import { AdminShell } from "#client/admin/Shell.tsx";
 import { foundation } from "#modules.ts";
 import type { RouteContext } from "./Module.ts";
@@ -13,7 +14,7 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 	return {
 		admin: foundation.admin,
 		api: client.users,
-		bindings: [client.users, client.jobs],
+		bindings: [client.users, client.jobs, client.sessions],
 		routes: ({ getParentRoute }: RouteContext) => {
 			const parent = createRoute({ context: () => ({ client }), getParentRoute, id: "foundation" });
 			const index = createRoute({
@@ -47,7 +48,20 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 				path: "/admin/jobs",
 				staticData: { permission: foundation.JobsPage.route.permission },
 			});
-			return [parent.addChildren([index, users, jobs])];
+			const sessions = createRoute({
+				component: (): ReactElement => {
+					const { client: routeClient, adminPages, auth, session } = sessions.useRouteContext();
+					return (
+						<AdminShell pages={adminPages} title={foundation.SessionsPage.route.title}>
+							<AdminSessions auth={auth} client={routeClient} currentSessionId={session()?.session?.id} />
+						</AdminShell>
+					);
+				},
+				getParentRoute: () => parent,
+				path: "/admin/sessions",
+				staticData: { permission: foundation.SessionsPage.route.permission },
+			});
+			return [parent.addChildren([index, users, jobs, sessions])];
 		},
 	};
 }

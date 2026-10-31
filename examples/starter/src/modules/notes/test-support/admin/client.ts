@@ -6,13 +6,14 @@ import { JobsPermission, UsersPermission } from "@shivaedev/admin/permissions.ts
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
+import { SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
 import { StatisticsPermission } from "#appPermissions.ts";
 import { StatisticsPage } from "#modules/notes/admin.ts";
 import { noteQueue } from "#modules/notes/queue.ts";
 import { Admin, foundation } from "#modules.ts";
 import { adminBackend } from "./backend.ts";
 
-const { JobsPage, UsersPage } = foundation;
+const { JobsPage, UsersPage, SessionsPage } = foundation;
 
 function session<A, E, R>(effect: Effect.Effect<A, E, R>) {
 	return effect.pipe(
@@ -23,6 +24,7 @@ function session<A, E, R>(effect: Effect.Effect<A, E, R>) {
 const authenticated = Layer.mergeAll(
 	Layer.succeed(JobsPermission, session),
 	Layer.succeed(UsersPermission, session),
+	Layer.succeed(SessionsPermission, session),
 	Layer.succeed(StatisticsPermission, session),
 );
 
@@ -35,12 +37,13 @@ export function adminClient(retry = false) {
 	}) {}
 	const jobs = bind(JobsPage.contract, Client);
 	const statistics = bind(StatisticsPage.contract, Client);
+	const sessions = bind(SessionsPage.contract, Client);
 	if (!retry) {
 		const users = bind(UsersPage.contract, Client);
-		return { backend, changeRole: Client.runtime.fn(users.changeRole.run), jobs, runtime: Client.runtime, statistics, users };
+		return { backend, changeRole: Client.runtime.fn(users.changeRole.run), jobs, runtime: Client.runtime, sessions, statistics, users };
 	}
 	const page = jobsPageWithRetry(noteQueue);
-	const registry = adminRegistry(page, StatisticsPage, UsersPage);
+	const registry = adminRegistry(page, StatisticsPage, UsersPage, SessionsPage);
 	class RetryClient extends AtomRpc.Service<RetryClient>()("admin.users/Client", {
 		group: registry.group,
 		makeEffect: RpcTest.makeClient(registry.group, { flatten: true }),
@@ -55,6 +58,7 @@ export function adminClient(retry = false) {
 		jobs: api,
 		retry: action,
 		runtime: RetryClient.runtime,
+		sessions: bind(SessionsPage.contract, RetryClient),
 		statistics: bind(StatisticsPage.contract, RetryClient),
 		users,
 	};

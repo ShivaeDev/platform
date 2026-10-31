@@ -71,6 +71,9 @@ export function adminBackend() {
 			"admin.users.$changes": changes,
 			"admin.users.changeRole": () => Effect.void,
 			"admin.users.list": () => Effect.succeed({ canChangeRoles: false, next: Option.none<string>(), users: [] }),
+			"identity.sessions.$changes": changes,
+			"identity.sessions.list": () => Effect.succeed({ next: Option.none(), sessions: [] }),
+			"identity.sessions.revoke": () => Effect.void,
 		},
 		retry: ({ id }: { readonly id: string }) =>
 			Effect.suspend(() =>
