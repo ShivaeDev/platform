@@ -542,9 +542,6 @@ importers:
       '@shivaedev/react':
         specifier: workspace:*
         version: link:../react
-      '@shivaedev/sql':
-        specifier: workspace:*
-        version: link:../sql
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
@@ -902,9 +899,18 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)
+      '@shivaedev/admin':
+        specifier: workspace:*
+        version: link:../admin
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/server':
+        specifier: workspace:*
+        version: link:../server
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -945,6 +951,9 @@ importers:
         specifier: workspace:*
         version: link:../sql
     devDependencies:
+      '@shivaedev/http':
+        specifier: workspace:*
+        version: link:../http
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1264,9 +1273,6 @@ importers:
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
-      '@shivaedev/local-postgres':
-        specifier: workspace:*
-        version: link:../local-postgres
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1388,6 +1394,12 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
+      '@shivaedev/access':
+        specifier: workspace:*
+        version: link:../access
+      '@shivaedev/admin':
+        specifier: workspace:*
+        version: link:../admin
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
@@ -1536,6 +1548,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -1597,6 +1612,9 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)
+      '@shivaedev/contract':
+        specifier: workspace:*
+        version: link:../contract
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
@@ -6782,7 +6800,7 @@ snapshots:
     dependencies:
       '@hono/node-server': 2.1.5(hono@4.13.13)
       ajv: 8.20.0
-      ajv-formats: 3.0.1
+      ajv-formats: 3.0.1(ajv@8.20.0)
       content-type: 1.0.5
       cors: 2.8.6
       cross-spawn: 7.0.6
@@ -7650,12 +7668,12 @@ snapshots:
       mime-types: 3.0.2
       negotiator: 1.1.0
 
-  ajv-formats@2.1.1:
-    dependencies:
+  ajv-formats@2.1.1(ajv@8.20.0):
+    optionalDependencies:
       ajv: 8.20.0
 
-  ajv-formats@3.0.1:
-    dependencies:
+  ajv-formats@3.0.1(ajv@8.20.0):
+    optionalDependencies:
       ajv: 8.20.0
 
   ajv@8.20.0:
@@ -7854,7 +7872,7 @@ snapshots:
   conf@10.2.0:
     dependencies:
       ajv: 8.20.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1(ajv@8.20.0)
       atomically: 1.7.0
       debounce-fn: 4.0.0
       dot-prop: 6.0.1

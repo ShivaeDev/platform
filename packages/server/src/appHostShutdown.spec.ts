@@ -1,15 +1,19 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { shutdownHost } from "#test/app-host/shutdown.ts";
 
 shutdownHost.it(
-	"disables preemptive shutdown so scope closure finalizes an active RPC stream before host disposal completes",
+	"with preemptive shutdown disabled, disposing the host finalizes an open RPC stream before disposal completes and stops answering HTTP",
 	[],
-	function* ({ lifecycle, openStream, request, shutdown }) {
+	function* ({ hostDisposes, httpAnswer, lifecycle, openStream }) {
 		yield* openStream();
-		expect(lifecycle()).toEqual([]);
-		yield* shutdown().pipe(Effect.timeout("5 seconds"));
-		expect(lifecycle()).toEqual(["stream finalized", "host disposed"]);
-		expect((yield* Effect.result(request()))._tag).toBe("Failure");
+		expect(yield* lifecycle()).toEqual([]);
+
+		yield* hostDisposes();
+
+		yield* outcomes({
+			http: [httpAnswer(), "refuses connections"],
+			lifecycle: [lifecycle(), ["stream finalized", "host disposed"]],
+		});
 	},
 );

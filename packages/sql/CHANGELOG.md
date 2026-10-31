@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.27.0 - 2026-10-30
+
+### Added
+
+- `changes/keys.ts` exports `recordKey` for raw record dependencies and `compositeId` for composite identities, including bigint components encoded as decimal strings.
+
+### Changed
+
+- SQL repository writes and manual invalidations build record keys through `changes/keys.ts`, sharing the format used by subscriptions. Existing key strings remain unchanged.
+
+## 0.26.1 - 2026-10-30
+
+### Fixed
+
+- `mapSqlError` maps constraints whose declared names exceed PostgreSQL's 63-byte identifier limit. It matches the name PostgreSQL stores, clipped to 63 bytes at a character boundary, instead of sending those violations to the fallback.
+
 ## 0.26.0 - 2026-10-30
 
 ### Added

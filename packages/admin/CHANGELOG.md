@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.12.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.12.0 - 2026-10-30
+
+### Added
+
+- Access exports `AssignRoles` and `LastRoleAssigner` from `@shivaedev/access/roles.ts` for shared role policy declarations.
+- Identity provides `assignRole(access, userId, role)` for trusted seeds and operator commands. Supply `SqlClient` and `Reactivity`; it returns whether storage changed and uses the Users page's PostgreSQL lock, last-role-assigner guard and commit invalidation.
+
+### Breaking
+
+- Identity mounts with `roles` close Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` HTTP endpoints and set its admin plugin's `adminRoles` to `[]`. Remove that setup from applications. Use the admin Users page for authorized requests and identity's `assignRole` for trusted server commands.
+- Admin consumers import `AssignRoles` and `LastRoleAssigner` from `@shivaedev/access/roles.ts` instead of `@shivaedev/admin/permissions.ts` and `@shivaedev/admin/users/roles.ts`. The Users page uses identity's shared assignment operation; its permission checks, typed refusal and audit log remain.
+
+## 0.11.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.11.1 - 2026-10-30
+
+### Fixed
+
+- Stack UsersView users as labelled cards below 640px so role controls fit on phone screens, while retaining the desktop table.
+
+## 0.11.0 - 2026-10-30
+
+### Fixed
+
+- Live reads and change subscriptions preserve policy failures instead of reporting read denial. Generated starter apps report notes database connection failures as `ServiceUnavailable` during the owner's live read.
+
+### Breaking
+
+- Query read policies declare their error and service channels with `QueryReadPolicy<Payload, E, R>`. Declare policy errors in the query's `rejections` and provide policy services when building its handler Layer. Custom subscription adapters call `querySubscription(rpc, references, viewer)` instead of resolving requests themselves. Use the native RPC type when calling `authorizeReads` or `resolveChanges` so their inferred channels include policy requirements and errors. The generated change stream includes the queries' declared rejections and service requirements; consumers handling that stream must handle those errors too.
+- Admin pages install their permission's read policy for every query, preserving additional query restrictions. Remove repeated page-grant policies from individual queries and supply the page's permission middleware with the handler Layers.
+
+## 0.10.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.10.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.10.0 - 2026-10-30
 
 ### Added

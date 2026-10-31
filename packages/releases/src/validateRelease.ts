@@ -3,6 +3,7 @@ import { collectChangelog } from "#collectChangelog.ts";
 import { ChangesetError } from "#error.ts";
 import type { Release, ReleasePlan, Workspace, WorkspacePackage } from "#model.ts";
 import type { Changeset } from "#parser.ts";
+import { publishedDependencies } from "#planner.ts";
 import { previousPackage } from "#previousPackage.ts";
 
 const validatePackage = Effect.fn("Changesets.validatePackage")(function* (
@@ -26,7 +27,7 @@ const validatePackage = Effect.fn("Changesets.validatePackage")(function* (
 				message: `${pkg.manifest.name}: release notes differ from releases apply; restore the new changelog heading and rerun releases apply.`,
 			});
 		}
-		expected = yield* collectChangelog(previous, release, plan, date);
+		expected = yield* collectChangelog(previous, release, plan, date, publishedDependencies(pkg.manifest));
 	}
 	if (pkg.changelog !== expected) {
 		return yield* new ChangesetError({

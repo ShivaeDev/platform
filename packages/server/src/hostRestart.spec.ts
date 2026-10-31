@@ -1,23 +1,22 @@
 import { expect } from "vitest";
 import { restartStory } from "#test/restart/story.ts";
 
+const bothQueriesInEveryTab = Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`tab ${index + 1}`, [1, 2]]));
+
 restartStory.it(
-	"twelve live tabs resubscribe and rerun both mounted queries on the replacement host with reruns spread over time",
+	"after the host restarts, each of twelve live tabs reruns both mounted queries on the replacement host",
 	[],
-	function* ({ processId, results, restart }) {
-		const original = processId();
-		const before = yield* results();
-		expect(before.map((tab) => tab.map((result) => result.pid))).toEqual(Array.from({ length: 12 }, () => [original, original]));
+	function* ({ queriesAnsweredByCurrentHost, restart }) {
+		expect(yield* queriesAnsweredByCurrentHost()).toEqual(bothQueriesInEveryTab);
 
 		yield* restart();
 
-		const replacement = processId();
-		const after = yield* results();
-		expect(replacement).not.toBe(original);
-		expect(after.map((tab) => tab.map((result) => ({ id: result.id, pid: result.pid, tab: result.tab })))).toEqual(
-			Array.from({ length: 12 }, (_, index) => [1, 2].map((id) => ({ id, pid: replacement, tab: `tab ${index + 1}` }))),
-		);
-		const firstReruns = after.map((tab) => Math.min(...tab.map((result) => result.readAt)));
-		expect(Math.max(...firstReruns) - Math.min(...firstReruns)).toBeGreaterThan(50);
+		expect(yield* queriesAnsweredByCurrentHost()).toEqual(bothQueriesInEveryTab);
 	},
 );
+
+restartStory.it("after the host restarts, the twelve tabs' first reruns spread over more than 50 ms", [], function* ({ restart, rerunSpread }) {
+	yield* restart();
+
+	expect(yield* rerunSpread()).toBe("spread over more than 50 ms");
+});

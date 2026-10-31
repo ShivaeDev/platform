@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/jobs",
-	"version": "0.23.0",
+	"version": "0.23.2",
 	"description": "Effect-native jobs and lifecycle management for pg-boss",
 	"keywords": [
 		"effect"
@@ -59,6 +59,7 @@
 		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {
+		"@shivaedev/http": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",

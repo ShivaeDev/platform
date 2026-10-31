@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.25.0 - 2026-10-30
+
+### Added
+
+- `authCall` turns a Better Auth client callback into an input-taking Effect for form `onSubmit` handlers.
+
+### Breaking
+
+- `authAction` now fails with `AuthFailure`. Map its closed `code` union to application text instead of reading raw Better Auth error fields or HTTP statuses. Core Better Auth codes pass through; code-less rate limiting becomes `RATE_LIMITED`, and unsupported codes and rejected promises become `UNKNOWN`. Read the original error from `cause`. Replace action error annotations that include `AuthActionUnavailable` with `AuthFailure`; `authQuery` retains its existing failures.
+
+## 0.24.0 - 2026-10-30
+
+### Added
+
+- `useLoaderQuery` accepts the shared query options, including `coalesceWindow`, so loader-backed screens can configure live refetches directly.
+- `NoticeHost` accepts an optional `runtime` and runs notice expiry as an Effect sleep on that atom runtime's `Clock`, so a story's `TestClock` drives expiry. Without it, expiry uses Effect's default clock as before.
+
+## 0.23.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.23.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.23.0 - 2026-10-30
 
 ### Added

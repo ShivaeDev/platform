@@ -1,5 +1,6 @@
 import { Effect, Redacted, type Schema } from "effect";
 import type { JobInsert } from "pg-boss";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { QueueDefinition } from "#definition.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
 import type { Registration } from "#test/workers.ts";
@@ -8,7 +9,6 @@ import { serverTlsAbsent } from "./connections.ts";
 import { countIdleReads, startIdleWait, watchChange } from "./controller.ts";
 import { database } from "./database.ts";
 import type { StoryPayload } from "./databaseEngine.ts";
-import { disconnectGate } from "./disconnectGate.ts";
 import { admin, runningIn, type StartOptions, startRuntime } from "./engine.ts";
 import { type Enqueue, enqueueAs, idOf, runtimeVerbs, testingOf, waitingVerbs } from "./verbs.ts";
 
@@ -258,15 +258,9 @@ export const disconnectGated = database.trait(
 	"database",
 	"a disconnect gate in front of PostgreSQL holds each disconnect acknowledgement",
 	(engine) =>
-		Effect.map(
-			Effect.acquireRelease(
-				Effect.promise(() => disconnectGate(Redacted.value(engine.url))),
-				(gate) => Effect.promise(gate.close),
-			),
-			(gate) => {
-				engine.gate = gate;
-			},
-		),
+		Effect.map(disconnectProxy(Redacted.value(engine.url), { holdDisconnects: true }), (gate) => {
+			engine.gate = gate;
+		}),
 );
 
 export function runningBehindGate(name: string, options: StartOptions) {

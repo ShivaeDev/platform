@@ -9,6 +9,7 @@ import type { Versioned } from "#storage/model.ts";
 function launched(record: FleetRecord, attempt: Attempt): FleetRecord {
 	return {
 		...record,
+		areaQueuedAt: undefined,
 		attempts: [...record.attempts, attempt],
 		blocker: undefined,
 		launchRetry: undefined,
@@ -33,7 +34,7 @@ export const saveLaunch = Effect.fn("Fleet.saveLaunch")(function* (
 	const priorityRepair = openSweep(record) && attempt.role === "repair";
 	const ignoreAreas = priorityRepair || (implementer && stored.value.dispatchNow?.ignoreAreas === true);
 	const admission: LaunchAdmission = {
-		areaWaiters: ignoreAreas ? [] : yield* areaWaiters(state, stored.value, implementer ? launch.priority : undefined),
+		areaWaiters: ignoreAreas ? [] : yield* areaWaiters(state, stored.value, launch.priority),
 		ignoreAreas,
 		implementer,
 		overLimit: priorityRepair,
@@ -41,11 +42,14 @@ export const saveLaunch = Effect.fn("Fleet.saveLaunch")(function* (
 		role: launch.role,
 	};
 	const urgent = implementer && (launch.priority === "urgent" || stored.value.dispatchNow !== undefined);
-	return yield* state
-		.save(stored, launched(record, attempt), admission)
-		.pipe(
-			Effect.catchTag("StorageCapacity", (error) =>
-				urgent ? state.save(stored, launched(record, { ...attempt, overLimit: true }), { ...admission, overLimit: true }) : Effect.fail(error),
-			),
-		);
+	return yield* state.save(stored, launched({ ...record, queuePriority: launch.priority }, attempt), admission).pipe(
+		Effect.catchTag("StorageCapacity", (error) =>
+			urgent
+				? state.save(stored, launched({ ...record, queuePriority: launch.priority }, { ...attempt, overLimit: true }), {
+						...admission,
+						overLimit: true,
+					})
+				: Effect.fail(error),
+		),
+	);
 });

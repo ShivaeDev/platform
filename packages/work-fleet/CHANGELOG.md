@@ -1,5 +1,47 @@
 # Changelog
 
+## 0.24.7 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.6 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.5 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.4 - 2026-10-30
+
+### Fixed
+
+- Admit the first eligible area waiter by priority and waiting age even when queued records lack queue timestamps, so competing launches cannot wait on each other forever.
+
+## 0.24.3 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.2 - 2026-10-30
+
+### Fixed
+
+- Give available areas to eligible queued work and PR repairs by Fleet priority, then by time waiting. Preserve repair queue age across restarts so new launches of the same or lower priority cannot repeatedly delay conflict or CI repairs and the PRs waiting for them to merge.
+
+## 0.24.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.24.0 - 2026-10-30
 
 ### Added

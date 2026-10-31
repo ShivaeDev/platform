@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.9.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.9.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.9.0 - 2026-10-30
+
+### Added
+
+- Queries can opt into `live: "rerun-and-compare"`. Hosted subscriptions rerun the authorized query as the subscribed viewer, hash its JSON-schema-encoded result with SHA-256, and push a typed `Result` only when it changes. Bound queries consume those results without a client refetch. Other queries keep hint-and-refetch delivery.
+- Rerun subscriptions end with `QueryReadDenied` when access is denied. The host registers change listeners before its initial result read, and reconciliation reruns the query through the same read policy.
+
+### Breaking
+
+- `@shivaedev/contract`'s `ChangesClient` transport helper now covers result messages and erases query-specific stream failures. Consumers using that helper to read changes must use their contract's native AtomRpc client type instead; derive message and failure types with `Rpc.SuccessChunk` and `Rpc.ErrorExit` of the contract's `$changes` RPC. Contract-derived bound query types remain specific to their query.
+
+## 0.8.0 - 2026-10-30
+
+### Fixed
+
+- Live reads and change subscriptions preserve policy failures instead of reporting read denial. Generated starter apps report notes database connection failures as `ServiceUnavailable` during the owner's live read.
+
+### Breaking
+
+- Query read policies declare their error and service channels with `QueryReadPolicy<Payload, E, R>`. Declare policy errors in the query's `rejections` and provide policy services when building its handler Layer. Custom subscription adapters call `querySubscription(rpc, references, viewer)` instead of resolving requests themselves. Use the native RPC type when calling `authorizeReads` or `resolveChanges` so their inferred channels include policy requirements and errors. The generated change stream includes the queries' declared rejections and service requirements; consumers handling that stream must handle those errors too.
+- Admin pages install their permission's read policy for every query, preserving additional query restrictions. Remove repeated page-grant policies from individual queries and supply the page's permission middleware with the handler Layers.
+
+## 0.7.0 - 2026-10-30
+
+### Added
+
+- Identity exposes a socket-scoped session coordinator for hosts to share session rechecks within a batch and drive stream revalidation from one timer.
+
+### Fixed
+
+- Hosted live subscriptions on one socket share hint-time session lookups and periodic session revalidation while retaining per-query read-policy checks and typed revocation failures.
+
+## 0.6.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.6.0 - 2026-10-30
 
 ### Added

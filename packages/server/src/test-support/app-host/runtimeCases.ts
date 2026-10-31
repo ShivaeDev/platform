@@ -5,13 +5,16 @@ import { type HostState, runtimeOf } from "./state.ts";
 
 async function failureResults(exit: () => Promise<Exit.Exit<unknown, unknown>>, promise: () => Promise<unknown>, failure: unknown) {
 	const result = await exit();
-	let promiseOriginal = false;
+	let rejection = "resolved";
 	try {
 		await promise();
 	} catch (error) {
-		promiseOriginal = error === failure;
+		rejection = error === failure ? "rejected with the original failure" : "rejected with another error";
 	}
-	return { exitOriginal: Equal.equals(result, Exit.fail(failure)), promiseOriginal };
+	return {
+		runPromise: rejection,
+		runPromiseExit: Equal.equals(result, Exit.fail(failure)) ? "failed with the original failure" : "ended with another exit",
+	};
 }
 
 function interruptedFailure(error: unknown) {
@@ -19,6 +22,17 @@ function interruptedFailure(error: unknown) {
 	return (
 		interrupted instanceof Error && error instanceof Error && error.constructor === interrupted.constructor && error.message === interrupted.message
 	);
+}
+
+function promiseEnding(run: Promise<unknown>) {
+	return run.then(
+		() => "resolved",
+		(error) => (interruptedFailure(error) ? "interrupted" : "rejected with another error"),
+	);
+}
+
+function exitEnding(run: Promise<Exit.Exit<unknown, unknown>>) {
+	return run.then((exit) => (Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause) ? "interrupted" : "ended without interruption"));
 }
 
 export function runtimeCases(state: HostState) {
@@ -41,22 +55,19 @@ export function runtimeCases(state: HostState) {
 			);
 			const options = { signal: controller.signal };
 			const completed =
-				run === "runPromise"
-					? runtime()
-							.runPromise(effect, options)
-							.then(() => false, interruptedFailure)
-					: runtime()
-							.runPromiseExit(effect, options)
-							.then((exit) => Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause));
+				run === "runPromise" ? promiseEnding(runtime().runPromise(effect, options)) : exitEnding(runtime().runPromiseExit(effect, options));
 			await started.promise;
 			const before = finalized;
 			controller.abort();
-			const canceled = await completed;
-			return { before, finalized, interrupted: canceled };
+			const ending = await completed;
+			return {
+				ending,
+				finalizer: before === 0 && finalized === 1 ? "ran once after the abort" : `ran ${finalized} times, ${before} before the abort`,
+			};
 		},
 		exit: async () => {
 			const exit = await runtime().runPromiseExit(value);
-			return Exit.isSuccess(exit) ? { success: exit.value } : { failed: true };
+			return Exit.isSuccess(exit) ? `succeeded with ${exit.value}` : "failed";
 		},
 		failure: () => {
 			const failure = new Error("application database unavailable");

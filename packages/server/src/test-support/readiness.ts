@@ -18,9 +18,18 @@ async function availablePort() {
 	return address.port;
 }
 
+type Held = "services" | "handlers" | "routes";
+
+interface State {
+	readonly held: Deferred.Deferred<void>;
+	readonly port: number;
+	readonly release: Deferred.Deferred<void>;
+	startup?: Fiber.Fiber<unknown, unknown>;
+}
+
 export const readiness = storyKit({
 	clock: "live",
-	*create() {
+	*create(): Effect.fn.Return<State> {
 		return {
 			held: yield* Deferred.make<void>(),
 			port: yield* Effect.promise(availablePort),
@@ -28,11 +37,10 @@ export const readiness = storyKit({
 		};
 	},
 	name: "host readiness",
-	stages: [],
-	verbs: (state) => {
-		const hold = Deferred.succeed(state.held, undefined).pipe(Effect.andThen(Deferred.await(state.release)));
-		return {
-			connection: Effect.promise(
+	stages: ["starting"],
+	verbs: (state, story) => ({
+		connectionAttempt: () =>
+			Effect.promise(
 				() =>
 					new Promise<string>((resolve) => {
 						const socket = createConnection({ host: "127.0.0.1", port: state.port });
@@ -40,40 +48,50 @@ export const readiness = storyKit({
 							socket.destroy();
 							resolve("connected");
 						});
-						socket.once("error", (error) => resolve("code" in error ? String(error.code) : error.message));
+						socket.once("error", (error) => resolve("code" in error && error.code === "ECONNREFUSED" ? "refused" : error.message));
 					}),
 			),
-			constructionHeld: Deferred.await(state.held),
-			firstResponse: Effect.promise(async () => {
+		constructionFinishes: () =>
+			Effect.gen(function* () {
+				story.tell("the held construction finishes and the host starts listening");
+				yield* Deferred.succeed(state.release, undefined);
+				if (state.startup !== undefined) {
+					yield* Fiber.join(state.startup);
+				}
+			}),
+		firstResponse: () =>
+			Effect.promise(async () => {
 				const response = await fetch(`http://127.0.0.1:${state.port}/ready`);
 				return { body: await response.text(), status: response.status };
 			}),
-			releaseConstruction: Deferred.succeed(state.release, undefined),
-			start: (held: "services" | "handlers" | "routes") => {
-				const services = Layer.effect(Greeting, Effect.as(held === "services" ? hold : Effect.void, "Ready"));
-				const handlers = Ping.toLayer(
-					Effect.gen(function* () {
-						if (held === "handlers") {
-							yield* hold;
-						}
-						const greeting = yield* Greeting;
-						return { ping: () => Effect.succeed(greeting) };
-					}),
-				);
-				const routes = HttpRouter.use((router) =>
-					Effect.gen(function* () {
-						if (held === "routes") {
-							yield* hold;
-						}
-						const greeting = yield* Greeting;
-						yield* router.add("GET", "/ready", HttpServerResponse.text(greeting));
-					}),
-				);
-				return Layer.build(
-					appHost({ config: { host: "127.0.0.1", port: state.port }, group: Ping, handlers, policy: "loopback", routes, services }),
-				).pipe(Effect.forkScoped);
-			},
-			waitForListening: <A, E>(startup: Fiber.Fiber<A, E>) => Fiber.join(startup),
-		};
-	},
+	}),
 });
+
+export function constructionHeldIn(held: Held) {
+	return readiness.trait("starting", `the host starts while its ${held} are still being constructed`, function* (state) {
+		const hold = Deferred.succeed(state.held, undefined).pipe(Effect.andThen(Deferred.await(state.release)));
+		const services = Layer.effect(Greeting, Effect.as(held === "services" ? hold : Effect.void, "Ready"));
+		const handlers = Ping.toLayer(
+			Effect.gen(function* () {
+				if (held === "handlers") {
+					yield* hold;
+				}
+				const greeting = yield* Greeting;
+				return { ping: () => Effect.succeed(greeting) };
+			}),
+		);
+		const routes = HttpRouter.use((router) =>
+			Effect.gen(function* () {
+				if (held === "routes") {
+					yield* hold;
+				}
+				const greeting = yield* Greeting;
+				yield* router.add("GET", "/ready", HttpServerResponse.text(greeting));
+			}),
+		);
+		state.startup = yield* Layer.build(
+			appHost({ config: { host: "127.0.0.1", port: state.port }, group: Ping, handlers, policy: "loopback", routes, services }),
+		).pipe(Effect.forkScoped);
+		yield* Deferred.await(state.held);
+	});
+}

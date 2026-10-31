@@ -1,6 +1,7 @@
-import { Config, Effect, Layer, Option, Redacted } from "effect";
+import { Effect, Layer, Redacted } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
+import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -9,8 +10,8 @@ import { Api, migrations } from "./feature.ts";
 import { openHost } from "./openHost.ts";
 import { openViewer } from "./openViewer.ts";
 
-const database = Effect.runSync(Config.option(Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL")));
-const postgres = makePostgresTestLayer({ migrations, url: Option.getOrElse(database, () => Redacted.make("postgresql://disabled")) });
+const database = environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL");
+const postgres = makePostgresTestLayer({ migrations, url: Redacted.make(database ?? "postgresql://disabled") });
 export const liveCost = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
@@ -23,7 +24,7 @@ export const liveCost = storyKit({
 	},
 	layer: postgres,
 	name: "shared bucket live cost",
-	runIf: Option.isSome(database),
+	runIf: database !== undefined,
 	stages: ["viewers"],
 	verbs: (state) => ({
 		cost: () => ({

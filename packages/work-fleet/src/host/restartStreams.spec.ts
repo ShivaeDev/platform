@@ -27,7 +27,7 @@ host.it(
 		daemon.finishTurn(worker, `Recovered findings.\nFLEET_HEAD: ${HEAD}`);
 		const completed = yield* daemon.reconcile("one");
 		expect(completed.stage).toBe("done");
-		proxy.resume();
+		proxy.online();
 
 		yield* daemon.awaitEvent("done");
 		const summary = `one done: ${completed.report?.sourcePath}\n`;

@@ -16,7 +16,27 @@ export interface ClientAbortState {
 	registrations: Parameters<Reactivity.Reactivity["registerUnsafe"]>[0][];
 	response?: Promise<Response>;
 	table: string;
+	waiters: (() => void)[];
 	written: boolean;
+}
+
+export function changed(state: ClientAbortState) {
+	for (const waiter of state.waiters.splice(0)) {
+		waiter();
+	}
+}
+
+export function observed(state: ClientAbortState, condition: () => boolean): Promise<void> {
+	return new Promise((resolve) => {
+		function check() {
+			if (condition()) {
+				resolve();
+			} else {
+				state.waiters.push(check);
+			}
+		}
+		check();
+	});
 }
 export const AbortApi = RpcGroup.make(
 	Rpc.make("hold", { payload: { password: Schema.String }, success: Schema.Void }),
@@ -31,6 +51,7 @@ export function abortHandlers(state: ClientAbortState) {
 		const sql = yield* SqlClient.SqlClient;
 		yield* sql`insert into ${sql(state.table)} values ('abandoned')`;
 		state.written = true;
+		changed(state);
 		yield* Effect.never;
 	}).pipe(
 		transact({ onSqlError: (error) => error }),
@@ -39,6 +60,7 @@ export function abortHandlers(state: ClientAbortState) {
 			Effect.sync(() => {
 				state.interrupted = Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause);
 				state.finalized = true;
+				changed(state);
 			}),
 		),
 	);
@@ -58,6 +80,7 @@ export function abortHandlers(state: ClientAbortState) {
 					Effect.sync(() => {
 						state.interrupted = Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause);
 						state.finalized = true;
+						changed(state);
 					}),
 				),
 			),

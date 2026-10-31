@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.48.1 - 2026-10-30
+
+### Fixed
+
+- `code/unused` treats numbered migrations in `src/server/migrations` and `src/modules/<module>/server/migrations` as entry points, because migration runners load them from their directory, so apps no longer baseline every migration as an unused file.
+
+## 0.48.0 - 2026-10-30
+
+### Added
+
+- `quality fix --rule react/jsx-conditionals` extracts safe conditional children before their return and reports remaining findings, including baseline debt. Rule-specific fixes leave other formatting alone. Unsupported rules explain that they need a manual repair; `tests/grouped-outcomes` remains manual because grouping changes evaluation and failure order.
+- Document the starter and generated apps' `pnpm baseline write --rule <id>` upgrade path.
+
+### Fixed
+
+- Proxy shared RPC WebSocket upgrades on `/rpc` in `appViteConfig` so development clients receive query results and live updates without a local Vite override.
+
+### Breaking
+
+- The exported CLI `Command` type's `Fix` variant now requires a `rules` array. Callers constructing that variant pass `[]` for the existing formatter or the rule ids for mechanical fixes; `parseCommand` supplies the array automatically.
+
+## 0.47.0 - 2026-10-30
+
+### Fixed
+
+- Run git inventory and generated-folder checks through the shared scoped Effect git runner so cancellation reaches their child processes.
+- Return a tagged setup failure with Biome's exit code and output when a failed run supplies no usable report.
+
+### Breaking
+
+- Rename `git` to `run` in `git/command.ts`; change imports and calls to `run`. Remove the `Git` type alias. Use `ChildProcessSpawner.ChildProcessSpawner` from `effect/process` for service requirements.
+- Move `runBiome` and `BiomeRun` from `biome/run.ts` to `adapters/biome/run.ts`; change imports to that path.
+- Inventory path functions and `withoutGenerated` now return Effects instead of Promises. Compose them in Effect and provide `ChildProcessSpawner` alongside `FileSystem` for inventory collection, walking, manifest sorting and snapshots.
+
 ## 0.46.0 - 2026-10-30
 
 ### Added

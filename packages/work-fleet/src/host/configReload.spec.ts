@@ -16,7 +16,7 @@ host.it(
 		expect(loaded.restartRequired).toEqual([]);
 		daemon.writeBoard("three.md", task("three", "approved"));
 		yield* daemon.waiting("three");
-		yield* Effect.sleep("2500 millis");
+		yield* daemon.passesComplete(2);
 		expect((yield* daemon.request("fleet.get", { workId: "three" })).attempts).toEqual([]);
 		expect(daemon.providerLaunches()).toEqual([one.attempts[0]?.operationId, two.attempts[0]?.operationId]);
 		for (const running of [one, two]) {

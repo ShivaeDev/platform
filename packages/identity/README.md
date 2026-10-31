@@ -118,6 +118,30 @@ The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL
 
 For email sign-in through `appHost`, the session record's `ipAddress` follows the same rule. With a trusted peer, `AUTH_CLIENT_IP_HEADER=x-real-ip` stores `X-Real-IP` even if `X-Forwarded-For` supplies a different address; the default header selects the rightmost untrusted address in the `X-Forwarded-For` chain, ignoring trusted proxy hops on the right. With an untrusted peer, neither header can supply the stored address. Sign-in attempts from an untrusted peer share one bucket per path; with a trusted peer and `x-real-ip`, changing `X-Forwarded-For` does not change the bucket, while changing `X-Real-IP` does.
 
+### Role assignments
+
+Pass `{ roles: AppAccess }` as the second argument to `betterAuthMount`. Identity adds `/admin/set-role`, `/admin/update-user` and `/admin/create-user` to the disabled HTTP paths and sets the Better Auth admin plugin's `adminRoles` to `[]`. Existing disabled paths remain in effect. The admin Users page remains the application path for role changes.
+
+Seeds and trusted operator commands use the same transactional write and last-role-assigner guard as the Users page:
+
+```ts
+import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
+
+yield* assignRole(AppAccess, userId, "owner");
+```
+
+Supply the application's `SqlClient` and `Reactivity` Layers. This trusted server verb has no caller authorization check; authorize operator access before calling it. It returns whether the role changed, fails with `NotFound` for a missing user, and refuses to remove the final holder of `AssignRoles` (`roles.assign`) with `LastRoleAssigner`. Both declarations live in `@shivaedev/access/roles.ts`. Writes serialize through the same PostgreSQL transaction lock and invalidate the Users list after commit. The Users page adds its caller permission check and audit log.
+
+### Administer signed-in sessions
+
+Merge `Sessions` from `@shivaedev/identity/sessions.ts` into the application's RPC group and provide `sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Install `permissionLayer(SessionsPermission, sessions)` using `SessionsPermission` from `@shivaedev/identity/sessionPermissions.ts` and the mounted session policy. Supply the application's Effect `SqlClient`; the handlers use the default Better Auth PostgreSQL user and session tables.
+
+Grant `ManageSessions` (`sessions.manage`) from `sessionPermissions.ts` to the roles that manage sessions. The starter grants it to admin and owner. Both operations use the same permission middleware and `Forbidden` refusal as the admin Users page. They require no Better Auth admin plugin.
+
+`identity.sessions.list({ limit, cursor? })` returns `{ sessions, next }`, where `next` is an `Option` containing the next cursor. Limits are 1–100. Pass the returned cursor unchanged to read the next page; removing an earlier session does not shift later pages. Only unexpired sessions appear, ordered by last activity descending, then session id descending. Each session has `id`, `user: { id, name, email }`, and native Effect UTC `startedAt`, `lastActivityAt` and `expiresAt` values. Last activity is the provider's stored session `updatedAt`, so its precision follows the application's Better Auth session-refresh policy. Pages read current storage rather than a frozen snapshot.
+
+`identity.sessions.revoke({ id })` deletes just that session and returns `NotFound` when the id is unknown. Its next protected request is unauthorized, and its open live subscriptions end at the configured session revalidation interval. Other sessions for the same user continue working. This uses database-backed sessions and the same storage-removal and revalidation path as `revokeUnadmitted`; secondary session storage is outside this SQL administration path.
+
 ### Bundled native clients
 
 For a Capacitor or similar WebView whose page is served from the app bundle, opt in with the auth host mount's `bearerSessions` option. It installs Better Auth's own `bearer({ requireSignature: true })` plugin from the existing dependency; do not add a second bearer plugin. The option is absent by default. List only bundled-client origins here, and include them in Better Auth's `trustedOrigins` as well.
@@ -254,7 +278,7 @@ Here `sessions` is the application's policy from the previous example, with a Be
 
 #### Reading provider account IDs
 
-Pass Better Auth's account lookup as the second argument to `betterAuthSessions`. Declare `AuthenticatedUserWithProviderAccounts` on account-reading RPCs and merge `authenticatedUserWithProviderAccountsLayer(sessions)` alongside their handlers. This boundary requires a provider whose user has a `providerAccounts` Effect; a provider without the second lookup does not satisfy that type.
+Pass Better Auth's account lookup as the second argument to the mount's `admittedSessions` to combine provider accounts with its sign-in policy and credential selection. Without a mount, `betterAuthSessions` accepts the same two lookups. Declare `AuthenticatedUserWithProviderAccounts` on account-reading RPCs and merge `authenticatedUserWithProviderAccountsLayer(sessions)` alongside their handlers. This boundary requires a provider whose user has a `providerAccounts` Effect; a provider without the second lookup does not satisfy that type.
 
 ```ts
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
@@ -264,9 +288,10 @@ import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/
 
 const sessions = {
 	origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
-	provider: betterAuthSessions(
-		(headers) => auth.api.getSession({ headers }),
-		(headers) => auth.api.listUserAccounts({ headers }),
+	...mounted.sessions,
+	provider: mounted.admittedSessions(
+		(headers) => mounted.auth.api.getSession({ headers }),
+		(headers) => mounted.auth.api.listUserAccounts({ headers }),
 	),
 };
 
@@ -373,7 +398,7 @@ const handlers = Api.toLayer({
 });
 ```
 
-Here `changes` is the application's `makeLiveServer` service. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
+Here `changes` is the application's `makeLiveServer` service. Pass the native RPC definition to `resolveChanges` so its typed failures and required services follow the policies declared by that contract. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
 
 Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `commandChanges` before providing `Identity`:
 
@@ -397,7 +422,7 @@ const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, 
 
 ### Session freshness in streams
 
-`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, the role layers and signed-in `maybeAuthenticatedLayer` calls revalidate live RPC streams every 30 seconds by default, using the original transport headers. A missing or revoked session ends the stream with `Unauthorized`, including an idle stream. With a session store that reflects sign-out immediately, delivery can continue for up to that interval plus the session lookup time after sign-out. Provider cookie caching or secondary storage can add their own delay; keep Better Auth's cookie cache disabled for database-backed revocation.
+`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, the role layers and signed-in `maybeAuthenticatedLayer` calls revalidate live RPC streams every 30 seconds by default, using the original transport headers. A signed-out, revoked or expired session ends the stream with `Unauthorized`, including an idle stream and a subscription receiving a change hint. A signed-in viewer whose query read policy now refuses ends the subscription with `QueryReadDenied`. Session intervals use Effect’s Clock, so advancing `TestClock` drives revalidation; batched session lookups do not need another clock advance. With a session store that reflects sign-out immediately, delivery can continue for up to that interval plus the session lookup time after sign-out. Provider cookie caching or secondary storage can add their own delay; keep Better Auth's cookie cache disabled for database-backed revocation.
 
 Set `SessionPolicy.streamRevalidationInterval` to an Effect `Duration.Input` to change the interval for middleware using that policy:
 

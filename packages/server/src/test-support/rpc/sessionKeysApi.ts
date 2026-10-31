@@ -8,8 +8,8 @@ import { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPoli
 import { AuthUnavailable, Conflict, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
-import { ManagementPermission, ToolsPermission } from "@shivaedev/identity/test-support/auth/permissions.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
+import { ManagementPermission, ToolsPermission } from "#test/permissions.ts";
 
 export const Preferences = collection("preferences", Schema.String);
 const get = query("get", {

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { databaseUrl, postgres } from "./postgres.ts";
 import { roleHost } from "./roleHost.ts";
 
 export const storedRole = storyKit({

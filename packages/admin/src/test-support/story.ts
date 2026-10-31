@@ -2,10 +2,10 @@ import { Effect, Layer, Option, Predicate, Ref, Stream } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
-import type { Access } from "./Access.ts";
-import { adminEngine } from "./adminEngine.ts";
-import { answered } from "./answers.ts";
-import { Jobs, pagesBesideJobs, Registry } from "./pages.ts";
+import type { Access } from "#test/Access.ts";
+import { adminEngine } from "#test/adminEngine.ts";
+import { answered } from "#test/answers.ts";
+import { Jobs, pagesBesideJobs, Registry } from "#test/pages.ts";
 
 function firstChange<E, R>(changes: Stream.Stream<unknown, E, R>) {
 	return changes.pipe(
@@ -18,7 +18,7 @@ export const adminStory = storyKit({
 	create: () => adminEngine,
 	name: "admin registry",
 	stages: ["session"],
-	verbs: ({ client }, story) => ({
+	verbs: ({ client, liveFailedJobs }, story) => ({
 		failedJobs: () => {
 			story.tell("the caller reads the failed jobs");
 			return answered(client["admin.jobs.failed"]());
@@ -27,9 +27,17 @@ export const adminStory = storyKit({
 			story.tell("the caller subscribes to job changes");
 			return answered(firstChange(client["admin.jobs.$changes"]({ queries: [{ payload: undefined, query: "failed" }] })));
 		},
+		liveFailedJobs: () => {
+			story.tell("the caller opens the live failed jobs query");
+			return answered(liveFailedJobs());
+		},
 		profile: () => {
 			story.tell("the caller reads their profile");
 			return answered(client["admin.users.profile"]());
+		},
+		restrictedProfile: () => {
+			story.tell("the caller reads a profile whose own query policy refuses access");
+			return answered(client["admin.restricted.profile"]());
 		},
 		retry: (id: string) => {
 			story.tell(`the caller retries ${id}`);

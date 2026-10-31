@@ -15,15 +15,24 @@ export const restartStory = storyKit({
 	},
 	name: "live tabs across a host restart",
 	stages: [],
-	verbs: (state, story) => ({
-		processId: () => state.host.pid,
-		restart: () =>
-			Effect.gen(function* () {
-				story.tell("the host process is killed and a new process starts on the same port while every query remains mounted");
-				const port = state.host.port;
-				yield* Effect.promise(state.host.stop);
-				state.host = yield* startHost(port);
-			}),
-		results: () => Effect.forEach(state.tabs, (tab) => tab.results(state.host.pid), { concurrency: "unbounded" }),
-	}),
+	verbs: (state, story) => {
+		const currentReads = Effect.forEach(state.tabs, (tab) => tab.results(state.host.pid), { concurrency: "unbounded" });
+		return {
+			queriesAnsweredByCurrentHost: () =>
+				Effect.map(currentReads, (tabs) => Object.fromEntries(tabs.map((results) => [results[0]?.tab ?? "no tab", results.map(({ id }) => id)]))),
+			rerunSpread: () =>
+				Effect.map(currentReads, (tabs) => {
+					const firstReads = tabs.map((results) => Math.min(...results.map(({ readAt }) => readAt)));
+					const spread = Math.max(...firstReads) - Math.min(...firstReads);
+					return spread > 50 ? "spread over more than 50 ms" : `bunched within ${spread} ms`;
+				}),
+			restart: () =>
+				Effect.gen(function* () {
+					story.tell("the host process is killed and a new process starts on the same port while every query remains mounted");
+					const port = state.host.port;
+					yield* Effect.promise(state.host.stop);
+					state.host = yield* startHost(port);
+				}),
+		};
+	},
 });

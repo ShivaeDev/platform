@@ -48,6 +48,7 @@ export const Attempt = Schema.Struct({
 });
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {
+	areaQueuedAt: Schema.optional(Schema.Number),
 	areas: Schema.optional(Schema.Array(Schema.String)),
 	attempts: Schema.Array(Attempt),
 	attentionOwner: Schema.optional(AttentionOwner),
@@ -71,6 +72,7 @@ const cycleFields = {
 	),
 	mergeAreasReleased: Schema.optional(Schema.Boolean),
 	mergedDelivery: Schema.optional(Schema.Struct({ ...Delivery.fields, revision: Schema.optional(Schema.String) })),
+	mergeOrderFirst: Schema.optional(Schema.Struct({ head: Schema.String, prs: Schema.Array(Schema.String) })),
 	mergePrediction: Schema.optional(MergePrediction),
 	mergeReadyAt: Schema.optional(Schema.Number),
 	mergeReadyHead: Schema.optional(Schema.String),
