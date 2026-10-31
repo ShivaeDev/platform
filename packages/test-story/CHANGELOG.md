@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.29.0 - 2026-10-31
+
+### Breaking
+
+- `screenDriver.text()` separates visible block elements and `<br>` with a newline when adjacent text has no whitespace, while preserving inline text. Update assertions that expected concatenated card titles, messages and actions to expect separated parts, and remove application-side splitting of those parts.
+
 ## 0.28.0 - 2026-10-31
 
 ### Added
