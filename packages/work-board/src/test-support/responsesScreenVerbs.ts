@@ -227,10 +227,6 @@ export function responsesScreenVerbs(engine: ScreenEngine, tell: (line: string) 
 			tell(`the reader reads whether the ${request} answer card takes one or many options`);
 			return card(request)?.querySelector("fieldset[data-mode]")?.getAttribute("data-mode");
 		},
-		sendingEnabled: () => {
-			tell("the reader checks whether the packet can be sent");
-			return document.querySelector<HTMLButtonElement>("#response-submit")?.disabled === false;
-		},
 		todayAnswerLinks: () => {
 			tell("the reader reads where Today's attention rows link");
 			return all("[data-attention-row] a[title]").map((link) => link.getAttribute("href"));

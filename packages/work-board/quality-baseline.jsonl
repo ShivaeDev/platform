@@ -227,7 +227,6 @@
 {"path":"packages/work-board/src/client/react/searchCommands.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/react/searchRanking.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/searchRanking.dom.spec.tsx","rule":"tests/wait-on-events","count":5}
-{"path":"packages/work-board/src/client/react/sessionCommands.dom.spec.ts","rule":"tests/wait-on-events","count":7}
 {"path":"packages/work-board/src/client/react/sharedVocabulary.dom.spec.tsx","rule":"tests/wait-on-events","count":3}
 {"path":"packages/work-board/src/client/react/shellNavigation.dom.spec.tsx","rule":"tests/wait-on-events","count":12}
 {"path":"packages/work-board/src/client/react/shellSignals.dom.spec.tsx","rule":"tests/wait-on-events","count":8}

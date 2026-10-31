@@ -84,11 +84,15 @@ for (const kind of ["response", "handoff"] as const) {
 				draft: [liveFormDraft(kind), "New direction typed while saving"],
 				saved: [
 					readSessionFiles(kind === "response" ? "responses" : "handoffs"),
-					[expect.stringMatching(/^(?!.*New direction typed while saving).*First reviewed direction/su)],
+					expect.arrayContaining([expect.stringContaining("First reviewed direction")]),
 				],
 				status: [
 					liveFormStatus(kind),
 					expect.stringContaining(kind === "response" ? "Your current draft remains unsaved" : "Your newer draft remains unsaved"),
+				],
+				unsaved: [
+					readSessionFiles(kind === "response" ? "responses" : "handoffs"),
+					expect.not.arrayContaining([expect.stringContaining("New direction typed while saving")]),
 				],
 			});
 		},

@@ -132,7 +132,6 @@ export function handoffFormVerbs(engine: ScreenEngine, tell: (line: string) => v
 				};
 			}),
 		pressPrepareHandoff: () => perform("the reader presses Prepare handoff", () => button("Prepare handoff").click()),
-		previewHandoff: () => perform("the reader previews the handoff file", () => button("Preview file").click()),
 		selectInHandoff: (label: string, start: number, end: number) =>
 			perform(`the reader selects characters ${start} to ${end} of ${label} backwards`, () => {
 				const control = field(label);

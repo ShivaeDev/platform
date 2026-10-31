@@ -41,7 +41,6 @@ async function setConnection(engine: ScreenEngine, connection: "live" | "reconne
 
 export function availabilityActions(engine: ScreenEngine, tell: (line: string) => void) {
 	return {
-		answerRefreshStarted: () => engine.heldAnswerRefresh?.started ?? false,
 		dropLiveConnection: () => {
 			tell("the Board's live connection drops and starts reconnecting");
 			return setConnection(engine, "reconnecting");

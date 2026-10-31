@@ -32,6 +32,7 @@ export function sessionSocket(window: Window, engine: ScreenEngine) {
 			if (boundary.incompatible) {
 				incompatible.add(call.id);
 			}
+			boundary.commandWaiting = boundary.gate !== undefined;
 			await boundary.gate;
 			if (boundary.offline) {
 				socket.close();

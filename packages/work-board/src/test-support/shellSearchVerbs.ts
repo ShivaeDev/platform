@@ -65,14 +65,6 @@ export function shellSearchVerbs(engine: ScreenEngine, tell: (line: string) => v
 				}
 				link.click();
 			}),
-		closeSearch: () =>
-			acting("the reader closes Search with its Close button", () => {
-				const close = [...document.querySelectorAll<HTMLElement>(`${DIALOG} button`)].find((button) => accessibleOf(button).name === "Close");
-				if (!close) {
-					throw new Error("Search has no Close button");
-				}
-				close.click();
-			}),
 		firstResult: () => reading("the reader reads the first result", () => options()[0]?.querySelector("strong")?.textContent),
 		includeFleetFiles: () =>
 			acting("the reader toggles Include files Fleet writes", () => shellElement(`${DIALOG} [role="checkbox"]`, "Fleet files toggle").click()),

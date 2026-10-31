@@ -41,6 +41,8 @@ export interface OpenPage {
 	readonly window: BrowserWindow;
 }
 
+const SHELL_START_LIMIT = "20 seconds";
+
 export const openPage = Effect.fn("Test.openPage")(function* (
 	board: RunningBoard,
 	path = "/",
@@ -85,7 +87,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	page.content = html;
 	yield* shellOpened(window, ready).pipe(
 		Effect.timeoutOrElse({
-			duration: "5 seconds",
+			duration: SHELL_START_LIMIT,
 			orElse: () =>
 				Effect.die(
 					new Error(

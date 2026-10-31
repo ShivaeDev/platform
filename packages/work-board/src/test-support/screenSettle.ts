@@ -1,4 +1,5 @@
-import { Deferred, Effect } from "effect";
+import { Context, Deferred, Effect, Option } from "effect";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { screenPending } from "@shivaedev/react/client/screenPending.ts";
@@ -25,12 +26,43 @@ function holds(engine: ScreenEngine): readonly Hold[] {
 		...(engine.heldAnswerRefresh ? [{ held: open(engine.heldAnswerRefresh.gate), started: engine.heldAnswerRefresh.started }] : []),
 		...(engine.indexGate ? [{ held: open(engine.indexGate), started: engine.indexWaiting === true }] : []),
 		...(engine.startupGate ? [{ held: open(engine.startupGate), started: true }] : []),
+		...(engine.sessionTransport?.release ? [{ held: true, started: engine.sessionTransport.commandWaiting === true }] : []),
 	].filter(({ held }) => held);
+}
+
+function runtimeNode(node: AtomRegistry.Node<unknown>) {
+	return Option.exists(
+		node.valueOption(),
+		(value) => AsyncResult.isAsyncResult(value) && AsyncResult.isSuccess(value) && Context.isContext(value.value),
+	);
+}
+
+function liveStream(node: AtomRegistry.Node<unknown>) {
+	return (
+		node.atom.idleTTL === 0
+		&& Option.exists(node.valueOption(), (value) => AsyncResult.isAsyncResult(value) && AsyncResult.isInitial(value))
+		&& [...node.parents].some(runtimeNode)
+	);
+}
+
+function withoutLiveStreams(registry: AtomRegistry.AtomRegistry) {
+	return new Proxy(registry, {
+		get: (target, key) =>
+			key === "getNodes" ? () => new Map([...target.getNodes()].filter(([, node]) => !liveStream(node))) : Reflect.get(target, key),
+	});
+}
+
+function sessionStarting(engine: ScreenEngine) {
+	if (engine.session === undefined) {
+		return false;
+	}
+	const { registry, updates } = session(engine.session.environment);
+	return document.documentElement.dataset.boardReady !== "true" || registry.get(updates.status).connection === "connecting";
 }
 
 function registryOf(engine: ScreenEngine) {
 	if (engine.session) {
-		return session(engine.session.environment).registry;
+		return withoutLiveStreams(session(engine.session.environment).registry);
 	}
 	return engine.view?.registry ?? engine.documentView?.registry;
 }
@@ -43,7 +75,7 @@ export const screenPendingWork = Effect.fn("ScreenSettle.screenPendingWork")(fun
 			: yield* screenPending({ router: engine.router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
 	return () => {
 		const held = holds(engine);
-		return held.length > 0 ? held.some(({ started }) => !started) : pending();
+		return held.length > 0 ? held.some(({ started }) => !started) : sessionStarting(engine) || pending();
 	};
 });
 

@@ -1,8 +1,5 @@
-import type { ReactNode } from "react";
 import { act } from "react";
-import { vi } from "vitest";
 import type { Document } from "#browser/document/schema.ts";
-import { formDraft } from "#client/formDraft.ts";
 import { control } from "./chrome.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
@@ -15,36 +12,14 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 		return element;
 	}
 	return {
-		browserEvent: (type: string, destination: "window" | "document" = "window") => {
-			tell(`the browser emits ${type}`);
-			act(() => (destination === "window" ? window : document).dispatchEvent(new Event(type)));
-		},
 		check: (option: string) => {
 			tell(`the reader checks option ${option}`);
 			const choice = target(`[data-choice="${option}"]`);
 			act(() => choice.click());
 		},
-		closeScreen: async () => {
-			tell("the reader closes the current screen");
-			if (!engine.view) {
-				throw new Error("The screen has not opened");
-			}
-			await engine.view.unmount();
-		},
-		draftKey: () => {
-			tell("the reader checks the current draft's storage identity");
-			const form = control("#response-form", HTMLFormElement);
-			return formDraft(() => 0, "response", form.dataset.item ?? "", form.dataset.request).key;
-		},
 		focus: (selector: string | HTMLElement | null | undefined) => {
 			tell(`the reader focuses ${selector}`);
 			act(() => target(selector).focus());
-		},
-		frame: async (count = 1) => {
-			tell("the browser completes a frame");
-			for (let index = 0; index < count; index += 1) {
-				await act(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
-			}
 		},
 		openDetails: (selector: string | Element | null | undefined) => {
 			tell(`the reader opens ${selector}`);
@@ -83,42 +58,12 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 				return classes.some((name) => /max-h-|(?:^|:)h-\[/u.test(name)) && classes.some((name) => /overflow(?:-y)?-(?:auto|scroll)/u.test(name));
 			});
 		},
-		readStoredDraft: () => {
-			tell("the reader checks the current stored draft");
-			const form = control("#response-form", HTMLFormElement);
-			return localStorage.getItem(formDraft(() => 0, "response", form.dataset.item ?? "", form.dataset.request).key);
-		},
 		refreshDocumentSource: async (document: Document) => {
 			tell("the reader receives refreshed document source");
 			if (!engine.documentView) {
 				throw new Error("No document is open");
 			}
 			await engine.documentView.render(document);
-		},
-		refreshScreen: async (node: ReactNode) => {
-			tell("the reader receives refreshed screen data");
-			if (!engine.view) {
-				throw new Error("No screen is open");
-			}
-			await engine.view.render(node);
-		},
-		rememberStored: (key: string, value: string) => {
-			tell(`an outside writer replaces stored ${key}`);
-			localStorage.setItem(key, value);
-		},
-		scrollList: (selector: string | HTMLElement | null, top: number) => {
-			tell(`the reader scrolls a list to ${top}`);
-			const list = target(selector);
-			act(() => {
-				list.scrollTop = top;
-				list.dispatchEvent(new Event("scroll", { bubbles: true }));
-			});
-		},
-		scrollPage: (selector: string | HTMLElement | null, offset: number) => {
-			tell(`the reader scrolls the page ${offset} pixels past the top of a list`);
-			const list = target(selector);
-			vi.spyOn(list, "getBoundingClientRect").mockReturnValue(new DOMRect(0, -offset, list.clientWidth, list.clientHeight));
-			act(() => window.dispatchEvent(new Event("scroll")));
 		},
 		selectText: (selector: string | HTMLElement, start: number, end: number, direction: "forward" | "backward" | "none" = "none") => {
 			tell(`the reader selects characters ${start} to ${end}`);

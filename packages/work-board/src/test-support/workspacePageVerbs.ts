@@ -52,11 +52,6 @@ export function workspacePageVerbs(engine: BoardEngine, tell: (line: string) => 
 					Object.fromEntries([...element.attributes].map((attribute) => [attribute.name, attribute.value])),
 				);
 			}),
-		renderedMarkup: (file: string) =>
-			Effect.map(rendered(file), (html) => {
-				tell(`the server renders ${file}`);
-				return html;
-			}),
 		renderedText: (file: string) =>
 			Effect.map(rendered(file), (html) => {
 				tell(`the server renders ${file} and the reader reads its text`);
@@ -148,11 +143,6 @@ export function workspacePageVerbs(engine: BoardEngine, tell: (line: string) => 
 			Effect.map(card(source), (found) => {
 				tell(`the reader reads each time on the ${source} card with its machine-readable instant`);
 				return [...(found?.querySelectorAll("time") ?? [])].map((time) => `${text(time)} at ${time.getAttribute("datetime")}`);
-			}),
-		systemFacts: () =>
-			Effect.map(system(), (page) => {
-				tell("the reader reads the labelled facts on System");
-				return Object.fromEntries([...page.querySelectorAll("dt")].map((term) => [text(term), text(term.nextElementSibling)]));
 			}),
 		systemPageStatus: (host?: string) =>
 			Effect.map(rawGet(served(engine).board, "/_board/system", host), (response) => {

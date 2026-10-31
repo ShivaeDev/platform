@@ -6,6 +6,7 @@ import { screenStory } from "./screenStory.ts";
 
 export interface SessionTransport {
 	readonly commands: RpcRequest[];
+	commandWaiting?: boolean;
 	gate?: Promise<void> | undefined;
 	incompatible?: boolean;
 	offline: boolean;

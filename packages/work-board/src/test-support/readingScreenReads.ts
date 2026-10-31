@@ -68,7 +68,7 @@ export function outlinePopover() {
 
 export function readingScreenReads(engine: ScreenEngine, tell: (line: string) => void) {
 	const data = screenData(engine, tell);
-	const reading = readingActions(engine, tell);
+	const reading = readingActions(tell);
 	const search = shellSearchVerbs(engine, tell);
 	const motion = motionActions(engine, tell);
 	const availability = availabilityActions(engine, tell);

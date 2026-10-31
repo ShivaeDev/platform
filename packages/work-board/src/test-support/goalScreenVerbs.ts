@@ -150,10 +150,6 @@ export function goalScreenVerbs(engine: ScreenEngine, tell: (line: string) => vo
 				);
 				yield* screenSettles(engine, tell);
 			}),
-		goalLaneProgress: (id: string, lane: string) =>
-			reads(`the reader reads the progress of child lane ${lane} on the card of goal ${id}`, () =>
-				progressBar(goalCard(id).querySelector<HTMLElement>(`section[aria-label="${lane}"]`)),
-			),
 		goalList: () =>
 			reads("the reader reads which goals the Goals page lists in each section", () => {
 				const sections = [...document.querySelectorAll<HTMLDetailsElement>("details")];

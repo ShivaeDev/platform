@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { answersBoardVerbs } from "#test/answersBoardVerbs.ts";
 import { archiveVerbs } from "#test/archiveVerbs.ts";
-import { attentionVerbs } from "#test/attentionVerbs.ts";
 import type { FileSystemWrapper } from "#test/board.ts";
 import { held } from "#test/browser.ts";
 import { distinctVerbs } from "#test/distinctVerbs.ts";
@@ -21,7 +20,6 @@ import { readVerbs } from "#test/readVerbs.ts";
 import { responseFeedVerbs } from "#test/responseFeedVerbs.ts";
 import { responseServiceVerbs } from "#test/responseServiceVerbs.ts";
 import { responsesBoardVerbs } from "#test/responsesBoardVerbs.ts";
-import { restartAnswerVerbs } from "#test/restartAnswerVerbs.ts";
 import { serverVerbs } from "#test/serverVerbs.ts";
 import { servingBoardVerbs } from "#test/servingBoardVerbs.ts";
 import { servingVerbs } from "#test/servingVerbs.ts";
@@ -49,9 +47,7 @@ export const boardStory = storyKit({
 			readingVerbs(engine, story.tell),
 			migrationVerbs(engine, story.tell),
 			responseServiceVerbs(engine, story.tell),
-			restartAnswerVerbs(engine, story.tell),
 			responseFeedVerbs(engine, story.tell),
-			attentionVerbs(engine, story.tell),
 			standingQuestionVerbs(engine, story.tell),
 			serverVerbs(engine, story.tell),
 			socketVerbs(engine, story.tell),

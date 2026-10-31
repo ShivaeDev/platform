@@ -56,11 +56,6 @@ export function screenReadVerbs(engine: ScreenEngine, tell: (line: string) => vo
 			tell("the reader inspects document read requests");
 			return [...engine.documentReads];
 		},
-		readStarted: () => {
-			tell("the reader checks whether the document read has started");
-			return engine.heldRead?.started ?? false;
-		},
-		refreshStarted: () => engine.heldRefresh?.started ?? false,
 		releaseRead: async () => {
 			const read = engine.heldRead;
 			if (!read) {

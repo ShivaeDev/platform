@@ -9,10 +9,6 @@ export function pageActions(page: () => OpenPage, tell: (line: string) => void) 
 		return found;
 	}
 	return {
-		clickSelector: (selector: string) => {
-			tell(`the reader clicks ${selector}`);
-			element(selector).dispatchEvent(new (page().window.MouseEvent)("click", { bubbles: true, button: 0, cancelable: true }));
-		},
 		keyboard: (key: string, ctrlKey = false, selector?: string) => {
 			tell(`the reader presses ${ctrlKey ? "Ctrl+" : ""}${key}`);
 			(selector ? element(selector) : element('#search-dialog [role="combobox"]')).dispatchEvent(

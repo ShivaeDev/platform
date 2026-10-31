@@ -33,12 +33,6 @@ export function screenData(engine: ScreenEngine, tell: (line: string) => void) {
 			tell("document reads become unavailable");
 			engine.documentFailed = true;
 		},
-		finishNavigation: async () => {
-			tell("the destination finishes opening");
-			await act(async () => {
-				await engine.pendingNavigation;
-			});
-		},
 		follow: async (href: string) => {
 			tell(`the reader follows ${href}`);
 			const link = document.createElement("a");
@@ -60,20 +54,10 @@ export function screenData(engine: ScreenEngine, tell: (line: string) => void) {
 				Promise.resolve().then(() => engine.router?.preloadRoute({ search: Object.fromEntries(new URLSearchParams(query)), to: path })),
 			);
 		},
-		readGoals: () => {
-			tell("the reader reads the Board's goals projection");
-			const { api, registry } = client();
-			return loadQuery(registry, api.goals.query(undefined, routeQueryOptions), { abortController: new AbortController() });
-		},
 		readInbox: () => {
 			tell("the reader reads the Board's inbox projection");
 			const { api, registry } = client();
 			return loadQuery(registry, api.inbox.query(undefined, routeQueryOptions), { abortController: new AbortController() });
-		},
-		readNavigation: () => {
-			tell("the reader reads the Board navigation projection");
-			const { api, registry } = client();
-			return loadQuery(registry, navigationQuery(api), { abortController: new AbortController() });
 		},
 		readResponses: async (item: string, request: string) => {
 			tell(`the reader reads saved responses to ${item}/${request}`);

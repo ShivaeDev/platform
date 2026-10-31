@@ -38,6 +38,7 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 		removeEventListener: (type, listener) => window.removeEventListener(type, listener),
 	};
 	const first = session(environment);
+	delete document.documentElement.dataset.boardReady;
 	const container = document.createElement("div");
 	document.body.append(container);
 	engine.container = container;
