@@ -1,43 +1,46 @@
-import { realpathSync } from "node:fs";
-import { join } from "node:path";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fileWatcherStory, watchedFiles } from "#test/fileWatcherStory.ts";
 
 fileWatcherStory.it(
-	"lists the workspace once while the watch starts and the first index reads it",
+	"starting the watch and the first index read list each folder once",
 	[watchedFiles({ "index.md": "# Index", "notes/log.md": "# Log" })],
-	function* ({ readIndex, story }) {
-		expect((yield* readIndex()).documents.map((indexed) => indexed.file)).toEqual(["index.md", "notes/log.md"]);
-		expect(story.engine.folders).toEqual(["", "notes"]);
+	function* ({ foldersListed, indexedPaths }) {
+		yield* outcomes([
+			["folders listed", () => foldersListed(), ["", "notes"]],
+			["indexed paths", () => indexedPaths(), ["index.md", "notes/log.md"]],
+		]);
 	},
 );
 
 fileWatcherStory.it(
-	"lists only the reported folder and rereads only the file written into it",
+	"a note written into a reported folder is indexed after listing only that folder and reading only that note",
 	[watchedFiles({ "index.md": "# Index", "notes/log.md": "# Log", "plans/first.md": "# First", "plans/second.md": "# Second" })],
-	function* ({ readIndex, clearReads, writeFile, notify, nextChange, readPaths, story }) {
-		yield* readIndex();
-		clearReads();
-		const listed = story.engine.folders.length;
-		writeFile("notes/today.md", "# Today");
-		yield* notify(["notes/today.md", "notes"]);
-		expect(yield* nextChange()).toMatchObject({ _tag: "Changed", paths: ["notes/today.md"] });
-		expect((yield* readIndex()).documents.map((indexed) => indexed.file)).toContain("notes/today.md");
-		expect(readPaths()).toEqual(["notes/today.md"]);
-		expect(story.engine.folders.slice(listed)).toEqual(["notes"]);
+	function* ({ editorWrites, filesRead, foldersListed, indexedPaths, nextAnnouncedChange, watcherReports }) {
+		yield* editorWrites("notes/today.md", "# Today");
+
+		yield* watcherReports(["notes/today.md", "notes"]);
+
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["notes/today.md"]],
+			["files read", () => filesRead(), ["notes/today.md"]],
+			["folders listed", () => foldersListed(), ["notes"]],
+			["indexed paths", () => indexedPaths(), expect.arrayContaining(["notes/today.md"])],
+		]);
 	},
 );
 
 fileWatcherStory.it(
-	"rereads only the reported file when the watch reports absolute paths",
+	"a note reported by its absolute real path is announced and read again alone",
 	[watchedFiles({ "index.md": "# Index", "notes/log.md": "# Log" })],
-	function* ({ readIndex, clearReads, writeFile, notify, nextChange, readPaths, story }) {
-		yield* readIndex();
-		clearReads();
-		writeFile("notes/log.md", "# Log\n\nUpdated.");
-		yield* notify([join(realpathSync(story.engine.notes.root), "notes/log.md")]);
-		expect(yield* nextChange()).toMatchObject({ _tag: "Changed", paths: ["notes/log.md"] });
-		yield* readIndex();
-		expect(readPaths()).toEqual(["notes/log.md"]);
+	function* ({ editorWrites, filesRead, nextAnnouncedChange, watcherReportsAbsolute }) {
+		yield* editorWrites("notes/log.md", "# Log\n\nUpdated.");
+
+		yield* watcherReportsAbsolute("notes/log.md");
+
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["notes/log.md"]],
+			["files read", () => filesRead(), ["notes/log.md"]],
+		]);
 	},
 );

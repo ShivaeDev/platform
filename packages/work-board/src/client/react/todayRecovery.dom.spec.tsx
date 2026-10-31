@@ -1,45 +1,44 @@
-import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { pageHealthShown } from "#test/pageHealthShown.ts";
 import { unavailableWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { openScreen } from "#test/screenTraits.ts";
 import { todayScreen } from "#test/screenWorkspaceTraits.ts";
 
 expectNoReactWarnings();
+const UNAVAILABLE = String(HttpStatus.fromLiteral("ServiceUnavailable"));
+const OK = String(HttpStatus.fromLiteral("OK"));
+
 screenStory.it(
-	"retries Today's unavailable workspace and tracks pending and recovered health",
+	"Today recovers when the reader opens it again after the workspace becomes readable",
 	[todayScreen(), unavailableWorkspace(), openScreen()],
-	function* ({
-		readInbox,
-		readGoals,
-		readText,
-		readAttribute,
-		findElements,
-		recoverWorkspace,
-		click,
-		holdWorkspace,
-		releaseWorkspace,
-		refreshToday,
-	}) {
-		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("failed"));
-		expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("ServiceUnavailable")));
-		recoverWorkspace();
-		click("#home-open");
-		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("settled"));
-		expect(readText("#doc h1")).toBe("Today");
-		expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("OK")));
-		expect(findElements("[data-attention-id]").map((row) => row.getAttribute("data-attention-id"))).toEqual(
-			(yield* Effect.promise(readInbox)).you.map((item) => item.id),
-		);
-		expect(findElements("[data-goal-id]").map((card) => card.getAttribute("data-goal-id"))).toEqual(
-			(yield* Effect.promise(readGoals)).goals.map((goal) => goal.id),
-		);
-		holdWorkspace();
-		yield* Effect.promise(refreshToday);
-		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("pending"));
-		yield* Effect.promise(releaseWorkspace);
-		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("settled"));
+	function* ({ needsYouItems, openTodayFromNavigation, pageHealth, recoverWorkspace, todayGoalIds }) {
+		expect(yield* pageHealth()).toEqual({ health: "failed", status: UNAVAILABLE });
+		yield* recoverWorkspace();
+
+		yield* openTodayFromNavigation();
+
+		yield* outcomes([
+			["goals", () => todayGoalIds(), expect.arrayContaining([expect.any(String)])],
+			["health", () => pageHealth(), { health: "settled", status: OK }],
+			["Needs you", () => needsYouItems(), expect.arrayContaining([expect.any(String)])],
+		]);
+	},
+);
+
+screenStory.it(
+	"refreshing Today while workspace indexing waits keeps Today pending until indexing resumes",
+	[todayScreen(), pageHealthShown(), openScreen()],
+	function* ({ holdWorkspace, pageHealth, refreshToday, releaseWorkspace }) {
+		yield* holdWorkspace();
+		yield* refreshToday();
+		expect(yield* pageHealth()).toEqual({ health: "pending", status: OK });
+
+		yield* releaseWorkspace();
+
+		expect(yield* pageHealth()).toEqual({ health: "settled", status: OK });
 	},
 );

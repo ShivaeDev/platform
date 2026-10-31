@@ -1,69 +1,106 @@
-import { Effect, Fiber } from "effect";
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { SourceFailure } from "#diagnostics/source.ts";
-import { configuredSources, diagnosticsStory, offlineCodex, pendingCodex } from "#test/diagnosticsStory.ts";
+import { aTabReadDiagnostics, aTabWaitingOnCodex, configuredSources, diagnosticsStory, offlineCodex } from "#test/diagnosticsStory.ts";
 
-for (const source of ["codex", "github", "fleet"] as const) {
+const SOURCES = ["codex", "github", "fleet"] as const;
+
+for (const source of SOURCES) {
 	for (const kind of ["not-configured", "error"] as const) {
 		diagnosticsStory.it(
-			`${source} ${kind} leaves other sources readable`,
+			`a ${kind} ${source} source shows its cause while the other sources stay ready`,
 			[configuredSources({ [source]: Effect.fail(new SourceFailure({ kind, message: "Provider unavailable" })) })],
-			function* ({ readDiagnostics }) {
-				const result = yield* readDiagnostics();
-				expect(result[source]).toMatchObject({ cause: "Provider unavailable", state: kind });
-				for (const other of (["codex", "github", "fleet"] as const).filter((candidate) => candidate !== source)) {
-					expect(result[other].state).toBe("ready");
-				}
+			function* ({ sourceStates }) {
+				expect(yield* sourceStates()).toEqual({
+					...Object.fromEntries(SOURCES.map((other) => [other, "ready"])),
+					[source]: `${kind}: Provider unavailable`,
+				});
 			},
 		);
 	}
 }
 
 diagnosticsStory.it(
-	"concurrent tabs share Codex reads for one minute and refresh Fleet and GitHub each time",
-	[pendingCodex()],
-	function* ({ readDiagnostics, codexEntered, releaseCodex, sourceReads, advance }) {
-		const first = yield* Effect.forkChild(readDiagnostics());
-		yield* codexEntered();
-		const second = yield* Effect.forkChild(readDiagnostics());
-		yield* releaseCodex();
-		expect(yield* Fiber.join(first)).toMatchObject({ codex: { state: "ready" } });
-		yield* Fiber.join(second);
-		expect(sourceReads().codex).toBe(1);
-		yield* advance(59_000);
-		yield* readDiagnostics();
-		expect(sourceReads().codex).toBe(1);
-		yield* advance(1000);
-		yield* readDiagnostics();
-		expect(sourceReads()).toEqual({ codex: 2, fleet: 4, github: 4 });
+	"a second tab reading while Codex answers the first shares that one Codex read",
+	[aTabWaitingOnCodex()],
+	function* ({ anotherTabReads, codexAnswers, codexReads, waitingTabsSeeCodex }) {
+		yield* anotherTabReads();
+
+		yield* codexAnswers();
+
+		yield* outcomes([
+			["Codex reads", () => codexReads(), 1],
+			["waiting tabs", () => waitingTabsSeeCodex(), ["ready", "ready"]],
+		]);
 	},
 );
 
 diagnosticsStory.it(
-	"failed Codex reads recover after their one-minute cache expires",
-	[offlineCodex()],
-	function* ({ readDiagnostics, recoverCodex, advance, sourceReads }) {
-		expect((yield* readDiagnostics()).codex).toMatchObject({ cause: "Codex offline", state: "error" });
-		recoverCodex();
-		expect((yield* readDiagnostics()).codex.state).toBe("error");
-		expect(sourceReads().codex).toBe(1);
-		yield* advance(60_000);
-		expect((yield* readDiagnostics()).codex.state).toBe("ready");
-		expect(sourceReads().codex).toBe(2);
+	"a Codex answer is reused for 59 seconds and read again once its minute has passed",
+	[aTabReadDiagnostics()],
+	function* ({ codexReads, secondsPass, tabReads }) {
+		yield* secondsPass(59);
+		yield* tabReads();
+		expect(yield* codexReads()).toBe(1);
+
+		yield* secondsPass(1);
+		yield* tabReads();
+
+		expect(yield* codexReads()).toBe(2);
 	},
 );
 
 diagnosticsStory.it(
-	"a cancelled tab cannot poison the cache or spend another Codex request",
-	[pendingCodex()],
-	function* ({ readDiagnostics, codexEntered, releaseCodex, sourceReads }) {
-		const first = yield* Effect.forkChild(readDiagnostics());
-		yield* codexEntered();
-		const cancellation = yield* Effect.forkChild(Fiber.interrupt(first));
-		yield* Effect.yieldNow;
-		yield* releaseCodex();
-		yield* Fiber.join(cancellation);
-		expect((yield* readDiagnostics()).codex.state).toBe("ready");
-		expect(sourceReads().codex).toBe(1);
+	"every tab read asks Fleet and GitHub again while Codex stays cached",
+	[aTabReadDiagnostics()],
+	function* ({ sourceReads, tabReads }) {
+		expect(yield* sourceReads()).toEqual({ codex: 1, fleet: 1, github: 1 });
+
+		yield* tabReads();
+
+		expect(yield* sourceReads()).toEqual({ codex: 1, fleet: 2, github: 2 });
+	},
+);
+
+diagnosticsStory.it(
+	"a failed Codex read stays cached for its minute even after Codex recovers",
+	[offlineCodex(), aTabReadDiagnostics()],
+	function* ({ codexReads, codexRecovers, tabReads }) {
+		yield* codexRecovers();
+
+		yield* outcomes([
+			["Codex for the next tab", () => tabReads(), "error: Codex offline"],
+			["Codex reads", () => codexReads(), 1],
+		]);
+	},
+);
+
+diagnosticsStory.it(
+	"a failed Codex read is retried once its minute has passed",
+	[offlineCodex(), aTabReadDiagnostics()],
+	function* ({ codexReads, codexRecovers, secondsPass, tabReads }) {
+		yield* codexRecovers();
+
+		yield* secondsPass(60);
+
+		yield* outcomes([
+			["Codex for the next tab", () => tabReads(), "ready"],
+			["Codex reads", () => codexReads(), 2],
+		]);
+	},
+);
+
+diagnosticsStory.it(
+	"a tab closed while Codex answers neither poisons the cache nor spends another Codex read",
+	[aTabWaitingOnCodex()],
+	function* ({ codexAnswers, codexReads, firstTabCloses, tabReads }) {
+		yield* firstTabCloses();
+		yield* codexAnswers();
+
+		yield* outcomes([
+			["Codex for the next tab", () => tabReads(), "ready"],
+			["Codex reads", () => codexReads(), 1],
+		]);
 	},
 );

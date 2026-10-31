@@ -1,57 +1,56 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { fleetItemRankingFixture } from "#test/searchRankingFixture.ts";
-import { searchScreen } from "#test/searchScreen.tsx";
+import { searchOpened } from "#test/shellTraits.tsx";
 
 expectNoReactWarnings();
 
 const { files, modified } = fleetItemRankingFixture();
-screenStory.it(
-	"puts title matches before open body matches and both before headings, includes Fleet status and reports only with records:, and keeps anchors unique",
-	[searchScreen(files, { home: undefined, modified })],
-	function* ({ findElements, findElement, readText, typeText }) {
-		function rows() {
-			return [...findElements<HTMLAnchorElement>('#search-dialog [role="option"] a', document)];
-		}
-		function type(query: string) {
-			const field = findElement<HTMLInputElement>('#search-dialog [role="combobox"]', document);
-			if (!field) {
-				throw new Error("Missing palette input");
-			}
-			typeText(field, query);
-		}
 
-		for (const query of ["watch", "records: watch"]) {
-			type(query);
-			const records = query.startsWith("records:");
-			yield* eventually(() => expect(readText("code", rows()[0])).toBe(records ? "decision.watch" : "task.watch-done"));
-			const work = rows().filter((row) => readText("code", row)?.startsWith("task."));
-			expect(work.slice(0, 2).map((row) => readText("strong", row))).toEqual(["Done watch", "Keep reviews visible"]);
-			expect(work.slice(0, 2).map((row) => readText("[data-status-token]", row))).toEqual(["Done", "Ready"]);
-			expect(readText("p", work[1])).toBe("The watch keeps running.");
-			expect(rows().some((row) => readText("strong", row) === "Watch notes")).toBe(true);
-			const hrefs = rows().map((row) => row.getAttribute("href"));
-			expect(new Set(hrefs).size).toBe(hrefs.length);
-			const recordRows = rows().filter((row) => /(?:fleet\/status|responses\/fleet-report)/u.test(row.href));
-			if (query.startsWith("records:")) {
-				expect(
-					rows()
-						.slice(0, 4)
-						.map((row) => readText("strong", row)),
-				).toEqual(["Watch decision", "Done watch", "Review policy", "Keep reviews visible"]);
-				expect(readText("p", rows()[2])).toBe("The watch needs a policy.");
-				expect(recordRows.length).toBeGreaterThan(0);
-				expect(hrefs.findIndex((href) => href?.startsWith("/responses/fleet-report."))).toBeGreaterThan(1);
-				expect(hrefs.findIndex((href) => href?.startsWith("/fleet/status.md"))).toBeGreaterThan(1);
-			} else {
-				expect(recordRows).toEqual([]);
-				expect(rows().some((row) => readText("code", row)?.startsWith("decision."))).toBe(false);
-			}
-			expect(readText("#search-dialog", document)).not.toContain("Not recorded");
-			for (const row of rows()) {
-				expect(readText("p", row) ?? "").not.toMatch(/^(?:\{|---)|(?:id|kind|status):/u);
-			}
-		}
+screenStory.it(
+	"searching watch lists the Done watch title match, then the open task that mentions it, then the notes heading, each task with its status",
+	[searchOpened(files, { home: undefined, modified })],
+	function* ({ results, searchFor }) {
+		yield* searchFor("watch");
+
+		expect(yield* results("title", "status", "snippet")).toEqual([
+			{ snippet: undefined, status: "Done", title: "Done watch" },
+			{ snippet: "The watch keeps running.", status: "Ready", title: "Keep reviews visible" },
+			{ snippet: "Watch details.", status: undefined, title: "Watch notes" },
+		]);
+	},
+);
+
+screenStory.it(
+	"searching watch leaves out Fleet's status report, its reports and its decision records",
+	[searchOpened(files, { home: undefined, modified })],
+	function* ({ results, searchFor }) {
+		yield* searchFor("watch");
+
+		expect(yield* results("href")).toEqual([
+			{ href: "/_board/item/task.watch-done/" },
+			{ href: "/_board/item/task.review/" },
+			{ href: "/notes.md#heading-watch-notes" },
+		]);
+	},
+);
+
+screenStory.it(
+	"searching records: watch ranks the Watch decision first, then the other matching work and notes, then Fleet's reports",
+	[searchOpened(files, { home: undefined, modified })],
+	function* ({ results, searchFor }) {
+		yield* searchFor("records: watch");
+
+		expect((yield* results("title", "href")).slice(0, 8)).toEqual([
+			{ href: "/_board/item/decision.watch/", title: "Watch decision" },
+			{ href: "/_board/item/task.watch-done/", title: "Done watch" },
+			{ href: "/_board/item/decision.policy/", title: "Review policy" },
+			{ href: "/_board/item/task.review/", title: "Keep reviews visible" },
+			{ href: "/notes.md#heading-watch-notes", title: "Watch notes" },
+			{ href: "/responses/fleet-report.2026-10-15.md", title: "Archived watch report" },
+			{ href: "/responses/fleet-report.md", title: "Watch report" },
+			{ href: "/fleet/status.md", title: "Watch report" },
+		]);
 	},
 );

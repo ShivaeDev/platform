@@ -1,22 +1,17 @@
-import { Cause, Effect, Exit } from "effect";
-import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 
 const SOURCE = "# Page-free reading\n\nThe server still reads project documents.";
+const MISSING_READER = "refused: The story has no bundle page. Add the readerAt(path) reader trait before reading page or opening through reader.";
 
 boardStory.it(
-	"serves the project without a bundle page and names the missing reader trait on page access",
+	"without a reader trait, the board still serves documents and the bundle page names the missing trait",
 	[projectFiles({ "note.md": SOURCE })],
-	function* (told) {
-		const document = yield* told.readDocument("note.md");
-		expect(document.source).toBe(SOURCE);
-		expect(told.story.engine.live).toBeUndefined();
-		expect(() => told.page).toThrow("The story has no bundle page.");
-		const opened = yield* Effect.exit(told.reader.open("/note.md"));
-		expect(Exit.isFailure(opened)).toBe(true);
-		if (Exit.isFailure(opened)) {
-			expect(Cause.pretty(opened.cause)).toContain("The story has no bundle page.");
-		}
-		expect(told.story.engine.live).toBeUndefined();
+	function* ({ bundlePage, documentAt, tryOpenReader }) {
+		yield* outcomes([
+			["document", () => documentAt("/note.md"), SOURCE],
+			["page", () => bundlePage(), MISSING_READER],
+			["reader", () => tryOpenReader("/note.md"), MISSING_READER],
+		]);
 	},
 );

@@ -1,35 +1,34 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { sharedVocabularyFixture } from "#test/sharedVocabularyFixture.ts";
 
+expectNoReactWarnings();
+
 screenStory.it(
-	"renders question scope and urgency with blocking asks before whenever asks",
+	"Needs you names each question's scope and urgency and lists blocking questions before whenever ones",
 	[routedScreen(sharedVocabularyFixture, "/")],
-	function* ({ findElements, readText }) {
-		yield* eventually(() =>
-			expect(findElements("[data-attention-id]").map((entry) => entry.getAttribute("data-attention-id"))).toEqual(["question.z", "question.a"]),
-		);
-		expect(findElements("[data-attention-id]").map((entry) => entry.getAttribute("data-attention-id"))).toEqual(["question.z", "question.a"]);
-		expect(readText('[data-attention-id="question.z"]')).toContain("task · blocking");
-		expect(readText('[data-attention-id="question.a"]')).toContain("area · whenever");
-	},
-);
-screenStory.it(
-	"renders the standing answer as a ruling on related work",
-	[routedScreen(sharedVocabularyFixture, "/ready.md")],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement('[aria-label="Ruling"]')).not.toBeNull());
-		expect(readText('[aria-label="Ruling"]')).toContain("Use the existing engine.");
+	function* ({ needsYouRows }) {
+		expect(yield* needsYouRows()).toEqual([
+			expect.objectContaining({ detail: expect.stringContaining("task · blocking"), title: "A blocking question" }),
+			expect.objectContaining({ detail: expect.stringContaining("area · whenever"), title: "A later question" }),
+		]);
 	},
 );
 
+screenStory.it("Related work shows a standing answer as a ruling", [routedScreen(sharedVocabularyFixture, "/ready.md")], function* ({ pageRulings }) {
+	expect(yield* pageRulings()).toEqual([expect.stringContaining("Use the existing engine.")]);
+});
+
 screenStory.it(
-	"reads a standing ruling from its body without reporting a missing answer",
+	"A standing ruling reads its answer from its body instead of reporting a missing Outcome",
 	[routedScreen(sharedVocabularyFixture, "/ruling.md")],
-	function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText("main")).toContain("Use the existing engine."));
-		expect(findElement("[data-decision-outcome]")).toBeNull();
+	function* ({ decisionOutcome, pageText }) {
+		yield* outcomes([
+			["outcome", () => decisionOutcome(), "none"],
+			["page", () => pageText(), expect.stringContaining("Use the existing engine.")],
+		]);
 	},
 );

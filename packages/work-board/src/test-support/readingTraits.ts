@@ -5,7 +5,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Clock, Effect } from "effect";
 import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-import type { Sources } from "#diagnostics/source.ts";
+import type { CodexLimits, Sources } from "#diagnostics/source.ts";
 import { codexLimits } from "#server/diagnostics/codexLimits.ts";
 import { codexRateLimits } from "#server/diagnostics/codexRateLimits.ts";
 import { fleetHealth } from "#server/diagnostics/fleetHealth.ts";
@@ -94,4 +94,9 @@ export function daemonSnapshot(read: (observedAt: number) => DiagnosticsSnapshot
 			}
 		},
 	);
+}
+
+export function codexOnlySnapshot(observedAt: number, value: CodexLimits) {
+	const missing = { cause: "Missing", observedAt, state: "not-configured" as const };
+	return daemonSnapshot(() => ({ codex: { observedAt, state: "ready", value }, fleet: missing, github: missing }));
 }

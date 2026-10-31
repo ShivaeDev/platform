@@ -1,34 +1,47 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { areaRepository } from "#test/areaRepository.ts";
 import { boardStory } from "#test/boardStory.ts";
+import { fleetAcceptsEveryBrief } from "#test/workspaceBoardTraits.ts";
+
+const AREAS = ["react", "work-fleet/scheduling", "jobs/server", "script/release", ".github", "*"];
 
 boardStory.it(
-	"a brief names existing packages, subfolders and top-level folders",
-	[areaRepository(["react", "work-fleet/scheduling", "jobs/server", "script/release", ".github", "*"])],
-	function* (board) {
-		const brief = yield* board.readDocument("task.md");
-		expect(brief.diagnostics).toEqual([]);
-		expect(brief.metadata.areas).toEqual(["react", "work-fleet/scheduling", "jobs/server", "script/release", ".github", "*"]);
-		board.editFile("task.md", "---\nid: task\nkind: task\nareas: [work-fleet/schedulng]\n---\n# Work");
-		expect((yield* board.readDocument("task.md")).diagnostics).toEqual([
-			{
-				field: "areas",
-				line: 4,
-				message: 'Area "work-fleet/schedulng" does not name an existing repository folder. Did you mean "work-fleet/scheduling"?',
-			},
+	"a brief may name existing packages, their subfolders, top-level folders and every area",
+	[areaRepository(AREAS), fleetAcceptsEveryBrief],
+	function* ({ itemDiagnostics, itemMetadata }) {
+		yield* outcomes([
+			["areas", () => itemMetadata("/task.md"), expect.objectContaining({ areas: AREAS })],
+			["problems", () => itemDiagnostics("/task.md"), []],
 		]);
 	},
 );
 
-boardStory.it("a renamed package is invalid and suggests its existing name", [areaRepository(["effect-react"])], function* (board) {
-	expect((yield* board.readDocument("task.md")).diagnostics).toEqual([
-		{ field: "areas", line: 4, message: 'Area "effect-react" does not name an existing repository folder. Did you mean "react"?' },
-	]);
-});
+for (const [area, suggestion] of [
+	["work-fleet/schedulng", "work-fleet/scheduling"],
+	["effect-react", "react"],
+] as const) {
+	boardStory.it(
+		`an area ${area} that names no folder is a problem suggesting ${suggestion}`,
+		[areaRepository([area]), fleetAcceptsEveryBrief],
+		function* ({ itemDiagnostics }) {
+			expect(yield* itemDiagnostics("/task.md")).toEqual([
+				{ field: "areas", line: 4, message: `Area "${area}" does not name an existing repository folder. Did you mean "${suggestion}"?` },
+			]);
+		},
+	);
+}
 
 for (const status of ["done", "dropped"]) {
-	boardStory.it(`a ${status} brief has no diagnostic for a renamed area`, [areaRepository(["effect-react"])], function* (board) {
-		board.editFile("task.md", `---\nid: task\nkind: task\nstatus: ${status}\nareas: [effect-react]\n---\n# Work`);
-		expect((yield* board.readDocument("task.md")).diagnostics).toEqual([]);
-	});
+	boardStory.it(
+		`marking a brief ${status} clears the problem of its renamed area`,
+		[areaRepository(["effect-react"]), fleetAcceptsEveryBrief],
+		function* ({ editFile, itemDiagnostics }) {
+			expect(yield* itemDiagnostics("/task.md")).toEqual([expect.objectContaining({ field: "areas" })]);
+
+			editFile("task.md", `---\nid: task\nkind: task\nstatus: ${status}\nareas: [effect-react]\n---\n# Work`);
+
+			expect(yield* itemDiagnostics("/task.md")).toEqual([]);
+		},
+	);
 }

@@ -1,100 +1,119 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { liveForm } from "#test/answerTraits.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
 import { silentWatch } from "#test/faults.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { sessionScreen } from "#test/sessionScreen.ts";
 import { sessionBoundary } from "#test/sessionTransport.ts";
 
 expectNoReactWarnings();
+
+const DRAFT = "Keep this direction";
+
 for (const kind of ["response", "handoff"] as const) {
 	const command = kind === "response" ? "work-board-responses.answerQuestion" : "work-board-handoffs.prepareHandoff";
-	const field = kind === "response" ? '[name="body"]' : '[name="goal"]';
-	for (const failure of ["rejection", "transport"] as const) {
+	const saved = kind === "response" ? "Answer saved." : "Saved handoffs/";
+	const failures = [
+		{ cause: "the item changed since the preview", status: "Rejected: PreconditionFailed:" },
+		{ cause: "the page can't deliver commands", status: "Uncertain:" },
+	] as const;
+
+	for (const { cause, status } of failures) {
 		screenStory.it(
-			`classifies ${kind} ${failure} and retries its retained identity over the shared socket`,
-			[sessionBoundary(command, silentWatch), sessionScreen(kind)],
-			function* ({ input, activate, submit, findElement, readText, setSessionOffline, editSessionFile, sessionCommands }) {
-				yield* eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false));
-				if (kind === "handoff") {
-					input('[name="recipient"]', "local-reviewer");
-				}
-				const draft = input(field, "Keep this direction");
-				yield* Effect.promise(() => activate(`#${kind}-preview`));
-				const identity = readText(`#${kind}-preview-content`)?.match(/\b(?:response|handoff)\.[\da-f-]{36}/u)?.[0];
-				expect(identity).toBeDefined();
-				if (failure === "rejection") {
-					editSessionFile("item.md", `${EDGE_ATTENTION_SOURCE}Changed reviewed source.\n`);
+			`saving a ${kind} after ${cause} keeps the draft and says "${status}" with the draft retained`,
+			[sessionBoundary(command, silentWatch), liveForm(kind)],
+			function* ({ editSessionFile, fillLiveForm, liveFormDraft, liveFormStatus, previewLiveForm, saveLiveForm, setSessionOffline }) {
+				yield* fillLiveForm(kind, DRAFT);
+				yield* previewLiveForm(kind);
+				if (status === "Uncertain:") {
+					yield* setSessionOffline(true);
 				} else {
-					yield* Effect.promise(() => setSessionOffline(true));
+					yield* editSessionFile("item.md", `${EDGE_ATTENTION_SOURCE}Changed reviewed source.\n`);
 				}
-				submit(`#${kind}-form`);
-				yield* eventually(() =>
-					expect(readText(`#${kind}-status`)).toContain(failure === "rejection" ? "Rejected: PreconditionFailed:" : "Uncertain:"),
-				);
-				expect(readText(`#${kind}-status`)).toContain("Draft retained");
-				if (kind === "response" && failure === "rejection") {
-					expect(readText("#response-status")).toBe(
-						"Rejected: PreconditionFailed: Source changed since review. Read it again before registering this question.. Draft retained. Preview and retry with the same identity; saved content will be reconciled.",
-					);
+
+				yield* saveLiveForm(kind);
+
+				yield* outcomes([
+					["draft", () => liveFormDraft(kind), DRAFT],
+					["status", () => liveFormStatus(kind), expect.stringMatching(new RegExp(`${status}.*Draft retained`, "su"))],
+				]);
+			},
+		);
+
+		screenStory.it(
+			`once ${cause} is resolved, saving the ${kind} again succeeds with the same identity it was first sent with`,
+			[sessionBoundary(command, silentWatch), liveForm(kind)],
+			function* ({ editSessionFile, fillLiveForm, liveFormStatus, previewLiveForm, saveLiveForm, sentCommandIds, setSessionOffline }) {
+				yield* fillLiveForm(kind, DRAFT);
+				yield* previewLiveForm(kind);
+				if (status === "Uncertain:") {
+					yield* setSessionOffline(true);
+				} else {
+					yield* editSessionFile("item.md", `${EDGE_ATTENTION_SOURCE}Changed reviewed source.\n`);
 				}
-				expect(draft.value).toBe("Keep this direction");
-				editSessionFile("item.md", EDGE_ATTENTION_SOURCE);
-				yield* Effect.promise(() => setSessionOffline(false));
-				yield* Effect.promise(() => activate(`#${kind}-preview`));
-				submit(`#${kind}-form`);
-				yield* eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/"));
-				expect(sessionCommands()).toMatchObject([
-					{ payload: { id: identity }, tag: command },
-					{ payload: { id: identity }, tag: command },
+				yield* saveLiveForm(kind);
+				const [first = "no command was sent"] = yield* sentCommandIds();
+				yield* editSessionFile("item.md", EDGE_ATTENTION_SOURCE);
+				yield* setSessionOffline(false);
+				yield* previewLiveForm(kind);
+
+				yield* saveLiveForm(kind);
+
+				yield* outcomes([
+					["identities", () => sentCommandIds(), [first, first]],
+					["status", () => liveFormStatus(kind), expect.stringContaining(saved)],
 				]);
 			},
 		);
 	}
+
 	screenStory.it(
-		`retains newer ${kind} input while saving the captured command`,
-		[sessionBoundary(command), sessionScreen(kind)],
-		function* ({ input, activate, submit, findElement, readText, pauseCommand, releaseCommand, sessionCommands, readSessionFiles, stored }) {
-			yield* eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false));
-			if (kind === "handoff") {
-				input('[name="recipient"]', "local-reviewer");
-			}
-			const draft = input(field, "First reviewed direction");
-			yield* Effect.promise(() => activate(`#${kind}-preview`));
-			pauseCommand();
-			submit(`#${kind}-form`);
-			yield* eventually(() =>
-				expect(sessionCommands()).toMatchObject([
-					{
-						payload: expect.objectContaining(kind === "response" ? { body: "First reviewed direction" } : { goal: "First reviewed direction" }),
-						tag: command,
-					},
-				]),
-			);
-			input(field, "New direction typed while saving");
-			expect(findElement(`#${kind}-submit`)).toHaveProperty("disabled", true);
-			yield* Effect.promise(() => releaseCommand());
-			yield* eventually(() =>
-				expect(readText(`#${kind}-status`)).toContain(
-					kind === "response" ? "Your current draft remains unsaved" : "Your newer draft remains unsaved",
-				),
-			);
-			expect(draft.value).toBe("New direction typed while saving");
-			const saved = readSessionFiles(kind === "response" ? "responses" : "handoffs");
-			expect(saved.some((source) => source.includes("First reviewed direction"))).toBe(true);
-			expect(saved.some((source) => source.includes("New direction typed while saving"))).toBe(false);
-			if (kind === "handoff") {
-				expect([...Object.keys(localStorage)].some((key) => stored(key)?.includes("New direction typed while saving"))).toBe(true);
-				return;
-			}
-			yield* Effect.promise(() => activate(`#${kind}-preview`));
-			submit(`#${kind}-form`);
-			yield* eventually(() =>
-				expect(
-					readSessionFiles(kind === "response" ? "responses" : "handoffs").some((source) => source.includes("New direction typed while saving")),
-				).toBe(true),
-			);
+		`newer ${kind} text typed while a save is on its way stays as an unsaved draft, and the save keeps the text it was sent with`,
+		[sessionBoundary(command), liveForm(kind)],
+		function* ({ fillLiveForm, liveFormDraft, liveFormStatus, pauseCommand, previewLiveForm, readSessionFiles, releaseCommand, saveLiveForm }) {
+			yield* fillLiveForm(kind, "First reviewed direction");
+			yield* previewLiveForm(kind);
+			yield* pauseCommand();
+			yield* saveLiveForm(kind);
+			yield* fillLiveForm(kind, "New direction typed while saving");
+
+			yield* releaseCommand();
+
+			yield* outcomes([
+				["draft", () => liveFormDraft(kind), "New direction typed while saving"],
+				[
+					"saved",
+					() => readSessionFiles(kind === "response" ? "responses" : "handoffs"),
+					expect.arrayContaining([expect.stringContaining("First reviewed direction")]),
+				],
+				[
+					"status",
+					() => liveFormStatus(kind),
+					expect.stringContaining(kind === "response" ? "Your current draft remains unsaved" : "Your newer draft remains unsaved"),
+				],
+				[
+					"unsaved",
+					() => readSessionFiles(kind === "response" ? "responses" : "handoffs"),
+					expect.not.arrayContaining([expect.stringContaining("New direction typed while saving")]),
+				],
+			]);
 		},
 	);
 }
+
+screenStory.it(
+	"the rejection after the item changed says in full why and what the reader can do next",
+	[sessionBoundary("work-board-responses.answerQuestion", silentWatch), liveForm("response")],
+	function* ({ editSessionFile, fillLiveForm, liveFormStatus, previewLiveForm, saveLiveForm }) {
+		yield* fillLiveForm("response", DRAFT);
+		yield* previewLiveForm("response");
+		yield* editSessionFile("item.md", `${EDGE_ATTENTION_SOURCE}Changed reviewed source.\n`);
+
+		yield* saveLiveForm("response");
+
+		expect(yield* liveFormStatus("response")).toBe(
+			"Rejected: PreconditionFailed: Source changed since review. Read it again before registering this question.. Draft retained. Preview and retry with the same identity; saved content will be reconciled.",
+		);
+	},
+);

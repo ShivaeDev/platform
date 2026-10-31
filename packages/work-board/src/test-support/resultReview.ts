@@ -106,3 +106,7 @@ export function ambiguousQuestion(): Record<string, string> {
 	const [path, question] = Object.entries(answered).find(([, text]) => text.includes("kind: question")) ?? ["", ""];
 	return { ...answered, [path.replace("responses/", "questions/copy-of-")]: question };
 }
+
+export function feedbackEntry(id: string, version: "this version" | "earlier version", file = `/responses/${id}.md`) {
+	return { file, id, version };
+}

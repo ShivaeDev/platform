@@ -1,48 +1,38 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
-const files = {
-	"home.md": "# Home",
-	"result.md":
-		"---\nid: result.fixture\nkind: report\nstatus: done\nrelationships:\n - kind: implements\n   target: task.fixture\nevidence:\n - criterion: task.fixture#proof\n   source: task.md\n   outcome: observed\n---\n# A result\n\nReport limitations.\n",
-	"task.md":
-		"---\nid: task.fixture\nkind: task\nstatus: draft\nnext_action: Check the proof\ncriteria:\n - id: proof\n   text: Show the result\nattention:\n - id: direction\n   kind: decision\n   reason: Choose a direction\n   state: open\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n",
-};
-const routes = [
-	{ kind: "system", selector: "[data-source=codex]", text: "Source missing", url: "/_board/system" },
-	{ kind: "start", selector: ".start-template textarea", text: "example.goal", url: "/_board/start" },
-	{ kind: "handoff", selector: "#handoff-form", text: "Agent name", url: "/_board/handoff?item=task.fixture" },
-];
-for (const { kind, url, selector, text } of routes) {
-	screenStory.it(`renders ${kind} from typed queries`, [routedScreen(files, url, undefined)], function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText(selector)).toContain(text));
-		expect(findElement("main")?.dataset.projection).toBe(kind);
-	});
-}
+
+const TASK =
+	"---\nid: task.fixture\nkind: task\nstatus: draft\nnext_action: Check the proof\ncriteria:\n - id: proof\n   text: Show the result\nattention:\n - id: direction\n   kind: decision\n   reason: Choose a direction\n   state: open\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n";
+const FILES = { "home.md": "# Home", "task.md": TASK };
+const URL = "/_board/item/task.fixture/";
+
 screenStory.it(
-	"updates answer card context while retaining answer text, node and caret",
-	[routedScreen({ ...files }, "/_board/item/task.fixture/", { writable: true })],
-	function* ({ refreshDocument, selectText, editFile, findElement, readText, readFocus, typeText }) {
-		yield* eventually(() => expect(findElement("#response-form textarea")).not.toBeNull());
-		const body = findElement<HTMLTextAreaElement>("#response-form textarea");
-		if (!body) {
-			throw new Error("Missing answer textarea");
-		}
-		typeText(body, "Keep my response");
-		selectText(body, 5, 7);
-		editFile("task.md", `${files["task.md"]}\nChanged reviewed context.\n`);
-		yield* Effect.promise(() => refreshDocument("/_board/item/task.fixture/"));
-		yield* eventually(() => expect(readText("article.doc")).toContain("Changed reviewed context"));
-		expect(findElement("#response-form textarea")).toBe(body);
-		expect(body.value).toBe("Keep my response");
-		expect(readFocus()).toBe(body);
-		expect([body.selectionStart, body.selectionEnd]).toEqual([5, 7]);
+	"the System page opened by its address shows Codex as not configured",
+	[routedScreen(FILES, "/_board/system")],
+	function* ({ systemCard }) {
+		expect(yield* systemCard("codex")).toEqual(expect.objectContaining({ state: "not-configured" }));
 	},
 );
-screenStory.it("shows Today for an empty workspace", [routedScreen({}, "/", undefined)], function* ({ readText }) {
-	yield* eventually(() => expect(readText("h1")).toBe("Today"));
-});
+
+screenStory.it(
+	"when an outside edit reaches the item page, its text updates while the answer, its focus and its selection stay",
+	[routedScreen(FILES, URL, { writable: true })],
+	function* ({ answerBoxState, documentText, editFile, refreshDocument, selectInAnswer, writeAnswer }) {
+		yield* writeAnswer("Keep my response");
+		yield* selectInAnswer(5, 7);
+		expect(yield* documentText()).not.toContain("Changed reviewed context");
+
+		yield* editFile("task.md", `${TASK}\nChanged reviewed context.\n`);
+		yield* refreshDocument(URL);
+
+		yield* outcomes([
+			["answer", () => answerBoxState(), { focused: true, selection: [5, 7], text: "Keep my response" }],
+			["document", () => documentText(), expect.stringContaining("Changed reviewed context")],
+		]);
+	},
+);

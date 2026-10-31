@@ -1,19 +1,22 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { markdownChunkFails } from "#test/markdownChunkFails.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { openScreen } from "#test/screenTraits.ts";
-import { screenRoute, todayScreen } from "#test/screenWorkspaceTraits.ts";
+import { routedScreen } from "#test/screenTraits.ts";
+import { todayFixture } from "#test/todayFixture.ts";
+
+// Without Markdown the page never reports itself rendered, so these stories settle on the screen alone.
+const board = [markdownChunkFails(), routedScreen(todayFixture(), "/home.md", { home: "home.md" })];
 
 screenStory.it(
-	"says Markdown could not load and keeps the Board usable when the renderer chunk fails",
-	[todayScreen(), screenRoute("/home.md"), markdownChunkFails(), openScreen()],
-	function* ({ navigate, readText }) {
-		yield* eventually(() =>
-			expect(readText("#doc [data-markdown-error]")).toMatch(/^Markdown could not be loaded: .+\. Reload the page to try again\.$/u),
-		);
-		yield* Effect.promise(() => navigate("/_board/goals"));
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Goals"));
+	"a document says Markdown could not be loaded and to reload when the renderer chunk cannot be fetched",
+	board,
+	function* ({ markdownError }) {
+		expect(yield* markdownError()).toMatch(/^Markdown could not be loaded: .+\. Reload the page to try again\.$/u);
 	},
 );
+
+screenStory.it("the Board still opens Goals after the Markdown renderer chunk could not be fetched", board, function* ({ navigateTo, shownPage }) {
+	yield* navigateTo("/_board/goals");
+
+	expect(yield* shownPage()).toBe("Goals");
+});

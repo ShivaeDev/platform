@@ -1,120 +1,162 @@
 import { expect } from "vitest";
-import { libraryData } from "#server/navigation/libraryData.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
-import { boardStory, deferredServing } from "#test/boardStory.ts";
+import { attentionSources } from "#test/attentionLaneTraits.ts";
+import { boardStory } from "#test/boardStory.ts";
 import { inboxFixture, inboxQuestion } from "#test/inboxFixture.ts";
-import { anInbox } from "#test/storyTraits.ts";
-import { fleetRecords, inboxItems } from "./inbox.ts";
 
-boardStory.it(
-	"collects human-owned next actions, open questions, needs-human work and managed Fleet requests once",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const snapshot = yield* readAttention();
-		expect(inboxItems(snapshot).map((item) => item.id)).toEqual(["task.review", "question.storage", "task.fleet"]);
-	},
-);
+function inbox(
+	files: Readonly<Record<string, string>> = {},
+	line = "the project has a person's next action, agent work, an open question and a Fleet decision",
+) {
+	return attentionSources({ ...inboxFixture(), ...files }, line);
+}
 
-boardStory.it(
-	"excludes closed questions, automation labels and missing actions while disclosing ambiguous identities",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const files: Record<string, string> = { ...inboxFixture(), "question.md": inboxQuestion.replace("status: ready", "status: done") };
-		for (const owner of ["claude", "agent-navigation", "Fleet", "bot", "copilot", "orchestrator", "automation"]) {
-			files["owner.md"] = `---\nid: task.review\nowner: ${owner}\nnext_action: Continue\n---\n# Work`;
-			expect(inboxItems(yield* readAttention(files)).some((item) => item.id === "task.review")).toBe(false);
-		}
-		files["owner.md"] = "---\nid: task.review\nowner: marvin\n---\n# Work";
-		expect(inboxItems(yield* readAttention(files)).some((item) => item.id === "task.review")).toBe(false);
-		files["duplicate.md"] = files["fleet.md"] ?? "";
-		expect(inboxItems(yield* readAttention(files)).map((item) => item.id)).toEqual([]);
-		const incomplete = yield* readAttention(files, ["unreadable.md"]);
-		expect(inboxItems(incomplete)).toEqual([]);
-	},
-);
+const revision = revisionOf(inboxQuestion);
+const storageQuestion = questionId("question.storage", "answer", revisionOf(inboxQuestion), "question.md");
+const answer = {
+	body: "Keep local files",
+	id: "response.storage",
+	response: { author: "Casey", question: storageQuestion, recordedAt: 101, reviewedRevision: revision, type: "answer" as const },
+};
+function answered(type: "answer" | "clarify" = "answer", source = inboxQuestion) {
+	return inbox(
+		{
+			"question.md": source,
+			"responses/answer.md": responseMarkdown({ ...answer, response: { ...answer.response, type } }),
+			"responses/question.md": questionMarkdown({
+				context: inboxQuestion,
+				id: storageQuestion,
+				question: {
+					deadline: 200,
+					item: "question.storage",
+					reason: "Answer",
+					registeredAt: 100,
+					request: "answer",
+					reviewedRevision: revision,
+					source: "question.md",
+				},
+			}),
+		},
+		`Casey's ${type} to the storage question is recorded${source === inboxQuestion ? "" : ", and the question changed since"}`,
+	);
+}
 
-boardStory.it(
-	"removes only a uniquely recorded answer to the current question and groups the full Fleet record chain",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const revision = revisionOf(inboxQuestion);
-		const id = questionId("question.storage", "answer", revision, "question.md");
-		const captured = {
-			context: inboxQuestion,
-			id,
+const delivery = inboxFixture()["responses/decision.md"] ?? "";
+const deliveryRevision = revisionOf(delivery);
+const deliveryQuestion = questionId("decision.delivery", "delivery", revisionOf(delivery), "responses/decision.md");
+const fleetChain = inbox(
+	{
+		"responses/fleet-answer.md": responseMarkdown({
+			...answer,
+			id: "response.fleet",
+			response: { ...answer.response, question: deliveryQuestion, reviewedRevision: deliveryRevision },
+		}),
+		"responses/fleet-question.md": questionMarkdown({
+			context: delivery,
+			id: deliveryQuestion,
 			question: {
 				deadline: 200,
-				item: "question.storage",
+				item: "decision.delivery",
 				reason: "Answer",
 				registeredAt: 100,
-				request: "answer",
-				reviewedRevision: revision,
-				source: "question.md",
-			},
-		};
-		const response = {
-			body: "Keep local files",
-			id: "response.storage",
-			response: { author: "Casey", question: id, recordedAt: 101, reviewedRevision: revision, type: "answer" as const },
-		};
-		const files: Record<string, string> = {
-			...inboxFixture(),
-			"responses/answer.md": responseMarkdown(response),
-			"responses/question.md": questionMarkdown(captured),
-		};
-		expect(inboxItems(yield* readAttention(files)).map((item) => item.id)).not.toContain("question.storage");
-		expect(inboxItems(yield* readAttention({ ...files, "question.md": `${inboxQuestion}\nNew context` })).map((item) => item.id)).toContain(
-			"question.storage",
-		);
-		expect(
-			inboxItems(
-				yield* readAttention({
-					...files,
-					"responses/answer.md": responseMarkdown({ ...response, response: { ...response.response, type: "clarify" } }),
-				}),
-			).map((item) => item.id),
-		).toContain("question.storage");
-		const decision = files["responses/decision.md"] ?? "";
-		const fleetQuestion = {
-			...captured,
-			context: decision,
-			question: {
-				...captured.question,
-				item: "decision.delivery",
 				request: "delivery",
-				reviewedRevision: revisionOf(decision),
+				reviewedRevision: deliveryRevision,
 				source: "responses/decision.md",
 			},
-		};
-		fleetQuestion.id = questionId(fleetQuestion.question.item, "delivery", fleetQuestion.question.reviewedRevision, fleetQuestion.question.source);
-		const fleet = yield* readAttention({
-			...files,
-			"responses/fleet-answer.md": responseMarkdown({
-				...response,
-				id: "response.fleet",
-				response: { ...response.response, question: fleetQuestion.id, reviewedRevision: fleetQuestion.question.reviewedRevision },
-			}),
-			"responses/fleet-question.md": questionMarkdown(fleetQuestion),
-		});
-		const listedFiles = fleet.documents.map((entry) => ({ modified: 0, path: entry.file }));
-		const hidden = libraryData(listedFiles, fleet, {});
-		const shown = libraryData(listedFiles, fleet, { showFleet: true });
-		expect(hidden.fleetCount).toBe(2);
-		for (const file of ["responses/decision.md", "responses/fleet-question.md", "responses/fleet-answer.md"]) {
-			expect(hidden.files.some((entry) => entry.path === file)).toBe(false);
-			expect(shown.files.some((entry) => entry.path === file)).toBe(file !== "responses/fleet-answer.md");
-		}
-		expect(hidden.files.some((entry) => entry.path === "responses/question.md")).toBe(true);
-		expect([...fleetRecords(fleet.model)]).toEqual(["responses/decision.md", "responses/fleet-question.md", "responses/fleet-answer.md"]);
+		}),
+	},
+	"the Fleet delivery decision has a registered question and a recorded answer",
+);
+
+boardStory.it(
+	"Needs you collects a person's next action, an open authored question and a Fleet request once each",
+	[inbox()],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["task.review", "question.storage", "task.fleet"]);
+	},
+);
+
+boardStory.it("Needs you links an authored question and a Fleet request to their source item's answer card", [inbox()], function* ({ inboxAsk }) {
+	yield* outcomes([
+		["authored question", () => inboxAsk("question.storage"), expect.objectContaining({ href: "/_board/item/question.storage/#answer-card-answer" })],
+		["Fleet request", () => inboxAsk("task.fleet"), expect.objectContaining({ href: "/_board/item/decision.delivery/#answer-card-delivery" })],
+	]);
+});
+
+boardStory.it(
+	"a closed authored question stays out of Needs you",
+	[inbox({ "question.md": inboxQuestion.replace("status: ready", "status: done") }, "the storage question is done")],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["task.review", "task.fleet"]);
+	},
+);
+
+for (const owner of ["claude", "agent-navigation", "Fleet", "bot", "copilot", "orchestrator", "automation"]) {
+	boardStory.it(
+		`a next action owned by ${owner} stays out of Needs you`,
+		[inbox({ "owner.md": `---\nid: task.review\nowner: ${owner}\nnext_action: Continue\n---\n# Work` }, `the review task belongs to ${owner}`)],
+		function* ({ inboxLane }) {
+			expect(yield* inboxLane("you")).toEqual(["question.storage", "task.fleet"]);
+		},
+	);
+}
+
+boardStory.it(
+	"a person's work without a next action stays out of Needs you",
+	[inbox({ "owner.md": "---\nid: task.review\nowner: marvin\n---\n# Work" }, "the review task names no next action")],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["question.storage", "task.fleet"]);
 	},
 );
 
 boardStory.it(
-	"links authored questions and managed requests directly to their source item's answer card",
-	[deferredServing, anInbox()],
-	function* ({ readAttention }) {
-		const items = inboxItems(yield* readAttention());
-		expect(items.find((item) => item.id === "question.storage")?.href).toBe("/_board/item/question.storage/#answer-card-answer");
-		expect(items.find((item) => item.id === "task.fleet")?.href).toBe("/_board/item/decision.delivery/#answer-card-delivery");
+	"a duplicated task identity withholds the Fleet request that unblocks it from Needs you",
+	[inbox({ "duplicate.md": inboxFixture()["fleet.md"] ?? "" }, "a second file claims the Fleet task's identity")],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toEqual(["task.review", "question.storage"]);
 	},
 );
+
+boardStory.it("a recorded answer to the current authored question takes it out of Needs you", [answered()], function* ({ inboxLane }) {
+	expect(yield* inboxLane("you")).toEqual(["task.review", "task.fleet"]);
+});
+
+boardStory.it(
+	"an authored question whose source changed after its answer waits in Needs you again",
+	[answered("answer", `${inboxQuestion}\nNew context`)],
+	function* ({ inboxLane }) {
+		expect(yield* inboxLane("you")).toContain("question.storage");
+	},
+);
+
+boardStory.it("a clarification request does not answer an authored question", [answered("clarify")], function* ({ inboxLane }) {
+	expect(yield* inboxLane("you")).toContain("question.storage");
+});
+
+boardStory.it(
+	"the library hides a Fleet decision and its registered question and counts them as hidden Fleet records",
+	[fleetChain],
+	function* ({ hiddenFleetRecords, libraryFiles }) {
+		yield* outcomes([
+			["hidden Fleet records", () => hiddenFleetRecords(), 2],
+			["library", () => libraryFiles(false), ["automation.md", "closed.md", "fleet.md", "owner.md", "question.md"]],
+		]);
+	},
+);
+
+boardStory.it("showing Fleet records lists the Fleet decision and its registered question", [fleetChain], function* ({ libraryFiles }) {
+	expect(yield* libraryFiles(true)).toEqual([
+		"automation.md",
+		"closed.md",
+		"fleet.md",
+		"responses/decision.md",
+		"responses/fleet-question.md",
+		"owner.md",
+		"question.md",
+	]);
+});
+
+boardStory.it("the library keeps the registered question of an authored question", [answered()], function* ({ libraryFiles }) {
+	expect(yield* libraryFiles(false)).toContain("responses/question.md");
+});

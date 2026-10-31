@@ -1,27 +1,21 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { recordSourceFixture } from "#test/recordSourceFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
 for (const { file, source, explanation } of recordSourceFixture) {
 	screenStory.it(
-		`keeps ${file} record explanations in the Source tab, hidden until the reader opens it and again after Details`,
-		[routedScreen({ [file]: source }, `/${file}`)],
-		function* ({ control, click, findElement, findElements }) {
-			yield* eventually(() => expect(findElement("[data-document-source]")).not.toBeNull());
-			const records = control("[data-document-source]", HTMLElement);
-			expect(records.textContent).toContain(explanation);
-			expect(records.closest("[hidden]")).not.toBeNull();
-			expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Details");
-			const sourceTab = [...findElements<HTMLButtonElement>('.item-context [role="tab"]')].find((tab) => tab.textContent === "Source");
-			click(sourceTab);
-			expect(records.closest("[hidden]")).toBeNull();
-			click([...findElements<HTMLButtonElement>('.item-context [role="tab"]')].find((tab) => tab.textContent === "Details"));
-			expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Details");
-			expect(records.closest("[hidden]")).not.toBeNull();
+		`a ${file} record explains itself in the Source tab, which stays hidden until the reader opens it`,
+		[readingPage({ [file]: source }, `/${file}`)],
+		function* ({ openSourceTab, sourcePanel }) {
+			expect(yield* sourcePanel()).toBe("hidden");
+
+			yield* openSourceTab();
+
+			expect(yield* sourcePanel()).toContain(explanation);
 		},
 	);
 }

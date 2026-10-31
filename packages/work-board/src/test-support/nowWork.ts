@@ -12,6 +12,12 @@ export function nowWork(count = 6): WorkProjection {
 	return { boards: [], issues: [], items: rows, rows, selectedOutside: false, state: stateOf("/_board/work"), title: "Now", validBoard: true };
 }
 
+export function goalWork(): WorkProjection {
+	const data = nowWork(1);
+	const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, kind: "goal" as const } }));
+	return { ...data, items: rows, rows };
+}
+
 export function nowFleet(count = 6, at = 0): FleetItemsProjection {
 	const stages = ["queued", "working", "reviewing", "reviewing", "waiting"] as const;
 	return {

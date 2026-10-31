@@ -1,5 +1,6 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import {
 	ambiguousQuestion,
 	answeredResult,
@@ -22,230 +23,244 @@ import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
 expectNoReactWarnings();
 
 const ITEM = "/_board/item/result.keyboard/";
-const REPORT = "#doc article[data-source]";
 // The workspace's first file opens as its home board, so a note keeps each result on its ordinary item page.
 const HOME = { "README.md": "# Workspace\n" };
 const result = { ...HOME, "items/result.md": reviewResult(), "items/task.md": REVIEW_TASK };
+const NO_FEEDBACK = "No feedback yet.";
 
 screenStory.it(
-	"puts the review request, checks and feedback above the report on the result's own page",
+	"puts the review request, the checks and a no-feedback note above the report under the report's one heading, with no separate review action",
 	[routedScreen(result, ITEM)],
-	function* ({ findElement, findElements, readOrder, readText, roles }) {
-		yield* eventually(() => expect(findElement("#result-review")).not.toBeNull());
-		expect(findElements("#doc h1").map((heading) => heading.textContent)).toEqual(["First report"]);
-		expect(findElements("[data-page-actions] :is(a, button)").map((control) => roles.accessible(control).name)).not.toContain(
-			"Review returned result",
-		);
-		expect(readOrder(REPORT, "[data-result-empty]", "#result-criteria", "#answer-card-review")).toEqual([
-			"#answer-card-review",
-			"#result-criteria",
-			"[data-result-empty]",
-			REPORT,
+	function* ({ mainHeading, pageActions, resultNote, resultParts }) {
+		yield* outcomes([
+			["the actions", () => pageActions(), expect.not.arrayContaining([expect.objectContaining({ name: "Review returned result" })])],
+			["the heading", () => mainHeading(), "First report"],
+			["the note", () => resultNote(), NO_FEEDBACK],
+			["the parts", () => resultParts(), ["review request", "checks", "note", "report"]],
 		]);
-		expect(readText("#result-criteria")).toContain("the Board doesn't verify them");
-		expect(readText("[data-result-empty]")).toBe("No feedback yet.");
-		expect(findElement("#result-feedback")).toBeNull();
 	},
 );
 
 screenStory.it(
-	"names the linked work with its title and status and offers a follow-up handoff",
+	"names the linked work with its title and status and offers a follow-up handoff for it",
 	[routedScreen(result, ITEM)],
-	function* ({ findElement, findElements, readText, roles }) {
-		yield* eventually(() => expect(findElement("[data-result-linked]")).not.toBeNull());
-		expect(readText("[data-result-linked] a[href='/_board/item/work.keyboard/']")).toBe("Keyboard work");
-		expect(readText("[data-result-linked] [data-status-token]")).toBe("Ready");
-		const followUp = findElements("[data-result-linked] a").find(
-			(link) => roles.accessible(link).name === "Prepare follow-up handoff for Keyboard work",
-		);
-		expect(followUp?.getAttribute("href")).toBe("/_board/handoff?item=work.keyboard");
+	function* ({ resultLinkedWork }) {
+		expect(yield* resultLinkedWork()).toEqual([
+			{
+				followUp: ["Prepare follow-up handoff for Keyboard work", "/_board/handoff?item=work.keyboard"],
+				link: "/_board/item/work.keyboard/",
+				name: "Keyboard work",
+				status: "Ready",
+			},
+		]);
 	},
 );
 
-screenStory.it(
-	"collapses an empty review, empty checks and missing feedback into one line before the report",
-	[routedScreen({ ...HOME, "items/result.md": QUIET_RESULT, "items/task.md": QUIET_TASK }, "/_board/item/result.quiet/")],
-	function* ({ findElement, readOrder, readText }) {
-		yield* eventually(() => expect(findElement("[data-result-empty]")).not.toBeNull());
-		expect(readText("[data-result-empty]")).toBe("No review requested, no checks listed and no feedback yet.");
-		expect(findElement(".answer-cards")).toBeNull();
-		expect(findElement("#result-criteria")).toBeNull();
-		expect(readOrder(REPORT, "[data-result-empty]")).toEqual(["[data-result-empty]", REPORT]);
-		expect(readText("[data-result-linked] a")).toBe("Quiet work");
-		expect(readText("[data-result-linked] [data-status-token]")).toBe("Done");
+for (const { files, linked, note, parts, story, url } of [
+	{
+		files: { "items/result.md": QUIET_RESULT, "items/task.md": QUIET_TASK },
+		linked: [expect.objectContaining({ name: "Quiet work", status: "Done" })],
+		note: "No review requested, no checks listed and no feedback yet.",
+		parts: ["note", "report"],
+		story: "no review, no checks and no feedback",
+		url: "/_board/item/result.quiet/",
 	},
-);
+	{
+		files: { "items/result.md": reviewResult(), "items/task.md": UNCHECKED_TASK },
+		linked: [expect.objectContaining({ name: "Keyboard work" })],
+		note: "No checks listed and no feedback yet.",
+		parts: ["review request", "note", "report"],
+		story: "a review request without checks",
+		url: ITEM,
+	},
+	{
+		files: { "items/result.md": CHECKED_RESULT, "items/task.md": REVIEW_TASK },
+		linked: [expect.objectContaining({ name: "Keyboard work" })],
+		note: "No review requested and no feedback yet.",
+		parts: ["checks", "note", "report"],
+		story: "checks without a review request",
+		url: "/_board/item/result.checked/",
+	},
+	{
+		files: { "items/result.md": LONE_RESULT },
+		linked: "none" as const,
+		note: "No review requested, no checks listed and no feedback yet.",
+		parts: ["note", "report"],
+		story: "no linked work",
+		url: "/_board/item/result.alone/",
+	},
+]) {
+	screenStory.it(
+		`sums up a result with ${story} in one line before the report`,
+		[routedScreen({ ...HOME, ...files }, url)],
+		function* ({ resultLinkedWork, resultNote, resultParts }) {
+			yield* outcomes([
+				["the linked work", () => resultLinkedWork(), linked],
+				["the note", () => resultNote(), note],
+				["the parts", () => resultParts(), parts],
+			]);
+		},
+	);
+}
 
 screenStory.it(
-	"keeps the review request and says in one line that no checks are listed",
-	[routedScreen({ ...HOME, "items/result.md": reviewResult(), "items/task.md": UNCHECKED_TASK }, ITEM)],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement("[data-result-empty]")).not.toBeNull());
-		expect(readText("[data-result-empty]")).toBe("No checks listed and no feedback yet.");
-		expect(findElement("#answer-card-review")).not.toBeNull();
-		expect(findElement("#result-criteria")).toBeNull();
-	},
-);
-
-screenStory.it(
-	"keeps the checks and says in one line that no review is requested",
-	[routedScreen({ ...HOME, "items/result.md": CHECKED_RESULT, "items/task.md": REVIEW_TASK }, "/_board/item/result.checked/")],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement("[data-result-empty]")).not.toBeNull());
-		expect(readText("[data-result-empty]")).toBe("No review requested and no feedback yet.");
-		expect(findElement(".answer-cards")).toBeNull();
-		expect(findElement("#result-criteria table")).not.toBeNull();
-	},
-);
-
-screenStory.it(
-	"shows no linked work row for a result that links to nothing",
-	[routedScreen({ ...HOME, "items/result.md": LONE_RESULT }, "/_board/item/result.alone/")],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement("[data-result-empty]")).not.toBeNull());
-		expect(readText("[data-result-empty]")).toBe("No review requested, no checks listed and no feedback yet.");
-		expect(findElement("[data-result-linked]")).toBeNull();
-	},
-);
-
-screenStory.it(
-	"names linked work that can't be read by its ID and offers no follow-up for it",
+	"names linked work that can't be read by its ID, offers no follow-up for it and says its checks can't be read",
 	[routedScreen({ ...HOME, "items/result.md": ORPHAN_RESULT }, "/_board/item/result.orphan/")],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElement("[data-result-linked]")).not.toBeNull());
-		expect(readText("[data-result-linked] li")).toBe("Forwork.missing (unresolved, ambiguous, or unavailable)");
-		expect(findElement("[data-result-linked] a")).toBeNull();
-		expect(findElements("#result-criteria section[aria-label]").map((section) => section.getAttribute("aria-label"))).toEqual(["work.missing"]);
-		expect(readText("#result-criteria section[aria-label='work.missing'] a")).toBe("work.missing");
-		expect(readText("#result-criteria section[aria-label='work.missing']")).toContain("This item can't be read");
-	},
-);
-
-screenStory.it(
-	"dates feedback written for an earlier report by when it was reviewed instead of a hash",
-	[routedScreen({ ...HOME, ...answeredResult(true) }, ITEM)],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElements("#result-feedback article h3").map((author) => author.textContent)).toEqual(["first-reader"]));
-		expect(readText("#result-feedback [data-reviewed-version]")).toBe(
-			`Written for an earlier or moved version of items/result.md, as it was ${readText("#result-feedback [data-reviewed-version] time")}. It doesn't apply to this version automatically.`,
-		);
-		expect(findElement("#result-feedback [data-reviewed-version] time")?.getAttribute("datetime")).toBe("1970-01-01T00:00:01.000Z");
-		expect(findElement("#result-feedback [data-reviewed-version] code")).toBeNull();
-	},
-);
-
-screenStory.it(
-	"dates feedback on the shown report by when the report was received and keeps the full hash to copy",
-	[routedScreen({ ...HOME, ...answeredResult() }, ITEM)],
-	function* ({ findElement, findElements, readOrder, readText }) {
-		yield* eventually(() =>
-			expect(findElements("#result-feedback article h3").map((author) => author.textContent)).toEqual(["second-reader", "first-reader"]),
-		);
-		expect(readOrder(REPORT, "#result-review #result-feedback")).toEqual(["#result-review #result-feedback", REPORT]);
-		expect(findElement("[data-result-empty]")).toBeNull();
-		const versions = findElements("#result-feedback [data-reviewed-version]");
-		expect(versions.map((line) => line.textContent)).toEqual(
-			versions.map((line) => `Written for the version of items/result.md shown here, received ${line.querySelector("time")?.textContent}.`),
-		);
-		const received = findElement("#result-feedback [data-reviewed-version] time")?.getAttribute("datetime");
-		expect(received).toBe(findElement("#doc [data-page-header] time[data-modified]")?.getAttribute("datetime"));
-		expect(readText("#result-feedback details code")).toMatch(/^[a-f\d]{64}$/u);
+	function* ({ resultChecks, resultLinkedWork }) {
+		yield* outcomes([
+			[
+				"the checks",
+				() => resultChecks(),
+				[expect.objectContaining({ item: "work.missing", link: "work.missing", text: expect.stringContaining("This item can't be read") })],
+			],
+			[
+				"the linked work",
+				() => resultLinkedWork(),
+				[{ followUp: "none", link: "none", name: "Forwork.missing (unresolved, ambiguous, or unavailable)", status: "none" }],
+			],
+		]);
 	},
 );
 
 screenStory.it(
 	"lists each linked check in a table, naming missing evidence and unrecorded details instead of leaving them blank",
 	[routedScreen(result, ITEM)],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElement("#result-criteria table")).not.toBeNull());
-		expect(findElements("#result-criteria section[aria-label]").map((section) => section.getAttribute("aria-label"))).toEqual(["Keyboard work"]);
-		expect(readText("#result-criteria section[aria-label='Keyboard work'] a")).toBe("Keyboard work");
-		expect(readText("#result-criteria section[aria-label='Keyboard work'] [data-status-token]")).toBe("Ready");
-		expect(findElement("#result-criteria section[aria-label='Keyboard work'] [data-status-token] svg.lucide-circle")).not.toBeNull();
-		expect(findElements("#result-criteria th").map((cell) => cell.textContent)).toEqual([
-			"Check",
-			"Evidence",
-			"Outcome",
-			"Method",
-			"Revision checked",
-			"Observed",
+	function* ({ resultChecks }) {
+		expect(yield* resultChecks()).toEqual([
+			{
+				columns: ["Check", "Evidence", "Outcome", "Method", "Revision checked", "Observed"],
+				item: "Keyboard work",
+				link: "Keyboard work",
+				revision: "Git revision 0123456789012345678901234567890123456789",
+				rows: [
+					[
+						"Escape restores focus",
+						"../evidence/focus.mdFile not found",
+						"Focus restored in the recorded check",
+						"Actual keyboard check",
+						"012345678901",
+						"Not recorded",
+					],
+					["Narrow layout stays readable", "No evidence recorded"],
+				],
+				status: "Ready",
+				text: expect.any(String),
+			},
 		]);
-		const rows = findElements("#result-criteria tbody tr").map((row) => [...row.querySelectorAll("td")].map((cell) => cell.textContent));
-		expect(rows).toEqual([
+	},
+);
+
+screenStory.it(
+	"dates feedback written for an earlier report by when it was reviewed instead of by its hash",
+	[routedScreen({ ...HOME, ...answeredResult(true) }, ITEM)],
+	function* ({ resultFeedback }) {
+		expect(yield* resultFeedback()).toEqual([
+			{
+				author: "first-reader",
+				hash: expect.stringMatching(/^[a-f\d]{64}$/u),
+				reviewed: "Written for an earlier or moved version of items/result.md, as it was {time}. It doesn't apply to this version automatically.",
+				when: "1970-01-01T00:00:01.000Z",
+			},
+		]);
+	},
+);
+
+screenStory.it(
+	"lists feedback on the shown report newest first above the report, dated when the report was received, with the full hash to copy",
+	[routedScreen({ ...HOME, ...answeredResult() }, ITEM)],
+	function* ({ pageModified, resultFeedback, resultParts }) {
+		const received = yield* pageModified();
+		const onThisVersion = {
+			hash: expect.stringMatching(/^[a-f\d]{64}$/u),
+			reviewed: "Written for the version of items/result.md shown here, received {time}.",
+			when: received,
+		};
+
+		yield* outcomes([
 			[
-				"Escape restores focus",
-				"../evidence/focus.mdFile not found",
-				"Focus restored in the recorded check",
-				"Actual keyboard check",
-				"012345678901",
-				"Not recorded",
+				"the feedback",
+				() => resultFeedback(),
+				[
+					{ ...onThisVersion, author: "second-reader" },
+					{ ...onThisVersion, author: "first-reader" },
+				],
 			],
-			["Narrow layout stays readable", "No evidence recorded"],
+			["the parts", () => resultParts(), ["review request", "checks", "feedback", "report"]],
 		]);
-		expect(findElement("#result-criteria tbody code")?.getAttribute("title")).toBe("Git revision 0123456789012345678901234567890123456789");
-		expect(readText("#result-criteria")).not.toContain("Markdown source");
 	},
 );
 
 screenStory.it(
-	"names each feedback file that can't be read, says why and links to System's source problems",
+	"names each feedback file that can't be read, says why, links to System's source problems and drops the no-feedback note",
 	[routedScreen({ ...result, ...relatedProblems(), "responses/broken.md": "---\nresponse: [unfinished\n" }, ITEM)],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElement("#result-feedback [role='alert']")).not.toBeNull());
-		expect(readText("#result-feedback [role='alert']")).toContain("Some feedback couldn't be read");
-		const files = findElements("[data-unreadable-feedback] li");
-		expect(files.map((file) => file.querySelector("a")?.getAttribute("href"))).toEqual([
-			"/responses/broken.md",
-			"/responses/no-record.md",
-			"/responses/question.edited.md",
+	function* ({ feedbackProblems, resultNote }) {
+		yield* outcomes([
+			["the note", () => resultNote(), "none"],
+			[
+				"the problems",
+				() => feedbackProblems(),
+				{
+					alert: expect.stringContaining("Some feedback couldn't be read"),
+					files: [
+						{ href: "/responses/broken.md", text: expect.stringMatching(/^responses\/broken\.md: \S/u) },
+						{ href: "/responses/no-record.md", text: "responses/no-record.md: It's marked as a response but has no ID or response record." },
+						{
+							href: "/responses/question.edited.md",
+							text: "responses/question.edited.md: It's marked as a question but its record doesn't match its text.",
+						},
+					],
+					sourceProblems: [["See source problems in System", "/_board/system#source-problems"]],
+				},
+			],
 		]);
-		expect(files.map((file) => file.textContent)).toEqual([
-			expect.stringMatching(/^responses\/broken\.md: \S/u),
-			"responses/no-record.md: It's marked as a response but has no ID or response record.",
-			"responses/question.edited.md: It's marked as a question but its record doesn't match its text.",
-		]);
-		expect(findElement("#result-feedback [role='alert'] a[href='/_board/system#source-problems']")?.textContent).toBe(
-			"See source problems in System",
-		);
-		expect(readText("#result-review")).not.toContain("No feedback yet");
 	},
 );
 
 screenStory.it(
-	"names each question whose feedback can't be read when no broken file explains it",
+	"names both copies of a question whose identity is ambiguous and shows no feedback for it",
 	[routedScreen({ ...HOME, ...ambiguousQuestion() }, ITEM)],
-	function* ({ findElement, findElements }) {
-		yield* eventually(() => expect(findElement("[data-unreadable-feedback]")).not.toBeNull());
-		expect(findElements("[data-unreadable-feedback] li a").map((link) => link.getAttribute("href"))).toEqual([
-			expect.stringMatching(/^\/questions\/copy-of-question\.[a-f\d]{64}\.md$/u),
-			expect.stringMatching(/^\/responses\/question\.[a-f\d]{64}\.md$/u),
+	function* ({ feedbackProblems, resultFeedback }) {
+		const ambiguous = "The registered question identity is ambiguous; response history is unknown.";
+
+		yield* outcomes([
+			["the feedback", () => resultFeedback(), []],
+			[
+				"the problems",
+				() => feedbackProblems(),
+				expect.objectContaining({
+					files: [
+						{ href: expect.stringMatching(/^\/questions\/copy-of-question\.[a-f\d]{64}\.md$/u), text: expect.stringContaining(`: ${ambiguous}`) },
+						{ href: expect.stringMatching(/^\/responses\/question\.[a-f\d]{64}\.md$/u), text: expect.stringContaining(`: ${ambiguous}`) },
+					],
+				}),
+			],
 		]);
-		expect(findElements("[data-unreadable-feedback] li").map((file) => file.textContent?.replace(/^\S+: /u, ""))).toEqual([
-			"The registered question identity is ambiguous; response history is unknown.",
-			"The registered question identity is ambiguous; response history is unknown.",
-		]);
-		expect(findElement("#result-feedback article")).toBeNull();
 	},
 );
 
 screenStory.it(
 	"keeps showing feedback when only files about other work are broken, leaving them to System",
 	[routedScreen({ ...HOME, ...answeredResult(), ...unrelatedProblems() }, ITEM)],
-	function* ({ findElement, findElements }) {
-		yield* eventually(() =>
-			expect(findElements("#result-feedback article h3").map((author) => author.textContent)).toEqual(["second-reader", "first-reader"]),
-		);
-		expect(findElement("[data-unreadable-feedback]")).toBeNull();
+	function* ({ feedbackProblems, resultFeedback }) {
+		yield* outcomes([
+			[
+				"the authors",
+				() => resultFeedback(),
+				[expect.objectContaining({ author: "second-reader" }), expect.objectContaining({ author: "first-reader" })],
+			],
+			["the problems", () => feedbackProblems(), "none"],
+		]);
 	},
 );
 
 screenStory.it(
-	"says in plain words when checks and feedback can't be shown while the report still reads",
+	"says in plain words that checks and feedback can't be shown when their read fails, and still shows the report",
 	[screenFiles(result), failingRead(ITEM), screenRoute("/items/result.md"), openScreen()],
-	function* ({ findElement, readText }) {
-		yield* eventually(() => expect(findElement("[data-result-unavailable]")).not.toBeNull());
-		expect(readText("[data-result-unavailable]")).toBe("Checks and feedback can't be shown. Reload the page to try again.");
-		expect(readText(REPORT)).toContain("Narrow-screen evidence is not recorded.");
-		expect(findElement("#result-feedback")).toBeNull();
+	function* ({ reportText, resultFeedback, resultUnavailable }) {
+		yield* outcomes([
+			["the feedback", () => resultFeedback(), []],
+			["the notice", () => resultUnavailable(), "Checks and feedback can't be shown. Reload the page to try again."],
+			["the report", () => reportText(), expect.stringContaining("Narrow-screen evidence is not recorded.")],
+		]);
 	},
 );

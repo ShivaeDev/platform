@@ -1,98 +1,126 @@
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
 const files = { "home.md": "# Home\n\n## Plans\n", "notes/first.md": "# First\n", "notes/next.md": "---\nid: note.next\n---\n# Next\n" };
+const first = routedScreen(files, "/notes/first.md", { home: "home.md" });
 
 for (const { kind, url } of [
 	{ kind: "board", url: "/home.md" },
 	{ kind: "work", url: "/_board/work?view=table" },
 ]) {
-	for (const failed of [false, true]) {
-		screenStory.it(
-			`keeps same-URL ${kind} navigation on its projection (failed: ${failed})`,
-			[routedScreen(files, "/notes/first.md", { home: "home.md" })],
-			function* ({ follow, failWorkspace, recoverWorkspace, readAttribute, readDocumentReads, readIndexReads, findElement }) {
-				yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/first.md"));
-				if (failed) {
-					failWorkspace();
-				}
-				yield* Effect.promise(() => follow(url));
-				yield* eventually(() =>
-					expect(readAttribute("#doc", "data-status")).toBe(
-						failed ? String(HttpStatus.fromLiteral("ServiceUnavailable")) : String(HttpStatus.fromLiteral("OK")),
-					),
-				);
-				expect(readAttribute("#doc", "data-projection")).toBe(kind);
-				const before = readDocumentReads();
-				const beforeIndex = readIndexReads();
-				const projection = findElement("[data-react-projection]");
-				recoverWorkspace();
-				yield* Effect.promise(() => follow(url));
-				yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("OK"))));
-				expect(readAttribute("#doc", "data-route")).toBe(url);
-				expect(readIndexReads()).toBe(beforeIndex + (failed ? 1 : 0));
-				expect(readDocumentReads().filter((read) => read === url)).toHaveLength(
-					before.filter((read) => read === url).length + (failed && kind === "board" ? 1 : 0),
-				);
-				if (!failed) {
-					expect(findElement("[data-react-projection]")).toBe(projection);
-				}
-			},
-		);
-	}
+	screenStory.it(
+		`keeps the open ${kind} projection and reads nothing again when the reader reopens its link`,
+		[first],
+		function* ({ documentReadsOf, follow, markShell, pageKind, readIndexReads, shellParts }) {
+			yield* follow(url);
+			yield* markShell();
+			const indexReads = yield* readIndexReads();
+			const pageReads = yield* documentReadsOf(url);
+			expect(yield* pageKind()).toBe(kind);
+
+			yield* follow(url);
+
+			yield* outcomes([
+				["the index reads", () => readIndexReads(), indexReads],
+				["the page reads", () => documentReadsOf(url), pageReads],
+				["the projection", () => shellParts(), expect.objectContaining({ projection: "kept" })],
+			]);
+		},
+	);
+
+	screenStory.it(
+		`reads a ${kind} page that failed again when the reader reopens its link after the workspace recovers`,
+		[first],
+		function* ({ documentReadsOf, failWorkspace, follow, pageAddress, pageAnswer, pageKind, readIndexReads, recoverWorkspace }) {
+			yield* failWorkspace();
+			yield* follow(url);
+			yield* recoverWorkspace();
+			const indexReads = yield* readIndexReads();
+			const pageReads = yield* documentReadsOf(url);
+			yield* outcomes([
+				["the answer", () => pageAnswer(), "Unavailable"],
+				["the kind", () => pageKind(), kind],
+			]);
+
+			yield* follow(url);
+
+			yield* outcomes([
+				["the answer", () => pageAnswer(), "OK"],
+				["the index reads", () => readIndexReads(), indexReads + 1],
+				["the page", () => pageAddress(), url],
+				["the page reads", () => documentReadsOf(url), pageReads + (kind === "board" ? 1 : 0)],
+			]);
+		},
+	);
 }
 
-const routes: ReadonlyArray<{ readonly url: string; readonly kind: "document" | "board" | "work" | "today" }> = [
-	{ kind: "document", url: "/notes/next.md" },
-	{ kind: "document", url: "/_board/item/note.next/" },
-	{ kind: "document", url: "/missing.md" },
-	{ kind: "today", url: "/" },
-	{ kind: "board", url: "/home.md" },
-	{ kind: "work", url: "/_board/work?item=note.next&view=board" },
+const routes: ReadonlyArray<{ readonly url: string; readonly kind: "document" | "board" | "work" | "today"; readonly reads: string }> = [
+	{ kind: "document", reads: "/notes/next.md", url: "/notes/next.md" },
+	{ kind: "document", reads: "/_board/item/note.next/", url: "/_board/item/note.next/" },
+	{ kind: "document", reads: "/missing.md", url: "/missing.md" },
+	{ kind: "today", reads: "/", url: "/" },
+	{ kind: "board", reads: "/home.md", url: "/home.md" },
+	{ kind: "work", reads: "/_board/item/note.next/", url: "/_board/work?item=note.next&view=board" },
 ];
-for (const { url, kind } of routes) {
+for (const { kind, reads, url } of routes) {
+	const expectedReads = kind === "today" ? 0 : 1;
+
 	screenStory.it(
-		`preloads ${url} through the shared query registry before navigation`,
-		[routedScreen(files, "/notes/first.md", { home: "home.md" })],
-		function* ({ preload, findElement, readText, navigate, readDocumentReads }) {
-			yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md"));
-			const header = findElement("header");
-			yield* Effect.promise(() => preload(url));
-			expect(readDocumentReads().filter((read) => read === (kind === "work" ? "/_board/item/note.next/" : url))).toHaveLength(
-				kind === "today" ? 0 : 1,
-			);
-			expect(readText("#doc h1")).toBe("First");
-			yield* Effect.promise(() => navigate(url));
-			yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe(url));
-			expect(findElement("header")).toBe(header);
-			expect(readDocumentReads().filter((read) => read === (kind === "work" ? "/_board/item/note.next/" : url))).toHaveLength(
-				kind === "today" ? 0 : 1,
-			);
-			expect(findElement(kind === "document" ? "[data-react-document]" : "[data-react-projection]")).not.toBeNull();
+		`preloads ${url} with ${expectedReads} document read${expectedReads === 1 ? "" : "s"} and stays on the open page`,
+		[first],
+		function* ({ documentReadsOf, mainHeading, preload }) {
+			expect(yield* documentReadsOf(reads)).toBe(0);
+
+			yield* preload(url);
+
+			yield* outcomes([
+				["the heading", () => mainHeading(), "First"],
+				["the reads", () => documentReadsOf(reads), expectedReads],
+			]);
+		},
+	);
+
+	screenStory.it(
+		`opens the preloaded ${url} as a ${kind} page without reading it again or replacing the header`,
+		[first],
+		function* ({ documentReadsOf, markShell, navigate, pageAddress, pageKind, preload, shellParts }) {
+			yield* preload(url);
+			yield* markShell();
+			expect(yield* documentReadsOf(reads)).toBe(expectedReads);
+
+			yield* navigate(url);
+
+			yield* outcomes([
+				["the header", () => shellParts(), expect.objectContaining({ header: "kept" })],
+				["the kind", () => pageKind(), kind],
+				["the page", () => pageAddress(), url],
+				["the reads", () => documentReadsOf(reads), expectedReads],
+			]);
 		},
 	);
 }
 
 screenStory.it(
-	"loads the new projection query when only the search parameters change",
-	[
-		routedScreen({ ...files, "task.md": "---\nid: task.render\nkind: task\n---\n# Render task\n" }, "/_board/work?view=board", {
-			home: "home.md",
-		}),
-	],
-	function* ({ preload, findElement, readText, navigate }) {
-		yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board"));
-		yield* Effect.promise(() => preload("/_board/work?view=table"));
-		expect(readText('nav[aria-label="Work layout"] [aria-current="page"]')).toBe("All work");
-		expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board");
-		yield* Effect.promise(() => navigate("/_board/work?view=table"));
-		yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=table"));
-		expect(findElement("#work-results table")).not.toBeNull();
-		expect(readText('nav[aria-label="Work layout"] [aria-current="page"]')).toBe("Table");
+	"opens the Work table when only the view parameter changes after preloading it",
+	[routedScreen({ ...files, "task.md": "---\nid: task.render\nkind: task\n---\n# Render task\n" }, "/_board/work?view=board", { home: "home.md" })],
+	function* ({ currentWorkLayout, navigate, pageAddress, preload, workTableShown }) {
+		yield* preload("/_board/work?view=table");
+		yield* outcomes([
+			["the layout", () => currentWorkLayout(), "All work"],
+			["the page", () => pageAddress(), "/_board/work?view=board"],
+		]);
+
+		yield* navigate("/_board/work?view=table");
+
+		yield* outcomes([
+			["the layout", () => currentWorkLayout(), "Table"],
+			["the page", () => pageAddress(), "/_board/work?view=table"],
+			["the table", () => workTableShown(), "shown"],
+		]);
 	},
 );

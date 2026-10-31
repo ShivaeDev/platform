@@ -6,7 +6,7 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
 screenStory.it(
-	"names the release holding a PR in Now's waiting on automation lane",
+	"Now's Waiting on automation lane names the release holding a pull request and links to that pull request",
 	[
 		componentScreen(
 			<FleetItemsContext.Provider
@@ -31,8 +31,13 @@ screenStory.it(
 			</FleetItemsContext.Provider>,
 		),
 	],
-	({ findElement, readText }) => {
-		expect(readText('[aria-label="Waiting on automation"] [data-item="task-0"]')).toContain("Waiting for release PR #99 to merge");
-		expect(findElement('[aria-label="Waiting on automation"] a[href="https://github.com/example/project/pull/1"]')).not.toBeNull();
+	function* ({ nowCard }) {
+		expect(yield* nowCard("task-0")).toEqual(
+			expect.objectContaining({
+				lane: "Waiting on automation",
+				tabStops: expect.arrayContaining(["https://github.com/example/project/pull/1"]),
+				text: expect.stringContaining("Waiting for release PR #99 to merge"),
+			}),
+		);
 	},
 );

@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 
@@ -21,22 +20,14 @@ for (const [field, value] of [
 	["owner", "cloud-worker"],
 	["owner", "someone"],
 ] as const) {
+	const owners = field === "owner" ? "(?=.*codex, claude or marvin)" : "";
 	boardStory.it(
-		`refuses ${field}: ${value} with the file, field and upgrade command`,
-		[
-			projectFiles({
-				"old.md": `---\nid: old\n${field === "kind" ? "" : "kind: task\n"}${field}: ${value}\n---\n# Old vocabulary\n`,
-			}),
-		],
-		function* ({ rpc }) {
-			const error = yield* rpc((client) => client("work-board.document", { url: "/old.md" })).pipe(
-				Effect.match({ onFailure: (failure) => failure, onSuccess: () => undefined }),
+		`a document with the retired ${field}: ${value} is refused as a bad request naming the file, the field${field === "owner" ? ", the allowed owners" : ""} and the upgrade command`,
+		[projectFiles({ "old.md": `---\nid: old\n${field === "kind" ? "" : "kind: task\n"}${field}: ${value}\n---\n# Old vocabulary\n` })],
+		function* ({ documentRefusal }) {
+			expect(yield* documentRefusal("old.md")).toEqual(
+				expect.stringMatching(new RegExp(`^bad request: ${owners}(?=.*work-board migrate <board dir>).*old\\.md: ${field}:`, "su")),
 			);
-			expect(error).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining(`old.md: ${field}:`) });
-			expect(error?.message).toContain("work-board migrate <board dir>");
-			if (field === "owner") {
-				expect(error?.message).toContain("codex, claude or marvin");
-			}
 		},
 	);
 }

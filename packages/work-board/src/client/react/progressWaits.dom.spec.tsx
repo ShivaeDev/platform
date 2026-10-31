@@ -5,17 +5,18 @@ import { componentScreen } from "#test/screenTraits.ts";
 import { TodayProgress } from "./TodayProgress.tsx";
 
 screenStory.it(
-	"Today includes PR waits in progress, names each owner and excludes waits without a PR and completed work",
+	"Today's work in progress lists each pull request waiting on someone under a badge naming who, and leaves out a wait without a pull request",
 	[componentScreen(<TodayProgress data={progressWaits()} failed={false} />)],
-	({ findElements, readText }) => {
-		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual([
-			"task.sample.0",
-			"automation",
-			"maintainer",
-			"orchestrator",
-		]);
-		expect(readText('[data-progress-id="automation"]')).toContain("Waiting on automation");
-		expect(readText('[data-progress-id="maintainer"]')).toContain("Waiting on you");
-		expect(readText('[data-progress-id="orchestrator"]')).toContain("Waiting on orchestrator");
+	function* ({ inProgressList }) {
+		expect(yield* inProgressList()).toEqual(
+			expect.objectContaining({
+				rows: [
+					expect.objectContaining({ id: "task.sample.0" }),
+					expect.objectContaining({ badge: "Waiting on automation", id: "automation" }),
+					expect.objectContaining({ badge: "Waiting on you", id: "maintainer" }),
+					expect.objectContaining({ badge: "Waiting on orchestrator", id: "orchestrator" }),
+				],
+			}),
+		);
 	},
 );

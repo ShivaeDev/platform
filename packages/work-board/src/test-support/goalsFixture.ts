@@ -19,3 +19,7 @@ export function goalsFixture(): Readonly<Record<string, string>> {
 			"---\nid: task.third\nkind: task\nstatus: deferred\nrelationships:\n - kind: implements\n   target: project.example#second\n---\n# Third task",
 	};
 }
+
+export function firstDecision(body: string) {
+	return `---\nid: decision.first\nkind: question\nscope: task\nurgency: whenever\n${body}attention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Choose the next step\n   unblocks: [task.first]\n---\n# Next step`;
+}

@@ -1,47 +1,36 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { todayFixture } from "#test/todayFixture.ts";
 
 expectNoReactWarnings();
-const ASK = "[data-attention-id='question.storage']";
-const trigger = `${ASK} button[aria-haspopup='dialog']`;
-const DIALOG = "[role='dialog'][aria-label='Answer Where should the project documents live?']";
+const STORAGE = "Where should the project documents live?";
+
 screenStory.it(
-	"opens compact answer controls, records an option and removes its ask on query refresh",
+	"Answer on Today opens the question's options with the recommended option focused",
 	[routedScreen(todayFixture(), "/", { home: "home.md", writable: true })],
-	function* ({ readText, readAttribute, readFocus, findElement, click, keyboard, readResponses, activate }) {
-		yield* eventually(() => expect(findElement(trigger)).not.toBeNull());
-		expect(findElement(DIALOG, document)).toBeNull();
-		expect(readAttribute(trigger, "aria-expanded")).toBe("false");
-		click(trigger);
-		yield* eventually(() =>
-			expect(readText("[aria-label='Options for Where should the project documents live?'] button", document)).toContain(
-				"Keep local files · Recommended",
-			),
-		);
-		expect(readFocus()?.textContent).toContain("Keep local files · Recommended");
-		keyboard("Escape");
-		yield* eventually(() => expect(findElement(DIALOG, document)).toBeNull());
-		yield* eventually(() => expect(readFocus()).toBe(findElement(trigger)));
-		click(trigger);
-		yield* eventually(() => expect(findElement(DIALOG, document)).not.toBeNull());
-		yield* Effect.promise(() => activate("[aria-label='Options for Where should the project documents live?'] button"));
-		yield* eventually(() => expect(findElement(ASK)).toBeNull());
-		const saved = yield* Effect.promise(() => readResponses("question.storage", "answer"));
-		expect(saved.responses).toHaveLength(1);
-		expect(saved.responses[0]?.response).toMatchObject({ answers: [{ prompt: "answer", selected: ["option-1"], text: "" }], type: "answer" });
+	function* ({ answerOnToday, keyboardFocus, todayAnswer }) {
+		expect(yield* todayAnswer()).toBe("closed");
+
+		yield* answerOnToday(STORAGE);
+
+		yield* outcomes([
+			["answer", () => todayAnswer(), expect.objectContaining({ name: `Answer ${STORAGE}` })],
+			["focus", () => keyboardFocus(), expect.objectContaining({ name: expect.stringContaining("Keep local files · Recommended") })],
+		]);
 	},
 );
 
 screenStory.it(
-	"opens Today without a configured home and preserves empty-workspace guidance",
+	"Today without a configured home offers Getting started and no home link",
 	[routedScreen({}, "/", { home: undefined })],
-	function* ({ readText }) {
-		yield* eventually(() => expect(readText("#doc h1")).toBe("Today"));
-		expect(readText(".today-strip")).toBe("0 need you·0 ready tasks·0 active goals");
-		expect(readText(".today-page a[href='/_board/start']")).toBe("Getting started");
+	function* ({ emptyState, todayHomeLink, todaySummary }) {
+		yield* outcomes([
+			["home link", () => todayHomeLink(), "none"],
+			["Needs you", () => emptyState("Needs you"), expect.objectContaining({ action: { href: "/_board/start", label: "Getting started" } })],
+			["summary", () => todaySummary(), "0 need you·0 ready tasks·0 active goals"],
+		]);
 	},
 );

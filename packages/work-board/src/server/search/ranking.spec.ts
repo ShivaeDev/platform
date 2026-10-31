@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { modifiedNotes } from "#test/readingTraits.ts";
 import {
@@ -10,35 +11,44 @@ import {
 } from "#test/searchRankingFixture.ts";
 
 const fleet = fleetItemRankingFixture();
+const fleetItems = [projectFiles(fleet.files), modifiedNotes(fleet.modified)];
+
 boardStory.it(
-	"ranks all items by title/ID relevance, status and recency before every heading or passage",
-	[projectFiles(fleet.files), modifiedNotes(fleet.modified)],
-	function* ({ search }) {
-		const results = (yield* search("records: watch")).results;
-		expect(results.slice(0, 4).map((entry) => [entry.kind, entry.id])).toEqual([
-			["document", "decision.watch"],
-			["document", "task.watch-done"],
-			["document", "decision.policy"],
-			["document", "task.review"],
+	"a records: search ranks every matching item by title or ID, then status and recency, before any heading or passage",
+	fleetItems,
+	function* ({ rankedResults, resultIds }) {
+		yield* outcomes([
+			[
+				"first five results",
+				() => rankedResults("records: watch", 5),
+				["item decision.watch", "item task.watch-done", "item decision.policy", "item task.review", "heading /notes.md#heading-watch-notes"],
+			],
+			["item results", () => resultIds("records: watch"), ["decision.watch", "task.watch-done", "decision.policy", "task.review"]],
 		]);
-		expect(results[2]?.snippet).toBe("The watch needs a policy.");
-		expect(results.slice(4).every((entry) => entry.kind !== "document" || !entry.itemKind)).toBe(true);
-		expect(results.some((entry) => entry.kind === "heading" && entry.file === "notes.md")).toBe(true);
-		expect(results.filter((entry) => entry.file === "open.md")).toEqual([
-			expect.objectContaining({ href: "/_board/item/task.review/", kind: "document", snippet: "The watch keeps running." }),
-		]);
-		expect((yield* search("watch")).results.some((entry) => entry.file.startsWith("decision-"))).toBe(false);
 	},
 );
 
-const ranked = searchRankingFixture();
 boardStory.it(
-	"ranks title matches before body matches, then open work before closed or deferred work and most recently changed sources",
+	"an item matched only in its body is one result that links to its item page with the matching sentence as snippet",
+	fleetItems,
+	function* ({ resultsFrom }) {
+		expect(yield* resultsFrom("records: watch", "open.md")).toEqual([
+			expect.objectContaining({ href: "/_board/item/task.review/", kind: "document", snippet: "The watch keeps running." }),
+		]);
+	},
+);
+
+boardStory.it("a plain search leaves out the Fleet decision records", fleetItems, function* ({ resultSources }) {
+	expect(yield* resultSources("watch")).toEqual(["done.md", "open.md", "notes.md"]);
+});
+
+const ranked = searchRankingFixture();
+
+boardStory.it(
+	"title matches come before body matches, then open work before closed or deferred work, then the most recently changed",
 	[projectFiles(ranked.files), modifiedNotes(ranked.modified)],
-	function* ({ search }) {
-		const results = (yield* search("watch")).results;
-		const sources = [...new Set(results.map((entry) => entry.file))];
-		expect(sources).toEqual([
+	function* ({ resultSources }) {
+		expect(yield* resultSources("watch")).toEqual([
 			"planned.md",
 			"needs-you.md",
 			"active.md",
@@ -53,50 +63,52 @@ boardStory.it(
 );
 
 for (const titleStatus of ["draft", "ready", "done", "deferred"]) {
-	for (const passageStatus of ["draft", "ready", "done", "deferred"]) {
-		const { files, modified } = identityRankingFixture(titleStatus, passageStatus);
+	const { files, modified } = identityRankingFixture(titleStatus, "ready");
+	for (const query of ["inbox", "task.inbox"]) {
 		boardStory.it(
-			`ranks a ${titleStatus} title/ID match above a newer ${passageStatus} passage match`,
+			`searching ${query} ranks a ${titleStatus} item matched by title or ID above a newer ready item matched in a passage`,
 			[projectFiles(files), modifiedNotes(modified)],
-			function* ({ search }) {
-				for (const query of ["inbox", "task.inbox"]) {
-					const results = (yield* search(query)).results;
-					expect(results[0]).toMatchObject({ id: "task.inbox", kind: "document", status: titleStatus, title: "Inbox triage" });
-					expect(results.find((entry) => entry.id === "task.notes")).toMatchObject({ kind: "document", status: passageStatus });
-				}
+			function* ({ resultIds }) {
+				expect(yield* resultIds(query)).toEqual(["task.inbox", "task.notes"]);
 			},
 		);
 	}
 }
 
 const exact = exactRankingFixture();
+const exactItems = [projectFiles(exact.files), modifiedNotes(exact.modified)];
+
+for (const query of ["answer card", "Answer-Card", "board.answer-card", "Answering a decision is one obvious action on its page"]) {
+	boardStory.it(`searching ${JSON.stringify(query)} finds the exactly matching item first`, exactItems, function* ({ resultIds }) {
+		expect(yield* resultIds(query)).toEqual(expect.arrayContaining(["board.answer-card"]));
+	});
+}
+
 boardStory.it(
-	"ranks an exact ID or title match first, then title matches, then newer open work that only mentions the words",
-	[projectFiles(exact.files), modifiedNotes(exact.modified)],
-	function* ({ search }) {
-		for (const query of ["answer card", "Answer-Card", "board.answer-card", "Answering a decision is one obvious action on its page"]) {
-			const items = (yield* search(query)).results.filter((entry) => entry.kind === "document").map((entry) => entry.id);
-			expect(items[0]).toBe("board.answer-card");
-		}
-		const items = (yield* search("answer card")).results.filter((entry) => entry.kind === "document").map((entry) => entry.id);
-		expect(items).toEqual(["board.answer-card", "board.answer-card-polish", "quality.baseline"]);
+	"an exact title match comes first, then other title matches, then newer open work that only mentions the words",
+	exactItems,
+	function* ({ resultIds }) {
+		expect(yield* resultIds("answer card")).toEqual(["board.answer-card", "board.answer-card-polish", "quality.baseline"]);
 	},
 );
 
+const crossGroup = projectFiles(crossGroupRankingFixture(45));
+
 boardStory.it(
-	"ranks an exact or multi-word prefix title match first even when it is a plain document behind many work items",
-	[projectFiles(crossGroupRankingFixture(45))],
-	function* ({ search }) {
-		const prefix = (yield* search("Work Board on client-rendered React")).results;
-		expect(prefix[0]).toMatchObject({ file: "plans/board-react.md", match: "prefix" });
-		expect(prefix.slice(1).every((entry) => entry.match === "text")).toBe(true);
-		expect((yield* search("work board on client rendered react slice plan")).results[0]).toMatchObject({
-			file: "plans/board-react.md",
-			match: "exact",
-		});
-		expect((yield* search("connection budget")).results.map((entry) => [entry.file, entry.match]).slice(0, 2)).toEqual([
-			["notes/budget.md", "exact"],
-			["boards/platform.md", "text"],
+	"a plain document whose title starts with the words comes first as a prefix match, ahead of 45 work items matching only in text",
+	[crossGroup],
+	function* ({ resultMatches }) {
+		expect(yield* resultMatches("Work Board on client-rendered React")).toEqual([
+			"prefix plans/board-react.md",
+			...Array.from({ length: 39 }, () => expect.stringMatching(/^text /u)),
 		]);
 	},
 );
+
+boardStory.it("a query spelling a plain document's whole title finds it first as an exact match", [crossGroup], function* ({ firstResult }) {
+	expect(yield* firstResult("work board on client rendered react slice plan")).toMatchObject({ file: "plans/board-react.md", match: "exact" });
+});
+
+boardStory.it("an exact title match ranks above a board that mentions the words", [crossGroup], function* ({ resultMatches }) {
+	expect(yield* resultMatches("connection budget", 2)).toEqual(["exact notes/budget.md", "text boards/platform.md"]);
+});

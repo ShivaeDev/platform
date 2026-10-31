@@ -1,101 +1,104 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { finishDocumentBody, heldDocumentBody } from "#test/documentBodyTiming.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failingSectionRender } from "#test/failingSectionRender.ts";
+import { heldDocumentBody } from "#test/heldDocumentBody.ts";
 import { LATE_HEADING, LONG_REPORT, LONG_REPORT_TITLE, REWRITTEN_REPORT, REWRITTEN_SUMMARY } from "#test/longReportFixture.ts";
 import { observedOutline } from "#test/observedOutline.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenMedia } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { chromeScreen, routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
 const files = { "home.md": "# Home", "report.md": LONG_REPORT };
+const OPENING = "Opening summary of the research.";
 
 screenStory.it(
-	"paints the title and item header of a long report before its body finishes rendering",
-	[heldDocumentBody(), routedScreen(files, "/report.md")],
-	function* ({ findElement, readAttribute, readText }) {
-		yield* eventually(() => expect(readText("#doc [data-page-header] h1")).toBe(LONG_REPORT_TITLE));
-		expect(readText("#doc article.doc")?.trim()).toBe("Opening summary of the research.");
-		expect(findElement(`#${LATE_HEADING}`)).toBeNull();
-		expect(readAttribute("#doc article.doc", "data-source")).toBeNull();
-		expect(readAttribute("#doc", "data-route")).toBeNull();
-		yield* Effect.promise(finishDocumentBody);
-		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/report.md"));
-		expect(readText(`#${LATE_HEADING}`)).toBe("Late follow-up");
-		const late = findElement(`#${LATE_HEADING}`);
-		expect(late && findElement("#heading-finding-40")?.compareDocumentPosition(late)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+	"a long report shows its title and opening while the rest of its body waits, and its last section follows once the browser is free",
+	[heldDocumentBody(), readingPage(files, "/report.md")],
+	function* ({ documentBody, documentBodyFinishes, headerTitle, lastHeading }) {
+		yield* outcomes([
+			["body", () => documentBody(), OPENING],
+			["last heading", () => lastHeading(), "none"],
+			["title", () => headerTitle(), LONG_REPORT_TITLE],
+		]);
+
+		yield* documentBodyFinishes();
+
+		expect(yield* lastHeading()).toBe("Late follow-up");
 	},
 );
 
 screenStory.it(
-	"lands a deep link on a heading in the last section of a long report once that section renders",
-	[heldDocumentBody(), routedScreen(files, `/report.md#${LATE_HEADING}`)],
-	function* ({ findElement, readFocus, readText }) {
-		yield* eventually(() => expect(readText("#doc [data-page-header] h1")).toBe(LONG_REPORT_TITLE));
-		expect(findElement(`#${LATE_HEADING}`)).toBeNull();
-		expect(readText("[role=status]")).not.toContain("no longer in the document");
-		yield* Effect.promise(finishDocumentBody);
-		yield* eventually(() => expect(readFocus()?.id).toBe(LATE_HEADING));
-		expect(readText("[role=status]")).not.toContain("no longer in the document");
+	"a deep link to a heading in the last section of a long report lands focus there once that section renders, without a missing-section notice",
+	[heldDocumentBody(), readingPage(files, `/report.md#${LATE_HEADING}`)],
+	function* ({ documentBodyFinishes, lastHeading, navigationStatus, readerFocus }) {
+		yield* outcomes([
+			["last heading", () => lastHeading(), "none"],
+			["status", () => navigationStatus(), { state: "normal", text: "" }],
+		]);
+
+		yield* documentBodyFinishes();
+
+		yield* outcomes([
+			["focus", () => readerFocus(), "heading Late follow-up Link to Late follow-up"],
+			["status", () => navigationStatus(), { state: "normal", text: "" }],
+		]);
+	},
+);
+
+for (const heading of ["heading-evidence-12", "heading-finding-30", LATE_HEADING]) {
+	screenStory.it(
+		`the report outline marks ${heading} as current once the reader scrolls it to the top`,
+		[observedOutline(), readingPage(files, "/report.md")],
+		function* ({ currentSection, scrollToHeading }) {
+			expect(yield* currentSection("outline")).toBe("#heading-long-research-report");
+
+			yield* scrollToHeading(heading);
+
+			expect(yield* currentSection("outline")).toBe(`#${heading}`);
+		},
+	);
+}
+
+screenStory.it(
+	"on a phone, the On this page menu marks the section the reader scrolled to",
+	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), observedOutline(), readingPage(files, "/report.md")],
+	function* ({ currentSection, openOutlineMenu, scrollToHeading }) {
+		yield* scrollToHeading("heading-finding-7");
+
+		yield* openOutlineMenu();
+
+		expect(yield* currentSection("On this page menu")).toBe("#heading-finding-7");
 	},
 );
 
 screenStory.it(
-	"marks the section the reader is in on the report outline as they scroll",
-	[observedOutline(), chromeScreen(files, "/report.md")],
-	function* ({ findElements, scrollToHeading }) {
-		function current() {
-			return [...findElements('.document-outline a[aria-current="location"]')].map((link) => link.getAttribute("href"));
-		}
-		yield* eventually(() => expect(current()).toEqual(["#heading-long-research-report"]));
-		scrollToHeading("heading-evidence-12");
-		expect(current()).toEqual(["#heading-evidence-12"]);
-		scrollToHeading("heading-finding-30");
-		expect(current()).toEqual(["#heading-finding-30"]);
-		scrollToHeading(LATE_HEADING);
-		expect(current()).toEqual([`#${LATE_HEADING}`]);
+	"when a long report changes while its old version is still rendering, the old render finishing leaves the new version in place",
+	[heldDocumentBody(), readingPage(files, "/report.md")],
+	function* ({ documentBody, documentBodyFinishes, rewriteDocument }) {
+		yield* rewriteDocument("report.md", REWRITTEN_REPORT);
+		expect(yield* documentBody()).toBe(REWRITTEN_SUMMARY);
+
+		yield* documentBodyFinishes();
+
+		expect(yield* documentBody()).toBe(REWRITTEN_SUMMARY);
 	},
 );
 
 screenStory.it(
-	"marks the current section in the phone outline menu",
-	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), observedOutline(), chromeScreen(files, "/report.md")],
-	function* ({ click, findElement, scrollToHeading }) {
-		yield* eventually(() => expect(findElement("[data-page-actions] [data-outline-menu]")).not.toBeNull());
-		scrollToHeading("heading-finding-7");
-		click(findElement("[data-page-actions] [data-outline-menu]"));
-		yield* eventually(() =>
-			expect(findElement('[data-slot="popover-content"] a[aria-current="location"]', document)?.getAttribute("href")).toBe("#heading-finding-7"),
-		);
-	},
-);
+	"when a long report changes while its old version is still rendering, a render failure in the old version shows no error",
+	[heldDocumentBody(), failingSectionRender("Finding 1"), readingPage(files, "/report.md")],
+	function* ({ documentBody, documentBodyFinishes, renderingError, rewriteDocument }) {
+		yield* rewriteDocument("report.md", REWRITTEN_REPORT);
+		expect(yield* documentBody()).toBe(REWRITTEN_SUMMARY);
 
-screenStory.it(
-	"keeps the new version of a long report when the file changes while the old version is still rendering",
-	[heldDocumentBody(), routedScreen(files, "/report.md")],
-	function* ({ editFile, findElement, readText, refreshDocument }) {
-		yield* eventually(() => expect(readText("#doc [data-page-header] h1")).toBe(LONG_REPORT_TITLE));
-		editFile("report.md", REWRITTEN_REPORT);
-		yield* Effect.promise(() => refreshDocument("/report.md"));
-		yield* eventually(() => expect(readText("#doc article.doc")?.trim()).toBe(REWRITTEN_SUMMARY));
-		yield* Effect.promise(finishDocumentBody);
-		expect(readText("#doc article.doc")?.trim()).toBe(REWRITTEN_SUMMARY);
-		expect(findElement("#heading-finding-1")).toBeNull();
-	},
-);
+		yield* documentBodyFinishes();
 
-screenStory.it(
-	"ignores a render failure in the old version of a long report once the file has changed",
-	[heldDocumentBody(), failingSectionRender("Finding 1"), routedScreen(files, "/report.md")],
-	function* ({ editFile, findElement, readText, refreshDocument }) {
-		yield* eventually(() => expect(readText("#doc [data-page-header] h1")).toBe(LONG_REPORT_TITLE));
-		editFile("report.md", REWRITTEN_REPORT);
-		yield* Effect.promise(() => refreshDocument("/report.md"));
-		yield* eventually(() => expect(readText("#doc article.doc")?.trim()).toBe(REWRITTEN_SUMMARY));
-		yield* Effect.promise(finishDocumentBody);
-		expect(readText("#doc article.doc")?.trim()).toBe(REWRITTEN_SUMMARY);
-		expect(findElement("pre code")).toBeNull();
+		yield* outcomes([
+			["body", () => documentBody(), REWRITTEN_SUMMARY],
+			["error", () => renderingError(), "none"],
+		]);
 	},
 );

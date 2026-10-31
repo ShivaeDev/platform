@@ -51,6 +51,5 @@ export function directoryNotifications(onlyDirectories = false) {
 			})),
 		),
 		watchedPaths: () => [...watchedPaths],
-		watchStarts: () => starts,
 	};
 }

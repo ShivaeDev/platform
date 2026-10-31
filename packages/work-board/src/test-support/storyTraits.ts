@@ -1,19 +1,15 @@
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
-import { Clock, Effect } from "effect";
-import { vi } from "vitest";
+import { Clock } from "effect";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { boardStory, projectFiles, responsesEnabled } from "./boardStory.ts";
 import { diagnosticsDaemon, rawDiagnosticsDaemon } from "./diagnosticsDaemon.ts";
-import { inboxFixture, inboxQuestion } from "./inboxFixture.ts";
+import { inboxQuestion } from "./inboxFixture.ts";
 import { REVIEW_TASK, reviewResult } from "./resultReview.ts";
 import { connected, openReader } from "./storyEngine.ts";
 
 export function anOpenQuestion() {
 	return projectFiles({ "question.md": inboxQuestion, "readme.md": "# Project notes" }, "an open question offers local files or a database");
-}
-export function anInbox() {
-	return projectFiles(inboxFixture(), "the reader has questions, human work and managed requests");
 }
 export function aResultAwaitingReview() {
 	return projectFiles({ "items/result.md": reviewResult(), "items/task.md": REVIEW_TASK }, "a finished result awaits review against in-review work");
@@ -27,18 +23,6 @@ export function anUnreadableSource(file: string) {
 	return boardStory.trait("project", `the project source ${file} cannot be read`, (engine) => {
 		engine.notes.write(file, "# Unreadable source");
 		chmodSync(join(engine.notes.root, file), 0o000);
-	});
-}
-
-export function anAnswerForm(prefix = "response") {
-	return boardStory.trait("reader", `the ${prefix} form is ready`, function* (engine) {
-		yield* openReader(engine);
-		yield* Effect.promise(() =>
-			vi.waitUntil(() => connected(engine).page.document.getElementById(`${prefix}-preview`)?.hasAttribute("disabled") === false, {
-				interval: 10,
-				timeout: 5000,
-			}),
-		);
 	});
 }
 

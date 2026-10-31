@@ -1,8 +1,7 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { TEXT_QUESTION_ID, textQuestionFixture } from "#test/answerCardFixture.ts";
-import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
@@ -10,26 +9,36 @@ expectNoReactWarnings();
 
 const REASON = "Reconnecting to the Board. You can answer once it is back.";
 const DRAFT = "Share one pool per worker.";
-const ANSWER = { name: "Your answer", role: "textbox" };
-const RECORD = { name: "Record answer", role: "button" };
+const question = routedScreen(textQuestionFixture, `/_board/item/${TEXT_QUESTION_ID}/`, { home: "home.md", writable: true });
 
 screenStory.it(
-	"holds the item page answer card while the Board reconnects and keeps the draft",
-	[
-		screenWorkspace("offline-answer"),
-		routedScreen({ ...textQuestionFixture }, `/_board/item/${TEXT_QUESTION_ID}/`, { home: "home.md", writable: true }),
-	],
-	function* ({ answerInput, dropLiveConnection, findElement, readDisabled, readText, reconnectLive, roles }) {
-		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
-		answerInput("body", DRAFT);
-		yield* Effect.promise(dropLiveConnection);
-		yield* eventually(() => expect(readText("#response-form [role='status']")).toBe(REASON));
-		const answer = yield* roles.find(ANSWER);
-		const record = yield* roles.find(RECORD);
-		expect([readDisabled(answer), readDisabled(record)]).toEqual([true, true]);
-		yield* Effect.promise(reconnectLive);
-		yield* eventually(() => expect([readDisabled(answer), readDisabled(record)]).toEqual([false, false]));
-		expect(readText("#response-form")).not.toContain(REASON);
-		expect(findElement<HTMLTextAreaElement>("#response-form textarea")?.value).toBe(DRAFT);
+	"a dropped live connection locks the answer card with a reason and keeps the draft",
+	[question],
+	function* ({ answerBoxState, answerCardLock, dropLiveConnection, writeAnswer }) {
+		yield* writeAnswer(DRAFT);
+		expect(yield* answerCardLock()).toEqual({ answer: "open", notice: "none", record: "open" });
+
+		yield* dropLiveConnection();
+
+		yield* outcomes([
+			["card", () => answerCardLock(), { answer: "locked", notice: REASON, record: "locked" }],
+			["draft", () => answerBoxState(), expect.objectContaining({ text: DRAFT })],
+		]);
+	},
+);
+
+screenStory.it(
+	"the answer card unlocks with its draft once the live connection is back",
+	[question],
+	function* ({ answerBoxState, answerCardLock, dropLiveConnection, reconnectLive, writeAnswer }) {
+		yield* writeAnswer(DRAFT);
+		yield* dropLiveConnection();
+
+		yield* reconnectLive();
+
+		yield* outcomes([
+			["card", () => answerCardLock(), { answer: "open", notice: "none", record: "open" }],
+			["draft", () => answerBoxState(), expect.objectContaining({ text: DRAFT })],
+		]);
 	},
 );

@@ -25,9 +25,9 @@ for (const [name, files, expected] of [
 		},
 		PULLS,
 	],
-	["a repository outside GitHub", { "package.json": JSON.stringify({ repository: "https://gitlab.com/example/project.git" }) }, undefined],
+	["a repository outside GitHub", { "package.json": JSON.stringify({ repository: "https://gitlab.com/example/project.git" }) }, "none"],
 ] as const) {
-	boardStory.it(`finds the pull request address from ${name}`, [projectFiles({ ...TASK, ...files })], function* ({ readDocument }) {
-		expect((yield* readDocument("task.md")).pullRequests).toBe(expected);
+	boardStory.it(`the pull request address comes from ${name}`, [projectFiles({ ...TASK, ...files })], function* ({ pullRequestAddress }) {
+		expect(yield* pullRequestAddress("task.md")).toBe(expected);
 	});
 }

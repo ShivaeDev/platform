@@ -1,78 +1,93 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { answerCardFixture, decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
+const WRITABLE = { home: "home.md", writable: true };
+const NOTE = "Please tighten the release instructions.";
+
 for (const url of ["/guide.md", "/_board/item/task.guide/"]) {
 	screenStory.it(
-		`shows the decision's quiet answer card under the unblocked item's header at ${url}`,
-		[routedScreen(readyDecisionFixture, url, { home: "home.md", writable: true })],
-		function* ({ readResponses, answerPrompt, responseClick, findElement, readText, findElements }) {
-			yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
-			const header = findElement(".item-introduction");
-			expect(readText("h1", header)).toBe("Publish the install guide");
-			expect(header?.nextElementSibling?.classList.contains("answer-cards")).toBe(true);
-			const card = findElement(".response-panel");
-			expect(readText(".answer-reason strong", card)).toBe("Reviewed PR is ready to merge.");
-			expect(readText(".answer-links a", card)).toBe("Open PR #395");
-			expect([...findElements(".question-choice strong")].map((label) => label.textContent)).toEqual(["Request changes", "Stop and hand back"]);
-			const more = findElement("details[data-key='response-details']", card);
-			expect(more).toHaveProperty("open", false);
-			expect(readText("summary", more)).toBe("More options");
-			expect(findElement('[name="author"]', card)).toBeNull();
-			for (const selector of ['[name="type"]', "#response-preview", "#response-clear"]) {
-				expect(findElement(selector, card)?.closest("details")).toBe(more);
-			}
-			expect(
-				[...findElements("textarea")]
-					.filter((field) => !field.closest("details"))
-					.map((field) => field.closest("[data-prompt]")?.getAttribute("data-prompt")),
-			).toEqual(["fleet-action"]);
-			expect(readText("#response-submit", card)).toBe("Record answer");
-			expect(readText("article.doc")).toContain("Keep the release instructions clear.");
-			answerPrompt("fleet-action", "Please tighten the release instructions.");
-			yield* Effect.promise(async () => responseClick("submit"));
-			yield* eventually(() =>
-				expect(readText(".answer-cards .response-panel [data-answered]")).toBe(
-					"You answered. Fleet isn't running. It picks this up when it starts again.",
-				),
-			);
-			const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
-			expect(saved.responses).toMatchObject([
-				{
-					response: {
-						answers: [{ prompt: "fleet-action", selected: [], text: "Please tighten the release instructions." }],
-						author: "maintainer",
-					},
-				},
+		`the task a decision unblocks shows the decision's answer card right below its header at ${url}`,
+		[routedScreen(readyDecisionFixture, url, WRITABLE)],
+		function* ({ cardReason, documentText, itemHeading, itemLayout }) {
+			yield* outcomes([
+				["document", () => documentText(), expect.stringContaining("Keep the release instructions clear.")],
+				["heading", () => itemHeading(), "Publish the install guide"],
+				["layout", () => itemLayout(), ["header", "answer cards", "document"]],
+				["reason", () => cardReason(), expect.objectContaining({ paragraphs: [expect.stringContaining("Reviewed PR is ready to merge.")] })],
+			]);
+		},
+	);
+
+	screenStory.it(
+		`a note recorded on the task page at ${url} is saved against the decision, and the card says Fleet isn't running`,
+		[routedScreen(readyDecisionFixture, url, WRITABLE)],
+		function* ({ answeredNote, recordAnswer, recordedAnswers, writeAnswer }) {
+			yield* writeAnswer(NOTE, "fleet-action");
+
+			yield* recordAnswer();
+
+			yield* outcomes([
+				["card says", () => answeredNote(), "You answered. Fleet isn't running. It picks this up when it starts again."],
+				[
+					"recorded",
+					() => recordedAnswers(decisionId, "direction"),
+					[expect.objectContaining({ answers: [{ prompt: "fleet-action", selected: [], text: NOTE }], author: "maintainer" })],
+				],
 			]);
 		},
 	);
 }
 
 screenStory.it(
-	"uses the decision's authored options on the task page",
-	[routedScreen(answerCardFixture, "/guide.md", { home: "home.md", writable: true })],
-	function* ({ findElement, findElements }) {
-		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
-		expect([...findElements(".question-choice")].map((button) => button.textContent)).toEqual([
-			"Publish nowRecommendedShip the reviewed guide with this release.",
-			"Wait for reviewKeep the work blocked until another review.",
+	"the linked answer card shows its reason, recommendation, link, options, note box and Record answer, and keeps reply kind, preview and clear under a closed More options",
+	[routedScreen(readyDecisionFixture, "/guide.md", WRITABLE)],
+	function* ({ cardParts, moreOptions, moreOptionsState }) {
+		yield* outcomes([
+			["card shows", () => cardParts(), ["title", "reason", "recommendation", "links", "options", "answer box", "Record answer", "More options"]],
+			[
+				"inside More options",
+				() => moreOptions(),
+				{ choices: ["Kind of reply: An answer (no is an answer too)"], text: expect.stringMatching(/Preview.*Clear draft/su) },
+			],
+			["More options", () => moreOptionsState(), "closed"],
 		]);
-		expect(findElement("#response-submit")).toHaveProperty("disabled", false);
 	},
 );
 
-const files = { ...answerCardFixture, [decisionFile]: (answerCardFixture[decisionFile] ?? "").replace('"state":"open"', '"state":"closed"') };
 screenStory.it(
-	"omits a linked card after its request closes",
-	[routedScreen(files, "/guide.md", { home: "home.md" })],
-	function* ({ readText, findElement }) {
-		yield* eventually(() => expect(readText("article.doc")).toContain("Keep the release instructions clear."));
-		expect(findElement(".answer-cards")).toBeNull();
+	"the task page offers the decision's authored options and lets the reader record",
+	[routedScreen(answerCardFixture, "/guide.md", WRITABLE)],
+	function* ({ cardOptions, recordButton }) {
+		yield* outcomes([
+			[
+				"options",
+				() => cardOptions(),
+				["Publish now (recommended): Ship the reviewed guide with this release.", "Wait for review: Keep the work blocked until another review."],
+			],
+			["Record answer", () => recordButton(), "enabled"],
+		]);
+	},
+);
+
+screenStory.it(
+	"the task page drops the decision's answer card once its request closes",
+	[
+		routedScreen(
+			{ ...answerCardFixture, [decisionFile]: (answerCardFixture[decisionFile] ?? "").replace('"state":"open"', '"state":"closed"') },
+			"/guide.md",
+			{ home: "home.md" },
+		),
+	],
+	function* ({ cardTitle, documentText }) {
+		yield* outcomes([
+			["answer card", () => cardTitle(), "no answer card"],
+			["document", () => documentText(), expect.stringContaining("Keep the release instructions clear.")],
+		]);
 	},
 );

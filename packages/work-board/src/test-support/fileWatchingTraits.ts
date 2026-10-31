@@ -50,34 +50,25 @@ export function failedSentinelWrite(code: string): FileSystemWrapper {
 }
 
 export function sentinelWriteFails(code: string) {
-	const warnings: unknown[] = [];
-	return {
-		trait: fileReadingStory.trait("project", `the host cannot write the workspace watch sentinel: ${code}`, (engine) => {
-			warnings.length = 0;
-			const logger = Logger.make(({ logLevel, message }) => {
-				if (logLevel === "Warn") {
-					warnings.push(message);
-				}
-			});
-			engine.services = Layer.effect(FileSystem.FileSystem, Effect.map(FileSystem.FileSystem, failedSentinelWrite(code))).pipe(
-				Layer.provideMerge(engine.services),
-				Layer.provideMerge(Logger.layer([logger])),
-			);
-		}),
-		warnings: () => [...warnings],
-	};
+	return fileReadingStory.trait("project", `the host cannot write the workspace watch sentinel: ${code}`, (engine) => {
+		const logger = Logger.make(({ logLevel, message }) => {
+			if (logLevel === "Warn") {
+				engine.warnings.push(String(message));
+			}
+		});
+		engine.services = Layer.effect(FileSystem.FileSystem, Effect.map(FileSystem.FileSystem, failedSentinelWrite(code))).pipe(
+			Layer.provideMerge(engine.services),
+			Layer.provideMerge(Logger.layer([logger])),
+		);
+	});
 }
 
 export function aLinkedFolder() {
-	let link: () => void;
-	return {
-		link: () => Effect.sync(() => link()),
-		trait: fileReadingStory.trait("project", "a separate folder can be linked into the workspace", function* (engine) {
-			const notes = yield* Effect.acquireRelease(
-				Effect.sync(() => folder({ "linked.md": "# Linked" })),
-				(acquired) => Effect.sync(acquired.remove),
-			);
-			link = () => symlinkSync(notes.root, join(engine.notes.root, "linked"), "dir");
-		}),
-	};
+	return fileReadingStory.trait("project", "a separate folder can be linked into the workspace", function* (engine) {
+		const notes = yield* Effect.acquireRelease(
+			Effect.sync(() => folder({ "linked.md": "# Linked" })),
+			(acquired) => Effect.sync(acquired.remove),
+		);
+		engine.link = () => symlinkSync(notes.root, join(engine.notes.root, "linked"), "dir");
+	});
 }

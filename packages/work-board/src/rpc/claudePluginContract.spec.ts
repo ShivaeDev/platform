@@ -1,8 +1,5 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardInit, readBoard } from "@shivaedev/work-board-plugin/board.ts";
-import { answersTo, type Board, item, needsYou, overview } from "@shivaedev/work-board-plugin/boardTools.ts";
-import { rpcInit } from "@shivaedev/work-board-plugin/rpc.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { goalProgressFixture, progressFleet } from "#test/goalProgressFixture.ts";
 import { fleetReports } from "#test/storyTraits.ts";
@@ -46,87 +43,107 @@ const aBuildInFlight = fleetReports({
 });
 
 boardStory.it(
-	"answers the Claude Code plugin's batch with Needs you, In flight, Areas and Goals",
+	"the plugin's board read shows the open decision, the build in flight, the area it holds and the launch goal's progress",
 	[aLaunch, aBuildInFlight],
-	function* ({ board, postToSocket }) {
-		const reply = yield* postToSocket(boardInit("/project"));
-		expect(readBoard(reply, "/project", NOW)).toEqual({
-			areas: {
-				items: [
-					{
-						area: "work-board",
-						holders: [{ prUrl: "https://github.com/example/project/pull/7", stage: "working", title: "Build the page", workId: "task.build" }],
-						queue: [],
-					},
-				],
-				problem: null,
-			},
-			asks: {
-				items: [{ key: "open:task.build", title: "Build the page", url: `${board.url}/_board/item/decision.scope/#answer-card-direction` }],
-				problem: null,
-			},
-			flights: {
-				items: [
-					{
-						agents: [
-							{ id: "worker", role: "worker", state: "coding", turnMs: NOW - STARTED },
-							{ id: "planned:reviewer", role: "reviewer", state: "not started yet", turnMs: null },
-						],
-						goal: { id: "project.launch", title: "Launch" },
-						prUrl: "https://github.com/example/project/pull/7",
-						stage: "working",
-						title: "Build the page",
-						workId: "task.build",
-					},
-				],
-				problem: null,
-			},
-			goals: {
-				items: [
-					{
-						achieved: false,
-						blocked: 0,
-						done: 1,
-						id: "project.launch",
-						parked: 0,
-						running: 1,
-						scheduled: 0,
-						standing: false,
-						title: "Launch",
-						total: 2,
-					},
-				],
-				problem: null,
-			},
-			kind: "ready",
+	function* ({ board, pluginSection }) {
+		const flight = {
+			agents: [
+				{ id: "worker", role: "worker", state: "coding", turnMs: NOW - STARTED },
+				{ id: "planned:reviewer", role: "reviewer", state: "not started yet", turnMs: null },
+			],
+			goal: { id: "project.launch", title: "Launch" },
+			prUrl: "https://github.com/example/project/pull/7",
+			stage: "working",
+			title: "Build the page",
+			workId: "task.build",
+		};
+		yield* outcomes([
+			[
+				"areas",
+				() => pluginSection("areas", NOW),
+				{
+					items: [
+						{
+							area: "work-board",
+							holders: [{ prUrl: "https://github.com/example/project/pull/7", stage: "working", title: "Build the page", workId: "task.build" }],
+							queue: [],
+						},
+					],
+					problem: null,
+				},
+			],
+			[
+				"asks",
+				() => pluginSection("asks", NOW),
+				{
+					items: [{ key: "open:task.build", title: "Build the page", url: `${board.url}/_board/item/decision.scope/#answer-card-direction` }],
+					problem: null,
+				},
+			],
+			[
+				"flights",
+				() => pluginSection("flights", NOW),
+				{
+					items: [flight],
+					problem: null,
+				},
+			],
+			[
+				"goals",
+				() => pluginSection("goals", NOW),
+				{
+					items: [
+						{
+							achieved: false,
+							blocked: 0,
+							done: 1,
+							id: "project.launch",
+							parked: 0,
+							running: 1,
+							scheduled: 0,
+							standing: false,
+							title: "Launch",
+							total: 2,
+						},
+					],
+					problem: null,
+				},
+			],
+		]);
+	},
+);
+
+boardStory.it(
+	"the plugin's overview tool counts the waiting decision, the build in flight and the goal's progress",
+	[aLaunch, aBuildInFlight],
+	function* ({ pluginOverview }) {
+		expect(yield* pluginOverview()).toMatchObject({
+			fleet: { items: [{ goal: { id: "project.launch" }, workId: "task.build" }], state: "ready" },
+			goals: { done: 1, total: 2 },
+			needsYou: { count: 1, you: [{ id: "task.build", reason: "Choose the launch scope", title: "Build the page" }] },
 		});
 	},
 );
 
 boardStory.it(
-	"answers the plugin's read-only tools with the items, documents and decisions they shape",
+	"the plugin's needs-you tool offers the decision's options and recommendation",
 	[aLaunch, aBuildInFlight],
-	function* ({ postToSocket }) {
-		const ask: Board["ask"] = (requests) =>
-			Effect.runPromise(postToSocket(rpcInit("/project", requests))).then((reply) => answersTo(requests, reply.text, "/project"));
-		const tools = { ask, now: NOW };
-		const [summary, waiting, card] = yield* Effect.promise(() => Promise.all([overview(tools), needsYou(tools), item(tools, "task.build")]));
-		expect(summary).toMatchObject({
-			fleet: {
-				items: [{ goal: { id: "project.launch" }, workId: "task.build" }],
-				state: "ready",
-			},
-			goals: { done: 1, total: 2 },
-			needsYou: { count: 1, you: [{ id: "task.build", reason: "Choose the launch scope", title: "Build the page" }] },
-		});
-		expect(waiting.you).toEqual([
+	function* ({ pluginNeedsYou }) {
+		expect((yield* pluginNeedsYou()).you).toEqual([
 			expect.objectContaining({
 				id: "task.build",
 				options: [expect.objectContaining({ label: "Ship" }), expect.objectContaining({ label: "Wait" })],
 				recommended: "Ship",
 			}),
 		]);
-		expect(card).toMatchObject({
+	},
+);
+
+boardStory.it(
+	"the plugin's item tool reads the build's criteria, relationships and Fleet stage",
+	[aLaunch, aBuildInFlight],
+	function* ({ pluginItem }) {
+		expect(yield* pluginItem("task.build")).toMatchObject({
 			criteria: [{ id: "proof", text: "Show the page" }],
 			fleet: { item: { stage: "working", workId: "task.build" }, state: "ready" },
 			id: "task.build",
@@ -138,26 +155,27 @@ boardStory.it(
 );
 
 boardStory.it(
-	"carries all progress states and standing homes through the Claude Code adapter",
+	"the plugin's board read carries every progress state and standing goals",
 	[projectFiles(goalProgressFixture()), fleetReports(progressFleet())],
-	function* ({ postToSocket }) {
-		const result = readBoard(yield* postToSocket(boardInit("/project")), "/project", NOW);
-		expect(result.kind).toBe("ready");
-		if (result.kind !== "ready") {
-			throw new Error("Expected a readable Board");
-		}
-		expect(result.goals.items.find((goal) => goal.id === "goal.progress")).toEqual({
-			achieved: false,
-			blocked: 4,
-			done: 1,
-			id: "goal.progress",
-			parked: 5,
-			running: 2,
-			scheduled: 2,
-			standing: false,
-			title: "goal.progress",
-			total: 14,
-		});
-		expect(result.goals.items.find((goal) => goal.id === "goal.standing")).toMatchObject({ done: 1, standing: true, total: 1 });
+	function* ({ pluginGoal }) {
+		yield* outcomes([
+			[
+				"progress",
+				() => pluginGoal("goal.progress", NOW),
+				{
+					achieved: false,
+					blocked: 4,
+					done: 1,
+					id: "goal.progress",
+					parked: 5,
+					running: 2,
+					scheduled: 2,
+					standing: false,
+					title: "goal.progress",
+					total: 14,
+				},
+			],
+			["standing", () => pluginGoal("goal.standing", NOW), expect.objectContaining({ done: 1, standing: true, total: 1 })],
+		]);
 	},
 );

@@ -5,21 +5,27 @@ import { boardRouter } from "#client/react/boardRouter.ts";
 import { HeaderHarness } from "./HeaderHarness.tsx";
 import { renderBoard } from "./react.tsx";
 import { trackScreen } from "./screenEngine.ts";
+import { screenSettles } from "./screenSettle.ts";
 import { screenStory } from "./screenStory.ts";
 
 export function headerScreen(count: number | null | undefined, updates = false) {
-	return screenStory.trait("screen", "the reader opens the header controls", function* (engine) {
-		const paused = updates ? Atom.make(false) : undefined;
-		if (paused) {
-			engine.updatesPaused = paused;
-		}
-		const view = yield* Effect.promise(() =>
-			renderBoard({}, () => (
-				<RouterContextProvider router={boardRouter()}>
-					<HeaderHarness count={count} paused={paused} />
-				</RouterContextProvider>
-			)),
-		);
-		trackScreen(engine, view, (line) => engine.tell?.(line));
-	});
+	return screenStory.trait(
+		"screen",
+		`the reader opens the header with ${count === undefined ? "the needs-you count still loading" : `a needs-you count of ${count}`}${updates ? " and live updates" : ""}`,
+		function* (engine) {
+			const paused = updates ? Atom.make(false) : undefined;
+			if (paused) {
+				engine.updatesPaused = paused;
+			}
+			const view = yield* Effect.promise(() =>
+				renderBoard({}, () => (
+					<RouterContextProvider router={boardRouter()}>
+						<HeaderHarness count={count} paused={paused} />
+					</RouterContextProvider>
+				)),
+			);
+			trackScreen(engine, view, (line) => engine.tell?.(line));
+			yield* screenSettles(engine);
+		},
+	);
 }

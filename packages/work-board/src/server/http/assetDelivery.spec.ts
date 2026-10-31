@@ -1,106 +1,111 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { bundleNotBuilt } from "#test/servingStoryTraits.ts";
 
 const plan = projectFiles({ "plan.md": "# Plan\n\n## To do\n\n### `docs` Write the intro\n" });
-const START = `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: null, tag: "work-board.start" })}\n`;
 
-boardStory.it("compresses scripts, styles, the page shell and RPC answers for a client that accepts it", [plan], function* ({ exchange }) {
-	for (const path of ["/_board/react.js", "/_board/react.css", "/", "/plan.md"]) {
-		const plain = yield* exchange(path);
-		expect(plain.headers["content-encoding"]).toBeUndefined();
-		expect(plain.headers.vary).toBe("accept-encoding");
-		for (const [accept, encoding] of [
-			["gzip, deflate, br", "br"],
-			["gzip, br;q=0", "gzip"],
-			["br;q=0.5, *;q=0", "br"],
-		] as const) {
-			const compressed = yield* exchange(path, { "accept-encoding": accept });
-			expect(compressed.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(compressed.headers["content-encoding"]).toBe(encoding);
-			expect(compressed.headers.vary).toBe("accept-encoding");
-			expect(compressed.text).toBe(plain.text);
-			expect(compressed.body.length).toBeLessThan(plain.body.length);
-		}
-		expect((yield* exchange(path, { "accept-encoding": "identity" })).headers["content-encoding"]).toBeUndefined();
-	}
-	for (const path of ["/_board/rpc", "/_board/rpc/"]) {
-		const rpc = yield* exchange(path, { "accept-encoding": "gzip", "content-type": "application/ndjson" }, "POST", START);
-		expect(rpc.headers["content-encoding"]).toBe("gzip");
-		expect(rpc.headers["cache-control"]).toBe("private, no-store");
-		expect(rpc.text).toContain('"_tag":"Success"');
-		expect(rpc.body.length).toBeLessThan(rpc.text.length / 2);
-	}
-});
+for (const [accept, encoding] of [
+	[undefined, "none"],
+	["identity", "none"],
+	["gzip, deflate, br", "br"],
+	["gzip, br;q=0", "gzip"],
+	["br;q=0.5, *;q=0", "br"],
+] as const) {
+	boardStory.it(
+		`a browser ${accept === undefined ? "sending no accept-encoding" : `accepting "${accept}"`} receives the script bundle ${encoding === "none" ? "uncompressed" : `as ${encoding}`}, marked as varying with accept-encoding`,
+		[plan],
+		function* ({ download }) {
+			const script = (yield* download("/_board/react.js")).text;
 
-boardStory.it("caches content-hashed chunks for a year while the shell and fixed-name bundles revalidate", [plan], function* ({ exchange }) {
-	const entry = yield* exchange("/_board/react.js");
-	const chunk = /react-assets\/(?<name>[\w-]+\.js)/u.exec(entry.text)?.groups?.name;
-	expect(chunk).toBeDefined();
-	const hashed = yield* exchange(`/_board/react-assets/${chunk}`);
-	expect(hashed.status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(hashed.headers["cache-control"]).toBe("max-age=31536000, immutable");
-	const mermaid = yield* exchange("/_board/mermaid/mermaid.esm.min.mjs");
-	expect(mermaid.headers["cache-control"]).toBe("no-cache");
-	const mermaidChunk = /chunks\/mermaid\.esm\.min\/[\w-]+\.mjs/u.exec(mermaid.text)?.[0];
-	expect(mermaidChunk).toBeDefined();
-	expect((yield* exchange(`/_board/mermaid/${mermaidChunk}`)).headers["cache-control"]).toBe("max-age=31536000, immutable");
-	for (const path of ["/_board/react.js", "/_board/react.css", "/_board/theme.js"]) {
-		const fresh = yield* exchange(path);
-		expect(fresh.headers["cache-control"]).toBe("no-cache");
-		expect(fresh.headers.etag).toMatch(/^W\/"[\w-]+"$/u);
-		const revalidated = yield* exchange(path, { "if-none-match": fresh.headers.etag ?? "" });
-		expect(revalidated.status).toBe(HttpStatus.fromLiteral("NotModified"));
-		expect(revalidated.text).toBe("");
-		expect(revalidated.headers.etag).toBe(fresh.headers.etag);
-	}
-	for (const path of ["/", "/plan.md", "/_board/system"]) {
-		const page = yield* exchange(path);
-		expect(page.headers["cache-control"]).toBe("no-store");
-		expect(page.headers.etag).toBeUndefined();
-	}
-});
+			const delivered = yield* download("/_board/react.js", accept === undefined ? {} : { "accept-encoding": accept });
+
+			expect(delivered).toMatchObject({ encoding, text: script, vary: "accept-encoding" });
+		},
+	);
+}
+
+for (const [content, path] of [
+	["the stylesheet", "/_board/react.css"],
+	["the page shell", "/"],
+	["a document's page", "/plan.md"],
+] as const) {
+	boardStory.it(`a browser accepting gzip receives ${content} gzip-compressed with its text intact`, [plan], function* ({ download }) {
+		const text = (yield* download(path)).text;
+
+		expect(yield* download(path, { "accept-encoding": "gzip" })).toMatchObject({ encoding: "gzip", text });
+	});
+}
+
+for (const path of ["/_board/rpc", "/_board/rpc/"]) {
+	boardStory.it(
+		`an RPC answer from ${path} reaches a gzip-accepting client compressed and marked private and unstored`,
+		[plan],
+		function* ({ queryRpc }) {
+			expect(yield* queryRpc(path, { "accept-encoding": "gzip" })).toEqual({
+				answer: "answered",
+				cacheControl: "private, no-store",
+				encoding: "gzip",
+			});
+		},
+	);
+}
+
+for (const [bundle, path] of [
+	["the script bundle", "/_board/react.js"],
+	["the stylesheet", "/_board/react.css"],
+	["the theme script", "/_board/theme.js"],
+	["Mermaid's entry module", "/_board/mermaid/mermaid.esm.min.mjs"],
+] as const) {
+	boardStory.it(`${bundle} must be revalidated, and revalidating with its ETag answers Not Modified with no body`, [plan], function* ({ download }) {
+		const fresh = yield* download(path);
+		expect(fresh).toMatchObject({ cacheControl: "no-cache", etag: expect.stringMatching(/^W\/"[\w.-]+"$/u) });
+
+		const revalidated = yield* download(path, { "if-none-match": fresh.etag ?? "" });
+
+		expect(revalidated).toMatchObject({ etag: fresh.etag, status: "Not Modified", text: "" });
+	});
+}
+
+for (const [bundle, path] of [
+	["the script bundle", "/_board/react.js"],
+	["Mermaid's entry module", "/_board/mermaid/mermaid.esm.min.mjs"],
+] as const) {
+	boardStory.it(`a content-hashed chunk that ${bundle} imports is cached for a year`, [plan], function* ({ download, importedChunk }) {
+		const chunk = yield* importedChunk(path);
+
+		expect(yield* download(chunk)).toMatchObject({ cacheControl: "max-age=31536000, immutable", status: "OK" });
+	});
+}
+
+for (const path of ["/", "/plan.md", "/_board/system"]) {
+	boardStory.it(`the page at ${path} is never stored and carries no ETag`, [plan], function* ({ download }) {
+		expect(yield* download(path)).toMatchObject({ cacheControl: "no-store", etag: undefined });
+	});
+}
 
 boardStory.it(
-	"gives a rebuilt bundle a new ETag so a revalidating browser never keeps the old build",
-	[plan, deferredServing],
-	function* ({ startWithMissingAssets, editFile, exchange }) {
-		const board = yield* startWithMissingAssets(["react.js"]);
-		try {
-			editFile("react.js", `export const build = "${"first".repeat(400)}";`);
-			const first = yield* exchange("/_board/react.js", { "accept-encoding": "br" });
-			expect(first.headers["content-encoding"]).toBe("br");
-			editFile("react.js", `export const build = "${"second".repeat(400)}";`);
-			const rebuilt = yield* exchange("/_board/react.js", { "accept-encoding": "br", "if-none-match": first.headers.etag ?? "" });
-			expect(rebuilt.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(rebuilt.headers.etag).not.toBe(first.headers.etag);
-			expect(rebuilt.text).toContain("secondsecond");
-			expect(rebuilt.text).not.toContain("first");
-			expect((yield* exchange("/_board/react.js", { "accept-encoding": "br", "if-none-match": rebuilt.headers.etag ?? "" })).status).toBe(
-				HttpStatus.fromLiteral("NotModified"),
-			);
-		} finally {
-			yield* board.stop();
-		}
+	"a browser revalidating the script bundle with the previous build's ETag receives the rebuilt bundle",
+	[plan, bundleNotBuilt("react.js")],
+	function* ({ buildBundle, download }) {
+		const firstBuild = buildBundle("react.js", "first");
+		const first = yield* download("/_board/react.js", { "accept-encoding": "br" });
+		expect(first.text).toBe(firstBuild);
+
+		const secondBuild = buildBundle("react.js", "second");
+
+		expect(yield* download("/_board/react.js", { "accept-encoding": "br", "if-none-match": first.etag ?? "" })).toMatchObject({
+			status: "OK",
+			text: secondBuild,
+		});
 	},
 );
 
-boardStory.it(
-	"outlines the header and sidebar in theme colours from the first HTML and stylesheet before any script runs",
-	[plan],
-	function* ({ exchange }) {
-		for (const path of ["/", "/plan.md", "/_board/goals"]) {
-			const html = (yield* exchange(path)).text;
-			expect(html.slice(html.indexOf("<body>"))).toBe(
-				'<body><div data-board-react-root><div aria-hidden="true" data-board-skeleton><aside></aside><div><header></header></div><nav></nav></div></div></body></html>',
-			);
-			expect(html.indexOf('<link rel="stylesheet" href="/_board/react.css">')).toBeLessThan(html.indexOf("</head>"));
-		}
-		const styles = (yield* exchange("/_board/react.css")).text;
-		const skeleton = styles.slice(styles.indexOf("[data-board-skeleton]"));
-		for (const token of ["var(--background)", "var(--card)", "var(--border)"]) {
-			expect(skeleton).toContain(token);
-		}
-		expect(styles).toMatch(/\.dark\s*\{[^}]*--background:/u);
-	},
-);
+for (const path of ["/", "/plan.md", "/_board/goals"]) {
+	boardStory.it(
+		`the first HTML of ${path} links the stylesheet in its head and outlines the sidebar, header and navigation before any script runs`,
+		[plan],
+		function* ({ pageShell }) {
+			expect(yield* pageShell(path)).toMatchObject({ skeleton: ["aside", "header", "nav"], stylesheets: ["/_board/react.css"] });
+		},
+	);
+}

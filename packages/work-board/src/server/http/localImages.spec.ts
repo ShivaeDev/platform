@@ -1,64 +1,68 @@
-import { join } from "node:path";
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
-import { localScreenshots, outsideFiles } from "#test/servingTraits.ts";
+import { privateImageBesideWorkspace, workspaceLink } from "#test/servingStoryTraits.ts";
+import { localScreenshots, nestedProject, outsideFiles } from "#test/servingTraits.ts";
 import { SCREENSHOT } from "#test/visuals.ts";
 
+const UNAVAILABLE = "Local image unavailable: unsupported type, missing file or workspace boundary.";
 const images = boardStory.traits(
 	projectFiles({
 		"nested/home.md": "# Visual review\n\n![First](../shots/first%20%26%20review.png)",
-		"nested/result.md": "# Result",
 		"shots/a.constructor": "private",
 		"shots/evil.svg": "<svg>private</svg>",
-		"shots/first & review.png": "",
-		"shots/second.png": "",
 	}),
 	boardHome("nested/home.md"),
 	localScreenshots,
 );
-boardStory.it("resolves a nested home image and serves exact bytes with media headers", [images], function* ({ request, readDocument }) {
-	expect((yield* readDocument("")).links["../shots/first%20%26%20review.png"]).toBe("/_board/attachment/shots/first%20%26%20review.png");
-	const image = yield* request("/_board/attachment/shots/first%20%26%20review.png");
-	expect(image.status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(image.headers.get("content-type")).toBe("image/png");
-	expect(image.headers.get("cache-control")).toBe("no-store");
-	expect(image.headers.get("x-content-type-options")).toBe("nosniff");
-	expect(Buffer.from(yield* Effect.promise(() => image.arrayBuffer()))).toEqual(SCREENSHOT);
+
+boardStory.it("a nested home's relative image link resolves to the image's attachment URL", [images], function* ({ documentLinks }) {
+	expect(yield* documentLinks("")).toEqual({ "../shots/first%20%26%20review.png": "/_board/attachment/shots/first%20%26%20review.png" });
 });
-boardStory.it(
-	"refuses traversal, unsupported types and escaping file and directory links",
-	[images, outsideFiles({ "outside.png": "private" })],
-	function* ({ outside, linkFile, get }) {
-		linkFile("shots/leak.png", join(outside.root, "outside.png"));
-		linkFile("reference", outside.root);
-		for (const path of [
-			"shots/leak.png",
-			"reference/outside.png",
-			"..%2fprivate.png",
-			"%2e%2e%5cprivate.png",
-			"%ZZ.png",
-			".hidden.png",
-			"nested/home.md",
-			"shots/evil.svg",
-			"node_modules/image.png",
-			"shots/a.constructor",
-		]) {
-			const response = yield* get(`/_board/attachment/${path}`);
-			expect(response.status).toBe(HttpStatus.fromLiteral("NotFound"));
-			expect(response.body).not.toContain("private");
-		}
-		expect((yield* get("/_board/attachment/shots/second.png", "outside.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-	},
-);
-boardStory.it("announces image edits and bounds image reads", [images], function* ({ watchProject, editBytes, resizeFile, get }) {
-	const events = yield* watchProject();
-	yield* events.next();
+
+boardStory.it("an attachment answers with the screenshot's exact bytes as an unstored, unsniffed PNG", [images], function* ({ download }) {
+	expect(yield* download("/_board/attachment/shots/first%20%26%20review.png")).toMatchObject({
+		bytes: SCREENSHOT,
+		cacheControl: "no-store",
+		sniffing: "refused",
+		status: "OK",
+		type: "image/png",
+	});
+});
+
+for (const [path, reason, setup, text] of [
+	["shots/leak.png", "a file link leading outside the workspace", [workspaceLink("shots/leak.png", "the outside file")], UNAVAILABLE],
+	["reference/outside.png", "a folder link leading outside the workspace", [workspaceLink("reference", "the outside folder")], UNAVAILABLE],
+	["..%2fprivate.png", "an encoded step up to the image beside the workspace", [privateImageBesideWorkspace], UNAVAILABLE],
+	["%2e%2e%5cprivate.png", "an encoded backslash step up to the image beside the workspace", [privateImageBesideWorkspace], UNAVAILABLE],
+	["%ZZ.png", "broken percent-encoding", [], ""],
+	[".hidden.png", "a hidden file", [], UNAVAILABLE],
+	["nested/home.md", "a Markdown file", [], UNAVAILABLE],
+	["shots/evil.svg", "an SVG that could carry script", [], UNAVAILABLE],
+	["node_modules/image.png", "a dependency folder", [], UNAVAILABLE],
+	["shots/a.constructor", "a name that matches an object property", [], UNAVAILABLE],
+] as const) {
+	boardStory.it(
+		`the attachment ${path}, ${reason}, answers Not Found without its bytes`,
+		[nestedProject("workspace"), images, outsideFiles({ "outside.png": "private" }), ...setup],
+		function* ({ download }) {
+			expect(yield* download(`/_board/attachment/${path}`)).toMatchObject({ status: "Not Found", text });
+		},
+	);
+}
+
+boardStory.it("editing a screenshot asks live readers to resync", [images], function* ({ editBytes, listenForChanges, nextAnnouncement }) {
+	yield* listenForChanges();
+
 	editBytes("shots/second.png", Buffer.concat([SCREENSHOT, Buffer.from("Updated")]));
-	expect(yield* events.next()).toEqual({ _tag: "Resync" });
+
+	expect(yield* nextAnnouncement()).toBe("resync");
+});
+
+boardStory.it("an image larger than 16 MiB answers Payload Too Large and names the limit", [images], function* ({ download, resizeFile }) {
 	resizeFile("shots/second.png", 16 * 1024 * 1024 + 1);
-	const response = yield* get("/_board/attachment/shots/second.png");
-	expect(response.status).toBe(HttpStatus.fromLiteral("PayloadTooLarge"));
-	expect(response.body).toContain("16 MiB");
+
+	expect(yield* download("/_board/attachment/shots/second.png")).toMatchObject({
+		status: "Payload Too Large",
+		text: "Local image exceeds the 16 MiB limit.",
+	});
 });

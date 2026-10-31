@@ -1,22 +1,24 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Cause, Effect, Exit, Fiber, type FileSystem, type Layer, Queue } from "effect";
+import { Cause, Effect, Exit, Fiber, type FileSystem, type Layer, Order, Queue } from "effect";
 import { TestClock } from "effect/testing";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { homeIn } from "#server/files/home.ts";
+import { HomeMissing, homeIn } from "#server/files/home.ts";
 import { listMarkdown } from "#server/files/list.ts";
 import { watchDirectories } from "#server/files/watchDirectories.ts";
-import { READINESS_WITHIN } from "#server/files/watchSentinel.ts";
+import { isWatchSentinel, READINESS_WITHIN } from "#server/files/watchSentinel.ts";
 import { type Folder, folder } from "./board.ts";
 import { unlinkBeforeStat } from "./fileRaces.ts";
 
 interface FileReader {
+	link?: () => void;
 	notes: Folder;
 	readonly published: Queue.Queue<readonly string[]>;
 	readonly sentinelWrites: Queue.Queue<string>;
 	services: Layer.Layer<FileSystem.FileSystem>;
+	readonly warnings: string[];
 	watch?: Fiber.Fiber<unknown, unknown>;
 	readonly watching: Queue.Queue<void>;
 }
@@ -40,6 +42,7 @@ export const fileReadingStory = storyKit({
 			published: yield* Queue.unbounded<readonly string[]>(),
 			sentinelWrites: yield* Queue.unbounded<string>(),
 			services: NodeServices.layer,
+			warnings: [],
 			watching: yield* Queue.unbounded<void>(),
 		};
 		return engine;
@@ -53,10 +56,30 @@ export const fileReadingStory = storyKit({
 			story.tell(`an outside editor writes ${file}`);
 			return Effect.sync(() => engine.notes.write(file, source));
 		},
-		listFiles: () => {
-			story.tell("the board lists Markdown files");
-			return listMarkdown(engine.notes.root, engine.notes.root).pipe(Effect.provide(engine.services));
+		homeSelection: (file: string) => {
+			story.tell(`the board selects ${file} as home`);
+			return homeIn(engine.notes.root, file).pipe(
+				Effect.provide(engine.services),
+				Effect.match({
+					onFailure: (failure) => (failure instanceof HomeMissing ? `home missing: ${failure.message}` : `failed: ${String(failure)}`),
+					onSuccess: () => "selected",
+				}),
+			);
 		},
+		linkFolder: () => {
+			story.tell("the reader links a separate folder into the workspace");
+			return Effect.sync(() => {
+				if (!engine.link) {
+					throw new Error("The story has no folder to link");
+				}
+				engine.link();
+			});
+		},
+		listedPaths: () =>
+			Effect.map(listMarkdown(engine.notes.root, engine.notes.root).pipe(Effect.provide(engine.services)), (files) => {
+				story.tell("the board lists Markdown files");
+				return files.map((file) => file.path);
+			}),
 		publishedPaths: () => {
 			story.tell("the reader receives the next live file change");
 			return Queue.take(engine.published);
@@ -68,9 +91,9 @@ export const fileReadingStory = storyKit({
 		get root() {
 			return engine.notes.root;
 		},
-		selectHome: (file: string) => {
-			story.tell(`the board selects ${file} as home`);
-			return homeIn(engine.notes.root, file).pipe(Effect.provide(engine.services));
+		sentinelWarnings: () => {
+			story.tell("the reader reads the host's sentinel warnings");
+			return Effect.sync(() => [...engine.warnings]);
 		},
 		sentinelWritten: () => {
 			story.tell("the host writes its watch sentinel into the workspace");
@@ -89,15 +112,6 @@ export const fileReadingStory = storyKit({
 			story.tell("the host stops watching the workspace");
 			return Fiber.interrupt(running(engine));
 		},
-		watchDirectory: () => {
-			story.tell("the host starts watching the workspace");
-			return watchDirectories(engine.notes.root, engine.notes.root, {
-				listed: () => Effect.void,
-				publish: () => Effect.void,
-				setWatching: () => Effect.void,
-				stale: Effect.void,
-			}).pipe(Effect.provide(engine.services));
-		},
 		watchFailure: Effect.fn("Story.watchFailure")(function* () {
 			const exit = yield* Fiber.await(running(engine));
 			const failure = Exit.isFailure(exit) ? Cause.squash(exit.cause) : undefined;
@@ -107,7 +121,28 @@ export const fileReadingStory = storyKit({
 			story.tell("the host waits until it is watching the workspace");
 			return Effect.raceFirst(Queue.take(engine.watching), Fiber.join(running(engine)));
 		},
-		workspaceEntries: () => readdirSync(engine.notes.root).toSorted(),
+		watchUntilItEnds: () => {
+			story.tell("the host watches the workspace until the watch ends");
+			return watchDirectories(engine.notes.root, engine.notes.root, {
+				listed: () => Effect.void,
+				publish: () => Effect.void,
+				setWatching: () => Effect.void,
+				stale: Effect.void,
+			}).pipe(
+				Effect.provide(engine.services),
+				Effect.match({
+					onFailure: (failure) => (failure instanceof ServiceUnavailable ? `unavailable: ${failure.message}` : `failed: ${String(failure)}`),
+					onSuccess: () => "ended quietly",
+				}),
+			);
+		},
+		workspaceEntries: () =>
+			Effect.sync(() => {
+				story.tell("the reader lists the workspace folder");
+				return readdirSync(engine.notes.root)
+					.toSorted(Order.String)
+					.map((entry) => (isWatchSentinel(entry) ? "a watch sentinel" : entry));
+			}),
 	}),
 });
 export function readableFiles(files: Readonly<Record<string, string>>) {

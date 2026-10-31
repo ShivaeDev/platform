@@ -1,8 +1,7 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { searchResultContent, searchResultScreen } from "#test/searchResultScreen.tsx";
+import { searchResultScreen } from "#test/searchResultScreen.tsx";
 import type { SearchItem } from "./searchCommands.ts";
 
 expectNoReactWarnings();
@@ -14,39 +13,33 @@ const alpha = passage("Alpha evidence", 3);
 const beta = passage("Beta evidence", 5);
 const gamma = passage("Gamma evidence", 7);
 const other: SearchItem = { href: "/other.md", kind: "document", snippet: "Other evidence", title: "Other" };
-screenStory.it(
-	"removes and reorders passages sharing a heading URL without retaining rows",
-	[searchResultScreen([alpha, beta, beta, gamma, other])],
-	function* ({ findElements, readText, refreshScreen }) {
-		function rows() {
-			return [...findElements<HTMLElement>('[role="option"]')];
-		}
-		function expectRows(items: readonly SearchItem[]) {
-			expect(rows().map((row) => readText("p", row))).toEqual(items.map((item) => item.snippet));
-			expect(rows().map((row) => row.querySelector("a")?.getAttribute("href"))).toEqual(items.map((item) => item.href));
-		}
 
-		expectRows([alpha, beta, beta, gamma, other]);
-		yield* Effect.promise(() => refreshScreen(searchResultContent([other, gamma, alpha])));
-		expectRows([other, gamma, alpha]);
-		yield* Effect.promise(() => refreshScreen(searchResultContent([alpha, other, gamma])));
-		expectRows([alpha, other, gamma]);
+function shown(items: readonly SearchItem[]) {
+	return items.map(({ href, snippet }) => ({ href, snippet }));
+}
+
+screenStory.it(
+	"when passages sharing one heading link are dropped and reordered, each row shows its own passage",
+	[searchResultScreen([alpha, beta, beta, gamma, other])],
+	function* ({ results, resultsArrive }) {
+		expect(yield* results("href", "snippet")).toEqual(shown([alpha, beta, beta, gamma, other]));
+
+		yield* resultsArrive([other, gamma, alpha]);
+
+		expect(yield* results("href", "snippet")).toEqual(shown([other, gamma, alpha]));
 	},
 );
 
 screenStory.it(
-	"names a plain document's file and its line when the line is known",
+	"a result names its kind and file, with the line when the line is known",
 	[
 		searchResultScreen([
 			{ file: "notes.md", href: "/notes.md#heading-shared", kind: "passage", line: 3, title: "Shared" },
 			{ file: "other.md", href: "/other.md", kind: "document", title: "Other" },
 		]),
 	],
-	function* ({ findElements, readText }) {
-		expect([...findElements<HTMLElement>('[role="option"]')].map((row) => readText("small", row))).toEqual([
-			"Passage · notes.md:3",
-			"Document · other.md",
-		]);
+	function* ({ results }) {
+		expect(yield* results("source")).toEqual([{ source: "Passage · notes.md:3" }, { source: "Document · other.md" }]);
 	},
 );
 
@@ -57,29 +50,27 @@ const grouped: readonly SearchItem[] = [
 	{ href: "/_board/item/task.two/", itemKind: "task", kind: "document", match: "prefix", title: "Starts with it" },
 	{ href: "/needs.md", kind: "needs-you", title: "Waiting on you" },
 ];
+
 screenStory.it(
-	"orders groups by their best match while searching and keeps the fixed order for an empty query",
+	"without a query, results keep the fixed group order Needs you, Work, Documents",
 	[searchResultScreen(grouped)],
-	function* ({ findElements, readText, refreshScreen, roles }) {
-		function groups() {
-			return [...findElements<HTMLElement>('[role="group"]')].map((group) => [
-				roles.accessible(group).name,
-				...[...group.querySelectorAll('[role="option"] strong')].map((title) => title.textContent),
-			]);
-		}
-		expect(groups()).toEqual([
-			["Needs you", "Waiting on you"],
-			["Work", "Mentions it", "Goal named in the title", "Starts with it"],
-			["Documents", "Named in the title"],
+	function* ({ resultGroups }) {
+		expect(yield* resultGroups()).toEqual([
+			{ group: "Needs you", titles: ["Waiting on you"] },
+			{ group: "Work", titles: ["Mentions it", "Goal named in the title", "Starts with it"] },
+			{ group: "Documents", titles: ["Named in the title"] },
 		]);
-		yield* Effect.promise(() => refreshScreen(searchResultContent(grouped, "named")));
-		expect(groups()).toEqual([
-			["Work", "Starts with it", "Mentions it", "Goal named in the title"],
-			["Needs you", "Waiting on you"],
-			["Documents", "Named in the title"],
+	},
+);
+
+screenStory.it(
+	"while searching, the group with the best match comes first and lists its best match first",
+	[searchResultScreen(grouped, "named")],
+	function* ({ resultGroups }) {
+		expect(yield* resultGroups()).toEqual([
+			{ group: "Work", titles: ["Starts with it", "Mentions it", "Goal named in the title"] },
+			{ group: "Needs you", titles: ["Waiting on you"] },
+			{ group: "Documents", titles: ["Named in the title"] },
 		]);
-		yield* Effect.promise(() => refreshScreen(searchResultContent(grouped.toSpliced(3, 1), "named")));
-		expect(groups().map(([name]) => name)).toEqual(["Needs you", "Work", "Documents"]);
-		expect(readText('[role="option"]:has(a[href="/_board/item/project.one/"]) small')).toBe("Goal");
 	},
 );

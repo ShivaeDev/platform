@@ -1,43 +1,48 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardFilesystem, boardStory, projectFiles } from "#test/boardStory.ts";
 import { silentWatch } from "#test/faults.ts";
 
-for (const source of [
-	"# Plain note\n",
-	"---\nid: note\n---\n# Note\n",
-	"\uFEFF---\r\nid: note\r\n---\r\n# Note\r\n",
-	"---\nid: [broken\n---\n# Note\n",
-	"---\nid: note\n# Unterminated\n",
-]) {
+const unheard = boardFilesystem(silentWatch);
+const CHANGE = "Changed before watcher notification.";
+
+for (const [kind, source] of [
+	["plain Markdown", "# Plain note\n"],
+	["front matter", "---\nid: note\n---\n# Note\n"],
+	["a byte order mark and CRLF line endings", "﻿---\r\nid: note\r\n---\r\n# Note\r\n"],
+	["broken front matter", "---\nid: [broken\n---\n# Note\n"],
+	["unterminated front matter", "---\nid: note\n# Unterminated\n"],
+] as const) {
 	boardStory.it(
-		`reads fresh source before watcher notification for ${JSON.stringify(source)}`,
-		[projectFiles({ "note.md": source }), boardFilesystem(silentWatch)],
-		function* ({ readDocument, editFile }) {
-			const initial = yield* readDocument("note.md");
-			editFile("note.md", `${source}\nChanged before watcher notification.`);
-			const edited = yield* readDocument("note.md");
-			expect(edited.source).toContain("Changed before watcher notification.");
-			expect(edited.source).not.toBe(initial.source);
+		`an edit to a note with ${kind} is read fresh before the watcher reports it`,
+		[projectFiles({ "note.md": source }), unheard],
+		function* ({ editFile, sourceOf }) {
+			expect(yield* sourceOf("note.md")).not.toContain(CHANGE);
+
+			editFile("note.md", `${source}\n${CHANGE}`);
+
+			expect(yield* sourceOf("note.md")).toContain(CHANGE);
 		},
 	);
 }
 
 boardStory.it(
-	"revalidates identity and dependent diagnostics before the index hears an edit",
+	"a note edited to take another file's identity loses its own on the next read, shows the duplicate and frees its old item route, before the watcher reports it",
 	[
 		projectFiles({
 			"note.md": "---\nid: original\nrelationships:\n - kind: informs\n   target: original\n---\n# Note",
 			"other.md": "---\nid: other\nrelationships:\n - kind: informs\n   target: original\n---\n# Other",
 		}),
-		boardFilesystem(silentWatch),
+		unheard,
 	],
-	function* ({ readDocument, editFile, get }) {
-		yield* readDocument("note.md");
+	function* ({ documentFacts, editFile, httpAnswer }) {
+		expect(yield* documentFacts("note.md")).toEqual({ identity: "original", problems: [] });
+
 		editFile("note.md", "---\nid: other\n---\n# Changed");
-		const edited = yield* readDocument("note.md");
-		expect(edited.identity).toBeUndefined();
-		expect(JSON.stringify(edited.diagnostics)).toContain("Duplicate ID other");
-		expect((yield* get("/_board/item/original/")).status).toBe(HttpStatus.fromLiteral("NotFound"));
+
+		yield* outcomes([
+			["its old item route", () => httpAnswer("/_board/item/original/"), "404 Not Found"],
+			["the note", () => documentFacts("note.md"), { identity: "none", problems: [expect.stringContaining("Duplicate ID other")] }],
+		]);
 	},
 );

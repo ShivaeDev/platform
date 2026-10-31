@@ -1,31 +1,85 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { questionnaireSource } from "#test/questionnaire.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
+
+const packet = routedScreen({ "proposal.md": questionnaireSource }, "/_board/item/investigation.choices/", { home: undefined, writable: true });
+const WARNING = "Choose an option or answer in your own words.";
+const UNANSWERED = `Unanswered: “Which checks matter?”. ${WARNING}`;
+
 screenStory.it(
-	"puts each missing prompt warning beside its own control and clears corrections",
-	[routedScreen({ "proposal.md": questionnaireSource }, "/_board/item/investigation.choices/", { home: undefined, writable: true })],
-	function* ({ findElement, input, activate, submit, readText, check, readFocus }) {
-		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
-		check("history");
-		yield* Effect.promise(() => activate("#response-preview"));
-		const display = findElement<HTMLTextAreaElement>('[data-prompt="display"] textarea');
-		const checks = findElement<HTMLTextAreaElement>('[data-prompt="checks"] textarea');
-		expect([display?.validationMessage, checks?.validationMessage]).toEqual(["", ""]);
-		submit("#response-form");
-		expect(checks?.validationMessage).toBe("Choose an option or answer in your own words.");
-		yield* eventually(() => expect(readFocus()).toBe(checks));
-		input(checks, "Test keyboard use");
-		expect(checks?.validationMessage).toBe("");
-		input(checks, "");
-		yield* Effect.promise(() => activate("#response-preview"));
-		expect(readText('[data-prompt="checks"] .response-field-error')).toContain("Unanswered: “Which checks matter?”");
-		input(checks, "Test keyboard use");
-		expect(readText("#response-status")).not.toContain("Unanswered");
-		expect(findElement("#response-submit")).toHaveProperty("disabled", false);
+	"sending with the checks prompt unanswered marks that prompt alone with an error and a field warning and moves focus to it",
+	[packet],
+	function* ({ check, focusedPrompt, promptError, promptWarnings, sendPacket }) {
+		yield* check("history");
+		yield* outcomes([
+			["checks error", () => promptError("checks"), "none"],
+			["warnings", () => promptWarnings(), { checks: "", display: "" }],
+		]);
+
+		yield* sendPacket();
+
+		yield* outcomes([
+			["checks error", () => promptError("checks"), UNANSWERED],
+			["display error", () => promptError("display"), "none"],
+			["focus", () => focusedPrompt(), "checks"],
+			["warnings", () => promptWarnings(), { checks: WARNING, display: "" }],
+		]);
+	},
+);
+
+screenStory.it(
+	"typing an answer into the marked prompt clears its error and warning",
+	[packet],
+	function* ({ answerPrompt, check, promptError, promptWarnings, sendPacket }) {
+		yield* check("history");
+		yield* sendPacket();
+		expect(yield* promptError("checks")).toBe(UNANSWERED);
+
+		yield* answerPrompt("checks", "Test keyboard use");
+
+		yield* outcomes([
+			["checks error", () => promptError("checks"), "none"],
+			["warnings", () => promptWarnings(), { checks: "", display: "" }],
+		]);
+	},
+);
+
+screenStory.it(
+	"emptying a corrected prompt after a failed send marks it unanswered again",
+	[packet],
+	function* ({ answerPrompt, check, promptError, sendPacket }) {
+		yield* check("history");
+		yield* sendPacket();
+		yield* answerPrompt("checks", "Test keyboard use");
+		expect(yield* promptError("checks")).toBe("none");
+
+		yield* answerPrompt("checks", "");
+
+		expect(yield* promptError("checks")).toBe(UNANSWERED);
+	},
+);
+
+screenStory.it(
+	"sending again after correcting the marked prompt records the answer",
+	[packet],
+	function* ({ answerPrompt, check, recordedPacketAnswers, sendPacket }) {
+		yield* check("history");
+		yield* sendPacket();
+		yield* answerPrompt("checks", "Test keyboard use");
+		expect(yield* recordedPacketAnswers("investigation.choices", "direction")).toBe("question not registered");
+
+		yield* sendPacket();
+
+		expect(yield* recordedPacketAnswers("investigation.choices", "direction")).toEqual([
+			[
+				{ prompt: "display", selected: ["history"], text: "" },
+				{ prompt: "checks", selected: [], text: "Test keyboard use" },
+			],
+		]);
 	},
 );

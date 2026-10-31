@@ -1,34 +1,49 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { releasedApprovalFixture, unmappedBoard, unmappedCases } from "#test/migrationValuesFixture.ts";
+import { fleetAcceptsEveryBrief } from "#test/workspaceBoardTraits.ts";
 
 for (const { field, value, kind } of unmappedCases) {
 	const files = unmappedBoard(field, value, kind);
 	boardStory.it(
-		`reports the unmapped ${kind} ${field} value and exits before rewriting any file`,
-		[projectFiles(files), deferredServing],
-		({ tryMigration, notes }) => {
-			const result = tryMigration();
-			expect(result.status).not.toBe(0);
-			expect(result.stderr).toContain(`z-unknown.md: ${field}: ${JSON.stringify(value)}`);
-			for (const [file, source] of Object.entries(files)) {
-				expect(readFileSync(join(notes.root, file), "utf8")).toBe(source);
-			}
+		`an unmapped ${kind} ${field} value ${JSON.stringify(value)} fails the migration before any file is rewritten`,
+		[projectFiles(files), fleetAcceptsEveryBrief, deferredServing],
+		function* ({ failedMigration, savedFiles }) {
+			yield* outcomes([
+				["files", () => savedFiles(Object.keys(files)), files],
+				[
+					"migration",
+					() => failedMigration(),
+					{ errors: expect.stringContaining(`z-unknown.md: ${field}: ${JSON.stringify(value)}`), exit: "failed" },
+				],
+			]);
 		},
 	);
 }
 
+const released = [projectFiles(releasedApprovalFixture), fleetAcceptsEveryBrief, deferredServing];
+
+boardStory.it("migration turns Fleet's released approval back into held", released, function* ({ migrationReport }) {
+	expect(yield* migrationReport()).toBe("Changed 1 files and 1 fields.\n");
+});
+
+boardStory.it("a second migration of a released approval changes no file", released, function* ({ migrationRuns, migrationRunsAgain }) {
+	yield* migrationRuns();
+
+	expect(yield* migrationRunsAgain(Object.keys(releasedApprovalFixture))).toEqual({ changed: [], report: "Changed 0 files and 0 fields.\n" });
+});
+
 boardStory.it(
-	"migrates Fleet's released approval back to held",
-	[projectFiles(releasedApprovalFixture), deferredServing],
-	function* ({ migrate, start, rpc }) {
-		expect(migrate()).toBe("Changed 1 files and 1 fields.\n");
-		expect(migrate()).toBe("Changed 0 files and 0 fields.\n");
+	"after migration a released approval loads as a held ready task",
+	released,
+	function* ({ itemDiagnostics, itemMetadata, migrationRuns, start }) {
+		yield* migrationRuns();
 		yield* start();
-		const document = yield* rpc((client) => client("work-board.document", { url: "/released.md" }));
-		expect(document.diagnostics).toEqual([]);
-		expect(document.metadata).toMatchObject({ fleet: "held", status: "ready" });
+
+		yield* outcomes([
+			["metadata", () => itemMetadata("/released.md"), expect.objectContaining({ fleet: "held", status: "ready" })],
+			["problems", () => itemDiagnostics("/released.md"), []],
+		]);
 	},
 );

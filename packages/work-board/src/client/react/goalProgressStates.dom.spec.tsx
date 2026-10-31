@@ -1,80 +1,64 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { goalProgressFixture, largeGoalFixture, progressFleet } from "#test/goalProgressFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
+const ALL_STATES = "1 of 14 done, 1 done, 2 running, 4 blocked, 2 scheduled, 5 parked";
+
 screenStory.it(
-	"shows five progress states on the home list and rolls nested goals into their parent",
+	"a goal card on Today counts its work in all five states, including the work of its nested goals",
 	[routedScreen(goalProgressFixture(), "/", { fleet: progressFleet(), home: "home.md" })],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElement('[data-goal-id="goal.progress"] [data-goal-progress]')).not.toBeNull());
-		const card = findElement('[data-goal-id="goal.progress"]');
-		expect(findElements("[data-goal-state]", card).map((segment) => [segment.dataset.goalState, segment.dataset.count, segment.title])).toEqual([
-			["done", "1", "Done: 1"],
-			["running", "2", "Running: 2"],
-			["blocked", "4", "Blocked: 4"],
-			["scheduled", "2", "Scheduled: 2"],
-			["parked", "5", "Parked: 5"],
-		]);
-		expect(readText('[data-slot="progress-value"]', card)).toBe("1/14 done");
-		const standing = findElement('[data-goal-id="goal.standing"]');
-		expect(standing).not.toBeNull();
-		expect(readText('[data-slot="progress-value"]', standing)).toBe("1/1 done");
+	function* ({ goalCardProgress }) {
+		expect(yield* goalCardProgress("goal.progress")).toEqual(expect.objectContaining({ shown: "1/14 done", spoken: ALL_STATES }));
 	},
 );
 
 screenStory.it(
-	"shows the same progress states on a goal page and its child lane",
+	"a goal page counts the same five states as its card, and its child lane counts the child's own work",
 	[routedScreen(goalProgressFixture(), "/_board/item/goal.progress/", { fleet: progressFleet(), home: "home.md" })],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(readText('[data-goal-section="progress"] [data-slot="progress-value"]')).toBe("1/14 done"));
-		const progress = findElement('[data-goal-section="progress"]');
-		expect(
-			findElements("[data-goal-counts] > li", progress)
-				.slice(0, 5)
-				.map((segment) => [segment.dataset.status, segment.dataset.count, segment.querySelector("span")?.style.backgroundColor]),
-		).toEqual([
-			["done", "1", "#00a83b"],
-			["running", "2", "#b56b00"],
-			["blocked", "4", "#ce0030"],
-			["scheduled", "2", "#0065ff"],
-			["parked", "5", "#767676"],
+	function* ({ childLaneProgress, goalPageProgress }) {
+		yield* outcomes([
+			[
+				"child lane",
+				() => childLaneProgress("goal.child"),
+				expect.objectContaining({ shown: "0/3 done", spoken: "0 of 3 done, 0 done, 1 running, 2 blocked, 0 scheduled, 0 parked" }),
+			],
+			["goal", () => goalPageProgress(), expect.objectContaining({ spoken: ALL_STATES })],
 		]);
-		const child = findElement('section[aria-label="goal.child"]', progress);
-		expect(findElements("[data-goal-state]", child).map((segment) => segment.dataset.count)).toEqual(["0", "1", "2", "0", "0"]);
-		expect(readText('[data-slot="progress-value"]', child)).toBe("0/3 done");
 	},
 );
 
 screenStory.it(
-	"keeps a fully completed standing home active and describes it on its page",
+	"a standing home with all its work done stays among the active goals",
 	[routedScreen(goalProgressFixture(), "/_board/goals", { fleet: progressFleet(), home: "home.md" })],
-	function* ({ findElement, findElements, readText, navigate }) {
-		yield* eventually(() => expect(findElement('[data-goal-id="goal.standing"]')).not.toBeNull());
-		const standing = findElement('[data-goal-id="goal.standing"]');
-		expect(standing?.closest("details")).toBeNull();
-		expect(readText('[data-slot="progress-value"]', standing)).toBe("1/1 done");
-		yield* Effect.promise(() => navigate("/_board/item/goal.standing/"));
-		yield* eventually(() => expect(readText('[data-goal-section="progress"]')).toContain("This goal is a standing home for new work."));
-		expect(readText(".item-summary")).toContain("Standing home");
-		expect(findElements(".item-summary [data-status-token]").map((token) => token.textContent)).not.toContain("Done");
-		expect(readText('[data-goal-section="progress"] [data-slot="progress-value"]')).toBe("1/1 done");
+	function* ({ goalCardProgress, goalList }) {
+		yield* outcomes([
+			["active goals", () => goalList(), expect.objectContaining({ active: expect.arrayContaining(["goal.standing"]) })],
+			["standing home", () => goalCardProgress("goal.standing"), expect.objectContaining({ shown: "1/1 done" })],
+		]);
 	},
 );
 
 screenStory.it(
-	"leaves 54 dropped tasks out of a goal with 485 done and 18 parked",
-	[routedScreen(largeGoalFixture(), "/_board/goals")],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(readText('[data-goal-id="goal.large"] [data-slot="progress-value"]')).toBe("485/503 done"));
-		expect(findElements("[data-goal-state]", findElement('[data-goal-id="goal.large"]')).map((segment) => segment.dataset.count)).toEqual([
-			"485",
-			"0",
-			"0",
-			"0",
-			"18",
+	"a standing home's page calls it a standing home for new work, not done",
+	[routedScreen(goalProgressFixture(), "/_board/item/goal.standing/", { fleet: progressFleet(), home: "home.md" })],
+	function* ({ goalPageProgress, goalPageTags, goalProgressNotice }) {
+		yield* outcomes([
+			["not done", () => goalPageTags(), expect.not.arrayContaining(["Done"])],
+			["notice", () => goalProgressNotice(), "This goal is a standing home for new work."],
+			["progress", () => goalPageProgress(), expect.objectContaining({ shown: "1/1 done" })],
+			["tags", () => goalPageTags(), expect.arrayContaining(["Standing home"])],
 		]);
+	},
+);
+
+screenStory.it(
+	"a goal with 485 done, 18 parked and 54 dropped tasks leaves the dropped ones out of its progress",
+	[routedScreen(largeGoalFixture(), "/_board/goals")],
+	function* ({ goalCardProgress }) {
+		expect(yield* goalCardProgress("goal.large")).toEqual(
+			expect.objectContaining({ shown: "485/503 done", spoken: "485 of 503 done, 485 done, 0 running, 0 blocked, 0 scheduled, 18 parked" }),
+		);
 	},
 );

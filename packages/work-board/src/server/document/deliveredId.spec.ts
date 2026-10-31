@@ -1,94 +1,63 @@
-import { readFileSync } from "node:fs";
 import { expect } from "vitest";
-import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
-import { rawDiagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { briefRefusingFleet } from "#test/workspaceBoardTraits.ts";
 
 const SOURCE = "---\nid: fleet.example\nkind: task\nfleet: approved\n---\n# New brief\n";
+const REFUSAL = "id fleet.example was delivered in example/project#7; give this brief a new id";
+
 boardStory.it(
-	"a Fleet identity refusal appears on the brief's id and leaves its source untouched",
-	[projectFiles({ "new.md": SOURCE }), deferredServing],
-	function* ({ start, readDocument, notes }) {
-		const requested: string[][] = [];
-		const daemon = yield* rawDiagnosticsDaemon(
-			() => ({}),
-			0,
-			undefined,
-			(briefs) =>
-				briefs.map((brief) => {
-					requested.push([brief.workId, brief.sourcePath]);
-					return { ...brief, message: `id ${brief.workId} was delivered in example/project#7; give this brief a new id` };
-				}),
-		);
-		yield* start({ fleetPort: daemon.port });
-		const document = yield* readDocument("new.md");
-		expect(document.diagnostics).toEqual([
-			{ field: "id", line: 2, message: "id fleet.example was delivered in example/project#7; give this brief a new id" },
+	"Fleet's refusal of a delivered id shows on the brief's id line and leaves its file untouched",
+	[projectFiles({ "new.md": SOURCE }), briefRefusingFleet({ "fleet.example": REFUSAL })],
+	function* ({ fleetBriefRequests, itemDiagnostics, savedFile }) {
+		const diagnostics = yield* itemDiagnostics("/new.md");
+
+		yield* outcomes([
+			["brief file", () => savedFile("new.md"), SOURCE],
+			["briefs asked about", () => fleetBriefRequests(), [["fleet.example at new.md"]]],
 		]);
-		expect(requested).toEqual([["fleet.example", `${notes.root}/new.md`]]);
-		expect(document.source).toContain("# New brief");
-		expect(readFileSync(`${notes.root}/new.md`, "utf8")).toBe(SOURCE);
+		expect(diagnostics).toEqual([{ field: "id", line: 2, message: REFUSAL }]);
 	},
 );
 
 for (const status of ["done", "dropped"]) {
 	boardStory.it(
-		`a ${status} brief keeps historical areas and identity quiet without asking Fleet`,
-		[projectFiles({ "archive/old.md": SOURCE.replace("fleet: approved", `status: ${status}\nareas: [removed-package]`) }), deferredServing],
-		function* ({ start, readDocument }) {
-			const requested: string[] = [];
-			const daemon = yield* rawDiagnosticsDaemon(
-				() => ({}),
-				0,
-				undefined,
-				(briefs) =>
-					briefs.map((brief) => {
-						requested.push(brief.workId);
-						return { ...brief, message: "The original task path was delivered." };
-					}),
-			);
-			yield* start({ fleetPort: daemon.port });
-			expect((yield* readDocument("archive/old.md")).diagnostics).toEqual([]);
-			expect(requested).toEqual([]);
+		`a ${status} brief is not checked with Fleet and keeps its retired areas quiet`,
+		[
+			projectFiles({ "archive/old.md": SOURCE.replace("fleet: approved", `status: ${status}\nareas: [removed-package]`) }),
+			briefRefusingFleet({ "fleet.example": REFUSAL }),
+		],
+		function* ({ fleetBriefRequests, itemDiagnostics }) {
+			const diagnostics = yield* itemDiagnostics("/archive/old.md");
+
+			yield* outcomes([["briefs asked about", () => fleetBriefRequests(), []]]);
+			expect(diagnostics).toEqual([]);
 		},
 	);
 }
 
-const SHOWN = 30;
-const shownItems = Array.from({ length: SHOWN }, (_, index) => `fleet.shown-${index}`);
+const SHOWN = Array.from({ length: 30 }, (_, index) => `fleet.shown-${index}`);
+const fleetItem = { attentionOwner: "automation" as const, stage: "working" as const, stageEnteredAt: 100, updatedAt: 200 };
+
 boardStory.it(
-	"the overview asks Fleet about every shown brief in one request and hides the refused one",
+	"the overview checks all thirty shown briefs with Fleet in one request and hides the one Fleet refuses",
 	[
 		projectFiles({
-			...Object.fromEntries(
-				shownItems.map((id, index) => [`tasks/${index}.md`, `---\nid: ${id}\nkind: task\nstatus: ready\n---\n# Shown ${index}\n`]),
-			),
+			...Object.fromEntries(SHOWN.map((id, index) => [`tasks/${index}.md`, `---\nid: ${id}\nkind: task\nstatus: ready\n---\n# Shown ${index}\n`])),
 			"tasks/done.md": "---\nid: fleet.delivered\nkind: task\nstatus: done\n---\n# Delivered\n",
 		}),
-		deferredServing,
-	],
-	function* ({ start, rpc, notes }) {
-		const requests: string[][] = [];
-		const item = { attentionOwner: "automation" as const, stage: "working" as const, stageEnteredAt: 100, updatedAt: 200 };
-		const daemon = yield* rawDiagnosticsDaemon(
-			() => ({}),
-			0,
-			() => ({
-				completed: [{ ...item, completedAt: 200, stage: "done", workId: "fleet.delivered" }],
-				items: shownItems.map((workId) => ({ ...item, workId })),
-			}),
-			(briefs) => {
-				requests.push(briefs.map((brief) => brief.workId));
-				return briefs
-					.filter((brief) => brief.workId === "fleet.shown-0")
-					.map((brief) => ({ ...brief, message: "id fleet.shown-0 was delivered in example/project#7; give this brief a new id" }));
+		briefRefusingFleet(
+			{ "fleet.shown-0": "id fleet.shown-0 was delivered in example/project#7; give this brief a new id" },
+			{
+				completed: [{ ...fleetItem, completedAt: 200, stage: "done", workId: "fleet.delivered" }],
+				items: SHOWN.map((workId) => ({ ...fleetItem, workId })),
 			},
-		);
-		yield* start({ fleetPort: daemon.port });
-		const overview = yield* rpc((client) => client("work-board.overview", undefined));
-		expect(requests).toEqual([shownItems]);
-		expect(overview.fleet.state === "ready" ? overview.fleet.items.map((shown) => shown.workId) : []).toEqual(shownItems.slice(1));
-		expect(overview.fleet.state === "ready" ? overview.fleet.completed.map((shown) => shown.workId) : []).toEqual(["fleet.delivered"]);
-		expect(requests.flat()).not.toContain("fleet.delivered");
-		expect(readFileSync(`${notes.root}/tasks/0.md`, "utf8")).toContain("# Shown 0");
+		),
+	],
+	function* ({ fleetBriefRequests, overviewFleet }) {
+		const overview = yield* overviewFleet();
+
+		expect(overview).toEqual({ completed: ["fleet.delivered"], shown: SHOWN.slice(1) });
+		expect(yield* fleetBriefRequests()).toEqual([SHOWN.map((id, index) => `${id} at tasks/${index}.md`)]);
 	},
 );

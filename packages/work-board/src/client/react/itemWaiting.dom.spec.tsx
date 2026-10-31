@@ -1,13 +1,12 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { answerCardFixture, TEXT_QUESTION_ID, textQuestionFixture } from "#test/answerCardFixture.ts";
-import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
-const HEADER = ".item-summary";
 const NEXT = "Waiting on question.pool. Then close goal.old, see notes/plan.md and task.missing. Merge #828 and PR 12.";
 const FILES = {
 	"agents.md": `---
@@ -37,28 +36,30 @@ attention:
 const TASK = "/_board/item/task.pool/";
 
 screenStory.it(
-	"leads an item with the open asks that name it, in amber only when they wait on you",
+	"an item's header leads with the open asks that name it, highlighting only the one that waits on you and linking it straight to its answer card",
 	[routedScreen(FILES, TASK, { home: "home.md" })],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElement("[data-waiting-on]")).not.toBeNull());
-		const rows = [...findElements(`${HEADER} [data-waiting-on]`)];
-		expect(rows.map((row) => [row.getAttribute("data-waiting-on"), row.textContent])).toEqual([
-			["you", "Waiting on you: Your pooling designAnswer"],
-			["agents", "Waiting on automation: Pool size review"],
+	function* ({ waitingRows }) {
+		expect(yield* waitingRows()).toEqual([
+			{
+				highlighted: true,
+				links: ["Your pooling design -> /_board/item/question.pool/", "Answer Your pooling design -> /_board/item/question.pool/#answer-card-answer"],
+				text: "Waiting on you: Your pooling designAnswer",
+			},
+			{ highlighted: false, links: ["Pool size review -> /_board/item/decision.size/"], text: "Waiting on automation: Pool size review" },
 		]);
-		const [you, agents] = rows;
-		expect(you?.className).toContain("bg-needs-you/10");
-		expect(agents?.className).not.toContain("needs-you");
-		expect(you?.querySelector('a[aria-label="Answer Your pooling design"]')?.getAttribute("href")).toBe(
-			"/_board/item/question.pool/#answer-card-answer",
-		);
-		expect([...(agents?.querySelectorAll("a") ?? [])].map((link) => link.getAttribute("href"))).toEqual(["/_board/item/decision.size/"]);
-		expect(readText(HEADER)).not.toContain("Another question");
 	},
 );
 
 screenStory.it(
-	"shows no waiting row once the asks that named the item are closed",
+	"an ask that only relates to another item stays out of this item's header",
+	[routedScreen(FILES, TASK, { home: "home.md" })],
+	function* ({ itemHeaderText }) {
+		expect(yield* itemHeaderText()).not.toContain("Another question");
+	},
+);
+
+screenStory.it(
+	"once the asks that named an item are closed, its header shows nothing waiting",
 	[
 		routedScreen(
 			{
@@ -70,66 +71,64 @@ screenStory.it(
 			{ home: "home.md" },
 		),
 	],
-	function* ({ findElement }) {
-		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
-		expect(findElement("[data-waiting-on]")).toBeNull();
+	function* ({ waitingRows }) {
+		expect(yield* waitingRows()).toEqual([]);
 	},
 );
 
 screenStory.it(
-	"names the items and files a next action mentions, with their status, and leaves unknown words plain",
+	"a next action names the items and files it mentions by title, with their status, and leaves unknown IDs and PR numbers plain without a repository",
 	[routedScreen(FILES, TASK, { home: "home.md" })],
-	function* ({ findElement, findElements, readText }) {
-		yield* eventually(() => expect(findElement("[data-mention]")).not.toBeNull());
-		const mentions = [...findElements(`${HEADER} [data-mention]`)].map((mention) => [
-			mention.getAttribute("data-mention"),
-			mention.querySelector("a")?.textContent,
-			mention.querySelector("a")?.getAttribute("href"),
-			mention.querySelector("[data-status-token]")?.textContent ?? null,
+	function* ({ itemHeaderText, nextActionMentions, nextActionPullRequests }) {
+		yield* outcomes([
+			[
+				"mentions",
+				() => nextActionMentions(),
+				[
+					"Your pooling design -> /_board/item/question.pool/ (Ready)",
+					"Finished goal -> /_board/item/goal.old/ (Done)",
+					"The pooling plan -> /notes/plan.md",
+				],
+			],
+			["plain words", () => itemHeaderText(), expect.stringContaining("and task.missing. Merge #828 and PR 12.")],
+			["pull requests", () => nextActionPullRequests(), []],
 		]);
-		expect(mentions).toEqual([
-			["question.pool", "Your pooling design", "/_board/item/question.pool/", "Ready"],
-			["goal.old", "Finished goal", "/_board/item/goal.old/", "Done"],
-			["notes/plan.md", "The pooling plan", "/notes/plan.md", null],
-		]);
-		expect(readText(HEADER)).toContain("and task.missing. Merge #828 and PR 12.");
-		expect(findElement(`${HEADER} a[href*="/pull/"]`)).toBeNull();
 	},
 );
 
 screenStory.it(
-	"links pull request numbers to the workspace repository without Fleet",
+	"with a workspace repository, a next action links its pull request numbers there, without Fleet",
 	[routedScreen(FILES, TASK, { home: "home.md", pullRequests: "https://github.com/example/project/pull/" })],
-	function* ({ findElement, findElements }) {
-		yield* eventually(() => expect(findElement(`${HEADER} a[href*="/pull/"]`)).not.toBeNull());
-		expect([...findElements(`${HEADER} a[href*="/pull/"]`)].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
-			["#828", "https://github.com/example/project/pull/828"],
-			["PR 12", "https://github.com/example/project/pull/12"],
+	function* ({ nextActionPullRequests }) {
+		expect(yield* nextActionPullRequests()).toEqual([
+			"#828 -> https://github.com/example/project/pull/828",
+			"PR 12 -> https://github.com/example/project/pull/12",
 		]);
 	},
 );
 
 screenStory.it(
-	"offers a phone-only Answer control at the top of a question that puts focus in the answer box",
-	[
-		screenWorkspace("answer-jump"),
-		routedScreen({ ...textQuestionFixture }, `/_board/item/${TEXT_QUESTION_ID}/`, { home: "home.md", writable: true }),
-	],
-	function* ({ click, findElement, readFocus }) {
-		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
-		const jump = findElement(`${HEADER} [data-answer-jump]`);
-		expect(jump?.textContent).toBe("Answer");
-		expect(jump?.classList.contains("md:hidden")).toBe(true);
-		click(`${HEADER} [data-answer-jump]`);
-		yield* eventually(() => expect(readFocus()).toBe(findElement('#response-form [name="body"]')));
+	"pressing Answer at the top of a question puts keyboard focus in its answer box",
+	[routedScreen({ ...textQuestionFixture }, `/_board/item/${TEXT_QUESTION_ID}/`, { home: "home.md", writable: true })],
+	function* ({ answerBoxState, answerJump, pressAnswerJump }) {
+		yield* outcomes([
+			["Answer control", () => answerJump(), "Answer"],
+			["answer box", () => answerBoxState(), expect.objectContaining({ focused: false })],
+		]);
+
+		yield* pressAnswerJump();
+
+		expect(yield* answerBoxState()).toEqual(expect.objectContaining({ focused: true }));
 	},
 );
 
 screenStory.it(
-	"keeps the Answer control off a task whose answer card already leads the page",
+	"a task whose answer card already leads the page has no Answer control in its header",
 	[routedScreen(answerCardFixture, "/_board/item/task.guide/", { home: "home.md", writable: true })],
-	function* ({ findElement }) {
-		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
-		expect(findElement("[data-answer-jump]")).toBeNull();
+	function* ({ answerJump, cardTitle }) {
+		yield* outcomes([
+			["Answer control", () => answerJump(), "none"],
+			["answer card", () => cardTitle(), "Answer: Publish the install guide"],
+		]);
 	},
 );

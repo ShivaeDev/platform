@@ -3,73 +3,63 @@ import { screenStory } from "#test/screenStory.ts";
 import { systemScreen } from "#test/screenTraits.ts";
 import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 
-{
-	const fleet = todayFleetFixture();
-	if (fleet.state !== "ready") {
-		throw new Error("Missing Fleet fixture");
-	}
-	screenStory.it(
-		"shows every running and waiting item by source title, stage and PR independently of health totals",
-		[
-			systemScreen({
-				...fleet,
-				items: fleet.items.map((item) => (item.stage === "waiting" ? { ...item, attentionOwner: "maintainer" as const } : item)),
+const fleet = todayFleetFixture();
+if (fleet.state !== "ready" || !fleet.items[0]) {
+	throw new Error("Missing Fleet fixture");
+}
+
+screenStory.it(
+	"System lists Fleet's queued, running and waiting work by title, stage and pull request, and leaves released work out",
+	[
+		systemScreen({
+			...fleet,
+			items: fleet.items.map((item) => (item.stage === "waiting" ? { ...item, attentionOwner: "maintainer" as const } : item)),
+		}),
+	],
+	function* ({ fleetWorkLane }) {
+		const lane = yield* fleetWorkLane();
+		expect(lane).toEqual(
+			expect.objectContaining({
+				rows: expect.arrayContaining([
+					expect.objectContaining({
+						id: "task.sample.0",
+						pr: "https://github.com/example/project/pull/1",
+						stage: "Working",
+						title: "Workspace task 0",
+					}),
+					expect.objectContaining({ id: "task.sample.1", stage: "Reviewing" }),
+					expect.objectContaining({ id: "task.queued", stage: "Queued" }),
+					expect.objectContaining({ id: "task.waiting", stage: "Waiting", text: expect.stringContaining("Waiting on you") }),
+				]),
 			}),
-		],
-		({ readText, findElement, readAttribute }) => {
-			expect(readText("h1")).toBe("System");
-			expect(findElement('[data-source="codex"]')).not.toBeNull();
-			expect(findElement('[data-source="github"]')).not.toBeNull();
-			expect(readText('[data-fleet-id="task.sample.0"]')).toContain("Workspace task 0");
-			expect(readAttribute('[aria-label="Pull request for Workspace task 0"]', "href")).toBe("https://github.com/example/project/pull/1");
-			for (const stage of ["Queued", "Working", "Reviewing", "Waiting"]) {
-				expect(readText('[aria-label="Fleet work"]')).toContain(stage);
-			}
-			expect(readText('[data-fleet-id="task.waiting"]')).toContain("Waiting on you");
-			expect(findElement('[data-fleet-id="task.released"]')).toBeNull();
-		},
-	);
-}
-{
-	const fleet = todayFleetFixture();
-	if (fleet.state !== "ready" || !fleet.items[0]) {
-		throw new Error("Missing Fleet fixture");
-	}
-	const { prUrl, ...item } = fleet.items[0];
-	screenStory.it(
-		"keeps an active Fleet row visible without a placeholder or link for its missing PR",
-		[systemScreen({ ...fleet, items: [item] })],
-		({ read, findElement, findElements }) => {
-			const row = findElement('[data-fleet-id="task.sample.0"]');
-			expect(row?.textContent).toContain("Workspace task 0");
-			expect(row?.textContent).toContain("Working");
-			expect(findElements("a", row)).toHaveLength(1);
-			expect(findElement('[aria-label^="Pull request"]')).toBeNull();
-			expect(read().text).not.toMatch(/not recorded/iu);
-		},
-	);
-}
-for (const fleet of [
-	undefined,
-	{ reason: "Daemon disconnected", state: "unavailable" } as const,
-	{ completed: [], items: [], state: "ready" } as const,
-]) {
-	screenStory.it(
-		`distinguishes loading, unavailable and empty Fleet data (${JSON.stringify(fleet)})`,
-		[systemScreen(fleet)],
-		({ findElement, findElements }) => {
-			const lane = findElement('[aria-label="Fleet work"]');
-			let message = "Loading Fleet work";
-			if (fleet?.state === "ready") {
-				message = "No Fleet work";
-			}
-			if (fleet?.state === "unavailable") {
-				message = "Daemon disconnected";
-			}
-			expect(lane?.textContent).toContain(message);
-			expect(findElements('[data-slot="skeleton"]', lane).length > 0).toBe(fleet === undefined);
-			expect(findElement('[data-slot="empty"]', lane) !== null).toBe(fleet?.state === "ready");
-			expect(findElements("[data-fleet-id]", lane)).toHaveLength(0);
-		},
-	);
+		);
+		expect(lane).not.toEqual(expect.objectContaining({ rows: expect.arrayContaining([expect.objectContaining({ id: "task.released" })]) }));
+	},
+);
+
+const { prUrl, ...withoutPullRequest } = fleet.items[0];
+screenStory.it(
+	"System keeps a Fleet row without a pull request with only its title link",
+	[systemScreen({ ...fleet, items: [withoutPullRequest] })],
+	function* ({ fleetWorkLane }) {
+		expect(yield* fleetWorkLane()).toEqual(
+			expect.objectContaining({
+				rows: [expect.objectContaining({ id: "task.sample.0", links: 1, pr: "none", stage: "Working", title: "Workspace task 0" })],
+			}),
+		);
+	},
+);
+
+for (const [name, data, expected] of [
+	["still loading", undefined, { loading: "shown", message: "none", rows: [] }],
+	[
+		"unavailable",
+		{ reason: "Daemon disconnected", state: "unavailable" } as const,
+		{ loading: "none", message: "Fleet work unavailable. Daemon disconnected", rows: [] },
+	],
+	["empty", { completed: [], items: [], state: "ready" } as const, { loading: "none", message: "No Fleet work", rows: [] }],
+] as const) {
+	screenStory.it(`System's Fleet work list tells ${name} Fleet data apart`, [systemScreen(data)], function* ({ fleetWorkLane }) {
+		expect(yield* fleetWorkLane()).toEqual(expected);
+	});
 }

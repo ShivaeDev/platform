@@ -1,41 +1,59 @@
-import { Effect } from "effect";
 import { describe, expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardHome, boardStory, projectFiles, readerAt } from "#test/boardStory.ts";
-import { followLink } from "#test/followLink.ts";
-import { PLAN, waitFor } from "#test/live.ts";
-import { frame, title } from "#test/pageObservation.ts";
+import { PLAN } from "#test/live.ts";
+
+// These stories drive the built bundle in a page because only real window.history restores selection and details.
+const reader = [
+	projectFiles({ "home.md": "# Home", "other.md": "# Other\n\nNext page.", "plan.md": PLAN.replace("# Plan", "# Plan\n\n## Reading") }),
+	boardHome("home.md"),
+	readerAt("/plan.md"),
+];
 
 describe("document navigation", () => {
-	// Guards real window.history selection and details restoration.
 	boardStory.it(
-		"navigates without reloading and restores selection and open details through back and forward",
-		[
-			projectFiles({ "home.md": "# Home", "other.md": "# Other\n\nNext page.", "plan.md": PLAN.replace("# Plan", "# Plan\n\n## Reading") }),
-			boardHome("home.md"),
-			readerAt("/plan.md"),
-		],
-		function* ({ page }) {
-			yield* Effect.promise(() => waitFor(() => expect(page.document.getElementById("favorite-toggle")?.hasAttribute("disabled")).toBe(false)));
-			yield* Effect.promise(() => waitFor(() => expect(page.pageRequests.answered).toBeGreaterThanOrEqual(1)));
-			page.window.document.body.dataset.visit = "kept";
-			const details = page.document.querySelector("article details");
-			details?.setAttribute("open", "");
-			const text = page.document.querySelector("article p")?.firstChild;
-			if (text === undefined || text === null) {
-				throw new Error("Missing text");
-			}
-			page.window.getSelection()?.setBaseAndExtent(text, 0, text, 5);
-			followLink(page, "/other.md");
-			yield* Effect.promise(() => frame(page));
-			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Other")));
-			expect(page.document.body.dataset.visit).toBe("kept");
-			expect(page.window.location.pathname).toBe("/other.md");
-			page.window.history.back();
-			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Plan")));
-			yield* Effect.promise(() => waitFor(() => expect(page.document.querySelector("article details")?.hasAttribute("open")).toBe(true)));
-			expect(page.window.getSelection()?.toString()).toBe("Intro");
-			page.window.history.forward();
-			yield* Effect.promise(() => waitFor(() => expect(title(page)).toBe("Other")));
+		"opens a followed link in the same page without the browser reloading it",
+		reader,
+		function* ({ bundleLocation, bundlePageReady, followInBundle }) {
+			yield* bundlePageReady();
+			expect(yield* bundleLocation()).toEqual({ address: "/plan.md", heading: "Plan", visit: "kept" });
+
+			yield* followInBundle("/other.md");
+
+			expect(yield* bundleLocation()).toEqual({ address: "/other.md", heading: "Other", visit: "kept" });
+		},
+	);
+
+	boardStory.it(
+		"reopens the details and reselects the text the reader left when they go back",
+		reader,
+		function* ({ bundleLocation, bundlePageReady, bundleReading, followInBundle, goBackInBundle, openBundleDetails, selectBundleText }) {
+			yield* bundlePageReady();
+			yield* openBundleDetails();
+			yield* selectBundleText(5);
+			yield* followInBundle("/other.md");
+			expect(yield* bundleReading()).toEqual({ details: "none", selection: "" });
+
+			yield* goBackInBundle("/plan.md");
+
+			yield* outcomes([
+				["the page", () => bundleLocation(), { address: "/plan.md", heading: "Plan", visit: "kept" }],
+				["the reading", () => bundleReading(), { details: "open", selection: "Intro" }],
+			]);
+		},
+	);
+
+	boardStory.it(
+		"returns to the page the reader went back from when they go forward",
+		reader,
+		function* ({ bundleLocation, bundlePageReady, followInBundle, goBackInBundle, goForwardInBundle }) {
+			yield* bundlePageReady();
+			yield* followInBundle("/other.md");
+			yield* goBackInBundle("/plan.md");
+
+			yield* goForwardInBundle("/other.md");
+
+			expect(yield* bundleLocation()).toEqual({ address: "/other.md", heading: "Other", visit: "kept" });
 		},
 	);
 });

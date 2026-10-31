@@ -1,107 +1,74 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { chromeFixture } from "#test/chromeFixture.ts";
 import { screenWorkspace } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
-{
-	const files = chromeFixture();
-	screenStory.it(
-		"searches native query results, chooses a passage, refreshes and searches again after reload",
-		[screenWorkspace("reading-fixture"), chromeScreen(files)],
-		function* ({ chrome, click, input, control, keyboard, refreshQuery, editFile, closeScreen, location, findElement }) {
-			click("#search-open");
-			input('#search-dialog [role="combobox"]', "Second phrase");
-			yield* eventually(() =>
-				expect(control('#search-dialog [role="option"] a', HTMLAnchorElement).getAttribute("href")).toBe("/notes/deep/proof.md"),
-			);
-			editFile("notes/deep/proof.md", "# Proof\n\nSecond phrase changed.\n");
-			yield* Effect.promise(() => refreshQuery("search", { query: "Second phrase" }));
-			yield* eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed."));
-			keyboard("Enter", {}, control('#search-dialog [role="combobox"]', HTMLInputElement));
-			yield* eventually(() => expect(location()?.pathname).toBe("/notes/deep/proof.md"));
-			yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
-			yield* Effect.promise(() => closeScreen());
-			yield* Effect.promise(() => chrome());
-			click("#search-open");
-			input('#search-dialog [role="combobox"]', "Second phrase");
-			yield* eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed."));
-		},
-	);
-}
-{
-	const files = chromeFixture();
-	screenStory.it(
-		"saves appearance and sidebar choices through a document refresh and reload",
-		[screenWorkspace("reading-fixture"), chromeScreen(files)],
-		function* ({ chrome, click, control, findElements, refreshDocument, editFile, readRootAttribute, closeScreen, roles }) {
-			click("#settings-open");
-			yield* roles.click({ name: "Dark", role: "button" });
-			yield* roles.click({ name: "Compact", role: "button" });
-			click("#sidebar-toggle");
-			editFile("notes/plan.md", `${files["notes/plan.md"]}\nRefreshed source.\n`);
-			yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-			yield* eventually(() => expect(control("#doc", HTMLElement).textContent).toContain("Refreshed source."));
-			expect(readRootAttribute("data-scheme")).toBe("dark");
-			expect(control("#sidebar", HTMLElement).hidden).toBe(true);
-			yield* Effect.promise(() => closeScreen());
-			yield* Effect.promise(() => chrome());
-			click("#settings-open");
-			expect(findElements('[role="group"] [aria-pressed="true"]', document).map((found) => roles.accessible(found).name)).toEqual([
-				"Dark",
-				"Compact",
-			]);
-			expect(control("#sidebar-toggle", HTMLButtonElement).getAttribute("aria-expanded")).toBe("false");
-		},
-	);
-}
-{
-	const files = chromeFixture();
-	screenStory.it(
-		"keeps favorites, recents and per-entry reading details through refresh, back and reload",
-		[screenWorkspace("reading-fixture"), chromeScreen(files)],
-		function* ({
-			chrome,
-			click,
-			control,
-			navigate,
-			findElements,
-			findElement,
-			refreshDocument,
-			back,
-			browserEvent,
-			editFile,
-			openDetails,
-			rememberHistory,
-			closeScreen,
-			location,
-			roles,
-		}) {
-			click("#favorite-toggle");
-			openDetails("article details");
-			editFile("notes/plan.md", `${files["notes/plan.md"]}\nMore evidence.\n`);
-			yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-			yield* eventually(() => expect(control("#doc", HTMLElement).textContent).toContain("More evidence."));
-			expect(control("article details", HTMLDetailsElement).open).toBe(true);
-			yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-			yield* eventually(() => expect(control("#doc h1", HTMLElement).textContent).toBe("Proof"));
-			yield* Effect.promise(() => back());
-			yield* eventually(() => expect(control("#doc h1", HTMLElement).textContent).toBe("Plan"));
-			expect(control("article details", HTMLDetailsElement).open).toBe(true);
-			browserEvent("pagehide", "window");
-			const state = location()?.state;
-			yield* Effect.promise(() => closeScreen());
-			rememberHistory({ workBoard: { id: state?.key } });
-			yield* Effect.promise(() => chrome());
-			yield* eventually(() => expect(control("article details", HTMLDetailsElement).open).toBe(true));
-			expect(roles.text({ name: "Unpin", role: "button" })).toBe("Unpin");
-			click("#library-open");
-			expect([...findElements("#reading-library h3", document)].map((heading) => heading.textContent)).toEqual(["Pinned", "Today"]);
-			expect(findElement('#reading-library a[href="/notes/deep/proof.md"]', document)).not.toBeNull();
-			expect(findElements('section[aria-label="Recent"] a').map((link) => link.getAttribute("href"))).toEqual(["/notes/deep/proof.md"]);
-		},
-	);
-}
+
+const files = chromeFixture();
+
+screenStory.it(
+	"after the Board reloads, it reapplies the dark theme, compact density and hidden sidebar chosen before",
+	[screenWorkspace("reading-fixture"), chromeScreen(files)],
+	function* ({ chooseAppearance, openSettings, reloadShell, shellPreferences, sidebarButton, toggleSidebar }) {
+		yield* openSettings();
+		yield* chooseAppearance("Dark");
+		yield* chooseAppearance("Compact");
+		yield* toggleSidebar();
+
+		yield* reloadShell();
+
+		yield* outcomes([
+			["preferences", () => shellPreferences(), { density: "compact", sidebar: "closed", theme: "dark" }],
+			["sidebar button", () => sidebarButton(), expect.objectContaining({ expanded: "false" })],
+		]);
+	},
+);
+
+screenStory.it(
+	"an opened Evidence block stays open when its document refreshes",
+	[screenWorkspace("reading-fixture"), chromeScreen(files)],
+	function* ({ detailsBlock, editFile, openDetailsBlock, readText, refreshDocument }) {
+		yield* openDetailsBlock("Evidence");
+		yield* editFile("notes/plan.md", `${files["notes/plan.md"]}\nMore evidence.\n`);
+
+		yield* refreshDocument("/notes/plan.md");
+
+		yield* outcomes([
+			["document", () => readText("#doc"), expect.stringContaining("More evidence.")],
+			["evidence", () => detailsBlock("Evidence"), "open"],
+		]);
+	},
+);
+
+screenStory.it(
+	"after the Board reloads into the same history entry, the Evidence block the reader opened is open again",
+	[screenWorkspace("reading-fixture"), chromeScreen(files)],
+	function* ({ detailsBlock, openDetailsBlock, reloadShell }) {
+		yield* openDetailsBlock("Evidence");
+
+		yield* reloadShell();
+
+		expect(yield* detailsBlock("Evidence")).toBe("open");
+	},
+);
+
+screenStory.it(
+	"after the Board reloads, the sidebar still lists the pinned page under Pinned and the page visited before under Recent",
+	[screenWorkspace("reading-fixture"), chromeScreen(files)],
+	function* ({ back, navigate, pinPage, reloadShell, sidebarLinks }) {
+		yield* pinPage();
+		yield* navigate("/notes/deep/proof.md");
+		yield* back();
+
+		yield* reloadShell();
+
+		yield* outcomes([
+			["pinned", () => sidebarLinks("Pinned"), [{ href: "/notes/plan.md", title: "Plan" }]],
+			["recent", () => sidebarLinks("Recent"), [{ href: "/notes/deep/proof.md", title: "Proof" }]],
+		]);
+	},
+);

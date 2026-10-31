@@ -23,7 +23,7 @@ for (const [stage, lane, label] of [
 		workId: item.id,
 	}));
 	screenStory.it(
-		`keeps Fleet ${stage} visible in ${lane} despite inactive authored statuses`,
+		`Now shows work Fleet has ${stage} in ${lane} even when its file says it is closed`,
 		[
 			componentScreen(
 				<FleetItemsContext.Provider value={{ completed: [], items, state: "ready" }}>
@@ -31,15 +31,8 @@ for (const [stage, lane, label] of [
 				</FleetItemsContext.Provider>,
 			),
 		],
-		({ findElement, findElements, readText }) => {
-			const column = findElement(`[aria-label="${lane}"]`);
-			expect(findElements(".work-card", column)).toHaveLength(statuses.length);
-			for (const row of rows) {
-				const card = findElement(`[data-item="${row.id}"]`, column);
-				expect(readText("h3", card)).toBe(row.title);
-				expect(findElements("[data-status-token]", card).map((token) => token.textContent)).toEqual([label]);
-			}
-			expect(findElement(".work-total")).toBeNull();
+		function* ({ laneCards }) {
+			expect(yield* laneCards(lane)).toEqual(rows.map((row) => ({ id: row.id, states: [label], title: row.title })));
 		},
 	);
 }

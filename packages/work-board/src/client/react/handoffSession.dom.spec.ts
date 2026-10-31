@@ -1,84 +1,186 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { liveForm } from "#test/answerTraits.ts";
 import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
-import { waitFor } from "#test/live.ts";
 import { deniedClipboard } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { sessionScreen } from "#test/sessionScreen.ts";
 
 expectNoReactWarnings();
+
+const CHANGED_ITEM = `${EDGE_ATTENTION_SOURCE}Changed premise.\n`;
+
 screenStory.it(
-	"puts handoff Schema messages on their fields when Prepare is pressed and saves nothing",
-	[sessionScreen("handoff")],
-	function* ({ input, submit, findElement, readText, readSessionFiles }) {
-		yield* eventually(() => expect(findElement("#handoff-submit")).toHaveProperty("disabled", false));
-		const recipient = input('[name="recipient"]', "x".repeat(201));
-		const goal = input('[name="goal"]', " ");
-		submit("#handoff-form");
-		yield* eventually(() => expect(goal.validationMessage).toContain("RegExp"));
-		expect(recipient.validationMessage).toContain("200");
-		expect(readText("#handoff-status")).toBe("Fill in the marked fields, then prepare the handoff.");
-		expect(readSessionFiles("handoffs")).toEqual([]);
-		input(goal, "Review the direction");
-		input(recipient, "agent-local");
-		yield* eventually(() => expect([goal.validationMessage, recipient.validationMessage]).toEqual(["", ""]));
-		expect(readText("#handoff-status")).toBe("");
+	"Prepare handoff with a blank goal and a 201-character agent name marks both fields, says what to do, and saves nothing",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, handoffField, handoffStatus, pressPrepareHandoff, readSessionFiles }) {
+		yield* fillHandoff("Agent name", "x".repeat(201));
+		yield* fillHandoff("Goal", " ");
+
+		yield* pressPrepareHandoff();
+
+		yield* outcomes([
+			["Agent name", () => handoffField("Agent name"), expect.objectContaining({ problem: expect.stringContaining("200") })],
+			["Goal", () => handoffField("Goal"), expect.objectContaining({ problem: expect.stringMatching(/.+/u) })],
+			["saved", () => readSessionFiles("handoffs"), []],
+			["status", () => handoffStatus(), "Fill in the marked fields, then prepare the handoff."],
+		]);
 	},
 );
 
 screenStory.it(
-	"rebinds a draft to a changed source before preparing it",
-	[sessionScreen("handoff")],
-	function* ({ input, activate, submit, findElement, editSessionFile, readText, readSessionLibrary, readSessionFiles }) {
-		yield* eventually(() => expect(findElement("#handoff-submit")).toHaveProperty("disabled", false));
-		input('[name="recipient"]', "agent-local");
-		const goal = input('[name="goal"]', "Keep my direction");
-		editSessionFile("unrelated.md", "# Another file");
-		yield* Effect.promise(() =>
-			waitFor(async () => expect((await readSessionLibrary()).files.map((file) => file.path).sort()).toEqual(["item.md", "unrelated.md"])),
-		);
-		expect(findElement('[name="goal"]')).toBe(goal);
-		expect(readText("#handoff-status")).toBe("");
-		editSessionFile("item.md", `${EDGE_ATTENTION_SOURCE}Changed premise.\n`);
-		yield* eventually(() => expect(readText(".response-context")).toContain("Changed premise."));
-		expect(goal.value).toBe("Keep my direction");
-		expect(readText("#handoff-status")).toContain("Source changed since this draft");
-		submit("#handoff-form");
-		yield* eventually(() => expect(readText("#handoff-status")).toContain("Updated to the item's new version"));
-		expect(readSessionFiles("handoffs")).toEqual([]);
-		submit("#handoff-form");
-		yield* eventually(() => expect(readText("#handoff-status")).toContain("Saved handoffs/"));
-		expect(readSessionFiles("handoffs").map((source) => source.includes("Changed premise."))).toEqual([true]);
-		yield* Effect.promise(() => activate("#handoff-prepared [data-handoff-copy]"));
-		expect(readText("#handoff-status")).toBe("Copied. Paste it into your agent session.");
-		expect(yield* Effect.promise(() => navigator.clipboard.readText())).toBe(findElement<HTMLTextAreaElement>("#handoff-prepared textarea")?.value);
-		yield* eventually(() => expect(findElement("#handoff-history article")).not.toBeNull());
+	"correcting the marked handoff fields clears their problems and the status line",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, handoffField, handoffStatus, pressPrepareHandoff }) {
+		yield* fillHandoff("Agent name", "x".repeat(201));
+		yield* fillHandoff("Goal", " ");
+		yield* pressPrepareHandoff();
+		expect(yield* handoffStatus()).toBe("Fill in the marked fields, then prepare the handoff.");
+
+		yield* fillHandoff("Goal", "Review the direction");
+		yield* fillHandoff("Agent name", "agent-local");
+
+		yield* outcomes([
+			["Agent name", () => handoffField("Agent name"), expect.objectContaining({ problem: "" })],
+			["Goal", () => handoffField("Goal"), expect.objectContaining({ problem: "" })],
+			["status", () => handoffStatus(), ""],
+		]);
 	},
 );
 
 screenStory.it(
-	"prepares a handoff without a preview, focuses its prompt and reports copying in one status line",
-	[deniedClipboard(), sessionScreen("handoff")],
-	function* ({ input, activate, submit, findElement, findElements, readText, readFocus }) {
-		yield* eventually(() => expect(findElement("#handoff-submit")).toHaveProperty("disabled", false));
-		input('[name="recipient"]', "agent-local");
-		input('[name="goal"]', "Fix focus");
-		findElement<HTMLButtonElement>("#handoff-submit")?.focus();
-		submit("#handoff-form");
-		yield* eventually(() => expect(readText("#handoff-status")).toContain("Saved handoffs/"));
-		expect(readText("#handoff-status")).toContain("Copy the prompt below into your agent session");
-		const prompt = findElement<HTMLTextAreaElement>("#handoff-prepared textarea");
-		yield* eventually(() => expect(readFocus()).toBe(prompt));
-		expect(findElements("#handoff-form [role='status']").map((status) => status.id)).toEqual(["handoff-status"]);
-		expect(findElement<HTMLInputElement>('[name="recipient"]')?.value).toBe("agent-local");
-		const copy = findElement("#handoff-prepared [data-handoff-copy]");
-		expect(copy?.classList.contains("bg-primary")).toBe(false);
-		yield* Effect.promise(() => activate("#handoff-prepared [data-handoff-copy]"));
-		expect(readText("#handoff-status")).toContain("selected");
-		expect(prompt?.value).toContain("Record receipt");
-		expect([prompt?.selectionStart, prompt?.selectionEnd]).toEqual([0, prompt?.value.length]);
-		yield* eventually(() => expect(findElement("#handoff-history article time[data-modified]")).not.toBeNull());
-		expect(readText("#handoff-history article header")).toContain("prepared just now");
+	"an outside edit to another file leaves the handoff draft as written and says nothing changed",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, handoffField, handoffStatus, outsideEditorWrites }) {
+		yield* fillHandoff("Goal", "Keep my direction");
+
+		yield* outsideEditorWrites("unrelated.md", "# Another file");
+
+		yield* outcomes([
+			["goal", () => handoffField("Goal"), expect.objectContaining({ text: "Keep my direction" })],
+			["status", () => handoffStatus(), ""],
+		]);
+	},
+);
+
+screenStory.it(
+	"an outside edit to the item shows its new text above the handoff form, keeps the draft, and says the source changed",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, handoffContext, handoffField, handoffStatus, outsideEditorWrites }) {
+		yield* fillHandoff("Goal", "Keep my direction");
+		expect(yield* handoffContext()).not.toContain("Changed premise.");
+
+		yield* outsideEditorWrites("item.md", CHANGED_ITEM);
+
+		yield* outcomes([
+			["context", () => handoffContext(), expect.stringContaining("Changed premise.")],
+			["goal", () => handoffField("Goal"), expect.objectContaining({ text: "Keep my direction" })],
+			["status", () => handoffStatus(), expect.stringContaining("Source changed since this draft")],
+		]);
+	},
+);
+
+screenStory.it(
+	"the first Prepare handoff after the item changed moves the draft to the new version and saves nothing",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, handoffStatus, outsideEditorWrites, pressPrepareHandoff, readSessionFiles }) {
+		yield* fillHandoff("Agent name", "agent-local");
+		yield* fillHandoff("Goal", "Keep my direction");
+		yield* outsideEditorWrites("item.md", CHANGED_ITEM);
+
+		yield* pressPrepareHandoff();
+
+		yield* outcomes([
+			["saved", () => readSessionFiles("handoffs"), []],
+			["status", () => handoffStatus(), expect.stringContaining("Updated to the item's new version")],
+		]);
+	},
+);
+
+screenStory.it(
+	"pressing Prepare handoff again after the move saves the handoff with the item's changed text",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, handoffStatus, outsideEditorWrites, pressPrepareHandoff, readSessionFiles }) {
+		yield* fillHandoff("Agent name", "agent-local");
+		yield* fillHandoff("Goal", "Keep my direction");
+		yield* outsideEditorWrites("item.md", CHANGED_ITEM);
+		yield* pressPrepareHandoff();
+		expect(yield* readSessionFiles("handoffs")).toEqual([]);
+
+		yield* pressPrepareHandoff();
+
+		yield* outcomes([
+			["saved", () => readSessionFiles("handoffs"), [expect.stringContaining("Changed premise.")]],
+			["status", () => handoffStatus(), expect.stringContaining("Saved handoffs/")],
+		]);
+	},
+);
+
+screenStory.it(
+	"preparing a handoff keeps the form filled in, puts focus on the prompt, and says to copy it in the form's one status line",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, focusPrepareHandoff, handoffField, handoffStatus, handoffStatusLines, preparedPrompt, pressPrepareHandoff }) {
+		yield* fillHandoff("Agent name", "agent-local");
+		yield* fillHandoff("Goal", "Fix focus");
+		yield* focusPrepareHandoff();
+		expect(yield* preparedPrompt()).toBe("none");
+
+		yield* pressPrepareHandoff();
+
+		yield* outcomes([
+			["Agent name", () => handoffField("Agent name"), expect.objectContaining({ text: "agent-local" })],
+			["prompt", () => preparedPrompt(), expect.objectContaining({ focused: true, text: expect.stringContaining("Record receipt") })],
+			["status", () => handoffStatus(), expect.stringMatching(/Saved handoffs\/.*Copy the prompt below into your agent session/su)],
+			["status lines", () => handoffStatusLines(), ["handoff-status"]],
+		]);
+	},
+);
+
+screenStory.it(
+	"a prepared handoff joins the list of handoffs as prepared just now",
+	[liveForm("handoff")],
+	function* ({ fillHandoff, handoffsSoFar, pressPrepareHandoff }) {
+		yield* fillHandoff("Agent name", "agent-local");
+		yield* fillHandoff("Goal", "Fix focus");
+		expect(yield* handoffsSoFar()).toBe("No handoffs yet");
+
+		yield* pressPrepareHandoff();
+
+		expect(yield* handoffsSoFar()).toEqual([expect.stringContaining("prepared just now")]);
+	},
+);
+
+screenStory.it(
+	"Copy prompt puts the prepared prompt on the clipboard and tells the reader to paste it",
+	[liveForm("handoff")],
+	function* ({ clipboardText, copyHandoffPrompt, fillHandoff, handoffStatus, preparedPrompt, pressPrepareHandoff }) {
+		yield* fillHandoff("Agent name", "agent-local");
+		yield* fillHandoff("Goal", "Fix focus");
+		yield* pressPrepareHandoff();
+		const prepared = yield* preparedPrompt();
+
+		yield* copyHandoffPrompt();
+
+		yield* outcomes([
+			["clipboard", () => clipboardText(), prepared === "none" ? "no prompt was prepared" : prepared.text],
+			["status", () => handoffStatus(), "Copied. Paste it into your agent session."],
+		]);
+	},
+);
+
+screenStory.it(
+	"when the clipboard refuses, Copy prompt selects the whole prompt and says it is selected",
+	[deniedClipboard(), liveForm("handoff")],
+	function* ({ copyHandoffPrompt, fillHandoff, handoffStatus, preparedPrompt, pressPrepareHandoff }) {
+		yield* fillHandoff("Agent name", "agent-local");
+		yield* fillHandoff("Goal", "Fix focus");
+		yield* pressPrepareHandoff();
+
+		yield* copyHandoffPrompt();
+
+		yield* outcomes([
+			["prompt", () => preparedPrompt(), expect.objectContaining({ selected: "all" })],
+			["status", () => handoffStatus(), expect.stringContaining("selected")],
+		]);
 	},
 );

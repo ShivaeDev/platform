@@ -1,43 +1,41 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { boardFilesystem, boardStory, projectFiles } from "#test/boardStory.ts";
-import { directoryNotifications } from "#test/directoryNotifications.ts";
-import { changesUntil, rpcDocument } from "#test/nativeRpc.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { directoryNotificationsDelivered, fileReadsCounted } from "#test/servingStoryTraits.ts";
 
-for (const first of ["filesystem", "notifications"]) {
-	const notifications = directoryNotifications(true);
-	let reads = 0;
-	const boundary = boardFilesystem((fs) => ({
-		...fs,
-		readFileString: (path, encoding) =>
-			fs.readFileString(path, encoding).pipe(
-				Effect.tap(() =>
-					Effect.sync(() => {
-						reads += 1;
-					}),
-				),
-			),
-	}));
+const log = projectFiles({ "notes/log.md": "# Before" });
+
+for (const [order, boundaries] of [
+	["the read counter wraps the filesystem first", [fileReadsCounted, directoryNotificationsDelivered()]],
+	["directory notifications wrap the filesystem first", [directoryNotificationsDelivered(), fileReadsCounted]],
+] as const) {
 	boardStory.it(
-		`composes filesystem boundaries when ${first} is applied first`,
-		[projectFiles({ "notes/log.md": "# Before" }), ...(first === "filesystem" ? [boundary, notifications.trait] : [notifications.trait, boundary])],
-		function* ({ notes, board, editFile, watchProject }) {
-			const events = yield* watchProject();
-			expect(yield* events.next()).toEqual({ _tag: "Resync" });
-			const before = reads;
+		`when ${order}, both boundaries see a notified edit`,
+		[log, ...boundaries],
+		function* ({ documentAt, editFile, fileReadCount, notifiedFolders, notifyChange }) {
+			expect(yield* documentAt("/notes/log.md")).toBe("# Before");
+			const readsBefore = yield* fileReadCount();
 			editFile("notes/log.md", "# After");
-			yield* notifications.changed("notes/log.md");
-			expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({ _tag: "Changed" });
-			expect((yield* rpcDocument(board, "/notes/log.md")).source).toBe("# After");
-			expect(reads).toBeGreaterThan(before);
-			expect(notifications.watchedPaths()).toEqual([notes.root]);
-			yield* events.close();
+
+			yield* notifyChange("notes/log.md");
+
+			yield* outcomes([
+				["document", () => documentAt("/notes/log.md"), "# After"],
+				["reads", () => fileReadCount(), expect.toSatisfy((reads: number) => reads > readsBefore, "more reads than before the edit")],
+				["watched", () => notifiedFolders(), ["the workspace"]],
+			]);
 		},
 	);
 }
 
-const stopped = directoryNotifications(true);
-boardStory.it("rejects notifications after the watcher stream stops", [stopped.trait], function* ({ stopBoards }) {
-	yield* stopBoards();
-	yield* Effect.promise(() => expect(Effect.runPromise(stopped.changed("notes"))).rejects.toThrow("No watcher stream is listening"));
-});
+boardStory.it(
+	"once the boards stop, a directory notification has no watcher to reach",
+	[directoryNotificationsDelivered()],
+	function* ({ notificationOutcome, stopBoards }) {
+		expect(yield* notificationOutcome("notes")).toBe("delivered");
+
+		yield* stopBoards();
+
+		expect(yield* notificationOutcome("notes")).toBe("refused: No watcher stream is listening for directory notifications");
+	},
+);

@@ -1,8 +1,8 @@
 import { Effect, Fiber } from "effect";
 import { describe, expect } from "vitest";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { boardStory, heldRequest, projectFiles, readerArrivesEarly } from "#test/boardStory.ts";
 import { linkedProject } from "#test/linkedProject.ts";
+import { pageTraffic } from "#test/pageTraffic.ts";
 import { heldWorkspaceListing, readsOneByOne, slowRepositoryLookup } from "#test/readTraits.ts";
 
 const project = projectFiles({
@@ -13,71 +13,91 @@ const project = projectFiles({
 
 describe("startup", () => {
 	boardStory.it(
-		"says how many files the board has read while it indexes, then replaces that with Today",
-		[project, readsOneByOne(), readerArrivesEarly("/")],
-		function* ({ liveStatus, reader, releaseRead, releaseReads }) {
-			yield* eventually(() => expect(reader.indexingProgress()).toBe("Reading 0 of 3 files…"));
-			expect(liveStatus()).toBe("Updating…");
-			expect(reader.inboxCounts()).toEqual(["", ""]);
+		"While the board indexes, the page counts the files it has read",
+		[project, readsOneByOne(), pageTraffic(), readerArrivesEarly("/")],
+		function* ({ indexingReaches, releaseRead, startupScreen }) {
+			yield* indexingReaches(0, 3);
+			expect(yield* startupScreen()).toEqual({ heading: "none", indexing: "Reading 0 of 3 files…", live: "Updating…", needsYou: ["", ""] });
+
 			yield* releaseRead();
-			yield* eventually(() => expect(reader.indexingProgress()).toBe("Reading 1 of 3 files…"));
-			yield* releaseReads();
-			yield* eventually(() => expect(reader.heading()).toBe("Today"));
-			expect(reader.indexingProgress()).toBeUndefined();
-			expect(liveStatus()).toBe("Live");
+
+			yield* indexingReaches(1, 3);
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ indexing: "Reading 1 of 3 files…" }));
 		},
 	);
 
 	boardStory.it(
-		"indexes and opens Today without waiting for the repository lookup, which then links pull requests",
+		"Once the board has read every file, Today replaces the indexing progress and the page is live",
+		[project, readsOneByOne(), pageTraffic(), readerArrivesEarly("/")],
+		function* ({ indexingReaches, pageReceives, releaseReads, startupScreen }) {
+			yield* indexingReaches(0, 3);
+
+			yield* releaseReads();
+
+			yield* pageReceives("inbox");
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ heading: "Today", indexing: "none", live: "Live" }));
+		},
+	);
+
+	boardStory.it(
+		"Today opens without waiting for the repository lookup, which then links pull requests",
 		[
 			project,
 			projectFiles({ "package.json": JSON.stringify({ repository: "example/project" }) }, "the workspace's package.json names its repository"),
-			readsOneByOne(),
 			slowRepositoryLookup(),
+			pageTraffic(),
 			readerArrivesEarly("/"),
 		],
-		function* ({ readDocument, reader, releaseRead, releaseReads, releaseRepositoryLookup }) {
-			yield* eventually(() => expect(reader.indexingProgress()).toBe("Reading 0 of 3 files…"));
-			yield* releaseRead();
-			yield* eventually(() => expect(reader.indexingProgress()).toBe("Reading 1 of 3 files…"));
-			yield* releaseReads();
-			yield* eventually(() => expect(reader.heading()).toBe("Today"));
+		function* ({ pageReceives, readDocument, releaseRepositoryLookup, startupScreen }) {
+			yield* pageReceives("inbox");
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ heading: "Today" }));
 			const opened = yield* Effect.forkChild(readDocument("plan.md"));
+
 			yield* releaseRepositoryLookup();
+
 			expect((yield* Fiber.join(opened)).pullRequests).toBe("https://github.com/example/project/pull/");
 		},
 	);
 
 	boardStory.it(
-		"says it is reading a workspace with a linked folder before it knows how many files there are",
-		[project, linkedProject, heldWorkspaceListing(), readerArrivesEarly("/")],
-		function* ({ reader, releaseReads }) {
-			yield* eventually(() => expect(reader.indexingProgress()).toBe("Reading the workspace…"));
+		"The page says it is reading a workspace with a linked folder before it knows how many files there are",
+		[project, linkedProject, heldWorkspaceListing(), pageTraffic(), readerArrivesEarly("/")],
+		function* ({ indexingReaches, pageReceives, releaseReads, startupScreen }) {
+			yield* indexingReaches(0);
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ heading: "none", indexing: "Reading the workspace…" }));
+
 			yield* releaseReads();
-			yield* eventually(() => expect(reader.heading()).toBe("Today"));
+
+			yield* pageReceives("inbox");
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ heading: "Today" }));
 		},
 	);
 
 	boardStory.it(
-		"opens Today without waiting for the sidebar's navigation read",
-		[project, heldRequest("work-board.navigation"), readerArrivesEarly("/")],
-		function* ({ reader }) {
-			yield* eventually(() => expect(reader.heading()).toBe("Today"));
-			expect(reader.inboxCounts()).toEqual(["", ""]);
+		"Today opens without waiting for the sidebar's navigation read, which then fills the needs-you badges",
+		[project, heldRequest("work-board.navigation"), pageTraffic(), readerArrivesEarly("/")],
+		function* ({ pageReceives, pageSettles, reader, startupScreen }) {
+			yield* pageSettles();
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ heading: "Today", needsYou: ["", ""] }));
+
 			reader.releaseRequest("work-board.navigation");
-			yield* eventually(() => expect(reader.inboxCounts()).toEqual(["0", "0"]));
+
+			yield* pageReceives("navigation");
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ needsYou: ["0", "0"] }));
 		},
 	);
 
 	boardStory.it(
-		"names the connection in plain words while the page reads and once it is live",
-		[project, heldRequest("work-board.inbox"), readerArrivesEarly("/")],
-		function* ({ liveStatus, page, reader }) {
-			yield* eventually(() => expect(liveStatus()).toBe("Updating…"));
-			expect(page.document.getElementById("live")?.className).not.toContain("font-mono");
+		"The live status says Updating… while the page reads and Live once it has",
+		[project, heldRequest("work-board.inbox"), pageTraffic(), readerArrivesEarly("/")],
+		function* ({ pageReceives, pageSettles, reader, startupScreen }) {
+			yield* pageSettles();
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ live: "Updating…" }));
+
 			reader.releaseRequest("work-board.inbox");
-			yield* eventually(() => expect(liveStatus()).toBe("Live"));
+
+			yield* pageReceives("inbox");
+			expect(yield* startupScreen()).toEqual(expect.objectContaining({ live: "Live" }));
 		},
 	);
 });

@@ -1,48 +1,73 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { attentionFixture } from "#test/attentionFixture.ts";
+import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
-import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
-const SOURCE = "/attention/review.md#attention-request-keyboard-review";
+const PASSAGE = "attention-request-keyboard-review";
+const SOURCE = `/attention/review.md#${PASSAGE}`;
+const revealed = {
+	focus: `#${PASSAGE}`,
+	passage: "shown in the Source tab of the item context",
+	tab: "Source",
+};
 
-for (const { mode, url } of [
-	{ mode: "direct", url: SOURCE },
-	{ mode: "search", url: "/attention/review.md" },
-	{ mode: "same-document", url: "/attention/review.md" },
-]) {
-	screenStory.it(
-		`reveals and focuses an attention source passage through ${mode} navigation`,
-		[routedScreen(attentionFixture(), url)],
-		function* ({ click, input, control, navigate, findElement, readFocus, readAttribute, back }) {
-			if (mode === "search") {
-				yield* eventually(() => expect(findElement(".item-summary")).not.toBeNull());
-				click("#search-open");
-				input('#search-dialog [role="combobox"]', "keyboard-review");
-				const result = '#search-dialog [role="option"] a[href$="#attention-request-keyboard-review"]';
-				yield* eventually(() => expect(findElement(result, document)).not.toBeNull());
-				click(result);
-			}
-			if (mode === "same-document") {
-				yield* eventually(() => expect(findElement(".item-summary")).not.toBeNull());
-				expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Details");
-				yield* Effect.promise(() => navigate(SOURCE));
-			}
-			yield* eventually(() => expect(readFocus()?.id).toBe("attention-request-keyboard-review"));
-			const target = control("#attention-request-keyboard-review", HTMLElement);
-			expect(target.closest("[hidden]")).toBeNull();
-			expect(target.closest('[role="tabpanel"]')?.getAttribute("aria-labelledby")).toBe(
-				control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).id,
-			);
-			expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Source");
-			yield* Effect.promise(() => navigate("/decision.md"));
-			yield* eventually(() => expect(readAttribute("main", "data-route")).toBe("/decision.md"));
-			yield* Effect.promise(() => back());
-			yield* eventually(() => expect(control("#attention-request-keyboard-review", HTMLElement).closest("[hidden]")).toBeNull());
-			expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Source");
-		},
-	);
-}
+screenStory.it(
+	"opening a link to an attention passage reveals it in the Source tab and focuses it",
+	[readingPage(attentionFixture(), SOURCE)],
+	function* ({ contextTab, passageVisibility, readerFocus }) {
+		yield* outcomes([
+			["focus", () => readerFocus(), revealed.focus],
+			["passage", () => passageVisibility(PASSAGE), revealed.passage],
+			["tab", () => contextTab(), revealed.tab],
+		]);
+	},
+);
+
+screenStory.it(
+	"following a link to an attention passage on the same page switches from Details to the Source tab and focuses the passage",
+	[readingPage(attentionFixture(), "/attention/review.md")],
+	function* ({ contextTab, navigateTo, passageVisibility, readerFocus }) {
+		expect(yield* contextTab()).toBe("Details");
+
+		yield* navigateTo(SOURCE);
+
+		yield* outcomes([
+			["focus", () => readerFocus(), revealed.focus],
+			["passage", () => passageVisibility(PASSAGE), revealed.passage],
+			["tab", () => contextTab(), revealed.tab],
+		]);
+	},
+);
+
+screenStory.it(
+	"choosing an attention passage in Search reveals it in the Source tab and focuses it",
+	[readingPage(attentionFixture(), "/attention/review.md")],
+	function* ({ contextTab, openSearchResult, passageVisibility, readerFocus }) {
+		yield* openSearchResult("keyboard-review", `/_board/item/request.search/#${PASSAGE}`);
+
+		yield* outcomes([
+			["focus", () => readerFocus(), revealed.focus],
+			["passage", () => passageVisibility(PASSAGE), revealed.passage],
+			["tab", () => contextTab(), revealed.tab],
+		]);
+	},
+);
+
+screenStory.it(
+	"coming Back to an attention passage keeps it revealed in the Source tab",
+	[readingPage(attentionFixture(), SOURCE)],
+	function* ({ contextTab, goBack, navigateTo, passageVisibility }) {
+		yield* navigateTo("/decision.md");
+
+		yield* goBack();
+
+		yield* outcomes([
+			["passage", () => passageVisibility(PASSAGE), revealed.passage],
+			["tab", () => contextTab(), revealed.tab],
+		]);
+	},
+);

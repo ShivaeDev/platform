@@ -1,48 +1,72 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { pollingScreen } from "#test/pollingScreen.tsx";
 import { intervalClock } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 
 expectNoReactWarnings();
+const FIRST_READ = { diagnostics: "1", fleet: "1" };
+
 screenStory.it(
-	"polls only while resumed and removes its interval when the view leaves",
+	"while updates are paused the diagnostics poll reads nothing new",
 	[intervalClock(), pollingScreen()],
-	function* ({ advanceTime, pauseUpdates, readText, readTimerCount, click }) {
-		expect(readTimerCount()).toBe(1);
-		yield* Effect.promise(() => advanceTime(15_000));
-		expect(readText("[data-diagnostics]")).toBe("1");
-		yield* Effect.promise(() => pauseUpdates(false));
-		expect(readText("[data-diagnostics]")).toBe("2");
-		yield* Effect.promise(() => advanceTime(15_000));
-		expect(readText("[data-diagnostics]")).toBe("3");
-		expect(readText("[data-fleet]")).toBe("3");
-		yield* Effect.promise(() => pauseUpdates(true));
-		yield* Effect.promise(() => advanceTime(15_000));
-		expect(readText("[data-diagnostics]")).toBe("3");
-		yield* Effect.promise(() => pauseUpdates(false));
-		expect(readText("[data-diagnostics]")).toBe("4");
-		click("button");
-		expect(readTimerCount()).toBe(0);
-		yield* Effect.promise(() => advanceTime(30_000));
-		expect(readText("[data-diagnostics]")).toBe("4");
+	function* ({ diagnosticsPollPasses, polledReads }) {
+		expect(yield* polledReads()).toEqual(FIRST_READ);
+
+		yield* diagnosticsPollPasses();
+
+		expect(yield* polledReads()).toEqual(FIRST_READ);
 	},
 );
+
+screenStory.it("resuming updates reads diagnostics and Fleet again at once", [pollingScreen()], function* ({ pauseUpdates, polledReads }) {
+	expect(yield* polledReads()).toEqual(FIRST_READ);
+
+	yield* pauseUpdates(false);
+
+	expect(yield* polledReads()).toEqual({ diagnostics: "2", fleet: "2" });
+});
+
 screenStory.it(
-	"refreshes diagnostics and fleet when updates resume, then unsubscribes",
-	[pollingScreen()],
-	function* ({ pauseUpdates, readText, click }) {
-		expect(readText("[data-diagnostics]")).toBe("1");
-		expect(readText("[data-fleet]")).toBe("1");
-		yield* Effect.promise(() => pauseUpdates(false));
-		expect(readText("[data-diagnostics]")).toBe("2");
-		expect(readText("[data-fleet]")).toBe("2");
-		yield* Effect.promise(() => pauseUpdates(true));
-		expect(readText("[data-diagnostics]")).toBe("2");
-		click("button");
-		yield* Effect.promise(() => pauseUpdates(false));
-		expect(readText("[data-diagnostics]")).toBe("2");
-		expect(readText("[data-fleet]")).toBe("2");
+	"while updates run each diagnostics poll reads diagnostics and Fleet again",
+	[intervalClock(), pollingScreen()],
+	function* ({ diagnosticsPollPasses, pauseUpdates, polledReads }) {
+		yield* pauseUpdates(false);
+		expect(yield* polledReads()).toEqual({ diagnostics: "2", fleet: "2" });
+
+		yield* diagnosticsPollPasses();
+
+		expect(yield* polledReads()).toEqual({ diagnostics: "3", fleet: "3" });
+	},
+);
+
+screenStory.it(
+	"pausing updates again stops the diagnostics poll",
+	[intervalClock(), pollingScreen()],
+	function* ({ diagnosticsPollPasses, pauseUpdates, polledReads }) {
+		yield* pauseUpdates(false);
+		yield* pauseUpdates(true);
+		expect(yield* polledReads()).toEqual({ diagnostics: "2", fleet: "2" });
+
+		yield* diagnosticsPollPasses();
+
+		expect(yield* polledReads()).toEqual({ diagnostics: "2", fleet: "2" });
+	},
+);
+
+screenStory.it(
+	"a view that leaves removes its poll interval and no longer reads when updates resume",
+	[intervalClock(), pollingScreen()],
+	function* ({ diagnosticsPollTimer, leavePollingView, pauseUpdates, polledReads }) {
+		expect(yield* diagnosticsPollTimer()).toBe("scheduled");
+
+		yield* leavePollingView();
+		yield* pauseUpdates(false);
+
+		yield* outcomes([
+			["poll", () => diagnosticsPollTimer(), "none"],
+			["reads", () => polledReads(), FIRST_READ],
+		]);
 	},
 );

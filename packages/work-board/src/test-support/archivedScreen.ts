@@ -2,9 +2,6 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { act } from "react";
-import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
-import { documentQuery } from "#client/react/routeQuery.ts";
 import { archive } from "#server/archive/run.ts";
 import { watchChanges } from "#server/files/changes.ts";
 import { searchSnapshot } from "#server/search/snapshot.ts";
@@ -31,16 +28,3 @@ export function archivedScreen() {
 		engine.options = { index: Effect.succeed(snapshot) };
 	});
 }
-
-export const archivedReadingReady = screenStory.trait("screen", "the archived item's document query finishes", function* (engine) {
-	const { api, view, router } = engine;
-	if (!(api && view && router)) {
-		throw new Error("The archive reader has not opened");
-	}
-	yield* Effect.promise(() =>
-		act(async () => {
-			await loadQuery(view.registry, documentQuery(api, engine.path), { abortController: new AbortController() });
-			await router.load();
-		}),
-	);
-});
