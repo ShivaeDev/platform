@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -75,9 +76,13 @@ for (const [description, message, options, status] of [
 }
 
 host.it("without an exporter the host serves HTTP and accepts browser reports", [], function* ({ ping, reportBrowserError }) {
-	expect(yield* ping()).toBe("pong");
+	const reply = yield* ping();
+	const response = yield* reportBrowserError("local browser failure");
 
-	expect((yield* reportBrowserError("local browser failure")).status).toBe(HttpStatus.fromLiteral("Accepted"));
+	yield* outcomes([
+		["RPC answer", () => Effect.succeed(reply), "pong"],
+		["browser report status", () => Effect.succeed(response.status), HttpStatus.fromLiteral("Accepted")],
+	]);
 });
 
 host.it(
