@@ -33,6 +33,9 @@ function ending(result: Result.Result<void, unknown>) {
 		return "ended";
 	}
 	const error = result.failure;
+	if (error instanceof AuthUnavailable) {
+		return "auth unavailable";
+	}
 	return error instanceof Unauthorized ? "unauthorized" : `failed: ${String(error)}`;
 }
 
