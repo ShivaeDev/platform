@@ -4,7 +4,7 @@ import { updates } from "#test/updates.ts";
 import { AS_RELEASED, appCommits, createdWith010, published010, starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
 const SHELL = "src/client/admin/Shell.tsx";
-const PAGES = "src/foundationPages.ts";
+const PAGES = "src/admin/foundationPages.ts";
 const DASHBOARD = [
 	"src/server/checkDashboardVersion.ts",
 	"src/server/jobDashboard.ts",

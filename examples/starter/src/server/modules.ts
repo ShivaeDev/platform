@@ -3,7 +3,7 @@ import { RpcGroup } from "effect/rpc";
 import { mergeAdminRegistrations } from "@shivaedev/admin/server/mergeAdminRegistrations.ts";
 import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import { notesRegistration } from "#modules/notes/server/registration.ts";
-import { foundationRegistration } from "./foundationRegistration.ts";
+import { foundationRegistration } from "#server/admin/foundationRegistration.ts";
 
 const features = [notesRegistration] as const;
 const modules = [

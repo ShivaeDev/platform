@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.32.0 - 2026-10-31
+
+### Added
+
+- Admin pages can declare a detail path under `route.detail`. `adminDocuments` and `adminPermissionGuard` use the registered page's permission for its list and detail paths.
+- Identity permission layers accept native context keys for permission middleware.
+- Generate frozen PostgreSQL auth migration modules containing checked-in SQL with no Better Auth runtime dependency. Check migrated databases against current auth options and report missing tables, fields, indexes, types and nullability changes.
+- Generated applications ship frozen auth migrations, retain their Quality configuration, and include a PostgreSQL story that checks their current auth options for drift.
+- Identity mounts accept a configured `accountRoleSeed` to grant a role to named provider accounts at boot and sign-in through the guarded `assignRole` path. The shared `ProviderAccounts` schema accepts empty lists for seeds while `AllowedAccounts` continues to require at least one account.
+
+### Changed
+
+- Generated applications declare their owner seed from `AUTH_OWNER_ACCOUNTS`, with empty and unset lists granting nothing.
+
+### Fixed
+
+- Generated apps use admin registration for permission layers and guard each admin document by its registered page.
+- Execute live auth migration DDL through the native SQL transaction connection, so a preceding migration referencing users cannot block a later auth alteration through another pool.
+- Trusted `assignRole` commands work without an application Reactivity Layer and preserve an existing service for commit invalidation.
+- Generated apps mount with the system theme when browser storage is blocked. Theme choices still apply when storage cannot save them.
+
+### Breaking
+
+- Admin registrations install their pages' permission middleware and require `AdminSessions` when their handler layer builds. Provide `Layer.succeed(AdminSessions, sessions)` once at the host instead of installing each page's `permissionLayer` by hand. Missing policy fails startup with the page id and permission name.
+- Declare page middleware with identity’s `permissionMiddleware` so it provides `Identity` and `SessionUser` with the shared identity failures.
+- Generated apps import `ReadStatistics` from `#ReadStatistics.ts` and `StatisticsPermission` from `#modules/notes/StatisticsPermission.ts`; migrate custom imports of `#appPermissions.ts` when applying the template update.
+
 ## 0.31.0 - 2026-10-31
 
 ### Added

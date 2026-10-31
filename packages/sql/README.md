@@ -454,9 +454,15 @@ class Note extends Model.Class<Note>("Note")({
 }) {}
 
 const notes = collection("notes", Note.fields.id, { listId: Note.fields.listId, owner: Note.fields.owner });
+const makeNotes = makeRepository(Note, {
+	collection: notes,
+	idColumn: "id",
+	spanPrefix: "Notes",
+	tableName: "notes",
+});
 ```
 
-Use the repository's table name as the collection name in query read keys. Every inserted, updated or deleted row announces its record key and each declared bucket from the old and new stored values. An insert belongs only to its new buckets; a move announces both sides; a delete announces the old buckets. Bucket codecs decode stored values before producing keys, so a `bucket(Schema.NumberFromString)` field matches a numeric query bucket even when stored as text. Nullable and optional bucket values contribute no key when absent. Bucket codecs must need no services and decode to strings, numbers or absent values.
+Pass the contract collection as the repository's `collection` option when the model has buckets. Registration fails with `BucketRegistrationError` if the collection is missing, its name differs from `tableName`, or its bucket field names differ from the model's annotated fields. The error names both declarations. Repositories without buckets may omit the collection. Every inserted, updated or deleted row announces its record key and each declared bucket from the old and new stored values. An insert belongs only to its new buckets; a move announces both sides; a delete announces the old buckets. Bucket codecs decode stored values before producing keys, so a `bucket(Schema.NumberFromString)` field matches a numeric query bucket even when stored as text. Nullable and optional bucket values contribute no key when absent. Bucket codecs must need no services and decode to strings, numbers or absent values.
 
 Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies old values atomically, including for conflict updates. Repositories without bucket fields keep their existing SQL dialect support. Bulk writes keep every record and bucket key; the PostgreSQL publisher splits large batches into NOTIFY payloads.
 
@@ -568,7 +574,7 @@ NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only
 
 Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
-- `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`.
+- `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
 - `@shivaedev/sql/upsertResult.ts`: `UpsertRow` — The `{ row, inserted }` result of an unconditional upsert.
@@ -584,6 +590,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/pendingPostgresMigrations.ts`: `pendingPostgresMigrations({ loader, table?, components? })` — Pending ledger migrations as ID and name, and pending schema components as name and detail.
 - `@shivaedev/sql/postgresRelease.ts`: `postgresRelease(release, table?)`, `readPostgresRelease(table?)` — Release marker schema component and its reader.
 - `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
+- `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names.
 - `@shivaedev/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
 
 ### Install and database setup
@@ -662,4 +669,12 @@ yield* withChangeCoverage(
 
 The coverage check verifies the declarations, not the contents of arbitrary SQL. Raw writers must declare every affected record and bucket, including unchanged buckets. Transaction statistics retain writes from rolled-back savepoints, so those writes still need declarations during a coverage check.
 
-`body.pipe(expectPublished(keys))` compares the distinct published keys, regardless of order, and preserves the body's result. Put it outside the committing transaction. It observes the existing change channel and leaves delivery intact; recorded keys from rolled-back writes do not count. A mismatch fails with `PublishedKeysMismatch`, whose `expected`, `actual` and message show both key sets. The assertion happens after the body, so a mismatch does not roll back a committed write. See [automatic change delivery](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for host defaults and coverage limits.
+`body.pipe(expectPublished(keys))` accepts an array or a function of the successful body result and compares the distinct published keys, regardless of order, and preserves the body's result. Put it outside the committing transaction. It observes the existing change channel and leaves delivery intact; recorded keys from rolled-back writes do not count. A mismatch fails with `PublishedKeysMismatch`, whose `expected`, `actual` and message show both key sets. The assertion happens after the body, so a mismatch does not roll back a committed write. For generated ids, derive keys after the write:
+
+```ts
+const note = yield* repository.insert(draft).pipe(
+	expectPublished((row: Note) => invalidationKeys([notes.item(row.id), notes.bucket.listId(row.listId), notes.bucket.owner(row.owner)])),
+);
+```
+
+See [automatic change delivery](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for host defaults and coverage limits.

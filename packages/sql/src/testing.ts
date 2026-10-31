@@ -76,8 +76,12 @@ export class PublishedKeysMismatch extends Data.TaggedError("PublishedKeysMismat
 	}
 }
 
-export function expectPublished(keys: readonly unknown[]) {
-	return Effect.fn("Changes.expectPublished")(function* <A, E, R>(body: Effect.Effect<A, E, R>) {
+export function expectPublished(keys: readonly unknown[]): <A, E, R>(body: Effect.Effect<A, E, R>) => Effect.Effect<A, E | PublishedKeysMismatch, R>;
+export function expectPublished<A>(
+	keys: (result: A) => readonly unknown[],
+): <E, R>(body: Effect.Effect<A, E, R>) => Effect.Effect<A, E | PublishedKeysMismatch, R>;
+export function expectPublished<A>(keys: readonly unknown[] | ((result: A) => readonly unknown[])) {
+	return Effect.fn("Changes.expectPublished")(function* <E, R>(body: Effect.Effect<A, E, R>) {
 		const observer = yield* ChangeObserver;
 		const actual = new Set<unknown>();
 		const result = yield* body.pipe(
@@ -90,7 +94,7 @@ export function expectPublished(keys: readonly unknown[]) {
 				return observer(event);
 			}),
 		);
-		const expected = new Set(keys);
+		const expected = new Set(typeof keys === "function" ? keys(result) : keys);
 		if (actual.size !== expected.size || [...expected].some((key) => !actual.has(key))) {
 			return yield* Effect.fail(new PublishedKeysMismatch({ actual: [...actual], expected: [...expected] }));
 		}

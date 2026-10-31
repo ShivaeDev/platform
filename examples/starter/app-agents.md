@@ -4,6 +4,8 @@ This application runs on the ShivaeDev framework: Effect services and SQL on the
 
 Shared declarations in the app and its modules stay browser safe. PostgreSQL, migrations and services belong in their server folders; screens, routing and forms belong in their client folders. The foundation composes the app host and router. Keep this app's dependency catalog and TypeScript configuration self-contained. The framework comes through `@shivaedev/platform`, and tests through `@shivaedev/test-story`: import each piece by its own name, list no piece beside the entry point that brings it, and keep `publicHoistPattern` in `pnpm-workspace.yaml`, which makes the pieces resolvable.
 
+An `admin/` path segment means admin-only code. Put wholly admin-only modules under `src/modules/admin/<name>`. Admin-only declarations, reads and views for a member module stay in its `admin/`, `server/admin/` and `client/admin/` folders. Each module reads only its own tables; compose another module’s exposed operations for its data. Paths show intent; permissions enforce access.
+
 A server module exports a registration with `migrations` (its directory path), `group`, `handlers` and `services`. Register it in `src/server/modules.ts`; the foundation derives migrations from those registrations. Keep numbered migrations in the module’s server folder and use the next number across all modules.
 
 Tests pass a single `replacements` Layer to `applicationHost` or `applicationWorker`. Compose fake ports with `Layer.mergeAll` and `Layer.succeed`; the host merges them over the real services. Replace `JobsClientFactory` through that Layer for controlled queue clients. Add ports as Effect services instead of adding one host option per port.

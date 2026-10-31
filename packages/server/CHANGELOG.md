@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.14.0 - 2026-10-31
+
+### Added
+
+- Configure per-path static cache policy and HTML frame headers through `appHost` assets options.
+
+### Fixed
+
+- Derive encoded sensitive names separately for each RPC schema, keeping private fields in one method from changing public state and native failure decoding in another method.
+- Keep the child key names of a fully masked field public elsewhere, including through native `OptionFromNullOr` encoding.
+
+### Breaking
+
+- Default fingerprinted assets to immutable caching, HTML documents and SPA fallbacks to `no-store`, and unversioned files to `no-cache`. HTML defaults to `frame-ancestors 'none'` and `X-Frame-Options: DENY`, including HEAD, partial and conditional responses. Consumers that need their previous caching or embedding behavior must set `assets.cacheControl` to their cache policy and `assets.documentHeaders` to configure or disable framing restrictions. Manually mounted native static layers retain their behavior.
+- Refuse RPC registration when a schema-sensitive field name also names a public field within that method's schemas, including nested fields, encoded names and middleware errors. Diagnostics cannot distinguish those plain values. Rename one field or mark both sensitive; fields in separate RPC methods may keep different sensitivity.
+- `schemaSensitiveKeys` now returns an Effect. Native consumers must use `yield* schemaSensitiveKeys(group, extraKeys)` to obtain the predicate and handle `SensitiveFieldConflict` from `@shivaedev/errors/schemaFieldScope.ts`. `appHost` and Work Board's `boardLayer` include that failure in their Layer error channels.
+
 ## 0.13.0 - 2026-10-31
 
 ### Added

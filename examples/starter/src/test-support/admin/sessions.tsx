@@ -9,13 +9,13 @@ import { type ScreenDriver, screenDriver } from "@shivaedev/test-story/server/sc
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { App } from "#client/App.tsx";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
+import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
 import { makeAuth } from "#client/auth.ts";
-import { foundationRegistration } from "#client/foundationRegistration.tsx";
 import { connectModules } from "#client/Module.ts";
-import { startHost } from "./host.ts";
-import { postgres } from "./postgres.ts";
-import { acquireScreen, type ScreenSurface, screenView } from "./screenState.ts";
-import { mintUser } from "./sessionPrecondition.ts";
+import { startHost } from "#test-support/host.ts";
+import { postgres } from "#test-support/postgres.ts";
+import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 const warnings = expectNoReactWarnings();
 

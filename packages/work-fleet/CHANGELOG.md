@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.28.1 - 2026-10-31
+
+### Fixed
+
+- Install locked dependencies when the served checkout's pnpm lockfile changes before rebuilding the Work Board plugin and restarting Fleet and Board. Log failed installs and keep the running services up.
+
 ## 0.28.0 - 2026-10-31
 
 ### Added

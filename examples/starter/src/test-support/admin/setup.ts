@@ -12,7 +12,7 @@ import { authOptions } from "#server/authOptions.ts";
 import { migrations } from "#server/migrations.ts";
 import { type RunningHost, secret, startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
-import { adminCommand } from "./adminCommand.ts";
+import { adminCommand } from "./command.ts";
 
 interface Engine {
 	cookie: string;

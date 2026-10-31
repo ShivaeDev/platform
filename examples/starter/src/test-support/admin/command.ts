@@ -4,14 +4,14 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Fiber, Redacted, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { secret } from "./host.ts";
+import { secret } from "#test-support/host.ts";
 
 export const adminCommand = Effect.fn("AdminSetup.adminCommand")(function* (email: string, password: string) {
 	const database = yield* PostgresTestDatabase;
 	return yield* Effect.gen(function* () {
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 		const child = yield* spawner.spawn(
-			ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL("../server/admin.ts", import.meta.url))], {
+			ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL("../../server/admin/run.ts", import.meta.url))], {
 				env: {
 					"ADMIN_EMAIL": email,
 					"ADMIN_PASSWORD": password,

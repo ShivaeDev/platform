@@ -54,7 +54,7 @@ export function readyAgainstWorkspace(app: string, starter: string) {
 		"vite.config.ts",
 		"vitest.config.ts",
 		"src/server/dev.ts",
-		"src/test-support/adminCommand.ts",
+		"src/test-support/admin/command.ts",
 		"src/test-support/deployChild.ts",
 		"src/test-support/developmentServer.ts",
 	]) {

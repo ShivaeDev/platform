@@ -7,7 +7,7 @@
 		"#*": "./src/*"
 	},
 	"scripts": {
-		"admin:create": "node --conditions=source --env-file-if-exists=.env.local src/server/admin.ts",
+		"admin:create": "node --conditions=source --env-file-if-exists=.env.local src/server/admin/run.ts",
 		"baseline": "quality baseline",
 		"browser-check": "browser-check",
 		"build": "vite build",

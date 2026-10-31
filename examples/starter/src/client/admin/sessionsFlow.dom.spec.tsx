@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { adminSessions, adminSessionsOpen, withoutSessionsPermission } from "#test-support/adminSessions.tsx";
+import { adminSessions, adminSessionsOpen, withoutSessionsPermission } from "#test-support/admin/sessions.tsx";
 
 adminSessions.it(
 	"the mounted Sessions page lists signed-in users and marks alice's current session",
