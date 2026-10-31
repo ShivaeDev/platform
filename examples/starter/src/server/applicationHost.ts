@@ -1,7 +1,8 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
 import { JobsPermission, UsersPermission } from "@shivaedev/admin/permissions.ts";
-import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
@@ -27,8 +28,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const publicOrigin = yield* Config.URL("PUBLIC_URL").pipe(Config.option, Effect.map(Option.map((url) => url.origin)));
 			const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
-			const pool = yield* authDatabase(databaseUrl, { max: config?.poolSizes?.auth });
-			const database = databaseOptions(pool, databaseUrl, "check", config?.poolSizes?.sql);
+			const database = databaseOptions(databaseUrl, "check", config?.poolSizes?.sql);
 			const replacements = config?.replacements ?? Layer.empty;
 			const services = serverModules.services
 				.pipe(Layer.provide(jobsLayer(databaseUrl, config?.poolSizes?.jobs)))
@@ -38,7 +38,8 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 				application: Effect.gen(function* () {
 					const { routes, sessions: authSessions } = yield* betterAuthMount(
 						{
-							...authOptions(pool),
+							...authOptions(),
+							database: yield* betterAuthDatabase(),
 							...(config?.secret === undefined ? {} : { secret: Redacted.value(config.secret) }),
 						},
 						{ roles: AppAccess },

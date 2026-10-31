@@ -1,7 +1,6 @@
 import { Cause, Clock, Effect, Exit, Result } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { TestClock } from "effect/testing";
-import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
@@ -85,8 +84,7 @@ const signedInOn = Effect.fnUntraced(function* (engine: Engine, person: Person, 
 export const signInPolicy = storyKit({
 	after: {
 		*policy(engine) {
-			const database = yield* PostgresTestDatabase;
-			engine.host.current = yield* policyHost(database.url, engine.env, engine.policy, engine.app);
+			engine.host.current = yield* policyHost(engine.env, engine.policy, engine.app);
 		},
 	},
 	around: withIsolatedDatabase,
@@ -157,8 +155,7 @@ export const signInPolicy = storyKit({
 			restart: () =>
 				Effect.gen(function* () {
 					story.tell("the application restarts with the current configuration");
-					const database = yield* PostgresTestDatabase;
-					const restarted = yield* Effect.exit(policyHost(database.url, engine.env, engine.policy, engine.app));
+					const restarted = yield* Effect.exit(policyHost(engine.env, engine.policy, engine.app));
 					if (Exit.isSuccess(restarted)) {
 						engine.host.current = restarted.value;
 						engine.startup = "started";

@@ -122,14 +122,17 @@ export const creationFailedOnce = application.trait(
 	},
 );
 
-const DROP_DATABASES = `import { Pool } from "pg";
+const DROP_DATABASES = `import { Effect, Redacted } from "effect";
+import { SqlClient } from "effect/sql";
+import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 for (const value of [process.env.DATABASE_URL, process.env.TEST_DATABASE_URL]) {
   const url = new URL(value);
   const database = url.pathname.slice(1);
   url.pathname = "/postgres";
-  const pool = new Pool({ connectionString: url.toString() });
-  await pool.query('DROP DATABASE IF EXISTS "' + database + '" WITH (FORCE)');
-  await pool.end();
+  await Effect.runPromise(Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    yield* sql.unsafe('DROP DATABASE IF EXISTS "' + database + '" WITH (FORCE)');
+  }).pipe(Effect.provide(postgresLayer(Redacted.make(url.toString()))), Effect.scoped));
 }`;
 
 export const databasesPrepared = application.trait(

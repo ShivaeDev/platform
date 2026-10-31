@@ -71,10 +71,8 @@
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
-		"@types/pg": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
-		"pg": "catalog:",
 		"pg-boss": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
@@ -84,8 +82,7 @@
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"better-auth": "catalog:",
-		"effect": "catalog:",
-		"pg": "catalog:"
+		"effect": "catalog:"
 	},
 	"peerDependenciesMeta": {
 		"@effect/platform-node": {
@@ -98,9 +95,6 @@
 			"optional": true
 		},
 		"better-auth": {
-			"optional": true
-		},
-		"pg": {
 			"optional": true
 		}
 	},

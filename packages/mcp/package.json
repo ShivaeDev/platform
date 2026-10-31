@@ -64,7 +64,6 @@
 		"@types/node": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
-		"pg": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
