@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import { basename, dirname, join, posix } from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
@@ -42,8 +43,8 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 						"--conditions=source",
 						"--eval",
 						LAUNCH,
-						API,
-						BIN,
+						pathToFileURL(API).href,
+						pathToFileURL(BIN).href,
 						inputs.root,
 						"--directory",
 						inputs.root,

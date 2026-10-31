@@ -54,7 +54,7 @@ export async function knipConfiguration(inputs: RuleInputs, toolOwned: readonly 
 				entry: [...ENTRIES, ...publicFiles, ...migrations, ...bins, ...binaries, ...scriptEntries, ...ui, ...styles],
 				paths: importPaths(manifest.imports ?? {}),
 				project: [...sources, ...ui, ...styles],
-				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,js,json}"] },
+				vitest: { config: ["vitest*.config.{ts,mts,cts,js,mjs,cjs}", "vitest.{workspace,projects}.{ts,mts,cts,js,mjs,cjs,json}"] },
 			},
 		] as const;
 	});
