@@ -1,5 +1,5 @@
 import { Redacted } from "effect";
-import { PgBossError, PgBossPayloadError, PgBossTestingError } from "#error.ts";
+import { PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossTestingError } from "#error.ts";
 
 function originalOf(original: Redacted.Redacted<unknown>): string {
 	const value = Redacted.value(original);
@@ -7,6 +7,9 @@ function originalOf(original: Redacted.Redacted<unknown>): string {
 }
 
 export function failureOf(error: unknown): string {
+	if (error instanceof PgBossQueueNamesError) {
+		return `queue declaration mismatch: missing [${error.missing.join(", ")}], unexpected [${error.unexpected.join(", ")}]`;
+	}
 	if (error instanceof PgBossError) {
 		return `${error.operation}${error.queue === undefined ? "" : ` ${error.queue}`} failed with ${originalOf(error.original)}`;
 	}

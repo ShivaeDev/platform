@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.48.1 - 2026-10-30
+
+### Fixed
+
+- `code/unused` treats numbered migrations in `src/server/migrations` and `src/modules/<module>/server/migrations` as entry points, because migration runners load them from their directory, so apps no longer baseline every migration as an unused file.
+
 ## 0.48.0 - 2026-10-30
 
 ### Added

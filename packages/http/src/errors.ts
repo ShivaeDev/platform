@@ -9,7 +9,12 @@ export class RemoteRateLimited extends Schema.TaggedError<RemoteRateLimited>()("
 	...answer,
 	retryAfter: Schema.optionalKey(Schema.DateTimeUtc),
 }) {}
-export class RemoteHttpError extends Schema.TaggedError<RemoteHttpError>()("RemoteHttpError", answer) {}
+export class RemoteHttpError extends Schema.TaggedError<RemoteHttpError>()("RemoteHttpError", answer) {
+	override get message(): string {
+		const url = new URL(this.url);
+		return `HTTP ${this.status}: ${this.method} ${url.host}${url.pathname}`;
+	}
+}
 
 export type RemoteStatusError = RemoteUnauthorized | RemoteNotFound | RemoteGone | RemoteRateLimited | RemoteHttpError;
 

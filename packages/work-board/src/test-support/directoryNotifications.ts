@@ -1,5 +1,6 @@
 import { Effect, type FileSystem, PubSub, Stream } from "effect";
 import { boardFilesystem, boardStory } from "./boardStory.ts";
+import { readinessEvents } from "./readinessEvents.ts";
 
 export function directoryNotifications(onlyDirectories = false) {
 	let notifications: PubSub.PubSub<FileSystem.WatchEvent> | undefined;
@@ -45,7 +46,7 @@ export function directoryNotifications(onlyDirectories = false) {
 					}
 					starts += 1;
 					watchedPaths.push(path);
-					return onlyDirectories ? source : Stream.merge(fs.watch(path, options), source);
+					return Stream.merge(onlyDirectories ? readinessEvents(fs, path, options) : fs.watch(path, options), source);
 				},
 			})),
 		),
