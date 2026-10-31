@@ -1,5 +1,4 @@
-import { Config, Effect, Layer, Redacted } from "effect";
-import * as Reactivity from "effect/reactivity/Reactivity";
+import { Config, Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
@@ -30,6 +29,6 @@ export const createAdmin = Effect.fn("App.createAdmin")(
 	(effect) =>
 		Effect.gen(function* () {
 			const url = yield* Config.Redacted("DATABASE_URL");
-			return yield* effect.pipe(Effect.provide(Layer.merge(postgresLayer(url), Reactivity.layer)));
+			return yield* effect.pipe(Effect.provide(postgresLayer(url)));
 		}),
 );

@@ -5,6 +5,21 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminSetup } from "#test-support/adminSetup.ts";
 
 adminSetup.it(
+	"a configured GitHub account receives owner permissions when the app boots",
+	[],
+	function* ({ prepareAuth, mintOwnerCandidate, startApp, session }) {
+		yield* prepareAuth();
+		yield* mintOwnerCandidate();
+
+		yield* startApp("github:1001");
+
+		expect(yield* session()).toMatchObject({
+			user: { email: "alice@github.test", permissions: expect.arrayContaining([{ name: "roles.assign", strength: "own" }]), role: "owner" },
+		});
+	},
+);
+
+adminSetup.it(
 	"a new app can bootstrap its first admin with the command and sign in",
 	[],
 	function* ({ prepareAuth, createAdmin, startApp, signIn, session }) {

@@ -22,8 +22,8 @@ const AccountEntry = Schema.String.pipe(
 	}),
 );
 
-export const AllowedAccounts = Schema.String.pipe(
-	Schema.decodeTo(Schema.Array(AccountEntry).check(Schema.isMinLength(1)), {
+export const ProviderAccounts = Schema.String.pipe(
+	Schema.decodeTo(Schema.Array(AccountEntry), {
 		decode: SchemaGetter.transform((value) =>
 			value
 				.split(",")
@@ -33,5 +33,7 @@ export const AllowedAccounts = Schema.String.pipe(
 		encode: SchemaGetter.transform((entries) => entries.join(",")),
 	}),
 );
+
+export const AllowedAccounts = ProviderAccounts.check(Schema.isMinLength(1));
 
 export const allowedAccounts = Config.schema(AllowedAccounts, "AUTH_ALLOWED_ACCOUNTS");
