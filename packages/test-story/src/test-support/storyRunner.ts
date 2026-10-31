@@ -24,6 +24,7 @@ export type Fixture =
 	| "refusingStories"
 	| "scopedStories"
 	| "screenWaitStories"
+	| "timerStories"
 	| "tracingStories"
 	| "unlocatedStories"
 	| "unroutedDomStories"
