@@ -14,7 +14,7 @@ ruleKit.it(
 		),
 	],
 	function* ({ checks }) {
-		const findings = yield* checks(namedAfterExport, { toolOwned: ["src/generated/"] });
+		const findings = yield* checks(namedAfterExport, { toolOwned: [{ glob: "src/generated/", reason: "The generator owns these file names." }] });
 		expect(findings.map((finding) => finding.file)).toEqual(["src/fetch.ts"]);
 	},
 );
@@ -30,7 +30,26 @@ ruleKit.it(
 		),
 	],
 	function* ({ checks }) {
-		const findings = yield* checks(otherNames, { toolOwned: ["generated/"] });
+		const findings = yield* checks(otherNames, { toolOwned: [{ glob: "generated/", reason: "The generator owns these file names." }] });
 		expect(findings.map((finding) => finding.file)).toEqual(["assets/ToolData.json"]);
+	},
+);
+
+ruleKit.it(
+	"a reasoned negated tool-owned pattern keeps a current authored module checked",
+	[
+		repositoryHas(
+			{ content: "export function loadClient() {}\n", path: "src/generated/client.ts" },
+			{ content: "export function authoredModule() {}\n", path: "src/generated/manual.ts" },
+		),
+	],
+	function* ({ checks }) {
+		const findings = yield* checks(namedAfterExport, {
+			toolOwned: [
+				{ glob: "src/generated/*", reason: "The generator owns these names." },
+				{ glob: "!src/generated/manual.ts", reason: "Application authors maintain this module." },
+			],
+		});
+		expect(findings.map((finding) => finding.file)).toEqual(["src/generated/manual.ts"]);
 	},
 );

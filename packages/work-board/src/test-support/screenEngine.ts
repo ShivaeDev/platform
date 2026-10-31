@@ -20,7 +20,7 @@ export interface ScreenEngine {
 	api?: BoardTestApi;
 	boardScreen?: Awaited<ReturnType<typeof renderBoard>>;
 	readonly cleanups: Array<() => Promise<void>>;
-	container?: HTMLElement;
+	container?: HTMLElement | undefined;
 	documentFailed?: boolean;
 	documentReads: string[];
 	documentView?: Awaited<ReturnType<typeof mountDocument>>;
@@ -29,11 +29,11 @@ export interface ScreenEngine {
 	fleet?: BoardFixtureOptions["fleet"];
 	headerFootprints?: number[];
 	health?: boolean;
-	heldAnswerRefresh?: { readonly gate: Deferred.Deferred<void>; started: boolean };
+	heldAnswerRefresh?: { readonly gate: Deferred.Deferred<void>; started: boolean } | undefined;
 	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; started: boolean };
 	heldRefresh?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly failed: boolean; started: boolean };
 	indexFailed?: boolean;
-	indexGate?: Deferred.Deferred<void>;
+	indexGate?: Deferred.Deferred<void> | undefined;
 	indexReads: number;
 	indexWaiting?: boolean;
 	lastView?: ReturnType<typeof screenView>;
@@ -148,7 +148,7 @@ export function trackScreen<T extends Awaited<ReturnType<typeof render>>>(engine
 	}
 	const tracked = { ...view, render: rerender, unmount };
 	engine.view = tracked;
-	delete engine.container;
+	engine.container = undefined;
 	engine.cleanups.push(unmount);
 	return tracked;
 }

@@ -124,22 +124,30 @@ exceptionStory.it(
 	CLI_TIMEOUT,
 );
 
-exceptionStory.it(
-	"quality lint passes a finding that a legacy quality/registry.json registers and counts it as registered",
-	[
-		repositoryHas(config('{ sources: ["src"] }'), DOCUMENTED, {
-			content: JSON.stringify([{ file: DOCUMENTED.path, reason: REASON, rule: "comments/no-jsdoc" }]),
-			path: "quality/registry.json",
-		}),
-		biomeFormatted(),
-	],
-	function* ({ outcome, runs, stdout }) {
-		yield* runs("lint");
+for (const [registry, selectedConfig] of [
+	["quality/registry.json", undefined],
+	["old-exceptions.json", "custom.config.ts"],
+] as const) {
+	const repair =
+		selectedConfig === undefined
+			? `quality exceptions migrate --from ${registry}`
+			: `quality exceptions migrate --config ${selectedConfig} --from ${registry}`;
+	exceptionStory.it(
+		`quality lint refuses ${registry} and asks to migrate its exceptions in the selected config`,
+		[
+			repositoryHas({ ...config(JSON.stringify({ registry, sources: ["src"] })), path: selectedConfig ?? "quality.config.ts" }, DOCUMENTED, {
+				content: JSON.stringify([{ file: DOCUMENTED.path, reason: REASON, rule: "comments/no-jsdoc" }]),
+				path: registry,
+			}),
+		],
+		function* ({ outcome, runs, stderr }) {
+			yield* runs("lint", ...(selectedConfig === undefined ? [] : ["--config", selectedConfig]));
 
-		yield* outcomes([
-			["exit", () => outcome(), "passed"],
-			["report", () => stdout(), expect.stringContaining("1 registered violation not shown")],
-		]);
-	},
-	CLI_TIMEOUT,
-);
+			yield* outcomes([
+				["exit", () => outcome(), "invalid"],
+				["repair", () => stderr(), expect.stringContaining(repair)],
+			]);
+		},
+		CLI_TIMEOUT,
+	);
+}

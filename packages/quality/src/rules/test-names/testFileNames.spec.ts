@@ -100,6 +100,6 @@ ruleStory.it(
 	"tests/follow leaves a spec in a declared suite alone, even one that uses the DOM",
 	[repositoryHas({ content: "window.location.reload();\n", path: "e2e/checkout.spec.ts" })],
 	function* ({ check }) {
-		expect(yield* check(testsFollow, { suites: ["e2e/"] })).toEqual([]);
+		expect(yield* check(testsFollow, { suites: [{ glob: "e2e/", reason: "This suite covers several modules." }] })).toEqual([]);
 	},
 );

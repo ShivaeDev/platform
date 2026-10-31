@@ -117,7 +117,7 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 				const state = yield* engine.watcher.load(engine.options);
 				const running = yield* Effect.forkChild(engine.watcher.poll(engine.options, state, emitTo(engine), diagnosticTo(engine)));
 				yield* interruptedAt(running, gate);
-				delete engine.io.control.rename;
+				engine.io.control.rename = undefined;
 			}),
 		lastPoll: () => Effect.sync(() => engine.lastPoll),
 		lastPollAt: (number: number) =>
@@ -129,7 +129,8 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 		liftSelection: () =>
 			Effect.sync(() => {
 				tell("the watcher's --events selection is removed");
-				delete engine.options.events;
+				const { events: _events, ...options } = engine.options;
+				engine.options = options;
 			}),
 		poll: () =>
 			Effect.suspend(() => {

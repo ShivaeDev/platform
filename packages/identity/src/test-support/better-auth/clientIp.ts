@@ -7,7 +7,7 @@ import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { clientIpHost } from "./clientIpHost.ts";
 
 interface Engine {
-	readonly env: Record<string, string>;
+	env: Record<string, string>;
 	host?: Effect.Success<ReturnType<typeof clientIpHost>>;
 }
 
@@ -68,7 +68,8 @@ export function proxyEnvironment(env: Record<string, string>) {
 }
 
 export const noProxy = clientIp.trait("configured", "no trusted proxy is configured", (engine) => {
-	delete engine.env.TRUSTED_PROXY;
+	const { TRUSTED_PROXY: _proxy, ...env } = engine.env;
+	engine.env = env;
 });
 
 function emailRequest(baseUrl: string, path: string, headers: Record<string, string>, localAddress = "127.0.0.1") {

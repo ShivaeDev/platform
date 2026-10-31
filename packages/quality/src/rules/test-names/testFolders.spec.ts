@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { testsColocated } from "#rules/test-names/colocated.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-const SUITES = { suites: ["tests/smoke/"] };
+const SUITES = { suites: [{ glob: "tests/smoke/", reason: "This suite covers several modules." }] };
 
 ruleStory.it(
 	"tests/colocated reports a test in a test-only folder and says where the test belongs",
@@ -43,21 +43,25 @@ const misplaced = [
 ] as const;
 
 for (const [test, path, beside] of misplaced) {
-	ruleStory.it(`tests/colocated reports ${test}`, [repositoryHas({ content: "", path }, ...beside)], function* ({ check, locations }) {
-		yield* check(testsColocated, SUITES);
+	ruleStory.it(
+		`tests/colocated reports ${test}`,
+		[repositoryHas({ content: "", path }, ...beside, { content: "", path: "tests/smoke/checkout.spec.ts" })],
+		function* ({ check, locations }) {
+			yield* check(testsColocated, SUITES);
 
-		expect(yield* locations()).toEqual([path]);
-	});
+			expect(yield* locations()).toEqual([path]);
+		},
+	);
 }
 
 const placed = [
-	["a spec in a declared suite", ["tests/smoke/checkout.spec.ts"]],
-	["a test in a folder named testing", ["src/testing/cart.test.ts"]],
-	["a test in a test folder that also holds the file it covers", ["src/test/helper.ts", "src/test/helper.test.ts"]],
+	["a spec in a declared suite", ["tests/smoke/checkout.spec.ts"], SUITES],
+	["a test in a folder named testing", ["src/testing/cart.test.ts"], undefined],
+	["a test in a test folder that also holds the file it covers", ["src/test/helper.ts", "src/test/helper.test.ts"], undefined],
 ] as const;
 
-for (const [test, paths] of placed) {
+for (const [test, paths, options] of placed) {
 	ruleStory.it(`tests/colocated accepts ${test}`, [repositoryHas(...paths.map((path) => ({ content: "", path })))], function* ({ check }) {
-		expect(yield* check(testsColocated, SUITES)).toEqual([]);
+		expect(yield* check(testsColocated, options)).toEqual([]);
 	});
 }

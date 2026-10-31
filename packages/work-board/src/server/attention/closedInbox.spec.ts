@@ -74,15 +74,17 @@ boardStory.it(
 boardStory.it(
 	"two requests in one Fleet source for the same task, one through a criterion, count as one ask with an earlier ask",
 	[
-		closedInboxAsks((files) => {
-			delete files["asks/draft-2.md"];
-			files["draft.md"] = files["draft.md"]?.replace("owner: codex", "owner: codex\ncriteria:\n  - id: proof\n    text: Evidence") ?? "";
-			files["asks/draft-1.md"] =
-				files["asks/draft-1.md"]?.replace(
-					"    unblocks: [task.draft]",
-					"    unblocks: [task.draft#proof]\n  - id: later\n    kind: decision\n    managed: true\n    state: open\n    reason: Later request in the same source\n    response_from: [maintainer]\n    unblocks: [task.draft]",
-				) ?? "";
-		}),
+		closedInboxAsks(
+			(files) => {
+				files["draft.md"] = files["draft.md"]?.replace("owner: codex", "owner: codex\ncriteria:\n  - id: proof\n    text: Evidence") ?? "";
+				files["asks/draft-1.md"] =
+					files["asks/draft-1.md"]?.replace(
+						"    unblocks: [task.draft]",
+						"    unblocks: [task.draft#proof]\n  - id: later\n    kind: decision\n    managed: true\n    state: open\n    reason: Later request in the same source\n    response_from: [maintainer]\n    unblocks: [task.draft]",
+					) ?? "";
+			},
+			["asks/draft-2.md"],
+		),
 	],
 	function* ({ inboxAsk, inboxLane }) {
 		yield* outcomes([

@@ -32,7 +32,7 @@ export const interruptedDelivery = boardStory.trait("project", "the server's liv
 			&& event.paths.includes(state.omitPath)
 		) {
 			const paths = event.paths.filter((path) => path !== state.omitPath);
-			delete state.omitPath;
+			state.omitPath = undefined;
 			return publish(args[0], { ...event, paths });
 		}
 		return publish(...args);

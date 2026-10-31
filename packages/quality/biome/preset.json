@@ -342,7 +342,7 @@
 			"performance": {
 				"noAccumulatingSpread": "error",
 				"noBarrelFile": "error",
-				"noDelete": "off",
+				"noDelete": { "fix": "none", "level": "error" },
 				"noDynamicNamespaceImportAccess": "error",
 				"noReExportAll": "error",
 				"noSyncScripts": "error",
