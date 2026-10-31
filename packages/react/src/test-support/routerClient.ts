@@ -5,7 +5,7 @@ import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 
-export class NotFound extends Schema.TaggedError<NotFound>()("NotFound", { id: Schema.String }) {}
+export class NotFound extends Schema.TaggedError<NotFound>()("NotFound", { id: Schema.String, message: Schema.String }) {}
 export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing", { id: Schema.String }) {}
 const Get = query("get", {
 	payload: { id: Schema.String, page: Schema.Number },

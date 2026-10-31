@@ -570,23 +570,26 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` renders the route’s `notFoundComponent`; other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message and typed fields. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
 import { createRootRouteWithContext, createRoute, createRouter, RouterProvider, useRouterState } from "@tanstack/react-router";
-import type { ErrorComponentProps } from "@tanstack/react-router";
+import type { ErrorComponentProps, NotFoundRouteProps } from "@tanstack/react-router";
 import { Effect, Option, Predicate, Schema } from "effect";
 import type { ReactNode } from "react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { queryRoute } from "@shivaedev/react/queryRoute.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api }>()();
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api }>()({
+	notFoundComponent: SharedNotFound,
+});
 const Search = Schema.Struct({
 	page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
 		Schema.catchDecoding(() => Effect.succeed(Option.some(1))),
@@ -600,7 +603,6 @@ const note = createRoute({
 	...queryRoute(({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof Search.Type }) =>
 		context.api.get.query({ id: params.id, page: search.page }),
 	),
-	notFoundComponent: () => <h1>Note not found</h1>,
 	component: Note,
 	errorComponent: Failure,
 });
@@ -633,6 +635,9 @@ function Note() {
 function Failure({ error }: ErrorComponentProps) {
 	return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
 }
+function SharedNotFound({ data }: NotFoundRouteProps) {
+	return <h1>{Schema.is(NotFound)(data) ? data.message : "Page not found"}</h1>;
+}
 export function App() {
 	return (
 		<RegistryContext.Provider value={registry}>
@@ -642,7 +647,9 @@ export function App() {
 }
 ```
 
-`validateSearch` stays native: `Schema.toStandardSchemaV1(Search)` supplies TanStack’s search input and output types. The schema defaults a missing or invalid page to `1`. The query callback names its params and schema output type because TypeScript cannot infer them backward through an object spread. Changing search changes the loader dependencies and queries the new payload. Keep `params`, `validateSearch`, `component`, `errorComponent` and `notFoundComponent` on the route; options after the spread can override its `loaderDeps` or `loader`.
+`SharedNotFound` narrows `data` with the application's rejection schema before reading the server's message. Use a custom `NotFound` schema when the screen also needs domain fields. The fallback handles not-found results without that rejection, such as unmatched URLs.
+
+`validateSearch` stays native: `Schema.toStandardSchemaV1(Search)` supplies TanStack’s search input and output types. The schema defaults a missing or invalid page to `1`. The query callback names its params and schema output type because TypeScript cannot infer them backward through an object spread. Changing search changes the loader dependencies and queries the new payload. Keep `params`, `validateSearch`, `component` and `errorComponent` on the route, with an optional `notFoundComponent` to override the shared screen; options after the spread can override its `loaderDeps` or `loader`.
 
 For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/adapters/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
 

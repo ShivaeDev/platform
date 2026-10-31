@@ -83,6 +83,7 @@ function routeVerbs(state: State, screen: Screen) {
 		clientRuntimes: () => Effect.sync(() => state.client.builds()),
 		firstFrame: () => Effect.sync(() => state.client.frames[0] ?? "none"),
 		heading: () => Effect.sync(() => text(state, "h1")),
+		missingId: () => Effect.sync(() => text(state, "[data-missing-id]")),
 		navigating: () => Effect.sync(() => text(state, "[data-pending]")),
 		openSecondNote: () =>
 			screen
