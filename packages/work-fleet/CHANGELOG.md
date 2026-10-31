@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.26.0 - 2026-10-31
+
+### Added
+
+- Queue reviewed, green Fleet PRs through GitHub auto-merge pinned to the reviewed head, reconcile queued work across restarts, and send merge-queue failures back to the worker. Foreign and release PRs retain human merge handling.
+
+### Changed
+
+- Supervision uses filesystem events and a slow safety check of each child's loaded modules. Unimported dependency changes leave children running, and bursts of loaded-code changes coalesce into one restart.
+
+### Fixed
+
+- Run merge-main repairs and their review while other work holds the area, so chains of conflicting PRs can drain without an orchestrator answer. Code repairs still use normal area admission.
+- Close reviewed no-change tasks after verifying their reported commit is on main, mark their briefs done, and resume reviewed tasks stopped by the former missing validator.
+- Count PR waits alongside working and reviewing tasks in Board progress, and show who each waits on.
+
+### Breaking
+
+- Custom `GithubApi` service implementations must provide `write(body)`, which posts a GraphQL request body to GitHub's `graphql` endpoint and returns decoded JSON through the existing typed failure channel. Use `GithubApi.layer` for the standard authenticated implementation, or add this method to a custom service.
+- `codeReader(boardDir)` returns an Effect with the installed entrypoints instead of a synchronous polling function. Replace `codeReader(boardDir)()` with `yield* codeReader(boardDir)`. `RunningCode` now includes the installed `manifest` path; callers constructing it must provide that package's `package.json` path so supervision can follow package replacements.
+
 ## 0.25.0 - 2026-10-31
 
 ### Added
