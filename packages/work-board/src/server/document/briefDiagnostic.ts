@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
+import type { ParsedMetadata } from "#integration/metadata.ts";
 import { readDaemon } from "#server/diagnostics/daemon.ts";
-import type { ParsedMetadata } from "#server/metadata/parse.ts";
 
 export function fleetChecksBrief(kind: string | undefined, status: string | undefined) {
 	return kind === "task" && !["done", "dropped"].includes(status ?? "");

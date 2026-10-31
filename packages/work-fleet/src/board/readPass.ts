@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Context, Effect, type FileSystem, type Path, type Scope } from "effect";
-import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/server/integration/board.ts";
+import type { MetadataModel, ParsedMetadata } from "@shivaedev/work-board/integration/metadata.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { sharedRead } from "#board/sharedRead.ts";

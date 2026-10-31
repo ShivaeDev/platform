@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Order, Path, Schema } from "effect";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { type Changes, refreshWritten } from "#server/files/changes.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
 
 const RETENTION = 14 * 24 * 60 * 60 * 1000;
 const ArchivedIdentities = Schema.fromJsonString(Schema.Array(Schema.String));

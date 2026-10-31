@@ -1,10 +1,11 @@
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { DocumentRequest, RequestState } from "#browser/document/schema.ts";
 import { errorMessage } from "#errorMessage.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { addressedElsewhere, authoredQuestion, openItem } from "#server/attention/inbox.ts";
 import { requestInbox } from "#server/attention/requestInbox.ts";
 import { attentionRequests, isMaintainerRequest } from "#server/attention/requests.ts";
-import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import { responseHistory } from "#server/responses/history.ts";
 import { questionPreview } from "#server/responses/questionPreview.ts";
 import { requestSource } from "#server/responses/requestSource.ts";

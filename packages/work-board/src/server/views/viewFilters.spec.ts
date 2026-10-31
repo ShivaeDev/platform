@@ -17,5 +17,5 @@ boardStory.it("bounds search text and normalizes unknown views and sorting at th
 	const work = yield* rpc((client) => client("work-board.work", { url: `/_board/work?view=unknown&sort=mtime&q=${"a".repeat(500)}` }));
 	expect(work.state.view).toBe("now");
 	expect(work.state.sort).toBe("title");
-	expect(work.state.query).toHaveLength(200);
+	expect(work.state.query).toBe("a".repeat(200));
 });

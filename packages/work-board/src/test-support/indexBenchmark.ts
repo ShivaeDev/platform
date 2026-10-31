@@ -2,9 +2,9 @@ import { renameSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, PubSub } from "effect";
+import type { ParsedMetadata } from "#integration/metadata.ts";
 import type { Change } from "#server/files/changes.ts";
 import { watchChanges } from "#server/files/changes.ts";
-import type { ParsedMetadata } from "#server/metadata/parse.ts";
 import { searchSnapshot } from "#server/search/snapshot.ts";
 import { folder } from "./board.ts";
 

@@ -1,5 +1,6 @@
 import { Clock, Effect, type FileSystem, Option, type Path, type PlatformError, Ref, Semaphore, SubscriptionRef } from "effect";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import { archiveDocuments, refreshArchived } from "#server/archive/documents.ts";
 import { loadSettled } from "#server/archive/loadSettled.ts";
@@ -8,7 +9,7 @@ import type { Changes } from "#server/files/changes.ts";
 import { invalidationsSince } from "#server/files/invalidations.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPaths } from "#server/files/markdownPath.ts";
-import type { MetadataDocument, metadataModel } from "#server/metadata/model.ts";
+import type { metadataModel } from "#server/metadata/model.ts";
 import { updateModel } from "#server/metadata/updateModel.ts";
 import type { Entry } from "./entries.ts";
 import { fileCounter } from "./fileCounter.ts";

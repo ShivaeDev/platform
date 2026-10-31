@@ -1,6 +1,7 @@
 import { Effect, Option } from "effect";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { listMarkdown } from "#server/files/list.ts";
-import { type MetadataDocument, metadataModel } from "#server/metadata/model.ts";
+import { metadataModel } from "#server/metadata/model.ts";
 import type { Entry } from "#server/search/entries.ts";
 import { metadataEntries } from "#server/search/metadataEntries.ts";
 import { readDocument } from "#server/search/readDocument.ts";

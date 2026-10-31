@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { Result } from "effect";
-import { USAGE as COMMAND_USAGE, SUBCOMMANDS } from "./messages.ts";
+import { SUBCOMMANDS } from "./messages.ts";
 
 export type Command =
 	| { readonly _tag: "Ci"; readonly coverage: boolean }
@@ -21,8 +21,6 @@ export type Command =
 	| { readonly _tag: "Help" };
 
 export type Parsed = { readonly _tag: "Parsed"; readonly command: Command } | { readonly _tag: "Usage"; readonly problem: string };
-
-export const USAGE = COMMAND_USAGE;
 
 const OPTIONS = {
 	against: { type: "string" },

@@ -1,7 +1,7 @@
+import { fieldFilter, type State } from "#browser/views/state.ts";
 import { sameStatus } from "#browser/views/statusLabel.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { fieldFilter, type State } from "./state.ts";
 
 export interface Item {
 	readonly document: MetadataDocument;

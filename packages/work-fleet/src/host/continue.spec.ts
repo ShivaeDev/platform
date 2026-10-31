@@ -1,8 +1,8 @@
 import { expect } from "@effect/vitest";
-import { WAIT_EXIT } from "#host/wait.ts";
 import { continuedCloud } from "#test/continuedCloud.ts";
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
+import { WAIT_EXIT } from "./waitOutcome.ts";
 
 host.it(
 	"the continue CLI sends its stdin message on the existing Cloud thread and wait follows the new output",
