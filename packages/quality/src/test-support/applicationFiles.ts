@@ -58,10 +58,4 @@ export const generatedApplication: readonly SeedFile[] = [
 	}),
 	manifest("node_modules/@shivaedev/platform/package.json", { dependencies: { "@shivaedev/sql": "0.21.0" }, name: "@shivaedev/platform" }),
 	manifest("node_modules/@shivaedev/test-story/package.json", { dependencies: { "@shivaedev/test": "0.9.0" }, name: "@shivaedev/test-story" }),
-	{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"], "root": true }\n', path: "biome.json" },
-	{ content: "node_modules/\n", path: ".gitignore" },
-	{ content: 'import { repository } from "@shivaedev/sql/repository.ts";\n\nexport const app = repository;\n', path: "src/app.ts" },
-	{ content: 'import { story } from "@shivaedev/test/story.ts";\n\nexport const checked = story;\n', path: "src/app.test.ts" },
-	{ content: 'import { users } from "@shivaedev/admin/users.ts";\n\nexport const listed = users;\n', path: "src/admin.ts" },
-	{ content: 'import { story } from "@shivaedev/test/story.ts";\n\nexport const shipped = story;\n', path: "src/shipped.ts" },
 ];

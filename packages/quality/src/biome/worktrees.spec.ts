@@ -1,51 +1,102 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { FIXED, ignoringEveryFile, MESSY, messyText, messyWorktree } from "#test/biomeWorktrees.ts";
-import { CLI_EXIT, runQuality } from "#test/cli.ts";
-import { installedIn } from "#test/commitActions.ts";
-import { commits, quality, stages } from "#test/hookRepository.ts";
-import { removeSeededTrees } from "#test/tree.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { checkoutStory } from "#test/checkoutStory.ts";
+import { hookInstalled, linkedWorktree, projectIn, withoutConfig } from "#test/linkedWorktree.ts";
 
-afterEach(removeSeededTrees);
+const MESSY = {
+	content: 'import { join } from "node:path";\nimport { readFile } from "node:fs/promises";\n\nexport const total   =  [join, readFile].length\n',
+	path: "src/total.ts",
+};
+const FIXED = 'import { readFile } from "node:fs/promises";\nimport { join } from "node:path";\n\nexport const total = [join, readFile].length;\n';
+const UNFORMATTED = `${MESSY.path}  Is not formatted. Run \`quality fix\`.`;
+// Biome matches this folder glob against the folders above the root too, so inside `.worktrees/` it ignores every file.
+const IGNORING_WORKTREES = {
+	content: '{ "extends": ["@shivaedev/quality/biome/preset.json"], "files": { "includes": ["**", "!**/.worktrees"] } }\n',
+	path: "biome.json",
+};
 
-describe("Biome in a linked worktree under .worktrees", { timeout: 60_000 }, () => {
-	it.each(["", "app"])("reports a misformatted file and an unsorted import in the project at %j", (folder) => {
-		const { worktree } = messyWorktree(folder);
-		const result = quality(worktree, "lint");
-		expect(result.status).toBe(CLI_EXIT.rejected);
-		expect(result.stdout).toContain("error biome/format (1)");
-		expect(result.stdout).toContain(`${MESSY.path}  Is not formatted. Run \`quality fix\`.`);
-		expect(result.stdout).toContain("error biome/assist/source/organizeImports (1)");
-	});
+for (const [where, layout] of [
+	["at the repository root", [withoutConfig()]],
+	["in app/", [withoutConfig(), projectIn("app")]],
+] as const) {
+	checkoutStory.it(
+		`quality lint in a linked worktree under .worktrees reports a misformatted file and its unsorted imports in a project ${where}`,
+		[...layout, linkedWorktree("feature", { files: [MESSY] })],
+		function* ({ outcome, runsIn, stdout }) {
+			yield* runsIn("feature", "lint");
 
-	it("rejects the commit in the pre-commit hook", async () => {
-		const { repository, worktree } = messyWorktree();
-		await installedIn(repository.root);
-		stages(worktree, MESSY.path);
-		const result = commits(worktree, "Messy");
-		expect(result.status).toBe(CLI_EXIT.rejected);
-		expect(result.stderr).toContain(`${MESSY.path}  Is not formatted. Run \`quality fix\`.`);
-	});
+			yield* outcomes({
+				"exit": [outcome(), "rejected"],
+				"format finding": [stdout(), expect.stringContaining(UNFORMATTED)],
+				"import order finding": [stdout(), expect.stringContaining("error biome/assist/source/organizeImports (1)")],
+			});
+		},
+	);
+}
 
-	it("fixes the format and the import order", () => {
-		const { worktree } = messyWorktree();
-		expect(quality(worktree, "fix").status).toBe(CLI_EXIT.passed);
-		expect(messyText(worktree)).toBe(FIXED);
-		expect(quality(worktree, "lint")).toMatchObject({ status: CLI_EXIT.passed, stdout: expect.stringContaining("quality: passed.") });
-	});
+checkoutStory.it(
+	"the pre-commit hook rejects a commit in a linked worktree under .worktrees with a misformatted file",
+	[withoutConfig(), linkedWorktree("feature", { files: [MESSY] }), hookInstalled()],
+	function* ({ commitErrors, commitOutcome, commitsIn }) {
+		yield* commitsIn("feature", "Messy");
 
-	it("stays out of the primary checkout's lint and fix", () => {
-		const { primary, worktree } = messyWorktree();
-		expect(quality(primary, "lint")).toMatchObject({ status: CLI_EXIT.passed, stdout: expect.stringContaining("quality: passed.") });
-		expect(quality(primary, "fix").status).toBe(CLI_EXIT.passed);
-		expect(messyText(worktree)).toBe(MESSY.content);
-	});
+		yield* outcomes({
+			"commit": [commitOutcome(), "rejected"],
+			"finding": [commitErrors(), expect.stringContaining(UNFORMATTED)],
+		});
+	},
+);
 
-	it.each(["lint", "fix"])("fails %s with Biome's message when its config leaves no file to check", async (command) => {
-		const { worktree } = messyWorktree();
-		const result = await runQuality(ignoringEveryFile(worktree), command);
-		expect(result.status).toBe(CLI_EXIT.invalid);
-		expect(result.stderr).toContain("exited 1 without a failing diagnostic:");
-		expect(result.stderr).toContain("No files were processed in the specified paths.");
-		expect(messyText(worktree)).toBe(MESSY.content);
-	});
-});
+checkoutStory.it(
+	"quality fix in a linked worktree under .worktrees formats a file and sorts its imports",
+	[withoutConfig(), linkedWorktree("feature", { files: [MESSY] })],
+	function* ({ outcome, readsIn, runsIn }) {
+		expect(yield* readsIn("feature", MESSY.path)).toBe(MESSY.content);
+
+		yield* runsIn("feature", "fix");
+
+		yield* outcomes({
+			"exit": [outcome(), "passed"],
+			"file": [readsIn("feature", MESSY.path), FIXED],
+		});
+	},
+);
+
+checkoutStory.it(
+	"quality lint in the primary checkout passes without the misformatted file in .worktrees",
+	[withoutConfig(), linkedWorktree("feature", { files: [MESSY] })],
+	function* ({ runs }) {
+		const answer = yield* runs("lint");
+
+		expect(answer.outcome).toBe("passed");
+	},
+);
+
+checkoutStory.it(
+	"quality fix in the primary checkout leaves the misformatted file in .worktrees untouched",
+	[withoutConfig(), linkedWorktree("feature", { files: [MESSY] })],
+	function* ({ outcome, readsIn, runs }) {
+		yield* runs("fix");
+
+		yield* outcomes({
+			"exit": [outcome(), "passed"],
+			"file": [readsIn("feature", MESSY.path), MESSY.content],
+		});
+	},
+);
+
+for (const command of ["lint", "fix"]) {
+	checkoutStory.it(
+		`quality ${command} in a linked worktree whose Biome config leaves no file to check refuses with Biome's message`,
+		[withoutConfig(), linkedWorktree("feature", { files: [MESSY, IGNORING_WORKTREES] })],
+		function* ({ outcome, runsIn, stderr }) {
+			yield* runsIn("feature", command);
+
+			yield* outcomes({
+				"exit": [outcome(), "invalid"],
+				"explanation": [stderr(), expect.stringContaining("exited 1 without a failing diagnostic:")],
+				"message": [stderr(), expect.stringContaining("No files were processed in the specified paths.")],
+			});
+		},
+	);
+}

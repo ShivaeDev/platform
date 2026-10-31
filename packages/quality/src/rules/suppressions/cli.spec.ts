@@ -1,55 +1,107 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { CLI_EXIT, CLI_TIMEOUT, quality } from "#test/cli.ts";
-import { formatTree } from "#test/qualityTree.ts";
-import {
-	addInlineSuppression,
-	declaredOverrideRepository,
-	driftBiomeOverride,
-	registeredSuppressionRepository,
-	removeSuppressionRegistry,
-	undeclaredSuppressionRepository,
-} from "#test/suppressionRepository.ts";
-import { removeSeededTrees } from "#test/tree.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
-afterEach(removeSeededTrees);
+const SUPPRESSED = {
+	content: "declare const raw: string;\n// @ts-expect-error The types reject it.\nexport const a: number = raw as unknown as number;\n",
+	path: "src/a.ts",
+};
 
-describe("quality lint with the suppression rules", { timeout: CLI_TIMEOUT }, () => {
-	it("reports inline suppressions, double casts and undeclared Biome overrides by default", () => {
-		const root = undeclaredSuppressionRepository();
-		const result = quality(root, "lint");
-		expect(result.status).toBe(CLI_EXIT.rejected);
-		expect(result.stdout).toContain('  src/a.ts:2  Suppresses a check: "@ts-expect-error".');
-		expect(result.stdout).toContain('  src/a.ts:3  Casts through "unknown" to reach a type the value does not have.');
-		expect(result.stdout).toContain('  biome.json:3  Weakens "lint/correctness/noEmptyPattern" for "src/vitest.ts" without a declaration.');
-	});
+const SUPPRESSED_TWICE = { content: `${SUPPRESSED.content}// @ts-ignore\n`, path: "src/a.ts" };
 
-	it("accepts a declared override and fails when the Biome config drifts from it", () => {
-		const root = declaredOverrideRepository();
-		expect(quality(root, "lint").status).toBe(CLI_EXIT.passed);
-		driftBiomeOverride(root);
-		const drifted = quality(formatTree(root), "lint");
-		expect(drifted.status).toBe(CLI_EXIT.rejected);
-		expect(drifted.stdout).toContain('Weakens "lint/suspicious/noExplicitAny" for "src/vitest.ts" without a declaration.');
-		expect(drifted.stdout).toContain('Declares "lint/correctness/noEmptyPattern" for "src/vitest.ts", which no Biome config weakens.');
-	});
+const CLEAN = { content: "export function a(): number {\n\treturn 1;\n}\n", path: "src/a.ts" };
 
-	it("refuses registry entries for the suppression rules and adopts existing suppressions only through the baseline", () => {
-		const root = registeredSuppressionRepository();
-		const refused = quality(root, "lint");
-		expect(refused.status).toBe(CLI_EXIT.rejected);
-		expect(refused.stdout).toContain('Suppresses a check: "@ts-expect-error".');
-		expect(refused.stdout).toContain("suppressions/no-inline src/a.ts names a rule that takes no exceptions.");
+const EMPTY_PATTERN_OFF = {
+	content:
+		'{\n\t"extends": ["@shivaedev/quality/biome/preset.json"],\n\t"overrides": [{ "includes": ["src/vitest.ts"], "linter": { "rules": { "correctness": { "noEmptyPattern": "off" } } } }]\n}\n',
+	path: "biome.json",
+};
 
-		removeSuppressionRegistry(root);
-		expect(quality(formatTree(root), "baseline", "write")).toMatchObject({
-			status: 0,
-			stdout: "quality: recorded 3 entries in quality-baseline.jsonl.\n",
+const EXPLICIT_ANY_OFF = {
+	content:
+		'{\n\t"extends": ["@shivaedev/quality/biome/preset.json"],\n\t"overrides": [{ "includes": ["src/vitest.ts"], "linter": { "rules": { "suspicious": { "noExplicitAny": "off" } } } }]\n}\n',
+	path: "biome.json",
+};
+
+const EMPTY_PATTERN_DECLARED = {
+	content:
+		'export default {\n\trules: {\n\t\t"suppressions/biome-overrides": {\n\t\t\toptions: {\n\t\t\t\tdeclared: [\n\t\t\t\t\t{\n\t\t\t\t\t\tincludes: ["src/vitest.ts"],\n\t\t\t\t\t\treason: "Vitest reads the fixture\'s first parameter and needs an object pattern.",\n\t\t\t\t\t\trule: "lint/correctness/noEmptyPattern",\n\t\t\t\t\t},\n\t\t\t\t],\n\t\t\t},\n\t\t},\n\t},\n};\n',
+	path: "quality.config.ts",
+};
+
+const NO_INLINE_REGISTERED = {
+	content: JSON.stringify([{ file: "src/a.ts", reason: "Legacy code.", rule: "suppressions/no-inline" }]),
+	path: "quality/registry.json",
+};
+
+repositoryStory.it(
+	"quality lint with the default rules rejects an inline suppression, a double cast and an undeclared Biome override",
+	[qualityInstalled(), repositoryHas(EMPTY_PATTERN_OFF, SUPPRESSED), biomeFormatted()],
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
+
+		yield* outcomes({
+			"double cast": [stdout(), expect.stringContaining('  src/a.ts:3  Casts through "unknown" to reach a type the value does not have.')],
+			"exit": [outcome(), "rejected"],
+			"inline suppression": [stdout(), expect.stringContaining('  src/a.ts:2  Suppresses a check: "@ts-expect-error".')],
+			"undeclared override": [
+				stdout(),
+				expect.stringContaining('  biome.json:3  Weakens "lint/correctness/noEmptyPattern" for "src/vitest.ts" without a declaration.'),
+			],
 		});
-		expect(quality(root, "lint")).toMatchObject({ status: 0, stdout: expect.stringContaining("4 baselined violations not shown") });
+	},
+);
 
-		addInlineSuppression(root);
-		const grown = quality(root, "lint");
-		expect(grown.status).toBe(CLI_EXIT.rejected);
-		expect(grown.stdout).toContain("src/a.ts is over its baseline: 2 against 1 baselined.");
-	});
-});
+repositoryStory.it(
+	"quality lint accepts a declared Biome override and rejects biome.json once it turns another rule off instead, reporting the declaration as stale",
+	[qualityInstalled(), repositoryHas(EMPTY_PATTERN_DECLARED, EMPTY_PATTERN_OFF, CLEAN), biomeFormatted()],
+	function* ({ outcome, runs, stdout, writes }) {
+		expect((yield* runs("lint")).outcome).toBe("passed");
+
+		yield* writes(EXPLICIT_ANY_OFF);
+		yield* runs("lint");
+
+		yield* outcomes({
+			"exit": [outcome(), "rejected"],
+			"stale declaration": [
+				stdout(),
+				expect.stringContaining('Declares "lint/correctness/noEmptyPattern" for "src/vitest.ts", which no Biome config weakens.'),
+			],
+			"undeclared override": [
+				stdout(),
+				expect.stringContaining('Weakens "lint/suspicious/noExplicitAny" for "src/vitest.ts" without a declaration.'),
+			],
+		});
+	},
+);
+
+repositoryStory.it(
+	"quality lint refuses a registry entry for suppressions/no-inline and still reports the suppression it names",
+	[qualityInstalled(), repositoryHas(SUPPRESSED, NO_INLINE_REGISTERED), biomeFormatted()],
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
+
+		yield* outcomes({
+			"exit": [outcome(), "rejected"],
+			"refused entry": [stdout(), expect.stringContaining("suppressions/no-inline src/a.ts names a rule that takes no exceptions.")],
+			"suppression": [stdout(), expect.stringContaining('  src/a.ts:2  Suppresses a check: "@ts-expect-error".')],
+		});
+	},
+);
+
+repositoryStory.it(
+	"quality lint passes the baselined suppressions of a file and rejects it once another suppression grows it past its baseline",
+	[qualityInstalled(), repositoryHas(SUPPRESSED), biomeFormatted()],
+	function* ({ outcome, runs, stdout, writes }) {
+		yield* runs("baseline", "write");
+		expect((yield* runs("lint")).outcome).toBe("passed");
+
+		yield* writes(SUPPRESSED_TWICE);
+		yield* runs("lint");
+
+		yield* outcomes({
+			exit: [outcome(), "rejected"],
+			report: [stdout(), expect.stringContaining("src/a.ts is over its baseline: 2 against 1 baselined.")],
+		});
+	},
+);

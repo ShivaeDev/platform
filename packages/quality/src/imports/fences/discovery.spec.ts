@@ -1,98 +1,76 @@
-import { Effect } from "effect";
-import { afterEach, expect, it } from "vitest";
-import { services } from "#cli/runMain.ts";
-import { resolveRules } from "#config/resolve.ts";
-import { evaluate, passes } from "#engine/evaluate.ts";
-import { runRules } from "#engine/runRules.ts";
-import { collectInventory } from "#inventory/collect.ts";
-import { render } from "#report/render.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { importFences } from "#rules/imports/fences.ts";
-import { browserFence, fenceDiscovery, replaceBoundary } from "#test/fenceDiscovery.ts";
-import { findingsIn, scanned } from "#test/imports.ts";
-import { run } from "#test/run.ts";
-import { removeSeededTrees } from "#test/tree.ts";
+import { BROWSER_BOUNDARY, boundaryWorkspace, browserFence } from "#test/boundaryWorkspace.ts";
+import { importStory, repositoryHolds } from "#test/importStory.ts";
+import { repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { config } from "#test/tree.ts";
 
-afterEach(removeSeededTrees);
-
-it("discovers a package boundary outside the source inventory and reports its transitive violation through Quality", async () => {
-	const root = fenceDiscovery();
-	const inputs = await scanned(root);
-	const inventory = await Effect.runPromise(
-		collectInventory(root, { exclude: [], extensions: [".ts"], sources: ["packages/ui/src"] }).pipe(Effect.provide(services)),
-	);
-	expect(inventory.files).not.toContain("packages/ui/quality.fences.config.ts");
-	const resolved = await Effect.runPromise(resolveRules({}));
-	if (resolved._tag !== "Valid") {
-		throw new Error(resolved.issues.join("\n"));
-	}
-	const rules = resolved.value;
-	const violations = await run(
-		runRules(
-			rules.active.filter((rule) => rule.id === "imports/fences"),
-			{ ...inputs, ...inventory },
-		),
-	);
-	const outcome = evaluate(violations, [], [], rules);
-	expect(passes(outcome)).toBe(false);
-	expect(violations.map(({ file }) => file).toSorted()).toEqual(["packages/ui/src/bridge.ts", "packages/ui/src/main.ts"]);
-	expect(violations).toEqual(
-		expect.arrayContaining([
-			{
-				file: "packages/ui/src/main.ts",
-				level: "error",
-				line: 1,
-				message: expect.stringContaining(
-					'Reaches node:fs through packages/ui/src/main.ts -> packages/ui/src/bridge.ts -> node:fs across the fence "browser-stays-off-disk": The browser code runs without Node.',
-				),
-				rule: "imports/fences",
-				subject: "browser-stays-off-disk",
-			},
-			{
-				file: "packages/ui/src/bridge.ts",
-				level: "error",
-				line: 1,
-				message: expect.stringContaining(
-					'Reaches node:fs through packages/ui/src/bridge.ts -> node:fs across the fence "browser-stays-off-disk": The browser code runs without Node.',
-				),
-				rule: "imports/fences",
-				subject: "browser-stays-off-disk",
-			},
-		]),
-	);
-	const report = render(outcome, { baseline: "baseline.jsonl", checked: 2, descriptions: new Map(), registry: "registry.json" });
-	expect(report).toContain("error imports/fences (2)");
-	expect(report).toContain("packages/ui/src/main.ts:1");
-	expect(report).toContain("quality: failed with 2 errors");
-});
-
-it.each([
-	["export const fences = [];", "default export"],
-	["export default {};", "array"],
-	["export default [null];", "fence"],
-	['export default [{ _tag: "Fence" }];', "fence"],
+const UNREADABLE = [
+	["export const fences = [];", "export an array of fence() declarations as the default export"],
+	["export default {};", "export an array of fence() declarations:\nExpected array"],
+	["export default [null];", "export an array of fence() declarations:\n0: Expected object"],
+	['export default [{ _tag: "Fence" }];', "export an array of fence() declarations:\n0"],
 	["throw new Error('broken policy');", "broken policy"],
-])("rejects an unreadable boundary: %s", async (boundary, problem) => {
-	await expect(findingsIn(importFences, undefined, fenceDiscovery(boundary))).rejects.toThrow("packages/ui/quality.fences.config.ts");
-	await expect(findingsIn(importFences, undefined, fenceDiscovery(boundary))).rejects.toThrow(problem);
-});
+];
 
-it("validates discovered and config-supplied fences as one policy", async () => {
-	await expect(findingsIn(importFences, { fences: [browserFence] }, fenceDiscovery())).rejects.toThrow("an earlier fence has this name");
-});
+repositoryStory.it(
+	"quality lint discovers a workspace package's boundary outside the selected sources, ignores one outside the workspace and reports each path that reaches across it",
+	[repositoryHas(...boundaryWorkspace().files, config('{ sources: ["packages/ui/src"] }'))],
+	function* ({ outcome, runs, stdout }) {
+		yield* runs("lint");
 
-it("discovers a boundary beside the root manifest", async () => {
-	expect((await findingsIn(importFences, undefined, fenceDiscovery(undefined, "."))).map(({ file }) => file).toSorted()).toEqual([
-		"packages/ui/src/bridge.ts",
-		"packages/ui/src/main.ts",
-	]);
-});
+		yield* outcomes({
+			"bridge.ts": [stdout(), expect.stringContaining("packages/ui/src/bridge.ts:1  Reaches node:fs through packages/ui/src/bridge.ts -> node:fs")],
+			"exit": [outcome(), "rejected"],
+			"fence findings": [stdout(), expect.stringContaining("error imports/fences (2)")],
+			"main.ts": [
+				stdout(),
+				expect.stringContaining(
+					'packages/ui/src/main.ts:1  Reaches node:fs through packages/ui/src/main.ts -> packages/ui/src/bridge.ts -> node:fs across the fence "browser-stays-off-disk": The browser code runs without Node.',
+				),
+			],
+		});
+	},
+);
 
-it("reads a changed boundary again during a later scan", async () => {
-	const root = fenceDiscovery();
-	expect((await findingsIn(importFences, undefined, root)).map(({ file }) => file).toSorted()).toEqual([
-		"packages/ui/src/bridge.ts",
-		"packages/ui/src/main.ts",
-	]);
-	replaceBoundary(root, "export default [];");
-	expect(await findingsIn(importFences, undefined, root)).toEqual([]);
-});
+for (const [boundary, problem] of UNREADABLE) {
+	importStory.it(
+		`imports/fences refuses an unreadable boundary, naming its file and the problem: ${boundary}`,
+		[repositoryHolds(boundaryWorkspace(boundary))],
+		function* ({ refusal }) {
+			expect(yield* refusal(importFences)).toContain(`cannot load boundary at packages/ui/quality.fences.config.ts: ${problem}`);
+		},
+	);
+}
+
+importStory.it(
+	"imports/fences validates discovered and configured fences as one policy, refusing a configured fence with a discovered fence's name",
+	[repositoryHolds(boundaryWorkspace())],
+	function* ({ refusal }) {
+		expect(yield* refusal(importFences, { fences: [browserFence] })).toContain('fence "browser-stays-off-disk": an earlier fence has this name');
+	},
+);
+
+importStory.it(
+	"imports/fences discovers a boundary beside the root manifest",
+	[repositoryHolds(boundaryWorkspace(BROWSER_BOUNDARY, "."))],
+	function* ({ check, files }) {
+		yield* check(importFences);
+
+		expect(yield* files()).toEqual(["packages/ui/src/bridge.ts", "packages/ui/src/main.ts"]);
+	},
+);
+
+importStory.it(
+	"imports/fences reads a changed boundary again during a later scan",
+	[repositoryHolds(boundaryWorkspace())],
+	function* ({ check, files, writes }) {
+		yield* check(importFences);
+		expect(yield* files()).toEqual(["packages/ui/src/bridge.ts", "packages/ui/src/main.ts"]);
+
+		yield* writes({ content: "export default [];", path: "packages/ui/quality.fences.config.ts" });
+
+		expect(yield* check(importFences)).toEqual([]);
+	},
+);
