@@ -23,7 +23,7 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 		readonly rpcPath?: HttpRouter.PathInput;
 	} & HostPolicy<TSession>,
 	{ bodySize, trustedProxy, nativeOrigins }: Effect.Success<ReturnType<typeof hostTransport>>,
-	sensitive: ReturnType<typeof schemaSensitiveKeys>,
+	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
 ) {
 	const middleware: Layer.Layer<RequestTracing> | Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> =
 		options.policy === "loopback"

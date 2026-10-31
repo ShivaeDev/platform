@@ -10,7 +10,7 @@ export function sensitiveFailureTag(source: "schema" | "host") {
 		const group = RpcGroup.make(
 			Rpc.make("taggedFailure", {
 				error: Schema.Struct({ _tag: Tag, detail: Schema.String, message: Tag }),
-				payload: { _tag: Schema.String },
+				payload: { _tag: Tag },
 				success: Schema.Void,
 			}),
 			Rpc.make("publicConflict", { error: Conflict, success: Schema.Void }),

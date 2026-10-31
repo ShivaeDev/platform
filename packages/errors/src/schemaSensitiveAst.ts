@@ -1,7 +1,7 @@
 import { Predicate, type SchemaAST } from "effect";
 import { isSensitiveKey } from "#sensitive.ts";
 
-function children(ast: SchemaAST.AST): readonly SchemaAST.AST[] {
+export function children(ast: SchemaAST.AST): readonly SchemaAST.AST[] {
 	switch (ast._tag) {
 		case "Objects":
 			return [...ast.propertySignatures.map((property) => property.type), ...ast.indexSignatures.flatMap((index) => [index.parameter, index.type])];

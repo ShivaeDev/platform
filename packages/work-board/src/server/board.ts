@@ -1,6 +1,7 @@
 import { Effect, type FileSystem, Layer, type Path, type PlatformError } from "effect";
 import type { HttpRouter } from "effect/http";
 import type { MissingReadPolicies } from "@shivaedev/contract/readPolicyErrors.ts";
+import type { SensitiveFieldConflict } from "@shivaedev/errors/schemaFieldScope.ts";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { hostRpcRoutes } from "@shivaedev/server/hostRpcRoutes.ts";
@@ -21,7 +22,14 @@ export interface BoardOptions {
 	readonly root: string;
 }
 
-type BoardError = MissingReadPolicies | InternalServerError | HomeMissing | MermaidMissing | PlatformError.PlatformError | RenderFailed;
+type BoardError =
+	| SensitiveFieldConflict
+	| MissingReadPolicies
+	| InternalServerError
+	| HomeMissing
+	| MermaidMissing
+	| PlatformError.PlatformError
+	| RenderFailed;
 type BoardServices =
 	| FileSystem.FileSystem
 	| HttpRouter.HttpRouter
@@ -32,10 +40,11 @@ export function boardLayer(options: BoardOptions): Layer.Layer<never, BoardError
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const runtime = yield* boardRuntime(options);
+			const sensitive = yield* schemaSensitiveKeys(workRpcs);
 			const rpc = hostRpcRoutes(
 				{ group: workRpcs, handlers: runtime.rpcHandlers, policy: "loopback", rpcPath: RPC_PATH },
 				{ bodySize: 4 * 1024 * 1024, host: "127.0.0.1", nativeOrigins: [], trustedProxy: undefined },
-				schemaSensitiveKeys(workRpcs),
+				sensitive,
 			).pipe(Layer.provide(runtime.live));
 			return Layer.mergeAll(boardRoutes(options, runtime), rpc, rpcPolicy);
 		}),

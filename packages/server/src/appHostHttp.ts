@@ -43,9 +43,9 @@ export function appHostHttp<
 	> &
 		HostPolicy<TSession>,
 ) {
-	const sensitive = schemaSensitiveKeys(options.group, options.config?.sensitiveKeys);
 	return Layer.unwrap(
 		Effect.gen(function* () {
+			const sensitive = yield* schemaSensitiveKeys(options.group, options.config?.sensitiveKeys);
 			const transport = yield* hostTransport(options);
 			const { bodySize, host, trustedProxy, nativeOrigins } = transport;
 			const routes = hostRpcRoutes(options, transport, sensitive);
@@ -64,9 +64,15 @@ export function appHostHttp<
 				HttpRouter.toHttpEffect(httpRoutes).pipe(
 					Effect.map((handler) => HttpServer.serve(handler).pipe(HttpServer.withLogAddress, Layer.provideMerge(server))),
 				),
-			).pipe(Layer.provideMerge(application), Layer.provideMerge(NodeHttpServer.layerHttpServices));
+			).pipe(
+				Layer.provideMerge(application),
+				Layer.provideMerge(NodeHttpServer.layerHttpServices),
+				Layer.provide(redactingDiagnostics(sensitive)),
+				Layer.provide(otlpTracing),
+				Layer.provide(Layer.succeed(RedactionPolicy, sensitive)),
+			);
 		}),
-	).pipe(Layer.provide(redactingDiagnostics(sensitive)), Layer.provide(otlpTracing), Layer.provide(Layer.succeed(RedactionPolicy, sensitive)));
+	);
 }
 
 export function migratedHost<

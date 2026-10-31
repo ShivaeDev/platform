@@ -4,7 +4,8 @@ import { encodedFailures } from "#test/app-host/encodedFailures.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-const renamed = { visible: "<redacted>", wireValue: "<redacted>" };
+const renamed = { wireTag: "<redacted>", wireValue: "<redacted>", wireVisible: "<redacted>" };
+const diagnostic = { control: "public control", sealed: "<redacted>", visible: "public detail", wireValue: "<redacted>" };
 
 host.it(
 	"a schema-encoded Error failure reaches the client with its sensitive message and stack masked",
@@ -39,12 +40,8 @@ host.it(
 		yield* callRpc("renamedFailure", { value: "private sealed detail" });
 
 		yield* outcomes([
-			["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining({ ...renamed, _tag: "<redacted>" }) } }],
-			[
-				"diagnostic log",
-				() => diagnosticLog("encoded failure"),
-				expect.objectContaining({ ...renamed, control: "public control", sealed: "<redacted>" }),
-			],
+			["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining(renamed) } }],
+			["diagnostic log", () => diagnosticLog("encoded failure"), expect.objectContaining(diagnostic)],
 			["leaked into the answer", () => answerMentions("private sealed detail"), []],
 		]);
 	},
@@ -74,7 +71,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 			yield* outcomes([
 				["leaked into exports", () => exportMentions("private sealed detail"), []],
-				["span attributes", () => spanAttributes("renamedFailure"), [expect.objectContaining({ ...renamed, control: "public control" })]],
+				["span attributes", () => spanAttributes("renamedFailure"), [expect.objectContaining(diagnostic)]],
 			]);
 		},
 	);
