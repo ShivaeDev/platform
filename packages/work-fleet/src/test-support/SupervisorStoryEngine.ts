@@ -8,6 +8,7 @@ import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
 import { type SupervisorState, supervisionStatus } from "#host/supervisorState.ts";
 import { launchSupervisorCli } from "#test/launchSupervisorCli.ts";
 import type { supervisorCodeChanges } from "#test/supervisorCodeChanges.ts";
+import type { supervisorDependencies } from "#test/supervisorDependencies.ts";
 import { supervisorInstallation } from "#test/supervisorInstallation.ts";
 
 export class SupervisorStoryEngine {
@@ -19,6 +20,7 @@ export class SupervisorStoryEngine {
 	pending: Fiber.Fiber<{ readonly body: string; readonly status: number }, unknown> | undefined;
 	codeChanges: ReturnType<typeof supervisorCodeChanges> | undefined;
 	codeCheckOffset = 0;
+	dependencies: ReturnType<typeof supervisorDependencies> | undefined;
 
 	get fixture() {
 		if (this.installation === undefined) {
