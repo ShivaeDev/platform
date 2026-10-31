@@ -16,15 +16,19 @@ for (const { code, findings, name } of jsxDecisions) {
 }
 
 for (const { code, name } of jsxAccepted) {
-	ruleStory.it(`react/jsx-conditionals accepts ${name}`, [repositoryHas({ content: code, path: "src/view.tsx" })], function* ({ check }) {
-		expect(yield* check(jsxConditionals)).toEqual([]);
+	ruleStory.it(`react/jsx-conditionals accepts ${name}`, [repositoryHas({ content: code, path: "src/view.tsx" })], function* ({ check, findings }) {
+		yield* check(jsxConditionals);
+
+		expect(yield* findings()).toEqual([]);
 	});
 }
 
 ruleStory.it(
 	"react/jsx-conditionals reports a JSX child decision in a .jsx file at its line",
 	[repositoryHas({ content: "const View = () => <div>{ready && <X />}</div>;", path: "src/view.jsx" })],
-	function* ({ check }) {
-		expect(yield* check(jsxConditionals)).toEqual([{ file: "src/view.jsx", line: 1, message: CHILD_DECISION }]);
+	function* ({ check, findings }) {
+		yield* check(jsxConditionals);
+
+		expect(yield* findings()).toEqual([{ file: "src/view.jsx", line: 1, message: CHILD_DECISION }]);
 	},
 );
