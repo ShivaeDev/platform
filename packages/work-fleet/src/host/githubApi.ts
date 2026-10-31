@@ -114,6 +114,7 @@ export const GithubApi = defineService({
 					);
 					return JSON.stringify(bodies);
 				}),
+			text: (endpoint: string) => request(endpoint, state.github.text(endpoint, "application/vnd.github+json", 16 * 1024 * 1024)),
 			write: (body: unknown) =>
 				request("graphql", state.github.write("POST", "graphql", body).pipe(Effect.flatMap((page) => page.decode(Schema.Unknown)))),
 		};
