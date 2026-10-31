@@ -69,7 +69,7 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 		),
 	);
 
-	const schemaErrors = schemaFeedback(decoded);
+	const schemaErrors = schemaFeedback(decoded, config.requiredMessages);
 
 	const checkError = Atom.family((name: Name<TFields>): Atom.Atom<string | undefined> => {
 		const check = checks.get(name);
@@ -110,7 +110,9 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 			status.attempt();
 			const submission = editing.submission();
 			const submitted = submission.values;
-			const value = yield* decode(submitted).pipe(Effect.mapError((issue) => new Invalid({ messages: messagesByField(issue) })));
+			const value = yield* decode(submitted).pipe(
+				Effect.mapError((issue) => new Invalid({ messages: messagesByField(issue, config.requiredMessages) })),
+			);
 			return yield* onSubmit(value, submitter, submitted).pipe(
 				Effect.tapError(noted(submitted)),
 				Effect.tap(() => Effect.sync(submission.accept)),
