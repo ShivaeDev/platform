@@ -1,7 +1,9 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import { effectHookOptions } from "#server/better-auth/adapters/effectHookOptions.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
+import { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
 import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
@@ -14,10 +16,12 @@ import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/bette
 import type { AccountRoleSeed } from "./accountRoleSeed.ts";
 import { admittedSessions } from "./admittedSessions.ts";
 import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
+import type { BetterAuthDatabaseHooks } from "./databaseHooks.ts";
 import { mountedSessions } from "./mountedSessions.ts";
 
 export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
+	readonly databaseHooks?: BetterAuthDatabaseHooks<R> | undefined;
 	readonly hardening?: BetterAuthHardeningOptions;
 	readonly signIn?: SignInPolicy<E, R> | undefined;
 } & (
@@ -40,7 +44,9 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		yield* policy.accounts;
 	}
 	const gate = yield* signInGate(policy);
-	const configured = mount.roles === undefined ? options : storedRoleOptions(closeRoleEndpoints(options), mount);
+	const runtime = yield* hookRuntime<R>();
+	const hooked = effectHookOptions(options, mount.databaseHooks, runtime);
+	const configured = mount.roles === undefined ? hooked : storedRoleOptions(closeRoleEndpoints(hooked), mount);
 	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
 	const seed = mount.roleSeed === undefined ? undefined : yield* mount.roleSeed;
 	const seeded = roleSeedOptions(gate.active ? { ...configured, ...gated } : configured, seed);
@@ -80,6 +86,7 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		clientIpHeader,
 		ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,
 		roles: mount.roles,
+		runRequest: runtime.runRequest,
 		trustedProxy,
 	});
 	const admit = admittedSessions(gate, () => auth.$context, mount.bearerSessions);

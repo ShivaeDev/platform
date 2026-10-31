@@ -135,6 +135,41 @@ The auth HTTP server span records the resolved rate-limit address in `auth.rate_
 
 For email sign-in through `appHost`, the session record's `ipAddress` follows the same rule. With a trusted peer, `AUTH_CLIENT_IP_HEADER=x-real-ip` stores `X-Real-IP` even if `X-Forwarded-For` supplies a different address; the default header selects the rightmost untrusted address in the `X-Forwarded-For` chain, ignoring trusted proxy hops on the right. With an untrusted peer, neither header can supply the stored address. Sign-in attempts from an untrusted peer share one bucket per path; with a trusted peer and `x-real-ip`, changing `X-Forwarded-For` does not change the bucket, while changing `X-Real-IP` does.
 
+#### Application database hooks
+
+Pass Effect hooks in the mount's second argument under `databaseHooks`. The shape, arguments and successful results match Better Auth's database hooks; each callback returns an Effect instead of a Promise. `BetterAuthDatabaseHooks` and the structural `BetterAuthHookError` type live in `@shivaedev/identity/server/better-auth/databaseHooks.ts`.
+
+```ts
+import type { BetterAuthOptions } from "better-auth";
+import { Context, Effect } from "effect";
+import type { BetterAuthHookError } from "@shivaedev/identity/server/better-auth/databaseHooks.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+
+class SessionAdmission extends Context.Service<
+	SessionAdmission,
+	{
+		readonly check: (userId: string) => Effect.Effect<void, BetterAuthHookError>;
+	}
+>()("app/SessionAdmission") {}
+
+const authentication = (options: BetterAuthOptions) =>
+	betterAuthMount(options, {
+		databaseHooks: {
+			session: {
+				create: {
+					before: (session) => Effect.flatMap(SessionAdmission, ({ check }) => check(session.userId)),
+				},
+			},
+		},
+	});
+```
+
+Provide the hook's services when building the mount. Mounted HTTP requests run hooks with the request's services, spans, log annotations and cancellation signal; request services override the mount's services. A direct call through `auth.api` uses the mount's services and the endpoint request's signal when present.
+
+Fail a `before` hook with `{ code: "MEMBERS_ONLY", message: "Membership is required" }`, or an application tagged error with those fields, to refuse the operation with HTTP 403 and that code and message. Defects remain defects in the mounted request, even when Better Auth catches the callback rejection. Hooks follow Better Auth's lifecycle: use `before` to refuse a write; `after` runs after the write and does not undo it.
+
+Native callbacks in the first argument run before the corresponding Effect callbacks. A native `before` returning `false` stops the Effect callback too. Data changes compose in order. Identity's sign-in policy still runs after the application's session hook.
+
 ### Role assignments
 
 Pass `{ defaultRole: "member", roles: AppAccess }` as the second argument to `betterAuthMount`. Identity adds `/admin/set-role`, `/admin/update-user` and `/admin/create-user` to the disabled HTTP paths and sets the Better Auth admin plugin's `adminRoles` to `[]`. Existing disabled paths remain in effect. The admin Users page remains the application path for role changes.
