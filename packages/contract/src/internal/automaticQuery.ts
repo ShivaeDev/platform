@@ -1,4 +1,4 @@
-import type { Duration } from "effect";
+import { Cause, type Duration, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type { LiveBound, LiveConnection } from "#automaticLive.ts";
@@ -38,6 +38,9 @@ export function automaticQuery<A, E>({
 			assertOwner(get);
 			const registry = get.registry;
 			const dispatcher = registry.schedulerAsync.makeDispatcher();
+			let denied = false;
+			let stopSource: (() => void) | undefined;
+			get.addFinalizer(() => stopSource?.());
 			get.set(ready, false);
 			get.once(queryCoalesceWindow(gated));
 			get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(atom), value), { immediate: true });
@@ -50,6 +53,7 @@ export function automaticQuery<A, E>({
 					}
 				}, 0);
 				if (value.connection === "live") {
+					denied = false;
 					registry.set(ready, true);
 				}
 			}
@@ -67,15 +71,19 @@ export function automaticQuery<A, E>({
 			get.addFinalizer(registry.subscribe(coalesceWindow, (value) => registry.set(subscription.coalesceWindow, value), { immediate: true }));
 			let started = false;
 			function start() {
-				if (started) {
+				if (stopSource !== undefined) {
 					return;
 				}
 				started = true;
 				if (!pushed) {
 					get.refresh(source);
 				}
-				const publish = queryResult<A, E>(equivalent, (value) => get.setSelf(value));
-				get.subscribe(source, publish);
+				const publish = queryResult<A, E>(equivalent, (value) => {
+					if (!denied) {
+						get.setSelf(value);
+					}
+				});
+				stopSource = registry.subscribe(source, publish);
 				publish(get.once(source));
 			}
 			get.once(ready);
@@ -86,7 +94,15 @@ export function automaticQuery<A, E>({
 			});
 			const failed = queryFailure(
 				() => started && !pushed,
-				(cause) => get.setSelf(AsyncResult.failure(cause)),
+				(cause) => {
+					if (Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied"))) {
+						denied = true;
+						registry.set(ready, false);
+						stopSource?.();
+						stopSource = undefined;
+					}
+					get.setSelf(AsyncResult.failure(cause));
+				},
 			);
 			get.subscribe(subscription.status, failed);
 			get.addFinalizer(registry.subscribe(paused, (value) => registry.set(subscription.paused, value), { immediate: true }));

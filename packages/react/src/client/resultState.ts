@@ -1,5 +1,5 @@
 import { RegistryContext, useAtomRefresh, useAtomSet, useAtomValue } from "@effect/atom-react";
-import { Cause, type Duration, type Effect, Option } from "effect";
+import { Cause, type Duration, type Effect, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -39,6 +39,7 @@ function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>, e
 	}, [enabled, recheck, result]);
 }
 export interface QueryState<A, E> extends ResultState<A, E> {
+	readonly denied: boolean;
 	readonly refresh: () => void;
 }
 export interface QueryOptions<E = unknown> {
@@ -80,7 +81,11 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 	useQueryNotice(result, Option.isSome(data), options.notice);
 	const refresh = useAtomRefresh(atom);
 	usePermissionFailure(AsyncResult.cause(result));
-	return { ...state(result, data), refresh };
+	return {
+		...state(result, data),
+		denied: Option.exists(AsyncResult.cause(result), (cause) => Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied"))),
+		refresh,
+	};
 }
 export interface ActionState<TInput, A, E> extends ResultState<A, E> {
 	readonly dispatch: (input: TInput) => void;

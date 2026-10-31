@@ -1,4 +1,4 @@
-import { Duration, Effect } from "effect";
+import { Cause, Duration, Effect, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -55,6 +55,15 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 					pending = undefined;
 					dequeue();
 				}
+				function reread() {
+					if (
+						!Option.exists(AsyncResult.cause(get.once(source)), (cause) =>
+							Option.exists(Cause.findErrorOption(cause), Predicate.isTagged("QueryReadDenied")),
+						)
+					) {
+						get.refresh(source);
+					}
+				}
 				function refresh(active: () => boolean) {
 					if (!active()) {
 						dequeue();
@@ -64,7 +73,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 						pending = active;
 					} else {
 						pending = undefined;
-						get.refresh(source);
+						reread();
 						dequeue();
 					}
 				}
@@ -77,7 +86,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 					const delay = Duration.toMillis(Duration.fromInputUnsafe(get.once(queryCoalesceWindow(wrapped)) ?? batch.window ?? 0));
 					if (delay === 0) {
 						clear();
-						get.refresh(source);
+						reread();
 					} else if (!scheduled) {
 						queued ??= queue?.();
 						scheduled = true;
@@ -90,7 +99,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 					reactivity.registerUnsafe(keys, () => {
 						if (!liveBatches.has(reactivity)) {
 							clear();
-							get.refresh(source);
+							reread();
 						}
 					}),
 				);
@@ -100,7 +109,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 						const active = pending;
 						pending = undefined;
 						if (active()) {
-							get.refresh(source);
+							reread();
 						}
 						dequeue();
 					}

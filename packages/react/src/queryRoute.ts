@@ -1,4 +1,5 @@
 import { type LoaderFnContext, notFound } from "@tanstack/react-router";
+import { Predicate } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -23,7 +24,7 @@ export function queryRoute<
 			try {
 				return await loadQuery(context.context.registry, query({ context: context.context, params: context.params, search: context.deps }), context);
 			} catch (error) {
-				if (isNotFound(error)) {
+				if (isNotFound(error) || Predicate.isTagged(error, "QueryReadDenied")) {
 					throw notFound({ data: error });
 				}
 				throw error;
