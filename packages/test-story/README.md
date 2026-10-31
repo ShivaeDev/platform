@@ -573,6 +573,30 @@ help: either the bakery never gets there, so check the setup and the engine, or 
 
 That is what `oven.bakesEverything(12)` dies with when the baker keeps a sourdough starter, so the dough never runs out. The typed failures of `step`, `failed`, `diagnose` and the condition stay in the Effect's error channel: a step that fails with `BurntLoaf` gives the test a `BurntLoaf` to assert on. A kit without `run` hooks dies with a message that says to add them.
 
+### Waiting for a signal
+
+Use `until` in a kit verb to consume a native stream through its first matching value. `collectUntil` collects values in arrival order and stops when its predicate matches the collection, including the value that completes it. Supply a name that says what the story is waiting for.
+
+```ts
+import { SubscriptionRef } from "effect";
+import { collectUntil, until } from "@shivaedev/test-story/server/until.ts";
+
+const ready = yield* until(
+	SubscriptionRef.changes(status),
+	(value) => value === "ready",
+	{ name: "worker ready" },
+);
+const deliveries = yield* collectUntil(
+	deliveryStream,
+	(values) => values.some((delivery) => delivery.id === requestedId),
+	{ name: "requested delivery", timeout: "2 seconds" },
+);
+```
+
+The helpers subscribe by running the stream before inspecting its values. Use a stream that includes the current value, such as `SubscriptionRef.changes` or `AtomRegistry.toStream`, when readiness may already hold. They release the subscription on completion or timeout. Their default deadline is five seconds of live time; `timeout` accepts an Effect duration. Only the deadline uses live time: the source keeps the story's clock, and neither helper advances its TestClock.
+
+A deadline or stream ending without a match fails with `SignalNotReceived` in the error channel. Its message names the missing signal, shows the last observation (the collection for `collectUntil`, or that no value arrived), and includes a `help:` line. Source failures pass through.
+
 ### When a story fails
 
 After the engine has been created, a failing story test adds the story to its first error, as in the examples above:
@@ -787,6 +811,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `server/storyKit.ts`              | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
 | `server/outcomes.ts`              | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
+| `server/until.ts`                 | `until(stream, matches, options)`, `collectUntil(stream, matches, options)`, `UntilOptions`, `SignalNotReceived`                                                                                                                                                                                                                                                                    |
 | `server/browserReads.ts`          | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`, `BrowserSubscription`                                                                                                                                                                                                                                                                                                |
 | `server/domFetch.ts`              | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
 | `server/seedCookies.ts`           | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |

@@ -2,6 +2,7 @@ import { Effect, Ref, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { resumeSignal } from "#resume.ts";
 import { failure, streams, times } from "./answers.ts";
 import { automaticResumeClient } from "./automaticResumeClient.ts";
@@ -9,7 +10,7 @@ import { localEngine } from "./localEngine.ts";
 import { Note } from "./notes.ts";
 import { type Mark, reRead } from "./reRead.ts";
 import { syntheticNative, syntheticWindow } from "./resumeSources.ts";
-import { settled, signal } from "./settle.ts";
+import { settled } from "./settled.ts";
 
 export type Resume = "the browser fires visibilitychange while visible" | "the browser fires online while visible" | "the native application resumes";
 type Hidden = "the browser fires visibilitychange while hidden" | "the browser fires online while hidden";
@@ -132,7 +133,7 @@ export const resumeStory = storyKit({
 				const automatic = automaticOf(engine);
 				mark(engine);
 				yield* automatic.disconnect;
-				yield* signal(SubscriptionRef.changes(automatic.active), (count) => count === 0);
+				yield* until(SubscriptionRef.changes(automatic.active), (count) => count === 0, { name: "active subscriptions" });
 			}),
 		streamsOpened: () => Effect.map(SubscriptionRef.get(automaticOf(engine).opened), (count) => streams(count, "opened")),
 		timesRead: (id: number) =>

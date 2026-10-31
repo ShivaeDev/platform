@@ -7,13 +7,14 @@ import { RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { bind } from "#bind.ts";
 import { type LiveHint, live } from "#live.ts";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { shown, times } from "./answers.ts";
 import { Note, Notes, notes } from "./notes.ts";
 import { notesServer } from "./notesServer.ts";
-import { settled, signal } from "./settle.ts";
+import { settled } from "./settled.ts";
 
 type View = "note 1" | "the list";
 
@@ -54,7 +55,7 @@ const runtimeTimeEngine = Effect.gen(function* () {
 		return Effect.gen(function* () {
 			const before = yield* SubscriptionRef.get(handled);
 			yield* Queue.offer(hints, hint);
-			yield* signal(SubscriptionRef.changes(handled), (count) => count > before);
+			yield* until(SubscriptionRef.changes(handled), (count) => count > before, { name: "handled live hint" });
 		});
 	}
 	registry.mount(connection.connection);
