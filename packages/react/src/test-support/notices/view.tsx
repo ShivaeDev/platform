@@ -13,6 +13,7 @@ import { Fields } from "./Fields.ts";
 
 export interface NoticeScreen {
 	readonly client: NoticeClient;
+	readonly clock?: Atom.AtomRuntime<never> | undefined;
 	readonly editor: boolean;
 	readonly expiresIn?: number | undefined;
 	readonly host: boolean;
@@ -106,7 +107,13 @@ export function NoticeView({ state }: { readonly state: NoticeScreen }) {
 		<StrictMode>
 			<SessionBoundary connect={() => state.client} identify={(id: string) => id} recheck={() => undefined} session={state.session}>
 				{() =>
-					state.host ? <NoticeHost render={NoticeCard}>{state.screens ? <Screens state={state} /> : null}</NoticeHost> : <Screens state={state} />
+					state.host ? (
+						<NoticeHost render={NoticeCard} runtime={state.clock}>
+							{state.screens ? <Screens state={state} /> : null}
+						</NoticeHost>
+					) : (
+						<Screens state={state} />
+					)
 				}
 			</SessionBoundary>
 		</StrictMode>

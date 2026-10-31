@@ -86,7 +86,8 @@ export const liveSessionStory = storyKit({
 					host.state.allowed = false;
 				}),
 			reads: () => Effect.sync(() => host.state.reads),
-			rechecks: () => Effect.sync(() => rechecked.map((session) => session ?? "signed out")),
+			// The query's Unauthorized effect and the live connection's failure listener may both report one revocation.
+			recheckedSessions: () => Effect.sync(() => [...new Set(rechecked)].map((session) => session ?? "signed out")),
 			registries: () => Effect.sync(() => registries.map(registryState)),
 			rename: (title: string) =>
 				screen.act(`the server renames the note to ${title} and the open note answers the change hint`, () =>

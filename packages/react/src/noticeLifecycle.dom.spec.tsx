@@ -12,6 +12,8 @@ import {
 	undoWaiting,
 } from "#test/notices/story.tsx";
 
+const ONE_MINUTE = 60_000;
+
 notifications.it("each held removal publishes its own notice when it completes", [twoRemovalsHeld(true)], function* ({ completeRemove, notices }) {
 	expect(yield* notices()).toEqual(["Removed second"]);
 
@@ -111,10 +113,23 @@ notifications.it("dismissing a notice interrupts its pending Undo", [undoWaiting
 });
 
 notifications.it(
-	"an expiring notice interrupts its pending Undo",
-	[undoWaiting("first", { expiresIn: 500 })],
+	"a notice with a pending Undo is still shown one millisecond before its minute passes on the host's clock",
+	[undoWaiting("first", { expiresIn: ONE_MINUTE })],
+	function* ({ hostClockAdvances, notices, restoresReleased }) {
+		yield* hostClockAdvances(ONE_MINUTE - 1);
+
+		yield* outcomes({
+			notices: [notices(), ["Removed first"]],
+			"restores released": [restoresReleased(), []],
+		});
+	},
+);
+
+notifications.it(
+	"a notice whose minute passes on the host's clock expires and interrupts its pending Undo",
+	[undoWaiting("first", { expiresIn: ONE_MINUTE })],
 	function* ({ noticeExpires, notices, restoresReleased }) {
-		yield* noticeExpires("Removed first");
+		yield* noticeExpires("Removed first", ONE_MINUTE);
 
 		yield* outcomes({
 			notices: [notices(), []],

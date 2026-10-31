@@ -21,14 +21,18 @@ liveSessionStory.it(
 liveSessionStory.it(
 	"when the server revokes alice's session, stream revalidation rechecks it and shows Sign in without reading the note again",
 	[],
-	function* ({ reads, rechecks, revokeSession, shown }) {
+	function* ({ reads, recheckedSessions, revokeSession, shown }) {
 		const before = yield* reads();
+		yield* outcomes({
+			"rechecked sessions": [recheckedSessions(), []],
+			shown: [shown(), "First"],
+		});
 
 		yield* revokeSession();
 
 		yield* outcomes({
 			reads: [reads(), before],
-			rechecks: [rechecks(), ["signed out"]],
+			"rechecked sessions": [recheckedSessions(), ["signed out"]],
 			shown: [shown(), "Sign in"],
 		});
 	},

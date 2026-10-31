@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.24.0 - 2026-10-30
+
+### Added
+
+- `useLoaderQuery` accepts the shared query options, including `coalesceWindow`, so loader-backed screens can configure live refetches directly.
+- `NoticeHost` accepts an optional `runtime` and runs notice expiry as an Effect sleep on that atom runtime's `Clock`, so a story's `TestClock` drives expiry. Without it, expiry uses Effect's default clock as before.
+
+## 0.23.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.23.1 - 2026-10-30
 
 ### Changed

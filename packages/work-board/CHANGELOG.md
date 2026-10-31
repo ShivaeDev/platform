@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.37.3 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.37.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.37.1 - 2026-10-30
 
 ### Changed

@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Context, Effect } from "effect";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { type AttentionOwner, waitingOwner } from "#attention.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
@@ -130,3 +130,5 @@ function launchLimits(policy: FleetConfiguration, admission: LaunchAdmission): A
 			: { implementers: { concurrency, ...(policy.openPullRequests === undefined ? {} : { openPullRequests: policy.openPullRequests }) } }),
 	};
 }
+
+export class EngineContext extends Context.Service<EngineContext, EngineState>()("Fleet/EngineContext") {}

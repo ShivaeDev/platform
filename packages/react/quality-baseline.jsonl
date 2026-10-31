@@ -1,5 +1,4 @@
 {"path":"packages/react/src/client/QueryView.ts","rule":"effect/boundary","count":1}
-{"path":"packages/react/src/client/authAction.typecheck.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/editor.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/mountLive.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/permissionBoundary.ts","rule":"effect/boundary","count":1}

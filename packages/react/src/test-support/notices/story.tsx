@@ -1,4 +1,6 @@
-import { Deferred, Effect } from "effect";
+import { Clock, Deferred, Effect, Layer } from "effect";
+import * as Atom from "effect/reactivity/Atom";
+import { TestClock } from "effect/testing";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clickButton, type Screen, typeInput } from "#test/Screen.ts";
@@ -8,6 +10,7 @@ import { type HeldKind, noticeClient } from "./client.ts";
 import { type NoticeScreen, NoticeView } from "./view.tsx";
 
 interface State {
+	clock?: Clock.Clock;
 	current: NoticeScreen;
 	typed: string;
 	view?: Rendered;
@@ -26,6 +29,14 @@ function settle(state: State, screen: Screen) {
 		return settleScreen(container, () => container.querySelector('[data-pending="true"]') !== null, screen.tell);
 	});
 }
+
+const interruptsUndo = Effect.fn("Notices.interruptsUndo")(function* (state: State, screen: Screen, change: Effect.Effect<void>) {
+	const { arrivals, hold } = state.current.client;
+	const pending = arrivals.restore.map((title) => hold("restore", title).finished);
+	yield* change;
+	yield* screen.act("wait for the interrupted Undo to end on the server", () => Effect.runPromise(Effect.forEach(pending, Deferred.await)));
+	yield* settle(state, screen);
+});
 
 export function noticeVerbs(state: State, screen: Screen) {
 	function click(label: string, line: string) {
@@ -49,15 +60,6 @@ export function noticeVerbs(state: State, screen: Screen) {
 			})
 			.pipe(Effect.andThen(settle(state, screen)));
 	}
-	function interruptsUndo(change: Effect.Effect<void>) {
-		return Effect.gen(function* () {
-			const { arrivals, hold } = state.current.client;
-			const pending = arrivals.restore.map((title) => hold("restore", title).finished);
-			yield* change;
-			yield* screen.act("wait for the interrupted Undo to end on the server", () => Effect.runPromise(Effect.forEach(pending, Deferred.await)));
-			yield* settle(state, screen);
-		});
-	}
 	function commit(changes: Partial<NoticeScreen>, line: string) {
 		return screen
 			.act(line, async () => {
@@ -68,11 +70,11 @@ export function noticeVerbs(state: State, screen: Screen) {
 	}
 	return {
 		breakRefresh: () => click("Break refresh", "the server's reads start failing and the notes refresh").pipe(Effect.andThen(settle(state, screen))),
-		closeHost: () => interruptsUndo(commit({ host: false }, "close the notice host")),
+		closeHost: () => interruptsUndo(state, screen, commit({ host: false }, "close the notice host")),
 		closeScreens: () => commit({ screens: false }, "close the screens inside the notice host"),
 		completeRemove: (title: string) => complete("remove", title, `the server removes ${title}`),
 		completeRestore: (title: string) => complete("restore", title, `the server restores ${title}`),
-		dismiss: (message: string) => interruptsUndo(click(`Dismiss ${message}`, `dismiss ${message}`)),
+		dismiss: (message: string) => interruptsUndo(state, screen, click(`Dismiss ${message}`, `dismiss ${message}`)),
 		editFirst: () => click("Edit first", "another edit bumps first's version").pipe(Effect.andThen(settle(state, screen))),
 		refresh: () => click("Refresh", "refresh the notes").pipe(Effect.andThen(settle(state, screen))),
 		remove: (title: string) => arrives("remove", title, `Remove ${title}`, `remove ${title}`),
@@ -90,8 +92,18 @@ export function noticeVerbs(state: State, screen: Screen) {
 	};
 }
 
-export const notifications = storyKit(
-	screenKit(
+function advance(state: State, screen: Screen, millis: number) {
+	const clock = state.clock;
+	if (clock === undefined) {
+		throw new Error("The notice host has no clock");
+	}
+	return screen.act(`the host's clock advances ${millis} ms`, () =>
+		Effect.runPromise(TestClock.adjust(millis).pipe(Effect.provideService(Clock.Clock, clock))),
+	);
+}
+
+export const notifications = storyKit({
+	...screenKit(
 		"notice host",
 		(): State => ({
 			current: { client: noticeClient(), editor: false, host: true, queryFailure: false, screens: true, session: "alice", uninterruptible: false },
@@ -102,6 +114,7 @@ export const notifications = storyKit(
 			clickPendingUndo: (title: string) =>
 				screen.act(`click the pending Undo ${title} again`, () => clickButton(view(state).container, `Undo ${title}`)),
 			commandShown: () => Effect.sync(() => view(state).container.querySelector("[data-command]")?.textContent),
+			hostClockAdvances: (millis: number) => advance(state, screen, millis).pipe(Effect.andThen(settle(state, screen))),
 			notice: (message: string) =>
 				Effect.sync(() => {
 					const entry = [...view(state).container.querySelectorAll("article")].find(
@@ -113,13 +126,9 @@ export const notifications = storyKit(
 					const undo = entry.querySelector("button");
 					return { outcome: entry.querySelector("output")?.textContent?.split("\n")[0] ?? "", undo: undo?.disabled ? "pending" : "ready" };
 				}),
-			noticeExpires: (message: string) => {
+			noticeExpires: (message: string, millis: number) => {
 				screen.tell(`${message} reaches its expiry`);
-				const { arrivals, hold } = state.current.client;
-				const pending = arrivals.restore.map((title) => hold("restore", title).finished);
-				return screen
-					.act("wait for the interrupted Undo to end on the server", () => Effect.runPromise(Effect.forEach(pending, Deferred.await)))
-					.pipe(Effect.andThen(settle(state, screen)));
+				return interruptsUndo(state, screen, advance(state, screen, millis));
 			},
 			notices: () => Effect.sync(() => [...view(state).container.querySelectorAll("article")].map((entry) => entry.querySelector("p")?.textContent)),
 			removals: () => Effect.sync(() => [...state.current.client.arrivals.remove]),
@@ -128,7 +137,8 @@ export const notifications = storyKit(
 			rows: () => Effect.sync(() => view(state).container.querySelector("[data-rows]")?.textContent),
 		}),
 	),
-);
+	clock: "test",
+});
 
 interface Engine {
 	readonly screen: Screen;
@@ -136,7 +146,8 @@ interface Engine {
 }
 
 function* open({ screen, state }: Engine, options: Partial<NoticeScreen>) {
-	state.current = { ...state.current, ...options };
+	state.clock = yield* Clock.Clock;
+	state.current = { ...state.current, clock: Atom.runtime(Layer.succeed(Clock.Clock, state.clock)), ...options };
 	state.view = yield* screen.open(<NoticeView state={state.current} />);
 	yield* settle(state, screen);
 }
