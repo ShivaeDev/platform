@@ -111,6 +111,7 @@ queries.it(
 						["a.test.ts", "web"],
 						["b.test.ts", "web"],
 					],
+					{ "file": "text", "project": "text" },
 				),
 				durationMs: { gt: 2, lte: 9 },
 				file: { like: "a%" },

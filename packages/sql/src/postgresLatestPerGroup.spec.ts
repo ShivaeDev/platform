@@ -166,6 +166,7 @@ const pins = [
 				["deploy", 1],
 				["build", 3],
 			],
+			{ "repository": "numeric", "workflow": "text" },
 		),
 	},
 	{
@@ -180,6 +181,7 @@ const pins = [
 				[2, null],
 				[1, "build"],
 			],
+			{ "repository": "numeric", "workflow": "text" },
 		),
 	},
 ] as const;
@@ -213,7 +215,7 @@ for (const { groups, matches, name, partitionBy, where } of pins) {
 const emptyPins = [
 	{ name: "an empty in list", where: { repository: { in: [] } } },
 	{ name: "an empty in list beside an equality pin", where: { repository: 1, status: { in: [] } } },
-	{ name: "an empty tupleIn", where: tupleIn(LatestRun, ["repository", "workflow"], []) },
+	{ name: "an empty tupleIn", where: tupleIn(LatestRun, ["repository", "workflow"], [], { "repository": "numeric", "workflow": "text" }) },
 ] as const;
 
 for (const { name, where } of emptyPins) {
