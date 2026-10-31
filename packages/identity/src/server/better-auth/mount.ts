@@ -1,6 +1,7 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
 import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
@@ -14,6 +15,7 @@ import { mountedSessions } from "./mountedSessions.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
+	readonly hardening?: BetterAuthHardeningOptions;
 	readonly roles?: RoleSet;
 	readonly signIn?: SignInPolicy<E, R> | undefined;
 }
@@ -41,7 +43,7 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);
 	const configured = mount.roles === undefined ? options : closeRoleEndpoints(options);
 	const auth = betterAuth({
-		...withBearerSessions(configured, mount.bearerSessions !== undefined),
+		...withHardening(withBearerSessions(configured, mount.bearerSessions !== undefined), mount.hardening),
 		advanced: {
 			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
 			...options.advanced,
