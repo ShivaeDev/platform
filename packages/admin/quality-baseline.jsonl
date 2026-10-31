@@ -6,3 +6,4 @@
 {"path":"packages/admin/src/registry.typecheck.test.ts","rule":"effect/boundary","count":7}
 {"path":"packages/admin/src/server/jobsHandlers.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/admin/src/server/registerAdmin.ts","rule":"effect/boundary","count":2}
+{"path":"packages/admin/src/test-support/answers.ts","rule":"effect/failure-honesty","count":1}

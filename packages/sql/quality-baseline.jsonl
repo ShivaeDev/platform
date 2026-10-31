@@ -18,6 +18,7 @@
 {"path":"packages/sql/src/repositoryQueries.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/repositoryWrites.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/repositoryWrites.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/sql/src/test-support/revisions.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/sql/src/tupleIn.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/upsertResult.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/versionedRepository.ts","rule":"effect/boundary","count":1}

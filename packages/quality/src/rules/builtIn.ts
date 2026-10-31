@@ -8,6 +8,7 @@ import { noTodo } from "#rules/comments/noTodo.ts";
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
+import { failureHonesty } from "#rules/effect/failureHonesty.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { distinctCase } from "#rules/files/distinctCase.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
@@ -55,6 +56,7 @@ import { unusedCode } from "./unusedCode.ts";
 export const builtInRules = [
 	unusedCode,
 	effectBoundary,
+	failureHonesty,
 	serviceParameters,
 	jsxConditionals,
 	maxLines,

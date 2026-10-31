@@ -52,6 +52,18 @@ Both rules refuse config exceptions and inline suppressions. Record existing deb
 
 When an upgrade expands these checks, inspect the new findings, repair the small ones and record retained debt with `quality baseline write --first-adoption --rule effect/boundary` (or `--rule effect/service-parameters`). This explicit first-adoption mode requires named rules that refuse config exceptions and may record unchanged files. Review each raised count and explain its reason in the pull request. Ordinary writes still require changed `--file` selections. Run `quality baseline tighten` after repairs to lower the touched files' counts.
 
+### Failure honesty
+
+`effect/failure-honesty` checks TypeScript and JavaScript throughout the inventory, including adapters and tests. It reports four failure-hiding shapes:
+- A forever loop piped through `orDie` and then forked. Recover a named reason within each iteration with a Schedule-bounded retry, or expose an explicit unavailable state and supervise termination.
+- `Effect.retry({ while })` without `times` or `schedule`. Supply a Schedule-bounded retry and preserve the final typed failure.
+- A blanket `catch`, `catchAll`, `catchCause` or `catchAllCause` whose handler returns `Effect.succeed(...)` or `Effect.void` on every return branch. Catch a named reason with `catchTag` or `catchIf`, re-failing other errors, or model an explicit unavailable state with `Effect.match`.
+- A FileSystem service call wrapped in `Effect.option` or `Effect.orElseSucceed`. Catch a named reason such as `NotFound`, propagate other failures, or represent unavailability explicitly. An option around a non-filesystem computation remains accepted.
+
+The check follows Effect import aliases, local operation and handler aliases, nested calls and `.pipe(...)` stages. It recognizes FileSystem instances yielded from the native service and their local aliases. Retry options are checked as object literals; a spread may supply a bound. It does not infer whether a supplied schedule terminates or analyze arbitrary recovery helpers. Static findings identify these shapes, not every possible swallowed failure.
+
+This rule refuses config exceptions and inline suppressions, with no exempt folders. For first adoption, review each finding, fix small repairs and record retained debt with `quality baseline write --first-adoption --rule effect/failure-honesty`, explaining each retained entry in the pull request. Subsequent debt follows the normal changed-file baseline contract; run `quality baseline tighten` after repairs.
+
 ### 1. Once per repository: connect the shared policy
 
 A new repository needs no `quality.config.ts`. Quality checks sources from the current directory with every built-in rule at its default error level. Baseline entries for `packages/<package>/...` live in `packages/<package>/quality-baseline.jsonl`; entries outside packages live in the root `quality-baseline.jsonl`. A package with no entries has no shard file. Permanent exceptions belong in `quality.config.ts`.
