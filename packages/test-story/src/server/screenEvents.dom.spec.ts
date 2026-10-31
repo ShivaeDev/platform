@@ -107,3 +107,22 @@ eventScreen.it(
 		expect(subscriptionState()).toBe("unsubscribed");
 	},
 );
+
+for (const operation of ["findText", "gone"] as const) {
+	eventScreen.it(
+		`${operation} waits for idle pending work even when its DOM condition is met`,
+		[pendingStream],
+		function* ({ startsFindingText, startsGone, progress, complete, finished }) {
+			if (operation === "findText") {
+				yield* startsFindingText("Loading");
+			} else {
+				yield* startsGone("button");
+			}
+			expect(yield* progress(operation)).toBe("waiting");
+
+			yield* complete();
+
+			expect(yield* finished(operation)).toBe("succeeded");
+		},
+	);
+}

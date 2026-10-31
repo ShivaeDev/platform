@@ -58,3 +58,20 @@ const validated = validateReadPolicies(Reads);
 expectTypeOf<Effect.Error<typeof validated>>().toEqualTypeOf<MissingReadPolicies>();
 // @ts-expect-error Every query declares its read policy, including plain reads.
 query("unprotected", { reads: () => [] });
+
+const Derived = query("derived", {
+	payload: { scope: Schema.String },
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [],
+	rejections: { ServiceUnavailable },
+	serverReads: ({ scope }, viewer) => {
+		expectTypeOf(scope).toEqualTypeOf<string>();
+		expectTypeOf(viewer).toEqualTypeOf<Option.Option<{ readonly id: string }>>();
+		return Effect.flatMap(Database, (available) => (available ? Effect.succeed([]) : Effect.fail(new ServiceUnavailable())));
+	},
+});
+const DerivedReads = contract("derivedReads", { queries: [Derived] });
+const derivedHandlers = DerivedReads.application.toLayer({ "derivedReads.derived": () => Effect.void });
+expectTypeOf<Layer.Services<typeof derivedHandlers>>().toEqualTypeOf<Database>();
+// @ts-expect-error Server read-key failures must be declared rejections.
+query("undeclaredKeys", { readPolicy: () => Effect.succeed(true), reads: () => [], serverReads: () => Effect.fail(new ServiceUnavailable()) });

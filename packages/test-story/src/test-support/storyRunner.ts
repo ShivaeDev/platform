@@ -23,6 +23,7 @@ export type Fixture =
 	| "outcomeStories"
 	| "refusingStories"
 	| "scopedStories"
+	| "screenWaitStories"
 	| "tracingStories"
 	| "unlocatedStories"
 	| "unroutedDomStories"

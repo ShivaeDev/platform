@@ -1,10 +1,9 @@
-import { Context, Effect, Option, Schema } from "effect";
+import { Context, type Effect, Schema } from "effect";
 import { Rpc, type RpcSchema } from "effect/rpc";
-import type { Key } from "@shivaedev/changes/keys.ts";
 import type { QueryServices } from "#contract.ts";
 import { changesSuccess } from "#internal/changesSuccess.ts";
+import { resolveQueries } from "#internal/resolveQueries.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
-import type { Viewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { WebSocketRequired } from "#WebSocketRequired.ts";
 
@@ -35,22 +34,6 @@ export interface QueryReference {
 type ReferenceSchema<TQuery extends QueryShape> = TQuery extends QueryShape
 	? Schema.Struct<{ query: Schema.Literal<TQuery["name"]>; payload: TQuery["payload"] }>
 	: never;
-
-function resolveQueries(queries: readonly QueryShape[], requested: readonly QueryReference[]) {
-	return Effect.forEach(requested, (reference) => {
-		const query = queries.find((candidate) => candidate.name === reference.query);
-		return query === undefined ? Effect.die(new Error(`Unknown query: ${reference.query}`)) : Effect.succeed({ payload: reference.payload, query });
-	});
-}
-
-export const queryKeys = Effect.fnUntraced(function* (
-	queries: readonly QueryShape[],
-	requested: readonly QueryReference[],
-	viewer: Option.Option<Viewer> = Option.none(),
-): Effect.fn.Return<readonly Key[]> {
-	const resolved = yield* resolveQueries(queries, requested);
-	return resolved.flatMap(({ query, payload }) => query.reads(payload, viewer));
-});
 
 function referenceSchemas<const TQueries extends readonly QueryShape[]>(
 	queries: TQueries,
