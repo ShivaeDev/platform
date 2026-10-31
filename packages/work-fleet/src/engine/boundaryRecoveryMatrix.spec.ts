@@ -112,3 +112,26 @@ for (const action of ["retry", "release"] as const) {
 		);
 	}
 }
+
+matrix.it(
+	"a reviewed legacy no-change wait closes on reconciliation, marks its brief done and closes its old question",
+	[
+		recoveryRow(
+			"boundary",
+			recoveryCaseGroups.boundary().findIndex((scenario) => scenario.code === "no-change-checks-unconfigured"),
+		),
+	],
+	function* ({ enterDecision, restoreRecovery, reconcileRecovered, recoveryBrief, recoveryDecisionState }) {
+		const entry = yield* enterDecision();
+		expect(entry.before.step).toBe("waiting");
+		yield* restoreRecovery();
+
+		const completed = yield* reconcileRecovered();
+
+		expect(completed.step).toBe("done");
+		expect(completed.review).toEqual(entry.before.review);
+		expect(completed.attempts.map((attempt) => attempt.receipt)).toEqual(entry.before.attempts.map((attempt) => attempt.receipt));
+		expect(recoveryBrief()).toContain("status: done");
+		expect(yield* recoveryDecisionState()).toBe("closed");
+	},
+);

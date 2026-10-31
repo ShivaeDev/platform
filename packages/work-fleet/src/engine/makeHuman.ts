@@ -5,8 +5,9 @@ import { ensureDecisionOwner } from "#engine/ensureDecisionOwner.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
-import type { EngineState } from "#engine/makeState.ts";
+import { EngineContext, type EngineState } from "#engine/makeState.ts";
 import { resolveCommand } from "#engine/resolveCommand.ts";
+import { resumeNoChangeValidation } from "#engine/resumeNoChangeValidation.ts";
 import { isFleetError } from "#errors.ts";
 import type { FleetRecord } from "#model.ts";
 import { BoardFailure } from "#policy.ts";
@@ -29,7 +30,9 @@ export function makeHuman(state: EngineState) {
 		const observed = yield* state.board.readDecision(published);
 		const reading = observed._tag === "Response" ? yield* withBoardReadPass(state.board.readDecision(published), { fresh: true }) : observed;
 		if (reading._tag === "Pending") {
-			return yield* ensureDecisionOwner(state)(stored);
+			return (
+				(yield* resumeNoChangeValidation(stored).pipe(Effect.provideService(EngineContext, state))) ?? (yield* ensureDecisionOwner(state)(stored))
+			);
 		}
 		if (reading._tag !== "Response") {
 			return yield* state.save(stored, { ...stored.value, blocker: unanswerable(reading) });

@@ -1,10 +1,12 @@
 import { Effect, Layer } from "effect";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { Fleet } from "#fleet.ts";
 import { resolveHost } from "#host/config.ts";
 import { hostIntegrations } from "#host/integrations.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { codexQuota } from "#host/quota.ts";
-import { FleetIntegrations } from "#policy.ts";
+import { FleetIntegrations, type WorkResult } from "#policy.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
 import { HEAD, REPORT } from "#test/githubResult.ts";
 import { mainObservation } from "#test/preparation.ts";
@@ -13,7 +15,7 @@ import { finishRecoveryReview, finishRecoveryWorker, launchRecoveryWorker, setLa
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 export function recoveryHostCases(): readonly RecoveryCase[] {
-	const snapshot = Effect.succeed({ observedAt: 100, revision: "prepared-main" });
+	const snapshot = Effect.succeed({ observedAt: 100, revision: HEAD });
 	const stockHost = FleetIntegrations.pipe(
 		Effect.provide(
 			hostIntegrations(resolveHost("/synthetic", { database: syntheticDatabase, provider: "local", quota: "unlimited" })).pipe(
@@ -37,6 +39,20 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 		() => now,
 		Effect.sync(() => (now === 100 || restored ? { ordinaryUsageAllowed: true } : {})),
 	);
+	function legacyNoChangeChecks(result: WorkResult) {
+		if (!restored) {
+			return Effect.fail(
+				withFailureContext(
+					new ServiceUnavailable({ message: "No-change validation is not configured in this Fleet host; inspect the worker session" }),
+					{ code: "no-change-checks-unconfigured", retryable: false },
+				),
+			);
+		}
+		return stockHost.pipe(
+			Effect.flatMap((host) => (context === undefined ? Effect.die("Missing recovery context") : host.checks(context.fixture.work("one"), result))),
+		);
+	}
+
 	return [
 		{
 			code: "no-change-checks-unconfigured" as const,
@@ -44,16 +60,16 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 				context = ctx;
 				yield* finishRecoveryReview(ctx);
 			}),
-			name: "stock host has no no-change validator",
+			name: "legacy host stopped no-change validation",
 			options: {
-				checksQuery: (result) =>
-					stockHost.pipe(
-						Effect.flatMap((host) =>
-							context === undefined ? Effect.die("Missing recovery context") : host.checks(context.fixture.work("one"), result),
-						),
-					),
+				checksQuery: legacyNoChangeChecks,
 				resultQuery: () => Effect.succeed({ evidence: ["Criteria already met"], head: HEAD, kind: "no-change" }),
 			},
+			recovery: "complete-no-change",
+			restore: () =>
+				Effect.sync(() => {
+					restored = true;
+				}),
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
