@@ -1,9 +1,5 @@
 import { Effect, Stream } from "effect";
-import { type ClientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
-
-export function waitForClient(activity: ClientActivity) {
-	return activity.pipe(Stream.filter(isClientIdle), Stream.take(1), Stream.runDrain);
-}
+import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 
 export const nextClientHint = Effect.fnUntraced(function* (activity: ClientActivity) {
 	const before = (yield* activity.current).liveHints;
