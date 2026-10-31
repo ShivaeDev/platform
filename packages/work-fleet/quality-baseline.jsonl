@@ -164,11 +164,16 @@
 {"path":"packages/work-fleet/src/providers/startCodexTurn.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/reportFileFailure.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/storage/answerStore.ts","rule":"biome/plugin","count":1}
+{"path":"packages/work-fleet/src/storage/backfillDecisionCodes.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Backfill rows have a fixed local storage shape; decoding must be considered with the storage migration boundary (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/dispatchStore.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/storage/listedRecords.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/storage/listedRecords.ts","rule":"suppressions/no-double-cast","count":2,"reason":"Listing combines local record heads with model-dependent fields; a row decoder must come from the declared model rather than duplicate it (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/makePostgresFleetStore.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/storage/model.ts","rule":"effect/boundary","count":3}
+{"path":"packages/work-fleet/src/storage/modelTables.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Fixed local catalog checks verify model tables in the single-user service; PostgreSQL owns their metadata shape (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/nextAdmissionOrder.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/storage/operationEntries.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The local work-id and version projection has a fixed storage-owned shape in the loopback-only service (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/recordShape.ts","rule":"effect/boundary","count":9}
 {"path":"packages/work-fleet/src/storage/recordSnapshot.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/storage/recordValue.ts","rule":"suppressions/no-double-cast","count":1,"reason":"The selected local row depends on the declared record model; decoding needs that model schema instead of a second field description (likelihood 1 x severity 4 = 4)."}
 {"path":"packages/work-fleet/src/storage/schemaColumnsMigration.spec.ts","rule":"effect/boundary","count":1}

@@ -4,6 +4,7 @@
 {"path":"packages/sql/src/compositeRepository.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/conditionalUpsert.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/conflictWrites.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/sql/src/conflictWrites.typecheck.test.ts","rule":"suppressions/no-double-cast","count":1,"reason":"This type probe widens a scalar primary-key name to a union; preserve that compiler evidence when replacing the JSON shortcut (likelihood 1 x severity 1 = 1)."}
 {"path":"packages/sql/src/databaseAddress.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/insertFromSelect.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/latestPerGroup.ts","rule":"effect/service-parameters","count":1}
@@ -12,9 +13,13 @@
 {"path":"packages/sql/src/makeConflictClause.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/makeQueryClauses.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/pinnedGroups.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/sql/src/postgresAggregateValidation.spec.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Malformed aggregate inputs deliberately bypass compile-time types to reach the real repository validator; a repair belongs in the story kit boundary (likelihood 1 x severity 1 = 1)."}
+{"path":"packages/sql/src/postgresOrderBy.spec.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Unknown ordering fields deliberately reach the real repository validator; decoding first would stop before the behavior under test (likelihood 1 x severity 1 = 1)."}
+{"path":"packages/sql/src/postgresRangePatterns.spec.ts","rule":"suppressions/no-double-cast","count":2,"reason":"Malformed range operands deliberately reach the real repository validators; a repair needs explicit invalid-input verbs in the story kit (likelihood 1 x severity 1 = 1)."}
 {"path":"packages/sql/src/repository.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/repositoryChanges.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/repositoryFilter.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/sql/src/repositoryFindMany.spec.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Unknown select, filter and order fields deliberately reach repository validation; a repair belongs in the shared invalid-input kit boundary (likelihood 1 x severity 1 = 1)."}
 {"path":"packages/sql/src/repositoryQueries.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/repositoryWrites.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/repositoryWrites.ts","rule":"effect/service-parameters","count":1}

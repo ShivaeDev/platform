@@ -18,6 +18,7 @@
 {"path":"packages/jobs/src/server/internal/observeTestingSettlements.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/boundary","count":5}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/jobs/src/server/internal/register.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Worker Context erasure must be repaired together with registration requirement typing so registered jobs retain their service environment (likelihood 3 x severity 5 = 15)."}
 {"path":"packages/jobs/src/server/internal/registerReleasedJobs.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/internal/retryWake.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/settleDeferral.ts","rule":"effect/boundary","count":3}
