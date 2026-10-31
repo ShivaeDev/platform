@@ -186,6 +186,8 @@ work-fleet up <board-dir> --port 3457 --board-port 4747 --home index.md --respon
 
 The supervisor holds the canonical Board directory until shutdown. A second `up`, a hand-started `serve` or a hand-started Board command refuses with the owner's pid, ports and start time. A lease left by a dead process is reclaimed. A child that exits is restarted independently after a short backoff; a change to code that child loaded replaces it after HTTP shutdown drains active requests. Filesystem events coalesce a burst of edits into one restart, while changes to unimported dependencies leave both children running. Each child reports the modules it loads, including imported response modules; source execution tracks source modules and published execution tracks compiled modules.
 
+In a Platform checkout, `up` builds the sibling Work Board plugin's client bundle before starting Fleet and Board, then rebuilds it when the plugin's TypeScript sources, package manifest or client build script change. Generated output is excluded from change detection. Build output and errors go to the supervisor log; a failed plugin build leaves Fleet and Board running.
+
 ```sh
 work-fleet up <board-dir> --status
 work-fleet up <board-dir> --status --json
