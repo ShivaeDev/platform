@@ -24,10 +24,7 @@ export function rejection(error: unknown): string {
 }
 
 export function answered<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<"answered" | string, never, R> {
-	return effect.pipe(
-		Effect.as("answered"),
-		Effect.catch((error) => Effect.succeed(rejection(error))),
-	);
+	return effect.pipe(Effect.match({ onFailure: rejection, onSuccess: () => "answered" }));
 }
 
 export function settled<A>(read: () => Promise<A>): Effect.Effect<A | string> {

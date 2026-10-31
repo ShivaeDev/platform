@@ -243,10 +243,7 @@ export function servingBoardVerbs(engine: BoardEngine, tell: (line: string) => v
 		},
 		tryOpenReader: (path: string) => {
 			const reader = readerVerbs(engine, tell);
-			return reader.open(path).pipe(
-				Effect.as("opened"),
-				Effect.catchCause((cause) => Effect.succeed(`refused: ${failureMessage(cause)}`)),
-			);
+			return reader.open(path).pipe(Effect.matchCause({ onFailure: (cause) => `refused: ${failureMessage(cause)}`, onSuccess: () => "opened" }));
 		},
 		visitedPaths: () =>
 			Effect.sync(() => {

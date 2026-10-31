@@ -60,8 +60,10 @@ export const fileReadingStory = storyKit({
 			story.tell(`the board selects ${file} as home`);
 			return homeIn(engine.notes.root, file).pipe(
 				Effect.provide(engine.services),
-				Effect.as("selected"),
-				Effect.catch((failure) => Effect.succeed(failure instanceof HomeMissing ? `home missing: ${failure.message}` : `failed: ${String(failure)}`)),
+				Effect.match({
+					onFailure: (failure) => (failure instanceof HomeMissing ? `home missing: ${failure.message}` : `failed: ${String(failure)}`),
+					onSuccess: () => "selected",
+				}),
 			);
 		},
 		linkFolder: () => {
@@ -128,10 +130,10 @@ export const fileReadingStory = storyKit({
 				stale: Effect.void,
 			}).pipe(
 				Effect.provide(engine.services),
-				Effect.as("ended quietly"),
-				Effect.catch((failure) =>
-					Effect.succeed(failure instanceof ServiceUnavailable ? `unavailable: ${failure.message}` : `failed: ${String(failure)}`),
-				),
+				Effect.match({
+					onFailure: (failure) => (failure instanceof ServiceUnavailable ? `unavailable: ${failure.message}` : `failed: ${String(failure)}`),
+					onSuccess: () => "ended quietly",
+				}),
 			);
 		},
 		workspaceEntries: () =>

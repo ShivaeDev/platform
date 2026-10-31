@@ -22,14 +22,13 @@ interface RenderEngine extends BoardEngine {
 
 function outcome(engine: RenderEngine, result: Effect.Effect<unknown, unknown, never>) {
 	return result.pipe(
-		Effect.as({ failure: "none" }),
-		Effect.catch((failure: unknown) =>
-			Effect.succeed(
+		Effect.match({
+			onFailure: (failure: unknown) =>
 				failure instanceof RenderFailed
 					? { carriesCause: failure.cause === engine.cause, failure: "render failed", message: failure.message }
 					: { failure: "untyped", message: String(failure) },
-			),
-		),
+			onSuccess: () => ({ failure: "none" }),
+		}),
 	);
 }
 export const renderFailureStory = storyKit({

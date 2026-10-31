@@ -24,8 +24,7 @@ export const codexProtocolStory = storyKit({
 			story.tell("the host cancels a provider read that never answers at a 50 millisecond deadline");
 			return codexRateLimits(() => child).pipe(
 				Effect.timeout("50 millis"),
-				Effect.as("answered"),
-				Effect.catch(() => Effect.succeed("cancelled")),
+				Effect.match({ onFailure: () => "cancelled", onSuccess: () => "answered" }),
 			);
 		},
 		providerProcess: () =>

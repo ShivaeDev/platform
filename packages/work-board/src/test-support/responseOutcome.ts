@@ -36,5 +36,5 @@ export function settledCall<A>(call: () => Promise<A>): Effect.Effect<A | string
 }
 
 export function settledEffect<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A | string, never, R> {
-	return Effect.catch(effect, (error) => Effect.succeed(refusal(error)));
+	return Effect.match(effect, { onFailure: refusal, onSuccess: (value): A | string => value });
 }

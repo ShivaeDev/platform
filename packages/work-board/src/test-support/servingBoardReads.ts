@@ -121,8 +121,7 @@ export function servingBoardReads(engine: BoardEngine, tell: (line: string) => v
 	}
 	function launched(options?: ServingOptions) {
 		return Effect.gen(() => startProject(engine, options)).pipe(
-			Effect.as("serving"),
-			Effect.catchCause((cause) => Effect.succeed(`refused: ${inWorkspace(failureMessage(cause))}`)),
+			Effect.matchCause({ onFailure: (cause) => `refused: ${inWorkspace(failureMessage(cause))}`, onSuccess: () => "serving" }),
 		);
 	}
 	function pluginReply() {
