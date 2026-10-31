@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.48.2 - 2026-10-31
+
+### Fixed
+
+- Limit `react/jsx-conditionals` and its mechanical fix to decisions in returned component JSX. Accept JSX built in a `const` before the return, library callbacks and ternaries between plain string or number literals. Document accepted decisions, attributes, extracted components and list separators.
+
 ## 0.48.1 - 2026-10-30
 
 ### Fixed
