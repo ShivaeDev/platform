@@ -1,6 +1,7 @@
 import { Effect } from "effect";
+import { breakWaitCycle, orderedPrediction } from "#engine/breakWaitCycle.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
-import type { EngineState } from "#engine/makeState.ts";
+import { EngineContext, type EngineState } from "#engine/makeState.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import { publishedPr, watchedPrs } from "#engine/watchedPrs.ts";
 import type { MergePrediction } from "#MergePrediction.ts";
@@ -20,7 +21,9 @@ export const reconcilePrediction = Effect.fn("Fleet.reconcilePrediction")(functi
 	if (!canHold(record)) {
 		return yield* state.save(stored, { ...record, mergePrediction: prediction });
 	}
-	return yield* applyPrediction(state, stored, prediction);
+	const ordered = orderedPrediction(record, prediction);
+	const resolved = yield* breakWaitCycle(stored, ordered).pipe(Effect.provideService(EngineContext, state));
+	return yield* applyPrediction(state, resolved, orderedPrediction(resolved.value, ordered));
 });
 
 const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
@@ -37,7 +40,6 @@ const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
 				...record,
 				attentionOwner: "automation",
 				blocker: reason,
-				checks: undefined,
 				decision: undefined,
 				decisionAcknowledged: undefined,
 				decisionPublished: undefined,
@@ -46,7 +48,6 @@ const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
 				predictedConflictHold: { head: prediction.head, prs: waits.map((conflict) => conflict.otherPr) },
-				review: undefined,
 				step: "reviewing",
 				supersededDecisions:
 					record.decision?.published === undefined
@@ -73,7 +74,7 @@ const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
 });
 
 export function holdPredictedReview(state: EngineState, stored: Versioned<FleetRecord>) {
-	const prediction = stored.value.mergePrediction;
+	const prediction = stored.value.mergePrediction === undefined ? undefined : orderedPrediction(stored.value, stored.value.mergePrediction);
 	return prediction?.conflicts.some((conflict) => conflict.wait) && canHold(stored.value)
 		? applyPrediction(state, stored, prediction)
 		: Effect.succeed(stored);
