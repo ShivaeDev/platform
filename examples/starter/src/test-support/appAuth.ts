@@ -26,7 +26,7 @@ export function appAuth(options: {
 			emailVerified: true,
 			id: "alice",
 			name: "Alice",
-			permissions: [{ name: "resume", strength: "own" }],
+			permissions: [],
 			updatedAt: date,
 		},
 	};

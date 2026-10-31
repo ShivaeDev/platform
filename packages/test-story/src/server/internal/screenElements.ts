@@ -1,5 +1,6 @@
 import { isRendered, roleElement, targetName } from "#internal/screenAccessibility.ts";
 import type { ScreenTarget } from "#screenDriver.ts";
+import { screenText } from "./screenText.ts";
 
 export function screenElements(root: () => HTMLElement) {
 	function rendered(found: HTMLElement, selector: string) {
@@ -35,16 +36,6 @@ export function screenElements(root: () => HTMLElement) {
 			throw new Error(`The screen's ${targetName(selector)} is disabled.\nhelp: Wait for the app to enable the control before acting on it.`);
 		}
 	}
-	function text(found: HTMLElement): string {
-		const walker = found.ownerDocument.createTreeWalker(found, NodeFilter.SHOW_TEXT);
-		const parts: string[] = [];
-		for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
-			if (node.parentElement instanceof HTMLElement && isRendered(node.parentElement)) {
-				parts.push(node.textContent ?? "");
-			}
-		}
-		return parts.join("");
-	}
 	return {
 		element,
 		enabled,
@@ -70,6 +61,6 @@ export function screenElements(root: () => HTMLElement) {
 		},
 		input,
 		rendered,
-		text,
+		text: screenText,
 	};
 }

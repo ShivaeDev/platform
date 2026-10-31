@@ -7,7 +7,7 @@ import type { RuleServices, SourceFile } from "#rule.ts";
 import { FilesystemFailure, orWhenAbsent, readRequiredText } from "./filesystem.ts";
 import { posix } from "./ignoreScope.ts";
 import { linesOf } from "./linesOf.ts";
-import { shadcnFolders } from "./shadcnFolders.ts";
+import { shadcnFiles } from "./shadcnFiles.ts";
 import { scopeAbove, walk } from "./walk.ts";
 
 export interface InventoryScope {
@@ -49,12 +49,12 @@ export const collectInventory = Effect.fn("Inventory.collectInventory")(function
 	scope: InventoryScope,
 ): Effect.fn.Return<Inventory, FilesystemFailure | SetupFailure, RuleServices> {
 	const excluded = ignore().add([...scope.exclude]);
-	const toolOwned = yield* shadcnFolders(root);
+	const toolOwned = new Set(yield* shadcnFiles(root));
 	const zones = yield* Effect.forEach(scope.sources, (zone) => zoneFiles(root, zone), { concurrency: READ_CONCURRENCY });
 	const relativePaths = zones.flat().map((absolute) => posix(relative(root, absolute)));
 	const files = [...new Set(relativePaths)]
 		.filter((path) => !excluded.ignores(path))
-		.filter((path) => !toolOwned.some((folder) => path.startsWith(`${folder}/`)))
+		.filter((path) => !toolOwned.has(path))
 		.sort((left, right) => {
 			if (left === right) {
 				return 0;

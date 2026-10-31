@@ -20,14 +20,14 @@
 {"path":"examples/starter/src/modules/notes/client/adminViews.dom.spec.tsx","rule":"tests/wait-on-events","count":25}
 {"path":"examples/starter/src/modules/notes/client/authActions.dom.spec.ts","rule":"tests/wait-on-events","count":3}
 {"path":"examples/starter/src/modules/notes/client/authClient.dom.spec.tsx","rule":"tests/wait-on-events","count":6}
-{"path":"examples/starter/src/modules/notes/client/authFailures.dom.spec.tsx","rule":"tests/wait-on-events","count":6}
+{"path":"examples/starter/src/modules/notes/client/authFailures.dom.spec.tsx","rule":"tests/wait-on-events","count":5}
 {"path":"examples/starter/src/modules/notes/client/jobsEmptyState.dom.spec.tsx","rule":"tests/wait-on-events","count":1}
 {"path":"examples/starter/src/modules/notes/client/login.dom.spec.tsx","rule":"tests/wait-on-events","count":8}
 {"path":"examples/starter/src/modules/notes/client/notFound.dom.spec.tsx","rule":"tests/wait-on-events","count":2}
 {"path":"examples/starter/src/modules/notes/client/notesFlow.dom.spec.ts","rule":"tests/grouped-outcomes","count":3}
 {"path":"examples/starter/src/modules/notes/client/notesFlow.dom.spec.ts","rule":"tests/wait-on-events","count":21}
 {"path":"examples/starter/src/modules/notes/client/sessionSwitch.dom.spec.tsx","rule":"tests/wait-on-events","count":3}
-{"path":"examples/starter/src/modules/notes/client/signInReturn.dom.spec.tsx","rule":"tests/wait-on-events","count":15}
+{"path":"examples/starter/src/modules/notes/client/signInReturn.dom.spec.tsx","rule":"tests/wait-on-events","count":14}
 {"path":"examples/starter/src/modules/notes/server/adminAccess.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"examples/starter/src/modules/notes/server/adminAccess.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"examples/starter/src/modules/notes/server/adminDevelopment.spec.ts","rule":"tests/domain-outcomes","count":2}

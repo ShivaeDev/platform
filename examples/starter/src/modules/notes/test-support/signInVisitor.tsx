@@ -1,6 +1,5 @@
 import { createMemoryHistory, createRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
 import { App } from "#client/App.tsx";
 import { Home } from "#client/Home.tsx";
 import { connectModules, type RouteContext } from "#client/Module.ts";
@@ -41,15 +40,10 @@ function resumeModule(moduleLink: boolean) {
 		api: {},
 		routes: ({ getParentRoute }: RouteContext) => {
 			const route = createRoute({
-				component: () => <Home auth={route.useRouteContext().auth} />,
+				component: () => <Home auth={getParentRoute().useRouteContext().auth} />,
 				getParentRoute,
 				path: "/resume",
-				...(moduleLink
-					? {}
-					: {
-							beforeLoad: (loader): void => permissionGuard({ session: loader.context.session, signIn: "/sign-in" })(loader),
-							staticData: { permission: { name: "resume", strength: "own" as const } },
-						}),
+				staticData: { signedIn: !moduleLink },
 			});
 			return [route];
 		},

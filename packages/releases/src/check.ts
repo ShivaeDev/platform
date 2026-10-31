@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { checkPackageFiles } from "#checkPackageFiles.ts";
+import { checkReleaseCoverage } from "#checkReleaseCoverage.ts";
 import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { Source, Workspace } from "#model.ts";
@@ -85,4 +86,5 @@ export const checkRepository = Effect.fn("Changesets.checkRepository")(function*
 	yield* computePlan(after.packages, after.changesets);
 	const before = yield* readHistory(root, config, reference);
 	yield* validateDiff(before, after);
+	yield* checkReleaseCoverage(root, yield* planDiff(before, after), after.changesets);
 });

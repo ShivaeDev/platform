@@ -24,7 +24,7 @@ export function screenActions(engine: ScreenSurface, tell: (line: string) => voi
 			if (link === null || link === undefined) {
 				throw new Error(`Missing ${label ?? "saved note"} link`);
 			}
-			await act(() => link.click());
+			await act(async () => link.click());
 		});
 	}
 	return {

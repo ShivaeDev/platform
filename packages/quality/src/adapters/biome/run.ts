@@ -4,7 +4,7 @@ import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { withExceptionConfig } from "#biome/exceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
-import { shadcnFolders } from "#inventory/shadcnFolders.ts";
+import { shadcnFiles } from "#inventory/shadcnFiles.ts";
 
 export interface BiomeRun {
 	readonly code: number;
@@ -19,11 +19,11 @@ export const runBiome = Effect.fn("Biome.runBiome")(function* (
 	args: readonly string[],
 	exceptions: readonly ExceptionDeclaration[] = [],
 ) {
-	const folders = yield* shadcnFolders(root);
+	const files = yield* shadcnFiles(root);
 	const toolOwned: readonly ExceptionDeclaration[] = [
 		{
-			files: ["**", "!**/pnpm-lock.yaml", ...folders.map((folder) => `!${folder}`)],
-			reason: "pnpm writes its lockfiles; components.json assigns UI folders to the shadcn CLI.",
+			files: ["**", "!**/pnpm-lock.yaml", ...files.map((file) => `!${file}`)],
+			reason: "pnpm writes its lockfiles; canonical shadcn component filenames in the configured UI folder belong to its CLI.",
 			rules: ["biome/files/includes"],
 		},
 	];

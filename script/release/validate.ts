@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { planDiff, validateDiff } from "@shivaedev/releases/check.ts";
+import { checkReleaseCoverage } from "@shivaedev/releases/checkReleaseCoverage.ts";
 import { computePlan } from "@shivaedev/releases/planner.ts";
 import { readHistory } from "@shivaedev/releases/readHistory.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
@@ -18,5 +19,7 @@ export const validateRelease = Effect.fn("Release.validateRelease")(function* (
 	const input = starterPinsInput(plan, pins);
 	const releaseBase = input === undefined ? before : { ...before, changesets: [...before.changesets, input] };
 	yield* validateDiff(releaseBase, after);
-	return input === undefined ? plan : yield* planDiff(releaseBase, after);
+	const collected = input === undefined ? plan : yield* planDiff(releaseBase, after);
+	yield* checkReleaseCoverage(root, collected, after.changesets);
+	return collected;
 });

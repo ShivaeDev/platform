@@ -8,10 +8,12 @@ workspace.it("check accepts a release derived from the changesets it deleted fro
 });
 
 workspace.it(
-	"check accepts a changeset added after the release as pending",
+	"check refuses a changeset added after the release and asks for regeneration",
 	[pending(), released, laterChangeset("later", { [CORE]: "patch" }, "### Fixed\n\n- A later fix.\n")],
 	function* ({ check }) {
-		expect(yield* check()).toBe("valid");
+		expect(yield* check()).toBe(
+			"refused: Release leaves pending changesets outside its notes: later.md.\nLet the release PR regenerate before merging or publishing.",
+		);
 	},
 );
 
