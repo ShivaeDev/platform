@@ -150,7 +150,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 				history={history}
 				recheck={recheck}
 				session={{ user: {} }}
-				sessionId={id}
+				userId={id}
 			/>,
 		);
 	}

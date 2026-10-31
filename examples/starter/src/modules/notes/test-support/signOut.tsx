@@ -42,7 +42,7 @@ export const signOut = storyKit({
 					history={history}
 					recheck={() => undefined}
 					session={signedIn ? { user: { permissions: [] } } : null}
-					sessionId={signedIn ? "alice-session" : "anonymous"}
+					userId={signedIn ? "alice" : undefined}
 				/>,
 			);
 		}

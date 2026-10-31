@@ -18,10 +18,8 @@ export function App(props: { readonly auth: Auth } & Pick<SessionProps, "connect
 function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
 	const session = auth.client.useSession();
 	const recheck = useCallback(() => {
-		if (session.data !== null) {
-			void session.refetch();
-		}
-	}, [session.data, session.refetch]);
+		void session.refetch();
+	}, [session.refetch]);
 	if (session.isPending) {
 		return (
 			<p className="p-8" role="status">
@@ -47,7 +45,7 @@ function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pi
 			history={history}
 			recheck={recheck}
 			session={decoded.success}
-			sessionId={decoded.success?.session.id ?? "anonymous"}
+			userId={decoded.success?.user.id}
 		/>
 	);
 }

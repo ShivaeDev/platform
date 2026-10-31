@@ -1,12 +1,12 @@
 # Client lifetime belongs to the authenticated session
 
-Use a fresh native atom registry and a fresh credential-bound RPC client for each login session. Remount the authenticated React subtree at that boundary. The registry owns cached query state; React components also own form objects and local state, so replacing only the registry is insufficient as a general reset policy.
+Use a fresh native atom registry and RPC client when the signed-in user changes or signs out. Identify by user id by default, so rotating a session after a password change keeps the authenticated React subtree and its state. The registry owns cached query state; React components also own form objects and local state, so replacing only the registry is insufficient as a general reset policy.
 
 `SessionBoundary` owns the registry and React subtree for each session generation.
 
 ## Session transition
 
-The application shell should unmount the outgoing authenticated subtree, dispose its registry, and mount a new subtree with a new session generation key, registry and client. Do not use an access token as a React key or serialization key. Use an opaque generation counter; logging back into the same account is a new session. When authentication is unresolved or absent, render the public/loading shell without the previous authenticated subtree.
+`SessionBoundary` unmounts the outgoing authenticated subtree, disposes its registry, and mounts a new subtree when the user changes or signs out. A session rotation for the same user keeps the subtree, registry and client. Do not use an access token as a React key or serialization key. Use the user id as the generation key; signing out and logging back into the same account still creates a new generation. When authentication is unresolved or absent, render the public/loading shell without the previous authenticated subtree.
 
 Cached data and dirty forms disappear with the outgoing generation. Re-entering starts from persisted data. A failed refresh retains the draft; retry can recover before the auth owner decides to end the session. `SessionBoundary` disposes each outgoing registry. A plain `RegistryContext.Provider` does not own disposal for its caller.
 
@@ -21,7 +21,7 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 createElement(SessionBoundary, {
 	session,
-	identify: (session) => session.id,
+	identify: (session) => session.user.id,
 	connect: (session) => makeApiClient({ token: () => auth.currentToken() }),
 	recheck: () => auth.refetch(),
 	signedOut: createElement(SignIn),
@@ -29,7 +29,7 @@ createElement(SessionBoundary, {
 });
 ```
 
-Each key gets one client and one registry: `connect` runs once per key, so anything it captures stays fixed for that key. A client that captures `session.token` keeps the old token after a refresh under the same session id. Either let the client read the current credential per request, as above, or make `identify` include a credential generation (`${session.id}:${generation}`), which remounts the subtree and drops its state on every rotation. A new key remounts the subtree; `undefined` renders `signedOut`.
+Each key gets one client and one registry: `connect` runs once per key, so anything it captures stays fixed for that key. A client that captures `session.token` keeps the old token after a refresh under the same user id. Use the current cookie or let the client read the current credential per request, as above. Identifying by session id or including a credential generation (`${session.id}:${generation}`) stays an explicit choice: it remounts the subtree and drops its state on every rotation. A new key remounts the subtree; `undefined` renders `signedOut`. Give the boundary the signed-out router and a `redirectTo` continuation target. Once the auth owner supplies the signed-in session, the boundary unmounts that router before replacing the URL and mounting the authenticated tree. Targets outside the browser origin fall back to `/`. An optional `navigate` callback replaces the URL through the application's router history. The sign-in screen requests a session recheck rather than navigating before the new session is known.
 
 The registry is disposed one microtask after the generation's effects unmount, so StrictMode's effect replay does not dispose a live registry. A subtree hidden by React's `<Activity>` also unmounts its effects while keeping component state; the generation then disposes the registry and renders its kept subtree against a fresh registry for the same client, so revealing it keeps local state and form drafts but refetches queries. React still re-renders a hidden subtree at low priority, and nothing runs if that subtree is then unmounted without being revealed, so atoms a hidden render reads are reset (finalizers run, `keepAlive` runtimes and RPC connections close) as soon as the render settles. StrictMode's double state initializer can call `connect` twice for the same key; keep it free of side effects.
 
