@@ -132,6 +132,16 @@ yield* assignRole(AppAccess, userId, "owner");
 
 Supply the application's `SqlClient` and `Reactivity` Layers. This trusted server verb has no caller authorization check; authorize operator access before calling it. It returns whether the role changed, fails with `NotFound` for a missing user, and refuses to remove the final holder of `AssignRoles` (`roles.assign`) with `LastRoleAssigner`. Both declarations live in `@shivaedev/access/roles.ts`. Writes serialize through the same PostgreSQL transaction lock and invalidate the Users list after commit. The Users page adds its caller permission check and audit log.
 
+### Administer signed-in sessions
+
+Merge `Sessions` from `@shivaedev/identity/sessions.ts` into the application's RPC group and provide `sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Install `permissionLayer(SessionsPermission, sessions)` using `SessionsPermission` from `@shivaedev/identity/sessionPermissions.ts` and the mounted session policy. Supply the application's Effect `SqlClient`; the handlers use the default Better Auth PostgreSQL user and session tables.
+
+Grant `ManageSessions` (`sessions.manage`) from `sessionPermissions.ts` to the roles that manage sessions. The starter grants it to admin and owner. Both operations use the same permission middleware and `Forbidden` refusal as the admin Users page. They require no Better Auth admin plugin.
+
+`identity.sessions.list({ limit, cursor? })` returns `{ sessions, next }`, where `next` is an `Option` containing the next cursor. Limits are 1–100. Pass the returned cursor unchanged to read the next page; removing an earlier session does not shift later pages. Only unexpired sessions appear, ordered by last activity descending, then session id descending. Each session has `id`, `user: { id, name, email }`, and native Effect UTC `startedAt`, `lastActivityAt` and `expiresAt` values. Last activity is the provider's stored session `updatedAt`, so its precision follows the application's Better Auth session-refresh policy. Pages read current storage rather than a frozen snapshot.
+
+`identity.sessions.revoke({ id })` deletes just that session and returns `NotFound` when the id is unknown. Its next protected request is unauthorized, and its open live subscriptions end at the configured session revalidation interval. Other sessions for the same user continue working. This uses database-backed sessions and the same storage-removal and revalidation path as `revokeUnadmitted`; secondary session storage is outside this SQL administration path.
+
 ### Bundled native clients
 
 For a Capacitor or similar WebView whose page is served from the app bundle, opt in with the auth host mount's `bearerSessions` option. It installs Better Auth's own `bearer({ requireSignature: true })` plugin from the existing dependency; do not add a second bearer plugin. The option is absent by default. List only bundled-client origins here, and include them in Better Auth's `trustedOrigins` as well.

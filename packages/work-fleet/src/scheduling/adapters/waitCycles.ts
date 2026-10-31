@@ -5,17 +5,17 @@ interface WaitNode {
 	readonly mergePrs?: readonly string[] | undefined;
 	readonly pr?: string | undefined;
 	readonly reason?: string | undefined;
+	readonly repairing?: boolean | undefined;
 	readonly sweepItem?: string | undefined;
 	readonly waiting: boolean;
 }
 
-export function waitCycles(records: Iterable<WaitNode>): ReadonlyMap<string, { readonly attentionOwner: "orchestrator"; readonly blocker: string }> {
+export function waitGroups(records: Iterable<WaitNode>): readonly (readonly WaitNode[])[] {
 	const nodes = [...records];
-	const waiting = nodes.filter((record) => record.waiting);
-	const byId = new Map(waiting.map((record) => [record.item, record]));
+	const byId = new Map(nodes.filter((record) => record.waiting).map((record) => [record.item, record]));
 	const byPr = new Map(nodes.filter((record) => record.pr !== undefined).map((record) => [record.pr, record.item]));
 	const edges = new Map(
-		waiting.map((record) => {
+		[...byId.values()].map((record) => {
 			const areaOwner = /^waiting for area .+ (?:held by|queued ahead by) (?<owner>.+)$/u.exec(record.reason ?? "")?.groups?.owner;
 			return [
 				record.item,
@@ -30,33 +30,75 @@ export function waitCycles(records: Iterable<WaitNode>): ReadonlyMap<string, { r
 			];
 		}),
 	);
-	const reasons = new Map<string, string>();
-	const visited = new Set<string>();
-	function visit(id: string, path: readonly string[]): string | undefined {
-		const index = path.indexOf(id);
-		if (index !== -1) {
-			return `${WAIT_CYCLE}${[...path.slice(index), id]
-				.map((member) => {
-					const pr = byId.get(member)?.pr;
-					return pr === undefined ? member : `${member} (${pr})`;
-				})
-				.join(" -> ")}`;
-		}
-		if (visited.has(id)) {
-			return reasons.get(id);
-		}
-		visited.add(id);
+	const indices = new Map<string, number>();
+	const low = new Map<string, number>();
+	const stack: string[] = [];
+	const active = new Set<string>();
+	const groups: WaitNode[][] = [];
+	function visit(id: string) {
+		const index = indices.size;
+		indices.set(id, index);
+		low.set(id, index);
+		stack.push(id);
+		active.add(id);
 		for (const next of edges.get(id) ?? []) {
-			const reason = visit(next, [...path, id]);
-			if (reason !== undefined) {
-				reasons.set(id, reason);
-				return reason;
-			}
+			connect(id, next, index);
 		}
-		return undefined;
+		if (low.get(id) !== index) {
+			return;
+		}
+		const members = popMembers(id);
+		if (members.length > 1 || edges.get(id)?.includes(id)) {
+			groups.push(
+				members
+					.sort((left, right) => left.localeCompare(right))
+					.flatMap((key) => {
+						const node = byId.get(key);
+						return node === undefined ? [] : [node];
+					}),
+			);
+		}
 	}
-	for (const record of waiting) {
-		visit(record.item, []);
+	function connect(id: string, next: string, index: number) {
+		if (!indices.has(next)) {
+			visit(next);
+			low.set(id, Math.min(low.get(id) ?? index, low.get(next) ?? index));
+		} else if (active.has(next)) {
+			low.set(id, Math.min(low.get(id) ?? index, indices.get(next) ?? index));
+		}
 	}
-	return new Map([...reasons].map(([id, blocker]) => [id, { attentionOwner: "orchestrator", blocker }]));
+	function popMembers(id: string) {
+		const members: string[] = [];
+		let member: string | undefined;
+		do {
+			member = stack.pop();
+			if (member !== undefined) {
+				active.delete(member);
+				members.push(member);
+			}
+		} while (member !== id);
+		return members;
+	}
+	for (const id of byId.keys()) {
+		if (!indices.has(id)) {
+			visit(id);
+		}
+	}
+	return groups;
+}
+
+export function waitCycles(records: Iterable<WaitNode>): ReadonlyMap<string, { readonly attentionOwner: "orchestrator"; readonly blocker: string }> {
+	const cycles = new Map<string, { readonly attentionOwner: "orchestrator"; readonly blocker: string }>();
+	for (const group of waitGroups(records)) {
+		const first = group[0];
+		const repairable = group.some((node) => node.repairing && /^waiting for area .+ held by /u.test(node.reason ?? ""));
+		if (first === undefined || repairable) {
+			continue;
+		}
+		cycles.set(first.item, {
+			attentionOwner: "orchestrator",
+			blocker: `${WAIT_CYCLE}${[...group, first].map((node) => (node.pr === undefined ? node.item : `${node.item} (${node.pr})`)).join(" -> ")}`,
+		});
+	}
+	return cycles;
 }

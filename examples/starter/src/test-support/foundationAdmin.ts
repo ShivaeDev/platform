@@ -29,6 +29,16 @@ export const foundationAdmin = storyKit({
 				webSocketConstructor: layerWebSocketConstructorWS,
 			}).client;
 		}),
+		session: Effect.fn("FoundationAdmin.session")(function* (name: string) {
+			story.tell(`${name} reads their session from the auth endpoint`);
+			const response = yield* Effect.promise(() =>
+				fetch(`${engine.host.baseUrl}/api/auth/get-session`, {
+					headers: { cookie: engine.cookies.get(name) ?? "" },
+				}),
+			);
+			const body: unknown = yield* Effect.promise(() => response.json());
+			return body;
+		}),
 	}),
 });
 
