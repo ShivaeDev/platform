@@ -5,7 +5,12 @@ export function documentSource(document: MetadataDocument): string {
 	return (document.parsed.raw ?? "") + document.parsed.body;
 }
 
-export function metadataModel(documents: readonly MetadataDocument[], unavailable: readonly string[] = [], rootFile?: string): MetadataModel {
+export function metadataModel(
+	documents: readonly MetadataDocument[],
+	unavailable: readonly string[] = [],
+	rootFile?: string,
+	settled?: ReadonlyMap<string, string>,
+): MetadataModel {
 	const ids = new Map<string, MetadataDocument[]>();
 	for (const document of documents) {
 		const id = document.parsed.fields.id;
@@ -13,6 +18,6 @@ export function metadataModel(documents: readonly MetadataDocument[], unavailabl
 			ids.set(id, [...(ids.get(id) ?? []), document]);
 		}
 	}
-	const diagnostics = new Map(documents.map((document) => [document.file, metadataProblems(document, ids, unavailable)]));
-	return { diagnostics, documents, ids, rootFile, unavailable };
+	const diagnostics = new Map(documents.map((document) => [document.file, metadataProblems(document, ids, unavailable, settled)]));
+	return { diagnostics, documents, ids, rootFile, settled, unavailable };
 }

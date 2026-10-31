@@ -27,5 +27,6 @@ export interface MetadataModel {
 	readonly documents: readonly MetadataDocument[];
 	readonly ids: ReadonlyMap<string, readonly MetadataDocument[]>;
 	readonly rootFile: string | undefined;
+	readonly settled?: ReadonlyMap<string, string> | undefined;
 	readonly unavailable: readonly string[];
 }

@@ -23,7 +23,8 @@ export function referenceFile(reference: string, model: MetadataModel): string |
 	if (!referenceTarget(reference, model)) {
 		return undefined;
 	}
-	return model.ids.get(reference.split("#")[0] ?? "")?.[0]?.file;
+	const id = reference.split("#")[0] ?? "";
+	return model.ids.get(id)?.[0]?.file ?? model.settled?.get(id);
 }
 
 export function sourceFile(source: string, file: string, model: MetadataModel): string | undefined {
