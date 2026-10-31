@@ -26,10 +26,10 @@ boardStory.it(
 
 		yield* archivePass();
 
-		yield* outcomes({
-			"original places": [sourcesAt(SETTLED), MISSING],
-			"settled store": [settledStore(), STORED],
-		});
+		yield* outcomes([
+			["original places", () => sourcesAt(SETTLED), MISSING],
+			["settled store", () => settledStore(), STORED],
+		]);
 	},
 );
 
@@ -49,10 +49,10 @@ boardStory.it(
 	function* ({ archiveConcurrently, settledStore, sourcesAt }) {
 		yield* archiveConcurrently();
 
-		yield* outcomes({
-			"active questions": [sourcesAt(ACTIVE), Object.fromEntries(ACTIVE.map((file) => [file, files[file]]))],
-			"settled store": [settledStore(), STORED],
-		});
+		yield* outcomes([
+			["active questions", () => sourcesAt(ACTIVE), Object.fromEntries(ACTIVE.map((file) => [file, files[file]]))],
+			["settled store", () => settledStore(), STORED],
+		]);
 	},
 );
 
@@ -64,11 +64,11 @@ boardStory.it(
 	"an archived question opens at its item link with its recorded answer",
 	[archivedSources(files)],
 	function* ({ answersOf, briefStatus, foundAt }) {
-		yield* outcomes({
-			answers: [answersOf("settled"), [{ body: "Keep the reviewed option.\n", id: "answer.settled" }]],
-			path: [foundAt("settled"), "decisions/settled.md"],
-			status: [briefStatus("settled"), "done"],
-		});
+		yield* outcomes([
+			["answers", () => answersOf("settled"), [{ body: "Keep the reviewed option.\n", id: "answer.settled" }]],
+			["path", () => foundAt("settled"), "decisions/settled.md"],
+			["status", () => briefStatus("settled"), "done"],
+		]);
 	},
 );
 
@@ -89,10 +89,10 @@ boardStory.it(
 		yield* edited("questions/open.md", `${files["questions/open.md"]}\nMore context.\n`);
 		yield* readToday();
 
-		yield* outcomes({
-			"open question re-read": [recordedReadsUnder("questions"), expect.arrayContaining(["questions/open.md"])],
-			"settled Markdown read": [recordedReadsUnder(".board-settled"), []],
-		});
+		yield* outcomes([
+			["open question re-read", () => recordedReadsUnder("questions"), expect.arrayContaining(["questions/open.md"])],
+			["settled Markdown read", () => recordedReadsUnder(".board-settled"), []],
+		]);
 	},
 );
 
@@ -104,10 +104,10 @@ boardStory.it(
 
 		expect(yield* archivePass()).toBe("Moved 1 records.");
 
-		yield* outcomes({
-			"answer's original place": [sourcesAt(["responses/answer.settled.md"]), { "responses/answer.settled.md": "missing" }],
-			"open question": [sourcesAt(["questions/open.md"]), { "questions/open.md": files["questions/open.md"] }],
-			"settled store": [settledStore(), STORED],
-		});
+		yield* outcomes([
+			["answer's original place", () => sourcesAt(["responses/answer.settled.md"]), { "responses/answer.settled.md": "missing" }],
+			["open question", () => sourcesAt(["questions/open.md"]), { "questions/open.md": files["questions/open.md"] }],
+			["settled store", () => settledStore(), STORED],
+		]);
 	},
 );

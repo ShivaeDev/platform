@@ -45,10 +45,10 @@ screenStory.it(
 		),
 	],
 	function* ({ goalChart, goalPageStateCounts }) {
-		yield* outcomes({
-			chart: [goalChart(), { state: "absent" }],
-			"linked work by state": [goalPageStateCounts(), ["1 done", "0 running (quiet)", "0 blocked (quiet)", "0 scheduled (quiet)", "4 parked"]],
-		});
+		yield* outcomes([
+			["chart", () => goalChart(), { state: "absent" }],
+			["linked work by state", () => goalPageStateCounts(), ["1 done", "0 running (quiet)", "0 blocked (quiet)", "0 scheduled (quiet)", "4 parked"]],
+		]);
 	},
 );
 
@@ -74,9 +74,9 @@ screenStory.it(
 	"a linked work group shows only the columns its rows use",
 	[goalDocumentScreen({ ...files, "dropped.md": DROPPED_TASK, "ready.md": READY_TASK })],
 	function* ({ linkedWorkColumns }) {
-		yield* outcomes({
-			draft: [linkedWorkColumns("Draft"), ["Work", "Criteria", "State"]],
-			ready: [linkedWorkColumns("Ready"), ["Work", "State", "Owner", "Updated"]],
-		});
+		yield* outcomes([
+			["draft", () => linkedWorkColumns("Draft"), ["Work", "Criteria", "State"]],
+			["ready", () => linkedWorkColumns("Ready"), ["Work", "State", "Owner", "Updated"]],
+		]);
 	},
 );

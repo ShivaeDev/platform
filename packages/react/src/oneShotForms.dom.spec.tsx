@@ -9,11 +9,11 @@ invoices.it(
 
 		yield* save();
 
-		yield* outcomes({
-			completed: [completed(), "Completed 7: Blue stapler / 150 (version 4)"],
-			"line reads": [lineReads(), 0],
-			stored: [storedLine(7), { id: 7, name: "Blue stapler", quantity: 150, version: 4 }],
-		});
+		yield* outcomes([
+			["completed", () => completed(), "Completed 7: Blue stapler / 150 (version 4)"],
+			["line reads", () => lineReads(), 0],
+			["stored", () => storedLine(7), { id: 7, name: "Blue stapler", quantity: 150, version: 4 }],
+		]);
 	},
 );
 
@@ -25,11 +25,11 @@ invoices.it(
 
 		yield* finishHeld();
 
-		yield* outcomes({
-			completed: [completed(), "Completed 7: Blue stapler / 150 (version 4)"],
-			name: [field("name"), "Red stapler"],
-			status: [status(), "Unsaved"],
-		});
+		yield* outcomes([
+			["completed", () => completed(), "Completed 7: Blue stapler / 150 (version 4)"],
+			["name", () => field("name"), "Red stapler"],
+			["status", () => status(), "Unsaved"],
+		]);
 	},
 );
 
@@ -42,13 +42,13 @@ invoices.it(
 
 		yield* save();
 
-		yield* outcomes({
-			alerts: [alerts(), ["This line changed. Reopen it to use the latest version."]],
-			completed: [completed(), "none"],
-			name: [field("name"), "My stapler"],
-			quantity: [field("quantity"), "150"],
-			status: [status(), "Unsaved"],
-			stored: [storedLine(7), { ...theirStapler }],
-		});
+		yield* outcomes([
+			["alerts", () => alerts(), ["This line changed. Reopen it to use the latest version."]],
+			["completed", () => completed(), "none"],
+			["name", () => field("name"), "My stapler"],
+			["quantity", () => field("quantity"), "150"],
+			["status", () => status(), "Unsaved"],
+			["stored", () => storedLine(7), { ...theirStapler }],
+		]);
 	},
 );

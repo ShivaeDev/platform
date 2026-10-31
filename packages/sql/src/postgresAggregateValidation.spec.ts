@@ -26,10 +26,10 @@ for (const { json, name } of invalidQueries) {
 
 		yield* aggregateResults(query);
 
-		yield* outcomes({
-			"aggregate result": [lastResult(), "failed with a schema error"],
-			"statements sent": [statementsSent(), 0],
-		});
+		yield* outcomes([
+			["aggregate result", () => lastResult(), "failed with a schema error"],
+			["statements sent", () => statementsSent(), 0],
+		]);
 	});
 }
 

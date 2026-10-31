@@ -78,10 +78,10 @@ boardStory.it(
 );
 
 boardStory.it("Needs you links an authored question and a Fleet request to their source item's answer card", [inbox()], function* ({ inboxAsk }) {
-	yield* outcomes({
-		"authored question": [inboxAsk("question.storage"), expect.objectContaining({ href: "/_board/item/question.storage/#answer-card-answer" })],
-		"Fleet request": [inboxAsk("task.fleet"), expect.objectContaining({ href: "/_board/item/decision.delivery/#answer-card-delivery" })],
-	});
+	yield* outcomes([
+		["authored question", () => inboxAsk("question.storage"), expect.objectContaining({ href: "/_board/item/question.storage/#answer-card-answer" })],
+		["Fleet request", () => inboxAsk("task.fleet"), expect.objectContaining({ href: "/_board/item/decision.delivery/#answer-card-delivery" })],
+	]);
 });
 
 boardStory.it(
@@ -138,10 +138,10 @@ boardStory.it(
 	"the library hides a Fleet decision and its registered question and counts them as hidden Fleet records",
 	[fleetChain],
 	function* ({ hiddenFleetRecords, libraryFiles }) {
-		yield* outcomes({
-			"hidden Fleet records": [hiddenFleetRecords(), 2],
-			library: [libraryFiles(false), ["automation.md", "closed.md", "fleet.md", "owner.md", "question.md"]],
-		});
+		yield* outcomes([
+			["hidden Fleet records", () => hiddenFleetRecords(), 2],
+			["library", () => libraryFiles(false), ["automation.md", "closed.md", "fleet.md", "owner.md", "question.md"]],
+		]);
 	},
 );
 

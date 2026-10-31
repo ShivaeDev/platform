@@ -20,10 +20,10 @@ boardStory.it(
 		yield* pageShows("/");
 
 		yield* chunkArrives("SearchPalette");
-		yield* outcomes({
-			"search palette": [chunkFetched("SearchPalette"), "fetched once"],
-			"work table": [chunkFetched("WorkTable"), "not fetched"],
-		});
+		yield* outcomes([
+			["search palette", () => chunkFetched("SearchPalette"), "fetched once"],
+			["work table", () => chunkFetched("WorkTable"), "not fetched"],
+		]);
 	},
 );
 

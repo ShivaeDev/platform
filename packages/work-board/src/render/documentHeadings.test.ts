@@ -26,10 +26,10 @@ boardStory.it(
 	"a heading written with its own HTML anchor keeps it, and footnotes get no heading anchor",
 	[headings],
 	function* ({ renderedAttributes }) {
-		yield* outcomes({
-			"authored heading": [renderedAttributes("headings.md", "h2#authored", "id"), ["authored"]],
-			"footnote links": [renderedAttributes("headings.md", "sup a", "href"), ["#user-content-fn-source"]],
-			"heading links": [renderedAttributes("headings.md", "a[href^='#heading-']", "href"), expect.arrayContaining(["#heading-evidence-3"])],
-		});
+		yield* outcomes([
+			["authored heading", () => renderedAttributes("headings.md", "h2#authored", "id"), ["authored"]],
+			["footnote links", () => renderedAttributes("headings.md", "sup a", "href"), ["#user-content-fn-source"]],
+			["heading links", () => renderedAttributes("headings.md", "a[href^='#heading-']", "href"), expect.arrayContaining(["#heading-evidence-3"])],
+		]);
 	},
 );

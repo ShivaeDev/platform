@@ -17,10 +17,10 @@ commands.it(
 	function* ({ actionPending, complete, notices }) {
 		yield* complete("second", "B");
 
-		yield* outcomes({
-			"action pending": [actionPending(), "true"],
-			notices: [notices(), ["original: second -> B"]],
-		});
+		yield* outcomes([
+			["action pending", () => actionPending(), "true"],
+			["notices", () => notices(), ["original: second -> B"]],
+		]);
 	},
 );
 
@@ -88,10 +88,10 @@ commands.it(
 	function* ({ notices, rechecks, reject }) {
 		yield* reject("first", "Unauthorized");
 
-		yield* outcomes({
-			notices: [notices(), []],
-			rechecks: [rechecks(), "never"],
-		});
+		yield* outcomes([
+			["notices", () => notices(), []],
+			["rechecks", () => rechecks(), "never"],
+		]);
 	},
 );
 
@@ -99,19 +99,19 @@ commands.it(
 	"a completion invalidates the list once and reports before the list's refetch answers",
 	[firstHeld()],
 	function* ({ complete, invalidations, listPending, listReads, notices }) {
-		yield* outcomes({
-			invalidations: [invalidations(), 0],
-			"list reads": [listReads(), 1],
-		});
+		yield* outcomes([
+			["invalidations", () => invalidations(), 0],
+			["list reads", () => listReads(), 1],
+		]);
 
 		yield* complete("first", "A");
 
-		yield* outcomes({
-			invalidations: [invalidations(), 1],
-			"list pending": [listPending(), "true"],
-			"list reads": [listReads(), 2],
-			notices: [notices(), ["original: first -> A"]],
-		});
+		yield* outcomes([
+			["invalidations", () => invalidations(), 1],
+			["list pending", () => listPending(), "true"],
+			["list reads", () => listReads(), 2],
+			["notices", () => notices(), ["original: first -> A"]],
+		]);
 	},
 );
 
@@ -121,10 +121,10 @@ commands.it(
 	function* ({ invalidations, notices, renderAgain }) {
 		yield* renderAgain();
 
-		yield* outcomes({
-			invalidations: [invalidations(), 1],
-			notices: [notices(), ["original: first -> A"]],
-		});
+		yield* outcomes([
+			["invalidations", () => invalidations(), 1],
+			["notices", () => notices(), ["original: first -> A"]],
+		]);
 	},
 );
 
@@ -134,11 +134,11 @@ commands.it(
 	function* ({ invalidations, notices, rechecks, reject }) {
 		yield* reject("first", "Rejected");
 
-		yield* outcomes({
-			invalidations: [invalidations(), 0],
-			notices: [notices(), ["original: first rejected: Rejected"]],
-			rechecks: [rechecks(), "never"],
-		});
+		yield* outcomes([
+			["invalidations", () => invalidations(), 0],
+			["notices", () => notices(), ["original: first rejected: Rejected"]],
+			["rechecks", () => rechecks(), "never"],
+		]);
 	},
 );
 
@@ -148,10 +148,10 @@ commands.it(
 	function* ({ notices, rechecks, reject }) {
 		yield* reject("first", "Unauthorized");
 
-		yield* outcomes({
-			notices: [notices(), ["original: first rejected: Unauthorized"]],
-			rechecks: [rechecks(), "once"],
-		});
+		yield* outcomes([
+			["notices", () => notices(), ["original: first rejected: Unauthorized"]],
+			["rechecks", () => rechecks(), "once"],
+		]);
 	},
 );
 
@@ -171,10 +171,10 @@ commands.it(
 	function* ({ notices, rechecks, reject }) {
 		yield* reject("first", "Unauthorized");
 
-		yield* outcomes({
-			notices: [notices(), ["original: second rejected: Unauthorized", "original: first rejected: Unauthorized"]],
-			rechecks: [rechecks(), "twice"],
-		});
+		yield* outcomes([
+			["notices", () => notices(), ["original: second rejected: Unauthorized", "original: first rejected: Unauthorized"]],
+			["rechecks", () => rechecks(), "twice"],
+		]);
 	},
 );
 
@@ -184,11 +184,11 @@ commands.it(
 	function* ({ complete, defectShown, notices, rechecks }) {
 		yield* complete("first", "A");
 
-		yield* outcomes({
-			defect: [defectShown(), "Error: Presentation failed"],
-			notices: [notices(), []],
-			rechecks: [rechecks(), "never"],
-		});
+		yield* outcomes([
+			["defect", () => defectShown(), "Error: Presentation failed"],
+			["notices", () => notices(), []],
+			["rechecks", () => rechecks(), "never"],
+		]);
 	},
 );
 

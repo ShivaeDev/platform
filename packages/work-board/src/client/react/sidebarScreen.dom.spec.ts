@@ -27,10 +27,10 @@ for (const phone of [false, true]) {
 
 			yield* navigate("/notes/topic-6.md");
 
-			yield* outcomes({
-				"Recent": [sidebarLinks("Recent"), topicLinks(5, 4, 3, 2, 1)],
-				"the destinations": [sidebarDestinations(), DESTINATIONS.map((label) => expect.objectContaining({ label }))],
-			});
+			yield* outcomes([
+				["Recent", () => sidebarLinks("Recent"), topicLinks(5, 4, 3, 2, 1)],
+				["the destinations", () => sidebarDestinations(), DESTINATIONS.map((label) => expect.objectContaining({ label }))],
+			]);
 		},
 	);
 
@@ -79,10 +79,10 @@ for (const how of ["Escape", "the backdrop"] as const) {
 
 			yield* dismissSidebar(how);
 
-			yield* outcomes({
-				"the focus": [keyboardFocus(), { name: "Sidebar", role: "button" }],
-				"the sidebar": [sidebarPanel(), closed],
-			});
+			yield* outcomes([
+				["the focus", () => keyboardFocus(), { name: "Sidebar", role: "button" }],
+				["the sidebar", () => sidebarPanel(), closed],
+			]);
 		},
 	);
 }

@@ -12,9 +12,9 @@ boardStory.it(
 
 		editFile("note.md", "# After");
 
-		yield* outcomes({
-			"announced change": [nextChange(), expect.arrayContaining(["document note.md"])],
-			"the document": [sourceOf("note.md"), "# After"],
-		});
+		yield* outcomes([
+			["announced change", () => nextChange(), expect.arrayContaining(["document note.md"])],
+			["the document", () => sourceOf("note.md"), "# After"],
+		]);
 	},
 );

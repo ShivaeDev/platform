@@ -13,11 +13,11 @@ for (const over of ["TCP", "socket"] as const) {
 
 			yield* stopTimed();
 
-			yield* outcomes({
-				"the shutdown wait": [shutdownWait(), "the full drain period"],
-				"the socket": [socketFile(), "missing"],
-				"the unfinished request": [unfinishedRequestEnd(), "cut off"],
-			});
+			yield* outcomes([
+				["the shutdown wait", () => shutdownWait(), "the full drain period"],
+				["the socket", () => socketFile(), "missing"],
+				["the unfinished request", () => unfinishedRequestEnd(), "cut off"],
+			]);
 		},
 	);
 }

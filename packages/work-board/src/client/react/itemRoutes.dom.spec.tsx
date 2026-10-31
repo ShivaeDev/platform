@@ -29,10 +29,10 @@ for (const { id, page } of items) {
 			`opening ${url} shows ${page.split(":")[0]} and keeps the address`,
 			[readingPage(files, url, { home: "home.md" })],
 			function* ({ address, shownPage }) {
-				yield* outcomes({
-					address: [address(), url],
-					page: [shownPage(), page],
-				});
+				yield* outcomes([
+					["address", () => address(), url],
+					["page", () => shownPage(), page],
+				]);
 			},
 		);
 
@@ -42,10 +42,10 @@ for (const { id, page } of items) {
 			function* ({ address, navigateTo, shownPage }) {
 				yield* navigateTo(url);
 
-				yield* outcomes({
-					address: [address(), url],
-					page: [shownPage(), page],
-				});
+				yield* outcomes([
+					["address", () => address(), url],
+					["page", () => shownPage(), page],
+				]);
 			},
 		);
 	}

@@ -23,10 +23,10 @@ screenStory.it(
 	"Today says once that Fleet isn't running and opens its start command only on request",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), stoppedFleet(), openScreen()],
 	function* ({ fleetStartDialog, fleetStoppedNotices, openFleetStartHelp }) {
-		yield* outcomes({
-			notices: [fleetStoppedNotices(), [STOPPED]],
-			"start command": [fleetStartDialog(), "closed"],
-		});
+		yield* outcomes([
+			["notices", () => fleetStoppedNotices(), [STOPPED]],
+			["start command", () => fleetStartDialog(), "closed"],
+		]);
 
 		yield* openFleetStartHelp();
 
@@ -38,13 +38,15 @@ screenStory.it(
 	"Now keeps authored lane counts and leaves Done empty with a note while Fleet isn't running",
 	[screenFiles(nowWorkspace, { home: "home.md" }), stoppedFleet(), screenRoute("/_board/work"), openScreen()],
 	function* ({ navigationLabels, nowLane, nowLanes }) {
-		yield* outcomes({
-			done: [
-				nowLane("Done in the last 7 days"),
+		yield* outcomes([
+			[
+				"done",
+				() => nowLane("Done in the last 7 days"),
 				{ cards: [], count: "none", empty: "none", fold: "never folds", note: "Needs Fleet to show finished work." },
 			],
-			lanes: [
-				nowLanes(),
+			[
+				"lanes",
+				() => nowLanes(),
 				[
 					"Queued: 3",
 					"Working: 0",
@@ -55,8 +57,8 @@ screenStory.it(
 					"Done in the last 7 days: no count",
 				],
 			],
-			navigation: [navigationLabels(), expect.arrayContaining(["Today, 3 need you", "Now, 4 open tasks"])],
-		});
+			["navigation", () => navigationLabels(), expect.arrayContaining(["Today, 3 need you", "Now, 4 open tasks"])],
+		]);
 	},
 );
 
@@ -83,13 +85,18 @@ screenStory.it(
 		openScreen(),
 	],
 	function* ({ fleetStoppedPanels, inProgressList }) {
-		yield* outcomes({
-			"in progress": [inProgressList(), expect.objectContaining({ rows: [{ badge: "Ready", id: "task.active", pr: "none", title: "Ready task" }] })],
-			panel: [
-				fleetStoppedPanels(),
+		yield* outcomes([
+			[
+				"in progress",
+				() => inProgressList(),
+				expect.objectContaining({ rows: [{ badge: "Ready", id: "task.active", pr: "none", title: "Ready task" }] }),
+			],
+			[
+				"panel",
+				() => fleetStoppedPanels(),
 				[{ explains: ["These show the status written in each task, not what Fleet reports."], help: ["How to start Fleet"], notice: STOPPED }],
 			],
-		});
+		]);
 	},
 );
 
@@ -117,10 +124,10 @@ screenStory.it(
 
 		yield* copyFleetStartCommand();
 
-		yield* outcomes({
-			clipboard: [clipboardText(), startCommand],
-			dialog: [fleetStartDialog(), { command: startCommand, copyStatus: "Copied.", field: "not selected" }],
-		});
+		yield* outcomes([
+			["clipboard", () => clipboardText(), startCommand],
+			["dialog", () => fleetStartDialog(), { command: startCommand, copyStatus: "Copied.", field: "not selected" }],
+		]);
 	},
 );
 

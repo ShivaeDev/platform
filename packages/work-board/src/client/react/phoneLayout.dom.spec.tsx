@@ -31,10 +31,10 @@ screenStory.it(
 
 		yield* openPhoneSearch();
 
-		yield* outcomes({
-			"Search": [searchDialog(), "open"],
-			"the keyboard hints": [searchHints(), "none"],
-		});
+		yield* outcomes([
+			["Search", () => searchDialog(), "open"],
+			["the keyboard hints", () => searchHints(), "none"],
+		]);
 	},
 );
 
@@ -51,10 +51,10 @@ for (const [tab, href, heading] of [
 
 			yield* openPhoneTab(tab);
 
-			yield* outcomes({
-				"the heading": [mainHeading(), heading],
-				"the tabs": [phoneTabs(), phoneTabList(href)],
-			});
+			yield* outcomes([
+				["the heading", () => mainHeading(), heading],
+				["the tabs", () => phoneTabs(), phoneTabList(href)],
+			]);
 		},
 	);
 }
@@ -73,10 +73,10 @@ for (const [name, href] of [
 
 			yield* chooseInMore(name);
 
-			yield* outcomes({
-				"More": [moreSheet(), "closed"],
-				"the page": [currentPage(), href],
-			});
+			yield* outcomes([
+				["More", () => moreSheet(), "closed"],
+				["the page", () => currentPage(), href],
+			]);
 		},
 	);
 }
@@ -102,10 +102,10 @@ screenStory.it(
 
 		yield* openSettings();
 
-		yield* outcomes({
-			"Settings": [settingsPanel(), "open"],
-			"the pressed choices": [appearanceChoices(), expect.arrayContaining(["System"])],
-		});
+		yield* outcomes([
+			["Settings", () => settingsPanel(), "open"],
+			["the pressed choices", () => appearanceChoices(), expect.arrayContaining(["System"])],
+		]);
 	},
 );
 

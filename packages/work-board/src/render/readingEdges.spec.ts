@@ -9,11 +9,11 @@ boardStory.it(
 	"code in an unrecognised fenced language stays readable and is not highlighted",
 	[projectFiles({ [HOME]: "```consumer-specific-language\nvalue < limit\n```\n" })],
 	function* ({ renderedAttributes, renderedTexts }) {
-		yield* outcomes({
-			code: [renderedTexts(HOME, "pre code"), ["value < limit"]],
-			"code language": [renderedAttributes(HOME, "pre code", "class"), ["language-consumer-specific-language"]],
-			"highlighted blocks": [renderedTexts(HOME, ".shiki"), []],
-		});
+		yield* outcomes([
+			["code", () => renderedTexts(HOME, "pre code"), ["value < limit"]],
+			["code language", () => renderedAttributes(HOME, "pre code", "class"), ["language-consumer-specific-language"]],
+			["highlighted blocks", () => renderedTexts(HOME, ".shiki"), []],
+		]);
 	},
 );
 
@@ -35,10 +35,10 @@ boardStory.it(
 	"a metric without its label paragraph shows its source with the reason instead of inventing a label",
 	[projectFiles({ [HOME]: ':::metric{value="1" unit="documents"}\nSource: [Checks](checks.md)\n:::\n' })],
 	function* ({ renderedText, renderedTexts }) {
-		yield* outcomes({
-			metrics: [renderedTexts(HOME, ".visual-metric"), []],
-			"page text": [renderedText(HOME), expect.stringMatching(/Start with a Markdown label paragraph\..*:::metric/u)],
-		});
+		yield* outcomes([
+			["metrics", () => renderedTexts(HOME, ".visual-metric"), []],
+			["page text", () => renderedText(HOME), expect.stringMatching(/Start with a Markdown label paragraph\..*:::metric/u)],
+		]);
 	},
 );
 
@@ -46,9 +46,9 @@ boardStory.it(
 	"a reference-style source link counts as a metric's source",
 	[projectFiles({ [HOME]: ':::metric{value="1" unit="documents"}\nReviewed files\n\nSource: [Checks][checks]\n:::\n\n[checks]: checks.md\n' })],
 	function* ({ renderedAttributes, renderedText }) {
-		yield* outcomes({
-			"metric source links": [renderedAttributes(HOME, ".visual-metric a", "href"), ["/nested/checks.md"]],
-			"page text": [renderedText(HOME), expect.not.stringContaining("Visual component could not be rendered")],
-		});
+		yield* outcomes([
+			["metric source links", () => renderedAttributes(HOME, ".visual-metric a", "href"), ["/nested/checks.md"]],
+			["page text", () => renderedText(HOME), expect.not.stringContaining("Visual component could not be rendered")],
+		]);
 	},
 );

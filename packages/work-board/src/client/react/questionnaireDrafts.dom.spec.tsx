@@ -73,10 +73,10 @@ screenStory.it(
 
 		yield* answerCardRefreshes(revised, prompts, 4);
 
-		yield* outcomes({
-			direction: [answerBoxState("direction"), expect.objectContaining({ text: "Revised direction" })],
-			"earlier answers": [readDraftRecoveries(), [expect.stringContaining('"text": "Revised direction"'), before[1]]],
-		});
+		yield* outcomes([
+			["direction", () => answerBoxState("direction"), expect.objectContaining({ text: "Revised direction" })],
+			["earlier answers", () => readDraftRecoveries(), [expect.stringContaining('"text": "Revised direction"'), before[1]]],
+		]);
 	},
 );
 
@@ -95,12 +95,16 @@ screenStory.it(
 
 		yield* answerCardRefreshes(revised, prompts, 2);
 
-		yield* outcomes({
-			direction: [answerBoxState("direction"), expect.objectContaining({ text: "Existing direction" })],
-			"earlier answers": [earlierAnswers(), expect.stringContaining("Older unrelated answer")],
-			"earlier entries": [readDraftRecoveries(), [expect.stringContaining('"text": "Existing direction"')]],
-			stored: [storedEarlierAnswers(), { legacy: "Older unrelated answer", versions: [expect.stringContaining('"text": "Existing direction"')] }],
-		});
+		yield* outcomes([
+			["direction", () => answerBoxState("direction"), expect.objectContaining({ text: "Existing direction" })],
+			["earlier answers", () => earlierAnswers(), expect.stringContaining("Older unrelated answer")],
+			["earlier entries", () => readDraftRecoveries(), [expect.stringContaining('"text": "Existing direction"')]],
+			[
+				"stored",
+				() => storedEarlierAnswers(),
+				{ legacy: "Older unrelated answer", versions: [expect.stringContaining('"text": "Existing direction"')] },
+			],
+		]);
 	},
 );
 
@@ -114,10 +118,10 @@ screenStory.it(
 
 		yield* chooseAnswer("local");
 
-		yield* outcomes({
-			chosen: [chosenOptions(), ["local"]],
-			status: [answerStatusLine(), expect.stringContaining("Source changed")],
-		});
+		yield* outcomes([
+			["chosen", () => chosenOptions(), ["local"]],
+			["status", () => answerStatusLine(), expect.stringContaining("Source changed")],
+		]);
 	},
 );
 
@@ -133,9 +137,9 @@ screenStory.it(
 
 		yield* answerCardRefreshes(revised, choices, 1);
 
-		yield* outcomes({
-			chosen: [chosenOptions(), ["local"]],
-			note: [answerBoxState("direction"), { focused: true, selection: [3, 7], text: "A revised rationale" }],
-		});
+		yield* outcomes([
+			["chosen", () => chosenOptions(), ["local"]],
+			["note", () => answerBoxState("direction"), { focused: true, selection: [3, 7], text: "A revised rationale" }],
+		]);
 	},
 );

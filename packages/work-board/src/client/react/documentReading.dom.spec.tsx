@@ -43,9 +43,10 @@ screenStory.it(
 	"the workspace notes board reads as its introduction followed by each column with its items, and the header does not repeat the introduction",
 	[readingPage({ "notes.md": NOTES }, "/notes.md", { home: "notes.md" })],
 	function* ({ notesBoard, pageHeader }) {
-		yield* outcomes({
-			board: [
-				notesBoard(),
+		yield* outcomes([
+			[
+				"board",
+				() => notesBoard(),
 				{
 					columns: [
 						{ column: "Plan", items: [{ item: "Keep the source readable", text: "Readers open the source first." }] },
@@ -54,8 +55,8 @@ screenStory.it(
 					introduction: "Local planning for the project.",
 				},
 			],
-			header: [pageHeader(), expect.not.stringContaining("Local planning")],
-		});
+			["header", () => pageHeader(), expect.not.stringContaining("Local planning")],
+		]);
 	},
 );
 
@@ -71,10 +72,10 @@ screenStory.it(
 	"a workspace notes board without columns shows only its introduction and no item counts",
 	[readingPage({ "notes.md": INTRODUCTION }, "/notes.md", { home: "notes.md" })],
 	function* ({ boardSummary, notesBoard }) {
-		yield* outcomes({
-			board: [notesBoard(), { columns: [], introduction: "Local planning for the project." }],
-			counts: [boardSummary(), expect.objectContaining({ counts: "none" })],
-		});
+		yield* outcomes([
+			["board", () => notesBoard(), { columns: [], introduction: "Local planning for the project." }],
+			["counts", () => boardSummary(), expect.objectContaining({ counts: "none" })],
+		]);
 	},
 );
 

@@ -41,10 +41,10 @@ for (const [title, label, prompt, item] of [
 
 			yield* followFullQuestion();
 
-			yield* outcomes({
-				draft: [answerBoxState(prompt), expect.objectContaining({ text: "Started on Today" })],
-				page: [currentRoute(), expect.stringMatching(new RegExp(`^${item}`, "u"))],
-			});
+			yield* outcomes([
+				["draft", () => answerBoxState(prompt), expect.objectContaining({ text: "Started on Today" })],
+				["page", () => currentRoute(), expect.stringMatching(new RegExp(`^${item}`, "u"))],
+			]);
 		},
 	);
 
@@ -71,10 +71,10 @@ screenStory.it(
 	function* ({ answerOnToday, focusedControl, todayAnswerPanel }) {
 		yield* answerOnToday("Keep the startup workaround?");
 
-		yield* outcomes({
-			focus: [focusedControl(), { name: "Your answer", role: "textbox" }],
-			panel: [todayAnswerPanel(), expect.objectContaining({ order: expect.arrayContaining(["Options in the question (3) (collapsed)"]) })],
-		});
+		yield* outcomes([
+			["focus", () => focusedControl(), { name: "Your answer", role: "textbox" }],
+			["panel", () => todayAnswerPanel(), expect.objectContaining({ order: expect.arrayContaining(["Options in the question (3) (collapsed)"]) })],
+		]);
 	},
 );
 
@@ -84,10 +84,10 @@ screenStory.it(
 	function* ({ answerOnToday, focusedControl, todayAnswerPanel }) {
 		yield* answerOnToday("Pick the launch day");
 
-		yield* outcomes({
-			focus: [focusedControl(), { name: "Monday Choose monday.", role: "button" }],
-			panel: [todayAnswerPanel(), expect.objectContaining({ order: expect.arrayContaining(["Recommendation in the question (collapsed)"]) })],
-		});
+		yield* outcomes([
+			["focus", () => focusedControl(), { name: "Monday Choose monday.", role: "button" }],
+			["panel", () => todayAnswerPanel(), expect.objectContaining({ order: expect.arrayContaining(["Recommendation in the question (collapsed)"]) })],
+		]);
 	},
 );
 
@@ -99,10 +99,10 @@ screenStory.it(
 
 		yield* answerOnToday(READER);
 
-		yield* outcomes({
-			"phone navigation": [phoneNavigation(), "hidden"],
-			"Today answer": [todayAnswer(), expect.objectContaining({ name: `Answer ${READER}`, shape: "bottom sheet" })],
-		});
+		yield* outcomes([
+			["phone navigation", () => phoneNavigation(), "hidden"],
+			["Today answer", () => todayAnswer(), expect.objectContaining({ name: `Answer ${READER}`, shape: "bottom sheet" })],
+		]);
 	},
 );
 
@@ -128,10 +128,10 @@ screenStory.it(
 
 		yield* recordOnToday();
 
-		yield* outcomes({
-			"needs you": [needsYou(), expect.not.arrayContaining([READER])],
-			recorded: [recordedAnswers("decision.reader", "direction"), [expect.objectContaining({ body: "Publish the guide on Monday." })]],
-		});
+		yield* outcomes([
+			["needs you", () => needsYou(), expect.not.arrayContaining([READER])],
+			["recorded", () => recordedAnswers("decision.reader", "direction"), [expect.objectContaining({ body: "Publish the guide on Monday." })]],
+		]);
 	},
 );
 

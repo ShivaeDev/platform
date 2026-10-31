@@ -58,15 +58,16 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:1"]],
-			messages: [
-				messages(),
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:1"]],
+			[
+				"messages",
+				() => messages(),
 				[
 					'Extends "@acme/app/lint", which weakens "lint/suspicious/own" for "**" without a declaration. Repair the code and restore the check in the preset.',
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -76,10 +77,14 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["configs/base.json:1"]],
-			messages: [messages(), ['Weakens "lint/suspicious/base" for "**" without a declaration. Repair the code and remove the weakening setting.']],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["configs/base.json:1"]],
+			[
+				"messages",
+				() => messages(),
+				['Weakens "lint/suspicious/base" for "**" without a declaration. Repair the code and remove the weakening setting.'],
+			],
+		]);
 	},
 );
 
@@ -126,10 +131,10 @@ for (const [what, files, message] of [
 		function* ({ check, locations, messages }) {
 			yield* check(biomeOverrides);
 
-			yield* outcomes({
-				locations: [locations(), ["biome.json:3"]],
-				messages: [messages(), [expect.stringContaining(message)]],
-			});
+			yield* outcomes([
+				["locations", () => locations(), ["biome.json:3"]],
+				["messages", () => messages(), [expect.stringContaining(message)]],
+			]);
 		},
 	);
 }

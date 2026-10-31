@@ -44,11 +44,11 @@ boardStory.it(
 	function* ({ editFile, libraryListing, nextChange, sourceOf }) {
 		editFile("later/idea.md", "# Idea\n");
 
-		yield* outcomes({
-			"announced change": [nextChange(), ["workspace index"]],
-			library: [libraryListing(), ["/later/idea.md", "/notes/log.md", "/plan.md"]],
-			"the new file": [sourceOf("later/idea.md"), "# Idea\n"],
-		});
+		yield* outcomes([
+			["announced change", () => nextChange(), ["workspace index"]],
+			["library", () => libraryListing(), ["/later/idea.md", "/notes/log.md", "/plan.md"]],
+			["the new file", () => sourceOf("later/idea.md"), "# Idea\n"],
+		]);
 	},
 );
 
@@ -60,10 +60,10 @@ boardStory.it(
 
 		yield* watcherFails();
 
-		yield* outcomes({
-			"the next change": [nextChange(), ["watcher list"]],
-			"the project": [watcherState(), "not watching"],
-		});
+		yield* outcomes([
+			["the next change", () => nextChange(), ["watcher list"]],
+			["the project", () => watcherState(), "not watching"],
+		]);
 	},
 );
 
@@ -73,10 +73,10 @@ boardStory.it(
 	function* ({ clientSubscribes, nextChange, watcherState }) {
 		yield* clientSubscribes("a late client");
 
-		yield* outcomes({
-			"the late client's first change": [nextChange("a late client"), "resync"],
-			"the project": [watcherState(), "not watching"],
-		});
+		yield* outcomes([
+			["the late client's first change", () => nextChange("a late client"), "resync"],
+			["the project", () => watcherState(), "not watching"],
+		]);
 	},
 );
 
@@ -87,10 +87,10 @@ boardStory.it(
 		yield* watcherHeals();
 		yield* watcherBecomes("watching");
 
-		yield* outcomes({
-			"the live client's next change": [nextChange(), "resync"],
-			"the project": [watcherState(), "watching"],
-		});
+		yield* outcomes([
+			["the live client's next change", () => nextChange(), "resync"],
+			["the project", () => watcherState(), "watching"],
+		]);
 	},
 );
 

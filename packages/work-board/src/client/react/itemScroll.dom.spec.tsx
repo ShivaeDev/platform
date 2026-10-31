@@ -14,17 +14,17 @@ screenStory.it(
 	"scrolling a goal past its top compacts its tall header while the layout keeps the header's full height, so the text below stays put",
 	[screenHeaderLayout(279, 53), goal],
 	function* ({ headerHeightsInLayout, headerState, scrollReading }) {
-		yield* outcomes({
-			header: [headerState(), "expanded"],
-			"header heights in the layout": [headerHeightsInLayout(), [279]],
-		});
+		yield* outcomes([
+			["header", () => headerState(), "expanded"],
+			["header heights in the layout", () => headerHeightsInLayout(), [279]],
+		]);
 
 		yield* scrollReading(60);
 
-		yield* outcomes({
-			header: [headerState(), "compact"],
-			"header heights in the layout": [headerHeightsInLayout(), [279]],
-		});
+		yield* outcomes([
+			["header", () => headerState(), "compact"],
+			["header heights in the layout", () => headerHeightsInLayout(), [279]],
+		]);
 	},
 );
 
@@ -37,9 +37,9 @@ screenStory.it(
 
 		yield* scrollReading(0);
 
-		yield* outcomes({
-			header: [headerState(), "expanded"],
-			"header heights in the layout": [headerHeightsInLayout(), [279]],
-		});
+		yield* outcomes([
+			["header", () => headerState(), "expanded"],
+			["header heights in the layout", () => headerHeightsInLayout(), [279]],
+		]);
 	},
 );

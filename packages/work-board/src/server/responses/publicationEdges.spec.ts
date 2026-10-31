@@ -8,9 +8,9 @@ boardStory.it(
 	function* ({ folderEntries, moveFile, publishIntoOpenFolder }) {
 		moveFile("responses", "moved");
 
-		yield* outcomes({
-			"moved folder": [folderEntries("moved"), ["existing.md"]],
-			publication: [publishIntoOpenFolder("response.edge", "New feedback"), "conflict: The write boundary changed."],
-		});
+		yield* outcomes([
+			["moved folder", () => folderEntries("moved"), ["existing.md"]],
+			["publication", () => publishIntoOpenFolder("response.edge", "New feedback"), "conflict: The write boundary changed."],
+		]);
 	},
 );

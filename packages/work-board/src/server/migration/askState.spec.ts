@@ -25,11 +25,11 @@ for (const [id, status, urgency, why] of [
 			yield* migrationRuns();
 			yield* start();
 
-			yield* outcomes({
-				"answer field": [itemMetadata(`/_board/item/fleet.${id}/`), expect.not.objectContaining({ answer: expect.anything() })],
-				metadata: [itemMetadata(`/_board/item/fleet.${id}/`), expect.objectContaining({ kind: "question", scope: "task", status, urgency })],
-				problems: [itemDiagnostics(`/_board/item/fleet.${id}/`), []],
-			});
+			yield* outcomes([
+				["answer field", () => itemMetadata(`/_board/item/fleet.${id}/`), expect.not.objectContaining({ answer: expect.anything() })],
+				["metadata", () => itemMetadata(`/_board/item/fleet.${id}/`), expect.objectContaining({ kind: "question", scope: "task", status, urgency })],
+				["problems", () => itemDiagnostics(`/_board/item/fleet.${id}/`), []],
+			]);
 		},
 	);
 }

@@ -25,10 +25,10 @@ boardStory.it(
 		yield* maintainerReplies("task.first", "direction", "response.first", "Keep local files.\nMore context.");
 		yield* maintainerReplies("task.second", "review", "response.second", "Proceed with the review.");
 
-		yield* outcomes({
-			"first line": [feedPrints(), "task.first\tdirection\tresponse.first\tKeep local files."],
-			"second line": [feedPrints(), "task.second\treview\tresponse.second\tProceed with the review."],
-		});
+		yield* outcomes([
+			["first line", () => feedPrints(), "task.first\tdirection\tresponse.first\tKeep local files."],
+			["second line", () => feedPrints(), "task.second\treview\tresponse.second\tProceed with the review."],
+		]);
 	},
 );
 
@@ -57,9 +57,9 @@ boardStory.it(
 		yield* followResponsesSince("response.replay");
 		yield* maintainerReplies("task.first", "direction", "response.live", "Use the new direction.");
 
-		yield* outcomes({
-			"first line": [feedPrints(), "task.second\treview\tresponse.replay\tRevisit tomorrow."],
-			"second line": [feedPrints(), "task.first\tdirection\tresponse.live\tUse the new direction."],
-		});
+		yield* outcomes([
+			["first line", () => feedPrints(), "task.second\treview\tresponse.replay\tRevisit tomorrow."],
+			["second line", () => feedPrints(), "task.first\tdirection\tresponse.live\tUse the new direction."],
+		]);
 	},
 );

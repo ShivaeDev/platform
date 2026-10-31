@@ -23,17 +23,17 @@ for (const { label, shape, url } of [
 		`${url} holds a ${shape}-shaped skeleton until its data arrives`,
 		[todayScreen(), screenRoute(url), heldWorkspace(), openScreen()],
 		function* ({ loadingState, mainHeading, releaseWorkspace }) {
-			yield* outcomes({
-				heading: [mainHeading(), "no heading"],
-				loading: [loadingState(), { shape, skeletons: "shown", status: label }],
-			});
+			yield* outcomes([
+				["heading", () => mainHeading(), "no heading"],
+				["loading", () => loadingState(), { shape, skeletons: "shown", status: label }],
+			]);
 
 			yield* releaseWorkspace();
 
-			yield* outcomes({
-				heading: [mainHeading(), expect.not.stringMatching(/^no heading$/u)],
-				loading: [loadingState(), "not loading"],
-			});
+			yield* outcomes([
+				["heading", () => mainHeading(), expect.not.stringMatching(/^no heading$/u)],
+				["loading", () => loadingState(), "not loading"],
+			]);
 		},
 	);
 }
@@ -53,21 +53,23 @@ screenStory.it(
 	"An empty Today says what fills Needs you and Goals and where to go next",
 	[routedScreen({}, "/")],
 	function* ({ emptyState, loadingState }) {
-		yield* outcomes({
-			goals: [
-				emptyState("Today goals"),
+		yield* outcomes([
+			[
+				"goals",
+				() => emptyState("Today goals"),
 				expect.objectContaining({ action: { href: "/_board/goals", label: "All goals" }, title: "No active goals" }),
 			],
-			loading: [loadingState(), "not loading"],
-			"needs you": [
-				emptyState("Needs you"),
+			["loading", () => loadingState(), "not loading"],
+			[
+				"needs you",
+				() => emptyState("Needs you"),
 				{
 					action: { href: "/_board/start", label: "Getting started" },
 					description: "Questions and reviews from your agents appear here when they need your answer.",
 					title: "Nothing needs you",
 				},
 			],
-		});
+		]);
 	},
 );
 
@@ -75,13 +77,14 @@ screenStory.it(
 	"Now shows one empty state instead of empty lanes when the workspace declares no work",
 	[routedScreen({ "notes.md": "# Notes" }, "/_board/work")],
 	function* ({ emptyState, nowLanes }) {
-		yield* outcomes({
-			empty: [
-				emptyState("work results"),
+		yield* outcomes([
+			[
+				"empty",
+				() => emptyState("work results"),
 				expect.objectContaining({ action: { href: "/_board/start", label: "Getting started" }, title: "No work yet" }),
 			],
-			lanes: [nowLanes(), []],
-		});
+			["lanes", () => nowLanes(), []],
+		]);
 	},
 );
 
@@ -103,29 +106,35 @@ screenStory.it(
 	"A table filtered to no rows becomes a No matching work state whose link clears the filters",
 	[routedScreen(work, "/_board/work?view=table&q=nothing-matches")],
 	function* ({ emptyState, tableRows }) {
-		yield* outcomes({
-			empty: [
-				emptyState("work results"),
+		yield* outcomes([
+			[
+				"empty",
+				() => emptyState("work results"),
 				expect.objectContaining({
 					action: { href: "/_board/work?view=table&sort=title#work-results", label: "Clear filters" },
 					title: "No matching work",
 				}),
 			],
-			rows: [tableRows(), []],
-		});
+			["rows", () => tableRows(), []],
+		]);
 	},
 );
 
 screenStory.it("Now names what fills each empty lane", [routedScreen(work, "/_board/work")], function* ({ nowLane }) {
-	yield* outcomes({
-		queued: [nowLane("Queued"), expect.objectContaining({ cards: ["task.build"], empty: "none" })],
-		reviewing: [nowLane("Reviewing"), expect.objectContaining({ empty: expect.objectContaining({ title: "Nothing in review" }) })],
-		"waiting on you": [nowLane("Waiting on you"), expect.objectContaining({ empty: expect.objectContaining({ title: "Nothing waiting on you" }) })],
-		working: [
-			nowLane("Working"),
+	yield* outcomes([
+		["queued", () => nowLane("Queued"), expect.objectContaining({ cards: ["task.build"], empty: "none" })],
+		["reviewing", () => nowLane("Reviewing"), expect.objectContaining({ empty: expect.objectContaining({ title: "Nothing in review" }) })],
+		[
+			"waiting on you",
+			() => nowLane("Waiting on you"),
+			expect.objectContaining({ empty: expect.objectContaining({ title: "Nothing waiting on you" }) }),
+		],
+		[
+			"working",
+			() => nowLane("Working"),
 			expect.objectContaining({ empty: { description: "Work an agent is building appears here.", title: "Nothing working" } }),
 		],
-	});
+	]);
 });
 
 screenStory.it("An empty Library says what fills it", [routedScreen({}, "/_board/library")], function* ({ emptyState }) {
@@ -146,10 +155,10 @@ screenStory.it(
 
 		yield* followEmptyState();
 
-		yield* outcomes({
-			empty: [emptyState(), "no empty state"],
-			titles: [libraryTitles(), ["Closed notes", "Build the page"]],
-		});
+		yield* outcomes([
+			["empty", () => emptyState(), "no empty state"],
+			["titles", () => libraryTitles(), ["Closed notes", "Build the page"]],
+		]);
 	},
 );
 
@@ -163,21 +172,25 @@ screenStory.it(
 		),
 	],
 	function* ({ emptyState, goalPageProgress, goalPageStateCounts, linkedWork }) {
-		yield* outcomes({
-			criteria: [emptyState("criteria"), expect.objectContaining({ title: "No criteria" })],
-			"linked work": [emptyState("linked work"), expect.objectContaining({ title: "No linked work" })],
-			"linked work groups": [linkedWork(), {}],
-			progress: [goalPageProgress(), "no progress bar"],
-			"state counts": [goalPageStateCounts(), []],
-		});
+		yield* outcomes([
+			["criteria", () => emptyState("criteria"), expect.objectContaining({ title: "No criteria" })],
+			["linked work", () => emptyState("linked work"), expect.objectContaining({ title: "No linked work" })],
+			["linked work groups", () => linkedWork(), {}],
+			["progress", () => goalPageProgress(), "no progress bar"],
+			["state counts", () => goalPageStateCounts(), []],
+		]);
 	},
 );
 
 screenStory.it("The sidebar names each empty list", [chromeScreen({ "notes/plan.md": "# Plan\n" }, "/_board/library")], function* ({ emptyState }) {
-	yield* outcomes({
-		"active goals": [emptyState("sidebar Active goals"), expect.objectContaining({ title: "No active goals" })],
-		pinned: [emptyState("sidebar Pinned"), expect.objectContaining({ description: "Pin a document to keep it here.", title: "No pinned documents" })],
-	});
+	yield* outcomes([
+		["active goals", () => emptyState("sidebar Active goals"), expect.objectContaining({ title: "No active goals" })],
+		[
+			"pinned",
+			() => emptyState("sidebar Pinned"),
+			expect.objectContaining({ description: "Pin a document to keep it here.", title: "No pinned documents" }),
+		],
+	]);
 });
 
 screenStory.it(
@@ -195,17 +208,18 @@ screenStory.it(
 	[searchScreen({ "notes.md": "# Notes\n\nPlain text." }, { home: undefined })],
 	function* ({ emptyState, followEmptyState, searchFor, searchIncludesFleetFiles }) {
 		yield* searchFor("zzzz");
-		yield* outcomes({
-			empty: [
-				emptyState("search"),
+		yield* outcomes([
+			[
+				"empty",
+				() => emptyState("search"),
 				{
 					action: { label: "Include files Fleet writes" },
 					description: "Nothing in this workspace matches “zzzz”. Try fewer or different words.",
 					title: "No matches",
 				},
 			],
-			"includes Fleet files": [searchIncludesFleetFiles(), false],
-		});
+			["includes Fleet files", () => searchIncludesFleetFiles(), false],
+		]);
 
 		yield* followEmptyState("search");
 

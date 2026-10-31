@@ -26,9 +26,9 @@ for (const [name, refusal] of [
 	foundationAdmin.it(`the foundation refuses ${name} on Users and Jobs`, [foundationAccount("reader")], function* ({ openAdmin }) {
 		const client = yield* openAdmin(name);
 
-		yield* outcomes({
-			Jobs: [Effect.flip(client["admin.jobs.health"]()), expect.objectContaining({ _tag: refusal })],
-			Users: [Effect.flip(client["admin.users.list"]({ limit: 20 })), expect.objectContaining({ _tag: refusal })],
-		});
+		yield* outcomes([
+			["Jobs", () => Effect.flip(client["admin.jobs.health"]()), expect.objectContaining({ _tag: refusal })],
+			["Users", () => Effect.flip(client["admin.users.list"]({ limit: 20 })), expect.objectContaining({ _tag: refusal })],
+		]);
 	});
 }

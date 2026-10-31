@@ -109,8 +109,8 @@ tracing.it("a cancelled request stays interrupted", [], function* ({ cancel }) {
 tracing.it("a cancelled request logs neither an RPC failure nor a defect", [], function* ({ cancel, defectLogs, failureLogs }) {
 	yield* cancel();
 
-	yield* outcomes({
-		"defect logs": [defectLogs(), []],
-		"failure logs": [failureLogs(), []],
-	});
+	yield* outcomes([
+		["defect logs", () => defectLogs(), []],
+		["failure logs", () => failureLogs(), []],
+	]);
 });

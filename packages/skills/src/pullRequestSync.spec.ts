@@ -8,10 +8,10 @@ const CHECK = "Check the shared skills";
 const SYNC = "Sync, commit and push the shared skills";
 
 skills.it("the sync workflow runs on pull requests, and only for branches of the same repository", [], function* ({ workflow }) {
-	yield* outcomes({
-		"job condition": [workflow.jobCondition(), "github.event.pull_request.head.repo.full_name == github.repository"],
-		triggers: [workflow.triggers(), ["pull_request"]],
-	});
+	yield* outcomes([
+		["job condition", () => workflow.jobCondition(), "github.event.pull_request.head.repo.full_name == github.repository"],
+		["triggers", () => workflow.triggers(), ["pull_request"]],
+	]);
 });
 
 skills.it("the sync workflow asks for contents: write so its sync step can push", [], function* ({ workflow }) {
@@ -19,18 +19,18 @@ skills.it("the sync workflow asks for contents: write so its sync step can push"
 });
 
 skills.it("the sync workflow installs dependencies from the frozen lockfile before the check and sync steps", [], function* ({ workflow }) {
-	yield* outcomes({
-		"install command": [workflow.stepField(INSTALL, "run"), "pnpm install --frozen-lockfile"],
-		steps: [workflow.stepNames(), ["Check out the pull request branch", "Set up pnpm", "Set up Node.js", INSTALL, CHECK, SYNC]],
-	});
+	yield* outcomes([
+		["install command", () => workflow.stepField(INSTALL, "run"), "pnpm install --frozen-lockfile"],
+		["steps", () => workflow.stepNames(), ["Check out the pull request branch", "Set up pnpm", "Set up Node.js", INSTALL, CHECK, SYNC]],
+	]);
 });
 
 skills.it("the check step may fail without failing the job, and the sync step runs only when it failed", [], function* ({ workflow }) {
-	yield* outcomes({
-		"check step continues on error": [workflow.stepField(CHECK, "continue-on-error"), true],
-		"check step id": [workflow.stepField(CHECK, "id"), "check"],
-		"sync step condition": [workflow.stepField(SYNC, "if"), "steps.check.outcome == 'failure'"],
-	});
+	yield* outcomes([
+		["check step continues on error", () => workflow.stepField(CHECK, "continue-on-error"), true],
+		["check step id", () => workflow.stepField(CHECK, "id"), "check"],
+		["sync step condition", () => workflow.stepField(SYNC, "if"), "steps.check.outcome == 'failure'"],
+	]);
 });
 
 skills.it(

@@ -40,10 +40,10 @@ boardStory.it(
 	function* ({ fileText, reviewFeedback, reviewReport }) {
 		yield* reviewReport("response.revise", "revision");
 
-		yield* outcomes({
-			feedback: [reviewFeedback(), [feedbackEntry("response.revise", "this version")]],
-			task: [fileText("items/task.md"), REVIEW_TASK],
-		});
+		yield* outcomes([
+			["feedback", () => reviewFeedback(), [feedbackEntry("response.revise", "this version")]],
+			["task", () => fileText("items/task.md"), REVIEW_TASK],
+		]);
 	},
 );
 
@@ -123,13 +123,14 @@ boardStory.it(
 
 		yield* edited("responses/broken.md", "---\nresponse: [unfinished\n");
 
-		yield* outcomes({
-			feedback: [reviewFeedback(), []],
-			unreadable: [
-				unreadableFeedback(),
+		yield* outcomes([
+			["feedback", () => reviewFeedback(), []],
+			[
+				"unreadable",
+				() => unreadableFeedback(),
 				{ files: [expect.stringMatching(/^responses\/broken\.md: \S/u)], sourceProblems: "/_board/system#source-problems" },
 			],
-		});
+		]);
 	},
 );
 
@@ -176,11 +177,11 @@ boardStory.it(
 		const accepted = yield* reviewReport("response.crlf", "accept");
 
 		expect(accepted.response.reviewedRevision).toBe(revisionOf(source));
-		yield* outcomes({
-			feedback: [reviewFeedback(), [feedbackEntry("response.crlf", "this version")]],
-			report: [fileText("items/result.md"), source],
-			"shown revisions": [reviewedRevisions(), [revisionOf(source)]],
-		});
+		yield* outcomes([
+			["feedback", () => reviewFeedback(), [feedbackEntry("response.crlf", "this version")]],
+			["report", () => fileText("items/result.md"), source],
+			["shown revisions", () => reviewedRevisions(), [revisionOf(source)]],
+		]);
 	},
 );
 

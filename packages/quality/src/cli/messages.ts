@@ -6,7 +6,7 @@ export const USAGE = `Usage:
   quality exceptions migrate [--config <file>] [--from <registry>]
   quality baseline merge <ancestor> <current> <other>
   quality baseline install-driver
-  quality baseline write [--config <file>] [--rule <id>]... [--file <path>]...
+  quality baseline write [--config <file>] [--rule <id>]... [--file <path>]... [--first-adoption]
   quality baseline prune [--config <file>] [--against <ref>]
   quality baseline tighten [--config <file>] [--staged]
   quality baseline migrate [--config <file>] [--from <file>]
@@ -25,6 +25,7 @@ exceptions migrate Move legacy registry entries and Biome declarations into qual
 baseline merge    Merge Git baseline versions into <current>: deletions win and counts take the minimum.
 baseline install-driver Configure only the repository-local merge.quality-baseline.driver setting.
 baseline write    Adopt initial debt once, or record named rules only for --file paths changed since HEAD. Stage new files first.
+                  --first-adoption records a shared policy upgrade for explicit rules that refuse config exceptions, including unchanged files.
 baseline prune    Drop fixed debt, lower entries to what is left and carry entries to files git saw move. Never adds or raises an entry.
 baseline tighten  Prune only the entries of files changed since HEAD, or with --staged, in the index.
 baseline migrate  Move a JSON or JSON Lines baseline (--from, quality/baseline.json by default) into root and package shards.

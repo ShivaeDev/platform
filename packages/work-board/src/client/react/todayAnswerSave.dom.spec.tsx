@@ -24,12 +24,12 @@ screenStory.it(
 		yield* recordOnToday();
 
 		const left = String(before["Needs you"] - 1);
-		yield* outcomes({
-			counts: [todayCounts(), { header: left, "Needs you": before["Needs you"] - 1, phone: left, sidebar: left }],
-			"needs you": [needsYou(), expect.not.arrayContaining([READER])],
-			notice: [needsYouNotice(), "Answer saved"],
-			"Today answer": [todayAnswer(), "closed"],
-		});
+		yield* outcomes([
+			["counts", () => todayCounts(), { header: left, "Needs you": before["Needs you"] - 1, phone: left, sidebar: left }],
+			["needs you", () => needsYou(), expect.not.arrayContaining([READER])],
+			["notice", () => needsYouNotice(), "Answer saved"],
+			["Today answer", () => todayAnswer(), "closed"],
+		]);
 	},
 );
 
@@ -69,12 +69,12 @@ screenStory.it(
 
 		yield* releaseRefreshAfterAnswer();
 
-		yield* outcomes({
-			answered: [answeredRows(), expect.arrayContaining([[READER, expect.any(String)]])],
-			counts: [todayCounts(), saved],
-			focus: [focusedControl(), expect.objectContaining({ name: READER })],
-			"needs you": [needsYou(), expect.not.arrayContaining([READER])],
-		});
+		yield* outcomes([
+			["answered", () => answeredRows(), expect.arrayContaining([[READER, expect.any(String)]])],
+			["counts", () => todayCounts(), saved],
+			["focus", () => focusedControl(), expect.objectContaining({ name: READER })],
+			["needs you", () => needsYou(), expect.not.arrayContaining([READER])],
+		]);
 	},
 );
 
@@ -113,10 +113,10 @@ screenStory.it(
 
 		yield* answerOnToday("Pick a venue for the launch");
 
-		yield* outcomes({
-			options: [todayOptions(), ["Hall Choose hall. (disabled)", "Park Choose park. (disabled)"]],
-			status: [todayAnswer(), expect.objectContaining({ status: "Reconnecting to the Board. You can answer once it is back." })],
-		});
+		yield* outcomes([
+			["options", () => todayOptions(), ["Hall Choose hall. (disabled)", "Park Choose park. (disabled)"]],
+			["status", () => todayAnswer(), expect.objectContaining({ status: "Reconnecting to the Board. You can answer once it is back." })],
+		]);
 	},
 );
 
@@ -160,15 +160,16 @@ screenStory.it(
 
 		yield* expandTodayContext();
 
-		yield* outcomes({
-			options: [todayOptions(), expect.arrayContaining(["Monday Choose monday."])],
-			panel: [
-				todayAnswerPanel(),
+		yield* outcomes([
+			["options", () => todayOptions(), expect.arrayContaining(["Monday Choose monday."])],
+			[
+				"panel",
+				() => todayAnswerPanel(),
 				expect.objectContaining({
 					order: expect.arrayContaining(["Recommendation in the question (expanded)"]),
 					text: expect.stringMatching(/^(?!.*Options in the question).*Monday, so the team can watch it\./su),
 				}),
 			],
-		});
+		]);
 	},
 );

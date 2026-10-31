@@ -29,10 +29,10 @@ for (const [target, url] of REFUSED_TARGETS) {
 	postgres.it(`preparing a database at ${target} is refused before any command runs`, [], function* ({ outcome, prepare, subprocesses }) {
 		yield* prepare([url]);
 
-		yield* outcomes({
-			"commands": [subprocesses(), []],
-			"setup": [outcome(), "failed: Use a local database on 127.0.0.1:55432 named example_test."],
-		});
+		yield* outcomes([
+			["commands", () => subprocesses(), []],
+			["setup", () => outcome(), "failed: Use a local database on 127.0.0.1:55432 named example_test."],
+		]);
 	});
 
 	postgres.it(
@@ -41,29 +41,29 @@ for (const [target, url] of REFUSED_TARGETS) {
 		function* ({ outcome, prepare, subprocesses }) {
 			yield* prepare([`${SERVER}/example_dev`, url]);
 
-			yield* outcomes({
-				"commands": [subprocesses(), []],
-				"setup": [outcome(), "failed: Use a local database on 127.0.0.1:55432 named example_test."],
-			});
+			yield* outcomes([
+				["commands", () => subprocesses(), []],
+				["setup", () => outcome(), "failed: Use a local database on 127.0.0.1:55432 named example_test."],
+			]);
 		},
 	);
 
 	postgres.it(`starting PostgreSQL through ${target} is refused before any command runs`, [], function* ({ outcome, start, subprocesses }) {
 		yield* start(url);
 
-		yield* outcomes({
-			"commands": [subprocesses(), []],
-			"setup": [outcome(), "failed: Use a local database on 127.0.0.1:55432 named postgres."],
-		});
+		yield* outcomes([
+			["commands", () => subprocesses(), []],
+			["setup", () => outcome(), "failed: Use a local database on 127.0.0.1:55432 named postgres."],
+		]);
 	});
 
 	postgres.it(`a query to ${target} is refused before any command runs`, [], function* ({ outcome, query, subprocesses }) {
 		yield* query("SELECT 1", url);
 
-		yield* outcomes({
-			"commands": [subprocesses(), []],
-			"query": [outcome(), "failed: Use a local database on 127.0.0.1:55432 named example_test."],
-		});
+		yield* outcomes([
+			["commands", () => subprocesses(), []],
+			["query", () => outcome(), "failed: Use a local database on 127.0.0.1:55432 named example_test."],
+		]);
 	});
 }
 
@@ -74,10 +74,10 @@ for (const name of ["", "1starts_with_number", "has-hyphens", "Uppercase", "a".r
 		function* ({ outcome, prepare, subprocesses }) {
 			yield* prepare([`${SERVER}/${name}`]);
 
-			yield* outcomes({
-				"commands": [subprocesses(), []],
-				"setup": [outcome(), "failed: Invalid local database name."],
-			});
+			yield* outcomes([
+				["commands", () => subprocesses(), []],
+				["setup", () => outcome(), "failed: Invalid local database name."],
+			]);
 		},
 	);
 }

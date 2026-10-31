@@ -15,11 +15,11 @@ for (const initial of ["/notes/first", "/notes/first?page=invalid"]) {
 		function* ({ answer, firstFrame, queryText, requests }) {
 			yield* answer("first", "First page");
 
-			yield* outcomes({
-				"first frame": [firstFrame(), "First page"],
-				query: [queryText(), "First page"],
-				requests: [requests(), ["first page 1"]],
-			});
+			yield* outcomes([
+				["first frame", () => firstFrame(), "First page"],
+				["query", () => queryText(), "First page"],
+				["requests", () => requests(), ["first page 1"]],
+			]);
 		},
 	);
 }
@@ -30,10 +30,10 @@ routes.it(
 	function* ({ alert, heading, reject }) {
 		yield* reject("missing", new NotFound({ message: "This note was removed by its owner" }));
 
-		yield* outcomes({
-			alert: [alert(), "none"],
-			heading: [heading(), "This note was removed by its owner"],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "none"],
+			["heading", () => heading(), "This note was removed by its owner"],
+		]);
 	},
 );
 
@@ -65,12 +65,12 @@ routes.it(
 	function* ({ answer, clientRuntimes, heading, queryText, requests }) {
 		yield* answer("first", "First note");
 
-		yield* outcomes({
-			"client runtimes": [clientRuntimes(), 1],
-			heading: [heading(), "First note"],
-			query: [queryText(), "First note"],
-			requests: [requests(), ["first page 1"]],
-		});
+		yield* outcomes([
+			["client runtimes", () => clientRuntimes(), 1],
+			["heading", () => heading(), "First note"],
+			["query", () => queryText(), "First note"],
+			["requests", () => requests(), ["first page 1"]],
+		]);
 	},
 );
 
@@ -81,10 +81,10 @@ routes.it(
 	function* ({ alert, reject, routeError }) {
 		yield* reject("missing", missing);
 
-		yield* outcomes({
-			alert: [alert(), "NoteMissing:missing"],
-			"route error": [routeError(), missing],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "NoteMissing:missing"],
+			["route error", () => routeError(), missing],
+		]);
 	},
 );
 
@@ -94,12 +94,12 @@ routes.it(
 	function* ({ heading, navigating, openSecondNote, queryText, requests }) {
 		yield* openSecondNote();
 
-		yield* outcomes({
-			heading: [heading(), "First note"],
-			navigating: [navigating(), "true"],
-			query: [queryText(), "First note"],
-			requests: [requests(), ["first page 1", "second page 1"]],
-		});
+		yield* outcomes([
+			["heading", () => heading(), "First note"],
+			["navigating", () => navigating(), "true"],
+			["query", () => queryText(), "First note"],
+			["requests", () => requests(), ["first page 1", "second page 1"]],
+		]);
 	},
 );
 
@@ -109,12 +109,12 @@ routes.it(
 	function* ({ answer, clientRuntimes, heading, navigating, queryText }) {
 		yield* answer("second", "Second note");
 
-		yield* outcomes({
-			"client runtimes": [clientRuntimes(), 1],
-			heading: [heading(), "Second note"],
-			navigating: [navigating(), "false"],
-			query: [queryText(), "Second note"],
-		});
+		yield* outcomes([
+			["client runtimes", () => clientRuntimes(), 1],
+			["heading", () => heading(), "Second note"],
+			["navigating", () => navigating(), "false"],
+			["query", () => queryText(), "Second note"],
+		]);
 	},
 );
 
@@ -126,10 +126,10 @@ routes.it(
 	function* ({ requests, retry, shell }) {
 		yield* retry();
 
-		yield* outcomes({
-			requests: [requests(), ["first page 1", "first page 1"]],
-			shell: [shell(), { draft: "Keep this draft", input: "original", shell: "original" }],
-		});
+		yield* outcomes([
+			["requests", () => requests(), ["first page 1", "first page 1"]],
+			["shell", () => shell(), { draft: "Keep this draft", input: "original", shell: "original" }],
+		]);
 	},
 );
 
@@ -139,11 +139,11 @@ routes.it(
 	function* ({ alert, answer, heading, shell }) {
 		yield* answer("first", "Recovered note");
 
-		yield* outcomes({
-			alert: [alert(), "none"],
-			heading: [heading(), "Recovered note"],
-			shell: [shell(), { draft: "Keep this draft", input: "original", shell: "original" }],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "none"],
+			["heading", () => heading(), "Recovered note"],
+			["shell", () => shell(), { draft: "Keep this draft", input: "original", shell: "original" }],
+		]);
 	},
 );
 
@@ -153,10 +153,10 @@ routes.it(
 	function* ({ answer, queryText, requests }) {
 		yield* answer("first", "Viewer's note", 3);
 
-		yield* outcomes({
-			query: [queryText(), "Viewer's note"],
-			requests: [requests(), ["first page 3"]],
-		});
+		yield* outcomes([
+			["query", () => queryText(), "Viewer's note"],
+			["requests", () => requests(), ["first page 3"]],
+		]);
 	},
 );
 

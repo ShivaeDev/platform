@@ -6,10 +6,10 @@ fileWatcherStory.it(
 	"starting the watch and the first index read list each folder once",
 	[watchedFiles({ "index.md": "# Index", "notes/log.md": "# Log" })],
 	function* ({ foldersListed, indexedPaths }) {
-		yield* outcomes({
-			"folders listed": [foldersListed(), ["", "notes"]],
-			"indexed paths": [indexedPaths(), ["index.md", "notes/log.md"]],
-		});
+		yield* outcomes([
+			["folders listed", () => foldersListed(), ["", "notes"]],
+			["indexed paths", () => indexedPaths(), ["index.md", "notes/log.md"]],
+		]);
 	},
 );
 
@@ -21,12 +21,12 @@ fileWatcherStory.it(
 
 		yield* watcherReports(["notes/today.md", "notes"]);
 
-		yield* outcomes({
-			"announced change": [nextAnnouncedChange(), ["notes/today.md"]],
-			"files read": [filesRead(), ["notes/today.md"]],
-			"folders listed": [foldersListed(), ["notes"]],
-			"indexed paths": [indexedPaths(), expect.arrayContaining(["notes/today.md"])],
-		});
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["notes/today.md"]],
+			["files read", () => filesRead(), ["notes/today.md"]],
+			["folders listed", () => foldersListed(), ["notes"]],
+			["indexed paths", () => indexedPaths(), expect.arrayContaining(["notes/today.md"])],
+		]);
 	},
 );
 
@@ -38,9 +38,9 @@ fileWatcherStory.it(
 
 		yield* watcherReportsAbsolute("notes/log.md");
 
-		yield* outcomes({
-			"announced change": [nextAnnouncedChange(), ["notes/log.md"]],
-			"files read": [filesRead(), ["notes/log.md"]],
-		});
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["notes/log.md"]],
+			["files read", () => filesRead(), ["notes/log.md"]],
+		]);
 	},
 );

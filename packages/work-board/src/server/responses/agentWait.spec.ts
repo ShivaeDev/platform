@@ -34,9 +34,9 @@ boardStory.it(
 
 		yield* agentStopsWaiting();
 
-		yield* outcomes({
-			"agent's wait": [agentWaitOutcome(), "interrupted"],
-			replies: [replyHistory(), []],
-		});
+		yield* outcomes([
+			["agent's wait", () => agentWaitOutcome(), "interrupted"],
+			["replies", () => replyHistory(), []],
+		]);
 	},
 );

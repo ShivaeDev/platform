@@ -11,10 +11,11 @@ watch.it(
 	function* ({ lastRoundRequests, poll, printed }) {
 		yield* poll();
 
-		yield* outcomes({
-			"printed": [printed(), []],
-			"requests": [
-				lastRoundRequests(),
+		yield* outcomes([
+			["printed", () => printed(), []],
+			[
+				"requests",
+				() => lastRoundRequests(),
 				[
 					"GET /repos/acme/project/git/matching-refs/heads/gh-readonly-queue/ 304",
 					"GET /repos/acme/project/pulls/1 304",
@@ -22,7 +23,7 @@ watch.it(
 					"GET /repos/acme/project/commits/sha1/status 304",
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -80,12 +81,12 @@ for (const [answer, failure] of [
 
 			yield* poll();
 
-			yield* outcomes({
-				"diagnostics": [diagnostics(), [failure]],
-				"poll": [lastPoll(), `failed: ${failure}`],
-				"printed": [printed(), []],
-				"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
-			});
+			yield* outcomes([
+				["diagnostics", () => diagnostics(), [failure]],
+				["poll", () => lastPoll(), `failed: ${failure}`],
+				["printed", () => printed(), []],
+				["saved snapshot of PR 1", () => savedSnapshot(1), "open, auto-merge"],
+			]);
 		},
 	);
 }
@@ -98,10 +99,10 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"printed": [printed(), []],
-			"saved snapshot of PR 1": [savedSnapshot(1), "open, queued"],
-		});
+		yield* outcomes([
+			["printed", () => printed(), []],
+			["saved snapshot of PR 1", () => savedSnapshot(1), "open, queued"],
+		]);
 	},
 );
 
@@ -114,10 +115,10 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"diagnostics": [diagnostics(), ["Invalid GitHub response"]],
-			"printed": [printed(), []],
-		});
+		yield* outcomes([
+			["diagnostics", () => diagnostics(), ["Invalid GitHub response"]],
+			["printed", () => printed(), []],
+		]);
 	},
 );
 
@@ -129,10 +130,10 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"poll": [lastPoll(), "failed: GitHub returned the wrong PR"],
-			"printed": [printed(), []],
-		});
+		yield* outcomes([
+			["poll", () => lastPoll(), "failed: GitHub returned the wrong PR"],
+			["printed", () => printed(), []],
+		]);
 	},
 );
 
@@ -150,11 +151,11 @@ for (const [contents, text, failure] of [
 		function* ({ lastPoll, lastRoundRequests, poll, stateFileText }) {
 			yield* poll();
 
-			yield* outcomes({
-				"poll": [lastPoll(), `failed: ${failure}`],
-				"requests": [lastRoundRequests(), []],
-				"state file": [stateFileText(), text],
-			});
+			yield* outcomes([
+				["poll", () => lastPoll(), `failed: ${failure}`],
+				["requests", () => lastRoundRequests(), []],
+				["state file", () => stateFileText(), text],
+			]);
 		},
 	);
 }

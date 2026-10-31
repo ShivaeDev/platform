@@ -50,10 +50,10 @@ rerunStory.it(
 	function* ({ flakyTests, junitResults, run }) {
 		yield* run();
 
-		yield* outcomes({
-			"flaky tests": [flakyTests(), "not written"],
-			"JUnit results": [junitResults(), [{ classname: "broken.spec.ts", file: "broken.spec.ts", name: "stays broken", result: "failed" }]],
-		});
+		yield* outcomes([
+			["flaky tests", () => flakyTests(), "not written"],
+			["JUnit results", () => junitResults(), [{ classname: "broken.spec.ts", file: "broken.spec.ts", name: "stays broken", result: "failed" }]],
+		]);
 	},
 );
 
@@ -63,10 +63,10 @@ rerunStory.it(
 	function* ({ flakyTests, run, summary }) {
 		yield* run();
 
-		yield* outcomes({
-			"flaky tests": [flakyTests(), "not written"],
-			"job summary": [summary(), ["- Flaky: collected.spec.ts — collection failure"]],
-		});
+		yield* outcomes([
+			["flaky tests", () => flakyTests(), "not written"],
+			["job summary", () => summary(), ["- Flaky: collected.spec.ts — collection failure"]],
+		]);
 	},
 );
 
@@ -76,9 +76,10 @@ rerunStory.it(
 	function* ({ flakyTests, run, timesRan }) {
 		yield* run();
 
-		yield* outcomes({
-			"flaky tests": [
-				flakyTests(),
+		yield* outcomes([
+			[
+				"flaky tests",
+				() => flakyTests(),
 				[
 					{
 						attempts: 2,
@@ -89,7 +90,7 @@ rerunStory.it(
 					},
 				],
 			],
-			"times each test ran": [timesRan(), { "checkout > passes beside it": 2, "checkout > recovers only in a fresh process": 2 }],
-		});
+			["times each test ran", () => timesRan(), { "checkout > passes beside it": 2, "checkout > recovers only in a fresh process": 2 }],
+		]);
 	},
 );

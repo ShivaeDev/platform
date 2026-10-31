@@ -15,11 +15,11 @@ for (const [files, label] of [
 		`Now shows a ready brief in Queued, leaves out an invalid status and names "${label}" in navigation`,
 		[routedScreen(files, "/_board/work")],
 		function* ({ navigationLabels, nowCard, workItems }) {
-			yield* outcomes({
-				navigation: [navigationLabels(), expect.arrayContaining([label])],
-				"the ready brief": [nowCard("task.merge"), expect.objectContaining({ lane: "Queued", states: ["Ready"] })],
-				"work shown": [workItems(), expect.not.arrayContaining(["task.odd"])],
-			});
+			yield* outcomes([
+				["navigation", () => navigationLabels(), expect.arrayContaining([label])],
+				["the ready brief", () => nowCard("task.merge"), expect.objectContaining({ lane: "Queued", states: ["Ready"] })],
+				["work shown", () => workItems(), expect.not.arrayContaining(["task.odd"])],
+			]);
 		},
 	);
 }

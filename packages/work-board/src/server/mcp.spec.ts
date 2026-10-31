@@ -98,17 +98,19 @@ boardStory.it(
 	"without Fleet, board_overview and item say Fleet isn't set up instead of failing",
 	[project, boardWithoutFleet],
 	function* ({ agentReads }) {
-		yield* outcomes({
-			"a task Fleet has not seen": [
-				agentReads("item", { id: "task.second" }),
+		yield* outcomes([
+			[
+				"a task Fleet has not seen",
+				() => agentReads("item", { id: "task.second" }),
 				expect.objectContaining({ fleet: expect.objectContaining(unavailable), status: "draft" }),
 			],
-			"the decided task": [
-				agentReads("item", { id: "task.first" }),
+			[
+				"the decided task",
+				() => agentReads("item", { id: "task.first" }),
 				expect.objectContaining({ fleet: expect.objectContaining(unavailable), status: "draft" }),
 			],
-			"the overview": [agentReads("board_overview"), expect.objectContaining({ fleet: expect.objectContaining(unavailable) })],
-		});
+			["the overview", () => agentReads("board_overview"), expect.objectContaining({ fleet: expect.objectContaining(unavailable) })],
+		]);
 	},
 );
 

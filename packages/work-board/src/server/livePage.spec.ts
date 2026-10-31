@@ -13,10 +13,10 @@ boardStory.it(
 		editFile("plan.md", PLAN.replace("A closing line.", "A changed line."));
 		yield* pageShowing("A changed line.");
 
-		yield* outcomes({
-			"the details block": [detailsState(0), "open"],
-			"the intro paragraph": [paragraphElement("Intro."), "the element seen before"],
-			"the page": [pageReloaded(), "same page"],
-		});
+		yield* outcomes([
+			["the details block", () => detailsState(0), "open"],
+			["the intro paragraph", () => paragraphElement("Intro."), "the element seen before"],
+			["the page", () => pageReloaded(), "same page"],
+		]);
 	},
 );

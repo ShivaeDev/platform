@@ -50,7 +50,10 @@ sessionAdmin.it(
 
 		yield* list({ cursor: secondCursor, limit: 1 });
 
-		yield* outcomes({ "last page": [listedDevices(), ["alice"]], "more sessions": [hasNextPage(), false] });
+		yield* outcomes([
+			["last page", () => listedDevices(), ["alice"]],
+			["more sessions", () => hasNextPage(), false],
+		]);
 	},
 );
 

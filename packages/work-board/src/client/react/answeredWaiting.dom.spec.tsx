@@ -33,11 +33,11 @@ screenStory.it(
 	"an answered Fleet decision leaves Needs you and waits under Answered, saying Fleet picks it up on its next pass",
 	[screenFleet(guideFleet), routedScreen(answeredDecisionFixture(), "/", { home: "home.md" })],
 	function* ({ answeredRows, needsYou, todaySummary }) {
-		yield* outcomes({
-			answered: [answeredRows(), [[TITLE, `${QUESTION} · You chose Request changes · ${NEXT_PASS}`]]],
-			"needs you": [needsYou(), "Nothing needs you"],
-			summary: [todaySummary(), expect.stringMatching(/^0 need you/u)],
-		});
+		yield* outcomes([
+			["answered", () => answeredRows(), [[TITLE, `${QUESTION} · You chose Request changes · ${NEXT_PASS}`]]],
+			["needs you", () => needsYou(), "Nothing needs you"],
+			["summary", () => todaySummary(), expect.stringMatching(/^0 need you/u)],
+		]);
 	},
 );
 
@@ -50,10 +50,10 @@ screenStory.it(
 
 		yield* refreshInbox();
 
-		yield* outcomes({
-			answered: [answeredRows(), []],
-			"needs you": [needsYou(), "Nothing needs you"],
-		});
+		yield* outcomes([
+			["answered", () => answeredRows(), []],
+			["needs you", () => needsYou(), "Nothing needs you"],
+		]);
 	},
 );
 
@@ -108,11 +108,11 @@ screenStory.it(
 
 		yield* chooseOnToday(REQUEST_CHANGES);
 
-		yield* outcomes({
-			answered: [answeredRows(), [[TITLE, `${QUESTION} · You chose Request changes · ${NEXT_PASS}`]]],
-			focus: [focusedControl(), { name: TITLE, role: "link" }],
-			"needs you": [needsYou(), "Nothing needs you"],
-		});
+		yield* outcomes([
+			["answered", () => answeredRows(), [[TITLE, `${QUESTION} · You chose Request changes · ${NEXT_PASS}`]]],
+			["focus", () => focusedControl(), { name: TITLE, role: "link" }],
+			["needs you", () => needsYou(), "Nothing needs you"],
+		]);
 	},
 );
 
@@ -140,11 +140,11 @@ screenStory.it(
 
 		yield* recordAnswer();
 
-		yield* outcomes({
-			focus: [focusedControl(), { role: "status", text: `You answered: Request changes. ${NEXT_PASS}` }],
-			note: [answeredNote(), `You answered: Request changes. ${NEXT_PASS}`],
-			title: [cardTitle(), `Answered: ${TITLE}`],
-		});
+		yield* outcomes([
+			["focus", () => focusedControl(), { role: "status", text: `You answered: Request changes. ${NEXT_PASS}` }],
+			["note", () => answeredNote(), `You answered: Request changes. ${NEXT_PASS}`],
+			["title", () => cardTitle(), `Answered: ${TITLE}`],
+		]);
 	},
 );
 
@@ -156,11 +156,11 @@ screenStory.it(
 
 		yield* recordAnswer();
 
-		yield* outcomes({
-			"answers so far": [answerHistory(), ["Request changes"]],
-			"change answer": [changeAnswer(), expect.objectContaining({ state: "closed" })],
-			status: [itemStatus(), "Waiting on automation"],
-		});
+		yield* outcomes([
+			["answers so far", () => answerHistory(), ["Request changes"]],
+			["change answer", () => changeAnswer(), expect.objectContaining({ state: "closed" })],
+			["status", () => itemStatus(), "Waiting on automation"],
+		]);
 	},
 );
 
@@ -189,13 +189,14 @@ screenStory.it(
 
 		yield* recordAnswer();
 
-		yield* outcomes({
-			note: [answeredNote(), `You answered: Stop and hand back. ${NEXT_PASS}`],
-			recorded: [
-				recordedAnswers(decisionId, "direction"),
+		yield* outcomes([
+			["note", () => answeredNote(), `You answered: Stop and hand back. ${NEXT_PASS}`],
+			[
+				"recorded",
+				() => recordedAnswers(decisionId, "direction"),
 				expect.arrayContaining([expect.objectContaining({ replaces: "response.direction-retry" })]),
 			],
-		});
+		]);
 	},
 );
 

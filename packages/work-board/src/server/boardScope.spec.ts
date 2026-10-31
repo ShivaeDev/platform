@@ -13,10 +13,10 @@ boardStory.it(
 
 		ownerFinishes();
 
-		yield* outcomes({
-			"the listener": [listenerState(), "refusing connections"],
-			"the owner": [ownerEnding(), "finished"],
-		});
+		yield* outcomes([
+			["the listener", () => listenerState(), "refusing connections"],
+			["the owner", () => ownerEnding(), "finished"],
+		]);
 	},
 );
 
@@ -28,9 +28,9 @@ boardStory.it(
 
 		yield* ownerInterrupted();
 
-		yield* outcomes({
-			"the listener": [listenerState(), "refusing connections"],
-			"the owner": [ownerEnding(), "interrupted"],
-		});
+		yield* outcomes([
+			["the listener", () => listenerState(), "refusing connections"],
+			["the owner", () => ownerEnding(), "interrupted"],
+		]);
 	},
 );

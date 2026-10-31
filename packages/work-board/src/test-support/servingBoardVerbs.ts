@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Order, Path, PlatformError } from "effect";
@@ -22,6 +22,10 @@ export function servingBoardVerbs(engine: BoardEngine, tell: (line: string) => v
 			const source = `export const build = "${build.repeat(400)}";`;
 			writeFileSync(join(engine.notes.root, asset), source);
 			return source;
+		},
+		builtAsset: (name: string) => {
+			tell(`the reader reads ${name} from the package's built assets`);
+			return Effect.sync(() => readFileSync(new URL(`../../assets/${name}`, import.meta.url), "utf8"));
 		},
 		bundlePage: () =>
 			Effect.sync(() => {

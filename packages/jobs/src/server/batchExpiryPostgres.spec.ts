@@ -30,11 +30,11 @@ database.it(
 		yield* start("app", [hangingOnce], byPriority);
 		yield* untilInterrupted(Expiring, 1);
 
-		yield* outcomes({
-			"attempts": [attempts(Expiring), ["job 0", "job 1"]],
-			"interruptions": [interruptions(Expiring), ["job 1 at or after its deadline"]],
-			"stored states": [storedStates("batch-expiry"), { "job 0": "completed", "job 1": "active", "job 2": "active", "job 3": "active" }],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Expiring), ["job 0", "job 1"]],
+			["interruptions", () => interruptions(Expiring), ["job 1 at or after its deadline"]],
+			["stored states", () => storedStates("batch-expiry"), { "job 0": "completed", "job 1": "active", "job 2": "active", "job 3": "active" }],
+		]);
 	},
 );
 
@@ -46,11 +46,15 @@ database.it(
 
 		yield* untilSettled(Expiring, 4);
 
-		yield* outcomes({
-			"attempts": [attemptCounts(Expiring), { "job 0": 1, "job 1": 2, "job 2": 1, "job 3": 1 }],
-			"overlapping attempts": [overlappingAttempts(), []],
-			"stored states": [storedStates("batch-expiry"), { "job 0": "completed", "job 1": "completed", "job 2": "completed", "job 3": "completed" }],
-		});
+		yield* outcomes([
+			["attempts", () => attemptCounts(Expiring), { "job 0": 1, "job 1": 2, "job 2": 1, "job 3": 1 }],
+			["overlapping attempts", () => overlappingAttempts(), []],
+			[
+				"stored states",
+				() => storedStates("batch-expiry"),
+				{ "job 0": "completed", "job 1": "completed", "job 2": "completed", "job 3": "completed" },
+			],
+		]);
 	},
 );
 
@@ -63,16 +67,18 @@ database.it(
 		yield* adminSends("hourly", null, { as: "hourly run" });
 		yield* untilSettled(Hourly, 1);
 
-		yield* outcomes({
-			"failed listing": [
-				listedOutputs("app", "failed", { name: Hourly.name, schema: Schema.Null }),
+		yield* outcomes([
+			[
+				"failed listing",
+				() => listedOutputs("app", "failed", { name: Hourly.name, schema: Schema.Null }),
 				[{ _tag: "Error", message: "handler execution exceeded 1s" }],
 			],
-			"interruptions": [interruptions(Hourly), ["run 1 of hourly at or after its deadline"]],
-			"stored runs": [
-				storedJobs("hourly"),
+			["interruptions", () => interruptions(Hourly), ["run 1 of hourly at or after its deadline"]],
+			[
+				"stored runs",
+				() => storedJobs("hourly"),
 				[expect.objectContaining({ error: "handler execution exceeded 1s", job: "hourly run", state: "failed" })],
 			],
-		});
+		]);
 	},
 );

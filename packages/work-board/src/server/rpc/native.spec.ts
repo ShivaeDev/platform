@@ -12,10 +12,10 @@ boardStory.it("a native RPC client reads a document by its stable item URL", rea
 });
 
 boardStory.it("the board serves its browser script and stylesheet with their content types", readingProject, function* ({ assetAnswer }) {
-	yield* outcomes({
-		"the script": [assetAnswer("/_board/react.js"), "text/javascript"],
-		"the stylesheet": [assetAnswer("/_board/react.css"), "text/css"],
-	});
+	yield* outcomes([
+		["the script", () => assetAnswer("/_board/react.js"), "text/javascript"],
+		["the stylesheet", () => assetAnswer("/_board/react.css"), "text/css"],
+	]);
 });
 
 boardStory.it(
@@ -39,10 +39,10 @@ boardStory.it(
 
 		editFile("added.md", "# New unrelated");
 
-		yield* outcomes({
-			navigation: [mountedUpdate("navigation"), "4 library files"],
-			"the note's board read": [mountedKept("the note's board read"), "the first read"],
-		});
+		yield* outcomes([
+			["navigation", () => mountedUpdate("navigation"), "4 library files"],
+			["the note's board read", () => mountedKept("the note's board read"), "the first read"],
+		]);
 	},
 );
 

@@ -20,11 +20,11 @@ for (const path of ["/_board/attachment/shots/review.png", "/_board/unsupported"
 
 			yield* clickLinkTo(path);
 
-			yield* outcomes({
-				"the document reads": [readDocumentReads(), reads],
-				"the link": [linkClick(), "the browser follows it"],
-				"the page": [currentPage(), "/notes/plan.md"],
-			});
+			yield* outcomes([
+				["the document reads", () => readDocumentReads(), reads],
+				["the link", () => linkClick(), "the browser follows it"],
+				["the page", () => currentPage(), "/notes/plan.md"],
+			]);
 		},
 	);
 }
@@ -69,10 +69,10 @@ screenStory.it(
 
 		yield* openFromReadingHistory("Plan");
 
-		yield* outcomes({
-			"the header's status": [navigationStatus(), { state: "normal", text: "" }],
-			"the notice": [pageNotice(), expect.objectContaining({ description: MISSING_PLAN })],
-		});
+		yield* outcomes([
+			["the header's status", () => navigationStatus(), { state: "normal", text: "" }],
+			["the notice", () => pageNotice(), expect.objectContaining({ description: MISSING_PLAN })],
+		]);
 	},
 );
 
@@ -134,11 +134,11 @@ screenStory.it(
 
 		yield* navigate("/notes/deep/proof.md");
 
-		yield* outcomes({
-			"the answer": [pageAnswer(), "Unavailable"],
-			"the header's status": [navigationStatus(), { state: "normal", text: "" }],
-			"the page": [pageAddress(), "/notes/deep/proof.md"],
-		});
+		yield* outcomes([
+			["the answer", () => pageAnswer(), "Unavailable"],
+			["the header's status", () => navigationStatus(), { state: "normal", text: "" }],
+			["the page", () => pageAddress(), "/notes/deep/proof.md"],
+		]);
 	},
 );
 
@@ -154,10 +154,10 @@ for (const failed of [false, true]) {
 
 			yield* releaseRefresh();
 
-			yield* outcomes({
-				"the heading": [mainHeading(), "Proof"],
-				"the page": [pageAddress(), "/notes/deep/proof.md"],
-			});
+			yield* outcomes([
+				["the heading", () => mainHeading(), "Proof"],
+				["the page", () => pageAddress(), "/notes/deep/proof.md"],
+			]);
 		},
 	);
 }
@@ -188,9 +188,9 @@ screenStory.it(
 
 		yield* refreshDocument();
 
-		yield* outcomes({
-			"the Library count": [navigationSummary(), expect.objectContaining({ libraryCount: Object.keys(files).length - 1 })],
-			"the notice": [pageNotice(), expect.objectContaining({ description: MISSING_PLAN })],
-		});
+		yield* outcomes([
+			["the Library count", () => navigationSummary(), expect.objectContaining({ libraryCount: Object.keys(files).length - 1 })],
+			["the notice", () => pageNotice(), expect.objectContaining({ description: MISSING_PLAN })],
+		]);
 	},
 );

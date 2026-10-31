@@ -120,9 +120,10 @@ storyRunner.it("a failure before the story told a line puts the ✗ alone at the
 storyRunner.it("an engine too large to print is written to a file that the failure names", [], function* ({ lastWrittenOrder, outcome, runStory }) {
 	yield* runStory("failingStories", "Bakery Story: writes a bakery too large to print to a file");
 
-	yield* outcomes({
-		"the failure": [
-			outcome(),
+	yield* outcomes([
+		[
+			"the failure",
+			() => outcome(),
 			report(
 				"orders: expected [ …(60) ] to have a length of +0 but got 60",
 				"",
@@ -137,8 +138,8 @@ storyRunner.it("an engine too large to print is written to a file that the failu
 				rerun("Bakery Story: writes a bakery too large to print to a file"),
 			),
 		],
-		"the written bakery's last order": [lastWrittenOrder(), "order 60: a loaf of rye for the market stall"],
-	});
+		["the written bakery's last order", () => lastWrittenOrder(), "order 60: a loaf of rye for the market stall"],
+	]);
 });
 
 storyRunner.it("a rerun command that would pass the width of a terminal puts its test name on a second line", [], function* ({ outcome, runStory }) {

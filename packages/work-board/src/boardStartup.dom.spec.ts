@@ -8,10 +8,10 @@ boardStory.it(
 	"without a reader trait, the board still serves documents and the bundle page names the missing trait",
 	[projectFiles({ "note.md": SOURCE })],
 	function* ({ bundlePage, documentAt, tryOpenReader }) {
-		yield* outcomes({
-			document: [documentAt("/note.md"), SOURCE],
-			page: [bundlePage(), MISSING_READER],
-			reader: [tryOpenReader("/note.md"), MISSING_READER],
-		});
+		yield* outcomes([
+			["document", () => documentAt("/note.md"), SOURCE],
+			["page", () => bundlePage(), MISSING_READER],
+			["reader", () => tryOpenReader("/note.md"), MISSING_READER],
+		]);
 	},
 );

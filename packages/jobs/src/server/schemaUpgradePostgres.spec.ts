@@ -31,11 +31,11 @@ schemaKit.it(
 		yield* migrateSchema("jobs_test");
 
 		yield* checkSchema("jobs_test");
-		yield* outcomes({
-			check: [answered(), "done"],
-			indexes: [indexes("jobs_test", "_i1[4-7]$"), Array.from({ length: 8 }, () => expect.objectContaining({ valid: true }))],
-			version: [schemaVersion("jobs_test"), 46],
-		});
+		yield* outcomes([
+			["check", () => answered(), "done"],
+			["indexes", () => indexes("jobs_test", "_i1[4-7]$"), Array.from({ length: 8 }, () => expect.objectContaining({ valid: true }))],
+			["version", () => schemaVersion("jobs_test"), 46],
+		]);
 	},
 );
 

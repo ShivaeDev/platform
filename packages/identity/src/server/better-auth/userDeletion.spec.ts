@@ -18,9 +18,9 @@ userReferences.it(
 
 		yield* deleteUser("Alice");
 
-		yield* outcomes({
-			"retained app rows": [storedAppRows, [{ title: "Alice" }, { title: "Bob" }]],
-			"rows without a user": [storedUnownedRows, [{ title: "Alice" }]],
-		});
+		yield* outcomes([
+			["retained app rows", () => storedAppRows, [{ title: "Alice" }, { title: "Bob" }]],
+			["rows without a user", () => storedUnownedRows, [{ title: "Alice" }]],
+		]);
 	},
 );

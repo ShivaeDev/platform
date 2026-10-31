@@ -18,9 +18,9 @@ developmentApp.it(
 
 		const exitCode = yield* viteExits();
 
-		yield* outcomes({
-			"runner exit code": [Effect.succeed(exitCode), 7],
-			"running app processes": [runningAppProcesses(), []],
-		});
+		yield* outcomes([
+			["runner exit code", () => Effect.succeed(exitCode), 7],
+			["running app processes", () => runningAppProcesses(), []],
+		]);
 	},
 );

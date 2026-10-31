@@ -24,10 +24,10 @@ postgres.it(
 	function* ({ checkDocker, inspectedContexts, outcome }) {
 		yield* checkDocker();
 
-		yield* outcomes({
-			"daemon check": [outcome(), "Docker is available"],
-			"inspected contexts": [inspectedContexts(), ["the active context"]],
-		});
+		yield* outcomes([
+			["daemon check", () => outcome(), "Docker is available"],
+			["inspected contexts", () => inspectedContexts(), ["the active context"]],
+		]);
 	},
 );
 
@@ -37,10 +37,10 @@ postgres.it(
 	function* ({ checkDocker, inspectedContexts, outcome }) {
 		yield* checkDocker();
 
-		yield* outcomes({
-			"daemon check": [outcome(), "Docker is available"],
-			"inspected contexts": [inspectedContexts(), ["desktop-linux"]],
-		});
+		yield* outcomes([
+			["daemon check", () => outcome(), "Docker is available"],
+			["inspected contexts", () => inspectedContexts(), ["desktop-linux"]],
+		]);
 	},
 );
 
@@ -55,9 +55,9 @@ for (const [endpoint, given] of [
 	postgres.it(`setup refuses ${endpoint} before it runs any Docker command`, given, function* ({ checkDocker, dockerCommands, outcome }) {
 		yield* checkDocker();
 
-		yield* outcomes({
-			"Docker commands": [dockerCommands(), []],
-			"daemon check": [outcome(), REFUSED],
-		});
+		yield* outcomes([
+			["Docker commands", () => dockerCommands(), []],
+			["daemon check", () => outcome(), REFUSED],
+		]);
 	});
 }

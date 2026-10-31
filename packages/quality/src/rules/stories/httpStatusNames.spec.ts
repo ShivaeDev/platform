@@ -19,10 +19,10 @@ for (const assertion of [
 		function* ({ check, locations, messages }) {
 			yield* check(namedValues);
 
-			yield* outcomes({
-				"advice": [messages(), [expect.stringContaining(STATUS_NAMES)]],
-				"locations": [locations(), [`${SPEC}:1`]],
-			});
+			yield* outcomes([
+				["advice", () => messages(), [expect.stringContaining(STATUS_NAMES)]],
+				["locations", () => locations(), [`${SPEC}:1`]],
+			]);
 		},
 	);
 }

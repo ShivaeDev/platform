@@ -23,11 +23,11 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"manifest findings": [stdout(), expect.stringContaining("error imports/manifest (1)")],
-			"undeclared import": [stdout(), expect.stringContaining(UNDECLARED)],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["manifest findings", () => stdout(), expect.stringContaining("error imports/manifest (1)")],
+			["undeclared import", () => stdout(), expect.stringContaining(UNDECLARED)],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -47,15 +47,16 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"manifest findings": [stdout(), expect.stringContaining("error imports/manifest (1)")],
-			"test-code finding": [
-				stdout(),
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["manifest findings", () => stdout(), expect.stringContaining("error imports/manifest (1)")],
+			[
+				"test-code finding",
+				() => stdout(),
 				expect.stringContaining('modules/app/src/app.ts:1  Imports test code through "plain-kit/test-support/fixture.ts".'),
 			],
-			"test-code findings": [stdout(), expect.stringContaining("error imports/no-test-code (1)")],
-		});
+			["test-code findings", () => stdout(), expect.stringContaining("error imports/no-test-code (1)")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -70,10 +71,10 @@ for (const { linked, sources, workspace } of SELECTIONS) {
 		function* ({ outcome, runs, stdout }) {
 			yield* runs("lint");
 
-			yield* outcomes({
-				"exit": [outcome(), "rejected"],
-				"undeclared import": [stdout(), expect.stringContaining(UNDECLARED)],
-			});
+			yield* outcomes([
+				["exit", () => outcome(), "rejected"],
+				["undeclared import", () => stdout(), expect.stringContaining(UNDECLARED)],
+			]);
 		},
 		CLI_TIMEOUT,
 	);
@@ -93,15 +94,16 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"declared import": [stdout(), expect.not.stringContaining('Imports workspace package "plain-kit" without declaring it')],
-			"exit": [outcome(), "rejected"],
-			"manifest findings": [stdout(), expect.stringContaining("error imports/manifest (1)")],
-			"undeclared import": [
-				stdout(),
+		yield* outcomes([
+			["declared import", () => stdout(), expect.not.stringContaining('Imports workspace package "plain-kit" without declaring it')],
+			["exit", () => outcome(), "rejected"],
+			["manifest findings", () => stdout(), expect.stringContaining("error imports/manifest (1)")],
+			[
+				"undeclared import",
+				() => stdout(),
 				expect.stringContaining('Imports workspace package "@acme/app" without declaring it in modules/kit/package.json'),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -120,17 +122,18 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"development dependencies": [
-				stdout(),
+		yield* outcomes([
+			[
+				"development dependencies",
+				() => stdout(),
 				expect.stringContaining(
 					"devDependencies are only available to tests, test support, tooling and export-blocked bundle inputs unreachable from runtime code.",
 				),
 			],
-			"exit": [outcome(), "rejected"],
-			"manifest findings": [stdout(), expect.stringContaining("error imports/manifest (1)")],
-			"undeclared import": [stdout(), expect.stringContaining(UNDECLARED)],
-		});
+			["exit", () => outcome(), "rejected"],
+			["manifest findings", () => stdout(), expect.stringContaining("error imports/manifest (1)")],
+			["undeclared import", () => stdout(), expect.stringContaining(UNDECLARED)],
+		]);
 	},
 	CLI_TIMEOUT,
 );

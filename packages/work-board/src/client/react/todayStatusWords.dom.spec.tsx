@@ -17,13 +17,13 @@ screenStory.it(
 	"a Library row names a task's authored state in the Board's words",
 	[routedScreen(files, "/_board/library")],
 	function* ({ libraryRow }) {
-		yield* outcomes({
-			deferred: [libraryRow("Parked brief"), expect.objectContaining({ details: "Task · Deferred" })],
-			done: [libraryRow("Delivered brief"), expect.objectContaining({ details: "Task · Done" })],
-			draft: [libraryRow("Draft brief"), expect.objectContaining({ details: "Task · Draft" })],
-			dropped: [libraryRow("Dropped brief"), expect.objectContaining({ details: "Task · Dropped" })],
-			ready: [libraryRow("Ready brief"), expect.objectContaining({ details: "Task · Ready" })],
-		});
+		yield* outcomes([
+			["deferred", () => libraryRow("Parked brief"), expect.objectContaining({ details: "Task · Deferred" })],
+			["done", () => libraryRow("Delivered brief"), expect.objectContaining({ details: "Task · Done" })],
+			["draft", () => libraryRow("Draft brief"), expect.objectContaining({ details: "Task · Draft" })],
+			["dropped", () => libraryRow("Dropped brief"), expect.objectContaining({ details: "Task · Dropped" })],
+			["ready", () => libraryRow("Ready brief"), expect.objectContaining({ details: "Task · Ready" })],
+		]);
 	},
 );
 

@@ -63,16 +63,17 @@ boardStory.it(
 	"a duplicated identity on the maintainer's question reports both files and withholds the question from Needs you",
 	[audienceQuestions({ "duplicate.md": reader }, "a second file copies the maintainer's question")],
 	function* ({ inboxLane, sourceProblems }) {
-		yield* outcomes({
-			"needs you": [inboxLane("you"), ["question.storage"]],
-			"source problems": [
-				sourceProblems(),
+		yield* outcomes([
+			["needs you", () => inboxLane("you"), ["question.storage"]],
+			[
+				"source problems",
+				() => sourceProblems(),
 				expect.arrayContaining([
 					{ file: "duplicate.md", message: expect.stringContaining("Duplicate") },
 					{ file: "reader.md", message: expect.stringContaining("Duplicate") },
 				]),
 			],
-		});
+		]);
 	},
 );
 

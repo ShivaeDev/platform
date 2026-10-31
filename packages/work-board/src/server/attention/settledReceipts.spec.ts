@@ -11,17 +11,17 @@ boardStory.it(
 	"an answered Fleet decision waits in Answered until Fleet records applied and superseded receipts, then leaves the inbox",
 	[answeredReceiptDecision()],
 	function* ({ inboxAnswers, inboxLane, recordsWritten }) {
-		yield* outcomes({
-			answered: [inboxAnswers(), [{ answered: ANSWERED_BY_ORCHESTRATOR, id: "task.context" }]],
-			"needs you": [inboxLane("you"), []],
-		});
+		yield* outcomes([
+			["answered", () => inboxAnswers(), [{ answered: ANSWERED_BY_ORCHESTRATOR, id: "task.context" }]],
+			["needs you", () => inboxLane("you"), []],
+		]);
 
 		yield* recordsWritten({ ...managedReceipt("applied", "applied", 3000), ...managedReceipt("superseded", "superseded", 4000) });
 
-		yield* outcomes({
-			answered: [inboxAnswers(), []],
-			"needs you": [inboxLane("you"), []],
-		});
+		yield* outcomes([
+			["answered", () => inboxAnswers(), []],
+			["needs you", () => inboxLane("you"), []],
+		]);
 	},
 );
 
@@ -48,13 +48,14 @@ boardStory.it(
 	"a receipt naming another revision shows a problem in Needs you instead of waiting for Fleet",
 	[answeredReceiptDecision(managedReceipt("stale", "superseded", 4000, OTHER_REVISION), "Fleet recorded a superseded receipt for another revision")],
 	function* ({ inboxAnswers, inboxProblems }) {
-		yield* outcomes({
-			answered: [inboxAnswers(), []],
-			problems: [
-				inboxProblems(),
+		yield* outcomes([
+			["answered", () => inboxAnswers(), []],
+			[
+				"problems",
+				() => inboxProblems(),
 				[expect.objectContaining({ id: "task.context", problem: "Request receipts disagree: responses/request-receipt.stale.md" })],
 			],
-		});
+		]);
 	},
 );
 
@@ -67,13 +68,14 @@ boardStory.it(
 		),
 	],
 	function* ({ inboxAnswers, inboxProblems }) {
-		yield* outcomes({
-			answered: [inboxAnswers(), []],
-			problems: [
-				inboxProblems(),
+		yield* outcomes([
+			["answered", () => inboxAnswers(), []],
+			[
+				"problems",
+				() => inboxProblems(),
 				[expect.objectContaining({ id: "task.context", problem: "Request receipts disagree: responses/request-receipt.applied.md" })],
 			],
-		});
+		]);
 	},
 );
 
@@ -81,10 +83,10 @@ boardStory.it(
 	"an answered request between agents stays under agents without an answer, not in Answered",
 	[attentionSources(managedReceiptsFixture(["orchestrator"]), "the orchestrator answered a Fleet decision addressed to the orchestrator")],
 	function* ({ inboxAnswers, inboxLane }) {
-		yield* outcomes({
-			agents: [inboxLane("agents"), ["task.context"]],
-			answered: [inboxAnswers(), []],
-		});
+		yield* outcomes([
+			["agents", () => inboxLane("agents"), ["task.context"]],
+			["answered", () => inboxAnswers(), []],
+		]);
 	},
 );
 
@@ -104,9 +106,9 @@ boardStory.it(
 	"an open ask about a task leaves its authored status ready while the ask stays open",
 	[answeredReceiptDecision(openAsk(), "an open ask about task.context waits beside the answered Fleet decision")],
 	function* ({ briefStatus, decisionRequests }) {
-		yield* outcomes({
-			"open asks": [decisionRequests("decision.scope"), [["scope", undefined]]],
-			status: [briefStatus("task.context"), "ready"],
-		});
+		yield* outcomes([
+			["open asks", () => decisionRequests("decision.scope"), [["scope", undefined]]],
+			["status", () => briefStatus("task.context"), "ready"],
+		]);
 	},
 );

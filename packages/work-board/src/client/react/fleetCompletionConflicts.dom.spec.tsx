@@ -35,14 +35,14 @@ for (const status of ["dropped", "deferred", "done", "ready", "draft"] as const)
 			),
 		],
 		function* ({ laneCards, unfoldLane, workItems }) {
-			yield* outcomes({ "work shown": [workItems(), []] });
+			yield* outcomes([["work shown", () => workItems(), []]]);
 
 			yield* unfoldLane("Done in the last 7 days");
 
-			yield* outcomes({
-				done: [laneCards("Done in the last 7 days"), [{ id: "task-0", states: ["Done"], title: "Work 4" }]],
-				"work shown": [workItems(), ["task-0"]],
-			});
+			yield* outcomes([
+				["done", () => laneCards("Done in the last 7 days"), [{ id: "task-0", states: ["Done"], title: "Work 4" }]],
+				["work shown", () => workItems(), ["task-0"]],
+			]);
 		},
 	);
 }

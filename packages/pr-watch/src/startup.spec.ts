@@ -46,13 +46,13 @@ watch.it("a restart after the first fleet poll does not report the stuck PRs aga
 watch.it("the first fleet poll saves a baseline for every open PR", fleetAtStartup, function* ({ poll, savedSnapshot }) {
 	yield* poll();
 
-	yield* outcomes({
-		"PR 1": [savedSnapshot(1), "open, auto-merge, conflict"],
-		"PR 2": [savedSnapshot(2), "open, auto-merge, failing checks"],
-		"PR 3": [savedSnapshot(3), "open, auto-merge, conflict, failing checks"],
-		"PR 4": [savedSnapshot(4), "open, auto-merge"],
-		"PR 5": [savedSnapshot(5), "open, failing checks"],
-	});
+	yield* outcomes([
+		["PR 1", () => savedSnapshot(1), "open, auto-merge, conflict"],
+		["PR 2", () => savedSnapshot(2), "open, auto-merge, failing checks"],
+		["PR 3", () => savedSnapshot(3), "open, auto-merge, conflict, failing checks"],
+		["PR 4", () => savedSnapshot(4), "open, auto-merge"],
+		["PR 5", () => savedSnapshot(5), "open, failing checks"],
+	]);
 });
 
 watch.it(
@@ -76,11 +76,11 @@ watch.it(
 	function* ({ diagnostics, lastPoll, poll, printed, savedSnapshot }) {
 		yield* poll();
 
-		yield* outcomes({
-			"diagnostics": [diagnostics(), []],
-			"poll": [lastPoll(), "polled"],
-			"printed": [printed(), []],
-			"saved snapshot of PR 1": [savedSnapshot(1), "none"],
-		});
+		yield* outcomes([
+			["diagnostics", () => diagnostics(), []],
+			["poll", () => lastPoll(), "polled"],
+			["printed", () => printed(), []],
+			["saved snapshot of PR 1", () => savedSnapshot(1), "none"],
+		]);
 	},
 );

@@ -18,11 +18,11 @@ screenStory.it(
 	function* ({ address, loadingPage, navigateTo, shownPage }) {
 		yield* navigateTo("/notes/next.md");
 
-		yield* outcomes({
-			address: [address(), "/notes/next.md"],
-			loading: [loadingPage(), { message: "Loading page", shape: "document" }],
-			page: [shownPage(), "none"],
-		});
+		yield* outcomes([
+			["address", () => address(), "/notes/next.md"],
+			["loading", () => loadingPage(), { message: "Loading page", shape: "document" }],
+			["page", () => shownPage(), "none"],
+		]);
 	},
 );
 
@@ -35,10 +35,10 @@ screenStory.it(
 
 		yield* heldReadFinishes();
 
-		yield* outcomes({
-			page: [shownPage(), "Next"],
-			shell: [documentShell(), "the shell the page opened in"],
-		});
+		yield* outcomes([
+			["page", () => shownPage(), "Next"],
+			["shell", () => documentShell(), "the shell the page opened in"],
+		]);
 	},
 );
 
@@ -52,11 +52,11 @@ screenStory.it(
 
 		yield* heldReadFinishes();
 
-		yield* outcomes({
-			address: [address(), "/notes/first.md"],
-			"open sections": [openSections(), ["Evidence"]],
-			page: [shownPage(), "First"],
-		});
+		yield* outcomes([
+			["address", () => address(), "/notes/first.md"],
+			["open sections", () => openSections(), ["Evidence"]],
+			["page", () => shownPage(), "First"],
+		]);
 	},
 );
 
@@ -69,9 +69,9 @@ screenStory.it(
 
 		yield* goBack();
 
-		yield* outcomes({
-			page: [shownPage(), "First"],
-			shell: [documentShell(), "the shell the page opened in"],
-		});
+		yield* outcomes([
+			["page", () => shownPage(), "First"],
+			["shell", () => documentShell(), "the shell the page opened in"],
+		]);
 	},
 );

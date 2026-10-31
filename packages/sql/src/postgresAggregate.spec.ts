@@ -129,9 +129,9 @@ queries.it(
 	function* ({ aggregateResults, boundParameters, sqlTextContains }) {
 		yield* aggregateResults({ aggregates: testsAndTotal, groupBy: ["file"], where: { durationMs: { lte: 9 }, file: { like: "a%" } } });
 
-		yield* outcomes({
-			"bound parameters": [boundParameters(), [expect.arrayContaining(["a%", 9])]],
-			"pattern written into the SQL": [sqlTextContains("a%"), false],
-		});
+		yield* outcomes([
+			["bound parameters", () => boundParameters(), [expect.arrayContaining(["a%", 9])]],
+			["pattern written into the SQL", () => sqlTextContains("a%"), false],
+		]);
 	},
 );

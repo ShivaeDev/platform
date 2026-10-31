@@ -9,20 +9,20 @@ storyEngineStory.it(
 	[questionBoardOpen()],
 	function* ({ boardAnswers, failStory, pageBody, projectFolder, retainedView }) {
 		const view = { inbox: ["1", "1"], text: expect.stringContaining(QUESTION) };
-		yield* outcomes({
-			board: [boardAnswers(), "answers"],
-			folder: [projectFolder(), "present"],
-			page: [pageBody(), expect.stringContaining(QUESTION)],
-			view: [retainedView(), view],
-		});
+		yield* outcomes([
+			["board", () => boardAnswers(), "answers"],
+			["folder", () => projectFolder(), "present"],
+			["page", () => pageBody(), expect.stringContaining(QUESTION)],
+			["view", () => retainedView(), view],
+		]);
 
 		yield* failStory();
 
-		yield* outcomes({
-			board: [boardAnswers(), "unreachable"],
-			folder: [projectFolder(), "removed"],
-			page: [pageBody(), "empty"],
-			view: [retainedView(), view],
-		});
+		yield* outcomes([
+			["board", () => boardAnswers(), "unreachable"],
+			["folder", () => projectFolder(), "removed"],
+			["page", () => pageBody(), "empty"],
+			["view", () => retainedView(), view],
+		]);
 	},
 );

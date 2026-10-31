@@ -17,12 +17,12 @@ boardStory.it(
 	"GitHub limits of an unknown shape show as a GitHub decode failure while Codex usage and Fleet health still show",
 	[unknownGithubLimits],
 	function* ({ systemCards, systemCardText }) {
-		yield* outcomes({
-			cards: [systemCards(), { codex: "ready", fleet: "ready", github: "error" }],
-			"codex card": [systemCardText("codex"), expect.stringContaining("24% used")],
-			"fleet card": [systemCardText("fleet"), expect.stringContaining("3 / 8")],
-			"github card": [systemCardText("github"), expect.stringMatching(/GitHub diagnostics decode failed: Expected/u)],
-		});
+		yield* outcomes([
+			["cards", () => systemCards(), { codex: "ready", fleet: "ready", github: "error" }],
+			["codex card", () => systemCardText("codex"), expect.stringContaining("24% used")],
+			["fleet card", () => systemCardText("fleet"), expect.stringContaining("3 / 8")],
+			["github card", () => systemCardText("github"), expect.stringMatching(/GitHub diagnostics decode failed: Expected/u)],
+		]);
 	},
 );
 
@@ -30,12 +30,13 @@ boardStory.it(
 	"a daemon snapshot of an unknown shape shows a decode failure for every source",
 	[rawDaemonSnapshot(() => null, "a snapshot that is not an object")],
 	function* ({ systemCards, systemText }) {
-		yield* outcomes({
-			cards: [systemCards(), { codex: "error", fleet: "error", github: "error" }],
-			text: [
-				systemText(),
+		yield* outcomes([
+			["cards", () => systemCards(), { codex: "error", fleet: "error", github: "error" }],
+			[
+				"text",
+				() => systemText(),
 				expect.stringMatching(/Codex diagnostics decode failed.*GitHub diagnostics decode failed.*Fleet diagnostics decode failed/u),
 			],
-		});
+		]);
 	},
 );

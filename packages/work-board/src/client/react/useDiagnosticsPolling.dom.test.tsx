@@ -64,9 +64,9 @@ screenStory.it(
 		yield* leavePollingView();
 		yield* pauseUpdates(false);
 
-		yield* outcomes({
-			poll: [diagnosticsPollTimer(), "none"],
-			reads: [polledReads(), FIRST_READ],
-		});
+		yield* outcomes([
+			["poll", () => diagnosticsPollTimer(), "none"],
+			["reads", () => polledReads(), FIRST_READ],
+		]);
 	},
 );

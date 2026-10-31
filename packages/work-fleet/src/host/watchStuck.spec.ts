@@ -9,14 +9,16 @@ host.it(
 	[approvedWork(["one"]), humanDelivery, runningReviewer],
 	function* (daemon) {
 		const worker = yield* daemon.dispatch("one");
+		daemon.finishReviewedWorker(worker);
+		const reviewing = yield* daemon.reconcile("one");
+		expect(reviewing.stage).toBe("reviewing");
 		yield* daemon.watchEvents({
 			events: "stuck,waiting-on-orchestrator",
 			stuckAfter: 1,
 		});
 		yield* daemon.awaitSnapshot();
-		daemon.finishReviewedWorker(worker);
-		const reviewing = yield* daemon.reconcile("one");
-		expect(reviewing.stage).toBe("reviewing");
+		daemon.observeProgress(reviewing);
+		yield* daemon.reconcile("one");
 		yield* daemon.awaitEvent("stuck");
 		const first = daemon.eventOutput();
 		daemon.observeProgress(yield* daemon.get("one"));

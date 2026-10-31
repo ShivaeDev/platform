@@ -25,11 +25,11 @@ screenStory.it(
 
 		yield* chooseOnToday(KEEP_LOCAL);
 
-		yield* outcomes({
-			answered: [answeredRows(), [[STORAGE, "You chose Keep local files · Waiting on the agent."]]],
-			"getting started": [gettingStarted(), "not offered"],
-			"needs you": [needsYou(), "Nothing needs you"],
-		});
+		yield* outcomes([
+			["answered", () => answeredRows(), [[STORAGE, "You chose Keep local files · Waiting on the agent."]]],
+			["getting started", () => gettingStarted(), "not offered"],
+			["needs you", () => needsYou(), "Nothing needs you"],
+		]);
 	},
 );
 
@@ -57,10 +57,10 @@ screenStory.it(
 		yield* editFile("question.md", `${inboxQuestion}\nThe shared drive is gone.\n`);
 		yield* refreshInbox();
 
-		yield* outcomes({
-			answered: [answeredRows(), [[STORAGE, "You chose Keep local files · The question changed after the answer, so it asks again."]]],
-			"needs you": [needsYou(), [STORAGE]],
-		});
+		yield* outcomes([
+			["answered", () => answeredRows(), [[STORAGE, "You chose Keep local files · The question changed after the answer, so it asks again."]]],
+			["needs you", () => needsYou(), [STORAGE]],
+		]);
 	},
 );
 
@@ -84,10 +84,10 @@ for (const [workspace, files, offered] of [
 		`an empty Needs you offers Getting started only when the workspace ${workspace}`,
 		[routedScreen(files, "/")],
 		function* ({ gettingStarted, needsYou }) {
-			yield* outcomes({
-				"getting started": [gettingStarted(), offered],
-				"needs you": [needsYou(), "Nothing needs you"],
-			});
+			yield* outcomes([
+				["getting started", () => gettingStarted(), offered],
+				["needs you", () => needsYou(), "Nothing needs you"],
+			]);
 		},
 	);
 }
@@ -96,10 +96,10 @@ screenStory.it(
 	"Today links the home document by its own title, while the location trail still calls the whole Board Workspace",
 	[routedScreen({ "home.md": "# Release plans\n" }, "/", { home: "home.md" })],
 	function* ({ fileLocation, todayHomeLink }) {
-		yield* outcomes({
-			"home link": [todayHomeLink(), { href: "/home.md", text: "Release plans" }],
-			"location trail": [fileLocation(), "Workspace/ Today"],
-		});
+		yield* outcomes([
+			["home link", () => todayHomeLink(), { href: "/home.md", text: "Release plans" }],
+			["location trail", () => fileLocation(), "Workspace/ Today"],
+		]);
 	},
 );
 
@@ -107,10 +107,10 @@ screenStory.it(
 	"while a workspace file can't be read, Today says what needs you is unknown and lists no answers",
 	[screenFiles(recentAnswersFixture(NOW), { home: "home.md" }), unreadableHome(), openScreen()],
 	function* ({ answeredRows, needsYou }) {
-		yield* outcomes({
-			answered: [answeredRows(), []],
-			"needs you": [needsYou(), UNREADABLE],
-		});
+		yield* outcomes([
+			["answered", () => answeredRows(), []],
+			["needs you", () => needsYou(), UNREADABLE],
+		]);
 	},
 );
 

@@ -16,11 +16,11 @@ postgresTransactions.it(
 
 		yield* interruptCommit();
 
-		yield* outcomes({
-			"announced keys": [announced(), ["orders", "orders:1"]],
-			"orders the other client sees": [visibleOrders(), [1]],
-			"transaction endings": [endings(), ["interrupted"]],
-		});
+		yield* outcomes([
+			["announced keys", () => announced(), ["orders", "orders:1"]],
+			["orders the other client sees", () => visibleOrders(), [1]],
+			["transaction endings", () => endings(), ["interrupted"]],
+		]);
 	},
 );
 
@@ -52,10 +52,10 @@ postgresTransactions.it(
 			expect(yield* announced()).toEqual([]);
 		});
 
-		yield* outcomes({
-			"announced keys": [announced(), [`orders:${ID_BEYOND_NUMBER}`]],
-			"stored orders": [orders(), [ID_BEYOND_NUMBER]],
-		});
+		yield* outcomes([
+			["announced keys", () => announced(), [`orders:${ID_BEYOND_NUMBER}`]],
+			["stored orders", () => orders(), [ID_BEYOND_NUMBER]],
+		]);
 	},
 );
 
@@ -69,11 +69,11 @@ for (const transactions of transactionKits) {
 				yield* announce({ orders: [1] });
 			});
 
-			yield* outcomes({
-				"logged errors": [loggedErrors(), [expect.stringContaining("subscriber threw (2 changes on @shivaedev/sql/transact)")]],
-				"stored orders": [orders(), [1]],
-				"transaction endings": [endings(), ["committed"]],
-			});
+			yield* outcomes([
+				["logged errors", () => loggedErrors(), [expect.stringContaining("subscriber threw (2 changes on @shivaedev/sql/transact)")]],
+				["stored orders", () => orders(), [1]],
+				["transaction endings", () => endings(), ["committed"]],
+			]);
 		},
 	);
 

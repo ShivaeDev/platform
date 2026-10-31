@@ -20,10 +20,10 @@ for (const { declares, records, title } of uncovered) {
 			yield* record(records);
 		}, declares);
 
-		yield* outcomes({
-			"coverage endings": [endings(), [UNANNOUNCED]],
-			"stored records": [storedRecords(), []],
-		});
+		yield* outcomes([
+			["coverage endings", () => endings(), [UNANNOUNCED]],
+			["stored records", () => storedRecords(), []],
+		]);
 	});
 }
 
@@ -39,10 +39,10 @@ for (const { keys, title } of covered) {
 			yield* record(keys);
 		}, keys);
 
-		yield* outcomes({
-			"coverage endings": [endings(), ["covered"]],
-			"stored records": [storedRecords(), ["record 1 in list 1 for alice"]],
-		});
+		yield* outcomes([
+			["coverage endings", () => endings(), ["covered"]],
+			["stored records", () => storedRecords(), ["record 1 in list 1 for alice"]],
+		]);
 	});
 }
 
@@ -56,10 +56,10 @@ changeKeys.it(
 			yield* record(["the table"]);
 		});
 
-		yield* outcomes({
-			"coverage endings": [endings(), [UNANNOUNCED]],
-			"stored records": [storedRecords(), []],
-		});
+		yield* outcomes([
+			["coverage endings", () => endings(), [UNANNOUNCED]],
+			["stored records", () => storedRecords(), []],
+		]);
 	},
 );
 
@@ -71,9 +71,9 @@ changeKeys.it(
 			yield* insertRecord(1, "alice");
 		});
 
-		yield* outcomes({
-			"coverage endings": [endings(), ["covered"]],
-			"published keys": [publishedKeys(), ["listId 1", 'owner "alice"', "record 1", "the table"]],
-		});
+		yield* outcomes([
+			["coverage endings", () => endings(), ["covered"]],
+			["published keys", () => publishedKeys(), ["listId 1", 'owner "alice"', "record 1", "the table"]],
+		]);
 	},
 );

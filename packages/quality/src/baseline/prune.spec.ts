@@ -38,10 +38,10 @@ baselineStory.it(
 
 		yield* runs("baseline", "prune", "--against", "main");
 
-		yield* outcomes({
-			"recorded debt": [recorded(), CARRIED],
-			"report": [stdout(), "quality: removed 0 entries, lowered 0 entries and carried 1 entry to moved files in quality-baseline.jsonl.\n"],
-		});
+		yield* outcomes([
+			["recorded debt", () => recorded(), CARRIED],
+			["report", () => stdout(), "quality: removed 0 entries, lowered 0 entries and carried 1 entry to moved files in quality-baseline.jsonl.\n"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -52,11 +52,11 @@ baselineStory.it(
 	function* ({ outcome, recorded, runs, stderr }) {
 		yield* runs("baseline", "prune");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"recorded debt": [recorded(), ["src/long.ts structure/max-lines 1"]],
-			"warning": [stderr(), expect.stringContaining("quality: moved files are not followed: cannot find the default branch")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["recorded debt", () => recorded(), ["src/long.ts structure/max-lines 1"]],
+			["warning", () => stderr(), expect.stringContaining("quality: moved files are not followed: cannot find the default branch")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -67,11 +67,11 @@ baselineStory.it(
 	function* ({ outcome, runs, stderr, stdout }) {
 		yield* runs("baseline", "prune");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [stdout(), "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n"],
-			"warning": [stderr(), expect.stringContaining("quality: moved files are not followed:")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n"],
+			["warning", () => stderr(), expect.stringContaining("quality: moved files are not followed:")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -82,10 +82,10 @@ baselineStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("baseline", "prune", "--against", "origin/missing");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("origin/missing names no commit")],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("origin/missing names no commit")],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -96,11 +96,11 @@ baselineStory.it(
 	function* ({ outcome, runs, shallow, stderr }) {
 		yield* runs("baseline", "prune", "--against", "origin/main");
 
-		yield* outcomes({
-			"clone": [shallow(), "shallow"],
-			"error": [stderr(), expect.stringContaining("the clone is shallow and does not reach the merge base")],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["clone", () => shallow(), "shallow"],
+			["error", () => stderr(), expect.stringContaining("the clone is shallow and does not reach the merge base")],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -111,10 +111,10 @@ baselineStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("baseline", "prune", "--against", "main");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("HEAD and main share no history.")],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("HEAD and main share no history.")],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );

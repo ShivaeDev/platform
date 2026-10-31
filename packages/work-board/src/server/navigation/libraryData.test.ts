@@ -23,10 +23,10 @@ boardStory.it("the library lists a document with its indexed title, kind, status
 });
 
 boardStory.it("a Fleet receipt is counted but only listed once Fleet files are shown", library, function* ({ libraryResult }) {
-	yield* outcomes({
-		"fleet files hidden": [libraryResult({}), expect.objectContaining({ fleetCount: 1, paths: ["nested/slug.md"] })],
-		"fleet files shown": [libraryResult({ showFleet: true }), expect.objectContaining({ paths: ["nested/slug.md", "receipt.md"] })],
-	});
+	yield* outcomes([
+		["fleet files hidden", () => libraryResult({}), expect.objectContaining({ fleetCount: 1, paths: ["nested/slug.md"] })],
+		["fleet files shown", () => libraryResult({ showFleet: true }), expect.objectContaining({ paths: ["nested/slug.md", "receipt.md"] })],
+	]);
 });
 
 boardStory.it("the root folder lists its subfolders with their counts and no nested file", library, function* ({ libraryResult }) {

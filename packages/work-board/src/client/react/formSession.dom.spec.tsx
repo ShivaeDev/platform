@@ -18,10 +18,10 @@ screenStory.it(
 
 		yield* recordAnswer();
 
-		yield* outcomes({
-			saved: [readSessionFiles("responses"), [expect.stringContaining("item: item.edge"), expect.stringContaining(DRAFT)]],
-			status: [answerStatusLine(), expect.stringMatching(/Answer saved\..*not acceptance/su)],
-		});
+		yield* outcomes([
+			["saved", () => readSessionFiles("responses"), [expect.stringContaining("item: item.edge"), expect.stringContaining(DRAFT)]],
+			["status", () => answerStatusLine(), expect.stringMatching(/Answer saved\..*not acceptance/su)],
+		]);
 	},
 );
 
@@ -36,9 +36,9 @@ screenStory.it(
 
 		yield* pressPrepareHandoff();
 
-		yield* outcomes({
-			saved: [readSessionFiles("handoffs"), [expect.stringContaining(DRAFT)]],
-			status: [handoffStatus(), expect.stringContaining("Saved handoffs/")],
-		});
+		yield* outcomes([
+			["saved", () => readSessionFiles("handoffs"), [expect.stringContaining(DRAFT)]],
+			["status", () => handoffStatus(), expect.stringContaining("Saved handoffs/")],
+		]);
 	},
 );

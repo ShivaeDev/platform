@@ -18,10 +18,10 @@ for (const maxAgeMs of [undefined, 1000]) {
 
 				yield* reload();
 
-				yield* outcomes({
-					fields: [fields(), restored ? { name: "Old answer", quantity: "300" } : { name: "Paper", quantity: "300" }],
-					stored: [stored(), restored ? { name: "Old answer", quantity: "300" } : "none"],
-				});
+				yield* outcomes([
+					["fields", () => fields(), restored ? { name: "Old answer", quantity: "300" } : { name: "Paper", quantity: "300" }],
+					["stored", () => stored(), restored ? { name: "Old answer", quantity: "300" } : "none"],
+				]);
 			},
 		);
 	}
@@ -33,20 +33,20 @@ drafts.it(
 	function* ({ fields, stored, type }) {
 		yield* type("name", "é".repeat(120));
 
-		yield* outcomes({
-			name: [fields(), { name: "é".repeat(120), quantity: "300" }],
-			stored: [stored(), "none"],
-		});
+		yield* outcomes([
+			["name", () => fields(), { name: "é".repeat(120), quantity: "300" }],
+			["stored", () => stored(), "none"],
+		]);
 	},
 );
 
 drafts.it("the default size limit drops an oversized draft without changing the input", [persistedDraft()], function* ({ nameLength, stored, type }) {
 	yield* type("name", "a".repeat(256 * 1024));
 
-	yield* outcomes({
-		"name length": [nameLength(), 256 * 1024],
-		stored: [stored(), "none"],
-	});
+	yield* outcomes([
+		["name length", () => nameLength(), 256 * 1024],
+		["stored", () => stored(), "none"],
+	]);
 });
 
 for (const raw of [
@@ -64,10 +64,10 @@ for (const raw of [
 	drafts.it(`a malformed or incompatible stored draft is dropped at mount (${raw})`, [storedDraft(raw)], function* ({ fields, open, stored }) {
 		yield* open();
 
-		yield* outcomes({
-			fields: [fields(), { name: "Paper", quantity: "300" }],
-			stored: [stored(), "none"],
-		});
+		yield* outcomes([
+			["fields", () => fields(), { name: "Paper", quantity: "300" }],
+			["stored", () => stored(), "none"],
+		]);
 	});
 }
 
@@ -80,8 +80,8 @@ drafts.it("a stored draft larger than the reading form's limit is dropped", [dra
 drafts.it("a draft another session stored is dropped at mount", [firstSessionDraft("stored")], function* ({ fields, open, stored }) {
 	yield* open("second");
 
-	yield* outcomes({
-		fields: [fields(), { name: "Paper", quantity: "300" }],
-		stored: [stored(), "none"],
-	});
+	yield* outcomes([
+		["fields", () => fields(), { name: "Paper", quantity: "300" }],
+		["stored", () => stored(), "none"],
+	]);
 });

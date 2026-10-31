@@ -20,13 +20,14 @@ boardStory.it(
 
 		yield* sendPageAnswer();
 
-		yield* outcomes({
-			"recorded answer": [
-				recordedPageAnswer(),
+		yield* outcomes([
+			[
+				"recorded answer",
+				() => recordedPageAnswer(),
 				{ author: "Casey", body: expect.stringContaining("Keep local files"), kind: undefined, selected: [["option-1"]] },
 			],
-			status: [pageAnswerStatus(), expect.stringContaining("Answer saved")],
-		});
+			["status", () => pageAnswerStatus(), expect.stringContaining("Answer saved")],
+		]);
 	},
 );
 

@@ -47,6 +47,11 @@ function finish(
 
 function commandVerbs(state: State, screen: Screen) {
 	return {
+		answerList: (value: string) =>
+			screen.act(`the list refetch answers with ${value}`, async () => {
+				Deferred.doneUnsafe(state.current.client.refetch, Effect.succeed(value));
+				await Effect.runPromise(Deferred.await(state.current.client.refetched));
+			}),
 		commit: (changes: Partial<CompletionScreen>, line: string) =>
 			screen.act(line, async () => {
 				state.current = { ...state.current, ...changes };
@@ -90,13 +95,17 @@ export const commands = storyKit(
 			return {
 				...verbs,
 				actionPending: () => Effect.sync(() => output(state).getAttribute("data-pending")),
+				callbackShown: () => Effect.sync(() => view(state).container.querySelector("[data-callback]")?.textContent),
 				defectShown: () => Effect.sync(() => view(state).container.querySelector("pre")?.textContent?.split("\n")[0]),
 				finished: () => Effect.sync(() => [...state.current.client.finished]),
 				invalidations: () => Effect.sync(() => state.current.client.invalidations()),
 				listPending: () => Effect.sync(() => output(state).getAttribute("data-query-pending")),
 				listReads: () => Effect.sync(() => state.current.client.reads()),
+				listShown: () => Effect.sync(() => view(state).container.querySelector("[data-list]")?.textContent),
 				notices: () => Effect.sync(() => [...state.current.notices]),
+				publishedNotices: () => Effect.sync(() => [...view(state).container.querySelectorAll("article")].map((notice) => notice.textContent)),
 				rechecks: () => Effect.sync(() => timesWords(state.current.rechecks)),
+				refreshList: () => screen.act("refresh the list while the command is held", () => clickButton(view(state).container, "Refresh list")),
 				renderAgain: () => verbs.commit({}, "render the command screen again"),
 				renderedCallbacks: () => Effect.sync(() => [...state.current.attempts]),
 				startAbandonedRender: () =>

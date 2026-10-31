@@ -8,13 +8,14 @@ boardStory.it(
 	"Needs you keeps the authored question and only the newest Fleet ask for open work, counting the older one",
 	[closedInboxAsks()],
 	function* ({ inboxAsk, inboxLane }) {
-		yield* outcomes({
-			"draft task's ask": [
-				inboxAsk("task.draft"),
+		yield* outcomes([
+			[
+				"draft task's ask",
+				() => inboxAsk("task.draft"),
 				{ earlierAsks: 1, href: "/_board/item/decision.draft.2/#answer-card-approval", reason: "Fleet asks: draft ask 2" },
 			],
-			"needs you": [inboxLane("you"), ["question.storage", "task.draft"]],
-		});
+			["needs you", () => inboxLane("you"), ["question.storage", "task.draft"]],
+		]);
 	},
 );
 
@@ -22,10 +23,10 @@ boardStory.it(
 	"Fleet asks for finished work are resolved and asks for deferred work are parked",
 	[closedInboxAsks()],
 	function* ({ inboxLaneSources }) {
-		yield* outcomes({
-			parked: [inboxLaneSources("parked"), ["asks/deferred-1.md"]],
-			resolved: [inboxLaneSources("resolved"), ["asks/done-1.md", "asks/done-2.md", "asks/done-3.md", "asks/dropped-1.md"]],
-		});
+		yield* outcomes([
+			["parked", () => inboxLaneSources("parked"), ["asks/deferred-1.md"]],
+			["resolved", () => inboxLaneSources("resolved"), ["asks/done-1.md", "asks/done-2.md", "asks/done-3.md", "asks/dropped-1.md"]],
+		]);
 	},
 );
 
@@ -53,12 +54,12 @@ boardStory.it(
 		}),
 	],
 	function* ({ inboxAsk, inboxLaneSources }) {
-		yield* outcomes({
-			"mixed ask": [inboxAsk("decision.deferred.1"), expect.objectContaining({ earlierAsks: 1 })],
-			"needs you": [inboxLaneSources("you"), ["question.md", "asks/draft-2.md", "asks/deferred-1.md"]],
-			parked: [inboxLaneSources("parked"), []],
-			resolved: [inboxLaneSources("resolved"), ["asks/done-2.md", "asks/done-3.md", "asks/dropped-1.md"]],
-		});
+		yield* outcomes([
+			["mixed ask", () => inboxAsk("decision.deferred.1"), expect.objectContaining({ earlierAsks: 1 })],
+			["needs you", () => inboxLaneSources("you"), ["question.md", "asks/draft-2.md", "asks/deferred-1.md"]],
+			["parked", () => inboxLaneSources("parked"), []],
+			["resolved", () => inboxLaneSources("resolved"), ["asks/done-2.md", "asks/done-3.md", "asks/dropped-1.md"]],
+		]);
 	},
 );
 
@@ -84,13 +85,14 @@ boardStory.it(
 		}),
 	],
 	function* ({ inboxAsk, inboxLane }) {
-		yield* outcomes({
-			"draft task's ask": [
-				inboxAsk("task.draft"),
+		yield* outcomes([
+			[
+				"draft task's ask",
+				() => inboxAsk("task.draft"),
 				{ earlierAsks: 1, href: "/_board/item/decision.draft.1/#answer-card-later", reason: "Fleet asks: Later request in the same source" },
 			],
-			"needs you": [inboxLane("you"), ["question.storage", "task.draft"]],
-		});
+			["needs you", () => inboxLane("you"), ["question.storage", "task.draft"]],
+		]);
 	},
 );
 
@@ -117,9 +119,9 @@ boardStory.it(
 		}),
 	],
 	function* ({ inboxAsk, inboxLane }) {
-		yield* outcomes({
-			"draft task's ask": [inboxAsk("task.draft"), expect.objectContaining({ earlierAsks: 1, reason: "draft ask 2" })],
-			"needs you": [inboxLane("you"), ["question.storage", "task.draft"]],
-		});
+		yield* outcomes([
+			["draft task's ask", () => inboxAsk("task.draft"), expect.objectContaining({ earlierAsks: 1, reason: "draft ask 2" })],
+			["needs you", () => inboxLane("you"), ["question.storage", "task.draft"]],
+		]);
 	},
 );

@@ -12,17 +12,18 @@ auth.it(
 	"an admin reaches the protected profile, the admin HTTP route and the admin RPC",
 	[signedInWithRole("admin")],
 	function* ({ callAdminTools, openAdminTools, profile }) {
-		yield* outcomes({
-			"admin RPC": [callAdminTools(), ADMIN_TOOLS],
-			"admin route": [openAdminTools(), { body: ADMIN_TOOLS, status: HttpStatus.fromLiteral("OK") }],
-			profile: [
-				profile(),
+		yield* outcomes([
+			["admin RPC", () => callAdminTools(), ADMIN_TOOLS],
+			["admin route", () => openAdminTools(), { body: ADMIN_TOOLS, status: HttpStatus.fromLiteral("OK") }],
+			[
+				"profile",
+				() => profile(),
 				expect.objectContaining({
 					status: HttpStatus.fromLiteral("OK"),
 					user: expect.objectContaining({ email: "member@example.test", role: "admin" }),
 				}),
 			],
-		});
+		]);
 	},
 );
 
@@ -34,11 +35,11 @@ for (const [caller, traits, refusal, status] of [
 		`${caller} is refused as ${refusal} by the admin route and the admin and owner RPCs`,
 		traits,
 		function* ({ callAdminTools, callOwnerTools, openAdminTools }) {
-			yield* outcomes({
-				"admin RPC": [callAdminTools(), `failed with ${refusal}`],
-				"admin route status": [openAdminTools(), expect.objectContaining({ status })],
-				"owner RPC": [callOwnerTools(), `failed with ${refusal}`],
-			});
+			yield* outcomes([
+				["admin RPC", () => callAdminTools(), `failed with ${refusal}`],
+				["admin route status", () => openAdminTools(), expect.objectContaining({ status })],
+				["owner RPC", () => callOwnerTools(), `failed with ${refusal}`],
+			]);
 		},
 	);
 
@@ -50,20 +51,20 @@ for (const [caller, traits, refusal, status] of [
 }
 
 auth.it("an owner reaches the owner RPC but not the admin RPC", [signedInWithRole("owner")], function* ({ callAdminTools, callOwnerTools }) {
-	yield* outcomes({
-		"admin RPC": [callAdminTools(), "failed with forbidden"],
-		"owner RPC": [callOwnerTools(), OWNER_TOOLS],
-	});
+	yield* outcomes([
+		["admin RPC", () => callAdminTools(), "failed with forbidden"],
+		["owner RPC", () => callOwnerTools(), OWNER_TOOLS],
+	]);
 });
 
 auth.it(
 	"an admin who is not an owner reaches the admin RPC but not the owner RPC",
 	[signedInWithRole("admin")],
 	function* ({ callAdminTools, callOwnerTools }) {
-		yield* outcomes({
-			"admin RPC": [callAdminTools(), ADMIN_TOOLS],
-			"owner RPC": [callOwnerTools(), "failed with forbidden"],
-		});
+		yield* outcomes([
+			["admin RPC", () => callAdminTools(), ADMIN_TOOLS],
+			["owner RPC", () => callOwnerTools(), "failed with forbidden"],
+		]);
 	},
 );
 
@@ -75,10 +76,10 @@ auth.it(
 
 		yield* revokeSession();
 
-		yield* outcomes({
-			"admin RPC": [callAdminTools(), "failed with unauthorized"],
-			"admin route": [openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Unauthorized") })],
-		});
+		yield* outcomes([
+			["admin RPC", () => callAdminTools(), "failed with unauthorized"],
+			["admin route", () => openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Unauthorized") })],
+		]);
 	},
 );
 
@@ -90,10 +91,10 @@ auth.it(
 
 		yield* setRole("user");
 
-		yield* outcomes({
-			"admin RPC": [callAdminTools(), "failed with forbidden"],
-			"admin route": [openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Forbidden") })],
-		});
+		yield* outcomes([
+			["admin RPC", () => callAdminTools(), "failed with forbidden"],
+			["admin route", () => openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Forbidden") })],
+		]);
 	},
 );
 
@@ -105,10 +106,10 @@ auth.it(
 
 		yield* setRole("admin");
 
-		yield* outcomes({
-			"admin RPC": [callAdminTools(), ADMIN_TOOLS],
-			"owner RPC": [callOwnerTools(), "failed with forbidden"],
-		});
+		yield* outcomes([
+			["admin RPC", () => callAdminTools(), ADMIN_TOOLS],
+			["owner RPC", () => callOwnerTools(), "failed with forbidden"],
+		]);
 	},
 );
 
@@ -128,13 +129,14 @@ auth.it(
 	"the client session and the request profile expose the admin role and its exact grants",
 	[signedInWithRole("admin")],
 	function* ({ clientSession, profile }) {
-		yield* outcomes({
-			"client session": [
-				clientSession(),
+		yield* outcomes([
+			[
+				"client session",
+				() => clientSession(),
 				expect.objectContaining({ payload: expect.objectContaining({ user: expect.objectContaining({ permissions: grants, role: "admin" }) }) }),
 			],
-			profile: [profile(), expect.objectContaining({ user: expect.objectContaining({ permissions: grants, role: "admin" }) })],
-		});
+			["profile", () => profile(), expect.objectContaining({ user: expect.objectContaining({ permissions: grants, role: "admin" }) })],
+		]);
 	},
 );
 
@@ -164,10 +166,10 @@ auth.it(
 	function* ({ adminHandlerRequests, callAdminTools }) {
 		const answer = yield* callAdminTools();
 
-		yield* outcomes({
-			"admin handler requests": [adminHandlerRequests(), ["adminTools"]],
-			answer: [Effect.succeed(answer), ADMIN_TOOLS],
-		});
+		yield* outcomes([
+			["admin handler requests", () => adminHandlerRequests(), ["adminTools"]],
+			["answer", () => Effect.succeed(answer), ADMIN_TOOLS],
+		]);
 	},
 );
 

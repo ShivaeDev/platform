@@ -46,11 +46,11 @@ screenStory.it(
 
 		yield* answerCardRefreshes(REVISED);
 
-		yield* outcomes({
-			answer: [answerBoxState(), expect.objectContaining({ text: DRAFT })],
-			"Record answer": [recordButton(), "enabled"],
-			status: [answerStatusLine(), expect.stringContaining("Source changed since this draft.")],
-		});
+		yield* outcomes([
+			["answer", () => answerBoxState(), expect.objectContaining({ text: DRAFT })],
+			["Record answer", () => recordButton(), "enabled"],
+			["status", () => answerStatusLine(), expect.stringContaining("Source changed since this draft.")],
+		]);
 	},
 );
 
@@ -76,11 +76,11 @@ screenStory.it(
 
 		yield* recordAnswer();
 
-		yield* outcomes({
-			"answer box": [answerBoxState(), expect.objectContaining({ text: "" })],
-			recorded: [recordedAnswers("item.fixture", "direction"), [expect.objectContaining({ body: DRAFT })]],
-			"stored draft": [storedDraft("item.fixture", "direction"), "nothing stored"],
-		});
+		yield* outcomes([
+			["answer box", () => answerBoxState(), expect.objectContaining({ text: "" })],
+			["recorded", () => recordedAnswers("item.fixture", "direction"), [expect.objectContaining({ body: DRAFT })]],
+			["stored draft", () => storedDraft("item.fixture", "direction"), "nothing stored"],
+		]);
 	},
 );
 
@@ -107,12 +107,12 @@ screenStory.it(
 
 		yield* clearAnswerDraft();
 
-		yield* outcomes({
-			"answer box": [answerBoxState(), expect.objectContaining({ text: "" })],
-			"first request's draft": [storedDraft("item.fixture", "direction"), expect.stringContaining(DRAFT)],
-			"other request's draft": [storedDraft("item.fixture", "other"), "nothing stored"],
-			status: [answerStatusLine(), "Draft cleared. Saved responses are unchanged."],
-		});
+		yield* outcomes([
+			["answer box", () => answerBoxState(), expect.objectContaining({ text: "" })],
+			["first request's draft", () => storedDraft("item.fixture", "direction"), expect.stringContaining(DRAFT)],
+			["other request's draft", () => storedDraft("item.fixture", "other"), "nothing stored"],
+			["status", () => answerStatusLine(), "Draft cleared. Saved responses are unchanged."],
+		]);
 	},
 );
 

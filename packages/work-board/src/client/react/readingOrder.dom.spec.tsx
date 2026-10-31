@@ -20,10 +20,11 @@ screenStory.it(
 	"Tab passes through a goal's progress, criteria, linked work groups and text before its item context",
 	[readingPage(goal, "/goal.md")],
 	function* ({ tabOrder, tabStopsIn }) {
-		yield* outcomes({
-			"linked work": [tabStopsIn("Linked work"), ["button Draft (3)", "button Done (1)", "button Deferred (1)"]],
-			order: [
-				tabOrder(),
+		yield* outcomes([
+			["linked work", () => tabStopsIn("Linked work"), ["button Draft (3)", "button Done (1)", "button Deferred (1)"]],
+			[
+				"order",
+				() => tabOrder(),
 				[
 					"the page header",
 					"Item overview",
@@ -36,7 +37,7 @@ screenStory.it(
 					"Document outline",
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -77,10 +78,10 @@ screenStory.it(
 	"a shared link to a goal's Linked work lands focus on that section without a missing-section notice",
 	[readingPage(goal, "/goal.md#linked-work")],
 	function* ({ navigationStatus, readerFocus }) {
-		yield* outcomes({
-			focus: [readerFocus(), "heading Linked work"],
-			status: [navigationStatus(), { state: "normal", text: "" }],
-		});
+		yield* outcomes([
+			["focus", () => readerFocus(), "heading Linked work"],
+			["status", () => navigationStatus(), { state: "normal", text: "" }],
+		]);
 	},
 );
 
@@ -93,11 +94,11 @@ screenStory.it(
 
 		yield* goBack();
 
-		yield* outcomes({
-			focus: [readerFocus(), "link Next"],
-			page: [shownPage(), "First"],
-			place: [focusPlace(), "the document text"],
-		});
+		yield* outcomes([
+			["focus", () => readerFocus(), "link Next"],
+			["page", () => shownPage(), "First"],
+			["place", () => focusPlace(), "the document text"],
+		]);
 	},
 );
 

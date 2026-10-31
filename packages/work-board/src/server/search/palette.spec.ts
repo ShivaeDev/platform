@@ -9,13 +9,14 @@ boardStory.it(
 	"a plain search puts the inbox task first and leaves out captured records and responses",
 	[palette],
 	function* ({ firstResult, resultSources }) {
-		yield* outcomes({
-			"first result": [
-				firstResult("inbox"),
+		yield* outcomes([
+			[
+				"first result",
+				() => firstResult("inbox"),
 				expect.objectContaining({ id: "task.triage", itemKind: "task", status: "ready", title: "Build the inbox" }),
 			],
-			"result sources": [resultSources("inbox"), ["task.md", "passage.md"]],
-		});
+			["result sources", () => resultSources("inbox"), ["task.md", "passage.md"]],
+		]);
 	},
 );
 
@@ -48,10 +49,10 @@ for (const query of ["question", "answer", "application", "context"]) {
 		`a plain search for ${query} leaves out the captured responses that a records: search finds`,
 		[withHumanQuestion],
 		function* ({ resultSources }) {
-			yield* outcomes({
-				"plain search": [resultSources(query), expect.not.arrayContaining([expect.stringMatching(/^responses\//u)])],
-				"records: search": [resultSources(`records: ${query}`), expect.arrayContaining([expect.stringMatching(/^responses\//u)])],
-			});
+			yield* outcomes([
+				["plain search", () => resultSources(query), expect.not.arrayContaining([expect.stringMatching(/^responses\//u)])],
+				["records: search", () => resultSources(`records: ${query}`), expect.arrayContaining([expect.stringMatching(/^responses\//u)])],
+			]);
 		},
 	);
 }

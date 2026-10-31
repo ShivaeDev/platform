@@ -25,10 +25,10 @@ drafts.it("a refresh after a reload adopts the newer row's untouched fields", [r
 drafts.it("revert returns to the latest row and clears the stored draft", [restoredAfterReload(true)], function* ({ fields, revert, stored }) {
 	yield* revert();
 
-	yield* outcomes({
-		fields: [fields(), { name: "Remote", quantity: "350" }],
-		stored: [stored(), "none"],
-	});
+	yield* outcomes([
+		["fields", () => fields(), { name: "Remote", quantity: "350" }],
+		["stored", () => stored(), "none"],
+	]);
 });
 
 drafts.it("a query refresh stores the merged input", [draftTyped("name", "Local")], function* ({ refresh, stored }) {
@@ -43,20 +43,20 @@ drafts.it(
 	function* ({ fields, reload, status }) {
 		yield* reload();
 
-		yield* outcomes({
-			fields: [fields(), { name: "Local", quantity: "300" }],
-			status: [status(), "Unsaved"],
-		});
+		yield* outcomes([
+			["fields", () => fields(), { name: "Local", quantity: "300" }],
+			["status", () => status(), "Unsaved"],
+		]);
 	},
 );
 
 drafts.it("a successful save clears the stored draft", [draftTyped("name", "Saved answer")], function* ({ status, stored, submit }) {
 	yield* submit();
 
-	yield* outcomes({
-		status: [status(), "Saved"],
-		stored: [stored(), "none"],
-	});
+	yield* outcomes([
+		["status", () => status(), "Saved"],
+		["stored", () => stored(), "none"],
+	]);
 });
 
 drafts.it("hiding the form keeps the session's stored draft", [draftTyped("name", "First session")], function* ({ hideForm, stored }) {
@@ -90,10 +90,10 @@ drafts.it(
 drafts.it("signing out clears the stored draft", [firstSessionDraft("second typed")], function* ({ screenText, session, stored }) {
 	yield* session(undefined);
 
-	yield* outcomes({
-		screen: [screenText(), "Signed out"],
-		stored: [stored(), "none"],
-	});
+	yield* outcomes([
+		["screen", () => screenText(), "Signed out"],
+		["stored", () => stored(), "none"],
+	]);
 });
 
 for (const failure of ["getter", "read", "write", "remove"] as const) {
@@ -103,10 +103,10 @@ for (const failure of ["getter", "read", "write", "remove"] as const) {
 		function* ({ fields, refresh, storageConsulted }) {
 			yield* refresh();
 
-			yield* outcomes({
-				fields: [fields(), { name: "Local", quantity: "350" }],
-				storage: [storageConsulted(), "consulted"],
-			});
+			yield* outcomes([
+				["fields", () => fields(), { name: "Local", quantity: "350" }],
+				["storage", () => storageConsulted(), "consulted"],
+			]);
 		},
 	);
 
@@ -129,10 +129,10 @@ drafts.it(
 	function* ({ saveError, stored, submit }) {
 		yield* submit();
 
-		yield* outcomes({
-			"save error": [saveError(), "Save failed"],
-			stored: [stored(), { name: "Rejected answer", quantity: "300" }],
-		});
+		yield* outcomes([
+			["save error", () => saveError(), "Save failed"],
+			["stored", () => stored(), { name: "Rejected answer", quantity: "300" }],
+		]);
 	},
 );
 

@@ -7,10 +7,10 @@ indexStory.it(
 	function* ({ indexedIds, laterReadReuses, readerReadsIndex, revisionOfRead }) {
 		yield* readerReadsIndex();
 
-		yield* outcomes({
-			"indexed identities": [indexedIds(), ["added", "first"]],
-			"next read": [laterReadReuses(), "the same snapshot"],
-			"revision of the read": [revisionOfRead(), "current"],
-		});
+		yield* outcomes([
+			["indexed identities", () => indexedIds(), ["added", "first"]],
+			["next read", () => laterReadReuses(), "the same snapshot"],
+			["revision of the read", () => revisionOfRead(), "current"],
+		]);
 	},
 );

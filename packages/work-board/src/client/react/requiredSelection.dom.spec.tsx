@@ -29,14 +29,15 @@ screenStory.it(
 
 		yield* recordAnswer();
 
-		yield* outcomes({
-			"answered note": [answeredNote(), "none"],
-			question: [
-				questionReading("display"),
+		yield* outcomes([
+			["answered note", () => answeredNote(), "none"],
+			[
+				"question",
+				() => questionReading("display"),
 				expect.objectContaining({ block: expect.stringContaining("Choose an option before recording this answer.") }),
 			],
-			recorded: [recordedAnswers("investigation.choices", "direction"), []],
-		});
+			["recorded", () => recordedAnswers("investigation.choices", "direction"), []],
+		]);
 	},
 );
 

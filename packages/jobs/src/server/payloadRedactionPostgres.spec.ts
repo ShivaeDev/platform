@@ -34,17 +34,22 @@ database.it(
 	function* ({ listedOutputs, storedOutput, logged, logContext, untilJob }) {
 		yield* untilJob("confirmation", "failed");
 
-		yield* outcomes({
-			"listed failure": [listedOutputs("app", "failed", Mail), [rejected]],
-			"log annotations": [logContext("mail attempted"), { annotations: { component: "mail", token: "<redacted>" }, span: "the one-time-mail span" }],
-			"recorded worker log": [
-				Effect.map(logged("app"), (lines) => lines.filter(({ level }) => level === "Info")),
+		yield* outcomes([
+			["listed failure", () => listedOutputs("app", "failed", Mail), [rejected]],
+			[
+				"log annotations",
+				() => logContext("mail attempted"),
+				{ annotations: { component: "mail", token: "<redacted>" }, span: "the one-time-mail span" },
+			],
+			[
+				"recorded worker log",
+				() => Effect.map(logged("app"), (lines) => lines.filter(({ level }) => level === "Info")),
 				[
 					{ level: "Info", message: masked },
 					{ level: "Info", message: "mail attempted" },
 				],
 			],
-			"stored failure": [storedOutput("confirmation"), rejected],
-		});
+			["stored failure", () => storedOutput("confirmation"), rejected],
+		]);
 	},
 );

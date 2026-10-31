@@ -34,10 +34,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:4"]],
-			messages: [messages(), [expect.stringContaining(`Weakens "lint/complexity/useLiteralKeys" for "**" ${FIX}`)]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:4"]],
+			["messages", () => messages(), [expect.stringContaining(`Weakens "lint/complexity/useLiteralKeys" for "**" ${FIX}`)]],
+		]);
 	},
 );
 
@@ -55,16 +55,17 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:1", "biome.json:1"]],
-			messages: [
-				messages(),
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:1", "biome.json:1"]],
+			[
+				"messages",
+				() => messages(),
 				[
 					expect.stringContaining(`Weakens "lint/suspicious/noExplicitAny" for "src/a.ts", "src/b.ts" ${FIX}`),
 					expect.stringContaining(`Weakens "lint/suspicious/noThenProperty" for "src/a.ts", "src/b.ts" ${FIX}`),
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -138,10 +139,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.base.json:1"]],
-			messages: [messages(), [expect.stringContaining(`Weakens "lint/style/noNonNullAssertion" for "**/*.test.ts" ${FIX}`)]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["biome.base.json:1"]],
+			["messages", () => messages(), [expect.stringContaining(`Weakens "lint/style/noNonNullAssertion" for "**/*.test.ts" ${FIX}`)]],
+		]);
 	},
 );
 
@@ -160,10 +161,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["packages/web/biome.jsonc:2", "packages/web/biome.jsonc:2"]],
-			messages: [messages(), [`Weakens "lint/a11y" for "packages/web/**" ${FIX}`, `Weakens "format" for "!packages/web/src/**" ${FIX}`]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["packages/web/biome.jsonc:2", "packages/web/biome.jsonc:2"]],
+			["messages", () => messages(), [`Weakens "lint/a11y" for "packages/web/**" ${FIX}`, `Weakens "format" for "!packages/web/src/**" ${FIX}`]],
+		]);
 	},
 );
 
@@ -177,10 +178,10 @@ for (const [what, config, location, reason] of [
 		function* ({ check, locations, messages }) {
 			yield* check(biomeOverrides);
 
-			yield* outcomes({
-				locations: [locations(), [location]],
-				messages: [messages(), [`Cannot read this Biome config: ${reason}.`]],
-			});
+			yield* outcomes([
+				["locations", () => locations(), [location]],
+				["messages", () => messages(), [`Cannot read this Biome config: ${reason}.`]],
+			]);
 		},
 	);
 }

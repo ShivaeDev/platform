@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
@@ -54,10 +53,10 @@ boardStory.it(
 	"a folder linked into the workspace from outside is listed and served",
 	[...workspace, workspaceLink("notes/elsewhere", "the outside folder")],
 	function* ({ libraryPaths, statusOf }) {
-		yield* outcomes({
-			library: [libraryPaths(), expect.arrayContaining(["/notes/elsewhere/private.md"])],
-			page: [statusOf("/notes/elsewhere/private.md"), "OK"],
-		});
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/notes/elsewhere/private.md"])],
+			["page", () => statusOf("/notes/elsewhere/private.md"), "OK"],
+		]);
 	},
 );
 
@@ -65,10 +64,10 @@ boardStory.it(
 	"a file link to another workspace file is listed and served",
 	[...workspace, workspaceLink("notes/alias.md", "plan.md")],
 	function* ({ libraryPaths, statusOf }) {
-		yield* outcomes({
-			library: [libraryPaths(), expect.arrayContaining(["/notes/alias.md"])],
-			page: [statusOf("/notes/alias.md"), "OK"],
-		});
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/notes/alias.md"])],
+			["page", () => statusOf("/notes/alias.md"), "OK"],
+		]);
 	},
 );
 
@@ -80,13 +79,14 @@ for (const [path, link, target] of [
 		`a link to ${target} is neither listed nor served`,
 		[...workspace, workspaceLink(link, target)],
 		function* ({ download, libraryPaths, outside }) {
-			yield* outcomes({
-				library: [libraryPaths(), ["/notes/log.md", "/plan.md"]],
-				page: [
-					download(path.replace("<outside>", outside.root.split("/").at(-1) ?? "")),
+			yield* outcomes([
+				["library", () => libraryPaths(), ["/notes/log.md", "/plan.md"]],
+				[
+					"page",
+					() => download(path.replace("<outside>", outside.root.split("/").at(-1) ?? "")),
 					expect.objectContaining({ status: "Not Found", text: expect.not.stringContaining(OUTSIDE) }),
 				],
-			});
+			]);
 		},
 	);
 }
@@ -107,10 +107,10 @@ boardStory.it(
 	"a file named c# & more?.md is listed under its encoded path and served there",
 	[...workspace, projectFiles({ "notes/c# & more?.md": "# Sharp\n" })],
 	function* ({ libraryPaths, statusOf }) {
-		yield* outcomes({
-			library: [libraryPaths(), expect.arrayContaining(["/notes/c%23%20%26%20more%3F.md"])],
-			page: [statusOf("/notes/c%23%20%26%20more%3F.md"), "OK"],
-		});
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/notes/c%23%20%26%20more%3F.md"])],
+			["page", () => statusOf("/notes/c%23%20%26%20more%3F.md"), "OK"],
+		]);
 	},
 );
 
@@ -143,10 +143,10 @@ boardStory.it(
 
 		yield* writeWatched("notes/new.md", "# New\n");
 
-		yield* outcomes({
-			library: [libraryPaths(), expect.arrayContaining(["/notes/new.md"])],
-			"listings of notes": [folderListings("notes"), listed],
-		});
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/notes/new.md"])],
+			["listings of notes", () => folderListings("notes"), listed],
+		]);
 	},
 );
 
@@ -157,12 +157,10 @@ boardStory.it("the page shell allows only the board's own scripts and forbids MI
 	});
 });
 
-boardStory.it("the browser client is served as JavaScript from the package's built React bundle", workspace, function* ({ download }) {
-	expect(yield* download("/_board/react.js")).toMatchObject({
-		status: "OK",
-		text: readFileSync(new URL("../../../assets/react.js", import.meta.url), "utf8"),
-		type: "text/javascript",
-	});
+boardStory.it("the browser client is served as JavaScript from the package's built React bundle", workspace, function* ({ builtAsset, download }) {
+	const bundle = yield* builtAsset("react.js");
+
+	expect(yield* download("/_board/react.js")).toMatchObject({ status: "OK", text: bundle, type: "text/javascript" });
 });
 
 boardStory.it("Mermaid's entry module is served as JavaScript from the installed package", workspace, function* ({ download }) {

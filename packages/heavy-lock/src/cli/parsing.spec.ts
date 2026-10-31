@@ -8,10 +8,10 @@ lockStory.it(
 	function* ({ cli }) {
 		yield* cli.invokedWith("check", ["/bin/echo", "running"]);
 
-		yield* outcomes({
-			"exit code": [cli.exitCodeOf("check"), 0],
-			"output": [cli.standardOutputOf("check"), "running\n"],
-		});
+		yield* outcomes([
+			["exit code", () => cli.exitCodeOf("check"), 0],
+			["output", () => cli.standardOutputOf("check"), "running\n"],
+		]);
 	},
 	liveCli,
 );
@@ -23,10 +23,10 @@ for (const separators of [["--"], ["--", "--"]]) {
 		function* ({ cli }) {
 			yield* cli.invokedWith("check", [...separators, ...cli.commands.reportsHolderId]);
 
-			yield* outcomes({
-				"exit code": [cli.exitCodeOf("check"), 0],
-				"holder id": [cli.holderIdGivenTo("check"), "check's holder id"],
-			});
+			yield* outcomes([
+				["exit code", () => cli.exitCodeOf("check"), 0],
+				["holder id", () => cli.holderIdGivenTo("check"), "check's holder id"],
+			]);
 		},
 		liveCli,
 	);
@@ -39,11 +39,11 @@ for (const args of [[], ["--"], ["--", "--"]]) {
 		function* ({ cli }) {
 			yield* cli.invokedWith("check", args);
 
-			yield* outcomes({
-				"error": [cli.printedBy("check"), ["ERROR", "  Missing required argument: command"]],
-				"exit code": [cli.exitCodeOf("check"), 1],
-				"usage": [cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
-			});
+			yield* outcomes([
+				["error", () => cli.printedBy("check"), ["ERROR", "  Missing required argument: command"]],
+				["exit code", () => cli.exitCodeOf("check"), 1],
+				["usage", () => cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
+			]);
 		},
 		liveCli,
 	);
@@ -55,12 +55,12 @@ lockStory.it(
 	function* ({ cli }) {
 		yield* cli.invokedWith("check", ["--unknown", "--", ...cli.commands.exitsWith(0)]);
 
-		yield* outcomes({
-			"command ran": [cli.ranItsCommand("check"), false],
-			"error": [cli.printedBy("check"), ["ERROR", "  Unrecognized flag: --unknown in command heavy-lock"]],
-			"exit code": [cli.exitCodeOf("check"), 1],
-			"usage": [cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
-		});
+		yield* outcomes([
+			["command ran", () => cli.ranItsCommand("check"), false],
+			["error", () => cli.printedBy("check"), ["ERROR", "  Unrecognized flag: --unknown in command heavy-lock"]],
+			["exit code", () => cli.exitCodeOf("check"), 1],
+			["usage", () => cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
+		]);
 	},
 	liveCli,
 );
@@ -71,11 +71,11 @@ lockStory.it(
 	function* ({ cli }) {
 		yield* cli.invokedWith("check", ["--help", "--", ...cli.commands.exitsWith(3)]);
 
-		yield* outcomes({
-			"command ran": [cli.ranItsCommand("check"), false],
-			"exit code": [cli.exitCodeOf("check"), 0],
-			"usage": [cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
-		});
+		yield* outcomes([
+			["command ran", () => cli.ranItsCommand("check"), false],
+			["exit code", () => cli.exitCodeOf("check"), 0],
+			["usage", () => cli.standardOutputOf("check"), expect.stringContaining("heavy-lock [flags] <command> [<args...>]")],
+		]);
 	},
 	liveCli,
 );

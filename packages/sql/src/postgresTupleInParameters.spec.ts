@@ -21,11 +21,11 @@ queries.it(
 
 		yield* findPartialRows({ select: ["a", "b"], where });
 
-		yield* outcomes({
-			"bound parameters": [boundParameters(), [boundTuples]],
-			"found rows": [lastResult(), [{ a: QUOTED, b: 1 }]],
-			"quote written into the SQL": [sqlTextContains(QUOTED), false],
-		});
+		yield* outcomes([
+			["bound parameters", () => boundParameters(), [boundTuples]],
+			["found rows", () => lastResult(), [{ a: QUOTED, b: 1 }]],
+			["quote written into the SQL", () => sqlTextContains(QUOTED), false],
+		]);
 	},
 );
 
@@ -37,11 +37,11 @@ queries.it(
 
 		yield* selectPartialRows({ select: ["a"], where });
 
-		yield* outcomes({
-			"bound parameters": [boundParameters(), [boundTuples]],
-			"quote written into the SQL": [sqlTextContains(QUOTED), false],
-			"selected rows": [lastResult(), [{ a: QUOTED }]],
-		});
+		yield* outcomes([
+			["bound parameters", () => boundParameters(), [boundTuples]],
+			["quote written into the SQL", () => sqlTextContains(QUOTED), false],
+			["selected rows", () => lastResult(), [{ a: QUOTED }]],
+		]);
 	},
 );
 
@@ -53,10 +53,10 @@ queries.it(
 
 		yield* deletePartialRows(where);
 
-		yield* outcomes({
-			"bound parameters": [boundParameters(), [boundTuples]],
-			"quote written into the SQL": [sqlTextContains(QUOTED), false],
-			"stored rows": [partialRows(), [{ a: "other", b: 1 }]],
-		});
+		yield* outcomes([
+			["bound parameters", () => boundParameters(), [boundTuples]],
+			["quote written into the SQL", () => sqlTextContains(QUOTED), false],
+			["stored rows", () => partialRows(), [{ a: "other", b: 1 }]],
+		]);
 	},
 );

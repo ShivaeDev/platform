@@ -13,10 +13,10 @@ for (const [setting, value] of [
 		function* ({ outcome, runs, stderr }) {
 			yield* runs("lint");
 
-			yield* outcomes({
-				"exit": [outcome(), "invalid"],
-				"rule failure": [stderr(), expect.stringContaining("rule biome failed")],
-			});
+			yield* outcomes([
+				["exit", () => outcome(), "invalid"],
+				["rule failure", () => stderr(), expect.stringContaining("rule biome failed")],
+			]);
 		},
 		CLI_TIMEOUT,
 	);

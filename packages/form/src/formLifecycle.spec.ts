@@ -8,10 +8,10 @@ names.it(
 	function* ({ savedValue, shown, submit }) {
 		yield* submit();
 
-		yield* outcomes({
-			"saved name": [savedValue(), { name: "Saved" }],
-			"shown name": [shown("name"), "  Saved  "],
-		});
+		yield* outcomes([
+			["saved name", () => savedValue(), { name: "Saved" }],
+			["shown name", () => shown("name"), "  Saved  "],
+		]);
 	},
 );
 
@@ -43,10 +43,10 @@ names.it(
 
 		yield* submit();
 
-		yield* outcomes({
-			"shown name": [shown("name"), "Taken"],
-			"unsaved changes": [unsavedChanges(), true],
-		});
+		yield* outcomes([
+			["shown name", () => shown("name"), "Taken"],
+			["unsaved changes", () => unsavedChanges(), true],
+		]);
 	},
 );
 
@@ -58,11 +58,11 @@ names.it(
 
 		yield* finishSave();
 
-		yield* outcomes({
-			"saved name": [savedValue(), { name: "Submitted" }],
-			"shown name": [shown("name"), "Still editing"],
-			"unsaved changes": [unsavedChanges(), true],
-		});
+		yield* outcomes([
+			["saved name", () => savedValue(), { name: "Submitted" }],
+			["shown name", () => shown("name"), "Still editing"],
+			["unsaved changes", () => unsavedChanges(), true],
+		]);
 	},
 );
 
@@ -96,10 +96,10 @@ names.it(
 
 		yield* finishSave();
 
-		yield* outcomes({
-			"shown name": [shown("name"), "  Saved  "],
-			"unsaved changes": [unsavedChanges(), false],
-		});
+		yield* outcomes([
+			["shown name", () => shown("name"), "  Saved  "],
+			["unsaved changes", () => unsavedChanges(), false],
+		]);
 	},
 );
 
@@ -123,10 +123,10 @@ names.it(
 
 		yield* finishSave();
 
-		yield* outcomes({
-			"shown name": [shown("name"), "Newer"],
-			"unsaved changes": [unsavedChanges(), true],
-		});
+		yield* outcomes([
+			["shown name", () => shown("name"), "Newer"],
+			["unsaved changes", () => unsavedChanges(), true],
+		]);
 	},
 );
 
@@ -168,10 +168,10 @@ names.it(
 
 		yield* submit();
 
-		yield* outcomes({
-			"saved name": [savedValue(), { name: "Two" }],
-			"unsaved changes": [unsavedChanges(), false],
-		});
+		yield* outcomes([
+			["saved name", () => savedValue(), { name: "Two" }],
+			["unsaved changes", () => unsavedChanges(), false],
+		]);
 	},
 );
 

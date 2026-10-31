@@ -6,8 +6,11 @@ describe("parseCommand", () => {
 		[[], { _tag: "Lint", config: undefined }],
 		[["lint", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts" }],
 		[["fix"], { _tag: "Fix", config: undefined, rules: [] }],
-		[["baseline", "write"], { _tag: "BaselineWrite", config: undefined, files: [], rules: [] }],
-		[["baseline", "write", "--rule", "a/b", "--rule", "c/d"], { _tag: "BaselineWrite", config: undefined, files: [], rules: ["a/b", "c/d"] }],
+		[["baseline", "write"], { _tag: "BaselineWrite", config: undefined, files: [], firstAdoption: false, rules: [] }],
+		[
+			["baseline", "write", "--rule", "a/b", "--rule", "c/d"],
+			{ _tag: "BaselineWrite", config: undefined, files: [], firstAdoption: false, rules: ["a/b", "c/d"] },
+		],
 		[["baseline", "prune"], { _tag: "BaselinePrune", against: undefined, config: undefined }],
 		[["baseline", "prune", "--against", "upstream/trunk"], { _tag: "BaselinePrune", against: "upstream/trunk", config: undefined }],
 		[["baseline", "prune", "--against", "origin/main", "--config", "q.ts"], { _tag: "BaselinePrune", against: "origin/main", config: "q.ts" }],

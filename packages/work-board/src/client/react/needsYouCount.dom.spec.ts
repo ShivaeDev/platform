@@ -20,10 +20,10 @@ screenStory.it(
 
 		yield* navigate("/");
 
-		yield* outcomes({
-			"needs you": [needsYou(), ["Landing copy tone", "Ship the onboarding email", "Draft the pricing page"]],
-			summary: [todaySummaryParts(), expect.arrayContaining(["3 need you → #needs-you"])],
-		});
+		yield* outcomes([
+			["needs you", () => needsYou(), ["Landing copy tone", "Ship the onboarding email", "Draft the pricing page"]],
+			["summary", () => todaySummaryParts(), expect.arrayContaining(["3 need you → #needs-you"])],
+		]);
 	},
 );
 
@@ -31,9 +31,10 @@ screenStory.it(
 	"Today counts In progress from each task's written status while Fleet is unavailable and says so",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
 	function* ({ inProgressList, todaySummaryParts }) {
-		yield* outcomes({
-			"in progress": [
-				inProgressList(),
+		yield* outcomes([
+			[
+				"in progress",
+				() => inProgressList(),
 				expect.objectContaining({
 					rows: [
 						expect.objectContaining({ badge: "Ready", id: "task.email" }),
@@ -42,8 +43,8 @@ screenStory.it(
 					status: ["Fleet isn't set up for this Board.These show the status written in each task, not what Fleet reports."],
 				}),
 			],
-			summary: [todaySummaryParts(), ["3 need you → #needs-you", "2 ready tasks → #in-progress", "0 active goals → #today-goals"]],
-		});
+			["summary", () => todaySummaryParts(), ["3 need you → #needs-you", "2 ready tasks → #in-progress", "0 active goals → #today-goals"]],
+		]);
 	},
 );
 
@@ -51,16 +52,17 @@ screenStory.it(
 	"The navigation names every workspace destination with the counts beside it",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
 	function* ({ navigationLabels, needsYouBadges }) {
-		yield* outcomes({
-			badges: [
-				needsYouBadges(),
+		yield* outcomes([
+			[
+				"badges",
+				() => needsYouBadges(),
 				expect.objectContaining({
 					header: expect.objectContaining({ label: "Today, 3 need you" }),
 					sidebar: expect.objectContaining({ label: "3 need you" }),
 				}),
 			],
-			navigation: [navigationLabels(), ["Today, 3 need you", "Goals", "Now, 3 open tasks", "Pull requests", "Library", "System"]],
-		});
+			["navigation", () => navigationLabels(), ["Today, 3 need you", "Goals", "Now, 3 open tasks", "Pull requests", "Library", "System"]],
+		]);
 	},
 );
 

@@ -36,9 +36,9 @@ screenStory.it(
 
 		yield* filterLibrary("Kind", "Goal");
 
-		yield* outcomes({
-			"the filters": [libraryFilters(), { fleet: false, kind: "Goal", query: "", reset: "offered", status: "All statuses", view: "By title" }],
-			"the listed titles": [libraryTitles(), ["A calm workspace"]],
-		});
+		yield* outcomes([
+			["the filters", () => libraryFilters(), { fleet: false, kind: "Goal", query: "", reset: "offered", status: "All statuses", view: "By title" }],
+			["the listed titles", () => libraryTitles(), ["A calm workspace"]],
+		]);
 	},
 );

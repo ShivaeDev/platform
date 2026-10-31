@@ -10,10 +10,10 @@ serviceStory.it(
 
 		yield* interruptCall();
 
-		yield* outcomes({
-			"released resources": [released(), ["the call's resource"]],
-			"the call": [answers(), ["interrupted"]],
-		});
+		yield* outcomes([
+			["released resources", () => released(), ["the call's resource"]],
+			["the call", () => answers(), ["interrupted"]],
+		]);
 	},
 );
 
@@ -25,9 +25,9 @@ serviceStory.it(
 
 		yield* interruptBuild();
 
-		yield* outcomes({
-			"released resources": [released(), ["the initializer's resource"]],
-			"the build": [buildOutcome(), "interrupted"],
-		});
+		yield* outcomes([
+			["released resources", () => released(), ["the initializer's resource"]],
+			["the build", () => buildOutcome(), "interrupted"],
+		]);
 	},
 );

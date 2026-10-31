@@ -71,10 +71,10 @@ database.it(
 
 		yield* enqueue("app", Checked, { id: 2 }, { as: "job 2" });
 
-		yield* outcomes({
-			"answer": [answered(), "job 2"],
-			"stored": [storedPayloads(Checked), [Option.some({ id: 2 })]],
-		});
+		yield* outcomes([
+			["answer", () => answered(), "job 2"],
+			["stored", () => storedPayloads(Checked), [Option.some({ id: 2 })]],
+		]);
 	},
 );
 
@@ -111,11 +111,11 @@ database.it(
 		yield* enqueue("app", Checked, { id: 7 }, { as: "job" });
 		yield* untilDeadLettered(Checked, 1);
 
-		yield* outcomes({
-			"attempts": [attempts(Checked), ["job", "job"]],
-			"dead-lettered": [deadLettered(Checked), ["job"]],
-			"job": [job("job"), expect.objectContaining({ error: "job timed out", retryCount: 2, state: "failed" })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Checked), ["job", "job"]],
+			["dead-lettered", () => deadLettered(Checked), ["job"]],
+			["job", () => job("job"), expect.objectContaining({ error: "job timed out", retryCount: 2, state: "failed" })],
+		]);
 	},
 );
 
@@ -131,10 +131,10 @@ database.it(
 		yield* enqueue("app", Checked, { id: 9 }, { as: "job" });
 		yield* untilJob("job", "completed");
 
-		yield* outcomes({
-			attempts: [attempts(Checked), ["job"]],
-			job: [job("job"), expect.objectContaining({ retryCount: 0, state: "completed" })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Checked), ["job"]],
+			["job", () => job("job"), expect.objectContaining({ retryCount: 0, state: "completed" })],
+		]);
 	},
 );
 
@@ -196,10 +196,10 @@ database.it(
 		yield* open("busy");
 		yield* untilIdleWaitSettles("app");
 
-		yield* outcomes({
-			"idle reads": [idleReads(), { "after the busy work went on": expect.any(Number), "while work was busy": 0 }],
-			"stored": [storedStates("checked"), { "job 1": "completed", "job 2": "completed", "job 3": "completed" }],
-		});
+		yield* outcomes([
+			["idle reads", () => idleReads(), { "after the busy work went on": expect.any(Number), "while work was busy": 0 }],
+			["stored", () => storedStates("checked"), { "job 1": "completed", "job 2": "completed", "job 3": "completed" }],
+		]);
 	},
 );
 

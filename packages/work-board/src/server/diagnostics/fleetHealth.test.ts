@@ -46,10 +46,10 @@ for (const kind of ["directory-file", "oversized"] as const) {
 		`a ${kind} health snapshot shows Fleet as failed and asks for a supported snapshot`,
 		[healthBoundary(kind)],
 		function* ({ systemCards, systemCardText }) {
-			yield* outcomes({
-				"fleet advice": [systemCardText("fleet"), expect.stringContaining("Ask Fleet to publish a supported health snapshot")],
-				"fleet card": [systemCards(), expect.objectContaining({ fleet: "error" })],
-			});
+			yield* outcomes([
+				["fleet advice", () => systemCardText("fleet"), expect.stringContaining("Ask Fleet to publish a supported health snapshot")],
+				["fleet card", () => systemCards(), expect.objectContaining({ fleet: "error" })],
+			]);
 		},
 	);
 }

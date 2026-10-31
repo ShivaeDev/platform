@@ -60,11 +60,11 @@ boardStory.it(
 	"while two files declare the same ID, both of them and the decision that references the ID still open",
 	[...workspace, projectFiles({ "duplicate.md": "---\nid: work.search\n---\n# Another source" }, "duplicate.md also declares work.search")],
 	function* ({ statusOf }) {
-		yield* outcomes({
-			"the decision": [statusOf("/decision.md"), "OK"],
-			"the duplicate": [statusOf("/duplicate.md"), "OK"],
-			"the item's file": [statusOf("/items/search%20%26%20review.md"), "OK"],
-		});
+		yield* outcomes([
+			["the decision", () => statusOf("/decision.md"), "OK"],
+			["the duplicate", () => statusOf("/duplicate.md"), "OK"],
+			["the item's file", () => statusOf("/items/search%20%26%20review.md"), "OK"],
+		]);
 	},
 );
 
@@ -82,10 +82,10 @@ boardStory.it(
 	"while another workspace file cannot be read, an item URL answers Service Unavailable and the item's own file still opens",
 	[...workspace, unreadableFile("decision.md")],
 	function* ({ statusOf }) {
-		yield* outcomes({
-			"item file": [statusOf("/items/search%20%26%20review.md"), "OK"],
-			"item URL": [statusOf(ITEM), "Service Unavailable"],
-		});
+		yield* outcomes([
+			["item file", () => statusOf("/items/search%20%26%20review.md"), "OK"],
+			["item URL", () => statusOf(ITEM), "Service Unavailable"],
+		]);
 	},
 );
 

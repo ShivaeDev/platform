@@ -30,9 +30,9 @@ screenStory.it(
 		yield* editFile("task.md", `${TASK}\nChanged reviewed context.\n`);
 		yield* refreshDocument(URL);
 
-		yield* outcomes({
-			answer: [answerBoxState(), { focused: true, selection: [5, 7], text: "Keep my response" }],
-			document: [documentText(), expect.stringContaining("Changed reviewed context")],
-		});
+		yield* outcomes([
+			["answer", () => answerBoxState(), { focused: true, selection: [5, 7], text: "Keep my response" }],
+			["document", () => documentText(), expect.stringContaining("Changed reviewed context")],
+		]);
 	},
 );

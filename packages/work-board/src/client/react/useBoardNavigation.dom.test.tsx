@@ -26,11 +26,11 @@ screenStory.it(
 
 		yield* refreshDocument("/notes/plan.md");
 
-		yield* outcomes({
-			"the answer": [pageAnswer(), "Unavailable"],
-			"the header's status": [navigationStatus(), REFRESH_FAILED],
-			"the page": [pageText(), expect.stringContaining("Read this passage.")],
-		});
+		yield* outcomes([
+			["the answer", () => pageAnswer(), "Unavailable"],
+			["the header's status", () => navigationStatus(), REFRESH_FAILED],
+			["the page", () => pageText(), expect.stringContaining("Read this passage.")],
+		]);
 	},
 );
 
@@ -65,15 +65,15 @@ screenStory.it(
 
 		yield* refreshDocument("/notes/plan.md");
 
-		yield* outcomes({
-			"the answer": [pageAnswer(), "OK"],
-			"the focus": [focusedId(), "search-open"],
-			"the header's status": [navigationStatus(), { state: "normal", text: "" }],
-			"the history entry": [historyEntry(), entry],
-			"the passage scrolls": [readMotion("passage"), []],
-			"the scroll position": [readScrollPosition(), 480],
-			"the scrolls": [readMotion("scroll"), []],
-			"the shell": [shellParts(), { header: "kept", main: "kept", projection: "none" }],
-		});
+		yield* outcomes([
+			["the answer", () => pageAnswer(), "OK"],
+			["the focus", () => focusedId(), "search-open"],
+			["the header's status", () => navigationStatus(), { state: "normal", text: "" }],
+			["the history entry", () => historyEntry(), entry],
+			["the passage scrolls", () => readMotion("passage"), []],
+			["the scroll position", () => readScrollPosition(), 480],
+			["the scrolls", () => readMotion("scroll"), []],
+			["the shell", () => shellParts(), { header: "kept", main: "kept", projection: "none" }],
+		]);
 	},
 );

@@ -24,9 +24,10 @@ screenStory.it(
 
 		yield* refreshDocument(questionUrl);
 
-		yield* outcomes({
-			"closed draft": [
-				closedDraft(),
+		yield* outcomes([
+			[
+				"closed draft",
+				() => closedDraft(),
 				{
 					notice: "Its file now marks the question done. Your draft was not sent.",
 					text: DRAFT,
@@ -34,8 +35,8 @@ screenStory.it(
 					title: "Closed while you were writing: Pooling design for the scale tests",
 				},
 			],
-			"Record answer": [recordButton(), "missing"],
-		});
+			["Record answer", () => recordButton(), "missing"],
+		]);
 	},
 );
 
@@ -49,10 +50,10 @@ screenStory.it(
 
 		yield* copyClosedDraft();
 
-		yield* outcomes({
-			clipboard: [clipboardText(), DRAFT],
-			status: [closedDraftCopy(), expect.objectContaining({ status: "Copied." })],
-		});
+		yield* outcomes([
+			["clipboard", () => clipboardText(), DRAFT],
+			["status", () => closedDraftCopy(), expect.objectContaining({ status: "Copied." })],
+		]);
 	},
 );
 
@@ -65,18 +66,18 @@ screenStory.it(
 
 		yield* refreshDocument(questionUrl);
 
-		yield* outcomes({
-			"answer card": [cardTitle(), "no answer card"],
-			"closed draft": [closedDraft(), "none"],
-		});
+		yield* outcomes([
+			["answer card", () => cardTitle(), "no answer card"],
+			["closed draft", () => closedDraft(), "none"],
+		]);
 	},
 );
 
 screenStory.it("a written question shows its own text above its answer card", [question], function* ({ documentText, itemLayout }) {
-	yield* outcomes({
-		document: [documentText(), expect.stringContaining("Write the design in your answer")],
-		layout: [itemLayout(), ["header", "document", "answer cards"]],
-	});
+	yield* outcomes([
+		["document", () => documentText(), expect.stringContaining("Write the design in your answer")],
+		["layout", () => itemLayout(), ["header", "document", "answer cards"]],
+	]);
 });
 
 screenStory.it(

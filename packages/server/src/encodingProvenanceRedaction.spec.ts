@@ -15,18 +15,20 @@ for (const swap of [false, true]) {
 
 			yield* close();
 
-			yield* outcomes({
-				"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ left: "<redacted>", right: "<redacted>" }) } }],
-				"diagnostic log": [
-					diagnosticLog("branched diagnostic"),
+			yield* outcomes([
+				["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining({ left: "<redacted>", right: "<redacted>" }) } }],
+				[
+					"diagnostic log",
+					() => diagnosticLog("branched diagnostic"),
 					expect.objectContaining({ left: "<redacted>", right: "<redacted>", visible: "public control" }),
 				],
-				"leaked into the answer": [answerMentions("private branched contact"), []],
-				"span attributes": [
-					spanAttributes("branched"),
+				["leaked into the answer", () => answerMentions("private branched contact"), []],
+				[
+					"span attributes",
+					() => spanAttributes("branched"),
 					[expect.objectContaining({ left: "<redacted>", right: "<redacted>", visible: "public control" })],
 				],
-			});
+			]);
 		},
 	);
 }
@@ -40,12 +42,12 @@ for (const source of ["schema", "host"] as const) {
 
 			yield* close();
 
-			yield* outcomes({
-				"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ profile: "<redacted>", visible: "public control" }) } }],
-				"diagnostic log": [diagnosticLog("scalar diagnostic"), expect.objectContaining({ profile: "<redacted>", visible: "public control" })],
-				"leaked into the answer": [answerMentions("private scalar contact"), []],
-				"span attributes": [spanAttributes("scalar"), [expect.objectContaining({ profile: "<redacted>", visible: "public control" })]],
-			});
+			yield* outcomes([
+				["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining({ profile: "<redacted>", visible: "public control" }) } }],
+				["diagnostic log", () => diagnosticLog("scalar diagnostic"), expect.objectContaining({ profile: "<redacted>", visible: "public control" })],
+				["leaked into the answer", () => answerMentions("private scalar contact"), []],
+				["span attributes", () => spanAttributes("scalar"), [expect.objectContaining({ profile: "<redacted>", visible: "public control" })]],
+			]);
 		},
 	);
 }

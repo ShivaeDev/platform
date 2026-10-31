@@ -51,10 +51,10 @@ screenStory.it(
 	"Today puts Needs you above In progress in its main column and Goals in a column of its own",
 	TODAY,
 	function* ({ currentDestination, todayColumns, todayHomeLink }) {
-		yield* outcomes({
-			columns: [todayColumns(), [["Needs you", "In progress"], ["Goals"]]],
-			"current destination": [currentDestination(), "Today, 7 need you"],
-			"home link": [todayHomeLink(), { href: "/home.md", text: "Workspace notes" }],
-		});
+		yield* outcomes([
+			["columns", () => todayColumns(), [["Needs you", "In progress"], ["Goals"]]],
+			["current destination", () => currentDestination(), "Today, 7 need you"],
+			["home link", () => todayHomeLink(), { href: "/home.md", text: "Workspace notes" }],
+		]);
 	},
 );

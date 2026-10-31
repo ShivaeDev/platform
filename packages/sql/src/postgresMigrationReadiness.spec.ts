@@ -10,11 +10,12 @@ migrationRuns.it(
 	function* ({ assertReady, bodiesRun, existingTables, pendingWork, verdicts }) {
 		yield* assertReady(["1_record_first", "2_record_second"]);
 
-		yield* outcomes({
-			"bodies run": [bodiesRun(), []],
-			"existing tables": [existingTables(), []],
-			"pending work": [
-				pendingWork(["1_record_first", "2_record_second"]),
+		yield* outcomes([
+			["bodies run", () => bodiesRun(), []],
+			["existing tables", () => existingTables(), []],
+			[
+				"pending work",
+				() => pendingWork(["1_record_first", "2_record_second"]),
 				{
 					components: [],
 					migrations: [
@@ -23,8 +24,12 @@ migrationRuns.it(
 					],
 				},
 			],
-			verdicts: [verdicts(), [`${NOT_CURRENT}: migration 1 (record_first); migration 2 (record_second). Run the deployment migration command.`]],
-		});
+			[
+				"verdicts",
+				() => verdicts(),
+				[`${NOT_CURRENT}: migration 1 (record_first); migration 2 (record_second). Run the deployment migration command.`],
+			],
+		]);
 	},
 );
 
@@ -34,11 +39,11 @@ migrationRuns.it(
 	function* ({ assertReady, bodiesRun, pendingWork, verdicts }) {
 		yield* assertReady(["1_record_first", "2_record_second"]);
 
-		yield* outcomes({
-			"bodies run": [bodiesRun(), []],
-			"pending work": [pendingWork(["1_record_first", "2_record_second"]), { components: [], migrations: [{ id: 2, name: "record_second" }] }],
-			verdicts: [verdicts(), [`${NOT_CURRENT}: migration 2 (record_second). Run the deployment migration command.`]],
-		});
+		yield* outcomes([
+			["bodies run", () => bodiesRun(), []],
+			["pending work", () => pendingWork(["1_record_first", "2_record_second"]), { components: [], migrations: [{ id: 2, name: "record_second" }] }],
+			["verdicts", () => verdicts(), [`${NOT_CURRENT}: migration 2 (record_second). Run the deployment migration command.`]],
+		]);
 	},
 );
 
@@ -58,10 +63,10 @@ migrationRuns.it(
 	function* ({ assertReady, pendingWork, verdicts }) {
 		yield* assertReady(["1_record_first"]);
 
-		yield* outcomes({
-			"pending work": [pendingWork(["1_record_first"]), { components: [], migrations: [{ id: 1, name: "record_first" }] }],
-			verdicts: [verdicts(), [`${NOT_CURRENT}: migration 1 (record_first). Run the deployment migration command.`]],
-		});
+		yield* outcomes([
+			["pending work", () => pendingWork(["1_record_first"]), { components: [], migrations: [{ id: 1, name: "record_first" }] }],
+			["verdicts", () => verdicts(), [`${NOT_CURRENT}: migration 1 (record_first). Run the deployment migration command.`]],
+		]);
 	},
 );
 

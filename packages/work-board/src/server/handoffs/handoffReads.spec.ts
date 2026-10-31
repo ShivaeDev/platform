@@ -17,9 +17,9 @@ boardStory.it(
 
 		yield* prepareHandoff();
 
-		yield* outcomes({
-			"handoffs listed": [handoffHistory(), { records: ["handoff.keyboard.1 requested"], unreadable: [] }],
-			"reads since the mark": [readsSinceNoted(), [HANDOFF_RECORD, "items/keyboard.md"]],
-		});
+		yield* outcomes([
+			["handoffs listed", () => handoffHistory(), { records: ["handoff.keyboard.1 requested"], unreadable: [] }],
+			["reads since the mark", () => readsSinceNoted(), [HANDOFF_RECORD, "items/keyboard.md"]],
+		]);
 	},
 );

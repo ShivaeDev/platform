@@ -10,17 +10,17 @@ workspace.it(
 	`apply gives the new ${NEW} its 0.1.0 release and its first changelog`,
 	[first, newPackage(NEW)],
 	function* ({ apply, changelog, todayInUtc, version }) {
-		yield* outcomes({
-			changelog: [changelog(NEW), "no changelog"],
-			version: [version(NEW), "0.0.0"],
-		});
+		yield* outcomes([
+			["changelog", () => changelog(NEW), "no changelog"],
+			["version", () => version(NEW), "0.0.0"],
+		]);
 
 		yield* apply();
 
-		yield* outcomes({
-			changelog: [changelog(NEW), `# Changelog\n\n## 0.1.0 - ${yield* todayInUtc()}\n\n### Added\n\n- A new feature.\n`],
-			version: [version(NEW), "0.1.0"],
-		});
+		yield* outcomes([
+			["changelog", () => changelog(NEW), `# Changelog\n\n## 0.1.0 - ${yield* todayInUtc()}\n\n### Added\n\n- A new feature.\n`],
+			["version", () => version(NEW), "0.1.0"],
+		]);
 	},
 );
 

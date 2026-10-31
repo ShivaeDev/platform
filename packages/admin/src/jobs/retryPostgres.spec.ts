@@ -14,10 +14,10 @@ jobsStory.it(
 
 		yield* workersFinish();
 
-		yield* outcomes({
-			deliveries: [deliveries(), ["mail 42"]],
-			"mail 42's state": [stateOf("mail 42"), "failed"],
-		});
+		yield* outcomes([
+			["deliveries", () => deliveries(), ["mail 42"]],
+			["mail 42's state", () => stateOf("mail 42"), "failed"],
+		]);
 	},
 );
 
@@ -30,10 +30,10 @@ jobsStory.it(
 		yield* retry("mail 42");
 		yield* workersFinish();
 
-		yield* outcomes({
-			deliveries: [deliveries(), ["mail 42", "mail 42"]],
-			"mail 42's state": [stateOf("mail 42"), "completed"],
-		});
+		yield* outcomes([
+			["deliveries", () => deliveries(), ["mail 42", "mail 42"]],
+			["mail 42's state", () => stateOf("mail 42"), "completed"],
+		]);
 	},
 );
 
@@ -79,7 +79,7 @@ for (const [view, before, after, change] of [
 	["failed mail jobs", ["mail 42"], [], "no longer listing mail 42"],
 	["mail counts", "1 failed", "0 failed", "counting no failed mail job"],
 	["mail 42's detail", "failed", "not failed", "no longer showing mail 42 failed"],
-	["health", ["mail", "scheduled", "sync"], ["mail", "scheduled", "sync"], "still listing the page's three queues"],
+	["health", ["mail", "sync", "scheduled"], ["mail", "sync", "scheduled"], "still listing the page's three queues"],
 ] as const satisfies readonly (readonly [JobsView, unknown, unknown, string])[]) {
 	jobsStory.it(
 		`retrying mail 42 makes the mounted ${view} view answer again, ${change}`,

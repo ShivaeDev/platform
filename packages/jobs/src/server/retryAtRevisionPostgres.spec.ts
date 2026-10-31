@@ -33,10 +33,10 @@ database.it(
 		yield* open("first");
 		yield* untilWaiting("second");
 
-		yield* outcomes({
-			"deferrals": [deferrals("app", Revised), [{ at: "the time the worker asked for", reason: "Quota" }]],
-			"revision": [revisionSinceMark("app"), "changed since the mark"],
-			"stored states": [storedStates("revised"), { "job 0": "retry", "job 1": "active" }],
-		});
+		yield* outcomes([
+			["deferrals", () => deferrals("app", Revised), [{ at: "the time the worker asked for", reason: "Quota" }]],
+			["revision", () => revisionSinceMark("app"), "changed since the mark"],
+			["stored states", () => storedStates("revised"), { "job 0": "retry", "job 1": "active" }],
+		]);
 	},
 );

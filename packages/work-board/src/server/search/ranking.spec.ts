@@ -17,13 +17,14 @@ boardStory.it(
 	"a records: search ranks every matching item by title or ID, then status and recency, before any heading or passage",
 	fleetItems,
 	function* ({ rankedResults, resultIds }) {
-		yield* outcomes({
-			"first five results": [
-				rankedResults("records: watch", 5),
+		yield* outcomes([
+			[
+				"first five results",
+				() => rankedResults("records: watch", 5),
 				["item decision.watch", "item task.watch-done", "item decision.policy", "item task.review", "heading /notes.md#heading-watch-notes"],
 			],
-			"item results": [resultIds("records: watch"), ["decision.watch", "task.watch-done", "decision.policy", "task.review"]],
-		});
+			["item results", () => resultIds("records: watch"), ["decision.watch", "task.watch-done", "decision.policy", "task.review"]],
+		]);
 	},
 );
 

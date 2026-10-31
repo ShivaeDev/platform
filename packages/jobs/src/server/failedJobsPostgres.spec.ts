@@ -29,9 +29,10 @@ database.it(
 
 		yield* untilDeadLettered(Listed, 1);
 
-		yield* outcomes({
-			"failed listing": [
-				listed("app", "failed", Listed),
+		yield* outcomes([
+			[
+				"failed listing",
+				() => listed("app", "failed", Listed),
 				{
 					jobs: [
 						{
@@ -49,8 +50,8 @@ database.it(
 					next: "no further page",
 				},
 			],
-			"stored failure": [storedOutput("job 42"), { _tag: "WorkerRejected", message: "The worker fails this attempt: password=<redacted>" }],
-		});
+			["stored failure", () => storedOutput("job 42"), { _tag: "WorkerRejected", message: "The worker fails this attempt: password=<redacted>" }],
+		]);
 	},
 );
 
@@ -93,10 +94,10 @@ database.it(
 		yield* enqueue("app", Listed, { id: 6 }, { as: "job 6", retryLimit: 0 });
 		yield* untilJob("job 6", "failed");
 
-		yield* outcomes({
-			"failed jobs now": [listedNames("app", "failed", Listed), ["job 6", "job 5", "job 4", "job 3", "job 2", "job 1"]],
-			"remaining pages": [remainingPages(), [["job 3", "job 2"], ["job 1"]]],
-		});
+		yield* outcomes([
+			["failed jobs now", () => listedNames("app", "failed", Listed), ["job 6", "job 5", "job 4", "job 3", "job 2", "job 1"]],
+			["remaining pages", () => remainingPages(), [["job 3", "job 2"], ["job 1"]]],
+		]);
 	},
 );
 

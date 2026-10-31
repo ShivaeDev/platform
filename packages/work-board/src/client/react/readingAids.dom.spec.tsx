@@ -55,11 +55,11 @@ screenStory.it(
 
 		yield* chooseOutlineSection("#heading-next-steps");
 
-		yield* outcomes({
-			address: [address(), "/report.md"],
-			menu: [outlineMenu(), "closed"],
-			page: [shownPage(), "Long report"],
-		});
+		yield* outcomes([
+			["address", () => address(), "/report.md"],
+			["menu", () => outlineMenu(), "closed"],
+			["page", () => shownPage(), "Long report"],
+		]);
 	},
 );
 
@@ -67,10 +67,10 @@ screenStory.it(
 	"a document without sections has no outline and no On this page menu",
 	[readingPage({ "home.md": "# Home", "note.md": "---\nid: note.short\nkind: report\n---\n# Short note\n\nOne paragraph.\n" }, "/note.md")],
 	function* ({ outline, outlineMenu }) {
-		yield* outcomes({
-			menu: [outlineMenu(), "none"],
-			outline: [outline(), "none"],
-		});
+		yield* outcomes([
+			["menu", () => outlineMenu(), "none"],
+			["outline", () => outline(), "none"],
+		]);
 	},
 );
 
@@ -82,11 +82,11 @@ screenStory.it(
 
 		yield* scrollReading(400);
 
-		yield* outcomes({
-			header: [headerState(), "compact"],
-			"header heights in the layout": [headerHeightsInLayout(), [145]],
-			title: [headerTitle(), "Long report"],
-		});
+		yield* outcomes([
+			["header", () => headerState(), "compact"],
+			["header heights in the layout", () => headerHeightsInLayout(), [145]],
+			["title", () => headerTitle(), "Long report"],
+		]);
 	},
 );
 
@@ -104,10 +104,10 @@ screenStory.it(
 	"a header written in the document body stays in the text and does not become a page header",
 	[readingPage({ "home.md": "# Home", "note.md": "# Signed note\n\n## Sign-off\n\n<header>Reviewed by the team</header>\n" }, "/note.md")],
 	function* ({ bodyHeaders, headerTitles }) {
-		yield* outcomes({
-			"headers in the text": [bodyHeaders(), ["Reviewed by the team"]],
-			"page headers": [headerTitles(), ["Signed note"]],
-		});
+		yield* outcomes([
+			["headers in the text", () => bodyHeaders(), ["Reviewed by the team"]],
+			["page headers", () => headerTitles(), ["Signed note"]],
+		]);
 	},
 );
 
@@ -115,10 +115,10 @@ screenStory.it(
 	"a criterion's inline Markdown renders as code, bold text and links",
 	[readingPage({ "home.md": "# Home", "task.md": criteriaTask(["Run `pnpm lint` and **pass**", "See [the guide](guide.md)"]) }, "/task.md")],
 	function* ({ criterionMarkup }) {
-		yield* outcomes({
-			c1: [criterionMarkup("c1"), { code: ["pnpm lint"], links: [], strong: ["pass"], text: "c1: Run pnpm lint and pass" }],
-			c2: [criterionMarkup("c2"), { code: [], links: [["the guide", "/guide.md"]], strong: [], text: "c2: See the guide" }],
-		});
+		yield* outcomes([
+			["c1", () => criterionMarkup("c1"), { code: ["pnpm lint"], links: [], strong: ["pass"], text: "c1: Run pnpm lint and pass" }],
+			["c2", () => criterionMarkup("c2"), { code: [], links: [["the guide", "/guide.md"]], strong: [], text: "c2: See the guide" }],
+		]);
 	},
 );
 
@@ -153,16 +153,17 @@ screenStory.it(
 		),
 	],
 	function* ({ itemFieldLinks, itemFields }) {
-		yield* outcomes({
-			fields: [itemFields(), "Owner: marvin · Next action: Done; PR #764 merged after PR 12."],
-			links: [
-				itemFieldLinks(),
+		yield* outcomes([
+			["fields", () => itemFields(), "Owner: marvin · Next action: Done; PR #764 merged after PR 12."],
+			[
+				"links",
+				() => itemFieldLinks(),
 				[
 					["PR #764", "https://github.com/example/project/pull/764"],
 					["PR 12", "https://github.com/example/project/pull/12"],
 				],
 			],
-		});
+		]);
 	},
 );
 

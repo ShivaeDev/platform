@@ -70,10 +70,10 @@ screenStory.it(
 
 		yield* chooseAppearance("Light");
 
-		yield* outcomes({
-			diagrams: [diagramFigures(), [{ drawing: "Theme-->Return in light", source: "hidden", state: "drawn" }]],
-			"Mermaid requests": [drawingRequests(), ["Theme-->Return in light", "Theme-->Return in dark"]],
-		});
+		yield* outcomes([
+			["diagrams", () => diagramFigures(), [{ drawing: "Theme-->Return in light", source: "hidden", state: "drawn" }]],
+			["Mermaid requests", () => drawingRequests(), ["Theme-->Return in light", "Theme-->Return in dark"]],
+		]);
 	},
 );
 
@@ -86,10 +86,10 @@ screenStory.it(
 
 		yield* setMediaMatch("(prefers-color-scheme: dark)", true);
 
-		yield* outcomes({
-			diagrams: [diagramFigures(), [{ drawing: "Theme-->Chosen in light", source: "hidden", state: "drawn" }]],
-			"Mermaid requests": [drawingRequests(), ["Theme-->Chosen in light"]],
-		});
+		yield* outcomes([
+			["diagrams", () => diagramFigures(), [{ drawing: "Theme-->Chosen in light", source: "hidden", state: "drawn" }]],
+			["Mermaid requests", () => drawingRequests(), ["Theme-->Chosen in light"]],
+		]);
 	},
 );
 

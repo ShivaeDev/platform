@@ -14,12 +14,12 @@ watchedIndexStory.it(
 		yield* editorChanges("brief.md", BRIEF.replace("Before", "After"));
 		yield* watcherReports("brief.md");
 
-		yield* outcomes({
-			"announced changes": [announcedChanges(), [["brief.md"]]],
-			"body of brief.md": [bodyOf("brief.md"), "# After"],
-			"files read": [filesRead(), ["brief.md"]],
-			"folders scanned": [foldersScanned(), []],
-		});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["brief.md"]]],
+			["body of brief.md", () => bodyOf("brief.md"), "# After"],
+			["files read", () => filesRead(), ["brief.md"]],
+			["folders scanned", () => foldersScanned(), []],
+		]);
 	},
 );
 
@@ -32,12 +32,12 @@ watchedIndexStory.it(
 		yield* editorAdds("added.md", "---\nid: added\n---\n# Added");
 		yield* watcherReports("added.md");
 
-		yield* outcomes({
-			"announced changes": [announcedChanges(), [["added.md"]]],
-			"files read": [filesRead(), ["added.md"]],
-			"files under added": [filesWithIdentity("added"), ["added.md"]],
-			"folders scanned": [foldersScanned(), []],
-		});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["added.md"]]],
+			["files read", () => filesRead(), ["added.md"]],
+			["files under added", () => filesWithIdentity("added"), ["added.md"]],
+			["folders scanned", () => foldersScanned(), []],
+		]);
 	},
 );
 
@@ -50,11 +50,11 @@ watchedIndexStory.it(
 		yield* editorMoves("brief.md", "moved.md");
 		yield* watcherReports("brief.md", "moved.md");
 
-		yield* outcomes({
-			"announced changes": [announcedChanges(), [["brief.md", "moved.md"]]],
-			"files read": [filesRead(), ["moved.md"]],
-			"files under brief": [filesWithIdentity("brief"), ["moved.md"]],
-		});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["brief.md", "moved.md"]]],
+			["files read", () => filesRead(), ["moved.md"]],
+			["files under brief", () => filesWithIdentity("brief"), ["moved.md"]],
+		]);
 	},
 );
 
@@ -67,11 +67,11 @@ watchedIndexStory.it(
 		yield* editorDeletes("brief.md");
 		yield* watcherReports("brief.md");
 
-		yield* outcomes({
-			"announced changes": [announcedChanges(), [["brief.md"]]],
-			"files read": [filesRead(), []],
-			"files under brief": [filesWithIdentity("brief"), []],
-		});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["brief.md"]]],
+			["files read", () => filesRead(), []],
+			["files under brief", () => filesWithIdentity("brief"), []],
+		]);
 	},
 );
 
@@ -84,10 +84,10 @@ watchedIndexStory.it(
 		yield* editorChanges("brief.md", BRIEF.replace("Before", "Missed"));
 		yield* fullCheckRuns();
 
-		yield* outcomes({
-			"announced changes": [announcedChanges(), [["brief.md"]]],
-			"body of brief.md": [bodyOf("brief.md"), "# Missed"],
-		});
+		yield* outcomes([
+			["announced changes", () => announcedChanges(), [["brief.md"]]],
+			["body of brief.md", () => bodyOf("brief.md"), "# Missed"],
+		]);
 	},
 );
 
@@ -98,10 +98,10 @@ watchedIndexStory.it(
 		const read = yield* readerReadsAgain();
 
 		expect(read).toBe("the startup snapshot");
-		yield* outcomes({
-			"files checked": [filesChecked(), []],
-			"files read": [filesRead(), []],
-			"folders scanned": [foldersScanned(), []],
-		});
+		yield* outcomes([
+			["files checked", () => filesChecked(), []],
+			["files read", () => filesRead(), []],
+			["folders scanned", () => foldersScanned(), []],
+		]);
 	},
 );

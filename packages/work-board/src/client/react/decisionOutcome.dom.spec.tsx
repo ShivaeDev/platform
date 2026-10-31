@@ -66,10 +66,10 @@ screenStory.it(
 	"a closed Fleet decision is titled after the work it unblocks, on the page and in the browser title",
 	[routedScreen(closedDecision(answeredDecisionFixture()), url, { home: "home.md" })],
 	function* ({ itemHeading, readTitle }) {
-		yield* outcomes({
-			"browser title": [readTitle(), expect.stringContaining(TITLE)],
-			heading: [itemHeading(), TITLE],
-		});
+		yield* outcomes([
+			["browser title", () => readTitle(), expect.stringContaining(TITLE)],
+			["heading", () => itemHeading(), TITLE],
+		]);
 	},
 );
 
@@ -105,10 +105,10 @@ screenStory.it(
 	"a decision still waiting for its answer shows its answer card and no Outcome",
 	[routedScreen(unansweredDecision(), url, { home: "home.md" })],
 	function* ({ cardTitle, decisionOutcome }) {
-		yield* outcomes({
-			"answer card": [cardTitle(), "Answer: Publish the install guide"],
-			outcome: [decisionOutcome(), "none"],
-		});
+		yield* outcomes([
+			["answer card", () => cardTitle(), "Answer: Publish the install guide"],
+			["outcome", () => decisionOutcome(), "none"],
+		]);
 	},
 );
 

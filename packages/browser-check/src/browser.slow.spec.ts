@@ -8,20 +8,20 @@ browser.it(
 	function* ({ checks, pagesVisited, screenshots }) {
 		yield* checks("--page", "/", "--page", "/notes");
 
-		yield* outcomes({
-			"pages the app served": [pagesVisited(), ["/", "/notes"]],
-			"screenshots": [screenshots(), ["1.png: a PNG image", "2.png: a PNG image"]],
-		});
+		yield* outcomes([
+			["pages the app served", () => pagesVisited(), ["/", "/notes"]],
+			["screenshots", () => screenshots(), ["1.png: a PNG image", "2.png: a PNG image"]],
+		]);
 	},
 );
 
 browser.it("a check whose text shows on every page passes with a smoke pass for each page", [], function* ({ checks, outcome, smokeChecks }) {
 	yield* checks("--page", "/", "--page", "/notes", "--text", "Local app");
 
-	yield* outcomes({
-		"outcome": [outcome(), "passed"],
-		"smoke checks": [smokeChecks(), ["smoke passed (the app/)", "smoke passed (the app/notes)"]],
-	});
+	yield* outcomes([
+		["outcome", () => outcome(), "passed"],
+		["smoke checks", () => smokeChecks(), ["smoke passed (the app/)", "smoke passed (the app/notes)"]],
+	]);
 });
 
 browser.it(
@@ -30,10 +30,10 @@ browser.it(
 	function* ({ checks, outcome, signIns }) {
 		yield* checks("--page", "/account", "--text", "Alice's account");
 
-		yield* outcomes({
-			"outcome": [outcome(), "passed"],
-			"sign-ins": [signIns(), ["alice@example.com with password alice-password"]],
-		});
+		yield* outcomes([
+			["outcome", () => outcome(), "passed"],
+			["sign-ins", () => signIns(), ["alice@example.com with password alice-password"]],
+		]);
 	},
 );
 

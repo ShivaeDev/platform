@@ -1,16 +1,17 @@
-import { Data, Effect, Schedule } from "effect";
-import { type ClientActivity, isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { Data, Effect, type Stream } from "effect";
+import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { withLive } from "@shivaedev/test/withLive.ts";
+import { nextClientHint } from "#internal/nextClientHint.ts";
 import { targetName } from "#internal/screenAccessibility.ts";
-import { nextClientHint, waitForClient } from "#internal/screenActivity.ts";
 import { screenElements } from "#internal/screenElements.ts";
 import { screenReadouts } from "#internal/screenReadouts.ts";
+import { waitForScreen } from "#internal/waitForScreen.ts";
 
 export type ScreenTarget = string | { readonly role: string; readonly name: string | RegExp };
 
 export interface ScreenDriverOptions {
 	readonly act?: (action: () => Promise<void>) => PromiseLike<void>;
-	readonly pending?: (() => boolean) | ClientActivity;
+	readonly pending?: (() => boolean) | Stream.Stream<boolean> | ClientActivity;
 	readonly root: HTMLElement | (() => HTMLElement);
 	readonly tell: (line: string) => void;
 	readonly timeoutMs?: number;
@@ -33,7 +34,7 @@ export type ScreenDriver<E = never, THintError = MissingClientActivity> = Omit<R
 };
 
 export function screenDriver(options: ScreenDriverOptions & { readonly pending: ClientActivity }): ScreenDriver<never, never>;
-export function screenDriver(options: ScreenDriverOptions & { readonly pending: () => boolean }): ScreenDriver;
+export function screenDriver(options: ScreenDriverOptions & { readonly pending: (() => boolean) | Stream.Stream<boolean> }): ScreenDriver;
 export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending>;
 export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending> {
 	const suppliedRoot = options.root;
@@ -68,54 +69,37 @@ function makeScreenActions({ root, pending, tell, act = (action) => action(), ti
 	}
 	function settleWork(work: NonNullable<ScreenDriverOptions["pending"]>, options: { readonly timeoutMs?: number }) {
 		const limit = options.timeoutMs ?? timeoutMs;
-		const isIdle = typeof work === "function" ? Effect.sync(() => !work()) : Effect.map(work.current, isClientIdle);
 		const wait = Effect.gen(function* () {
 			tell("wait for the screen's pending work");
-			do {
-				yield* Effect.promise(() => act(async () => undefined));
-				if (yield* isIdle) {
-					tell("the screen has no pending work");
-					return;
-				}
-				yield* typeof work === "function"
-					? Effect.promise(() => act(() => new Promise<void>((resolve) => setTimeout(resolve, 10))))
-					: Effect.promise((signal) => act(() => Effect.runPromise(waitForClient(work), { signal })));
-			} while (true);
+			yield* waitForScreen({ act, pending: work, root: currentRoot }, Effect.void);
+			tell("the screen has no pending work");
 		});
-		function timedOut() {
-			return Effect.die(
-				new Error(
-					`The screen did not settle within ${limit}ms.\nhelp: Release held requests and check the app's pending signal and renderer act adapter.\nScreen: ${currentRoot().textContent}`,
-				),
-			);
-		}
-		return withLive(wait.pipe(Effect.timeoutOrElse({ duration: limit, orElse: timedOut })));
+		return withLive(wait.pipe(Effect.timeoutOrElse({ duration: limit, orElse: () => Effect.die(unsettled(limit)) })));
+	}
+	function unsettled(limit: number) {
+		return new Error(
+			`The screen did not settle within ${limit}ms.\nhelp: Release held requests and check the app's pending signal and renderer act adapter.\nScreen: ${currentRoot().textContent}`,
+		);
 	}
 	function find(target: ScreenTarget, options: { readonly timeout?: number } = {}) {
-		if (pending !== undefined && typeof pending !== "function") {
-			return settleWork(pending, { timeoutMs: options.timeout ?? timeoutMs }).pipe(
-				Effect.andThen(
-					Effect.sync(() => {
-						tell(`find ${targetName(target)}`);
-						return elements.element(target);
-					}),
-				),
-			);
+		const limit = options.timeout ?? timeoutMs;
+		function timedOut() {
+			const lookup = Effect.sync(() => elements.element(target));
+			return pending === undefined ? lookup : lookup.pipe(Effect.andThen(Effect.die(unsettled(limit))));
 		}
 		return withLive(
-			Effect.gen(function* () {
-				tell(`find ${targetName(target)}`);
-				return yield* Effect.tryPromise(async () => {
-					await act(async () => undefined);
-					return elements.element(target);
-				}).pipe(
-					Effect.retry(Schedule.spaced(10)),
-					Effect.timeoutOrElse({
-						duration: options.timeout ?? timeoutMs,
-						orElse: () => Effect.sync(() => elements.element(target)),
-					}),
-				);
-			}),
+			Effect.sync(() => tell(`find ${targetName(target)}`)).pipe(
+				Effect.andThen(
+					waitForScreen(
+						{ act, pending, root: currentRoot },
+						Effect.try(() => elements.element(target)),
+					),
+				),
+				Effect.timeoutOrElse({
+					duration: limit,
+					orElse: timedOut,
+				}),
+			),
 		);
 	}
 	return {
@@ -130,7 +114,7 @@ function makeScreenActions({ root, pending, tell, act = (action) => action(), ti
 		enter: (selector: ScreenTarget, value: string) => perform(`enter a value in ${targetName(selector)}`, () => elements.enter(selector, value)),
 		find,
 		nextLiveHint: () => {
-			if (pending === undefined || typeof pending === "function") {
+			if (pending === undefined || typeof pending === "function" || !("current" in pending)) {
 				return Effect.fail(new MissingClientActivity());
 			}
 			return withLive(

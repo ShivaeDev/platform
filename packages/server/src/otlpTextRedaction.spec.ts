@@ -15,10 +15,10 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 			yield* close();
 
-			yield* outcomes({
-				"leaked secrets": [exportMentions("hidden-"), []],
-				"masked URLs": [exportMentions(...masked), masked],
-			});
+			yield* outcomes([
+				["leaked secrets", () => exportMentions("hidden-"), []],
+				["masked URLs", () => exportMentions(...masked), masked],
+			]);
 		},
 	);
 }

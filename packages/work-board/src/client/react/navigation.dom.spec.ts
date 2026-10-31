@@ -36,10 +36,10 @@ describe("document navigation", () => {
 
 			yield* goBackInBundle("/plan.md");
 
-			yield* outcomes({
-				"the page": [bundleLocation(), { address: "/plan.md", heading: "Plan", visit: "kept" }],
-				"the reading": [bundleReading(), { details: "open", selection: "Intro" }],
-			});
+			yield* outcomes([
+				["the page", () => bundleLocation(), { address: "/plan.md", heading: "Plan", visit: "kept" }],
+				["the reading", () => bundleReading(), { details: "open", selection: "Intro" }],
+			]);
 		},
 	);
 

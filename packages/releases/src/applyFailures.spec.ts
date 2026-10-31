@@ -12,13 +12,14 @@ workspace.it(
 
 		yield* apply();
 
-		yield* outcomes({
-			answer: [
-				lastAnswer(),
+		yield* outcomes([
+			[
+				"answer",
+				() => lastAnswer(),
 				"refused: @test/optional: replace @test/api's >=0.5.0 <1 range with an exact version, ^version, ~version or workspace:* before applying a release.",
 			],
-			"workspace files": [workspaceFiles(), files],
-		});
+			["workspace files", () => workspaceFiles(), files],
+		]);
 	},
 );
 
@@ -34,10 +35,10 @@ for (const [description, text] of [
 
 			yield* apply();
 
-			yield* outcomes({
-				answer: [lastAnswer(), `refused: ${CORE}: use a '# Changelog' title and move Unreleased notes into .changeset/*.md.`],
-				"workspace files": [workspaceFiles(), files],
-			});
+			yield* outcomes([
+				["answer", () => lastAnswer(), `refused: ${CORE}: use a '# Changelog' title and move Unreleased notes into .changeset/*.md.`],
+				["workspace files", () => workspaceFiles(), files],
+			]);
 		},
 	);
 }

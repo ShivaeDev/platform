@@ -1,6 +1,8 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Deferred, Effect, Fiber, Layer, PubSub, Queue } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Socket from "effect/socket/Socket";
 import { act, createElement } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
@@ -30,17 +32,18 @@ export const readPage = storyKit({
 		const observed = yield* browserReads({ contracts: [ReadPage], url, webSocketConstructor: socketConstructor });
 		const client = makePageClient(url, observed.protocol);
 		const fetch = domFetch(url);
+		const sessionPending = Atom.make(false);
 		const writer = yield* makeClient(ReadPage, { url, webSocketConstructor: layerWebSocketConstructorWS }).client;
 		const view = yield* Effect.acquireRelease(
-			Effect.promise(() => render(createElement(ReadPageView, { client, fetch }))),
+			Effect.promise(() => render(createElement(ReadPageView, { client, fetch, sessionPending }))),
 			(rendered) => Effect.promise(rendered.unmount),
+		);
+		const pending = Atom.make(
+			(get) => get(sessionPending) || get(client.api.get.query({ id: 1 })).waiting || get(client.api[LiveConnection].status).connection !== "live",
 		);
 		const screen = screenDriver({
 			act,
-			pending: () =>
-				view.container.querySelector("main")?.getAttribute("aria-busy") === "true"
-				|| view.registry.get(client.api.get.query({ id: 1 })).waiting
-				|| view.registry.get(client.api[LiveConnection].status).connection !== "live",
+			pending: AtomRegistry.toStream(view.registry, pending),
 			root: view.container,
 			tell: () => undefined,
 		});

@@ -10,7 +10,10 @@ for (const [person, read, hint] of [
 		`${person}'s request-local provider accounts decide both HTTP reads and live hints with a handler-only policy service`,
 		[],
 		function* ({ firstHint, read: readDocument }) {
-			yield* outcomes({ "HTTP read": [readDocument(person), read], "live hint": [firstHint(person), hint] });
+			yield* outcomes([
+				["HTTP read", () => readDocument(person), read],
+				["live hint", () => firstHint(person), hint],
+			]);
 		},
 	);
 }
@@ -40,9 +43,9 @@ policyServicesStory.it(
 		yield* revoke();
 		yield* announce();
 
-		yield* outcomes({
-			"HTTP read": [read("alice"), "failed with read denied"],
-			"live subscription": [subscriptionEnd("alice"), "failed with read denied"],
-		});
+		yield* outcomes([
+			["HTTP read", () => read("alice"), "failed with read denied"],
+			["live subscription", () => subscriptionEnd("alice"), "failed with read denied"],
+		]);
 	},
 );

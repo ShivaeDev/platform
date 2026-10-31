@@ -19,16 +19,17 @@ boardStory.it(
 	"the inbox puts asks for the maintainer and a person's next action under you and other responders' asks under agents",
 	[lanes()],
 	function* ({ inboxLane, inboxResponders }) {
-		yield* outcomes({
-			agents: [
-				inboxResponders(),
+		yield* outcomes([
+			[
+				"agents",
+				() => inboxResponders(),
 				[
 					["decision.orchestrator", ["orchestrator"]],
 					["decision.automation", ["automation"]],
 				],
 			],
-			you: [inboxLane("you"), ["task.draft", "decision.reader", "question.storage", "task.person"]],
-		});
+			["you", () => inboxLane("you"), ["task.draft", "decision.reader", "question.storage", "task.person"]],
+		]);
 	},
 );
 
@@ -49,16 +50,17 @@ boardStory.it(
 		}, "an unregistered reader ask names the orchestrator and the maintainer, and the orchestrator's ask targets the reader decision"),
 	],
 	function* ({ inboxLane, inboxResponders }) {
-		yield* outcomes({
-			agents: [
-				inboxResponders(),
+		yield* outcomes([
+			[
+				"agents",
+				() => inboxResponders(),
 				[
 					["decision.reader", ["orchestrator"]],
 					["decision.automation", ["automation"]],
 				],
 			],
-			you: [inboxLane("you"), ["task.draft", "decision.reader", "question.storage", "task.person"]],
-		});
+			["you", () => inboxLane("you"), ["task.draft", "decision.reader", "question.storage", "task.person"]],
+		]);
 	},
 );
 
@@ -66,14 +68,14 @@ boardStory.it(
 	"an incomplete workspace withholds every lane and the Inbox badge",
 	[lanes(), anUnreadableSource("unreadable.md")],
 	function* ({ inboxComplete, inboxLane, needsYouBadge }) {
-		yield* outcomes({
-			agents: [inboxLane("agents"), []],
-			badge: [needsYouBadge(), null],
-			complete: [inboxComplete(), false],
-			parked: [inboxLane("parked"), []],
-			resolved: [inboxLane("resolved"), []],
-			you: [inboxLane("you"), []],
-		});
+		yield* outcomes([
+			["agents", () => inboxLane("agents"), []],
+			["badge", () => needsYouBadge(), null],
+			["complete", () => inboxComplete(), false],
+			["parked", () => inboxLane("parked"), []],
+			["resolved", () => inboxLane("resolved"), []],
+			["you", () => inboxLane("you"), []],
+		]);
 	},
 );
 
@@ -85,10 +87,10 @@ boardStory.it(
 		}, "the orchestrator's ask targets the person's task"),
 	],
 	function* ({ inboxAsk, inboxResponders }) {
-		yield* outcomes({
-			agents: [inboxResponders(), expect.arrayContaining([["task.person", ["orchestrator"]]])],
-			"person's task": [inboxAsk("task.person"), expect.objectContaining({ reason: "Read the evidence" })],
-		});
+		yield* outcomes([
+			["agents", () => inboxResponders(), expect.arrayContaining([["task.person", ["orchestrator"]]])],
+			["person's task", () => inboxAsk("task.person"), expect.objectContaining({ reason: "Read the evidence" })],
+		]);
 	},
 );
 

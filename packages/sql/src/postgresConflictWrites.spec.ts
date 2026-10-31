@@ -21,10 +21,10 @@ conflicts.it(
 	function* ({ insertAccountOrIgnore, returned, storedAccounts }) {
 		yield* insertAccountOrIgnore("one", retry);
 
-		yield* outcomes({
-			"returned value": [returned(), ["ignored"]],
-			"stored accounts": [storedAccounts(), [{ amount: "52", externalKey: "prefix:one", origin: "import" }]],
-		});
+		yield* outcomes([
+			["returned value", () => returned(), ["ignored"]],
+			["stored accounts", () => storedAccounts(), [{ amount: "52", externalKey: "prefix:one", origin: "import" }]],
+		]);
 	},
 );
 
@@ -35,10 +35,10 @@ conflicts.it(
 		yield* upsertAccount("one", retry);
 
 		const updated = { ...one, amount: 99, createdAt: "a database-generated date", externalKey: "one", id: 1 };
-		yield* outcomes({
-			"returned value": [returned(), [{ inserted: false, row: updated }]],
-			"stored account": [account(), updated],
-		});
+		yield* outcomes([
+			["returned value", () => returned(), [{ inserted: false, row: updated }]],
+			["stored account", () => account(), updated],
+		]);
 	},
 );
 
@@ -59,10 +59,10 @@ for (const write of ["insertOrIgnore", "upsert"] as const) {
 		function* ({ endings, storedAccounts, writeAccountWithTextAmount }) {
 			yield* writeAccountWithTextAmount(write);
 
-			yield* outcomes({
-				"stored accounts": [storedAccounts(), []],
-				[`${write} ending`]: [endings(), ["failed with a schema error"]],
-			});
+			yield* outcomes([
+				["stored accounts", () => storedAccounts(), []],
+				[`${write} ending`, () => endings(), ["failed with a schema error"]],
+			]);
 		},
 	);
 }
@@ -81,10 +81,10 @@ for (const [reason, updateColumns] of [
 		function* ({ endings, storedAccounts, upsertAccount }) {
 			yield* upsertAccount("one", retry, updateColumns);
 
-			yield* outcomes({
-				"stored accounts": [storedAccounts(), [{ amount: "52", externalKey: "prefix:one", origin: "import" }]],
-				"upsert ending": [endings(), ["failed with a schema error"]],
-			});
+			yield* outcomes([
+				["stored accounts", () => storedAccounts(), [{ amount: "52", externalKey: "prefix:one", origin: "import" }]],
+				["upsert ending", () => endings(), ["failed with a schema error"]],
+			]);
 		},
 	);
 }
@@ -95,9 +95,9 @@ conflicts.it(
 	function* ({ endings, insertWithUnknownConflictColumn, storedAccounts }) {
 		yield* insertWithUnknownConflictColumn("one", one);
 
-		yield* outcomes({
-			"insertOrIgnore ending": [endings(), ["failed with a schema error"]],
-			"stored accounts": [storedAccounts(), []],
-		});
+		yield* outcomes([
+			["insertOrIgnore ending", () => endings(), ["failed with a schema error"]],
+			["stored accounts", () => storedAccounts(), []],
+		]);
 	},
 );

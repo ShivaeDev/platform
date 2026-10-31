@@ -14,10 +14,10 @@ for (const browserHistory of [false, true]) {
 
 			yield* signIn();
 
-			yield* outcomes({
-				"address": [href(), TARGET],
-				"screen": [heading(), `Signed in at ${TARGET}`],
-			});
+			yield* outcomes([
+				["address", () => href(), TARGET],
+				["screen", () => heading(), `Signed in at ${TARGET}`],
+			]);
 		},
 	);
 }
@@ -38,7 +38,10 @@ for (const target of [
 		function* ({ heading, href, signIn }) {
 			yield* signIn();
 
-			yield* outcomes({ address: [href(), "/"], screen: [heading(), "Signed in at /"] });
+			yield* outcomes([
+				["address", () => href(), "/"],
+				["screen", () => heading(), "Signed in at /"],
+			]);
 		},
 	);
 }
@@ -55,10 +58,10 @@ for (const sessionIdentity of [false, true]) {
 
 			yield* changePassword();
 
-			yield* outcomes({
-				count: [displayedCount(), sessionIdentity ? "0" : "1"],
-				screen: [heading(), "Signed in at /private"],
-			});
+			yield* outcomes([
+				["count", () => displayedCount(), sessionIdentity ? "0" : "1"],
+				["screen", () => heading(), "Signed in at /private"],
+			]);
 		},
 	);
 }
@@ -69,6 +72,9 @@ sessionBoundaryScreens.it(
 	function* ({ heading, href, signIn }) {
 		yield* signIn();
 
-		yield* outcomes({ address: [href(), "/private?tab=history#details"], screen: [heading(), "Signed in at /private?tab=history#details"] });
+		yield* outcomes([
+			["address", () => href(), "/private?tab=history#details"],
+			["screen", () => heading(), "Signed in at /private?tab=history#details"],
+		]);
 	},
 );

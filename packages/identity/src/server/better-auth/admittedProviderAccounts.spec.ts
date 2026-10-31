@@ -9,10 +9,10 @@ signInPolicy.it(
 	function* ({ accountLookups, request }) {
 		const answer = yield* request("alice");
 
-		yield* outcomes({
-			"account lookups": [accountLookups(), 0],
-			"alice's request": [Effect.succeed(answer), "ok"],
-		});
+		yield* outcomes([
+			["account lookups", () => accountLookups(), 0],
+			["alice's request", () => Effect.succeed(answer), "ok"],
+		]);
 	},
 );
 
@@ -42,10 +42,10 @@ signInPolicy.it(
 	function* ({ providerAccounts, signIn, signInAnswer }) {
 		yield* signIn("bob");
 
-		yield* outcomes({
-			"bob's accounts": [providerAccounts("bob"), "failed with unauthorized"],
-			"bob's sign-in": [signInAnswer("bob"), "refused"],
-		});
+		yield* outcomes([
+			["bob's accounts", () => providerAccounts("bob"), "failed with unauthorized"],
+			["bob's sign-in", () => signInAnswer("bob"), "refused"],
+		]);
 	},
 );
 

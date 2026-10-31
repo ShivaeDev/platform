@@ -40,9 +40,9 @@ boardStory.it(
 
 		editFile("note.md", "---\nid: other\n---\n# Changed");
 
-		yield* outcomes({
-			"its old item route": [httpAnswer("/_board/item/original/"), "404 Not Found"],
-			"the note": [documentFacts("note.md"), { identity: "none", problems: [expect.stringContaining("Duplicate ID other")] }],
-		});
+		yield* outcomes([
+			["its old item route", () => httpAnswer("/_board/item/original/"), "404 Not Found"],
+			["the note", () => documentFacts("note.md"), { identity: "none", problems: [expect.stringContaining("Duplicate ID other")] }],
+		]);
 	},
 );

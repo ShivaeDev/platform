@@ -19,11 +19,11 @@ screenStory.it(
 	"opening a link to an attention passage reveals it in the Source tab and focuses it",
 	[readingPage(attentionFixture(), SOURCE)],
 	function* ({ contextTab, passageVisibility, readerFocus }) {
-		yield* outcomes({
-			focus: [readerFocus(), revealed.focus],
-			passage: [passageVisibility(PASSAGE), revealed.passage],
-			tab: [contextTab(), revealed.tab],
-		});
+		yield* outcomes([
+			["focus", () => readerFocus(), revealed.focus],
+			["passage", () => passageVisibility(PASSAGE), revealed.passage],
+			["tab", () => contextTab(), revealed.tab],
+		]);
 	},
 );
 
@@ -35,11 +35,11 @@ screenStory.it(
 
 		yield* navigateTo(SOURCE);
 
-		yield* outcomes({
-			focus: [readerFocus(), revealed.focus],
-			passage: [passageVisibility(PASSAGE), revealed.passage],
-			tab: [contextTab(), revealed.tab],
-		});
+		yield* outcomes([
+			["focus", () => readerFocus(), revealed.focus],
+			["passage", () => passageVisibility(PASSAGE), revealed.passage],
+			["tab", () => contextTab(), revealed.tab],
+		]);
 	},
 );
 
@@ -49,11 +49,11 @@ screenStory.it(
 	function* ({ contextTab, openSearchResult, passageVisibility, readerFocus }) {
 		yield* openSearchResult("keyboard-review", `/_board/item/request.search/#${PASSAGE}`);
 
-		yield* outcomes({
-			focus: [readerFocus(), revealed.focus],
-			passage: [passageVisibility(PASSAGE), revealed.passage],
-			tab: [contextTab(), revealed.tab],
-		});
+		yield* outcomes([
+			["focus", () => readerFocus(), revealed.focus],
+			["passage", () => passageVisibility(PASSAGE), revealed.passage],
+			["tab", () => contextTab(), revealed.tab],
+		]);
 	},
 );
 
@@ -65,9 +65,9 @@ screenStory.it(
 
 		yield* goBack();
 
-		yield* outcomes({
-			passage: [passageVisibility(PASSAGE), revealed.passage],
-			tab: [contextTab(), revealed.tab],
-		});
+		yield* outcomes([
+			["passage", () => passageVisibility(PASSAGE), revealed.passage],
+			["tab", () => contextTab(), revealed.tab],
+		]);
 	},
 );

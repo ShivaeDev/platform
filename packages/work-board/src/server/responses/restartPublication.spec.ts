@@ -16,10 +16,10 @@ for (const phase of ["temporary", "published"] as const) {
 			const saved = yield* answerDirection("response.restart", BODY);
 
 			expect(saved).toMatchObject({ body: BODY, id: "response.restart" });
-			yield* outcomes({
-				history: [directionHistory(), [saved]],
-				"second retry": [answerDirection("response.restart", BODY), saved],
-			});
+			yield* outcomes([
+				["history", () => directionHistory(), [saved]],
+				["second retry", () => answerDirection("response.restart", BODY), saved],
+			]);
 		},
 	);
 

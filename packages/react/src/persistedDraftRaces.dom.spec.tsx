@@ -8,20 +8,20 @@ drafts.it(
 	function* ({ fields, finishSave, stored }) {
 		yield* finishSave();
 
-		yield* outcomes({
-			fields: [fields(), { name: "Later edit", quantity: "300" }],
-			stored: [stored(), { name: "Later edit", quantity: "300" }],
-		});
+		yield* outcomes([
+			["fields", () => fields(), { name: "Later edit", quantity: "300" }],
+			["stored", () => stored(), { name: "Later edit", quantity: "300" }],
+		]);
 	},
 );
 
 drafts.it("a reload after the save restores the later edit as unsaved", [laterEditSaved()], function* ({ fields, reload, status }) {
 	yield* reload();
 
-	yield* outcomes({
-		fields: [fields(), { name: "Later edit", quantity: "300" }],
-		status: [status(), "Unsaved"],
-	});
+	yield* outcomes([
+		["fields", () => fields(), { name: "Later edit", quantity: "300" }],
+		["status", () => status(), "Unsaved"],
+	]);
 });
 
 drafts.it("a refresh during a save does not store the accepted submission", [saveHeld(false)], function* ({ finishSave, stored }) {

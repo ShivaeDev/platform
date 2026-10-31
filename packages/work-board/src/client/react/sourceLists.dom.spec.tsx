@@ -21,10 +21,10 @@ for (const [url, page] of [
 		`${page} at ${url} adds no notes about values its items leave out`,
 		[readingPage(sourceListsFixture(), url)],
 		function* ({ absentValueNotes, shownPage }) {
-			yield* outcomes({
-				notes: [absentValueNotes(), []],
-				page: [shownPage(), page],
-			});
+			yield* outcomes([
+				["notes", () => absentValueNotes(), []],
+				["page", () => shownPage(), page],
+			]);
 		},
 	);
 }
@@ -66,10 +66,10 @@ for (const [status, cards] of [
 			`${page} shows ${cards.length === 0 ? "no answer card" : "the answer card"} for the managed ask on ${status} work`,
 			[readingPage(withGuideStatus(status), url)],
 			function* ({ answerCards, shownPage }) {
-				yield* outcomes({
-					"answer cards": [answerCards(), [...cards]],
-					page: [shownPage(), page],
-				});
+				yield* outcomes([
+					["answer cards", () => answerCards(), [...cards]],
+					["page", () => shownPage(), page],
+				]);
 			},
 		);
 	}
@@ -84,10 +84,10 @@ for (const [status, ask] of [
 		`Today ${ask === "mentioned" ? "lists" : "leaves out"} the managed ask on ${status} work`,
 		[readingPage(withGuideStatus(status), "/")],
 		function* ({ pageMentions, shownPage }) {
-			yield* outcomes({
-				ask: [pageMentions("Which publishing path should we take?"), ask],
-				page: [shownPage(), "Today"],
-			});
+			yield* outcomes([
+				["ask", () => pageMentions("Which publishing path should we take?"), ask],
+				["page", () => shownPage(), "Today"],
+			]);
 		},
 	);
 }
@@ -101,9 +101,9 @@ screenStory.it(
 		),
 	],
 	function* ({ answerCards, shownPage }) {
-		yield* outcomes({
-			"answer cards": [answerCards(), []],
-			page: [shownPage(), "Previous question"],
-		});
+		yield* outcomes([
+			["answer cards", () => answerCards(), []],
+			["page", () => shownPage(), "Previous question"],
+		]);
 	},
 );

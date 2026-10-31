@@ -11,10 +11,11 @@ screenStory.it(
 	"starts an empty workspace with four steps and Goal, Investigation and Report templates",
 	[emptyWorkspace],
 	function* ({ mainHeading, startSteps, templateCards }) {
-		yield* outcomes({
-			"the heading": [mainHeading(), "Start your workspace"],
-			"the steps": [
-				startSteps(),
+		yield* outcomes([
+			["the heading", () => mainHeading(), "Start your workspace"],
+			[
+				"the steps",
+				() => startSteps(),
 				[
 					"Copy a template below.",
 					"Save it in this folder under the suggested name.",
@@ -22,15 +23,16 @@ screenStory.it(
 					"Fill in the real details. Start with the goal, then the investigation and the report.",
 				],
 			],
-			"the templates": [
-				templateCards(),
+			[
+				"the templates",
+				() => templateCards(),
 				[
 					{ saveAs: "Save as goal.md", title: "Goal" },
 					{ saveAs: "Save as investigation.md", title: "Investigation" },
 					{ saveAs: "Save as report.md", title: "Report" },
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -42,9 +44,9 @@ screenStory.it(
 
 		yield* copyTemplate("goal.md");
 
-		yield* outcomes({
-			"the card": [templateCard("goal.md"), { source: "closed", status: "Copied. Save it as goal.md." }],
-			"the clipboard": [copiedText(), source],
-		});
+		yield* outcomes([
+			["the card", () => templateCard("goal.md"), { source: "closed", status: "Copied. Save it as goal.md." }],
+			["the clipboard", () => copiedText(), source],
+		]);
 	},
 );

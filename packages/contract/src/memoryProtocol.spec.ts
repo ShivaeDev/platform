@@ -55,10 +55,10 @@ memoryStory.it(
 		yield* rename(2, "Deux");
 		yield* nextHint(2);
 
-		yield* outcomes({
-			"remaining server streams": [openSubscriptions(), "one stream open"],
-			"remaining subscriber's hints": [hints(2), ["resync", "changed notes 2"]],
-		});
+		yield* outcomes([
+			["remaining server streams", () => openSubscriptions(), "one stream open"],
+			["remaining subscriber's hints", () => hints(2), ["resync", "changed notes 2"]],
+		]);
 	},
 );
 

@@ -59,10 +59,10 @@ for (const { status, chip, cards } of [
 		`a ${status} question with an open decision request reads ${chip} and offers ${cards.length > 0 ? "an answer card" : "no answer card"}`,
 		[readingPage({ "question.md": question(status) }, "/_board/item/question.direction/")],
 		function* ({ answerCards, itemStatus }) {
-			yield* outcomes({
-				"answer cards": [answerCards(), cards],
-				status: [itemStatus(), chip],
-			});
+			yield* outcomes([
+				["answer cards", () => answerCards(), cards],
+				["status", () => itemStatus(), chip],
+			]);
 		},
 	);
 }

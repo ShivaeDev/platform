@@ -33,10 +33,10 @@ screenStory.it(
 
 		yield* releaseWorkspace();
 
-		yield* outcomes({
-			chosen: [chosenOptions(), ["export"]],
-			note: [answerBoxState("direction"), expect.objectContaining({ text: "A newer rationale" })],
-			status: [answerStatusLine(), expect.stringContaining("Answer saved")],
-		});
+		yield* outcomes([
+			["chosen", () => chosenOptions(), ["export"]],
+			["note", () => answerBoxState("direction"), expect.objectContaining({ text: "A newer rationale" })],
+			["status", () => answerStatusLine(), expect.stringContaining("Answer saved")],
+		]);
 	},
 );

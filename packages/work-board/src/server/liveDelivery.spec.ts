@@ -16,10 +16,10 @@ for (const [kind, files] of [
 			removeProject();
 			yield* watcherBecomes("not watching");
 
-			yield* outcomes({
-				"announced change": [nextChange(), "resync"],
-				"navigation": [boardRead("navigation"), "internal server error"],
-			});
+			yield* outcomes([
+				["announced change", () => nextChange(), "resync"],
+				["navigation", () => boardRead("navigation"), "internal server error"],
+			]);
 		},
 	);
 }
@@ -31,12 +31,12 @@ for (const directory of ["archive.md", "images.png"]) {
 		function* ({ directoryReported, libraryListing, sourceOf, watchedFolders, watcherState }) {
 			yield* directoryReported(directory);
 
-			yield* outcomes({
-				"archive.md/log.md": [sourceOf("archive.md/log.md"), "# Log"],
-				"the library": [libraryListing(), ["/archive.md/log.md", "/images.png/plan.md"]],
-				"the project": [watcherState(), "watching"],
-				"watched folders": [watchedFolders(), ["."]],
-			});
+			yield* outcomes([
+				["archive.md/log.md", () => sourceOf("archive.md/log.md"), "# Log"],
+				["the library", () => libraryListing(), ["/archive.md/log.md", "/images.png/plan.md"]],
+				["the project", () => watcherState(), "watching"],
+				["watched folders", () => watchedFolders(), ["."]],
+			]);
 		},
 	);
 }
@@ -52,11 +52,11 @@ boardStory.it(
 		moveDirectory("drafts", "published");
 		yield* directoryReported("published");
 
-		yield* outcomes({
-			"announced change": [nextChange(), expect.arrayContaining(["document drafts/log.md", "document drafts/nested/plan.md"])],
-			library: [libraryListing(), ["/published/log.md", "/published/nested/plan.md"]],
-			"published/nested/plan.md": [sourceOf("published/nested/plan.md"), "# Plan"],
-		});
+		yield* outcomes([
+			["announced change", () => nextChange(), expect.arrayContaining(["document drafts/log.md", "document drafts/nested/plan.md"])],
+			["library", () => libraryListing(), ["/published/log.md", "/published/nested/plan.md"]],
+			["published/nested/plan.md", () => sourceOf("published/nested/plan.md"), "# Plan"],
+		]);
 	},
 );
 
@@ -72,15 +72,16 @@ boardStory.it(
 		editFile("published/log.md", "# After the move");
 		yield* directoryReported("published");
 
-		yield* outcomes({
-			"published/log.md": [sourceOf("published/log.md"), "# After the move"],
-			"the change naming it": [
-				changeNaming("published/log.md", "a client of the moved directory"),
+		yield* outcomes([
+			["published/log.md", () => sourceOf("published/log.md"), "# After the move"],
+			[
+				"the change naming it",
+				() => changeNaming("published/log.md", "a client of the moved directory"),
 				expect.arrayContaining(["document published/log.md"]),
 			],
-			"the project": [watcherState(), "watching"],
-			"watched folders": [watchedFolders(), ["."]],
-		});
+			["the project", () => watcherState(), "watching"],
+			["watched folders", () => watchedFolders(), ["."]],
+		]);
 	},
 );
 
@@ -92,11 +93,11 @@ boardStory.it(
 
 		editFile("notes/log.md", "# After the directory notification");
 
-		yield* outcomes({
-			"announced change": [nextChange(), expect.arrayContaining(["document notes/log.md"])],
-			"notes/log.md": [sourceOf("notes/log.md"), "# After the directory notification"],
-			"the project": [watcherState(), "watching"],
-			"watched folders": [watchedFolders(), ["."]],
-		});
+		yield* outcomes([
+			["announced change", () => nextChange(), expect.arrayContaining(["document notes/log.md"])],
+			["notes/log.md", () => sourceOf("notes/log.md"), "# After the directory notification"],
+			["the project", () => watcherState(), "watching"],
+			["watched folders", () => watchedFolders(), ["."]],
+		]);
 	},
 );

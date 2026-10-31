@@ -10,23 +10,23 @@ feedback.it(
 
 		yield* replaceSession("bob");
 
-		yield* outcomes({
-			"alice's atoms": [heldAtoms("alice"), "empty"],
-			"bob's reads": [reads("bob"), 1],
-			loading: [loading(), "Loading notes"],
-			notices: [notices(), []],
-		});
+		yield* outcomes([
+			["alice's atoms", () => heldAtoms("alice"), "empty"],
+			["bob's reads", () => reads("bob"), 1],
+			["loading", () => loading(), "Loading notes"],
+			["notices", () => notices(), []],
+		]);
 	},
 );
 
 feedback.it("bob's notes show without alice's draft or notices", [bobReplacedBusyAlice(false)], function* ({ answerRead, draft, notices, rows }) {
 	yield* answerRead();
 
-	yield* outcomes({
-		draft: [draft(), ""],
-		notices: [notices(), []],
-		rows: [rows(), "existing"],
-	});
+	yield* outcomes([
+		["draft", () => draft(), ""],
+		["notices", () => notices(), []],
+		["rows", () => rows(), "existing"],
+	]);
 });
 
 feedback.it(
@@ -36,11 +36,11 @@ feedback.it(
 		yield* completeRemove("second", "alice");
 		yield* completeRestore("first", "alice");
 
-		yield* outcomes({
-			"alice's callbacks": [callbacks("alice"), ["alice: first"]],
-			"alice's restores released": [restoresReleased("alice"), ["first"]],
-			"bob's notices": [notices(), []],
-		});
+		yield* outcomes([
+			["alice's callbacks", () => callbacks("alice"), ["alice: first"]],
+			["alice's restores released", () => restoresReleased("alice"), ["first"]],
+			["bob's notices", () => notices(), []],
+		]);
 	},
 );
 
@@ -50,10 +50,10 @@ feedback.it(
 	function* ({ heldAtoms, restoreCalls, runRetainedAction }) {
 		yield* runRetainedAction();
 
-		yield* outcomes({
-			"alice's atoms": [heldAtoms("alice"), "empty"],
-			"alice's restore calls": [restoreCalls("alice"), [{ expectedVersion: 8, title: "first" }]],
-		});
+		yield* outcomes([
+			["alice's atoms", () => heldAtoms("alice"), "empty"],
+			["alice's restore calls", () => restoreCalls("alice"), [{ expectedVersion: 8, title: "first" }]],
+		]);
 	},
 );
 
@@ -65,10 +65,10 @@ feedback.it(
 
 		yield* completeRemove("first");
 
-		yield* outcomes({
-			"bob's callbacks": [callbacks("bob"), ["bob: first"]],
-			notices: [notices(), ["Removed first"]],
-		});
+		yield* outcomes([
+			["bob's callbacks", () => callbacks("bob"), ["bob: first"]],
+			["notices", () => notices(), ["Removed first"]],
+		]);
 	},
 );
 
@@ -85,8 +85,8 @@ feedback.it(
 feedback.it("bob's Undo runs his own restore, not alice's", [bobNoticedAfterBusyAlice()], function* ({ restoreCalls, undo }) {
 	yield* undo("first");
 
-	yield* outcomes({
-		"alice's restore calls": [restoreCalls("alice"), [{ expectedVersion: 8, title: "first" }]],
-		"bob's restore calls": [restoreCalls("bob"), [{ expectedVersion: 8, title: "first" }]],
-	});
+	yield* outcomes([
+		["alice's restore calls", () => restoreCalls("alice"), [{ expectedVersion: 8, title: "first" }]],
+		["bob's restore calls", () => restoreCalls("bob"), [{ expectedVersion: 8, title: "first" }]],
+	]);
 });

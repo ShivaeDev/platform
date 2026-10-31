@@ -55,9 +55,9 @@ boardStory.it(
 
 		yield* maintainerAnswers("question.z", "Keep the engine");
 
-		yield* outcomes({
-			library: [fleetLibraryPaths(), expect.not.arrayContaining([expect.stringMatching(/answer\.question\.z\.md$/u)])],
-			responses: [itemResponseBodies("/blocking.md"), ["Keep the engine"]],
-		});
+		yield* outcomes([
+			["library", () => fleetLibraryPaths(), expect.not.arrayContaining([expect.stringMatching(/answer\.question\.z\.md$/u)])],
+			["responses", () => itemResponseBodies("/blocking.md"), ["Keep the engine"]],
+		]);
 	},
 );

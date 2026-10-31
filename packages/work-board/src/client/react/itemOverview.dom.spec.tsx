@@ -35,17 +35,18 @@ screenStory.it(
 	"an item counts incoming links by kind and lists each report with its status and source line",
 	[itemOpened(workspace, "/task.md")],
 	function* ({ contextKinds, contextLinks }) {
-		yield* outcomes({
-			"incoming kinds": [contextKinds("linked-from"), ["Informed by (2)", "Listed in (1)", "Markdown link (1)"]],
-			"informed by": [
-				contextLinks("linked-from", "Informed by"),
+		yield* outcomes([
+			["incoming kinds", () => contextKinds("linked-from"), ["Informed by (2)", "Listed in (1)", "Markdown link (1)"]],
+			[
+				"informed by",
+				() => contextLinks("linked-from", "Informed by"),
 				[
 					{ href: expect.any(String), name: "One", source: "one.md:6", status: "Done" },
 					{ href: expect.any(String), name: "Two", source: "two.md:6", status: "Draft" },
 				],
 			],
-			"markdown links": [contextLinks("linked-from", "Markdown link"), [expect.objectContaining({ name: "Notes" })]],
-		});
+			["markdown links", () => contextLinks("linked-from", "Markdown link"), [expect.objectContaining({ name: "Notes" })]],
+		]);
 	},
 );
 

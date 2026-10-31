@@ -12,10 +12,10 @@ fileReadingStory.it(
 
 		yield* edited("note.md", "# Edited");
 
-		yield* outcomes({
-			"published change": [publishedPaths(), ["note.md"]],
-			"workspace entries": [workspaceEntries(), ["note.md"]],
-		});
+		yield* outcomes([
+			["published change", () => publishedPaths(), ["note.md"]],
+			["workspace entries", () => workspaceEntries(), ["note.md"]],
+		]);
 	},
 );
 
@@ -28,10 +28,14 @@ fileReadingStory.it(
 
 		yield* readinessWindowPasses();
 
-		yield* outcomes({
-			"the watch": [watchFailure(), "unavailable: The workspace watcher did not report a change within 5 seconds. Retrying the watch automatically."],
-			"workspace entries": [workspaceEntries(), ["note.md"]],
-		});
+		yield* outcomes([
+			[
+				"the watch",
+				() => watchFailure(),
+				"unavailable: The workspace watcher did not report a change within 5 seconds. Retrying the watch automatically.",
+			],
+			["workspace entries", () => workspaceEntries(), ["note.md"]],
+		]);
 	},
 	{ clock: "test" },
 );
@@ -62,10 +66,10 @@ for (const code of ["EACCES", "EPERM", "EROFS"]) {
 
 			yield* edited("note.md", "# Again");
 
-			yield* outcomes({
-				"next published change": [publishedPaths(), ["note.md"]],
-				warnings: [sentinelWarnings(), [`Cannot write the workspace watch sentinel in ${root}; trusting the watcher without confirmation.`]],
-			});
+			yield* outcomes([
+				["next published change", () => publishedPaths(), ["note.md"]],
+				["warnings", () => sentinelWarnings(), [`Cannot write the workspace watch sentinel in ${root}; trusting the watcher without confirmation.`]],
+			]);
 		},
 	);
 }
@@ -76,10 +80,10 @@ fileReadingStory.it(
 	function* ({ sentinelWarnings, startWatching, watchFailure }) {
 		yield* startWatching();
 
-		yield* outcomes({
-			"the watch": [watchFailure(), expect.stringContaining("ENOSPC")],
-			warnings: [sentinelWarnings(), []],
-		});
+		yield* outcomes([
+			["the watch", () => watchFailure(), expect.stringContaining("ENOSPC")],
+			["warnings", () => sentinelWarnings(), []],
+		]);
 	},
 );
 

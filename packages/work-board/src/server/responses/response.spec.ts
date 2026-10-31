@@ -15,10 +15,10 @@ boardStory.it(
 	function* ({ folderEntries, registerQuestion }) {
 		const registration = yield* registerQuestion("investigation.model", "review-model");
 
-		yield* outcomes({
-			"project files": [folderEntries("."), ["board.sock", "investigation.md"]],
-			registration: [Effect.succeed(registration), "forbidden: Start with --responses to explicitly enable local question/response writes."],
-		});
+		yield* outcomes([
+			["project files", () => folderEntries("."), ["board.sock", "investigation.md"]],
+			["registration", () => Effect.succeed(registration), "forbidden: Start with --responses to explicitly enable local question/response writes."],
+		]);
 	},
 );
 
@@ -52,10 +52,10 @@ boardStory.it(
 	function* ({ fileText, folderEntries, recordReply }) {
 		yield* recordReply();
 
-		yield* outcomes({
-			"response files": [folderEntries("responses"), [expect.stringMatching(/^question\.[a-f\d]{64}\.md$/u), "response.first.md"]],
-			source: [fileText("investigation.md"), MODEL_REVIEW],
-		});
+		yield* outcomes([
+			["response files", () => folderEntries("responses"), [expect.stringMatching(/^question\.[a-f\d]{64}\.md$/u), "response.first.md"]],
+			["source", () => fileText("investigation.md"), MODEL_REVIEW],
+		]);
 	},
 );
 
@@ -83,10 +83,10 @@ boardStory.it(
 	function* ({ agentWaits, replyHistory, restart }) {
 		yield* restart();
 
-		yield* outcomes({
-			"agent's wait": [agentWaits(), "response.first"],
-			replies: [replyHistory(), ["response.first"]],
-		});
+		yield* outcomes([
+			["agent's wait", () => agentWaits(), "response.first"],
+			["replies", () => replyHistory(), ["response.first"]],
+		]);
 	},
 );
 
@@ -100,10 +100,10 @@ boardStory.it(
 	function* ({ outsideEditorWrites, recordReply, replyHistory }) {
 		yield* outsideEditorWrites("investigation.md", CHANGED_MODEL);
 
-		yield* outcomes({
-			"new reply": [recordReply({ id: "response.second" }), SOURCE_CHANGED],
-			replies: [replyHistory(), ["response.first"]],
-		});
+		yield* outcomes([
+			["new reply", () => recordReply({ id: "response.second" }), SOURCE_CHANGED],
+			["replies", () => replyHistory(), ["response.first"]],
+		]);
 	},
 );
 
@@ -157,10 +157,10 @@ boardStory.it(
 	function* ({ outsideFolderEntries, registerQuestion }) {
 		const registration = yield* registerQuestion("investigation.model", "review-model");
 
-		yield* outcomes({
-			"outside folder": [outsideFolderEntries(), []],
-			registration: [Effect.succeed(registration), expect.stringMatching(/^unavailable: /u)],
-		});
+		yield* outcomes([
+			["outside folder", () => outsideFolderEntries(), []],
+			["registration", () => Effect.succeed(registration), expect.stringMatching(/^unavailable: /u)],
+		]);
 	},
 );
 
@@ -240,10 +240,10 @@ for (const { damage, source } of [
 		function* ({ nextReply, outsideEditorWrites, replyHistory }) {
 			yield* outsideEditorWrites("responses/response.broken.md", source);
 
-			yield* outcomes({
-				"next reply": [nextReply(), expect.stringMatching(/^unavailable: .*malformed/u)],
-				replies: [replyHistory(), expect.stringMatching(/^unavailable: .*malformed/u)],
-			});
+			yield* outcomes([
+				["next reply", () => nextReply(), expect.stringMatching(/^unavailable: .*malformed/u)],
+				["replies", () => replyHistory(), expect.stringMatching(/^unavailable: .*malformed/u)],
+			]);
 		},
 	);
 }

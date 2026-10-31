@@ -23,10 +23,10 @@ for (const { contentType, env } of [
 
 			yield* close();
 
-			yield* outcomes({
-				"content types": [exportContentTypes(), [contentType]],
-				"decoded spans": [exportedSpanNames(), expect.arrayContaining(["POST /rpc"])],
-			});
+			yield* outcomes([
+				["content types", () => exportContentTypes(), [contentType]],
+				["decoded spans", () => exportedSpanNames(), expect.arrayContaining(["POST /rpc"])],
+			]);
 		},
 	);
 }
@@ -40,10 +40,10 @@ for (const env of [
 		`${JSON.stringify(env)} fails startup with a config error naming grpc`,
 		[startupFails, environment({ ...env, "OTEL_EXPORTER_OTLP_ENDPOINT": "http://127.0.0.1:1" })],
 		function* ({ startup, startupFailureMessage }) {
-			yield* outcomes({
-				"message": [startupFailureMessage(), expect.stringContaining("grpc")],
-				"startup": [startup(), "failed with config error"],
-			});
+			yield* outcomes([
+				["message", () => startupFailureMessage(), expect.stringContaining("grpc")],
+				["startup", () => startup(), "failed with config error"],
+			]);
 		},
 	);
 }

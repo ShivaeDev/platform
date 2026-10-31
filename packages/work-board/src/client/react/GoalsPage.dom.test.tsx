@@ -63,17 +63,18 @@ screenStory.it(
 	"a workspace without goals gets the empty Goals state pointing to Getting started, with no summary or folded sections",
 	[goalsScreen({})],
 	function* ({ emptyState, goalList, pageSummary }) {
-		yield* outcomes({
-			"empty state": [
-				emptyState(),
+		yield* outcomes([
+			[
+				"empty state",
+				() => emptyState(),
 				{
 					action: { href: "/_board/start", label: "Getting started" },
 					description: "A goal appears here when a file in this workspace declares one.",
 					title: "No active goals",
 				},
 			],
-			sections: [goalList(), { active: [], closed: "no section", deferred: "no section" }],
-			summary: [pageSummary(), "no summary"],
-		});
+			["sections", () => goalList(), { active: [], closed: "no section", deferred: "no section" }],
+			["summary", () => pageSummary(), "no summary"],
+		]);
 	},
 );

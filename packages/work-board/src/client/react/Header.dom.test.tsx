@@ -26,16 +26,16 @@ screenStory.it(
 	"hiding the desktop sidebar collapses the Sidebar button and shows the header's Today link",
 	[headerScreen(3)],
 	function* ({ sidebarButton, todayLinkShown, toggleSidebar }) {
-		yield* outcomes({
-			"sidebar expanded": [sidebarButton(), expect.objectContaining({ expanded: "true" })],
-			"Today link": [todayLinkShown(), "hidden"],
-		});
+		yield* outcomes([
+			["sidebar expanded", () => sidebarButton(), expect.objectContaining({ expanded: "true" })],
+			["Today link", () => todayLinkShown(), "hidden"],
+		]);
 
 		yield* toggleSidebar();
 
-		yield* outcomes({
-			"sidebar expanded": [sidebarButton(), expect.objectContaining({ expanded: "false" })],
-			"Today link": [todayLinkShown(), "shown"],
-		});
+		yield* outcomes([
+			["sidebar expanded", () => sidebarButton(), expect.objectContaining({ expanded: "false" })],
+			["Today link", () => todayLinkShown(), "shown"],
+		]);
 	},
 );

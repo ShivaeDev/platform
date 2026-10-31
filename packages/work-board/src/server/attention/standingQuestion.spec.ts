@@ -20,10 +20,10 @@ boardStory.it(
 	"an unanswered standing decision waits on you in Today and in needs_you",
 	[standingPolicy],
 	function* ({ needsYouTool, todayNeedsYou }) {
-		yield* outcomes({
-			"needs_you tool": [needsYouTool(), WAITING],
-			today: [todayNeedsYou(), WAITING],
-		});
+		yield* outcomes([
+			["needs_you tool", () => needsYouTool(), WAITING],
+			["today", () => todayNeedsYou(), WAITING],
+		]);
 	},
 );
 
@@ -52,14 +52,15 @@ boardStory.it(
 
 		const saved = yield* answerStandingPolicy();
 
-		yield* outcomes({
-			"needs_you tool": [needsYouTool(), []],
-			recent: [
-				recentAnswers(),
+		yield* outcomes([
+			["needs_you tool", () => needsYouTool(), []],
+			[
+				"recent",
+				() => recentAnswers(),
 				[expect.objectContaining({ answer: expect.objectContaining({ choice: "After review", response: saved.id, yours: true }), state: "waiting" })],
 			],
-			today: [todayNeedsYou(), []],
-		});
+			["today", () => todayNeedsYou(), []],
+		]);
 	},
 );
 
@@ -71,10 +72,10 @@ boardStory.it(
 
 		yield* edited(STANDING_QUESTION_FILE, STANDING_QUESTION_SOURCE.replace("When should releases ship?", "When should security releases ship?"));
 
-		yield* outcomes({
-			"needs_you tool": [needsYouTool(), WAITING],
-			recent: [recentAnswers(), [expect.objectContaining({ state: "changed" })]],
-			today: [todayNeedsYou(), WAITING],
-		});
+		yield* outcomes([
+			["needs_you tool", () => needsYouTool(), WAITING],
+			["recent", () => recentAnswers(), [expect.objectContaining({ state: "changed" })]],
+			["today", () => todayNeedsYou(), WAITING],
+		]);
 	},
 );

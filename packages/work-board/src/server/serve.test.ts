@@ -12,10 +12,10 @@ boardStory.it(
 		yield* commandStarts(["--home", "plan.md"]);
 		expect(yield* commandAddress()).toBe("a loopback address");
 
-		yield* outcomes({
-			"the home": [navigationHome(), "plan.md"],
-			"the home page": [httpAnswer("/"), "reading shell"],
-		});
+		yield* outcomes([
+			["the home", () => navigationHome(), "plan.md"],
+			["the home page", () => httpAnswer("/"), "reading shell"],
+		]);
 	},
 );
 
@@ -25,10 +25,10 @@ boardStory.it(
 	function* ({ commandAddress, commandStarts, inboxAudience }) {
 		yield* commandStarts(["--maintainer", "Casey"]);
 
-		yield* outcomes({
-			address: [commandAddress(), "a loopback address"],
-			"inbox audience": [inboxAudience(), { agents: 1, you: 2 }],
-		});
+		yield* outcomes([
+			["address", () => commandAddress(), "a loopback address"],
+			["inbox audience", () => inboxAudience(), { agents: 1, you: 2 }],
+		]);
 	},
 );
 
@@ -38,10 +38,10 @@ boardStory.it(
 	function* ({ commandEnding, commandSaid, commandStarts }) {
 		yield* commandStarts(["--home", "missing.md"]);
 
-		yield* outcomes({
-			"its output": [commandSaid(), expect.stringMatching(/^(?!.*Listening on).*The home file missing\.md is not a markdown file in/su)],
-			"the command": [commandEnding(), "failed"],
-		});
+		yield* outcomes([
+			["its output", () => commandSaid(), expect.stringMatching(/^(?!.*Listening on).*The home file missing\.md is not a markdown file in/su)],
+			["the command", () => commandEnding(), "failed"],
+		]);
 	},
 );
 
@@ -57,10 +57,10 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 
 			yield* commandSignalled(signal);
 
-			yield* outcomes({
-				"the socket": [socketFile(), "missing"],
-				"the stop": [commandStopTime(), "within three seconds"],
-			});
+			yield* outcomes([
+				["the socket", () => socketFile(), "missing"],
+				["the stop", () => commandStopTime(), "within three seconds"],
+			]);
 		},
 		10_000,
 	);

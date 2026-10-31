@@ -30,12 +30,12 @@ exceptionStory.it(
 	function* ({ config: exported, outcome, reads, runs }) {
 		yield* runs("exceptions", "migrate");
 
-		yield* outcomes({
-			"biome.json": [reads("biome.json"), expect.not.stringContaining("overrides")],
-			"config": [exported(), { exceptions: [MERGED], sources: ["src"] }],
-			"exit": [outcome(), "passed"],
-			"registry": [reads(REGISTRY.path), undefined],
-		});
+		yield* outcomes([
+			["biome.json", () => reads("biome.json"), expect.not.stringContaining("overrides")],
+			["config", () => exported(), { exceptions: [MERGED], sources: ["src"] }],
+			["exit", () => outcome(), "passed"],
+			["registry", () => reads(REGISTRY.path), undefined],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -48,11 +48,11 @@ exceptionStory.it(
 
 		yield* runs("exceptions", "migrate", "--from", "old-exceptions.json");
 
-		yield* outcomes({
-			"config": [exported(), { exceptions: [{ files: [FILE], reason: REASON, rules: ["comments/no-jsdoc"], subject: "external-format" }] }],
-			"exit": [outcome(), "passed"],
-			"registry": [reads("old-exceptions.json"), undefined],
-		});
+		yield* outcomes([
+			["config", () => exported(), { exceptions: [{ files: [FILE], reason: REASON, rules: ["comments/no-jsdoc"], subject: "external-format" }] }],
+			["exit", () => outcome(), "passed"],
+			["registry", () => reads("old-exceptions.json"), undefined],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -65,10 +65,10 @@ exceptionStory.it(
 
 		yield* runs("exceptions", "migrate");
 
-		yield* outcomes({
-			"config": [reads("quality.config.ts"), migrated],
-			"exit": [outcome(), "passed"],
-		});
+		yield* outcomes([
+			["config", () => reads("quality.config.ts"), migrated],
+			["exit", () => outcome(), "passed"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -91,11 +91,11 @@ for (const [shape, property] of [
 
 			yield* runs("exceptions", "migrate");
 
-			yield* outcomes({
-				"error": [stderr(), expect.stringContaining("Inline the rules object")],
-				"exit": [outcome(), "invalid"],
-				"files": [files(), before],
-			});
+			yield* outcomes([
+				["error", () => stderr(), expect.stringContaining("Inline the rules object")],
+				["exit", () => outcome(), "invalid"],
+				["files", () => files(), before],
+			]);
 		},
 		CLI_TIMEOUT,
 	);
@@ -115,11 +115,11 @@ exceptionStory.it(
 
 		yield* runs("exceptions", "migrate", "--from", "typo.json");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("typo.json does not exist")],
-			"exit": [outcome(), "invalid"],
-			"files": [files(), before],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("typo.json does not exist")],
+			["exit", () => outcome(), "invalid"],
+			["files", () => files(), before],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -132,11 +132,11 @@ exceptionStory.it(
 
 		yield* runs("exceptions", "migrate", "--config", "custom.config.ts");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("Cannot migrate")],
-			"exit": [outcome(), "invalid"],
-			"files": [files(), before],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("Cannot migrate")],
+			["exit", () => outcome(), "invalid"],
+			["files", () => files(), before],
+		]);
 	},
 	CLI_TIMEOUT,
 );

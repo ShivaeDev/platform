@@ -14,9 +14,10 @@ screenStory.it(
 	"the empty palette offers Go to for each view and each open goal, but not a finished goal, linked to its page",
 	[searchOpened(paletteFixture())],
 	function* ({ resultGroups, results }) {
-		yield* outcomes({
-			"Go to": [
-				results("title", "href"),
+		yield* outcomes([
+			[
+				"Go to",
+				() => results("title", "href"),
 				expect.arrayContaining([
 					{ href: "/", title: "Go to Today" },
 					{ href: "/_board/goals", title: "Go to Goals" },
@@ -26,8 +27,9 @@ screenStory.it(
 					{ href: "/_board/item/project.workspace/", title: "Go to A calmer workspace" },
 				]),
 			],
-			groups: [
-				resultGroups(),
+			[
+				"groups",
+				() => resultGroups(),
 				[
 					{
 						group: "Go to",
@@ -36,7 +38,7 @@ screenStory.it(
 					{ group: "Appearance", titles: ["Show or hide sidebar", "Toggle compact density", "Toggle light or dark theme"] },
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -65,10 +67,10 @@ for (const query of ["workspace", "project.workspace", "calmer"]) {
 		function* ({ firstResult, resultsLinkingTo, searchFor }) {
 			yield* searchFor(query);
 
-			yield* outcomes({
-				first: [firstResult(), "Go to A calmer workspace"],
-				"rows for the goal": [resultsLinkingTo("/_board/item/project.workspace/"), ["Go to A calmer workspace"]],
-			});
+			yield* outcomes([
+				["first", () => firstResult(), "Go to A calmer workspace"],
+				["rows for the goal", () => resultsLinkingTo("/_board/item/project.workspace/"), ["Go to A calmer workspace"]],
+			]);
 		},
 	);
 }
@@ -89,10 +91,10 @@ screenStory.it(
 
 		yield* chooseResult("Toggle light or dark theme");
 
-		yield* outcomes({
-			address: [browserPath(), address],
-			theme: [shellPreferences(), expect.objectContaining({ theme: "dark" })],
-		});
+		yield* outcomes([
+			["address", () => browserPath(), address],
+			["theme", () => shellPreferences(), expect.objectContaining({ theme: "dark" })],
+		]);
 	},
 );
 
@@ -107,18 +109,18 @@ for (const { command, from, preference, query, to } of [
 		function* ({ currentPage, openSearchWithShortcut, pressInSearch, searchDialog, searchFor, selectedResult, shellPreferences }) {
 			yield* openSearchWithShortcut();
 			yield* searchFor(query);
-			yield* outcomes({
-				before: [shellPreferences(), expect.objectContaining({ [preference]: from })],
-				selected: [selectedResult(), { announced: command, selected: command }],
-			});
+			yield* outcomes([
+				["before", () => shellPreferences(), expect.objectContaining({ [preference]: from })],
+				["selected", () => selectedResult(), { announced: command, selected: command }],
+			]);
 
 			yield* pressInSearch("Enter");
 
-			yield* outcomes({
-				after: [shellPreferences(), expect.objectContaining({ [preference]: to })],
-				page: [currentPage(), "/notes/plan.md"],
-				search: [searchDialog(), "closed"],
-			});
+			yield* outcomes([
+				["after", () => shellPreferences(), expect.objectContaining({ [preference]: to })],
+				["page", () => currentPage(), "/notes/plan.md"],
+				["search", () => searchDialog(), "closed"],
+			]);
 		},
 	);
 }
@@ -145,9 +147,9 @@ screenStory.it(
 
 		yield* pressInSearch("Enter");
 
-		yield* outcomes({
-			page: [currentPage(), "/_board/item/request.search/#answer-card-matching-decision"],
-			search: [searchDialog(), "closed"],
-		});
+		yield* outcomes([
+			["page", () => currentPage(), "/_board/item/request.search/#answer-card-matching-decision"],
+			["search", () => searchDialog(), "closed"],
+		]);
 	},
 );

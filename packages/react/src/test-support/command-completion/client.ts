@@ -42,6 +42,7 @@ export function completionClient() {
 	}
 	const finished: string[] = [];
 	const refetch = Effect.runSync(Deferred.make<string>());
+	const refetched = Deferred.makeUnsafe<void>();
 	let reads = 0;
 	let invalidations = 0;
 	const handlers = Commands.toLayer(
@@ -50,7 +51,7 @@ export function completionClient() {
 				"completions.$changes": () => Stream.never,
 				"completions.list": () => {
 					reads += 1;
-					return reads === 1 ? Effect.succeed("initial") : Deferred.await(refetch);
+					return reads === 1 ? Effect.succeed("initial") : Deferred.await(refetch).pipe(Effect.tap(() => Deferred.succeed(refetched, undefined)));
 				},
 				"completions.rename": ({ title }) =>
 					Effect.gen(function* () {
@@ -83,6 +84,8 @@ export function completionClient() {
 		invalidations: () => invalidations,
 		list: api.list.query(),
 		reads: () => reads,
+		refetch,
+		refetched,
 		run: (input: { readonly title: string }) =>
 			api.rename.run(input).pipe(
 				Effect.onExit(() =>

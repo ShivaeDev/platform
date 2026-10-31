@@ -20,10 +20,10 @@ for (const [route, target, heading] of [
 		`sends the retired /_board/${route} to ${target}`,
 		[routedScreen(files, `/_board/${route}`)],
 		function* ({ currentPage, mainHeading }) {
-			yield* outcomes({
-				"the heading": [mainHeading(), heading],
-				"the page": [currentPage(), target],
-			});
+			yield* outcomes([
+				["the heading", () => mainHeading(), heading],
+				["the page", () => currentPage(), target],
+			]);
 		},
 	);
 }

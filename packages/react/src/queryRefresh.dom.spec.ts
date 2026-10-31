@@ -17,10 +17,10 @@ queries.it(
 	function* ({ nativeAnswer, nativeRefreshDropsAnswer, shown }) {
 		yield* nativeRefreshDropsAnswer();
 
-		yield* outcomes({
-			"native answer": [nativeAnswer(), "none"],
-			shown: [shown(), { data: "Last success", failure: "none", status: "refreshing" }],
-		});
+		yield* outcomes([
+			["native answer", () => nativeAnswer(), "none"],
+			["shown", () => shown(), { data: "Last success", failure: "none", status: "refreshing" }],
+		]);
 	},
 );
 
@@ -48,10 +48,10 @@ queries.it(
 
 		yield* invalidate("second invalidation");
 
-		yield* outcomes({
-			"interrupted reads": [interruptedReads(), ["first"]],
-			shown: [shown(), { data: "Last success", failure: "none", status: "refreshing" }],
-		});
+		yield* outcomes([
+			["interrupted reads", () => interruptedReads(), ["first"]],
+			["shown", () => shown(), { data: "Last success", failure: "none", status: "refreshing" }],
+		]);
 	},
 );
 

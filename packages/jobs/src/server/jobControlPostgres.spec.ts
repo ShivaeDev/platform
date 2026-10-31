@@ -33,10 +33,10 @@ for (const { counts, retryLimit, state } of cases) {
 			yield* retry("app", "job 42");
 			yield* untilJob("job 42", "completed");
 
-			yield* outcomes({
-				"attempts": [attempts(queue), ["job 42", "job 42"]],
-				"job 42": [job("job 42"), expect.objectContaining({ data: { id: 42 }, job: "job 42", state: "completed" })],
-			});
+			yield* outcomes([
+				["attempts", () => attempts(queue), ["job 42", "job 42"]],
+				["job 42", () => job("job 42"), expect.objectContaining({ data: { id: 42 }, job: "job 42", state: "completed" })],
+			]);
 		},
 	);
 

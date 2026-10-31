@@ -22,7 +22,7 @@ for (const [name, View] of [
 
 			yield* scrollWorkList(22_400);
 
-			yield* outcomes({ "the rendered rows": [workListWindow(ROWS), { first: LATER_ROW, renders: "a window" }] });
+			yield* outcomes([["the rendered rows", () => workListWindow(ROWS), { first: LATER_ROW, renders: "a window" }]]);
 		},
 	);
 }

@@ -18,10 +18,10 @@ nativeStory.it(
 
 		yield* click("Save empty");
 
-		yield* outcomes({
-			"listed titles": [listedTitles(), ["Morning walk"]],
-			"save error": [saveError(), "shown"],
-			"stored notes": [storedNotes(), [{ id: 1, title: "Morning walk" }]],
-		});
+		yield* outcomes([
+			["listed titles", () => listedTitles(), ["Morning walk"]],
+			["save error", () => saveError(), "shown"],
+			["stored notes", () => storedNotes(), [{ id: 1, title: "Morning walk" }]],
+		]);
 	},
 );

@@ -85,11 +85,11 @@ screenStory.it(
 
 		yield* recordOnToday();
 
-		yield* outcomes({
-			answered: [answeredOnToday("decision.reader"), expect.stringContaining("You answered")],
-			"Needs you": [needsYou(), expect.not.arrayContaining(["Question for reader"])],
-			recorded: [recordedAnswerTexts("decision.reader", "direction"), ["Publish the guide on Monday."]],
-		});
+		yield* outcomes([
+			["answered", () => answeredOnToday("decision.reader"), expect.stringContaining("You answered")],
+			["Needs you", () => needsYou(), expect.not.arrayContaining(["Question for reader"])],
+			["recorded", () => recordedAnswerTexts("decision.reader", "direction"), ["Publish the guide on Monday."]],
+		]);
 	},
 );
 
@@ -120,11 +120,11 @@ screenStory.it(
 
 		yield* recordOnToday();
 
-		yield* outcomes({
-			answers: [recordedPacketAnswers("decision.name", "direction"), [[{ prompt: "name", selected: [], text: "Harbor" }]]],
-			authors: [recordedPacketAuthors("decision.name", "direction"), ["Casey"]],
-			"Needs you": [needsYou(), expect.not.arrayContaining(["Name the next release"])],
-		});
+		yield* outcomes([
+			["answers", () => recordedPacketAnswers("decision.name", "direction"), [[{ prompt: "name", selected: [], text: "Harbor" }]]],
+			["authors", () => recordedPacketAuthors("decision.name", "direction"), ["Casey"]],
+			["Needs you", () => needsYou(), expect.not.arrayContaining(["Name the next release"])],
+		]);
 	},
 );
 
@@ -151,10 +151,10 @@ screenStory.it(
 
 		yield* chooseOnToday("Hall Choose hall.");
 
-		yield* outcomes({
-			"Needs you": [needsYou(), expect.not.arrayContaining(["Pick a venue for the launch"])],
-			recorded: [recordedPacketAnswers("decision.venue", "direction"), [[{ prompt: "venue", selected: ["hall"], text: "" }]]],
-		});
+		yield* outcomes([
+			["Needs you", () => needsYou(), expect.not.arrayContaining(["Pick a venue for the launch"])],
+			["recorded", () => recordedPacketAnswers("decision.venue", "direction"), [[{ prompt: "venue", selected: ["hall"], text: "" }]]],
+		]);
 	},
 );
 
@@ -165,11 +165,11 @@ for (const title of [STORAGE, "Question for reader"]) {
 		function* ({ answerOnToday, todayAnswerContent, todayAnswerControls }) {
 			yield* answerOnToday(title);
 
-			yield* outcomes({
-				controls: [todayAnswerControls(), [{ name: "Read the full question", role: "link" }]],
-				"no CLI flag": [todayAnswerContent(), expect.not.stringContaining("--responses")],
-				says: [todayAnswerContent(), expect.stringContaining("Answering is turned off on this Board.")],
-			});
+			yield* outcomes([
+				["controls", () => todayAnswerControls(), [{ name: "Read the full question", role: "link" }]],
+				["no CLI flag", () => todayAnswerContent(), expect.not.stringContaining("--responses")],
+				["says", () => todayAnswerContent(), expect.stringContaining("Answering is turned off on this Board.")],
+			]);
 		},
 	);
 }

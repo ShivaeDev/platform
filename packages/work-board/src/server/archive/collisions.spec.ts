@@ -13,14 +13,15 @@ boardStory.it(
 	function* ({ boardStarts, foundAt, sourcesAt }) {
 		yield* boardStarts();
 
-		yield* outcomes({
-			"earlier brief": [foundAt("earlier"), "archive/board/old.md"],
-			"old brief": [foundAt("old"), "archive/board/old-1.md"],
-			sources: [
-				sourcesAt(["archive/board/old-1.md", "archive/board/old.md", "tasks/board/old.md"]),
+		yield* outcomes([
+			["earlier brief", () => foundAt("earlier"), "archive/board/old.md"],
+			["old brief", () => foundAt("old"), "archive/board/old-1.md"],
+			[
+				"sources",
+				() => sourcesAt(["archive/board/old-1.md", "archive/board/old.md", "tasks/board/old.md"]),
 				{ "archive/board/old-1.md": finishedBrief("old"), "archive/board/old.md": finishedBrief("earlier"), "tasks/board/old.md": "missing" },
 			],
-		});
+		]);
 	},
 );
 
@@ -40,12 +41,13 @@ boardStory.it(
 	function* ({ boardStarts, foundAt, sourcesAt }) {
 		yield* boardStarts();
 
-		yield* outcomes({
-			active: [foundAt("active"), "tasks/board/fix.md"],
-			another: [foundAt("another"), "tasks/board/fix-1.md"],
-			reopened: [foundAt("reopened"), "tasks/board/fix-2.md"],
-			sources: [
-				sourcesAt(["archive/board/fix.md", "tasks/board/fix-2.md", "tasks/board/fix.md", "tasks/board/fix-1.md"]),
+		yield* outcomes([
+			["active", () => foundAt("active"), "tasks/board/fix.md"],
+			["another", () => foundAt("another"), "tasks/board/fix-1.md"],
+			["reopened", () => foundAt("reopened"), "tasks/board/fix-2.md"],
+			[
+				"sources",
+				() => sourcesAt(["archive/board/fix.md", "tasks/board/fix-2.md", "tasks/board/fix.md", "tasks/board/fix-1.md"]),
 				{
 					"archive/board/fix.md": "missing",
 					"tasks/board/fix-1.md": finishedBrief("another", "ready"),
@@ -53,7 +55,7 @@ boardStory.it(
 					"tasks/board/fix.md": finishedBrief("active", "ready"),
 				},
 			],
-		});
+		]);
 	},
 );
 
@@ -67,10 +69,10 @@ boardStory.it(
 		moveFile("archive/board/old.md", "tasks/board/old.md");
 		yield* boardStarts();
 
-		yield* outcomes({
-			briefs: [briefFiles(), ["archive/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"]],
-			path: [foundAt("old"), "tasks/board/old.md"],
-			source: [sourcesAt(["tasks/board/old.md"]), { "tasks/board/old.md": finishedBrief("old") }],
-		});
+		yield* outcomes([
+			["briefs", () => briefFiles(), ["archive/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"]],
+			["path", () => foundAt("old"), "tasks/board/old.md"],
+			["source", () => sourcesAt(["tasks/board/old.md"]), { "tasks/board/old.md": finishedBrief("old") }],
+		]);
 	},
 );

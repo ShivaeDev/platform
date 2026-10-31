@@ -25,9 +25,9 @@ boardStory.it(
 
 		storageCrashes();
 
-		yield* outcomes({
-			"the client": [documentRejection("note.md"), { answer: "internal server error", cause: "none", secret: "withheld" }],
-			"the server span": [serverSpanCause("work-board.document"), ["internal server error carrying the original defect"]],
-		});
+		yield* outcomes([
+			["the client", () => documentRejection("note.md"), { answer: "internal server error", cause: "none", secret: "withheld" }],
+			["the server span", () => serverSpanCause("work-board.document"), ["internal server error carrying the original defect"]],
+		]);
 	},
 );

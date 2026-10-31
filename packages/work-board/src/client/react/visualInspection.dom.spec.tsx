@@ -25,10 +25,10 @@ for (const way of ["Escape", "Close"] as const) {
 
 			yield* closeViewer(way);
 
-			yield* outcomes({
-				focus: [readerFocus(), "button Inspect image: Evidence"],
-				viewer: [imageViewer(), "closed"],
-			});
+			yield* outcomes([
+				["focus", () => readerFocus(), "button Inspect image: Evidence"],
+				["viewer", () => imageViewer(), "closed"],
+			]);
 		},
 	);
 }

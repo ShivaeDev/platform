@@ -10,5 +10,8 @@ app.it("keeps concurrent note ownership separate for alice and bob", [signedIn()
 		concurrency: "unbounded",
 	});
 
-	yield* outcomes({ "alice's notes": [alice.list(), [aliceNote]], "bob's notes": [bob.list(), [bobNote]] });
+	yield* outcomes([
+		["alice's notes", () => alice.list(), [aliceNote]],
+		["bob's notes", () => bob.list(), [bobNote]],
+	]);
 });

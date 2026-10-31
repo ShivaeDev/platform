@@ -6,10 +6,10 @@ import { indexClientSubscribed, liveClientSubscribed } from "#test/liveTraits.ts
 const brief = projectFiles({ "brief.md": "---\nid: brief\nkind: task\n---\n# Before" });
 
 boardStory.it("the Board index lists each Markdown file with its parsed fields and body", [brief], function* ({ indexEntry, indexListing }) {
-	yield* outcomes({
-		"the brief": [indexEntry("brief.md"), { body: "# Before", fields: { id: "brief", kind: "task" }, problems: [] }],
-		"the indexed files": [indexListing(), ["brief.md"]],
-	});
+	yield* outcomes([
+		["the brief", () => indexEntry("brief.md"), { body: "# Before", fields: { id: "brief", kind: "task" }, problems: [] }],
+		["the indexed files", () => indexListing(), ["brief.md"]],
+	]);
 });
 
 boardStory.it(

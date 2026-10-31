@@ -16,11 +16,11 @@ screenStory.it(
 	"a read-only Board lists the packet's questions without any control and says answering is turned off",
 	[routedScreen({ "proposal.md": questionnaireSource }, ITEM, readOnly)],
 	function* ({ packetControls, packetNotice, packetPrompts }) {
-		yield* outcomes({
-			controls: [packetControls("direction"), []],
-			notice: [packetNotice("direction"), ["Answering is turned off on this Board."]],
-			questions: [packetPrompts("direction"), ["How should replies appear?", "Which checks matter?"]],
-		});
+		yield* outcomes([
+			["controls", () => packetControls("direction"), []],
+			["notice", () => packetNotice("direction"), ["Answering is turned off on this Board."]],
+			["questions", () => packetPrompts("direction"), ["How should replies appear?", "Which checks matter?"]],
+		]);
 	},
 );
 
@@ -28,10 +28,11 @@ screenStory.it(
 	"a closed request keeps its questionnaire readable in the document without an answer card",
 	[routedScreen({ "proposal.md": questionnaireSource.replace("state: open", "state: closed") }, ITEM, writable)],
 	function* ({ answerCardIds, readableOptions }) {
-		yield* outcomes({
-			"answer cards": [answerCardIds(), []],
-			"readable options": [
-				readableOptions(),
+		yield* outcomes([
+			["answer cards", () => answerCardIds(), []],
+			[
+				"readable options",
+				() => readableOptions(),
 				[
 					"Latest reply — compact, with older replies behind a link.",
 					"Full history — keep earlier direction visible.",
@@ -39,7 +40,7 @@ screenStory.it(
 					"Reload restores the reading context.",
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -47,14 +48,14 @@ screenStory.it(
 	"two open requests each get an answer card with only their own question and selection mode",
 	[routedScreen({ "proposal.md": scopedQuestionnaire }, ITEM, writable)],
 	function* ({ answerCardIds, duplicateCardIds, packetPrompts, selectionMode }) {
-		yield* outcomes({
-			"answer cards": [answerCardIds(), ["answer-card-direction", "answer-card-verification"]],
-			"direction mode": [selectionMode("direction"), "one"],
-			"direction questions": [packetPrompts("direction"), ["How should replies appear?"]],
-			"IDs used twice": [duplicateCardIds(), []],
-			"verification mode": [selectionMode("verification"), "many"],
-			"verification questions": [packetPrompts("verification"), ["Which checks matter?"]],
-		});
+		yield* outcomes([
+			["answer cards", () => answerCardIds(), ["answer-card-direction", "answer-card-verification"]],
+			["direction mode", () => selectionMode("direction"), "one"],
+			["direction questions", () => packetPrompts("direction"), ["How should replies appear?"]],
+			["IDs used twice", () => duplicateCardIds(), []],
+			["verification mode", () => selectionMode("verification"), "many"],
+			["verification questions", () => packetPrompts("verification"), ["Which checks matter?"]],
+		]);
 	},
 );
 
@@ -62,11 +63,11 @@ screenStory.it(
 	"a closed second request leaves its question readable in the document while the open request keeps its card",
 	[routedScreen({ "proposal.md": secondRequestClosed }, ITEM, writable)],
 	function* ({ answerCardIds, packetPrompts, readableQuestions }) {
-		yield* outcomes({
-			"answer cards": [answerCardIds(), ["answer-card-direction"]],
-			"direction questions": [packetPrompts("direction"), ["How should replies appear?"]],
-			"readable questions": [readableQuestions(), ["Which checks matter?"]],
-		});
+		yield* outcomes([
+			["answer cards", () => answerCardIds(), ["answer-card-direction"]],
+			["direction questions", () => packetPrompts("direction"), ["How should replies appear?"]],
+			["readable questions", () => readableQuestions(), ["Which checks matter?"]],
+		]);
 	},
 );
 
@@ -114,11 +115,11 @@ screenStory.it(
 
 		yield* changeSource("proposal.md", questionnaireSource.replace("Full history", "Changed meaning of the same option"));
 
-		yield* outcomes({
-			choice: [packetChoice("history"), "not chosen"],
-			status: [packetStatus(), expect.stringContaining("Source changed")],
-			"typed text": [promptText("display"), "Keep this rationale."],
-		});
+		yield* outcomes([
+			["choice", () => packetChoice("history"), "not chosen"],
+			["status", () => packetStatus(), expect.stringContaining("Source changed")],
+			["typed text", () => promptText("display"), "Keep this rationale."],
+		]);
 	},
 );
 

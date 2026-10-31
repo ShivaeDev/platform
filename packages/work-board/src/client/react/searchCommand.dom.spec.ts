@@ -17,10 +17,10 @@ screenStory.it(
 
 		yield* openSearchWithShortcut();
 
-		yield* outcomes({
-			focus: [keyboardFocus(), expect.objectContaining({ role: "combobox" })],
-			search: [searchDialog(), "open"],
-		});
+		yield* outcomes([
+			["focus", () => keyboardFocus(), expect.objectContaining({ role: "combobox" })],
+			["search", () => searchDialog(), "open"],
+		]);
 	},
 );
 
@@ -34,11 +34,11 @@ screenStory.it(
 
 		yield* pressInSearch("Enter");
 
-		yield* outcomes({
-			focus: [focusedId(), "heading-evidence-2"],
-			page: [currentPage(), "/notes/plan.md#heading-evidence-2"],
-			search: [searchDialog(), "closed"],
-		});
+		yield* outcomes([
+			["focus", () => focusedId(), "heading-evidence-2"],
+			["page", () => currentPage(), "/notes/plan.md#heading-evidence-2"],
+			["search", () => searchDialog(), "closed"],
+		]);
 	},
 );
 
@@ -51,9 +51,9 @@ screenStory.it(
 
 		yield* pressInSearch("Enter");
 
-		yield* outcomes({
-			focus: [focusedId(), "search-open"],
-			search: [searchDialog(), "closed"],
-		});
+		yield* outcomes([
+			["focus", () => focusedId(), "search-open"],
+			["search", () => searchDialog(), "closed"],
+		]);
 	},
 );

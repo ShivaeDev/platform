@@ -11,11 +11,11 @@ liveNotesStory.it(
 
 		yield* edit(1, "Changed");
 
-		yield* outcomes({
-			hints: [hintsHeard(), ["resync", "changed notes 1"]],
-			"server stream": [serverStreamClosed(), "closed"],
-			subscription: [subscriptionEnding(), "completed"],
-		});
+		yield* outcomes([
+			["hints", () => hintsHeard(), ["resync", "changed notes 1"]],
+			["server stream", () => serverStreamClosed(), "closed"],
+			["subscription", () => subscriptionEnding(), "completed"],
+		]);
 	},
 );
 
@@ -28,10 +28,10 @@ liveNotesStory.it(
 
 		yield* interruptSubscription();
 
-		yield* outcomes({
-			"server stream": [serverStreamClosed(), "closed"],
-			subscription: [subscriptionEnding(), "interrupted"],
-		});
+		yield* outcomes([
+			["server stream", () => serverStreamClosed(), "closed"],
+			["subscription", () => subscriptionEnding(), "interrupted"],
+		]);
 	},
 );
 

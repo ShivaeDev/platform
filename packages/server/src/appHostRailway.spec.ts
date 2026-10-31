@@ -16,16 +16,17 @@ clientIp.it(
 			"x-real-ip": "203.0.113.10",
 		});
 
-		yield* outcomes({
-			"sign-in response": [
-				Effect.succeed(response),
+		yield* outcomes([
+			[
+				"sign-in response",
+				() => Effect.succeed(response),
 				expect.objectContaining({
 					cookies: expect.arrayContaining([expect.stringMatching(/^__Secure-better-auth\.session_token=.*; Secure(?:;|$)/u)]),
 					status: HttpStatus.fromLiteral("OK"),
 				}),
 			],
-			"stored client IP": [storedSessions(), [{ ipAddress: "203.0.113.10" }]],
-		});
+			["stored client IP", () => storedSessions(), [{ ipAddress: "203.0.113.10" }]],
+		]);
 	},
 );
 
@@ -33,10 +34,10 @@ clientIp.it(
 	"the starter's Railway trust accepts the forwarded HTTPS origin and refuses an HTTP or foreign origin",
 	[railway],
 	function* ({ rpcStatus }) {
-		yield* outcomes({
-			"foreign origin": [rpcStatus("https://elsewhere.example"), HttpStatus.fromLiteral("Forbidden")],
-			"HTTPS public origin": [rpcStatus("https://app.example"), HttpStatus.fromLiteral("OK")],
-			"wrong scheme": [rpcStatus("http://app.example"), HttpStatus.fromLiteral("Forbidden")],
-		});
+		yield* outcomes([
+			["foreign origin", () => rpcStatus("https://elsewhere.example"), HttpStatus.fromLiteral("Forbidden")],
+			["HTTPS public origin", () => rpcStatus("https://app.example"), HttpStatus.fromLiteral("OK")],
+			["wrong scheme", () => rpcStatus("http://app.example"), HttpStatus.fromLiteral("Forbidden")],
+		]);
 	},
 );

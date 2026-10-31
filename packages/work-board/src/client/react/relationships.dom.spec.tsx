@@ -11,11 +11,11 @@ screenStory.it(
 	"an item's outgoing links sit under Links to, grouped by the item's own wording",
 	[itemOpened(relationshipsFixture, "/task.md")],
 	function* ({ contextHeading, contextKinds, contextLinks }) {
-		yield* outcomes({
-			"depends on": [contextLinks("links-to", "Depends on"), [expect.objectContaining({ name: "Base" })]],
-			heading: [contextHeading("links-to"), "Links to"],
-			kinds: [contextKinds("links-to"), ["Depends on", "Implements", "Informs", "Related to"]],
-		});
+		yield* outcomes([
+			["depends on", () => contextLinks("links-to", "Depends on"), [expect.objectContaining({ name: "Base" })]],
+			["heading", () => contextHeading("links-to"), "Links to"],
+			["kinds", () => contextKinds("links-to"), ["Depends on", "Implements", "Informs", "Related to"]],
+		]);
 	},
 );
 
@@ -23,15 +23,16 @@ screenStory.it(
 	"an item's incoming links sit under Linked from, worded from the item's side",
 	[itemOpened(relationshipsFixture, "/task.md")],
 	function* ({ contextHeading, contextKinds, contextLinks }) {
-		yield* outcomes({
-			heading: [contextHeading("linked-from"), "Linked from"],
-			"implemented by": [contextLinks("linked-from", "Implemented by"), [expect.objectContaining({ name: "Build" })]],
-			kinds: [
-				contextKinds("linked-from"),
+		yield* outcomes([
+			["heading", () => contextHeading("linked-from"), "Linked from"],
+			["implemented by", () => contextLinks("linked-from", "Implemented by"), [expect.objectContaining({ name: "Build" })]],
+			[
+				"kinds",
+				() => contextKinds("linked-from"),
 				["Agent handoff (1)", "Implemented by (1)", "Informed by (1)", "Listed in (1)", "Needed by (1)", "Related to (1)", "Reviewed question (1)"],
 			],
-			"needed by": [contextLinks("linked-from", "Needed by"), [expect.objectContaining({ name: "Later" })]],
-		});
+			["needed by", () => contextLinks("linked-from", "Needed by"), [expect.objectContaining({ name: "Later" })]],
+		]);
 	},
 );
 
@@ -47,10 +48,10 @@ screenStory.it(
 	"a board lists its declared items under Links to",
 	[itemOpened(relationshipsFixture, "/board.md")],
 	function* ({ contextKinds, contextLinks }) {
-		yield* outcomes({
-			items: [contextLinks("links-to", "Board items"), [expect.objectContaining({ name: "Task" })]],
-			kinds: [contextKinds("links-to"), ["Board items"]],
-		});
+		yield* outcomes([
+			["items", () => contextLinks("links-to", "Board items"), [expect.objectContaining({ name: "Task" })]],
+			["kinds", () => contextKinds("links-to"), ["Board items"]],
+		]);
 	},
 );
 

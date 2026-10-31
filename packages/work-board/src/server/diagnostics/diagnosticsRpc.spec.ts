@@ -30,11 +30,11 @@ boardStory.it(
 	"a daemon snapshot two minutes old shows Fleet as stale with the time it was observed",
 	[daemonSnapshot(() => diagnosticsSnapshot(twoMinutesAgo))],
 	function* ({ systemCards, systemCardText, systemCardTimes }) {
-		yield* outcomes({
-			"fleet card": [systemCards(), expect.objectContaining({ fleet: "stale" })],
-			"fleet text": [systemCardText("fleet"), expect.stringContaining("Stale snapshot")],
-			"fleet times": [systemCardTimes("fleet"), expect.arrayContaining([`2m ago at ${new Date(twoMinutesAgo).toISOString()}`])],
-		});
+		yield* outcomes([
+			["fleet card", () => systemCards(), expect.objectContaining({ fleet: "stale" })],
+			["fleet text", () => systemCardText("fleet"), expect.stringContaining("Stale snapshot")],
+			["fleet times", () => systemCardTimes("fleet"), expect.arrayContaining([`2m ago at ${new Date(twoMinutesAgo).toISOString()}`])],
+		]);
 	},
 );
 
@@ -44,15 +44,16 @@ boardStory.it(
 	"a stopped Fleet daemon shows only a Fleet isn't running card with how to start it",
 	[stoppedDaemon],
 	function* ({ systemCards, systemCardText, systemRegions, systemText }) {
-		yield* outcomes({
-			cards: [systemCards(), { fleet: "stopped" }],
-			"daemon address shown": [systemText(), expect.not.stringContaining("127.0.0.1:")],
-			"fleet card": [
-				systemCardText("fleet"),
+		yield* outcomes([
+			["cards", () => systemCards(), { fleet: "stopped" }],
+			["daemon address shown", () => systemText(), expect.not.stringContaining("127.0.0.1:")],
+			[
+				"fleet card",
+				() => systemCardText("fleet"),
 				expect.stringMatching(/Fleet isn't running, so agent work and its health are unknown\..*How to start Fleet/u),
 			],
-			regions: [systemRegions(), expect.not.arrayContaining(["Fleet work"])],
-		});
+			["regions", () => systemRegions(), expect.not.arrayContaining(["Fleet work"])],
+		]);
 	},
 );
 
@@ -78,9 +79,9 @@ boardStory.it(
 		})),
 	],
 	function* ({ systemCards, systemCardText }) {
-		yield* outcomes({
-			cards: [systemCards(), expect.objectContaining({ codex: "not-configured", fleet: "ready", github: "error" })],
-			"github cause": [systemCardText("github"), expect.stringContaining("<script>upstream failed</script>")],
-		});
+		yield* outcomes([
+			["cards", () => systemCards(), expect.objectContaining({ codex: "not-configured", fleet: "ready", github: "error" })],
+			["github cause", () => systemCardText("github"), expect.stringContaining("<script>upstream failed</script>")],
+		]);
 	},
 );

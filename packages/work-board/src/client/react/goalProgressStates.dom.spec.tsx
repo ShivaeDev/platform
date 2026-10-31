@@ -18,13 +18,14 @@ screenStory.it(
 	"a goal page counts the same five states as its card, and its child lane counts the child's own work",
 	[routedScreen(goalProgressFixture(), "/_board/item/goal.progress/", { fleet: progressFleet(), home: "home.md" })],
 	function* ({ childLaneProgress, goalPageProgress }) {
-		yield* outcomes({
-			"child lane": [
-				childLaneProgress("goal.child"),
+		yield* outcomes([
+			[
+				"child lane",
+				() => childLaneProgress("goal.child"),
 				expect.objectContaining({ shown: "0/3 done", spoken: "0 of 3 done, 0 done, 1 running, 2 blocked, 0 scheduled, 0 parked" }),
 			],
-			goal: [goalPageProgress(), expect.objectContaining({ spoken: ALL_STATES })],
-		});
+			["goal", () => goalPageProgress(), expect.objectContaining({ spoken: ALL_STATES })],
+		]);
 	},
 );
 
@@ -32,10 +33,10 @@ screenStory.it(
 	"a standing home with all its work done stays among the active goals",
 	[routedScreen(goalProgressFixture(), "/_board/goals", { fleet: progressFleet(), home: "home.md" })],
 	function* ({ goalCardProgress, goalList }) {
-		yield* outcomes({
-			"active goals": [goalList(), expect.objectContaining({ active: expect.arrayContaining(["goal.standing"]) })],
-			"standing home": [goalCardProgress("goal.standing"), expect.objectContaining({ shown: "1/1 done" })],
-		});
+		yield* outcomes([
+			["active goals", () => goalList(), expect.objectContaining({ active: expect.arrayContaining(["goal.standing"]) })],
+			["standing home", () => goalCardProgress("goal.standing"), expect.objectContaining({ shown: "1/1 done" })],
+		]);
 	},
 );
 
@@ -43,12 +44,12 @@ screenStory.it(
 	"a standing home's page calls it a standing home for new work, not done",
 	[routedScreen(goalProgressFixture(), "/_board/item/goal.standing/", { fleet: progressFleet(), home: "home.md" })],
 	function* ({ goalPageProgress, goalPageTags, goalProgressNotice }) {
-		yield* outcomes({
-			"not done": [goalPageTags(), expect.not.arrayContaining(["Done"])],
-			notice: [goalProgressNotice(), "This goal is a standing home for new work."],
-			progress: [goalPageProgress(), expect.objectContaining({ shown: "1/1 done" })],
-			tags: [goalPageTags(), expect.arrayContaining(["Standing home"])],
-		});
+		yield* outcomes([
+			["not done", () => goalPageTags(), expect.not.arrayContaining(["Done"])],
+			["notice", () => goalProgressNotice(), "This goal is a standing home for new work."],
+			["progress", () => goalPageProgress(), expect.objectContaining({ shown: "1/1 done" })],
+			["tags", () => goalPageTags(), expect.arrayContaining(["Standing home"])],
+		]);
 	},
 );
 

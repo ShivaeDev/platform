@@ -12,10 +12,10 @@ postgres.it(
 	function* ({ containerChanges, outcome, start }) {
 		yield* start();
 
-		yield* outcomes({
-			"container changes": [containerChanges(), []],
-			"setup": [outcome(), "started"],
-		});
+		yield* outcomes([
+			["container changes", () => containerChanges(), []],
+			["setup", () => outcome(), "started"],
+		]);
 	},
 );
 
@@ -25,10 +25,10 @@ postgres.it(
 	function* ({ containerChanges, outcome, start }) {
 		yield* start();
 
-		yield* outcomes({
-			"container changes": [containerChanges(), ["docker start development-postgres"]],
-			"setup": [outcome(), "started"],
-		});
+		yield* outcomes([
+			["container changes", () => containerChanges(), ["docker start development-postgres"]],
+			["setup", () => outcome(), "started"],
+		]);
 	},
 );
 
@@ -38,11 +38,11 @@ postgres.it(
 	function* ({ failureKind, outcome, readinessChecks, start }) {
 		yield* start();
 
-		yield* outcomes({
-			"failure": [failureKind(), "setup command failed"],
-			"readiness checks": [readinessChecks(), ATTEMPTS],
-			"setup": [outcome(), "failed: Install psql or start the shared PostgreSQL service with Docker."],
-		});
+		yield* outcomes([
+			["failure", () => failureKind(), "setup command failed"],
+			["readiness checks", () => readinessChecks(), ATTEMPTS],
+			["setup", () => outcome(), "failed: Install psql or start the shared PostgreSQL service with Docker."],
+		]);
 	},
 );
 

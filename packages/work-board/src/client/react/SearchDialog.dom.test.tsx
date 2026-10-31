@@ -26,10 +26,10 @@ screenStory.it(
 
 		yield* refreshSearch("Shared phrase");
 
-		yield* outcomes({
-			results: [resultTitles(), ["First"]],
-			selection: [selectedResult(), { announced: "First", selected: "First" }],
-		});
+		yield* outcomes([
+			["results", () => resultTitles(), ["First"]],
+			["selection", () => selectedResult(), { announced: "First", selected: "First" }],
+		]);
 	},
 );
 
@@ -42,10 +42,10 @@ screenStory.it(
 
 		yield* pressInSearch("Enter");
 
-		yield* outcomes({
-			address: [browserPath(), "/notes/second.md"],
-			search: [searchDialog(), "closed"],
-		});
+		yield* outcomes([
+			["address", () => browserPath(), "/notes/second.md"],
+			["search", () => searchDialog(), "closed"],
+		]);
 	},
 );
 
@@ -65,11 +65,11 @@ for (const { previous, typed } of [
 
 			yield* pressInSearch("Enter");
 
-			yield* outcomes({
-				results: [resultTitles(), ["Second"]],
-				search: [searchDialog(), "open"],
-				selected: [selectedResult(), { announced: "Second", selected: "Second" }],
-			});
+			yield* outcomes([
+				["results", () => resultTitles(), ["Second"]],
+				["search", () => searchDialog(), "open"],
+				["selected", () => selectedResult(), { announced: "Second", selected: "Second" }],
+			]);
 		},
 	);
 }
@@ -84,10 +84,10 @@ screenStory.it(
 
 		yield* retrySearch();
 
-		yield* outcomes({
-			results: [resultTitles(), ["First"]],
-			status: [searchStatus(), "1 matches."],
-		});
+		yield* outcomes([
+			["results", () => resultTitles(), ["First"]],
+			["status", () => searchStatus(), "1 matches."],
+		]);
 	},
 );
 

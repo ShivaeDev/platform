@@ -17,10 +17,10 @@ for (const [variables, credential] of [
 		function* ({ cliExit, credentialsSent, runCli }) {
 			yield* runCli("--once");
 
-			yield* outcomes({
-				"credentials": [credentialsSent(), [credential]],
-				"exit": [cliExit(), "exit code 0"],
-			});
+			yield* outcomes([
+				["credentials", () => credentialsSent(), [credential]],
+				["exit", () => cliExit(), "exit code 0"],
+			]);
 		},
 	);
 }
@@ -41,11 +41,11 @@ watch.it(
 	function* ({ cliExit, cliStderr, credentialsSent, runCli }) {
 		yield* runCli("--once");
 
-		yield* outcomes({
-			"credentials": [credentialsSent(), []],
-			"exit": [cliExit(), "exit code 1"],
-			"stderr": [cliStderr(), "GitHub authentication unavailable; set GH_TOKEN or GITHUB_TOKEN, or sign in with gh\n"],
-		});
+		yield* outcomes([
+			["credentials", () => credentialsSent(), []],
+			["exit", () => cliExit(), "exit code 1"],
+			["stderr", () => cliStderr(), "GitHub authentication unavailable; set GH_TOKEN or GITHUB_TOKEN, or sign in with gh\n"],
+		]);
 	},
 );
 
@@ -58,11 +58,11 @@ watch.it(
 
 		yield* runCli("--once");
 
-		yield* outcomes({
-			"exit": [cliExit(), "exit code 1"],
-			"printed": [cliPrinted(), ["PR 1 merged", "error", "stopped: failed"]],
-			"stderr": [cliStderr(), "GitHub HTTP 500 (GET /repos/acme/project/pulls/2)\nGitHub HTTP 500 (GET /repos/acme/project/pulls/2)\n"],
-		});
+		yield* outcomes([
+			["exit", () => cliExit(), "exit code 1"],
+			["printed", () => cliPrinted(), ["PR 1 merged", "error", "stopped: failed"]],
+			["stderr", () => cliStderr(), "GitHub HTTP 500 (GET /repos/acme/project/pulls/2)\nGitHub HTTP 500 (GET /repos/acme/project/pulls/2)\n"],
+		]);
 	},
 );
 
@@ -72,10 +72,10 @@ watch.it(
 	function* ({ cliExit, requestsTo, runCli }) {
 		yield* runCli("--once");
 
-		yield* outcomes({
-			"exit": [cliExit(), "exit code 1"],
-			"requests to the redirect target": [requestsTo("/redirected"), []],
-		});
+		yield* outcomes([
+			["exit", () => cliExit(), "exit code 1"],
+			["requests to the redirect target", () => requestsTo("/redirected"), []],
+		]);
 	},
 );
 
@@ -101,9 +101,9 @@ watch.it(
 
 		yield* terminateCli();
 
-		yield* outcomes({
-			"exit": [cliExit(), "exit code 130"],
-			"last line": [cliPrinted().pipe(Effect.map((lines) => lines.at(-1))), "stopped: interrupted"],
-		});
+		yield* outcomes([
+			["exit", () => cliExit(), "exit code 130"],
+			["last line", () => cliPrinted().pipe(Effect.map((lines) => lines.at(-1))), "stopped: interrupted"],
+		]);
 	},
 );

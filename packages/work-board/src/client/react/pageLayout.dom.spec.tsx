@@ -30,10 +30,10 @@ for (const { title, url } of [
 
 			yield* navigate(url);
 
-			yield* outcomes({
-				"the headers": [pageHeaders(), [title]],
-				"the page": [pageAddress(), url],
-			});
+			yield* outcomes([
+				["the headers", () => pageHeaders(), [title]],
+				["the page", () => pageAddress(), url],
+			]);
 		},
 	);
 }
@@ -66,13 +66,14 @@ for (const { actions, files, name, url } of [
 		`shows the actions on ${name} as links to a page and buttons that act in place`,
 		[routedScreen(files, url, { writable: true })],
 		function* ({ actionControls }) {
-			yield* outcomes({
-				"the links without a page": [
-					actionControls(),
+			yield* outcomes([
+				[
+					"the links without a page",
+					() => actionControls(),
 					expect.not.arrayContaining([pageLink(expect.any(String), expect.not.stringMatching(/^(?:\/|https:\/\/)/u))]),
 				],
-				"the named actions": [actionControls(), expect.arrayContaining(actions)],
-			});
+				["the named actions", () => actionControls(), expect.arrayContaining(actions)],
+			]);
 		},
 	);
 }
@@ -94,9 +95,10 @@ screenStory.it(
 	"links each sidebar destination and the Now, All work and Table layouts to their pages, marking Now as current",
 	[chromeScreen(todayFixture(), "/_board/work")],
 	function* ({ destinationLinks, workLayoutLinks }) {
-		yield* outcomes({
-			"the destinations": [
-				destinationLinks(),
+		yield* outcomes([
+			[
+				"the destinations",
+				() => destinationLinks(),
 				[
 					{ href: "/", label: "Today" },
 					{ href: "/_board/goals", label: "Goals" },
@@ -106,15 +108,16 @@ screenStory.it(
 					{ href: "/_board/system", label: "System" },
 				],
 			],
-			"the layouts": [
-				workLayoutLinks(),
+			[
+				"the layouts",
+				() => workLayoutLinks(),
 				[
 					{ current: "page", href: "/_board/work?view=now&sort=title#work-results", name: "Now" },
 					{ current: "no", href: "/_board/work?view=board&sort=title#work-results", name: "All work" },
 					{ current: "no", href: "/_board/work?view=table&sort=title#work-results", name: "Table" },
 				],
 			],
-		});
+		]);
 	},
 );
 

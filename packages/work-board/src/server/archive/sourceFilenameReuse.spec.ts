@@ -10,10 +10,10 @@ boardStory.it(
 		projectFiles({ "decisions/settled.md": questionSource("replacement", "ready", "open") }, "a new open question is saved as decisions/settled.md"),
 	],
 	function* ({ answersOf, briefStatus }) {
-		yield* outcomes({
-			"archived answers": [answersOf("settled"), [{ body: "Keep the reviewed option.\n", id: "answer.settled" }]],
-			"archived question": [briefStatus("settled"), "done"],
-			"new open question": [briefStatus("replacement"), "ready"],
-		});
+		yield* outcomes([
+			["archived answers", () => answersOf("settled"), [{ body: "Keep the reviewed option.\n", id: "answer.settled" }]],
+			["archived question", () => briefStatus("settled"), "done"],
+			["new open question", () => briefStatus("replacement"), "ready"],
+		]);
 	},
 );

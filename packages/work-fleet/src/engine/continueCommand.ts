@@ -6,6 +6,7 @@ import { ensurePublication } from "#engine/ensurePublication.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { STOP_REASON } from "#engine/stopCommand.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
 import { sweepMerged } from "#scheduling/sweeps.ts";
 import type { StorageCapacity } from "#storage/errors.ts";
@@ -21,8 +22,8 @@ export function continueCommand(state: EngineState, launch: ReturnType<typeof ma
 			if (!message.trim()) {
 				return yield* Effect.fail(new BadRequest({ message: "Continuation needs a message" }));
 			}
-			if (!["waiting", "done"].includes(stored.value.step) || executing(stored.value)) {
-				return yield* Effect.fail(new Forbidden({ message: "Continue requires terminal waiting or done work" }));
+			if (!continuable(stored.value)) {
+				return yield* Effect.fail(new Forbidden({ message: "Continue requires terminal waiting, done or explicitly stopped work" }));
 			}
 			const latest = stored.value.attempts.findLast((attempt) => attempt.role !== "reviewer");
 			const sessionId = latest?.receipt?.sessionId ?? latest?.sessionId;
@@ -46,6 +47,11 @@ export function continueCommand(state: EngineState, launch: ReturnType<typeof ma
 		},
 		(effect) => effect.pipe(Effect.retry({ while: (error) => Predicate.isTagged(error, "StorageConflict") })),
 	);
+}
+
+function continuable(record: FleetRecord): boolean {
+	const stopped = record.step === "released" && record.releaseReason?.startsWith(STOP_REASON);
+	return Boolean(stopped || ["waiting", "done"].includes(record.step)) && !executing(record);
 }
 
 function queueContinuation(state: EngineState, stored: Versioned<FleetRecord>, prompt: string, error: StorageCapacity) {

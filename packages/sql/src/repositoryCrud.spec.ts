@@ -9,10 +9,10 @@ for (const invoices of invoiceKits) {
 		function* ({ insertLine, line, storedAmounts }) {
 			yield* insertLine("Consulting", { amount: 52 });
 
-			yield* outcomes({
-				"Consulting as read back": [line("Consulting"), { amount: 52, id: 1, name: "Consulting", note: null }],
-				"stored amount text": [storedAmounts(), ["52"]],
-			});
+			yield* outcomes([
+				["Consulting as read back", () => line("Consulting"), { amount: 52, id: 1, name: "Consulting", note: null }],
+				["stored amount text", () => storedAmounts(), ["52"]],
+			]);
 		},
 	);
 
@@ -26,10 +26,10 @@ for (const invoices of invoiceKits) {
 
 				yield* verbs[write]("Consulting", { amount: 55, name: "Onsite consulting" });
 
-				yield* outcomes({
-					"Consulting as read back": [line("Consulting"), { amount: 55, id: 1, name: "Onsite consulting", note: null }],
-					"Hosting as read back": [line("Hosting"), { amount: 57, id: 2, name: "Hosting", note: "annual" }],
-				});
+				yield* outcomes([
+					["Consulting as read back", () => line("Consulting"), { amount: 55, id: 1, name: "Onsite consulting", note: null }],
+					["Hosting as read back", () => line("Hosting"), { amount: 57, id: 2, name: "Hosting", note: "annual" }],
+				]);
 			},
 		);
 	}
@@ -76,10 +76,10 @@ for (const invoices of invoiceKits) {
 		function* ({ insertLabel, labelsNamed, storedLabelNames }) {
 			yield* insertLabel("Consulting");
 
-			yield* outcomes({
-				"labels found by their decoded name": [labelsNamed("Consulting"), [{ name: "Consulting" }]],
-				"stored label text": [storedLabelNames(), ["db:Consulting"]],
-			});
+			yield* outcomes([
+				["labels found by their decoded name", () => labelsNamed("Consulting"), [{ name: "Consulting" }]],
+				["stored label text", () => storedLabelNames(), ["db:Consulting"]],
+			]);
 		},
 	);
 }

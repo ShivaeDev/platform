@@ -18,10 +18,10 @@ versions.it(
 
 		yield* renameDocument(0, "Published");
 
-		yield* outcomes({
-			"stored document": [document(), { lockVersion: 1, name: "Published" }],
-			"update ending": [endings(), ["saved at version 1"]],
-		});
+		yield* outcomes([
+			["stored document", () => document(), { lockVersion: 1, name: "Published" }],
+			["update ending", () => endings(), ["saved at version 1"]],
+		]);
 	},
 );
 
@@ -42,10 +42,10 @@ for (const write of ["update", "updateVoid"] as const) {
 		function* ({ document, endings, renameDocument }) {
 			yield* renameDocument(0, "Stale", write);
 
-			yield* outcomes({
-				"stored document": [document(), { lockVersion: 1, name: "Published" }],
-				[`${write} ending`]: [endings(), ["failed with a stale version conflict for 1 at version 0"]],
-			});
+			yield* outcomes([
+				["stored document", () => document(), { lockVersion: 1, name: "Published" }],
+				[`${write} ending`, () => endings(), ["failed with a stale version conflict for 1 at version 0"]],
+			]);
 		},
 	);
 }
@@ -56,10 +56,10 @@ versions.it(
 	function* ({ deleteDocument, document, endings }) {
 		yield* deleteDocument(0);
 
-		yield* outcomes({
-			"delete ending": [endings(), ["failed with a stale version conflict for 1 at version 0"]],
-			"stored document": [document(), { lockVersion: 1, name: "Published" }],
-		});
+		yield* outcomes([
+			["delete ending", () => endings(), ["failed with a stale version conflict for 1 at version 0"]],
+			["stored document", () => document(), { lockVersion: 1, name: "Published" }],
+		]);
 	},
 );
 
@@ -93,10 +93,10 @@ versions.it(
 	function* ({ raceEndings, storedDocumentWriter, writersRace }) {
 		yield* writersRace();
 
-		yield* outcomes({
-			"race endings": [raceEndings(), ["failed with a stale version conflict for 1 at version 0", "saved at version 1"]],
-			"stored document": [storedDocumentWriter(), "the winning writer"],
-		});
+		yield* outcomes([
+			["race endings", () => raceEndings(), ["failed with a stale version conflict for 1 at version 0", "saved at version 1"]],
+			["stored document", () => storedDocumentWriter(), "the winning writer"],
+		]);
 	},
 );
 
@@ -110,11 +110,11 @@ versions.it(
 			yield* deleteDocument(1);
 		});
 
-		yield* outcomes({
-			"stored document": [document(), { lockVersion: 0, name: "Draft" }],
-			"stored names": [documentNames(), ["Draft"]],
-			"write endings": [endings(), ["saved at version 1", "inserted", "succeeded", "failed with cancelled"]],
-		});
+		yield* outcomes([
+			["stored document", () => document(), { lockVersion: 0, name: "Draft" }],
+			["stored names", () => documentNames(), ["Draft"]],
+			["write endings", () => endings(), ["saved at version 1", "inserted", "succeeded", "failed with cancelled"]],
+		]);
 	},
 );
 
@@ -124,9 +124,9 @@ versions.it(
 	function* ({ document, endings, insertDocument }) {
 		yield* insertDocument("Published", "insertOrIgnore");
 
-		yield* outcomes({
-			"insertOrIgnore ending": [endings(), ["ignored"]],
-			"stored document": [document(), { lockVersion: 1, name: "Published" }],
-		});
+		yield* outcomes([
+			["insertOrIgnore ending", () => endings(), ["ignored"]],
+			["stored document", () => document(), { lockVersion: 1, name: "Published" }],
+		]);
 	},
 );

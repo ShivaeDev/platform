@@ -15,11 +15,12 @@ for (const [failure, reason] of failures) {
 		function* ({ saveOrder, orderEnding, committedRows, loggedErrors }) {
 			yield* saveOrder("ada");
 
-			yield* outcomes({
-				"committed rows": [committedRows(), ["ada's order"]],
-				"how the transaction ended": [orderEnding(), "committed"],
-				"logged errors": [
-					loggedErrors(),
+			yield* outcomes([
+				["committed rows", () => committedRows(), ["ada's order"]],
+				["how the transaction ended", () => orderEnding(), "committed"],
+				[
+					"logged errors",
+					() => loggedErrors(),
 					[
 						{
 							cause: expect.stringContaining(reason),
@@ -29,7 +30,7 @@ for (const [failure, reason] of failures) {
 						},
 					],
 				],
-			});
+			]);
 		},
 	);
 
@@ -39,12 +40,12 @@ for (const [failure, reason] of failures) {
 		function* ({ saveOrder, orderEnding, orderDefect, committedRows, loggedErrors }) {
 			yield* saveOrder("ada");
 
-			yield* outcomes({
-				"committed rows": [committedRows(), ["ada's order"]],
-				"how the transaction ended": [orderEnding(), "died"],
-				"logged errors": [loggedErrors(), []],
-				"the defect": [orderDefect(), expect.stringContaining(reason)],
-			});
+			yield* outcomes([
+				["committed rows", () => committedRows(), ["ada's order"]],
+				["how the transaction ended", () => orderEnding(), "died"],
+				["logged errors", () => loggedErrors(), []],
+				["the defect", () => orderDefect(), expect.stringContaining(reason)],
+			]);
 		},
 	);
 }

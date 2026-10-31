@@ -44,9 +44,9 @@ screenStory.it(
 	function* ({ documentsShow, footnotes, linkTargets }) {
 		yield* documentsShow("section.footnotes");
 
-		yield* outcomes({
-			footnotes: [footnotes(), [{ note: expect.stringContaining("Read the source."), target: "#user-content-fn-source" }]],
-			"guide link": [linkTargets("the guide"), ["/nested/guide.md"]],
-		});
+		yield* outcomes([
+			["footnotes", () => footnotes(), [{ note: expect.stringContaining("Read the source."), target: "#user-content-fn-source" }]],
+			["guide link", () => linkTargets("the guide"), ["/nested/guide.md"]],
+		]);
 	},
 );

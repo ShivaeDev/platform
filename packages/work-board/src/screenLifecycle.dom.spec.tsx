@@ -19,7 +19,10 @@ for (const [how, given, ending, open] of [
 
 			yield* endScope(ending);
 
-			yield* outcomes({ connected: [connectedScreens(), 0], view: [retainedView(), DRAFTED] });
+			yield* outcomes([
+				["connected", () => connectedScreens(), 0],
+				["view", () => retainedView(), DRAFTED],
+			]);
 		},
 	);
 }

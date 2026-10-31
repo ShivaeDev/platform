@@ -7,10 +7,10 @@ boardStory.it("an empty workspace's home page is served", [], function* ({ statu
 });
 
 boardStory.it("an empty workspace's start view offers templates to copy, the report among them", [], function* ({ startTemplates, startView }) {
-	yield* outcomes({
-		heading: [startView(), "Start your workspace"],
-		templates: [startTemplates(), expect.arrayContaining(["report.md"])],
-	});
+	yield* outcomes([
+		["heading", () => startView(), "Start your workspace"],
+		["templates", () => startTemplates(), expect.arrayContaining(["report.md"])],
+	]);
 });
 
 boardStory.it("opening the start view writes no file into the workspace", [], function* ({ files, startView }) {

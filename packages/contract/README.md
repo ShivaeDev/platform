@@ -159,6 +159,8 @@ export const NotesHandlers = Notes.toLayer(
 
 Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.application` and keep `Notes` as the host and client group.
 
+To map unexpected failures once for a handler registration, declare `boundary = rpcBoundary(schema, options)` once and use `rpcBoundaryHandlers(Notes.application, boundary, handlers)` from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#mapping-unexpected-failures-at-the-handler-edge), then pass the map to `Notes.application.toLayer`. Each operation declares the boundary's rejection schema; payloads, successful results and required services retain their native types.
+
 Native `.middleware(M)` returns a contract that retains its declarations. For example, a native middleware service can supply request identity:
 
 ```ts
@@ -331,6 +333,8 @@ The automatic live connection exposed at `api[LiveConnection]` includes a writab
 
 Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
 
+Subscribing to the hosted `$changes` stream over HTTP fails with `WebSocketRequired` from `@shivaedev/contract/WebSocketRequired.ts`; its message names the stream and says it needs the WebSocket protocol.
+
 A native shell supplies its lifecycle events through `bind`'s optional `resume` source:
 
 ```ts
@@ -436,7 +440,9 @@ const status = registry.get(updates.status);
 
 While paused, live coordination keeps observing hints and suppresses automatic refresh. `status.pending` saturates at 256 observations. Unpausing reconciles the explicit scope and resets the count. A resume signal also requests reconciliation: an injected native source and visible browser `online` and `visibilitychange` events request it, while hidden events do not.
 
-`status` exposes `connection`, `failure`, `needsResync` and `pending`. Expected stream rejections settle with `connection: "failed"` and their typed cause in `failure`. A denied read, `NotFound`, or another declared rejection makes no further subscription attempts while the page remains open. Automatic queries reopen when the viewer identity changes or a matching change invalidation arrives; resume events and unrelated hints leave them settled. Low-level `live()` listens to `retryKeys`, defaulting to its `resyncKeys`, for matching invalidations. Transport errors and server defects reconnect with jittered exponential backoff, starting at `retryDelay` (one second by default) and capped at a nominal 30 seconds. A reconnection reconciles changes missed while disconnected, and successful delivery clears the stream failure. Native query atoms keep previous successful data during a read failure and reject stale responses after invalidation. Query failures remain in their own `AsyncResult`; stream failures appear in `status.failure`.
+`status` exposes `connection`, `failure`, `needsResync` and `pending`. Expected stream rejections settle with `connection: "failed"` and their typed cause in `failure`. Typed rejections do not retry on a timer. A `QueryReadDenied` refusal stays settled through matching change invalidations and resume events; changing the query input or viewer identity starts a new subscription. Other expected rejections can reopen on matching invalidations. Low-level `live()` listens to `retryKeys`, defaulting to its `resyncKeys`, for matching invalidations. Transport errors and server defects reconnect with jittered exponential backoff, starting at `retryDelay` (one second by default) and capped at a nominal 30 seconds. A reconnection reconciles changes missed while disconnected, and successful delivery clears the stream failure. Native query atoms keep previous successful data during a read failure and reject stale responses after invalidation. Query failures remain in their own `AsyncResult`; stream failures appear in `status.failure`.
+
+A `$changes` request is authorized as a whole: one denied member rejects or ends the entire batch, including its other queries. Split queries with independent permissions into separate `$changes` requests. Automatic bound query atoms already subscribe separately.
 
 The resume signal is a scoped native atom. Disposing the registry removes its browser listeners, cleans up an injected source, including one used only through `live`, and releases the stream subscription:
 

@@ -21,11 +21,11 @@ screenStory.it(
 
 		yield* openTodayFromNavigation();
 
-		yield* outcomes({
-			goals: [todayGoalIds(), expect.arrayContaining([expect.any(String)])],
-			health: [pageHealth(), { health: "settled", status: OK }],
-			"Needs you": [needsYouItems(), expect.arrayContaining([expect.any(String)])],
-		});
+		yield* outcomes([
+			["goals", () => todayGoalIds(), expect.arrayContaining([expect.any(String)])],
+			["health", () => pageHealth(), { health: "settled", status: OK }],
+			["Needs you", () => needsYouItems(), expect.arrayContaining([expect.any(String)])],
+		]);
 	},
 );
 

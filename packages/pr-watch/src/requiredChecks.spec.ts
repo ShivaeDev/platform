@@ -53,10 +53,10 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"printed": [printed(), []],
-			"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
-		});
+		yield* outcomes([
+			["printed", () => printed(), []],
+			["saved snapshot of PR 1", () => savedSnapshot(1), "open, auto-merge"],
+		]);
 	},
 );
 
@@ -106,11 +106,11 @@ for (const [answer, failure] of unavailableFlags) {
 
 			yield* poll();
 
-			yield* outcomes({
-				"poll": [lastPoll(), `failed: ${failure}`],
-				"printed": [printed(), []],
-				"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
-			});
+			yield* outcomes([
+				["poll", () => lastPoll(), `failed: ${failure}`],
+				["printed", () => printed(), []],
+				["saved snapshot of PR 1", () => savedSnapshot(1), "open, auto-merge"],
+			]);
 		},
 	);
 }

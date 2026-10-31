@@ -1,8 +1,20 @@
 import { expect } from "vitest";
 import { emptyJobsAdmin, emptyJobsStory } from "#test/emptyJobsStory.ts";
-import { jobsStory, scheduledRunFails, signedInAs } from "#test/jobsStory.ts";
+import { jobsStory, scheduledRunFails, signedInAs, statisticsRefreshed } from "#test/jobsStory.ts";
 
 const admin = signedInAs("admin");
+
+jobsStory.it(
+	"health includes a schedule registered only by the worker service with its failed run and dead-letter count",
+	[admin, scheduledRunFails, statisticsRefreshed],
+	function* ({ health }) {
+		expect(yield* health()).toMatchObject({
+			deadLetteredTotal: 1,
+			failedTotal: 1,
+			jobs: expect.arrayContaining([{ activeCount: 0, deadLetteredCount: 1, failedCount: 1, name: "scheduled", queuedCount: 0, readyCount: 0 }]),
+		});
+	},
+);
 
 jobsStory.it(
 	"the failed scheduled list shows the scheduled run with a null payload and the worker's rejection",

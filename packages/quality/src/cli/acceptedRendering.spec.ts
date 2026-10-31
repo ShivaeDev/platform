@@ -10,10 +10,10 @@ for (const { code, name } of jsxAccepted) {
 		function* ({ fix, outcome, source }) {
 			yield* fix("react/jsx-conditionals");
 
-			yield* outcomes({
-				"fix": [outcome(), "passed"],
-				"source": [source(), code],
-			});
+			yield* outcomes([
+				["fix", () => outcome(), "passed"],
+				["source", () => source(), code],
+			]);
 		},
 		CLI_TIMEOUT,
 	);

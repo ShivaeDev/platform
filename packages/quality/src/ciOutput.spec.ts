@@ -14,9 +14,9 @@ outputPolicyStory.it(
 	function* ({ output, runsPassingTest }) {
 		yield* runsPassingTest();
 
-		yield* outcomes({
-			"diagnostic": [output(), expect.not.stringContaining("diagnostic from a passing test")],
-			"result": [output(), expect.stringContaining("1 passed")],
-		});
+		yield* outcomes([
+			["diagnostic", () => output(), expect.not.stringContaining("diagnostic from a passing test")],
+			["result", () => output(), expect.stringContaining("1 passed")],
+		]);
 	},
 );

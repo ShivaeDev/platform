@@ -17,10 +17,10 @@ screenStory.it(
 
 		yield* openSearch();
 
-		yield* outcomes({
-			query: [searchQuery(), "Shared phrase"],
-			results: [results("snippet"), [{ snippet: "Shared phrase." }]],
-		});
+		yield* outcomes([
+			["query", () => searchQuery(), "Shared phrase"],
+			["results", () => results("snippet"), [{ snippet: "Shared phrase." }]],
+		]);
 	},
 );
 

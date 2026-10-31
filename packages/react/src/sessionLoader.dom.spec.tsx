@@ -9,10 +9,10 @@ for (const mode of ["route", "direct"] as const) {
 		function* ({ alert, failLoad, rechecks }) {
 			yield* failLoad("Unauthorized");
 
-			yield* outcomes({
-				alert: [alert(), "Session expired"],
-				rechecks: [rechecks(), ["visitor"]],
-			});
+			yield* outcomes([
+				["alert", () => alert(), "Session expired"],
+				["rechecks", () => rechecks(), ["visitor"]],
+			]);
 		},
 	);
 
@@ -22,10 +22,10 @@ for (const mode of ["route", "direct"] as const) {
 		function* ({ applySession, rechecks, screenText }) {
 			yield* applySession();
 
-			yield* outcomes({
-				rechecks: [rechecks(), ["visitor"]],
-				screen: [screenText(), "Session ended"],
-			});
+			yield* outcomes([
+				["rechecks", () => rechecks(), ["visitor"]],
+				["screen", () => screenText(), "Session ended"],
+			]);
 		},
 	);
 
@@ -35,10 +35,10 @@ for (const mode of ["route", "direct"] as const) {
 		function* ({ alert, failLoad, rechecks }) {
 			yield* failLoad("Unavailable");
 
-			yield* outcomes({
-				alert: [alert(), "Load unavailable"],
-				rechecks: [rechecks(), []],
-			});
+			yield* outcomes([
+				["alert", () => alert(), "Load unavailable"],
+				["rechecks", () => rechecks(), []],
+			]);
 		},
 	);
 }

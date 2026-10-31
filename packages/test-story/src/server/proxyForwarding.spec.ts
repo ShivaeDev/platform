@@ -47,11 +47,11 @@ proxyHost.it("returns the host's status, headers and every cookie to the client"
 
 	yield* sends("/notes?source=story", NOTE);
 
-	yield* outcomes({
-		answer: [answer(), "HTTP 201 with a body"],
-		cookies: [cookies(), ["first=one", "second=two"]],
-		"x-host header": [header("x-host"), "reached"],
-	});
+	yield* outcomes([
+		["answer", () => answer(), "HTTP 201 with a body"],
+		["cookies", () => cookies(), ["first=one", "second=two"]],
+		["x-host header", () => header("x-host"), "reached"],
+	]);
 });
 
 proxyHost.it("appends the IPv4 caller to an existing forwarding chain", [], function* ({ forwardedFor, sends, startsProxy }) {

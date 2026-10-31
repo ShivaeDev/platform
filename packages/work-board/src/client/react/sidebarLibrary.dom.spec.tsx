@@ -23,10 +23,11 @@ screenStory.it(
 	"lists the primary destinations with counts only on Today and Now, the pinned documents, active goal progress and the five latest unpinned visits",
 	largeWorkspace,
 	function* ({ activeGoals, sidebarDestinations, sidebarLinks }) {
-		yield* outcomes({
-			"Active goals": [activeGoals(), [{ progress: "Example goal: 2 of 5 done", shown: "2/5", statusTokens: 0 }]],
-			"the destinations": [
-				sidebarDestinations(),
+		yield* outcomes([
+			["Active goals", () => activeGoals(), [{ progress: "Example goal: 2 of 5 done", shown: "2/5", statusTokens: 0 }]],
+			[
+				"the destinations",
+				() => sidebarDestinations(),
 				[
 					{ count: "3", label: "Today" },
 					{ count: "none", label: "Goals" },
@@ -36,9 +37,9 @@ screenStory.it(
 					{ count: "none", label: "System" },
 				],
 			],
-			"the Pinned links": [sidebarLinks("Pinned"), fileLinks(saved.slice(0, 2))],
-			"the Recent links": [sidebarLinks("Recent"), fileLinks(saved.slice(2, 7))],
-		});
+			["the Pinned links", () => sidebarLinks("Pinned"), fileLinks(saved.slice(0, 2))],
+			["the Recent links", () => sidebarLinks("Recent"), fileLinks(saved.slice(2, 7))],
+		]);
 	},
 );
 
@@ -46,12 +47,13 @@ screenStory.it(
 	"keeps a 1,500-document workspace to under 100 shell links because the navigation projection carries only counts",
 	largeWorkspace,
 	function* ({ navigationSummary, shellLinkCount }) {
-		yield* outcomes({
-			"the navigation projection": [
-				navigationSummary(),
+		yield* outcomes([
+			[
+				"the navigation projection",
+				() => navigationSummary(),
 				{ fields: ["counts", "home", "inboxCount"], libraryCount: 1490 + Object.keys(goalsFixture()).length },
 			],
-		});
+		]);
 		expect(yield* shellLinkCount()).toBeLessThan(100);
 	},
 );
@@ -87,10 +89,10 @@ screenStory.it(
 	"leaves out the one file Fleet wrote until the reader includes Fleet files",
 	[screenWorkspace("library-fixture"), library],
 	function* ({ fleetFilesToggle, includeFleetFilesInLibrary, libraryTitles }) {
-		yield* outcomes({
-			"the listed titles": [libraryTitles(), ownTitles],
-			"the toggle": [fleetFilesToggle(), { checked: false, name: "Include files Fleet writes (1)" }],
-		});
+		yield* outcomes([
+			["the listed titles", () => libraryTitles(), ownTitles],
+			["the toggle", () => fleetFilesToggle(), { checked: false, name: "Include files Fleet writes (1)" }],
+		]);
 
 		yield* includeFleetFilesInLibrary();
 

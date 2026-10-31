@@ -23,10 +23,10 @@ for (const [name, plan] of [
 		`${name} leaves vertical scrolling to the page instead of a height-bounded inner scroller`,
 		plan,
 		function* ({ readInnerScrollers, workItems }) {
-			yield* outcomes({
-				"inner scrollers": [readInnerScrollers("body"), []],
-				"work shown": [workItems(), expect.arrayContaining(["task-0"])],
-			});
+			yield* outcomes([
+				["inner scrollers", () => readInnerScrollers("body"), []],
+				["work shown", () => workItems(), expect.arrayContaining(["task-0"])],
+			]);
 		},
 	);
 }
@@ -46,10 +46,10 @@ for (const [layout, top, scrolls] of [
 
 			yield* chooseWorkLayout(layout);
 
-			yield* outcomes({
-				focus: [focusedId(), "work-results"],
-				"scrolled into view": [readPassageTargets(), scrolls ? ["work-results"] : []],
-			});
+			yield* outcomes([
+				["focus", () => focusedId(), "work-results"],
+				["scrolled into view", () => readPassageTargets(), scrolls ? ["work-results"] : []],
+			]);
 		},
 	);
 }

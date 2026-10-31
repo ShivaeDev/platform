@@ -7,13 +7,16 @@ import type { LiveHint } from "#live.ts";
 import { command, query, stream } from "#operation.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { Denied, type Guard, type NoteMissing, Notes } from "#test/notes.ts";
+import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
 type Changes = Rpc.ExtractTag<Rpcs, "notes.$changes">;
 declare const client: RpcClient.RpcClient.Flat<Rpcs, RpcClientError>;
 
 const changes = client("notes.$changes", { queries: [{ payload: { id: 1 }, query: "get" }] });
-expectTypeOf(changes).toEqualTypeOf<Stream.Stream<LiveHint, Denied | NoteMissing | MissingReadPolicy | QueryReadDenied | RpcClientError>>();
+expectTypeOf(changes).toEqualTypeOf<
+	Stream.Stream<LiveHint, Denied | NoteMissing | MissingReadPolicy | QueryReadDenied | WebSocketRequired | RpcClientError>
+>();
 expectTypeOf<Rpc.Payload<Changes>>().toEqualTypeOf<{
 	readonly queries: readonly (
 		| { readonly query: "get"; readonly payload: { readonly id: number } }
@@ -79,4 +82,4 @@ expectTypeOf<Rpc.SuccessChunk<PushedChanges>>().toEqualTypeOf<
 			readonly value: bigint;
 	  }
 >();
-expectTypeOf<Rpc.ErrorExit<PushedChanges>>().toEqualTypeOf<MissingReadPolicy | QueryReadDenied | Denied>();
+expectTypeOf<Rpc.ErrorExit<PushedChanges>>().toEqualTypeOf<MissingReadPolicy | QueryReadDenied | WebSocketRequired | Denied>();

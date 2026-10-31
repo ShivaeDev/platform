@@ -9,16 +9,19 @@ for (const version of ["missing", "older"] as const) {
 		[withJobsSchema(version)],
 		function* ({ anotherProcessMigrates, applicationLifecycle, bootStep, hostStarts, pingHost, pollIntervalPasses }) {
 			yield* hostStarts();
-			yield* outcomes({ "application lifecycle": [applicationLifecycle(), []], "boot step": [bootStep(), "sleeps 10 ms"] });
+			yield* outcomes([
+				["application lifecycle", () => applicationLifecycle(), []],
+				["boot step", () => bootStep(), "sleeps 10 ms"],
+			]);
 
 			yield* anotherProcessMigrates();
 			yield* pollIntervalPasses();
 
-			yield* outcomes({
-				"application lifecycle": [applicationLifecycle(), ["started"]],
-				"boot step": [bootStep(), "ready"],
-				ping: [pingHost(), "pong"],
-			});
+			yield* outcomes([
+				["application lifecycle", () => applicationLifecycle(), ["started"]],
+				["boot step", () => bootStep(), "ready"],
+				["ping", () => pingHost(), "pong"],
+			]);
 		},
 	);
 }
@@ -41,10 +44,10 @@ migrationHost.it(
 	function* ({ applicationLifecycle, bootStep, hostStarts, pingHost }) {
 		yield* hostStarts();
 
-		yield* outcomes({
-			"application lifecycle": [applicationLifecycle(), ["started"]],
-			"boot step": [bootStep(), "ready"],
-			ping: [pingHost(), "pong"],
-		});
+		yield* outcomes([
+			["application lifecycle", () => applicationLifecycle(), ["started"]],
+			["boot step", () => bootStep(), "ready"],
+			["ping", () => pingHost(), "pong"],
+		]);
 	},
 );

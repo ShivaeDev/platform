@@ -19,12 +19,12 @@ boardStory.it(
 	function* ({ fileText, prepareHandoff, promptedRecordFile }) {
 		const handoff = yield* prepareHandoff();
 
-		yield* outcomes({
-			"file the prompt names": [promptedRecordFile(handoff.prompt), HANDOFF_RECORD],
-			receipt: [Effect.succeed(handoff.handoff.state), "requested"],
-			"reviewed text": [Effect.succeed(handoff.context), KEYBOARD_TASK],
-			task: [fileText("items/keyboard.md"), KEYBOARD_TASK],
-		});
+		yield* outcomes([
+			["file the prompt names", () => promptedRecordFile(handoff.prompt), HANDOFF_RECORD],
+			["receipt", () => Effect.succeed(handoff.handoff.state), "requested"],
+			["reviewed text", () => Effect.succeed(handoff.context), KEYBOARD_TASK],
+			["task", () => fileText("items/keyboard.md"), KEYBOARD_TASK],
+		]);
 	},
 );
 
@@ -54,11 +54,11 @@ boardStory.it(
 
 		const retried = yield* attemptHandoff();
 
-		yield* outcomes({
-			history: [handoffHistory(), { records: ["handoff.keyboard.1 acknowledged by agent-codex"], unreadable: [] }],
-			record: [fileText(HANDOFF_RECORD), record],
-			retry: [Effect.succeed(retried), "prepared"],
-		});
+		yield* outcomes([
+			["history", () => handoffHistory(), { records: ["handoff.keyboard.1 acknowledged by agent-codex"], unreadable: [] }],
+			["record", () => fileText(HANDOFF_RECORD), record],
+			["retry", () => Effect.succeed(retried), "prepared"],
+		]);
 	},
 );
 
@@ -71,13 +71,14 @@ boardStory.it(
 
 		yield* restart();
 
-		yield* outcomes({
-			history: [handoffHistory(), { records: ["handoff.keyboard.1 acknowledged by agent-codex"], unreadable: [] }],
-			page: [
-				Effect.map(handoffPage(), (page) => page.entries),
+		yield* outcomes([
+			["history", () => handoffHistory(), { records: ["handoff.keyboard.1 acknowledged by agent-codex"], unreadable: [] }],
+			[
+				"page",
+				() => Effect.map(handoffPage(), (page) => page.entries),
 				[{ copyPrompt: true, id: "handoff.keyboard.1", receipt: "acknowledged", writtenFor: "earlier version" }],
 			],
-		});
+		]);
 	},
 );
 
@@ -122,10 +123,10 @@ boardStory.it(
 	function* ({ attemptHandoff, fileText, moveHandoffRecord }) {
 		yield* moveHandoffRecord("moved.md");
 
-		yield* outcomes({
-			"moved record": [fileText("moved.md"), expect.stringContaining("goal: Fix keyboard focus")],
-			retry: [attemptHandoff(), CHANGED],
-		});
+		yield* outcomes([
+			["moved record", () => fileText("moved.md"), expect.stringContaining("goal: Fix keyboard focus")],
+			["retry", () => attemptHandoff(), CHANGED],
+		]);
 	},
 );
 
@@ -133,10 +134,10 @@ boardStory.it(
 	"a read-only Board refuses to prepare a handoff and leaves the task unchanged",
 	[aKeyboardTask(false)],
 	function* ({ attemptHandoff, fileText }) {
-		yield* outcomes({
-			handoff: [attemptHandoff(), "forbidden: Restart with --responses to enable local response/handoff writes."],
-			task: [fileText("items/keyboard.md"), KEYBOARD_TASK],
-		});
+		yield* outcomes([
+			["handoff", () => attemptHandoff(), "forbidden: Restart with --responses to enable local response/handoff writes."],
+			["task", () => fileText("items/keyboard.md"), KEYBOARD_TASK],
+		]);
 	},
 );
 
@@ -168,13 +169,14 @@ boardStory.it(
 	"a handoffs/ linked to another folder makes the handoff unavailable and writes nothing there",
 	[aKeyboardTask(), handoffsFolderLinkedOutside()],
 	function* ({ attemptHandoff, outsideFolderEntries }) {
-		yield* outcomes({
-			handoff: [
-				attemptHandoff(),
+		yield* outcomes([
+			[
+				"handoff",
+				() => attemptHandoff(),
 				"unavailable: The local record could not be recorded. Keep the draft and retry after checking local filesystem access.",
 			],
-			"other folder": [outsideFolderEntries(), []],
-		});
+			["other folder", () => outsideFolderEntries(), []],
+		]);
 	},
 );
 

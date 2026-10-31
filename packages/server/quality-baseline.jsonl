@@ -1,6 +1,7 @@
+{"path":"packages/server/src/boundedRpcRequest.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/boundedRpcRequest.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/server/src/nativeClientOrigins.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingDiagnostics.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingRpcSerialization.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/server/src/runtime/makePlatform.ts","rule":"effect/boundary","count":5}
+{"path":"packages/server/src/runtime/makePlatform.ts","rule":"effect/boundary","count":6}
 {"path":"packages/server/src/runtime/types.ts","rule":"effect/service-parameters","count":1}

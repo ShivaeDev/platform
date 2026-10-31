@@ -7,11 +7,11 @@ permissionScreens.it(
 	function* ({ heading, path, returnTo, visit }) {
 		yield* visit("/account/profile?tab=settings#email");
 
-		yield* outcomes({
-			heading: [heading(), "Sign in"],
-			path: [path(), "/login"],
-			"return to": [returnTo(), "/account/profile?tab=settings#email"],
-		});
+		yield* outcomes([
+			["heading", () => heading(), "Sign in"],
+			["path", () => path(), "/login"],
+			["return to", () => returnTo(), "/account/profile?tab=settings#email"],
+		]);
 	},
 );
 
@@ -21,14 +21,20 @@ permissionScreens.it(
 	function* ({ heading, location, visit }) {
 		yield* visit("/account/profile");
 
-		yield* outcomes({ heading: [heading(), "Profile"], location: [location(), "/account/profile"] });
+		yield* outcomes([
+			["heading", () => heading(), "Profile"],
+			["location", () => location(), "/account/profile"],
+		]);
 	},
 );
 
 permissionScreens.it("a signed-out viewer opens a route without a requirement", [visitor(undefined)], function* ({ heading, location, visit }) {
 	yield* visit("/controls");
 
-	yield* outcomes({ heading: [heading(), "Controls"], location: [location(), "/controls"] });
+	yield* outcomes([
+		["heading", () => heading(), "Controls"],
+		["location", () => location(), "/controls"],
+	]);
 });
 
 permissionScreens.it(
@@ -37,6 +43,9 @@ permissionScreens.it(
 	function* ({ heading, location, visit }) {
 		yield* visit("/account/private");
 
-		yield* outcomes({ heading: [heading(), "Permission denied"], location: [location(), "/account/private"] });
+		yield* outcomes([
+			["heading", () => heading(), "Permission denied"],
+			["location", () => location(), "/account/private"],
+		]);
 	},
 );

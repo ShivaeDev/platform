@@ -40,10 +40,10 @@ for (const { asset, other, otherType, type } of [
 		`while ${asset} is unbuilt, the board still serves its page and ${other}`,
 		[plan, bundleNotBuilt(asset)],
 		function* ({ download, statusOf }) {
-			yield* outcomes({
-				page: [statusOf("/"), "OK"],
-				[other]: [download(`/_board/${other}`), expect.objectContaining({ status: "OK", type: otherType })],
-			});
+			yield* outcomes([
+				["page", () => statusOf("/"), "OK"],
+				[other, () => download(`/_board/${other}`), { status: "OK", type: otherType }],
+			]);
 		},
 	);
 

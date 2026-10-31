@@ -98,10 +98,10 @@ boardStory.it(
 		yield* outsideWriterAddsReply("responses/first.md", "response.z");
 		yield* outsideWriterAddsReply("responses/second.md", "response.a");
 
-		yield* outcomes({
-			"first reply": [nextReply(), "response.a"],
-			history: [replyHistory(), ["response.a", "response.z"]],
-			"reply after response.a": [nextReply("response.a"), "response.z"],
-		});
+		yield* outcomes([
+			["first reply", () => nextReply(), "response.a"],
+			["history", () => replyHistory(), ["response.a", "response.z"]],
+			["reply after response.a", () => nextReply("response.a"), "response.z"],
+		]);
 	},
 );

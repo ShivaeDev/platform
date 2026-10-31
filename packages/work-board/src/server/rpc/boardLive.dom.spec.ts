@@ -25,10 +25,10 @@ boardStory.it(
 
 		editFile("brief.md", DONE);
 
-		yield* outcomes({
-			"the page": [pageShowing("Reviewed draft."), "showing"],
-			"the plugin": [nextPluginProgress(), "1 of 1 done"],
-		});
+		yield* outcomes([
+			["the page", () => pageShowing("Reviewed draft."), "showing"],
+			["the plugin", () => nextPluginProgress(), "1 of 1 done"],
+		]);
 	},
 );
 

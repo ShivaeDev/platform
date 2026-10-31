@@ -16,9 +16,10 @@ screenStory.it(
 	"a question's prompt and option bodies show their Markdown as bold text, code, links and lists, with no Markdown marks left",
 	[QUESTION],
 	function* ({ questionReading }) {
-		yield* outcomes({
-			option: [
-				questionReading("display", "history"),
+		yield* outcomes([
+			[
+				"option",
+				() => questionReading("display", "history"),
 				expect.objectContaining({
 					code: ["responses"],
 					links: ["affected work -> /task.md"],
@@ -26,8 +27,9 @@ screenStory.it(
 					markdownLeft: false,
 				}),
 			],
-			prompt: [
-				questionReading("display"),
+			[
+				"prompt",
+				() => questionReading("display"),
 				expect.objectContaining({
 					code: ["responses"],
 					emphasis: ["replies", "context"],
@@ -36,7 +38,7 @@ screenStory.it(
 					markdownLeft: false,
 				}),
 			],
-		});
+		]);
 	},
 );
 

@@ -8,10 +8,14 @@ settingsStory.it(
 	"an entity without stored settings shows the schema's defaults and stores nothing",
 	[editorsOpen("writer")],
 	function* ({ storedSettings, view }) {
-		yield* outcomes({
-			stored: [storedSettings(), []],
-			writer: [view("writer"), { connection: "live", error: "", pageSize: "25", status: "Saved", title: "Workspace", value: "Workspace / 25" }],
-		});
+		yield* outcomes([
+			["stored", () => storedSettings(), []],
+			[
+				"writer",
+				() => view("writer"),
+				{ connection: "live", error: "", pageSize: "25", status: "Saved", title: "Workspace", value: "Workspace / 25" },
+			],
+		]);
 	},
 	TIMEOUT,
 );
@@ -20,10 +24,10 @@ settingsStory.it(
 	"while the first save waits before its commit, nothing is stored and the other editor still shows the defaults",
 	[firstSaveWaitingAtCommit()],
 	function* ({ storedSettings, view }) {
-		yield* outcomes({
-			reader: [view("reader"), expect.objectContaining({ pageSize: "25", title: "Workspace", value: "Workspace / 25" })],
-			stored: [storedSettings(), []],
-		});
+		yield* outcomes([
+			["reader", () => view("reader"), expect.objectContaining({ pageSize: "25", title: "Workspace", value: "Workspace / 25" })],
+			["stored", () => storedSettings(), []],
+		]);
 	},
 	TIMEOUT,
 );
@@ -34,10 +38,14 @@ settingsStory.it(
 	function* ({ releaseCommit, storedSettings, view }) {
 		yield* releaseCommit();
 
-		yield* outcomes({
-			reader: [view("reader"), expect.objectContaining({ pageSize: "50", status: "Saved", title: "Alice's table", value: "Alice's table / 50" })],
-			stored: [storedSettings(), [{ entityId: 1, pageSize: 50, title: "Alice's table" }]],
-		});
+		yield* outcomes([
+			[
+				"reader",
+				() => view("reader"),
+				expect.objectContaining({ pageSize: "50", status: "Saved", title: "Alice's table", value: "Alice's table / 50" }),
+			],
+			["stored", () => storedSettings(), [{ entityId: 1, pageSize: 50, title: "Alice's table" }]],
+		]);
 	},
 	TIMEOUT,
 );
@@ -57,11 +65,11 @@ settingsStory.it(
 			title: "Alice's compact table",
 			value: "Alice's compact table / 10",
 		});
-		yield* outcomes({
-			reader: [view("reader"), replaced],
-			stored: [storedSettings(), [{ entityId: 1, pageSize: 10, title: "Alice's compact table" }]],
-			writer: [view("writer"), replaced],
-		});
+		yield* outcomes([
+			["reader", () => view("reader"), replaced],
+			["stored", () => storedSettings(), [{ entityId: 1, pageSize: 10, title: "Alice's compact table" }]],
+			["writer", () => view("writer"), replaced],
+		]);
 	},
 	TIMEOUT,
 );
@@ -74,13 +82,14 @@ settingsStory.it(
 
 		yield* save("writer");
 
-		yield* outcomes({
-			stored: [storedSettings(), []],
-			writer: [
-				view("writer"),
+		yield* outcomes([
+			["stored", () => storedSettings(), []],
+			[
+				"writer",
+				() => view("writer"),
 				expect.objectContaining({ error: "Choose between 1 and 100 rows", pageSize: "101", status: "Unsaved changes", value: "Workspace / 25" }),
 			],
-		});
+		]);
 	},
 	TIMEOUT,
 );
@@ -91,10 +100,10 @@ settingsStory.it(
 	function* ({ answers, saveAs, storedSettings }) {
 		yield* saveAs("alice", 1, { pageSize: 101, title: "Invalid" });
 
-		yield* outcomes({
-			answers: [answers(), ["rejected as InvalidSettings on pageSize: Choose between 1 and 100 rows"]],
-			stored: [storedSettings(), []],
-		});
+		yield* outcomes([
+			["answers", () => answers(), ["rejected as InvalidSettings on pageSize: Choose between 1 and 100 rows"]],
+			["stored", () => storedSettings(), []],
+		]);
 	},
 	TIMEOUT,
 );
@@ -122,10 +131,10 @@ for (const [when, traits, stored] of [
 		function* ({ answers, saveAs, storedSettings }) {
 			yield* saveAs("bob", 1, { pageSize: 90, title: "Stolen" });
 
-			yield* outcomes({
-				answers: [answers(), ["rejected as Missing"]],
-				stored: [storedSettings(), stored],
-			});
+			yield* outcomes([
+				["answers", () => answers(), ["rejected as Missing"]],
+				["stored", () => storedSettings(), stored],
+			]);
 		},
 		TIMEOUT,
 	);
@@ -140,11 +149,11 @@ settingsStory.it(
 
 		yield* save("bob");
 
-		yield* outcomes({
-			bob: [view("bob"), expect.objectContaining({ pageSize: "75", title: "Bob only", value: "Bob only / 75" })],
-			stored: [storedSettings(), [aliceRow, { entityId: 2, pageSize: 75, title: "Bob only" }]],
-			writer: [view("writer"), expect.objectContaining({ pageSize: "25", title: "Alice only", value: "Alice only / 25" })],
-		});
+		yield* outcomes([
+			["bob", () => view("bob"), expect.objectContaining({ pageSize: "75", title: "Bob only", value: "Bob only / 75" })],
+			["stored", () => storedSettings(), [aliceRow, { entityId: 2, pageSize: 75, title: "Bob only" }]],
+			["writer", () => view("writer"), expect.objectContaining({ pageSize: "25", title: "Alice only", value: "Alice only / 25" })],
+		]);
 	},
 	TIMEOUT,
 );

@@ -11,10 +11,10 @@ screenStory.it(
 
 		yield* openSettings();
 
-		yield* outcomes({
-			focus: [keyboardFocus(), { name: "System", role: "button" }],
-			pressed: [appearanceChoices(), ["System", "Comfortable"]],
-		});
+		yield* outcomes([
+			["focus", () => keyboardFocus(), { name: "System", role: "button" }],
+			["pressed", () => appearanceChoices(), ["System", "Comfortable"]],
+		]);
 	},
 );
 
@@ -28,10 +28,10 @@ screenStory.it(
 		yield* chooseAppearance("Dark");
 		yield* chooseAppearance("Compact");
 
-		yield* outcomes({
-			page: [pageAppearance(), { density: "compact", scheme: "dark" }],
-			pressed: [appearanceChoices(), ["Dark", "Compact"]],
-		});
+		yield* outcomes([
+			["page", () => pageAppearance(), { density: "compact", scheme: "dark" }],
+			["pressed", () => appearanceChoices(), ["Dark", "Compact"]],
+		]);
 	},
 );
 
@@ -85,9 +85,9 @@ screenStory.it(
 
 		yield* keyboard("Escape");
 
-		yield* outcomes({
-			focus: [keyboardFocus(), { name: "Settings", role: "button" }],
-			settings: [settingsPanel(), "closed"],
-		});
+		yield* outcomes([
+			["focus", () => keyboardFocus(), { name: "Settings", role: "button" }],
+			["settings", () => settingsPanel(), "closed"],
+		]);
 	},
 );

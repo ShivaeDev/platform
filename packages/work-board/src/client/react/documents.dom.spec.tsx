@@ -49,11 +49,11 @@ screenStory.it(
 	"a question with an invalid prompt template explains the problem, keeps its answer history readable and offers no answer form",
 	[readingPage({ ...files, "question.md": QUESTION }, "/question.md")],
 	function* ({ responseForm, responseHistory, responsePanel }) {
-		yield* outcomes({
-			"answer form": [responseForm(), "none"],
-			"answer history": [responseHistory(), { heading: "Answers so far", text: expect.stringContaining("No answers yet") }],
-			"response panel": [responsePanel(), expect.stringContaining("Use top-level question containers")],
-		});
+		yield* outcomes([
+			["answer form", () => responseForm(), "none"],
+			["answer history", () => responseHistory(), { heading: "Answers so far", text: expect.stringContaining("No answers yet") }],
+			["response panel", () => responsePanel(), expect.stringContaining("Use top-level question containers")],
+		]);
 	},
 );
 

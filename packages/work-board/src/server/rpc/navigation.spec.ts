@@ -18,8 +18,8 @@ boardStory.it("the reading shell for a nested file carries no folder tree, which
 });
 
 boardStory.it("the library hides Fleet records unless asked and counts the hidden ones", project, function* ({ fleetOnlyFiles, hiddenFleetRecords }) {
-	yield* outcomes({
-		"files shown only with Fleet records": [fleetOnlyFiles(), ["responses/decision.md"]],
-		"the hidden count": [hiddenFleetRecords(), 1],
-	});
+	yield* outcomes([
+		["files shown only with Fleet records", () => fleetOnlyFiles(), ["responses/decision.md"]],
+		["the hidden count", () => hiddenFleetRecords(), 1],
+	]);
 });

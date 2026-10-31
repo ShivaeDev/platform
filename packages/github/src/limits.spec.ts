@@ -207,17 +207,17 @@ github.it(
 	[searchBudgetSpentUntil(120)],
 	function* ({ rateLimitEvents, rateLimitLogs, search }) {
 		yield* search();
-		yield* outcomes({
-			"rate-limit events": [rateLimitEvents(), [SEARCH_LIMITED]],
-			"rate-limit warnings": [rateLimitLogs(), [SEARCH_LIMITED]],
-		});
+		yield* outcomes([
+			["rate-limit events", () => rateLimitEvents(), [SEARCH_LIMITED]],
+			["rate-limit warnings", () => rateLimitLogs(), [SEARCH_LIMITED]],
+		]);
 
 		yield* search();
 
-		yield* outcomes({
-			"rate-limit events": [rateLimitEvents(), [SEARCH_LIMITED, SEARCH_LIMITED]],
-			"rate-limit warnings": [rateLimitLogs(), [SEARCH_LIMITED, SEARCH_LIMITED]],
-		});
+		yield* outcomes([
+			["rate-limit events", () => rateLimitEvents(), [SEARCH_LIMITED, SEARCH_LIMITED]],
+			["rate-limit warnings", () => rateLimitLogs(), [SEARCH_LIMITED, SEARCH_LIMITED]],
+		]);
 	},
 );
 
@@ -229,20 +229,20 @@ github.it(
 
 		yield* search();
 
-		yield* outcomes({
-			"private query seen in": [privateQuerySeenIn(), []],
-			"rate-limit events": [rateLimitEvents(), [SEARCH_LIMITED, SEARCH_LIMITED]],
-			"rate-limit warnings": [rateLimitLogs(), [SEARCH_LIMITED, SEARCH_LIMITED]],
-			"token seen in": [tokenSeenIn(), []],
-		});
+		yield* outcomes([
+			["private query seen in", () => privateQuerySeenIn(), []],
+			["rate-limit events", () => rateLimitEvents(), [SEARCH_LIMITED, SEARCH_LIMITED]],
+			["rate-limit warnings", () => rateLimitLogs(), [SEARCH_LIMITED, SEARCH_LIMITED]],
+			["token seen in", () => tokenSeenIn(), []],
+		]);
 	},
 );
 
 github.it("before any answer, the client counts a search path against search and every other path against core", [], function* ({ resourceOf }) {
-	yield* outcomes({
-		"/repos/acme/widgets/pulls/1": [resourceOf("/repos/acme/widgets/pulls/1"), "core"],
-		"/search/issues": [resourceOf("/search/issues"), "search"],
-	});
+	yield* outcomes([
+		["/repos/acme/widgets/pulls/1", () => resourceOf("/repos/acme/widgets/pulls/1"), "core"],
+		["/search/issues", () => resourceOf("/search/issues"), "search"],
+	]);
 });
 
 github.it(

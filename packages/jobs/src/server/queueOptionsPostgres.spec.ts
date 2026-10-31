@@ -26,10 +26,14 @@ database.it(
 		yield* start("second", [Changed]);
 
 		yield* adminSends("options", {}, { as: "new job" });
-		yield* outcomes({
-			"new job": [storedJobs("options"), [expect.objectContaining({ expireInSeconds: 45, job: "new job", retryLimit: 5 })]],
-			"stored queue": [storedQueue("options"), expect.objectContaining({ expireInSeconds: 45, notify: true, retryDelayMax: 30, retryLimit: 5 })],
-		});
+		yield* outcomes([
+			["new job", () => storedJobs("options"), [expect.objectContaining({ expireInSeconds: 45, job: "new job", retryLimit: 5 })]],
+			[
+				"stored queue",
+				() => storedQueue("options"),
+				expect.objectContaining({ expireInSeconds: 45, notify: true, retryDelayMax: 30, retryLimit: 5 }),
+			],
+		]);
 	},
 );
 
@@ -41,9 +45,9 @@ database.it(
 
 		yield* start("second", [Repartitioned]);
 
-		yield* outcomes({
-			"startup": [startup("second"), expect.stringContaining("partition, policy")],
-			"stored queue": [storedQueue("options"), expect.objectContaining({ expireInSeconds: 10, partition: false, policy: "standard" })],
-		});
+		yield* outcomes([
+			["startup", () => startup("second"), expect.stringContaining("partition, policy")],
+			["stored queue", () => storedQueue("options"), expect.objectContaining({ expireInSeconds: 10, partition: false, policy: "standard" })],
+		]);
 	},
 );

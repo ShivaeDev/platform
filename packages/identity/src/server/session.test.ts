@@ -93,10 +93,10 @@ sessions.it(
 
 		yield* whoami("alice");
 
-		yield* outcomes({
-			"provider failure logs": [providerFailureLogs(), [{ method: "Whoami" }]],
-			"RPC failures": [rpcFailures(), ["AuthUnavailable"]],
-		});
+		yield* outcomes([
+			["provider failure logs", () => providerFailureLogs(), [{ method: "Whoami" }]],
+			["RPC failures", () => rpcFailures(), ["AuthUnavailable"]],
+		]);
 	},
 );
 
@@ -135,10 +135,10 @@ for (const from of ["another site", "an opaque origin", "nowhere"] as const) {
 		`the browser origin policy refuses alice calling from ${from} before asking the session provider`,
 		[browserOrigins, signedUp("alice")],
 		function* ({ sessionLookups, whoami }) {
-			yield* outcomes({
-				answer: [whoami("alice", { from }), "forbidden origin"],
-				"session lookups": [sessionLookups(), 0],
-			});
+			yield* outcomes([
+				["answer", () => whoami("alice", { from }), "forbidden origin"],
+				["session lookups", () => sessionLookups(), 0],
+			]);
 		},
 	);
 }
@@ -171,9 +171,9 @@ sessions.it(
 	"an origin policy that decides by RPC method admits alice's greeting without an origin and refuses her whoami",
 	[greetingsWithoutOrigin, signedUp("alice")],
 	function* ({ greeting, whoami }) {
-		yield* outcomes({
-			greeting: [greeting("alice", { from: "nowhere" }), "hello alice"],
-			whoami: [whoami("alice", { from: "nowhere" }), "forbidden origin"],
-		});
+		yield* outcomes([
+			["greeting", () => greeting("alice", { from: "nowhere" }), "hello alice"],
+			["whoami", () => whoami("alice", { from: "nowhere" }), "forbidden origin"],
+		]);
 	},
 );

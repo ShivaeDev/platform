@@ -46,22 +46,23 @@ boardStory.it(
 );
 
 boardStory.it("a second board on the same folder is refused and the first keeps answering", [project], function* ({ serverAnswer, startAttempt }) {
-	yield* outcomes({
-		"the first board": [serverAnswer("socket"), ownBoard],
-		"the second board": [
-			startAttempt(),
+	yield* outcomes([
+		["the first board", () => serverAnswer("socket"), ownBoard],
+		[
+			"the second board",
+			() => startAttempt(),
 			"refused: Another board is already running at the project folder/board.sock. Stop it before starting this board.",
 		],
-	});
+	]);
 });
 
 boardStory.it("boards in two folders answer on their own sockets with their own URLs", [project], function* ({ otherBoardStarts, serverAnswer }) {
 	yield* otherBoardStarts(inboxAudienceFixture());
 
-	yield* outcomes({
-		"the other folder's socket": [serverAnswer("socket", "the other folder"), { directory: "the other folder", url: "the other board" }],
-		"the project's socket": [serverAnswer("socket"), ownBoard],
-	});
+	yield* outcomes([
+		["the other folder's socket", () => serverAnswer("socket", "the other folder"), { directory: "the other folder", url: "the other board" }],
+		["the project's socket", () => serverAnswer("socket"), ownBoard],
+	]);
 });
 
 boardStory.it(
@@ -72,10 +73,10 @@ boardStory.it(
 
 		yield* boardStops();
 
-		yield* outcomes({
-			"the other folder's socket": [socketFile("the other folder"), "owner read-write socket"],
-			"the project's socket": [socketFile(), "missing"],
-		});
+		yield* outcomes([
+			["the other folder's socket", () => socketFile("the other folder"), "owner read-write socket"],
+			["the project's socket", () => socketFile(), "missing"],
+		]);
 	},
 );
 

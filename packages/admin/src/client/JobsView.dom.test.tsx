@@ -2,18 +2,32 @@ import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { jobsScreen, jobsViewOpen } from "#test/jobsScreen.tsx";
-import { mailFails, signedInAs } from "#test/jobsStory.ts";
+import { mailFails, scheduledRunFails, signedInAs } from "#test/jobsStory.ts";
 
 expectNoReactWarnings();
+
+jobsScreen.it(
+	"a jobs reader can select a worker-only schedule by its shared name and see its failed run",
+	[signedInAs("operator"), scheduledRunFails, jobsViewOpen],
+	function* ({ chooseQueue, shownJobs, shownQueues }) {
+		expect(yield* shownQueues()).toContain("scheduled");
+
+		yield* chooseQueue("scheduled");
+
+		expect(yield* shownJobs()).toEqual([
+			{ attempt: "1", failure: "the worker rejected 0: password=<redacted>", job: "the scheduled run", state: "failed" },
+		]);
+	},
+);
 
 jobsScreen.it(
 	"a jobs reader sees failed mail with its readable redacted failure and the page's shared queues",
 	[signedInAs("operator"), mailFails(42), jobsViewOpen],
 	function* ({ shownJobs, shownQueues }) {
-		yield* outcomes({
-			jobs: [shownJobs(), [{ attempt: "1", failure: "the worker rejected 42: password=<redacted>", job: "mail 42", state: "failed" }]],
-			queues: [shownQueues(), ["mail", "sync", "scheduled"]],
-		});
+		yield* outcomes([
+			["jobs", () => shownJobs(), [{ attempt: "1", failure: "the worker rejected 42: password=<redacted>", job: "mail 42", state: "failed" }]],
+			["queues", () => shownQueues(), ["mail", "sync", "scheduled"]],
+		]);
 	},
 );
 
@@ -43,10 +57,10 @@ jobsScreen.it(
 	"a users reader without jobs.read is refused by the Jobs page and sees no failed jobs",
 	[signedInAs("auditor"), mailFails(42), jobsViewOpen],
 	function* ({ alerts, shownJobs }) {
-		yield* outcomes({
-			alerts: [alerts(), ["Permission required to view jobs."]],
-			jobs: [shownJobs(), []],
-		});
+		yield* outcomes([
+			["alerts", () => alerts(), ["Permission required to view jobs."]],
+			["jobs", () => shownJobs(), []],
+		]);
 	},
 );
 
@@ -58,9 +72,9 @@ jobsScreen.it(
 
 		yield* retrySelected();
 
-		yield* outcomes({
-			alerts: [alerts(), ["Could not retry this job. Refresh and try again."]],
-			state: [stateOf("mail 42"), "failed"],
-		});
+		yield* outcomes([
+			["alerts", () => alerts(), ["Could not retry this job. Refresh and try again."]],
+			["state", () => stateOf("mail 42"), "failed"],
+		]);
 	},
 );

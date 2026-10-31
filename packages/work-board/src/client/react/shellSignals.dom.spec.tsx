@@ -20,10 +20,10 @@ screenStory.it(
 
 		yield* openSidebarDestination("Library");
 
-		yield* outcomes({
-			"the history entry": [historyEntry(), entry],
-			"the sidebar shown": [sidebarPanel(), expect.objectContaining({ shown: false })],
-		});
+		yield* outcomes([
+			["the history entry", () => historyEntry(), entry],
+			["the sidebar shown", () => sidebarPanel(), expect.objectContaining({ shown: false })],
+		]);
 	},
 );
 
@@ -37,10 +37,10 @@ screenStory.it(
 
 		yield* chooseInMore("Library");
 
-		yield* outcomes({
-			"More": [moreSheet(), "closed"],
-			"the history entry": [historyEntry(), entry],
-		});
+		yield* outcomes([
+			["More", () => moreSheet(), "closed"],
+			["the history entry", () => historyEntry(), entry],
+		]);
 	},
 );
 

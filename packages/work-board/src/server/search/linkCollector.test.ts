@@ -13,10 +13,10 @@ boardStory.it(
 		}),
 	],
 	function* ({ documentBacklinks }) {
-		yield* outcomes({
-			"backlinks of evidence.md": [documentBacklinks("evidence.md"), ["/nested/note.md"]],
-			"backlinks of fake.md": [documentBacklinks("fake.md"), []],
-		});
+		yield* outcomes([
+			["backlinks of evidence.md", () => documentBacklinks("evidence.md"), ["/nested/note.md"]],
+			["backlinks of fake.md", () => documentBacklinks("fake.md"), []],
+		]);
 	},
 );
 

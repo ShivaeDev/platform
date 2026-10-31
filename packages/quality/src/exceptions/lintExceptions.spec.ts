@@ -30,11 +30,11 @@ exceptionStory.it(
 
 		yield* runs("lint");
 
-		yield* outcomes({
-			"biome.json": [reads("biome.json"), biome],
-			"exit": [outcome(), "passed"],
-			"report": [stdout(), expect.stringContaining("1 registered violation not shown")],
-		});
+		yield* outcomes([
+			["biome.json", () => reads("biome.json"), biome],
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), expect.stringContaining("1 registered violation not shown")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -45,10 +45,10 @@ exceptionStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"error": [stderr(), expect.stringContaining("exceptions.0.reason")],
-			"exit": [outcome(), "invalid"],
-		});
+		yield* outcomes([
+			["error", () => stderr(), expect.stringContaining("exceptions.0.reason")],
+			["exit", () => outcome(), "invalid"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -59,10 +59,10 @@ exceptionStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"report": [stdout(), expect.stringContaining('Weakens "lint/suspicious/noExplicitAny"')],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["report", () => stdout(), expect.stringContaining('Weakens "lint/suspicious/noExplicitAny"')],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -75,10 +75,10 @@ for (const rule of DECLARATION.rules) {
 		function* ({ outcome, runs, stdout }) {
 			yield* runs("lint", "--config", "custom.config.ts");
 
-			yield* outcomes({
-				"exit": [outcome(), "rejected"],
-				"report": [stdout(), expect.stringContaining(`add to exceptions in custom.config.ts: ${JSON.stringify(suggested)}`)],
-			});
+			yield* outcomes([
+				["exit", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining(`add to exceptions in custom.config.ts: ${JSON.stringify(suggested)}`)],
+			]);
 		},
 		CLI_TIMEOUT,
 	);
@@ -97,10 +97,10 @@ exceptionStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"report": [stdout(), expect.stringContaining("This Biome exception names a missing file")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["report", () => stdout(), expect.stringContaining("This Biome exception names a missing file")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -116,10 +116,10 @@ exceptionStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"report": [stdout(), expect.stringContaining("comments/no-jsdoc src/missing.ts matches no violation")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["report", () => stdout(), expect.stringContaining("comments/no-jsdoc src/missing.ts matches no violation")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -136,10 +136,10 @@ exceptionStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"report": [stdout(), expect.stringContaining("1 registered violation not shown")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["report", () => stdout(), expect.stringContaining("1 registered violation not shown")],
+		]);
 	},
 	CLI_TIMEOUT,
 );

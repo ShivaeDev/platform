@@ -32,12 +32,12 @@ screenStory.it(
 	"puts the review request, the checks and a no-feedback note above the report under the report's one heading, with no separate review action",
 	[routedScreen(result, ITEM)],
 	function* ({ mainHeading, pageActions, resultNote, resultParts }) {
-		yield* outcomes({
-			"the actions": [pageActions(), expect.not.arrayContaining([expect.objectContaining({ name: "Review returned result" })])],
-			"the heading": [mainHeading(), "First report"],
-			"the note": [resultNote(), NO_FEEDBACK],
-			"the parts": [resultParts(), ["review request", "checks", "note", "report"]],
-		});
+		yield* outcomes([
+			["the actions", () => pageActions(), expect.not.arrayContaining([expect.objectContaining({ name: "Review returned result" })])],
+			["the heading", () => mainHeading(), "First report"],
+			["the note", () => resultNote(), NO_FEEDBACK],
+			["the parts", () => resultParts(), ["review request", "checks", "note", "report"]],
+		]);
 	},
 );
 
@@ -94,11 +94,11 @@ for (const { files, linked, note, parts, story, url } of [
 		`sums up a result with ${story} in one line before the report`,
 		[routedScreen({ ...HOME, ...files }, url)],
 		function* ({ resultLinkedWork, resultNote, resultParts }) {
-			yield* outcomes({
-				"the linked work": [resultLinkedWork(), linked],
-				"the note": [resultNote(), note],
-				"the parts": [resultParts(), parts],
-			});
+			yield* outcomes([
+				["the linked work", () => resultLinkedWork(), linked],
+				["the note", () => resultNote(), note],
+				["the parts", () => resultParts(), parts],
+			]);
 		},
 	);
 }
@@ -107,16 +107,18 @@ screenStory.it(
 	"names linked work that can't be read by its ID, offers no follow-up for it and says its checks can't be read",
 	[routedScreen({ ...HOME, "items/result.md": ORPHAN_RESULT }, "/_board/item/result.orphan/")],
 	function* ({ resultChecks, resultLinkedWork }) {
-		yield* outcomes({
-			"the checks": [
-				resultChecks(),
+		yield* outcomes([
+			[
+				"the checks",
+				() => resultChecks(),
 				[expect.objectContaining({ item: "work.missing", link: "work.missing", text: expect.stringContaining("This item can't be read") })],
 			],
-			"the linked work": [
-				resultLinkedWork(),
+			[
+				"the linked work",
+				() => resultLinkedWork(),
 				[{ followUp: "none", link: "none", name: "Forwork.missing (unresolved, ambiguous, or unavailable)", status: "none" }],
 			],
-		});
+		]);
 	},
 );
 
@@ -174,16 +176,17 @@ screenStory.it(
 			when: received,
 		};
 
-		yield* outcomes({
-			"the feedback": [
-				resultFeedback(),
+		yield* outcomes([
+			[
+				"the feedback",
+				() => resultFeedback(),
 				[
 					{ ...onThisVersion, author: "second-reader" },
 					{ ...onThisVersion, author: "first-reader" },
 				],
 			],
-			"the parts": [resultParts(), ["review request", "checks", "feedback", "report"]],
-		});
+			["the parts", () => resultParts(), ["review request", "checks", "feedback", "report"]],
+		]);
 	},
 );
 
@@ -191,10 +194,11 @@ screenStory.it(
 	"names each feedback file that can't be read, says why, links to System's source problems and drops the no-feedback note",
 	[routedScreen({ ...result, ...relatedProblems(), "responses/broken.md": "---\nresponse: [unfinished\n" }, ITEM)],
 	function* ({ feedbackProblems, resultNote }) {
-		yield* outcomes({
-			"the note": [resultNote(), "none"],
-			"the problems": [
-				feedbackProblems(),
+		yield* outcomes([
+			["the note", () => resultNote(), "none"],
+			[
+				"the problems",
+				() => feedbackProblems(),
 				{
 					alert: expect.stringContaining("Some feedback couldn't be read"),
 					files: [
@@ -208,7 +212,7 @@ screenStory.it(
 					sourceProblems: [["See source problems in System", "/_board/system#source-problems"]],
 				},
 			],
-		});
+		]);
 	},
 );
 
@@ -218,10 +222,11 @@ screenStory.it(
 	function* ({ feedbackProblems, resultFeedback }) {
 		const ambiguous = "The registered question identity is ambiguous; response history is unknown.";
 
-		yield* outcomes({
-			"the feedback": [resultFeedback(), []],
-			"the problems": [
-				feedbackProblems(),
+		yield* outcomes([
+			["the feedback", () => resultFeedback(), []],
+			[
+				"the problems",
+				() => feedbackProblems(),
 				expect.objectContaining({
 					files: [
 						{ href: expect.stringMatching(/^\/questions\/copy-of-question\.[a-f\d]{64}\.md$/u), text: expect.stringContaining(`: ${ambiguous}`) },
@@ -229,7 +234,7 @@ screenStory.it(
 					],
 				}),
 			],
-		});
+		]);
 	},
 );
 
@@ -237,10 +242,14 @@ screenStory.it(
 	"keeps showing feedback when only files about other work are broken, leaving them to System",
 	[routedScreen({ ...HOME, ...answeredResult(), ...unrelatedProblems() }, ITEM)],
 	function* ({ feedbackProblems, resultFeedback }) {
-		yield* outcomes({
-			"the authors": [resultFeedback(), [expect.objectContaining({ author: "second-reader" }), expect.objectContaining({ author: "first-reader" })]],
-			"the problems": [feedbackProblems(), "none"],
-		});
+		yield* outcomes([
+			[
+				"the authors",
+				() => resultFeedback(),
+				[expect.objectContaining({ author: "second-reader" }), expect.objectContaining({ author: "first-reader" })],
+			],
+			["the problems", () => feedbackProblems(), "none"],
+		]);
 	},
 );
 
@@ -248,10 +257,10 @@ screenStory.it(
 	"says in plain words that checks and feedback can't be shown when their read fails, and still shows the report",
 	[screenFiles(result), failingRead(ITEM), screenRoute("/items/result.md"), openScreen()],
 	function* ({ reportText, resultFeedback, resultUnavailable }) {
-		yield* outcomes({
-			"the feedback": [resultFeedback(), []],
-			"the notice": [resultUnavailable(), "Checks and feedback can't be shown. Reload the page to try again."],
-			"the report": [reportText(), expect.stringContaining("Narrow-screen evidence is not recorded.")],
-		});
+		yield* outcomes([
+			["the feedback", () => resultFeedback(), []],
+			["the notice", () => resultUnavailable(), "Checks and feedback can't be shown. Reload the page to try again."],
+			["the report", () => reportText(), expect.stringContaining("Narrow-screen evidence is not recorded.")],
+		]);
 	},
 );

@@ -22,18 +22,18 @@ screenStory.it(
 	"The Table sorts by title and reverses the order when the reader clicks Work again",
 	[workTableScreen("/_board/work?view=table")],
 	function* ({ sortTableBy, tableSort, tableTitles, workAddress }) {
-		yield* outcomes({
-			sort: [tableSort(), { column: "Work", order: "ascending" }],
-			titles: [tableTitles(), BY_TITLE],
-		});
+		yield* outcomes([
+			["sort", () => tableSort(), { column: "Work", order: "ascending" }],
+			["titles", () => tableTitles(), BY_TITLE],
+		]);
 
 		yield* sortTableBy("Work");
 
-		yield* outcomes({
-			address: [workAddress(), { order: "desc", sort: "title", view: "table" }],
-			sort: [tableSort(), { column: "Work", order: "descending" }],
-			titles: [tableTitles(), [...BY_TITLE].reverse()],
-		});
+		yield* outcomes([
+			["address", () => workAddress(), { order: "desc", sort: "title", view: "table" }],
+			["sort", () => tableSort(), { column: "Work", order: "descending" }],
+			["titles", () => tableTitles(), [...BY_TITLE].reverse()],
+		]);
 	},
 );
 
@@ -45,11 +45,15 @@ screenStory.it(
 
 		yield* sortTableBy("Owner");
 
-		yield* outcomes({
-			address: [workAddress(), { sort: "owner", view: "table" }],
-			sort: [tableSort(), { column: "Owner", order: "ascending" }],
-			titles: [tableTitles(), ["Ship the onboarding email", "Write the install guide", "Fix the flaky upload test", "Draft the pricing page"]],
-		});
+		yield* outcomes([
+			["address", () => workAddress(), { sort: "owner", view: "table" }],
+			["sort", () => tableSort(), { column: "Owner", order: "ascending" }],
+			[
+				"titles",
+				() => tableTitles(),
+				["Ship the onboarding email", "Write the install guide", "Fix the flaky upload test", "Draft the pricing page"],
+			],
+		]);
 	},
 );
 
@@ -72,18 +76,18 @@ screenStory.it(
 	"Find work narrows the Table to matching work and offers Reset",
 	[workTableScreen("/_board/work?view=table")],
 	function* ({ findWork, tableTitles, workAddress, workFilterReset }) {
-		yield* outcomes({
-			reset: [workFilterReset(), "not offered"],
-			titles: [tableTitles(), BY_TITLE],
-		});
+		yield* outcomes([
+			["reset", () => workFilterReset(), "not offered"],
+			["titles", () => tableTitles(), BY_TITLE],
+		]);
 
 		yield* findWork("upload");
 
-		yield* outcomes({
-			address: [workAddress(), { q: "upload", sort: "title", view: "table" }],
-			reset: [workFilterReset(), "offered"],
-			titles: [tableTitles(), UPLOAD],
-		});
+		yield* outcomes([
+			["address", () => workAddress(), { q: "upload", sort: "title", view: "table" }],
+			["reset", () => workFilterReset(), "offered"],
+			["titles", () => tableTitles(), UPLOAD],
+		]);
 	},
 );
 
@@ -91,17 +95,17 @@ screenStory.it(
 	"Reset clears the text filter and shows all work again",
 	[workTableScreen("/_board/work?view=table&q=upload")],
 	function* ({ resetWorkFilters, tableTitles, workFilterReset }) {
-		yield* outcomes({
-			reset: [workFilterReset(), "offered"],
-			titles: [tableTitles(), UPLOAD],
-		});
+		yield* outcomes([
+			["reset", () => workFilterReset(), "offered"],
+			["titles", () => tableTitles(), UPLOAD],
+		]);
 
 		yield* resetWorkFilters();
 
-		yield* outcomes({
-			reset: [workFilterReset(), "not offered"],
-			titles: [tableTitles(), BY_TITLE],
-		});
+		yield* outcomes([
+			["reset", () => workFilterReset(), "not offered"],
+			["titles", () => tableTitles(), BY_TITLE],
+		]);
 	},
 );
 
@@ -213,10 +217,10 @@ screenStory.it(
 		openScreen(),
 	],
 	function* ({ navigationLabels, workItems }) {
-		yield* outcomes({
-			navigation: [navigationLabels(), expect.arrayContaining(["Now, 4 open tasks"])],
-			"work in the lanes": [workItems(), ["task.pricing", "task.guide", "task.upload", "task.email"]],
-		});
+		yield* outcomes([
+			["navigation", () => navigationLabels(), expect.arrayContaining(["Now, 4 open tasks"])],
+			["work in the lanes", () => workItems(), ["task.pricing", "task.guide", "task.upload", "task.email"]],
+		]);
 	},
 );
 
@@ -224,18 +228,18 @@ screenStory.it(
 	"The Owner menu narrows All work to that owner's work",
 	[workTableScreen("/_board/work?view=board")],
 	function* ({ chooseInToolbar, toolbarChoice, workAddress, workItems }) {
-		yield* outcomes({
-			owner: [toolbarChoice("Owner"), "All owners"],
-			"work shown": [workItems(), ["task.pricing", "task.guide", "task.upload", "task.email"]],
-		});
+		yield* outcomes([
+			["owner", () => toolbarChoice("Owner"), "All owners"],
+			["work shown", () => workItems(), ["task.pricing", "task.guide", "task.upload", "task.email"]],
+		]);
 
 		yield* chooseInToolbar("Owner", "marvin");
 
-		yield* outcomes({
-			address: [workAddress(), { owner: "value:marvin", sort: "title", view: "board" }],
-			owner: [toolbarChoice("Owner"), "marvin"],
-			"work shown": [workItems(), ["task.pricing"]],
-		});
+		yield* outcomes([
+			["address", () => workAddress(), { owner: "value:marvin", sort: "title", view: "board" }],
+			["owner", () => toolbarChoice("Owner"), "marvin"],
+			["work shown", () => workItems(), ["task.pricing"]],
+		]);
 	},
 );
 
@@ -247,10 +251,10 @@ screenStory.it(
 
 		yield* chooseInToolbar("Sort by", "Owner");
 
-		yield* outcomes({
-			address: [workAddress(), { owner: "value:marvin", sort: "owner", view: "board" }],
-			"sort by": [toolbarChoice("Sort by"), "Owner"],
-		});
+		yield* outcomes([
+			["address", () => workAddress(), { owner: "value:marvin", sort: "owner", view: "board" }],
+			["sort by", () => toolbarChoice("Sort by"), "Owner"],
+		]);
 	},
 );
 
@@ -258,10 +262,10 @@ screenStory.it(
 	"The toolbar keeps an unavailable board and an unmatched status visible",
 	[workTableScreen("/_board/work?view=table&board=board.missing&status=value:paused")],
 	function* ({ toolbarChoice }) {
-		yield* outcomes({
-			board: [toolbarChoice("Board"), "board.missing (unavailable)"],
-			status: [toolbarChoice("Status"), "Paused (no current matches)"],
-		});
+		yield* outcomes([
+			["board", () => toolbarChoice("Board"), "board.missing (unavailable)"],
+			["status", () => toolbarChoice("Status"), "Paused (no current matches)"],
+		]);
 	},
 );
 

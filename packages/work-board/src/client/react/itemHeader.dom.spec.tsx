@@ -34,10 +34,10 @@ for (const [name, files, item, label] of [
 		`${name} reads ${label} and offers no answer card`,
 		[readingPage(files, `/_board/item/${item}/`, { home: "home.md" })],
 		function* ({ answerCards, itemStatus }) {
-			yield* outcomes({
-				"answer cards": [answerCards(), []],
-				status: [itemStatus(), label],
-			});
+			yield* outcomes([
+				["answer cards", () => answerCards(), []],
+				["status", () => itemStatus(), label],
+			]);
 		},
 	);
 }
@@ -66,10 +66,10 @@ screenStory.it(
 
 		yield* rewriteDocument("task.md", liveTask("ready"));
 
-		yield* outcomes({
-			announcement: [statusAnnouncement(), { region: "original", text: "Status changed: Draft → Ready" }],
-			status: [itemStatus(), "Ready"],
-		});
+		yield* outcomes([
+			["announcement", () => statusAnnouncement(), { region: "original", text: "Status changed: Draft → Ready" }],
+			["status", () => itemStatus(), "Ready"],
+		]);
 	},
 );
 

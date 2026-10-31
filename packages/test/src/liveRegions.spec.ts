@@ -18,10 +18,10 @@ for (const [ending, answer] of [
 		function* ({ answer: answered, clock, runsLiveRegion }) {
 			yield* runsLiveRegion(ending);
 
-			yield* outcomes({
-				"answer": [answered(), answer],
-				"clock after the region": [clock(), "the test clock at 0 ms"],
-			});
+			yield* outcomes([
+				["answer", () => answered(), answer],
+				["clock after the region", () => clock(), "the test clock at 0 ms"],
+			]);
 		},
 	);
 }
@@ -32,10 +32,10 @@ liveRegion.it(
 	function* ({ answer, clockInRegion, runsLiveRegion }) {
 		yield* runsLiveRegion("succeeds");
 
-		yield* outcomes({
-			"answer": [answer(), "ready"],
-			"clock in the region": [clockInRegion(), "the live clock"],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "ready"],
+			["clock in the region", () => clockInRegion(), "the live clock"],
+		]);
 	},
 	{ clock: "live" },
 );

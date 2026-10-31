@@ -18,11 +18,11 @@ screenStory.it(
 	"a long report shows its title and opening while the rest of its body waits, and its last section follows once the browser is free",
 	[heldDocumentBody(), readingPage(files, "/report.md")],
 	function* ({ documentBody, documentBodyFinishes, headerTitle, lastHeading }) {
-		yield* outcomes({
-			body: [documentBody(), OPENING],
-			"last heading": [lastHeading(), "none"],
-			title: [headerTitle(), LONG_REPORT_TITLE],
-		});
+		yield* outcomes([
+			["body", () => documentBody(), OPENING],
+			["last heading", () => lastHeading(), "none"],
+			["title", () => headerTitle(), LONG_REPORT_TITLE],
+		]);
 
 		yield* documentBodyFinishes();
 
@@ -34,17 +34,17 @@ screenStory.it(
 	"a deep link to a heading in the last section of a long report lands focus there once that section renders, without a missing-section notice",
 	[heldDocumentBody(), readingPage(files, `/report.md#${LATE_HEADING}`)],
 	function* ({ documentBodyFinishes, lastHeading, navigationStatus, readerFocus }) {
-		yield* outcomes({
-			"last heading": [lastHeading(), "none"],
-			status: [navigationStatus(), { state: "normal", text: "" }],
-		});
+		yield* outcomes([
+			["last heading", () => lastHeading(), "none"],
+			["status", () => navigationStatus(), { state: "normal", text: "" }],
+		]);
 
 		yield* documentBodyFinishes();
 
-		yield* outcomes({
-			focus: [readerFocus(), "heading Late follow-up Link to Late follow-up"],
-			status: [navigationStatus(), { state: "normal", text: "" }],
-		});
+		yield* outcomes([
+			["focus", () => readerFocus(), "heading Late follow-up Link to Late follow-up"],
+			["status", () => navigationStatus(), { state: "normal", text: "" }],
+		]);
 	},
 );
 
@@ -96,9 +96,9 @@ screenStory.it(
 
 		yield* documentBodyFinishes();
 
-		yield* outcomes({
-			body: [documentBody(), REWRITTEN_SUMMARY],
-			error: [renderingError(), "none"],
-		});
+		yield* outcomes([
+			["body", () => documentBody(), REWRITTEN_SUMMARY],
+			["error", () => renderingError(), "none"],
+		]);
 	},
 );

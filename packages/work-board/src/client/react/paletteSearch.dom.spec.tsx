@@ -20,10 +20,10 @@ screenStory.it(
 	function* ({ firstResult, searchFor, searchResult }) {
 		yield* searchFor("inbox");
 
-		yield* outcomes({
-			first: [firstResult(), "Build the inbox"],
-			task: [searchResult("Build the inbox"), expect.objectContaining({ id: "task.triage", kind: "Task", status: "Ready" })],
-		});
+		yield* outcomes([
+			["first", () => firstResult(), "Build the inbox"],
+			["task", () => searchResult("Build the inbox"), expect.objectContaining({ id: "task.triage", kind: "Task", status: "Ready" })],
+		]);
 	},
 );
 
@@ -36,10 +36,14 @@ screenStory.it(
 
 		yield* searchFor("records: inbox");
 
-		yield* outcomes({
-			"Fleet records": [results("id"), expect.arrayContaining(Array.from({ length: 10 }, (_, index) => ({ id: `decision.delivery.${index}` })))],
-			first: [firstResult(), "Build the inbox"],
-		});
+		yield* outcomes([
+			[
+				"Fleet records",
+				() => results("id"),
+				expect.arrayContaining(Array.from({ length: 10 }, (_, index) => ({ id: `decision.delivery.${index}` }))),
+			],
+			["first", () => firstResult(), "Build the inbox"],
+		]);
 	},
 );
 
@@ -62,10 +66,10 @@ screenStory.it(
 
 		yield* includeFleetFiles();
 
-		yield* outcomes({
-			first: [firstResult(), "Build the inbox"],
-			titles: [resultTitles(), expect.arrayContaining(["Inbox decision 9"])],
-		});
+		yield* outcomes([
+			["first", () => firstResult(), "Build the inbox"],
+			["titles", () => resultTitles(), expect.arrayContaining(["Inbox decision 9"])],
+		]);
 	},
 );
 
@@ -101,10 +105,14 @@ for (const query of ["scale tests", "pooling"]) {
 		function* ({ resultTitles, searchFor, searchStatus }) {
 			yield* searchFor(query);
 
-			yield* outcomes({
-				status: [searchStatus(), "2 matches."],
-				titles: [resultTitles(), ["Your pooling design for Fleet's scale tests", "Bring back Work Fleet's scale tests with sane connection use"]],
-			});
+			yield* outcomes([
+				["status", () => searchStatus(), "2 matches."],
+				[
+					"titles",
+					() => resultTitles(),
+					["Your pooling design for Fleet's scale tests", "Bring back Work Fleet's scale tests with sane connection use"],
+				],
+			]);
 		},
 	);
 }

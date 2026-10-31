@@ -20,10 +20,10 @@ application.it(
 
 		yield* pnpm("baseline", "write", "--rule", "comments/no-todo", "--file", DEBT);
 
-		yield* outcomes({
-			"baseline entries for the debt": [baselineEntriesFor(DEBT), [{ count: 1, rule: "comments/no-todo" }]],
-			"pnpm baseline write": [scriptResult(), "passed"],
-		});
+		yield* outcomes([
+			["baseline entries for the debt", () => baselineEntriesFor(DEBT), [{ count: 1, rule: "comments/no-todo" }]],
+			["pnpm baseline write", () => scriptResult(), "passed"],
+		]);
 	},
 	120_000,
 );

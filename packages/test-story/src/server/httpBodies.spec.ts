@@ -15,11 +15,11 @@ httpFaultApp.it(
 		yield* sends("client");
 
 		yield* paused.waiting;
-		yield* outcomes({
-			"the status": [status("client"), "HTTP 202"],
-			"the x-story header": [header("client", "x-story"), "stalled"],
-			"while the body": [progress("client"), "waiting for its body"],
-		});
+		yield* outcomes([
+			["the status", () => status("client"), "HTTP 202"],
+			["the x-story header", () => header("client", "x-story"), "stalled"],
+			["while the body", () => progress("client"), "waiting for its body"],
+		]);
 	},
 );
 
@@ -46,10 +46,10 @@ httpFaultApp.it("keeps every later matching body stalled until the same release"
 
 	yield* paused.release;
 
-	yield* outcomes({
-		first: [answer("first"), 'HTTP 200 {"ready":true}'],
-		second: [answer("second"), 'HTTP 200 {"ready":true}'],
-	});
+	yield* outcomes([
+		["first", () => answer("first"), 'HTTP 200 {"ready":true}'],
+		["second", () => answer("second"), 'HTTP 200 {"ready":true}'],
+	]);
 });
 
 httpFaultApp.it("serves the next request after a client hangs up on a stalled body", [], function* ({ abandons, asks, sends, stall }) {
@@ -68,19 +68,19 @@ httpFaultApp.it("sends binary reply bytes as they are with the content type the 
 
 	yield* sends("client");
 
-	yield* outcomes({
-		answer: [answer("client"), "HTTP 200 <00 ff 80 0d 0a>"],
-		"content type": [header("client", "content-type"), "image/png"],
-	});
+	yield* outcomes([
+		["answer", () => answer("client"), "HTTP 200 <00 ff 80 0d 0a>"],
+		["content type", () => header("client", "content-type"), "image/png"],
+	]);
 });
 
 httpFaultApp.it("answers normally once a one-shot reply is spent", [], function* ({ asks, scriptFault }) {
 	yield* scriptFault("data", { kind: "status", reply: { body: Uint8Array.from([0, 255]) } });
 
-	yield* outcomes({
-		"the first request": [asks("/data"), "HTTP 200 <00 ff>"],
-		"the next request": [asks("/data"), 'HTTP 200 {"ready":true}'],
-	});
+	yield* outcomes([
+		["the first request", () => asks("/data"), "HTTP 200 <00 ff>"],
+		["the next request", () => asks("/data"), 'HTTP 200 {"ready":true}'],
+	]);
 });
 
 for (const [shape, reply, answer] of [
@@ -103,10 +103,10 @@ httpFaultApp.it(
 
 		yield* sendsNextChunk();
 
-		yield* outcomes({
-			"chunk received": [nextChunk("client"), "first"],
-			progress: [progress("client"), "waiting for its body"],
-		});
+		yield* outcomes([
+			["chunk received", () => nextChunk("client"), "first"],
+			["progress", () => progress("client"), "waiting for its body"],
+		]);
 	},
 );
 
@@ -121,10 +121,10 @@ httpFaultApp.it(
 		yield* sendsNextChunk();
 		yield* sendsNextChunk();
 
-		yield* outcomes({
-			answer: [answer("client"), "HTTP 200 first<00 ff>last"],
-			"content type": [header("client", "content-type"), "application/octet-stream"],
-			"transfer encoding": [header("client", "transfer-encoding"), "chunked"],
-		});
+		yield* outcomes([
+			["answer", () => answer("client"), "HTTP 200 first<00 ff>last"],
+			["content type", () => header("client", "content-type"), "application/octet-stream"],
+			["transfer encoding", () => header("client", "transfer-encoding"), "chunked"],
+		]);
 	},
 );

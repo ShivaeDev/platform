@@ -53,6 +53,7 @@ export type Config<TFields extends Fields, A, E, R, TRuntimeError> = {
 		submitted: Encoded<TFields>,
 	) => Effect.Effect<A, E, R | Scope.Scope | AtomRegistry | Reactivity>;
 	readonly persistedDraft?: PersistedDraftConfig | undefined;
+	readonly requiredMessages?: { readonly [TKey in Name<TFields>]?: NonNullable<Encoded<TFields>[TKey]> extends string ? string : never };
 } & ([Exclude<Services<TFields, R>, Scope.Scope | AtomRegistry | Reactivity>] extends [never]
 	? { readonly runtime?: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError> }
 	: { readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError> });

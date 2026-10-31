@@ -28,10 +28,10 @@ for (const [mode, message] of [
 		`a Codex provider ${mode} shows the Codex card as failed with "${message}"`,
 		[codexProvider(mode)],
 		function* ({ systemCards, systemCardText }) {
-			yield* outcomes({
-				"codex card": [systemCards(), expect.objectContaining({ codex: "error" })],
-				"codex message": [systemCardText("codex"), expect.stringContaining(message)],
-			});
+			yield* outcomes([
+				["codex card", () => systemCards(), expect.objectContaining({ codex: "error" })],
+				["codex message", () => systemCardText("codex"), expect.stringContaining(message)],
+			]);
 		},
 	);
 }

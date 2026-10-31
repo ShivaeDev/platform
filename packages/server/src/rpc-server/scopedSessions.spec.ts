@@ -13,10 +13,10 @@ for (const boundary of ["account", "profile", "providers", "admin", "owner", "cu
 
 			yield* save("alice", "blue", { boundary });
 
-			yield* outcomes({
-				"second session's hint": [nextHint("second"), "changed theme and the list"],
-				"second session's theme": [read("second", boundary), "blue"],
-			});
+			yield* outcomes([
+				["second session's hint", () => nextHint("second"), "changed theme and the list"],
+				["second session's theme", () => read("second", boundary), "blue"],
+			]);
 		},
 	);
 
@@ -35,12 +35,12 @@ for (const boundary of ["account", "profile", "providers", "admin", "owner", "cu
 				boundary,
 			);
 
-			yield* outcomes({
-				"alice's hints": [hintsUntilOwnBarrier("alice", boundary), ["resync", "changed theme and the list", "changed the list"]],
-				"alice's theme": [read("alice", boundary), "blue"],
-				"bob's hints": [hintsUntilOwnBarrier("bob", boundary), ["resync", "changed theme and the list", "changed the list"]],
-				"bob's theme": [read("bob", boundary), "green"],
-			});
+			yield* outcomes([
+				["alice's hints", () => hintsUntilOwnBarrier("alice", boundary), ["resync", "changed theme and the list", "changed the list"]],
+				["alice's theme", () => read("alice", boundary), "blue"],
+				["bob's hints", () => hintsUntilOwnBarrier("bob", boundary), ["resync", "changed theme and the list", "changed the list"]],
+				["bob's theme", () => read("bob", boundary), "green"],
+			]);
 		},
 	);
 
@@ -67,12 +67,12 @@ sessionKeys.it(
 
 		const answer = yield* save("alice", "rolled back", { announce: true, reject: true });
 
-		yield* outcomes({
-			"answer": [Effect.succeed(answer), "failed with conflict"],
-			"published": [published(), ["preferences:theme and preferences for alice"]],
-			"second session's hints": [hintsUntilOwnBarrier("second"), ["resync", "changed the list"]],
-			"second session's theme": [read("second"), "committed"],
-		});
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "failed with conflict"],
+			["published", () => published(), ["preferences:theme and preferences for alice"]],
+			["second session's hints", () => hintsUntilOwnBarrier("second"), ["resync", "changed the list"]],
+			["second session's theme", () => read("second"), "committed"],
+		]);
 	},
 );
 

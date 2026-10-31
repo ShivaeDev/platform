@@ -26,14 +26,15 @@ schemaKit.it(
 		yield* installSchema("jobs_test");
 		yield* releaseSnapshot();
 
-		yield* outcomes({
-			"answer": [answered(), expect.stringMatching(/^install failed with /u)],
-			"common index": [
-				indexes("jobs_test", "^job_common_i13$"),
+		yield* outcomes([
+			["answer", () => answered(), expect.stringMatching(/^install failed with /u)],
+			[
+				"common index",
+				() => indexes("jobs_test", "^job_common_i13$"),
 				[{ index: "jobs_test.job_common_i13", table: "jobs_test.job_common", valid: false }],
 			],
-			"version": [schemaVersion("jobs_test"), 46],
-		});
+			["version", () => schemaVersion("jobs_test"), 46],
+		]);
 	},
 );
 

@@ -24,10 +24,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(groupedOutcomes);
 
-		yield* outcomes({
-			"advice": [messages(), [expect.stringContaining('yield* outcomes({ "label": [readout, expected], … })')]],
-			"locations": [locations(), [`${SPEC}:3`]],
-		});
+		yield* outcomes([
+			["advice", () => messages(), [expect.stringContaining('yield* outcomes([["label", () => readout(), expected], …])')]],
+			["locations", () => locations(), [`${SPEC}:3`]],
+		]);
 	},
 );
 
@@ -54,7 +54,7 @@ ruleStory.it(
 		expect(yield* locations()).toEqual([`${SPEC}:3`]);
 
 		yield* writes({
-			content: inStory("yield* cancel();", 'yield* outcomes({ order: [order(), "cancelled"], refunds: [refunds(), ["order 1"]] });'),
+			content: inStory("yield* cancel();", 'yield* outcomes([["order", () => order(), "cancelled"], ["refunds", () => refunds(), ["order 1"]]]);'),
 			path: SPEC,
 		});
 

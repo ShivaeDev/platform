@@ -7,15 +7,16 @@ boardStory.it(
 	"a progress tally renders a native labelled progress bar with its value and source, without JavaScript",
 	[visualHome(visualProgress('{completed="3" total="8"}'))],
 	function* ({ renderedAttributes, renderedElements, renderedTexts }) {
-		yield* outcomes({
-			"progress bars": [renderedElements(VISUAL_HOME, "progress"), [expect.objectContaining({ max: "8", value: "3" })]],
-			"progress label": [
-				renderedAttributes(VISUAL_HOME, "[aria-label^='Browser checks']", "aria-label"),
+		yield* outcomes([
+			["progress bars", () => renderedElements(VISUAL_HOME, "progress"), [expect.objectContaining({ max: "8", value: "3" })]],
+			[
+				"progress label",
+				() => renderedAttributes(VISUAL_HOME, "[aria-label^='Browser checks']", "aria-label"),
 				["Browser checks recorded", "Browser checks recorded: Recorded tally: 3 of 8"],
 			],
-			"source links": [renderedAttributes(VISUAL_HOME, ".visual-progress a", "href"), ["/checks.md"]],
-			tally: [renderedTexts(VISUAL_HOME, ".visual-progress"), [expect.stringContaining("Recorded tally: 3 of 8")]],
-		});
+			["source links", () => renderedAttributes(VISUAL_HOME, ".visual-progress a", "href"), ["/checks.md"]],
+			["tally", () => renderedTexts(VISUAL_HOME, ".visual-progress"), [expect.stringContaining("Recorded tally: 3 of 8")]],
+		]);
 	},
 );
 
@@ -29,10 +30,10 @@ for (const [attributes, text] of [
 		`a tally of ${attributes} draws no progress bar`,
 		[visualHome(visualProgress(attributes))],
 		function* ({ renderedText, renderedTexts }) {
-			yield* outcomes({
-				"page text": [renderedText(VISUAL_HOME), text],
-				"progress bars": [renderedTexts(VISUAL_HOME, "progress"), []],
-			});
+			yield* outcomes([
+				["page text", () => renderedText(VISUAL_HOME), text],
+				["progress bars", () => renderedTexts(VISUAL_HOME, "progress"), []],
+			]);
 		},
 	);
 }
@@ -50,13 +51,14 @@ for (const attributes of [
 		`invalid progress ${attributes} shows its original source and the content after it`,
 		[visualHome(`${visualProgress(attributes)}\nAfter the component.\n`)],
 		function* ({ renderedText, renderedTexts }) {
-			yield* outcomes({
-				"page text": [
-					renderedText(VISUAL_HOME),
+			yield* outcomes([
+				[
+					"page text",
+					() => renderedText(VISUAL_HOME),
 					expect.stringMatching(/Visual component could not be rendered:.*:::progress.*After the component\./u),
 				],
-				"progress bars": [renderedTexts(VISUAL_HOME, "progress"), []],
-			});
+				["progress bars", () => renderedTexts(VISUAL_HOME, "progress"), []],
+			]);
 		},
 	);
 }
@@ -92,13 +94,14 @@ boardStory.it(
 		),
 	],
 	function* ({ renderedTexts }) {
-		yield* outcomes({
-			emphasis: [renderedTexts(VISUAL_HOME, ".visual-timeline-entries strong"), ["Later · planned:", "Earlier · recorded:"]],
-			entries: [
-				renderedTexts(VISUAL_HOME, ".visual-timeline-entries li"),
+		yield* outcomes([
+			["emphasis", () => renderedTexts(VISUAL_HOME, ".visual-timeline-entries strong"), ["Later · planned:", "Earlier · recorded:"]],
+			[
+				"entries",
+				() => renderedTexts(VISUAL_HOME, ".visual-timeline-entries li"),
 				["Later · planned: Review with a reader.", "Earlier · recorded: Native reads shipped."],
 			],
-		});
+		]);
 	},
 );
 
@@ -120,11 +123,11 @@ boardStory.it(
 		}),
 	],
 	function* ({ boardColumns, documentBacklinks, firstResult }) {
-		yield* outcomes({
-			"board columns": [boardColumns(VISUAL_HOME), ["Open: 1"]],
-			"checks backlinks": [documentBacklinks("checks.md"), ["/nested/home.md"]],
-			"search result": [firstResult("Recorded tally"), expect.objectContaining({ text: expect.stringContaining("Recorded tally: 3 of 8") })],
-		});
+		yield* outcomes([
+			["board columns", () => boardColumns(VISUAL_HOME), ["Open: 1"]],
+			["checks backlinks", () => documentBacklinks("checks.md"), ["/nested/home.md"]],
+			["search result", () => firstResult("Recorded tally"), expect.objectContaining({ text: expect.stringContaining("Recorded tally: 3 of 8") })],
+		]);
 	},
 );
 
@@ -152,10 +155,10 @@ boardStory.it(
 	"a quote with an unrecognised callout marker stays a plain quote",
 	[visualHome("> [!UNRECOGNIZED]\n> Keep this quote.")],
 	function* ({ renderedTexts }) {
-		yield* outcomes({
-			callouts: [renderedTexts(VISUAL_HOME, "[class*='visual-callout']"), []],
-			quotes: [renderedTexts(VISUAL_HOME, "blockquote"), ["[!UNRECOGNIZED] Keep this quote."]],
-		});
+		yield* outcomes([
+			["callouts", () => renderedTexts(VISUAL_HOME, "[class*='visual-callout']"), []],
+			["quotes", () => renderedTexts(VISUAL_HOME, "blockquote"), ["[!UNRECOGNIZED] Keep this quote."]],
+		]);
 	},
 );
 
@@ -164,11 +167,15 @@ for (const kind of ["NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION"]) {
 		`a ${kind} callout renders as a callout and keeps its Markdown link`,
 		[visualHome(`> [!${kind}]\n> See [evidence](../checks.md).`)],
 		function* ({ renderedAttributes, renderedText }) {
-			yield* outcomes({
-				"callout classes": [renderedAttributes(VISUAL_HOME, "[class*='visual-callout']", "class"), [`visual-callout visual-${kind.toLowerCase()}`]],
-				links: [renderedAttributes(VISUAL_HOME, "a", "href"), ["/checks.md"]],
-				"page text": [renderedText(VISUAL_HOME), expect.not.stringContaining(`[!${kind}]`)],
-			});
+			yield* outcomes([
+				[
+					"callout classes",
+					() => renderedAttributes(VISUAL_HOME, "[class*='visual-callout']", "class"),
+					[`visual-callout visual-${kind.toLowerCase()}`],
+				],
+				["links", () => renderedAttributes(VISUAL_HOME, "a", "href"), ["/checks.md"]],
+				["page text", () => renderedText(VISUAL_HOME), expect.not.stringContaining(`[!${kind}]`)],
+			]);
 		},
 	);
 }
@@ -189,10 +196,10 @@ boardStory.it(
 		),
 	],
 	function* ({ renderedText, renderedTexts }) {
-		yield* outcomes({
-			"page text": [renderedText(VISUAL_HOME), expect.stringMatching(/Nested visual directives are not supported.*::::progress/u)],
-			"progress bars": [renderedTexts(VISUAL_HOME, "progress"), []],
-		});
+		yield* outcomes([
+			["page text", () => renderedText(VISUAL_HOME), expect.stringMatching(/Nested visual directives are not supported.*::::progress/u)],
+			["progress bars", () => renderedTexts(VISUAL_HOME, "progress"), []],
+		]);
 	},
 );
 
@@ -204,10 +211,10 @@ boardStory.it(
 		),
 	],
 	function* ({ renderedText, renderedTexts }) {
-		yield* outcomes({
-			"page text": [renderedText(VISUAL_HOME), expect.stringMatching(/:metric\[value\].*Use a ::: container directive\..*::metric\[Leaf\]/u)],
-			progress: [renderedTexts(VISUAL_HOME, ".visual-progress"), [expect.stringContaining("Recorded tally: 3 of 8")]],
-		});
+		yield* outcomes([
+			["page text", () => renderedText(VISUAL_HOME), expect.stringMatching(/:metric\[value\].*Use a ::: container directive\..*::metric\[Leaf\]/u)],
+			["progress", () => renderedTexts(VISUAL_HOME, ".visual-progress"), [expect.stringContaining("Recorded tally: 3 of 8")]],
+		]);
 	},
 );
 
@@ -219,9 +226,9 @@ boardStory.it(
 		),
 	],
 	function* ({ renderedText, renderedTexts }) {
-		yield* outcomes({
-			"page text": [renderedText(VISUAL_HOME), expect.stringMatching(/1–100 entries.*Entry 100.*After the timeline\./u)],
-			"timeline entries": [renderedTexts(VISUAL_HOME, ".visual-timeline-entries"), []],
-		});
+		yield* outcomes([
+			["page text", () => renderedText(VISUAL_HOME), expect.stringMatching(/1–100 entries.*Entry 100.*After the timeline\./u)],
+			["timeline entries", () => renderedTexts(VISUAL_HOME, ".visual-timeline-entries"), []],
+		]);
 	},
 );

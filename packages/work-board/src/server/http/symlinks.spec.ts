@@ -7,26 +7,27 @@ import { referenceFile, referenceLinkTo, watchCanFail, workspaceLink } from "#te
 const reference = [linkedProject, boardHome("plan.md")];
 
 boardStory.it("a linked reference folder's Markdown is listed and read under the link's path", reference, function* ({ documentAt, libraryPaths }) {
-	yield* outcomes({
-		library: [libraryPaths(), ["/plan.md", "/reference/guide/next.md", "/reference/guide/start.md"]],
-		"start page": [documentAt("/reference/guide/start.md"), "# Reference guide\n\n[Next](next.md)\n\n## Evidence\n\nReference passage.\n"],
-	});
+	yield* outcomes([
+		["library", () => libraryPaths(), ["/plan.md", "/reference/guide/next.md", "/reference/guide/start.md"]],
+		["start page", () => documentAt("/reference/guide/start.md"), "# Reference guide\n\n[Next](next.md)\n\n## Evidence\n\nReference passage.\n"],
+	]);
 });
 
 boardStory.it(
 	"a second link to the reference folder lists and searches its files under both link paths",
 	[...reference, workspaceLink("second-reference", "the reference folder")],
 	function* ({ libraryPaths, searchHits }) {
-		yield* outcomes({
-			library: [libraryPaths(), expect.arrayContaining(["/reference/guide/start.md", "/second-reference/guide/start.md"])],
-			search: [
-				searchHits("Reference passage"),
+		yield* outcomes([
+			["library", () => libraryPaths(), expect.arrayContaining(["/reference/guide/start.md", "/second-reference/guide/start.md"])],
+			[
+				"search",
+				() => searchHits("Reference passage"),
 				expect.arrayContaining([
 					expect.stringMatching(/^\/reference\/guide\/start\.md/u),
 					expect.stringMatching(/^\/second-reference\/guide\/start\.md/u),
 				]),
 			],
-		});
+		]);
 	},
 );
 
@@ -34,10 +35,10 @@ boardStory.it(
 	"links that loop back into the reference folder or the workspace are not followed",
 	[...reference, referenceLinkTo("guide/loop", "the reference folder"), referenceLinkTo("workspace-loop", "the workspace")],
 	function* ({ libraryPaths, statusOf }) {
-		yield* outcomes({
-			library: [libraryPaths(), ["/plan.md", "/reference/guide/next.md", "/reference/guide/start.md"]],
-			"looped page": [statusOf("/reference/guide/loop/guide/start.md"), "Not Found"],
-		});
+		yield* outcomes([
+			["library", () => libraryPaths(), ["/plan.md", "/reference/guide/next.md", "/reference/guide/start.md"]],
+			["looped page", () => statusOf("/reference/guide/loop/guide/start.md"), "Not Found"],
+		]);
 	},
 );
 
@@ -65,11 +66,11 @@ boardStory.it(
 
 		yield* writeInReference("guide/start.md", "# Reference guide\n\nUpdated linked passage.\n");
 
-		yield* outcomes({
-			"new text": [searchHits("Updated linked passage"), [expect.stringMatching(/^\/reference\/guide\/start\.md/u)]],
-			"old text": [searchHits("Reference passage"), []],
-			page: [documentAt("/reference/guide/start.md"), "# Reference guide\n\nUpdated linked passage.\n"],
-		});
+		yield* outcomes([
+			["new text", () => searchHits("Updated linked passage"), [expect.stringMatching(/^\/reference\/guide\/start\.md/u)]],
+			["old text", () => searchHits("Reference passage"), []],
+			["page", () => documentAt("/reference/guide/start.md"), "# Reference guide\n\nUpdated linked passage.\n"],
+		]);
 	},
 );
 
@@ -89,10 +90,10 @@ boardStory.it(
 
 		yield* renameInReference("guide/added.md", "guide/moved.md");
 
-		yield* outcomes({
-			"new path": [statusOf("/reference/guide/moved.md"), "OK"],
-			"old path": [statusOf("/reference/guide/added.md"), "Not Found"],
-		});
+		yield* outcomes([
+			["new path", () => statusOf("/reference/guide/moved.md"), "OK"],
+			["old path", () => statusOf("/reference/guide/added.md"), "Not Found"],
+		]);
 	},
 );
 
@@ -136,10 +137,10 @@ boardStory.it(
 
 		yield* retargetLink("reference", "the replacement folder", "guide/start.md");
 
-		yield* outcomes({
-			"old folder's next": [statusOf("/reference/guide/next.md"), "Not Found"],
-			"replacement's start": [documentAt("/reference/guide/start.md"), "# Replacement guide\n"],
-		});
+		yield* outcomes([
+			["old folder's next", () => statusOf("/reference/guide/next.md"), "Not Found"],
+			["replacement's start", () => documentAt("/reference/guide/start.md"), "# Replacement guide\n"],
+		]);
 	},
 );
 
@@ -159,10 +160,10 @@ boardStory.it(
 	"a file link inside the reference folder that leads outside it is neither served nor searched",
 	[...reference, referenceLinkTo("guide/leak.md", "the replacement folder's start")],
 	function* ({ searchHits, statusOf }) {
-		yield* outcomes({
-			page: [statusOf("/reference/guide/leak.md"), "Not Found"],
-			search: [searchHits("Replacement guide"), []],
-		});
+		yield* outcomes([
+			["page", () => statusOf("/reference/guide/leak.md"), "Not Found"],
+			["search", () => searchHits("Replacement guide"), []],
+		]);
 	},
 );
 

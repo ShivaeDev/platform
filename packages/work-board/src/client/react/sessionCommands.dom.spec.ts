@@ -34,10 +34,10 @@ for (const kind of ["response", "handoff"] as const) {
 
 				yield* saveLiveForm(kind);
 
-				yield* outcomes({
-					draft: [liveFormDraft(kind), DRAFT],
-					status: [liveFormStatus(kind), expect.stringMatching(new RegExp(`${status}.*Draft retained`, "su"))],
-				});
+				yield* outcomes([
+					["draft", () => liveFormDraft(kind), DRAFT],
+					["status", () => liveFormStatus(kind), expect.stringMatching(new RegExp(`${status}.*Draft retained`, "su"))],
+				]);
 			},
 		);
 
@@ -60,10 +60,10 @@ for (const kind of ["response", "handoff"] as const) {
 
 				yield* saveLiveForm(kind);
 
-				yield* outcomes({
-					identities: [sentCommandIds(), [first, first]],
-					status: [liveFormStatus(kind), expect.stringContaining(saved)],
-				});
+				yield* outcomes([
+					["identities", () => sentCommandIds(), [first, first]],
+					["status", () => liveFormStatus(kind), expect.stringContaining(saved)],
+				]);
 			},
 		);
 	}
@@ -80,21 +80,24 @@ for (const kind of ["response", "handoff"] as const) {
 
 			yield* releaseCommand();
 
-			yield* outcomes({
-				draft: [liveFormDraft(kind), "New direction typed while saving"],
-				saved: [
-					readSessionFiles(kind === "response" ? "responses" : "handoffs"),
+			yield* outcomes([
+				["draft", () => liveFormDraft(kind), "New direction typed while saving"],
+				[
+					"saved",
+					() => readSessionFiles(kind === "response" ? "responses" : "handoffs"),
 					expect.arrayContaining([expect.stringContaining("First reviewed direction")]),
 				],
-				status: [
-					liveFormStatus(kind),
+				[
+					"status",
+					() => liveFormStatus(kind),
 					expect.stringContaining(kind === "response" ? "Your current draft remains unsaved" : "Your newer draft remains unsaved"),
 				],
-				unsaved: [
-					readSessionFiles(kind === "response" ? "responses" : "handoffs"),
+				[
+					"unsaved",
+					() => readSessionFiles(kind === "response" ? "responses" : "handoffs"),
 					expect.not.arrayContaining([expect.stringContaining("New direction typed while saving")]),
 				],
-			});
+			]);
 		},
 	);
 }

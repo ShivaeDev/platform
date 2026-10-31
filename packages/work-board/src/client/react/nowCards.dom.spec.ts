@@ -17,12 +17,20 @@ const now = [
 ];
 
 screenStory.it("Each Now card says in plain words who holds it and how long it has been in its stage", now, function* ({ nowCard }) {
-	yield* outcomes({
-		email: [nowCard("task.email"), expect.objectContaining({ kind: "none", owner: "Waiting on your answer", stage: "Waiting, started 4h ago" })],
-		guide: [nowCard("task.guide"), expect.objectContaining({ kind: "none", owner: "Queued for Fleet", stage: "Queued 4h ago" })],
-		pricing: [nowCard("task.pricing"), expect.objectContaining({ kind: "none", owner: "Assigned to you", stage: "none" })],
-		upload: [nowCard("task.upload"), expect.objectContaining({ kind: "none", owner: "Fleet is working on this", stage: "Working, started 4h ago" })],
-	});
+	yield* outcomes([
+		[
+			"email",
+			() => nowCard("task.email"),
+			expect.objectContaining({ kind: "none", owner: "Waiting on your answer", stage: "Waiting, started 4h ago" }),
+		],
+		["guide", () => nowCard("task.guide"), expect.objectContaining({ kind: "none", owner: "Queued for Fleet", stage: "Queued 4h ago" })],
+		["pricing", () => nowCard("task.pricing"), expect.objectContaining({ kind: "none", owner: "Assigned to you", stage: "none" })],
+		[
+			"upload",
+			() => nowCard("task.upload"),
+			expect.objectContaining({ kind: "none", owner: "Fleet is working on this", stage: "Working, started 4h ago" }),
+		],
+	]);
 });
 
 screenStory.it("A Now card's links are its only Tab stops", now, function* ({ nowCard }) {

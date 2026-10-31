@@ -19,11 +19,11 @@ for (const [order, boundaries] of [
 
 			yield* notifyChange("notes/log.md");
 
-			yield* outcomes({
-				document: [documentAt("/notes/log.md"), "# After"],
-				reads: [fileReadCount(), expect.toSatisfy((reads: number) => reads > readsBefore, "more reads than before the edit")],
-				watched: [notifiedFolders(), ["the workspace"]],
-			});
+			yield* outcomes([
+				["document", () => documentAt("/notes/log.md"), "# After"],
+				["reads", () => fileReadCount(), expect.toSatisfy((reads: number) => reads > readsBefore, "more reads than before the edit")],
+				["watched", () => notifiedFolders(), ["the workspace"]],
+			]);
 		},
 	);
 }

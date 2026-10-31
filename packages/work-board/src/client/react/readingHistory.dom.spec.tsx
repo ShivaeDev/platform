@@ -76,10 +76,10 @@ screenStory.it(
 
 		yield* removeFromHistory("Old");
 
-		yield* outcomes({
-			history: [historyDays(), expect.not.objectContaining({ [lastWeekDay]: expect.anything() })],
-			recent: [sidebarLinks("Recent"), noteLinks("Next", "Gone")],
-		});
+		yield* outcomes([
+			["history", () => historyDays(), expect.not.objectContaining({ [lastWeekDay]: expect.anything() })],
+			["recent", () => sidebarLinks("Recent"), noteLinks("Next", "Gone")],
+		]);
 		yield* reloadShell();
 		expect(yield* sidebarLinks("Recent")).toEqual(noteLinks("Next", "Gone"));
 	},
@@ -105,10 +105,10 @@ screenStory.it(
 
 		yield* clearHistory();
 
-		yield* outcomes({
-			confirmation: [clearConfirmation(), "Remove 5 entries from history? Pinned documents stay."],
-			focus: [readerFocus(), "button Cancel"],
-		});
+		yield* outcomes([
+			["confirmation", () => clearConfirmation(), "Remove 5 entries from history? Pinned documents stay."],
+			["focus", () => readerFocus(), "button Cancel"],
+		]);
 	},
 );
 
@@ -148,11 +148,11 @@ screenStory.it(
 
 		yield* answerClearConfirmation("Clear");
 
-		yield* outcomes({
-			confirmation: [clearConfirmation(), "none"],
-			focus: [readerFocus(), "dialog Reading history"],
-			history: [historyDays(), { Pinned: ["First · Document"] }],
-			recent: [sidebarLinks("Recent"), []],
-		});
+		yield* outcomes([
+			["confirmation", () => clearConfirmation(), "none"],
+			["focus", () => readerFocus(), "dialog Reading history"],
+			["history", () => historyDays(), { Pinned: ["First · Document"] }],
+			["recent", () => sidebarLinks("Recent"), []],
+		]);
 	},
 );

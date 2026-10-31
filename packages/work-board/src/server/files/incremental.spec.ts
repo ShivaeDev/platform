@@ -16,10 +16,10 @@ fileWatcherStory.it(
 
 		yield* watcherReports(NOTES.flatMap((path) => [path, path]));
 
-		yield* outcomes({
-			"announced change": [nextAnnouncedChange(), [...NOTES].sort(Order.String)],
-			"revisions advanced": [revisionsAdvanced(), 1],
-		});
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), [...NOTES].sort(Order.String)],
+			["revisions advanced", () => revisionsAdvanced(), 1],
+		]);
 	},
 );
 
@@ -36,10 +36,10 @@ fileWatcherStory.it(
 		const shared = yield* readersReadAtOnce(3);
 
 		expect(shared).toBe("one shared snapshot");
-		yield* outcomes({
-			"distinct bodies": [distinctBodies(), ["# After"]],
-			"files read": [filesRead(), [...NOTES].sort(Order.String)],
-		});
+		yield* outcomes([
+			["distinct bodies", () => distinctBodies(), ["# After"]],
+			["files read", () => filesRead(), [...NOTES].sort(Order.String)],
+		]);
 	},
 );
 
@@ -57,10 +57,10 @@ fileWatcherStory.it(
 
 		yield* watcherReports([".board.sock.starting", ".board.sock.starting/pending.md", ".sABC123", ".sABC123/pending.md", "note.md"]);
 
-		yield* outcomes({
-			"announced change": [nextAnnouncedChange(), ["note.md"]],
-			"revisions advanced": [revisionsAdvanced(), 1],
-			"root rescans": [rootRescans(), 0],
-		});
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["note.md"]],
+			["revisions advanced", () => revisionsAdvanced(), 1],
+			["root rescans", () => rootRescans(), 0],
+		]);
 	},
 );

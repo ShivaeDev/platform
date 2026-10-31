@@ -8,16 +8,17 @@ boardStory.it(
 	"a duplicated criterion identity is reported on the item, and search links to neither claim",
 	[projectFiles({ "item.md": DUPLICATE_CRITERION_SOURCE }), fleetAcceptsEveryBrief],
 	function* ({ criterionLinks, documentDiagnostics }) {
-		yield* outcomes({
-			"criterion links in search": [criterionLinks("criterion"), []],
-			"item diagnostics": [
-				documentDiagnostics("item.md"),
+		yield* outcomes([
+			["criterion links in search", () => criterionLinks("criterion"), []],
+			[
+				"item diagnostics",
+				() => documentDiagnostics("item.md"),
 				[
 					expect.objectContaining({ line: 4, message: "Duplicate criterion ID duplicate." }),
 					expect.objectContaining({ line: 6, message: "Duplicate criterion ID duplicate." }),
 				],
 			],
-		});
+		]);
 	},
 );
 

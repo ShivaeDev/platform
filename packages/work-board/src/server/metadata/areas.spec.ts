@@ -10,10 +10,10 @@ boardStory.it(
 	"a brief may name existing packages, their subfolders, top-level folders and every area",
 	[areaRepository(AREAS), fleetAcceptsEveryBrief],
 	function* ({ itemDiagnostics, itemMetadata }) {
-		yield* outcomes({
-			areas: [itemMetadata("/task.md"), expect.objectContaining({ areas: AREAS })],
-			problems: [itemDiagnostics("/task.md"), []],
-		});
+		yield* outcomes([
+			["areas", () => itemMetadata("/task.md"), expect.objectContaining({ areas: AREAS })],
+			["problems", () => itemDiagnostics("/task.md"), []],
+		]);
 	},
 );
 

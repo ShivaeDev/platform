@@ -14,10 +14,10 @@ screenStory.it(
 	"a goal with two open asks offers them behind one control that lists a link to each",
 	[boardScreen(goalPageFixture(), (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ goalAskLinks, goalOpenAsks, openGoalAsks }) {
-		yield* outcomes({
-			control: [goalOpenAsks(), "2 open asks"],
-			"listed asks": [goalAskLinks(), []],
-		});
+		yield* outcomes([
+			["control", () => goalOpenAsks(), "2 open asks"],
+			["listed asks", () => goalAskLinks(), []],
+		]);
 
 		yield* openGoalAsks();
 
@@ -29,11 +29,11 @@ screenStory.it(
 	"draft work waiting on an open ask counts as blocked yet stays in the Draft group with a Needs you chip",
 	[boardScreen(goalPageFixture(), (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ goalPageStateCounts, linkedWorkRow }) {
-		yield* outcomes({
-			"fifth task": [linkedWorkRow("task.fifth"), expect.objectContaining({ group: "Draft" })],
-			"first task": [linkedWorkRow("task.first"), expect.objectContaining({ group: "Draft", states: ["Draft", "Needs you"] })],
-			"linked work by state": [goalPageStateCounts(), expect.arrayContaining(["2 blocked"])],
-		});
+		yield* outcomes([
+			["fifth task", () => linkedWorkRow("task.fifth"), expect.objectContaining({ group: "Draft" })],
+			["first task", () => linkedWorkRow("task.first"), expect.objectContaining({ group: "Draft", states: ["Draft", "Needs you"] })],
+			["linked work by state", () => goalPageStateCounts(), expect.arrayContaining(["2 blocked"])],
+		]);
 	},
 );
 
@@ -41,10 +41,10 @@ screenStory.it(
 	"a goal without open asks shows its zero counts quietly and offers no asks control",
 	[boardScreen(quiet, (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ goalOpenAsks, goalPageStateCounts }) {
-		yield* outcomes({
-			"linked work by state": [goalPageStateCounts(), ["1 done", "0 running (quiet)", "0 blocked (quiet)", "0 scheduled (quiet)", "4 parked"]],
-			"open asks": [goalOpenAsks(), "none"],
-		});
+		yield* outcomes([
+			["linked work by state", () => goalPageStateCounts(), ["1 done", "0 running (quiet)", "0 blocked (quiet)", "0 scheduled (quiet)", "4 parked"]],
+			["open asks", () => goalOpenAsks(), "none"],
+		]);
 	},
 );
 
@@ -56,11 +56,11 @@ screenStory.it(
 		)),
 	],
 	function* ({ criterionCard, linkedWork, linkedWorkFolded }) {
-		yield* outcomes({
-			"first criterion": [criterionCard("first"), expect.objectContaining({ linkedItems: "2 linked items", work: "folded" })],
-			"folded groups": [linkedWorkFolded(), ["Draft", "Done", "Deferred"]],
-			groups: [linkedWork(), expect.objectContaining({ Ready: ["task.second"] })],
-		});
+		yield* outcomes([
+			["first criterion", () => criterionCard("first"), expect.objectContaining({ linkedItems: "2 linked items", work: "folded" })],
+			["folded groups", () => linkedWorkFolded(), ["Draft", "Done", "Deferred"]],
+			["groups", () => linkedWork(), expect.objectContaining({ Ready: ["task.second"] })],
+		]);
 	},
 );
 

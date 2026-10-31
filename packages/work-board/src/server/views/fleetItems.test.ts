@@ -65,14 +65,15 @@ boardStory.it(
 	function* ({ fleetDaemonStops, fleetStartCommand, fleetWork, workRowIds }) {
 		yield* fleetDaemonStops();
 
-		yield* outcomes({
-			"fleet work": [
-				fleetWork(),
+		yield* outcomes([
+			[
+				"fleet work",
+				() => fleetWork(),
 				expect.objectContaining({ authored: [], reason: "Fleet isn't running, so agent work and its health are unknown.", state: "unavailable" }),
 			],
-			"start command": [fleetStartCommand(), expect.stringMatching(/^npx @shivaedev\/work-fleet serve <parent>\/[^ ']+ --port <fleet port>$/u)],
-			"work rows": [workRowIds("/_board/work"), expect.arrayContaining(["one"])],
-		});
+			["start command", () => fleetStartCommand(), expect.stringMatching(/^npx @shivaedev\/work-fleet serve <parent>\/[^ ']+ --port <fleet port>$/u)],
+			["work rows", () => workRowIds("/_board/work"), expect.arrayContaining(["one"])],
+		]);
 	},
 );
 
@@ -92,10 +93,10 @@ boardStory.it(
 	function* ({ fleetSource, fleetWork, start }) {
 		yield* start({ fleetPort: null });
 
-		yield* outcomes({
-			"fleet source": [fleetSource(), expect.objectContaining({ cause: "Fleet isn't set up for this Board.", state: "not-configured" })],
-			"fleet work": [fleetWork(), { authored: [], reason: "Fleet isn't set up for this Board.", state: "unavailable" }],
-		});
+		yield* outcomes([
+			["fleet source", () => fleetSource(), expect.objectContaining({ cause: "Fleet isn't set up for this Board.", state: "not-configured" })],
+			["fleet work", () => fleetWork(), { authored: [], reason: "Fleet isn't set up for this Board.", state: "unavailable" }],
+		]);
 	},
 );
 

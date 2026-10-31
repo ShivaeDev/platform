@@ -132,11 +132,11 @@ skills.it(
 	function* ({ folder, manifest, skillFolders, sync }) {
 		yield* sync();
 
-		yield* outcomes({
-			"own beta": [folder(".claude/skills/beta"), { "SKILL.md": OWN_SKILL }],
-			"skill folders": [skillFolders(), { ".agents/skills": [], ".claude/skills": ["beta"] }],
-			"sync manifest": [manifest(), "missing"],
-		});
+		yield* outcomes([
+			["own beta", () => folder(".claude/skills/beta"), { "SKILL.md": OWN_SKILL }],
+			["skill folders", () => skillFolders(), { ".agents/skills": [], ".claude/skills": ["beta"] }],
+			["sync manifest", () => manifest(), "missing"],
+		]);
 	},
 );
 

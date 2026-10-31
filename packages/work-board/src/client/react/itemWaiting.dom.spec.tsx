@@ -80,18 +80,19 @@ screenStory.it(
 	"a next action names the items and files it mentions by title, with their status, and leaves unknown IDs and PR numbers plain without a repository",
 	[routedScreen(FILES, TASK, { home: "home.md" })],
 	function* ({ itemHeaderText, nextActionMentions, nextActionPullRequests }) {
-		yield* outcomes({
-			mentions: [
-				nextActionMentions(),
+		yield* outcomes([
+			[
+				"mentions",
+				() => nextActionMentions(),
 				[
 					"Your pooling design -> /_board/item/question.pool/ (Ready)",
 					"Finished goal -> /_board/item/goal.old/ (Done)",
 					"The pooling plan -> /notes/plan.md",
 				],
 			],
-			"plain words": [itemHeaderText(), expect.stringContaining("and task.missing. Merge #828 and PR 12.")],
-			"pull requests": [nextActionPullRequests(), []],
-		});
+			["plain words", () => itemHeaderText(), expect.stringContaining("and task.missing. Merge #828 and PR 12.")],
+			["pull requests", () => nextActionPullRequests(), []],
+		]);
 	},
 );
 
@@ -110,10 +111,10 @@ screenStory.it(
 	"pressing Answer at the top of a question puts keyboard focus in its answer box",
 	[routedScreen({ ...textQuestionFixture }, `/_board/item/${TEXT_QUESTION_ID}/`, { home: "home.md", writable: true })],
 	function* ({ answerBoxState, answerJump, pressAnswerJump }) {
-		yield* outcomes({
-			"Answer control": [answerJump(), "Answer"],
-			"answer box": [answerBoxState(), expect.objectContaining({ focused: false })],
-		});
+		yield* outcomes([
+			["Answer control", () => answerJump(), "Answer"],
+			["answer box", () => answerBoxState(), expect.objectContaining({ focused: false })],
+		]);
 
 		yield* pressAnswerJump();
 
@@ -125,9 +126,9 @@ screenStory.it(
 	"a task whose answer card already leads the page has no Answer control in its header",
 	[routedScreen(answerCardFixture, "/_board/item/task.guide/", { home: "home.md", writable: true })],
 	function* ({ answerJump, cardTitle }) {
-		yield* outcomes({
-			"Answer control": [answerJump(), "none"],
-			"answer card": [cardTitle(), "Answer: Publish the install guide"],
-		});
+		yield* outcomes([
+			["Answer control", () => answerJump(), "none"],
+			["answer card", () => cardTitle(), "Answer: Publish the install guide"],
+		]);
 	},
 );

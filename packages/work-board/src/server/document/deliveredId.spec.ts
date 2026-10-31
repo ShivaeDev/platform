@@ -12,10 +12,10 @@ boardStory.it(
 	function* ({ fleetBriefRequests, itemDiagnostics, savedFile }) {
 		const diagnostics = yield* itemDiagnostics("/new.md");
 
-		yield* outcomes({
-			"brief file": [savedFile("new.md"), SOURCE],
-			"briefs asked about": [fleetBriefRequests(), [["fleet.example at new.md"]]],
-		});
+		yield* outcomes([
+			["brief file", () => savedFile("new.md"), SOURCE],
+			["briefs asked about", () => fleetBriefRequests(), [["fleet.example at new.md"]]],
+		]);
 		expect(diagnostics).toEqual([{ field: "id", line: 2, message: REFUSAL }]);
 	},
 );
@@ -30,7 +30,7 @@ for (const status of ["done", "dropped"]) {
 		function* ({ fleetBriefRequests, itemDiagnostics }) {
 			const diagnostics = yield* itemDiagnostics("/archive/old.md");
 
-			yield* outcomes({ "briefs asked about": [fleetBriefRequests(), []] });
+			yield* outcomes([["briefs asked about", () => fleetBriefRequests(), []]]);
 			expect(diagnostics).toEqual([]);
 		},
 	);

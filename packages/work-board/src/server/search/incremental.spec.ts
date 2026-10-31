@@ -15,11 +15,11 @@ indexStory.it(
 		yield* editorWritesKeepingTimestamp("a.md", "---\nid: a\n---\n# Changed");
 		yield* watcherReports("a.md");
 
-		yield* outcomes({
-			"body of a.md": [bodyOf("a.md"), "# Changed"],
-			"documents kept": [keptDocuments(), ["b.md", "c.md"]],
-			"files read": [filesRead(), ["a.md"]],
-		});
+		yield* outcomes([
+			["body of a.md", () => bodyOf("a.md"), "# Changed"],
+			["documents kept", () => keptDocuments(), ["b.md", "c.md"]],
+			["files read", () => filesRead(), ["a.md"]],
+		]);
 	},
 );
 
@@ -30,10 +30,10 @@ indexStory.it(
 		yield* editorAdds("added.md", "# Added");
 		yield* watcherReports("added.md");
 
-		yield* outcomes({
-			"files read": [filesRead(), ["added.md"]],
-			"indexed paths": [indexedPaths(), ["a.md", "added.md", "b.md", "c.md"]],
-		});
+		yield* outcomes([
+			["files read", () => filesRead(), ["added.md"]],
+			["indexed paths", () => indexedPaths(), ["a.md", "added.md", "b.md", "c.md"]],
+		]);
 	},
 );
 
@@ -46,10 +46,10 @@ indexStory.it(
 		yield* editorRemoves("b.md");
 		yield* watcherReports("b.md");
 
-		yield* outcomes({
-			"files read": [filesRead(), []],
-			"indexed identities": [indexedIds(), ["a"]],
-		});
+		yield* outcomes([
+			["files read", () => filesRead(), []],
+			["indexed identities", () => indexedIds(), ["a"]],
+		]);
 	},
 );
 
@@ -60,10 +60,10 @@ indexStory.it(
 		yield* editorMoves("a.md", "moved.md");
 		yield* watcherReports("a.md", "moved.md");
 
-		yield* outcomes({
-			"differences from a fresh scan": [indexDifferences(), []],
-			"files read": [filesRead(), ["moved.md"]],
-		});
+		yield* outcomes([
+			["differences from a fresh scan", () => indexDifferences(), []],
+			["files read", () => filesRead(), ["moved.md"]],
+		]);
 	},
 );
 
@@ -74,10 +74,10 @@ indexStory.it(
 		yield* editorWritesKeepingTimestamp("a.md", "---\nid: a\n---\n# Changed");
 		yield* fullCheckRuns();
 
-		yield* outcomes({
-			"differences from a fresh scan": [indexDifferences(), []],
-			"documents kept": [keptDocuments(), ["b.md"]],
-		});
+		yield* outcomes([
+			["differences from a fresh scan", () => indexDifferences(), []],
+			["documents kept", () => keptDocuments(), ["b.md"]],
+		]);
 	},
 );
 
@@ -90,10 +90,10 @@ indexStory.it(
 		yield* readingDenied("a.md");
 		yield* watcherReports("a.md");
 
-		yield* outcomes({
-			"differences from a fresh scan": [indexDifferences(), []],
-			"unavailable files": [unavailableFiles(), ["a.md"]],
-		});
+		yield* outcomes([
+			["differences from a fresh scan", () => indexDifferences(), []],
+			["unavailable files", () => unavailableFiles(), ["a.md"]],
+		]);
 	},
 );
 
@@ -105,11 +105,11 @@ indexStory.it(
 
 		yield* readingRecovers();
 
-		yield* outcomes({
-			"differences from a fresh scan": [indexDifferences(), []],
-			"files read": [filesRead(), ["a.md"]],
-			"unavailable files": [unavailableFiles(), []],
-		});
+		yield* outcomes([
+			["differences from a fresh scan", () => indexDifferences(), []],
+			["files read", () => filesRead(), ["a.md"]],
+			["unavailable files", () => unavailableFiles(), []],
+		]);
 	},
 );
 
@@ -135,19 +135,19 @@ indexStory.it(
 	"a reported edit with a newer modification time moves the question in Inbox and search order and records the new time",
 	[questionsAged],
 	function* ({ editorWritesAt, inboxOrder, modifiedAt, searchOrder, watcherReports }) {
-		yield* outcomes({
-			"Inbox order": [inboxOrder(), ["a", "b"]],
-			"search order": [searchOrder("question"), ["b", "a"]],
-		});
+		yield* outcomes([
+			["Inbox order", () => inboxOrder(), ["a", "b"]],
+			["search order", () => searchOrder("question"), ["b", "a"]],
+		]);
 
 		yield* editorWritesAt("a.md", `${QUESTIONS["a.md"]}\nChanged context`, 10);
 		yield* watcherReports("a.md");
 
-		yield* outcomes({
-			"Inbox order": [inboxOrder(), ["b", "a"]],
-			"modification time of a.md": [modifiedAt("a.md"), 10_000],
-			"search order": [searchOrder("question"), ["a", "b"]],
-		});
+		yield* outcomes([
+			["Inbox order", () => inboxOrder(), ["b", "a"]],
+			["modification time of a.md", () => modifiedAt("a.md"), 10_000],
+			["search order", () => searchOrder("question"), ["a", "b"]],
+		]);
 	},
 );
 
@@ -159,19 +159,19 @@ for (const [noticed, notice] of [
 		`when ${noticed}, a new timestamp without new bytes reorders Inbox and search while the parsed document is kept`,
 		[questionsAged],
 		function* (index) {
-			yield* outcomes({
-				"Inbox order": [index.inboxOrder(), ["a", "b"]],
-				"search order": [index.searchOrder("question"), ["b", "a"]],
-			});
+			yield* outcomes([
+				["Inbox order", () => index.inboxOrder(), ["a", "b"]],
+				["search order", () => index.searchOrder("question"), ["b", "a"]],
+			]);
 
 			yield* index.editorStamps("a.md", 3 * 86_400);
 			yield* notice === "watcherReports" ? index.watcherReports("a.md") : index.fullCheckRuns();
 
-			yield* outcomes({
-				"documents kept": [index.keptDocuments(), ["a.md", "b.md"]],
-				"Inbox order": [index.inboxOrder(), ["b", "a"]],
-				"search order": [index.searchOrder("question"), ["a", "b"]],
-			});
+			yield* outcomes([
+				["documents kept", () => index.keptDocuments(), ["a.md", "b.md"]],
+				["Inbox order", () => index.inboxOrder(), ["b", "a"]],
+				["search order", () => index.searchOrder("question"), ["a", "b"]],
+			]);
 		},
 	);
 }

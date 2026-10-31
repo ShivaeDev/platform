@@ -12,10 +12,10 @@ app.it("imports a source title into alice's persisted notes through outbound HTT
 	const imported = yield* notes.import({ id: 7 });
 
 	expect(imported.title).toBe("A note from outside");
-	yield* outcomes({
-		"alice's notes": [notes.list(), [imported]],
-		"persisted notes": [storedNotes(), [expect.objectContaining(imported)]],
-	});
+	yield* outcomes([
+		["alice's notes", () => notes.list(), [imported]],
+		["persisted notes", () => storedNotes(), [expect.objectContaining(imported)]],
+	]);
 	expect(sourceRequests()).toEqual([{ method: "GET", path: "/posts/7", status: HttpStatus.fromLiteral("OK") }]);
 });
 

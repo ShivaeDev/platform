@@ -45,10 +45,10 @@ screenStory.it(
 
 		yield* chooseAppearance("Dark");
 
-		yield* outcomes({
-			notice: [preferenceNotice(), expect.stringContaining("this page only")],
-			scheme: [pageAppearance(), expect.objectContaining({ scheme: "dark" })],
-		});
+		yield* outcomes([
+			["notice", () => preferenceNotice(), expect.stringContaining("this page only")],
+			["scheme", () => pageAppearance(), expect.objectContaining({ scheme: "dark" })],
+		]);
 	},
 );
 
@@ -83,9 +83,9 @@ screenStory.it(
 		}),
 	],
 	function* ({ detailsBlock }) {
-		yield* outcomes({
-			First: [detailsBlock("First"), "closed"],
-			Second: [detailsBlock("Second"), "open"],
-		});
+		yield* outcomes([
+			["First", () => detailsBlock("First"), "closed"],
+			["Second", () => detailsBlock("Second"), "open"],
+		]);
 	},
 );

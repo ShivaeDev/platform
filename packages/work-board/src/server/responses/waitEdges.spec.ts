@@ -28,11 +28,11 @@ boardStory.it(
 		yield* agentClockAdvances("2 seconds");
 		yield* agentClockAdvances("2 seconds");
 
-		yield* outcomes({
-			"agent's wait": [agentWaitOutcome(), "response.edge"],
-			messages: [agentMessages(), ["Local service unavailable; reconnecting to the same question."]],
-			"request times": [serviceRequestTimes(), [0, 2000, 4000, 4000]],
-		});
+		yield* outcomes([
+			["agent's wait", () => agentWaitOutcome(), "response.edge"],
+			["messages", () => agentMessages(), ["Local service unavailable; reconnecting to the same question."]],
+			["request times", () => serviceRequestTimes(), [0, 2000, 4000, 4000]],
+		]);
 	},
 );
 
@@ -42,12 +42,13 @@ boardStory.it(
 	function* ({ agentWaitOutcome, agentWaitStarts, serviceRequestTimes }) {
 		yield* agentWaitStarts();
 
-		yield* outcomes({
-			"agent's wait": [
-				agentWaitOutcome(),
+		yield* outcomes([
+			[
+				"agent's wait",
+				() => agentWaitOutcome(),
 				"unavailable: The service is unavailable at the deadline; unanswered status could not be verified. Re-read this question when it returns.",
 			],
-			"request times": [serviceRequestTimes(), [0, 0]],
-		});
+			["request times", () => serviceRequestTimes(), [0, 0]],
+		]);
 	},
 );

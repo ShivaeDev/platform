@@ -24,9 +24,9 @@ screenStory.it(
 
 		yield* previewAnswer();
 
-		yield* outcomes({
-			problems: [fieldProblems(), { ids: "each its own", shown: [] }],
-			status: [answerStatusLine(), expect.not.stringContaining("Unanswered")],
-		});
+		yield* outcomes([
+			["problems", () => fieldProblems(), { ids: "each its own", shown: [] }],
+			["status", () => answerStatusLine(), expect.not.stringContaining("Unanswered")],
+		]);
 	},
 );

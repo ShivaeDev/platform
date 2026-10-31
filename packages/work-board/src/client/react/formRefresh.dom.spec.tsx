@@ -37,10 +37,10 @@ for (const { box, prompt, source, underMoreOptions } of answerBoxes) {
 			yield* editFile("task.md", `${source}${CHANGED}`);
 			yield* refreshQuery("document", { url: URL });
 
-			yield* outcomes({
-				draft: [answerBoxState(prompt), { focused: true, selection: [4, 9], text: DRAFT }],
-				status: [answerStatusLine(), expect.stringContaining("Source changed")],
-			});
+			yield* outcomes([
+				["draft", () => answerBoxState(prompt), { focused: true, selection: [4, 9], text: DRAFT }],
+				["status", () => answerStatusLine(), expect.stringContaining("Source changed")],
+			]);
 		},
 	);
 
@@ -68,11 +68,11 @@ for (const { box, prompt, source, underMoreOptions } of answerBoxes) {
 
 			yield* reloadPage();
 
-			yield* outcomes({
-				draft: [answerBoxState(prompt), { focused: true, selection: [4, 9], text: DRAFT }],
-				"More options": [moreOptionsState(), underMoreOptions ? "open" : "closed"],
-				status: [answerStatusLine(), expect.stringContaining("Source changed")],
-			});
+			yield* outcomes([
+				["draft", () => answerBoxState(prompt), { focused: true, selection: [4, 9], text: DRAFT }],
+				["More options", () => moreOptionsState(), underMoreOptions ? "open" : "closed"],
+				["status", () => answerStatusLine(), expect.stringContaining("Source changed")],
+			]);
 		},
 	);
 }
@@ -91,10 +91,10 @@ screenStory.it(
 		yield* editFile("task.md", `${TASK}${CHANGED}`);
 		yield* refreshQuery("handoff", { url: HANDOFF_URL });
 
-		yield* outcomes({
-			goal: [handoffField("Goal"), expect.objectContaining({ focused: true, selection: [4, 9], text: DRAFT })],
-			status: [handoffStatus(), expect.stringContaining("Source changed")],
-		});
+		yield* outcomes([
+			["goal", () => handoffField("Goal"), expect.objectContaining({ focused: true, selection: [4, 9], text: DRAFT })],
+			["status", () => handoffStatus(), expect.stringContaining("Source changed")],
+		]);
 	},
 );
 
@@ -109,9 +109,9 @@ screenStory.it(
 
 		yield* reloadPage();
 
-		yield* outcomes({
-			goal: [handoffField("Goal"), expect.objectContaining({ focused: true, selection: [4, 9], text: DRAFT })],
-			status: [handoffStatus(), expect.stringContaining("Source changed")],
-		});
+		yield* outcomes([
+			["goal", () => handoffField("Goal"), expect.objectContaining({ focused: true, selection: [4, 9], text: DRAFT })],
+			["status", () => handoffStatus(), expect.stringContaining("Source changed")],
+		]);
 	},
 );

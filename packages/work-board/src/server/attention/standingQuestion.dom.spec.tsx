@@ -27,10 +27,10 @@ screenStory.it(
 	[standingQuestion],
 	function* ({ answerPrompt, answeredOnToday, check, navigate, needsYouItems, needsYouSection, sendPacket }) {
 		yield* navigate("/");
-		yield* outcomes({
-			answered: [answeredOnToday(STANDING_QUESTION_ID), "not listed"],
-			"needs you": [needsYouItems(), [STANDING_QUESTION_ID]],
-		});
+		yield* outcomes([
+			["answered", () => answeredOnToday(STANDING_QUESTION_ID), "not listed"],
+			["needs you", () => needsYouItems(), [STANDING_QUESTION_ID]],
+		]);
 		yield* navigate(`/_board/item/${STANDING_QUESTION_ID}/`);
 		yield* check("reviewed");
 		yield* answerPrompt("release-policy", "Include the release notes.");
@@ -38,10 +38,10 @@ screenStory.it(
 		yield* sendPacket();
 
 		yield* navigate("/");
-		yield* outcomes({
-			answered: [answeredOnToday(STANDING_QUESTION_ID), "When should releases ship? · You chose After review · Waiting on the agent."],
-			"needs you": [needsYouItems(), []],
-			section: [needsYouSection(), expect.stringContaining("Nothing needs you")],
-		});
+		yield* outcomes([
+			["answered", () => answeredOnToday(STANDING_QUESTION_ID), "When should releases ship? · You chose After review · Waiting on the agent."],
+			["needs you", () => needsYouItems(), []],
+			["section", () => needsYouSection(), expect.stringContaining("Nothing needs you")],
+		]);
 	},
 );

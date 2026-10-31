@@ -10,10 +10,14 @@ for (const { field, value, kind } of unmappedCases) {
 		`an unmapped ${kind} ${field} value ${JSON.stringify(value)} fails the migration before any file is rewritten`,
 		[projectFiles(files), fleetAcceptsEveryBrief, deferredServing],
 		function* ({ failedMigration, savedFiles }) {
-			yield* outcomes({
-				files: [savedFiles(Object.keys(files)), files],
-				migration: [failedMigration(), { errors: expect.stringContaining(`z-unknown.md: ${field}: ${JSON.stringify(value)}`), exit: "failed" }],
-			});
+			yield* outcomes([
+				["files", () => savedFiles(Object.keys(files)), files],
+				[
+					"migration",
+					() => failedMigration(),
+					{ errors: expect.stringContaining(`z-unknown.md: ${field}: ${JSON.stringify(value)}`), exit: "failed" },
+				],
+			]);
 		},
 	);
 }
@@ -37,9 +41,9 @@ boardStory.it(
 		yield* migrationRuns();
 		yield* start();
 
-		yield* outcomes({
-			metadata: [itemMetadata("/released.md"), expect.objectContaining({ fleet: "held", status: "ready" })],
-			problems: [itemDiagnostics("/released.md"), []],
-		});
+		yield* outcomes([
+			["metadata", () => itemMetadata("/released.md"), expect.objectContaining({ fleet: "held", status: "ready" })],
+			["problems", () => itemDiagnostics("/released.md"), []],
+		]);
 	},
 );

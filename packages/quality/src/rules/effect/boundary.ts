@@ -1,5 +1,10 @@
+import { join } from "node:path";
 import ts from "typescript";
-import { defineRule, type Finding } from "#rule.ts";
+import { defineRule, type Finding, type RuleInputs } from "#rule.ts";
+import { boundaryCalls } from "#rules/effect/boundaryCalls.ts";
+import { boundaryEntryPoint } from "#rules/effect/boundaryReference.ts";
+import { effectProgram } from "#rules/effect/program.ts";
+import { promiseParameter } from "#rules/effect/promiseParameter.ts";
 import { parse } from "#rules/parse.ts";
 
 function asyncConstruct(node: ts.Node): string | undefined {
@@ -44,32 +49,51 @@ function construct(node: ts.Node): string | undefined {
 	return ts.isThrowStatement(node) ? "throw statement" : asyncConstruct(node);
 }
 
+function checkBoundary(inputs: RuleInputs): readonly Finding[] {
+	const program = effectProgram(inputs, false);
+	const checker = program.getTypeChecker();
+	const call = boundaryCalls(checker);
+	return inputs.sources.flatMap((file) => {
+		if (/(?:^|\/)(?:adapters|test-support)\//u.test(file.path)) {
+			return [];
+		}
+		const source = parse(file) === undefined ? undefined : program.getSourceFile(join(inputs.root, file.path));
+		const findings: Finding[] = [];
+		const entryPoint = source !== undefined && boundaryEntryPoint(file.path, source, checker);
+		function visit(node: ts.Node): void {
+			const name = construct(node) ?? call(node, entryPoint) ?? promiseParameter(checker, node);
+			if (name !== undefined && source !== undefined) {
+				findings.push({
+					file: file.path,
+					line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+					message: `Uses ${name}. Model the work with Effect; fail with a tagged error (or Effect.die for a defect). Move a bridge to an outside library into an adapters/ folder, returning Effect values.`,
+				});
+			}
+			ts.forEachChild(node, visit);
+		}
+		if (source !== undefined) {
+			visit(source);
+		}
+		return findings;
+	});
+}
+
 export const effectBoundary = defineRule({
-	check: ({ sources }) =>
-		sources.flatMap((file) => {
-			if (/(?:^|\/)(?:adapters|test-support)\//u.test(file.path)) {
-				return [];
+	check: (inputs) => {
+		const groups = new Map<string, RuleInputs["sources"][number][]>();
+		for (const source of inputs.sources) {
+			if (/(?:^|\/)(?:adapters|test-support)\//u.test(source.path) || !/\.[cm]?[jt]sx?$/u.test(source.path)) {
+				continue;
 			}
-			const source = parse(file);
-			const findings: Finding[] = [];
-			function visit(node: ts.Node): void {
-				const name = construct(node);
-				if (name !== undefined && source !== undefined) {
-					findings.push({
-						file: file.path,
-						line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
-						message: `Uses ${name}. Model the work with Effect; fail with a tagged error (or Effect.die for a defect). Move a bridge to an outside library into an adapters/ folder, returning Effect values.`,
-					});
-				}
-				ts.forEachChild(node, visit);
-			}
-			if (source !== undefined) {
-				visit(source);
-			}
-			return findings;
-		}),
+			const group = /^(?:packages|examples)\/[^/]+/u.exec(source.path)?.[0] ?? ".";
+			const sources = groups.get(group) ?? [];
+			sources.push(source);
+			groups.set(group, sources);
+		}
+		return [...groups.values()].flatMap((sources) => checkBoundary({ ...inputs, sources }));
+	},
 	description:
-		"All checked source, tooling and specs use Effect instead of async, await, new Promise, .then, try or throw. Only adapters/ and test-support/ folders at any depth are exempt. adapters/ bridges outside libraries to Effect; it remains subject to service-parameter and ambient runtime bans. Use tagged errors or Effect.die for defects. Config exceptions and inline suppressions are refused; baseline existing debt.",
+		"Use Effect instead of Promise syntax and parameters, synchronous Node IO, throwing helper calls or Effect.sync with throwing APIs. Runners belong at entry points, tool configs and tests. Only adapters/ and test-support/ folders are exempt. Use Effect services and tagged errors; bridge outside libraries in adapters/. No config exceptions or inline suppressions; baseline existing debt.",
 	id: "effect/boundary",
 	registrable: false,
 });

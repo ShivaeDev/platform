@@ -21,10 +21,10 @@ screenStory.it(
 
 		yield* reloadShell();
 
-		yield* outcomes({
-			preferences: [shellPreferences(), { density: "compact", sidebar: "closed", theme: "dark" }],
-			"sidebar button": [sidebarButton(), expect.objectContaining({ expanded: "false" })],
-		});
+		yield* outcomes([
+			["preferences", () => shellPreferences(), { density: "compact", sidebar: "closed", theme: "dark" }],
+			["sidebar button", () => sidebarButton(), expect.objectContaining({ expanded: "false" })],
+		]);
 	},
 );
 
@@ -37,10 +37,10 @@ screenStory.it(
 
 		yield* refreshDocument("/notes/plan.md");
 
-		yield* outcomes({
-			document: [readText("#doc"), expect.stringContaining("More evidence.")],
-			evidence: [detailsBlock("Evidence"), "open"],
-		});
+		yield* outcomes([
+			["document", () => readText("#doc"), expect.stringContaining("More evidence.")],
+			["evidence", () => detailsBlock("Evidence"), "open"],
+		]);
 	},
 );
 
@@ -66,9 +66,9 @@ screenStory.it(
 
 		yield* reloadShell();
 
-		yield* outcomes({
-			pinned: [sidebarLinks("Pinned"), [{ href: "/notes/plan.md", title: "Plan" }]],
-			recent: [sidebarLinks("Recent"), [{ href: "/notes/deep/proof.md", title: "Proof" }]],
-		});
+		yield* outcomes([
+			["pinned", () => sidebarLinks("Pinned"), [{ href: "/notes/plan.md", title: "Plan" }]],
+			["recent", () => sidebarLinks("Recent"), [{ href: "/notes/deep/proof.md", title: "Proof" }]],
+		]);
 	},
 );

@@ -94,16 +94,17 @@ lockStory.it(
 
 		yield* cli.releases("first");
 
-		yield* outcomes({
-			"printed by second": [
-				cli.printedBy("second"),
+		yield* outcomes([
+			[
+				"printed by second",
+				() => cli.printedBy("second"),
 				[
 					expect.stringContaining(`waiting for pid ${first} running \`${cli.commands.holdsUntilReleased.join(" ")}\``),
 					expect.stringMatching(/^heavy-process lock: acquired after \d+s$/u),
 				],
 			],
-			"second ran its command": [cli.ranItsCommand("second"), true],
-		});
+			["second ran its command", () => cli.ranItsCommand("second"), true],
+		]);
 	},
 	liveCli,
 );
@@ -132,10 +133,10 @@ lockStory.it(
 	function* ({ cli, lock }) {
 		yield* cli.runs("check", cli.commands.reportsHolderId);
 
-		yield* outcomes({
-			"check's holder id": [cli.holderIdGivenTo("check"), "no holder id"],
-			"lock holder": [lock.holder(), "typecheck"],
-		});
+		yield* outcomes([
+			["check's holder id", () => cli.holderIdGivenTo("check"), "no holder id"],
+			["lock holder", () => lock.holder(), "typecheck"],
+		]);
 	},
 	liveCli,
 );
@@ -157,10 +158,10 @@ lockStory.it(
 	function* ({ cli }) {
 		yield* cli.runs("check", ["no-such-command-anywhere"]);
 
-		yield* outcomes({
-			"check's exit code": [cli.exitCodeOf("check"), 127],
-			"printed by check": [cli.printedBy("check"), [expect.stringMatching(/^no-such-command-anywhere: /u)]],
-		});
+		yield* outcomes([
+			["check's exit code", () => cli.exitCodeOf("check"), 127],
+			["printed by check", () => cli.printedBy("check"), [expect.stringMatching(/^no-such-command-anywhere: /u)]],
+		]);
 	},
 	liveCli,
 );

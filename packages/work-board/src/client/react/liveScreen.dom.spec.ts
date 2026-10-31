@@ -20,10 +20,10 @@ screenStory.it(
 
 		yield* refreshBoardPage("/board.md");
 
-		yield* outcomes({
-			"the board": [boardTaskCount(), "2 to do"],
-			"the Library count": [navigationSummary(), expect.objectContaining({ libraryCount: Object.keys(FILES).length + 1 })],
-		});
+		yield* outcomes([
+			["the board", () => boardTaskCount(), "2 to do"],
+			["the Library count", () => navigationSummary(), expect.objectContaining({ libraryCount: Object.keys(FILES).length + 1 })],
+		]);
 	},
 );
 
@@ -41,9 +41,10 @@ screenStory.it(
 	"asks only for the answer up front, folds the reply type under details and neither asks for nor shows the remembered author",
 	rememberedAuthor,
 	function* ({ answerForm, pageText }) {
-		yield* outcomes({
-			"the form": [
-				answerForm(),
+		yield* outcomes([
+			[
+				"the form",
+				() => answerForm(),
 				{
 					author: "not asked",
 					details: "closed",
@@ -53,8 +54,8 @@ screenStory.it(
 					type: "under details",
 				},
 			],
-			"the page": [pageText(), expect.not.stringContaining("Casey")],
-		});
+			["the page", () => pageText(), expect.not.stringContaining("Casey")],
+		]);
 	},
 );
 
@@ -68,10 +69,10 @@ screenStory.it(
 
 		yield* submitAnswer();
 
-		yield* outcomes({
-			"the authors": [savedAnswerAuthors("question.backup", "answer"), ["Casey"]],
-			"the status": [answerSaveStatus(), expect.stringContaining("Answer saved")],
-		});
+		yield* outcomes([
+			["the authors", () => savedAnswerAuthors("question.backup", "answer"), ["Casey"]],
+			["the status", () => answerSaveStatus(), expect.stringContaining("Answer saved")],
+		]);
 	},
 );
 

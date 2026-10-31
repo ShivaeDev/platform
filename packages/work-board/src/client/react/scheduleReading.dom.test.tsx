@@ -27,12 +27,12 @@ screenStory.it(
 	function* ({ readMotion, readReadingStatus, restoreSavedReading }) {
 		yield* restoreSavedReading([0, 480], PASSAGE);
 
-		yield* outcomes({
-			announcements: [readReadingStatus(), [""]],
-			focus: [readMotion("focus"), []],
-			"passage scrolls": [readMotion("passage"), []],
-			"window scrolls": [readMotion("scroll"), [[0, 480]]],
-		});
+		yield* outcomes([
+			["announcements", () => readReadingStatus(), [""]],
+			["focus", () => readMotion("focus"), []],
+			["passage scrolls", () => readMotion("passage"), []],
+			["window scrolls", () => readMotion("scroll"), [[0, 480]]],
+		]);
 	},
 );
 
@@ -47,7 +47,7 @@ const missingPassage = {
 	"open sections": ["More"],
 	"passage scrolls": [],
 	status: { state: "normal", text: "This passage is no longer in the document." },
-	"window scrolls": [[0, 480]],
+	"window scrolls": [[0, 480]] satisfies [number, number][],
 };
 
 screenStory.it(
@@ -75,14 +75,14 @@ screenStory.it(
 
 		yield* goBack();
 
-		yield* outcomes({
-			focus: [readerFocus(), "the page"],
-			hash: [addressHash(), missingPassage.hash],
-			"open sections": [openSections(), missingPassage["open sections"]],
-			"passage scrolls": [readMotion("passage"), missingPassage["passage scrolls"]],
-			status: [navigationStatus(), missingPassage.status],
-			"window scrolls": [readMotion("scroll"), missingPassage["window scrolls"]],
-		});
+		yield* outcomes([
+			["focus", () => readerFocus(), "the page"],
+			["hash", () => addressHash(), missingPassage.hash],
+			["open sections", () => openSections(), missingPassage["open sections"]],
+			["passage scrolls", () => readMotion("passage"), missingPassage["passage scrolls"]],
+			["status", () => navigationStatus(), missingPassage.status],
+			["window scrolls", () => readMotion("scroll"), missingPassage["window scrolls"]],
+		]);
 	},
 );
 
@@ -108,13 +108,13 @@ screenStory.it(
 
 		yield* reloadReading();
 
-		yield* outcomes({
-			focus: [readerFocus(), "nothing"],
-			hash: [addressHash(), missingPassage.hash],
-			"open sections": [openSections(), missingPassage["open sections"]],
-			"passage scrolls": [readMotion("passage"), missingPassage["passage scrolls"]],
-			status: [navigationStatus(), missingPassage.status],
-			"window scrolls": [readMotion("scroll"), missingPassage["window scrolls"]],
-		});
+		yield* outcomes([
+			["focus", () => readerFocus(), "nothing"],
+			["hash", () => addressHash(), missingPassage.hash],
+			["open sections", () => openSections(), missingPassage["open sections"]],
+			["passage scrolls", () => readMotion("passage"), missingPassage["passage scrolls"]],
+			["status", () => navigationStatus(), missingPassage.status],
+			["window scrolls", () => readMotion("scroll"), missingPassage["window scrolls"]],
+		]);
 	},
 );

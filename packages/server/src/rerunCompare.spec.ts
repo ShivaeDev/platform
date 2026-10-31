@@ -22,10 +22,10 @@ rerunStory.it(
 		yield* rename(3n, "One more");
 		yield* untilShown("One more");
 
-		yield* outcomes({
-			"alice's notes": [shown(), [new Note({ id: 1n, owner: "alice", title: "One" }), new Note({ id: 3n, owner: "alice", title: "One more" })]],
-			"client reads": [clientReads(), []],
-		});
+		yield* outcomes([
+			["alice's notes", () => shown(), [new Note({ id: 1n, owner: "alice", title: "One" }), new Note({ id: 3n, owner: "alice", title: "One more" })]],
+			["client reads", () => clientReads(), []],
+		]);
 	},
 );
 

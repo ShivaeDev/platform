@@ -22,13 +22,14 @@ vitestRun.it(
 	function* ({ outcome, runs }) {
 		yield* runs("a test whose cleanup never finishes", "the test after a cleanup that never finishes");
 
-		yield* outcomes({
-			"the next test": [outcome("the test after a cleanup that never finishes"), "passed"],
-			"the stuck test": [
-				outcome("a test whose cleanup never finishes"),
+		yield* outcomes([
+			["the next test", () => outcome("the test after a cleanup that never finishes"), "passed"],
+			[
+				"the stuck test",
+				() => outcome("a test whose cleanup never finishes"),
 				'failed: Test timed out in 25ms. / Test scope "a test whose cleanup never finishes" did not close within 5000ms.',
 			],
-		});
+		]);
 	},
 );
 

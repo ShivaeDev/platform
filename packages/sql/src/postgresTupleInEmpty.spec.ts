@@ -15,10 +15,10 @@ queries.it("findMany with an empty tuple list reads no sources", [sourceRows()],
 queries.it("a select with an empty tuple list copies no sources", [sourceRows()], function* ({ copies, copySelected, lastResult }) {
 	yield* copySelected({ where: noTuples });
 
-	yield* outcomes({
-		"copied rows returned": [lastResult(), []],
-		"stored copies": [copies(), []],
-	});
+	yield* outcomes([
+		["copied rows returned", () => lastResult(), []],
+		["stored copies", () => copies(), []],
+	]);
 });
 
 queries.it("delete with an empty tuple list keeps every source", [sourceRows()], function* ({ deleteSources, sources }) {

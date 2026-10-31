@@ -30,13 +30,14 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			exit: [outcome(), "rejected"],
-			report: [
-				stdout(),
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			[
+				"report",
+				() => stdout(),
 				expect.stringContaining("error biome/lint/suspicious/noExplicitAny (1)\n  src/parse.ts:1  Unexpected any. Specify a different type."),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -47,10 +48,10 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			exit: [outcome(), "rejected"],
-			report: [stdout(), expect.stringContaining("error biome/format (1)\n  src/b.ts  Is not formatted. Run `quality fix`.")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["report", () => stdout(), expect.stringContaining("error biome/format (1)\n  src/b.ts  Is not formatted. Run `quality fix`.")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -61,10 +62,10 @@ repositoryStory.it(
 	function* ({ reads, runs, stdout }) {
 		yield* runs("baseline", "write");
 
-		yield* outcomes({
-			baseline: [reads("quality-baseline.jsonl"), '{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n'],
-			report: [stdout(), "quality: recorded 1 entry in quality-baseline.jsonl.\n"],
-		});
+		yield* outcomes([
+			["baseline", () => reads("quality-baseline.jsonl"), '{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n'],
+			["report", () => stdout(), "quality: recorded 1 entry in quality-baseline.jsonl.\n"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -79,10 +80,10 @@ repositoryStory.it(
 		yield* writes(SECOND_UNTYPED_FUNCTION);
 		yield* runs("lint");
 
-		yield* outcomes({
-			exit: [outcome(), "rejected"],
-			report: [stdout(), expect.stringContaining("src/parse.ts is over its baseline: 2 against 1 baselined.")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["report", () => stdout(), expect.stringContaining("src/parse.ts is over its baseline: 2 against 1 baselined.")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -104,13 +105,14 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			exit: [outcome(), "rejected"],
-			report: [
-				stdout(),
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			[
+				"report",
+				() => stdout(),
 				expect.stringContaining('error biome/preset (1)\n  biome.json  Extend "@shivaedev/quality/biome/preset.json" from the root Biome config.'),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -138,11 +140,11 @@ repositoryStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"Biome's message": [stderr(), expect.stringContaining("Found an unknown key `unknownKey`.")],
-			"exit": [outcome(), "invalid"],
-			"failing rule": [stderr(), expect.stringContaining("rule biome failed: biome check")],
-		});
+		yield* outcomes([
+			["Biome's message", () => stderr(), expect.stringContaining("Found an unknown key `unknownKey`.")],
+			["exit", () => outcome(), "invalid"],
+			["failing rule", () => stderr(), expect.stringContaining("rule biome failed: biome check")],
+		]);
 	},
 	CLI_TIMEOUT,
 );

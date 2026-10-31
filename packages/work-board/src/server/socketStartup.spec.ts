@@ -10,12 +10,12 @@ boardStory.it(
 	"a board in a deeply nested folder stages its socket at an address no longer than the public one and answers on the owner-only socket",
 	[longSocketProject, stagingObserved],
 	function* ({ serverAnswer, socketFile, socketRead, stagingFits }) {
-		yield* outcomes({
-			"an Inbox read": [socketRead("work-board.inbox"), "answered"],
-			"the server answer": [serverAnswer("socket"), { directory: "the project folder", url: "the board" }],
-			"the socket": [socketFile(), "owner read-write socket"],
-			"the staged address": [stagingFits(), "no longer than the public socket"],
-		});
+		yield* outcomes([
+			["an Inbox read", () => socketRead("work-board.inbox"), "answered"],
+			["the server answer", () => serverAnswer("socket"), { directory: "the project folder", url: "the board" }],
+			["the socket", () => socketFile(), "owner read-write socket"],
+			["the staged address", () => stagingFits(), "no longer than the public socket"],
+		]);
 	},
 );
 
@@ -33,11 +33,11 @@ boardStory.it(
 	function* ({ socketFile, stagingSocket, workerReports, workerStarts }) {
 		yield* workerStarts("the board", "permissions");
 
-		yield* outcomes({
-			"the board": [workerReports("the board"), "paused at permissions"],
-			"the public socket": [socketFile(), "missing"],
-			"the staged socket": [stagingSocket("the board"), { folder: "700", socket: "775" }],
-		});
+		yield* outcomes([
+			["the board", () => workerReports("the board"), "paused at permissions"],
+			["the public socket", () => socketFile(), "missing"],
+			["the staged socket", () => stagingSocket("the board"), { folder: "700", socket: "775" }],
+		]);
 	},
 );
 
@@ -50,11 +50,11 @@ boardStory.it(
 
 		yield* workerContinues("the board");
 
-		yield* outcomes({
-			"the board": [workerReports("the board"), "ready"],
-			"the public socket": [socketFile(), "owner read-write socket"],
-			"the server answer": [serverAnswer("socket"), { directory: "the project folder", url: "the board" }],
-		});
+		yield* outcomes([
+			["the board", () => workerReports("the board"), "ready"],
+			["the public socket", () => socketFile(), "owner read-write socket"],
+			["the server answer", () => serverAnswer("socket"), { directory: "the project folder", url: "the board" }],
+		]);
 	},
 );
 
@@ -116,10 +116,10 @@ boardStory.it(
 	function* ({ projectEntries, startAttempt }) {
 		expect(yield* startAttempt("failing chmod")).toEqual(expect.stringMatching(/^refused: /u));
 
-		yield* outcomes({
-			"the next start": [startAttempt(), "started"],
-			"the project's files": [projectEntries(), ["note.md"]],
-		});
+		yield* outcomes([
+			["the next start", () => startAttempt(), "started"],
+			["the project's files", () => projectEntries(), ["note.md"]],
+		]);
 	},
 );
 
@@ -129,13 +129,14 @@ boardStory.it(
 	function* ({ abandonStartup, projectEntries, startAttempt }) {
 		abandonStartup();
 
-		yield* outcomes({
-			"the project's files": [projectEntries(), [".board.sock.starting", "note.md"]],
-			"the start": [
-				startAttempt(),
+		yield* outcomes([
+			["the project's files", () => projectEntries(), [".board.sock.starting", "note.md"]],
+			[
+				"the start",
+				() => startAttempt(),
 				"refused: Another board is already running at the project folder/board.sock. Stop it before starting this board. A startup lock exists at the project folder/.board.sock.starting; remove it only if its startup was forcibly killed.",
 			],
-		});
+		]);
 	},
 );
 

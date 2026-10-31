@@ -19,12 +19,12 @@ screenStory.it(
 
 		yield* pressPrepareHandoff();
 
-		yield* outcomes({
-			"Agent name": [handoffField("Agent name"), expect.objectContaining({ problem: expect.stringContaining("200") })],
-			Goal: [handoffField("Goal"), expect.objectContaining({ problem: expect.stringMatching(/.+/u) })],
-			saved: [readSessionFiles("handoffs"), []],
-			status: [handoffStatus(), "Fill in the marked fields, then prepare the handoff."],
-		});
+		yield* outcomes([
+			["Agent name", () => handoffField("Agent name"), expect.objectContaining({ problem: expect.stringContaining("200") })],
+			["Goal", () => handoffField("Goal"), expect.objectContaining({ problem: expect.stringMatching(/.+/u) })],
+			["saved", () => readSessionFiles("handoffs"), []],
+			["status", () => handoffStatus(), "Fill in the marked fields, then prepare the handoff."],
+		]);
 	},
 );
 
@@ -40,11 +40,11 @@ screenStory.it(
 		yield* fillHandoff("Goal", "Review the direction");
 		yield* fillHandoff("Agent name", "agent-local");
 
-		yield* outcomes({
-			"Agent name": [handoffField("Agent name"), expect.objectContaining({ problem: "" })],
-			Goal: [handoffField("Goal"), expect.objectContaining({ problem: "" })],
-			status: [handoffStatus(), ""],
-		});
+		yield* outcomes([
+			["Agent name", () => handoffField("Agent name"), expect.objectContaining({ problem: "" })],
+			["Goal", () => handoffField("Goal"), expect.objectContaining({ problem: "" })],
+			["status", () => handoffStatus(), ""],
+		]);
 	},
 );
 
@@ -56,10 +56,10 @@ screenStory.it(
 
 		yield* outsideEditorWrites("unrelated.md", "# Another file");
 
-		yield* outcomes({
-			goal: [handoffField("Goal"), expect.objectContaining({ text: "Keep my direction" })],
-			status: [handoffStatus(), ""],
-		});
+		yield* outcomes([
+			["goal", () => handoffField("Goal"), expect.objectContaining({ text: "Keep my direction" })],
+			["status", () => handoffStatus(), ""],
+		]);
 	},
 );
 
@@ -72,11 +72,11 @@ screenStory.it(
 
 		yield* outsideEditorWrites("item.md", CHANGED_ITEM);
 
-		yield* outcomes({
-			context: [handoffContext(), expect.stringContaining("Changed premise.")],
-			goal: [handoffField("Goal"), expect.objectContaining({ text: "Keep my direction" })],
-			status: [handoffStatus(), expect.stringContaining("Source changed since this draft")],
-		});
+		yield* outcomes([
+			["context", () => handoffContext(), expect.stringContaining("Changed premise.")],
+			["goal", () => handoffField("Goal"), expect.objectContaining({ text: "Keep my direction" })],
+			["status", () => handoffStatus(), expect.stringContaining("Source changed since this draft")],
+		]);
 	},
 );
 
@@ -90,10 +90,10 @@ screenStory.it(
 
 		yield* pressPrepareHandoff();
 
-		yield* outcomes({
-			saved: [readSessionFiles("handoffs"), []],
-			status: [handoffStatus(), expect.stringContaining("Updated to the item's new version")],
-		});
+		yield* outcomes([
+			["saved", () => readSessionFiles("handoffs"), []],
+			["status", () => handoffStatus(), expect.stringContaining("Updated to the item's new version")],
+		]);
 	},
 );
 
@@ -109,10 +109,10 @@ screenStory.it(
 
 		yield* pressPrepareHandoff();
 
-		yield* outcomes({
-			saved: [readSessionFiles("handoffs"), [expect.stringContaining("Changed premise.")]],
-			status: [handoffStatus(), expect.stringContaining("Saved handoffs/")],
-		});
+		yield* outcomes([
+			["saved", () => readSessionFiles("handoffs"), [expect.stringContaining("Changed premise.")]],
+			["status", () => handoffStatus(), expect.stringContaining("Saved handoffs/")],
+		]);
 	},
 );
 
@@ -127,12 +127,12 @@ screenStory.it(
 
 		yield* pressPrepareHandoff();
 
-		yield* outcomes({
-			"Agent name": [handoffField("Agent name"), expect.objectContaining({ text: "agent-local" })],
-			prompt: [preparedPrompt(), expect.objectContaining({ focused: true, text: expect.stringContaining("Record receipt") })],
-			status: [handoffStatus(), expect.stringMatching(/Saved handoffs\/.*Copy the prompt below into your agent session/su)],
-			"status lines": [handoffStatusLines(), ["handoff-status"]],
-		});
+		yield* outcomes([
+			["Agent name", () => handoffField("Agent name"), expect.objectContaining({ text: "agent-local" })],
+			["prompt", () => preparedPrompt(), expect.objectContaining({ focused: true, text: expect.stringContaining("Record receipt") })],
+			["status", () => handoffStatus(), expect.stringMatching(/Saved handoffs\/.*Copy the prompt below into your agent session/su)],
+			["status lines", () => handoffStatusLines(), ["handoff-status"]],
+		]);
 	},
 );
 
@@ -161,10 +161,10 @@ screenStory.it(
 
 		yield* copyHandoffPrompt();
 
-		yield* outcomes({
-			clipboard: [clipboardText(), prepared === "none" ? "no prompt was prepared" : prepared.text],
-			status: [handoffStatus(), "Copied. Paste it into your agent session."],
-		});
+		yield* outcomes([
+			["clipboard", () => clipboardText(), prepared === "none" ? "no prompt was prepared" : prepared.text],
+			["status", () => handoffStatus(), "Copied. Paste it into your agent session."],
+		]);
 	},
 );
 
@@ -178,9 +178,9 @@ screenStory.it(
 
 		yield* copyHandoffPrompt();
 
-		yield* outcomes({
-			prompt: [preparedPrompt(), expect.objectContaining({ selected: "all" })],
-			status: [handoffStatus(), expect.stringContaining("selected")],
-		});
+		yield* outcomes([
+			["prompt", () => preparedPrompt(), expect.objectContaining({ selected: "all" })],
+			["status", () => handoffStatus(), expect.stringContaining("selected")],
+		]);
 	},
 );

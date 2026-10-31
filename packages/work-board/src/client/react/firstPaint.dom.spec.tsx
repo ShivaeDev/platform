@@ -13,11 +13,11 @@ screenStory.it(
 	"before the workspace index answers, the shell paints its breadcrumb over a Today-shaped loading state, and Today opens once the index answers",
 	[todayScreen(), heldWorkspace(), openScreen()],
 	function* ({ breadcrumb, loadingPage, shownPage, workspaceAnswers }) {
-		yield* outcomes({
-			breadcrumb: [breadcrumb(), expect.stringContaining("Workspace")],
-			loading: [loadingPage(), { message: "Loading Today", shape: "today" }],
-			page: [shownPage(), "none"],
-		});
+		yield* outcomes([
+			["breadcrumb", () => breadcrumb(), expect.stringContaining("Workspace")],
+			["loading", () => loadingPage(), { message: "Loading Today", shape: "today" }],
+			["page", () => shownPage(), "none"],
+		]);
 
 		yield* workspaceAnswers();
 
@@ -49,9 +49,9 @@ screenStory.it(
 	"the live status reads Connecting… while the stream is live but the source watcher has not answered, and its tooltip says why",
 	[startingBoard(), hostedHealthScreen("live")],
 	function* ({ liveIndicator, liveTooltip }) {
-		yield* outcomes({
-			status: [liveIndicator(), expect.objectContaining({ announced: "Connecting…" })],
-			tooltip: [liveTooltip(), expect.stringContaining("last observed source watcher: not yet observed")],
-		});
+		yield* outcomes([
+			["status", () => liveIndicator(), expect.objectContaining({ announced: "Connecting…" })],
+			["tooltip", () => liveTooltip(), expect.stringContaining("last observed source watcher: not yet observed")],
+		]);
 	},
 );

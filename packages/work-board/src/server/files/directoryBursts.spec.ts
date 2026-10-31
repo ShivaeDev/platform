@@ -12,11 +12,11 @@ fileWatcherStory.it(
 
 		yield* watcherReports(Array.from({ length: 12 }, () => "notes"));
 
-		yield* outcomes({
-			"announced change": [nextAnnouncedChange(), ["notes/added.md", "notes/log.md", "notes/removed.md"]],
-			"root rescans": [rootRescans(), 1],
-			"watches started": [watchesStarted(), ["."]],
-		});
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["notes/added.md", "notes/log.md", "notes/removed.md"]],
+			["root rescans", () => rootRescans(), 1],
+			["watches started", () => watchesStarted(), ["."]],
+		]);
 	},
 );
 
@@ -30,11 +30,11 @@ fileWatcherStory.it(
 
 		yield* watcherReports([...IGNORED, "notes/log.md"]);
 
-		yield* outcomes({
-			"announced change": [nextAnnouncedChange(), ["notes/log.md"]],
-			"ignored paths inspected": [inspectedAmong(IGNORED), []],
-			"root rescans": [rootRescans(), 0],
-		});
+		yield* outcomes([
+			["announced change", () => nextAnnouncedChange(), ["notes/log.md"]],
+			["ignored paths inspected", () => inspectedAmong(IGNORED), []],
+			["root rescans", () => rootRescans(), 0],
+		]);
 	},
 );
 

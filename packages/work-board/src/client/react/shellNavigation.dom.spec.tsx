@@ -48,10 +48,10 @@ screenStory.it(
 
 		yield* pressKeyboard("Escape");
 
-		yield* outcomes({
-			"Reading history": [readingHistory(), {}],
-			"the focus": [keyboardFocus(), { name: "Reading history", role: "button" }],
-		});
+		yield* outcomes([
+			["Reading history", () => readingHistory(), {}],
+			["the focus", () => keyboardFocus(), { name: "Reading history", role: "button" }],
+		]);
 	},
 );
 
@@ -67,10 +67,10 @@ screenStory.it(
 		yield* beginOpeningWithHeldRead("/_board/work?item=note.next");
 		yield* pendingFeedbackDelayAlmostPasses();
 
-		yield* outcomes({
-			"the current destination": [currentDestination(), NOW],
-			"the pending feedback": [pendingFeedback(), "not shown"],
-		});
+		yield* outcomes([
+			["the current destination", () => currentDestination(), NOW],
+			["the pending feedback", () => pendingFeedback(), "not shown"],
+		]);
 	},
 );
 
@@ -97,11 +97,11 @@ screenStory.it(
 
 		yield* releaseRead();
 
-		yield* outcomes({
-			"the current destination": [currentDestination(), NOW],
-			"the heading": [mainHeading(), "Now"],
-			"the pending feedback": [pendingFeedback(), "not shown"],
-		});
+		yield* outcomes([
+			["the current destination", () => currentDestination(), NOW],
+			["the heading", () => mainHeading(), "Now"],
+			["the pending feedback", () => pendingFeedback(), "not shown"],
+		]);
 	},
 );
 
@@ -113,10 +113,10 @@ screenStory.it(
 
 		yield* pinPage();
 
-		yield* outcomes({
-			"the Pinned links": [sidebarLinks("Pinned"), [{ href: "/notes/plan.md", title: "Plan" }]],
-			"the pin button": [pinButton(), "Unpin"],
-		});
+		yield* outcomes([
+			["the Pinned links", () => sidebarLinks("Pinned"), [{ href: "/notes/plan.md", title: "Plan" }]],
+			["the pin button", () => pinButton(), "Unpin"],
+		]);
 	},
 );
 
@@ -129,10 +129,10 @@ screenStory.it(
 
 		yield* pinPage();
 
-		yield* outcomes({
-			"the Pinned links": [sidebarLinks("Pinned"), []],
-			"the pin button": [pinButton(), "Pin"],
-		});
+		yield* outcomes([
+			["the Pinned links", () => sidebarLinks("Pinned"), []],
+			["the pin button", () => pinButton(), "Pin"],
+		]);
 	},
 );
 
@@ -164,10 +164,10 @@ screenStory.it(
 
 		yield* chooseInMore("Reading history");
 
-		yield* outcomes({
-			"More": [moreSheet(), "closed"],
-			"Reading history": [readingHistory(), history],
-		});
+		yield* outcomes([
+			["More", () => moreSheet(), "closed"],
+			["Reading history", () => readingHistory(), history],
+		]);
 	},
 );
 
@@ -181,9 +181,9 @@ screenStory.it(
 
 		yield* pressKeyboard("Escape");
 
-		yield* outcomes({
-			"Reading history": [readingHistory(), {}],
-			"the focus": [keyboardFocus(), { name: "More", role: "button" }],
-		});
+		yield* outcomes([
+			["Reading history", () => readingHistory(), {}],
+			["the focus", () => keyboardFocus(), { name: "More", role: "button" }],
+		]);
 	},
 );

@@ -16,12 +16,13 @@ screenStory.it(
 
 		yield* copyTemplate("goal.md");
 
-		yield* outcomes({
-			"the card": [
-				templateCard("goal.md"),
+		yield* outcomes([
+			[
+				"the card",
+				() => templateCard("goal.md"),
 				{ source: "open", status: "Couldn't copy automatically. The template is selected, so copy it yourself." },
 			],
-			"the focused field": [focusedField(), { selection: [0, source.length, "none"], value: source }],
-		});
+			["the focused field", () => focusedField(), { selection: [0, source.length, "none"], value: source }],
+		]);
 	},
 );

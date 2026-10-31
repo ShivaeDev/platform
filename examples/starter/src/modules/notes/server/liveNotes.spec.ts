@@ -11,24 +11,24 @@ app.it(
 		const alice = yield* liveNotes();
 		const bob = yield* liveNotes("bob");
 		const bobHints = yield* listHints("bob");
-		yield* outcomes({
-			"alice's initial list": [alice.nextNotes(), []],
-			"bob's initial list": [bob.nextNotes(), []],
-		});
+		yield* outcomes([
+			["alice's initial list", () => alice.nextNotes(), []],
+			["bob's initial list", () => bob.nextNotes(), []],
+		]);
 
 		const aliceNote = yield* actor().notes.create({ title: "Alice's private note" });
 
-		yield* outcomes({
-			"alice's live list": [alice.nextNotes(), [aliceNote]],
-			"bob's unchanged list": [Effect.sync(bob.notes), []],
-		});
+		yield* outcomes([
+			["alice's live list", () => alice.nextNotes(), [aliceNote]],
+			["bob's unchanged list", () => Effect.sync(bob.notes), []],
+		]);
 
 		const bobNote = yield* actor("bob").notes.create({ title: "Bob's delivery checkpoint" });
 
-		yield* outcomes({
-			"bob's live list": [bob.nextNotes(), [bobNote]],
-			"bob's next socket delivery": [bobHints.nextDelivery(), { keys: [notes.bucket.userId(actor("bob").userId)], kind: "change" }],
-		});
+		yield* outcomes([
+			["bob's live list", () => bob.nextNotes(), [bobNote]],
+			["bob's next socket delivery", () => bobHints.nextDelivery(), { keys: [notes.bucket.userId(actor("bob").userId)], kind: "change" }],
+		]);
 	},
 	15_000,
 );

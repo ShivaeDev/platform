@@ -16,14 +16,15 @@ boardStory.it(
 
 		const report = yield* archivePass();
 
-		yield* outcomes({
-			"archived sources": [
-				sourcesAt(["archive/board/old.md", "archive/board/dropped.md"]),
+		yield* outcomes([
+			[
+				"archived sources",
+				() => sourcesAt(["archive/board/old.md", "archive/board/dropped.md"]),
 				{ "archive/board/dropped.md": finishedBrief("dropped", "dropped"), "archive/board/old.md": finishedBrief("old") },
 			],
-			briefs: [briefFiles(), OLD_ARCHIVED],
-			"the report": [Effect.succeed(report), "Moved 2 records."],
-		});
+			["briefs", () => briefFiles(), OLD_ARCHIVED],
+			["the report", () => Effect.succeed(report), "Moved 2 records."],
+		]);
 	},
 );
 
@@ -73,10 +74,10 @@ boardStory.it(
 );
 
 boardStory.it("an archived brief is found by its identity at its archive path", [archiveFixture()], function* ({ briefStatus, foundAt }) {
-	yield* outcomes({
-		path: [foundAt("old"), "archive/board/old.md"],
-		status: [briefStatus("old"), "done"],
-	});
+	yield* outcomes([
+		["path", () => foundAt("old"), "archive/board/old.md"],
+		["status", () => briefStatus("old"), "done"],
+	]);
 });
 
 boardStory.it(
@@ -87,11 +88,11 @@ boardStory.it(
 
 		yield* edited("tasks/new.md", finishedBrief("old", "ready"));
 
-		yield* outcomes({
-			"archived brief": [sourcesAt(["archive/board/old.md"]), { "archive/board/old.md": finishedBrief("old") }],
-			"item link": [itemLink("old"), "HTTP 409"],
-			"new brief": [idDiagnostics("tasks/new.md"), [expect.stringContaining("Duplicate")]],
-		});
+		yield* outcomes([
+			["archived brief", () => sourcesAt(["archive/board/old.md"]), { "archive/board/old.md": finishedBrief("old") }],
+			["item link", () => itemLink("old"), "HTTP 409"],
+			["new brief", () => idDiagnostics("tasks/new.md"), [expect.stringContaining("Duplicate")]],
+		]);
 	},
 );
 
@@ -103,11 +104,11 @@ boardStory.it(
 
 		yield* edited("archive/board/old.md", finishedBrief("old", "ready"));
 
-		yield* outcomes({
-			briefs: [briefFiles(), ["archive/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"]],
-			path: [foundAt("old"), "tasks/board/old.md"],
-			status: [briefStatus("old"), "ready"],
-		});
+		yield* outcomes([
+			["briefs", () => briefFiles(), ["archive/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"]],
+			["path", () => foundAt("old"), "tasks/board/old.md"],
+			["status", () => briefStatus("old"), "ready"],
+		]);
 	},
 );
 
@@ -116,8 +117,8 @@ boardStory.it("moving an archived brief out by hand keeps it active", [archiveFi
 
 	yield* briefMoved("archive/board/old.md", "tasks/board/old.md");
 
-	yield* outcomes({
-		briefs: [briefFiles(), ["archive/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"]],
-		path: [foundAt("old"), "tasks/board/old.md"],
-	});
+	yield* outcomes([
+		["briefs", () => briefFiles(), ["archive/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"]],
+		["path", () => foundAt("old"), "tasks/board/old.md"],
+	]);
 });

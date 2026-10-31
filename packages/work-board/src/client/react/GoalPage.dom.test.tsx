@@ -18,11 +18,12 @@ for (const [stage, label, counted] of [
 		`a draft task Fleet reports as ${stage} counts as ${counted} on its goal page and shows ${label} in the Draft group`,
 		[goalFleetReports(stage), routedScreen(quiet, GOAL_PAGE, { home: "home.md" })],
 		function* ({ criterionCard, goalPageStateCounts, linkedWorkRow }) {
-			yield* outcomes({
-				"first criterion": [criterionCard("first"), expect.objectContaining({ progress: `1 done · 1 ${counted}` })],
-				"first task's row": [linkedWorkRow("task.first"), expect.objectContaining({ group: "Draft", states: [label] })],
-				"linked work by state": [
-					goalPageStateCounts(),
+			yield* outcomes([
+				["first criterion", () => criterionCard("first"), expect.objectContaining({ progress: `1 done · 1 ${counted}` })],
+				["first task's row", () => linkedWorkRow("task.first"), expect.objectContaining({ group: "Draft", states: [label] })],
+				[
+					"linked work by state",
+					() => goalPageStateCounts(),
 					[
 						"2 done",
 						counted === "running" ? "1 running" : "0 running (quiet)",
@@ -31,7 +32,7 @@ for (const [stage, label, counted] of [
 						"2 parked",
 					],
 				],
-			});
+			]);
 		},
 	);
 }
@@ -62,11 +63,11 @@ screenStory.it(
 		),
 	],
 	function* ({ linkedWorkColumns, linkedWorkRow }) {
-		yield* outcomes({
-			"first task's PR": [linkedWorkRow("task.first"), expect.objectContaining({ pr: "https://github.com/example/project/pull/1" })],
-			"ready columns": [linkedWorkColumns("Ready"), ["Work", "Criteria", "State", "Owner", "Updated", "PR"]],
-			"third task's PR": [linkedWorkRow("task.third"), expect.objectContaining({ pr: "empty" })],
-		});
+		yield* outcomes([
+			["first task's PR", () => linkedWorkRow("task.first"), expect.objectContaining({ pr: "https://github.com/example/project/pull/1" })],
+			["ready columns", () => linkedWorkColumns("Ready"), ["Work", "Criteria", "State", "Owner", "Updated", "PR"]],
+			["third task's PR", () => linkedWorkRow("task.third"), expect.objectContaining({ pr: "empty" })],
+		]);
 	},
 );
 
@@ -74,9 +75,9 @@ screenStory.it(
 	"a goal without an id says progress needs a unique id and lists no linked work",
 	[routedScreen({ ...goalPageFixture(), "unnamed.md": "---\nkind: goal\nstatus: draft\n---\n# Unnamed goal" }, "/unnamed.md", { home: "home.md" })],
 	function* ({ goalProgressNotice, linkedWork }) {
-		yield* outcomes({
-			"linked work": [linkedWork(), {}],
-			progress: [goalProgressNotice(), "Progress is available for uniquely identified goals."],
-		});
+		yield* outcomes([
+			["linked work", () => linkedWork(), {}],
+			["progress", () => goalProgressNotice(), "Progress is available for uniquely identified goals."],
+		]);
 	},
 );

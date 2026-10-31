@@ -31,10 +31,10 @@ boardStory.it("after a note is edited, search finds its new text and no longer i
 
 	yield* writeWatched("note.md", "# Note\n\nFresh phrase.");
 
-	yield* outcomes({
-		"new text": [searchHits("fresh phrase"), ["/note.md at line 3"]],
-		"old text": [searchHits("old phrase"), []],
-	});
+	yield* outcomes([
+		["new text", () => searchHits("fresh phrase"), ["/note.md at line 3"]],
+		["old text", () => searchHits("old phrase"), []],
+	]);
 });
 
 boardStory.it("search finds a note once it is added", [note], function* ({ searchHits, writeWatched }) {

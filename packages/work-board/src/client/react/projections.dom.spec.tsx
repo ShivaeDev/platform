@@ -23,10 +23,10 @@ for (const { kind, text, url } of [
 	{ kind: "work", text: "A task", url: "/_board/work?view=table&owner=value%3Amarvin&q=task&item=task.fixture" },
 ]) {
 	screenStory.it(`${url} renders its content from the ${kind} projection`, [routedScreen(files, url)], function* ({ mainText, pageProjection }) {
-		yield* outcomes({
-			page: [mainText(), expect.stringContaining(text)],
-			projection: [pageProjection(), kind],
-		});
+		yield* outcomes([
+			["page", () => mainText(), expect.stringContaining(text)],
+			["projection", () => pageProjection(), kind],
+		]);
 	});
 }
 
@@ -53,13 +53,14 @@ screenStory.it(
 	"A table filtered to one item opens that item beside the list",
 	[routedScreen(files, "/_board/work?view=table&owner=value%3Amarvin&q=task&item=task.fixture")],
 	function* ({ tableRows, workDetail }) {
-		yield* outcomes({
-			detail: [
-				workDetail(),
+		yield* outcomes([
+			[
+				"detail",
+				() => workDetail(),
 				expect.objectContaining({ document: expect.stringContaining("Task details"), summary: expect.stringContaining("Read evidence") }),
 			],
-			rows: [tableRows(), [expect.objectContaining({ id: "task.fixture" })]],
-		});
+			["rows", () => tableRows(), [expect.objectContaining({ id: "task.fixture" })]],
+		]);
 	},
 );
 
@@ -70,10 +71,10 @@ screenStory.it(
 	function* ({ refreshQuery, selectText, typeText, workDetail, workDetailAnswer }) {
 		yield* typeText("#work-detail #response-form textarea", "Keep my answer");
 		yield* selectText("#work-detail #response-form textarea", 5, 7);
-		yield* outcomes({
-			answer: [workDetailAnswer(), { selection: [5, 7], value: "Keep my answer" }],
-			notice: [workDetail(), expect.objectContaining({ notice: "This selected item is outside the current board or filters." })],
-		});
+		yield* outcomes([
+			["answer", () => workDetailAnswer(), { selection: [5, 7], value: "Keep my answer" }],
+			["notice", () => workDetail(), expect.objectContaining({ notice: "This selected item is outside the current board or filters." })],
+		]);
 
 		yield* refreshQuery("work", { url: OUTSIDE });
 

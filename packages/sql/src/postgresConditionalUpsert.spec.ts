@@ -8,10 +8,10 @@ revisions.it("syncing a pull request the store lacks inserts it and reports the 
 
 	yield* syncPull(12);
 
-	yield* outcomes({
-		"stored pull request": [pull(), "Revision 12 at 12:00"],
-		"sync ending": [endings(), ["inserted Revision 12 at 12:00"]],
-	});
+	yield* outcomes([
+		["stored pull request", () => pull(), "Revision 12 at 12:00"],
+		["sync ending", () => endings(), ["inserted Revision 12 at 12:00"]],
+	]);
 });
 
 revisions.it(
@@ -20,10 +20,10 @@ revisions.it(
 	function* ({ endings, pull, syncPull }) {
 		yield* syncPull(13);
 
-		yield* outcomes({
-			"stored pull request": [pull(), "Revision 13 at 13:00"],
-			"sync ending": [endings(), ["updated Revision 13 at 13:00"]],
-		});
+		yield* outcomes([
+			["stored pull request", () => pull(), "Revision 13 at 13:00"],
+			["sync ending", () => endings(), ["updated Revision 13 at 13:00"]],
+		]);
 	},
 );
 
@@ -34,11 +34,11 @@ for (const hour of [11, 12]) {
 		function* ({ announcedChanges, endings, pull, syncPull }) {
 			yield* syncPull(hour);
 
-			yield* outcomes({
-				"announced changes": [announcedChanges(), []],
-				"stored pull request": [pull(), "Revision 12 at 12:00"],
-				"sync ending": [endings(), ["unchanged"]],
-			});
+			yield* outcomes([
+				["announced changes", () => announcedChanges(), []],
+				["stored pull request", () => pull(), "Revision 12 at 12:00"],
+				["sync ending", () => endings(), ["unchanged"]],
+			]);
 		},
 	);
 }
@@ -49,10 +49,10 @@ revisions.it(
 	function* ({ endings, pull, syncPullWhileNewerRevisionLocked }) {
 		yield* syncPullWhileNewerRevisionLocked(11, 13);
 
-		yield* outcomes({
-			"stored pull request": [pull(), "Revision 13 at 13:00"],
-			"waiting writer": [endings(), ["unchanged"]],
-		});
+		yield* outcomes([
+			["stored pull request", () => pull(), "Revision 13 at 13:00"],
+			["waiting writer", () => endings(), ["unchanged"]],
+		]);
 	},
 );
 
@@ -73,10 +73,14 @@ revisions.it(
 			[14, 4],
 		]);
 
-		yield* outcomes({
-			"batch ending": [endings(), ["updated Revision 13 at 13:00; unchanged; unchanged; inserted Revision 14 at 14:00"]],
-			"stored pull requests": [pulls(), ["1: Revision 13 at 13:00", "2: Revision 12 at 12:00", "3: Revision 12 at 12:00", "4: Revision 14 at 14:00"]],
-		});
+		yield* outcomes([
+			["batch ending", () => endings(), ["updated Revision 13 at 13:00; unchanged; unchanged; inserted Revision 14 at 14:00"]],
+			[
+				"stored pull requests",
+				() => pulls(),
+				["1: Revision 13 at 13:00", "2: Revision 12 at 12:00", "3: Revision 12 at 12:00", "4: Revision 14 at 14:00"],
+			],
+		]);
 	},
 );
 
@@ -89,10 +93,10 @@ revisions.it(
 			[14, -1],
 		]);
 
-		yield* outcomes({
-			"batch ending": [endings(), ["failed with a constraint violation (SQLSTATE 23514)"]],
-			"stored pull requests": [pulls(), ["1: Revision 12 at 12:00"]],
-		});
+		yield* outcomes([
+			["batch ending", () => endings(), ["failed with a constraint violation (SQLSTATE 23514)"]],
+			["stored pull requests", () => pulls(), ["1: Revision 12 at 12:00"]],
+		]);
 	},
 );
 

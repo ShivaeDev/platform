@@ -16,19 +16,19 @@ screenStory.it(
 	[packet],
 	function* ({ check, focusedPrompt, promptError, promptWarnings, sendPacket }) {
 		yield* check("history");
-		yield* outcomes({
-			"checks error": [promptError("checks"), "none"],
-			warnings: [promptWarnings(), { checks: "", display: "" }],
-		});
+		yield* outcomes([
+			["checks error", () => promptError("checks"), "none"],
+			["warnings", () => promptWarnings(), { checks: "", display: "" }],
+		]);
 
 		yield* sendPacket();
 
-		yield* outcomes({
-			"checks error": [promptError("checks"), UNANSWERED],
-			"display error": [promptError("display"), "none"],
-			focus: [focusedPrompt(), "checks"],
-			warnings: [promptWarnings(), { checks: WARNING, display: "" }],
-		});
+		yield* outcomes([
+			["checks error", () => promptError("checks"), UNANSWERED],
+			["display error", () => promptError("display"), "none"],
+			["focus", () => focusedPrompt(), "checks"],
+			["warnings", () => promptWarnings(), { checks: WARNING, display: "" }],
+		]);
 	},
 );
 
@@ -42,10 +42,10 @@ screenStory.it(
 
 		yield* answerPrompt("checks", "Test keyboard use");
 
-		yield* outcomes({
-			"checks error": [promptError("checks"), "none"],
-			warnings: [promptWarnings(), { checks: "", display: "" }],
-		});
+		yield* outcomes([
+			["checks error", () => promptError("checks"), "none"],
+			["warnings", () => promptWarnings(), { checks: "", display: "" }],
+		]);
 	},
 );
 

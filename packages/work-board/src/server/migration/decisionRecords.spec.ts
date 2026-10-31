@@ -14,13 +14,14 @@ boardStory.it(
 	function* ({ migrationRuns, savedBodies, savedFilesMatching }) {
 		yield* migrationRuns();
 
-		yield* outcomes({
-			"files with an answer field": [savedFilesMatching(files, /^answer:/mu), []],
-			"text after the front matter": [
-				savedBodies(files),
+		yield* outcomes([
+			["files with an answer field", () => savedFilesMatching(files, /^answer:/mu), []],
+			[
+				"text after the front matter",
+				() => savedBodies(files),
 				Object.fromEntries(Object.entries(migrationDecisionFixture).map(([file, source]) => [file, afterFrontMatter(source)])),
 			],
-		});
+		]);
 	},
 );
 
@@ -38,14 +39,15 @@ for (const id of ["fleet.open", "fleet.deferred", "unruled"]) {
 			yield* migrationRuns();
 			yield* start();
 
-			yield* outcomes({
-				"answer field": [itemMetadata(`/_board/item/${id}/`), expect.not.objectContaining({ answer: expect.anything() })],
-				metadata: [
-					itemMetadata(`/_board/item/${id}/`),
+			yield* outcomes([
+				["answer field", () => itemMetadata(`/_board/item/${id}/`), expect.not.objectContaining({ answer: expect.anything() })],
+				[
+					"metadata",
+					() => itemMetadata(`/_board/item/${id}/`),
 					expect.objectContaining({ kind: "question", scope: "task", status: "ready", urgency: "blocking" }),
 				],
-				problems: [itemDiagnostics(`/_board/item/${id}/`), []],
-			});
+				["problems", () => itemDiagnostics(`/_board/item/${id}/`), []],
+			]);
 		},
 	);
 }
@@ -57,10 +59,10 @@ boardStory.it(
 		yield* migrationRuns();
 		yield* start();
 
-		yield* outcomes({
-			metadata: [itemMetadata("/_board/item/fleet.answered/"), expect.objectContaining({ kind: "question", scope: "task", status: "done" })],
-			responses: [itemResponseBodies("/_board/item/fleet.answered/"), expect.arrayContaining(["Use the current branch.\n"])],
-		});
+		yield* outcomes([
+			["metadata", () => itemMetadata("/_board/item/fleet.answered/"), expect.objectContaining({ kind: "question", scope: "task", status: "done" })],
+			["responses", () => itemResponseBodies("/_board/item/fleet.answered/"), expect.arrayContaining(["Use the current branch.\n"])],
+		]);
 	},
 );
 
@@ -77,13 +79,14 @@ boardStory.it(
 		yield* migrationRuns();
 		yield* start();
 
-		yield* outcomes({
-			ruling: [itemMetadata("/_board/item/storage/"), expect.objectContaining({ owner: "marvin", scope: "standing", status: "done" })],
-			"task rulings": [
-				itemRulings("/task.md"),
+		yield* outcomes([
+			["ruling", () => itemMetadata("/_board/item/storage/"), expect.objectContaining({ owner: "marvin", scope: "standing", status: "done" })],
+			[
+				"task rulings",
+				() => itemRulings("/task.md"),
 				[{ answer: "# Storage ruling\n\nKeep PostgreSQL.\n", href: "/decisions/storage.md", title: "Storage ruling" }],
 			],
-		});
+		]);
 	},
 );
 

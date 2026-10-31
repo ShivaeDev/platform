@@ -45,12 +45,12 @@ for (const [edit, after, stable] of [
 
 			yield* rewriteDocument("notes/plan.md", `# Plan\n\n${after}${diagram(stable)}${EVIDENCE}`);
 
-			yield* outcomes({
-				diagrams: [diagramFigures(), [{ drawing: `${stable} in light`, source: "hidden", state: "drawn" }]],
-				"Mermaid requests": [drawingRequests(), [`${stable} in light`]],
-				"open sections": [openSections(), ["Evidence"]],
-				paragraphs: [documentParagraphs(), after.split("\n\n")],
-			});
+			yield* outcomes([
+				["diagrams", () => diagramFigures(), [{ drawing: `${stable} in light`, source: "hidden", state: "drawn" }]],
+				["Mermaid requests", () => drawingRequests(), [`${stable} in light`]],
+				["open sections", () => openSections(), ["Evidence"]],
+				["paragraphs", () => documentParagraphs(), after.split("\n\n")],
+			]);
 		},
 	);
 }

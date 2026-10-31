@@ -56,9 +56,9 @@ boardStory.it(
 
 		editFile("goal.md", fixture["goal.md"]?.replace("status: draft", "status: done") ?? "");
 
-		yield* outcomes({
-			"goals view update": [mountedUpdate("goals"), { counts, group: "closed" }],
-			"navigation afterwards": [navigationCounts(), expect.objectContaining({ goals: 0 })],
-		});
+		yield* outcomes([
+			["goals view update", () => mountedUpdate("goals"), { counts, group: "closed" }],
+			["navigation afterwards", () => navigationCounts(), expect.objectContaining({ goals: 0 })],
+		]);
 	},
 );

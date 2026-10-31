@@ -12,10 +12,10 @@ screenStory.it(
 	"reads live health from the host's displayed location when the host has no document element",
 	[hostedHealthSettled()],
 	function* ({ liveTooltip, pageAddress }) {
-		yield* outcomes({
-			"the document element's address": [pageAddress(), undefined],
-			"the live tooltip": [liveTooltip(), SETTLED],
-		});
+		yield* outcomes([
+			["the document element's address", () => pageAddress(), undefined],
+			["the live tooltip", () => liveTooltip(), SETTLED],
+		]);
 	},
 );
 
@@ -41,9 +41,9 @@ screenStory.it(
 
 		yield* hostRetries();
 
-		yield* outcomes({
-			"the live status": [liveIndicator(), expect.objectContaining({ announced: "Reconnecting…" })],
-			"the live tooltip": [liveTooltip(), SETTLED],
-		});
+		yield* outcomes([
+			["the live status", () => liveIndicator(), expect.objectContaining({ announced: "Reconnecting…" })],
+			["the live tooltip", () => liveTooltip(), SETTLED],
+		]);
 	},
 );

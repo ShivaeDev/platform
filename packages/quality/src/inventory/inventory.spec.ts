@@ -16,11 +16,11 @@ inventoryStory.it(
 	function* ({ collects, files, source, sourcePaths }) {
 		yield* collects({ extensions: [".ts", ".tsx"] });
 
-		yield* outcomes({
-			"files": [files(), ["docs/notes.md", "scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]],
-			"source of src/app.ts": [source("src/app.ts"), { lines: ["a", "b"], path: "src/app.ts", text: "a\nb\n" }],
-			"sources": [sourcePaths(), ["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]],
-		});
+		yield* outcomes([
+			["files", () => files(), ["docs/notes.md", "scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]],
+			["source of src/app.ts", () => source("src/app.ts"), { lines: ["a", "b"], path: "src/app.ts", text: "a\nb\n" }],
+			["sources", () => sourcePaths(), ["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]],
+		]);
 	},
 );
 

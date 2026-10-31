@@ -40,10 +40,10 @@ notifications.it(
 	function* ({ notice, restoreCalls, undo }) {
 		yield* undo("first");
 
-		yield* outcomes({
-			notice: [notice("Removed first"), { outcome: "", undo: "pending" }],
-			"restore calls": [restoreCalls(), [{ expectedVersion: 8, title: "first" }]],
-		});
+		yield* outcomes([
+			["notice", () => notice("Removed first"), { outcome: "", undo: "pending" }],
+			["restore calls", () => restoreCalls(), [{ expectedVersion: 8, title: "first" }]],
+		]);
 	},
 );
 
@@ -59,10 +59,10 @@ notifications.it(
 	function* ({ completeRestore, notice, rows }) {
 		yield* completeRestore("first");
 
-		yield* outcomes({
-			notice: [notice("Removed first"), { outcome: "Restored first", undo: "ready" }],
-			rows: [rows(), "existing, first@9"],
-		});
+		yield* outcomes([
+			["notice", () => notice("Removed first"), { outcome: "Restored first", undo: "ready" }],
+			["rows", () => rows(), "existing, first@9"],
+		]);
 	},
 );
 
@@ -72,11 +72,11 @@ notifications.it(
 	function* ({ completeRestore, notice, notices, rows }) {
 		yield* completeRestore("first");
 
-		yield* outcomes({
-			notice: [notice("Removed first"), { outcome: expect.stringContaining("Conflict"), undo: "ready" }],
-			notices: [notices(), ["Removed first"]],
-			rows: [rows(), "existing"],
-		});
+		yield* outcomes([
+			["notice", () => notice("Removed first"), { outcome: expect.stringContaining("Conflict"), undo: "ready" }],
+			["notices", () => notices(), ["Removed first"]],
+			["rows", () => rows(), "existing"],
+		]);
 	},
 );
 
@@ -86,10 +86,10 @@ notifications.it(
 	function* ({ closeHost, notices, restoresReleased }) {
 		yield* closeHost();
 
-		yield* outcomes({
-			notices: [notices(), []],
-			"restores released": [restoresReleased(), ["first"]],
-		});
+		yield* outcomes([
+			["notices", () => notices(), []],
+			["restores released", () => restoresReleased(), ["first"]],
+		]);
 	},
 );
 
@@ -106,10 +106,10 @@ notifications.it(
 notifications.it("dismissing a notice interrupts its pending Undo", [undoWaiting("first")], function* ({ dismiss, notices, restoresReleased }) {
 	yield* dismiss("Removed first");
 
-	yield* outcomes({
-		notices: [notices(), []],
-		"restores released": [restoresReleased(), ["first"]],
-	});
+	yield* outcomes([
+		["notices", () => notices(), []],
+		["restores released", () => restoresReleased(), ["first"]],
+	]);
 });
 
 notifications.it(
@@ -118,10 +118,10 @@ notifications.it(
 	function* ({ hostClockAdvances, notices, restoresReleased }) {
 		yield* hostClockAdvances(ONE_MINUTE - 1);
 
-		yield* outcomes({
-			notices: [notices(), ["Removed first"]],
-			"restores released": [restoresReleased(), []],
-		});
+		yield* outcomes([
+			["notices", () => notices(), ["Removed first"]],
+			["restores released", () => restoresReleased(), []],
+		]);
 	},
 );
 
@@ -131,10 +131,10 @@ notifications.it(
 	function* ({ noticeExpires, notices, restoresReleased }) {
 		yield* noticeExpires("Removed first", ONE_MINUTE);
 
-		yield* outcomes({
-			notices: [notices(), []],
-			"restores released": [restoresReleased(), ["first"]],
-		});
+		yield* outcomes([
+			["notices", () => notices(), []],
+			["restores released", () => restoresReleased(), ["first"]],
+		]);
 	},
 );
 
@@ -146,10 +146,10 @@ notifications.it(
 
 		yield* completeRestore("first");
 
-		yield* outcomes({
-			notices: [notices(), []],
-			"restores released": [restoresReleased(), ["first"]],
-		});
+		yield* outcomes([
+			["notices", () => notices(), []],
+			["restores released", () => restoresReleased(), ["first"]],
+		]);
 	},
 );
 
@@ -161,10 +161,10 @@ notifications.it(
 
 		yield* completeRemove("first");
 
-		yield* outcomes({
-			command: [commandShown(), "first"],
-			notices: [notices(), []],
-		});
+		yield* outcomes([
+			["command", () => commandShown(), "first"],
+			["notices", () => notices(), []],
+		]);
 	},
 );
 

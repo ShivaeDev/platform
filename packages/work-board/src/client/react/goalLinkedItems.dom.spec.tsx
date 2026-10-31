@@ -19,10 +19,10 @@ for (const kind of ["task", "question", "report"] as const) {
 			),
 		],
 		function* ({ goalPageStateCounts, linkedWorkItems }) {
-			yield* outcomes({
-				"done work": [goalPageStateCounts(), expect.arrayContaining([counted ? "2 done" : "1 done"])],
-				"linked work": [linkedWorkItems(), counted ? expect.arrayContaining([id]) : expect.not.arrayContaining([id])],
-			});
+			yield* outcomes([
+				["done work", () => goalPageStateCounts(), expect.arrayContaining([counted ? "2 done" : "1 done"])],
+				["linked work", () => linkedWorkItems(), counted ? expect.arrayContaining([id]) : expect.not.arrayContaining([id])],
+			]);
 		},
 	);
 }

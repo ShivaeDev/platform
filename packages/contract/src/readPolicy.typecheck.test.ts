@@ -9,6 +9,7 @@ import { querySubscription } from "#querySubscription.ts";
 import { authorizeReads, type QueryReadPolicy } from "#readPolicy.ts";
 import type { MissingReadPolicies, MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { validateReadPolicies } from "#validateReadPolicies.ts";
+import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
 class Database extends Context.Service<Database, boolean>()("test/PolicyDatabase") {}
 class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", {}) {}
@@ -43,12 +44,14 @@ const pending = querySubscription(pushedRpc, [{ payload: undefined, query: "read
 declare const subscription: Effect.Success<typeof pending>;
 const pushed = live.subscribe(subscription, undefined, () => Effect.asVoid(Database));
 expectTypeOf<Stream.Services<typeof pushed>>().toEqualTypeOf<Database>();
-expectTypeOf<Stream.Error<typeof pushed>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy>();
+expectTypeOf<Stream.Error<typeof pushed>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired>();
 declare const sharedLive: Context.Service.Shape<typeof LiveServer>;
 const sharedPushed = sharedLive.subscribe(subscription, undefined, () => Effect.asVoid(Database));
 expectTypeOf<Effect.Services<typeof sharedPushed>>().toEqualTypeOf<never>();
 expectTypeOf<Stream.Services<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<Database>();
-expectTypeOf<Stream.Error<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy>();
+expectTypeOf<Stream.Error<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<
+	ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired
+>();
 expectTypeOf<Rpc.ExtractRequires<PushedChanges, "pushed.$changes">>().toEqualTypeOf<Database>();
 
 const validated = validateReadPolicies(Reads);

@@ -54,23 +54,26 @@ boardStory.it(
 			title: "Build the page",
 			workId: "task.build",
 		};
-		yield* outcomes({
-			asks: [
-				pluginSection("asks", NOW),
+		yield* outcomes([
+			[
+				"asks",
+				() => pluginSection("asks", NOW),
 				{
 					items: [{ key: "open:task.build", title: "Build the page", url: `${board.url}/_board/item/decision.scope/#answer-card-direction` }],
 					problem: null,
 				},
 			],
-			flights: [
-				pluginSection("flights", NOW),
+			[
+				"flights",
+				() => pluginSection("flights", NOW),
 				{
 					items: [flight],
 					problem: null,
 				},
 			],
-			goals: [
-				pluginSection("goals", NOW),
+			[
+				"goals",
+				() => pluginSection("goals", NOW),
 				{
 					items: [
 						{
@@ -89,7 +92,7 @@ boardStory.it(
 					problem: null,
 				},
 			],
-		});
+		]);
 	},
 );
 
@@ -138,9 +141,10 @@ boardStory.it(
 	"the plugin's board read carries every progress state and standing goals",
 	[projectFiles(goalProgressFixture()), fleetReports(progressFleet())],
 	function* ({ pluginGoal }) {
-		yield* outcomes({
-			progress: [
-				pluginGoal("goal.progress", NOW),
+		yield* outcomes([
+			[
+				"progress",
+				() => pluginGoal("goal.progress", NOW),
 				{
 					achieved: false,
 					blocked: 4,
@@ -154,7 +158,7 @@ boardStory.it(
 					total: 14,
 				},
 			],
-			standing: [pluginGoal("goal.standing", NOW), expect.objectContaining({ done: 1, standing: true, total: 1 })],
-		});
+			["standing", () => pluginGoal("goal.standing", NOW), expect.objectContaining({ done: 1, standing: true, total: 1 })],
+		]);
 	},
 );

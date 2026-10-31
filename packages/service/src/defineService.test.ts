@@ -14,18 +14,18 @@ serviceStory.it(
 	"two calls count on the private state of the Layer's one initializer run, without running the initializer or building the methods again",
 	[serviceBuilt()],
 	function* ({ call, answers, initializerRuns, methodBuilds }) {
-		yield* outcomes({
-			"initializer runs": [initializerRuns(), 1],
-			"method builds": [methodBuilds(), 1],
-		});
+		yield* outcomes([
+			["initializer runs", () => initializerRuns(), 1],
+			["method builds", () => methodBuilds(), 1],
+		]);
 
 		yield* call("count");
 		yield* call("count");
 
-		yield* outcomes({
-			"initializer runs": [initializerRuns(), 1],
-			"method builds": [methodBuilds(), 1],
-			"what the calls returned": [answers(), [1, 2]],
-		});
+		yield* outcomes([
+			["initializer runs", () => initializerRuns(), 1],
+			["method builds", () => methodBuilds(), 1],
+			["what the calls returned", () => answers(), [1, 2]],
+		]);
 	},
 );

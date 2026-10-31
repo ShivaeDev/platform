@@ -23,16 +23,18 @@ for (const action of ["scheduler", "close command"] as const) {
 				yield* fleet.schedule();
 			} else {
 				const preview = yield* fleet.cli(["close-finished-decisions", "--dry-run"]);
-				yield* outcomes({
-					"preview counts one closure": [
-						Effect.succeed(preview),
+				yield* outcomes([
+					[
+						"preview counts one closure",
+						() => Effect.succeed(preview),
 						expect.objectContaining({ code: 0, stdout: expect.stringContaining("1 decision(s) would close.") }),
 					],
-					"preview keeps the released work waiting": [
-						fleet.status().pipe(Effect.map((overview) => overview.waiting.orchestrator)),
+					[
+						"preview keeps the released work waiting",
+						() => fleet.status().pipe(Effect.map((overview) => overview.waiting.orchestrator)),
 						[expect.objectContaining({ workId: "one" })],
 					],
-				});
+				]);
 				expect(yield* fleet.cli(["close-finished-decisions"])).toMatchObject({ code: 0, stdout: expect.stringContaining("1 decision(s) closed.") });
 			}
 			const status = yield* fleet.status();

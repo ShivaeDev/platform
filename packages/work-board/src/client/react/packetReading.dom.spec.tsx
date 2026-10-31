@@ -12,11 +12,11 @@ for (const path of [DECISION_PATH, questionPath]) {
 		`a response packet at ${path} reads as a document under its question's title, with its prose and sections and without its front matter`,
 		[routedScreen(packetFiles, `/${path}`)],
 		function* ({ documentSections, documentText, pageHeading }) {
-			yield* outcomes({
-				heading: [pageHeading(), "Choose a direction"],
-				prose: [documentText(), expect.stringMatching(/^(?!.*"attention").*Read the evidence before choosing\./su)],
-				sections: [documentSections(), ["Recommendation"]],
-			});
+			yield* outcomes([
+				["heading", () => pageHeading(), "Choose a direction"],
+				["prose", () => documentText(), expect.stringMatching(/^(?!.*"attention").*Read the evidence before choosing\./su)],
+				["sections", () => documentSections(), ["Recommendation"]],
+			]);
 		},
 	);
 }

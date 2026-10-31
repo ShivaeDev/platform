@@ -9,10 +9,10 @@ for (const credential of ["bearer", "cookie"] as const) {
 		function* ({ connections, showAgain, shown }) {
 			yield* showAgain();
 
-			yield* outcomes({
-				connections: [connections(), ["alice-1"]],
-				shown: [shown(), "First"],
-			});
+			yield* outcomes([
+				["connections", () => connections(), ["alice-1"]],
+				["shown", () => shown(), "First"],
+			]);
 		},
 	);
 
@@ -24,11 +24,11 @@ for (const credential of ["bearer", "cookie"] as const) {
 
 			yield* signIn("bob");
 
-			yield* outcomes({
-				"alice's registry": [heldAtoms("alice-1"), "empty"],
-				shown: [shown(), "Bob note"],
-				subscribers: [subscribers(), ["bob"]],
-			});
+			yield* outcomes([
+				["alice's registry", () => heldAtoms("alice-1"), "empty"],
+				["shown", () => shown(), "Bob note"],
+				["subscribers", () => subscribers(), ["bob"]],
+			]);
 		},
 	);
 
@@ -40,11 +40,11 @@ for (const credential of ["bearer", "cookie"] as const) {
 
 			yield* signOut();
 
-			yield* outcomes({
-				"bob's registry": [heldAtoms("bob-1"), "empty"],
-				shown: [shown(), "Signed out"],
-				subscribers: [subscribers(), []],
-			});
+			yield* outcomes([
+				["bob's registry", () => heldAtoms("bob-1"), "empty"],
+				["shown", () => shown(), "Signed out"],
+				["subscribers", () => subscribers(), []],
+			]);
 		},
 	);
 
@@ -57,11 +57,11 @@ for (const credential of ["bearer", "cookie"] as const) {
 
 			yield* signIn("alice");
 
-			yield* outcomes({
-				"same registry as alice-1": [sameRegistry("alice-1", "alice-2"), false],
-				shown: [shown(), "Alice changed while away"],
-				subscribers: [subscribers(), ["alice"]],
-			});
+			yield* outcomes([
+				["same registry as alice-1", () => sameRegistry("alice-1", "alice-2"), false],
+				["shown", () => shown(), "Alice changed while away"],
+				["subscribers", () => subscribers(), ["alice"]],
+			]);
 		},
 	);
 }

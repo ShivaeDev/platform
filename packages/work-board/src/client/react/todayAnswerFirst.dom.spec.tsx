@@ -49,10 +49,10 @@ for (const device of ["desktop", "phone"] as const) {
 				}
 
 				const answer = { prompt: "release", selected: mode === "one" ? ["monday"] : [], text: mode === "text" ? "Monday after review." : "" };
-				yield* outcomes({
-					recorded: [recordedAnswers("decision.release", "direction"), [expect.objectContaining({ answers: [answer] })]],
-					"Today answer": [todayAnswer(), "closed"],
-				});
+				yield* outcomes([
+					["recorded", () => recordedAnswers("decision.release", "direction"), [expect.objectContaining({ answers: [answer] })]],
+					["Today answer", () => todayAnswer(), "closed"],
+				]);
 			},
 		);
 	}

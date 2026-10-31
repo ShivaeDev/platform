@@ -16,9 +16,9 @@ runtime.it(
 	function* ({ failureMessage, start, startup }) {
 		yield* start("app", [worker(Crowded, "succeeds")]);
 
-		yield* outcomes({
-			"failure message": [failureMessage("app"), "pg-boss register for queue crowded failed: DatabaseError 53300"],
-			"kept original": [startup("app"), "register crowded failed with too many connections for postgresql://jobs:secret@db/jobs"],
-		});
+		yield* outcomes([
+			["failure message", () => failureMessage("app"), "pg-boss register for queue crowded failed: DatabaseError 53300"],
+			["kept original", () => startup("app"), "register crowded failed with too many connections for postgresql://jobs:secret@db/jobs"],
+		]);
 	},
 );

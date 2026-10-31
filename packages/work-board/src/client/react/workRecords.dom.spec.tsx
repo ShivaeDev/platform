@@ -23,10 +23,10 @@ for (const [layout, query, total] of [
 		`${layout} lists only the work task, never questions, responses, results or request receipts`,
 		[routedScreen(files, `/_board/work${query}`)],
 		function* ({ workItems, workTotal }) {
-			yield* outcomes({
-				total: [workTotal(), total],
-				"work shown": [workItems(), ["task"]],
-			});
+			yield* outcomes([
+				["total", () => workTotal(), total],
+				["work shown", () => workItems(), ["task"]],
+			]);
 		},
 	);
 }

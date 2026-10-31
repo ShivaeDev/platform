@@ -43,10 +43,10 @@ screenStory.it(
 	[pullRequestWorkspace(), openScreen()],
 	function* ({ mainHeading, navigate, openPullRequests, pullRequestsLink }) {
 		yield* navigate("/tasks/ready.md");
-		yield* outcomes({
-			heading: [mainHeading(), "Deliver ready"],
-			link: [pullRequestsLink(), { badge: { label: "2 ready to merge", shown: "2" }, href: "/_board/pull-requests" }],
-		});
+		yield* outcomes([
+			["heading", () => mainHeading(), "Deliver ready"],
+			["link", () => pullRequestsLink(), { badge: { label: "2 ready to merge", shown: "2" }, href: "/_board/pull-requests" }],
+		]);
 
 		yield* openPullRequests();
 
@@ -59,16 +59,16 @@ screenStory.it(
 	[pullRequestWorkspace(true), sessionScreen("response")],
 	function* ({ liveSessionSettles, pullRequestGroups, pullRequestMerged, pullRequestsLink }) {
 		yield* liveSessionSettles();
-		yield* outcomes({
-			groups: [pullRequestGroups(), expect.arrayContaining(["Ready to merge: task.ready, task.sweep"])],
-			link: [pullRequestsLink(), expect.objectContaining({ badge: expect.objectContaining({ shown: "2" }) })],
-		});
+		yield* outcomes([
+			["groups", () => pullRequestGroups(), expect.arrayContaining(["Ready to merge: task.ready, task.sweep"])],
+			["link", () => pullRequestsLink(), expect.objectContaining({ badge: expect.objectContaining({ shown: "2" }) })],
+		]);
 
 		yield* pullRequestMerged("task.ready", "tasks/ready.md", "---\nid: task.ready\nkind: task\nstatus: done\n---\n# Deliver ready\n\nMerged.\n");
 
-		yield* outcomes({
-			groups: [pullRequestGroups(), expect.arrayContaining(["Ready to merge: task.sweep"])],
-			link: [pullRequestsLink(), expect.objectContaining({ badge: expect.objectContaining({ shown: "1" }) })],
-		});
+		yield* outcomes([
+			["groups", () => pullRequestGroups(), expect.arrayContaining(["Ready to merge: task.sweep"])],
+			["link", () => pullRequestsLink(), expect.objectContaining({ badge: expect.objectContaining({ shown: "1" }) })],
+		]);
 	},
 );

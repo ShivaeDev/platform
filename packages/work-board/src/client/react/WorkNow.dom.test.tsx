@@ -33,17 +33,18 @@ for (const sort of ["title", "owner", "status"] as const) {
 			),
 		],
 		function* ({ nowCard }) {
-			yield* outcomes({
-				"task-0": [nowCard("task-0"), expect.objectContaining({ lane: "Queued" })],
-				"task-1": [nowCard("task-1"), expect.objectContaining({ lane: "Working" })],
-				"task-2": [nowCard("task-2"), expect.objectContaining({ lane: "Reviewing" })],
-				"task-3": [nowCard("task-3"), expect.objectContaining({ lane: "Waiting on you", reason: "Choose a direction" })],
-				"task-4": [nowCard("task-4"), expect.objectContaining({ lane: "Waiting on orchestrator", reason: "Approve the brief" })],
-				"task-5": [
-					nowCard("task-5"),
+			yield* outcomes([
+				["task-0", () => nowCard("task-0"), expect.objectContaining({ lane: "Queued" })],
+				["task-1", () => nowCard("task-1"), expect.objectContaining({ lane: "Working" })],
+				["task-2", () => nowCard("task-2"), expect.objectContaining({ lane: "Reviewing" })],
+				["task-3", () => nowCard("task-3"), expect.objectContaining({ lane: "Waiting on you", reason: "Choose a direction" })],
+				["task-4", () => nowCard("task-4"), expect.objectContaining({ lane: "Waiting on orchestrator", reason: "Approve the brief" })],
+				[
+					"task-5",
+					() => nowCard("task-5"),
 					expect.objectContaining({ lane: "Waiting on automation", reason: "waiting for PR #12 to merge: conflicting app.ts" }),
 				],
-			});
+			]);
 		},
 	);
 }

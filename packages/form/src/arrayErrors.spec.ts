@@ -7,11 +7,11 @@ emptyAnswers.it("submitting shows Required on the empty answer's text and on no 
 
 	yield* submit();
 
-	yield* outcomes({
-		"empty answer's text": [answerError("empty", "text"), "Required"],
-		"first answer's text": [answerError("first", "text"), undefined],
-		"second answer's text": [answerError("second", "text"), undefined],
-	});
+	yield* outcomes([
+		["empty answer's text", () => answerError("empty", "text"), "Required"],
+		["first answer's text", () => answerError("first", "text"), undefined],
+		["second answer's text", () => answerError("second", "text"), undefined],
+	]);
 });
 
 emptyAnswers.it(
@@ -22,10 +22,10 @@ emptyAnswers.it(
 
 		yield* insertAnswerBefore("first", { id: "inserted", text: "New" });
 
-		yield* outcomes({
-			"empty answer's text": [answerError("empty", "text"), "Required"],
-			"second answer's text, now where the empty answer was": [answerError("second", "text"), undefined],
-		});
+		yield* outcomes([
+			["empty answer's text", () => answerError("empty", "text"), "Required"],
+			["second answer's text, now where the empty answer was", () => answerError("second", "text"), undefined],
+		]);
 	},
 );
 
@@ -37,10 +37,10 @@ emptyAnswers.it(
 
 		yield* removeAnswer("first");
 
-		yield* outcomes({
-			"empty answer's text": [answerError("empty", "text"), "Required"],
-			"second answer's text, now first": [answerError("second", "text"), undefined],
-		});
+		yield* outcomes([
+			["empty answer's text", () => answerError("empty", "text"), "Required"],
+			["second answer's text, now first", () => answerError("second", "text"), undefined],
+		]);
 	},
 );
 
@@ -49,10 +49,10 @@ emptyAnswers.it("the empty answer's Required moves with it to the front", [empty
 
 	yield* moveAnswerToFront("empty");
 
-	yield* outcomes({
-		"empty answer's text": [answerError("empty", "text"), "Required"],
-		"second answer's text, now where the empty answer was": [answerError("second", "text"), undefined],
-	});
+	yield* outcomes([
+		["empty answer's text", () => answerError("empty", "text"), "Required"],
+		["second answer's text, now where the empty answer was", () => answerError("second", "text"), undefined],
+	]);
 });
 
 unkeyedAnswers.it(
@@ -63,9 +63,9 @@ unkeyedAnswers.it(
 
 		yield* moveAnswerToFront(sameText.id);
 
-		yield* outcomes({
-			"first position, now the same-text answer": [answerErrorAt(0, "text"), "Rejected"],
-			"second position, now the first answer": [answerErrorAt(1, "text"), undefined],
-		});
+		yield* outcomes([
+			["first position, now the same-text answer", () => answerErrorAt(0, "text"), "Rejected"],
+			["second position, now the first answer", () => answerErrorAt(1, "text"), undefined],
+		]);
 	},
 );

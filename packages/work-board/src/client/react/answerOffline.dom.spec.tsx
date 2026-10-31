@@ -20,10 +20,10 @@ screenStory.it(
 
 		yield* dropLiveConnection();
 
-		yield* outcomes({
-			card: [answerCardLock(), { answer: "locked", notice: REASON, record: "locked" }],
-			draft: [answerBoxState(), expect.objectContaining({ text: DRAFT })],
-		});
+		yield* outcomes([
+			["card", () => answerCardLock(), { answer: "locked", notice: REASON, record: "locked" }],
+			["draft", () => answerBoxState(), expect.objectContaining({ text: DRAFT })],
+		]);
 	},
 );
 
@@ -36,9 +36,9 @@ screenStory.it(
 
 		yield* reconnectLive();
 
-		yield* outcomes({
-			card: [answerCardLock(), { answer: "open", notice: "none", record: "open" }],
-			draft: [answerBoxState(), expect.objectContaining({ text: DRAFT })],
-		});
+		yield* outcomes([
+			["card", () => answerCardLock(), { answer: "open", notice: "none", record: "open" }],
+			["draft", () => answerBoxState(), expect.objectContaining({ text: DRAFT })],
+		]);
 	},
 );

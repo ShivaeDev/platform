@@ -36,10 +36,10 @@ boardStory.it.runIf(ignoresCase)(
 	function* ({ documentAt, homeFile, launch }) {
 		yield* launch({ home: "upper.md" });
 
-		yield* outcomes({
-			"home document": [documentAt("/Upper.md"), "# Upper\n\n## Doing\n\n### One\n"],
-			"home file": [homeFile(), "Upper.md"],
-		});
+		yield* outcomes([
+			["home document", () => documentAt("/Upper.md"), "# Upper\n\n## Doing\n\n### One\n"],
+			["home file", () => homeFile(), "Upper.md"],
+		]);
 	},
 );
 

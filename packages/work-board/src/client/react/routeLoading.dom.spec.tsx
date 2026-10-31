@@ -25,11 +25,11 @@ for (const { kind, url } of [
 
 			yield* follow(url);
 
-			yield* outcomes({
-				"the index reads": [readIndexReads(), indexReads],
-				"the page reads": [documentReadsOf(url), pageReads],
-				"the projection": [shellParts(), expect.objectContaining({ projection: "kept" })],
-			});
+			yield* outcomes([
+				["the index reads", () => readIndexReads(), indexReads],
+				["the page reads", () => documentReadsOf(url), pageReads],
+				["the projection", () => shellParts(), expect.objectContaining({ projection: "kept" })],
+			]);
 		},
 	);
 
@@ -42,19 +42,19 @@ for (const { kind, url } of [
 			yield* recoverWorkspace();
 			const indexReads = yield* readIndexReads();
 			const pageReads = yield* documentReadsOf(url);
-			yield* outcomes({
-				"the answer": [pageAnswer(), "Unavailable"],
-				"the kind": [pageKind(), kind],
-			});
+			yield* outcomes([
+				["the answer", () => pageAnswer(), "Unavailable"],
+				["the kind", () => pageKind(), kind],
+			]);
 
 			yield* follow(url);
 
-			yield* outcomes({
-				"the answer": [pageAnswer(), "OK"],
-				"the index reads": [readIndexReads(), indexReads + 1],
-				"the page": [pageAddress(), url],
-				"the page reads": [documentReadsOf(url), pageReads + (kind === "board" ? 1 : 0)],
-			});
+			yield* outcomes([
+				["the answer", () => pageAnswer(), "OK"],
+				["the index reads", () => readIndexReads(), indexReads + 1],
+				["the page", () => pageAddress(), url],
+				["the page reads", () => documentReadsOf(url), pageReads + (kind === "board" ? 1 : 0)],
+			]);
 		},
 	);
 }
@@ -78,10 +78,10 @@ for (const { kind, reads, url } of routes) {
 
 			yield* preload(url);
 
-			yield* outcomes({
-				"the heading": [mainHeading(), "First"],
-				"the reads": [documentReadsOf(reads), expectedReads],
-			});
+			yield* outcomes([
+				["the heading", () => mainHeading(), "First"],
+				["the reads", () => documentReadsOf(reads), expectedReads],
+			]);
 		},
 	);
 
@@ -95,12 +95,12 @@ for (const { kind, reads, url } of routes) {
 
 			yield* navigate(url);
 
-			yield* outcomes({
-				"the header": [shellParts(), expect.objectContaining({ header: "kept" })],
-				"the kind": [pageKind(), kind],
-				"the page": [pageAddress(), url],
-				"the reads": [documentReadsOf(reads), expectedReads],
-			});
+			yield* outcomes([
+				["the header", () => shellParts(), expect.objectContaining({ header: "kept" })],
+				["the kind", () => pageKind(), kind],
+				["the page", () => pageAddress(), url],
+				["the reads", () => documentReadsOf(reads), expectedReads],
+			]);
 		},
 	);
 }
@@ -110,17 +110,17 @@ screenStory.it(
 	[routedScreen({ ...files, "task.md": "---\nid: task.render\nkind: task\n---\n# Render task\n" }, "/_board/work?view=board", { home: "home.md" })],
 	function* ({ currentWorkLayout, navigate, pageAddress, preload, workTableShown }) {
 		yield* preload("/_board/work?view=table");
-		yield* outcomes({
-			"the layout": [currentWorkLayout(), "All work"],
-			"the page": [pageAddress(), "/_board/work?view=board"],
-		});
+		yield* outcomes([
+			["the layout", () => currentWorkLayout(), "All work"],
+			["the page", () => pageAddress(), "/_board/work?view=board"],
+		]);
 
 		yield* navigate("/_board/work?view=table");
 
-		yield* outcomes({
-			"the layout": [currentWorkLayout(), "Table"],
-			"the page": [pageAddress(), "/_board/work?view=table"],
-			"the table": [workTableShown(), "shown"],
-		});
+		yield* outcomes([
+			["the layout", () => currentWorkLayout(), "Table"],
+			["the page", () => pageAddress(), "/_board/work?view=table"],
+			["the table", () => workTableShown(), "shown"],
+		]);
 	},
 );

@@ -24,9 +24,9 @@ indexStory.it(
 		yield* editorMoves("replacement", "alias");
 		yield* fullCheckRuns();
 
-		yield* outcomes({
-			"body of alias/note.md": [bodyOf("alias/note.md"), "# Second"],
-			"unavailable files": [unavailableFiles(), []],
-		});
+		yield* outcomes([
+			["body of alias/note.md", () => bodyOf("alias/note.md"), "# Second"],
+			["unavailable files", () => unavailableFiles(), []],
+		]);
 	},
 );

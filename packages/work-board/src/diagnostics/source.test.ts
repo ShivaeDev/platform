@@ -29,10 +29,10 @@ diagnosticsStory.it(
 
 		yield* codexAnswers();
 
-		yield* outcomes({
-			"Codex reads": [codexReads(), 1],
-			"waiting tabs": [waitingTabsSeeCodex(), ["ready", "ready"]],
-		});
+		yield* outcomes([
+			["Codex reads", () => codexReads(), 1],
+			["waiting tabs", () => waitingTabsSeeCodex(), ["ready", "ready"]],
+		]);
 	},
 );
 
@@ -69,10 +69,10 @@ diagnosticsStory.it(
 	function* ({ codexReads, codexRecovers, tabReads }) {
 		yield* codexRecovers();
 
-		yield* outcomes({
-			"Codex for the next tab": [tabReads(), "error: Codex offline"],
-			"Codex reads": [codexReads(), 1],
-		});
+		yield* outcomes([
+			["Codex for the next tab", () => tabReads(), "error: Codex offline"],
+			["Codex reads", () => codexReads(), 1],
+		]);
 	},
 );
 
@@ -84,10 +84,10 @@ diagnosticsStory.it(
 
 		yield* secondsPass(60);
 
-		yield* outcomes({
-			"Codex for the next tab": [tabReads(), "ready"],
-			"Codex reads": [codexReads(), 2],
-		});
+		yield* outcomes([
+			["Codex for the next tab", () => tabReads(), "ready"],
+			["Codex reads", () => codexReads(), 2],
+		]);
 	},
 );
 
@@ -98,9 +98,9 @@ diagnosticsStory.it(
 		yield* firstTabCloses();
 		yield* codexAnswers();
 
-		yield* outcomes({
-			"Codex for the next tab": [tabReads(), "ready"],
-			"Codex reads": [codexReads(), 1],
-		});
+		yield* outcomes([
+			["Codex for the next tab", () => tabReads(), "ready"],
+			["Codex reads", () => codexReads(), 1],
+		]);
 	},
 );

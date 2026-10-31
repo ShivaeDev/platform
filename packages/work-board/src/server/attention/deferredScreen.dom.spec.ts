@@ -18,18 +18,18 @@ screenStory.it(
 	"deferring person-owned work moves it from Needs you into a folded Later section on Today",
 	[personOwnedWork],
 	function* ({ changeSource, inboxBadge, laterSection, needsYouItems }) {
-		yield* outcomes({
-			later: [laterSection(), "absent"],
-			"needs you": [needsYouItems(), ["goal.admin"]],
-		});
+		yield* outcomes([
+			["later", () => laterSection(), "absent"],
+			["needs you", () => needsYouItems(), ["goal.admin"]],
+		]);
 
 		yield* changeSource("goals/admin.md", PLANNED.replace("status: draft", "status: deferred"));
 
-		yield* outcomes({
-			badge: [inboxBadge(), "0"],
-			later: [laterSection(), { folded: true, heading: "Later1", items: [expect.stringContaining("Later: design the admin system")] }],
-			"needs you": [needsYouItems(), []],
-		});
+		yield* outcomes([
+			["badge", () => inboxBadge(), "0"],
+			["later", () => laterSection(), { folded: true, heading: "Later1", items: [expect.stringContaining("Later: design the admin system")] }],
+			["needs you", () => needsYouItems(), []],
+		]);
 	},
 );
 
@@ -37,19 +37,19 @@ screenStory.it(
 	"dropping person-owned work removes it from Needs you and every needs-you count without listing it under Later",
 	[personOwnedWork],
 	function* ({ changeSource, inboxBadge, laterSection, needsYouItems, todayStripText }) {
-		yield* outcomes({
-			badge: [inboxBadge(), "1"],
-			"needs you": [needsYouItems(), ["goal.admin"]],
-		});
+		yield* outcomes([
+			["badge", () => inboxBadge(), "1"],
+			["needs you", () => needsYouItems(), ["goal.admin"]],
+		]);
 
 		yield* changeSource("goals/admin.md", PLANNED.replace("status: draft", "status: dropped"));
 
-		yield* outcomes({
-			badge: [inboxBadge(), "0"],
-			later: [laterSection(), "absent"],
-			"needs you": [needsYouItems(), []],
-			strip: [todayStripText(), expect.stringContaining("0 need you")],
-		});
+		yield* outcomes([
+			["badge", () => inboxBadge(), "0"],
+			["later", () => laterSection(), "absent"],
+			["needs you", () => needsYouItems(), []],
+			["strip", () => todayStripText(), expect.stringContaining("0 need you")],
+		]);
 	},
 );
 
@@ -57,11 +57,11 @@ screenStory.it(
 	"Today counts and shows only the active goal while Later lists the deferred one",
 	[oneGoalDeferred],
 	function* ({ laterSection, todayGoalIds, todayStripText }) {
-		yield* outcomes({
-			goals: [todayGoalIds(), ["goal.launch"]],
-			later: [laterSection(), expect.objectContaining({ items: [expect.stringContaining("Later: design the admin system")] })],
-			strip: [todayStripText(), expect.stringMatching(/1 active goal(?!s)/u)],
-		});
+		yield* outcomes([
+			["goals", () => todayGoalIds(), ["goal.launch"]],
+			["later", () => laterSection(), expect.objectContaining({ items: [expect.stringContaining("Later: design the admin system")] })],
+			["strip", () => todayStripText(), expect.stringMatching(/1 active goal(?!s)/u)],
+		]);
 	},
 );
 
@@ -71,10 +71,10 @@ screenStory.it(
 	function* ({ activeGoalIds, deferredGoalSection, goalsPageSummary, navigate }) {
 		yield* navigate("/_board/goals");
 
-		yield* outcomes({
-			active: [activeGoalIds(), ["goal.launch"]],
-			deferred: [deferredGoalSection(), { goals: ["goal.admin"], heading: "Deferred goals" }],
-			summary: [goalsPageSummary(), "1 active goal"],
-		});
+		yield* outcomes([
+			["active", () => activeGoalIds(), ["goal.launch"]],
+			["deferred", () => deferredGoalSection(), { goals: ["goal.admin"], heading: "Deferred goals" }],
+			["summary", () => goalsPageSummary(), "1 active goal"],
+		]);
 	},
 );

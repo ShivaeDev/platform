@@ -11,10 +11,14 @@ screenStory.it(
 	"Now puts a task with an open ask for the reader in Waiting on you and leaves agent asks and related questions queued",
 	[routedScreen(nowAsksFixture, "/_board/work", { home: "home.md" })],
 	function* ({ nowCard, nowLane }) {
-		yield* outcomes({
-			queued: [nowLane("Queued"), expect.objectContaining({ cards: expect.arrayContaining(["task.agent", "task.related"]), count: "2" })],
-			yours: [nowCard("task.yours"), expect.objectContaining({ lane: "Waiting on you", owner: "Waiting on your answer", states: ["Needs you"] })],
-		});
+		yield* outcomes([
+			["queued", () => nowLane("Queued"), expect.objectContaining({ cards: expect.arrayContaining(["task.agent", "task.related"]), count: "2" })],
+			[
+				"yours",
+				() => nowCard("task.yours"),
+				expect.objectContaining({ lane: "Waiting on you", owner: "Waiting on your answer", states: ["Needs you"] }),
+			],
+		]);
 	},
 );
 

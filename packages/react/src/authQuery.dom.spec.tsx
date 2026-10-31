@@ -36,10 +36,10 @@ authReads.it(
 	function* ({ requestedInputs, showRead, shown }) {
 		yield* showRead("consent");
 
-		yield* outcomes({
-			"requested inputs": [requestedInputs(), ["consent"]],
-			shown: [shown(), "First consent"],
-		});
+		yield* outcomes([
+			["requested inputs", () => requestedInputs(), ["consent"]],
+			["shown", () => shown(), "First consent"],
+		]);
 	},
 );
 

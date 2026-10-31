@@ -11,9 +11,9 @@ screenStory.it(
 	"an archived question opens at its item URL with its recorded answer",
 	[archivedScreen(), openScreen()],
 	function* ({ itemTitle, outcomeAnswer }) {
-		yield* outcomes({
-			answer: [outcomeAnswer("answer.settled"), expect.stringContaining("Keep the reviewed option.")],
-			title: [itemTitle(), expect.stringContaining("settled")],
-		});
+		yield* outcomes([
+			["answer", () => outcomeAnswer("answer.settled"), expect.stringContaining("Keep the reviewed option.")],
+			["title", () => itemTitle(), expect.stringContaining("settled")],
+		]);
 	},
 );

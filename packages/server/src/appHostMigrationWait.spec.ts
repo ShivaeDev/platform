@@ -14,17 +14,20 @@ for (const [ledger, traits] of [
 		traits,
 		function* ({ anotherProcessMigrates, applicationLifecycle, bootStep, hostStarts, migrationLogMessages, pingHost, pollIntervalPasses }) {
 			yield* hostStarts();
-			yield* outcomes({ "application lifecycle": [applicationLifecycle(), []], "boot step": [bootStep(), "sleeps 10 ms"] });
+			yield* outcomes([
+				["application lifecycle", () => applicationLifecycle(), []],
+				["boot step", () => bootStep(), "sleeps 10 ms"],
+			]);
 
 			yield* anotherProcessMigrates();
 			yield* pollIntervalPasses();
 
-			yield* outcomes({
-				"application lifecycle": [applicationLifecycle(), ["started"]],
-				"boot step": [bootStep(), "ready"],
-				"migration logs": [migrationLogMessages(), ["Waiting for database migrations", "Database migrations current"]],
-				ping: [pingHost(), "pong"],
-			});
+			yield* outcomes([
+				["application lifecycle", () => applicationLifecycle(), ["started"]],
+				["boot step", () => bootStep(), "ready"],
+				["migration logs", () => migrationLogMessages(), ["Waiting for database migrations", "Database migrations current"]],
+				["ping", () => pingHost(), "pong"],
+			]);
 		},
 	);
 }
@@ -38,12 +41,12 @@ migrationHost.it(
 
 		yield* pollBudgetExpires();
 
-		yield* outcomes({
-			"application lifecycle": [applicationLifecycle(), []],
-			"migration logs": [migrationLogMessages(), ["Waiting for database migrations", "Timed out waiting for database migrations"]],
-			"startup failure": [startupFailure(), checked],
-			"timeout log": [migrationLog("Timed out waiting for database migrations"), { annotations: pendingReady, level: "Info" }],
-		});
+		yield* outcomes([
+			["application lifecycle", () => applicationLifecycle(), []],
+			["migration logs", () => migrationLogMessages(), ["Waiting for database migrations", "Timed out waiting for database migrations"]],
+			["startup failure", () => startupFailure(), checked],
+			["timeout log", () => migrationLog("Timed out waiting for database migrations"), { annotations: pendingReady, level: "Info" }],
+		]);
 	},
 );
 
@@ -53,12 +56,12 @@ migrationHost.it(
 	function* ({ applicationLifecycle, bootStep, hostStarts, migrationLogMessages, pingHost }) {
 		yield* hostStarts();
 
-		yield* outcomes({
-			"application lifecycle": [applicationLifecycle(), ["started"]],
-			"boot step": [bootStep(), "ready"],
-			"migration logs": [migrationLogMessages(), []],
-			ping: [pingHost(), "pong"],
-		});
+		yield* outcomes([
+			["application lifecycle", () => applicationLifecycle(), ["started"]],
+			["boot step", () => bootStep(), "ready"],
+			["migration logs", () => migrationLogMessages(), []],
+			["ping", () => pingHost(), "pong"],
+		]);
 	},
 );
 
@@ -68,10 +71,10 @@ migrationHost.it(
 	function* ({ applicationLifecycle, bootStep, hostStarts }) {
 		yield* hostStarts();
 
-		yield* outcomes({
-			"application lifecycle": [applicationLifecycle(), []],
-			"boot step": [bootStep(), "failed with sql error"],
-		});
+		yield* outcomes([
+			["application lifecycle", () => applicationLifecycle(), []],
+			["boot step", () => bootStep(), "failed with sql error"],
+		]);
 	},
 );
 
@@ -94,11 +97,11 @@ migrationHost.it(
 
 		yield* peerAcknowledgesDisconnects();
 
-		yield* outcomes({
-			"application lifecycle": [applicationLifecycle(), []],
-			"host ending": [hostEnding(), "interrupted"],
-			"open pool connections": [openPoolConnections(), "no open connections"],
-		});
+		yield* outcomes([
+			["application lifecycle", () => applicationLifecycle(), []],
+			["host ending", () => hostEnding(), "interrupted"],
+			["open pool connections", () => openPoolConnections(), "no open connections"],
+		]);
 	},
 );
 
@@ -126,9 +129,9 @@ migrationHost.it(
 
 		yield* timePasses("25 millis");
 
-		yield* outcomes({
-			"migration logs": [migrationLogMessages(), ["Waiting for database migrations", "Still waiting for database migrations"]],
-			"progress log": [migrationLog("Still waiting for database migrations"), waiting],
-		});
+		yield* outcomes([
+			["migration logs", () => migrationLogMessages(), ["Waiting for database migrations", "Still waiting for database migrations"]],
+			["progress log", () => migrationLog("Still waiting for database migrations"), waiting],
+		]);
 	},
 );

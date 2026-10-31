@@ -27,17 +27,18 @@ for (const { crumb, heading, link } of [
 
 			yield* followWhileServerDown(link);
 
-			yield* outcomes({
-				"the breadcrumb": [breadcrumb(), crumb],
-				"the notice": [
-					pageNotice(),
+			yield* outcomes([
+				["the breadcrumb", () => breadcrumb(), crumb],
+				[
+					"the notice",
+					() => pageNotice(),
 					expect.objectContaining({
 						description: expect.stringContaining("This page tries again on its own. RpcClientError:"),
 						retry: "offered",
 						title: NOT_ANSWERING,
 					}),
 				],
-			});
+			]);
 		},
 	);
 
@@ -60,10 +61,10 @@ screenStory.it(
 	"opens a page while the Board server reads the Fleet daemon at the same moment",
 	[sessionDiagnostics(() => null), ...sessionOpenedAt(files, "/notes/plan.md")],
 	function* ({ mainHeading, pageReadBesideDaemon }) {
-		yield* outcomes({
-			"the heading": [mainHeading(), "Plan"],
-			"the page read beside the daemon": [pageReadBesideDaemon(), "read"],
-		});
+		yield* outcomes([
+			["the heading", () => mainHeading(), "Plan"],
+			["the page read beside the daemon", () => pageReadBesideDaemon(), "read"],
+		]);
 	},
 );
 
@@ -81,11 +82,11 @@ for (const { link, name } of [
 
 			yield* followWhileServerDown(link);
 
-			yield* outcomes({
-				"the breadcrumb": [breadcrumb(), `Workspace/ ${name}`],
-				"the browser title": [browserTitle(), `${name} · Work Board`],
-				"the notice": [pageNotice(), expect.objectContaining({ title: NOT_ANSWERING })],
-			});
+			yield* outcomes([
+				["the breadcrumb", () => breadcrumb(), `Workspace/ ${name}`],
+				["the browser title", () => browserTitle(), `${name} · Work Board`],
+				["the notice", () => pageNotice(), expect.objectContaining({ title: NOT_ANSWERING })],
+			]);
 		},
 	);
 }
@@ -94,11 +95,11 @@ screenStory.it(
 	"names Goals in the breadcrumb and browser title when the workspace can't be read",
 	[screenFiles(files), screenRoute("/_board/goals"), unavailableWorkspace(), openScreen()],
 	function* ({ breadcrumb, browserTitle, pageNotice }) {
-		yield* outcomes({
-			"the breadcrumb": [breadcrumb(), "Workspace/ Goals"],
-			"the browser title": [browserTitle(), "Goals · Work Board"],
-			"the notice": [pageNotice(), expect.objectContaining({ title: "This page couldn't be opened" })],
-		});
+		yield* outcomes([
+			["the breadcrumb", () => breadcrumb(), "Workspace/ Goals"],
+			["the browser title", () => browserTitle(), "Goals · Work Board"],
+			["the notice", () => pageNotice(), expect.objectContaining({ title: "This page couldn't be opened" })],
+		]);
 	},
 );
 
@@ -140,12 +141,12 @@ for (const url of ["/_board/goals/zzz", "/_board/zzz", "/notes"]) {
 		`shows the not-found page instead of another page at ${url}`,
 		[routedScreen(files, url)],
 		function* ({ breadcrumb, mainHeading, pageAnswer, pageNotice }) {
-			yield* outcomes({
-				"the answer": [pageAnswer(), "Not found"],
-				"the breadcrumb": [breadcrumb(), "Workspace/ Page not found"],
-				"the heading": [mainHeading(), "no heading"],
-				"the notice": [pageNotice(), notFoundNotice(url)],
-			});
+			yield* outcomes([
+				["the answer", () => pageAnswer(), "Not found"],
+				["the breadcrumb", () => breadcrumb(), "Workspace/ Page not found"],
+				["the heading", () => mainHeading(), "no heading"],
+				["the notice", () => pageNotice(), notFoundNotice(url)],
+			]);
 		},
 	);
 }
@@ -155,12 +156,12 @@ for (const url of ["/notes/broken%E0.md", "/_board/item/broken%E0"]) {
 		`shows the not-found page for the undecodable link ${url}`,
 		[routedScreen(files, url)],
 		function* ({ breadcrumb, browserTitle, pageAnswer, pageNotice }) {
-			yield* outcomes({
-				"the answer": [pageAnswer(), "Not found"],
-				"the breadcrumb": [breadcrumb(), "Workspace/ Page not found"],
-				"the browser title": [browserTitle(), "Page not found · Work Board"],
-				"the notice": [pageNotice(), notFoundNotice(url)],
-			});
+			yield* outcomes([
+				["the answer", () => pageAnswer(), "Not found"],
+				["the breadcrumb", () => breadcrumb(), "Workspace/ Page not found"],
+				["the browser title", () => browserTitle(), "Page not found · Work Board"],
+				["the notice", () => pageNotice(), notFoundNotice(url)],
+			]);
 		},
 	);
 }
@@ -169,10 +170,10 @@ screenStory.it(
 	"keeps the live status Live on a not-found page",
 	sessionOpenedAt(files, "/_board/goals/zzz"),
 	function* ({ liveIndicator, pageNotice }) {
-		yield* outcomes({
-			"the live status": [liveIndicator(), expect.objectContaining({ announced: "Live" })],
-			"the notice": [pageNotice(), expect.objectContaining({ title: "Page not found" })],
-		});
+		yield* outcomes([
+			["the live status", () => liveIndicator(), expect.objectContaining({ announced: "Live" })],
+			["the notice", () => pageNotice(), expect.objectContaining({ title: "Page not found" })],
+		]);
 	},
 );
 
@@ -193,15 +194,16 @@ screenStory.it(
 		),
 	],
 	function* ({ breadcrumb, pageNotice }) {
-		yield* outcomes({
-			"the breadcrumb": [breadcrumb(), "Workspace/ task.twice"],
-			"the notice": [
-				pageNotice(),
+		yield* outcomes([
+			["the breadcrumb", () => breadcrumb(), "Workspace/ task.twice"],
+			[
+				"the notice",
+				() => pageNotice(),
 				expect.objectContaining({
 					description: "Give each item its own ID in its file, then open the link again.",
 					title: "Two items share this ID",
 				}),
 			],
-		});
+		]);
 	},
 );

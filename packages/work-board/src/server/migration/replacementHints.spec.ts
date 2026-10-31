@@ -36,10 +36,11 @@ boardStory.it(
 		yield* migrationRuns();
 		yield* start();
 
-		yield* outcomes({
-			problems: [itemDiagnostics("/current.md"), []],
-			relationships: [
-				itemRelationships("/current.md"),
+		yield* outcomes([
+			["problems", () => itemDiagnostics("/current.md"), []],
+			[
+				"relationships",
+				() => itemRelationships("/current.md"),
 				[
 					"relates_to task.other",
 					"replaces old.already",
@@ -54,7 +55,7 @@ boardStory.it(
 					"replaces old.superseded",
 				],
 			],
-		});
+		]);
 	},
 );
 

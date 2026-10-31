@@ -20,10 +20,10 @@ boardStory.it(
 			yield* sourceOf(file);
 		}
 
-		yield* outcomes({
-			"parsed questions": [parsedQuestions(), opened],
-			"parsed responses": [parsedResponses(), []],
-		});
+		yield* outcomes([
+			["parsed questions", () => parsedQuestions(), opened],
+			["parsed responses", () => parsedResponses(), []],
+		]);
 	},
 );
 
@@ -36,10 +36,10 @@ boardStory.it(
 		editFile("responses/answer-0-current.md", files["responses/answer-0-current.md"]?.replace("type: answer", "type: not_now") ?? "");
 		yield* nextChange();
 
-		yield* outcomes({
-			"the badge": [needsYouBadge(), 3],
-			"the Inbox": [inboxDecisions(), ["decision.fixture.0", "decision.fixture.19", "decision.fixture.9"]],
-		});
+		yield* outcomes([
+			["the badge", () => needsYouBadge(), 3],
+			["the Inbox", () => inboxDecisions(), ["decision.fixture.0", "decision.fixture.19", "decision.fixture.9"]],
+		]);
 	},
 );
 
@@ -55,9 +55,9 @@ boardStory.it(
 
 		yield* boardRead("navigation");
 
-		yield* outcomes({
-			"parsed questions": [parsedQuestions(), []],
-			"parsed responses": [parsedResponses(), []],
-		});
+		yield* outcomes([
+			["parsed questions", () => parsedQuestions(), []],
+			["parsed responses", () => parsedResponses(), []],
+		]);
 	},
 );

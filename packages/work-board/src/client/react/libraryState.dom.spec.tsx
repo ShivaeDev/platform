@@ -9,10 +9,11 @@ expectNoReactWarnings();
 const FILTERS = { fleet: false, kind: "All kinds", query: "", reset: "not offered", status: "All statuses", view: "Recently changed" };
 
 screenStory.it("opens the Library on Recently changed, newest first", [libraryScreen()], function* ({ libraryFilters, libraryTitles }) {
-	yield* outcomes({
-		"the filters": [libraryFilters(), FILTERS],
-		"the listed titles": [
-			libraryTitles(),
+	yield* outcomes([
+		["the filters", () => libraryFilters(), FILTERS],
+		[
+			"the listed titles",
+			() => libraryTitles(),
 			[
 				"A plain note",
 				"Upload result",
@@ -25,17 +26,17 @@ screenStory.it("opens the Library on Recently changed, newest first", [librarySc
 				"Where should the project documents live?",
 			],
 		],
-	});
+	]);
 });
 
 screenStory.it(
 	"opens a shared Library link with its view, kind and Fleet files already chosen",
 	[libraryScreen("/_board/library?view=titles&kind=goal&fleet=1")],
 	function* ({ libraryFilters, libraryTitles }) {
-		yield* outcomes({
-			"the filters": [libraryFilters(), { ...FILTERS, fleet: true, kind: "Goal", reset: "offered", view: "By title" }],
-			"the listed titles": [libraryTitles(), ["A calm workspace"]],
-		});
+		yield* outcomes([
+			["the filters", () => libraryFilters(), { ...FILTERS, fleet: true, kind: "Goal", reset: "offered", view: "By title" }],
+			["the listed titles", () => libraryTitles(), ["A calm workspace"]],
+		]);
 	},
 );
 
@@ -44,10 +45,10 @@ screenStory.it("puts a chosen kind in the Library's address", [libraryScreen()],
 
 	yield* filterLibrary("Kind", "Report");
 
-	yield* outcomes({
-		"the address": [libraryAddress(), { kind: "report", view: "recently-changed" }],
-		"the listed titles": [libraryTitles(), ["Upload result", "Second result"]],
-	});
+	yield* outcomes([
+		["the address", () => libraryAddress(), { kind: "report", view: "recently-changed" }],
+		["the listed titles", () => libraryTitles(), ["Upload result", "Second result"]],
+	]);
 });
 
 screenStory.it(
@@ -58,10 +59,10 @@ screenStory.it(
 
 		yield* showLibraryView("By title");
 
-		yield* outcomes({
-			"the address": [libraryAddress(), { kind: "report", view: "titles" }],
-			"the listed titles": [libraryTitles(), ["Second result", "Upload result"]],
-		});
+		yield* outcomes([
+			["the address", () => libraryAddress(), { kind: "report", view: "titles" }],
+			["the listed titles", () => libraryTitles(), ["Second result", "Upload result"]],
+		]);
 	},
 );
 
@@ -77,11 +78,11 @@ for (const [word, source, title] of [
 
 			yield* findInLibrary(word);
 
-			yield* outcomes({
-				"the address": [libraryAddress(), { q: word, view: "titles" }],
-				"the filters": [libraryFilters(), { ...FILTERS, query: word, reset: "offered", view: "By title" }],
-				"the listed titles": [libraryTitles(), [title]],
-			});
+			yield* outcomes([
+				["the address", () => libraryAddress(), { q: word, view: "titles" }],
+				["the filters", () => libraryFilters(), { ...FILTERS, query: word, reset: "offered", view: "By title" }],
+				["the listed titles", () => libraryTitles(), [title]],
+			]);
 		},
 	);
 }
@@ -94,10 +95,11 @@ screenStory.it(
 
 		yield* resetLibraryFilters();
 
-		yield* outcomes({
-			"the address": [libraryAddress(), { view: "titles" }],
-			"the listed titles": [
-				libraryTitles(),
+		yield* outcomes([
+			["the address", () => libraryAddress(), { view: "titles" }],
+			[
+				"the listed titles",
+				() => libraryTitles(),
 				[
 					"A calm workspace",
 					"A plain note",
@@ -110,7 +112,7 @@ screenStory.it(
 					"Where should the project documents live?",
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -123,11 +125,11 @@ screenStory.it(
 
 		yield* back();
 
-		yield* outcomes({
-			"the address": [libraryAddress(), { kind: "report", q: "upload", view: "titles" }],
-			"the filters": [libraryFilters(), { ...FILTERS, kind: "Report", query: "upload", reset: "offered", view: "By title" }],
-			"the listed titles": [libraryTitles(), ["Upload result"]],
-		});
+		yield* outcomes([
+			["the address", () => libraryAddress(), { kind: "report", q: "upload", view: "titles" }],
+			["the filters", () => libraryFilters(), { ...FILTERS, kind: "Report", query: "upload", reset: "offered", view: "By title" }],
+			["the listed titles", () => libraryTitles(), ["Upload result"]],
+		]);
 	},
 );
 
@@ -137,18 +139,18 @@ screenStory.it(
 	"lists the first 100 of 250 documents, and Show more adds the next 100 and focuses the first of them",
 	[pagedLibraryScreen(DOCUMENT_COUNT)],
 	function* ({ keyboardFocus, libraryStatus, libraryTitles, showMoreDocuments }) {
-		yield* outcomes({
-			"the count": [libraryStatus(), "100 shown · 250 documents"],
-			"the listed titles": [libraryTitles(), documentTitles(100)],
-		});
+		yield* outcomes([
+			["the count", () => libraryStatus(), "100 shown · 250 documents"],
+			["the listed titles", () => libraryTitles(), documentTitles(100)],
+		]);
 
 		yield* showMoreDocuments();
 
-		yield* outcomes({
-			"the count": [libraryStatus(), "200 shown · 250 documents"],
-			"the focused row": [keyboardFocus(), { name: "Document 100", role: "link" }],
-			"the listed titles": [libraryTitles(), documentTitles(200)],
-		});
+		yield* outcomes([
+			["the count", () => libraryStatus(), "200 shown · 250 documents"],
+			["the focused row", () => keyboardFocus(), { name: "Document 100", role: "link" }],
+			["the listed titles", () => libraryTitles(), documentTitles(200)],
+		]);
 	},
 );
 
@@ -175,11 +177,11 @@ screenStory.it(
 
 		yield* showMoreDocuments();
 
-		yield* outcomes({
-			"Show more": [showMoreOffered(), "not offered"],
-			"the count": [libraryStatus(), "250 documents"],
-			"the listed titles": [libraryTitles(), documentTitles(DOCUMENT_COUNT)],
-		});
+		yield* outcomes([
+			["Show more", () => showMoreOffered(), "not offered"],
+			["the count", () => libraryStatus(), "250 documents"],
+			["the listed titles", () => libraryTitles(), documentTitles(DOCUMENT_COUNT)],
+		]);
 	},
 );
 
@@ -187,16 +189,16 @@ screenStory.it(
 	"lists only the notes folder at a root without documents, and opening it lists its own document and its deep folder",
 	[nestedLibraryScreen()],
 	function* ({ libraryFolders, libraryTitles, openLibraryFolder }) {
-		yield* outcomes({
-			"the folders": [libraryFolders(), ["notes (2)"]],
-			"the listed titles": [libraryTitles(), []],
-		});
+		yield* outcomes([
+			["the folders", () => libraryFolders(), ["notes (2)"]],
+			["the listed titles", () => libraryTitles(), []],
+		]);
 
 		yield* openLibraryFolder("notes");
 
-		yield* outcomes({
-			"the folders": [libraryFolders(), ["notes (2)", "deep (1)"]],
-			"the listed titles": [libraryTitles(), ["A first note"]],
-		});
+		yield* outcomes([
+			["the folders", () => libraryFolders(), ["notes (2)", "deep (1)"]],
+			["the listed titles", () => libraryTitles(), ["A first note"]],
+		]);
 	},
 );

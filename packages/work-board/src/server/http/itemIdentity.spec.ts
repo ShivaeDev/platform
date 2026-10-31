@@ -16,10 +16,10 @@ for (const url of ["/_board/item/source.md", "/_board/item/source.md/", "/_board
 		`the item URL ${url} serves the item identified as source.md, not the file at that path`,
 		[identified],
 		function* ({ itemRead, statusOf }) {
-			yield* outcomes({
-				item: [itemRead(url), { file: "identified.md", identity: "source.md", source: "# Identified item" }],
-				page: [statusOf(url), "OK"],
-			});
+			yield* outcomes([
+				["item", () => itemRead(url), { file: "identified.md", identity: "source.md", source: "# Identified item" }],
+				["page", () => statusOf(url), "OK"],
+			]);
 		},
 	);
 }
@@ -36,9 +36,9 @@ for (const url of ["/_board/item/source.md", "/_board/item/source.md/", "/_board
 
 for (const url of ["/_board/item/missing.md", "/_board/item/missing.md/"]) {
 	boardStory.it(`the item URL ${url}, naming a plain file rather than an ID, answers Not Found`, [identified], function* ({ itemRead, statusOf }) {
-		yield* outcomes({
-			item: [itemRead(url), "not found"],
-			page: [statusOf(url), "Not Found"],
-		});
+		yield* outcomes([
+			["item", () => itemRead(url), "not found"],
+			["page", () => statusOf(url), "Not Found"],
+		]);
 	});
 }

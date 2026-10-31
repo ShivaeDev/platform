@@ -18,10 +18,11 @@ for (const [reader, host, status] of [
 }
 
 boardStory.it("System shows the figures each provider reports", allSources, function* ({ githubResources, systemCardFacts, systemCardLimits }) {
-	yield* outcomes({
-		"codex limits": [systemCardLimits("codex"), { "5-hour limit": "24% used", "Weekly limit": "63% used" }],
-		"fleet facts": [
-			systemCardFacts("fleet"),
+	yield* outcomes([
+		["codex limits", () => systemCardLimits("codex"), { "5-hour limit": "24% used", "Weekly limit": "63% used" }],
+		[
+			"fleet facts",
+			() => systemCardFacts("fleet"),
 			expect.objectContaining({
 				"Last provider capacity rejection": expect.stringContaining("Provider is at capacity"),
 				"Last scheduler pass": expect.any(String),
@@ -30,22 +31,23 @@ boardStory.it("System shows the figures each provider reports", allSources, func
 				"Waiting on orchestrator": "3",
 			}),
 		],
-		"github resources": [
-			githubResources(),
+		[
+			"github resources",
+			() => githubResources(),
 			{
 				core: expect.stringContaining("4321 of 5000 requests left"),
 				graphql: expect.stringContaining("0 of 5000 requests left"),
 				search: expect.stringContaining("5 of 30 requests left"),
 			},
 		],
-	});
+	]);
 });
 
 boardStory.it("System labels the maintainer's count Needs you, never Waiting on you", allSources, function* ({ systemCardFacts, systemText }) {
-	yield* outcomes({
-		"fleet facts": [systemCardFacts("fleet"), expect.objectContaining({ "Needs you": expect.any(String) })],
-		"page text": [systemText(), expect.not.stringContaining("Waiting on you")],
-	});
+	yield* outcomes([
+		["fleet facts", () => systemCardFacts("fleet"), expect.objectContaining({ "Needs you": expect.any(String) })],
+		["page text", () => systemText(), expect.not.stringContaining("Waiting on you")],
+	]);
 });
 
 boardStory.it(
@@ -59,11 +61,11 @@ boardStory.it(
 		),
 	],
 	function* ({ systemCards, systemCardText }) {
-		yield* outcomes({
-			cards: [systemCards(), { codex: "not-configured", fleet: "attention", github: "error" }],
-			"codex card": [systemCardText("codex"), expect.stringContaining("Not configured")],
-			"github card": [systemCardText("github"), expect.stringMatching(/Unavailable.*<script>bad<\/script>/u)],
-		});
+		yield* outcomes([
+			["cards", () => systemCards(), { codex: "not-configured", fleet: "attention", github: "error" }],
+			["codex card", () => systemCardText("codex"), expect.stringContaining("Not configured")],
+			["github card", () => systemCardText("github"), expect.stringMatching(/Unavailable.*<script>bad<\/script>/u)],
+		]);
 	},
 );
 
@@ -101,12 +103,12 @@ boardStory.it(
 	"observations a source leaves out read as not reported instead of invented values",
 	[readingTime(now), daemonSnapshot(() => unobserved)],
 	function* ({ systemCardFacts, systemCardLimits, systemCards, systemCardText }) {
-		yield* outcomes({
-			cards: [systemCards(), expect.objectContaining({ github: "attention" })],
-			"codex limits": [systemCardLimits("codex"), { "Long limit": "Not reported", "Short limit": "Not reported" }],
-			"fleet capacity rejection": [systemCardText("fleet"), expect.stringContaining("None observed")],
-			"fleet facts": [systemCardFacts("fleet"), expect.objectContaining({ "Last scheduler pass": "Not reported" })],
-		});
+		yield* outcomes([
+			["cards", () => systemCards(), expect.objectContaining({ github: "attention" })],
+			["codex limits", () => systemCardLimits("codex"), { "Long limit": "Not reported", "Short limit": "Not reported" }],
+			["fleet capacity rejection", () => systemCardText("fleet"), expect.stringContaining("None observed")],
+			["fleet facts", () => systemCardFacts("fleet"), expect.objectContaining({ "Last scheduler pass": "Not reported" })],
+		]);
 	},
 );
 
@@ -117,21 +119,23 @@ boardStory.it(
 		daemonSnapshot(() => ({ codex: missing, fleet: missing, github: { observedAt: now, state: "ready", value: githubObservations } })),
 	],
 	function* ({ githubResources, systemCards, systemCardText }) {
-		yield* outcomes({
-			cards: [systemCards(), expect.objectContaining({ github: "attention" })],
-			"github card": [
-				systemCardText("github"),
+		yield* outcomes([
+			["cards", () => systemCards(), expect.objectContaining({ github: "attention" })],
+			[
+				"github card",
+				() => systemCardText("github"),
 				expect.stringMatching(/GitHub request limits.*Fleet reads these limits from its own GitHub requests\. The Board does not call GitHub\./u),
 			],
-			resources: [
-				githubResources(),
+			[
+				"resources",
+				() => githubResources(),
 				{
 					core: "REST API 4321 of 5000 requests left Resets just now Checked 1m ago",
 					graphql: "GraphQL API 0 of 5000 requests left GitHub is blocking requests. Resumes in 10m Resets just now Checked 5m ago",
 					search: "Search API 5 of 30 requests left Fleet paused to keep 20% in reserve. Resumes in 1m Resets in 1m Checked just now",
 				},
 			],
-		});
+		]);
 	},
 );
 
@@ -142,14 +146,15 @@ boardStory.it(
 		daemonSnapshot(() => ({ codex: missing, fleet: { observedAt: now + 120_000, state: "ready", value: health }, github: missing })),
 	],
 	function* ({ systemCards, systemCardText, systemCardTimes }) {
-		yield* outcomes({
-			cards: [systemCards(), expect.objectContaining({ fleet: "stale" })],
-			"fleet card": [systemCardText("fleet"), expect.stringContaining("Stale")],
-			"fleet times": [
-				systemCardTimes("fleet"),
+		yield* outcomes([
+			["cards", () => systemCards(), expect.objectContaining({ fleet: "stale" })],
+			["fleet card", () => systemCardText("fleet"), expect.stringContaining("Stale")],
+			[
+				"fleet times",
+				() => systemCardTimes("fleet"),
 				["2m ago at 2027-01-15T08:00:00.000Z", "2m ago at 2027-01-15T07:59:50.000Z", "2m ago at 2027-01-15T08:00:00.000Z"],
 			],
-		});
+		]);
 	},
 );
 
@@ -159,13 +164,14 @@ boardStory.it(
 	"Codex usage names each window by its length and shows when it resets, relative and exact",
 	[readingTime(resetNow), codexOnlySnapshot(resetNow, codexResponse.rateLimits)],
 	function* ({ systemCardLimits, systemCardTimes }) {
-		yield* outcomes({
-			limits: [systemCardLimits("codex"), { "5-hour limit": "24% used", "Weekly limit": "63% used" }],
-			times: [
-				systemCardTimes("codex"),
+		yield* outcomes([
+			["limits", () => systemCardLimits("codex"), { "5-hour limit": "24% used", "Weekly limit": "63% used" }],
+			[
+				"times",
+				() => systemCardTimes("codex"),
 				["in 3h at 2027-01-15T08:00:00.000Z", "in 1d at 2027-01-16T08:00:00.000Z", "just now at 2027-01-15T05:00:00.000Z"],
 			],
-		});
+		]);
 	},
 );
 

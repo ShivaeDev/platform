@@ -28,9 +28,9 @@ lockStory.it(
 	function* ({ failureCauseOf, starts, stateOf }) {
 		yield* starts("ready");
 
-		yield* outcomes({
-			"ready": [stateOf("ready"), 'failed with heavy-lock error "Could not read the heavy-lock environment."'],
-			"ready's failure cause": [failureCauseOf("ready"), "ConfigError(SourceError: Failed to read file at <story directory>/CI)"],
-		});
+		yield* outcomes([
+			["ready", () => stateOf("ready"), 'failed with heavy-lock error "Could not read the heavy-lock environment."'],
+			["ready's failure cause", () => failureCauseOf("ready"), "ConfigError(SourceError: Failed to read file at <story directory>/CI)"],
+		]);
 	},
 );

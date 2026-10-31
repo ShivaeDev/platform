@@ -8,9 +8,9 @@ boardStory.it(
 	function* ({ commandAddress, commandStarts, scriptBuild }) {
 		yield* commandStarts();
 
-		yield* outcomes({
-			"the address": [commandAddress(), "a loopback address"],
-			"the build": [scriptBuild(), "the current checkout's build"],
-		});
+		yield* outcomes([
+			["the address", () => commandAddress(), "a loopback address"],
+			["the build", () => scriptBuild(), "the current checkout's build"],
+		]);
 	},
 );

@@ -22,10 +22,10 @@ for (const [shape, imports, line] of [
 		function* ({ check, locations, messages }) {
 			yield* check(domainOutcomes);
 
-			yield* outcomes({
-				"advice": [messages(), [expect.stringContaining("return the outcome in the domain's words")]],
-				"locations": [locations(), [`${SPEC}:3`]],
-			});
+			yield* outcomes([
+				["advice", () => messages(), [expect.stringContaining("return the outcome in the domain's words")]],
+				["locations", () => locations(), [`${SPEC}:3`]],
+			]);
 		},
 	);
 }

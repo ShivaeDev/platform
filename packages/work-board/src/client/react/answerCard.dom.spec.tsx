@@ -31,11 +31,11 @@ screenStory.it(
 	"a managed decision is named after the item it unblocks, and its generated id shows nowhere",
 	[routedScreen(answerCardFixture, url, WRITABLE)],
 	function* ({ fileLocation, itemHeading, shownGeneratedIds }) {
-		yield* outcomes({
-			"generated ids shown": [shownGeneratedIds(), []],
-			heading: [itemHeading(), TITLE],
-			location: [fileLocation(), expect.stringContaining(TITLE)],
-		});
+		yield* outcomes([
+			["generated ids shown", () => shownGeneratedIds(), []],
+			["heading", () => itemHeading(), TITLE],
+			["location", () => fileLocation(), expect.stringContaining(TITLE)],
+		]);
 	},
 );
 
@@ -44,18 +44,19 @@ for (const { files, mode } of REASONS) {
 		`a decision's ${mode} reason shows once, in the answer card right below the item's header`,
 		[routedScreen(files, url, WRITABLE)],
 		function* ({ cardReason, cardTitle, documentText, itemLayout }) {
-			yield* outcomes({
-				"card title": [cardTitle(), "Answer: Publish the install guide"],
-				document: [documentText(), expect.not.stringContaining("Which publishing path")],
-				layout: [itemLayout(), ["header", "answer cards", "document"]],
-				reason: [
-					cardReason(),
+			yield* outcomes([
+				["card title", () => cardTitle(), "Answer: Publish the install guide"],
+				["document", () => documentText(), expect.not.stringContaining("Which publishing path")],
+				["layout", () => itemLayout(), ["header", "answer cards", "document"]],
+				[
+					"reason",
+					() => cardReason(),
 					{
 						links: ["https://example.com/releases"],
 						paragraphs: expect.arrayContaining([expect.stringContaining("Which publishing path should we take?")]),
 					},
 				],
-			});
+			]);
 		},
 	);
 }
@@ -64,18 +65,20 @@ screenStory.it(
 	"a decision's paragraph reason moves to the card while the background and conclusion around it stay in the document",
 	[routedScreen(paragraphDecisionFixture, url, WRITABLE)],
 	function* ({ cardReason, documentText }) {
-		yield* outcomes({
-			document: [
-				documentText(),
+		yield* outcomes([
+			[
+				"document",
+				() => documentText(),
 				expect.stringMatching(
 					/^(?!.*Read the release guide).*Preserve this background before the decision\..*Preserve this conclusion after the decision\./su,
 				),
 			],
-			reason: [
-				cardReason(),
+			[
+				"reason",
+				() => cardReason(),
 				{ links: ["https://example.com/releases"], paragraphs: ["Which publishing path should we take?", "Read the release guide."] },
 			],
-		});
+		]);
 	},
 );
 
@@ -100,10 +103,10 @@ screenStory.it(
 
 		yield* refreshDocument(url);
 
-		yield* outcomes({
-			chosen: [chosenOptions(), ["option-1"]],
-			note: [answerBoxState("answer"), { focused: true, selection: [4, 7], text: "Use the reviewed version." }],
-		});
+		yield* outcomes([
+			["chosen", () => chosenOptions(), ["option-1"]],
+			["note", () => answerBoxState("answer"), { focused: true, selection: [4, 7], text: "Use the reviewed version." }],
+		]);
 	},
 );
 
@@ -116,13 +119,14 @@ screenStory.it(
 
 		yield* recordAnswer();
 
-		yield* outcomes({
-			"card says": [answeredNote(), "Answered by Reviewer: Publish now. Fleet isn't running. It picks this up when it starts again."],
-			recorded: [
-				recordedAnswers(decisionId, "direction"),
+		yield* outcomes([
+			["card says", () => answeredNote(), "Answered by Reviewer: Publish now. Fleet isn't running. It picks this up when it starts again."],
+			[
+				"recorded",
+				() => recordedAnswers(decisionId, "direction"),
 				[expect.objectContaining({ answers: [{ prompt: "answer", selected: ["option-1"], text: "Use the reviewed version." }], author: "Reviewer" })],
 			],
-		});
+		]);
 	},
 );
 
@@ -134,10 +138,10 @@ screenStory.it(
 
 		yield* openTodayAsk("Publish the install guide");
 
-		yield* outcomes({
-			focus: [focusedControl(), { name: "Answer: Publish the install guide", role: "region" }],
-			route: [currentRoute(), `${url}#answer-card-direction`],
-		});
+		yield* outcomes([
+			["focus", () => focusedControl(), { name: "Answer: Publish the install guide", role: "region" }],
+			["route", () => currentRoute(), `${url}#answer-card-direction`],
+		]);
 	},
 );
 
@@ -154,10 +158,10 @@ screenStory.it(
 		),
 	],
 	function* ({ cardTitle, itemStatus }) {
-		yield* outcomes({
-			"card title": [cardTitle(), "Answer unavailable"],
-			"item status": [itemStatus(), "Needs you"],
-		});
+		yield* outcomes([
+			["card title", () => cardTitle(), "Answer unavailable"],
+			["item status", () => itemStatus(), "Needs you"],
+		]);
 	},
 );
 
@@ -165,12 +169,12 @@ screenStory.it(
 	"a ready decision puts its recommendation and primary PR link above the choices, and keeps the recommendation out of the document",
 	[routedScreen(readyDecisionFixture, url, WRITABLE)],
 	function* ({ cardLinks, cardParts, cardRecommendation, documentText }) {
-		yield* outcomes({
-			document: [documentText(), expect.not.stringContaining("Merge the reviewed PR on GitHub.")],
-			links: [cardLinks(), [{ href: "https://github.com/ShivaeDev/platform/pull/395", name: "Open PR #395", primary: true }]],
-			parts: [cardParts(), ["title", "reason", "recommendation", "links", "options", "answer box", "Record answer", "More options"]],
-			recommendation: [cardRecommendation(), "Merge the reviewed PR on GitHub."],
-		});
+		yield* outcomes([
+			["document", () => documentText(), expect.not.stringContaining("Merge the reviewed PR on GitHub.")],
+			["links", () => cardLinks(), [{ href: "https://github.com/ShivaeDev/platform/pull/395", name: "Open PR #395", primary: true }]],
+			["parts", () => cardParts(), ["title", "reason", "recommendation", "links", "options", "answer box", "Record answer", "More options"]],
+			["recommendation", () => cardRecommendation(), "Merge the reviewed PR on GitHub."],
+		]);
 	},
 );
 
@@ -222,10 +226,10 @@ screenStory.it(
 
 		yield* pressKey("ArrowDown");
 
-		yield* outcomes({
-			chosen: [chosenOptions(), ["release"]],
-			focus: [focusedControl(), { name: "Stop and hand back", role: "radio" }],
-		});
+		yield* outcomes([
+			["chosen", () => chosenOptions(), ["release"]],
+			["focus", () => focusedControl(), { name: "Stop and hand back", role: "radio" }],
+		]);
 
 		yield* recordAnswer();
 

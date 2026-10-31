@@ -10,10 +10,11 @@ migrationRuns.it(
 
 		yield* migrate(["4_append_four", "1_create_orders", "2_add_order_two", "3_append_three"]);
 
-		yield* outcomes({
-			"bodies run": [bodiesRun(), ["append_four"]],
-			ledger: [
-				ledger(),
+		yield* outcomes([
+			["bodies run", () => bodiesRun(), ["append_four"]],
+			[
+				"ledger",
+				() => ledger(),
 				[
 					[1, "create_orders"],
 					[2, "add_order_two"],
@@ -21,9 +22,9 @@ migrationRuns.it(
 					[4, "append_four"],
 				],
 			],
-			orders: [orders(), ["two-three-four"]],
-			runs: [runs(), [[[4, "append_four"]]]],
-		});
+			["orders", () => orders(), ["two-three-four"]],
+			["runs", () => runs(), [[[4, "append_four"]]]],
+		]);
 	},
 );
 
@@ -33,11 +34,11 @@ migrationRuns.it(
 	function* ({ bodiesRun, migrate, orders, runs }) {
 		yield* migrate(["1_create_orders", "2_add_printer_paper"]);
 
-		yield* outcomes({
-			"bodies run": [bodiesRun(), []],
-			orders: [orders(), ["Printer paper"]],
-			runs: [runs(), [[]]],
-		});
+		yield* outcomes([
+			["bodies run", () => bodiesRun(), []],
+			["orders", () => orders(), ["Printer paper"]],
+			["runs", () => runs(), [[]]],
+		]);
 	},
 );
 
@@ -47,10 +48,11 @@ migrationRuns.it(
 	function* ({ migrate, orders, runs }) {
 		yield* migrate(["3_append_three", "1_create_orders", "2_add_order_two"]);
 
-		yield* outcomes({
-			orders: [orders(), ["two-three"]],
-			runs: [
-				runs(),
+		yield* outcomes([
+			["orders", () => orders(), ["two-three"]],
+			[
+				"runs",
+				() => runs(),
 				[
 					[
 						[1, "create_orders"],
@@ -59,7 +61,7 @@ migrationRuns.it(
 					],
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -69,12 +71,16 @@ migrationRuns.it(
 	function* ({ existingTables, ledger, migrate, orders, runs }) {
 		yield* migrate(["1_create_orders", "2_create_audit_and_add_printer_paper", "3_add_printer_paper"]);
 
-		yield* outcomes({
-			"existing tables": [existingTables(), ["ledger", "orders"]],
-			ledger: [ledger(), [[1, "create_orders"]]],
-			orders: [orders(), []],
-			runs: [runs(), ['failed with a failed migration: Migration "3_add_printer_paper" failed, caused by a unique violation (SQLSTATE 23505)']],
-		});
+		yield* outcomes([
+			["existing tables", () => existingTables(), ["ledger", "orders"]],
+			["ledger", () => ledger(), [[1, "create_orders"]]],
+			["orders", () => orders(), []],
+			[
+				"runs",
+				() => runs(),
+				['failed with a failed migration: Migration "3_add_printer_paper" failed, caused by a unique violation (SQLSTATE 23505)'],
+			],
+		]);
 	},
 );
 
@@ -84,17 +90,18 @@ migrationRuns.it(
 	function* ({ ledger, migrate, orders, runs }) {
 		yield* migrate(["1_create_orders", "2_add_order_two", "3_add_order_three", "4_add_order_four"]);
 
-		yield* outcomes({
-			ledger: [
-				ledger(),
+		yield* outcomes([
+			[
+				"ledger",
+				() => ledger(),
 				[
 					[1, "create_orders"],
 					[3, "add_order_three"],
 				],
 			],
-			orders: [orders(), ["three"]],
-			runs: [runs(), ["failed with a bad migration state: Migrations missing from the ledger at or below latest applied id 3: 2"]],
-		});
+			["orders", () => orders(), ["three"]],
+			["runs", () => runs(), ["failed with a bad migration state: Migrations missing from the ledger at or below latest applied id 3: 2"]],
+		]);
 	},
 );
 
@@ -123,17 +130,18 @@ for (const race of RACES) {
 		function* ({ ledger, orders, runnersRaceForTheLedger, runs }) {
 			yield* runnersRaceForTheLedger(2, race.migrations);
 
-			yield* outcomes({
-				ledger: [
-					ledger(),
+			yield* outcomes([
+				[
+					"ledger",
+					() => ledger(),
 					[
 						[1, "create_orders"],
 						[2, "add_printer_paper"],
 					],
 				],
-				orders: [orders(), ["Printer paper"]],
-				"runs, most applied first": [runs(), [race.winner, []]],
-			});
+				["orders", () => orders(), ["Printer paper"]],
+				["runs, most applied first", () => runs(), [race.winner, []]],
+			]);
 		},
 		15_000,
 	);

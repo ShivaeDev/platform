@@ -32,10 +32,10 @@ boardStory.it(
 	function* ({ recordedReply, recordReply, savedAnswers }) {
 		yield* recordReply(ANSWER);
 
-		yield* outcomes({
-			reply: [recordedReply("response.choice"), { body: RECORDED_BODY, supersedes: undefined, type: "answer" }],
-			"stored answers": [savedAnswers("response.choice"), questionnaireAnswers],
-		});
+		yield* outcomes([
+			["reply", () => recordedReply("response.choice"), { body: RECORDED_BODY, supersedes: undefined, type: "answer" }],
+			["stored answers", () => savedAnswers("response.choice"), questionnaireAnswers],
+		]);
 	},
 );
 
@@ -86,12 +86,13 @@ boardStory.it(
 
 		yield* recordReply({ answers: questionnaireAnswers, body: "Replaces earlier direction.", id: "response.new", supersedes: "response.old" });
 
-		yield* outcomes({
-			"earlier question's replies": [replyHistory("earlier"), ["response.old"]],
-			"new answer": [
-				recordedReply("response.new"),
+		yield* outcomes([
+			["earlier question's replies", () => replyHistory("earlier"), ["response.old"]],
+			[
+				"new answer",
+				() => recordedReply("response.new"),
 				{ body: expect.stringContaining("Replaces earlier direction."), supersedes: "response.old", type: "answer" },
 			],
-		});
+		]);
 	},
 );

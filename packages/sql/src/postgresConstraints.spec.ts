@@ -11,10 +11,10 @@ constraints.it(
 			{ name: "Original", quantity: 3 },
 		]);
 
-		yield* outcomes({
-			"stored items": [storedItems(), [{ name: "Original", quantity: 1 }]],
-			"transaction ending": [endings(), ["failed with name taken"]],
-		});
+		yield* outcomes([
+			["stored items", () => storedItems(), [{ name: "Original", quantity: 1 }]],
+			["transaction ending", () => endings(), ["failed with name taken"]],
+		]);
 	},
 );
 
@@ -25,10 +25,10 @@ for (const [violation, item, error] of [
 	constraints.it(`an insert with ${violation} fails with ${error} and stores nothing`, [], function* ({ endings, insertItems, storedItems }) {
 		yield* insertItems([item]);
 
-		yield* outcomes({
-			"insert ending": [endings(), [`failed with ${error}`]],
-			"stored items": [storedItems(), []],
-		});
+		yield* outcomes([
+			["insert ending", () => endings(), [`failed with ${error}`]],
+			["stored items", () => storedItems(), []],
+		]);
 	});
 }
 
@@ -38,10 +38,10 @@ constraints.it(
 	function* ({ endings, insertItems, storedItems }) {
 		yield* insertItems([{ name: "n".repeat(41), quantity: 1 }]);
 
-		yield* outcomes({
-			"insert ending": [endings(), ["failed with name too long"]],
-			"stored items": [storedItems(), []],
-		});
+		yield* outcomes([
+			["insert ending", () => endings(), ["failed with name too long"]],
+			["stored items", () => storedItems(), []],
+		]);
 	},
 );
 

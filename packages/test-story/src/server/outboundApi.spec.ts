@@ -23,10 +23,10 @@ for (const [credential, headers] of [
 	fakeHttpApp.it(`rejects a request with ${credential} before it can take a scripted failure`, [MEMBER], function* ({ asks, scriptFault }) {
 		yield* scriptFault("user", { kind: "status", reply: { status: HttpStatus.fromLiteral("BadGateway") } });
 
-		yield* outcomes({
-			"a rejected request": [asks("/users/alice", { headers }), "HTTP 401"],
-			"the next member request": [asks("/users/alice"), "HTTP 502"],
-		});
+		yield* outcomes([
+			["a rejected request", () => asks("/users/alice", { headers }), "HTTP 401"],
+			["the next member request", () => asks("/users/alice"), "HTTP 502"],
+		]);
 	});
 }
 
@@ -40,10 +40,10 @@ fakeHttpApp.it("keeps a held request waiting until release while other routes an
 	const paused = yield* hold("user");
 	yield* sends("alice's request", "/users/alice");
 	yield* paused.waiting;
-	yield* outcomes({
-		"the items": [asks("/items"), 'HTTP 200 {"items":["paper","ink"],"next":2}'],
-		"while alice's request": [progress("alice's request"), "waiting for an answer"],
-	});
+	yield* outcomes([
+		["the items", () => asks("/items"), 'HTTP 200 {"items":["paper","ink"],"next":2}'],
+		["while alice's request", () => progress("alice's request"), "waiting for an answer"],
+	]);
 
 	yield* paused.release;
 
@@ -51,10 +51,10 @@ fakeHttpApp.it("keeps a held request waiting until release while other routes an
 });
 
 fakeHttpApp.it("rejects a malformed path parameter with 400 and keeps serving", [MEMBER], function* ({ asks }) {
-	yield* outcomes({
-		"the malformed request": [asks("/users/%?source=story"), "HTTP 400"],
-		"the next request": [asks("/users/alice"), 'HTTP 200 {"id":"alice"}'],
-	});
+	yield* outcomes([
+		["the malformed request", () => asks("/users/%?source=story"), "HTTP 400"],
+		["the next request", () => asks("/users/alice"), 'HTTP 200 {"id":"alice"}'],
+	]);
 });
 
 for (const [path, answer] of [
@@ -84,20 +84,20 @@ fakeHttpApp.it(
 
 		yield* sends("alice's request", "/users/alice");
 
-		yield* outcomes({
-			answer: [answer("alice's request"), 'HTTP 502 {"error":"try again"}'],
-			"retry-after": [header("alice's request", "retry-after"), "1"],
-		});
+		yield* outcomes([
+			["answer", () => answer("alice's request"), 'HTTP 502 {"error":"try again"}'],
+			["retry-after", () => header("alice's request", "retry-after"), "1"],
+		]);
 	},
 );
 
 fakeHttpApp.it("answers a route normally once its scripted failure is spent", [MEMBER], function* ({ asks, scriptFault }) {
 	yield* scriptFault("user", { kind: "status", reply: { status: HttpStatus.fromLiteral("BadGateway") } });
 
-	yield* outcomes({
-		"the first request": [asks("/users/alice"), "HTTP 502"],
-		"the next request": [asks("/users/bob"), 'HTTP 200 {"id":"bob"}'],
-	});
+	yield* outcomes([
+		["the first request", () => asks("/users/alice"), "HTTP 502"],
+		["the next request", () => asks("/users/bob"), 'HTTP 200 {"id":"bob"}'],
+	]);
 });
 
 fakeHttpApp.it("records each request's method, path and body in arrival order, rejected ones included", [MEMBER], function* ({ asks, received }) {

@@ -26,9 +26,9 @@ screenStory.it(
 	"A standing ruling reads its answer from its body instead of reporting a missing Outcome",
 	[routedScreen(sharedVocabularyFixture, "/ruling.md")],
 	function* ({ decisionOutcome, pageText }) {
-		yield* outcomes({
-			outcome: [decisionOutcome(), "none"],
-			page: [pageText(), expect.stringContaining("Use the existing engine.")],
-		});
+		yield* outcomes([
+			["outcome", () => decisionOutcome(), "none"],
+			["page", () => pageText(), expect.stringContaining("Use the existing engine.")],
+		]);
 	},
 );

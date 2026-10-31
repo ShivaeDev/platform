@@ -12,10 +12,11 @@ migrationRuns.it(
 		yield* migrate(["1_create_orders", "2_pause_then_add_printer_paper"], { lockTimeout: "100 millis" });
 		yield* resumePausedRunner();
 
-		yield* outcomes({
-			orders: [orders(), ["Printer paper"]],
-			runs: [
-				runs(),
+		yield* outcomes([
+			["orders", () => orders(), ["Printer paper"]],
+			[
+				"runs",
+				() => runs(),
 				[
 					"failed with a lock timeout (SQLSTATE 55P03)",
 					[
@@ -24,7 +25,7 @@ migrationRuns.it(
 					],
 				],
 			],
-		});
+		]);
 	},
 	15_000,
 );

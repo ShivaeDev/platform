@@ -11,10 +11,14 @@ for (const [source, bind] of [
 		`a session host bound to 0.0.0.0 by ${source} without proxy trust fails startup naming both trust settings`,
 		[invalidTrust, startupFails, bind],
 		function* ({ startup, startupFailureMessage }) {
-			yield* outcomes({
-				"message": [startupFailureMessage(), expect.stringMatching(/Set TRUSTED_PROXY.*peer IP addresses or CIDR ranges.*config\.trustedProxy/u)],
-				"startup": [startup(), "failed with trusted proxy required"],
-			});
+			yield* outcomes([
+				[
+					"message",
+					() => startupFailureMessage(),
+					expect.stringMatching(/Set TRUSTED_PROXY.*peer IP addresses or CIDR ranges.*config\.trustedProxy/u),
+				],
+				["startup", () => startup(), "failed with trusted proxy required"],
+			]);
 		},
 	);
 }
