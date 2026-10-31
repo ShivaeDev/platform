@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.31.2 - 2026-10-31
+
+### Changed
+
+- Update `@shivaedev/test-sql` from 0.15.1 to 0.15.2.
+
 ## 0.31.1 - 2026-10-31
 
 ### Changed
