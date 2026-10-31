@@ -7,7 +7,7 @@ import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
-import { queryKeys } from "#serverMetadata.ts";
+import { queryKeys } from "#queryKeys.ts";
 import { type HintViewer, layerMemoryProtocol, watchHints } from "#testing.ts";
 import { answered, hintWords, shown, streams } from "./answers.ts";
 import { Note, Notes, notes } from "./notes.ts";
