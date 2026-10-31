@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.24.0 - 2026-10-31
+
+### Added
+
+- `makePgBoss(identifier, queueNames)` accepts names from a browser-safe module shared with queue definitions and client filters. Each jobs Layer checks that its queue and schedule registrations match the declaration, and fails boot with `PgBossQueueNamesError` listing missing and unexpected names.
+
+### Changed
+
+- Generated applications validate server queue registrations against the shared browser-safe declarations used by the admin Jobs page.
+
+### Fixed
+
+- `RemoteHttpError` carries a readable message naming the status, method, host and path without query strings, headers or bodies.
+- Failed jobs record the error message or a summary of its fields with sensitive values redacted, beside the error tag.
+
+### Breaking
+
+- Jobs Layers include `PgBossQueueNamesError` in their typed startup errors. Consumers with explicit error unions must add this error or handle its tag. Existing services that omit the optional name declaration keep their registration behavior.
+
+## 0.23.2 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.23.1 - 2026-10-30
 
 ### Changed

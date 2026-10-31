@@ -25,7 +25,7 @@ sessionKeys.it("bob's cookie in the RPC message headers still reads alice's them
 
 for (const boundary of ["account", "profile", "providers", "admin", "owner", "custom"] satisfies Boundary[]) {
 	sessionKeys.it(
-		`after alice signs out, her ${boundary} subscription fails with query read denied on the next write without a hint`,
+		`after alice signs out, her ${boundary} subscription fails with unauthorized on the next write without a hint`,
 		[],
 		function* ({ aliceSignsOut, save, subscribe, subscriptionOutcome }) {
 			yield* subscribe("alice", boundary);
@@ -33,7 +33,7 @@ for (const boundary of ["account", "profile", "providers", "admin", "owner", "cu
 			yield* aliceSignsOut();
 			yield* save("second", "Private after sign-out", { boundary });
 
-			expect(yield* subscriptionOutcome("alice")).toEqual({ ending: "failed with query read denied", hints: ["resync"] });
+			expect(yield* subscriptionOutcome("alice")).toEqual({ ending: "failed with unauthorized", hints: ["resync"] });
 		},
 	);
 

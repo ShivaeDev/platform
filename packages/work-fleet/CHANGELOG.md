@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.25.0 - 2026-10-31
+
+### Added
+
+- `healthLayer` also provides `SchedulerPasses` from `@shivaedev/work-fleet/engine/health.ts`, a `SubscriptionRef` that counts the scheduler passes the runtime has completed, so a waiter can wait for the next pass instead of sleeping through an interval.
+
+### Fixed
+
+- Break area and merge-order wait cycles by letting a green PR go first or lending its area to the repair. Keep merge-order exceptions across restart for the same head, and report an unbreakable cycle once instead of on every dependent item.
+
+## 0.24.7 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.6 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.5 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.4 - 2026-10-30
+
+### Fixed
+
+- Admit the first eligible area waiter by priority and waiting age even when queued records lack queue timestamps, so competing launches cannot wait on each other forever.
+
 ## 0.24.3 - 2026-10-30
 
 ### Changed

@@ -75,7 +75,7 @@ readPolicyHost.it("alice's socket subscription hears only the change to her own 
 
 for (const revoke of ["revokeRead", "revokeSession"] as const) {
 	readPolicyHost.it(
-		`when ${revoke === "revokeRead" ? "the read policy" : "the session"} denies alice, her subscription fails with query read denied on the next change without a hint`,
+		`when ${revoke === "revokeRead" ? "the read policy denies alice" : "alice loses her session"}, her subscription fails with ${revoke === "revokeRead" ? "query read denied" : "unauthorized"} on the next change without a hint`,
 		[],
 		function* (verbs) {
 			yield* verbs.listen("alice");
@@ -83,7 +83,10 @@ for (const revoke of ["revokeRead", "revokeSession"] as const) {
 			yield* verbs[revoke]("alice");
 			yield* verbs.publish();
 
-			expect(yield* verbs.subscriptionOutcome("alice")).toEqual({ ending: "failed with query read denied", hints: ["resync"] });
+			expect(yield* verbs.subscriptionOutcome("alice")).toEqual({
+				ending: revoke === "revokeRead" ? "failed with query read denied" : "failed with unauthorized",
+				hints: ["resync"],
+			});
 		},
 	);
 }

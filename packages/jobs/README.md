@@ -29,11 +29,39 @@ A **queue definition** names a pg-boss queue and the Schema of its payload. Appl
 
 A **schedule definition** describes a queue with a cron trigger. `schedule.run(effect)` pairs it with an Effect that needs no payload. Queue workers and scheduled workers are **registrations**: the values you put in the jobs Layer's `jobs` list.
 
-The application creates one jobs service with `makePgBoss(identifier)`. Its Layer reads the shared `PgBoss` service, registers the job list and captures the services those workers need. One `pgBossLayer` owns the client and pool for the application; feature registrations drain before that Layer closes its client. Callers use the jobs service to enqueue a decoded payload, look up or retry a job, read queue health and live counts, or list failed and dead-lettered jobs.
+The application creates one jobs service with `makePgBoss(identifier, queueNames?)`. Its Layer reads the shared `PgBoss` service, registers the job list and captures the services those workers need. One `pgBossLayer` owns the client and pool for the application; feature registrations drain before that Layer closes its client. Callers use the jobs service to enqueue a decoded payload, look up or retry a job, read queue health and live counts, or list failed and dead-lettered jobs.
 
 Use a distinct literal identifier for each jobs service. The service and its Layer keep that identifier in their types, so providing a Layer for a different identifier leaves the required jobs service unprovided at compile time.
 
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
+
+### Share queue names with the browser
+
+Keep names and payload Schemas in a browser-safe module such as `queues.ts`:
+
+```ts
+import { Schema } from "effect";
+
+export const emailQueue = { name: "send-email", schema: Schema.Struct({ userId: Schema.Number }) } as const;
+export const cleanupSchedule = { name: "cleanup-mail" } as const;
+export const queueNames = [emailQueue.name, cleanupSchedule.name] as const;
+```
+
+The client imports `queueNames` for its queue filter, or passes `emailQueue` to the admin jobs page. Server definitions reference the same declarations:
+
+```ts
+import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts";
+import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { cleanupSchedule, emailQueue, queueNames } from "./queues.ts";
+
+export const SendEmail = defineQueue({ ...emailQueue, queue: { retryLimit: 5 } });
+export const Cleanup = defineSchedule({ ...cleanupSchedule, cron: "17 3 * * *" });
+export const Jobs = makePgBoss("@app/Jobs", queueNames);
+```
+
+With the second argument, every `Jobs.layer({ jobs })` checks its registrations against the declared names before registering queues, workers or schedules. A server name absent from the declaration or a declared name absent from the server fails startup with `PgBossQueueNamesError` from `@shivaedev/jobs/server/error.ts`; its `missing` and `unexpected` arrays identify both differences. Order does not matter. Producer queue definitions, queue workers and scheduled workers all contribute their queue names. An empty declaration accepts only an empty registration list. Without the second argument, the service keeps ordinary registration behavior.
+
+Declare names per jobs service, so producer and worker Layers share a declaration when they register the same queues. Keep worker-only schedules in their own service when producers do not register them. Import only the browser-safe declaration module from client code; `defineQueue`, `defineSchedule` and `makePgBoss` stay on the server.
 
 ### Once per database: install the schema
 
@@ -253,7 +281,7 @@ export const jobsLayer = (databaseUrl: Redacted.Redacted<string>) =>
 	);
 ```
 
-The redacted connection string is unwrapped only at the pg-boss adapter. Put connection, pool size, client factory, schema, migration and stop settings in `pgBossLayer`. Provide the same Layer to the merged registration, worker and producer services so native Layer memoization starts one client. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and closes its registrations. The owning app Layer releases the client. Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`), which a partitioned queue can meet when other queues in the schema have traffic. A shared client stays running while another scope still owns a reference.
+The redacted connection string is unwrapped only at the pg-boss adapter. Put connection, pool size, client factory, schema, migration and stop settings in `pgBossLayer`. Provide the same Layer to the merged registration, worker and producer services so native Layer memoization starts one client. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A client startup or queue registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and closes its registrations. A name declaration mismatch fails with `PgBossQueueNamesError`. The owning app Layer releases the client. Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`), which a partitioned queue can meet when other queues in the schema have traffic. A shared client stays running while another scope still owns a reference.
 
 Keep the Layer in the application's worker runtime scope. A short scope is useful for an acquisition or health check; a worker process needs its scope to remain open while it handles jobs.
 
@@ -500,7 +528,7 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/jobs/server/PgBoss.ts`     | `PgBoss`: the shared client Context service.                                                                                                                                                                                                                                                       |
 | `@shivaedev/jobs/server/schema.ts`     | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                                                                       |
 | `@shivaedev/jobs/server/health.ts`     | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                                                                     |
-| `@shivaedev/jobs/server/error.ts`      | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation`                                                                                                                                               |
+| `@shivaedev/jobs/server/error.ts`      | `PgBossError`, `PgBossPayloadError`, `PgBossQueueNamesError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation`                                                                                                                      |
 | `@shivaedev/jobs/server/client.ts`     | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                                                      |
 | `@shivaedev/jobs/server/testing.ts`    | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                                                                                                  |
 

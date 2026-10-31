@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.26.0 - 2026-10-31
+
+### Added
+
+- Browser readouts expose each subscription opening's state and an Effect that waits for all openings to receive a first response or a tagged refusal, without polling.
+- Contract clients accept a session identity protocol factory so custom transports can follow sign-in and sign-out.
+
+### Fixed
+
+- End hosted live subscriptions with `Unauthorized` when the original session is signed out, revoked or expired, whether detected during a change hint or periodic revalidation. Keep `QueryReadDenied` for a signed-in viewer whose query policy refuses the read.
+- Batch shared socket session lookups with an Effect scheduler yield so advancing `TestClock` past `streamRevalidationInterval` completes revalidation without another clock advance.
+- Preserve typed session-provider failures during hint-time authorization instead of reporting them as read-policy refusals.
+
+### Breaking
+
+- `browserReads().protocol` is now a session identity protocol factory. Continue passing it directly to `makeClient`; native Layer consumers must call `observed.protocol(undefined)` for an anonymous client, or pass the session identity. The same readout counts traffic across session sockets.
+
+## 0.25.0 - 2026-10-30
+
+### Added
+
+- Accept `retryKeys` in `live()` to identify changes that reopen a settled subscription independently of its resync scope. It defaults to `resyncKeys`.
+
+### Fixed
+
+- Keep denied live queries and subscriptions settled until the viewer identity changes or a matching change invalidation arrives. Resume events do not retry a settled rejection.
+- Retry transport failures and server outages with jittered exponential backoff. `retryDelay` sets the initial delay; backoff grows to a nominal 30 seconds.
+
+### Breaking
+
+- Live subscriptions settle expected failures with `LiveStatus.connection: "failed"`. Add a `"failed"` case to exhaustive connection handlers and show `status.failure`; applications no longer receive repeated attempts for denied reads or declared query errors.
+
+## 0.24.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.0 - 2026-10-30
+
+### Added
+
+- Queries can opt into `live: "rerun-and-compare"`. Hosted subscriptions rerun the authorized query as the subscribed viewer, hash its JSON-schema-encoded result with SHA-256, and push a typed `Result` only when it changes. Bound queries consume those results without a client refetch. Other queries keep hint-and-refetch delivery.
+- Rerun subscriptions end with `QueryReadDenied` when access is denied. The host registers change listeners before its initial result read, and reconciliation reruns the query through the same read policy.
+
+### Breaking
+
+- `@shivaedev/contract`'s `ChangesClient` transport helper now covers result messages and erases query-specific stream failures. Consumers using that helper to read changes must use their contract's native AtomRpc client type instead; derive message and failure types with `Rpc.SuccessChunk` and `Rpc.ErrorExit` of the contract's `$changes` RPC. Contract-derived bound query types remain specific to their query.
+
 ## 0.23.0 - 2026-10-30
 
 ### Fixed

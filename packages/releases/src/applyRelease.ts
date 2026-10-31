@@ -4,7 +4,7 @@ import { collectChangelog } from "#collectChangelog.ts";
 import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { ReleasePlan, WorkspacePackage } from "#model.ts";
-import { computePlan } from "#planner.ts";
+import { computePlan, publishedDependencies } from "#planner.ts";
 import { readWorkspace } from "#workspace.ts";
 
 const updatedPackage = Effect.fn("Changesets.updatedPackage")(function* (pkg: WorkspacePackage, plan: ReleasePlan, version: string) {
@@ -52,7 +52,10 @@ export const applyRelease = Effect.fn("Changesets.applyRelease")(function* (root
 			}
 			return [
 				{ path: join(root, release.directory, "package.json"), text: yield* updatedPackage(pkg, plan, release.to) },
-				{ path: join(root, release.directory, "CHANGELOG.md"), text: yield* collectChangelog(pkg.changelog, release, plan, date) },
+				{
+					path: join(root, release.directory, "CHANGELOG.md"),
+					text: yield* collectChangelog(pkg.changelog, release, plan, date, publishedDependencies(pkg.manifest)),
+				},
 			];
 		}),
 	)).flat();

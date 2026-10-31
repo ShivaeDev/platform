@@ -67,14 +67,14 @@ runtime.it(
 );
 
 runtime.it(
-	"a delivered payload that fails to decode fails its job before the handler runs",
+	"a delivered payload that fails to decode fails its job with a redacted field summary before the handler runs",
 	[running("app", [worker(defineQueue({ name: "typed", schema: Schema.Struct({ count: Schema.Number }) }), "succeeds")])],
 	function* ({ deliver, handled, settlements }) {
 		yield* deliver("typed", [{ data: { count: "wrong" }, id: "job-1" }]);
 
 		yield* outcomes({
 			"handled payloads": [handled("typed"), []],
-			"settlements": [settlements(), ["job-1 failed with PgBossPayloadError"]],
+			"settlements": [settlements(), ['job-1 failed with PgBossPayloadError: {"direction":"decode","original":"<redacted>","queue":"typed"}']],
 		});
 	},
 );

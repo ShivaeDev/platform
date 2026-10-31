@@ -1,89 +1,113 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { automatic } from "#test/automatic/automatic.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import {
+	automatic,
+	firstRenamedByAnotherHost,
+	notesShown,
+	secondHiddenThenRenamed,
+	separateScreenOpen,
+	socketDropped,
+} from "#test/automatic/automatic.ts";
 
 expectNoReactWarnings();
 
-automatic.it("mounts queries from two contracts without restarting their tab's socket or rereading another query", [], function* (test) {
-	yield* eventually(() => {
-		expect(test.ready()).toBe(true);
-		expect(test.note(2)).toBe("Second");
+automatic.it("queries from two contracts share one tab socket", [notesShown()], function* ({ reads, sockets }) {
+	yield* outcomes({
+		reads: [reads(), [1, 2]],
+		sockets: [sockets(), ["tab socket"]],
 	});
-	expect(test.reads().toSorted()).toEqual([1, 2]);
-	expect(test.connections()).toEqual([test.socketUrl()]);
-	yield* test.toggleSecond(false);
-	const before = test.reads().filter((id) => id === 1);
-	yield* test.remoteRename(2, "While unmounted");
-	yield* test.settle();
-	expect(test.reads().toSorted()).toEqual([1, 2]);
-	yield* test.toggleSecond(true);
-	yield* eventually(() => expect(test.note(2)).toBe("While unmounted"));
-	expect(test.reads().filter((id) => id === 1)).toEqual(before);
-	expect(test.connections()).toEqual([test.socketUrl()]);
-	yield* test.screenRename("From this tab");
-	yield* eventually(() => expect(test.note(1)).toBe("From this tab"));
-	expect(test.connections()).toEqual([test.socketUrl()]);
 });
 
-automatic.it("a second host's write refreshes only the affected query and equal results retain their atom", [], function* (test) {
-	yield* eventually(() => {
-		expect(test.ready()).toBe(true);
-		expect(test.note(2)).toBe("Second");
+automatic.it(
+	"showing a hidden query again reads its current title over the same socket without reading the other query",
+	[secondHiddenThenRenamed()],
+	function* ({ reads, showSecond, shown, sockets }) {
+		yield* showSecond();
+
+		yield* outcomes({
+			"note 2": [shown(2), "While unmounted"],
+			reads: [reads(), [1, 2, 2]],
+			sockets: [sockets(), ["tab socket"]],
+		});
+	},
+);
+
+automatic.it("a rename from the screen refreshes its note over the same socket", [notesShown()], function* ({ renameFromScreen, shown, sockets }) {
+	yield* renameFromScreen("From this tab");
+
+	yield* outcomes({
+		"note 1": [shown(1), "From this tab"],
+		sockets: [sockets(), ["tab socket"]],
 	});
-	const secondReads = test.reads().filter((id) => id === 2);
-	yield* test.remoteRename(1, "From another host");
-	yield* eventually(() => expect(test.note(1)).toBe("From another host"));
-	expect(test.reads().filter((id) => id === 2)).toEqual(secondReads);
-	const previous = test.query(1);
-	const before = test.reads();
-	yield* test.remoteRename(1, "From another host");
-	yield* eventually(() => expect(test.reads()).toEqual([...before, 1]));
-	yield* test.settle();
-	expect(test.query(1)).toBe(previous);
 });
 
-automatic.it("shows reconnection and reads current values after missing a committed change", [], function* (test) {
-	yield* eventually(() => {
-		expect(test.ready()).toBe(true);
-		expect(test.note(2)).toBe("Second");
+automatic.it("another host's write refreshes only the affected query", [notesShown()], function* ({ anotherHostRenamesShown, reads, shown }) {
+	yield* anotherHostRenamesShown(1, "From another host");
+
+	yield* outcomes({
+		"note 1": [shown(1), "From another host"],
+		reads: [reads(), [1, 1, 2]],
 	});
-	yield* test.toggleSecond(false);
-	const before = test.reads();
-	yield* test.drop();
-	yield* eventually(() => expect(test.connection()).toBe("Reconnecting"));
-	yield* test.remoteRename(1, "Changed while disconnected");
-	yield* eventually(() => {
-		expect(test.connection()).toBe("live");
-		expect(test.note(1)).toBe("Changed while disconnected");
-	});
-	expect(test.reads()).toEqual([...before, 1]);
-	expect(test.connections()).toEqual([test.socketUrl(), test.socketUrl()]);
 });
 
-automatic.it("rapid commits coalesce into one authorized read of the latest value", [], function* (test) {
-	yield* eventually(() => {
-		expect(test.ready()).toBe(true);
-		expect(test.note(2)).toBe("Second");
-	});
-	test.coalesce(1, 300);
-	const before = test.reads();
-	for (const title of ["First change", "Second change", "Latest change"]) {
-		yield* test.remoteRename(1, title);
-	}
-	yield* eventually(() => expect(test.note(1)).toBe("Latest change"));
-	expect(test.reads()).toEqual([...before, 1]);
-	expect(test.note(2)).toBe("Second");
+automatic.it(
+	"a refresh that reads an equal note keeps the query's value",
+	[firstRenamedByAnotherHost("From another host")],
+	function* ({ anotherHostRenamesShown, queryValue }) {
+		yield* anotherHostRenamesShown(1, "From another host");
+
+		expect(yield* queryValue(1)).toBe("the same value");
+	},
+);
+
+automatic.it("a dropped socket shows Reconnecting", [notesShown()], function* ({ connection, dropSocket }) {
+	expect(yield* connection()).toBe("live");
+
+	yield* dropSocket();
+
+	expect(yield* connection()).toBe("Reconnecting");
 });
 
-automatic.it("one tab socket spans independent registries and survives one registry closing", [], function* (test) {
-	yield* eventually(() => expect(test.ready()).toBe(true));
-	const firstReads = test.reads().filter((id) => id === 1);
-	yield* test.openSeparate();
-	yield* eventually(() => expect(test.separateNote()).toBe("Second"));
-	expect(test.connections()).toEqual([test.socketUrl()]);
-	expect(test.reads().filter((id) => id === 1)).toEqual(firstReads);
-	yield* test.closePrimary();
-	yield* test.remoteRename(2, "The remaining screen");
-	yield* eventually(() => expect(test.separateNote()).toBe("The remaining screen"));
-	expect(test.connections()).toEqual([test.socketUrl()]);
-});
+automatic.it(
+	"after reconnecting on a new socket, the screen reads the change it missed",
+	[socketDropped(true)],
+	function* ({ reads, reconnected, shown, sockets }) {
+		expect(yield* shown(1)).toBe("First");
+
+		yield* reconnected();
+
+		yield* outcomes({
+			"note 1": [shown(1), "Changed while disconnected"],
+			reads: [reads(), [1, 1, 2]],
+			sockets: [sockets(), ["tab socket", "tab socket"]],
+		});
+	},
+);
+
+automatic.it(
+	"a screen in an independent registry shares the tab socket and reads only its own query",
+	[notesShown()],
+	function* ({ openSeparateScreen, reads, separateShown, sockets }) {
+		yield* openSeparateScreen();
+
+		yield* outcomes({
+			reads: [reads(), [1, 2, 2]],
+			"second screen": [separateShown(), "Second"],
+			sockets: [sockets(), ["tab socket"]],
+		});
+	},
+);
+
+automatic.it(
+	"after the first registry closes, the other screen still receives changes over the shared socket",
+	[separateScreenOpen(true)],
+	function* ({ separateRenamed, separateShown, sockets }) {
+		yield* separateRenamed("The remaining screen");
+
+		yield* outcomes({
+			"second screen": [separateShown(), "The remaining screen"],
+			sockets: [sockets(), ["tab socket"]],
+		});
+	},
+);

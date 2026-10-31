@@ -11,15 +11,11 @@ interface Held<A, E> {
 }
 function Query<A, E>({ atom, held }: { readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>; readonly held: Held<A, E> }) {
 	held.current = useQuery(atom);
-	return createElement("output", null, JSON.stringify(held.current));
+	return null;
 }
 function Action<A, E>({ atom, held }: { readonly atom: Atom.AtomResultFn<void, A, E>; readonly held: Held<A, E> }) {
 	held.current = useAction(atom);
-	return createElement(
-		"button",
-		{ onClick: () => held.current && "dispatch" in held.current && held.current.dispatch(), type: "button" },
-		JSON.stringify(held.current),
-	);
+	return null;
 }
 export async function resultSession<A, E>(view: Rendered, kind: "query" | "action", run: () => Effect.Effect<A, E>) {
 	const query = Atom.make(Effect.suspend(run));
@@ -42,22 +38,17 @@ export async function resultSession<A, E>(view: Rendered, kind: "query" | "actio
 	await render();
 	function current() {
 		if (held.current === undefined) {
-			throw new Error("Result hook did not render");
+			throw new Error("The result hook did not render");
 		}
 		return held.current;
 	}
 	return {
-		close: view.unmount,
 		current,
 		execute: () =>
 			act(async () => {
 				const state = current();
 				if ("dispatch" in state) {
-					const button = view.container.querySelector("button");
-					if (!button) {
-						throw new Error("Missing result session execute button");
-					}
-					button.click();
+					state.dispatch();
 				} else {
 					state.refresh();
 				}

@@ -1,5 +1,6 @@
 import { Effect, FileSystem, Path, Stream } from "effect";
 import { scanMarkdown } from "./list.ts";
+import { watchSentinel } from "./watchSentinel.ts";
 
 export type WatchRoots = readonly { readonly real: string; readonly relative: string }[];
 
@@ -23,12 +24,27 @@ export const folderEvents = Effect.fn("WorkBoard.folderEvents")(function* (folde
 });
 
 export const watchedScan = Effect.fn("WorkBoard.watchedScan")(function* (root: string, realRoot: string) {
+	const fs = yield* FileSystem.FileSystem;
+	const path = yield* Path.Path;
 	const rootEvents = yield* Stream.toQueue(yield* folderEvents({ real: realRoot, recursive: true, relative: "" }), { capacity: "unbounded" });
-	// The root watch registers asynchronously; scanning after it settles leaves no change unseen. Linked folders are watched only once the
-	// scan finds them, so their workspace offers no listing and is listed again after those watches settle.
-	yield* Effect.sleep(SETTLE);
+	// Scanning only after the root watch reports its own sentinel leaves no change unseen. The removal watch, for a root removed without
+	// descendant events, starts first because adding a watcher restarts macOS's shared event stream and drops the events in between. Linked
+	// folders are watched only once the scan finds them, so their workspace offers no listing and is listed again after those watches settle.
+	const removals = yield* Stream.toQueue(
+		fs.watch(path.dirname(realRoot)).pipe(
+			Stream.filter((event) => event._tag === "Remove" && path.resolve(path.dirname(realRoot), event.path) === realRoot),
+			Stream.map(() => ""),
+		),
+		{ capacity: "unbounded" },
+	);
+	yield* watchSentinel(realRoot, rootEvents);
 	const { files, roots } = yield* scanMarkdown(root, realRoot);
-	return { files, listing: roots.length > 1 ? undefined : files, rootEvents: Stream.fromQueue(rootEvents), roots };
+	return {
+		files,
+		listing: roots.length > 1 ? undefined : files,
+		rootEvents: Stream.merge(Stream.fromQueue(rootEvents), Stream.fromQueue(removals)),
+		roots,
+	};
 });
 
 export const rescanFolders = Effect.fn("WorkBoard.rescanFolders")(function* (

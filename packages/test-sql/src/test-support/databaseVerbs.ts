@@ -1,10 +1,11 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Layer, Schedule, type Scope } from "effect";
+import { Effect, Layer, Option, type Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#database.ts";
+import { observeUntil } from "#observeUntil.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import type { DatabaseEngine, Services } from "./databaseEngine.ts";
 
@@ -83,11 +84,10 @@ export function databaseVerbs(engine: DatabaseEngine, story: Story<DatabaseEngin
 	return {
 		adminSessions: () => {
 			const sessions = admin<{ count: number }>`select count(*)::int as count from pg_stat_activity
-				where application_name = ${engine.marker} and datname = current_database()`;
-			// PostgreSQL removes a closed session after the client's Terminate message and signals nothing when it does.
-			return sessions.pipe(
-				Effect.repeat({ schedule: Schedule.spaced("10 millis"), times: 500, while: ([row]) => row?.count !== 0 }),
-				Effect.map(([row]) => (row?.count === 0 ? "none open" : `${row?.count} open`)),
+				where application_name = ${engine.marker} and datname = current_database()`.pipe(Effect.map(([row]) => row?.count ?? 0));
+			return observeUntil(sessions, (count) => count === 0, "the worker's administration sessions to close").pipe(
+				Effect.as("none open"),
+				Effect.catchTag("NeverSettled", (error) => Effect.succeed(`${Option.getOrElse(error.last, () => "unknown")} open`)),
 			);
 		},
 		appliedMigrations: (place: string) => inPlace(engine, place, ledger),
