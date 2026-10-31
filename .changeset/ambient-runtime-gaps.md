@@ -1,6 +1,7 @@
 ---
 "@shivaedev/quality": minor
 "@shivaedev/create-app": minor
+"@shivaedev/jobs": minor
 ---
 
 ### Fixed
@@ -11,3 +12,4 @@
 
 - Repositories upgrading Quality must repair the newly reported ambient access or record existing adoption debt with `quality baseline write --rule biome/plugin`, then lower it as repairs land.
 - `createApp` reads secret bytes from Effect's Crypto service. Applications embedding this Effect must provide `Crypto.Crypto`, for example with `NodeServices.layer` or `NodeCrypto.layer` from `@effect/platform-node`. The create-app command already provides it.
+- The pg-boss testing-expiration bridge moved from `@shivaedev/jobs/server/internal/testingExpirations.ts` to `@shivaedev/jobs/server/adapters/testingExpirations.ts`. Consumers importing that internal path must import the adapter path instead.

@@ -29,7 +29,7 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (
 	yield* fs.symlink("AGENTS.md", join(target, "CLAUDE.md"));
 	const database = databaseName(name);
 	const crypto = yield* Crypto.Crypto;
-	const secret = Buffer.from(yield* crypto.randomBytes(32).pipe(Effect.orDie)).toString("base64url");
+	const secret = Buffer.from(yield* crypto.randomBytes(32)).toString("base64url");
 	yield* fs.writeFileString(
 		join(target, ".env.local"),
 		`DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_dev\nTEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/${database}_test\nBETTER_AUTH_SECRET=${secret}\n`,

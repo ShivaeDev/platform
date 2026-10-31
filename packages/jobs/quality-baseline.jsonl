@@ -19,8 +19,6 @@
 {"path":"packages/jobs/src/server/internal/settleDeferral.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/testingClient.ts","rule":"effect/boundary","count":20}
 {"path":"packages/jobs/src/server/internal/testingDeferrals.ts","rule":"effect/boundary","count":4}
-{"path":"packages/jobs/src/server/internal/testingExpirations.ts","rule":"biome/plugin","count":1}
-{"path":"packages/jobs/src/server/internal/testingExpirations.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/testingIdle.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/testingSchedules.ts","rule":"effect/boundary","count":6}
 {"path":"packages/jobs/src/server/internal/testingSnapshot.ts","rule":"effect/boundary","count":2}

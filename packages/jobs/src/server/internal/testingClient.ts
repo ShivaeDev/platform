@@ -1,9 +1,9 @@
 import type { Job, PgBoss, SendOptions, UpdateOptions, UpdateRequest, UpdateResponse } from "pg-boss";
+import { testingExpirations } from "#adapters/testingExpirations.ts";
 import type { PgBossClient } from "#client.ts";
 import { deferralObservers } from "#internal/deferral.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
 import { observeTestingSettlements } from "#internal/observeTestingSettlements.ts";
-import { testingExpirations } from "#internal/testingExpirations.ts";
 import type { TestingBatch, TestingWork } from "#internal/testingIdle.ts";
 
 export interface TestingControls {
