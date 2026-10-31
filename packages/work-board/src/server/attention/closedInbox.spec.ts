@@ -101,27 +101,24 @@ boardStory.it(
 boardStory.it(
 	"a registered ask on an ordinary source joins the other asks for its task under its own reason",
 	[
-		closedInboxAsks(
-			(files) => {
-				const source = files["asks/draft-2.md"]?.replace("managed: true", "managed: false") ?? "";
-				const reviewedRevision = revisionOf(source);
-				files["asks/draft-2.md"] = source;
-				files["responses/draft.md"] = questionMarkdown({
-					context: source,
-					id: questionId("decision.draft.2", "approval", reviewedRevision, "asks/draft-2.md"),
-					question: {
-						deadline: 200,
-						item: "decision.draft.2",
-						reason: "draft ask 2",
-						registeredAt: 100,
-						request: "approval",
-						reviewedRevision,
-						source: "asks/draft-2.md",
-					},
-				});
-			},
-			["asks/draft-2.md"],
-		),
+		closedInboxAsks((files) => {
+			const source = files["asks/draft-2.md"]?.replace("managed: true", "managed: false") ?? "";
+			const reviewedRevision = revisionOf(source);
+			files["asks/draft-2.md"] = source;
+			files["responses/draft.md"] = questionMarkdown({
+				context: source,
+				id: questionId("decision.draft.2", "approval", reviewedRevision, "asks/draft-2.md"),
+				question: {
+					deadline: 200,
+					item: "decision.draft.2",
+					reason: "draft ask 2",
+					registeredAt: 100,
+					request: "approval",
+					reviewedRevision,
+					source: "asks/draft-2.md",
+				},
+			});
+		}),
 	],
 	function* ({ inboxAsk, inboxLane }) {
 		yield* outcomes([
