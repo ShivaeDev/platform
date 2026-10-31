@@ -1,4 +1,5 @@
 import { failureCode } from "#engine/failureCode.ts";
+import { failureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
 import { executing, type FleetRecord } from "#model.ts";
 
@@ -7,7 +8,13 @@ export function deliveryPending(record: FleetRecord): boolean {
 }
 
 export function canObserveDeliveryFailure(record: FleetRecord, error: FleetError): boolean {
-	if (failureCode(error) === "pr-conflicting" && (record.step === "reviewing" || record.decision?.code === "session-stalled")) {
+	const mainRevision = failureContext(error).mainRevision;
+	if (
+		failureCode(error) === "pr-conflicting"
+		&& mainRevision !== undefined
+		&& !record.conflictRepairs?.includes(mainRevision)
+		&& (record.step === "reviewing" || record.decision?.code === "session-stalled")
+	) {
 		return true;
 	}
 	return (
