@@ -71,6 +71,6 @@ See [Quality's test rules](https://github.com/ShivaeDev/platform/blob/main/packa
 
 Write and review stories using the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md), shipped by `@shivaedev/skills`. It is the source of the rules for observable evidence, boundary-driven setup, verbs and readouts, assertions, jobs, framework gaps, faked preconditions, database isolation and running one spec. Extend the kits in `src/test-support` with domain traits, actions and readouts.
 
-The Quality baseline only goes down. Use `pnpm baseline write --rule <id>` only to record findings for a new rule added by a Quality upgrade. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app.
+The Quality baseline only goes down. Use `pnpm baseline write --rule <id> --file <path>` only to record findings for a new rule added by a Quality upgrade. Select only files changed since `HEAD`, staging new files first. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app.
 
 Read the [README](README.md) for setup and deployment, the [framework docs](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md) for design boundaries, and the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for the application workflow. Never skip the pre-commit hook or raise a quality baseline to make a check pass.

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.28.0 - 2026-10-31
+
+### Added
+
+- `layerMemoryProtocol(group)` in `testing.ts` connects `makeClient` to native RPC handlers and middleware in process, including live hints and query refreshes, without a socket or a separate `AtomRpc.Service` per contract.
+- Native clients can pass `bearerToken` to `makeClient` to authenticate the shared RPC WebSocket in its first frame, without upgrade headers or credentials in URLs. The server applies its existing session and read policies, closes invalid or expired authentication with code 1008, and closes authenticated bearer sockets when their session is revoked. Native resume reconciles live query values.
+- Contract exports the `signedIn` read policy and `validateReadPolicies(group)` for native hosts to validate their RPC group during Layer construction.
+- Contract exposes `LiveServer` through `defineService`, with a native `.layer` requiring Reactivity. Its `stream` and `subscribe` methods return Effects containing native Streams, retaining subscription failures and caller requirements.
+
+### Fixed
+
+- Live subscriptions use policy services provided inside the owning query's handlers layer, just as RPC reads do. Request-local session context takes precedence when the policy checks access to live hints.
+- Admin's built-in Users and Jobs queries and Work Board's daemon diagnostics queries explicitly declare read policies; existing permission and loopback boundaries continue to own access.
+
+### Breaking
+
+- Every contract query requires a `readPolicy`, including plain RPC reads. Add `readPolicy: signedIn` for any signed-in viewer, an explicit `() => Effect.succeed(true)` for public reads, or an application policy for restricted reads. Plain calls without a policy now fail closed with `MissingReadPolicy` even on native servers that bypass startup validation.
+- The application server Layer fails with typed `MissingReadPolicies` before listening when untyped queries omit policies. Handle this boot error if your application narrows startup failures; its `queries` field lists every affected RPC. Query atom error types now follow their native RPC errors without an extra client-side `MissingReadPolicy` branch. Custom `ChangesQueries` annotations must now include their query definitions in `queries` alongside `resolve`.
+- Server's `AppChanges` is replaced by `LiveServer` from `@shivaedev/contract/LiveServer.ts`. Replace `AppChanges` imports and requirements with `LiveServer` (use `Context.Service.Identifier<typeof LiveServer>` for its identifier type). PostgreSQL `appHost` and `appDatabase` provide it automatically; HTTP-only apps provide `LiveServer.layer` with Reactivity instead of `Layer.effect(AppChanges, makeLiveServer)`. Call `resync()` instead of reading `resync`, and use `Stream.unwrap` around the Effects returned by `stream` and `subscribe`.
+- Server composition helpers (`appHostHttp`, `migratedHost`, `deferredHost`, `hostRpcRoutes` and `hostChanges`) resolve the contract service directly. Remove their live-service tag argument; calls to the former `databaseLayer(options, tag)` become `appDatabase(options)`.
+- Work Board's `publishChanges` and Work Fleet's `daemonSnapshots` now require contract's `LiveServer` instead of server's `AppChanges`. Custom compositions must provide `LiveServer.layer` with Reactivity; their standard hosts already do so.
+- Import server's `appDatabase` and `DatabaseConfig` directly from `@shivaedev/server/appDatabase.ts`; `appHost.ts` no longer forwards `appDatabase`, and `databaseLayer.ts` is removed.
+
 ## 0.27.0 - 2026-10-31
 
 ### Added

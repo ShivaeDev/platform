@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/platform",
-	"version": "0.36.14",
+	"version": "0.37.0",
 	"description": "One dependency for the ShivaeDev Effect application stack",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {

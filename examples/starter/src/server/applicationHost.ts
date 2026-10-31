@@ -10,6 +10,7 @@ import { SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { StatisticsPermission } from "#appPermissions.ts";
+import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { JobsClientFactory } from "./JobsClientFactory.ts";
@@ -44,7 +45,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 							...(config?.secret === undefined ? {} : { secret: Redacted.value(config.secret) }),
 						},
 						{ roles: AppAccess },
-					);
+					).pipe(Effect.tap(({ auth }) => readyAuth(auth)));
 					const modules = serverModules;
 					const sessions = {
 						...authSessions,

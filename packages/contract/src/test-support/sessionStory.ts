@@ -2,12 +2,13 @@ import { Effect, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import type { QueryReference } from "#serverMetadata.ts";
 import { answered, failure, thrown, times } from "./answers.ts";
 import { reRead } from "./reRead.ts";
 import { type Person, type PreferenceView, type SessionEngine, sessionEngine } from "./sessionEngine.ts";
-import { settled, signal } from "./settle.ts";
+import { settled } from "./settled.ts";
 
 const READ_LABELS: Record<PreferenceView, string> = { list: "list", "preference 1": "get:1", preferences: "self" };
 
@@ -52,7 +53,7 @@ function mark(engine: SessionEngine) {
 const untilSubscriptionsChange = Effect.fnUntraced(function* (engine: SessionEngine, act: () => void) {
 	const before = yield* SubscriptionRef.get(engine.subscriptions);
 	act();
-	yield* signal(SubscriptionRef.changes(engine.subscriptions), (current) => current !== before);
+	yield* until(SubscriptionRef.changes(engine.subscriptions), (current) => current !== before, { name: "subscription change" });
 });
 
 const watch = Effect.fnUntraced(function* (engine: SessionEngine, person: Person, views: readonly PreferenceView[]) {
@@ -67,7 +68,9 @@ const watch = Effect.fnUntraced(function* (engine: SessionEngine, person: Person
 
 function untilPending(engine: SessionEngine, person: Person) {
 	const client = engine.clients[person];
-	return signal(AtomRegistry.toStream(client.registry, client.api[LiveConnection].status), (status) => status.pending > 0);
+	return until(AtomRegistry.toStream(client.registry, client.api[LiveConnection].status), (status) => status.pending > 0, {
+		name: "live connection status",
+	});
 }
 
 function saveOf(engine: SessionEngine, person: Person, title: string, runtime: Person = person) {

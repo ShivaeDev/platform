@@ -35,7 +35,7 @@ describe("render", () => {
 					"  src/b.ts  200 lines exceeds the 150-line limit.",
 				].join("\n"),
 				"quality: failed with 3 errors. 12 source files checked.",
-				"If the baseline should keep these findings, such as the debt of a moved or renamed file, record them again with `quality baseline write --rule local/x --rule structure/max-lines` and call out the baseline growth in the pull request description.",
+				"For moved files, carry their existing debt with `quality baseline prune --against <base>`.",
 			].join("\n\n"),
 		);
 	});
@@ -61,10 +61,11 @@ describe("render", () => {
 		);
 		expect(render(outcome, context())).toBe(
 			[
-				"error quality-baseline.jsonl: 1 stale entry\n  An entry for an unknown rule covers nothing. Run `quality baseline prune` to drop it.\n  local/typo src/a.ts names no known rule.",
+				"error quality-baseline.jsonl: 1 stale entry\n  Drop unknown rules with `quality baseline prune`. Lower staged counts with `quality baseline tighten --staged`, then stage the baseline.\n  local/typo src/a.ts names no known rule.",
 				"note quality-baseline.jsonl: 1 stale entry\n  These pass, and `quality baseline tighten` lowers them when their files change. `quality baseline prune` lowers them all.\n  structure/max-lines src/gone.ts has no violations left.",
 				"error quality/registry.json: 1 stale entry\n  Every registered exception must still apply. Remove the entries whose exception is gone.\n  local/todo src/a.ts (legacy) matches no violation.",
 				"quality: failed with 2 stale entries. 12 source files checked.",
+				"For moved files, carry their existing debt with `quality baseline prune --against <base>`.",
 			].join("\n\n"),
 		);
 	});

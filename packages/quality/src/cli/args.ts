@@ -10,7 +10,7 @@ export type Command =
 	| { readonly _tag: "Fix"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselineMerge"; readonly base: string; readonly ours: string; readonly theirs: string }
 	| { readonly _tag: "BaselineInstallDriver" }
-	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[] }
+	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[]; readonly files: readonly string[] }
 	| { readonly _tag: "BaselinePrune"; readonly config: string | undefined; readonly against: string | undefined }
 	| { readonly _tag: "BaselineTighten"; readonly config: string | undefined; readonly staged: boolean }
 	| { readonly _tag: "BaselineMigrate"; readonly config: string | undefined; readonly from: string | undefined }
@@ -26,6 +26,7 @@ const OPTIONS = {
 	against: { type: "string" },
 	config: { type: "string" },
 	coverage: { type: "boolean" },
+	file: { multiple: true, type: "string" },
 	force: { type: "boolean" },
 	from: { type: "string" },
 	help: { short: "h", type: "boolean" },
@@ -45,14 +46,14 @@ type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositi
 
 type Option = Exclude<keyof Values, "config" | "help">;
 
-const COMMAND_OPTIONS: readonly Option[] = ["against", "coverage", "force", "from", "rule", "staged"];
+const COMMAND_OPTIONS: readonly Option[] = ["against", "coverage", "file", "force", "from", "rule", "staged"];
 
 const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline install-driver": [],
 	"baseline migrate": ["from"],
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
-	"baseline write": ["rule"],
+	"baseline write": ["rule", "file"],
 	ci: ["coverage"],
 	"exceptions migrate": ["from"],
 	fix: ["rule"],
@@ -90,7 +91,7 @@ function commandFor(name: string, values: Values): Parsed {
 		case "baseline install-driver":
 			return parsed({ _tag: "BaselineInstallDriver" });
 		case "baseline write":
-			return parsed({ _tag: "BaselineWrite", config, rules: values.rule ?? [] });
+			return parsed({ _tag: "BaselineWrite", config, files: values.file ?? [], rules: values.rule ?? [] });
 		case "baseline prune":
 			return ref(values.against, { _tag: "BaselinePrune", against: values.against, config });
 		case "baseline tighten":

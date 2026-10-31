@@ -5,8 +5,8 @@ import { RpcClientError } from "effect/rpc/RpcClientError";
 import { SocketReadError } from "effect/socket/Socket";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { type LiveHint, live } from "#live.ts";
-import { signal } from "./settle.ts";
 
 const disconnected = new RpcClientError({ reason: new SocketReadError({ cause: new Error("connection dropped") }) });
 const retryEngine = Effect.gen(function* () {
@@ -35,11 +35,13 @@ const retryEngine = Effect.gen(function* () {
 		(value) => Effect.sync(() => value.dispose()),
 	);
 	registry.mount(subscription.connection);
-	function until(connection: "live" | "reconnecting") {
-		return signal(AtomRegistry.toStream(registry, subscription.status), (status) => status.connection === connection);
+	function waitForConnection(connection: "live" | "reconnecting") {
+		return until(AtomRegistry.toStream(registry, subscription.status), (status) => status.connection === connection, {
+			name: "live connection status",
+		});
 	}
-	yield* until("live");
-	return { attempts, registry, state, subscription, until };
+	yield* waitForConnection("live");
+	return { attempts, registry, state, subscription, waitForConnection };
 });
 export const liveRetryStory = storyKit({
 	clock: "test",
@@ -55,7 +57,7 @@ export const liveRetryStory = storyKit({
 				story.tell(`the live connection suffers a ${mode}`);
 				engine.state.mode = mode;
 				yield* Deferred.fail(engine.state.dropped, disconnected);
-				yield* engine.until("reconnecting");
+				yield* engine.waitForConnection("reconnecting");
 			}),
 		restore: () =>
 			Effect.gen(function* () {

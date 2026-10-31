@@ -53,7 +53,7 @@ const authResponse = Effect.fnUntraced(function* (auth: MountedAuth, web: Reques
 		url.searchParams.set("disableCookieCache", "true");
 	}
 	const request = sessionRequest ? new Request(url, web) : web;
-	const response = yield* Effect.tryPromise(() => providerResponse(auth, request, options));
+	const response = yield* Effect.tryPromise((signal) => providerResponse(auth, new Request(request, { signal }), options));
 	return sessionRequest && response.ok && options.roles !== undefined ? yield* sessionPermissions(response, options.roles) : response;
 });
 export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {

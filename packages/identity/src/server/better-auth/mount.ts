@@ -2,13 +2,13 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
+import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
 import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
 import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
 import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
-import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
 import { admittedSessions } from "./admittedSessions.ts";
 import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
 import { mountedSessions } from "./mountedSessions.ts";
@@ -30,14 +30,12 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
 	const clientIpHeader = yield* Config.String("AUTH_CLIENT_IP_HEADER").pipe(Config.withDefault("x-forwarded-for"));
 	const rateLimitEnabled = yield* Config.Boolean("AUTH_RATE_LIMIT_ENABLED").pipe(Config.withDefault(true));
-	const context = yield* Effect.context<R>();
-	const run = Effect.runPromiseWith(context);
 	const policy = mount.signIn ?? {};
 	if (policy.accounts !== undefined) {
 		yield* policy.accounts;
 	}
 	const gate = yield* signInGate(policy);
-	const gated = signInPolicyOptions(options, gate, run, (): Promise<PolicyStorage> => auth.$context);
+	const gated = yield* signInPolicyOptions(options, gate, (): Promise<PolicyStorage> => auth.$context);
 	const rateLimit = options.rateLimit;
 	const customStorage =
 		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);

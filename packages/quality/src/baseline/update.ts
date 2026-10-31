@@ -37,6 +37,7 @@ export function adopt(
 	rules: readonly string[],
 	violations: readonly Violation[],
 	index: RuleIndex,
+	files?: ReadonlySet<string>,
 ): Adoption {
 	if (existing !== undefined && rules.length === 0) {
 		return { _tag: "Refused", reasons: ["a baseline exists. Record a rule with --rule <id>, or drop fixed debt with prune."] };
@@ -48,8 +49,10 @@ export function adopt(
 	function named(rule: string): boolean {
 		return rules.some((name) => covers(name, rule));
 	}
-	const kept = (existing ?? []).filter((entry) => !named(entry.rule));
-	const adopted = violations.filter((violation) => rules.length === 0 || named(violation.rule));
+	const kept = (existing ?? []).filter((entry) => !(named(entry.rule) && (files === undefined || files.has(entry.file))));
+	const adopted = violations.filter(
+		(violation) => (rules.length === 0 || named(violation.rule)) && (files === undefined || files.has(violation.file)),
+	);
 	const added = record(adopted);
 	return { _tag: "Adopted", added: added.length, entries: [...kept, ...added], replaced: (existing ?? []).length - kept.length };
 }

@@ -12,7 +12,7 @@ The [README](../README.md) introduces the gate. This page explains how the basel
 The baseline is sharded: `packages/<package>/quality-baseline.jsonl` holds paths inside that package, and the root `quality-baseline.jsonl` holds all other paths. Packages without entries have no file. Each shard is JSON Lines with one entry per line: the violations of one rule in one file. `count` is how many violations the file may have. For a rule that counts occurrences, such as `comments/no-jsdoc`, that is the number of occurrences. For a rule with a limit, it is the amount over the limit: the entry above lets `src/server/db.ts` have 412 lines under a limit of 150. A new baseline is sorted by path and then rule. Later edits preserve unrelated lines, including their formatting and order, so the diff shows the entries that changed.
 
 `quality lint` fails when a baselined file has more violations than its `count`; the report then lists all of that file's violations for the rule. A file at or below its entry passes. An entry that allows more than is left, including a file with no violations left, is listed as a note and does not fail, so fixing debt never breaks the build; `tighten` and `prune` lower it. An entry for an unknown rule fails until it is pruned.
-- `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists it refuses, unless `--rule <id>` names the rules to record: it then replaces the entries of those rules with what the files have now, and leaves every other entry as it is.
+- `quality baseline write` records every error-level violation when there is no baseline yet. Once a baseline exists, both `--rule <id>` and `--file <path>` are required. Repeat either option for multiple selections. Each path is relative to the config folder and must be changed since `HEAD`, staged or unstaged; new files need `git add` first. An unchanged file refuses the whole write. Only selected rule/file entries are replaced; all other entries stay as they are. With no baseline and no file selection, initial adoption records the repository once.
 - `quality baseline tighten` lowers and removes the entries of files changed since `HEAD`, and with `--staged`, of the files staged for the next commit. It carries the entry of a file that git sees as moved to the new path. Every other line stays byte for byte.
 - `quality baseline prune` does the same for every entry. It carries the entries of files moved since the merge base (see `--against` under [Command line](../README.md#command-line)), and prunes without following moves outside a git work tree.
 - `quality baseline migrate` moves a baseline from the earlier JSON format, `quality/baseline.json` or the file `--from` names, to the root and package shards, and removes the old one. `--from quality/baseline.jsonl` splits a single JSON Lines baseline without changing its counts. An old entry that stored a size, such as a line count, becomes that size less the rule's current limit; an entry whose file is now within the limit is dropped.
@@ -23,7 +23,7 @@ Git merges shards through the driver described in the [README](../README.md#base
 
 ### Pre-commit
 
-Lowering entries in the commit that fixes them keeps the baseline current. Run these commands explicitly before committing:
+The commit check rejects a staged baseline count that allows more than the file currently has. It reads baseline entries from the index, so lowering the working copy without staging it still fails. It checks entries for staged source files and changed entries in staged baseline shards; unrelated loose debt stays a lint note. Lower entries in the commit that fixes them: Run these commands explicitly before committing:
 
 ```sh
 quality baseline tighten --staged
@@ -35,11 +35,11 @@ quality lint
 
 ### Baseline growth
 
-An error-level finding that neither the config exceptions nor the baseline covers fails `quality lint`; that is how new debt gets noticed. The baseline itself may grow: a reviewer sees each new or raised entry in the diff and judges it. When the failing findings are debt the baseline should keep, such as the debt of a file that moved or was renamed, record the rule again with `quality baseline write --rule <id>`. The report ends with that command for the rules that failed. Then call out the baseline growth in the pull request description.
+An error-level finding that neither the config exceptions nor the baseline covers fails `quality lint`; that is how new debt gets noticed. The baseline itself may grow: a reviewer sees each new or raised entry in the diff and judges it. For moved files, run `quality baseline prune --against <base>` to carry existing counts to the new paths. The failing report ends with that guidance. For retained findings in a changed file, use `quality baseline write --rule <id> --file <path>` and call out new or raised counts in the pull request. Writing a rule does not absorb findings from other files.
 
 ### Counts after a policy change
 
-A count depends on the rule's limit, so a Quality policy change that adjusts a limit shifts every count of that rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Inspect the findings under the new policy before recording retained debt again with `quality baseline write --rule <id>`. Commit the counts with the policy upgrade. The raised entries show in the diff, and the pull request calls them out.
+A count depends on the rule's limit, so a Quality policy change that adjusts a limit shifts every count of that rule. A looser limit leaves entries that allow more than is left: they pass, and `tighten` and `prune` lower them. A stricter limit can make an error-level rule's files fail `quality lint`, since each is now further over the limit. Inspect the findings under the new policy before recording retained debt again with `quality baseline write --rule <id> --file <path>`. Commit the counts with the policy upgrade. The raised entries show in the diff, and the pull request calls them out.
 
 ## Exceptions
 
@@ -65,7 +65,7 @@ Export an object or `defineConfig({ ... })` without spreads for automatic editin
 
 ## Pre-commit hook
 
-`quality hooks install` installs a git pre-commit hook that runs `quality hooks pre-commit` before every commit: `quality lint`, then the `typecheck` script, then an optional `quality:commit` script, as the [README](../README.md) describes. A repository opts in by running the command, usually from the setup script each checkout runs once. Running it again is safe.
+`quality hooks install` installs a git pre-commit hook that runs `quality hooks pre-commit` before every commit: `quality lint` with a staged-baseline count check, then the `typecheck` script, then an optional `quality:commit` script, as the [README](../README.md) describes. A repository opts in by running the command, usually from the setup script each checkout runs once. Running it again is safe.
 
 Scripts run from the config's folder, or the current directory when there is no config. Without a manifest or either script, the hook runs lint alone. An invalid manifest stops the run. Baseline tightening is an explicit command; the hook does not change or stage debt records.
 

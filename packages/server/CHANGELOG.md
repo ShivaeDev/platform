@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.11.0 - 2026-10-31
+
+### Added
+
+- Native clients can pass `bearerToken` to `makeClient` to authenticate the shared RPC WebSocket in its first frame, without upgrade headers or credentials in URLs. The server applies its existing session and read policies, closes invalid or expired authentication with code 1008, and closes authenticated bearer sockets when their session is revoked. Native resume reconciles live query values.
+- Contract exports the `signedIn` read policy and `validateReadPolicies(group)` for native hosts to validate their RPC group during Layer construction.
+- Contract exposes `LiveServer` through `defineService`, with a native `.layer` requiring Reactivity. Its `stream` and `subscribe` methods return Effects containing native Streams, retaining subscription failures and caller requirements.
+- `@shivaedev/errors/taxonomy.ts` exports class guards (`isConflict`, `isNotFound` and one `is<Class>` guard for every other taxonomy error). They narrow actual class instances and reject objects with matching tags.
+
+### Changed
+
+- Server and the platform dependency shell no longer declare `pg` as an optional peer; its PostgreSQL integration uses the native pool from sql.
+
+### Fixed
+
+- Admin's built-in Users and Jobs queries and Work Board's daemon diagnostics queries explicitly declare read policies; existing permission and loopback boundaries continue to own access.
+- Logs, error reports, RPC failure data and exported spans share errors' database-key and URL policy. Database users and connection strings are masked under their diagnostic keys; URL user information, query values and fragments are masked in structured values and text.
+
+### Breaking
+
+- Replace `authDatabase(url, { max, application_name })` from identity's `server/better-auth/mount.ts` with `yield* betterAuthDatabase()` from `server/better-auth/adapters/database.ts`, inside the application's SQL environment. Pass the result as Better Auth's `database`. Use sql's `postgresLayer` for standalone processes; database-backed `appHost` exposes the client inside its `application` Effect. Move connection settings to `maxConnections` and `applicationName` on that SQL Layer. Auth now shares its connection budget and lifecycle; remove direct `pg` dependencies when no longer used.
+- Replace `authTestDatabase(pool)` with `yield* authTestDatabase` in identity test fixtures, provided with the application's `SqlClient`.
+- When applying the generated starter update, replace `poolSizes.auth` with the shared `poolSizes.sql` budget. Auth migrations use the application SQL environment; remove custom `AuthMigrationDatabase` providers.
+- Every contract query requires a `readPolicy`, including plain RPC reads. Add `readPolicy: signedIn` for any signed-in viewer, an explicit `() => Effect.succeed(true)` for public reads, or an application policy for restricted reads. Plain calls without a policy now fail closed with `MissingReadPolicy` even on native servers that bypass startup validation.
+- The application server Layer fails with typed `MissingReadPolicies` before listening when untyped queries omit policies. Handle this boot error if your application narrows startup failures; its `queries` field lists every affected RPC. Query atom error types now follow their native RPC errors without an extra client-side `MissingReadPolicy` branch. Custom `ChangesQueries` annotations must now include their query definitions in `queries` alongside `resolve`.
+- Server's `AppChanges` is replaced by `LiveServer` from `@shivaedev/contract/LiveServer.ts`. Replace `AppChanges` imports and requirements with `LiveServer` (use `Context.Service.Identifier<typeof LiveServer>` for its identifier type). PostgreSQL `appHost` and `appDatabase` provide it automatically; HTTP-only apps provide `LiveServer.layer` with Reactivity instead of `Layer.effect(AppChanges, makeLiveServer)`. Call `resync()` instead of reading `resync`, and use `Stream.unwrap` around the Effects returned by `stream` and `subscribe`.
+- Server composition helpers (`appHostHttp`, `migratedHost`, `deferredHost`, `hostRpcRoutes` and `hostChanges`) resolve the contract service directly. Remove their live-service tag argument; calls to the former `databaseLayer(options, tag)` become `appDatabase(options)`.
+- Work Board's `publishChanges` and Work Fleet's `daemonSnapshots` now require contract's `LiveServer` instead of server's `AppChanges`. Custom compositions must provide `LiveServer.layer` with Reactivity; their standard hosts already do so.
+- Import server's `appDatabase` and `DatabaseConfig` directly from `@shivaedev/server/appDatabase.ts`; `appHost.ts` no longer forwards `appDatabase`, and `databaseLayer.ts` is removed.
+- Import `schemaSensitiveKeys` from `@shivaedev/errors/schemaSensitiveKeys.ts` instead of server, and `redactRecord` from `@shivaedev/errors/redact.ts` instead of server's `redactingDiagnostics.ts`.
+- Import schema sensitivity AST helpers from `@shivaedev/errors/schemaSensitiveAst.ts` instead of `@shivaedev/server/schemaSensitiveAst.ts`.
+- Replace server's `redactOtlpUrl` with `redactUrl` from `@shivaedev/errors/sensitive.ts`. Replace server's `redactOtlpText(value, key, sensitive)` with `redactText(value, sensitive, undefined, key)` from `@shivaedev/errors/sensitive.ts`.
+- Errors' redaction helpers now apply the same URL and database-key masking previously applied only to exported traces. Consumers should expect `<redacted>` for URL user information, query values and fragments, and for `db.user`, `db.user.name` and `db.connection_string` values.
+
 ## 0.10.0 - 2026-10-31
 
 ### Fixed
