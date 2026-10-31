@@ -6,7 +6,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminVerbs } from "./adminVerbs.ts";
 import { clientVerbs } from "./client.ts";
 import { discoveryReadouts } from "./discoveryReadouts.ts";
-import { startEngine } from "./host.ts";
+import { grantVerbs } from "./grantVerbs.ts";
+import { type Engine, startEngine } from "./host.ts";
 import { oauthVerbs } from "./oauthVerbs.ts";
 
 const postgres = makePostgresTestLayer({
@@ -18,18 +19,21 @@ const postgres = makePostgresTestLayer({
 	),
 });
 
-export const mcp = storyKit({
+const definition = {
 	around: withIsolatedDatabase,
-	clock: "live",
-	create: () => startEngine,
-	inspect: ({ people, refusal, resource }) => ({ people: [...people.keys()], refusal, resource }),
+	clock: "live" as const,
+	inspect: ({ people, refusal, resource }: Engine) => ({ people: [...people.keys()], refusal, resource }),
 	layer: postgres,
 	name: "MCP on the application host",
-	stages: ["people", "tokens", "connections"],
-	verbs: (engine, story) => ({
+	stages: ["people", "tokens", "connections"] as const,
+	verbs: (engine: Engine, story: { readonly tell: (line: string) => void }) => ({
 		...adminVerbs(engine, story.tell),
 		...clientVerbs(engine, story.tell),
 		...discoveryReadouts(engine),
+		...grantVerbs(engine, story.tell),
 		...oauthVerbs(engine, story.tell),
 	}),
-});
+};
+
+export const mcp = storyKit({ ...definition, create: () => startEngine() });
+export const localMcp = storyKit({ ...definition, create: () => startEngine(true) });

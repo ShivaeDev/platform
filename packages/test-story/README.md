@@ -573,6 +573,43 @@ Acquire hosts, workers and screens in per-story Scope so they inherit the story'
 
 A live-clock kit still runs on real time when a story omits the override.
 
+### Waiting for a timer
+
+Test-clock stories use `watchedClock` automatically, including stories that pin a UTC instant or override a live kit with `clock: "test"`. It instruments the native TestClock and publishes every sleep start as a native `Duration` through its consuming `sleeps` stream. Starts stay queued until consumed, so a wait can observe a sleep that began before it subscribed. Each story gets its own queue.
+
+Use `untilTimer(interval)` in a kit verb to wait for the next matching sleep start before advancing time. It consumes starts in arrival order, skipping other durations. Equivalent durations such as `"1 second"` and `"1000 millis"` match. A start records that the sleep was called; it does not mean the timer is still pending. `untilTimer` returns the matching `Duration` and never advances virtual time. Its default deadline is five seconds of live time; pass `{ timeout }` to change it. If no matching sleep starts, it fails with `SignalNotReceived`, naming the missing sleep and the last observation.
+
+`passes(interval, then)` advances the native TestClock by the interval, then awaits the supplied Effect and returns its result. Give it the task's completion signal so the verb waits for what the elapsed time triggers:
+
+```ts
+import { Queue } from "effect";
+import { passes, untilTimer } from "@shivaedev/test-story/server/watchedClock.ts";
+
+verbs: (engine, story) => ({
+	untilDeliveryTimer: () => {
+		story.tell("wait until the delivery timer starts");
+		return untilTimer("1 second");
+	},
+	twoSecondsPass: () => {
+		story.tell("two seconds pass and the delivery completes");
+		return passes("2 seconds", Queue.take(engine.delivered));
+	},
+}),
+```
+
+```ts
+deliveries.it("delivers after its timer fires", [], function* ({ send, untilDeliveryTimer, twoSecondsPass }) {
+	yield* send("parcel");
+	yield* untilDeliveryTimer();
+
+	const delivered = yield* twoSecondsPass();
+
+	expect(delivered).toBe("parcel");
+});
+```
+
+Outside a story kit, `yield* watchedClock` instruments the active native TestClock within Scope; provide the returned value as `Clock.Clock` within its Scope. It preserves the active clock's time, adjustments and `withLive` behavior. Acquire it under `TestClock.layer()` to retain the native scheduler. Live-clock stories keep their live clock, and sleeps inside `withLive` do not enter the watched queue.
+
 ### Running the engine
 
 Hooks and steps that wait for real workers can use `withLive(Effect.sleep(...))` or `withLive(eventually(...))` from `@shivaedev/test/withLive.ts` and `@shivaedev/test/eventually.ts`. Both work under the kit's live clock and a story's TestClock override. The wrapped work uses live time without advancing the story's virtual time; outside it, the selected clock still applies. Unwrapped `eventually` uses the active clock and advances TestClock between attempts.
@@ -840,6 +877,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/adapters/outcomeMatchers.ts` | `lessThan(limit)`, `atMost(limit)`, `greaterThan(limit)`, `atLeast(limit)`, `NumericBound`                                                                                                                                                                                                                                                                                          |
 | `server/outcomes.ts`                 | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
 | `server/until.ts`                    | `until(stream, matches, options)`, `collectUntil(stream, matches, options)`, `UntilOptions`, `SignalNotReceived`                                                                                                                                                                                                                                                                    |
+| `server/watchedClock.ts`             | `watchedClock`, `WatchedClock`, `untilTimer(interval, options?)`, `passes(interval, then)`                                                                                                                                                                                                                                                                                          |
 | `server/browserReads.ts`             | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`, `BrowserSubscription`                                                                                                                                                                                                                                                                                                |
 | `server/domFetch.ts`                 | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
 | `server/seedCookies.ts`              | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |
