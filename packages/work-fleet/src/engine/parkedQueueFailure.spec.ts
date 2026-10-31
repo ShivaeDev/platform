@@ -47,6 +47,7 @@ for (const [wait, tracked] of [
 			expect(fleet.publishedDecisions()).toEqual([]);
 			yield* fleet.restart();
 			expect((yield* fleet.reconcile("one")).value.attempts).toHaveLength(repair.value.attempts.length);
+			fleet.advanceTime(1000);
 			fleet.mergeWorkerMain("one", { "one.ts": "export const one: number = 2;" });
 			fleet.passRequiredChecks("1");
 			yield* fleet.finishWorker("one");
