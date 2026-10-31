@@ -4,6 +4,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { localTransport } from "@shivaedev/identity/server/local.ts";
 import { resolveSession, type SessionShape } from "@shivaedev/identity/server/session.ts";
 import { makeSocketSession, SocketSession } from "@shivaedev/identity/server/socketSession.ts";
+import { bearerSocketRpc } from "#bearerSocketRpc.ts";
 import type { HostPolicy } from "#hostOptions.ts";
 
 export function socketRpc<TSession extends SessionShape>(
@@ -18,6 +19,9 @@ export function socketRpc<TSession extends SessionShape>(
 			return HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
 		}
 		if (policy.policy !== "loopback") {
+			if (new URL(request.url, "http://localhost").searchParams.get("auth") === "frame") {
+				return yield* bearerSocketRpc(handler, policy.sessions);
+			}
 			yield* resolveSession(policy.sessions, Headers.empty, "$connect");
 			const session = yield* makeSocketSession(policy.sessions.streamRevalidationInterval ?? "30 seconds");
 			return yield* Effect.provideService(handler, SocketSession, session);

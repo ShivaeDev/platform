@@ -10,6 +10,7 @@ import type { ActiveClient } from "#clientActivity.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 
 export interface ClientOptions {
+	readonly bearerToken?: string;
 	readonly headers?: Readonly<Record<string, string>>;
 	readonly live?: boolean;
 	readonly protocol?: Layer.Layer<RpcClient.Protocol> | ((identity: string | undefined) => Layer.Layer<RpcClient.Protocol>);
