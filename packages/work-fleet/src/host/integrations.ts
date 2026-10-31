@@ -8,6 +8,7 @@ import type { FleetHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
+import { githubMergeQueue } from "#host/githubMergeQueue.ts";
 import { githubPublication } from "#host/githubPublication.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { MainSource } from "#host/mainSource.ts";
@@ -33,6 +34,9 @@ export function hostIntegrations(host: FleetHost) {
 					result.kind === "no-change"
 						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session", "no-change-checks-unconfigured")
 						: githubChecks(github, host.repository.branch)(result),
+				...(host.worker === undefined
+					? {}
+					: { queue: (work, result, queued) => githubMergeQueue(host)(work, result, queued).pipe(Effect.provideService(GithubApi, github)) }),
 				delivery: githubDelivery(readPullRequest(github.get)),
 				isAncestor: reportRevision(main.repositoryRoot, host.repository.remote),
 				main: main.observe,

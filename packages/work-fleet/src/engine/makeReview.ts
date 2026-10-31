@@ -104,6 +104,7 @@ function finishReview(state: EngineState) {
 		}
 		return yield* save(refreshed, {
 			...refreshed.value,
+			mergeMainRepair: undefined,
 			step: review.verdict === "changes" && stored.value.reviewAdvisoryHead !== result.head ? "repairing" : "validating",
 		});
 	});

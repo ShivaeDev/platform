@@ -1,7 +1,5 @@
 import { Effect } from "effect";
 import { Conflict, Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { conflictingPr } from "#engine/deliveryFailure.ts";
-import { SessionFailure } from "#session/schema.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 
 export function deliveryChangesAfterAreaRelease() {
@@ -46,18 +44,6 @@ export function continuedWorkHasExpiredAreas() {
 		backlog: 3,
 		denyDelivery: true,
 	}));
-}
-export function conflictRepairCanRaceDispatch(released: boolean) {
-	return engineConfiguration("a conflict repair races a prepared provider retry", (state) => {
-		state.providerRejects = false;
-		state.conflicting = false;
-		return {
-			areaMergeWaitMs: released ? 5000 : 100_000,
-			deliveryQuery: () => (state.conflicting ? Effect.fail(conflictingPr("main-revision")) : Effect.succeed(undefined)),
-			submissionFailure: () =>
-				state.providerRejects ? new SessionFailure({ code: "session-queue-full", message: "Provider queue is full", reason: "rejected" }) : undefined,
-		};
-	});
 }
 export function deliveryObservationFailsOnce() {
 	return engineConfiguration("delivery observation fails once and time can advance", () => ({ deliveryFailure: true }));

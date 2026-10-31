@@ -54,6 +54,7 @@ export interface EngineOptions {
 	readonly publicationQuery?: (work: BoardWork) => Effect.Effect<WorkPublication, FleetError>;
 	readonly publishFailure?: boolean;
 	readonly publishGate?: Effect.Effect<void>;
+	readonly queue?: typeof FleetIntegrations.Service.queue;
 	readonly quota?: number;
 	readonly readRetryMs?: number;
 	readonly refreshQuota?: FleetConfiguration["refreshQuota"];
