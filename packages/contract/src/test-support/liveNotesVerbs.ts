@@ -13,7 +13,6 @@ import {
 	type LiveView,
 	readsBegunOf,
 	reload,
-	reReadDelayOf,
 	shownOf,
 	shownWithoutReadingOf,
 	statusOf,
@@ -127,7 +126,6 @@ export function liveNotesVerbs(engine: LiveEngine, story: Pick<Story<LiveEngine>
 				ending(exit, (note) => `renamed note ${note.id} to ${note.title}`),
 			);
 		},
-		reReadDelay: (view: LiveView) => reReadDelayOf(engine, view),
 		resume: () => {
 			story.tell("the client resumes");
 			registry.set(engine.client.resume, registry.get(engine.client.resume) + 1);
