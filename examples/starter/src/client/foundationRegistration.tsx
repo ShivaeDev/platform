@@ -16,7 +16,7 @@ export function foundationRegistration(client: FoundationClient = makeFoundation
 		api: client.users,
 		bindings: [client.users, client.jobs],
 		routes: ({ getParentRoute }: RouteContext) => {
-			const parent = createRoute({ beforeLoad: () => ({ client }), getParentRoute, id: "foundation" });
+			const parent = createRoute({ context: () => ({ client }), getParentRoute, id: "foundation" });
 			const index = createRoute({
 				beforeLoad: (): never => routerRedirect(foundation.JobsPage.route.path),
 				getParentRoute: () => parent,

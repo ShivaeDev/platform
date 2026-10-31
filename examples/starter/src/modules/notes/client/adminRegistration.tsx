@@ -12,7 +12,7 @@ export function adminRegistration(client: AdminClient) {
 		admin: Admin,
 		api: client.statistics,
 		routes: ({ getParentRoute }: RouteContext) => {
-			const parent = createRoute({ beforeLoad: () => ({ client }), getParentRoute, id: "notesAdmin" });
+			const parent = createRoute({ context: () => ({ client }), getParentRoute, id: "notesAdmin" });
 			const statistics = createRoute({
 				beforeLoad: (route): void => permissionGuard({ session: route.context.session, signIn: "/sign-in" })(route),
 				component: (): ReactElement => {

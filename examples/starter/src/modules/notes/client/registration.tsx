@@ -22,7 +22,7 @@ export function notesRegistration(
 		bindings: [client.api, admin.statistics],
 		routes: (routeContext: RouteContext) => {
 			const { getParentRoute } = routeContext;
-			const parent = createRoute({ beforeLoad: () => ({ client }), getParentRoute, id: "notes" });
+			const parent = createRoute({ context: () => ({ client }), getParentRoute, id: "notes" });
 			const notes = createRoute({
 				component: (): ReactElement => {
 					const { client: routeClient, auth } = notes.useRouteContext();
