@@ -5,6 +5,7 @@ import { BoardDecision, BoardReport } from "#board/schema.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import type { FleetError } from "#errors.ts";
 import type { MergePrediction } from "#MergePrediction.ts";
+import type { MergeQueueResult } from "#MergeQueueResult.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 import { type LaunchSettings, type SessionObservation, SessionReceipt } from "#session/schema.ts";
 import type { OpenPullRequestCurve } from "#storage/model.ts";
@@ -140,7 +141,7 @@ export class FleetIntegrations extends Context.Service<
 			result: typeof ChangeResult.Type,
 			queued: boolean,
 			queuedAt?: number,
-		) => Effect.Effect<"queued" | "pending" | "manual" | { readonly status: "failed"; readonly repairPrompt: string }, FleetError>;
+		) => Effect.Effect<MergeQueueResult, FleetError>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;
 	}
 >()("@shivaedev/work-fleet/FleetIntegrations") {}
