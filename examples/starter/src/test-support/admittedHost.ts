@@ -12,6 +12,7 @@ import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { AppAccess } from "#AppAccess.ts";
+import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { secret } from "./host.ts";
@@ -36,7 +37,7 @@ export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (e
 			socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 		},
 		{ roles: AppAccess, signIn: { accounts: allowedAccounts } },
-	);
+	).pipe(Effect.tap(({ auth }) => readyAuth(auth)));
 	const sessions = {
 		...mounted.sessions,
 		origin: () => true,

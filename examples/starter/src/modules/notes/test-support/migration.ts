@@ -10,6 +10,7 @@ import { migrationUpgrade } from "@shivaedev/test-sql/server/migrationUpgrade.ts
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import userForeignKey from "#modules/notes/server/migrations/0003_user_foreign_key.ts";
+import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { migrations } from "#server/migrations.ts";
 import { postgres } from "#test-support/postgres.ts";
@@ -38,11 +39,10 @@ export const migration = storyKit({
 			});
 		},
 		deleteUser: () =>
-			Effect.promise(async () => {
+			Effect.gen(function* () {
 				story.tell("delete the auth user who owns the existing note");
-				const auth = betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] });
-				const { internalAdapter } = await auth.$context;
-				await internalAdapter.deleteUser(engine.userId);
+				const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
+				yield* Effect.promise(async () => (await auth.$context).internalAdapter.deleteUser(engine.userId));
 			}),
 		storedNoteTitles: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
@@ -54,7 +54,7 @@ export const migration = storyKit({
 export const existingNotes = migration.trait("schema", "Alice has an owned note and a legacy note exists before the foreign key", function* (engine) {
 	const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
 	yield* steps.migrateTo("0002_notes");
-	const auth = betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] });
+	const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
 	const { user } = yield* Effect.promise(() => signedInUser(auth, { email: "alice@migration.test", name: "Alice" }));
 	engine.userId = user.id;
 	const sql = yield* SqlClient.SqlClient;
