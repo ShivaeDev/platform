@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.28.0 - 2026-10-31
+
+### Added
+
+- `SessionBoundary` accepts `redirectTo` and an optional `navigate` callback to continue sign-in through a same-origin URL replacement after unmounting the signed-out tree and before mounting the signed-in tree. Unsafe targets fall back to `/`.
+- `authSession` exposes a Better Auth read as a native query atom and an Effect that refreshes and awaits its settled result, so user mutations keep their loading state until session data is current.
+- React's `permissionGuard` accepts `staticData.signedIn: true` for routes that require a session without a permission grant. Signed-out viewers use the existing sign-in redirect and return location; undeclared routes remain public and matched permission requirements still apply.
+
+### Changed
+
+- Generated starters import schedule definitions and the default queue client factory from their defining modules.
+- Generated apps declare the notes routes as signed-in-only and install `permissionGuard` once at the root, redirecting signed-out viewers before loading notes.
+
+### Fixed
+
+- Query, save, command, loader and live connection failures share one session recheck decision, including identity's native `Unauthorized` errors.
+- Report exported type aliases of imports, value aliases with `typeof` annotations or local const chains, object facades and unchanged forwarding functions, with repairs naming their defining modules. Keep wrappers that transform inputs, add steps, supply defaults or declare overloads.
+- Generated apps let the boundary hand off sign-in navigation and identify cookie sessions by user id, preserving signed-in screen state when a session rotates after a password change.
+- Carry the original `NotFound` query rejection in TanStack Router's not-found `data` so a shared root screen can display its server message and typed fields while route-level not-found screens keep precedence.
+
+### Breaking
+
+- React recognizes session rechecks, permission failures and missing routes through the shared error classes. Fail with `Unauthorized`, `Forbidden` and `NotFound` from `@shivaedev/errors/taxonomy.ts` instead of objects or local classes with matching tags. Replace `isUnauthorized` imports from React's `client/resultState.ts` with the taxonomy guard; for a cause, use `Option.exists(Cause.findErrorOption(cause), isUnauthorized)`.
+- `authQuery` and `authSession` fail rejected promises with `AuthUnavailable` from `@shivaedev/errors/taxonomy.ts`. Replace `AuthActionUnavailable` imports and error annotations with `AuthUnavailable`, and read its `message` instead of `cause`.
+- Quality: the gate now rejects imported second names even when they use type aliases, value annotations, object facades or forwarding functions. Import from the defining module and remove the second name; existing facade debt can be recorded at adoption. Import `USAGE` from `cli/messages.ts` instead of `cli/args.ts`.
+- Jobs: import `defaultClientFactory` from `@shivaedev/jobs/server/defaultClientFactory.ts` instead of `server/client.ts`. Import `defineSchedule` from `@shivaedev/jobs/server/defineSchedule.ts` instead of `server/definition.ts`. The removed `server/internal/nativeClient.ts` and `server/internal/scheduleDefinition.ts` exports migrate to those same modules as `defaultClientFactory` and `defineSchedule`. The default factory now exposes its native pg-boss return type; type custom factory mocks against `PgBossClient` or `PgBossClientFactory` from `server/client.ts`.
+- React: import `resumeSignal`, `ResumeOptions`, `ResumeSource` and `ResumeWindow` from `@shivaedev/contract/resume.ts`; `@shivaedev/react/resumeSignal.ts` is removed.
+- Work Board: import `Identity` from `path/Identity.ts`, view state helpers from `browser/views/state.ts`, `isMarkdown` from `path/isMarkdown.ts`, and `processes` from `server/processOwnership.ts`. The forwarding `server/views/state.ts` and `server/integration/processes.ts` modules are removed. Replace the removed `attention` facade with imports of `managedRequestReceipt` from `server/attention/managedRequestReceipt.ts`, `attentionProjection` from `server/attention/projection.ts`, and `RequestReceipt` from `attention/RequestReceipt.ts`. Replace the removed `publication` facade with direct imports from `server/responses/publicationDirectory.ts`. Import `Changes` from `server/files/changes.ts`, `MarkdownFile` from `server/files/list.ts`, `Snapshot` from `server/search/snapshot.ts`, metadata document/model/diagnostic/parsed types from `integration/metadata.ts`, `InboxProjection` from `browser/views/schema.ts` instead of `AttentionProjection`, `SourceFailure` from `diagnostics/source.ts`, and `WorkspaceOptions` from `server/workspace.ts` instead of the integration facades. Metadata types are also removed from `server/metadata/model.ts` and `server/metadata/parse.ts`; import them from `integration/metadata.ts`.
+- Work Fleet: import `WAIT_EXIT`, `WaitState`, `WaitOutcome` and `settled` from `host/waitOutcome.ts` instead of `host/wait.ts`; import `fleetRecords` from `fleetRecords.ts` instead of `operations.ts`.
+
 ## 0.27.0 - 2026-10-31
 
 ### Added

@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.29.0 - 2026-10-31
+
+### Added
+
+- `JobsView` from `@shivaedev/admin/client/JobsView.ts` renders failed and dead-lettered jobs, readable failure summaries, health, counts, pagination and detail using the application's bound Jobs client and shared queue names. An optional native retry action enables retry for failed originals; the Jobs page's grants remain enforced by its host.
+- Provide `SessionsPage` and `SessionsView` using identity's session administration calls and permission, with session timestamps, an own-session marker and inline revoke confirmation. Applications supply the current session id and sign-out callback.
+- Generated starters mount the Sessions admin page and sign out after revoking the current session.
+- `SessionBoundary` accepts `redirectTo` and an optional `navigate` callback to continue sign-in through a same-origin URL replacement after unmounting the signed-out tree and before mounting the signed-in tree. Unsafe targets fall back to `/`.
+- React's `permissionGuard` accepts `staticData.signedIn: true` for routes that require a session without a permission grant. Signed-out viewers use the existing sign-in redirect and return location; undeclared routes remain public and matched permission requirements still apply.
+
+### Changed
+
+- Generated starters use the shared admin Jobs view and include its styles from both standalone and workspace installs.
+- Server and the platform dependency shell no longer declare `pg` as an optional peer; its PostgreSQL integration uses the native pool from sql.
+- Generated starters import schedule definitions and the default queue client factory from their defining modules.
+- Generated apps declare the notes routes as signed-in-only and install `permissionGuard` once at the root, redirecting signed-out viewers before loading notes.
+
+### Fixed
+
+- Report ambient runtime workarounds in core code: runners over Clock, Config and Random, unsafe clock reads, cryptographic randomness, performance time, process state and scheduling. Entry points, tool configs, adapters and test-support retain their boundary role for these checks.
+- Generated apps prune their copied baseline after formatting and before the initial commit, so repaired debt cannot block the strict commit gate.
+- Generated app guidance shows file-scoped baseline writes and stages new files before recording their debt.
+- Failing reports point moved files to baseline pruning instead of suggesting repo-wide debt recording.
+- Report exported type aliases of imports, value aliases with `typeof` annotations or local const chains, object facades and unchanged forwarding functions, with repairs naming their defining modules. Keep wrappers that transform inputs, add steps, supply defaults or declare overloads.
+- Generated apps let the boundary hand off sign-in navigation and identify cookie sessions by user id, preserving signed-in screen state when a session rotates after a password change.
+- Generated applications finish Better Auth's startup schema validation before using authentication or releasing its database scope.
+
+### Breaking
+
+- Repositories upgrading Quality must repair the newly reported ambient access or record existing adoption debt with `quality baseline write --rule biome/plugin`, then lower it as repairs land.
+- `createApp` reads secret bytes from Effect's Crypto service. Applications embedding this Effect must provide `Crypto.Crypto`, for example with `NodeServices.layer` or `NodeCrypto.layer` from `@effect/platform-node`. The create-app command already provides it.
+- The pg-boss testing-expiration bridge moved from `@shivaedev/jobs/server/internal/testingExpirations.ts` to `@shivaedev/jobs/server/adapters/testingExpirations.ts`. Consumers importing that internal path must import the adapter path instead.
+- Replace `authDatabase(url, { max, application_name })` from identity's `server/better-auth/mount.ts` with `yield* betterAuthDatabase()` from `server/better-auth/adapters/database.ts`, inside the application's SQL environment. Pass the result as Better Auth's `database`. Use sql's `postgresLayer` for standalone processes; database-backed `appHost` exposes the client inside its `application` Effect. Move connection settings to `maxConnections` and `applicationName` on that SQL Layer. Auth now shares its connection budget and lifecycle; remove direct `pg` dependencies when no longer used.
+- Replace `authTestDatabase(pool)` with `yield* authTestDatabase` in identity test fixtures, provided with the application's `SqlClient`.
+- When applying the generated starter update, replace `poolSizes.auth` with the shared `poolSizes.sql` budget. Auth migrations use the application SQL environment; remove custom `AuthMigrationDatabase` providers.
+- Recording an existing baseline now requires `--rule <id> --file <path>`, and every selected file must be changed since `HEAD`. Replace repo-wide rule writes with explicit changed paths, repeating `--file` as needed; stage new files first. Direct callers pass selected paths as `writeBaseline`'s fourth argument. Initial adoption without a baseline still records existing debt once. For renames, use `quality baseline prune --against <base>` to carry existing counts.
+- Pre-commit rejects staged baseline counts that allow more findings than remain in their files. Run `quality baseline tighten --staged` and stage the resulting baseline changes before committing a repair.
+- Quality: the gate now rejects imported second names even when they use type aliases, value annotations, object facades or forwarding functions. Import from the defining module and remove the second name; existing facade debt can be recorded at adoption. Import `USAGE` from `cli/messages.ts` instead of `cli/args.ts`.
+- Jobs: import `defaultClientFactory` from `@shivaedev/jobs/server/defaultClientFactory.ts` instead of `server/client.ts`. Import `defineSchedule` from `@shivaedev/jobs/server/defineSchedule.ts` instead of `server/definition.ts`. The removed `server/internal/nativeClient.ts` and `server/internal/scheduleDefinition.ts` exports migrate to those same modules as `defaultClientFactory` and `defineSchedule`. The default factory now exposes its native pg-boss return type; type custom factory mocks against `PgBossClient` or `PgBossClientFactory` from `server/client.ts`.
+- React: import `resumeSignal`, `ResumeOptions`, `ResumeSource` and `ResumeWindow` from `@shivaedev/contract/resume.ts`; `@shivaedev/react/resumeSignal.ts` is removed.
+- Work Board: import `Identity` from `path/Identity.ts`, view state helpers from `browser/views/state.ts`, `isMarkdown` from `path/isMarkdown.ts`, and `processes` from `server/processOwnership.ts`. The forwarding `server/views/state.ts` and `server/integration/processes.ts` modules are removed. Replace the removed `attention` facade with imports of `managedRequestReceipt` from `server/attention/managedRequestReceipt.ts`, `attentionProjection` from `server/attention/projection.ts`, and `RequestReceipt` from `attention/RequestReceipt.ts`. Replace the removed `publication` facade with direct imports from `server/responses/publicationDirectory.ts`. Import `Changes` from `server/files/changes.ts`, `MarkdownFile` from `server/files/list.ts`, `Snapshot` from `server/search/snapshot.ts`, metadata document/model/diagnostic/parsed types from `integration/metadata.ts`, `InboxProjection` from `browser/views/schema.ts` instead of `AttentionProjection`, `SourceFailure` from `diagnostics/source.ts`, and `WorkspaceOptions` from `server/workspace.ts` instead of the integration facades. Metadata types are also removed from `server/metadata/model.ts` and `server/metadata/parse.ts`; import them from `integration/metadata.ts`.
+- Work Fleet: import `WAIT_EXIT`, `WaitState`, `WaitOutcome` and `settled` from `host/waitOutcome.ts` instead of `host/wait.ts`; import `fleetRecords` from `fleetRecords.ts` instead of `operations.ts`.
+
 ## 0.28.0 - 2026-10-31
 
 ### Added
