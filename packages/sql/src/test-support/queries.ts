@@ -85,3 +85,15 @@ export function reportScoreIsInvalid() {
 		yield* sql`update ${sql(reports)} set score = 'invalid' where id = 30`;
 	});
 }
+
+export function indexedTupleRows() {
+	return queries.trait("rows", "27,000 distinct pairs with 512-byte payloads and a covering composite index on a and b", ({ sql, tables }) =>
+		Effect.gen(function* () {
+			yield* sql`alter table ${sql(tables.partialRows)} add column payload text not null default repeat('x', 512)`;
+			yield* sql`create index ${sql(`tuple_${tables.partialRows.slice(-32)}_idx`)} on ${sql(tables.partialRows)} (a, b)`;
+			yield* sql`insert into ${sql(tables.partialRows)} (a, b, kind, value)
+				select 'stored-' || id, id::text, 'x', 10 from generate_series(1, 27000) as id`;
+			yield* sql`vacuum analyze ${sql(tables.partialRows)}`;
+		}),
+	);
+}
