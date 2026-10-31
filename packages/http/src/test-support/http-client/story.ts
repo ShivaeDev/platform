@@ -114,6 +114,7 @@ export const httpClient = storyKit({
 			return client.get(`${remote.url}/body`);
 		}
 		return {
+			failureMessage: () => Effect.sync(() => statusFailures.at(-1)?.message),
 			otherOriginRequests: () => Effect.sync(() => otherOrigin.requests.map(({ method, path }) => `${method} ${path}`)),
 			post: () => {
 				story.tell("the client POSTs /answer?token=private");
@@ -141,6 +142,7 @@ export const httpClient = storyKit({
 					const refused = statusFailures.at(-1);
 					return refused === undefined ? "nothing refused" : `${refused.method} ${pathOf(refused.url)}`;
 				}),
+			remoteHost: () => Effect.sync(() => new URL(remote.url).host),
 			requests: () => Effect.sync(() => remote.requests.map(({ method, path }) => `${method} ${path}`)),
 		};
 	},

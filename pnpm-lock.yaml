@@ -951,6 +951,9 @@ importers:
         specifier: workspace:*
         version: link:../sql
     devDependencies:
+      '@shivaedev/http':
+        specifier: workspace:*
+        version: link:../http
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
