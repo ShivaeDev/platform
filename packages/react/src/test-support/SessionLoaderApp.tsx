@@ -3,8 +3,8 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Outlet
 import { Deferred, Predicate } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useState } from "react";
+import { loadQuery } from "#adapters/loadQuery.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { loadQuery } from "#loadQuery.ts";
 import type { LoaderSession } from "./loaderSession.ts";
 
 function signIn(session: LoaderSession) {

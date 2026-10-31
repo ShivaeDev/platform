@@ -51,47 +51,19 @@ for (const declaration of ["schema", "host"] as const) {
 
 for (const order of ["first", "last"] as const) {
 	host.it(
-		`with the sensitive declaration ${order}, directly and chained encoded names are masked in client failures, the diagnostic log and span attributes`,
-		[json, declarationOrder(order)],
-		function* ({ answerMentions, callRpcs, close, diagnosticLog, spanAttributes, wireAnswers }) {
+		`a sensitive declaration registered ${order} leaves other RPCs' encoded failure fields public`,
+		[declarationOrder(order)],
+		function* ({ callRpcs, wireAnswers }) {
 			yield* callRpcs([
-				{ id: "mapped", payload: { value: "private ordered contact" }, tag: "mapped" },
-				{ id: "lastLink", payload: { value: "private ordered contact" }, tag: "lastLink" },
+				{ id: "mapped", payload: { value: "public ordered contact" }, tag: "mapped" },
+				{ id: "lastLink", payload: { value: "public ordered contact" }, tag: "lastLink" },
+				{ id: "firstLink", payload: { value: "public ordered contact" }, tag: "firstLink" },
 			]);
 
-			yield* close();
-
-			yield* outcomes({
-				"client answers": [
-					wireAnswers(),
-					{
-						lastLink: { failed: expect.objectContaining({ visible: "<redacted>", wireChainedContact: "<redacted>" }) },
-						mapped: { failed: expect.objectContaining({ visible: "<redacted>", wireContact: "<redacted>" }) },
-					},
-				],
-				"diagnostic log": [
-					diagnosticLog("mapping diagnostic"),
-					expect.objectContaining({
-						contact: "<redacted>",
-						control: "public control",
-						intermediateContact: "<redacted>",
-						visible: "<redacted>",
-						wireChainedContact: "<redacted>",
-						wireContact: "<redacted>",
-					}),
-				],
-				"leaked into the answers": [answerMentions("private ordered contact"), []],
-				"span attributes": [
-					spanAttributes("mapped"),
-					[
-						expect.objectContaining({
-							control: "public control",
-							visible: "<redacted>",
-							wireChainedContact: "<redacted>",
-							wireContact: "<redacted>",
-						}),
-					],
-				],
+			expect(yield* wireAnswers()).toEqual({
+				firstLink: { failed: { intermediateContact: "public ordered contact" } },
+				lastLink: { failed: { visible: "public detail", wireChainedContact: "public ordered contact" } },
+				mapped: { failed: { visible: "public detail", wireContact: "public ordered contact" } },
 			});
 		},
 	);

@@ -69,8 +69,10 @@ function authorizeSession<TSession extends SessionShape, E, R>(
 	}
 	return recheckSession(sessions, Headers.empty, tag).pipe(
 		Effect.map((current) => Option.isNone(viewer) || (Option.isSome(current) && current.value.user.id === viewer.value.id)),
-		Effect.catch(() => Effect.succeed(false)),
-		Effect.flatMap((allowed) => (allowed ? policy : Effect.succeed(false))),
+		Effect.flatMap(
+			(allowed): Effect.Effect<boolean, E | Unauthorized, R> =>
+				allowed ? policy : Effect.fail(new Unauthorized({ message: "Authentication required" })),
+		),
 	);
 }
 

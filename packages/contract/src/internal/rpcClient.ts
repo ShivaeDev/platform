@@ -20,10 +20,12 @@ export function rpcClient(name: string, source: RpcSource, options: ClientOption
 			webSocketConstructor: options.webSocketConstructor,
 		});
 	}
-	const protocol = options.protocol ?? sharedProtocol();
+	const customProtocol = options.protocol;
+	const protocolFor = typeof customProtocol === "function" ? customProtocol : sharedProtocol;
+	const protocol = typeof customProtocol === "function" ? customProtocol(undefined) : (customProtocol ?? sharedProtocol());
 	const Client = AtomRpc.Service<unknown>()(`${name}/Client`, {
 		group,
-		protocol: options.protocol ?? ((get) => sharedProtocol(get(socketIdentity))),
+		protocol: typeof customProtocol === "object" ? customProtocol : (get) => protocolFor(get(socketIdentity)),
 	});
 	const client = Effect.flatMap(Layer.build(protocol), (context) => RpcClient.make(group).pipe(Effect.provideContext(context)));
 	const layer = Layer.effect(Client, RpcClient.make(group, { flatten: true })).pipe(Layer.provide(protocol));
