@@ -6,6 +6,7 @@ import ts from "typescript";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { qualityArgs, runQuality } from "./cli.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
+import { branchOff } from "./git.ts";
 import { qualityTree } from "./qualityTree.ts";
 import { config, removeSeededTrees } from "./tree.ts";
 
@@ -41,7 +42,7 @@ export const adoption = storyKit({
 			recordsThroughBaselineScript: (rule: string) =>
 				Effect.sync(() => {
 					story.tell(`the app runs pnpm baseline write --rule ${rule}`);
-					const result = spawnSync("pnpm", ["baseline", "write", "--rule", rule], { cwd: engine.root, encoding: "utf8" });
+					const result = spawnSync("pnpm", ["baseline", "write", "--rule", rule, "--file", "src/value.ts"], { cwd: engine.root, encoding: "utf8" });
 					engine.answer = answerOf({ status: result.status, stderr: result.stderr, stdout: result.stdout });
 					return engine.answer;
 				}),
@@ -66,6 +67,7 @@ function recordDebt(root: string) {
 
 export const newRuleDebt = adoption.trait("repository", "the upgrade finds a TODO above the existing baseline", function* (engine) {
 	yield* recordDebt(engine.root);
+	branchOff(engine.root);
 	writeFileSync(join(engine.root, "src/value.ts"), `// TODO: finish the feature\n${readFileSync(join(engine.root, "src/value.ts"), "utf8")}`);
 });
 

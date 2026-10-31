@@ -34,7 +34,7 @@ Tests load `TEST_DATABASE_URL` from `.env.local`. Use a dedicated database whose
 
 The app depends on [`@shivaedev/platform`](https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme), which brings every runtime piece of the framework, and on `@shivaedev/test-story` and `@shivaedev/quality` for development. Import each piece by its own name, such as `@shivaedev/sql/repository.ts`, without listing it in `package.json`; `publicHoistPattern` in `pnpm-workspace.yaml` makes the pieces resolvable, and `pnpm lint` rejects a piece listed beside the entry point that brings it.
 
-The Quality baseline only goes down. Use `pnpm baseline write --rule <id>` only to record findings for a new rule added by a Quality upgrade. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app. Never raise a baseline to make a check pass.
+The Quality baseline only goes down. Use `pnpm baseline write --rule <id> --file <path>` only to record findings for a new rule added by a Quality upgrade. Select only files changed since `HEAD`, staging new files first. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app. Never raise a baseline to make a check pass.
 
 With a clean Git working tree, run `pnpm dlx @shivaedev/create-app@latest update` from this app to merge later template changes while preserving your edits and deleted files. Review the changes and any listed Git conflicts, run `pnpm install`, and commit them yourself; `.create-app.json` records the generator version after a successful merge.
 
