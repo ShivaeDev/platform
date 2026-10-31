@@ -1,6 +1,7 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import type { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
+import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useContext, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
@@ -22,15 +23,23 @@ function PageTitle({ client, pageId }: { readonly client: PageClient; readonly p
 	);
 }
 
-export function ReadPageView({ client, fetch }: { readonly client: PageClient; readonly fetch: typeof globalThis.fetch }) {
+export function ReadPageView({
+	client,
+	fetch,
+	sessionPending,
+}: {
+	readonly client: PageClient;
+	readonly fetch: typeof globalThis.fetch;
+	readonly sessionPending: Atom.Writable<boolean>;
+}) {
 	const registry = useContext(RegistryContext);
 	const [extra, setExtra] = useState<number>();
 	const [signedIn, setSignedIn] = useState(false);
-	const [sessionPending, setSessionPending] = useState(false);
+	const busy = useAtomValue(sessionPending);
 	useAtomValue(client.api[LiveConnection].connection);
 	return createElement(
 		"main",
-		{ "aria-busy": sessionPending },
+		{ "aria-busy": busy },
 		createElement(PageTitle, { client, pageId: 1 }),
 		extra === undefined ? null : createElement(PageTitle, { client, pageId: extra }),
 		createElement("button", { onClick: () => setExtra(2), type: "button" }, "Open second page"),
@@ -39,7 +48,7 @@ export function ReadPageView({ client, fetch }: { readonly client: PageClient; r
 			"button",
 			{
 				onClick: async () => {
-					setSessionPending(true);
+					registry.set(sessionPending, true);
 					const response = await fetch(signedIn ? "/sign-out" : "/sign-in", { method: "POST" });
 					const session = await response.text();
 					const identity = client.api[LiveConnection].identity;
@@ -48,7 +57,7 @@ export function ReadPageView({ client, fetch }: { readonly client: PageClient; r
 					}
 					registry.set(identity, session || undefined);
 					setSignedIn(!signedIn);
-					setSessionPending(false);
+					registry.set(sessionPending, false);
 				},
 				type: "button",
 			},

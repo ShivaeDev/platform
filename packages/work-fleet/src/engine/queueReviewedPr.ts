@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { reviewSatisfied } from "#completion.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { EngineContext } from "#engine/makeState.ts";
 import { awaitHumanMerge } from "#engine/mergeReadiness.ts";
@@ -13,7 +14,7 @@ import type { Versioned } from "#storage/model.ts";
 export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (stored: Versioned<FleetRecord>, result: typeof ChangeResult.Type) {
 	const state = yield* EngineContext;
 	const queue = state.integrations.queue;
-	if (queue === undefined || stored.value.review?.verdict !== "approved" || stored.value.review.head !== result.head) {
+	if (queue === undefined || stored.value.review?.head !== result.head || !reviewSatisfied(stored.value, result.head)) {
 		return undefined;
 	}
 	const held = yield* reconcileSweepHold(state, stored);
