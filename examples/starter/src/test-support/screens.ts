@@ -7,6 +7,6 @@ export const screens = storyKit({
 	clock: "live",
 	create: (): ScreenSurface => ({ view: undefined }),
 	name: "app controls",
-	stages: ["screen"],
+	stages: ["storage", "screen"],
 	verbs: (engine, story) => ({ ...themeScreenVerbs(engine, story.tell), ...uiScreenVerbs(engine, story.tell) }),
 });
