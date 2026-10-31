@@ -31,6 +31,9 @@ function columnProblems(
 	if (field.required !== false && column.nullable === "YES") {
 		missing.push(`column ${table}.${name} requires NOT NULL`);
 	}
+	if (field.required === false && column.nullable === "NO" && column.default === null && field.defaultValue === undefined) {
+		missing.push(`column ${table}.${name} requires DROP NOT NULL`);
+	}
 	return missing;
 }
 

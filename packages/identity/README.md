@@ -393,7 +393,7 @@ import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/a
 yield* assertBetterAuthSchema(authOptions, { defaultRole: "member" });
 ```
 
-`assertBetterAuthSchema` fails with `BetterAuthSchemaDrift`, whose `missing` entries name missing tables, columns and configured indexes, incompatible column types and missing NOT NULL constraints. With identity role options it also checks the role default. A newly added `user.role` reports `column user.role` until the next migration is generated **and applied**. Generation follows Better Auth's additive migration planner; type changes and tightening existing constraints may require reviewed, application-authored SQL in a new migration. The check does not compare arbitrary application constraints or detect changes to default functions.
+`assertBetterAuthSchema` fails with `BetterAuthSchemaDrift`, whose `missing` entries name missing tables, columns and configured indexes, incompatible column types and missing NOT NULL constraints. It also reports an optional field whose existing non-null column has neither a database default nor an auth field default. With identity role options it checks the role default. A newly added `user.role` reports `column user.role` until the next migration is generated **and applied**. Generation follows Better Auth's additive migration planner; type and nullability changes may require reviewed, application-authored SQL in a new migration. The check does not compare arbitrary application constraints or detect changes to default functions.
 
 The starter ships checked-in SQL for its auth migrations and checks all numbered migrations against current auth options in its PostgreSQL stories.
 

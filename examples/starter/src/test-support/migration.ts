@@ -28,7 +28,7 @@ export const migration = storyKit({
 		checkAuthSchema: () => assertBetterAuthSchema(authOptions(), { defaultRole: User.name }),
 		migrate: Effect.fn("AppStory.migrate")(function* () {
 			story.tell("apply every numbered application migration");
-			yield* engine.steps.migrateTo("0004_stored_roles");
+			yield* engine.steps.migrateToLatest;
 		}),
 		roleColumn: () => engine.storage.roleColumn,
 		storedRoles: () => engine.storage.userRoles,
@@ -38,10 +38,12 @@ export const migration = storyKit({
 export const legacyUser = migration.trait("schema", "alice has a user before roles are required", function* (engine) {
 	yield* engine.steps.migrateTo("0001_auth");
 	const { auth } = yield* betterAuthMount({
-		...authOptions(),
+		advanced: { database: { validateSchema: true } },
 		database: yield* betterAuthDatabase(),
+		emailAndPassword: { enabled: true },
 		plugins: [testUtils()],
 		secret: "migration-story-secret-at-least-32-characters",
+		session: { cookieCache: { enabled: false } },
 	});
 	yield* Effect.promise(() => signedInUser(auth, { email: "alice@migration.test", name: "alice" }));
 });

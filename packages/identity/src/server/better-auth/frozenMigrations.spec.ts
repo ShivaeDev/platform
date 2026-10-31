@@ -47,6 +47,21 @@ frozenAuthMigrations.it(
 );
 
 frozenAuthMigrations.it(
+	"schema drift names an optional field whose non-null column has no default",
+	[],
+	function* ({ requireRole, generateFirst, migrate, makeRoleOptional, checkSchema }) {
+		yield* requireRole();
+		yield* generateFirst();
+		yield* migrate();
+		expect(yield* checkSchema()).toBe("current");
+
+		yield* makeRoleOptional();
+
+		expect(yield* checkSchema()).toBe("Auth schema needs a new migration:\ncolumn user.role requires DROP NOT NULL");
+	},
+);
+
+frozenAuthMigrations.it(
 	"schema drift names an existing role column whose type no longer matches the options",
 	[],
 	function* ({ generateFirst, migrate, changeRoleType, checkSchema }) {

@@ -57,9 +57,17 @@ export const frozenAuthMigrations = storyKit({
 		generateNext: (defaultRole?: string) =>
 			engine.files.generate("0003_roles", engine.options, defaultRole === undefined ? undefined : { defaultRole }),
 		makeRoleNullable: () => engine.storage.omitRole("no-existing-user"),
+		makeRoleOptional: () =>
+			Effect.sync(() => {
+				engine.options = { ...engine.options, user: { additionalFields: { role: { required: false, type: "string" } } } };
+			}),
 		migrate: () => engine.files.migrate(),
 		migrateLiveRoles: () => engine.files.migrate(liveAuthAlteration),
 		replayOnFreshDatabase: () => withIsolatedDatabase(Effect.andThen(engine.files.migrate(), authMigrationSchema)),
+		requireRole: () =>
+			Effect.sync(() => {
+				engine.options = { ...engine.options, user: { additionalFields: { role: { required: true, type: "string" } } } };
+			}),
 		storedColumns: () => columns,
 		storedRoleColumn: () => engine.storage.roleColumn,
 		storedSchema: () => authMigrationSchema,
