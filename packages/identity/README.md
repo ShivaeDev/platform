@@ -115,6 +115,20 @@ The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL
 
 `AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`. Each mount owns scoped in-memory buckets when `storage` is unset or `"memory"`. Application `customStorage`, `"database"` and `"secondary-storage"` selections pass through; Better Auth chooses the rules and client-IP keys.
 
+The mount also requires the current account password on `/change-email`. Send it as `password` beside `newEmail` in the JSON body. Missing, empty, non-string, overlong and incorrect passwords are refused with HTTP 400 and `INVALID_PASSWORD`; accounts without a credential password are also refused. The check uses Better Auth's configured password verifier and applies to cookie and signed bearer sessions before an email can change or a verification email can be sent. Better Auth still owns email verification and the rest of the email-change flow.
+
+```ts
+await fetch("/api/auth/change-email", {
+	method: "POST",
+	headers: { "content-type": "application/json" },
+	body: JSON.stringify({ newEmail, password: currentPassword }),
+});
+```
+
+Better Auth's typed `changeEmail` method does not declare the extra `password` field; send this request through HTTP. To use a different account-verification policy, explicitly pass `{ hardening: { requirePasswordForEmailChange: false } }` as the second argument to `betterAuthMount`. Passwordless applications must make this choice before enabling email changes.
+
+Password resets revoke existing sessions by default. Set `emailAndPassword.revokeSessionsOnPasswordReset: false` in the Better Auth options to retain them explicitly. These defaults sit alongside the mount's rate limiting; application plugins and the provider's email-change settings remain in effect.
+
 `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. Without a trusted proxy, auth rate limiting uses the connection peer address, so different peers have separate buckets and Better Auth receives a client IP without a missing-IP warning. A trusted peer's configured forwarded header takes precedence over the peer address.
 
 For email sign-in through `appHost`, the session record's `ipAddress` follows the same rule. With a trusted peer, `AUTH_CLIENT_IP_HEADER=x-real-ip` stores `X-Real-IP` even if `X-Forwarded-For` supplies a different address; the default header selects the rightmost untrusted address in the `X-Forwarded-For` chain, ignoring trusted proxy hops on the right. With an untrusted peer, neither header can supply the stored address. Sign-in attempts from an untrusted peer share one bucket per path; with a trusted peer and `x-real-ip`, changing `X-Forwarded-For` does not change the bucket, while changing `X-Real-IP` does.
