@@ -3,8 +3,8 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { act } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
+import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
-import { loadQuery } from "@shivaedev/react/loadQuery.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { App } from "#client/App.tsx";
 import { appRouter } from "#client/appRouter.tsx";
@@ -60,13 +60,21 @@ export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: S
 		signOut: authAction<void, unknown, never>(() => Promise.resolve({ data: {}, error: null })),
 		submit: authAction(({ mode, credentials }: { mode: "sign-in" | "sign-up"; credentials: Credentials }) => {
 			engine.login.calls.push({ credentials, mode });
-			return engine.login.unavailable
-				? Promise.reject(new Error("offline"))
-				: Promise.resolve(
-						engine.login.outcome === undefined
-							? { data: {}, error: null }
-							: { data: null, error: { message: engine.login.outcome, status: HttpStatus.fromLiteral("Unauthorized"), statusText: "Unauthorized" } },
-					);
+			if (engine.login.unavailable) {
+				return Promise.reject(new Error("offline"));
+			}
+			if (engine.login.outcome === undefined) {
+				return Promise.resolve({ data: {}, error: null });
+			}
+			return Promise.resolve({
+				data: null,
+				error: {
+					code: mode === "sign-up" ? "USER_ALREADY_EXISTS" : "INVALID_EMAIL_OR_PASSWORD",
+					message: engine.login.outcome,
+					status: HttpStatus.fromLiteral("Unauthorized"),
+					statusText: "Unauthorized",
+				},
+			});
 		}),
 	};
 	const view = yield* acquireScreen(engine);

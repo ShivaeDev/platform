@@ -81,3 +81,15 @@ export const receiptsTableGone = inbox.trait("inbox", "the database can no longe
 export const firstReceiptUpdateFails = inbox.trait("inbox", "the first copy to update its receipt fails", (state) => {
 	state.firstReceiptUpdateFails = true;
 });
+
+export function senderOptIn(expiry: "future" | "past") {
+	return inbox.trait("inbox", `the sender's opt-in expires in the ${expiry}`, function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`create table webhook_senders (sender text primary key, allowed_until timestamptz not null)`;
+		yield* sql`insert into webhook_senders values ('alice', now() + ${expiry === "future" ? "1 day" : "-1 day"}::interval)`;
+	});
+}
+
+export const senderPreferencesGone = inbox.trait("inbox", "the sender preferences table is unavailable", () =>
+	SqlClient.SqlClient.use((sql) => sql`drop table webhook_senders`),
+);

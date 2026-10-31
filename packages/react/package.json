@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/react",
-	"version": "0.23.1",
+	"version": "0.25.0",
 	"description": "React query, action, editor and session hooks for native Effect atoms",
 	"keywords": [
 		"effect"
@@ -64,7 +64,6 @@
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
-		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",

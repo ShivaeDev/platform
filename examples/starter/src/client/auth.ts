@@ -1,7 +1,7 @@
 import { createAuthClient } from "better-auth/react";
 import { Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
-import { type AuthActionUnavailable, authAction } from "@shivaedev/react/client/authAction.ts";
+import { type AuthFailure, authAction } from "@shivaedev/react/client/authAction.ts";
 
 export const SessionAccess = Schema.Struct({
 	session: Schema.Struct({ id: Schema.String }),
@@ -12,15 +12,10 @@ export const SessionAccess = Schema.Struct({
 
 type AuthClient = ReturnType<typeof createAuthClient>;
 export type Credentials = Parameters<AuthClient["signUp"]["email"]>[0];
-export type AuthFailure = NonNullable<Awaited<ReturnType<AuthClient["signOut"]>>["error"]>;
 
 export interface AuthActions {
-	readonly signOut: Atom.AtomResultFn<void, unknown, AuthFailure | AuthActionUnavailable>;
-	readonly submit: Atom.AtomResultFn<
-		{ readonly mode: "sign-in" | "sign-up"; readonly credentials: Credentials },
-		unknown,
-		AuthFailure | AuthActionUnavailable
-	>;
+	readonly signOut: Atom.AtomResultFn<void, unknown, AuthFailure>;
+	readonly submit: Atom.AtomResultFn<{ readonly mode: "sign-in" | "sign-up"; readonly credentials: Credentials }, unknown, AuthFailure>;
 }
 
 export function makeAuth(options: {

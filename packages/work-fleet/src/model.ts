@@ -72,6 +72,7 @@ const cycleFields = {
 	),
 	mergeAreasReleased: Schema.optional(Schema.Boolean),
 	mergedDelivery: Schema.optional(Schema.Struct({ ...Delivery.fields, revision: Schema.optional(Schema.String) })),
+	mergeOrderFirst: Schema.optional(Schema.Struct({ head: Schema.String, prs: Schema.Array(Schema.String) })),
 	mergePrediction: Schema.optional(MergePrediction),
 	mergeReadyAt: Schema.optional(Schema.Number),
 	mergeReadyHead: Schema.optional(Schema.String),

@@ -1,9 +1,12 @@
-import { type Cause, Duration, Effect, Option, Schedule, Schema, Stream } from "effect";
+import { type Cause, Duration, Effect, Option, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys, Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
 import { invalidateLive } from "#internal/liveInvalidation.ts";
+import { livePending } from "#internal/livePending.ts";
+import { liveRetry } from "#internal/liveRetry.ts";
+import { retryOnChange } from "#internal/retryOnChange.ts";
 
 export const LiveHint = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Changed"), keys: Schema.Array(Key), queryIndexes: Schema.optional(Schema.Array(Schema.Number)) }),
@@ -11,7 +14,7 @@ export const LiveHint = Schema.Union([
 ]);
 export type LiveHint = typeof LiveHint.Type;
 export interface LiveStatus<E> {
-	readonly connection: "connecting" | "live" | "reconnecting";
+	readonly connection: "connecting" | "live" | "reconnecting" | "failed";
 	readonly failure: Option.Option<Cause.Cause<E>>;
 	readonly needsResync: boolean;
 	readonly pending: number;
@@ -23,6 +26,7 @@ export interface LiveOptions<E, R> {
 	readonly resume?: Atom.Atom<unknown>;
 	readonly resyncKeys: readonly Key[] | ((registry: AtomRegistry.AtomRegistry) => readonly Key[]);
 	readonly retryDelay?: Duration.Input;
+	readonly retryKeys?: readonly Key[];
 	readonly stream: Stream.Stream<LiveHint, E, R>;
 }
 
@@ -37,30 +41,27 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 			Effect.gen(function* () {
 				get.mount(status);
 				const reactivity = yield* Reactivity.Reactivity;
+				const retryKeys = options.retryKeys ?? (typeof options.resyncKeys === "function" ? options.resyncKeys(get.registry) : options.resyncKeys);
+				yield* retryOnChange(status, readKeys(retryKeys, options.keyContext), () => get.refreshSelf());
 				function update(value: Partial<LiveStatus<E>>) {
 					get.set(status, { ...get.once(status), ...value });
 				}
-				const pending = new Set<string>();
-				let scheduled = false;
 				function flush() {
-					const queued = [...pending];
-					scheduled = false;
-					pending.clear();
+					const queued = pending.take();
 					if (!get.once(paused)) {
 						invalidateLive(reactivity, queued, () => active && !get.once(paused));
 					}
 				}
 				const timer = runtime.fn((delay: Duration.Input) => Effect.andThen(Effect.sleep(delay), Effect.sync(flush)));
 				get.mount(timer);
-				function clear() {
-					get.set(timer, Atom.Interrupt);
-					scheduled = false;
-					pending.clear();
-				}
+				const pending = livePending(
+					(window) => get.set(timer, window),
+					() => get.set(timer, Atom.Interrupt),
+				);
 				let active = true;
 				get.addFinalizer(() => {
 					active = false;
-					clear();
+					pending.clear();
 					if (get.registry.getNodes().has(status)) {
 						update({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
 					}
@@ -74,16 +75,13 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						invalidateLive(reactivity, keys, () => active && !get.once(paused));
 						return;
 					}
-					for (const key of keys) {
-						pending.add(key);
-					}
-					if (!scheduled) {
-						scheduled = true;
-						get.set(timer, window);
-					}
+					pending.add(keys, window);
 				}
 				function resync() {
-					clear();
+					if (get.once(status).connection === "failed") {
+						return;
+					}
+					pending.clear();
 					if (get.once(paused)) {
 						update({ needsResync: true });
 						return;
@@ -129,11 +127,15 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 					return options.stream.pipe(
 						Stream.runForEach((hint) => Effect.sync(() => observe(hint))),
 						Effect.scoped,
-						Effect.catchCause((failure) => Effect.sync(() => update({ failure: Option.some(failure) }))),
-						Effect.andThen(Effect.sync(() => update({ connection: "reconnecting", needsResync: true }))),
 					);
 				});
-				yield* Effect.repeat(attempt, Schedule.jittered(Schedule.spaced(options.retryDelay ?? "1 second")));
+				yield* liveRetry(
+					attempt,
+					(failure, retry) => {
+						update({ connection: retry ? "reconnecting" : "failed", failure, needsResync: true });
+					},
+					options.retryDelay,
+				);
 			}),
 		)
 		.pipe(Atom.setIdleTTL(0));

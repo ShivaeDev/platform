@@ -11,7 +11,7 @@ import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 export interface ClientOptions {
 	readonly headers?: Readonly<Record<string, string>>;
 	readonly live?: boolean;
-	readonly protocol?: Layer.Layer<RpcClient.Protocol>;
+	readonly protocol?: Layer.Layer<RpcClient.Protocol> | ((identity: string | undefined) => Layer.Layer<RpcClient.Protocol>);
 	readonly url: string;
 	readonly webSocketConstructor?: Layer.Layer<Socket.WebSocketConstructor>;
 }

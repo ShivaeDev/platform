@@ -20,6 +20,7 @@ function signature(payload: string) {
 
 export const deliveries = {
 	"a delivery over the host's 256-byte limit": { body: "x".repeat(MAX_BODY_BYTES + 1) },
+	"a delivery requiring sender opt-in": { body: JSON.stringify({ issue: { number: 42 }, sender: "alice" }), event: "opted_in_issues" },
 	"a delivery to an unregistered source": { source: "unknown" },
 	"a delivery without a delivery ID": { delivery: null },
 	"a delivery without a signature": { signature: null },
