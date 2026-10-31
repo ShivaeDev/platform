@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.28.0 - 2026-10-31
+
+### Added
+
+- Expose native PostgreSQL `connectionTTL`, `idleTimeout` and `minConnections` through the SQL layer and application host, and `idleTimeoutMillis` and `maxLifetimeSeconds` through the jobs layer.
+
+### Fixed
+
+- Application and jobs pools recycle connections after ten minutes and close idle connections after one minute by default, returning backend memory after heavy queries. Application change listeners renew their reserved connection and resynchronize subscribers across renewal.
+- PostgreSQL tuple filters bind one array per column and match through `unnest`, keeping parameter counts constant for large reads, prepared selects, deletes and tuple-pinned grouped lookups. Field codecs, empty lists, null equality and duplicate tuple results retain their semantics.
+
+### Breaking
+
+- `tupleIn(model, fields, tuples, types)` now requires a PostgreSQL scalar type map as its fourth argument. Migrate `tupleIn(Row, ["name", "attempt"], tuples)` to `tupleIn(Row, ["name", "attempt"], tuples, { name: "text", attempt: "int4" })`, choosing the actual stored column types, including `text` for numbers stored as text. Use the scalar names in `PgTypes.OID` (for example, `int4` for integer and `int8` for bigint); array-valued and custom PostgreSQL types use explicit native SQL.
+
 ## 0.27.0 - 2026-10-30
 
 ### Added
