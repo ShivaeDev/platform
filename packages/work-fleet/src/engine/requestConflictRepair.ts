@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import { reviewSatisfied } from "#completion.ts";
+import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { failureContext } from "#engine/failureContext.ts";
+import { interruptWork } from "#engine/interruptWork.ts";
 import { makeHuman } from "#engine/makeHuman.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileSweepHold } from "#engine/reconcileSweepHold.ts";
@@ -14,9 +16,12 @@ export const requestConflictRepair = Effect.fn("Fleet.requestConflictRepair")(fu
 	stored: Versioned<FleetRecord>,
 	failure: FleetError,
 ) {
-	const record = stored.value;
+	let current = stored;
+	const record = current.value;
 	const { code, mainRevision } = failureContext(failure);
-	if (code !== "pr-conflicting" || executing(record)) {
+	const reviewing = reviewPending(record);
+	const active = record.attempts.filter((attempt) => ["submitting", "accepted", "running"].includes(attempt.status));
+	if (code !== "pr-conflicting" || (executing(record) && !(reviewing && active.every((attempt) => attempt.role === "reviewer")))) {
 		return undefined;
 	}
 	const held = record.sweepHold === undefined ? undefined : yield* reconcileSweepHold(state, stored);
@@ -26,14 +31,21 @@ export const requestConflictRepair = Effect.fn("Fleet.requestConflictRepair")(fu
 	if (
 		mainRevision === undefined
 		|| record.result === undefined
-		|| !reviewSatisfied(record, record.result.head)
-		|| record.checks?.passed !== true
-		|| record.checks.head !== record.result?.head
+		|| (!reviewing && (!reviewSatisfied(record, record.result.head) || record.checks?.passed !== true || record.checks.head !== record.result.head))
 		|| record.conflictRepairs?.includes(mainRevision)
 	) {
 		return undefined;
 	}
-	const resolved = record.decision?.code === "reviewed-pr-ready" ? yield* makeHuman(state)(stored) : stored;
+	yield* authorizeBriefContext(record, yield* state.board.get(record.workId));
+	for (const attempt of active) {
+		const interrupted = yield* interruptWork(state, attempt);
+		current = yield* state.load(record.workId);
+		current = yield* state.save(current, {
+			...current.value,
+			attempts: current.value.attempts.map((saved) => (saved.operationId === attempt.operationId ? { ...saved, ...interrupted } : saved)),
+		});
+	}
+	const resolved = record.decision?.code === "reviewed-pr-ready" ? yield* makeHuman(state)(current) : current;
 	if (resolved.value.step === "released") {
 		return resolved;
 	}
@@ -45,3 +57,7 @@ export const requestConflictRepair = Effect.fn("Fleet.requestConflictRepair")(fu
 		mainRevision,
 	);
 });
+
+function reviewPending(record: FleetRecord): boolean {
+	return record.step === "reviewing" || (record.decision?.code === "session-stalled" && record.attempts.at(-1)?.role === "reviewer");
+}
