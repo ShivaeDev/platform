@@ -5,10 +5,11 @@ import { type Rpc, RpcClient, type RpcGroup, RpcSerialization } from "effect/rpc
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { close, context, start } from "#test/app-host/lifecycle.ts";
 import { emptyHost } from "#test/app-host/state.ts";
 import { Api, Note, type RerunState, rerunHost } from "./fixture.ts";
-import { listen, until } from "./listener.ts";
+import { listen } from "./listen.ts";
 
 type Update = Rpc.SuccessChunk<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Api>, "rerun.$changes">>;
 const create = Effect.gen(function* () {
@@ -107,17 +108,23 @@ export const rerunStory = storyKit({
 			until(
 				SubscriptionRef.changes(engine.updates),
 				(all) => all.filter((update) => update._tag === "Result" && update.query === "barrier").length > 1,
+				{ name: "changed query barrier" },
 			),
 		untilHinted: (title: string) =>
-			AtomRegistry.toStreamResult(engine.registry, engine.client.api.hinted.query({ title: "One" })).pipe(
-				Stream.filter((rows) => rows.some((note) => note.title === title)),
-				Stream.runHead,
+			until(
+				AtomRegistry.toStreamResult(engine.registry, engine.client.api.hinted.query({ title: "One" })),
+				(rows) => rows.some((note) => note.title === title),
+				{ name: `note titled ${title}` },
 			),
-		untilMixedHint: () => until(SubscriptionRef.changes(engine.mixed), (all) => all.some((update) => update._tag === "Changed")),
+		untilMixedHint: () =>
+			until(SubscriptionRef.changes(engine.mixed), (all) => all.some((update) => update._tag === "Changed"), {
+				name: "mixed subscription change hint",
+			}),
 		untilShown: (title: string) =>
-			AtomRegistry.toStreamResult(engine.registry, engine.client.api.compare.query({ title: "One" })).pipe(
-				Stream.filter((rows) => rows.some((note) => note.title === title)),
-				Stream.runHead,
+			until(
+				AtomRegistry.toStreamResult(engine.registry, engine.client.api.compare.query({ title: "One" })),
+				(rows) => rows.some((note) => note.title === title),
+				{ name: `note titled ${title}` },
 			),
 	}),
 });

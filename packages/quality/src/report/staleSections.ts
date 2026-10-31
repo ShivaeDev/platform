@@ -27,7 +27,7 @@ export function staleSections(outcome: Outcome, files: StaleFiles): readonly str
 		...section(
 			"error",
 			files.baseline,
-			"An entry for an unknown rule covers nothing. Run `quality baseline prune` to drop it.",
+			"Drop unknown rules with `quality baseline prune`. Lower staged counts with `quality baseline tighten --staged`, then stage the baseline.",
 			outcome.staleBaseline.map(baselineLine),
 		),
 		...section(

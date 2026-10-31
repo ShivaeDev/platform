@@ -3,7 +3,6 @@
 {"path":"examples/starter/src/client/LabelledSwitch.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"examples/starter/src/client/LoginScreen.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"examples/starter/src/client/admin/QueryPanel.tsx","rule":"react/jsx-conditionals","count":6}
-{"path":"examples/starter/src/client/appRouter.tsx","rule":"effect/boundary","count":1}
 {"path":"examples/starter/src/client/appRouter.tsx","rule":"effect/service-parameters","count":1}
 {"path":"examples/starter/src/client/appRouter.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"examples/starter/src/client/entry.tsx","rule":"effect/boundary","count":1}

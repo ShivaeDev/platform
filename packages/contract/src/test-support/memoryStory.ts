@@ -3,6 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
@@ -12,7 +13,7 @@ import { answered, hintWords, shown, streams } from "./answers.ts";
 import { Note, Notes, notes } from "./notes.ts";
 import { notesServer } from "./notesServer.ts";
 import { type Mark, reRead } from "./reRead.ts";
-import { settled, signal } from "./settle.ts";
+import { settled } from "./settled.ts";
 
 const memoryEngine = Effect.gen(function* () {
 	const server = yield* notesServer;
@@ -64,7 +65,7 @@ export const memoryStory = storyKit({
 					return yield* Effect.die(`No listener for note ${id}`);
 				}
 				yield* Scope.close(listener.scope, Exit.void);
-				yield* signal(SubscriptionRef.changes(engine.active), (count) => count === engine.listeners.size - 1);
+				yield* until(SubscriptionRef.changes(engine.active), (count) => count === engine.listeners.size - 1, { name: "active subscriptions" });
 				engine.listeners.delete(id);
 			}),
 		get: (id: number) => {
@@ -86,7 +87,7 @@ export const memoryStory = storyKit({
 			if (listener === undefined) {
 				throw new Error(`No listener for note ${id}`);
 			}
-			return signal(SubscriptionRef.changes(listener.viewer.hints), (hints) => hints.length > 1);
+			return until(SubscriptionRef.changes(listener.viewer.hints), (hints) => hints.length > 1, { name: "live hint" });
 		},
 		openSubscriptions: () => Effect.map(SubscriptionRef.get(engine.active), (count) => streams(count, "open")),
 		parallelReads: () => {

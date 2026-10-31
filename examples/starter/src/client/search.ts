@@ -27,10 +27,3 @@ export function stringifySearch(search: object): string {
 	const query = params.toString();
 	return query === "" ? "" : `?${query}`;
 }
-
-export function returnPath(value: unknown): string {
-	if (typeof value !== "string" || !value.startsWith("/")) {
-		return "/";
-	}
-	return new URL(value, window.location.origin).origin === window.location.origin ? value : "/";
-}

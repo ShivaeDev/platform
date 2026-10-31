@@ -6,6 +6,7 @@ import { type AuthFailure, authAction } from "@shivaedev/react/client/authAction
 export const SessionAccess = Schema.Struct({
 	session: Schema.Struct({ id: Schema.String }),
 	user: Schema.Struct({
+		id: Schema.String,
 		permissions: Schema.optionalKey(Schema.Array(Schema.Struct({ name: Schema.String, strength: Schema.Literals(["own", "any"]) }))),
 	}),
 });

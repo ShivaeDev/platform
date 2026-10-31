@@ -4,12 +4,13 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Hydration from "effect/reactivity/Hydration";
 import type * as Reactivity from "effect/reactivity/Reactivity";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import type { LiveHint, LiveStatus } from "#live.ts";
 import { type HandledHints, liveClient } from "#test/live/client.ts";
 import type { liveServer, ReadHold, ServedRead } from "#test/live/server.ts";
 import { failure, times } from "./answers.ts";
 import { Note } from "./notes.ts";
-import { settled, signal } from "./settle.ts";
+import { settled } from "./settled.ts";
 
 export type LiveView = "note 1" | "note 2" | "the list" | "the saved note 1" | "the short-lived note 1";
 
@@ -100,20 +101,22 @@ export function hintsHandled(engine: LiveEngine) {
 }
 
 export function untilHandledBeyond(engine: LiveEngine, count: number) {
-	return signal(SubscriptionRef.changes(engine.client.handled), (counts) => total(counts) > count);
+	return until(SubscriptionRef.changes(engine.client.handled), (counts) => total(counts) > count, { name: "handled live hint" });
 }
 
 export const untilChangeHandled = Effect.fnUntraced(function* (engine: LiveEngine, edit: Effect.Effect<void>) {
 	const before = yield* SubscriptionRef.get(engine.client.handled);
 	yield* edit;
 	if (engine.connected) {
-		yield* signal(SubscriptionRef.changes(engine.client.handled), (counts) => counts.Changed > before.Changed);
+		yield* until(SubscriptionRef.changes(engine.client.handled), (counts) => counts.Changed > before.Changed, { name: "handled live hint" });
 	}
 });
 
 const readAfterLastHint = Effect.fnUntraced(function* (engine: LiveEngine, view: LiveView) {
 	const { at } = yield* SubscriptionRef.get(engine.client.handled);
-	yield* signal(SubscriptionRef.changes(engine.server.served), (served) => readsOf(served, view).some((read) => read.at > at));
+	yield* until(SubscriptionRef.changes(engine.server.served), (served) => readsOf(served, view).some((read) => read.at > at), {
+		name: "served query",
+	});
 });
 
 export function untilReadAfterLastHint(engine: LiveEngine, views: readonly LiveView[]) {
@@ -135,7 +138,7 @@ export const connect = Effect.fnUntraced(function* (engine: LiveEngine) {
 	engine.registry.mount(engine.client.connection);
 	engine.connected = true;
 	yield* untilHandledBeyond(engine, before);
-	yield* signal(SubscriptionRef.changes(engine.server.active), (count) => count > 0);
+	yield* until(SubscriptionRef.changes(engine.server.active), (count) => count > 0, { name: "active subscriptions" });
 	for (const view of engine.watched) {
 		yield* shownOf(engine, view);
 	}
@@ -147,13 +150,15 @@ export const holdReReadOfNoteOne = Effect.fnUntraced(function* (engine: LiveEngi
 		engine,
 		Effect.promise(() => engine.server.edit(1, "In flight")),
 	);
-	yield* signal(SubscriptionRef.changes(engine.server.held), (count) => count > 0);
+	yield* until(SubscriptionRef.changes(engine.server.held), (count) => count > 0, { name: "held request" });
 });
 
 export const dropWhileRefused = Effect.fnUntraced(function* (engine: LiveEngine) {
 	yield* Ref.set(engine.server.streamUnavailable, true);
 	yield* Effect.promise(engine.server.disconnect);
-	yield* signal(AtomRegistry.toStream(engine.registry, engine.client.status), (status) => Option.isSome(status.failure));
+	yield* until(AtomRegistry.toStream(engine.registry, engine.client.status), (status) => Option.isSome(status.failure), {
+		name: "live connection status",
+	});
 });
 
 export function reload(engine: LiveEngine) {

@@ -51,6 +51,16 @@ export const baselineStory = storyKit({
 			reads: (path: string) => Effect.sync(() => readOrUndefined(engine.root, path)),
 			recorded: (shard = ROOT_SHARD) => Effect.sync(() => recordedDebt(engine.root, shard)),
 			shallow: () => Effect.sync(() => (git(engine.root, "rev-parse", "--is-shallow-repository").trim() === "true" ? "shallow" : "complete")),
+			stages: (...paths: readonly string[]) =>
+				Effect.sync(() => {
+					story.tell(`the author stages ${paths.join(", ")}`);
+					git(engine.root, "add", "--", ...paths);
+				}),
+			writes: (path: string, content: string) =>
+				Effect.sync(() => {
+					story.tell(`the author writes ${path}`);
+					writeAll(engine.root, [{ content, path }]);
+				}),
 		};
 	},
 });

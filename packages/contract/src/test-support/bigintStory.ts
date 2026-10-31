@@ -13,7 +13,7 @@ import { query } from "#operation.ts";
 import { type QueryReference, queryKeys } from "#serverMetadata.ts";
 import { shown, times } from "./answers.ts";
 import { type Mark, reRead } from "./reRead.ts";
-import { settled } from "./settle.ts";
+import { settled } from "./settled.ts";
 
 const records = collection("bigint-records", Schema.String);
 const Get = query("get", {

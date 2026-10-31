@@ -8,7 +8,6 @@
 {"path":"packages/react/src/client/permissionBoundary.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/reactWarnings.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/resultState.ts","rule":"effect/boundary","count":1}
-{"path":"packages/react/src/client/sessionBoundary.ts","rule":"biome/plugin","count":2}
 {"path":"packages/react/src/client/sessionBoundary.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/useLoaderQuery.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/useLoaderQuery.typecheck.test.ts","rule":"effect/boundary","count":1}
