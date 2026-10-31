@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { boundaryDebt, THROW } from "#test/boundaryDebt.ts";
 import { CLI_TIMEOUT } from "#test/cli.ts";
@@ -11,8 +12,10 @@ baselineStory.it(
 		yield* writes("src/work.ts", "String(0);\n");
 		yield* stages("src/work.ts");
 		yield* runs("hooks", "pre-commit");
-		expect(yield* outcome()).toBe("rejected");
-		expect(yield* stdout()).toContain("effect/boundary src/work.ts has no violations left");
+		yield* outcomes([
+			["commit", () => outcome(), "rejected"],
+			["reason", () => stdout(), expect.stringContaining("effect/boundary src/work.ts has no violations left")],
+		]);
 
 		yield* runs("baseline", "tighten", "--staged");
 		expect(yield* recorded()).toBe("no baseline file");
@@ -26,8 +29,10 @@ baselineStory.it(
 		yield* writes("src/work.ts", THROW);
 		yield* stages("src/work.ts");
 		yield* runs("hooks", "pre-commit");
-		expect(yield* outcome()).toBe("rejected");
-		expect(yield* stdout()).toContain("throw");
+		yield* outcomes([
+			["commit", () => outcome(), "rejected"],
+			["reason", () => stdout(), expect.stringContaining("throw")],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -40,8 +45,10 @@ baselineStory.it(
 		yield* stages("quality-baseline.jsonl");
 		yield* runs("hooks", "pre-commit");
 
-		expect(yield* outcome()).toBe("passed");
-		expect(yield* recorded()).toEqual(["src/longer.ts structure/max-lines 3"]);
+		yield* outcomes([
+			["commit", () => outcome(), "passed"],
+			["retained debt", () => recorded(), ["src/longer.ts structure/max-lines 3"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -57,8 +64,10 @@ baselineStory.it(
 		yield* stages("quality-baseline.jsonl");
 		yield* runs("hooks", "pre-commit");
 
-		expect(yield* outcome()).toBe("rejected");
-		expect(yield* stdout()).toContain("src/longer.ts allows more than is left: 3 against 4 baselined");
+		yield* outcomes([
+			["commit", () => outcome(), "rejected"],
+			["reason", () => stdout(), expect.stringContaining("src/longer.ts allows more than is left: 3 against 4 baselined")],
+		]);
 	},
 	CLI_TIMEOUT,
 );

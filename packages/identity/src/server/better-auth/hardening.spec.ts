@@ -112,7 +112,8 @@ for (const retain of [false, true]) {
 		[...(retain ? [resetRevocationDisabled] : []), signedInAlice()],
 		function* ({ requestPasswordReset, resetPassword, sessionEmail }) {
 			expect(yield* sessionEmail()).toBe("alice@example.test");
-			expect(yield* requestPasswordReset()).toBe(HttpStatus.fromLiteral("OK"));
+			const requested = yield* requestPasswordReset();
+			expect(requested).toBe(HttpStatus.fromLiteral("OK"));
 
 			const status = yield* resetPassword();
 

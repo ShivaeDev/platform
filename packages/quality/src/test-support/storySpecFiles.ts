@@ -34,17 +34,21 @@ export const prerequisiteFiles: readonly SeedFile[] = [
 	{ content: '{"workspaces":["modules/*"]}', path: "package.json" },
 	{
 		content:
-			'{"name":"@shivaedev/test-story","dependencies":{"runner":"workspace:*"},"devDependencies":{"gate":"workspace:*"},"optionalDependencies":{"optional":"workspace:*"}}',
+			'{"name":"@shivaedev/test-story","dependencies":{"@shivaedev/test":"workspace:*"},"devDependencies":{"gate":"workspace:*"},"optionalDependencies":{"optional":"workspace:*"}}',
 		path: "modules/stories/package.json",
 	},
-	{ content: '{"name":"runner","peerDependencies":{"values":"workspace:*"}}', path: "modules/engine/package.json" },
-	{ content: '{"name":"values","devDependencies":{"gate":"workspace:*"}}', path: "modules/types/package.json" },
-	{ content: '{"name":"gate","dependencies":{"runner":"workspace:*"}}', path: "modules/quality/package.json" },
+	{ content: '{"name":"@shivaedev/test","peerDependencies":{"@shivaedev/types":"workspace:*"}}', path: "modules/engine/package.json" },
+	{ content: '{"name":"@shivaedev/types","devDependencies":{"gate":"workspace:*"}}', path: "modules/types/package.json" },
+	{ content: '{"name":"gate","dependencies":{"@shivaedev/test":"workspace:*"}}', path: "modules/quality/package.json" },
 	{ content: '{"name":"optional"}', path: "modules/optional/package.json" },
 	{ content: '{"name":"app","devDependencies":{"@shivaedev/test-story":"workspace:*"}}', path: "modules/app/package.json" },
-	{ content: '{"name":"@shivaedev/test"}', path: "modules/unrelated/package.json" },
+	{ content: '{"name":"@shivaedev/testing"}', path: "modules/unrelated/package.json" },
 ];
 
 export function inStory(...lines: readonly string[]): string {
-	return ['orders.it("tells a story", [], function* () {', ...lines.map((line) => `\t${line}`), "});"].join("\n");
+	return [
+		'import { storyKit } from "@shivaedev/test-story/server/storyKit.ts"; const orders = storyKit({}); orders.it("tells a story", [], function* () {',
+		...lines.map((line) => `\t${line}`),
+		"});",
+	].join("\n");
 }

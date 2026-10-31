@@ -55,3 +55,28 @@ ruleStory.it(
 		expect(yield* locations()).toEqual(["packages/orders/src/orders.spec.ts:3"]);
 	},
 );
+
+for (const packageName of ["sql", "changes", "service", "test-sql", "quality"]) {
+	ruleStory.it(
+		`tests/wait-on-events reports a timed wait in ${packageName}, a development dependency of test-story`,
+		[
+			repositoryHas(
+				{ content: '{"workspaces":["packages/*"]}', path: "package.json" },
+				{
+					content: JSON.stringify({ devDependencies: { [`@shivaedev/${packageName}`]: "workspace:*" }, name: "@shivaedev/test-story" }),
+					path: "packages/test-story/package.json",
+				},
+				{ content: JSON.stringify({ name: `@shivaedev/${packageName}` }), path: `packages/${packageName}/package.json` },
+				{
+					content: `import { Effect } from "effect";\n${inStory('yield* Effect.sleep("1 second");')}`,
+					path: `packages/${packageName}/src/wait.test.ts`,
+				},
+			),
+		],
+		function* ({ check, locations }) {
+			yield* check(waitOnEvents);
+
+			expect(yield* locations()).toEqual([`packages/${packageName}/src/wait.test.ts:3`]);
+		},
+	);
+}

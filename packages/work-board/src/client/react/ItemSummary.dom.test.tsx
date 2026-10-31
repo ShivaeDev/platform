@@ -6,6 +6,7 @@ import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.t
 import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen } from "#test/screenTraits.ts";
+import { summaryQuestion } from "#test/summaryQuestion.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ItemSummary } from "./ItemSummary.tsx";
 
@@ -32,32 +33,13 @@ const REVIEWING: FleetItemsProjection = {
 	state: "ready",
 };
 
-function question(status: string) {
-	return `---
-id: question.direction
-kind: question
-scope: task
-urgency: whenever
-status: ${status}
-attention:
- - id: direction
-   kind: decision
-   state: open
-   response_from: [maintainer]
-   reason: Choose a direction
-   unblocks: [question.direction]
----
-# Choose a direction
-`;
-}
-
 for (const { status, chip, cards } of [
 	{ cards: ["Choose a direction"], chip: "Needs you", status: "ready" },
 	{ cards: [], chip: "Done", status: "done" },
 ]) {
 	screenStory.it(
 		`a ${status} question with an open decision request reads ${chip} and offers ${cards.length > 0 ? "an answer card" : "no answer card"}`,
-		[readingPage({ "question.md": question(status) }, "/_board/item/question.direction/")],
+		[readingPage({ "question.md": summaryQuestion(status) }, "/_board/item/question.direction/")],
 		function* ({ answerCards, itemStatus }) {
 			yield* outcomes([
 				["answer cards", () => answerCards(), cards],

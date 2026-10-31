@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { frozenAuthMigrations, liveReferencingHistory, referencingHistory } from "#test/better-auth/frozenMigrations.ts";
 
 frozenAuthMigrations.it(
@@ -37,9 +38,10 @@ frozenAuthMigrations.it(
 	function* ({ generateFirst, migrate, checkSchema, generateNext }) {
 		yield* generateFirst("guest");
 		yield* migrate();
-		expect(yield* checkSchema("guest")).toBe("current");
-
-		expect(yield* checkSchema("member")).toBe("Auth schema needs a new migration:\ncolumn user.role requires DEFAULT 'member'");
+		yield* outcomes([
+			["guest schema", () => checkSchema("guest"), "current"],
+			["member schema", () => checkSchema("member"), "Auth schema needs a new migration:\ncolumn user.role requires DEFAULT 'member'"],
+		]);
 		yield* generateNext("member");
 		yield* migrate();
 		expect(yield* checkSchema("member")).toBe("current");

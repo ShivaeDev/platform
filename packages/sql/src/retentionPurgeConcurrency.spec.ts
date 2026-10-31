@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { pausingPurges, storedRows } from "#test/purges.ts";
 
 const BACKLOG_ROWS = 50_010;
@@ -13,16 +15,26 @@ pausingPurges.it(
 		yield* startPurge(cappedRun);
 		expect(yield* remaining()).toBe(BACKLOG_ROWS - cappedRun.batchSize);
 
-		expect(yield* competingPurge({ batchSize: 2, maxRows: 5, pause: 0, where: {} })).toBe(0);
+		const skipped = yield* competingPurge({ batchSize: 2, maxRows: 5, pause: 0, where: {} });
+
+		yield* outcomes([
+			["rows removed by the competing run", () => Effect.succeed(skipped), 0],
+			["remaining rows after the competing run", () => remaining(), BACKLOG_ROWS - cappedRun.batchSize],
+		]);
 		yield* passTime(999);
 		expect(yield* remaining()).toBe(BACKLOG_ROWS - cappedRun.batchSize);
 		yield* passTime(1);
 		yield* waitForBatch();
 
-		expect(yield* finishPurge()).toBe(cappedRun.maxRows);
-		expect(yield* remaining()).toBe(BACKLOG_ROWS - cappedRun.maxRows);
-		expect(yield* hints()).toEqual([["the table"], ["the table"]]);
-		expect(yield* purge({ batchSize: 10, maxRows: 10, pause: 0, where: {} })).toBe(BACKLOG_ROWS - cappedRun.maxRows);
+		yield* outcomes([
+			["rows removed by the capped run", () => finishPurge(), cappedRun.maxRows],
+			["remaining rows", () => remaining(), BACKLOG_ROWS - cappedRun.maxRows],
+			["published hints", () => hints(), [["the table"], ["the table"]]],
+		]);
+
+		const removed = yield* purge({ batchSize: 10, maxRows: 10, pause: 0, where: {} });
+
+		expect(removed).toBe(BACKLOG_ROWS - cappedRun.maxRows);
 	},
 );
 
@@ -35,8 +47,13 @@ pausingPurges.it(
 		yield* interruptPurge();
 
 		expect(yield* remaining()).toBe(INTERRUPTED_ROWS - interruptedRun.batchSize);
-		expect(yield* purge({ batchSize: 5, maxRows: 5, pause: 0, where: {} })).toBe(INTERRUPTED_ROWS - interruptedRun.batchSize);
-		expect(yield* remaining()).toBe(0);
-		expect(yield* hints()).toEqual([["the table"], ["the table"]]);
+
+		const removed = yield* purge({ batchSize: 5, maxRows: 5, pause: 0, where: {} });
+
+		yield* outcomes([
+			["rows removed by the next run", () => Effect.succeed(removed), INTERRUPTED_ROWS - interruptedRun.batchSize],
+			["remaining rows", () => remaining(), 0],
+			["published hints", () => hints(), [["the table"], ["the table"]]],
+		]);
 	},
 );

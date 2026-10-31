@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -46,8 +47,10 @@ jobsScreen.it(
 		yield* retrySelected();
 		yield* workersFinish();
 
-		expect(yield* stateOf("mail 42")).toBe("completed");
-		expect((yield* shownJobs()).map(({ job }) => job)).toEqual(["mail 7"]);
+		yield* outcomes([
+			["retried job", () => stateOf("mail 42"), "completed"],
+			["remaining jobs", () => Effect.map(shownJobs(), (jobs) => jobs.map(({ job }) => job)), ["mail 7"]],
+		]);
 		yield* selectList("Dead-lettered");
 		expect((yield* shownJobs()).map(({ job }) => job)).toEqual(["the dead-letter copy of mail 7"]);
 	},

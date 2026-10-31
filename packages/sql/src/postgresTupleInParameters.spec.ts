@@ -88,7 +88,9 @@ queries.it(
 	function* ({ boundParameterCounts, findPartialRows, tupleIndexPlan }) {
 		yield* findPartialRows({ select: ["a", "b"], where });
 
-		expect(yield* boundParameterCounts()).toEqual([2]);
-		expect(yield* tupleIndexPlan({ preferIndexes: true })).toEqual(expect.arrayContaining([expect.objectContaining({ index: "tuple_idx" })]));
+		yield* outcomes([
+			["bound parameters", () => boundParameterCounts(), [2]],
+			["query plan", () => tupleIndexPlan({ preferIndexes: true }), expect.arrayContaining([expect.objectContaining({ index: "tuple_idx" })])],
+		]);
 	},
 );

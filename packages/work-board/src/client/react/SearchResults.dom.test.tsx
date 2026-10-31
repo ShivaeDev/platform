@@ -1,22 +1,15 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { searchResultScreen } from "#test/searchResultScreen.tsx";
+import { passage, searchResultScreen, shown } from "#test/searchResultScreen.tsx";
 import type { SearchItem } from "./searchCommands.ts";
 
 expectNoReactWarnings();
 
-function passage(snippet: string, line: number): SearchItem {
-	return { file: "notes.md", href: "/notes.md#heading-shared", kind: "passage", line, snippet, title: "Shared" };
-}
 const alpha = passage("Alpha evidence", 3);
 const beta = passage("Beta evidence", 5);
 const gamma = passage("Gamma evidence", 7);
 const other: SearchItem = { href: "/other.md", kind: "document", snippet: "Other evidence", title: "Other" };
-
-function shown(items: readonly SearchItem[]) {
-	return items.map(({ href, snippet }) => ({ href, snippet }));
-}
 
 screenStory.it(
 	"when passages sharing one heading link are dropped and reordered, each row shows its own passage",

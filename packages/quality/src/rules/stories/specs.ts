@@ -95,6 +95,6 @@ export const storySpecs = defineRule({
 		});
 	},
 	description:
-		"Every package tests its real engine through its own test-story kit, and a plain test lives only in a .unit file that reaches no engine and mocks nothing. Typecheck tests and test-story's workspace prerequisites need no kit.",
+		"Every package tests its real engine through its own test-story kit, and a plain test lives only in a .unit file that reaches no engine and mocks nothing. Typecheck tests and the test-story, test and types packages need no kit.",
 	id: "tests/story-specs",
 });
