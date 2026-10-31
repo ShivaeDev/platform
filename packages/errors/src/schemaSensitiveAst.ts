@@ -1,5 +1,5 @@
 import { Predicate, type SchemaAST } from "effect";
-import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
+import { isSensitiveKey } from "#sensitive.ts";
 
 function children(ast: SchemaAST.AST): readonly SchemaAST.AST[] {
 	switch (ast._tag) {

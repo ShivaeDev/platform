@@ -1,7 +1,7 @@
 import type { Schema, SchemaAST } from "effect";
 import { Rpc, type RpcGroup } from "effect/rpc";
-import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { collect, collectEncodedKeys, collectFieldKeys, marked, maskedValue } from "#schemaSensitiveAst.ts";
+import { isSensitiveKey } from "#sensitive.ts";
 
 function rpcSensitiveKeys(rpc: Rpc.AnyWithProps, extra: readonly string[]) {
 	const keys = new Set(extra);

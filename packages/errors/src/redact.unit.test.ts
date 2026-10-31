@@ -57,7 +57,7 @@ it("credential-shaped text inside strings is masked", () => {
 	expect(redacted).toEqual({
 		detail: "retry with password=<redacted>&user=alice, token: <redacted>",
 		message: "upstream rejected Authorization: <redacted> <redacted> and <redacted>",
-		stack: "Error: connect postgres://app:<redacted>@db.internal:5432/app failed\n    at connect (file:///srv/token.ts:1:2)",
+		stack: "Error: connect postgres://<redacted>@db.internal:5432/app failed\n    at connect (file:///srv/token.ts:1:2)",
 	});
 });
 it("large collections and binary data are summarised instead of walked", () => {

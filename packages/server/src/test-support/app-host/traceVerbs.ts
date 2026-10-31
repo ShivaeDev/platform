@@ -75,6 +75,17 @@ export function traceVerbs(state: HostState, tell: (line: string) => void) {
 			}),
 		diagnosticLogs: (message: string) =>
 			Effect.sync(() => state.logs.filter((entry) => logWords(entry).message.includes(message)).map(({ annotations }) => annotations)),
+		diagnosticSinks: (name: string) =>
+			Effect.sync(() => ({
+				log: state.logs.find((log) => Array.isArray(log.message) && log.message.includes(name))?.annotations,
+				report: state.reported.map((cause) => Option.getOrUndefined(Cause.findErrorOption(cause)))[0],
+				span: Object.fromEntries(
+					(state.receiver?.spans.find((span) => span.name === name)?.attributes ?? []).map(({ key, value }) => [
+						key,
+						value.arrayValue ? value.arrayValue.values?.map((item) => item.stringValue) : value.stringValue,
+					]),
+				),
+			})),
 		exceptionStack: (name: string) =>
 			Effect.sync(() => {
 				const exception = (state.receiver?.spans ?? []).find((span) => span.name === name)?.events.find((event) => event.name === "exception");
