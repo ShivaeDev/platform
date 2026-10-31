@@ -24,13 +24,14 @@ for (const areas of [["shared"], ["shared", "other"]]) {
 			yield* fleet.restart();
 			expect(yield* fleet.attemptDispatch("two")).toMatchObject({ message: "waiting for area shared queued ahead by one" });
 			yield* fleet.schedule();
-			yield* outcomes({
-				"the later launch stays queued": [
-					fleet.get("two").pipe(Effect.map(({ value }) => ({ attempts: value.attempts, step: value.step }))),
+			yield* outcomes([
+				[
+					"the later launch stays queued",
+					() => fleet.get("two").pipe(Effect.map(({ value }) => ({ attempts: value.attempts, step: value.step }))),
 					{ attempts: [], step: "queued" },
 				],
-				"the oldest launch starts": [fleet.get("one").pipe(Effect.map(({ value }) => value.step)), "working"],
-			});
+				["the oldest launch starts", () => fleet.get("one").pipe(Effect.map(({ value }) => value.step)), "working"],
+			]);
 			yield* fleet.finishWorker("one");
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			yield* fleet.schedule();

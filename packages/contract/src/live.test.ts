@@ -52,11 +52,11 @@ liveNotesStory.it(
 
 		resume();
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "First"],
-			"note 1's reads": [timesRead("note 1"), "read twice"],
-			status: [status(), { connection: "live", failure: "none", needsResync: true, pending: 1 }],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "First"],
+			["note 1's reads", () => timesRead("note 1"), "read twice"],
+			["status", () => status(), { connection: "live", failure: "none", needsResync: true, pending: 1 }],
+		]);
 	},
 );
 
@@ -64,17 +64,17 @@ liveNotesStory.it(
 	"unpausing re-reads note 1's edit made while paused and clears the pending count",
 	[watching("note 1"), connected(), paused(), noteOneEditedWhilePaused()],
 	function* ({ shown, status, unpause }) {
-		yield* outcomes({
-			"note 1": [shown("note 1"), "First"],
-			status: [status(), { connection: "live", failure: "none", needsResync: true, pending: 1 }],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "First"],
+			["status", () => status(), { connection: "live", failure: "none", needsResync: true, pending: 1 }],
+		]);
 
 		unpause();
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Changed while paused"],
-			status: [status(), { connection: "live", failure: "none", needsResync: false, pending: 0 }],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Changed while paused"],
+			["status", () => status(), { connection: "live", failure: "none", needsResync: false, pending: 0 }],
+		]);
 	},
 );
 
@@ -96,9 +96,9 @@ liveNotesStory.it(
 	function* ({ serverStreamsOpened, subscribe, subscriptionEnding }) {
 		yield* subscribe();
 
-		yield* outcomes({
-			"server streams opened": [serverStreamsOpened(), "no streams opened"],
-			subscription: [subscriptionEnding(), "failed with denied"],
-		});
+		yield* outcomes([
+			["server streams opened", () => serverStreamsOpened(), "no streams opened"],
+			["subscription", () => subscriptionEnding(), "failed with denied"],
+		]);
 	},
 );

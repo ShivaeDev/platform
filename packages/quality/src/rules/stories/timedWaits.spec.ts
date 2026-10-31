@@ -27,10 +27,10 @@ for (const [imports, wait] of [
 		function* ({ check, locations, messages }) {
 			yield* check(waitOnEvents);
 
-			yield* outcomes({
-				"advice": [messages(), [expect.stringContaining("Settle on the engine's own signal through a kit verb")]],
-				"locations": [locations(), [`${SPEC}:3`]],
-			});
+			yield* outcomes([
+				["advice", () => messages(), [expect.stringContaining("Settle on the engine's own signal through a kit verb")]],
+				["locations", () => locations(), [`${SPEC}:3`]],
+			]);
 		},
 	);
 }

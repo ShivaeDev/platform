@@ -32,12 +32,12 @@ for (const [status, method, body] of [
 		function* ({ postsThroughRedirect, finalUrl, echo, exposedSetCookie, documentCookies }) {
 			yield* postsThroughRedirect(status, "story-body");
 
-			yield* outcomes({
-				"the echoed request": [echo(), { body, cookie: "first=one; second=two", header: "retained", method, path: "/echo" }],
-				"the exposed set-cookie header": [exposedSetCookie(), "none"],
-				"the final address": [finalUrl(), "https://provider.test/echo"],
-				"the page's cookies": [documentCookies(), ""],
-			});
+			yield* outcomes([
+				["the echoed request", () => echo(), { body, cookie: "first=one; second=two", header: "retained", method, path: "/echo" }],
+				["the exposed set-cookie header", () => exposedSetCookie(), "none"],
+				["the final address", () => finalUrl(), "https://provider.test/echo"],
+				["the page's cookies", () => documentCookies(), ""],
+			]);
 		},
 	);
 }
@@ -47,11 +47,11 @@ documentApp.it("navigates to the routed page and leaves its response readable", 
 
 	yield* loadsPage();
 
-	yield* outcomes({
-		"the heading": [heading(), "Routed document"],
-		"the location": [location(), "https://provider.test/page"],
-		"the response body": [pageBody(), "<h1>Routed document</h1>"],
-	});
+	yield* outcomes([
+		["the heading", () => heading(), "Routed document"],
+		["the location", () => location(), "https://provider.test/page"],
+		["the response body", () => pageBody(), "<h1>Routed document</h1>"],
+	]);
 });
 
 documentApp.it("routes XMLHttpRequest through the document transport", [], function* ({ xhrRequest }) {

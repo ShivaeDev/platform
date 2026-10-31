@@ -32,10 +32,10 @@ for (const { opened, clock } of [
 		`a drop refused for lack of connections is retried and drops the clone once connections return${clock}`,
 		[limitedCleanupRole, runStarted, opened, dropRefusedForLackOfConnections],
 		function* ({ firstDropAttempt, cloneDatabase, connectionsReturn, cloneDatabaseOnceDrained }) {
-			yield* outcomes({
-				"the clone's database": [cloneDatabase(), "exists"],
-				"the first drop attempt": [firstDropAttempt(), expect.stringMatching(/^failed with SQLSTATE 53300: /u)],
-			});
+			yield* outcomes([
+				["the clone's database", () => cloneDatabase(), "exists"],
+				["the first drop attempt", () => firstDropAttempt(), expect.stringMatching(/^failed with SQLSTATE 53300: /u)],
+			]);
 
 			yield* connectionsReturn();
 
@@ -60,10 +60,10 @@ cleanup.it(
 	function* ({ closeRun, runClosing, cloneDatabase }) {
 		yield* closeRun();
 
-		yield* outcomes({
-			"closing the run": [runClosing(), "succeeded"],
-			"the clone's database": [cloneDatabase(), "dropped"],
-		});
+		yield* outcomes([
+			["closing the run", () => runClosing(), "succeeded"],
+			["the clone's database", () => cloneDatabase(), "dropped"],
+		]);
 	},
 );
 

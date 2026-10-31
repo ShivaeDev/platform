@@ -23,10 +23,10 @@ database.it(
 		yield* start("app", [failingOnce], { schedule: false, supervise: false });
 		yield* untilJob("job", "completed");
 
-		yield* outcomes({
-			attempts: [attempts(Woken), ["job", "job"]],
-			wakes: [wakes("app"), ["idle worker"]],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Woken), ["job", "job"]],
+			["wakes", () => wakes("app"), ["idle worker"]],
+		]);
 	},
 );
 
@@ -51,10 +51,10 @@ database.it(
 		yield* start("replacement", [worker(Replacement, "succeeds")]);
 		yield* untilJob("job", "completed");
 
-		yield* outcomes({
-			"app wakes": [wakes("app"), []],
-			"attempts": [attempts(Replaced), ["job", "job"]],
-		});
+		yield* outcomes([
+			["app wakes", () => wakes("app"), []],
+			["attempts", () => attempts(Replaced), ["job", "job"]],
+		]);
 	},
 );
 
@@ -91,10 +91,10 @@ database.it(
 		yield* pollNow("app", Siblings);
 		yield* untilJob("job", "completed");
 
-		yield* outcomes({
-			"attempts": [attempts(Siblings), ["held job", "job", "job"]],
-			"held job": [job("held job"), expect.objectContaining({ state: "active" })],
-			"wakes": [wakes("app"), ["busy worker", "idle worker"]],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Siblings), ["held job", "job", "job"]],
+			["held job", () => job("held job"), expect.objectContaining({ state: "active" })],
+			["wakes", () => wakes("app"), ["busy worker", "idle worker"]],
+		]);
 	},
 );

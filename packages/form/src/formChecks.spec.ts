@@ -28,10 +28,10 @@ checkedNames.it(
 
 		yield* enterName(BROKEN_NAME);
 
-		yield* outcomes({
-			"name feedback": [feedbackOn("name"), undefined],
-			"names checked": [checkedNamesSoFar(), [TAKEN_NAME, BROKEN_NAME]],
-		});
+		yield* outcomes([
+			["name feedback", () => feedbackOn("name"), undefined],
+			["names checked", () => checkedNamesSoFar(), [TAKEN_NAME, BROKEN_NAME]],
+		]);
 	},
 );
 

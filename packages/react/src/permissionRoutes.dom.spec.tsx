@@ -9,11 +9,11 @@ for (const role of ["reader", "supervisor"] as const) {
 		function* ({ heading, location, requests, visit }) {
 			yield* visit("/notes/first");
 
-			yield* outcomes({
-				heading: [heading(), "Note first"],
-				location: [location(), "/notes/first"],
-				requests: [requests(), ["POST /rpc/"]],
-			});
+			yield* outcomes([
+				["heading", () => heading(), "Note first"],
+				["location", () => location(), "/notes/first"],
+				["requests", () => requests(), ["POST /rpc/"]],
+			]);
 		},
 	);
 }
@@ -24,11 +24,11 @@ permissionScreens.it(
 	function* ({ heading, location, requests, visit }) {
 		yield* visit("/notes/first");
 
-		yield* outcomes({
-			heading: [heading(), "Permission denied"],
-			location: [location(), "/notes/first"],
-			requests: [requests(), []],
-		});
+		yield* outcomes([
+			["heading", () => heading(), "Permission denied"],
+			["location", () => location(), "/notes/first"],
+			["requests", () => requests(), []],
+		]);
 	},
 );
 
@@ -38,12 +38,12 @@ permissionScreens.it(
 	function* ({ heading, path, requests, returnTo, visit }) {
 		yield* visit("/notes/first?tab=history#latest");
 
-		yield* outcomes({
-			heading: [heading(), "Sign in"],
-			path: [path(), "/login"],
-			requests: [requests(), []],
-			"return to": [returnTo(), "/notes/first?tab=history#latest"],
-		});
+		yield* outcomes([
+			["heading", () => heading(), "Sign in"],
+			["path", () => path(), "/login"],
+			["requests", () => requests(), []],
+			["return to", () => returnTo(), "/notes/first?tab=history#latest"],
+		]);
 	},
 );
 
@@ -53,11 +53,11 @@ permissionScreens.it(
 	function* ({ heading, location, requests, signIn }) {
 		yield* signIn();
 
-		yield* outcomes({
-			heading: [heading(), "Note first"],
-			location: [location(), "/notes/first?tab=history#latest"],
-			requests: [requests(), ["POST /rpc/"]],
-		});
+		yield* outcomes([
+			["heading", () => heading(), "Note first"],
+			["location", () => location(), "/notes/first?tab=history#latest"],
+			["requests", () => requests(), ["POST /rpc/"]],
+		]);
 	},
 );
 
@@ -73,10 +73,10 @@ for (const [role, shown] of [
 		function* ({ buttons, requests, visit }) {
 			yield* visit("/controls");
 
-			yield* outcomes({
-				buttons: [buttons(), [...shown]],
-				requests: [requests(), []],
-			});
+			yield* outcomes([
+				["buttons", () => buttons(), [...shown]],
+				["requests", () => requests(), []],
+			]);
 		},
 	);
 }
@@ -87,11 +87,11 @@ permissionScreens.it(
 	function* ({ heading, location, requests, visit }) {
 		yield* visit("/notes/first");
 
-		yield* outcomes({
-			heading: [heading(), "Permission denied"],
-			location: [location(), "/notes/first"],
-			requests: [requests(), ["POST /rpc/"]],
-		});
+		yield* outcomes([
+			["heading", () => heading(), "Permission denied"],
+			["location", () => location(), "/notes/first"],
+			["requests", () => requests(), ["POST /rpc/"]],
+		]);
 	},
 );
 
@@ -101,10 +101,10 @@ permissionScreens.it(
 	function* ({ heading, requests, visit }) {
 		yield* visit("/query");
 
-		yield* outcomes({
-			heading: [heading(), "Permission denied"],
-			requests: [requests(), ["POST /rpc/"]],
-		});
+		yield* outcomes([
+			["heading", () => heading(), "Permission denied"],
+			["requests", () => requests(), ["POST /rpc/"]],
+		]);
 	},
 );
 
@@ -120,9 +120,9 @@ permissionScreens.it(
 	function* ({ heading, location, signOut }) {
 		yield* signOut();
 
-		yield* outcomes({
-			heading: [heading(), "Sign in"],
-			location: [location(), "/login"],
-		});
+		yield* outcomes([
+			["heading", () => heading(), "Sign in"],
+			["location", () => location(), "/login"],
+		]);
 	},
 );

@@ -39,10 +39,10 @@ updates.it(
 
 		yield* update();
 
-		yield* outcomes({
-			"admin title": [fileMentions(SHELL, "Acme operations"), true],
-			"foundation pages": [file(PAGES), released],
-		});
+		yield* outcomes([
+			["admin title", () => fileMentions(SHELL, "Acme operations"), true],
+			["foundation pages", () => file(PAGES), released],
+		]);
 	},
 );
 
@@ -63,12 +63,12 @@ updates.it(
 
 		yield* update();
 
-		yield* outcomes({
-			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
-			"admin title": [fileMentions(SHELL, "Acme operations"), true],
-			"dashboard files left": [filesPresent(DASHBOARD), []],
-			"Operator tools label": [fileMentions(SHELL, "Operator tools</p>"), true],
-		});
+		yield* outcomes([
+			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.2.0" }],
+			["admin title", () => fileMentions(SHELL, "Acme operations"), true],
+			["dashboard files left", () => filesPresent(DASHBOARD), []],
+			["Operator tools label", () => fileMentions(SHELL, "Operator tools</p>"), true],
+		]);
 	},
 );
 
@@ -89,18 +89,19 @@ updates.it(
 
 		yield* update();
 
-		yield* outcomes({
-			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
-			answer: [
-				answer(),
+		yield* outcomes([
+			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.2.0" }],
+			[
+				"answer",
+				() => answer(),
 				`create-app: Recorded create-app 0.2.0. Finish the update before committing:\nFiles with conflict markers:\n${SHELL}\n\nUnresolved Git conflicts:\n${SHELL}`,
 			],
-			"conflict between both titles": [fileMentions(SHELL, "<<<<<<< ours"), true],
-			"conflicted files": [conflictedFiles(), [SHELL]],
-			"dashboard files left": [filesPresent(DASHBOARD), []],
-			"my-app's title kept": [fileMentions(SHELL, "Acme operations"), true],
-			"starter's title offered": [fileMentions(SHELL, "New app name"), true],
-		});
+			["conflict between both titles", () => fileMentions(SHELL, "<<<<<<< ours"), true],
+			["conflicted files", () => conflictedFiles(), [SHELL]],
+			["dashboard files left", () => filesPresent(DASHBOARD), []],
+			["my-app's title kept", () => fileMentions(SHELL, "Acme operations"), true],
+			["starter's title offered", () => fileMentions(SHELL, "New app name"), true],
+		]);
 	},
 );
 
@@ -124,9 +125,9 @@ updates.it(
 
 		yield* update();
 
-		yield* outcomes({
-			"Owner keeps ReadUsers.any": [fileMentions("src/roles/Owner.ts", "ReadUsers.any"), true],
-			"src/AppAccess.ts": [file("src/AppAccess.ts"), released],
-		});
+		yield* outcomes([
+			["Owner keeps ReadUsers.any", () => fileMentions("src/roles/Owner.ts", "ReadUsers.any"), true],
+			["src/AppAccess.ts", () => file("src/AppAccess.ts"), released],
+		]);
 	},
 );

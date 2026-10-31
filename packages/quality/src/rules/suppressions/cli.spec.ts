@@ -41,15 +41,16 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"double cast": [stdout(), expect.stringContaining('  src/a.ts:3  Casts through "unknown" to reach a type the value does not have.')],
-			"exit": [outcome(), "rejected"],
-			"inline suppression": [stdout(), expect.stringContaining('  src/a.ts:2  Suppresses a check: "@ts-expect-error".')],
-			"undeclared override": [
-				stdout(),
+		yield* outcomes([
+			["double cast", () => stdout(), expect.stringContaining('  src/a.ts:3  Casts through "unknown" to reach a type the value does not have.')],
+			["exit", () => outcome(), "rejected"],
+			["inline suppression", () => stdout(), expect.stringContaining('  src/a.ts:2  Suppresses a check: "@ts-expect-error".')],
+			[
+				"undeclared override",
+				() => stdout(),
 				expect.stringContaining('  biome.json:3  Weakens "lint/correctness/noEmptyPattern" for "src/vitest.ts" without a declaration.'),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -63,17 +64,19 @@ repositoryStory.it(
 		yield* writes(EXPLICIT_ANY_OFF);
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"stale declaration": [
-				stdout(),
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			[
+				"stale declaration",
+				() => stdout(),
 				expect.stringContaining('Declares "lint/correctness/noEmptyPattern" for "src/vitest.ts", which no Biome config weakens.'),
 			],
-			"undeclared override": [
-				stdout(),
+			[
+				"undeclared override",
+				() => stdout(),
 				expect.stringContaining('Weakens "lint/suspicious/noExplicitAny" for "src/vitest.ts" without a declaration.'),
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -84,11 +87,11 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"refused entry": [stdout(), expect.stringContaining("suppressions/no-inline src/a.ts names a rule that takes no exceptions.")],
-			"suppression": [stdout(), expect.stringContaining('  src/a.ts:2  Suppresses a check: "@ts-expect-error".')],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["refused entry", () => stdout(), expect.stringContaining("suppressions/no-inline src/a.ts names a rule that takes no exceptions.")],
+			["suppression", () => stdout(), expect.stringContaining('  src/a.ts:2  Suppresses a check: "@ts-expect-error".')],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -103,10 +106,10 @@ repositoryStory.it(
 		yield* writes(SUPPRESSED_TWICE);
 		yield* runs("lint");
 
-		yield* outcomes({
-			exit: [outcome(), "rejected"],
-			report: [stdout(), expect.stringContaining("src/a.ts is over its baseline: 2 against 1 baselined.")],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["report", () => stdout(), expect.stringContaining("src/a.ts is over its baseline: 2 against 1 baselined.")],
+		]);
 	},
 	CLI_TIMEOUT,
 );

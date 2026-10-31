@@ -23,10 +23,10 @@ database.it(
 		yield* untilJob("remote call", "failed");
 
 		const summary = { _tag: "RemoteHttpError", message: "HTTP 503: POST api.example.com/orders" };
-		yield* outcomes({
-			"listed failure": [listedOutputs("app", "failed", Failed), [summary]],
-			"stored failure": [storedOutput("remote call"), summary],
-		});
+		yield* outcomes([
+			["listed failure", () => listedOutputs("app", "failed", Failed), [summary]],
+			["stored failure", () => storedOutput("remote call"), summary],
+		]);
 	},
 );
 
@@ -53,10 +53,10 @@ for (const message of [undefined, "", "   "]) {
 				_tag: "ProviderRejected",
 				message: '{"detail":{"original":"<redacted>","reason":"provider unavailable"},"status":503,"token":"<redacted>"}',
 			};
-			yield* outcomes({
-				"listed failure": [listedOutputs("app", "failed", Failed), [summary]],
-				"stored failure": [storedOutput("rejected call"), summary],
-			});
+			yield* outcomes([
+				["listed failure", () => listedOutputs("app", "failed", Failed), [summary]],
+				["stored failure", () => storedOutput("rejected call"), summary],
+			]);
 		},
 	);
 }

@@ -17,16 +17,17 @@ readPage.it(
 		yield* openPrivatePage();
 		yield* waitForSubscriptions;
 
-		yield* outcomes({
-			"received hints": [readout.hints, [{ _tag: "Resync" }]],
-			"subscription openings": [
-				readout.subscriptions,
+		yield* outcomes([
+			["received hints", () => readout.hints, [{ _tag: "Resync" }]],
+			[
+				"subscription openings",
+				() => readout.subscriptions,
 				[
 					{ payload: { queries: [{ payload: { id: 1 }, query: "get" }] }, state: "answered", tag: "page.$changes" },
 					{ payload: { queries: [{ payload: { id: 3 }, query: "get" }] }, refusalTag: "QueryReadDenied", state: "refused", tag: "page.$changes" },
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -37,23 +38,23 @@ readPage.it(
 		yield* openSecondPage();
 		const waiting = yield* startWaiting();
 		const another = yield* startWaiting();
-		yield* outcomes({
-			"first wait": [waiting.state, "waiting"],
-			"second wait": [another.state, "waiting"],
-			"subscription openings": [readout.subscriptionStates, ["answered", "open"]],
-		});
+		yield* outcomes([
+			["first wait", () => waiting.state, "waiting"],
+			["second wait", () => another.state, "waiting"],
+			["subscription openings", () => readout.subscriptionStates, ["answered", "open"]],
+		]);
 
 		yield* releaseSecondPage();
 		yield* waiting.finish;
 		yield* another.finish;
 		yield* waitForPage();
 
-		yield* outcomes({
-			"first wait": [waiting.state, "settled"],
-			"second wait": [another.state, "settled"],
-			"shown live result": [readout.secondPage, "Second page"],
-			"subscription openings": [readout.subscriptionStates, ["answered", "answered"]],
-		});
+		yield* outcomes([
+			["first wait", () => waiting.state, "settled"],
+			["second wait", () => another.state, "settled"],
+			["shown live result", () => readout.secondPage, "Second page"],
+			["subscription openings", () => readout.subscriptionStates, ["answered", "answered"]],
+		]);
 	},
 );
 
@@ -67,11 +68,11 @@ readPage.it(
 		yield* signIn();
 		yield* waitForSubscriptions;
 
-		yield* outcomes({
-			"counted reads": [readout.readCount, before + 2],
-			"opened sockets": [readout.sockets, [socketUrl(), socketUrl()]],
-			"subscription openings": [readout.subscriptionStates, ["answered", "answered"]],
-		});
+		yield* outcomes([
+			["counted reads", () => readout.readCount, before + 2],
+			["opened sockets", () => readout.sockets, [socketUrl(), socketUrl()]],
+			["subscription openings", () => readout.subscriptionStates, ["answered", "answered"]],
+		]);
 	},
 );
 
@@ -86,9 +87,9 @@ readPage.it(
 		yield* signOut();
 		yield* waitForSubscriptions;
 
-		yield* outcomes({
-			"counted reads": [readout.readCount, before + 2],
-			"opened sockets": [readout.sockets, [socketUrl(), socketUrl(), socketUrl()]],
-		});
+		yield* outcomes([
+			["counted reads", () => readout.readCount, before + 2],
+			["opened sockets", () => readout.sockets, [socketUrl(), socketUrl(), socketUrl()]],
+		]);
 	},
 );

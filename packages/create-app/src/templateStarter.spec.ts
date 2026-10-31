@@ -20,10 +20,10 @@ application.it(
 
 		yield* pack();
 
-		yield* outcomes({
-			"workspace pieces": [packedRanges(WORKSPACE_PIECES), published],
-			"workspace ranges left": [packedWorkspaceRanges(), []],
-		});
+		yield* outcomes([
+			["workspace pieces", () => packedRanges(WORKSPACE_PIECES), published],
+			["workspace ranges left", () => packedWorkspaceRanges(), []],
+		]);
 	},
 );
 
@@ -74,19 +74,19 @@ for (const [from, to] of RENAMED) {
 
 		yield* pack();
 
-		yield* outcomes({
-			[from]: [packedFile(from), "not packed"],
-			[to]: [packedFile(to), source],
-		});
+		yield* outcomes([
+			[from, () => packedFile(from), "not packed"],
+			[to, () => packedFile(to), source],
+		]);
 	});
 }
 
 application.it("packing the starter leaves out its published-versions.json, CLAUDE.md and quality.config.ts", [], function* ({ pack, packedFile }) {
 	yield* pack();
 
-	yield* outcomes({
-		"CLAUDE.md": [packedFile("CLAUDE.md"), "not packed"],
-		"published-versions.json": [packedFile("published-versions.json"), "not packed"],
-		"quality.config.ts": [packedFile("quality.config.ts"), "not packed"],
-	});
+	yield* outcomes([
+		["CLAUDE.md", () => packedFile("CLAUDE.md"), "not packed"],
+		["published-versions.json", () => packedFile("published-versions.json"), "not packed"],
+		["quality.config.ts", () => packedFile("quality.config.ts"), "not packed"],
+	]);
 });

@@ -9,13 +9,13 @@ postgresLive.it(
 
 		yield* windowCloses("note 1", "the list");
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Edit 20"],
-			"note 1's reads": [timesRead("note 1"), "read 3 times"],
-			"note 2's reads": [timesRead("note 2"), "read twice"],
-			"the list": [shown("the list"), ["Edit 20", "Second"]],
-			"the list's reads": [timesRead("the list"), "read 3 times"],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Edit 20"],
+			["note 1's reads", () => timesRead("note 1"), "read 3 times"],
+			["note 2's reads", () => timesRead("note 2"), "read twice"],
+			["the list", () => shown("the list"), ["Edit 20", "Second"]],
+			["the list's reads", () => timesRead("the list"), "read 3 times"],
+		]);
 	},
 );
 
@@ -25,17 +25,17 @@ postgresLive.it(
 	function* ({ editRepeatedly, readsBegun, releaseHeldReads, shown, timesRead, windowCloses }) {
 		yield* editRepeatedly(1, "Newest", 10);
 		yield* windowCloses("the list");
-		yield* outcomes({
-			"note 1's reads while held": [readsBegun("note 1"), "read 3 times"],
-			"the list, which the server does not hold": [shown("the list"), ["Newest 10", "Second"]],
-		});
+		yield* outcomes([
+			["note 1's reads while held", () => readsBegun("note 1"), "read 3 times"],
+			["the list, which the server does not hold", () => shown("the list"), ["Newest 10", "Second"]],
+		]);
 
 		yield* releaseHeldReads();
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Newest 10"],
-			"note 1's reads": [timesRead("note 1"), "read 4 times"],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Newest 10"],
+			["note 1's reads", () => timesRead("note 1"), "read 4 times"],
+		]);
 	},
 );
 
@@ -45,10 +45,10 @@ postgresLive.it(
 	function* ({ edit, shown, timesRead }) {
 		yield* edit(1, "Newest");
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Newest"],
-			"note 1's reads": [timesRead("note 1"), "read 4 times"],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Newest"],
+			["note 1's reads", () => timesRead("note 1"), "read 4 times"],
+		]);
 	},
 );
 
@@ -60,10 +60,10 @@ postgresLive.it(
 
 		yield* streamDropsAndReconnects();
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Before reconnect"],
-			"note 2's reads": [timesRead("note 2"), "read 3 times"],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Before reconnect"],
+			["note 2's reads", () => timesRead("note 2"), "read 3 times"],
+		]);
 	},
 );
 
@@ -77,10 +77,10 @@ postgresLive.it(
 
 		yield* releaseHeldReads();
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "In flight"],
-			"note 1's reads": [timesRead("note 1"), "read 3 times"],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "In flight"],
+			["note 1's reads", () => timesRead("note 1"), "read 3 times"],
+		]);
 	},
 );
 
@@ -89,11 +89,11 @@ postgresLive.it(
 	[coalescingWindow(0), watching("the saved note 1"), connected()],
 	function* ({ edit, reload, shown, shownWithoutReading }) {
 		yield* edit(1, "Saved for reload");
-		yield* outcomes({ "the saved note 1": [shown("the saved note 1"), "Saved for reload"] });
+		yield* outcomes([["the saved note 1", () => shown("the saved note 1"), "Saved for reload"]]);
 
 		reload();
 
-		yield* outcomes({ "the saved note 1": [shownWithoutReading("the saved note 1"), "Saved for reload"] });
+		yield* outcomes([["the saved note 1", () => shownWithoutReading("the saved note 1"), "Saved for reload"]]);
 	},
 );
 
@@ -106,9 +106,9 @@ postgresLive.it(
 
 		mount("the short-lived note 1");
 
-		yield* outcomes({
-			"the short-lived note 1": [shown("the short-lived note 1"), "First"],
-			"the short-lived note 1's reads": [timesRead("the short-lived note 1"), "read once"],
-		});
+		yield* outcomes([
+			["the short-lived note 1", () => shown("the short-lived note 1"), "First"],
+			["the short-lived note 1's reads", () => timesRead("the short-lived note 1"), "read once"],
+		]);
 	},
 );

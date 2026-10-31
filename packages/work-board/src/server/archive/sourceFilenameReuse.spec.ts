@@ -13,10 +13,10 @@ boardStory.it(
 
 		yield* board.start({ fleetPort: null });
 
-		yield* outcomes({
-			"archived item": [Effect.map(board.readItem("settled"), (item) => item.metadata.status), "done"],
-			"new open item": [Effect.map(board.readItem("replacement"), (item) => item.metadata.status), "ready"],
-		});
+		yield* outcomes([
+			["archived item", () => Effect.map(board.readItem("settled"), (item) => item.metadata.status), "done"],
+			["new open item", () => Effect.map(board.readItem("replacement"), (item) => item.metadata.status), "ready"],
+		]);
 		expect((yield* board.readItem("settled")).requests?.flatMap((request) => request.responses ?? []).map((response) => response.id)).toEqual([
 			"answer.settled",
 		]);

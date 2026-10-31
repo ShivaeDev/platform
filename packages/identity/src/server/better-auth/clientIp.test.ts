@@ -92,8 +92,8 @@ clientIp.it("without a proxy, a second peer has its own sign-in limit and stored
 
 	const status = yield* signIn({ "x-forwarded-for": "198.51.100.30" }, "127.0.0.2");
 
-	yield* outcomes({
-		"second peer's sign-in": [Effect.succeed(status), HttpStatus.fromLiteral("OK")],
-		"stored addresses": [storedSessions(), expect.arrayContaining([{ ipAddress: "127.0.0.1" }, { ipAddress: "127.0.0.2" }])],
-	});
+	yield* outcomes([
+		["second peer's sign-in", () => Effect.succeed(status), HttpStatus.fromLiteral("OK")],
+		["stored addresses", () => storedSessions(), expect.arrayContaining([{ ipAddress: "127.0.0.1" }, { ipAddress: "127.0.0.2" }])],
+	]);
 });

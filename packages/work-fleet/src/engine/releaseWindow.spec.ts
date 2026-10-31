@@ -27,9 +27,10 @@ for (const [status, conclusion, outcome] of [
 
 			yield* fleet.reconcile("one");
 
-			yield* outcomes({
-				"Board wait": [
-					fleet.boardFleetItems().pipe(Effect.map((data) => data.items)),
+			yield* outcomes([
+				[
+					"Board wait",
+					() => fleet.boardFleetItems().pipe(Effect.map((data) => data.items)),
 					expect.arrayContaining([
 						expect.objectContaining({
 							attentionOwner: "automation",
@@ -39,9 +40,9 @@ for (const [status, conclusion, outcome] of [
 						}),
 					]),
 				],
-				"Fleet status": [fleet.statusText(), expect.stringContaining("Waiting for release PR #99 to merge")],
-				"queue submissions": [Effect.sync(fleet.queueRequests), []],
-			});
+				["Fleet status", () => fleet.statusText(), expect.stringContaining("Waiting for release PR #99 to merge")],
+				["queue submissions", () => Effect.sync(fleet.queueRequests), []],
+			]);
 			yield* fleet.preparePredictionWork("two");
 			yield* fleet.dispatch("two");
 			fleet.pushWorkerBranch("two", { "two.ts": "export const two = 2;" });

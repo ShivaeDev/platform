@@ -15,10 +15,10 @@ storyRunner.it("skips every story of a disabled kit, the focused one included", 
 storyRunner.it("skips a story of a kit that extends a disabled kit without running its setup", [], function* ({ lifetime, results, run }) {
 	yield* run("composedDisabledStories", BAKERY_TAGS);
 
-	yield* outcomes({
-		results: [results(), ["Bakery Story: joins a disabled bakery [bakery-story]: skipped"]],
-		"what ran": [lifetime(), []],
-	});
+	yield* outcomes([
+		["results", () => results(), ["Bakery Story: joins a disabled bakery [bakery-story]: skipped"]],
+		["what ran", () => lifetime(), []],
+	]);
 });
 
 storyRunner.it("never acquires a disabled kit's layer or runs its around, creation, traits or bodies", [], function* ({ lifetime, run }) {
@@ -39,10 +39,10 @@ for (const [variant, outcome] of [
 		function* ({ lifetime, outcome: outcomeOf, runStory }) {
 			yield* runStory("enabledStories", `Bakery Story: ${variant}`, BAKERY_TAGS);
 
-			yield* outcomes({
-				outcome: [outcomeOf(), outcome],
-				"what ran": [lifetime(), ["layer", "around", "create", "trait", "body"]],
-			});
+			yield* outcomes([
+				["outcome", () => outcomeOf(), outcome],
+				["what ran", () => lifetime(), ["layer", "around", "create", "trait", "body"]],
+			]);
 		},
 	);
 }
@@ -51,10 +51,10 @@ for (const variant of ["skip", "runIf false", "skipIf true"]) {
 	storyRunner.it(`skips an enabled kit's ${variant} story without running its setup`, [], function* ({ lifetime, outcome, runStory }) {
 		yield* runStory("enabledStories", `Bakery Story: ${variant}`, BAKERY_TAGS);
 
-		yield* outcomes({
-			outcome: [outcome(), "skipped"],
-			"what ran": [lifetime(), []],
-		});
+		yield* outcomes([
+			["outcome", () => outcome(), "skipped"],
+			["what ran", () => lifetime(), []],
+		]);
 	});
 }
 

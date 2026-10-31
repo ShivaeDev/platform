@@ -11,7 +11,10 @@ deniedLive.it(
 		yield* denyRead();
 		yield* announce();
 
-		yield* outcomes({ queries: [states(), ["denied", "denied", "denied"]], screen: [shown(), "Note not found"] });
+		yield* outcomes([
+			["queries", () => states(), ["denied", "denied", "denied"]],
+			["screen", () => shown(), "Note not found"],
+		]);
 	},
 );
 deniedLive.it(
@@ -34,11 +37,11 @@ deniedLive.it(
 		yield* invalidate();
 		yield* minutePasses();
 
-		yield* outcomes({
-			"policy checks": [policyChecks(), checks],
-			queries: [states(), ["denied", "denied", "denied"]],
-			requests: [requests(), before],
-		});
+		yield* outcomes([
+			["policy checks", () => policyChecks(), checks],
+			["queries", () => states(), ["denied", "denied", "denied"]],
+			["requests", () => requests(), before],
+		]);
 	},
 );
 deniedLive.it(
@@ -51,7 +54,10 @@ deniedLive.it(
 
 		yield* changeInput();
 
-		yield* outcomes({ queries: [states(), ["public", "public-details", "public-counts"]], screen: [shown(), "public"] });
+		yield* outcomes([
+			["queries", () => states(), ["public", "public-details", "public-counts"]],
+			["screen", () => shown(), "public"],
+		]);
 	},
 );
 deniedLive.it("a route loader refused at entry renders its not-found component", [accessRevoked(), openedRoute()], function* ({ shown }) {
@@ -69,6 +75,9 @@ deniedLive.it(
 
 		yield* invalidate();
 
-		yield* outcomes({ queries: [states(), ["denied", "denied", "denied"]], requests: [requests(), before] });
+		yield* outcomes([
+			["queries", () => states(), ["denied", "denied", "denied"]],
+			["requests", () => requests(), before],
+		]);
 	},
 );

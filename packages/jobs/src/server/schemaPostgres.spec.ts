@@ -14,20 +14,20 @@ schemaKit.it(
 	"a runtime on a clone of the installed template runs a deferred job without migrating",
 	[installedTemplate],
 	function* ({ attempts, enqueue, job, start, storedRows, untilJob }) {
-		yield* outcomes({
-			instances: [storedRows("jobs_test", "instance"), 0],
-			queues: [storedRows("jobs_test", "queue"), 0],
-			schedules: [storedRows("jobs_test", "schedule"), 0],
-		});
+		yield* outcomes([
+			["instances", () => storedRows("jobs_test", "instance"), 0],
+			["queues", () => storedRows("jobs_test", "queue"), 0],
+			["schedules", () => storedRows("jobs_test", "schedule"), 0],
+		]);
 
 		yield* start("app", [worker(Installed, { defers: "Next fetch", until: "now" }, "succeeds")], { migrate: false, schema: "jobs_test" });
 		yield* enqueue("app", Installed, { value: 42 }, { as: "job" });
 		yield* untilJob("job", "completed");
 
-		yield* outcomes({
-			attempts: [attempts(Installed), ["job", "job"]],
-			job: [job("job"), expect.objectContaining({ data: { value: 42 }, retryCount: 0, state: "completed" })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Installed), ["job", "job"]],
+			["job", () => job("job"), expect.objectContaining({ data: { value: 42 }, retryCount: 0, state: "completed" })],
+		]);
 	},
 );
 
@@ -75,16 +75,17 @@ schemaKit.it(
 
 		yield* installSchema("jobs_test");
 
-		yield* outcomes({
-			indexes: [
-				indexes("jobs_test", "i13$"),
+		yield* outcomes([
+			[
+				"indexes",
+				() => indexes("jobs_test", "i13$"),
 				[
 					{ index: "jobs_test.job_common_i13", table: "jobs_test.job_common", valid: true },
 					{ index: "jobs_test.partition_i13", table: "jobs_test.partition", valid: true },
 				],
 			],
-			version: [schemaVersion("jobs_test"), 46],
-		});
+			["version", () => schemaVersion("jobs_test"), 46],
+		]);
 	},
 );
 

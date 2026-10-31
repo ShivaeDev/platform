@@ -17,10 +17,10 @@ for (const kind of ["query", "action"] as const) {
 		function* ({ cause, data, run }) {
 			yield* run();
 
-			yield* outcomes({
-				cause: [cause(), "failed with Unauthorized: Session expired"],
-				data: [data(), "present: Saved order"],
-			});
+			yield* outcomes([
+				["cause", () => cause(), "failed with Unauthorized: Session expired"],
+				["data", () => data(), "present: Saved order"],
+			]);
 		},
 	);
 

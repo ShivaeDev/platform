@@ -13,7 +13,10 @@ baselineStory.it(
 	function* ({ lastLine, outcome, runs }) {
 		yield* runs("lint");
 
-		yield* outcomes({ "exit": [outcome(), "rejected"], "report's last line": [lastLine(), HINT] });
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			["report's last line", () => lastLine(), HINT],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -24,10 +27,10 @@ baselineStory.it(
 	function* ({ outcome, recorded, runs }) {
 		yield* runs("baseline", "write", "--rule", "structure/max-lines", "--file", "src/new.ts");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"recorded debt": [recorded(), [...RECORDED, "src/new.ts structure/max-lines 2"]],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["recorded debt", () => recorded(), [...RECORDED, "src/new.ts structure/max-lines 2"]],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -38,11 +41,11 @@ baselineStory.it(
 	function* ({ outcome, recorded, runs, stderr }) {
 		yield* runs("baseline", "write", "--rule", "structure/max-lines", "--file", "src/long.ts", "--file", "src/longer.ts");
 
-		yield* outcomes({
-			"exit": [outcome(), "invalid"],
-			"reason": [stderr(), expect.stringContaining("outside the current change set: src/long.ts")],
-			"recorded debt": [recorded(), RECORDED],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "invalid"],
+			["reason", () => stderr(), expect.stringContaining("outside the current change set: src/long.ts")],
+			["recorded debt", () => recorded(), RECORDED],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -53,11 +56,11 @@ baselineStory.it(
 	function* ({ outcome, recorded, runs, stderr }) {
 		yield* runs("baseline", "write", "--rule", "structure/max-lines");
 
-		yield* outcomes({
-			"exit": [outcome(), "invalid"],
-			"reason": [stderr(), expect.stringContaining("--file <path>")],
-			"recorded debt": [recorded(), RECORDED],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "invalid"],
+			["reason", () => stderr(), expect.stringContaining("--file <path>")],
+			["recorded debt", () => recorded(), RECORDED],
+		]);
 	},
 	CLI_TIMEOUT,
 );

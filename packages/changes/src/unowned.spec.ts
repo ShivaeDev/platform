@@ -48,10 +48,10 @@ changes.it(
 	function* ({ saveOrderWithoutTransaction, orderEnding, published }) {
 		yield* saveOrderWithoutTransaction("ada");
 
-		yield* outcomes({
-			"how the save ended": [orderEnding(), "died"],
-			"published changes": [published(), []],
-		});
+		yield* outcomes([
+			["how the save ended", () => orderEnding(), "died"],
+			["published changes", () => published(), []],
+		]);
 	},
 );
 
@@ -61,10 +61,10 @@ changes.it(
 	function* ({ saveOrder, orderEnding, committedRows, published }) {
 		yield* saveOrder("ada");
 
-		yield* outcomes({
-			"committed rows": [committedRows(), []],
-			"how the transaction ended": [orderEnding(), "died"],
-			"published changes": [published(), []],
-		});
+		yield* outcomes([
+			["committed rows", () => committedRows(), []],
+			["how the transaction ended", () => orderEnding(), "died"],
+			["published changes", () => published(), []],
+		]);
 	},
 );

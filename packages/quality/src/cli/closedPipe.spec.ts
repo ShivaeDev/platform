@@ -7,9 +7,9 @@ qualityLifecycle.it(
 	function* ({ outcome, pipesToClosedReader, stderr }) {
 		yield* pipesToClosedReader("--help");
 
-		yield* outcomes({
-			"error output": [stderr(), ""],
-			"exit": [outcome(), "passed"],
-		});
+		yield* outcomes([
+			["error output", () => stderr(), ""],
+			["exit", () => outcome(), "passed"],
+		]);
 	},
 );

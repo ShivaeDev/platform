@@ -19,21 +19,33 @@ for (const [scope, container, refused] of unclearScopes) {
 
 scopedScreen.it("saves the Billing city through a selector scope without touching Delivery", [], function* ({ within, savedCity }) {
 	const billing = within('[aria-label="Billing"]');
-	yield* outcomes({ "the Billing city": [savedCity("Billing"), "Unsaved"], "the Delivery city": [savedCity("Delivery"), "Unsaved"] });
+	yield* outcomes([
+		["the Billing city", () => savedCity("Billing"), "Unsaved"],
+		["the Delivery city", () => savedCity("Delivery"), "Unsaved"],
+	]);
 
 	yield* billing.enter({ name: "City", role: "textbox" }, "London");
 	yield* billing.click({ name: "Save", role: "button" });
 
-	yield* outcomes({ "the Billing city": [savedCity("Billing"), "London"], "the Delivery city": [savedCity("Delivery"), "Unsaved"] });
+	yield* outcomes([
+		["the Billing city", () => savedCity("Billing"), "London"],
+		["the Delivery city", () => savedCity("Delivery"), "Unsaved"],
+	]);
 });
 
 scopedScreen.it("enters the Delivery city through nested role scopes", [], function* ({ within, enteredCity }) {
 	const address = within({ name: "Delivery", role: "region" }).within({ name: "Address", role: "form" });
-	yield* outcomes({ "the Billing field": [enteredCity("Billing"), ""], "the Delivery field": [enteredCity("Delivery"), ""] });
+	yield* outcomes([
+		["the Billing field", () => enteredCity("Billing"), ""],
+		["the Delivery field", () => enteredCity("Delivery"), ""],
+	]);
 
 	yield* address.enter("input", "Paris");
 
-	yield* outcomes({ "the Billing field": [enteredCity("Billing"), ""], "the Delivery field": [enteredCity("Delivery"), "Paris"] });
+	yield* outcomes([
+		["the Billing field", () => enteredCity("Billing"), ""],
+		["the Delivery field", () => enteredCity("Delivery"), "Paris"],
+	]);
 });
 
 scopedScreen.it("submits the Delivery form through an element scope", [], function* ({ within, deliverySection, savedCity }) {
@@ -43,7 +55,10 @@ scopedScreen.it("submits the Delivery form through an element scope", [], functi
 
 	yield* delivery.submit();
 
-	yield* outcomes({ "the Billing city": [savedCity("Billing"), "Unsaved"], "the Delivery city": [savedCity("Delivery"), "Paris"] });
+	yield* outcomes([
+		["the Billing city", () => savedCity("Billing"), "Unsaved"],
+		["the Delivery city", () => savedCity("Delivery"), "Paris"],
+	]);
 });
 
 scopedScreen.it("finds the one City field inside a nested scope", [], function* ({ within }) {

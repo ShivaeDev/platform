@@ -25,10 +25,10 @@ for (const [kind, fault, answer, record] of FAULTS) {
 
 			yield* sends("first comment", PULL_COMMENTS, { body: "first comment", method: "POST" });
 
-			yield* outcomes({
-				answer: [answerOf("first comment"), answer],
-				requests: [requests(), [`POST ${PULL_COMMENTS} ${record}`]],
-			});
+			yield* outcomes([
+				["answer", () => answerOf("first comment"), answer],
+				["requests", () => requests(), [`POST ${PULL_COMMENTS} ${record}`]],
+			]);
 		},
 	);
 
@@ -43,10 +43,10 @@ for (const [kind, fault, answer, record] of FAULTS) {
 	scopedHttpApp.it(`answers the next comment normally once a one-shot ${kind} fault after the reply is spent`, [], function* ({ asks, scriptFault }) {
 		yield* scriptFault("comment", fault, { params: { number: "7" }, phase: "after" });
 
-		yield* outcomes({
-			"the first comment": [asks(PULL_COMMENTS, { body: "first comment", method: "POST" }), answer],
-			"the second comment": [asks(PULL_COMMENTS, { body: "second comment", method: "POST" }), 'HTTP 201 {"pull":"7","text":"second comment"}'],
-		});
+		yield* outcomes([
+			["the first comment", () => asks(PULL_COMMENTS, { body: "first comment", method: "POST" }), answer],
+			["the second comment", () => asks(PULL_COMMENTS, { body: "second comment", method: "POST" }), 'HTTP 201 {"pull":"7","text":"second comment"}'],
+		]);
 	});
 }
 
@@ -58,9 +58,9 @@ scopedHttpApp.it(
 
 		yield* sends("lost comment", PULL_COMMENTS, { body: "not created", method: "POST" });
 
-		yield* outcomes({
-			answer: [answer("lost comment"), "HTTP 503"],
-			comments: [comments(), []],
-		});
+		yield* outcomes([
+			["answer", () => answer("lost comment"), "HTTP 503"],
+			["comments", () => comments(), []],
+		]);
 	},
 );

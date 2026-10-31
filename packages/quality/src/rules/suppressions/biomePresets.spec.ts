@@ -30,10 +30,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:3"]],
-			messages: [messages(), [`Extends "@acme/lint/biome", which weakens "lint/suspicious/noConsole" for "**" ${PRESET_FIX}`]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:3"]],
+			["messages", () => messages(), [`Extends "@acme/lint/biome", which weakens "lint/suspicious/noConsole" for "**" ${PRESET_FIX}`]],
+		]);
 	},
 );
 
@@ -58,10 +58,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:13"]],
-			messages: [messages(), [expect.stringContaining(`Weakens "lint/style/noDefaultExport" for "scripts/**" ${CONSUMER_FIX}`)]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:13"]],
+			["messages", () => messages(), [expect.stringContaining(`Weakens "lint/style/noDefaultExport" for "scripts/**" ${CONSUMER_FIX}`)]],
+		]);
 	},
 );
 
@@ -71,10 +71,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:8"]],
-			messages: [messages(), [expect.stringContaining(`Weakens "lint/suspicious/noConsole" for "**" ${CONSUMER_FIX}`)]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:8"]],
+			["messages", () => messages(), [expect.stringContaining(`Weakens "lint/suspicious/noConsole" for "**" ${CONSUMER_FIX}`)]],
+		]);
 	},
 );
 
@@ -105,10 +105,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:3"]],
-			messages: [messages(), [`Extends "@acme/lint/biome", which weakens "lint/suspicious" for "**" ${PRESET_FIX}`]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:3"]],
+			["messages", () => messages(), [`Extends "@acme/lint/biome", which weakens "lint/suspicious" for "**" ${PRESET_FIX}`]],
+		]);
 	},
 );
 
@@ -125,10 +125,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:6"]],
-			messages: [messages(), [expect.stringContaining(`Weakens "files/includes" for "**", "!vendor" ${CONSUMER_FIX}`)]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:6"]],
+			["messages", () => messages(), [expect.stringContaining(`Weakens "files/includes" for "**", "!vendor" ${CONSUMER_FIX}`)]],
+		]);
 	},
 );
 
@@ -191,9 +191,9 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes({
-			locations: [locations(), ["apps/web/biome.json:3"]],
-			messages: [messages(), [`Extends "@acme/lint/biome", which weakens "lint/suspicious/noConsole" for "apps/web/**" ${PRESET_FIX}`]],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["apps/web/biome.json:3"]],
+			["messages", () => messages(), [`Extends "@acme/lint/biome", which weakens "lint/suspicious/noConsole" for "apps/web/**" ${PRESET_FIX}`]],
+		]);
 	},
 );

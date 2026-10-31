@@ -13,10 +13,11 @@ snapshotPrinter.it("prints the error an inspect hook throws in place of the bake
 snapshotPrinter.it("prints native runtime values in words and marks repeated references", [], function* ({ heading, printedValue, prints }) {
 	yield* prints(nativeBakeryState);
 
-	yield* outcomes({
-		heading: [heading(), "The bakery when the test failed:"],
-		"printed bakery": [
-			printedValue(),
+	yield* outcomes([
+		["heading", () => heading(), "The bakery when the test failed:"],
+		[
+			"printed bakery",
+			() => printedValue(),
 			{
 				counters: { loaves: 0 },
 				duplicate: "[shown above]",
@@ -28,7 +29,7 @@ snapshotPrinter.it("prints native runtime values in words and marks repeated ref
 				self: "[shown above]",
 			},
 		],
-	});
+	]);
 });
 
 snapshotPrinter.it("prints an inspect hook that returns nothing as undefined", [], function* ({ printedLines, prints }) {
@@ -63,12 +64,13 @@ snapshotPrinter.it(
 	function* ({ reportDetails, reportMessage, reportsWithItsSnapshotFileBlocked }) {
 		yield* reportsWithItsSnapshotFileBlocked(() => ({ orders: "rye".repeat(1000) }));
 
-		yield* outcomes({
-			details: [reportDetails(), { code: "EISDIR", errno: -21, path: blockedSnapshotFile, syscall: "open" }],
-			message: [
-				reportMessage(),
+		yield* outcomes([
+			["details", () => reportDetails(), { code: "EISDIR", errno: -21, path: blockedSnapshotFile, syscall: "open" }],
+			[
+				"message",
+				() => reportMessage(),
 				`test-story could not print the story of this bakery: EISDIR: illegal operation on a directory, open '${blockedSnapshotFile}'`,
 			],
-		});
+		]);
 	},
 );

@@ -18,10 +18,10 @@ database.it(
 		yield* enqueue("app", Gated, reconcile(99), { as: "reconcile 99" });
 		yield* untilAttempts(Gated, 2);
 
-		yield* outcomes({
-			"attempts": [attempts(Gated), ["refresh 42", "reconcile 99"]],
-			"reconcile 42": [job("reconcile 42"), expect.objectContaining({ singletonKey: "pr:42", state: "created" })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Gated), ["refresh 42", "reconcile 99"]],
+			["reconcile 42", () => job("reconcile 42"), expect.objectContaining({ singletonKey: "pr:42", state: "created" })],
+		]);
 	},
 );
 
@@ -34,10 +34,10 @@ database.it(
 		yield* open("release");
 		yield* untilJob("reconcile 42", "completed");
 
-		yield* outcomes({
-			"attempts": [attempts(Gated), ["refresh 42", "reconcile 42"]],
-			"most running at once": [mostRunningAtOnce(Gated), 1],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Gated), ["refresh 42", "reconcile 42"]],
+			["most running at once", () => mostRunningAtOnce(Gated), 1],
+		]);
 	},
 );
 
@@ -60,9 +60,9 @@ for (const { retryDelay, situation, state, tries } of earlier) {
 		yield* enqueue("app", Retried, reconcile(42), { as: "reconcile 42" });
 		yield* untilJob("reconcile 42", "completed");
 
-		yield* outcomes({
-			"attempts": [attempts(Retried), [...tries]],
-			"refresh 42": [job("refresh 42"), expect.objectContaining({ state })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Retried), [...tries]],
+			["refresh 42", () => job("refresh 42"), expect.objectContaining({ state })],
+		]);
 	});
 }

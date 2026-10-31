@@ -31,10 +31,10 @@ for (const [failure, options] of [
 		function* ({ exportWarnings, flushedRequest, logMentions }) {
 			yield* flushedRequest();
 
-			yield* outcomes({
-				"leaked secrets": [logMentions("hidden-exporter-secret", "hidden-collector-token"), []],
-				"warnings": [exportWarnings(), [expect.objectContaining({ message: "OTLP trace export failed" })]],
-			});
+			yield* outcomes([
+				["leaked secrets", () => logMentions("hidden-exporter-secret", "hidden-collector-token"), []],
+				["warnings", () => exportWarnings(), [expect.objectContaining({ message: "OTLP trace export failed" })]],
+			]);
 		},
 	);
 }

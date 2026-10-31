@@ -7,10 +7,10 @@ required.it("submitting empty required fields shows each field's own message", [
 
 	yield* submit();
 
-	yield* outcomes({
-		name: [feedbackOn("name"), "Enter your name"],
-		role: [feedbackOn("role"), "Choose a role"],
-	});
+	yield* outcomes([
+		["name", () => feedbackOn("name"), "Enter your name"],
+		["role", () => feedbackOn("role"), "Choose a role"],
+	]);
 });
 
 required.it("leaving an empty field shows its required message through path feedback", [], function* ({ feedbackAt, leave }) {
@@ -32,10 +32,10 @@ required.it("entering a name clears its required message", [required.submitted()
 required.it("required messages preserve longer minimums and explicit schema messages", [], function* ({ feedbackOn, submit }) {
 	yield* submit();
 
-	yield* outcomes({
-		code: [feedbackOn("code"), "Expected a value with a length of at least 3"],
-		slug: [feedbackOn("slug"), "Choose a slug"],
-	});
+	yield* outcomes([
+		["code", () => feedbackOn("code"), "Expected a value with a length of at least 3"],
+		["slug", () => feedbackOn("slug"), "Choose a slug"],
+	]);
 });
 
 required.it(
@@ -44,12 +44,13 @@ required.it(
 	function* ({ serverReceived, submissionMessages, submit }) {
 		yield* submit();
 
-		yield* outcomes({
-			messages: [
-				submissionMessages(),
+		yield* outcomes([
+			[
+				"messages",
+				() => submissionMessages(),
 				{ code: "Expected a value with a length of at least 3", name: "Enter your name", role: "Choose a role", slug: "Choose a slug" },
 			],
-			"values received by the handler": [serverReceived(), []],
-		});
+			["values received by the handler", () => serverReceived(), []],
+		]);
 	},
 );

@@ -7,19 +7,19 @@ commandChanges.it(
 	"declared keys use the final command result and reach both hosts after the handler commits",
 	[],
 	function* ({ initialHint, nextHint, publicationSaw, save }) {
-		yield* outcomes({
-			"initial local hint": [initialHint("local"), { _tag: "Resync" }],
-			"initial remote hint": [initialHint("remote"), { _tag: "Resync" }],
-		});
+		yield* outcomes([
+			["initial local hint", () => initialHint("local"), { _tag: "Resync" }],
+			["initial remote hint", () => initialHint("remote"), { _tag: "Resync" }],
+		]);
 
 		const saved = yield* save("Ada's note");
 
 		expect(saved).toEqual({ id: 1, title: "Ada's note" });
-		yield* outcomes({
-			"committed notes visible during publication": [publicationSaw(), [[{ title: "Ada's note" }]]],
-			"local hint": [nextHint("local"), { _tag: "Changed", keys: [notes.item(1)] }],
-			"remote hint": [nextHint("remote"), { _tag: "Changed", keys: [notes.item(1)] }],
-		});
+		yield* outcomes([
+			["committed notes visible during publication", () => publicationSaw(), [[{ title: "Ada's note" }]]],
+			["local hint", () => nextHint("local"), { _tag: "Changed", keys: [notes.item(1)] }],
+			["remote hint", () => nextHint("remote"), { _tag: "Changed", keys: [notes.item(1)] }],
+		]);
 	},
 );
 
@@ -29,17 +29,18 @@ commandChanges.it(
 	function* ({ errorMessages, nextHint, read, save }) {
 		yield* save("Ada's note");
 
-		yield* outcomes({
-			"local hint": [nextHint("local"), { _tag: "Resync" }],
-			"publication and broadcast errors": [
-				errorMessages(),
+		yield* outcomes([
+			["local hint", () => nextHint("local"), { _tag: "Resync" }],
+			[
+				"publication and broadcast errors",
+				() => errorMessages(),
 				[
 					"Committed command invalidation failed; resynchronizing live streams",
 					"Committed command Resync broadcast failed; other hosts may remain stale",
 				],
 			],
-			"saved notes": [read(), [{ id: 1, title: "Ada's note" }]],
-		});
+			["saved notes", () => read(), [{ id: 1, title: "Ada's note" }]],
+		]);
 	},
 );
 
@@ -49,12 +50,12 @@ commandChanges.it(
 	function* ({ nextHint, publicationSaw, read, save }) {
 		yield* save("Ada's note");
 
-		yield* outcomes({
-			"committed notes visible on each attempt": [publicationSaw(), Array.from({ length: 3 }, () => [{ title: "Ada's note" }])],
-			"local hint": [nextHint("local"), { _tag: "Changed", keys: [notes.item(1)] }],
-			"remote hint": [nextHint("remote"), { _tag: "Changed", keys: [notes.item(1)] }],
-			"saved notes": [read(), [{ id: 1, title: "Ada's note" }]],
-		});
+		yield* outcomes([
+			["committed notes visible on each attempt", () => publicationSaw(), Array.from({ length: 3 }, () => [{ title: "Ada's note" }])],
+			["local hint", () => nextHint("local"), { _tag: "Changed", keys: [notes.item(1)] }],
+			["remote hint", () => nextHint("remote"), { _tag: "Changed", keys: [notes.item(1)] }],
+			["saved notes", () => read(), [{ id: 1, title: "Ada's note" }]],
+		]);
 	},
 );
 
@@ -65,11 +66,11 @@ commandChanges.it(
 		const saved = yield* save("Ada's note");
 
 		expect(saved).toEqual({ id: 1, title: "Ada's note" });
-		yield* outcomes({
-			"bounded publication attempts": [publicationSaw(), Array.from({ length: 3 }, () => [{ title: "Ada's note" }])],
-			"local hint": [nextHint("local"), { _tag: "Resync" }],
-			"remote hint": [nextHint("remote"), { _tag: "Resync" }],
-			"saved notes": [read(), [{ id: 1, title: "Ada's note" }]],
-		});
+		yield* outcomes([
+			["bounded publication attempts", () => publicationSaw(), Array.from({ length: 3 }, () => [{ title: "Ada's note" }])],
+			["local hint", () => nextHint("local"), { _tag: "Resync" }],
+			["remote hint", () => nextHint("remote"), { _tag: "Resync" }],
+			["saved notes", () => read(), [{ id: 1, title: "Ada's note" }]],
+		]);
 	},
 );

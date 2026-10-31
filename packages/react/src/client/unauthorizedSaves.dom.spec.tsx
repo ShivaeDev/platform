@@ -20,11 +20,11 @@ for (const kind of ["create", "editor"] as const) {
 
 			yield* submit();
 
-			yield* outcomes({
-				draft: [draft(), "Unsaved order"],
-				failure: [failure(), "Unauthorized: Session expired before saving"],
-				status: [status(), "Unsaved changes"],
-			});
+			yield* outcomes([
+				["draft", () => draft(), "Unsaved order"],
+				["failure", () => failure(), "Unauthorized: Session expired before saving"],
+				["status", () => status(), "Unsaved changes"],
+			]);
 		},
 	);
 

@@ -40,10 +40,14 @@ codecs.it(
 	function* ({ payment: storedPayment, storedPayment: storedText, updatePayment }) {
 		yield* updatePayment({ "due_on": "2026-10-31", note: "verified", sequence: 9_007_199_254_740_995n });
 
-		yield* outcomes({
-			"payment as read back": [storedPayment(), expect.objectContaining({ dueOn: "2026-10-31", note: "verified", sequence: 9_007_199_254_740_995n })],
-			"stored text": [storedText(), expect.objectContaining({ amount: PRECISE_AMOUNT, dueOn: "2026-10-31", sequence: "9007199254740995" })],
-		});
+		yield* outcomes([
+			[
+				"payment as read back",
+				() => storedPayment(),
+				expect.objectContaining({ dueOn: "2026-10-31", note: "verified", sequence: 9_007_199_254_740_995n }),
+			],
+			["stored text", () => storedText(), expect.objectContaining({ amount: PRECISE_AMOUNT, dueOn: "2026-10-31", sequence: "9007199254740995" })],
+		]);
 	},
 );
 
@@ -53,10 +57,10 @@ codecs.it(
 	function* ({ decodeNanAmountInTransaction, endings, payment: storedPayment }) {
 		yield* decodeNanAmountInTransaction();
 
-		yield* outcomes({
-			"payment as read back": [storedPayment(), expect.objectContaining({ amount: PRECISE_AMOUNT, note: null })],
-			"transaction endings": [endings(), ["failed with a schema error"]],
-		});
+		yield* outcomes([
+			["payment as read back", () => storedPayment(), expect.objectContaining({ amount: PRECISE_AMOUNT, note: null })],
+			["transaction endings", () => endings(), ["failed with a schema error"]],
+		]);
 	},
 );
 
@@ -76,13 +80,14 @@ codecs.it(
 	function* ({ payment: storedPayment, preciseStoredSettledAt, rewriteTimesWithMicroseconds }) {
 		yield* rewriteTimesWithMicroseconds();
 
-		yield* outcomes({
-			"payment as read back": [
-				storedPayment(),
+		yield* outcomes([
+			[
+				"payment as read back",
+				() => storedPayment(),
 				expect.objectContaining({ localTime: "2026-09-19T10:11:12.345Z", settledAt: "2026-09-19T10:11:12.345Z" }),
 			],
-			"stored settled_at in UTC": [preciseStoredSettledAt(), ["2026-09-19 10:11:12.345678"]],
-		});
+			["stored settled_at in UTC", () => preciseStoredSettledAt(), ["2026-09-19 10:11:12.345678"]],
+		]);
 	},
 );
 
@@ -92,9 +97,9 @@ codecs.it(
 	function* ({ endings, insertReceipt, receiptCount }) {
 		yield* insertReceipt({ attempts: 1, channel: "card" });
 
-		yield* outcomes({
-			"receipt endings": [endings(), ["failed with an unclassified SQL failure"]],
-			"stored receipts": [receiptCount(), 0],
-		});
+		yield* outcomes([
+			["receipt endings", () => endings(), ["failed with an unclassified SQL failure"]],
+			["stored receipts", () => receiptCount(), 0],
+		]);
 	},
 );

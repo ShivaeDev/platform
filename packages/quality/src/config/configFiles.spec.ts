@@ -21,10 +21,10 @@ for (const [repository, traits] of [
 		function* ({ activeRules, loads, settings }) {
 			yield* loads();
 
-			yield* outcomes({
-				"active rules": [activeRules(), builtInRules.map((rule) => rule.id)],
-				"settings": [settings(), DEFAULT_SETTINGS],
-			});
+			yield* outcomes([
+				["active rules", () => activeRules(), builtInRules.map((rule) => rule.id)],
+				["settings", () => settings(), DEFAULT_SETTINGS],
+			]);
 		},
 	);
 }
@@ -45,10 +45,10 @@ configLoading.it(
 	function* ({ loads, outcome, problem }) {
 		yield* loads();
 
-		yield* outcomes({
-			"load": [outcome(), "refused"],
-			"problem": [problem(), expect.stringMatching(/^cannot load quality\.config\.ts: /u)],
-		});
+		yield* outcomes([
+			["load", () => outcome(), "refused"],
+			["problem", () => problem(), expect.stringMatching(/^cannot load quality\.config\.ts: /u)],
+		]);
 	},
 );
 
@@ -68,10 +68,10 @@ configLoading.it(
 	function* ({ loads, problemCause, serializedProblem }) {
 		yield* loads();
 
-		yield* outcomes({
-			"cause": [problemCause(), "config crashed"],
-			"serialized failure": [serializedProblem(), expect.not.stringContaining('"cause"')],
-		});
+		yield* outcomes([
+			["cause", () => problemCause(), "config crashed"],
+			["serialized failure", () => serializedProblem(), expect.not.stringContaining('"cause"')],
+		]);
 	},
 );
 

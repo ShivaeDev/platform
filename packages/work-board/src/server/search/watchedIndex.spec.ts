@@ -14,12 +14,12 @@ watchedIndexStory.it("editing a brief updates its metadata and emits one change 
 	yield* board.notify(["brief.md"]);
 
 	const changes = yield* board.changeEvents();
-	yield* outcomes({
-		"edited body": [board.read().pipe(Effect.map((snapshot) => snapshot.documents[0]?.parsed.body)), "# After"],
-		"files read": [Effect.sync(board.readFiles), ["brief.md"]],
-		"folders scanned": [Effect.sync(board.scannedFolders), []],
-		"one change": [Effect.succeed(changes), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
-	});
+	yield* outcomes([
+		["edited body", () => board.read().pipe(Effect.map((snapshot) => snapshot.documents[0]?.parsed.body)), "# After"],
+		["files read", () => Effect.sync(board.readFiles), ["brief.md"]],
+		["folders scanned", () => Effect.sync(board.scannedFolders), []],
+		["one change", () => Effect.succeed(changes), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
+	]);
 });
 
 watchedIndexStory.it("adding a brief indexes its identity and emits one change without scanning the folder", project, function* (board) {
@@ -30,12 +30,12 @@ watchedIndexStory.it("adding a brief indexes its identity and emits one change w
 	yield* board.notify(["added.md"]);
 
 	const changes = yield* board.changeEvents();
-	yield* outcomes({
-		"files read": [Effect.sync(board.readFiles), ["added.md"]],
-		"folders scanned": [Effect.sync(board.scannedFolders), []],
-		"new identity": [board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.get("added")?.[0]?.file)), "added.md"],
-		"one change": [Effect.succeed(changes), [{ _tag: "Changed", paths: ["added.md"], sequence: expect.any(Number) }]],
-	});
+	yield* outcomes([
+		["files read", () => Effect.sync(board.readFiles), ["added.md"]],
+		["folders scanned", () => Effect.sync(board.scannedFolders), []],
+		["new identity", () => board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.get("added")?.[0]?.file)), "added.md"],
+		["one change", () => Effect.succeed(changes), [{ _tag: "Changed", paths: ["added.md"], sequence: expect.any(Number) }]],
+	]);
 });
 
 watchedIndexStory.it("moving a brief replaces its indexed path and emits one change", project, function* (board) {
@@ -46,14 +46,19 @@ watchedIndexStory.it("moving a brief replaces its indexed path and emits one cha
 	yield* board.notify(["brief.md", "moved.md"]);
 
 	const changes = yield* board.changeEvents();
-	yield* outcomes({
-		"files read": [Effect.sync(board.readFiles), ["moved.md"]],
-		"moved identity": [board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.get("brief")?.map((document) => document.file))), ["moved.md"]],
-		"one change": [
-			Effect.succeed(changes),
+	yield* outcomes([
+		["files read", () => Effect.sync(board.readFiles), ["moved.md"]],
+		[
+			"moved identity",
+			() => board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.get("brief")?.map((document) => document.file))),
+			["moved.md"],
+		],
+		[
+			"one change",
+			() => Effect.succeed(changes),
 			[{ _tag: "Changed", paths: expect.arrayContaining(["brief.md", "moved.md"]), sequence: expect.any(Number) }],
 		],
-	});
+	]);
 });
 
 watchedIndexStory.it("deleting a brief removes its identity and emits one change without rereading other files", project, function* (board) {
@@ -64,11 +69,11 @@ watchedIndexStory.it("deleting a brief removes its identity and emits one change
 	yield* board.notify(["brief.md"]);
 
 	const changes = yield* board.changeEvents();
-	yield* outcomes({
-		"files read": [Effect.sync(board.readFiles), []],
-		"one change": [Effect.succeed(changes), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
-		"removed identity": [board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.has("brief"))), false],
-	});
+	yield* outcomes([
+		["files read", () => Effect.sync(board.readFiles), []],
+		["one change", () => Effect.succeed(changes), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
+		["removed identity", () => board.read().pipe(Effect.map((snapshot) => snapshot.model.ids.has("brief"))), false],
+	]);
 });
 
 watchedIndexStory.it("the full check repairs an edit the watcher missed even with its timestamp preserved", project, function* (board) {
@@ -77,10 +82,10 @@ watchedIndexStory.it("the full check repairs an edit the watcher missed even wit
 	board.edit("brief.md", BRIEF.replace("Before", "Missed"));
 	yield* board.checkPasses();
 
-	yield* outcomes({
-		"repair change": [board.changeEvents(), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
-		"repaired body": [board.read().pipe(Effect.map((snapshot) => snapshot.documents[0]?.parsed.body)), "# Missed"],
-	});
+	yield* outcomes([
+		["repair change", () => board.changeEvents(), [{ _tag: "Changed", paths: ["brief.md"], sequence: expect.any(Number) }]],
+		["repaired body", () => board.read().pipe(Effect.map((snapshot) => snapshot.documents[0]?.parsed.body)), "# Missed"],
+	]);
 });
 
 watchedIndexStory.it("reads after startup touch no unchanged files or directories", project, function* (board) {

@@ -34,10 +34,10 @@ for (const [comment, directive] of [
 		function* ({ check, locations, messages }) {
 			yield* check(noInline);
 
-			yield* outcomes({
-				locations: [locations(), ["src/a.ts:2"]],
-				messages: [messages(), [`Suppresses a check: "${directive}".`]],
-			});
+			yield* outcomes([
+				["locations", () => locations(), ["src/a.ts:2"]],
+				["messages", () => messages(), [`Suppresses a check: "${directive}".`]],
+			]);
 		},
 	);
 }
@@ -90,10 +90,10 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(noInline);
 
-		yield* outcomes({
-			locations: [locations(), ["src/a.css:3", "src/b.scss:1"]],
-			messages: [messages(), ['Suppresses a check: "biome-ignore".', 'Suppresses a check: "stylelint-disable-next-line".']],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["src/a.css:3", "src/b.scss:1"]],
+			["messages", () => messages(), ['Suppresses a check: "biome-ignore".', 'Suppresses a check: "stylelint-disable-next-line".']],
+		]);
 	},
 );
 
@@ -169,9 +169,9 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(noInline);
 
-		yield* outcomes({
-			locations: [locations(), ["test/api.typecheck.test.ts:2", "test/api.typecheck.test.ts:3"]],
-			messages: [messages(), ['Suppresses a check: "@ts-ignore".', 'Suppresses a check: "biome-ignore".']],
-		});
+		yield* outcomes([
+			["locations", () => locations(), ["test/api.typecheck.test.ts:2", "test/api.typecheck.test.ts:3"]],
+			["messages", () => messages(), ['Suppresses a check: "@ts-ignore".', 'Suppresses a check: "biome-ignore".']],
+		]);
 	},
 );

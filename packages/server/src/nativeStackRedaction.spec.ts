@@ -15,10 +15,10 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 			yield* close();
 
-			yield* outcomes({
-				"exported frames": [exportMentions("public-frame-9", "public-frame-2"), ["public-frame-9", "public-frame-2"]],
-				"reported frames": [reportMentions("public-frame-9", "public-frame-2"), ["public-frame-9", "public-frame-2"]],
-			});
+			yield* outcomes([
+				["exported frames", () => exportMentions("public-frame-9", "public-frame-2"), ["public-frame-9", "public-frame-2"]],
+				["reported frames", () => reportMentions("public-frame-9", "public-frame-2"), ["public-frame-9", "public-frame-2"]],
+			]);
 		},
 	);
 }
@@ -51,10 +51,10 @@ for (const [kind, reasons] of [
 
 				yield* close();
 
-				yield* outcomes({
-					"exception stack": [exceptionStack("nativeStack"), expect.stringContaining("public defect")],
-					"leaked frames": [exportMentions("private-native-stack-marker"), []],
-				});
+				yield* outcomes([
+					["exception stack", () => exceptionStack("nativeStack"), expect.stringContaining("public defect")],
+					["leaked frames", () => exportMentions("private-native-stack-marker"), []],
+				]);
 			},
 		);
 	}

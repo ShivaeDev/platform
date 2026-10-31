@@ -13,9 +13,9 @@ passwordAuth.it(
 
 		expect(status).toBe(HttpStatus.fromLiteral("OK"));
 
-		yield* outcomes({
-			"all database connections": [databaseConnections(), [1]],
-			"session": [session(), { email: "ada@password.test", name: "ada" }],
-		});
+		yield* outcomes([
+			["all database connections", () => databaseConnections(), [1]],
+			["session", () => session(), { email: "ada@password.test", name: "ada" }],
+		]);
 	},
 );

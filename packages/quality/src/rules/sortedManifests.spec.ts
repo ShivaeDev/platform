@@ -22,13 +22,14 @@ manifestStory.it(
 	function* ({ outcome, reportLines, runs }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"exit": [outcome(), "rejected"],
-			"unsorted manifests": [
-				reportLines(UNSORTED_FINDING),
+		yield* outcomes([
+			["exit", () => outcome(), "rejected"],
+			[
+				"unsorted manifests",
+				() => reportLines(UNSORTED_FINDING),
 				[`  package.json  ${UNSORTED_FINDING}`, `  packages/c/package.json  ${UNSORTED_FINDING}`],
 			],
-		});
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -47,11 +48,11 @@ manifestStory.it(
 
 		yield* runs("fix");
 
-		yield* outcomes({
-			"package.json": [reads("package.json"), SORTED],
-			"packages/c/package.json": [reads("packages/c/package.json"), SORTED],
-			"report": [stdout(), expect.stringContaining("quality: sort-package-json rewrote 2 manifests.")],
-		});
+		yield* outcomes([
+			["package.json", () => reads("package.json"), SORTED],
+			["packages/c/package.json", () => reads("packages/c/package.json"), SORTED],
+			["report", () => stdout(), expect.stringContaining("quality: sort-package-json rewrote 2 manifests.")],
+		]);
 	},
 	CLI_TIMEOUT,
 );

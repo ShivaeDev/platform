@@ -8,10 +8,10 @@ readiness.it(
 	function* ({ answer, attemptTimes, waitsUntilReady }) {
 		yield* waitsUntilReady({ interval: "7 millis" });
 
-		yield* outcomes({
-			"answer": [answer(), "ready at 56 ms"],
-			"attempt times": [attemptTimes(), [0, 7, 14, 21, 28, 35, 42, 49, 56]],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "ready at 56 ms"],
+			["attempt times", () => attemptTimes(), [0, 7, 14, 21, 28, 35, 42, 49, 56]],
+		]);
 	},
 );
 
@@ -46,10 +46,10 @@ for (const times of [0, 2]) {
 		function* ({ answer, attempts, waitsUntilReady }) {
 			yield* waitsUntilReady({ interval: "1 millis", times });
 
-			yield* outcomes({
-				"answer": [answer(), `failed with not ready at ${times} ms`],
-				"attempts": [attempts(), times + 1],
-			});
+			yield* outcomes([
+				["answer", () => answer(), `failed with not ready at ${times} ms`],
+				["attempts", () => attempts(), times + 1],
+			]);
 		},
 	);
 }
@@ -60,10 +60,10 @@ readiness.it(
 	function* ({ answer, attempts, waitsUntilReady }) {
 		yield* waitsUntilReady({ interval: "1 millis", times: 3 });
 
-		yield* outcomes({
-			"answer": [answer(), "died with the assertion failed"],
-			"attempts": [attempts(), 1],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "died with the assertion failed"],
+			["attempts", () => attempts(), 1],
+		]);
 	},
 );
 
@@ -80,8 +80,8 @@ readiness.it(
 readiness.it("an interruption escapes on the first attempt", [interruptsItself()], function* ({ answer, attempts, waitsUntilReady }) {
 	yield* waitsUntilReady({ interval: "1 millis", times: 3 });
 
-	yield* outcomes({
-		"answer": [answer(), "interrupted"],
-		"attempts": [attempts(), 1],
-	});
+	yield* outcomes([
+		["answer", () => answer(), "interrupted"],
+		["attempts", () => attempts(), 1],
+	]);
 });

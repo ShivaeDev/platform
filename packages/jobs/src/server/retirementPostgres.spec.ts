@@ -23,14 +23,14 @@ database.it(
 
 		yield* start("current", [Current], { retired: ["legacy", "old-nightly"] });
 
-		yield* outcomes({
-			"current queue": [storedQueue("current"), expect.objectContaining({ name: "current" })],
-			"current runtime": [startup("current"), "started"],
-			"retained dead letters": [storedQueue("legacy-dlq"), expect.objectContaining({ name: "legacy-dlq" })],
-			"retired queue": [storedQueue("legacy"), "missing"],
-			"retired schedule queue": [storedQueue("old-nightly"), "missing"],
-			"retired schedules": [storedSchedules("old-nightly"), []],
-		});
+		yield* outcomes([
+			["current queue", () => storedQueue("current"), expect.objectContaining({ name: "current" })],
+			["current runtime", () => startup("current"), "started"],
+			["retained dead letters", () => storedQueue("legacy-dlq"), expect.objectContaining({ name: "legacy-dlq" })],
+			["retired queue", () => storedQueue("legacy"), "missing"],
+			["retired schedule queue", () => storedQueue("old-nightly"), "missing"],
+			["retired schedules", () => storedSchedules("old-nightly"), []],
+		]);
 	},
 );
 
@@ -44,11 +44,11 @@ database.it(
 
 		yield* start("second cleanup", [], { retired: ["legacy", "old-nightly"] });
 
-		yield* outcomes({
-			"retired queue": [storedQueue("legacy"), "missing"],
-			"retired schedule": [storedSchedules("old-nightly"), []],
-			"second startup": [startup("second cleanup"), "started"],
-		});
+		yield* outcomes([
+			["retired queue", () => storedQueue("legacy"), "missing"],
+			["retired schedule", () => storedSchedules("old-nightly"), []],
+			["second startup", () => startup("second cleanup"), "started"],
+		]);
 	},
 );
 
@@ -61,10 +61,14 @@ for (const name of ["current", "current-dlq"]) {
 
 			yield* start("conflicting", [Current], { retired: ["legacy", name] });
 
-			yield* outcomes({
-				"startup failure": [startup("conflicting"), expect.stringContaining("Retired queues must not be registered or used as dead-letter queues")],
-				"untouched legacy queue": [storedQueue("legacy"), expect.objectContaining({ name: "legacy" })],
-			});
+			yield* outcomes([
+				[
+					"startup failure",
+					() => startup("conflicting"),
+					expect.stringContaining("Retired queues must not be registered or used as dead-letter queues"),
+				],
+				["untouched legacy queue", () => storedQueue("legacy"), expect.objectContaining({ name: "legacy" })],
+			]);
 		},
 	);
 }

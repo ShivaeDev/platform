@@ -3,11 +3,11 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failedOver, processes, twoServersAndWorker } from "#test/postgres-example/processKit.ts";
 
 processes.it("every subscribed client starts with a resync hint", [twoServersAndWorker()], function* ({ initialHints }) {
-	yield* outcomes({
-		a: [initialHints("a"), ["resync"]],
-		another: [initialHints("another"), ["resync"]],
-		b: [initialHints("b"), ["resync"]],
-	});
+	yield* outcomes([
+		["a", () => initialHints("a"), ["resync"]],
+		["another", () => initialHints("another"), ["resync"]],
+		["b", () => initialHints("b"), ["resync"]],
+	]);
 });
 
 for (const [writer, server] of [
@@ -20,12 +20,12 @@ for (const [writer, server] of [
 		function* ({ hintsSinceAction, order, saveFromServer }) {
 			yield* saveFromServer(writer, `server ${server}`);
 
-			yield* outcomes({
-				"a hints": [hintsSinceAction("a"), ["changed orders 1"]],
-				"a reads": [order("a"), `server ${server}`],
-				"b hints": [hintsSinceAction("b"), ["changed orders 1"]],
-				"b reads": [order("b"), `server ${server}`],
-			});
+			yield* outcomes([
+				["a hints", () => hintsSinceAction("a"), ["changed orders 1"]],
+				["a reads", () => order("a"), `server ${server}`],
+				["b hints", () => hintsSinceAction("b"), ["changed orders 1"]],
+				["b reads", () => order("b"), `server ${server}`],
+			]);
 		},
 		30_000,
 	);
@@ -37,12 +37,12 @@ processes.it(
 	function* ({ hintsSinceAction, order, saveFromWorker }) {
 		yield* saveFromWorker();
 
-		yield* outcomes({
-			"a hints": [hintsSinceAction("a"), ["changed orders 1"]],
-			"a reads": [order("a"), "worker"],
-			"b hints": [hintsSinceAction("b"), ["changed orders 1"]],
-			"b reads": [order("b"), "worker"],
-		});
+		yield* outcomes([
+			["a hints", () => hintsSinceAction("a"), ["changed orders 1"]],
+			["a reads", () => order("a"), "worker"],
+			["b hints", () => hintsSinceAction("b"), ["changed orders 1"]],
+			["b reads", () => order("b"), "worker"],
+		]);
 	},
 	30_000,
 );
@@ -53,11 +53,11 @@ processes.it(
 	function* ({ answers, hintsSinceAction, rejectWrite }) {
 		yield* rejectWrite();
 
-		yield* outcomes({
-			"a hints": [hintsSinceAction("a"), ["changed orders 1"]],
-			answers: [answers(), ["rejected as Rejected", "saved"]],
-			"b hints": [hintsSinceAction("b"), ["changed orders 1"]],
-		});
+		yield* outcomes([
+			["a hints", () => hintsSinceAction("a"), ["changed orders 1"]],
+			["answers", () => answers(), ["rejected as Rejected", "saved"]],
+			["b hints", () => hintsSinceAction("b"), ["changed orders 1"]],
+		]);
 	},
 	30_000,
 );
@@ -68,11 +68,11 @@ processes.it(
 	function* ({ hintsSinceAction, loseListener, order }) {
 		yield* loseListener();
 
-		yield* outcomes({
-			"a hints": [hintsSinceAction("a"), ["resync", "resync", "changed orders 1"]],
-			"a reads": [order("a"), "after reconnect"],
-			"another hints": [hintsSinceAction("another"), ["resync", "resync", "changed orders 1"]],
-		});
+		yield* outcomes([
+			["a hints", () => hintsSinceAction("a"), ["resync", "resync", "changed orders 1"]],
+			["a reads", () => order("a"), "after reconnect"],
+			["another hints", () => hintsSinceAction("another"), ["resync", "resync", "changed orders 1"]],
+		]);
 	},
 	30_000,
 );
@@ -83,26 +83,28 @@ processes.it(
 	function* ({ hintsSinceAction, listenerLogs, order, terminateBackends }) {
 		yield* terminateBackends();
 
-		yield* outcomes({
-			"a hints": [hintsSinceAction("a"), expect.arrayContaining(["resync", "changed orders 1"])],
-			"another hints": [hintsSinceAction("another"), expect.arrayContaining(["resync", "changed orders 1"])],
-			"b hints": [hintsSinceAction("b"), expect.arrayContaining(["resync", "changed orders 1"])],
-			"b reads": [order("b"), "after failover"],
-			"first server logs": [
-				listenerLogs("first"),
+		yield* outcomes([
+			["a hints", () => hintsSinceAction("a"), expect.arrayContaining(["resync", "changed orders 1"])],
+			["another hints", () => hintsSinceAction("another"), expect.arrayContaining(["resync", "changed orders 1"])],
+			["b hints", () => hintsSinceAction("b"), expect.arrayContaining(["resync", "changed orders 1"])],
+			["b reads", () => order("b"), "after failover"],
+			[
+				"first server logs",
+				() => listenerLogs("first"),
 				[
 					"Warn: PostgreSQL change listener lost; resynchronizing live streams",
 					"Info: PostgreSQL change listener recovered; resynchronized live streams (2 streams)",
 				],
 			],
-			"second server logs": [
-				listenerLogs("second"),
+			[
+				"second server logs",
+				() => listenerLogs("second"),
 				[
 					"Warn: PostgreSQL change listener lost; resynchronizing live streams",
 					"Info: PostgreSQL change listener recovered; resynchronized live streams (1 streams)",
 				],
 			],
-		});
+		]);
 	},
 	30_000,
 );
@@ -113,10 +115,10 @@ processes.it(
 	function* ({ order, saveFromWorker }) {
 		yield* saveFromWorker();
 
-		yield* outcomes({
-			"a reads": [order("a"), "worker"],
-			"b reads": [order("b"), "worker"],
-		});
+		yield* outcomes([
+			["a reads", () => order("a"), "worker"],
+			["b reads", () => order("b"), "worker"],
+		]);
 	},
 	30_000,
 );

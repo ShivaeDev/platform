@@ -13,10 +13,10 @@ connections.it(
 
 		yield* start();
 
-		yield* outcomes({
-			"container": [container(), "a new container"],
-			"max connections": [maxConnections(), SETUP_LIMIT],
-		});
+		yield* outcomes([
+			["container", () => container(), "a new container"],
+			["max connections", () => maxConnections(), SETUP_LIMIT],
+		]);
 	},
 );
 
@@ -55,10 +55,10 @@ for (const allowing of [SETUP_LIMIT, 600]) {
 
 			yield* start();
 
-			yield* outcomes({
-				"container": [container(), "the same container, still running"],
-				"max connections": [maxConnections(), allowing],
-			});
+			yield* outcomes([
+				["container", () => container(), "the same container, still running"],
+				["max connections", () => maxConnections(), allowing],
+			]);
 		},
 	);
 }
@@ -81,10 +81,10 @@ connections.it(
 
 		yield* start();
 
-		yield* outcomes({
-			"container": [container(), "the same container, still running"],
-			"max connections": [maxConnections(), STOCK_LIMIT],
-		});
+		yield* outcomes([
+			["container", () => container(), "the same container, still running"],
+			["max connections", () => maxConnections(), STOCK_LIMIT],
+		]);
 	},
 );
 
@@ -94,12 +94,13 @@ connections.it(
 	function* ({ container, outcome, start }) {
 		yield* start();
 
-		yield* outcomes({
-			"container": [container(), "the same container, still running"],
-			"setup": [
-				outcome(),
+		yield* outcomes([
+			["container", () => container(), "the same container, still running"],
+			[
+				"setup",
+				() => outcome(),
 				"max_connections refused in development-postgres: The shared PostgreSQL container uses a different image. Preserve its data and upgrade it explicitly.",
 			],
-		});
+		]);
 	},
 );

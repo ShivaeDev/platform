@@ -39,11 +39,11 @@ for (const work of ["record bob's change", "open a transaction for bob's order"]
 
 			yield* stragglerResumes();
 
-			yield* outcomes({
-				"committed rows": [committedRows(), ["ada's order"]],
-				"how the straggler ended": [stragglerEnding(), "died"],
-				"published changes": [published(), [["ada:orders"]]],
-			});
+			yield* outcomes([
+				["committed rows", () => committedRows(), ["ada's order"]],
+				["how the straggler ended", () => stragglerEnding(), "died"],
+				["published changes", () => published(), [["ada:orders"]]],
+			]);
 		},
 	);
 }
@@ -78,9 +78,9 @@ changes.it(
 
 		yield* savepoint.commit();
 
-		yield* outcomes({
-			"how the savepoint's commit ended": [savepoint.ending(), "died"],
-			"published changes": [published(), []],
-		});
+		yield* outcomes([
+			["how the savepoint's commit ended", () => savepoint.ending(), "died"],
+			["published changes", () => published(), []],
+		]);
 	},
 );

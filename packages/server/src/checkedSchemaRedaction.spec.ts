@@ -17,14 +17,14 @@ for (const check of ["filter", "group", "nestedFilter", "nestedGroup"] as const)
 
 			yield* close();
 
-			yield* outcomes({
-				"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining(masked) } }],
-				"diagnostic log": [diagnosticLog("diagnostic"), expect.objectContaining(masked)],
-				"leaked into exports": [exportMentions(contact), []],
-				"leaked into logs": [logMentions(contact), []],
-				"leaked into the answer": [answerMentions(contact), []],
-				"span attributes": [spanAttributes("diagnose"), [expect.objectContaining(masked)]],
-			});
+			yield* outcomes([
+				["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining(masked) } }],
+				["diagnostic log", () => diagnosticLog("diagnostic"), expect.objectContaining(masked)],
+				["leaked into exports", () => exportMentions(contact), []],
+				["leaked into logs", () => logMentions(contact), []],
+				["leaked into the answer", () => answerMentions(contact), []],
+				["span attributes", () => spanAttributes("diagnose"), [expect.objectContaining(masked)]],
+			]);
 		},
 	);
 }

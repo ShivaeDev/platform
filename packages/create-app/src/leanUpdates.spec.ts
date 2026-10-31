@@ -15,18 +15,18 @@ updates.it(
 		starterAt020("drops them", { "package.json": AS_RELEASED, "src/client/ui/chart.tsx": null, "src/client/ui/tooltip.tsx": null }),
 	],
 	function* ({ dependsOn, exists, update }) {
-		yield* outcomes({
-			"depends on recharts": [dependsOn("recharts"), true],
-			"src/client/ui/chart.tsx": [exists("src/client/ui/chart.tsx"), true],
-			"src/client/ui/tooltip.tsx": [exists("src/client/ui/tooltip.tsx"), true],
-		});
+		yield* outcomes([
+			["depends on recharts", () => dependsOn("recharts"), true],
+			["src/client/ui/chart.tsx", () => exists("src/client/ui/chart.tsx"), true],
+			["src/client/ui/tooltip.tsx", () => exists("src/client/ui/tooltip.tsx"), true],
+		]);
 
 		yield* update();
 
-		yield* outcomes({
-			"depends on recharts": [dependsOn("recharts"), false],
-			"src/client/ui/chart.tsx": [exists("src/client/ui/chart.tsx"), false],
-			"src/client/ui/tooltip.tsx": [exists("src/client/ui/tooltip.tsx"), false],
-		});
+		yield* outcomes([
+			["depends on recharts", () => dependsOn("recharts"), false],
+			["src/client/ui/chart.tsx", () => exists("src/client/ui/chart.tsx"), false],
+			["src/client/ui/tooltip.tsx", () => exists("src/client/ui/tooltip.tsx"), false],
+		]);
 	},
 );

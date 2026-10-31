@@ -8,10 +8,10 @@ rerunStory.it(
 	function* ({ exitCode, run, timesRan }) {
 		yield* run();
 
-		yield* outcomes({
-			"exit code": [exitCode(), 0],
-			"times each test ran": [timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 2, passes: 1 }],
-		});
+		yield* outcomes([
+			["exit code", () => exitCode(), 0],
+			["times each test ran", () => timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 2, passes: 1 }],
+		]);
 	},
 );
 
@@ -21,10 +21,10 @@ rerunStory.it(
 	function* ({ exitCode, run, timesRan }) {
 		yield* run();
 
-		yield* outcomes({
-			"exit code": [exitCode(), 0],
-			"times each test ran": [timesRan(), { passes: 1, "passes once collected": 1 }],
-		});
+		yield* outcomes([
+			["exit code", () => exitCode(), 0],
+			["times each test ran", () => timesRan(), { passes: 1, "passes once collected": 1 }],
+		]);
 	},
 );
 
@@ -34,10 +34,10 @@ rerunStory.it(
 	function* ({ exitCode, run, timesRan }) {
 		yield* run();
 
-		yield* outcomes({
-			"exit code": [exitCode(), 1],
-			"times each test ran": [timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 1 }],
-		});
+		yield* outcomes([
+			["exit code", () => exitCode(), 1],
+			["times each test ran", () => timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 1 }],
+		]);
 	},
 );
 
@@ -47,10 +47,10 @@ rerunStory.it(
 	function* ({ exitCode, run, timesRan }) {
 		yield* run();
 
-		yield* outcomes({
-			"exit code": [exitCode(), 1],
-			"times each test ran": [timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 2 }],
-		});
+		yield* outcomes([
+			["exit code", () => exitCode(), 1],
+			["times each test ran", () => timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 2 }],
+		]);
 	},
 );
 
@@ -60,20 +60,20 @@ rerunStory.it(
 	function* ({ exitCode, run, timesRan }) {
 		yield* run("--reruns", "2");
 
-		yield* outcomes({
-			"exit code": [exitCode(), 0],
-			"times each test ran": [timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 3 }],
-		});
+		yield* outcomes([
+			["exit code", () => exitCode(), 0],
+			["times each test ran", () => timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 3 }],
+		]);
 	},
 );
 
 rerunStory.it("--reruns 0 fails a failed test without rerunning it", [failsTimes(1)], function* ({ exitCode, run, timesRan }) {
 	yield* run("--reruns", "0");
 
-	yield* outcomes({
-		"exit code": [exitCode(), 1],
-		"times each test ran": [timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 1 }],
-	});
+	yield* outcomes([
+		["exit code", () => exitCode(), 1],
+		["times each test ran", () => timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 1 }],
+	]);
 });
 
 rerunStory.it(
@@ -82,11 +82,11 @@ rerunStory.it(
 	function* ({ exitCode, printedError, run, timesRan }) {
 		yield* run("--reruns", "two");
 
-		yield* outcomes({
-			"exit code": [exitCode(), 2],
-			"printed error": [printedError(), '--reruns expects a whole number, got "two"'],
-			"times each test ran": [timesRan(), {}],
-		});
+		yield* outcomes([
+			["exit code", () => exitCode(), 2],
+			["printed error", () => printedError(), '--reruns expects a whole number, got "two"'],
+			["times each test ran", () => timesRan(), {}],
+		]);
 	},
 );
 

@@ -13,23 +13,24 @@ warningScreen.it(
 	function* ({ field, openWarningScreen, warnings }) {
 		yield* openWarningScreen();
 
-		yield* outcomes({
-			field: [field(), "Uneditable screen field"],
-			warnings: [
-				warnings(),
+		yield* outcomes([
+			["field", () => field(), "Uneditable screen field"],
+			[
+				"warnings",
+				() => warnings(),
 				{ caughtErrors: [], consoleErrors: [[expect.stringContaining("You provided a `value` prop to a form field without an `onChange` handler")]] },
 			],
-		});
+		]);
 	},
 );
 
 warningScreen.it("a clean screen records no warnings", [], function* ({ openCleanScreen, shown, warnings }) {
 	yield* openCleanScreen();
 
-	yield* outcomes({
-		shown: [shown(), "Screen ready"],
-		warnings: [warnings(), { caughtErrors: [], consoleErrors: [] }],
-	});
+	yield* outcomes([
+		["shown", () => shown(), "Screen ready"],
+		["warnings", () => warnings(), { caughtErrors: [], consoleErrors: [] }],
+	]);
 });
 
 warningScreen.it(
@@ -43,10 +44,10 @@ warningScreen.it(
 			expectCaughtError((error) => error === failure),
 		);
 
-		yield* outcomes({
-			alert: [alert(), "Screen unavailable"],
-			warnings: [warnings(), { caughtErrors: [], consoleErrors: [] }],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "Screen unavailable"],
+			["warnings", () => warnings(), { caughtErrors: [], consoleErrors: [] }],
+		]);
 	},
 );
 

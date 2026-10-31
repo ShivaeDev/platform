@@ -27,10 +27,10 @@ for (const value of [
 			`${source} ${JSON.stringify(value)} fails startup with a config error before migrations, routes or services run`,
 			[invalidTrust, startupFails, trust],
 			function* ({ serviceLifecycle, startup }) {
-				yield* outcomes({
-					"construction steps": [serviceLifecycle(), []],
-					"startup": [startup(), "failed with config error"],
-				});
+				yield* outcomes([
+					["construction steps", () => serviceLifecycle(), []],
+					["startup", () => startup(), "failed with config error"],
+				]);
 			},
 		);
 	}

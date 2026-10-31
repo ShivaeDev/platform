@@ -20,10 +20,10 @@ for (const [shape, payload] of [
 		`a public failure with ${shape} reaches the wire and the native client intact`,
 		[publicFailures],
 		function* ({ publicFailure, publicFailureOnTheWire }) {
-			yield* outcomes({
-				"decoded by the native client": [publicFailure(payload), payload],
-				"NDJSON on the wire": [publicFailureOnTheWire(payload), expect.stringContaining(JSON.stringify(payload))],
-			});
+			yield* outcomes([
+				["decoded by the native client", () => publicFailure(payload), payload],
+				["NDJSON on the wire", () => publicFailureOnTheWire(payload), expect.stringContaining(JSON.stringify(payload))],
+			]);
 		},
 	);
 }

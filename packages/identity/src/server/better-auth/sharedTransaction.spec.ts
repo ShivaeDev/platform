@@ -13,9 +13,9 @@ for (const [outcome, title] of [
 
 		const created = yield* createUser(outcome);
 
-		yield* outcomes({
-			"created user": [Effect.succeed(created), "alice"],
-			"stored users": [storedUsers(), outcome === "commit" ? ["alice"] : []],
-		});
+		yield* outcomes([
+			["created user", () => Effect.succeed(created), "alice"],
+			["stored users", () => storedUsers(), outcome === "commit" ? ["alice"] : []],
+		]);
 	});
 }

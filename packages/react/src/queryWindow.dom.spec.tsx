@@ -18,10 +18,10 @@ queryWindows.it(
 
 		yield* slowDetail();
 
-		yield* outcomes({
-			reads: [reads(), { dashboard: 1, detail: 1, inherited: 1 }],
-			subscriptions: [subscriptions(), 3],
-			window: [windows(), { dashboard: "2 seconds", detail: "300 millis", inherited: undefined }],
-		});
+		yield* outcomes([
+			["reads", () => reads(), { dashboard: 1, detail: 1, inherited: 1 }],
+			["subscriptions", () => subscriptions(), 3],
+			["window", () => windows(), { dashboard: "2 seconds", detail: "300 millis", inherited: undefined }],
+		]);
 	},
 );

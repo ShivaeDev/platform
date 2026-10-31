@@ -39,9 +39,13 @@ appGithub.it(
 
 		yield* readConcurrentlyAfterRejection(6);
 
-		yield* outcomes({
-			"pull request reads": [pullReadTally(), { "installation token 1: 200": 1, "installation token 1: 401": 6, "installation token 2: 200": 6 }],
-			"tokens issued": [tokensIssued(), ["installation token 1", "installation token 2"]],
-		});
+		yield* outcomes([
+			[
+				"pull request reads",
+				() => pullReadTally(),
+				{ "installation token 1: 200": 1, "installation token 1: 401": 6, "installation token 2: 200": 6 },
+			],
+			["tokens issued", () => tokensIssued(), ["installation token 1", "installation token 2"]],
+		]);
 	},
 );

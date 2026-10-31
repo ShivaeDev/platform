@@ -6,11 +6,11 @@ templates.it(
 	"a migrated story starts with the template's applied migrations, its fixtures and the row a loader wrote through the template URL",
 	[],
 	function* ({ appliedMigrations, items, loaderRows }) {
-		yield* outcomes({
-			"applied migrations": [appliedMigrations(), [1]],
-			items: [items(), ["seed"]],
-			"the loader's row": [loaderRows(), ["written in the migrated template"]],
-		});
+		yield* outcomes([
+			["applied migrations", () => appliedMigrations(), [1]],
+			["items", () => items(), ["seed"]],
+			["the loader's row", () => loaderRows(), ["written in the migrated template"]],
+		]);
 	},
 );
 
@@ -18,10 +18,10 @@ templates.it(
 	"every story sees preparation run the migrations and the fixture loader once, with the loader's resources released",
 	[],
 	function* ({ loaderResources, preparationRuns }) {
-		yield* outcomes({
-			"preparation runs": [preparationRuns(), { fixtures: 1, loaders: 1, migrations: 1 }],
-			"the loader's resources": [loaderResources(), "released"],
-		});
+		yield* outcomes([
+			["preparation runs", () => preparationRuns(), { fixtures: 1, loaders: 1, migrations: 1 }],
+			["the loader's resources", () => loaderResources(), "released"],
+		]);
 	},
 );
 
@@ -37,10 +37,10 @@ templates.it(
 
 		yield* changeItem("committed");
 
-		yield* outcomes({
-			"items in a new clone": [itemsInNewClone(), ["seed"]],
-			"items in the story's database": [items(), ["committed"]],
-		});
+		yield* outcomes([
+			["items in a new clone", () => itemsInNewClone(), ["seed"]],
+			["items in the story's database", () => items(), ["committed"]],
+		]);
 	},
 );
 

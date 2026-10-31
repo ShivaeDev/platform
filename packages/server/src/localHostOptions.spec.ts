@@ -20,10 +20,10 @@ host.it("a host without migrations answers health as service unavailable", [life
 });
 
 host.it("a host without migrations provides neither SQL nor a live server", [lifecycleServices], function* ({ provided }) {
-	yield* outcomes({
-		"live server": [provided(LiveServer), "missing"],
-		"SQL client": [provided(SqlClient.SqlClient), "missing"],
-	});
+	yield* outcomes([
+		["live server", () => provided(LiveServer), "missing"],
+		["SQL client", () => provided(SqlClient.SqlClient), "missing"],
+	]);
 });
 
 host.it("closing the host releases the application services' scope", [lifecycleServices], function* ({ close, serviceLifecycle }) {

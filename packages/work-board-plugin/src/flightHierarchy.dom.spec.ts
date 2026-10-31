@@ -30,11 +30,11 @@ pluginPane.it(
 	"coding and waiting for merge use the existing Running and Scheduled colors while not started yet is muted",
 	[goalsAnswered(shipTheBoard), workAnswered(groupedBuild, groupedMerge)],
 	function* ({ lookOf }) {
-		yield* outcomes({
-			coding: [lookOf("coding"), "#2879da"],
-			"not started yet": [lookOf("not started yet"), "dimmed"],
-			"waiting for merge": [lookOf("waiting for merge"), "#ad7400"],
-		});
+		yield* outcomes([
+			["coding", () => lookOf("coding"), "#2879da"],
+			["not started yet", () => lookOf("not started yet"), "dimmed"],
+			["waiting for merge", () => lookOf("waiting for merge"), "#ad7400"],
+		]);
 	},
 );
 

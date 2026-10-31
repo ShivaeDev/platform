@@ -29,19 +29,19 @@ vitestRun.it("a Layer that fails during worker startup fails the file's test wit
 vitestRun.it("an it.effect test behind a true skip condition is skipped without running its body", [], function* ({ lifecycle, outcome, runs }) {
 	yield* runs("an it.effect body behind a true skip condition");
 
-	yield* outcomes({
-		"lifecycle": [lifecycle(), []],
-		"outcome": [outcome(), "skipped"],
-	});
+	yield* outcomes([
+		["lifecycle", () => lifecycle(), []],
+		["outcome", () => outcome(), "skipped"],
+	]);
 });
 
 vitestRun.it("it stays Vitest's plain tester for a test without Effect", [], function* ({ lifecycle, outcome, runs }) {
 	yield* runs("a plain Vitest test");
 
-	yield* outcomes({
-		"lifecycle": [lifecycle(), ["the plain test ran"]],
-		"outcome": [outcome(), "passed"],
-	});
+	yield* outcomes([
+		["lifecycle", () => lifecycle(), ["the plain test ran"]],
+		["outcome", () => outcome(), "passed"],
+	]);
 });
 
 vitestRun.it("it.effect.each passes each case to its own run of the body", [], function* ({ lifecycle, runs }) {

@@ -14,10 +14,10 @@ for (const [verb, event] of [
 
 		yield* story.restart();
 
-		yield* outcomes({
-			"printed": [story.printed(), [`PR 1 ${event}`]],
-			"requests": [story.lastRoundRequests(), []],
-		});
+		yield* outcomes([
+			["printed", () => story.printed(), [`PR 1 ${event}`]],
+			["requests", () => story.lastRoundRequests(), []],
+		]);
 	});
 }
 
@@ -45,12 +45,12 @@ watch.it(
 		yield* opens(3);
 		yield* poll();
 
-		yield* outcomes({
-			"PR 1 reads": [pollTimes(1), ["00:00:00", "00:00:00"]],
-			"PR 1 snapshot": [savedSnapshot(1), "merged, auto-merge"],
-			"PR 2 snapshot": [savedSnapshot(2), "open, auto-merge"],
-			"PR 3 snapshot": [savedSnapshot(3), "open, auto-merge"],
-		});
+		yield* outcomes([
+			["PR 1 reads", () => pollTimes(1), ["00:00:00", "00:00:00"]],
+			["PR 1 snapshot", () => savedSnapshot(1), "merged, auto-merge"],
+			["PR 2 snapshot", () => savedSnapshot(2), "open, auto-merge"],
+			["PR 3 snapshot", () => savedSnapshot(3), "open, auto-merge"],
+		]);
 	},
 );
 
@@ -63,9 +63,9 @@ watch.it(
 
 		yield* restart();
 
-		yield* outcomes({
-			"printed": [printed(), []],
-			"requests": [lastRoundRequests(), []],
-		});
+		yield* outcomes([
+			["printed", () => printed(), []],
+			["requests", () => lastRoundRequests(), []],
+		]);
 	},
 );

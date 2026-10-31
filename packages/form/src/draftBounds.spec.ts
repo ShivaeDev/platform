@@ -23,10 +23,10 @@ draftNames.it(
 	function* ({ enterNameStoredAs, shown, storedDraft }) {
 		const name = yield* enterNameStoredAs(defaultMaxBytes + 1);
 
-		yield* outcomes({
-			"shown name": [shown("name"), name],
-			"stored draft": [storedDraft(), undefined],
-		});
+		yield* outcomes([
+			["shown name", () => shown("name"), name],
+			["stored draft", () => storedDraft(), undefined],
+		]);
 	},
 );
 
@@ -50,10 +50,10 @@ draftNames.it(
 
 		yield* reopen({ name: "First" });
 
-		yield* outcomes({
-			"shown name": [shown("name"), "First"],
-			"stored draft": [storedDraft(), undefined],
-		});
+		yield* outcomes([
+			["shown name", () => shown("name"), "First"],
+			["stored draft", () => storedDraft(), undefined],
+		]);
 	},
 );
 
@@ -78,10 +78,10 @@ draftNames.it(
 
 		yield* reopen({ name: "First" });
 
-		yield* outcomes({
-			"shown name": [shown("name"), "First"],
-			"stored draft": [storedDraft(), undefined],
-		});
+		yield* outcomes([
+			["shown name", () => shown("name"), "First"],
+			["stored draft", () => storedDraft(), undefined],
+		]);
 	},
 	{ clock: "test" },
 );

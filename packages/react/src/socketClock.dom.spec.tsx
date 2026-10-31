@@ -30,9 +30,9 @@ socketClockStory.it(
 		yield* passes("1 minute");
 		yield* save();
 
-		yield* outcomes({
-			"shown refusal": [shown(), "The edit window has closed"],
-			"WebSocket handshakes": [handshakes(), 1],
-		});
+		yield* outcomes([
+			["shown refusal", () => shown(), "The edit window has closed"],
+			["WebSocket handshakes", () => handshakes(), 1],
+		]);
 	},
 );

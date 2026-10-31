@@ -10,11 +10,11 @@ host.it(
 	function* ({ adminRpc, handledCalls, responseCacheControl, rpcAnswers }) {
 		yield* adminRpc(["publicRead", "adminRead"], "signed-out caller");
 
-		yield* outcomes({
-			"answers": [rpcAnswers(), { adminRead: "failed with unauthorized", publicRead: "public result" }],
-			"cache control": [responseCacheControl(), "private, no-store"],
-			"handled calls": [handledCalls(), []],
-		});
+		yield* outcomes([
+			["answers", () => rpcAnswers(), { adminRead: "failed with unauthorized", publicRead: "public result" }],
+			["cache control", () => responseCacheControl(), "private, no-store"],
+			["handled calls", () => handledCalls(), []],
+		]);
 	},
 );
 
@@ -53,11 +53,11 @@ for (const { name, body, contentType, status } of [
 		function* ({ handledCalls, rawRpc, responseCacheControl, responseStatus }) {
 			yield* rawRpc(body, contentType);
 
-			yield* outcomes({
-				"cache control": [responseCacheControl(), "private, no-store"],
-				"handled calls": [handledCalls(), []],
-				"status": [responseStatus(), status],
-			});
+			yield* outcomes([
+				["cache control", () => responseCacheControl(), "private, no-store"],
+				["handled calls", () => handledCalls(), []],
+				["status", () => responseStatus(), status],
+			]);
 		},
 	);
 }

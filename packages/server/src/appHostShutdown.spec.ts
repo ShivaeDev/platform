@@ -11,9 +11,9 @@ shutdownHost.it(
 
 		yield* hostDisposes();
 
-		yield* outcomes({
-			http: [httpAnswer(), "refuses connections"],
-			lifecycle: [lifecycle(), ["stream finalized", "host disposed"]],
-		});
+		yield* outcomes([
+			["http", () => httpAnswer(), "refuses connections"],
+			["lifecycle", () => lifecycle(), ["stream finalized", "host disposed"]],
+		]);
 	},
 );

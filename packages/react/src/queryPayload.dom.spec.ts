@@ -39,10 +39,10 @@ queries.it(
 
 		yield* changePayload("third");
 
-		yield* outcomes({
-			"interrupted reads": [interruptedReads(), ["second"]],
-			shown: [shown(), { data: "First payload", failure: "none", status: "refreshing" }],
-		});
+		yield* outcomes([
+			["interrupted reads", () => interruptedReads(), ["second"]],
+			["shown", () => shown(), { data: "First payload", failure: "none", status: "refreshing" }],
+		]);
 	},
 );
 

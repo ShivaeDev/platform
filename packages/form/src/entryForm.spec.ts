@@ -19,11 +19,11 @@ expenses.it(
 
 		yield* refresh(serverRow);
 
-		yield* outcomes({
-			date: [shownDate(), "2026-09-18"],
-			payee: [shown("payee"), "Server payee"],
-			quantity: [shown("quantity"), "3.50"],
-		});
+		yield* outcomes([
+			["date", () => shownDate(), "2026-09-18"],
+			["payee", () => shown("payee"), "Server payee"],
+			["quantity", () => shown("quantity"), "3.50"],
+		]);
 	},
 );
 
@@ -35,13 +35,13 @@ expenses.it(
 
 		yield* revert();
 
-		yield* outcomes({
-			date: [shownDate(), undefined],
-			"entry has a date": [entryHasDate(), false],
-			payee: [shown("payee"), "Server payee"],
-			quantity: [shown("quantity"), "2"],
-			"unsaved changes": [unsavedChanges(), false],
-		});
+		yield* outcomes([
+			["date", () => shownDate(), undefined],
+			["entry has a date", () => entryHasDate(), false],
+			["payee", () => shown("payee"), "Server payee"],
+			["quantity", () => shown("quantity"), "2"],
+			["unsaved changes", () => unsavedChanges(), false],
+		]);
 	},
 );
 

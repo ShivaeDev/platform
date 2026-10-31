@@ -23,10 +23,10 @@ pool.it(
 	function* ({ commitOrderWhileReservedConnectionWatches, seenAfterCommit, seenBeforeCommit }) {
 		yield* commitOrderWhileReservedConnectionWatches();
 
-		yield* outcomes({
-			"orders seen after the commit": [seenAfterCommit(), [1]],
-			"orders seen before the commit": [seenBeforeCommit(), []],
-		});
+		yield* outcomes([
+			["orders seen after the commit", () => seenAfterCommit(), [1]],
+			["orders seen before the commit", () => seenBeforeCommit(), []],
+		]);
 	},
 );
 
@@ -36,9 +36,9 @@ pool.it(
 	function* ({ deliveredInsideTheTransaction, notifyInsideRejectedTransaction, transactionEndings }) {
 		yield* notifyInsideRejectedTransaction();
 
-		yield* outcomes({
-			"notifications delivered inside the transaction": [deliveredInsideTheTransaction(), ["delivered"]],
-			"transaction endings": [transactionEndings(), ["failed with rejected"]],
-		});
+		yield* outcomes([
+			["notifications delivered inside the transaction", () => deliveredInsideTheTransaction(), ["delivered"]],
+			["transaction endings", () => transactionEndings(), ["failed with rejected"]],
+		]);
 	},
 );

@@ -36,16 +36,18 @@ for (const [repairPriority, launchPriority] of [
 			} else {
 				expect(yield* fleet.attemptDispatch("two")).toMatchObject({ message: "waiting for area shared queued ahead by one" });
 				yield* fleet.schedule();
-				yield* outcomes({
-					"the new launch stays queued": [
-						fleet.get("two").pipe(Effect.map(({ value }) => ({ attempts: value.attempts, step: value.step }))),
+				yield* outcomes([
+					[
+						"the new launch stays queued",
+						() => fleet.get("two").pipe(Effect.map(({ value }) => ({ attempts: value.attempts, step: value.step }))),
 						{ attempts: [], step: "queued" },
 					],
-					"the repair takes the area without a blocker": [
-						fleet.get("one").pipe(Effect.map(({ value }) => ({ blocker: value.blocker, role: value.attempts.at(-1)?.role, step: value.step }))),
+					[
+						"the repair takes the area without a blocker",
+						() => fleet.get("one").pipe(Effect.map(({ value }) => ({ blocker: value.blocker, role: value.attempts.at(-1)?.role, step: value.step }))),
 						{ blocker: undefined, role: "repair", step: "working" },
 					],
-				});
+				]);
 			}
 		},
 	);

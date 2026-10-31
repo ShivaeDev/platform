@@ -8,10 +8,11 @@ inbox.it(
 	function* ({ answer, deliver, errorLogs, handledJobs, requestOutcomes, secretsSeenIn }) {
 		yield* deliver("the signed issue 42 delivery");
 
-		yield* outcomes({
-			"answer": [answer(), "503 Service Unavailable"],
-			"error logs": [
-				errorLogs(),
+		yield* outcomes([
+			["answer", () => answer(), "503 Service Unavailable"],
+			[
+				"error logs",
+				() => errorLogs(),
 				[
 					expect.objectContaining({
 						annotations: expect.objectContaining({ errorTag: "SqlError" }),
@@ -20,10 +21,10 @@ inbox.it(
 					}),
 				],
 			],
-			"handled jobs": [handledJobs(), []],
-			"request spans": [requestOutcomes(), [{ failure: expect.stringContaining("SqlError"), outcome: "failed", response: 503 }]],
-			"secrets seen in": [secretsSeenIn(), {}],
-		});
+			["handled jobs", () => handledJobs(), []],
+			["request spans", () => requestOutcomes(), [{ failure: expect.stringContaining("SqlError"), outcome: "failed", response: 503 }]],
+			["secrets seen in", () => secretsSeenIn(), {}],
+		]);
 	},
 );
 
@@ -33,10 +34,11 @@ inbox.it(
 	function* ({ answer, deliver, errorLogs, handledJobs, requestOutcomes, secretsSeenIn, storedReceipts }) {
 		yield* deliver("the signed issue 42 delivery");
 
-		yield* outcomes({
-			"answer": [answer(), "503 Service Unavailable"],
-			"error logs": [
-				errorLogs(),
+		yield* outcomes([
+			["answer", () => answer(), "503 Service Unavailable"],
+			[
+				"error logs",
+				() => errorLogs(),
 				[
 					expect.objectContaining({
 						annotations: expect.objectContaining({ errorTag: "PgBossError" }),
@@ -45,10 +47,10 @@ inbox.it(
 					}),
 				],
 			],
-			"handled jobs": [handledJobs(), []],
-			"request spans": [requestOutcomes(), [{ failure: expect.stringContaining("PgBossError"), outcome: "failed", response: 503 }]],
-			"secrets seen in": [secretsSeenIn(), {}],
-			"stored receipts": [storedReceipts(), []],
-		});
+			["handled jobs", () => handledJobs(), []],
+			["request spans", () => requestOutcomes(), [{ failure: expect.stringContaining("PgBossError"), outcome: "failed", response: 503 }]],
+			["secrets seen in", () => secretsSeenIn(), {}],
+			["stored receipts", () => storedReceipts(), []],
+		]);
 	},
 );

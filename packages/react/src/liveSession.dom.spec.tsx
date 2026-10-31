@@ -11,10 +11,10 @@ liveSessionStory.it(
 
 		yield* rename("Private after denial");
 
-		yield* outcomes({
-			shown: [shown(), "Read denied"],
-			subscribers: [subscribers(), []],
-		});
+		yield* outcomes([
+			["shown", () => shown(), "Read denied"],
+			["subscribers", () => subscribers(), []],
+		]);
 	},
 );
 
@@ -23,18 +23,18 @@ liveSessionStory.it(
 	[],
 	function* ({ reads, recheckedSessions, revokeSession, shown }) {
 		const before = yield* reads();
-		yield* outcomes({
-			"rechecked sessions": [recheckedSessions(), []],
-			shown: [shown(), "First"],
-		});
+		yield* outcomes([
+			["rechecked sessions", () => recheckedSessions(), []],
+			["shown", () => shown(), "First"],
+		]);
 
 		yield* revokeSession();
 
-		yield* outcomes({
-			reads: [reads(), before],
-			"rechecked sessions": [recheckedSessions(), ["signed out"]],
-			shown: [shown(), "Sign in"],
-		});
+		yield* outcomes([
+			["reads", () => reads(), before],
+			["rechecked sessions", () => recheckedSessions(), ["signed out"]],
+			["shown", () => shown(), "Sign in"],
+		]);
 	},
 );
 
@@ -46,10 +46,10 @@ liveSessionStory.it(
 
 		yield* revokeSession();
 
-		yield* outcomes({
-			registries: [registries(), ["empty"]],
-			subscribers: [subscribers(), []],
-		});
+		yield* outcomes([
+			["registries", () => registries(), ["empty"]],
+			["subscribers", () => subscribers(), []],
+		]);
 	},
 );
 
@@ -61,9 +61,9 @@ liveSessionStory.it(
 
 		yield* rename("After sign-in");
 
-		yield* outcomes({
-			registries: [registries(), ["empty", "holds atoms"]],
-			shown: [shown(), "After sign-in"],
-		});
+		yield* outcomes([
+			["registries", () => registries(), ["empty", "holds atoms"]],
+			["shown", () => shown(), "After sign-in"],
+		]);
 	},
 );

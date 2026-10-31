@@ -15,10 +15,10 @@ changeKeys.it(
 			expect(yield* woken()).toEqual([]);
 		});
 
-		yield* outcomes({
-			"published keys": [publishedKeys(), RECORD_1_IN_LIST_1],
-			"woken watchers": [woken(), ["list 1", "owner alice", "record 1"]],
-		});
+		yield* outcomes([
+			["published keys", () => publishedKeys(), RECORD_1_IN_LIST_1],
+			["woken watchers", () => woken(), ["list 1", "owner alice", "record 1"]],
+		]);
 	},
 );
 
@@ -38,10 +38,10 @@ for (const operation of [
 		function* ({ moveRecordThrough, publishedKeys, woken }) {
 			yield* moveRecordThrough(operation);
 
-			yield* outcomes({
-				"published keys": [publishedKeys(), ["listId 1", "listId 2", 'owner "alice"', 'owner "bob"', "record 1", "the table"]],
-				"woken watchers": [woken(), ["list 1", "list 2"]],
-			});
+			yield* outcomes([
+				["published keys", () => publishedKeys(), ["listId 1", "listId 2", 'owner "alice"', 'owner "bob"', "record 1", "the table"]],
+				["woken watchers", () => woken(), ["list 1", "list 2"]],
+			]);
 		},
 	);
 }
@@ -53,10 +53,10 @@ for (const operation of ["delete", "versionedDelete"] as const) {
 		function* ({ deleteRecordThrough, publishedKeys, storedRecords }) {
 			yield* deleteRecordThrough(operation);
 
-			yield* outcomes({
-				"published keys": [publishedKeys(), RECORD_1_IN_LIST_1],
-				"stored records": [storedRecords(), []],
-			});
+			yield* outcomes([
+				["published keys", () => publishedKeys(), RECORD_1_IN_LIST_1],
+				["stored records", () => storedRecords(), []],
+			]);
 		},
 	);
 }
@@ -97,12 +97,13 @@ changeKeys.it(
 	function* ({ insertRecords, publishedKeys, woken }) {
 		yield* insertRecords(1001);
 
-		yield* outcomes({
-			"published keys": [
-				publishedKeys(),
+		yield* outcomes([
+			[
+				"published keys",
+				() => publishedKeys(),
 				["listId 1", 'owner "alice"', "the table", ...Array.from({ length: 1001 }, (_, index) => `record ${index + 1}`)].toSorted(Order.String),
 			],
-			"woken watchers": [woken(), ["list 1"]],
-		});
+			["woken watchers", () => woken(), ["list 1"]],
+		]);
 	},
 );

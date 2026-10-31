@@ -17,11 +17,11 @@ changes.it(
 			yield* rollback();
 		});
 
-		yield* outcomes({
-			"billing's rows": [billing.committedRows(), ["bob's invoice"]],
-			"main's rows": [main.committedRows(), []],
-			"published changes": [published(), [["bob:invoices"]]],
-		});
+		yield* outcomes([
+			["billing's rows", () => billing.committedRows(), ["bob's invoice"]],
+			["main's rows", () => main.committedRows(), []],
+			["published changes", () => published(), [["bob:invoices"]]],
+		]);
 	},
 );
 
@@ -41,11 +41,11 @@ changes.it(
 			yield* rollback();
 		});
 
-		yield* outcomes({
-			"billing's rows": [billing.committedRows(), []],
-			"main's rows": [main.committedRows(), ["ada's order"]],
-			"published changes": [published(), [["ada:orders"]]],
-		});
+		yield* outcomes([
+			["billing's rows", () => billing.committedRows(), []],
+			["main's rows", () => main.committedRows(), ["ada's order"]],
+			["published changes", () => published(), [["ada:orders"]]],
+		]);
 	},
 );
 
@@ -65,10 +65,10 @@ changes.it(
 			yield* rollback();
 		});
 
-		yield* outcomes({
-			"billing's rows": [billing.committedRows(), []],
-			"main's rows": [main.committedRows(), ["ada's order"]],
-			"published changes": [published(), [["ada:orders"]]],
-		});
+		yield* outcomes([
+			["billing's rows", () => billing.committedRows(), []],
+			["main's rows", () => main.committedRows(), ["ada's order"]],
+			["published changes", () => published(), [["ada:orders"]]],
+		]);
 	},
 );

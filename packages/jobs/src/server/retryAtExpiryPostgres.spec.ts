@@ -35,10 +35,10 @@ for (const { cause, error, expireInSeconds } of timeouts) {
 			yield* start("second", [deferringTwice]);
 			yield* untilJob("job", "completed");
 
-			yield* outcomes({
-				"attempts": [attempts(Limited), ["job", "job", "job"]],
-				"job": [job("job"), expect.objectContaining({ retryCount: 2 })],
-			});
+			yield* outcomes([
+				["attempts", () => attempts(Limited), ["job", "job", "job"]],
+				["job", () => job("job"), expect.objectContaining({ retryCount: 2 })],
+			]);
 		},
 	);
 }

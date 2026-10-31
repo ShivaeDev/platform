@@ -24,10 +24,10 @@ database.it(
 		yield* start("app", [interrupting], byPriority);
 		yield* untilInterrupted(Interrupted, 1);
 
-		yield* outcomes({
-			"attempts": [attempts(Interrupted), ["job 0", "job 1"]],
-			"stored states": [storedStates("interrupted"), { "job 0": "completed", "job 1": "active", "job 2": "active" }],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Interrupted), ["job 0", "job 1"]],
+			["stored states", () => storedStates("interrupted"), { "job 0": "completed", "job 1": "active", "job 2": "active" }],
+		]);
 	},
 );
 
@@ -39,10 +39,10 @@ database.it(
 
 		yield* untilSettled(Interrupted, 3);
 
-		yield* outcomes({
-			"job 1": [job("job 1"), expect.objectContaining({ error: "handler execution exceeded 2s", state: "failed" })],
-			"job 2": [job("job 2"), expect.objectContaining({ error: "handler execution exceeded 2s", state: "failed" })],
-			"stored states": [storedStates("interrupted"), { "job 0": "completed", "job 1": "failed", "job 2": "failed" }],
-		});
+		yield* outcomes([
+			["job 1", () => job("job 1"), expect.objectContaining({ error: "handler execution exceeded 2s", state: "failed" })],
+			["job 2", () => job("job 2"), expect.objectContaining({ error: "handler execution exceeded 2s", state: "failed" })],
+			["stored states", () => storedStates("interrupted"), { "job 0": "completed", "job 1": "failed", "job 2": "failed" }],
+		]);
 	},
 );

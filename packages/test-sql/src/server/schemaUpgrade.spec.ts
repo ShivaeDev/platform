@@ -74,10 +74,10 @@ upgrade.it(
 	function* ({ loaderResolutions, runUpgrade, upgradeOutcome }) {
 		yield* runUpgrade();
 
-		yield* outcomes({
-			"loader resolutions": [loaderResolutions(), "never"],
-			"the upgrade": [upgradeOutcome(), "failed with BadState: Migration upgrade checks require an empty migration ledger."],
-		});
+		yield* outcomes([
+			["loader resolutions", () => loaderResolutions(), "never"],
+			["the upgrade", () => upgradeOutcome(), "failed with BadState: Migration upgrade checks require an empty migration ledger."],
+		]);
 	},
 );
 
@@ -93,10 +93,10 @@ upgrade.it(
 	function* ({ appliedMigrations, itemNamesInOldColumn, upgradeOutcome, upgradeWithFailingLaterMigration }) {
 		yield* upgradeWithFailingLaterMigration();
 
-		yield* outcomes({
-			"applied migrations": [appliedMigrations(), [1]],
-			"item names in the old column": [itemNamesInOldColumn(), ["kept"]],
-			"the upgrade": [upgradeOutcome(), 'failed with Failed: Migration "4_broken" failed'],
-		});
+		yield* outcomes([
+			["applied migrations", () => appliedMigrations(), [1]],
+			["item names in the old column", () => itemNamesInOldColumn(), ["kept"]],
+			["the upgrade", () => upgradeOutcome(), 'failed with Failed: Migration "4_broken" failed'],
+		]);
 	},
 );

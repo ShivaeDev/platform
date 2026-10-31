@@ -31,13 +31,13 @@ database.it(
 		yield* open("first");
 		yield* untilHandedOver();
 
-		yield* outcomes({
-			"app queues working": [workingQueues("app"), []],
-			"app timeline": [timeline("app"), ["job 1 finished", "app: Workers paused for another database release"]],
-			"job 1": [job("job 1"), expect.objectContaining({ state: "completed" })],
-			"sibling queues working": [workingQueues("sibling"), []],
-			"sibling timeline": [timeline("sibling"), ["sibling: Workers paused for another database release"]],
-		});
+		yield* outcomes([
+			["app queues working", () => workingQueues("app"), []],
+			["app timeline", () => timeline("app"), ["job 1 finished", "app: Workers paused for another database release"]],
+			["job 1", () => job("job 1"), expect.objectContaining({ state: "completed" })],
+			["sibling queues working", () => workingQueues("sibling"), []],
+			["sibling timeline", () => timeline("sibling"), ["sibling: Workers paused for another database release"]],
+		]);
 	},
 );
 
@@ -60,9 +60,10 @@ database.it(
 			yield* untilJob(as, "completed");
 		}
 
-		yield* outcomes({
-			"app timeline": [
-				timeline("app"),
+		yield* outcomes([
+			[
+				"app timeline",
+				() => timeline("app"),
 				expect.arrayContaining([
 					"app: Workers paused for another database release",
 					"app: Workers resumed for database release",
@@ -70,11 +71,12 @@ database.it(
 					"job 3 finished",
 				]),
 			],
-			"sibling timeline": [
-				timeline("sibling"),
+			[
+				"sibling timeline",
+				() => timeline("sibling"),
 				["sibling: Workers paused for another database release", "sibling: Workers resumed for database release", "job 4 finished"],
 			],
-		});
+		]);
 	},
 );
 

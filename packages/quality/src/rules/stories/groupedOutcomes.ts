@@ -6,7 +6,7 @@ import { storySources } from "./sources.ts";
 import { memberName, syntaxFindings, unwrapped } from "./syntax.ts";
 
 const MESSAGE =
-	'Checks several outcomes with consecutive expect(yield* …) lines. Let the story\'s words lead: yield* outcomes({ "label": [readout, expected], … }) from @shivaedev/test-story/server/outcomes.ts, one row per outcome. Keep a plain expect for a single outcome.';
+	'Checks several outcomes with consecutive expect(yield* …) lines. Let the story\'s words lead: yield* outcomes([["label", () => readout(), expected], …]) from @shivaedev/test-story/server/outcomes.ts, one row per outcome. Keep a plain expect for a single outcome.';
 
 const EXPECT_MODULES = ["vitest", "@effect/vitest"];
 

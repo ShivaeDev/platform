@@ -17,12 +17,12 @@ closedAnswers.it(
 
 		yield* submit();
 
-		yield* outcomes({
-			"answers summary": [answersSummary(), CLOSED_MESSAGE],
-			"closed answer": [answerError("closed"), CLOSED_MESSAGE],
-			"closed answer's id": [answerError("closed", "id"), undefined],
-			"closed answer's text": [answerError("closed", "text"), CLOSED_MESSAGE],
-		});
+		yield* outcomes([
+			["answers summary", () => answersSummary(), CLOSED_MESSAGE],
+			["closed answer", () => answerError("closed"), CLOSED_MESSAGE],
+			["closed answer's id", () => answerError("closed", "id"), undefined],
+			["closed answer's text", () => answerError("closed", "text"), CLOSED_MESSAGE],
+		]);
 	},
 );
 
@@ -34,11 +34,11 @@ closedAnswers.it(
 
 		yield* insertAnswerBefore("first", { id: "inserted", text: closed.text });
 
-		yield* outcomes({
-			"closed answer's text": [answerError("closed", "text"), CLOSED_MESSAGE],
-			"inserted answer's text": [answerError("inserted", "text"), undefined],
-			"second answer's text, now where the closed answer was": [answerError("second", "text"), undefined],
-		});
+		yield* outcomes([
+			["closed answer's text", () => answerError("closed", "text"), CLOSED_MESSAGE],
+			["inserted answer's text", () => answerError("inserted", "text"), undefined],
+			["second answer's text, now where the closed answer was", () => answerError("second", "text"), undefined],
+		]);
 	},
 );
 
@@ -62,10 +62,10 @@ closedAnswers.it(
 
 		yield* moveAnswerToFront("closed");
 
-		yield* outcomes({
-			"closed answer's text": [answerError("closed", "text"), CLOSED_MESSAGE],
-			"second answer's text, now where the closed answer was": [answerError("second", "text"), undefined],
-		});
+		yield* outcomes([
+			["closed answer's text", () => answerError("closed", "text"), CLOSED_MESSAGE],
+			["second answer's text, now where the closed answer was", () => answerError("second", "text"), undefined],
+		]);
 	},
 );
 

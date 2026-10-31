@@ -40,10 +40,10 @@ watch.it(
 
 		yield* timePasses("30 minutes");
 
-		yield* outcomes({
-			"last poll of PR 1": [lastPollAt(1), "00:30:00"],
-			"printed": [printed(), []],
-		});
+		yield* outcomes([
+			["last poll of PR 1", () => lastPollAt(1), "00:30:00"],
+			["printed", () => printed(), []],
+		]);
 	},
 );
 
@@ -57,10 +57,10 @@ watch.it(
 		yield* merges(1);
 		yield* timePasses("4 minutes");
 
-		yield* outcomes({
-			"heartbeats": [heartbeats(), ["00:05:00, next poll 00:06:00"]],
-			"printed": [printed(), ["PR 1 merged", "heartbeat"]],
-		});
+		yield* outcomes([
+			["heartbeats", () => heartbeats(), ["00:05:00, next poll 00:06:00"]],
+			["printed", () => printed(), ["PR 1 merged", "heartbeat"]],
+		]);
 	},
 );
 
@@ -73,10 +73,10 @@ watch.it(
 		yield* interrupt();
 		yield* timePasses("5 minutes");
 
-		yield* outcomes({
-			"PR 1 reads": [pollTimes(1), ["00:00:00"]],
-			"printed": [printed(), ["stopped: interrupted"]],
-		});
+		yield* outcomes([
+			["PR 1 reads", () => pollTimes(1), ["00:00:00"]],
+			["printed", () => printed(), ["stopped: interrupted"]],
+		]);
 	},
 );
 

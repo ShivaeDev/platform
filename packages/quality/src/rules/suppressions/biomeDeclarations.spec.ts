@@ -53,16 +53,17 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides, { declared: [{ includes: ["src/vitest.ts"], reason: REASON, rule: "lint/correctness/noEmptyPattern" }] });
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json:1", "biome.json"]],
-			messages: [
-				messages(),
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json:1", "biome.json"]],
+			[
+				"messages",
+				() => messages(),
 				[
 					expect.stringContaining('Weakens "lint/correctness/noEmptyPattern" for "src/vitest.ts", "src/fixtures.ts" without a declaration.'),
 					'Declares "lint/correctness/noEmptyPattern" for "src/vitest.ts", which no Biome config weakens. Remove the declaration.',
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -72,13 +73,14 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides, { declared: [{ includes: ["src/vitest.ts"], reason: REASON, rule: "lint/suspicious/noExplicitAny" }] });
 
-		yield* outcomes({
-			locations: [locations(), ["biome.json"]],
-			messages: [
-				messages(),
+		yield* outcomes([
+			["locations", () => locations(), ["biome.json"]],
+			[
+				"messages",
+				() => messages(),
 				['Declares "lint/suspicious/noExplicitAny" for "src/vitest.ts", which no Biome config weakens. Remove the declaration.'],
 			],
-		});
+		]);
 	},
 );
 

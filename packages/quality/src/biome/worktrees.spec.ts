@@ -26,11 +26,11 @@ for (const [where, layout] of [
 		function* ({ outcome, runsIn, stdout }) {
 			yield* runsIn("feature", "lint");
 
-			yield* outcomes({
-				"exit": [outcome(), "rejected"],
-				"format finding": [stdout(), expect.stringContaining(UNFORMATTED)],
-				"import order finding": [stdout(), expect.stringContaining("error biome/assist/source/organizeImports (1)")],
-			});
+			yield* outcomes([
+				["exit", () => outcome(), "rejected"],
+				["format finding", () => stdout(), expect.stringContaining(UNFORMATTED)],
+				["import order finding", () => stdout(), expect.stringContaining("error biome/assist/source/organizeImports (1)")],
+			]);
 		},
 		CLI_TIMEOUT,
 	);
@@ -42,10 +42,10 @@ checkoutStory.it(
 	function* ({ commitErrors, commitOutcome, commitsIn }) {
 		yield* commitsIn("feature", "Messy");
 
-		yield* outcomes({
-			"commit": [commitOutcome(), "rejected"],
-			"finding": [commitErrors(), expect.stringContaining(UNFORMATTED)],
-		});
+		yield* outcomes([
+			["commit", () => commitOutcome(), "rejected"],
+			["finding", () => commitErrors(), expect.stringContaining(UNFORMATTED)],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -58,10 +58,10 @@ checkoutStory.it(
 
 		yield* runsIn("feature", "fix");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"file": [readsIn("feature", MESSY.path), FIXED],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["file", () => readsIn("feature", MESSY.path), FIXED],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -83,10 +83,10 @@ checkoutStory.it(
 	function* ({ outcome, readsIn, runs }) {
 		yield* runs("fix");
 
-		yield* outcomes({
-			"exit": [outcome(), "passed"],
-			"file": [readsIn("feature", MESSY.path), MESSY.content],
-		});
+		yield* outcomes([
+			["exit", () => outcome(), "passed"],
+			["file", () => readsIn("feature", MESSY.path), MESSY.content],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -98,11 +98,11 @@ for (const command of ["lint", "fix"]) {
 		function* ({ outcome, runsIn, stderr }) {
 			yield* runsIn("feature", command);
 
-			yield* outcomes({
-				"exit": [outcome(), "invalid"],
-				"explanation": [stderr(), expect.stringContaining("exited 1 without a failing diagnostic:")],
-				"message": [stderr(), expect.stringContaining("No files were processed in the specified paths.")],
-			});
+			yield* outcomes([
+				["exit", () => outcome(), "invalid"],
+				["explanation", () => stderr(), expect.stringContaining("exited 1 without a failing diagnostic:")],
+				["message", () => stderr(), expect.stringContaining("No files were processed in the specified paths.")],
+			]);
 		},
 		CLI_TIMEOUT,
 	);

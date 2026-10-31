@@ -14,10 +14,10 @@ baselineStory.it(
 
 		yield* runs("baseline", "tighten", "--staged");
 
-		yield* outcomes({
-			"recorded debt": [recorded(), ["src/longer.ts structure/max-lines 3"]],
-			"report": [stdout(), "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n"],
-		});
+		yield* outcomes([
+			["recorded debt", () => recorded(), ["src/longer.ts structure/max-lines 3"]],
+			["report", () => stdout(), "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -30,10 +30,10 @@ baselineStory.it(
 
 		yield* runs("baseline", "tighten");
 
-		yield* outcomes({
-			"recorded debt": [recorded(), ["src/longer.ts structure/max-lines 2"]],
-			"report": [stdout(), "quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n"],
-		});
+		yield* outcomes([
+			["recorded debt", () => recorded(), ["src/longer.ts structure/max-lines 2"]],
+			["report", () => stdout(), "quality: removed 1 entry and lowered 1 entry in quality-baseline.jsonl.\n"],
+		]);
 	},
 	CLI_TIMEOUT,
 );
@@ -46,10 +46,10 @@ baselineStory.it(
 
 		yield* runs("baseline", "tighten", "--staged");
 
-		yield* outcomes({
-			"recorded debt": [recorded(), ["src/long.ts structure/max-lines 1"]],
-			"report": [stdout(), "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n"],
-		});
+		yield* outcomes([
+			["recorded debt", () => recorded(), ["src/long.ts structure/max-lines 1"]],
+			["report", () => stdout(), "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n"],
+		]);
 	},
 	CLI_TIMEOUT,
 );

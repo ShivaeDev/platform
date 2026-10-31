@@ -76,13 +76,15 @@ workspace.it(
 	function* ({ apply, changelog, todayInUtc }) {
 		const answer = yield* apply();
 
-		yield* outcomes({
-			"collected changelog": [
-				changelog("@test/dev"),
+		yield* outcomes([
+			[
+				"collected changelog",
+				() => changelog("@test/dev"),
 				`# Changelog\n\n## 1.0.1 - ${yield* todayInUtc()}\n\n### Quality rules\n\n- \`tests/story-specs\`: now includes nested suites. Record findings with \`quality baseline write --rule tests/story-specs\`; fix them by moving setup and actions into a story kit.\n\n## 0.2.3 - 2026-01-01\n\n### Fixed\n\n- Released history.\n`,
 			],
-			"migration notes": [
-				Effect.succeed(answer),
+			[
+				"migration notes",
+				() => Effect.succeed(answer),
 				[
 					"## Migration checklist",
 					"",
@@ -92,7 +94,7 @@ workspace.it(
 					"@test/dev: 1.0.0 -> 1.0.1 (patch)",
 				],
 			],
-		});
+		]);
 	},
 );
 

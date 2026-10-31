@@ -22,8 +22,8 @@ driverScreen.it(
 driverScreen.it("entering text updates the controlled React field and the draft it renders", [], function* ({ enter, fieldValue, renderedDraft }) {
 	yield* enter("input", "New draft");
 
-	yield* outcomes({
-		"field value": [fieldValue(), "New draft"],
-		"rendered draft": [renderedDraft(), "New draft"],
-	});
+	yield* outcomes([
+		["field value", () => fieldValue(), "New draft"],
+		["rendered draft", () => renderedDraft(), "New draft"],
+	]);
 });

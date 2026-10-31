@@ -11,9 +11,9 @@ database.it(
 
 		yield* buildItemsServiceAndRename("isolated", "the isolated block");
 
-		yield* outcomes({
-			"items in the clone": [items("the isolated block"), ["isolated"]],
-			"items in the shared database": [items("the shared database"), ["seed"]],
-		});
+		yield* outcomes([
+			["items in the clone", () => items("the isolated block"), ["isolated"]],
+			["items in the shared database", () => items("the shared database"), ["seed"]],
+		]);
 	},
 );

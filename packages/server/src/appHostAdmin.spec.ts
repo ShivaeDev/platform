@@ -43,14 +43,15 @@ for (const { caller, name, traits, status, refusal } of [
 		function* ({ adminRpc, handledCalls, responseCacheControl, rpcAnswers }) {
 			yield* adminRpc(["adminRead", "adminReject", "adminStream"], caller);
 
-			yield* outcomes({
-				"answers": [
-					rpcAnswers(),
+			yield* outcomes([
+				[
+					"answers",
+					() => rpcAnswers(),
 					{ adminRead: `failed with ${refusal}`, adminReject: `failed with ${refusal}`, adminStream: `failed with ${refusal}` },
 				],
-				"cache control": [responseCacheControl(), "private, no-store"],
-				"handled calls": [handledCalls(), []],
-			});
+				["cache control", () => responseCacheControl(), "private, no-store"],
+				["handled calls", () => handledCalls(), []],
+			]);
 		},
 	);
 }
@@ -108,10 +109,10 @@ host.it(
 		yield* memberLosesAdmin();
 
 		yield* adminRpc(["adminRead"], "member");
-		yield* outcomes({
-			"answers": [rpcAnswers(), { adminRead: "failed with forbidden" }],
-			"cache control": [responseCacheControl(), "private, no-store"],
-			"handled calls": [handledCalls(), ["adminRead"]],
-		});
+		yield* outcomes([
+			["answers", () => rpcAnswers(), { adminRead: "failed with forbidden" }],
+			["cache control", () => responseCacheControl(), "private, no-store"],
+			["handled calls", () => handledCalls(), ["adminRead"]],
+		]);
 	},
 );

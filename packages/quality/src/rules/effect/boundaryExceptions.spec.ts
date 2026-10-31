@@ -19,10 +19,10 @@ for (const rule of ["effect/boundary", "effect/service-parameters"]) {
 		function* ({ outcome, runs, stdout }) {
 			yield* runs("lint");
 
-			yield* outcomes({
-				"exit": [outcome(), "rejected"],
-				"report": [stdout(), expect.stringContaining(`${rule} src/value.ts names a rule that takes no exceptions`)],
-			});
+			yield* outcomes([
+				["exit", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining(`${rule} src/value.ts names a rule that takes no exceptions`)],
+			]);
 		},
 		CLI_TIMEOUT,
 	);
@@ -60,12 +60,12 @@ repositoryStory.it(
 	function* ({ runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes({
-			"console": [stdout(), expect.stringContaining("console.* is banned")],
-			"process.env": [stdout(), expect.stringContaining("process.env is banned")],
-			"randomness": [stdout(), expect.stringContaining("Ambient randomness is banned")],
-			"time": [stdout(), expect.stringContaining("Ambient time is banned")],
-		});
+		yield* outcomes([
+			["console", () => stdout(), expect.stringContaining("console.* is banned")],
+			["process.env", () => stdout(), expect.stringContaining("process.env is banned")],
+			["randomness", () => stdout(), expect.stringContaining("Ambient randomness is banned")],
+			["time", () => stdout(), expect.stringContaining("Ambient time is banned")],
+		]);
 	},
 	CLI_TIMEOUT,
 );

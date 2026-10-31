@@ -23,10 +23,10 @@ repositoryStory.it(
 
 		yield* runs("baseline", "write", "--rule", "effect/boundary", "--first-adoption");
 
-		yield* outcomes({
-			"adoption": [outcome(), "passed"],
-			"recorded debt": [reads("quality-baseline.jsonl"), '{"path":"src/work.ts","rule":"effect/boundary","count":4}\n'],
-		});
+		yield* outcomes([
+			["adoption", () => outcome(), "passed"],
+			["recorded debt", () => reads("quality-baseline.jsonl"), '{"path":"src/work.ts","rule":"effect/boundary","count":4}\n'],
+		]);
 		yield* runs("lint");
 		expect(yield* outcome()).toBe("passed");
 	},
@@ -40,10 +40,10 @@ for (const rules of [[], ["--rule", "structure/max-lines"]]) {
 		function* ({ outcome, runs, stderr }) {
 			yield* runs("baseline", "write", "--first-adoption", ...rules);
 
-			yield* outcomes({
-				"exit": [outcome(), "invalid"],
-				"reason": [stderr(), expect.stringContaining("--first-adoption requires explicit --rule ids that refuse config exceptions")],
-			});
+			yield* outcomes([
+				["exit", () => outcome(), "invalid"],
+				["reason", () => stderr(), expect.stringContaining("--first-adoption requires explicit --rule ids that refuse config exceptions")],
+			]);
 		},
 		CLI_TIMEOUT,
 	);

@@ -36,11 +36,11 @@ for (const { concurrency, name, options } of settings) {
 			yield* start("app", [worker(Backlog, { waitsUntilRunning: concurrency })], { useListenNotify: true });
 			yield* untilFinished(Backlog, ids.length);
 
-			yield* outcomes({
-				"attempts": [attemptCounts(Backlog), Object.fromEntries(ids.map((id) => [`job ${id}`, 1]))],
-				"drained": [drained("app", Backlog), "before the worker's next poll"],
-				"most running at once": [mostRunningAtOnce(Backlog), concurrency],
-			});
+			yield* outcomes([
+				["attempts", () => attemptCounts(Backlog), Object.fromEntries(ids.map((id) => [`job ${id}`, 1]))],
+				["drained", () => drained("app", Backlog), "before the worker's next poll"],
+				["most running at once", () => mostRunningAtOnce(Backlog), concurrency],
+			]);
 		},
 	);
 }

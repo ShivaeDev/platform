@@ -40,11 +40,11 @@ sessionsScreen.it(
 	function* ({ requestRevoke, shownSessions, confirmation, confirmationFocused }) {
 		yield* requestRevoke("bob");
 
-		yield* outcomes({
-			confirmation: [confirmation(), expect.stringContaining("End the session for bob@app.test?")],
-			focused: [confirmationFocused(), true],
-			sessions: [shownSessions(), [alice, bob]],
-		});
+		yield* outcomes([
+			["confirmation", () => confirmation(), expect.stringContaining("End the session for bob@app.test?")],
+			["focused", () => confirmationFocused(), true],
+			["sessions", () => shownSessions(), [alice, bob]],
+		]);
 	},
 );
 
@@ -56,7 +56,10 @@ sessionsScreen.it(
 
 		yield* cancelRevoke();
 
-		yield* outcomes({ confirmation: [confirmation(), "no confirmation"], sessions: [shownSessions(), [alice, bob]] });
+		yield* outcomes([
+			["confirmation", () => confirmation(), "no confirmation"],
+			["sessions", () => shownSessions(), [alice, bob]],
+		]);
 	},
 );
 
@@ -90,7 +93,10 @@ sessionsScreen.it(
 	"a viewer without the sessions permission is refused without showing sessions",
 	[unprivilegedViewer, sessionsViewOpen],
 	function* ({ content, shownSessions }) {
-		yield* outcomes({ content: [content(), "Permission required to manage sessions."], sessions: [shownSessions(), []] });
+		yield* outcomes([
+			["content", () => content(), "Permission required to manage sessions."],
+			["sessions", () => shownSessions(), []],
+		]);
 	},
 );
 

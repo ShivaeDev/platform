@@ -7,13 +7,13 @@ vitestRunner.it(
 	function* ({ runConsumerStories, consumerOutcomes, itemsSeen }) {
 		yield* runConsumerStories();
 
-		yield* outcomes({
-			"the consumer's stories": [consumerOutcomes(), ["passed", "passed", "passed"]],
-			"the first story's body saw": [itemsSeen("the first story", "body"), ["body", "harness"]],
-			"the first story's harness saw": [itemsSeen("the first story", "harness"), ["seed"]],
-			"the next story's body saw": [itemsSeen("the next story", "body"), ["seed", "harness"]],
-			"the next story's harness saw": [itemsSeen("the next story", "harness"), ["seed"]],
-		});
+		yield* outcomes([
+			["the consumer's stories", () => consumerOutcomes(), ["passed", "passed", "passed"]],
+			["the first story's body saw", () => itemsSeen("the first story", "body"), ["body", "harness"]],
+			["the first story's harness saw", () => itemsSeen("the first story", "harness"), ["seed"]],
+			["the next story's body saw", () => itemsSeen("the next story", "body"), ["seed", "harness"]],
+			["the next story's harness saw", () => itemsSeen("the next story", "harness"), ["seed"]],
+		]);
 	},
 	30_000,
 );
@@ -24,13 +24,13 @@ vitestRunner.it(
 	function* ({ runConsumerStories, consumerOutcomes, isolatedBlockSaw, itemsSeen }) {
 		yield* runConsumerStories();
 
-		yield* outcomes({
-			"another connection to the block's database": [isolatedBlockSaw("another connection"), ["committed"]],
-			"the block's starting items": [isolatedBlockSaw("its starting items"), ["seed"]],
-			"the block's transaction": [isolatedBlockSaw("a transaction"), "none"],
-			"the consumer's stories": [consumerOutcomes(), ["passed", "passed", "passed"]],
-			"the rollback story afterwards": [itemsSeen("the isolated story", "body"), ["seed", "harness"]],
-		});
+		yield* outcomes([
+			["another connection to the block's database", () => isolatedBlockSaw("another connection"), ["committed"]],
+			["the block's starting items", () => isolatedBlockSaw("its starting items"), ["seed"]],
+			["the block's transaction", () => isolatedBlockSaw("a transaction"), "none"],
+			["the consumer's stories", () => consumerOutcomes(), ["passed", "passed", "passed"]],
+			["the rollback story afterwards", () => itemsSeen("the isolated story", "body"), ["seed", "harness"]],
+		]);
 	},
 	30_000,
 );

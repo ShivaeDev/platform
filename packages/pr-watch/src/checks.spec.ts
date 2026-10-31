@@ -105,11 +105,11 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"poll": [lastPoll(), "failed: GitHub HTTP 500 (GET /repos/acme/project/checks)"],
-			"printed": [printed(), []],
-			"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
-		});
+		yield* outcomes([
+			["poll", () => lastPoll(), "failed: GitHub HTTP 500 (GET /repos/acme/project/checks)"],
+			["printed", () => printed(), []],
+			["saved snapshot of PR 1", () => savedSnapshot(1), "open, auto-merge"],
+		]);
 	},
 );
 
@@ -121,11 +121,11 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"poll": [lastPoll(), "failed: GitHub request failed: PaginationLinkError"],
-			"printed": [printed(), []],
-			"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
-		});
+		yield* outcomes([
+			["poll", () => lastPoll(), "failed: GitHub request failed: PaginationLinkError"],
+			["printed", () => printed(), []],
+			["saved snapshot of PR 1", () => savedSnapshot(1), "open, auto-merge"],
+		]);
 	},
 );
 

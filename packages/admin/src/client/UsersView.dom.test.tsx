@@ -18,10 +18,10 @@ usersScreen.it(
 	"a caller who cannot assign roles sees alice's name, email, role and sign-up time on the first page, with no role control",
 	[cannotAssignRoles, viewOpen],
 	function* ({ roleChoices, shownUsers }) {
-		yield* outcomes({
-			"alice's role control": [roleChoices("Alice"), "no role control"],
-			"shown users": [shownUsers(), [alice]],
-		});
+		yield* outcomes([
+			["alice's role control", () => roleChoices("Alice"), "no role control"],
+			["shown users", () => shownUsers(), [alice]],
+		]);
 	},
 );
 
@@ -33,10 +33,10 @@ usersScreen.it(
 
 		yield* nextUsers();
 
-		yield* outcomes({
-			"next users": [nextUsersButton(), "disabled"],
-			"shown users": [shownUsers(), [bob]],
-		});
+		yield* outcomes([
+			["next users", () => nextUsersButton(), "disabled"],
+			["shown users", () => shownUsers(), [bob]],
+		]);
 	},
 );
 
@@ -60,11 +60,11 @@ usersScreen.it(
 
 		yield* chooseRole("Alice", "auditor");
 
-		yield* outcomes({
-			"alice's role control": [roleControl("Alice"), "enabled"],
-			"sent changes": [requests(), [{ role: "auditor", userId: "alice" }]],
-			"shown users": [shownUsers(), [{ ...alice, role: "auditor" }]],
-		});
+		yield* outcomes([
+			["alice's role control", () => roleControl("Alice"), "enabled"],
+			["sent changes", () => requests(), [{ role: "auditor", userId: "alice" }]],
+			["shown users", () => shownUsers(), [{ ...alice, role: "auditor" }]],
+		]);
 	},
 );
 
@@ -78,10 +78,10 @@ for (const [refusal, message] of [
 		function* ({ alert, chooseRole, shownUsers }) {
 			yield* chooseRole("Alice", "admin");
 
-			yield* outcomes({
-				alert: [alert(), message],
-				"shown users": [shownUsers(), [alice]],
-			});
+			yield* outcomes([
+				["alert", () => alert(), message],
+				["shown users", () => shownUsers(), [alice]],
+			]);
 		},
 	);
 }

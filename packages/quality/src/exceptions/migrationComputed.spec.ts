@@ -29,18 +29,19 @@ for (const quote of ['"', "`"]) {
 		function* ({ config, outcome, reads, runs }) {
 			yield* runs("exceptions", "migrate");
 
-			yield* outcomes({
-				"config": [
-					config(),
+			yield* outcomes([
+				[
+					"config",
+					() => config(),
 					{
 						exceptions: [{ files: [FILE], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny", "comments/no-jsdoc"] }],
 						rules: { "comments/no-jsdoc": {} },
 						sources: ["src"],
 					},
 				],
-				"exit": [outcome(), "passed"],
-				"registry": [reads(REGISTRY.path), undefined],
-			});
+				["exit", () => outcome(), "passed"],
+				["registry", () => reads(REGISTRY.path), undefined],
+			]);
 		},
 		CLI_TIMEOUT,
 	);
@@ -68,11 +69,11 @@ for (const [computed, properties] of [
 
 			yield* runs("exceptions", "migrate");
 
-			yield* outcomes({
-				"error": [stderr(), expect.stringContaining("computed property")],
-				"exit": [outcome(), "invalid"],
-				"files": [files(), before],
-			});
+			yield* outcomes([
+				["error", () => stderr(), expect.stringContaining("computed property")],
+				["exit", () => outcome(), "invalid"],
+				["files", () => files(), before],
+			]);
 		},
 		CLI_TIMEOUT,
 	);

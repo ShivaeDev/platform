@@ -10,10 +10,10 @@ for (const [title, role, owner, shown, enforced] of [
 	["alice as a guest, owning her record but holding no grant, is not shown it and is refused it as forbidden", "guest", "alice", false, "forbidden"],
 ] as const) {
 	accessStory.it(title, [signedIn(role)], function* ({ checkRead, enforceRead }) {
-		yield* outcomes({
-			"enforcement of reading": [enforceRead(owner), enforced],
-			"the check for reading": [checkRead(owner), shown],
-		});
+		yield* outcomes([
+			["enforcement of reading", () => enforceRead(owner), enforced],
+			["the check for reading", () => checkRead(owner), shown],
+		]);
 	});
 }
 

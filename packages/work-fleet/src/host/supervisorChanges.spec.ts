@@ -44,12 +44,12 @@ for (const kind of ["loaded", "burst"] as const) {
 			yield* fleet.codeSettled("daemon");
 
 			const after = yield* fleet.running();
-			yield* outcomes({
-				"board process": [fleet.state().pipe(Effect.map((state) => state?.board)), before.board],
-				"daemon response": [fleet.request(after, "daemon").pipe(Effect.map(({ status }) => status)), HttpStatus.fromLiteral("Created")],
-				"daemon restarts": [fleet.state().pipe(Effect.map((state) => state?.daemon.restarts)), before.daemon.restarts + 1],
-				"replacement daemon": [fleet.runningPid("daemon").pipe(Effect.map((pid) => pid !== before.daemon.pid)), true],
-			});
+			yield* outcomes([
+				["board process", () => fleet.state().pipe(Effect.map((state) => state?.board)), before.board],
+				["daemon response", () => fleet.request(after, "daemon").pipe(Effect.map(({ status }) => status)), HttpStatus.fromLiteral("Created")],
+				["daemon restarts", () => fleet.state().pipe(Effect.map((state) => state?.daemon.restarts)), before.daemon.restarts + 1],
+				["replacement daemon", () => fleet.runningPid("daemon").pipe(Effect.map((pid) => pid !== before.daemon.pid)), true],
+			]);
 		},
 		60_000,
 	);

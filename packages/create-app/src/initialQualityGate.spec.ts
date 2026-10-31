@@ -14,13 +14,13 @@ for (const flags of [[], ["--minimal"]] as const) {
 		function* ({ baselineEntriesFor, commits, createApp, preCommitHook, qualityGateSaw, setupSaw }) {
 			yield* createApp("my-app", ...flags);
 
-			yield* outcomes({
-				commits: [commits(), ["Create App <create-app@localhost>: Initialize a generated app"]],
-				"fixed debt": [baselineEntriesFor("src/client/LabelledSwitch.tsx"), []],
-				"pre-commit hook": [preCommitHook(), "Quality's hook"],
-				"setup saw": [setupSaw(), { commit: "no commit", staged: [] }],
-				"the gate saw staged": [qualityGateSaw(), STAGED_FOR_THE_GATE],
-			});
+			yield* outcomes([
+				["commits", () => commits(), ["Create App <create-app@localhost>: Initialize a generated app"]],
+				["fixed debt", () => baselineEntriesFor("src/client/LabelledSwitch.tsx"), []],
+				["pre-commit hook", () => preCommitHook(), "Quality's hook"],
+				["setup saw", () => setupSaw(), { commit: "no commit", staged: [] }],
+				["the gate saw staged", () => qualityGateSaw(), STAGED_FOR_THE_GATE],
+			]);
 		},
 		GATE_TIMEOUT,
 	);
@@ -34,10 +34,10 @@ application.it(
 
 		yield* pnpm("run", "setup");
 
-		yield* outcomes({
-			"pnpm run setup": [scriptResult(), "passed"],
-			"pre-commit hook": [preCommitHook(), "Quality's hook"],
-		});
+		yield* outcomes([
+			["pnpm run setup", () => scriptResult(), "passed"],
+			["pre-commit hook", () => preCommitHook(), "Quality's hook"],
+		]);
 	},
 	GATE_TIMEOUT,
 );
@@ -48,11 +48,15 @@ application.it(
 	function* ({ answer, commits, createApp, qualityGateSaw }) {
 		yield* createApp("my-app");
 
-		yield* outcomes({
-			answer: [answer(), "create-app: git commit -m 'Initialize a generated app' failed (exit 1). The generated files remain in <workspace>/my-app."],
-			commits: [commits(), []],
-			"the gate saw staged": [qualityGateSaw(), STAGED_FOR_THE_GATE],
-		});
+		yield* outcomes([
+			[
+				"answer",
+				() => answer(),
+				"create-app: git commit -m 'Initialize a generated app' failed (exit 1). The generated files remain in <workspace>/my-app.",
+			],
+			["commits", () => commits(), []],
+			["the gate saw staged", () => qualityGateSaw(), STAGED_FOR_THE_GATE],
+		]);
 	},
 	GATE_TIMEOUT,
 );
@@ -63,11 +67,11 @@ application.it(
 	function* ({ answer, createApp, enclosingHook, exists }) {
 		yield* createApp("my-app");
 
-		yield* outcomes({
-			answer: [answer(), "created"],
-			"enclosing pre-commit hook": [enclosingHook(), "no hook"],
-			"node_modules": [exists("node_modules"), true],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "created"],
+			["enclosing pre-commit hook", () => enclosingHook(), "no hook"],
+			["node_modules", () => exists("node_modules"), true],
+		]);
 	},
 	GATE_TIMEOUT,
 );

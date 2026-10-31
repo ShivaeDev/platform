@@ -18,15 +18,16 @@ areaOrder.it(
 		const ready = yield* reconcile("two");
 
 		expect(ready.value.decision?.code).toBe("reviewed-pr-ready");
-		yield* outcomes({
-			"red PR's stored merge order": [
-				get("one"),
+		yield* outcomes([
+			[
+				"red PR's stored merge order",
+				() => get("one"),
 				expect.objectContaining({
 					value: expect.objectContaining({ predictedConflictHold: expect.objectContaining({ prs: ["https://example.invalid/pr/two"] }) }),
 				}),
 			],
-			"status": [statusText(), expect.not.stringContaining("Stuck: wait cycle")],
-		});
+			["status", () => statusText(), expect.not.stringContaining("Stuck: wait cycle")],
+		]);
 		yield* restart();
 		expect((yield* reconcile("two")).value.predictedConflictHold).toBeUndefined();
 	},

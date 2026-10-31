@@ -8,11 +8,11 @@ lockStory.it(
 	function* ({ holderIdGivenTo, lock, starts, stateOf }) {
 		yield* starts("ready");
 
-		yield* outcomes({
-			"lock holder": [lock.holder(), "typecheck"],
-			"ready": [stateOf("ready"), "running"],
-			"ready's holder id": [holderIdGivenTo("ready"), "no holder id"],
-		});
+		yield* outcomes([
+			["lock holder", () => lock.holder(), "typecheck"],
+			["ready", () => stateOf("ready"), "running"],
+			["ready's holder id", () => holderIdGivenTo("ready"), "no holder id"],
+		]);
 	},
 );
 
@@ -28,11 +28,11 @@ lockStory.it(
 	function* ({ holderIdGivenTo, lock, starts, stateOf }) {
 		yield* starts("ready");
 
-		yield* outcomes({
-			"lock holder": [lock.holder(), "build"],
-			"ready": [stateOf("ready"), "running"],
-			"ready's holder id": [holderIdGivenTo("ready"), "build's holder id"],
-		});
+		yield* outcomes([
+			["lock holder", () => lock.holder(), "build"],
+			["ready", () => stateOf("ready"), "running"],
+			["ready's holder id", () => holderIdGivenTo("ready"), "build's holder id"],
+		]);
 	},
 );
 
@@ -54,10 +54,10 @@ lockStory.it(
 	function* ({ holderIdGivenTo, lock, starts }) {
 		yield* starts("ready");
 
-		yield* outcomes({
-			"lock holder": [lock.holder(), "ready"],
-			"ready's holder id": [holderIdGivenTo("ready"), "ready's holder id"],
-		});
+		yield* outcomes([
+			["lock holder", () => lock.holder(), "ready"],
+			["ready's holder id", () => holderIdGivenTo("ready"), "ready's holder id"],
+		]);
 	},
 );
 
@@ -67,11 +67,11 @@ lockStory.it(
 	function* ({ holderIdGivenTo, lock, starts, stateOf }) {
 		yield* starts("lint", { inside: "ready" });
 
-		yield* outcomes({
-			"lint": [stateOf("lint"), "running"],
-			"lint's holder id": [holderIdGivenTo("lint"), "ready's holder id"],
-			"lock holder": [lock.holder(), "ready"],
-		});
+		yield* outcomes([
+			["lint", () => stateOf("lint"), "running"],
+			["lint's holder id", () => holderIdGivenTo("lint"), "ready's holder id"],
+			["lock holder", () => lock.holder(), "ready"],
+		]);
 	},
 );
 
@@ -103,10 +103,10 @@ lockStory.it(
 
 		yield* fails("ready", "build failed");
 
-		yield* outcomes({
-			"lock holder": [lock.holder(), "nobody"],
-			"ready": [stateOf("ready"), 'failed with "build failed"'],
-		});
+		yield* outcomes([
+			["lock holder", () => lock.holder(), "nobody"],
+			["ready", () => stateOf("ready"), 'failed with "build failed"'],
+		]);
 	},
 );
 
@@ -118,10 +118,10 @@ lockStory.it(
 
 		yield* interrupts("ready");
 
-		yield* outcomes({
-			"lock holder": [lock.holder(), "nobody"],
-			"ready": [stateOf("ready"), "interrupted"],
-		});
+		yield* outcomes([
+			["lock holder", () => lock.holder(), "nobody"],
+			["ready", () => stateOf("ready"), "interrupted"],
+		]);
 	},
 );
 

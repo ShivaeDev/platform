@@ -20,10 +20,10 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 			yield* close();
 
-			yield* outcomes({
-				"leaked secrets": [exportMentions("hidden-", "second-line", "PRIVATE KEY"), []],
-				"masked text": [exportMentions(...masked), masked],
-			});
+			yield* outcomes([
+				["leaked secrets", () => exportMentions("hidden-", "second-line", "PRIVATE KEY"), []],
+				["masked text", () => exportMentions(...masked), masked],
+			]);
 		},
 	);
 }

@@ -16,10 +16,10 @@ for (const [method, status] of [
 		function* ({ adminHandlerRequests, openAdminTools }) {
 			const response = yield* openAdminTools(method);
 
-			yield* outcomes({
-				"admin handler requests": [adminHandlerRequests(), [method]],
-				response: [Effect.succeed(response), { body: ADMIN_TOOLS, status }],
-			});
+			yield* outcomes([
+				["admin handler requests", () => adminHandlerRequests(), [method]],
+				["response", () => Effect.succeed(response), { body: ADMIN_TOOLS, status }],
+			]);
 		},
 	);
 }
@@ -50,10 +50,10 @@ auth.it(
 	function* ({ adminHandlerRequests, failSessionProvider, openAdminTools }) {
 		yield* failSessionProvider();
 
-		yield* outcomes({
-			"admin route": [openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("ServiceUnavailable") })],
-			"handler requests": [adminHandlerRequests(), []],
-		});
+		yield* outcomes([
+			["admin route", () => openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("ServiceUnavailable") })],
+			["handler requests", () => adminHandlerRequests(), []],
+		]);
 	},
 );
 
@@ -65,10 +65,10 @@ auth.it(
 
 		yield* setRole("user");
 
-		yield* outcomes({
-			"admin route": [openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Forbidden") })],
-			"handler requests": [adminHandlerRequests(), ["GET"]],
-		});
+		yield* outcomes([
+			["admin route", () => openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Forbidden") })],
+			["handler requests", () => adminHandlerRequests(), ["GET"]],
+		]);
 	},
 );
 

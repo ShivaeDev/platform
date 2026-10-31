@@ -18,10 +18,10 @@ sessionScreens.it(
 	function* ({ draft, sessionRegistries, showAgain }) {
 		yield* showAgain();
 
-		yield* outcomes({
-			"alice's draft": [draft(), "Alice draft"],
-			"sessions with a registry": [sessionRegistries(), ["alice-1"]],
-		});
+		yield* outcomes([
+			["alice's draft", () => draft(), "Alice draft"],
+			["sessions with a registry", () => sessionRegistries(), ["alice-1"]],
+		]);
 	},
 );
 
@@ -33,11 +33,11 @@ sessionScreens.it(
 
 		yield* signIn("bob");
 
-		yield* outcomes({
-			"alice's atoms": [heldAtoms("alice-1"), 0],
-			"bob's draft": [draft(), "Desk lamps"],
-			"shown order": [shownOrder(), "Desk lamps / 200"],
-		});
+		yield* outcomes([
+			["alice's atoms", () => heldAtoms("alice-1"), 0],
+			["bob's draft", () => draft(), "Desk lamps"],
+			["shown order", () => shownOrder(), "Desk lamps / 200"],
+		]);
 	},
 );
 
@@ -49,10 +49,10 @@ sessionScreens.it(
 
 		yield* signOut();
 
-		yield* outcomes({
-			"alice's atoms": [heldAtoms("alice-1"), 0],
-			screen: [screenText(), "Signed out"],
-		});
+		yield* outcomes([
+			["alice's atoms", () => heldAtoms("alice-1"), 0],
+			["screen", () => screenText(), "Signed out"],
+		]);
 	},
 );
 
@@ -64,10 +64,10 @@ sessionScreens.it(
 
 		yield* signIn("alice");
 
-		yield* outcomes({
-			"alice's draft": [draft(), "Printer paper"],
-			"sessions with a registry": [sessionRegistries(), ["alice-1", "alice-2"]],
-		});
+		yield* outcomes([
+			["alice's draft", () => draft(), "Printer paper"],
+			["sessions with a registry", () => sessionRegistries(), ["alice-1", "alice-2"]],
+		]);
 	},
 );
 
@@ -87,12 +87,12 @@ sessionScreens.it(
 
 		yield* refresh();
 
-		yield* outcomes({
-			alert: [alert(), "Could not load your order. Try again."],
-			"alice's draft": [draft(), "Unsaved order"],
-			rechecks: [rechecks(), ["alice-1"]],
-			"shown order": [shownOrder(), "Printer paper / 300"],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "Could not load your order. Try again."],
+			["alice's draft", () => draft(), "Unsaved order"],
+			["rechecks", () => rechecks(), ["alice-1"]],
+			["shown order", () => shownOrder(), "Printer paper / 300"],
+		]);
 	},
 );
 
@@ -105,10 +105,10 @@ sessionScreens.it(
 
 		yield* refresh();
 
-		yield* outcomes({
-			alert: [alert(), "no alert"],
-			"alice's draft": [draft(), "Unsaved order"],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "no alert"],
+			["alice's draft", () => draft(), "Unsaved order"],
+		]);
 	},
 );
 
@@ -116,10 +116,10 @@ strictSessions.it(
 	"under StrictMode a signed-in session keeps its value and registry after React replays its effects",
 	[strictSignedIn()],
 	function* ({ registry, shown }) {
-		yield* outcomes({
-			registry: [registry(), "holds atoms"],
-			shown: [shown(), "draft-1:42"],
-		});
+		yield* outcomes([
+			["registry", () => registry(), "holds atoms"],
+			["shown", () => shown(), "draft-1:42"],
+		]);
 	},
 );
 
@@ -131,10 +131,10 @@ strictSessions.it(
 
 		yield* signOut();
 
-		yield* outcomes({
-			registry: [registry(), "empty"],
-			shown: [shown(), ""],
-		});
+		yield* outcomes([
+			["registry", () => registry(), "empty"],
+			["shown", () => shown(), ""],
+		]);
 	},
 );
 
@@ -145,11 +145,11 @@ for (const element of ["hoisted", "recreated"] as const) {
 		function* ({ hideAndReveal, registry, renderErrors, shown }) {
 			yield* hideAndReveal();
 
-			yield* outcomes({
-				registry: [registry(), "holds atoms"],
-				"render errors": [renderErrors(), []],
-				shown: [shown(), "draft-1:42"],
-			});
+			yield* outcomes([
+				["registry", () => registry(), "holds atoms"],
+				["render errors", () => renderErrors(), []],
+				["shown", () => shown(), "draft-1:42"],
+			]);
 		},
 	);
 
@@ -171,10 +171,10 @@ hiddenSessions.it(
 	"closing a session that rendered again while hidden releases every resource its renders built",
 	[rerenderedWhileHidden()],
 	function* ({ builtResources, close, releasedResources, renderedRounds }) {
-		yield* outcomes({
-			"built resources": [builtResources(), expect.arrayContaining([1, 2])],
-			"rendered rounds": [renderedRounds(), expect.arrayContaining([2])],
-		});
+		yield* outcomes([
+			["built resources", () => builtResources(), expect.arrayContaining([1, 2])],
+			["rendered rounds", () => renderedRounds(), expect.arrayContaining([2])],
+		]);
 
 		yield* close();
 
@@ -192,10 +192,10 @@ for (const [identifiedBy, token, connections] of [
 		function* ({ connections: connected, rotate, shownToken }) {
 			yield* rotate();
 
-			yield* outcomes({
-				connections: [connected(), [...connections]],
-				"shown token": [shownToken(), token],
-			});
+			yield* outcomes([
+				["connections", () => connected(), [...connections]],
+				["shown token", () => shownToken(), token],
+			]);
 		},
 	);
 }

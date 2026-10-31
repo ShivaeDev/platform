@@ -10,11 +10,11 @@ notesStory.it(
 
 		yield* rename(1, "Uno");
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Uno"],
-			"note 2's reads": [timesRead("note 2"), "read once"],
-			"the list": [shown("the list"), ["Uno", "Two"]],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Uno"],
+			["note 2's reads", () => timesRead("note 2"), "read once"],
+			["the list", () => shown("the list"), ["Uno", "Two"]],
+		]);
 	},
 );
 
@@ -24,10 +24,10 @@ notesStory.it(
 	function* ({ rename, timesRead }) {
 		expect(yield* rename(2, "")).toBe("failed with invalid title: Enter a title");
 
-		yield* outcomes({
-			"note 2's reads": [timesRead("note 2"), "read once"],
-			"the list's reads": [timesRead("the list"), "read once"],
-		});
+		yield* outcomes([
+			["note 2's reads", () => timesRead("note 2"), "read once"],
+			["the list's reads", () => timesRead("the list"), "read once"],
+		]);
 	},
 );
 
@@ -44,17 +44,17 @@ notesStory.it(
 	[liveConnectionOpen()],
 	function* ({ mount, prepare, serverReads, shown, subscriptions }) {
 		prepare("note 1");
-		yield* outcomes({
-			"reads before mounting": [serverReads(), []],
-			"subscriptions before mounting": [subscriptions(), []],
-		});
+		yield* outcomes([
+			["reads before mounting", () => serverReads(), []],
+			["subscriptions before mounting", () => subscriptions(), []],
+		]);
 
 		mount("note 1");
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "One"],
-			reads: [serverReads(), ["get:1"]],
-			subscriptions: [subscriptions(), [{ payload: { id: 1 }, query: "get" }]],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "One"],
+			["reads", () => serverReads(), ["get:1"]],
+			["subscriptions", () => subscriptions(), [{ payload: { id: 1 }, query: "get" }]],
+		]);
 	},
 );

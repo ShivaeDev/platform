@@ -18,10 +18,10 @@ for (const [expression, bridge] of [
 		function* ({ check, locations, messages }) {
 			yield* check(noDoubleCast);
 
-			yield* outcomes({
-				locations: [locations(), ["src/a.ts:2"]],
-				messages: [messages(), [`Casts through "${bridge}" to reach a type the value does not have.`]],
-			});
+			yield* outcomes([
+				["locations", () => locations(), ["src/a.ts:2"]],
+				["messages", () => messages(), [`Casts through "${bridge}" to reach a type the value does not have.`]],
+			]);
 		},
 	);
 }

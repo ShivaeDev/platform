@@ -13,10 +13,10 @@ for (const queries of [1, 8]) {
 
 			yield* edit("Changed");
 
-			yield* outcomes({
-				"query results": [results(), Array.from({ length: 12 }, () => Array.from({ length: queries }, () => "Changed"))],
-				"session and read cost": [Effect.sync(cost), { checks: 36 * queries, lookups: 12 + 12 * queries, reruns: 12 * queries }],
-			});
+			yield* outcomes([
+				["query results", () => results(), Array.from({ length: 12 }, () => Array.from({ length: queries }, () => "Changed"))],
+				["session and read cost", () => Effect.sync(cost), { checks: 36 * queries, lookups: 12 + 12 * queries, reruns: 12 * queries }],
+			]);
 		},
 	);
 }

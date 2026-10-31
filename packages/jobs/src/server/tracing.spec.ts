@@ -29,13 +29,14 @@ runtime.it(
 	function* ({ deliver, settlements, spans }) {
 		yield* deliver("nightly", [{ data: null, id: "nightly-run" }]);
 
-		yield* outcomes({
-			"job span": [
-				spans().pipe(Effect.map((all) => all.map(({ name, outcome }) => ({ name, outcome })))),
+		yield* outcomes([
+			[
+				"job span",
+				() => spans().pipe(Effect.map((all) => all.map(({ name, outcome }) => ({ name, outcome })))),
 				[{ name: "nightly", outcome: "failed with Scheduled failure" }],
 			],
-			"settlements": [settlements(), ["nightly-run failed with Error: Scheduled failure"]],
-		});
+			["settlements", () => settlements(), ["nightly-run failed with Error: Scheduled failure"]],
+		]);
 	},
 );
 
@@ -55,14 +56,15 @@ runtime.it(
 	function* ({ deliver, handled, settlements, spans }) {
 		yield* deliver("orders", [{ data: { _tag: "@shivaedev/jobs/TracedPayload", payload: { id: "7" }, span: sender }, id: "job-7" }]);
 
-		yield* outcomes({
-			"handled payloads": [handled("orders"), [{ id: 7 }]],
-			"job span": [
-				spans().pipe(Effect.map((all) => all.map(({ links, name, parent }) => ({ links, name, parent })))),
+		yield* outcomes([
+			["handled payloads", () => handled("orders"), [{ id: 7 }]],
+			[
+				"job span",
+				() => spans().pipe(Effect.map((all) => all.map(({ links, name, parent }) => ({ links, name, parent })))),
 				[{ links: [`external span ${sender.spanId} in trace ${sender.traceId}`], name: "orders", parent: "no parent" }],
 			],
-			"settlements": [settlements(), ["job-7 completed"]],
-		});
+			["settlements", () => settlements(), ["job-7 completed"]],
+		]);
 	},
 );
 

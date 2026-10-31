@@ -23,7 +23,10 @@ for (const failure of ["transport drop", "server outage"] as const) {
 			yield* restore();
 			yield* secondsPass(30);
 
-			yield* outcomes({ attempts: [attempts(), beforeRecovery + 1], connection: [connection(), "live"] });
+			yield* outcomes([
+				["attempts", () => attempts(), beforeRecovery + 1],
+				["connection", () => connection(), "live"],
+			]);
 		},
 	);
 }

@@ -16,11 +16,11 @@ for (const date of ["1900-01-01", "2100-01-01"]) {
 			yield* start("app", [worker(Reports, "succeeds")]);
 			yield* untilJob("report", "completed");
 
-			yield* outcomes({
-				"handler payload": [handled(Reports), [{ title: "Quarterly report" }]],
-				"job": [job("report"), expect.objectContaining({ state: "completed" })],
-				"remaining budget": [remainingBudgets(Reports), [expect.closeTo(60_000, -3)]],
-			});
+			yield* outcomes([
+				["handler payload", () => handled(Reports), [{ title: "Quarterly report" }]],
+				["job", () => job("report"), expect.objectContaining({ state: "completed" })],
+				["remaining budget", () => remainingBudgets(Reports), [expect.closeTo(60_000, -3)]],
+			]);
 		},
 		{ clock: DateTime.makeUnsafe(date) },
 	);

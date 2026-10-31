@@ -7,21 +7,21 @@ processes.it(
 	function* ({ privateDeliveries, privateSaves, releasePrivateCommit }) {
 		yield* releasePrivateCommit();
 
-		yield* outcomes({
-			reader: [privateDeliveries("reader"), ["changed: Private title / Private title"]],
-			saves: [privateSaves(), ["saved"]],
-			writer: [privateDeliveries("writer"), ["changed: Private title / Private title"]],
-		});
+		yield* outcomes([
+			["reader", () => privateDeliveries("reader"), ["changed: Private title / Private title"]],
+			["saves", () => privateSaves(), ["saved"]],
+			["writer", () => privateDeliveries("writer"), ["changed: Private title / Private title"]],
+		]);
 	},
 );
 
 processes.it("Alice's private commit never reaches Bob", [privateSaveCommitted()], function* ({ bobSaves, privateDeliveries, privateRead }) {
 	yield* bobSaves("Bob's title");
 
-	yield* outcomes({
-		"Bob reads": [privateRead("bob"), "Unset"],
-		"Bob's deliveries": [privateDeliveries("bob"), ["changed: Unset / Unset"]],
-	});
+	yield* outcomes([
+		["Bob reads", () => privateRead("bob"), "Unset"],
+		["Bob's deliveries", () => privateDeliveries("bob"), ["changed: Unset / Unset"]],
+	]);
 });
 
 processes.it(
@@ -30,10 +30,10 @@ processes.it(
 	function* ({ privateDeliveries, privateSaves, rejectedPrivateSave }) {
 		yield* rejectedPrivateSave("Rolled back");
 
-		yield* outcomes({
-			reader: [privateDeliveries("reader"), ["changed: After rollback / After rollback"]],
-			saves: [privateSaves(), ["rejected as Rejected", "saved"]],
-			writer: [privateDeliveries("writer"), ["changed: After rollback / After rollback"]],
-		});
+		yield* outcomes([
+			["reader", () => privateDeliveries("reader"), ["changed: After rollback / After rollback"]],
+			["saves", () => privateSaves(), ["rejected as Rejected", "saved"]],
+			["writer", () => privateDeliveries("writer"), ["changed: After rollback / After rollback"]],
+		]);
 	},
 );

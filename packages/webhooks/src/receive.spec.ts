@@ -12,12 +12,12 @@ inbox.it(
 	function* ({ answer, deliver, handledJobs, spanNames, storedReceipts }) {
 		yield* deliver("the signed issue 42 delivery");
 
-		yield* outcomes({
-			"answer": [answer(), "202 Accepted: queued"],
-			"handled jobs": [handledJobs(), issue42Jobs],
-			"spans recorded": [spanNames(), expect.arrayContaining(["POST", "Webhooks.receive"])],
-			"stored receipts": [storedReceipts(), [queuedReceipt]],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "202 Accepted: queued"],
+			["handled jobs", () => handledJobs(), issue42Jobs],
+			["spans recorded", () => spanNames(), expect.arrayContaining(["POST", "Webhooks.receive"])],
+			["stored receipts", () => storedReceipts(), [queuedReceipt]],
+		]);
 	},
 );
 
@@ -38,11 +38,11 @@ for (const [delivery, refusal] of refusals) {
 		function* ({ answer, deliver, handledJobs, storedReceipts }) {
 			yield* deliver(delivery);
 
-			yield* outcomes({
-				"answer": [answer(), refusal],
-				"handled jobs": [handledJobs(), []],
-				"stored receipts": [storedReceipts(), []],
-			});
+			yield* outcomes([
+				["answer", () => answer(), refusal],
+				["handled jobs", () => handledJobs(), []],
+				["stored receipts", () => storedReceipts(), []],
+			]);
 		},
 	);
 }
@@ -54,10 +54,10 @@ for (const delivery of ["the signed issue 42 delivery", ...refusals.map(([refuse
 		function* ({ deliver, secretsSeenIn, spanNames }) {
 			yield* deliver(delivery);
 
-			yield* outcomes({
-				"secrets seen in": [secretsSeenIn(), {}],
-				"spans recorded": [spanNames(), expect.arrayContaining(["POST"])],
-			});
+			yield* outcomes([
+				["secrets seen in", () => secretsSeenIn(), {}],
+				["spans recorded", () => spanNames(), expect.arrayContaining(["POST"])],
+			]);
 		},
 	);
 }
@@ -68,10 +68,10 @@ inbox.it(
 	function* ({ answer, deliver, storedReceipts }) {
 		yield* deliver("an unlisted event whose body is not JSON");
 
-		yield* outcomes({
-			"answer": [answer(), "200 OK: ignored"],
-			"stored receipts": [storedReceipts(), [{ delivery: "delivery-1", event: "unlisted", jobs: [], outcome: "ignored", source: "github" }]],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "200 OK: ignored"],
+			["stored receipts", () => storedReceipts(), [{ delivery: "delivery-1", event: "unlisted", jobs: [], outcome: "ignored", source: "github" }]],
+		]);
 	},
 );
 
@@ -81,10 +81,10 @@ inbox.it(
 	function* ({ answer, deliver, storedReceipts }) {
 		yield* deliver("a ping");
 
-		yield* outcomes({
-			"answer": [answer(), "200 OK: ignored"],
-			"stored receipts": [storedReceipts(), [{ delivery: "delivery-1", event: "ping", jobs: [], outcome: "ignored", source: "github" }]],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "200 OK: ignored"],
+			["stored receipts", () => storedReceipts(), [{ delivery: "delivery-1", event: "ping", jobs: [], outcome: "ignored", source: "github" }]],
+		]);
 	},
 );
 
@@ -94,11 +94,11 @@ inbox.it(
 	function* ({ answer, deliver, handledJobs, storedReceipts }) {
 		yield* deliver("the signed issue 42 delivery");
 
-		yield* outcomes({
-			"answer": [answer(), "200 OK: already queued"],
-			"handled jobs": [handledJobs(), issue42Jobs],
-			"stored receipts": [storedReceipts(), [queuedReceipt]],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "200 OK: already queued"],
+			["handled jobs", () => handledJobs(), issue42Jobs],
+			["stored receipts", () => storedReceipts(), [queuedReceipt]],
+		]);
 	},
 );
 
@@ -108,10 +108,10 @@ inbox.it(
 	function* ({ answer, deliver, storedReceipts }) {
 		yield* deliver("an unlisted event whose body is not JSON");
 
-		yield* outcomes({
-			"answer": [answer(), "200 OK: already queued"],
-			"stored receipts": [storedReceipts(), [{ delivery: "delivery-1", event: "unlisted", jobs: [], outcome: "ignored", source: "github" }]],
-		});
+		yield* outcomes([
+			["answer", () => answer(), "200 OK: already queued"],
+			["stored receipts", () => storedReceipts(), [{ delivery: "delivery-1", event: "unlisted", jobs: [], outcome: "ignored", source: "github" }]],
+		]);
 	},
 );
 
@@ -121,11 +121,11 @@ inbox.it(
 	function* ({ answers, deliverTwoCopiesTogether, handledJobs, storedReceipts }) {
 		yield* deliverTwoCopiesTogether();
 
-		yield* outcomes({
-			"answers": [answers(), ["200 OK: already queued", "202 Accepted: queued"]],
-			"handled jobs": [handledJobs(), issue42Jobs],
-			"stored receipts": [storedReceipts(), [queuedReceipt]],
-		});
+		yield* outcomes([
+			["answers", () => answers(), ["200 OK: already queued", "202 Accepted: queued"]],
+			["handled jobs", () => handledJobs(), issue42Jobs],
+			["stored receipts", () => storedReceipts(), [queuedReceipt]],
+		]);
 	},
 );
 
@@ -135,11 +135,11 @@ inbox.it(
 	function* ({ answers, deliverTwoCopiesTogether, handledJobs, storedReceipts }) {
 		yield* deliverTwoCopiesTogether();
 
-		yield* outcomes({
-			"answers": [answers(), ["202 Accepted: queued", "503 Service Unavailable"]],
-			"handled jobs": [handledJobs(), issue42Jobs],
-			"stored receipts": [storedReceipts(), [queuedReceipt]],
-		});
+		yield* outcomes([
+			["answers", () => answers(), ["202 Accepted: queued", "503 Service Unavailable"]],
+			["handled jobs", () => handledJobs(), issue42Jobs],
+			["stored receipts", () => storedReceipts(), [queuedReceipt]],
+		]);
 	},
 );
 

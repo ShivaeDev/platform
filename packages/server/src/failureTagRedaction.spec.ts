@@ -11,14 +11,15 @@ for (const source of ["schema", "host"] as const) {
 		function* ({ answerMentions, callRpc, diagnosticLog, logMentions }) {
 			yield* callRpc("taggedFailure", { _tag: "private-marker" });
 
-			yield* outcomes({
-				"answer text": [answerMentions("public detail", "private-marker"), ["public detail"]],
-				"failure log": [
-					diagnosticLog("RPC failure"),
+			yield* outcomes([
+				["answer text", () => answerMentions("public detail", "private-marker"), ["public detail"]],
+				[
+					"failure log",
+					() => diagnosticLog("RPC failure"),
 					expect.objectContaining({ "rpc.failure": "<redacted>", "rpc.method": "taggedFailure", "rpc.payload": { _tag: "<redacted>" } }),
 				],
-				"leaked into logs": [logMentions("private-marker"), []],
-			});
+				["leaked into logs", () => logMentions("private-marker"), []],
+			]);
 		},
 	);
 }
@@ -48,12 +49,16 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 
 			yield* close();
 
-			yield* outcomes({
-				"child span attributes": [spanAttributes("publicConflict child"), [expect.objectContaining({ _tag: "Conflict", message: "Name is taken" })]],
-				"diagnostic": [diagnosticLog("public conflict"), expect.objectContaining({ _tag: "Conflict", message: "Name is taken" })],
-				"failure tag": [diagnosticLog("RPC failure"), expect.objectContaining({ "rpc.failure": "Conflict" })],
-				"span attributes": [spanAttributes("publicConflict"), [expect.objectContaining({ _tag: "Conflict", message: "Name is taken" })]],
-			});
+			yield* outcomes([
+				[
+					"child span attributes",
+					() => spanAttributes("publicConflict child"),
+					[expect.objectContaining({ _tag: "Conflict", message: "Name is taken" })],
+				],
+				["diagnostic", () => diagnosticLog("public conflict"), expect.objectContaining({ _tag: "Conflict", message: "Name is taken" })],
+				["failure tag", () => diagnosticLog("RPC failure"), expect.objectContaining({ "rpc.failure": "Conflict" })],
+				["span attributes", () => spanAttributes("publicConflict"), [expect.objectContaining({ _tag: "Conflict", message: "Name is taken" })]],
+			]);
 		},
 	);
 }

@@ -13,10 +13,10 @@ for (const mode of ["database", "host"] as const) {
 
 				const queuedQuery = yield* queryWaitsForRelease();
 
-				yield* outcomes({
-					"held backends": [Effect.succeed(heldBackends), limit - 1],
-					"queued query": [Effect.succeed(queuedQuery), "answered by the released backend"],
-				});
+				yield* outcomes([
+					["held backends", () => Effect.succeed(heldBackends), limit - 1],
+					["queued query", () => Effect.succeed(queuedQuery), "answered by the released backend"],
+				]);
 			},
 		);
 	}

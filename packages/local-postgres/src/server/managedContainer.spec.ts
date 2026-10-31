@@ -10,10 +10,10 @@ postgres.it(
 	function* ({ dockerCommands, outcome, startContainer }) {
 		yield* startContainer();
 
-		yield* outcomes({
-			"Docker commands": [dockerCommands(), ["docker info"]],
-			"outcome": [outcome(), "failed: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?"],
-		});
+		yield* outcomes([
+			["Docker commands", () => dockerCommands(), ["docker info"]],
+			["outcome", () => outcome(), "failed: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?"],
+		]);
 	},
 );
 
@@ -33,10 +33,10 @@ postgres.it(
 	function* ({ containerChanges, outcome, startContainer }) {
 		yield* startContainer();
 
-		yield* outcomes({
-			"container changes": [containerChanges(), []],
-			"outcome": [outcome(), "failed: The shared PostgreSQL container uses a different image. Preserve its volume and upgrade it explicitly."],
-		});
+		yield* outcomes([
+			["container changes", () => containerChanges(), []],
+			["outcome", () => outcome(), "failed: The shared PostgreSQL container uses a different image. Preserve its volume and upgrade it explicitly."],
+		]);
 	},
 );
 
@@ -64,10 +64,10 @@ postgres.it(
 	function* ({ containerChanges, failureKind, outcome, startContainer }) {
 		yield* startContainer();
 
-		yield* outcomes({
-			"container changes": [containerChanges(), []],
-			"diagnostic": [outcome(), "failed: Cannot list containers"],
-			"failure": [failureKind(), "setup command failed"],
-		});
+		yield* outcomes([
+			["container changes", () => containerChanges(), []],
+			["diagnostic", () => outcome(), "failed: Cannot list containers"],
+			["failure", () => failureKind(), "setup command failed"],
+		]);
 	},
 );

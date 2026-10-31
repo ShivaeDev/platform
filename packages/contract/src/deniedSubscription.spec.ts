@@ -13,7 +13,11 @@ for (const delivery of ["hints", "pushed"] as const) {
 
 				yield* minutePasses();
 
-				yield* outcomes({ "policy checks": [policyChecks(), 1], "query": [shown(), answer], "subscriptions": [attempts(), 1] });
+				yield* outcomes([
+					["policy checks", () => policyChecks(), 1],
+					["query", () => shown(), answer],
+					["subscriptions", () => attempts(), 1],
+				]);
 			},
 		);
 	}
@@ -26,7 +30,10 @@ for (const delivery of ["hints", "pushed"] as const) {
 			yield* signIn();
 			yield* minutePasses();
 
-			yield* outcomes({ query: [shown(), "Alice's record"], subscriptions: [attempts(), 2] });
+			yield* outcomes([
+				["query", () => shown(), "Alice's record"],
+				["subscriptions", () => attempts(), 2],
+			]);
 		},
 	);
 	deniedStory.it(
@@ -39,7 +46,10 @@ for (const delivery of ["hints", "pushed"] as const) {
 			yield* announce(1);
 			yield* minutePasses();
 
-			yield* outcomes({ query: [shown(), "failed with read denied"], subscriptions: [attempts(), 1] });
+			yield* outcomes([
+				["query", () => shown(), "failed with read denied"],
+				["subscriptions", () => attempts(), 1],
+			]);
 		},
 	);
 	deniedStory.it(
@@ -53,7 +63,10 @@ for (const delivery of ["hints", "pushed"] as const) {
 			yield* untilFailed();
 			yield* minutePasses();
 
-			yield* outcomes({ query: [shown(), "failed with read denied"], subscriptions: [attempts(), 1] });
+			yield* outcomes([
+				["query", () => shown(), "failed with read denied"],
+				["subscriptions", () => attempts(), 1],
+			]);
 		},
 	);
 	deniedStory.it(
@@ -63,7 +76,11 @@ for (const delivery of ["hints", "pushed"] as const) {
 			yield* announce(1);
 			yield* minutePasses();
 
-			yield* outcomes({ "policy checks": [policyChecks(), 1], query: [shown(), "failed with read denied"], subscriptions: [attempts(), 1] });
+			yield* outcomes([
+				["policy checks", () => policyChecks(), 1],
+				["query", () => shown(), "failed with read denied"],
+				["subscriptions", () => attempts(), 1],
+			]);
 		},
 	);
 	deniedStory.it(
@@ -74,7 +91,11 @@ for (const delivery of ["hints", "pushed"] as const) {
 			yield* announce(2);
 			yield* minutePasses();
 
-			yield* outcomes({ "policy checks": [policyChecks(), 1], query: [shown(), "failed with read denied"], subscriptions: [attempts(), 1] });
+			yield* outcomes([
+				["policy checks", () => policyChecks(), 1],
+				["query", () => shown(), "failed with read denied"],
+				["subscriptions", () => attempts(), 1],
+			]);
 		},
 	);
 	deniedStory.it(
@@ -89,7 +110,10 @@ for (const delivery of ["hints", "pushed"] as const) {
 			yield* signIn();
 			yield* minutePasses();
 
-			yield* outcomes({ query: [shown(), "Alice's record"], subscriptions: [attempts(), 2] });
+			yield* outcomes([
+				["query", () => shown(), "Alice's record"],
+				["subscriptions", () => attempts(), 2],
+			]);
 		},
 	);
 	deniedStory.it(
@@ -102,7 +126,10 @@ for (const delivery of ["hints", "pushed"] as const) {
 			yield* announce(1);
 			yield* untilLive();
 
-			yield* outcomes({ query: [shown(), "Alice's record"], subscriptions: [attempts(), 2] });
+			yield* outcomes([
+				["query", () => shown(), "Alice's record"],
+				["subscriptions", () => attempts(), 2],
+			]);
 		},
 	);
 }

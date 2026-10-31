@@ -16,10 +16,10 @@ cancellation.it(
 
 		yield* browserAborts();
 
-		yield* outcomes({
-			"handler ending": [handlerEnding(), "interrupted"],
-			"rows read over the freed connection": [storedRows(), []],
-		});
+		yield* outcomes([
+			["handler ending", () => handlerEnding(), "interrupted"],
+			["rows read over the freed connection", () => storedRows(), []],
+		]);
 	},
 );
 
@@ -32,10 +32,10 @@ cancellation.it(
 
 		yield* browserAborts();
 
-		yield* outcomes({
-			"handler ending": [handlerEnding(), "interrupted"],
-			registrations: [subscriptionRegistrations(), []],
-		});
+		yield* outcomes([
+			["handler ending", () => handlerEnding(), "interrupted"],
+			["registrations", () => subscriptionRegistrations(), []],
+		]);
 	},
 );
 
@@ -51,10 +51,10 @@ cancellation.it(
 
 		yield* commitChange();
 
-		yield* outcomes({
-			"stored rows": [storedRows(), ["committed", "committed"]],
-			"subscription callbacks": [subscriptionCallbacks(), notified],
-		});
+		yield* outcomes([
+			["stored rows", () => storedRows(), ["committed", "committed"]],
+			["subscription callbacks", () => subscriptionCallbacks(), notified],
+		]);
 	},
 );
 
@@ -70,10 +70,11 @@ for (const [mode, method] of [
 
 			yield* browserAborts();
 
-			yield* outcomes({
-				"failure logs": [failureLogs(), []],
-				"interruption logs": [
-					interruptionLogs(),
+			yield* outcomes([
+				["failure logs", () => failureLogs(), []],
+				[
+					"interruption logs",
+					() => interruptionLogs(),
 					[
 						{
 							annotations: { requestId: `abort-${method}`, "rpc.method": method, "rpc.payload": { password: "<redacted>" } },
@@ -82,8 +83,8 @@ for (const [mode, method] of [
 						},
 					],
 				],
-				"leaked secrets": [logMentions("abort-secret"), []],
-			});
+				["leaked secrets", () => logMentions("abort-secret"), []],
+			]);
 		},
 	);
 
@@ -98,16 +99,18 @@ for (const [mode, method] of [
 
 			yield* close();
 
-			yield* outcomes({
-				"aborted span": [
-					serverSpan(method),
+			yield* outcomes([
+				[
+					"aborted span",
+					() => serverSpan(method),
 					expect.objectContaining({ attributes: expect.objectContaining({ "request.id": `abort-${method}` }), status: "unset" }),
 				],
-				"span marks": [
-					rpcSpanMarks(),
+				[
+					"span marks",
+					() => rpcSpanMarks(),
 					mode === "transaction" ? { hold: "interrupted", rows: "completed" } : { commit: "completed", watch: "interrupted" },
 				],
-			});
+			]);
 		},
 	);
 }

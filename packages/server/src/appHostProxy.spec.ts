@@ -47,10 +47,10 @@ for (const { config, env, name } of [
 		function* ({ postRpc, responseStatus, sessionLookups }) {
 			yield* postRpc(fromTheApp);
 
-			yield* outcomes({
-				"response status": [responseStatus(), HttpStatus.fromLiteral("Forbidden")],
-				"session lookups": [sessionLookups(), []],
-			});
+			yield* outcomes([
+				["response status", () => responseStatus(), HttpStatus.fromLiteral("Forbidden")],
+				["session lookups", () => sessionLookups(), []],
+			]);
 		},
 	);
 }
@@ -61,9 +61,9 @@ host.it(
 	function* ({ postRpc, responseStatus, sessionLookups }) {
 		yield* postRpc({ origin: "https://elsewhere.example" });
 
-		yield* outcomes({
-			"response status": [responseStatus(), HttpStatus.fromLiteral("Forbidden")],
-			"session lookups": [sessionLookups(), []],
-		});
+		yield* outcomes([
+			["response status", () => responseStatus(), HttpStatus.fromLiteral("Forbidden")],
+			["session lookups", () => sessionLookups(), []],
+		]);
 	},
 );

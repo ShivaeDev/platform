@@ -16,11 +16,11 @@ for (const transactions of transactionKits) {
 				expect(yield* announced()).toEqual([]);
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), ["orders", "orders:1"]],
-				"stored orders": [orders(), [1]],
-				"transaction endings": [endings(), ["committed"]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), ["orders", "orders:1"]],
+				["stored orders", () => orders(), [1]],
+				["transaction endings", () => endings(), ["committed"]],
+			]);
 		},
 	);
 
@@ -34,11 +34,11 @@ for (const transactions of transactionKits) {
 				yield* rejects();
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), []],
-				"stored orders": [orders(), []],
-				"transaction endings": [endings(), ["failed with rejected"]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), []],
+				["stored orders", () => orders(), []],
+				["transaction endings", () => endings(), ["failed with rejected"]],
+			]);
 		},
 	);
 
@@ -51,11 +51,11 @@ for (const transactions of transactionKits) {
 				yield* announce({ orders: [1] });
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), []],
-				"stored orders": [orders(), []],
-				"transaction endings": [endings(), ["interrupted"]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), []],
+				["stored orders", () => orders(), []],
+				["transaction endings", () => endings(), ["interrupted"]],
+			]);
 		},
 	);
 
@@ -69,11 +69,11 @@ for (const transactions of transactionKits) {
 				yield* announce({ orders: [1] });
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), []],
-				"stored orders": [orders(), []],
-				"transaction endings": [endings(), ["failed with storage unavailable after a constraint violation"]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), []],
+				["stored orders", () => orders(), []],
+				["transaction endings", () => endings(), ["failed with storage unavailable after a constraint violation"]],
+			]);
 		},
 	);
 
@@ -142,10 +142,10 @@ for (const transactions of transactionKits) {
 				expect(yield* announced()).toEqual([]);
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), ["orders", "orders:1"]],
-				"stored orders": [orders(), [1, 2]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), ["orders", "orders:1"]],
+				["stored orders", () => orders(), [1, 2]],
+			]);
 		},
 	);
 
@@ -163,11 +163,11 @@ for (const transactions of transactionKits) {
 				});
 			});
 
-			yield* outcomes({
-				"announced keys": [announced(), ["orders:1"]],
-				"stored orders": [orders(), [1]],
-				"transaction endings, innermost first": [endings(), ["failed with rejected", "committed"]],
-			});
+			yield* outcomes([
+				["announced keys", () => announced(), ["orders:1"]],
+				["stored orders", () => orders(), [1]],
+				["transaction endings, innermost first", () => endings(), ["failed with rejected", "committed"]],
+			]);
 		},
 	);
 

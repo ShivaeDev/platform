@@ -8,10 +8,10 @@ queries.it("a first read that fails shows its message with Retry in place of Loa
 
 	yield* fail("first", "Offline");
 
-	yield* outcomes({
-		alert: [alert(), "OfflineRetry"],
-		loading: [loading(), "none"],
-	});
+	yield* outcomes([
+		["alert", () => alert(), "OfflineRetry"],
+		["loading", () => loading(), "none"],
+	]);
 });
 
 queries.it("a failed first read stays inside the screen instead of reaching the error boundary", [feedbackFirstReadFailed()], function* ({ crash }) {
@@ -32,12 +32,12 @@ queries.it(
 
 		yield* answer("retry", "Ready");
 
-		yield* outcomes({
-			alert: [alert(), "none"],
-			answer: [shownAnswer(), "Ready"],
-			"shell draft": [field("shell"), "Shell draft"],
-			"shell element": [Effect.map(elements(), ({ shell }) => shell), "original"],
-		});
+		yield* outcomes([
+			["alert", () => alert(), "none"],
+			["answer", () => shownAnswer(), "Ready"],
+			["shell draft", () => field("shell"), "Shell draft"],
+			["shell element", () => Effect.map(elements(), ({ shell }) => shell), "original"],
+		]);
 	},
 );
 
@@ -51,11 +51,11 @@ queries.it(
 	function* ({ elements, fail, field, shownAnswer }) {
 		yield* fail("refresh", "Offline");
 
-		yield* outcomes({
-			answer: [shownAnswer(), "Last success"],
-			"content element": [Effect.map(elements(), ({ content }) => content), "original"],
-			"unsaved input": [field("local"), "Unsaved input"],
-		});
+		yield* outcomes([
+			["answer", () => shownAnswer(), "Last success"],
+			["content element", () => Effect.map(elements(), ({ content }) => content), "original"],
+			["unsaved input", () => field("local"), "Unsaved input"],
+		]);
 	},
 );
 
@@ -67,11 +67,11 @@ queries.it(
 
 		yield* answer("retry", "Fresh success");
 
-		yield* outcomes({
-			answer: [shownAnswer(), "Fresh success"],
-			"content element": [Effect.map(elements(), ({ content }) => content), "original"],
-			"unsaved input": [field("local"), "Unsaved input"],
-		});
+		yield* outcomes([
+			["answer", () => shownAnswer(), "Fresh success"],
+			["content element", () => Effect.map(elements(), ({ content }) => content), "original"],
+			["unsaved input", () => field("local"), "Unsaved input"],
+		]);
 	},
 );
 
@@ -79,8 +79,8 @@ const defect = new Error("Broken query");
 queries.it("a query defect reaches the unexpected-error boundary instead of the alert", [feedbackWaiting(defect)], function* ({ alert, crash, die }) {
 	yield* die("first", defect);
 
-	yield* outcomes({
-		alert: [alert(), "none"],
-		crash: [crash(), "Unexpected failure"],
-	});
+	yield* outcomes([
+		["alert", () => alert(), "none"],
+		["crash", () => crash(), "Unexpected failure"],
+	]);
 });

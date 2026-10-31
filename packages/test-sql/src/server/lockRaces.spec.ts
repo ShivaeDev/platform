@@ -25,10 +25,10 @@ database.it(
 	function* ({ raceWhileAnotherSessionWaits, raceTally, waitingAtRelease }) {
 		yield* raceWhileAnotherSessionWaits();
 
-		yield* outcomes({
-			"race tally": [raceTally(), { claimed: 1, full: 2 }],
-			"sessions waiting at release": [waitingAtRelease(), ["the advisory lock", "the advisory lock", "the advisory lock", "the advisory lock"]],
-		});
+		yield* outcomes([
+			["race tally", () => raceTally(), { claimed: 1, full: 2 }],
+			["sessions waiting at release", () => waitingAtRelease(), ["the advisory lock", "the advisory lock", "the advisory lock", "the advisory lock"]],
+		]);
 	},
 );
 
