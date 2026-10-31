@@ -75,7 +75,7 @@ declare module "claude-code" {
 	interface PluginState {
 		workboard: {
 			achievedOpen: boolean;
-			board: WorkboardBoard;
+			board: Shaped<WorkboardBoard>;
 			openArea: string | null;
 			seenAsks: readonly string[] | null;
 			updatedAt: number | null;

@@ -12,7 +12,7 @@ const PANE = "workboard";
 const TITLE = "Work Board";
 const OPEN_LABEL = "Open board";
 
-const board = atom({ key: "board", plugin: "workboard" } as const, { kind: "loading" });
+const board = atom({ key: "board", plugin: "workboard" } as const, { kind: "loading" }, { shape: "board-2" });
 const seenAsks = atom({ key: "seenAsks", plugin: "workboard" } as const, null);
 const updatedAt = atom({ key: "updatedAt", plugin: "workboard" } as const, null);
 const achievedOpen = atom({ key: "achievedOpen", plugin: "workboard" } as const, false);

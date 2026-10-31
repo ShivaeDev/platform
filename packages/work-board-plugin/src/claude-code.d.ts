@@ -126,11 +126,22 @@ declare module "claude-code" {
 
 	interface Atom<T> {
 		readonly initial: T;
+		readonly shape?: string;
 	}
+	interface Shaped<T> {
+		shape: string;
+		value: T;
+	}
+	type ShapedValue<V> = V extends Shaped<infer T> ? T : never;
 	function atom<TPlugin extends keyof PluginState & string, TKey extends keyof PluginState[TPlugin] & string>(
 		ref: { readonly key: TKey; readonly plugin: TPlugin },
 		initial: PluginState[TPlugin][TKey],
 	): Atom<PluginState[TPlugin][TKey]>;
+	function atom<TPlugin extends keyof PluginState & string, TKey extends keyof PluginState[TPlugin] & string>(
+		ref: { readonly key: TKey; readonly plugin: TPlugin },
+		initial: ShapedValue<PluginState[TPlugin][TKey]>,
+		options: { shape: string },
+	): Atom<ShapedValue<PluginState[TPlugin][TKey]>>;
 	function read<T>($: EngineInterface, source: Atom<T>): Promise<T>;
 	function update<T>($: EngineInterface, target: Atom<T>, change: (value: T) => T): Promise<T>;
 }
