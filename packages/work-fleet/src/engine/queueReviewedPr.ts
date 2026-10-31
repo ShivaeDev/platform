@@ -39,7 +39,7 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 	if (status === "failed") {
 		const checks = yield* state.integrations.checks(yield* state.board.get(record.workId), result);
 		return yield* requestRework(state)(
-			current,
+			{ ...current, value: { ...current.value, mergeQueueRepair: true } },
 			checks.repairPrompt
 				?? "The PR left the merge queue without merging. Inspect the merge-group CI failure, fix it on the same branch, and push for fresh review and checks.",
 		);

@@ -18,6 +18,7 @@ export function continuedRecord(record: FleetRecord, archivedAt: number): FleetR
 		mergeOrderFirst: undefined,
 		mergePrediction: undefined,
 		mergeQueue: undefined,
+		mergeQueueRepair: undefined,
 		outcome: undefined,
 		predictedConflictHold: undefined,
 		report: undefined,

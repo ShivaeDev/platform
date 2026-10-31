@@ -29,6 +29,7 @@ export function requestRework(state: EngineState) {
 				mergeQueue: undefined,
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,
+				predictedConflictHold: undefined,
 				prompt: [
 					"Requested changes to the existing PR:",
 					body,
