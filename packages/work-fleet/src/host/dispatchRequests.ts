@@ -1,7 +1,7 @@
 import { relative } from "node:path";
 import { Cause, Effect, Fiber, PubSub, Stream } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
+import { BoardIndex } from "#board/Index.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { dispatchApproved } from "#host/admission.ts";
@@ -9,6 +9,7 @@ import type { FleetHost } from "#host/config.ts";
 import { stopDispatchWork } from "#host/stopDispatchWork.ts";
 import { BoardGateway, type BoardWork } from "#policy.ts";
 import { dispatchStore } from "#storage/dispatchStore.ts";
+import { StorageConflict } from "#storage/errors.ts";
 
 export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(function* (host: FleetHost) {
 	const scope = yield* Effect.scope;
@@ -38,6 +39,7 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 			return;
 		}
 		const fiber = yield* dispatchApproved(host, request.workId, request.now ? { ignoreAreas: request.ignoreAreas === true } : undefined).pipe(
+			Effect.retry({ while: (error) => error instanceof StorageConflict }),
 			Effect.andThen(store.finish(request)),
 			Effect.catchCause((cause) =>
 				Cause.hasInterrupts(cause) ? Effect.failCause(cause) : store.finish(request, failureMessage(Cause.squash(cause))),
@@ -63,7 +65,9 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 		});
 	}
 	yield* Effect.gen(function* () {
-		const changes = yield* boardApi.watchChanges(host.boardDir);
+		const {
+			index: { changes },
+		} = yield* BoardIndex;
 		const events = yield* PubSub.subscribe(changes.events);
 		yield* observeDropped(changes.realRoot);
 		yield* Stream.fromSubscription(events).pipe(
@@ -83,7 +87,7 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 			if (options.ignoreAreas === true && options.now !== true) {
 				return yield* new BadRequest({ message: "Ignoring area claims needs a dispatch now request" });
 			}
-			const work = yield* board.get(workId);
+			const work = yield* board.get(workId, { fresh: true });
 			if (!work.approved) {
 				return yield* new Forbidden({ message: `${workId} needs "fleet: approved" in its Board frontmatter` });
 			}

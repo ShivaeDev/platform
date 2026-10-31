@@ -3,6 +3,22 @@ import { Effect } from "effect";
 import { briefRevision } from "#board/briefRevision.ts";
 import { withBoardReadPass, workMetadata } from "#board/readPass.ts";
 import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
+import { watchedBoardReads } from "#test/watchedBoardReads.ts";
+
+boardReadStory.it(
+	"a fresh lookup leaves later passes on the indexed revision until the edit is observed",
+	[hasBoardItems(1), watchedBoardReads()],
+	function* ({ fixture, readInPass }) {
+		const original = yield* readInPass("item.0");
+		yield* fixture.write("0.md", fixture.source("item.0", false, "An edit outside the observed index."));
+
+		const fresh = yield* readInPass("item.0", { fresh: true });
+
+		expect(fresh.approved).toBe(false);
+		const later = yield* readInPass("item.0");
+		expect(later).toEqual(original);
+	},
+);
 
 boardReadStory.it("a fresh lookup rereads only its source and updates the pass metadata", [hasBoardItems(2)], function* ({ board, fixture }) {
 	yield* withBoardReadPass(

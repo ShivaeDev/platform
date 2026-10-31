@@ -6,6 +6,7 @@ import type { Scenario } from "#package-check/scenarios.ts";
 import { withTarballOverrides } from "#withTarballOverrides.ts";
 
 const HOIST = /^publicHoistPattern:.*\n/mu;
+const WORKSPACE_PATCHES = /^patchedDependencies:[ \t]*\n(?:(?:[ \t].*)?\n)*/mu;
 
 const HOIST_PIECES = 'publicHoistPattern: ["@shivaedev/*"]\n';
 
@@ -16,8 +17,11 @@ export const consumerWorkspace = Effect.fn("Packed.consumerWorkspace")(function*
 	shell?: Scenario["shell"],
 ) {
 	const fs = yield* FileSystem.FileSystem;
-	// Packed consumers must resolve built exports rather than the workspace's source condition.
-	let workspace = (yield* fs.readFileString(join(root, "pnpm-workspace.yaml"))).replace(/^nodeOptions:.*\n/mu, "").replace(HOIST, "");
+	// Published consumers must work without the workspace's source conditions or test-only dependency patches.
+	let workspace = (yield* fs.readFileString(join(root, "pnpm-workspace.yaml")))
+		.replace(/^nodeOptions:.*\n/mu, "")
+		.replace(HOIST, "")
+		.replace(WORKSPACE_PATCHES, "");
 	// Only an application on the platform shell relies on hoisting; every other consumer resolves its declared dependencies alone.
 	if (shell === "hoisted") {
 		workspace = `${HOIST_PIECES}${workspace}`;

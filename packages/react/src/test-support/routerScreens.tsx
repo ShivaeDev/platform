@@ -1,8 +1,9 @@
-import { type ErrorComponentProps, getRouteApi, Link, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
-import { Predicate } from "effect";
+import { type ErrorComponentProps, getRouteApi, Link, type NotFoundRouteProps, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
+import { Predicate, Schema } from "effect";
 import { useLayoutEffect } from "react";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import type { routerApp } from "./routerApp.ts";
+import { NotFound } from "./routerClient.ts";
 
 type Router = ReturnType<typeof routerApp>;
 const noteRoute = getRouteApi<"/notes/$id", Router>("/notes/$id");
@@ -60,6 +61,17 @@ export function RouterFailure({ error }: ErrorComponentProps) {
 
 export function RouterNotFound() {
 	return <h1>Note not found</h1>;
+}
+
+export function SharedNotFound({ data }: NotFoundRouteProps) {
+	return Schema.is(NotFound)(data) ? (
+		<article>
+			<h1>{data.message}</h1>
+			<output data-missing-id>{data.id}</output>
+		</article>
+	) : (
+		<h1>Page not found</h1>
+	);
 }
 
 export function RouterPending() {

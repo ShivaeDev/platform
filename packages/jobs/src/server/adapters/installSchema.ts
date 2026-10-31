@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import type { Connection } from "effect/sql/SqlConnection";
 import { getConstructionPlans, getMigrationPlans, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
-import { deferralStorePlan } from "#internal/deferralStorePlan.ts";
+import { jobStorePlans } from "#internal/jobStorePlans.ts";
 import type { PgBossSchemaOptions } from "#schema.ts";
 import { runSchemaPlan } from "./runSchemaPlan.ts";
 import { resumeSchemaIndexes } from "./schemaIndexBuilds.ts";
@@ -62,5 +62,7 @@ export const installSchema = Effect.fnUntraced(function* (options: PgBossSchemaO
 			await installNativeSchema(connection, options, execute);
 		},
 	});
-	yield* connection.executeRaw(deferralStorePlan(options.schema ?? "pgboss"), []);
+	for (const plan of jobStorePlans(options.schema ?? "pgboss")) {
+		yield* connection.executeRaw(plan, []);
+	}
 });

@@ -1,13 +1,5 @@
 import { useRef, useState } from "react";
-
-async function copyText(text: string): Promise<boolean> {
-	try {
-		await navigator.clipboard.writeText(text);
-		return true;
-	} catch {
-		return false;
-	}
-}
+import { copyText } from "#client/react/adapters/copyText.ts";
 
 export function useCopy<TField extends HTMLInputElement | HTMLTextAreaElement>(
 	text: string,

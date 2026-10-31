@@ -16,6 +16,7 @@ import { screenData } from "./screenData.ts";
 import { createScreen, screenView, trackScreen } from "./screenEngine.ts";
 import { screenClient, screenContent } from "./screenFeatures.tsx";
 import { screenInteractions } from "./screenInteractions.ts";
+import { loaderObservations } from "./screenLoader.ts";
 import { screenObservations } from "./screenObservations.ts";
 import { screenOptions, screenReadVerbs } from "./screenReads.ts";
 import { screenRoles } from "./screenRoles.ts";
@@ -54,6 +55,7 @@ export const screenStory = storyKit({
 			...screenObservations(engine, story.tell),
 			...screenRoles(story.tell),
 			...screenData(engine, story.tell),
+			...loaderObservations(engine, story.tell),
 			...diagramActions(engine, story.tell),
 			...screenInteractions(engine, story.tell),
 			...sessionActions(engine, story.tell),

@@ -34,7 +34,11 @@ for (const boundary of ["dispatch", "answer", "publication"] as const) {
 			if (boundary !== "publication") {
 				daemon.finishRestartTurn();
 			}
-			const completed = yield* daemon.awaitProcessRecord(peer, "one", (record) => record.stage === "done");
+			const completed = yield* daemon.awaitProcessRecord(
+				peer,
+				"one",
+				(record) => record.stage === "done" && record.attempts.every((attempt) => attempt.sessionCleanupComplete),
+			);
 			yield* peer("fleet.reconcile", { workId: "one" });
 
 			expect(completed.attempts[0]?.operationId).toBe(worker.attempts[0]?.operationId);

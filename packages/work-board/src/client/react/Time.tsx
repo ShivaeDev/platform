@@ -1,9 +1,9 @@
 import { cn } from "cn";
 import { type ReactNode, useContext } from "react";
 import { useNow as useRuntimeNow } from "@shivaedev/react/client/useNow.ts";
+import { NowContext, useNow } from "#client/react/adapters/now.ts";
 import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";
 import { FormContext } from "#client/react/FormContext.ts";
-import { NowContext, useNow } from "./now.ts";
 import { exactTime, timeLabel } from "./timeLabel.ts";
 
 export function TimeTicker({ children }: { readonly children: ReactNode }) {

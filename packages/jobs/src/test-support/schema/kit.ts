@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { installPgBossSchema, pgBossSchema } from "#schema.ts";
 import { type DatabaseEngine, databaseEngine } from "#test/postgres/databaseEngine.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";
+import { listingVerbs } from "#test/postgres/listingVerbs.ts";
 import { readouts } from "#test/postgres/readouts.ts";
 import { answer, runtimeVerbs, waitingVerbs } from "#test/postgres/verbs.ts";
 
@@ -95,6 +96,7 @@ export const schemaKit = storyKit({
 		...runtimeVerbs(state.engine, story.tell),
 		...waitingVerbs(state.engine, story.tell),
 		...readouts(state.engine),
+		...listingVerbs(state.engine, story.tell),
 		...schemaVerbs(state, story.tell),
 	}),
 });

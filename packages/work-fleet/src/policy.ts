@@ -139,7 +139,8 @@ export class FleetIntegrations extends Context.Service<
 			work: BoardWork,
 			result: typeof ChangeResult.Type,
 			queued: boolean,
-		) => Effect.Effect<"queued" | "pending" | "manual" | "failed", FleetError>;
+			queuedAt?: number,
+		) => Effect.Effect<"queued" | "pending" | "manual" | { readonly status: "failed"; readonly repairPrompt: string }, FleetError>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;
 	}
 >()("@shivaedev/work-fleet/FleetIntegrations") {}

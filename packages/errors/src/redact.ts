@@ -25,24 +25,24 @@ function entriesOf(value: object, sensitive: SensitiveKey, bounded: boolean): [s
 	const extra = entries.filter(([key]) => !["name", "message", "stack", "cause"].includes(key));
 	return value.cause === undefined ? [...shape, ...extra] : [...shape, ...extra, ["cause", value.cause]];
 }
-function collection(value: object, sensitive: SensitiveKey, depth: number, bounded: boolean): unknown {
+function collection(value: object, sensitive: SensitiveKey, depth: number, bounded: boolean, parentKey: string): unknown {
 	if (Array.isArray(value)) {
-		const items = value.slice(0, bounded ? MAX_ENTRIES : value.length).map((item) => walk(item, sensitive, depth + 1, bounded));
+		const items = value.slice(0, bounded ? MAX_ENTRIES : value.length).map((item) => walk(item, sensitive, depth + 1, bounded, parentKey));
 		return bounded && value.length > MAX_ENTRIES ? [...items, `<${value.length - MAX_ENTRIES} more items>`] : items;
 	}
 	const entries = entriesOf(value, sensitive, bounded);
 	const kept = entries.slice(0, bounded ? MAX_ENTRIES : entries.length).map(([key, nested]): [string, unknown] => {
 		const stackHeader = key === "stack" && typeof nested === "string" && (sensitive("name") || sensitive("message"));
-		return [key, sensitive(key) || stackHeader ? REDACTED : walk(nested, sensitive, depth + 1, bounded)];
+		return [key, sensitive(key) || stackHeader ? REDACTED : walk(nested, sensitive, depth + 1, bounded, key)];
 	});
 	return Object.fromEntries(bounded && entries.length > MAX_ENTRIES ? [...kept, ["<truncated>", `${entries.length - MAX_ENTRIES} more keys`]] : kept);
 }
-function walk(value: unknown, sensitive: SensitiveKey, depth: number, bounded: boolean): unknown {
+function walk(value: unknown, sensitive: SensitiveKey, depth: number, bounded: boolean, key = ""): unknown {
 	if (Redacted.isRedacted(value)) {
 		return REDACTED;
 	}
 	if (Predicate.isString(value)) {
-		return bounded ? redactText(value, sensitive) : redactText(value, sensitive, Number.POSITIVE_INFINITY);
+		return redactText(value, sensitive, bounded ? undefined : Number.POSITIVE_INFINITY, key);
 	}
 	if (!Predicate.isObjectOrArray(value)) {
 		return value;
@@ -54,11 +54,14 @@ function walk(value: unknown, sensitive: SensitiveKey, depth: number, bounded: b
 	if (bounded && depth >= MAX_DEPTH) {
 		return "<truncated>";
 	}
-	return collection(value, sensitive, depth, bounded);
+	return collection(value, sensitive, depth, bounded, key);
 }
 export function redact(value: unknown, sensitive: SensitiveKey = isSensitiveKey): unknown {
 	return walk(value, sensitive, 0, true);
 }
 export function redactWire(value: unknown, sensitive: SensitiveKey = isSensitiveKey): unknown {
 	return walk(value, sensitive, 0, false);
+}
+export function redactRecord(values: Readonly<Record<string, unknown>>, sensitive: SensitiveKey = isSensitiveKey): Record<string, unknown> {
+	return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, sensitive(key) ? REDACTED : walk(value, sensitive, 0, true, key)]));
 }

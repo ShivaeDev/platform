@@ -3,7 +3,7 @@ import { Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useMemo } from "react";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
-import type { BrowserClient } from "#browserClient.ts";
+import type { BrowserClient } from "#adapters/browserClient.ts";
 import { activeRead } from "#client/react/activeRead.ts";
 import { CompactLiveStatus } from "#client/react/CompactLiveStatus.tsx";
 import { liveStatus } from "#client/react/liveStatus.ts";

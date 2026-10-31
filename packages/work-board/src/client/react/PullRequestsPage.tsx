@@ -6,7 +6,7 @@ import {
 	pullRequestGroup,
 	pullRequestGroups,
 } from "#browser/views/pullRequests.ts";
-import { useNow } from "#client/react/now.ts";
+import { useNow } from "#client/react/adapters/now.ts";
 import { exactTime } from "#client/react/timeLabel.ts";
 import { fileUrl } from "#files/url.ts";
 

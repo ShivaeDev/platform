@@ -79,7 +79,7 @@ storyRunner.it("an engine that breaks while stepping prints the story with the s
 	);
 });
 
-storyRunner.it("a failure prints only what the kit's inspect hook shows of the engine", [], function* ({ outcome, runStory }) {
+storyRunner.it("a failure prints the engine state read by an Effect-based inspect hook", [], function* ({ outcome, runStory }) {
 	yield* runStory("failingStories", "Mill Story: prints what the kit's inspect shows");
 
 	expect(yield* outcome()).toBe(

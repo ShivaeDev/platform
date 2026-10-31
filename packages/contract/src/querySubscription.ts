@@ -1,6 +1,7 @@
 import { Context, Effect, type Option } from "effect";
-import type { Rpc } from "effect/rpc";
+import { Rpc } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
+import { policyContext } from "#internal/policyContext.ts";
 import { checkQuery, type PolicyChannels, type Viewer } from "#readPolicy.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { ChangesQueries, type QueryReference, type QueryRequest } from "#serverMetadata.ts";
@@ -26,10 +27,21 @@ export function querySubscription<TRpc extends Rpc.Any>(
 export function querySubscription(rpc: Rpc.Any, references: readonly QueryReference[], viewer: Option.Option<Viewer>) {
 	return Effect.fnUntraced(function* () {
 		const queries = yield* Context.getUnsafe(rpc.annotations, ChangesQueries).resolve(references);
-		yield* Effect.forEach(queries, ({ query, payload }) => checkQuery(query, payload, viewer));
+		const prefix = rpc._tag.slice(0, -"$changes".length);
+		const policies = yield* Effect.forEach(
+			queries,
+			Effect.fnUntraced(function* ({ query, payload }) {
+				const context = yield* policyContext(Rpc.make(`${prefix}${query.name}`));
+				return {
+					check: Effect.provideContext(checkQuery(query, payload, viewer), context),
+					permitted: Effect.suspend(() => query.readPolicy?.(payload, viewer) ?? Effect.succeed(false)).pipe(Effect.provideContext(context)),
+				};
+			}),
+		);
+		yield* Effect.forEach(policies, ({ check }) => check);
 		const scopes = queries.map(({ query, payload }) => query.reads(payload, viewer));
 		const authorized = Effect.map(
-			Effect.forEach(queries, ({ query, payload }) => query.readPolicy?.(payload, viewer) ?? Effect.succeed(false)),
+			Effect.forEach(policies, ({ permitted }) => permitted),
 			(permissions) => permissions.every(Boolean),
 		);
 		return { authorized, keys: scopes.flat(), queries, scopes } satisfies QuerySubscription<unknown, unknown>;

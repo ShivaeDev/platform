@@ -86,12 +86,12 @@ host.it("scheduler passes leave an unchanged area wait unwritten", [boardWork({ 
 
 const ids = ["one", "two", "three"];
 host.it(
-	"one scheduler pass parses each approved brief once to admit it and once to launch it",
+	"one scheduler pass reuses indexed briefs and parses only the fresh launch reads",
 	[approvedWork(ids), boardWork({}, { concurrency: ids.length }), countBriefParses],
 	function* (daemon) {
 		const result = yield* daemon.schedulerPass();
 		expect(result.dispatched.map((dispatch) => dispatch._tag)).toEqual(ids.map(() => "Success"));
 		expect(daemon.providerStarts()).toHaveLength(ids.length);
-		expect(daemon.briefParseCount()).toBe(ids.length * 2);
+		expect(daemon.briefParseCount()).toBe(ids.length);
 	},
 );

@@ -4,6 +4,7 @@ import type { BetterAuthOptions, BetterAuthRateLimitOptions } from "better-auth"
 import { ConfigProvider, Context, Effect, Layer, Logger, type LogLevel, Tracer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import type { BearerSessionsOptions } from "#server/better-auth/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 
@@ -19,6 +20,7 @@ export interface ProviderView {
 export interface MountEngine {
 	authDown: boolean;
 	readonly authOptions: Pick<BetterAuthOptions, "baseURL" | "trustedOrigins">;
+	bearerSessions?: BearerSessionsOptions;
 	readonly consumed: Array<{ readonly key: string; readonly rule: { readonly max: number; readonly window: number } }>;
 	readonly env: Record<string, string>;
 	lastAnswer?: string;
@@ -26,6 +28,7 @@ export interface MountEngine {
 	readonly providerLogs: Array<{ level: string; message: string }>;
 	providerView?: ProviderView;
 	readonly rateLimit: BetterAuthRateLimitOptions;
+	reply?: Response;
 	readonly urls: string[];
 }
 
@@ -58,7 +61,7 @@ function applicationProvider(engine: MountEngine) {
 				address: request.headers.get(PEER_IP_HEADER),
 				forwardedHeaders: FORWARDED_HEADERS.filter((header) => request.headers.has(header)),
 			};
-			return Promise.resolve({ response: new Response(null, { status: 204 }) });
+			return Promise.resolve({ response: engine.reply ?? new Response(null, { status: 204 }) });
 		},
 	};
 }
@@ -67,16 +70,19 @@ export const startMountHost = Effect.fn("AuthMountStory.startMountHost")(functio
 	const logger = Logger.make(({ fiber, logLevel, message }) => {
 		engine.logs.push({ level: logLevel, message, traceId: Context.getOrUndefined(fiber.context, Tracer.ParentSpan)?.traceId });
 	});
-	const auth = yield* betterAuthMount({
-		...engine.authOptions,
-		advanced: { disableOriginCheck: false },
-		emailAndPassword: { autoSignIn: false, enabled: true },
-		logger: { log: (level, message) => engine.providerLogs.push({ level, message }) },
-		"onAPIError": { throw: true },
-		plugins: [applicationProvider(engine)],
-		rateLimit: engine.rateLimit,
-		secret: "mount-story-secret-with-at-least-32-characters",
-	}).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: engine.env }))));
+	const auth = yield* betterAuthMount(
+		{
+			...engine.authOptions,
+			advanced: { disableOriginCheck: false },
+			emailAndPassword: { autoSignIn: false, enabled: true },
+			logger: { log: (level, message) => engine.providerLogs.push({ level, message }) },
+			"onAPIError": { throw: true },
+			plugins: [applicationProvider(engine)],
+			rateLimit: engine.rateLimit,
+			secret: "mount-story-secret-with-at-least-32-characters",
+		},
+		{ bearerSessions: engine.bearerSessions },
+	).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: engine.env }))));
 	const context = yield* Layer.build(
 		HttpRouter.serve(auth.routes, { disableLogger: true, middleware: HttpMiddleware.tracer }).pipe(
 			Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),

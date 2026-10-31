@@ -7,6 +7,7 @@ import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { passwordUser, signedInUser } from "#server/better-auth/testing.ts";
 import { type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
 import { type Account, authRequest, client, login } from "./requests.ts";
+import { socketVerbs } from "./socketVerbs.ts";
 
 interface State {
 	readonly accounts: Map<string, Account>;
@@ -96,6 +97,7 @@ export const nativeSessions = storyKit({
 				.join(", ");
 		}
 		return {
+			...socketVerbs(host, account, story.tell),
 			browserSignsIn: (name: string) => {
 				story.tell(`${name} signs in from the browser`);
 				return Effect.map(login(host, name, true), (session) => {
@@ -161,6 +163,12 @@ export const nativeSessions = storyKit({
 			sessionExpires: () => {
 				story.tell("every stored session expires");
 				return Effect.flatMap(authTestDatabase, (storage) => storage.expireSessions());
+			},
+			sessionProviderUnavailable: () => {
+				story.tell("the session provider becomes unavailable");
+				return Effect.sync(() => {
+					host.activity.available = false;
+				});
 			},
 			sessionTokens: (caller: Caller) =>
 				Effect.gen(function* () {

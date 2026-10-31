@@ -33,12 +33,15 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	} satisfies BetterAuthOptions;
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
 	const mounted = yield* betterAuthMount(options, enabled ? { bearerSessions: { origins: [NATIVE_ORIGIN, ANDROID_ORIGIN] } } : {});
-	const activity = { lookups: 0 };
+	const activity = { available: true, lookups: 0 };
 	const sessions = {
 		origin: () => true,
 		provider: mounted.admittedSessions(
 			(headers) => {
 				activity.lookups += 1;
+				if (!activity.available) {
+					return Promise.reject(new Error("Session provider unavailable"));
+				}
 				return mounted.auth.api.getSession({ headers });
 			},
 			(headers) => mounted.auth.api.listUserAccounts({ headers }),

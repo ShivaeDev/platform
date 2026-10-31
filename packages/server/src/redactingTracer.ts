@@ -1,9 +1,8 @@
 import { Effect, Exit, Layer, Option, Tracer } from "effect";
-import { redact } from "@shivaedev/errors/redact.ts";
+import { redactRecord } from "@shivaedev/errors/redact.ts";
 import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
-import { REDACTED, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
+import type { SensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { type HostRedactionPolicy, redactionForRpc } from "#RedactionPolicy.ts";
-import { redactRecord } from "#redactingDiagnostics.ts";
 
 function redactLinks(values: readonly Tracer.SpanLink[], sensitive: SensitiveKey) {
 	return values.map((link) => ({ ...link, attributes: redactRecord(link.attributes, sensitive) }));
@@ -11,6 +10,9 @@ function redactLinks(values: readonly Tracer.SpanLink[], sensitive: SensitiveKey
 function redactSpan(span: Tracer.Span, policy: HostRedactionPolicy) {
 	const end = span.end.bind(span);
 	const attribute = span.attribute.bind(span);
+	function safeAttribute(key: string, value: unknown) {
+		return attribute(key, redactRecord({ [key]: value }, sensitive)[key]);
+	}
 	const event = span.event.bind(span);
 	const addLinks = span.addLinks.bind(span);
 	function sensitive(key: string) {
@@ -18,10 +20,10 @@ function redactSpan(span: Tracer.Span, policy: HostRedactionPolicy) {
 	}
 	return Object.assign(span, {
 		addLinks: (values: readonly Tracer.SpanLink[]) => addLinks(redactLinks(values, sensitive)),
-		attribute: (key: string, value: unknown) => attribute(key, sensitive(key) ? REDACTED : redact(value, sensitive)),
+		attribute: safeAttribute,
 		end: (time: bigint, exit: Exit.Exit<unknown, unknown>) => {
 			for (const [key, value] of span.attributes) {
-				attribute(key, sensitive(key) ? REDACTED : redact(value, sensitive));
+				safeAttribute(key, value);
 			}
 			end(time, Exit.isFailure(exit) ? Exit.failCause(redactDiagnosticCause(exit.cause, sensitive)) : exit);
 		},

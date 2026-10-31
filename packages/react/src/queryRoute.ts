@@ -24,7 +24,7 @@ export function queryRoute<
 				return await loadQuery(context.context.registry, query({ context: context.context, params: context.params, search: context.deps }), context);
 			} catch (error) {
 				if (Predicate.isTagged(error, "NotFound")) {
-					throw notFound();
+					throw notFound({ data: error });
 				}
 				throw error;
 			}

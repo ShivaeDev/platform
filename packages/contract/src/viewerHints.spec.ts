@@ -22,6 +22,10 @@ viewerStory.it("bob's page of alice's notes fails with read denied", [othersPage
 	expect(yield* shown("bob")).toBe("failed with read denied");
 });
 
+viewerStory.it("alice's subscription mixing her note and bob's note is refused whole", [], function* ({ subscribe }) {
+	expect(yield* subscribe("alice", "note 1", "note 2")).toBe("failed with read denied");
+});
+
 viewerStory.it(
 	"renaming alice's note 3, which her title filter excludes, still reaches her filtered subscription through her bucket",
 	[listening("alice", "their notes titled One")],

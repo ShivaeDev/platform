@@ -12,7 +12,7 @@ import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
 import { workerCwd } from "#host/providers.ts";
 import { taskLaunch } from "#host/taskLaunch.ts";
 import { launchPrompt } from "#host/workerBrief.ts";
-import type { DispatchNow, FleetRecord } from "#model.ts";
+import { type DispatchNow, executing, type FleetRecord } from "#model.ts";
 import { BoardGateway, type BoardWork } from "#policy.ts";
 import { coversRepository, preparationStop } from "#preparation/compatibility.ts";
 import type { Preparation } from "#preparation/schema.ts";
@@ -87,13 +87,21 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	if (record !== undefined && !released && !reapproved && !stalePreparation(record, work, snapshot) && !stoppedBehindMain(record)) {
 		return;
 	}
-	yield* fleet.prepare({
-		cwd: workerCwd(host, main.repositoryRoot),
-		launch: yield* taskLaunch(work),
-		preparation: preparation(snapshot),
-		prompt: yield* launchPrompt(host, work),
-		workId: work.workId,
-	});
+	yield* fleet
+		.prepare({
+			cwd: workerCwd(host, main.repositoryRoot),
+			launch: yield* taskLaunch(work),
+			preparation: preparation(snapshot),
+			prompt: yield* launchPrompt(host, work),
+			workId: work.workId,
+		})
+		.pipe(
+			Effect.catchTag("Forbidden", (error) =>
+				fleet
+					.get(work.workId)
+					.pipe(Effect.flatMap(({ value }) => (executing(value) && !briefChanged(value, work) ? Effect.void : Effect.fail(error)))),
+			),
+		);
 });
 
 export const approvedWorkIds = Effect.fn("FleetHost.approvedWorkIds")(function* (host: FleetHost) {
@@ -128,7 +136,7 @@ export const admitApproved = Effect.fn("FleetHost.admitApproved")(function* (hos
 
 export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function* (host: FleetHost, workId: string, now?: DispatchNow) {
 	const fleet = yield* Fleet;
-	const work = yield* (yield* BoardGateway).get(workId);
+	const work = yield* (yield* BoardGateway).get(workId, { fresh: true });
 	if (!work.approved) {
 		return yield* Effect.fail(new Forbidden({ message: `${workId} needs "fleet: approved" in its Board frontmatter` }));
 	}

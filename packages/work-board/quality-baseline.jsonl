@@ -1,7 +1,6 @@
 {"path":"packages/work-board/package.json","rule":"code/unused","count":4}
 {"path":"packages/work-board/package.json","rule":"manifests/exports-shape","count":1}
 {"path":"packages/work-board/src/boardStartup.dom.spec.ts","rule":"tests/domain-outcomes","count":3}
-{"path":"packages/work-board/src/browserClient.ts","rule":"effect/boundary","count":13}
 {"path":"packages/work-board/src/client/clientEdges.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/document/Mermaid.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/client/document/highlight.ts","rule":"effect/boundary","count":3}
@@ -58,7 +57,6 @@
 {"path":"packages/work-board/src/client/react/HomeBoard.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/work-board/src/client/react/IndexingProgress.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/ItemActions.tsx","rule":"react/jsx-conditionals","count":5}
-{"path":"packages/work-board/src/client/react/ItemId.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/ItemSummary.dom.test.tsx","rule":"tests/wait-on-events","count":1}
 {"path":"packages/work-board/src/client/react/ItemSummary.tsx","rule":"react/jsx-conditionals","count":12}
 {"path":"packages/work-board/src/client/react/LibraryContents.dom.test.tsx","rule":"tests/wait-on-events","count":3}
@@ -120,6 +118,10 @@
 {"path":"packages/work-board/src/client/react/WorkPage.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"packages/work-board/src/client/react/WorkTable.tsx","rule":"react/jsx-conditionals","count":3}
 {"path":"packages/work-board/src/client/react/WorkTableRow.tsx","rule":"react/jsx-conditionals","count":5}
+{"path":"packages/work-board/src/client/react/adapters/loadBoardPage.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/work-board/src/client/react/adapters/loadProjection.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-board/src/client/react/adapters/loadRemaining.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-board/src/client/react/adapters/routeHome.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/answerCard.dom.spec.tsx","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/client/react/answerCard.dom.spec.tsx","rule":"tests/wait-on-events","count":16}
 {"path":"packages/work-board/src/client/react/answerDrafts.dom.spec.tsx","rule":"effect/boundary","count":1}
@@ -176,10 +178,6 @@
 {"path":"packages/work-board/src/client/react/linkedAnswerCard.dom.spec.tsx","rule":"tests/wait-on-events","count":4}
 {"path":"packages/work-board/src/client/react/liveScreen.dom.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/liveScreen.dom.spec.ts","rule":"tests/wait-on-events","count":7}
-{"path":"packages/work-board/src/client/react/loadBoardPage.ts","rule":"effect/boundary","count":11}
-{"path":"packages/work-board/src/client/react/loadBoardPage.ts","rule":"effect/service-parameters","count":2}
-{"path":"packages/work-board/src/client/react/loadProjection.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/work-board/src/client/react/loadRemaining.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/longDocuments.dom.spec.tsx","rule":"tests/wait-on-events","count":11}
 {"path":"packages/work-board/src/client/react/mainLocation.dom.test.tsx","rule":"tests/wait-on-events","count":4}
 {"path":"packages/work-board/src/client/react/markdownRenderers.ts","rule":"structure/no-barrel","count":1}
@@ -217,8 +215,6 @@
 {"path":"packages/work-board/src/client/react/retiredRoutes.dom.spec.tsx","rule":"tests/wait-on-events","count":1}
 {"path":"packages/work-board/src/client/react/retryPage.dom.test.tsx","rule":"tests/wait-on-events","count":5}
 {"path":"packages/work-board/src/client/react/retryPage.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/work-board/src/client/react/routeHome.ts","rule":"effect/boundary","count":2}
-{"path":"packages/work-board/src/client/react/routeHome.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/routeLoading.dom.spec.tsx","rule":"tests/wait-on-events","count":7}
 {"path":"packages/work-board/src/client/react/scheduleReading.dom.test.tsx","rule":"tests/wait-on-events","count":4}
 {"path":"packages/work-board/src/client/react/searchCommand.dom.spec.ts","rule":"tests/wait-on-events","count":8}
@@ -254,7 +250,7 @@
 {"path":"packages/work-board/src/client/react/useBoardNavigation.dom.test.tsx","rule":"tests/wait-on-events","count":5}
 {"path":"packages/work-board/src/client/react/useBoardNavigation.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/client/react/useBoardNavigation.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/work-board/src/client/react/useCopy.ts","rule":"effect/boundary","count":5}
+{"path":"packages/work-board/src/client/react/useCopy.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/client/react/useDiagnosticsPolling.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/useFormFocus.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/client/react/useOpened.ts","rule":"effect/boundary","count":1}

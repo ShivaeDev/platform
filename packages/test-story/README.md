@@ -55,7 +55,7 @@ An application has an **engine**: the real thing a test drives, such as a bakery
 
 Every story belongs to a **genre**, the kind of engine it runs. The kit names each of its tests after its genre, such as `Bakery Story: steps until the condition holds`, so a report shows which engine a test runs and one run can pick the bakery's stories and leave the others.
 
-The package runs on Effect and Vitest, but an engine needs neither: every hook, trait and test body may be a plain function. Use a generator function to yield Effects when a hook needs a service or fails with a typed error; the kit runs it, so no definition needs `Effect.gen`. Creation, stage `after` hooks and traits may also be plain functions that return an Effect directly. The kit runs that Effect in the story's Scope, with the services from its layer.
+The package runs on Effect and Vitest, but an engine needs neither: every hook, trait and test body may be a plain function. Use a generator function to yield Effects when a hook needs a service or fails with a typed error; the kit runs it, so no definition needs `Effect.gen`. Creation, stage `after` hooks, `inspect` and traits may also be plain functions that return an Effect directly. The kit runs that Effect in the story's Scope, with the services from its layer.
 
 The work splits into three layers, and each is written by a different hand at a different time:
 1. **Once per engine**, a story kit in `test-support/` says how to create the engine, which services it needs, and how to seed, step and show it.
@@ -624,7 +624,7 @@ For repository-level tests on a migrated template, `withTestTransaction` from `@
 
 React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms use the same pattern with `useCreate` from `@shivaedev/react/client/create.ts`.
 
-For cookie sessions, use the DOM host setup below. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
+For cookie sessions, use the DOM host setup below. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. An `inspect` hook may read engine state through an Effect or generator, using the kit’s layer before the story’s Scope closes.
 
 ### DOM stories with cookie sessions
 
@@ -831,6 +831,6 @@ Test-story is an application's one test dependency: it brings [`@shivaedev/test`
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
 - Layer acquisition and engine creation failures precede that hook and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.
-- `inspect` runs after the test has failed, so it reads the engine synchronously.
+- `inspect` runs when the story fails, before its Scope closes. Plain functions, generators and functions returning an Effect are supported.
 - The spec line under the `✗` is found by matching the spec's path in the failure's stack, or else in the call site of the last line the story told or the last `runUntil`. A failure raised inside an Effect that the spec does not call directly may have none.
 - The package is built for ShivaeDev applications and may change without a deprecation period.

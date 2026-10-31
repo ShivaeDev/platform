@@ -29,9 +29,9 @@ export const mergeLoop = storyKit({
 	},
 	verbs: (state, story) => ({
 		...engineVerbs(state, story),
-		dequeue: (number: string) => {
-			state.queueApi?.dequeue(number);
-			story.tell(`GitHub removes PR ${number} from its queue`);
+		dequeue: (number: string, reason: string, commit?: string, at = state.now) => {
+			state.queueApi?.dequeue(number, reason, commit, at);
+			story.tell(`GitHub removes PR ${number} from its queue: ${reason}`);
 		},
 		failRequiredCheck: (id: string, name: string, output: string) => {
 			state.failedChecks.set(id, { name, output });
@@ -40,6 +40,10 @@ export const mergeLoop = storyKit({
 		loseQueueReply: () => {
 			state.queueApi?.loseReply();
 			story.tell("GitHub accepts auto-merge but loses its reply");
+		},
+		mergeGroupCheck: (commit: string, check: { name: string; conclusion: string | null; url: string }) => {
+			state.queueApi?.mergeGroupCheck(commit, check);
+			story.tell(`GitHub reports ${check.name} as ${check.conclusion ?? "pending"} for merge group ${commit}`);
 		},
 		passRequiredChecks: (number: string) => {
 			state.failedChecks.delete(number);
@@ -81,9 +85,9 @@ export const automaticMerges = mergeLoop.trait("configuration", "Fleet queues it
 					repairPrompt: failure?.output,
 				};
 			}),
-		queue: (work, result, queued) => {
+		queue: (work, result, queued, queuedAt) => {
 			api.observe(work, result);
-			return queue(work, result, queued).pipe(Effect.provideService(GithubApi, api.client));
+			return queue(work, result, queued, queuedAt).pipe(Effect.provideService(GithubApi, api.client));
 		},
 	};
 });

@@ -7,6 +7,7 @@ import { type PgBossError, toPgBossError } from "#error.ts";
 
 const InstalledSchema = Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) }));
 const InstalledVersion = Schema.Array(Schema.Struct({ version: Schema.Number }));
+const InstalledResolution = Schema.Array(Schema.Struct({ installed: Schema.Boolean }));
 
 export interface PgBossSchemaOptions {
 	readonly schema?: string;
@@ -35,9 +36,14 @@ export function pgBossSchema(options: PgBossSchemaOptions = {}): SchemaComponent
 					? []
 					: yield* sql`select version from ${table}`.withoutTransform.pipe(Effect.flatMap(Schema.decodeUnknownEffect(InstalledVersion)));
 			const required = pgBossPackage.pgboss.schema;
-			return row === undefined || row.version < required
-				? `schema ${schema}, installed version ${row?.version ?? "missing"}, required version ${required}`
-				: undefined;
+			if (row === undefined || row.version < required) {
+				return `schema ${schema}, installed version ${row?.version ?? "missing"}, required version ${required}`;
+			}
+			const job = sql`${sql(schema)}.${sql("job")}`;
+			const [resolution] = yield* sql`SELECT EXISTS (
+				SELECT 1 FROM pg_trigger WHERE tgrelid = to_regclass(${job.compile()[0]}) AND tgname = 'effect_dead_letter_resolution'
+			) AS installed`.withoutTransform.pipe(Effect.flatMap(Schema.decodeUnknownEffect(InstalledResolution)));
+			return resolution?.installed ? undefined : `schema ${schema}, missing dead-letter resolution trigger`;
 		}),
 	};
 }

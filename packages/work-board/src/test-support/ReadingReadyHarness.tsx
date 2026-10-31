@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { DocumentView } from "#client/document/View.ts";
+import type { RouterShell } from "#client/react/adapters/loadBoardPage.ts";
 import { DocumentContext } from "#client/react/DocumentContext.tsx";
-import type { RouterShell } from "#client/react/loadBoardPage.ts";
 import { ReadingReadyContext } from "#client/react/ReadingReadyContext.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import { useBoardNavigation } from "#client/react/useBoardNavigation.ts";

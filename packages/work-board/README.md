@@ -334,7 +334,7 @@ Reported `evidence.checked_revision` is a Git revision, distinct from the report
 
 ### API and integration
 
-Import the module that defines a name. The package has no root entry; a module's import path is its path under `src/`, which the `./*.ts` export maps to its source, declaration and runtime files. The browser bundle sources under `client/` stay unexported. The main entry points are `server/board.ts` (`boardLayer`), `server/serve.ts` (`serveBoard`), `server/responses/agent.ts` (`agentRequest`) and `browserClient.ts` (`browserClient`); `rpc/` holds the native contracts and `rpc/rejections.ts` the declared errors. The [source directory](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/src) contains file/watch, HTTP, rendering, search, views and result-review helpers. Compose `boardLayer` to retain the package's source policy and request guards.
+Import the module that defines a name. The package has no root entry; a module's import path is its path under `src/`, which the `./*.ts` export maps to its source, declaration and runtime files. The browser bundle sources under `client/` stay unexported. The main entry points are `server/board.ts` (`boardLayer`), `server/serve.ts` (`serveBoard`), `server/responses/agent.ts` (`agentRequest`) and `adapters/browserClient.ts` (`browserClient`); `rpc/` holds the native contracts and `rpc/rejections.ts` the declared errors. The [source directory](https://github.com/ShivaeDev/platform/tree/main/packages/work-board/src) contains file/watch, HTTP, rendering, search, views and result-review helpers. Compose `boardLayer` to retain the package's source policy and request guards.
 
 #### Embed the workspace
 
@@ -401,7 +401,7 @@ console.log(JSON.stringify(answer, null, 2));
 #### Use the native browser client
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browserClient.ts";
+import { browserClient } from "@shivaedev/work-board/adapters/browserClient.ts";
 
 export async function registerReviewedQuestion(url: string, revision: string) {
 	const client = browserClient(url);
@@ -433,7 +433,7 @@ Call this function with a revision whose source/context you have reviewed and a 
 For a handoff, first read the preview with `client.run(client.handoffs.handoffSource.run({ item: "work.search" }))` and inspect its `context`. This complete program takes that reviewed path and revision as inputs:
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browserClient.ts";
+import { browserClient } from "@shivaedev/work-board/adapters/browserClient.ts";
 
 export async function prepareReviewedHandoff(url: string, source: string, revision: string) {
 	const client = browserClient(url);
@@ -463,7 +463,7 @@ Pass `preview.source` and `preview.reviewedRevision` only after reviewing the pr
 Result reading returns the report, linked criteria and revision-pinned feedback from its typed query:
 
 ```ts
-import { browserClient } from "@shivaedev/work-board/browserClient.ts";
+import { browserClient } from "@shivaedev/work-board/adapters/browserClient.ts";
 
 export async function readReturnedResult(url: string, item: string) {
 	const client = browserClient(url);

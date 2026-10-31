@@ -58,7 +58,12 @@ export function describeJob(engine: Engine, job: ListedJob) {
 
 export function describeCopy(
 	engine: Engine,
-	copy: ListedJob & { readonly sourceId: Option.Option<string>; readonly sourceOutput: unknown; readonly startedOn: Option.Option<unknown> },
+	copy: ListedJob & {
+		readonly sourceId: Option.Option<string>;
+		readonly sourceOutput: unknown;
+		readonly sourceQueue: string;
+		readonly startedOn: Option.Option<unknown>;
+	},
 ) {
 	return {
 		copy: nameOf(engine, copy.id),
@@ -66,6 +71,7 @@ export function describeCopy(
 		queue: copy.queue,
 		source: sourceOf(engine, copy),
 		sourceOutput: rejection(copy.sourceOutput),
+		sourceQueue: copy.sourceQueue,
 		started: Option.isSome(copy.startedOn) ? "started" : "not started",
 	};
 }

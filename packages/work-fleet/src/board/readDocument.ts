@@ -1,5 +1,6 @@
 import { Effect, FileSystem } from "effect";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
+import type { BoardDocument } from "#board/documents.ts";
 import { STATUS_MARKER } from "#board/statusMarkdown.ts";
 import { BoardFailure } from "#policy.ts";
 
@@ -19,7 +20,12 @@ export const readDocument = Effect.fn("FleetBoard.readDocument")(function* (root
 	if (file === "fleet/status.md" && source.startsWith(`${STATUS_MARKER}\n`)) {
 		return { document: undefined, problem: undefined };
 	}
-	const parsed = boardApi.metadataParse(source);
+	return yield* validateDocument(root, { file, parsed: boardApi.metadataParse(source), source });
+});
+
+export const validateDocument = Effect.fn("FleetBoard.validateDocument")(function* (root: string, document: BoardDocument) {
+	const { file } = document;
+	const parsed = document.parsed;
 	const areas = yield* boardApi
 		.areaDiagnostics(root, parsed, file)
 		.pipe(
@@ -31,7 +37,7 @@ export const readDocument = Effect.fn("FleetBoard.readDocument")(function* (root
 		(diagnostic) => !((diagnostic.field === "pr" || diagnostic.field === "branch") && diagnostic.message.startsWith("Unknown field ")),
 	);
 	return {
-		document: { file, parsed, source },
+		document,
 		problem:
 			diagnostics.length === 0
 				? undefined

@@ -5,12 +5,12 @@ import { type FleetWork, type NowLane, nowLanes } from "#browser/views/now.ts";
 import { doneLane, laneRows } from "#browser/views/nowLanes.ts";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import type { State } from "#browser/views/state.ts";
+import { useNow } from "#client/react/adapters/now.ts";
 import { Alert, AlertDescription } from "#client/react/components/ui/alert.tsx";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#client/react/components/ui/tabs.tsx";
 import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
 import { FleetStartHelp } from "#client/react/FleetStopped.tsx";
-import { useNow } from "#client/react/now.ts";
 import { useMedia } from "#client/react/useMedia.ts";
 import { WorkLane } from "#client/react/WorkLane.tsx";
 
