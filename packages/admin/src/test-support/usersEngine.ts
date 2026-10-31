@@ -3,12 +3,11 @@ import { FetchHttpClient, HttpRouter } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { SqlClient } from "effect/sql";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { UsersPermission } from "#permissions.ts";
 import { usersHandlers } from "#server/usersHandlers.ts";
@@ -64,9 +63,9 @@ export const usersEngine = Effect.gen(function* () {
 			logs.push({ annotations: options.fiber.getRef(References.CurrentLogAnnotations), message: options.message });
 		}),
 	]);
-	const live = yield* makeLiveServer.pipe(Effect.provide(Reactivity.layer));
-	const handlers = Layer.merge(usersHandlers(Page, Access), hostChanges(Page.contract, AppChanges)).pipe(
-		Layer.provide(Layer.succeed(AppChanges, live)),
+	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
+	const handlers = Layer.merge(usersHandlers(Page, Access), hostChanges(Page.contract)).pipe(
+		Layer.provide(Layer.succeed(LiveServer, live)),
 		Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
 		Layer.provide(logger),
 		Layer.provide(Reactivity.layer),

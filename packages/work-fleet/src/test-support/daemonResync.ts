@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import type { FleetRecord } from "#model.ts";
 import { until } from "#test/cloudRestart.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
@@ -14,6 +14,6 @@ export function daemonResync(engine: HostStoryEngine) {
 				const reactivity = yield* Reactivity.make;
 				yield* storeState(engine.fixture.host, record.workId, record).pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
 			}),
-		resync: () => Effect.flatMap(AppChanges, (changes) => changes.resync).pipe(Effect.provideContext(engine.running.context)),
+		resync: () => Effect.flatMap(LiveServer, (changes) => changes.resync()).pipe(Effect.provideContext(engine.running.context)),
 	};
 }

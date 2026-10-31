@@ -7,9 +7,9 @@ export default [
 	fence("contract-never-imports-server")
 		.because("Browser packages ship to browsers and reach only browser-safe code.")
 		.from(browserCode)
-		.mayNotReach(anything.except(files("packages/changes/src/keys.ts"), browserCode, packages("types"), modules("effect")))
+		.mayNotReach(anything.except(files("packages/changes/src/keys.ts"), browserCode, packages("types", "service"), modules("effect")))
 		.demonstratedBy({
 			illegal: ["packages/contract/src/contract.ts", external("@effect/sql-pg")],
-			legal: ["packages/contract/src/contract.ts", external("effect")],
+			legal: ["packages/contract/src/contract.ts", "packages/service/src/defineService.ts", external("effect")],
 		}),
 ];

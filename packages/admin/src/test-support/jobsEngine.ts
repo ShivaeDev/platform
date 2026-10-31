@@ -5,7 +5,6 @@ import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -87,7 +86,7 @@ export const jobsEngine = Effect.gen(function* () {
 	yield* Layer.build(registration.handlers.pipe(Layer.provide(Layer.succeed(Jobs, jobs))));
 	const rpc = yield* adminRpc(
 		registration.group,
-		Layer.merge(registration.handlers, hostChanges(registration.group, AppChanges)).pipe(Layer.provide(Layer.succeed(Jobs, jobs))),
+		Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(Layer.provide(Layer.succeed(Jobs, jobs))),
 	);
 
 	return {

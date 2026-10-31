@@ -5,12 +5,11 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { adminPage } from "#page.ts";
 import { JobsPermission, UsersPermission } from "#permissions.ts";
@@ -32,7 +31,7 @@ const Restricted = adminPage({
 export const adminEngine = Effect.gen(function* () {
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const failed = yield* Ref.make<readonly string[]>(["mail-42"]);
-	const live = yield* makeLiveServer.pipe(Effect.provide(Reactivity.layer));
+	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
 	const jobsModule = registerAdmin(adminRegistry(Jobs), {
 		jobs: Jobs.contract.application.toLayer({
 			"admin.jobs.failed": () => Ref.get(failed),
@@ -49,7 +48,7 @@ export const adminEngine = Effect.gen(function* () {
 		restricted: Restricted.contract.application.toLayer({ "admin.restricted.profile": () => Effect.succeed("unrestricted") }),
 	});
 	const registration = mergeAdminRegistrations(jobsModule, usersModule, restrictedModule);
-	const changes = hostChanges(registration.group, AppChanges).pipe(Layer.provide(Layer.succeed(AppChanges, live)));
+	const changes = hostChanges(registration.group).pipe(Layer.provide(Layer.succeed(LiveServer, live)));
 	const policy = {
 		origin: () => true,
 		provider: { get: () => Ref.get(session) },

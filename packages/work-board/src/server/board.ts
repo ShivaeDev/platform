@@ -3,7 +3,6 @@ import type { HttpRouter } from "effect/http";
 import type { MissingReadPolicies } from "@shivaedev/contract/readPolicyErrors.ts";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostRpcRoutes } from "@shivaedev/server/hostRpcRoutes.ts";
 import type { RenderFailed } from "#render/Failed.ts";
 import { workRpcs } from "#rpc/contract.ts";
@@ -35,7 +34,6 @@ export function boardLayer(options: BoardOptions): Layer.Layer<never, BoardError
 			const runtime = yield* boardRuntime(options);
 			const rpc = hostRpcRoutes(
 				{ group: workRpcs, handlers: runtime.rpcHandlers, policy: "loopback", rpcPath: RPC_PATH },
-				AppChanges,
 				{ bodySize: 4 * 1024 * 1024, host: "127.0.0.1", nativeOrigins: [], trustedProxy: undefined },
 				schemaSensitiveKeys(workRpcs),
 			).pipe(Layer.provide(runtime.live));

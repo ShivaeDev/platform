@@ -5,7 +5,7 @@ import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appDatabase } from "#appHost.ts";
+import { appDatabase } from "#appDatabase.ts";
 
 export const poolTeardown = storyKit({
 	around: withIsolatedDatabase,

@@ -4,6 +4,7 @@
 {"path":"packages/react/src/client/mountLive.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/permissionBoundary.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/reactWarnings.dom.spec.tsx","rule":"effect/boundary","count":1}
+{"path":"packages/react/src/client/sessionBoundary.ts","rule":"biome/plugin","count":2}
 {"path":"packages/react/src/client/sessionBoundary.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/noticeEntry.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/noticeStore.ts","rule":"effect/service-parameters","count":1}
@@ -13,6 +14,7 @@
 {"path":"packages/react/src/internal/useLoaderHandoff.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/internal/useLoaderHandoff.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/usePermissionFailure.ts","rule":"effect/boundary","count":1}
+{"path":"packages/react/src/notices.ts","rule":"biome/plugin","count":1}
 {"path":"packages/react/src/permissionGuard.ts","rule":"effect/boundary","count":2}
 {"path":"packages/react/src/queryRoute.ts","rule":"effect/boundary","count":5}
 {"path":"packages/react/src/queryRoute.ts","rule":"effect/service-parameters","count":1}

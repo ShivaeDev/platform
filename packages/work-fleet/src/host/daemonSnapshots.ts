@@ -1,7 +1,7 @@
 import { Effect, Schedule, Stream } from "effect";
 import { SqlClient } from "effect/sql";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { withAnswerRequests } from "#host/answerRecords.ts";
@@ -14,7 +14,7 @@ import { dispatchStore } from "#storage/dispatchStore.ts";
 
 export const daemonSnapshots = Effect.fn("FleetDaemon.daemonSnapshots")(function* (host: FleetHost, watch = false) {
 	const sql = yield* SqlClient.SqlClient;
-	const changes = yield* AppChanges;
+	const changes = yield* LiveServer;
 	const dispatches = yield* dispatchStore(host.namespace);
 	const answers = yield* answerStore(host.namespace);
 	const read = Effect.gen(function* () {
@@ -33,7 +33,7 @@ export const daemonSnapshots = Effect.fn("FleetDaemon.daemonSnapshots")(function
 				}),
 		),
 	);
-	const snapshots = yield* changes.stream([fleetRecords.list, { _tag: "List", collection: `${host.namespace}_records` }]).pipe(
+	const snapshots = yield* Stream.unwrap(changes.stream([fleetRecords.list, { _tag: "List", collection: `${host.namespace}_records` }])).pipe(
 		Stream.mapEffect(() => read),
 		Stream.changesWith((left, right) => JSON.stringify(left) === JSON.stringify(right)),
 		Stream.share({ capacity: 1, replay: 1, strategy: "sliding" }),

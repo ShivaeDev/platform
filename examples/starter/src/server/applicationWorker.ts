@@ -1,5 +1,5 @@
 import { Config, Effect, Layer, Option, type Redacted } from "effect";
-import { appDatabase } from "@shivaedev/server/appHost.ts";
+import { appDatabase } from "@shivaedev/server/appDatabase.ts";
 import { otlpTracing } from "@shivaedev/server/otlpTracing.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { JobsClientFactory } from "./JobsClientFactory.ts";

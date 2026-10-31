@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { BeforeCommit } from "@shivaedev/sql/transact.ts";
 import { SettingsApplication, settings } from "./contract.ts";
 import { SettingsService } from "./Service.ts";
@@ -9,7 +9,7 @@ export function handlers(beforeCommit: (keys: readonly unknown[]) => Effect.Effe
 	return SettingsApplication.toLayer(
 		Effect.gen(function* () {
 			const service = yield* SettingsService;
-			const changes = yield* AppChanges;
+			const changes = yield* LiveServer;
 			const announce = yield* BeforeCommit;
 			return SettingsApplication.of({
 				"settings.get": ({ entityId }) => Effect.flatMap(Identity, ({ id }) => service.get(id, entityId)),
@@ -21,7 +21,7 @@ export function handlers(beforeCommit: (keys: readonly unknown[]) => Effect.Effe
 					Stream.unwrap(
 						Effect.gen(function* () {
 							yield* service.get((yield* Identity).id, entityId);
-							return changes.stream([settings.item(entityId)]);
+							return yield* changes.stream([settings.item(entityId)]);
 						}),
 					),
 			});

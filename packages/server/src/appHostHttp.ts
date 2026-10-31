@@ -4,8 +4,8 @@ import { HttpRouter, HttpServer, HttpStaticServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { SessionShape } from "@shivaedev/identity/server/session.ts";
-import type { AppChanges, AppHttpHostOptions } from "#appHost.ts";
-import type { databaseLayer } from "#databaseLayer.ts";
+import type { appDatabase } from "#appDatabase.ts";
+import type { AppHttpHostOptions } from "#appHost.ts";
 import { healthRoute } from "#healthRoute.ts";
 import { hostApplicationRoutes } from "#hostApplicationRoutes.ts";
 import type { HostOptions, HostPolicy, HostRouteRequirements } from "#hostOptions.ts";
@@ -42,14 +42,13 @@ export function appHostHttp<
 		TRouteRequirements
 	> &
 		HostPolicy<TSession>,
-	changesService: typeof AppChanges,
 ) {
 	const sensitive = schemaSensitiveKeys(options.group, options.config?.sensitiveKeys);
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const transport = yield* hostTransport(options);
 			const { bodySize, host, trustedProxy, nativeOrigins } = transport;
-			const routes = hostRpcRoutes(options, changesService, transport, sensitive);
+			const routes = hostRpcRoutes(options, transport, sensitive);
 			const assets =
 				options.assets === undefined
 					? Layer.empty
@@ -98,11 +97,10 @@ export function migratedHost<
 		HostPolicy<TSession> & {
 			readonly migrations: MigrationOptions<TMigrations, TMigrationError>;
 		},
-	database: ReturnType<typeof databaseLayer<TMigrations, TMigrationError>>,
-	changesService: typeof AppChanges,
+	database: ReturnType<typeof appDatabase<TMigrations, TMigrationError>>,
 ) {
 	const services = Layer.mergeAll(options.services ?? Layer.empty);
-	return appHostHttp({ ...options, services: services.pipe(Layer.provideMerge(database)) }, changesService);
+	return appHostHttp({ ...options, services: services.pipe(Layer.provideMerge(database)) });
 }
 
 export function deferredHost<
@@ -140,8 +138,7 @@ export function deferredHost<
 		TApplicationError,
 		TApplicationRequirements
 	>,
-	database: ReturnType<typeof databaseLayer<TMigrations, TMigrationError>>,
-	changesService: typeof AppChanges,
+	database: ReturnType<typeof appDatabase<TMigrations, TMigrationError>>,
 ) {
-	return Layer.unwrap(Effect.map(application, (options) => appHostHttp(options, changesService))).pipe(Layer.provideMerge(database));
+	return Layer.unwrap(Effect.map(application, (options) => appHostHttp(options))).pipe(Layer.provideMerge(database));
 }
