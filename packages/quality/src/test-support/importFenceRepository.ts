@@ -6,7 +6,7 @@ const FENCE_CONFIG = [
 	'import { folders, packages } from "@shivaedev/quality/imports/fences/selectors.ts";',
 	"",
 	'const game = fence("game-keeps-out-of-cms").because("The game ships to players.").from(folders("packages/game/src")).mayNotImport(packages("cms"))',
-	'  .demonstratedBy({ illegal: ["packages/game/src/a.ts", "packages/cms/src/b.ts"], legal: ["packages/game/src/a.ts", "packages/game/src/b.ts"] });',
+	'  .demonstratedBy({ illegal: ["packages/game/src/play.ts", "packages/cms/src/edit.ts"], legal: ["packages/game/src/play.ts", "packages/game/src/run.ts"] });',
 	'export default defineConfig({ rules: { "imports/fences": { options: { fences: [game] } } } });',
 ].join("\n");
 

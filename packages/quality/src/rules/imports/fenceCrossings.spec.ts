@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { fence } from "#imports/fence.ts";
-import { anything, files, folders, packages } from "#imports/fences/selectors.ts";
+import { anything, external, files, folders, packages } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { gameFences } from "#test/gameFences.ts";
@@ -82,7 +82,17 @@ importStory.it(
 	"imports/fences keeps a file under a package.json nested in a workspace package inside that workspace package",
 	[repositoryHolds(fixtureTree("nested"))],
 	function* ({ check, locations }) {
-		yield* check(importFences, { fences: [gameKeepsOutOfCms] });
+		yield* check(importFences, {
+			fences: [
+				{
+					...gameKeepsOutOfCms,
+					examples: {
+						illegal: ["packages/game/src/preview.ts", "packages/cms/src/edit.ts"],
+						legal: ["packages/game/src/preview.ts", external("effect")],
+					},
+				},
+			],
+		});
 
 		expect(yield* locations()).toEqual(["packages/game/src/preview.ts:1"]);
 	},
@@ -92,7 +102,17 @@ importStory.it(
 	"imports/fences reports an import of a file its generator has not written yet",
 	[repositoryHolds(fixtureTree("pending"))],
 	function* ({ check, messages }) {
-		yield* check(importFences, { fences: [gameKeepsOutOfCms] });
+		yield* check(importFences, {
+			fences: [
+				{
+					...gameKeepsOutOfCms,
+					examples: {
+						illegal: ["packages/game/src/client.ts", "packages/cms/src/edit.ts"],
+						legal: ["packages/game/src/client.ts", external("effect")],
+					},
+				},
+			],
+		});
 
 		expect(yield* messages()).toEqual([expect.stringContaining("Imports packages/cms/generated/client.ts across the fence")]);
 	},
@@ -131,8 +151,8 @@ importStory.it("imports/fences takes a folder as a vocabulary boundary", [GAME],
 		.mayImportOnly("cards", "session")
 		.of(folders("packages/vocabulary/src/"))
 		.demonstratedBy({
-			illegal: ["packages/game/src/a.ts", "packages/vocabulary/src/voyage/a.ts"],
-			legal: ["packages/game/src/a.ts", "packages/vocabulary/src/cards.ts"],
+			illegal: ["packages/game/src/play.ts", "packages/vocabulary/src/voyage/route.ts"],
+			legal: ["packages/game/src/play.ts", "packages/vocabulary/src/cards.ts"],
 		});
 
 	yield* check(importFences, { fences: [policy] });
