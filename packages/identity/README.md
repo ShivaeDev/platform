@@ -147,7 +147,36 @@ import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts
 yield* assignRole(AppAccess, userId, "owner");
 ```
 
-Supply the application's `SqlClient` and `Reactivity` Layers. This trusted server verb has no caller authorization check; authorize operator access before calling it. It returns whether the role changed, fails with `NotFound` for a missing user, and refuses to remove the final holder of `AssignRoles` (`roles.assign`) with `LastRoleAssigner`. Both declarations live in `@shivaedev/access/roles.ts`. Writes serialize through the same PostgreSQL transaction lock and invalidate the Users list after commit. The Users page adds its caller permission check and audit log.
+Supply the application's `SqlClient` Layer. `assignRole` uses the existing Reactivity service when present and supplies its own when absent, so server-only apps need no Users page or Reactivity Layer. This trusted server verb has no caller authorization check; authorize operator access before calling it. It returns whether the role changed, fails with `NotFound` for a missing user, and refuses to remove the final holder of `AssignRoles` (`roles.assign`) with `LastRoleAssigner`. Both declarations live in `@shivaedev/access/roles.ts`. Writes serialize through the same PostgreSQL transaction lock and invalidate the Users list after commit. The Users page adds its caller permission check and audit log.
+
+For named provider accounts, declare the role once and pass a configured `accountRoleSeed` to the mount:
+
+```ts
+import { Config } from "effect";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { AssignRoles } from "@shivaedev/access/roles.ts";
+import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
+import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+
+const Member = role("member", []);
+const Operator = role("operator", [AssignRoles]);
+const AppAccess = roleSet(Member, Operator);
+const operators = Config.schema(ProviderAccounts, "AUTH_OPERATOR_ACCOUNTS").pipe(Config.withDefault([]));
+
+const mounted = yield* betterAuthMount(authOptions, {
+	defaultRole: Member.name,
+	roles: AppAccess,
+	roleSeed: accountRoleSeed(AppAccess, Operator.name, operators),
+});
+```
+
+Set `AUTH_OPERATOR_ACCOUNTS=github:1001,github:1002` using stable provider account IDs. `ProviderAccounts` shares the parser and account-ID validation of `AllowedAccounts`, while accepting an empty list. `Config.withDefault([])` also accepts an unset variable. Both grant nothing. Invalid entries fail boot with `ConfigError`.
+
+The mount runs the seed at boot for existing users and before creating sign-in sessions, including the first provider sign-in. A listed account that has never signed in is ignored until it does. Assignments go through `assignRole`, including its last-role-assigner guard and commit invalidation. The seed uses the application's SQL Layer and default Better Auth PostgreSQL tables.
+
+The seed only grants: removing an account from config does not restore its previous role. To demote it, first remove the account from config and restart the server, then assign the desired role through the Users page or a trusted `assignRole` command. Keep another holder of `AssignRoles` before demoting the last administrator. A still-listed account receives the configured role again on sign-in or boot.
 
 ### Administer signed-in sessions
 
@@ -402,7 +431,7 @@ The starter ships checked-in SQL for its auth migrations and checks all numbered
 Identity declares `user.additionalFields.role` when the mount has `roles` and `defaultRole`. Choose a default from your application's role set, such as `member`. It is a required string and cannot be supplied by sign-up input. No `additionalFields` entry or Better Auth `admin()` plugin is needed.
 1. Generate a new numbered application migration with `generateBetterAuthMigration(authOptions, { defaultRole: "member" })`, following the frozen workflow above. Run it before deploying the mount with roles. PostgreSQL fills existing users when the column is added; identity also fills null roles when adopting a nullable role column. Both fresh and upgraded schemas finish with a `text NOT NULL DEFAULT 'member'` column. The migration keeps existing non-null roles.
 2. Mount with `betterAuthMount(authOptions, { defaultRole: "member", roles: Access })`, using the same default as the migration. New users get that role. Remove any app-owned role field configuration and the admin plugin if you used it only for roles.
-3. In a trusted server-side bootstrap process, call `assignRole(Access, existingUserId, "admin")` to make the first administrator. Provide the application's SQL Layer and Effect Reactivity, as for other role changes. `Access` must declare `admin` with the permissions that administrator needs, including `AssignRoles` to manage other users. Do not expose the bootstrap process as an unauthenticated endpoint.
+3. In a trusted server-side bootstrap process, call `assignRole(Access, existingUserId, "admin")` to make the first administrator. Provide the application's SQL Layer, as for other role changes. Alternatively, configure `accountRoleSeed` on the mount for named provider accounts. `Access` must declare `admin` with the permissions that administrator needs, including `AssignRoles` to manage other users. Do not expose the bootstrap process as an unauthenticated endpoint.
 
 ```ts
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
@@ -639,9 +668,10 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                        |
 | `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                           |
 | `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware.                                                                                                                   |
-| `server/better-auth/mount.ts`                | `betterAuthMount(options, { signIn?, bearerSessions?, roles? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`: native auth routes and the sign-in policy.                                    |
+| `server/better-auth/mount.ts`                | `betterAuthMount(options, { signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`: native auth routes and the sign-in policy.           |
 | `server/better-auth/adapters/database.ts`    | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                           |
-| `server/better-auth/allowedAccounts.ts`      | `AllowedAccounts`, `allowedAccounts`: the provider-account list Schema and its `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                                              |
+| `server/better-auth/allowedAccounts.ts`      | `ProviderAccounts`, `AllowedAccounts`, `allowedAccounts`: provider-account list Schemas and the non-empty `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                   |
+| `server/better-auth/accountRoleSeed.ts`      | `accountRoleSeed(access, role, accounts)`: grant a configured role at boot and sign-in through `assignRole`.                                                                                                                |
 | `server/better-auth/signInGate.ts`           | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy.                                                                                                                                           |
 | `server/better-auth/revokeUnadmitted.ts`     | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                        |
 | `server/better-auth/userProfiles.ts`         | Public profile lookups for other users.                                                                                                                                                                                     |

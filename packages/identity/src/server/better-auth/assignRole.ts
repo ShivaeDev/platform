@@ -1,4 +1,5 @@
 import { Effect, Option, Schema } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AssignRoles, LastRoleAssigner } from "@shivaedev/access/roles.ts";
@@ -15,6 +16,8 @@ export const assignRole = Effect.fn("Identity.assignRole")(function* <TRole exte
 	role: NoInfer<TRole>,
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	const existing = yield* Effect.serviceOption(Reactivity.Reactivity);
+	const reactivity = Option.isSome(existing) ? existing.value : yield* Reactivity.make;
 	return yield* Effect.gen(function* () {
 		yield* sql`select pg_advisory_xact_lock(hashtext('platform.auth.user-roles'))`;
 		const readTarget = SqlSchema.findOneOption({
@@ -44,5 +47,5 @@ export const assignRole = Effect.fn("Identity.assignRole")(function* <TRole exte
 		yield* sql`update "user" set role = ${role}, "updatedAt" = now() where id = ${userId}`;
 		yield* invalidateOnCommit(["admin.users"]);
 		return true;
-	}).pipe(transact({ onSqlError: unavailable }));
+	}).pipe(transact({ onSqlError: unavailable }), Effect.provideService(Reactivity.Reactivity, reactivity));
 });

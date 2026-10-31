@@ -14,6 +14,7 @@ export const PUBLIC_URL = "https://app.example";
 
 export interface HostOptions {
 	readonly deployed?: boolean;
+	readonly ownerAccounts?: string;
 	readonly publicUrl?: "unset";
 	readonly replacements?: Layer.Layer<never>;
 	readonly trustedProxy?: string | undefined;
@@ -25,6 +26,9 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	const database = yield* PostgresTestDatabase;
 	yield* Effect.scoped(migrateDatabase(database.url));
 	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0", "PUBLIC_URL": PUBLIC_URL } : {};
+	if (options.ownerAccounts !== undefined) {
+		env.AUTH_OWNER_ACCOUNTS = options.ownerAccounts;
+	}
 	if (options.publicUrl === "unset") {
 		delete env.PUBLIC_URL;
 	}

@@ -2,12 +2,15 @@ import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpServerRespondable, HttpStaticServer } from "effect/http";
 import { AdminSessions } from "@shivaedev/admin/server/AdminSessions.ts";
 import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
+import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
+import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";
 import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authOptions } from "#server/authOptions.ts";
@@ -16,6 +19,8 @@ import { JobsClientFactory } from "./JobsClientFactory.ts";
 import { jobsLayer } from "./jobsLayer.ts";
 import { serverModules } from "./modules.ts";
 import type { PoolSizes } from "./PoolSizes.ts";
+
+const ownerSeed = accountRoleSeed(AppAccess, Owner.name, Config.schema(ProviderAccounts, "AUTH_OWNER_ACCOUNTS").pipe(Config.withDefault([])));
 
 function adminDocumentRoutes() {
 	return Layer.unwrap(
@@ -51,7 +56,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 							database: yield* betterAuthDatabase(),
 							...(config?.secret === undefined ? {} : { secret: Redacted.value(config.secret) }),
 						},
-						{ defaultRole: User.name, roles: AppAccess },
+						{ defaultRole: User.name, roleSeed: ownerSeed, roles: AppAccess },
 					).pipe(Effect.tap(({ auth }) => readyAuth(auth)));
 					const modules = serverModules;
 					const sessions = {

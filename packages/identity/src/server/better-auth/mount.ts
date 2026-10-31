@@ -2,6 +2,7 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
+import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
@@ -10,6 +11,7 @@ import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
 import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
 import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
+import type { AccountRoleSeed } from "./accountRoleSeed.ts";
 import { admittedSessions } from "./admittedSessions.ts";
 import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
 import { mountedSessions } from "./mountedSessions.ts";
@@ -18,7 +20,10 @@ export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly hardening?: BetterAuthHardeningOptions;
 	readonly signIn?: SignInPolicy<E, R> | undefined;
-} & ({ readonly roles?: undefined } | (StoredRoleOptions & { readonly roles: RoleSet }));
+} & (
+	| { readonly roles?: undefined; readonly roleSeed?: undefined }
+	| (StoredRoleOptions & { readonly roles: RoleSet; readonly roleSeed?: Effect.Effect<AccountRoleSeed<E>, E, R> })
+);
 
 export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <const TOptions extends BetterAuthOptions, E = never, R = never>(
 	options: TOptions,
@@ -37,6 +42,8 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const gate = yield* signInGate(policy);
 	const configured = mount.roles === undefined ? options : storedRoleOptions(closeRoleEndpoints(options), mount);
 	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
+	const seed = mount.roleSeed === undefined ? undefined : yield* mount.roleSeed;
+	const seeded = roleSeedOptions(gate.active ? { ...configured, ...gated } : configured, seed);
 	const rateLimit = options.rateLimit;
 	const customStorage =
 		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);
@@ -57,7 +64,7 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 				allowedHosts: ["127.0.0.1:*", "localhost:*"],
 				protocol: "http" as const,
 			})),
-		databaseHooks: gate.active ? gated.databaseHooks : options.databaseHooks,
+		databaseHooks: seeded.databaseHooks,
 		rateLimit: {
 			...rateLimit,
 			...(customStorage === undefined ? {} : { customStorage }),
