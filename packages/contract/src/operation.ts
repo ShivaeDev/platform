@@ -1,7 +1,7 @@
 import type { Option, Schema } from "effect";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
-import { type Declaration, type Loose, operation } from "#internal/operationDeclaration.ts";
+import { type Declaration, type Loose, operation, type QueryDeclaration } from "#internal/operationDeclaration.ts";
 import type { QueryServerReads } from "#QueryServerReads.ts";
 import type { QueryReadPolicy, Viewer } from "#readPolicy.ts";
 import type { Reject, RejectedBy, RejectionSpecs, Rejections, RejectionUnion } from "#rejection.ts";
@@ -88,12 +88,7 @@ export function query<
 	const TLive extends "rerun-and-compare" | undefined = undefined,
 >(
 	name: TName,
-	declaration: Declaration<TPayload, TSuccess, TSpecs> & {
-		readonly live?: TLive;
-		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
-		readonly readPolicy: QueryReadPolicy<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R>;
-		readonly serverReads?: QueryServerReads<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R>;
-	},
+	declaration: QueryDeclaration<TPayload, TSuccess, TSpecs, R, TLive>,
 ): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs, R, TLive>>;
 export function query(
 	name: string,
@@ -101,14 +96,16 @@ export function query(
 		readonly live?: "rerun-and-compare" | undefined;
 		readonly reads: (payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly readPolicy: QueryReadPolicy<unknown, unknown, unknown>;
+		readonly readsCollections?: readonly { readonly name: string }[];
 		readonly serverReads?: QueryServerReads<unknown, unknown, unknown>;
 	},
 ): QueryShape {
+	const collections: readonly Key[] = declaration.readsCollections?.map((collection) => ({ _tag: "List", collection: collection.name })) ?? [];
 	return {
 		...operation("query", name, declaration),
 		live: declaration.live,
 		readPolicy: declaration.readPolicy,
-		reads: declaration.reads,
+		reads: (payload, viewer) => [...declaration.reads(payload, viewer), ...collections],
 		...(declaration.serverReads === undefined ? {} : { serverReads: declaration.serverReads }),
 	};
 }
