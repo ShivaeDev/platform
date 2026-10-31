@@ -3,6 +3,8 @@ import { Clock, Effect } from "effect";
 import { fakeHttpControls } from "#internal/fakeHttpControls.ts";
 import { fakeHttpReceive } from "#internal/fakeHttpReceive.ts";
 import { loopbackServer } from "#internal/loopback.ts";
+import { recordedSignals } from "#internal/recordedSignals.ts";
+import { type UntilOptions, until } from "#until.ts";
 
 export interface FakeHttpRequest {
 	readonly body: Buffer;
@@ -73,8 +75,11 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		narrate?.(line);
 	}
 	const controls = fakeHttpControls(tell, () => clock.currentTimeMillisUnsafe());
-	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell));
+	const abandoned = recordedSignals<FakeHttpRequestRecord>();
+	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell, abandoned.push));
 	const url = yield* loopbackServer(server);
+
+	yield* Effect.addFinalizer(() => Effect.sync(() => abandoned.end()));
 	yield* Effect.addFinalizer(controls.close);
 	function checkRoute(route: string) {
 		if (!Object.hasOwn(options.routes, route)) {
@@ -100,6 +105,7 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		scriptFault: (route: string, fault: FakeHttpFault, scriptOptions?: FakeHttpScriptOptions) =>
 			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.scriptFault(route, fault, scriptOptions))),
 		stall: (route: string, scope?: FakeHttpScope) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.stall(route, scope))),
+		untilAbandoned: (matches: (request: FakeHttpRequestRecord) => boolean, wait: UntilOptions) => until(abandoned.stream, matches, wait),
 		url,
 	};
 });
