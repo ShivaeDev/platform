@@ -10,7 +10,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
-import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -19,7 +19,7 @@ import { appHost } from "#appHost.ts";
 import { hostOptions } from "./story.ts";
 import { TypedFailures, typedFailure, typedFailureHandlers } from "./typedFailures.ts";
 
-const url = environmentVariable("PLATFORM_JOBS_TEST_DATABASE_URL");
+const { url } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
 const Jobs = makePgBoss("test/JobsRedaction");
 const Mail = defineQueue({ name: "mail", schema: Schema.Struct({ recipient: Schema.String }) });
 const page = jobsPage(Mail);

@@ -1,11 +1,11 @@
 import { getMigrations } from "better-auth/db/migration";
 import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { createProvider } from "./harness.ts";
 
-export const databaseUrl = environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL");
+export const { url: databaseUrl } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 export const postgres = makePostgresTestLayer({
 	fixtures: Effect.gen(function* () {
 		const provider = yield* createProvider();

@@ -19,7 +19,7 @@ export const processes = storyKit({
 		initialize: Effect.void,
 		maxConnections: 2,
 		prepare: false,
-		url: Redacted.make(databaseUrl._tag === "Some" ? databaseUrl.value : "postgresql://disabled"),
+		url: Redacted.make(databaseUrl ?? "postgresql://disabled"),
 	}),
 	name: "order processes",
 	runIf: hasPostgres,

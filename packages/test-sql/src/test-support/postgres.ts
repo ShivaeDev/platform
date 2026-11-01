@@ -2,17 +2,13 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { test } from "vitest";
-import { environmentVariable } from "#adapters/environmentVariable.ts";
+import { postgresTestUrl } from "#adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "#postgres.ts";
 
-const url = environmentVariable("PLATFORM_TEST_SQL_TEST_DATABASE_URL");
-const ci = environmentVariable("CI") ?? "";
-if (url === undefined && ci !== "") {
-	throw new Error("CI requires PLATFORM_TEST_SQL_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
-}
+const { url, configured } = postgresTestUrl("PLATFORM_TEST_SQL_TEST_DATABASE_URL");
 
-export const integration = url === undefined ? test.skip : test;
-export const configured = url !== undefined;
+export { configured };
+export const integration = configured ? test : test.skip;
 export const adminUrl = Redacted.make(url ?? "postgresql://integration-tests-disabled");
 
 export function setup() {

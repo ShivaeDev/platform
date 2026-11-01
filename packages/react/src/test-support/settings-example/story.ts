@@ -1,4 +1,5 @@
-import { Config, Effect, Redacted } from "effect";
+import { Redacted } from "effect";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -7,7 +8,7 @@ import { openScreen } from "./openScreen.tsx";
 import { migrations } from "./repository.ts";
 import { editorVerbs, verbs } from "./verbs.ts";
 
-const configured = Effect.runSync(Config.String("PLATFORM_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 export const settingsStory = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
@@ -15,10 +16,10 @@ export const settingsStory = storyKit({
 	inspect: ({ screen }) => screen.inspect(),
 	layer: makePostgresTestLayer({
 		migrations: { ...migrations, lockTimeout: "5 seconds" },
-		url: Redacted.make(configured._tag === "Some" ? configured.value : "postgresql://disabled"),
+		url: Redacted.make(url ?? "postgresql://disabled"),
 	}),
 	name: "entity settings",
-	runIf: configured._tag === "Some",
+	runIf: configured,
 	stages: ["editors"],
 	verbs: (engine, story) => verbs(engine, story.tell),
 });

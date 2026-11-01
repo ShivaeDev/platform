@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
 import { applyLowMemoryPostgres } from "@shivaedev/sql/applyLowMemoryPostgres.ts";
-import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type Consumer, startConsumer } from "#test/low-memory/consumer.ts";
 import { cgroupMemory, command, connect, DATA_DIRECTORY, type Machine, machine, ready, reloadReceived } from "#test/low-memory/machine.ts";
@@ -35,7 +35,7 @@ export const lowMemoryPostgres = storyKit({
 	inspect: (state) => ({ container: state.machine.container, pointInTimeRecovery: state.pointInTimeRecovery }),
 	layer: NodeServices.layer,
 	name: "low-memory PostgreSQL",
-	runIf: environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL") !== undefined,
+	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
 	stages: ["configured"],
 	verbs: (state, story) => ({
 		applyPreset: () => {

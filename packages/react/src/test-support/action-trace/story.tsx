@@ -1,5 +1,6 @@
-import { Config, Effect, Layer, Option, Redacted, Schema, Tracer } from "effect";
+import { Effect, Layer, Option, Redacted, Schema, Tracer } from "effect";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -82,7 +83,7 @@ function clickWrite(engine: Writer) {
 		);
 }
 
-const configured = Effect.runSync(Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 
 export const actions = storyKit({
 	around: withIsolatedDatabase,
@@ -93,9 +94,9 @@ export const actions = storyKit({
 		return { ...host, ...recording, client: connect(host.url), screen: new Screen(() => undefined) };
 	},
 	inspect: ({ headers, spans }) => ({ headers, spans: spans.map(({ name, traceId }) => ({ name, traceId })) }),
-	layer: makePostgresTestLayer({ migrations, url: Option.getOrElse(configured, () => Redacted.make("postgresql://disabled")) }),
+	layer: makePostgresTestLayer({ migrations, url: Redacted.make(url ?? "postgresql://disabled") }),
 	name: "action traces over HTTP and PostgreSQL",
-	runIf: Option.isSome(configured),
+	runIf: configured,
 	stages: ["screen"],
 	verbs: (engine, story) => {
 		engine.screen.tell = story.tell;

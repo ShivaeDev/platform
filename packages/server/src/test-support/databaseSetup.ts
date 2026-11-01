@@ -3,11 +3,11 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, ConfigProvider, Effect } from "effect";
 import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 import { answered } from "@shivaedev/test/answers.ts";
-import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { setupDatabases } from "#setupDatabases.ts";
 
-export const hasTestDatabase = environmentVariable("TEST_DATABASE_URL") !== undefined;
+export const hasTestDatabase = postgresTestUrl("TEST_DATABASE_URL").configured;
 
 type Setting = "DATABASE_URL" | "TEST_DATABASE_URL";
 

@@ -8,7 +8,7 @@ import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import { answered, causeWords, countWords, errorWords } from "@shivaedev/test/answers.ts";
-import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type BootedHost, bootMigrations } from "#test/app-host/bootMigrations.ts";
@@ -96,7 +96,7 @@ export const migrationHost = storyKit({
 	create,
 	layer: Layer.unwrap(Effect.map(Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL"), (url) => PgClient.layer({ url }))),
 	name: "migration wait",
-	runIf: environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL") !== undefined,
+	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
 	stages: ["schema"],
 	verbs: (state, story) => ({
 		anotherProcessMigrates: () => {

@@ -4,6 +4,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
 import { SqlClient } from "effect/sql";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -66,6 +67,7 @@ export const readPolicyStory = storyKit({
 	inspect: ({ registry }) => ({ mountedAtoms: registry.getNodes().size, viewer: Option.getOrNull(viewer) }),
 	layer,
 	name: "fallible live read policies",
+	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
 	stages: [],
 	verbs: ({ api, client, live, registry, sql }, story) => {
 		let finished: Effect.Effect<void, unknown> | undefined;

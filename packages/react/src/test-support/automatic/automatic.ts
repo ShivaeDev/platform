@@ -4,6 +4,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Deferred, Effect, Queue, Redacted } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -15,10 +16,10 @@ import { openHost } from "./openHost.ts";
 import { openScreen } from "./openScreen.tsx";
 import { openWorker } from "./openWorker.ts";
 
-const configured = Effect.runSync(Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const { url: databaseUrl, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const layer = makePostgresTestLayer({
 	migrations: { ...migrations, lockTimeout: "5 seconds" },
-	url: configured._tag === "Some" ? configured.value : Redacted.make("postgresql://disabled"),
+	url: Redacted.make(databaseUrl ?? "postgresql://disabled"),
 });
 
 function busy(container: HTMLElement) {
@@ -186,7 +187,7 @@ export const automatic = storyKit({
 	inspect: ({ host, screen }) => ({ publications: host.publications, reads: host.reads, text: screen.container.textContent }),
 	layer,
 	name: "automatic live queries",
-	runIf: configured._tag === "Some",
+	runIf: configured,
 	stages: ["screen"],
 	verbs: (engine, story) => {
 		engine.narrator.tell = story.tell;

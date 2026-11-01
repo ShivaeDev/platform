@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { close, start } from "./lifecycle.ts";
 import { emptyHost, type HostState } from "./state.ts";
@@ -37,7 +37,7 @@ export function hostOptions({ database = false } = {}) {
 			lookups: state.lookups,
 		}),
 		name: "app host",
-		runIf: !database || environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL") !== undefined,
+		runIf: !database || postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
 		stages: ["configured", "listening"] as const,
 		verbs: hostVerbs,
 	};

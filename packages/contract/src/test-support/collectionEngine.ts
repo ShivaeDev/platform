@@ -1,10 +1,11 @@
-import { Config, Context, Effect, Layer, Option, Redacted, Schema, Stream } from "effect";
+import { Context, Effect, Layer, Option, Redacted, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { appDatabase } from "@shivaedev/server/appDatabase.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { LiveConnection } from "#automaticLive.ts";
@@ -24,11 +25,12 @@ const migrations = {
 	}),
 	lockTimeout: "5 seconds" as const,
 };
-const url = Effect.runSync(Config.String("PLATFORM_SQL_TEST_DATABASE_URL").pipe(Config.option));
-export const configured = Option.isSome(url);
+const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
+
+export { configured };
 export const collectionDatabase = makePostgresTestLayer({
 	migrations,
-	url: Redacted.make(Option.getOrElse(url, () => "postgresql://integration-tests-disabled")),
+	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 });
 
 export const collectionEngine = Effect.gen(function* () {

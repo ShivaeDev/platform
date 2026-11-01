@@ -271,7 +271,7 @@ The assertion uses the SQL `Model`'s selected database fields, including generat
 
 For teardown stories, pass `{ holdDisconnects: true }`: `disconnecting` signals the first upstream disconnect, `allHeld` signals when every upstream has disconnected, and `release()` forwards the held acknowledgements. For LISTEN health stories, `{ dropNotifications: true }` filters PostgreSQL notifications while other SQL traffic continues; `dropped` signals a filtered notification.
 
-`@shivaedev/test-sql/server/emptyPostgres.ts` provides `databaseUrl` and `postgres`, an empty migration template selected by `PLATFORM_SQL_TEST_DATABASE_URL`. Use it with `withIsolatedDatabase` for kits that initialize their own schema. `environmentVariable(name)` from `@shivaedev/test-sql/server/adapters/environmentVariable.ts` reads an optional string through Effect Config when declaring a kit's `runIf`.
+`@shivaedev/test-sql/server/emptyPostgres.ts` provides `databaseUrl` and `postgres`, an empty migration template selected by `PLATFORM_SQL_TEST_DATABASE_URL`. Use it with `withIsolatedDatabase` for kits that initialize their own schema. `postgresTestUrl(name)` from `@shivaedev/test-sql/server/adapters/postgresTestUrl.ts` returns `{ url, configured }` through Effect Config when declaring a kit's `runIf`. An absent or empty URL returns `url: undefined` and `configured: false` locally; when `CI` is nonempty, it throws during collection so PostgreSQL tests cannot silently skip. `emptyPostgres` uses the same gate.
 
 ### API
 

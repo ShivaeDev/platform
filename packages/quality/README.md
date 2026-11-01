@@ -538,16 +538,17 @@ export default defineConfig({
 
 A skipped test proves nothing. `noSkippedTests` reports unconditional skips as errors, and its automatic fix is disabled: repair the test or remove a claim it cannot prove. Slow tests belong in the slow project.
 
-The **PostgreSQL URL gate** is the only permitted skip convention: a test that needs real PostgreSQL registers conditionally on its `PLATFORM_*_TEST_DATABASE_URL`. Skip only when that URL is absent; with a URL, execute the body against PostgreSQL and let connection or setup failures fail the test. Nothing else may skip. Keep the condition next to the database setup, either in the test file or its shared `test-support` module:
+The **PostgreSQL URL gate** is the only permitted skip convention: a test that needs real PostgreSQL registers conditionally on its `PLATFORM_*_TEST_DATABASE_URL`. Use `postgresTestUrl(name)` from `@shivaedev/test-sql/server/adapters/postgresTestUrl.ts` at collection time. It returns `{ url, configured }`, treats absent and empty URLs as missing, and throws when a URL is missing and `CI` is nonempty. With a URL, execute the body against PostgreSQL and let connection or setup failures fail the test. Nothing else may skip. Keep the condition next to the database setup, either in the test file or its shared `test-support` module:
 
 ```ts
 import { test } from "vitest";
-import { databaseUrl } from "#test/postgres.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 
-const integration = test.skipIf(databaseUrl === undefined);
+const { configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
+const integration = test.skipIf(!configured);
 ```
 
-`databaseUrl` is the test database URL read by the repository's environment helper. Declare the real PostgreSQL tests with `integration(name, body)`. A conditionally registered suite or Effect tester follows the same URL gate. CI must supply the URL for every such test; a green run with missing URLs gives no PostgreSQL evidence.
+Declare the real PostgreSQL tests with `integration(name, body)`, or pass `configured` as a story kit's `runIf`. CI must supply the URL for every such test; a green run with missing URLs gives no PostgreSQL evidence.
 
 #### Configuration limits
 
