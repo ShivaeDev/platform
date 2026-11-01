@@ -43,6 +43,15 @@ export function installedByPgBoss(schema: string) {
 	);
 }
 
+export function installedBeforeDeadLetterResolution(schema: string) {
+	return schemaKit.trait("database", `Platform installed ${schema} before dead-letter resolution`, function* (state) {
+		yield* installPgBossSchema({ schema }).pipe(Effect.provideContext(state.services));
+		const sql = Context.get(state.services, SqlClient.SqlClient);
+		// The current installer includes the later trigger; removing it models the earlier Platform schema.
+		yield* sql`DROP TRIGGER effect_dead_letter_resolution ON ${sql(schema)}.job`;
+	});
+}
+
 export function brokenSchema(schema: string) {
 	return schemaKit.trait("database", `${schema} holds only a version table at version 44`, (state) => {
 		const sql = Context.get(state.services, SqlClient.SqlClient);

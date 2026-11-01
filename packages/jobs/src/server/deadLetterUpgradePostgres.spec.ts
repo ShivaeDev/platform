@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { schemaKit } from "#test/schema/kit.ts";
-import { enqueuedBy, installed, installedByPgBoss, ran } from "#test/schema/traits.ts";
+import { enqueuedBy, installed, installedBeforeDeadLetterResolution, installedByPgBoss, ran } from "#test/schema/traits.ts";
 import { worker } from "#test/workers.ts";
 
 const Mail = defineQueue({ name: "mail", queue: { retryLimit: 0 }, schema: Schema.Struct({}) });
@@ -26,7 +26,7 @@ for (const installation of ["automatic migration", "schema component"] as const)
 	schemaKit.it(
 		`${installation} clears copies whose original already succeeded while preserving an unretried failure`,
 		[
-			installedByPgBoss(SCHEMA),
+			installedBeforeDeadLetterResolution(SCHEMA),
 			ran("app", [worker(Mail, { fails: "Delivery rejected" }, "succeeds")], { migrate: false, schema: SCHEMA }),
 			enqueuedBy(Mail, {}, "mail 42", "app"),
 			enqueuedBy(Mail, {}, "mail 7", "app"),
