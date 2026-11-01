@@ -115,7 +115,7 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 			);
 			return yield* onSubmit(value, submitter, submitted).pipe(
 				Effect.tapError(noted(submitted)),
-				Effect.tap(() => Effect.sync(submission.accept)),
+				Effect.tap((saved) => Effect.sync(() => submission.accept(config.savedValues?.(saved)))),
 			);
 		}),
 	);

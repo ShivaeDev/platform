@@ -13,6 +13,7 @@ export interface SubmissionConfig<TFields extends Fields, A, E, R, TRuntimeError
 	readonly rejectField: RejectField<TFields, E> | undefined;
 	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
 	readonly save: (values: Decoded<TFields>) => Effect.Effect<A, E, AtomServices<R>>;
+	readonly savedValues?: (value: A) => Encoded<TFields>;
 }
 
 export interface Submission<TFields extends Fields, A, E, TRuntimeError> {
@@ -33,6 +34,7 @@ export function submission<TFields extends Fields, A, E, R, TRuntimeError>(
 			return actionTrace(save(values, submitter), "ui.submit");
 		},
 		persistedDraft: config.persistedDraft,
+		...(config.savedValues === undefined ? {} : { savedValues: config.savedValues }),
 		runtime,
 	});
 	return { form: currentForm, submitted: () => submitted };

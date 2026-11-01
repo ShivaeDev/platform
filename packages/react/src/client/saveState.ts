@@ -19,7 +19,7 @@ export interface SaveState<E> {
 }
 export function useSaveState<TFields extends Fields, A, E, TRuntimeError>(
 	form: Form<TFields, A, E | FieldFailure, TRuntimeError> | undefined,
-	settled: (result: A) => void,
+	settled?: (result: A) => void,
 ): SaveState<E | TRuntimeError> {
 	const registry = useContext(RegistryContext);
 	const recheck = useSessionRecheck();
@@ -35,7 +35,7 @@ export function useSaveState<TFields extends Fields, A, E, TRuntimeError>(
 			form
 			&& registry.subscribe(form.submit, (next) => {
 				if (AsyncResult.isSuccess(next) && !next.waiting) {
-					settled(next.value);
+					settled?.(next.value);
 				}
 			}),
 		[form, registry, settled],

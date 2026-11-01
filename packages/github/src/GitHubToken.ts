@@ -1,6 +1,6 @@
 import { Config, Context, Effect, Layer, Option, Redacted, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { type GitHubAppError, GitHubTokenError } from "./errors.ts";
+import { type GitHubAppError, type GitHubRateLimited, GitHubTokenError } from "#errors.ts";
 
 type Token = Option.Option<Redacted.Redacted<string>>;
 const environmentToken = Config.Redacted("GH_TOKEN").pipe(
@@ -8,7 +8,9 @@ const environmentToken = Config.Redacted("GH_TOKEN").pipe(
 	Config.option,
 );
 
-export class GitHubToken extends Context.Service<GitHubToken, Token | Effect.Effect<Token, GitHubAppError>>()("@shivaedev/github/GitHubToken") {
+export class GitHubToken extends Context.Service<GitHubToken, Token | Effect.Effect<Token, GitHubAppError | GitHubRateLimited>>()(
+	"@shivaedev/github/GitHubToken",
+) {
 	static readonly fromEnv = Layer.effect(GitHubToken)(environmentToken);
 
 	static readonly fromEnvOrCli = Layer.effect(GitHubToken)(

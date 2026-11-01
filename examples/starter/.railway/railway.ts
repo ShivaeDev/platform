@@ -24,6 +24,9 @@ export default defineRailway((ctx) => {
 		deploy: { drainingSeconds: 75 },
 		env: {
 			"DATABASE_URL": database.env.DATABASE_URL,
+			"EMAIL_FROM": ctx.shared.EMAIL_FROM,
+			"PUBLIC_URL": ctx.shared.PUBLIC_URL,
+			"RESEND_API_KEY": ctx.shared.RESEND_API_KEY,
 		},
 		start: "pnpm worker",
 		tracing: { autoInstrumentation: false, enabled: true },

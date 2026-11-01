@@ -40,6 +40,10 @@ export const deniedStory = storyKit({
 			return TestClock.adjust("1 minute");
 		},
 		policyChecks: () => Effect.sync(() => engine.access.checks),
+		refresh: () => {
+			story.tell("the page explicitly refreshes its query");
+			engine.registry.refresh(engine.view);
+		},
 		resume: () => {
 			story.tell("the application resumes");
 			engine.native.resume();

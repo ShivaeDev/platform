@@ -27,7 +27,13 @@ async function availablePort() {
 	return address.port;
 }
 
-const startHost = Effect.fnUntraced(function* (inProcess: boolean, withAdmission: boolean) {
+interface HostOptions {
+	readonly inProcess?: boolean;
+	readonly issuerPath?: string;
+	readonly withAdmission?: boolean;
+}
+
+const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issuerPath }: HostOptions) {
 	const admission = yield* admissionPolicy;
 	const pool = yield* betterAuthDatabase();
 	const port = yield* Effect.promise(availablePort);
@@ -40,7 +46,7 @@ const startHost = Effect.fnUntraced(function* (inProcess: boolean, withAdmission
 		logger: { disabled: true },
 		plugins: [
 			admin(),
-			jwt(),
+			jwt(issuerPath === undefined ? {} : { jwt: { issuer: `${publicUrl}${issuerPath}` } }),
 			testUtils(),
 			mcpProvider({
 				allowDynamicClientRegistration: true,
@@ -90,7 +96,7 @@ const startHost = Effect.fnUntraced(function* (inProcess: boolean, withAdmission
 			sessions: Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true }),
 		}).pipe(Layer.provide(jwks.logger)),
 	);
-	return { admission: admission.state, auth: mounted.auth, baseUrl, issuer: `${publicUrl}/api/auth`, jwks, oauth, resource };
+	return { admission: admission.state, auth: mounted.auth, baseUrl, issuer: `${publicUrl}${issuerPath ?? "/api/auth"}`, jwks, oauth, resource };
 });
 type Host = Effect.Success<ReturnType<typeof startHost>>;
 
@@ -109,8 +115,8 @@ interface Story {
 	readonly tokens: Map<string, string>;
 }
 
-export function startEngine(inProcess = false, withAdmission = false) {
-	return Effect.map(startHost(inProcess, withAdmission), (host): Host & Story => ({
+export function startEngine(options: HostOptions = {}) {
+	return Effect.map(startHost(options), (host): Host & Story => ({
 		...host,
 		clientIds: new Map(),
 		clients: new Map(),

@@ -6,6 +6,7 @@ import type { Access } from "#test/Access.ts";
 import { adminEngine } from "#test/adminEngine.ts";
 import { answered } from "#test/answers.ts";
 import { Jobs, pagesBesideJobs, Registry } from "#test/pages.ts";
+import { type RoutePaths, routePages } from "./routePages.ts";
 
 function firstChange<E, R>(changes: Stream.Stream<unknown, E, R>) {
 	return changes.pipe(
@@ -80,6 +81,13 @@ export const registrationStory = storyKit({
 	name: "admin registration",
 	stages: [],
 	verbs: (registry, story) => ({
+		composeRoutes: (composition: "together" | "modules", ...routes: readonly RoutePaths[]) => {
+			story.tell(`compose ${routes.map((route) => route.detail ?? route.path).join(" and ")} ${composition}`);
+			return outcome(() => {
+				const pages = routePages(routes);
+				return composition === "together" ? adminRegistry(...pages) : mergeAdminRegistries(...pages.map((page) => adminRegistry(page)));
+			}, "composed");
+		},
 		composeWithJobs: (page: keyof typeof pagesBesideJobs) => {
 			story.tell(`compose a registry of the jobs page and ${page}`);
 			return outcome(() => Reflect.apply(mergeAdminRegistries, undefined, [adminRegistry(Jobs), adminRegistry(pagesBesideJobs[page])]), "composed");

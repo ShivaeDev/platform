@@ -164,7 +164,7 @@ Call `receive` with encoded values from a refreshed or saved row. Encode domain 
 | The handler fails                          | Keeps input; an intervening refresh remains the baseline.                                                                    |
 | `revert()` is called                       | Restores the latest baseline, including omitted optional keys.                                                               |
 
-The form does not replace submitted encoded input with its decoded representation. A trimmed name can be accepted as saved while the input still contains its spaces. Receive the normalized saved row when the application wants that representation on screen. `useEditor` from `react` performs that composition.
+By default, the form does not replace submitted encoded input with its decoded representation. A trimmed name can be accepted as saved while the input still contains its spaces. Set `savedValues: (saved) => encodedValues` to display normalized values from the successful handler result. Fields changed since submission keep their input; other fields adopt the normalized values. If a refresh arrived during the save, its newer baseline stays in place and the saved mapping does not replace it. `useEditor` from `react` supplies this mapping from its `values` callback.
 
 ### Persist input across reloads
 
@@ -286,6 +286,7 @@ Import the module that defines a name; there is no root entry.
 | `initialValues`  | `Encoded<F>`                                                                                                                                              |
 | `runtime`        | Optional when no application services are needed; otherwise an atom runtime for handler/check and schema decoding services                                |
 | `onSubmit`       | `(values, submitter, submitted) => Effect<A, E, R>`; the three arguments are decoded values, field failure helper and encoded snapshot                    |
+| `savedValues`    | Optional `(saved: A) => Encoded<F>`; normalizes successful submissions while preserving later edits and newer received baselines                          |
 | `checks`         | Optional functions keyed by field, from encoded input to an Effect of `string \| undefined`                                                               |
 | `arrayKeys`      | Optional `ArrayKeys<F>` selectors keyed by top-level array field, from encoded element to stable `PropertyKey`; retains nested feedback across reordering |
 | `debounce`       | Optional Effect `Duration.Input` for checks                                                                                                               |

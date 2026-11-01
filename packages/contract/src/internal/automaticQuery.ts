@@ -127,7 +127,12 @@ export function automaticQuery<A, E>({
 			}
 			return AsyncResult.initial();
 		},
-		(refresh) => (pushed ? refresh(subscription.connection) : refresh(atom)),
+		(refresh) => {
+			if (!pushed) {
+				refresh(atom);
+			}
+			refresh(subscription.connection);
+		},
 	).pipe(Atom.setIdleTTL(0));
 	return gated;
 }

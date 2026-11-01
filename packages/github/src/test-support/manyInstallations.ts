@@ -95,3 +95,10 @@ export const bothInstallationsUsed = manyInstallations.trait(
 		}
 	},
 );
+
+export const limitsNextExchange = manyInstallations.trait("github", "GitHub limits the next token exchange for 120 seconds", function* ({ server }) {
+	yield* server.scriptFault("token", {
+		kind: "status",
+		reply: { body: { message: "secondary rate limit" }, headers: { "retry-after": "120" }, status: 429 },
+	});
+});

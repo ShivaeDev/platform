@@ -85,10 +85,18 @@ export function draft<TValues extends Entries>(initial: TValues, persistence?: P
 		submission: () => {
 			const { baseline, current: submitted } = state.value;
 			return {
-				accept: (): void => {
-					state.update((held) =>
-						held.baseline === baseline ? { ...held, baseline: submitted, settled: none } : { ...held, settled: matching(held.current, submitted) },
-					);
+				accept: (incoming?: TValues): void => {
+					state.update((held) => {
+						if (held.baseline !== baseline) {
+							return { ...held, settled: matching(held.current, submitted) };
+						}
+						return {
+							...held,
+							baseline: incoming ?? submitted,
+							current: incoming === undefined ? held.current : merged({ ...held, baseline: submitted, settled: none }, incoming),
+							settled: none,
+						};
+					});
 				},
 				values: submitted,
 			};

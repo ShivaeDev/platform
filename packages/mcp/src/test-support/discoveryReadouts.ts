@@ -28,7 +28,7 @@ export function discoveryReadouts(engine: Engine) {
 		tokenEndpointOfItsAuthorizationServer: () =>
 			Effect.gen(function* () {
 				const issuer = new URL((yield* resourceMetadata()).authorization_servers[0]);
-				const metadata = yield* json(new URL(`/.well-known/oauth-authorization-server${issuer.pathname}`, issuer).href);
+				const metadata = yield* json(new URL(`/.well-known/oauth-authorization-server${issuer.pathname.replace(/\/$/u, "")}`, issuer).href);
 				return path(engine, metadata.token_endpoint);
 			}),
 	};

@@ -8,7 +8,7 @@ Use `:::metric`, `:::progress` or `:::timeline` containers. Start each with a no
 
 ### Metric
 
-```markdown
+```text
 :::metric{value="50" unit="documents"}
 Representative fixture target
 
@@ -26,7 +26,7 @@ Source: [Reader acceptance](reader-review.md)
 
 ### Progress
 
-```markdown
+```text
 :::progress{completed="3" total="8"}
 Example reading checks recorded
 
@@ -40,12 +40,13 @@ Source: [Reading checks](checks.md)
 
 ### Timeline
 
-```markdown
+```text
 :::timeline
 Reading delivery
+
 1. **First:** inspect [source conventions](source-examples.md).
 2. **Then:** review [response context](response-write-examples.md).
-   :::
+:::
 ```
 
 Use one ordered list containing 1–100 entries. Each entry needs text and a source link. Keep author order and literal labels, including planned/recorded qualifiers; do not parse dates, infer deadlines, schedule work or derive agent state. Timeline attributes are not supported. Ordinary Markdown emphasis and links remain intact. Mermaid handles diagrams, including its own timeline diagram syntax.
