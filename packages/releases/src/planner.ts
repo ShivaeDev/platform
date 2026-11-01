@@ -3,6 +3,7 @@ import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { Bump, PackageManifest, Release, ReleasePlan, Source, WorkspacePackage } from "#model.ts";
 import { type Changeset, parseChangeset } from "#parser.ts";
+import { readHistory } from "#readHistory.ts";
 import { readWorkspace } from "#workspace.ts";
 
 const rank = { major: 2, minor: 1, patch: 0 };
@@ -64,7 +65,30 @@ const validateRequest = Effect.fn("Changesets.validateRequest")(function* (
 		});
 	}
 });
-export const computePlan = Effect.fn("Changesets.computePlan")(function* (packages: readonly WorkspacePackage[], sources: readonly Source[]) {
+const validateDependencies = Effect.fn("Changesets.validateDependencies")(function* (
+	packages: readonly WorkspacePackage[],
+	previousPackages: readonly WorkspacePackage[],
+) {
+	const names = new Set(packages.map((pkg) => pkg.manifest.name));
+	const removed = new Set(previousPackages.filter((pkg) => !names.has(pkg.manifest.name)).map((pkg) => pkg.manifest.name));
+	for (const { manifest } of packages.filter((pkg) => !pkg.manifest.private)) {
+		for (const field of ["dependencies", "optionalDependencies", "peerDependencies"] as const) {
+			for (const [name, range] of Object.entries(manifest[field] ?? {})) {
+				if (removed.has(name) || (range.startsWith("workspace:") && !names.has(name))) {
+					return yield* new ChangesetError({
+						message: `${manifest.name} depends on removed package ${name}; remove or replace this published dependency before planning a release.`,
+					});
+				}
+			}
+		}
+	}
+});
+export const computePlan = Effect.fn("Changesets.computePlan")(function* (
+	packages: readonly WorkspacePackage[],
+	sources: readonly Source[],
+	previousPackages: readonly WorkspacePackage[] = [],
+) {
+	yield* validateDependencies(packages, previousPackages);
 	const bumps = yield* requestedBumps(packages, sources);
 	let changed = true;
 	while (changed) {
@@ -93,5 +117,6 @@ export function summarizePlan(plan: ReleasePlan): string {
 }
 export const planRelease = Effect.fn("Changesets.planRelease")(function* (root: string, config: ChangesetConfig = {}) {
 	const workspace = yield* readWorkspace(root, config);
-	return yield* computePlan(workspace.packages, workspace.changesets);
+	const before = yield* readHistory(root, config);
+	return yield* computePlan(workspace.packages, workspace.changesets, before.packages);
 });

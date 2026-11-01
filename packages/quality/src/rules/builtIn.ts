@@ -26,6 +26,7 @@ import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { authSql } from "#rules/stories/authSql.ts";
 import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { storyEngine } from "#rules/stories/engine.ts";
+import { globalRetries } from "#rules/stories/globalRetries.ts";
 import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
@@ -99,6 +100,7 @@ export const builtInRules = [
 	testsColocated,
 	storySetup,
 	storySpecs,
+	globalRetries,
 	storyEngine,
 	queueSql,
 	authSql,

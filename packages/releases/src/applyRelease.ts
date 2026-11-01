@@ -5,6 +5,7 @@ import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { ReleasePlan, WorkspacePackage } from "#model.ts";
 import { computePlan, publishedDependencies } from "#planner.ts";
+import { readHistory } from "#readHistory.ts";
 import { updatedRange } from "#updatedRange.ts";
 import { readWorkspace } from "#workspace.ts";
 
@@ -22,7 +23,8 @@ const updatedPackage = Effect.fn("Changesets.updatedPackage")(function* (pkg: Wo
 export const applyRelease = Effect.fn("Changesets.applyRelease")(function* (root: string, config: ChangesetConfig = {}) {
 	const fs = yield* FileSystem.FileSystem;
 	const workspace = yield* readWorkspace(root, config);
-	const plan = yield* computePlan(workspace.packages, workspace.changesets);
+	const before = yield* readHistory(root, config);
+	const plan = yield* computePlan(workspace.packages, workspace.changesets, before.packages);
 	if (plan.releases.length === 0) {
 		return plan;
 	}

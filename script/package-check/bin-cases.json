@@ -80,6 +80,7 @@
 			".changeset/feature.md": "---\n\"@packed/demo\": minor\n---\n\n### Added\n\n- Packed CLI release.\n",
 			"packages/demo/package.json": "{\"name\":\"@packed/demo\",\"version\":\"0.1.0\"}\n"
 		},
+		"git": true,
 		"output": "@packed/demo: 0.1.0 -> 0.2.0 (minor)"
 	},
 	"shivaedev-skills": {

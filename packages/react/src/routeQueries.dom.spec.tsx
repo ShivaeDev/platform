@@ -4,7 +4,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { NoteMissing } from "#test/routerClient.ts";
 import { firstNoteShown, loaderFailed, pageTwoRequested, retryRequested, routeRequested, routes, secondNoteRequested } from "#test/routerStories.tsx";
 
-for (const initial of ["/notes/first", "/notes/first?page=invalid"]) {
+for (const initial of ["/notes/first", "/notes/first?page=invalid", "/notes/first?page=0"]) {
 	routes.it(`opening ${initial} requests the validated default page 1`, [routeRequested(initial)], function* ({ requests }) {
 		expect(yield* requests()).toEqual(["first page 1"]);
 	});
@@ -23,6 +23,19 @@ for (const initial of ["/notes/first", "/notes/first?page=invalid"]) {
 		},
 	);
 }
+
+routes.it(
+	"a valid search page is decoded before the query and its answer renders",
+	[routeRequested("/notes/first?page=2")],
+	function* ({ answer, queryText, requests }) {
+		yield* answer("first", "Page two", 2);
+
+		yield* outcomes([
+			["query", () => queryText(), "Page two"],
+			["requests", () => requests(), ["first page 2"]],
+		]);
+	},
+);
 
 routes.it(
 	"a NotFound answer shows its server message on the root not-found screen without an alert",
@@ -143,6 +156,19 @@ routes.it(
 			["alert", () => alert(), "none"],
 			["heading", () => heading(), "Recovered note"],
 			["shell", () => shell(), { draft: "Keep this draft", input: "original", shell: "original" }],
+		]);
+	},
+);
+
+routes.it(
+	"retry uses the failed route's decoded page and renders that page's recovered query",
+	[retryRequested(retryFailure, "Keep this draft", 2)],
+	function* ({ answer, queryText, requests }) {
+		yield* answer("first", "Recovered second page", 2);
+
+		yield* outcomes([
+			["query", () => queryText(), "Recovered second page"],
+			["requests", () => requests(), ["first page 2", "first page 2"]],
 		]);
 	},
 );

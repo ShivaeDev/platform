@@ -1,8 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import process from "node:process";
-import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Config, Console, Effect, FileSystem } from "effect";
 import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
@@ -73,6 +73,6 @@ if (import.meta.main) {
 			const repository = yield* Config.String("GITHUB_REPOSITORY");
 			const result = yield* maintainPullRequest(process.cwd(), releaseGitHub(repository));
 			yield* Console.log(`Release PR: ${result}`);
-		}).pipe(Effect.provide(githubLayer), Effect.provide(NodeFileSystem.layer)),
+		}).pipe(Effect.provide(githubLayer), Effect.provide(NodeServices.layer)),
 	);
 }

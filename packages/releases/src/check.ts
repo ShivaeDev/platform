@@ -31,11 +31,13 @@ export const planDiff = Effect.fn("Changesets.planDiff")(function* (before: Work
 	return yield* computePlan(
 		packages,
 		before.changesets.filter((source) => !after.changesets.some((pending) => pending.name === source.name)),
+		before.packages,
 	);
 });
 
 export const validateDiff = Effect.fn("Changesets.validateDiff")(function* (before: Workspace, after: Workspace) {
 	yield* checkPackageFiles(after.packages);
+	const plan = yield* planDiff(before, after);
 	const declarations = yield* Effect.forEach([...before.changesets, ...after.changesets], parseChangeset);
 	for (const old of before.packages) {
 		const replacement = after.packages.find((pkg) => pkg.directory === old.directory);
@@ -72,7 +74,6 @@ export const validateDiff = Effect.fn("Changesets.validateDiff")(function* (befo
 		}
 		return;
 	}
-	const plan = yield* planDiff(before, after);
 	if (plan.releases.length === 0) {
 		return yield* new ChangesetError({
 			message: "A release needs deleted pending changesets from the base; restore versions and run releases apply.",

@@ -173,9 +173,23 @@ export function rangeSet(dependent: string, dependency: string, range: string) {
 	);
 }
 
-export function dependencyAdded(dependent: string, dependency: string, range: string) {
-	return workspace.trait("changed", `${dependent} adds a published dependency on ${dependency} with ${range}`, ({ root }) =>
-		editManifest(root, dependent, ({ json, manifest }) => ({ ...json, dependencies: { ...manifest.dependencies, [dependency]: range } })),
+export function dependencyAdded(
+	dependent: string,
+	dependency: string,
+	range: string,
+	field: "dependencies" | "optionalDependencies" | "peerDependencies" = "dependencies",
+) {
+	return workspace.trait("changed", `${dependent} adds ${dependency} with ${range} in ${field}`, ({ root }) =>
+		editManifest(root, dependent, ({ json, manifest }) => ({ ...json, [field]: { ...manifest[field], [dependency]: range } })),
+	);
+}
+
+export function dependencyRemoved(dependent: string, dependency: string) {
+	return workspace.trait("changed", `${dependent} removes its published dependency on ${dependency}`, ({ root }) =>
+		editManifest(root, dependent, (found) => {
+			const { field, ranges } = rangeOn(found, dependency);
+			return { ...found.json, [field]: Object.fromEntries(Object.entries(ranges ?? {}).filter(([name]) => name !== dependency)) };
+		}),
 	);
 }
 
