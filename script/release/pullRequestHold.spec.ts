@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
@@ -13,13 +15,16 @@ releasePullRequest.it(
 		yield* setCiRun("completed", "success");
 		const head = yield* git("rev-parse", "origin/release/next");
 		yield* pushMain(".changeset/draft.md", LATER);
+
 		expect(yield* run()).toBe("updated");
-		expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-		expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
-		const after = yield* readGitHub();
-		expect(after.body).toContain("Restore the latest draft.");
-		expect(after.body).not.toContain("Keep a saved draft.");
-		yield* check();
+
+		yield* outcomes([
+			["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
+			["release base", () => git("rev-parse", "origin/release/next^"), yield* git("rev-parse", "origin/main")],
+			["PR notes", () => readGitHub(), { body: expect.stringContaining("Restore the latest draft.") }],
+			["withdrawn notes", () => readGitHub(), { body: expect.not.stringContaining("Keep a saved draft.") }],
+			["validated release", () => check(), { changesets: expect.arrayContaining([{ name: "draft.md", text: LATER }]) }],
+		]);
 	},
 );
 
@@ -34,9 +39,13 @@ releasePullRequest.it(
 		const head = yield* git("rev-parse", "origin/release/next");
 		const before = yield* readGitHub();
 		yield* pushMain(".changeset/draft.md", LATER);
+
 		expect(yield* run()).toBe("held: merge queue");
-		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
-		expect((yield* readGitHub()).body).toBe(before.body);
+
+		yield* outcomes([
+			["release head", () => git("rev-parse", "origin/release/next"), head],
+			["PR notes", () => readGitHub(), { body: before.body }],
+		]);
 	},
 );
 
@@ -46,7 +55,7 @@ for (const [status, conclusion, reason] of [
 	["completed", "success", "CI succeeded"],
 ] as const) {
 	releasePullRequest.it(
-		`${status} approved CI holds the release head and PR notes while main receives changesets`,
+		`${status} approved CI holds a complete release head and PR notes after an unrelated main push`,
 		[],
 		function* ({ pushMain, run, git, readGitHub, setCiRun }) {
 			yield* pushMain(".changeset/draft.md", PENDING);
@@ -54,34 +63,63 @@ for (const [status, conclusion, reason] of [
 			yield* setCiRun(status, conclusion);
 			const head = yield* git("rev-parse", "origin/release/next");
 			const before = yield* readGitHub();
-			yield* pushMain(".changeset/later.md", LATER);
+			yield* pushMain(".changeset/README.md", "Write changesets for public behavior.\n");
+
 			expect(yield* run()).toBe(`held: ${reason}`);
-			expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
-			expect((yield* readGitHub()).body).toBe(before.body);
-			expect(yield* git("show", "origin/main:.changeset/later.md")).toContain("Restore the latest draft.");
+
+			yield* outcomes([
+				["release head", () => git("rev-parse", "origin/release/next"), head],
+				["PR metadata", () => readGitHub(), { body: before.body, title: before.title }],
+			]);
+		},
+	);
+	releasePullRequest.it(
+		`${status} approved CI yields to a newer changeset and publishes complete release notes`,
+		[],
+		function* ({ pushMain, run, git, readGitHub, setCiRun, check }) {
+			yield* pushMain(".changeset/draft.md", PENDING);
+			yield* run();
+			yield* setCiRun(status, conclusion);
+			const head = yield* git("rev-parse", "origin/release/next");
+			expect((yield* readGitHub()).body).not.toContain("Restore the latest draft.");
+			yield* pushMain(".changeset/later.md", LATER);
+
+			expect(yield* run()).toBe("updated");
+
+			yield* outcomes([
+				["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
+				["release base", () => git("rev-parse", "origin/release/next^"), yield* git("rev-parse", "origin/main")],
+				["original PR notes", () => readGitHub(), { body: expect.stringContaining("Keep a saved draft.") }],
+				["new PR notes", () => readGitHub(), { body: expect.stringContaining("Restore the latest draft.") }],
+				["pending changesets", () => git("ls-tree", "--name-only", "origin/release/next:.changeset"), "README.md"],
+				["validated release", () => check().pipe(Effect.as("valid")), "valid"],
+			]);
 		},
 	);
 }
 
 for (const conclusion of ["failure", "cancelled"] as const) {
 	releasePullRequest.it(
-		`${conclusion} after approval lets the next push include all pending changesets`,
+		`${conclusion} after approval lets an unrelated main push refresh the release`,
 		[],
 		function* ({ pushMain, run, git, readGitHub, setCiRun, check }) {
 			yield* pushMain(".changeset/draft.md", PENDING);
 			yield* run();
 			yield* setCiRun("in_progress");
 			const head = yield* git("rev-parse", "origin/release/next");
-			yield* pushMain(".changeset/later.md", LATER);
+			yield* pushMain("README.md", "Unrelated main push.\n");
 			expect(yield* run()).toBe("held: approved CI in_progress");
 			yield* setCiRun("completed", conclusion);
 			yield* pushMain("README.md", "Another main push.\n");
+
 			expect(yield* run()).toBe("updated");
-			expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-			const after = yield* readGitHub();
-			expect(after.body).toContain("Keep a saved draft.");
-			expect(after.body).toContain("Restore the latest draft.");
-			yield* check();
+
+			yield* outcomes([
+				["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
+				["original PR notes", () => readGitHub(), { body: expect.stringContaining("Keep a saved draft.") }],
+				["released main change", () => git("show", "origin/release/next:README.md"), "Another main push."],
+				["validated release", () => check().pipe(Effect.as("valid")), "valid"],
+			]);
 		},
 	);
 }
@@ -94,39 +132,16 @@ releasePullRequest.it(
 		yield* run();
 		yield* setCiRun("completed", "success");
 		const head = yield* git("rev-parse", "origin/release/next");
-		yield* pushMain(".changeset/later.md", LATER);
+		yield* pushMain("README.md", "Unrelated main push.\n");
 		expect(yield* run()).toBe("held: CI succeeded");
 		yield* close();
-		yield* pushMain("README.md", "Another main push.\n");
-		expect(yield* run()).toBe("updated");
-		expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-		const after = yield* readGitHub();
-		expect(after.open).toBe(true);
-		expect(after.body).toContain("Restore the latest draft.");
-	},
-);
+		yield* pushMain(".changeset/later.md", LATER);
 
-releasePullRequest.it(
-	"merging a held release leaves later changesets for the next release",
-	[],
-	function* ({ pushMain, run, git, close, setCiRun, readGitHub, check }) {
-		yield* pushMain(".changeset/draft.md", PENDING);
-		yield* run();
-		yield* setCiRun("completed", "success");
-		const head = yield* git("rev-parse", "origin/release/next");
-		yield* pushMain(".changeset/later.md", LATER);
-		expect(yield* run()).toBe("held: CI succeeded");
-		yield* git("merge", "--no-edit", "release/next");
-		yield* git("push", "origin", "main");
-		yield* close();
 		expect(yield* run()).toBe("updated");
-		expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
-		expect(yield* git("show", "origin/main:.changeset/later.md")).toContain("Restore the latest draft.");
-		expect(yield* git("ls-tree", "--name-only", "origin/main:.changeset")).not.toContain("draft.md");
-		expect(yield* git("show", "origin/release/next:packages/platform/package.json")).toContain('"version": "0.15.2"');
-		const after = yield* readGitHub();
-		expect(after.body).toContain("Restore the latest draft.");
-		expect(after.body).not.toContain("Keep a saved draft.");
-		yield* check();
+
+		yield* outcomes([
+			["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
+			["reopened PR", () => readGitHub(), { body: expect.stringContaining("Restore the latest draft."), open: true }],
+		]);
 	},
 );
