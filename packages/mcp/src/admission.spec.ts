@@ -19,7 +19,7 @@ admittedMcp.it(
 admittedMcp.it(
 	"admission changes take effect on the next MCP request with the same token and leave another user admitted",
 	[admittedUser("alice"), holdsToken("alice"), admittedUser("bob"), holdsToken("bob")],
-	function* ({ changesAdmission, requestsMcp }) {
+	function* ({ browserSessionCount, changesAdmission, requestsMcp }) {
 		expect(yield* requestsMcp("alice", "POST")).toEqual({ challenge: false, status: 200 });
 
 		yield* changesAdmission("alice", false);
@@ -27,6 +27,7 @@ admittedMcp.it(
 		yield* outcomes([
 			["denied user", () => requestsMcp("alice", "POST"), { challenge: true, status: 401 }],
 			["another admitted user", () => requestsMcp("bob", "POST"), { challenge: false, status: 200 }],
+			["the browser session", () => browserSessionCount("alice"), 1],
 		]);
 
 		yield* changesAdmission("alice", true);

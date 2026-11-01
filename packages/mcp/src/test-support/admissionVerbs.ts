@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { Engine } from "./host.ts";
+import { type Engine, person } from "./host.ts";
 
 const listToolsBody = JSON.stringify({
 	id: 1,
@@ -19,6 +19,11 @@ export function admissionVerbs(engine: Engine, tell: (line: string) => void) {
 			Effect.sync(() => {
 				tell("The admission service becomes unavailable");
 				engine.admission.unavailable = true;
+			}),
+		browserSessionCount: (name: string) =>
+			Effect.promise(async () => {
+				const { adapter } = await engine.auth.$context;
+				return adapter.count({ model: "session", where: [{ field: "userId", value: person(engine, name).id }] });
 			}),
 		changesAdmission: (name: string, admitted: boolean) =>
 			Effect.sync(() => {
