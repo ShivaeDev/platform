@@ -15,12 +15,17 @@ export const runCli = Effect.fn("BrowserStory.runCli")(function* (
 	url: string,
 	args: readonly string[],
 	credentials: SignIn | undefined,
+	browserCache?: string,
 ) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const child = yield* spawner.spawn(
 		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL("../cli.ts", import.meta.url)), "--url", url, ...args], {
 			cwd: root,
-			env: { "BROWSER_CHECK_EMAIL": credentials?.email, "BROWSER_CHECK_PASSWORD": credentials?.password },
+			env: {
+				"BROWSER_CHECK_EMAIL": credentials?.email,
+				"BROWSER_CHECK_PASSWORD": credentials?.password,
+				...(browserCache === undefined ? {} : { "PLAYWRIGHT_BROWSERS_PATH": browserCache }),
+			},
 			extendEnv: true,
 		}),
 	);
