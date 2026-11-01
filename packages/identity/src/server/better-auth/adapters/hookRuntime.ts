@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { APIError } from "better-auth/api";
 import { type Cause, Context, Effect, Result } from "effect";
+import { authCall } from "#server/adapters/authCall.ts";
 import type { BetterAuthHookError } from "#server/better-auth/databaseHooks.ts";
 
 export const hookRuntime = Effect.fnUntraced(function* <R>() {
@@ -30,7 +31,7 @@ export const hookRuntime = Effect.fnUntraced(function* <R>() {
 					const state: { readonly context: Context.Context<R>; cause?: Cause.Cause<never> } = {
 						context: Context.merge(context, fiber.context),
 					};
-					const exit = yield* Effect.exit(Effect.tryPromise((signal) => requests.run(state, () => request(signal))));
+					const exit = yield* Effect.exit(authCall((signal) => requests.run(state, () => request(signal))));
 					if (state.cause !== undefined) {
 						return yield* Effect.failCause(state.cause);
 					}

@@ -5,6 +5,7 @@ import { type AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.t
 import type { ProviderAccountValue } from "#identity.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 import type { SessionProvider, SessionShape } from "#server/session.ts";
+import { authCall } from "./authCall.ts";
 
 const ExpiringSession = Schema.Struct({ session: Schema.Struct({ expiresAt: Schema.Date }) });
 
@@ -21,19 +22,16 @@ export function betterAuthSessions<TSession extends SessionShape>(
 export function betterAuthSessions<TSession extends SessionShape>(getSession: GetSession<TSession>, getProviderAccounts?: GetProviderAccounts) {
 	const betterAuthSession = Effect.fn("Identity.betterAuthSession")(function* (headers: Headers.Headers) {
 		const transport = new globalThis.Headers(headers);
-		const session = yield* Effect.tryPromise(() => getSession(transport)).pipe(Effect.catch((error) => providerFailure(error.cause)));
+		const session = yield* authCall(() => getSession(transport)).pipe(Effect.catch((error) => providerFailure(error.cause)));
 		if (Schema.is(ExpiringSession)(session) && session.session.expiresAt.getTime() <= (yield* Clock.currentTimeMillis)) {
 			return Option.none();
 		}
 		if (session === null || getProviderAccounts === undefined) {
 			return Option.fromNullishOr(session);
 		}
-		const providerAccounts = Effect.tryPromise({
-			catch: (cause) => cause,
-			try: () => getProviderAccounts(transport),
-		}).pipe(
+		const providerAccounts = authCall(() => getProviderAccounts(transport)).pipe(
 			Effect.catch(
-				(cause): Effect.Effect<never, AuthUnavailable | Unauthorized> =>
+				({ cause }): Effect.Effect<never, AuthUnavailable | Unauthorized> =>
 					Predicate.hasProperty(cause, "statusCode") && cause.statusCode === HttpStatus.fromLiteral("Unauthorized")
 						? Effect.fail(new Unauthorized({ message: "Authentication required" }))
 						: providerFailure(cause),
