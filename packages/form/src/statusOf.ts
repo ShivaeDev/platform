@@ -56,11 +56,10 @@ export function statusOf() {
 		submitted: fromRef(state.prop("submitted")),
 		touch: (name: string): void => {
 			state.update((current) =>
-				current.touched[name] === true && !current.failures.some((entry) => entry.path.length === 1 && entry.path[0] === name)
+				current.touched[name] === true
 					? current
 					: {
 							...current,
-							failures: current.failures.filter((entry) => entry.path.length !== 1 || entry.path[0] !== name),
 							touched: { ...current.touched, [name]: true },
 						},
 			);

@@ -52,6 +52,21 @@ serverNames.it("changing a rejected name clears the server's rejection", [server
 });
 
 serverNames.it(
+	"leaving a rejected name unchanged keeps the server's rejection",
+	[serverNames.submitted()],
+	function* ({ feedbackAt, feedbackOn, leave }) {
+		expect(yield* feedbackOn("name")).toBe("Already used");
+
+		yield* leave("name");
+
+		yield* outcomes([
+			["field feedback", () => feedbackOn("name"), "Already used"],
+			["path feedback", () => feedbackAt(["name"]), "Already used"],
+		]);
+	},
+);
+
+serverNames.it(
 	"resubmitting after changing a rejected name saves the new name",
 	[serverNames.submitted(), serverNames.edited("name", "grace")],
 	function* ({ saveOutcome, savedValue, submit }) {
