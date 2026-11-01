@@ -1,4 +1,5 @@
 import { Effect, Fiber } from "effect";
+import { TestClock } from "effect/testing";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { runningIn, until } from "./engine.ts";
@@ -18,6 +19,10 @@ export function teardownVerbs(engine: DatabaseEngine, tell: Tell) {
 			engine.sql<{ readonly pid: number }>`select pid from pg_stat_activity where application_name = ${applicationName}`.pipe(
 				Effect.map((rows) => rows.length),
 			),
+		drainTimePasses: (millis: number) => {
+			tell(`${millis}ms of the worker drain budget pass`);
+			return TestClock.adjust(millis);
+		},
 		releaseDisconnects: () => {
 			tell("the disconnect gate passes the held disconnect acknowledgements on");
 			return Effect.sync(() => gateOf(engine).release());
@@ -59,6 +64,14 @@ export function teardownVerbs(engine: DatabaseEngine, tell: Tell) {
 				const fiber = engine.stopping.get(name);
 				return fiber === undefined ? Effect.die(new Error(`${name} was never asked to stop`)) : Fiber.join(fiber).pipe(Effect.timeout("20 seconds"));
 			});
+		},
+		untilWorkersDrain: (count: number) => {
+			tell(`wait until pg-boss is asked to drain ${count} worker registrations`);
+			return until(
+				engine,
+				`${count} worker registrations are draining`,
+				Effect.sync(() => (engine.pgBossStops.filter((stop) => stop.startsWith("stop working ")).length >= count ? true : undefined)),
+			);
 		},
 	};
 }

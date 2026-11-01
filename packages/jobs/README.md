@@ -87,6 +87,8 @@ With server's `appDatabase({ migrations: { mode: "wait", release, ... } })`, eac
 
 A paused worker keeps its process registered with sql's worker release while active jobs drain, so the owning release waits for it; [sql's worker release](https://github.com/ShivaeDev/platform/blob/main/packages/sql/README.md) owns the heartbeat and how long a crashed worker can block. Closing the jobs Layer's scope waits for the native pg-boss `stop` before releasing the services the Layer captured. Choose the three bounds together: each queue's `expireInSeconds`, a `stop: { graceful: true, timeout }` in milliseconds that covers it, and a host termination grace beyond that timeout. For example, a queue with `expireInSeconds: 60` pairs with `stop: { graceful: true, timeout: 65_000 }` under a 75-second termination grace.
 
+Worker registrations drain concurrently when their Layer closes. `stop.timeout` bounds each drain in milliseconds, defaulting to 30 seconds. Work that finishes within that budget completes normally. At the timeout, the adapter logs a warning naming the queue and interrupts its in-flight Effect fibers before releasing their services. `stop.graceful: false` interrupts without waiting for drain. Keep handlers interruptible, as described under [batch expiry](#size-batches-against-expiry). The drain budget does not bound PostgreSQL disconnect acknowledgements; shutdown still waits for the pool to close.
+
 `installPgBossSchema` installs or upgrades pg-boss through the provided Effect SQL client without starting workers or schedules. Run it outside an application transaction, in a release step or the `fixtures` Effect of `makePostgresTestLayer`, so stories inherit the schema from the migrated template:
 
 ```ts

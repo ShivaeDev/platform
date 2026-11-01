@@ -1,5 +1,5 @@
 import { Effect, Fiber, Scope } from "effect";
-import type { Job, WorkOptions } from "pg-boss";
+import type { Job, StopOptions, WorkOptions } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { toPgBossError } from "#error.ts";
 import { batchHandler } from "#internal/batchHandler.ts";
@@ -15,10 +15,11 @@ export const registerWorker = Effect.fnUntraced(function* <R>(
 	scope: Scope.Scope,
 	schema: string,
 	maxDeferrals: number,
-	graceful: boolean,
+	stop?: StopOptions,
 ) {
 	const execute = Effect.runPromiseWith(yield* Effect.context<R>());
-	const fibers = yield* Scope.fork(scope);
+	const workerScope = yield* Scope.fork(scope);
+	const fibers = yield* Scope.fork(workerScope);
 	function runJob(job: Job<unknown>, deadline: number) {
 		return traceJob(deferrableAttempt(run(job, deadline), client, schema, job, maxDeferrals), job, name);
 	}
@@ -37,12 +38,24 @@ export const registerWorker = Effect.fnUntraced(function* <R>(
 			),
 	});
 	const id = yield* Effect.tryPromise({ catch: (error) => toPgBossError("register", error, name), try: () => registration });
+	const graceful = stop?.graceful !== false;
+	const timeout = stop?.timeout ?? 30_000;
+	const drain = Effect.tryPromise({
+		catch: (error) => toPgBossError("stop", error, name),
+		try: () => client.offWork(name, { id, wait: graceful }),
+	});
 	yield* Scope.addFinalizer(
-		scope,
-		Effect.tryPromise({
-			catch: (error) => toPgBossError("stop", error, name),
-			try: () => client.offWork(name, { id, wait: graceful }),
-		}).pipe(Effect.catch(Effect.logError)),
+		workerScope,
+		(graceful
+			? drain.pipe(
+					Effect.timeoutOrElse({
+						duration: timeout,
+						orElse: () => Effect.logWarning(`pg-boss worker drain timed out for queue ${name} after ${timeout}ms; interrupting in-flight work`),
+					}),
+					Effect.interruptible,
+				)
+			: drain
+		).pipe(Effect.catch(Effect.logError)),
 	);
 	return id;
 });

@@ -105,15 +105,10 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 				const report = yield* clientErrorReporter(reportError).pipe(Effect.provide(context));
 				const unsubscribe = subscribeClientErrors(acquired.client, report);
 				yield* Effect.addFinalizer(() => Scope.close(workerScope, Exit.void).pipe(Effect.ensuring(Effect.sync(unsubscribe))));
-				yield* registerReleasedJobs(
-					acquired.client,
-					options.jobs,
-					context,
-					acquired.reused,
-					acquired.schema,
-					acquired.stop?.graceful !== false,
-					options.retired,
-				).pipe(Effect.provideService(Scope.Scope, workerScope), Effect.provide(dependencies));
+				yield* registerReleasedJobs(acquired.client, options.jobs, context, acquired.reused, acquired.schema, acquired.stop, options.retired).pipe(
+					Effect.provideService(Scope.Scope, workerScope),
+					Effect.provide(dependencies),
+				);
 				return service;
 			}),
 			methods: (service) => ({

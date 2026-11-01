@@ -1,4 +1,5 @@
-import { type Context, Effect, type Scope } from "effect";
+import { type Context, Effect, Scope } from "effect";
+import type { StopOptions } from "pg-boss";
 import { registerWorker } from "#adapters/registerWorker.ts";
 import type { PgBossClient } from "#client.ts";
 import type { JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#definition.ts";
@@ -61,7 +62,7 @@ const registerQueue = Effect.fnUntraced(function* (
 	context: Context.Context<unknown>,
 	scope: Scope.Scope,
 	schema: string,
-	graceful: boolean,
+	stop: StopOptions | undefined,
 ) {
 	const queue = registration._tag === "QueueWorker" ? registration.queue : registration;
 	const name = queue.name;
@@ -76,7 +77,7 @@ const registerQueue = Effect.fnUntraced(function* (
 		scope,
 		schema,
 		queue.maxDeferrals,
-		graceful,
+		stop,
 	).pipe(Effect.provide(context));
 });
 
@@ -86,10 +87,10 @@ const registerSchedule = Effect.fnUntraced(function* (
 	context: Context.Context<unknown>,
 	scope: Scope.Scope,
 	schema: string,
-	graceful: boolean,
+	stop: StopOptions | undefined,
 ) {
 	const { schedule } = worker;
-	yield* registerWorker(client, schedule.name, schedule.workerOptions, () => worker.effect, scope, schema, schedule.maxDeferrals, graceful).pipe(
+	yield* registerWorker(client, schedule.name, schedule.workerOptions, () => worker.effect, scope, schema, schedule.maxDeferrals, stop).pipe(
 		Effect.provide(context),
 	);
 	yield* Effect.tryPromise({
@@ -113,9 +114,9 @@ export const registerJobs = Effect.fnUntraced(function* <R>(
 	replaceWorkers: boolean,
 	schema = "pgboss",
 	startWorkers = true,
-	graceful = true,
+	stop?: StopOptions,
 ) {
-	const scope = yield* Effect.scope;
+	const scope = yield* Scope.fork(yield* Effect.scope, "parallel");
 	yield* Effect.try({ catch: (error) => toPgBossError("register", error), try: () => registrationNames(registrations) });
 	yield* prepareQueues(client, registrations, replaceWorkers);
 	if (!startWorkers) {
@@ -124,9 +125,9 @@ export const registerJobs = Effect.fnUntraced(function* <R>(
 	const provided = workerContext(context);
 	for (const registration of registrations) {
 		if (isQueueWorker(registration) || isQueueDefinition(registration)) {
-			yield* registerQueue(client, registration, provided, scope, schema, graceful);
+			yield* registerQueue(client, registration, provided, scope, schema, stop);
 		} else if (isScheduledWorker(registration)) {
-			yield* registerSchedule(client, registration, provided, scope, schema, graceful);
+			yield* registerSchedule(client, registration, provided, scope, schema, stop);
 		}
 	}
 });
