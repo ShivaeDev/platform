@@ -119,7 +119,7 @@ export function firstSessionDraft(step: "hidden" | "replaced" | "second typed" |
 		yield* type("name", "First session");
 		if (step === "stored") {
 			yield* Effect.promise(current(engine.state).unmount);
-			delete engine.state.view;
+			engine.state.view = undefined;
 			return;
 		}
 		yield* hideForm();

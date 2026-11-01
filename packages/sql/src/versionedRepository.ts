@@ -4,6 +4,7 @@ import type { SqlClient, SqlModel } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { PrimaryKey, Repository } from "#compositeRepository.ts";
 import type { OptimisticConcurrencyError } from "#repository.ts";
+import type { UpdateInput } from "#repositoryUpdate.ts";
 import { type VersionedOptions, versionedStatements } from "#versionedStatements.ts";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
 
@@ -37,9 +38,9 @@ export interface VersionedWrites<TModel extends Model.Any, TId extends PrimaryKe
 	readonly insert: Repository<TModel, TId>["insert"];
 	readonly insertVoid: Repository<TModel, TId>["insertVoid"];
 	readonly update: (
-		input: TModel["update"]["Type"],
+		input: UpdateInput<TModel>,
 	) => Effect.Effect<TModel["Type"], WriteError, TModel["update"]["EncodingServices"] | TModel["DecodingServices"]>;
-	readonly updateVoid: (input: TModel["update"]["Type"]) => Effect.Effect<void, WriteError, TModel["update"]["EncodingServices"]>;
+	readonly updateVoid: (input: UpdateInput<TModel>) => Effect.Effect<void, WriteError, TModel["update"]["EncodingServices"]>;
 }
 
 export function makeVersionedWrites(

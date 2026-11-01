@@ -135,6 +135,41 @@ The auth HTTP server span records the resolved rate-limit address in `auth.rate_
 
 For email sign-in through `appHost`, the session record's `ipAddress` follows the same rule. With a trusted peer, `AUTH_CLIENT_IP_HEADER=x-real-ip` stores `X-Real-IP` even if `X-Forwarded-For` supplies a different address; the default header selects the rightmost untrusted address in the `X-Forwarded-For` chain, ignoring trusted proxy hops on the right. With an untrusted peer, neither header can supply the stored address. Sign-in attempts from an untrusted peer share one bucket per path; with a trusted peer and `x-real-ip`, changing `X-Forwarded-For` does not change the bucket, while changing `X-Real-IP` does.
 
+#### Application database hooks
+
+Pass Effect hooks in the mount's second argument under `databaseHooks`. The shape, arguments and successful results match Better Auth's database hooks; each callback returns an Effect instead of a Promise. `BetterAuthDatabaseHooks` and the structural `BetterAuthHookError` type live in `@shivaedev/identity/server/better-auth/databaseHooks.ts`.
+
+```ts
+import type { BetterAuthOptions } from "better-auth";
+import { Context, Effect } from "effect";
+import type { BetterAuthHookError } from "@shivaedev/identity/server/better-auth/databaseHooks.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+
+class SessionAdmission extends Context.Service<
+	SessionAdmission,
+	{
+		readonly check: (userId: string) => Effect.Effect<void, BetterAuthHookError>;
+	}
+>()("app/SessionAdmission") {}
+
+const authentication = (options: BetterAuthOptions) =>
+	betterAuthMount(options, {
+		databaseHooks: {
+			session: {
+				create: {
+					before: (session) => Effect.flatMap(SessionAdmission, ({ check }) => check(session.userId)),
+				},
+			},
+		},
+	});
+```
+
+Provide the hook's services when building the mount. Mounted HTTP requests run hooks with the request's services, spans, log annotations and cancellation signal; request services override the mount's services. A direct call through `auth.api` uses the mount's services and the endpoint request's signal when present.
+
+Fail a `before` hook with `{ code: "MEMBERS_ONLY", message: "Membership is required" }`, or an application tagged error with those fields, to refuse the operation with HTTP 403 and that code and message. Defects remain defects in the mounted request, even when Better Auth catches the callback rejection. Hooks follow Better Auth's lifecycle: use `before` to refuse a write; `after` runs after the write and does not undo it.
+
+Native callbacks in the first argument run before the corresponding Effect callbacks. A native `before` returning `false` stops the Effect callback too. Data changes compose in order. Identity's sign-in policy still runs after the application's session hook.
+
 ### Role assignments
 
 Pass `{ defaultRole: "member", roles: AppAccess }` as the second argument to `betterAuthMount`. Identity adds `/admin/set-role`, `/admin/update-user` and `/admin/create-user` to the disabled HTTP paths and sets the Better Auth admin plugin's `adminRoles` to `[]`. Existing disabled paths remain in effect. The admin Users page remains the application path for role changes.
@@ -581,28 +616,33 @@ Use `testUtils()` from `better-auth/plugins` in a test-only Better Auth instance
 
 Use `authTestDatabase` from `@shivaedev/identity/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus `migrate(options, roleOptions?)`, `roleColumn` (PostgreSQL type, nullability and default), `userRoles` (emails and roles), and the test-only faults `expireSessions(userId?)`, `omitImageColumn` and `omitRole(userId)`. The last fault makes a role nullable and clears that user's role to model a partial migration. Pass a user id to expire only that user's sessions, or call `expireSessions()` to expire every session. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and read `SqlClient` from the Effect environment; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
 
-`authTestDatabase` also exposes `sessionsFor(userId)`, returning that user’s stored sessions as `{ id, expiresAt, expired }`. `expiresAt` is a native Effect UTC value; `expired` compares it with Effect’s current clock. Expired sessions remain visible until removed. Revocation deletes a session, so its id disappears from this readout; it keeps no revocation history. For expiry stories, advance `TestClock` to the minted session’s expiry instead of rewriting storage timestamps. Identity’s Better Auth session provider, session administration list and expired-session sweep use Effect’s clock. Better Auth’s own auth endpoints, session creation and refresh still use the provider’s clock.
+`authTestDatabase` also exposes `sessionsFor(userId)`, returning that user’s stored sessions as `{ id, expiresAt, expired }`. `expiresAt` is a native Effect UTC value; `expired` compares it with Effect’s current clock. Expired sessions remain visible until removed. Revocation deletes a session, so its id disappears from this readout; it keeps no revocation history. For expiry stories, advance `TestClock` to the minted session’s expiry instead of rewriting storage timestamps. Identity’s Better Auth session provider, session administration list and expired-session sweep use Effect’s clock. Sessions minted by `signedInUser` take their expiry from Effect’s Clock and Better Auth’s configured session lifetime. Better Auth’s own auth endpoints, direct `testUtils` calls and session refresh still use the provider’s clock.
 
 ```ts
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
+import { Effect } from "effect";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 
 const testAuth = betterAuth({
 	...options,
 	plugins: [...(options.plugins ?? []), testUtils()],
 });
-const { user, headers, cookies } = await signedInUser(testAuth, {
-	email: "member@example.test",
-	name: "Member",
-	providerAccounts: [{ providerId: "github", accountId: "123" }],
-	role: "user,admin",
-});
+const { user, headers, cookies } = await Effect.runPromise(
+	signedInUser(testAuth, {
+		email: "member@example.test",
+		name: "Member",
+		providerAccounts: [{ providerId: "github", accountId: "123" }],
+		role: "user,admin",
+	}),
+);
 ```
 
-`options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. To mint users with roles, use the auth instance returned by `betterAuthMount(options, { defaultRole: "member", roles: Access })`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+`options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns an Effect containing Better Auth's login result: the user, session, signed request headers, browser cookies and token. In a story, call `yield* signedInUser(auth, fields)` so minting uses that story's TestClock. If the story also calls Better Auth's auth endpoints, start its TestClock at the present because those endpoints still check the provider's wall clock. The starter’s app and cookie story kits select that default; stories can still pass an explicit `clock`. To mint users with roles, use the auth instance returned by `betterAuthMount(options, { defaultRole: "member", roles: Access })`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
 
 `passwordUser(auth, { email, password, ...fields })` from the same testing module saves a user and a credential account using Better Auth's configured password hasher, and returns an Effect containing the user without minting a session. Use it for the one story that signs in through `/api/auth/sign-in/email`; keep feature stories on `signedInUser` so they avoid password hashing.
+
+Call `yield* signInAgain(auth, userId)` from `server/better-auth/testing.ts` to mint a fresh session for an existing user after a long story clock jump. It returns the same login shape as `signedInUser` and sets expiry from the caller’s Effect Clock and the configured session lifetime. Replace the visitor’s request headers or seed the returned browser cookies.
 
 Use `storedProviderAccounts(auth, userId)` to observe credential storage through Better Auth's internal adapter. It returns account and provider IDs with `hasAccessToken`, `hasRefreshToken`, `hasIdToken` and `hasPassword` booleans. It never returns token values, passwords or password hashes. A DOM story kit that exposes its test auth instance and a session readout can use both helpers:
 
@@ -613,13 +653,11 @@ import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import { signedInUser, storedProviderAccounts } from "@shivaedev/identity/server/better-auth/testing.ts";
 
 const member = app.trait("account", "a member starts signed in with GitHub", function* ({ auth }) {
-	const { cookies } = yield* Effect.promise(() =>
-		signedInUser(auth, {
-			email: "member@example.test",
-			name: "Member",
-			providerAccounts: [{ providerId: "github", accountId: "123" }],
-		}),
-	);
+	const { cookies } = yield* signedInUser(auth, {
+		email: "member@example.test",
+		name: "Member",
+		providerAccounts: [{ providerId: "github", accountId: "123" }],
+	});
 	yield* seedCookies(cookies);
 });
 

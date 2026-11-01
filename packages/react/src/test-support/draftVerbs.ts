@@ -20,7 +20,7 @@ export interface State {
 	holding: boolean;
 	save: SaveMode;
 	storage?: ReturnType<typeof vi.fn>;
-	view?: Awaited<ReturnType<typeof persistedDraftView>>;
+	view?: Awaited<ReturnType<typeof persistedDraftView>> | undefined;
 }
 
 export function current(state: State) {

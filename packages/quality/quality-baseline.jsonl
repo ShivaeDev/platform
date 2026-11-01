@@ -1,4 +1,4 @@
-{"path":"packages/quality/package.json","rule":"code/unused","count":2}
+{"path":"packages/quality/package.json","rule":"code/unused","count":1}
 {"path":"packages/quality/src/baseline/format.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/baseline/legacy.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/biome/syntax.ts","rule":"effect/boundary","count":1}
@@ -51,7 +51,7 @@
 {"path":"packages/quality/src/rules/stories/authSql.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/rules/stories/engine.ts","rule":"effect/boundary","count":3}
 {"path":"packages/quality/src/rules/stories/noExpect.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/rules/stories/prerequisites.ts","rule":"effect/boundary","count":3}
+{"path":"packages/quality/src/rules/stories/prerequisites.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/rules/stories/queueSql.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/rules/stories/specs.ts","rule":"effect/boundary","count":3}
 {"path":"packages/quality/src/rules/stories/sqlText.ts","rule":"effect/boundary","count":5}

@@ -25,11 +25,6 @@ export const payment = {
 	"settled_at": new Date("2026-09-19T10:11:12.345Z"),
 };
 
-export class Receipt extends Model.Class<Receipt>("Receipt")({
-	details: Schema.Struct({ attempts: Schema.Int, channel: Schema.String }),
-	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
-}) {}
-
 const Integers = Schema.Array(Schema.Int);
 const StoredIntegers = Schema.Unknown.pipe(
 	Schema.decodeTo(Integers, {

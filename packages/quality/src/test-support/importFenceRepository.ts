@@ -32,6 +32,6 @@ export const importFenceRepository: readonly SeedFile[] = [
 	{ content: FENCE_CONFIG, path: "quality.config.ts" },
 ];
 
-export function registry(...entries: readonly object[]): SeedFile {
-	return { content: `${JSON.stringify(entries, undefined, "\t")}\n`, path: "quality/registry.json" };
+export function fenceExceptions(entries: readonly object[]): SeedFile {
+	return { content: FENCE_CONFIG.replace("defineConfig({", `defineConfig({ exceptions: ${JSON.stringify(entries)},`), path: "quality.config.ts" };
 }

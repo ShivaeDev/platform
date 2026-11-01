@@ -76,20 +76,30 @@ ruleKit.it(
 		),
 	],
 	function* ({ checks }) {
-		expect(yield* checks(authSql, { owners: ["platform/auth/**", "platform/migrations/**"] })).toEqual([]);
+		expect(
+			yield* checks(authSql, {
+				owners: [
+					{ glob: "platform/auth/**", reason: "The auth implementation and its migrations own auth storage." },
+					{ glob: "platform/migrations/**", reason: "The auth implementation and its migrations own auth storage." },
+				],
+			}),
+		).toEqual([]);
 	},
 );
 
 ruleKit.it(
 	"auth ownership does not excuse app SQL and joins reach auth storage too",
 	[
-		repositoryHas({
-			content: sqlInputs.authInterpolation,
-			path: "src/users.ts",
-		}),
+		repositoryHas(
+			{ content: 'sql`select * from "user"`;', path: "platform/auth/adapter.ts" },
+			{
+				content: sqlInputs.authInterpolation,
+				path: "src/users.ts",
+			},
+		),
 	],
 	function* ({ checks }) {
-		const findings = yield* checks(authSql, { owners: ["platform/auth/**"] });
+		const findings = yield* checks(authSql, { owners: [{ glob: "platform/auth/**", reason: "This adapter implements auth storage." }] });
 		expect(findings.map((finding) => finding.line)).toEqual([1, 1]);
 	},
 );

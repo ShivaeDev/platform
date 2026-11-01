@@ -35,7 +35,7 @@ export default defineConfig({
 		},
 		{
 			files: [
-				"packages/work-board-plugin/src/connect.ts",
+				"packages/work-board-plugin/src/adapters/hostBoard.ts",
 				"packages/work-board-plugin/src/findBoard.ts",
 				"packages/work-board-plugin/src/flights.tsx",
 				"packages/work-board-plugin/src/goalRows.tsx",
@@ -63,21 +63,24 @@ export default defineConfig({
 		"boundaries/auth-sql": {
 			options: {
 				owners: [
-					"packages/admin/src/server/users.ts",
-					"packages/identity/src/server/better-auth/**",
-					"examples/starter/src/server/migrations/0001_auth.ts",
-					"examples/starter/src/server/migrations/0004_stored_roles.ts",
+					{ glob: "packages/admin/src/server/users.ts", reason: "Admin implements user listing over the auth provider storage." },
+					{ glob: "packages/identity/src/server/better-auth/**", reason: "Identity owns Better Auth storage and provider integration." },
+					{ glob: "examples/starter/src/server/migrations/0001_auth.ts", reason: "This migration creates the Better Auth tables." },
+					{
+						glob: "examples/starter/src/server/migrations/0004_stored_roles.ts",
+						reason: "This migration normalizes stored Better Auth roles.",
+					},
 				],
 			},
 		},
 		"boundaries/http-status": {
 			options: {
 				edge: [
-					"packages/github/src/status.ts",
-					"packages/identity/src/server/**",
-					"packages/pr-watch/src/requestFailure.ts",
-					"packages/server/src/rpc-server/**",
-					"packages/server/src/node-http/**",
+					{ glob: "packages/github/src/status.ts", reason: "This HTTP adapter translates transport statuses into domain errors." },
+					{ glob: "packages/identity/src/server/**", reason: "This HTTP adapter translates transport statuses into domain errors." },
+					{ glob: "packages/pr-watch/src/requestFailure.ts", reason: "This HTTP adapter translates transport statuses into domain errors." },
+					{ glob: "packages/server/src/rpc-server/**", reason: "This HTTP adapter translates transport statuses into domain errors." },
+					{ glob: "packages/server/src/node-http/**", reason: "This HTTP adapter translates transport statuses into domain errors." },
 				],
 			},
 		},

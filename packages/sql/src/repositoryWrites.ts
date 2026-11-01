@@ -3,6 +3,7 @@ import type { Model } from "effect/schema";
 import { type SqlClient, SqlSchema } from "effect/sql";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
 import { makeFilter } from "./repositoryFilter.ts";
+import { selectedUpdate } from "./repositoryUpdate.ts";
 
 export function repositoryWrites(
 	model: Model.Any,
@@ -36,6 +37,15 @@ export function repositoryWrites(
 	const insertVoid = SqlSchema.void({ execute: insert, Request: model.insert });
 	const updateRow = SqlSchema.findOne({ execute: update, Request: model.update, Result: model });
 	const updateVoid = SqlSchema.void({ execute: update, Request: model.update });
+	function selected(input: unknown, columns: readonly string[], returning: boolean) {
+		return Effect.gen(function* () {
+			const row = yield* record(input);
+			const Request = yield* selectedUpdate(model, columns, idColumns, row);
+			return yield* returning
+				? SqlSchema.findOne({ execute: update, Request, Result: model })(row)
+				: SqlSchema.void({ execute: update, Request })(row);
+		});
+	}
 	const idColumn = idColumns[0] ?? "";
 	const key = model.fields[idColumn];
 	if (key === undefined) {
@@ -63,10 +73,15 @@ export function repositoryWrites(
 		insert: (input: unknown) =>
 			changes.write(insertRow(input).pipe(Effect.catchTag("NoSuchElementError", Effect.die))).pipe(Effect.withSpan(`${spanPrefix}.insert`)),
 		insertVoid: (input: unknown) => changes.write(insertVoid(input)).pipe(Effect.withSpan(`${spanPrefix}.insertVoid`)),
-		update: (input: unknown, settings?: { readonly onMissing: "fail" }) =>
+		update: (input: unknown, settings?: { readonly onMissing?: "fail"; readonly columns?: readonly string[] }) => {
+			const result = settings?.columns === undefined ? updateRow(input) : selected(input, settings.columns, true);
+			return changes
+				.write(settings?.onMissing === "fail" ? result : result.pipe(Effect.catchTag("NoSuchElementError", Effect.die)))
+				.pipe(Effect.withSpan(`${spanPrefix}.update`));
+		},
+		updateVoid: (input: unknown, settings?: { readonly columns: readonly string[] }) =>
 			changes
-				.write(settings?.onMissing === "fail" ? updateRow(input) : updateRow(input).pipe(Effect.catchTag("NoSuchElementError", Effect.die)))
-				.pipe(Effect.withSpan(`${spanPrefix}.update`)),
-		updateVoid: (input: unknown) => changes.write(updateVoid(input)).pipe(Effect.withSpan(`${spanPrefix}.updateVoid`)),
+				.write(settings === undefined ? updateVoid(input) : selected(input, settings.columns, false))
+				.pipe(Effect.withSpan(`${spanPrefix}.updateVoid`)),
 	};
 }

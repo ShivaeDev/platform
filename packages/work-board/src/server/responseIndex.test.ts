@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { indexClientSubscribed } from "#test/liveTraits.ts";
 import { responseWorkspace } from "#test/responseWorkspace.ts";
@@ -10,13 +11,17 @@ const project = [projectFiles(files), indexClientSubscribed];
 boardStory.it(
 	"changing the current answer to not now brings its decision back to the Inbox, while older answers to earlier revisions do not count",
 	project,
-	function* ({ editFile, needsYouBadge, nextChange }) {
+	function* ({ editFile, inboxDecisions, needsYouBadge, nextChange }) {
 		expect(yield* needsYouBadge()).toBe(0);
 
 		editFile("responses/answer-0-current.md", current.replace("type: answer", "type: not_now"));
 		yield* nextChange();
 
-		expect(yield* needsYouBadge()).toBe(1);
+		const reopened = ["decision.fixture.0"];
+		yield* outcomes([
+			["reopened decisions", () => inboxDecisions(), reopened],
+			["Inbox badge", () => needsYouBadge(), reopened.length],
+		]);
 	},
 );
 

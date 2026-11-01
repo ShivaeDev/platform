@@ -1,4 +1,4 @@
-import { type Cause, Clock, Effect, Result } from "effect";
+import { type Cause, Clock, DateTime, Effect, Result } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { TestClock } from "effect/testing";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
@@ -89,6 +89,7 @@ export const signInPolicy = storyKit({
 		},
 	},
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const accounts = new Map<string, GitHubAccount>(Object.entries(people).map(([login, id]) => [id, { id, login, member: true }]));
 		const github = yield* fakeGitHub(accounts);

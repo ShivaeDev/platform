@@ -123,7 +123,7 @@ export const authStorage = storyKit({
 export function mintedAccounts() {
 	return authStorage.trait("accounts", "alice and bob already hold one auth session each", function* (engine) {
 		for (const person of ["alice", "bob"] as const) {
-			const { headers, user } = yield* Effect.promise(() => signedInUser(engine.auth, { email: `${person}@storage.test`, name: person }));
+			const { headers, user } = yield* signedInUser(engine.auth, { email: `${person}@storage.test`, name: person });
 			engine.accounts.set(person, { headers, userId: user.id });
 		}
 	});

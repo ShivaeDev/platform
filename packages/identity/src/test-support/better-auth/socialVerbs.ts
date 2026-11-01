@@ -69,7 +69,7 @@ export function socialVerbs(engine: SocialEngine, story: Story<SocialEngine>) {
 		mintSession: (name: string) =>
 			Effect.gen(function* () {
 				story.tell(`the browser switches to a minted session for ${name}`);
-				const { cookies, user } = yield* Effect.promise(() => signedInUser(auth, { email: `${name.toLowerCase()}@social.test`, name }));
+				const { cookies, user } = yield* signedInUser(auth, { email: `${name.toLowerCase()}@social.test`, name });
 				minted.set(name, user.id);
 				yield* seedCookies(cookies);
 			}),

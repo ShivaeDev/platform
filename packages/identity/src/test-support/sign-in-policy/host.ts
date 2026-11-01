@@ -110,13 +110,11 @@ export const policyHost = Effect.fnUntraced(function* (
 		baseUrl,
 		logs: recorded.logs,
 		mintSession: (person: string, accountId: string) =>
-			Effect.promise(() =>
-				signedInUser(betterAuth(options), {
-					email: `${person}@github.test`,
-					name: person,
-					providerAccounts: [{ accountId, providerId: "github" }],
-				}),
-			),
+			signedInUser(betterAuth(options), {
+				email: `${person}@github.test`,
+				name: person,
+				providerAccounts: [{ accountId, providerId: "github" }],
+			}),
 		providerAccounts: (cookie: string) =>
 			readProviderAccounts(
 				baseUrl,

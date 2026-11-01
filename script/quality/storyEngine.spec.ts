@@ -55,7 +55,7 @@ for (const body of [
 	);
 }
 
-for (const directory of ["stories", "engine", "types", "quality", "optional"]) {
+for (const directory of ["stories", "engine", "types"]) {
 	ruleKit.it(
 		`test-story prerequisite ${directory} may prove its kit lifecycle without using it`,
 		[
@@ -84,6 +84,24 @@ for (const path of ["src/orders.unit.test.ts", "src/orders.typecheck.test.ts", "
 		],
 		function* ({ checks }) {
 			expect(yield* checks(storyEngine)).toEqual([]);
+		},
+	);
+}
+
+for (const directory of ["quality", "optional"]) {
+	ruleKit.it(
+		`a story in test-story's ${directory} dependency still has to use its engine`,
+		[
+			repositoryHas(
+				...prerequisiteFiles,
+				spec(
+					'import { storyKit } from "@shivaedev/test-story/server/storyKit.ts"; const orders = storyKit({}); orders.it("adds", [], () => {});',
+					`modules/${directory}/src/orders.spec.ts`,
+				),
+			),
+		],
+		function* ({ checks }) {
+			expect(yield* checks(storyEngine)).toEqual([expect.objectContaining({ file: `modules/${directory}/src/orders.spec.ts`, line: 1 })]);
 		},
 	);
 }

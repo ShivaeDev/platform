@@ -58,7 +58,7 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			yield* served(engine).board.stop();
 			engine.responses = responses;
 			const reopen = engine.live !== undefined;
-			delete engine.live;
+			engine.live = undefined;
 			const { serveProject, openReader } = yield* Effect.promise(() => import("./storyEngine.ts"));
 			yield* serveProject(engine);
 			if (reopen) {

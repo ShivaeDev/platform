@@ -1,6 +1,7 @@
 import { utimesSync } from "node:fs";
 import { join } from "node:path";
 import { runArchive, standingPolicyAnswer } from "./attentionLaneActions.ts";
+import { attentionLanesFixture } from "./attentionLanesFixture.ts";
 import { boardStory, projectFiles } from "./boardStory.ts";
 import { closedInboxFixture } from "./closedInboxFixture.ts";
 import { inboxAudienceFixture } from "./inboxAudienceFixture.ts";
@@ -50,10 +51,13 @@ export function archivedSources(files: Readonly<Record<string, string>>) {
 	return boardStory.traits(projectFiles(files, "the project has settled, open and deferred questions"), archivedBeforeStartup);
 }
 
-export function closedInboxAsks(change: (files: Record<string, string>) => void = () => undefined) {
+export function closedInboxAsks(change: (files: Record<string, string>) => void = () => undefined, omitted: readonly string[] = []) {
 	const files = closedInboxFixture();
 	change(files);
-	return attentionSources(files, "Fleet asked about done, draft, dropped and deferred tasks, beside one authored question");
+	return attentionSources(
+		Object.fromEntries(Object.entries(files).filter(([path]) => !omitted.includes(path))),
+		"Fleet asked about done, draft, dropped and deferred tasks, beside one authored question",
+	);
 }
 
 export function audienceQuestions(
@@ -68,4 +72,13 @@ export function answeredReceiptDecision(
 	line = "the orchestrator answered the Fleet decision on task.context",
 ) {
 	return attentionSources({ ...managedReceiptsFixture(), ...files }, line);
+}
+
+export function lanes(
+	change: (files: Record<string, string>) => void = () => undefined,
+	line = "asks wait on the maintainer, the orchestrator and automation",
+) {
+	const files = attentionLanesFixture();
+	change(files);
+	return attentionSources(files, line);
 }

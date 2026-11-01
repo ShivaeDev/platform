@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
-import { ConfigProvider, DateTime, Effect, Option } from "effect";
+import { ConfigProvider, DateTime, type Duration, Effect, Option } from "effect";
 import { Headers as HttpHeaders } from "effect/http";
 import * as TestClock from "effect/testing/TestClock";
 import { role } from "@shivaedev/access/role.ts";
@@ -15,7 +15,7 @@ import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { listSessions } from "#server/better-auth/sessionAdministration.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
+import { signedInUser, signInAgain } from "#server/better-auth/testing.ts";
 import { withSessionUser } from "#server/session.ts";
 import { ManageSessions } from "#sessionPermissions.ts";
 
@@ -40,9 +40,9 @@ export const sessionClock = storyKit({
 		);
 		const context = yield* Effect.promise(() => mounted.auth.$context);
 		yield* Effect.promise(() => context.runMigrations());
-		const alice = yield* Effect.promise(() => signedInUser(mounted.auth, { email: "alice@clock.test", name: "alice" }));
+		const alice = yield* signedInUser(mounted.auth, { email: "alice@clock.test", name: "alice" });
 		const longerLived = betterAuth({ ...mounted.auth.options, session: { ...options.session, expiresIn: 7200 } });
-		const bob = yield* Effect.promise(() => signedInUser(longerLived, { email: "bob@clock.test", name: "bob" }));
+		const bob = yield* signedInUser(longerLived, { email: "bob@clock.test", name: "bob" });
 		return {
 			accounts: { alice, bob },
 			extraSession: Option.none<{ readonly id: string; readonly expiresAt: Date }>(),
@@ -79,14 +79,21 @@ export const sessionClock = storyKit({
 					engine.extraSession = Option.some({ expiresAt: login.session.expiresAt, id: login.session.id });
 				}),
 			mintedSession: (person: Person) => Effect.sync(() => ({ expiresAt: accounts[person].session.expiresAt, id: accounts[person].session.id })),
+			providerSession: (person: Person) => Effect.promise(() => mounted.auth.api.getSession({ headers: accounts[person].headers })),
 			request: (person: Person) => {
 				story.tell(`${person} makes a protected request with the minted cookie`);
 				return Effect.map(SessionUser, (user) => user.name).pipe(protectedRequest(person), answered);
 			},
+			requestUserId: (person: Person) => Effect.map(SessionUser, (user) => user.id).pipe(protectedRequest(person)),
 			signOut: (person: Person) => {
 				story.tell(`${person} signs out`);
 				return Effect.promise(() => mounted.auth.api.signOut({ headers: accounts[person].headers }));
 			},
+			signsInAgain: (person: Person) =>
+				Effect.gen(function* () {
+					story.tell(`${person} signs in again`);
+					accounts[person] = yield* signInAgain(mounted.auth, accounts[person].user.id);
+				}),
 			storedSessions: (person: Person) => storage.sessionsFor(accounts[person].user.id),
 			sweep: () =>
 				Effect.gen(function* () {
@@ -94,6 +101,10 @@ export const sessionClock = storyKit({
 					engine.swept = Option.some(yield* sweepExpiredSessions);
 				}),
 			sweptSessions: () => Effect.sync(() => Option.getOrThrow(engine.swept)),
+			timePasses: (duration: Duration.Input) => {
+				story.tell(`${duration} pass on the test clock`);
+				return TestClock.adjust(duration);
+			},
 		};
 	},
 });

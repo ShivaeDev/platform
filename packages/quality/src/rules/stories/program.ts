@@ -3,7 +3,13 @@ import ts from "typescript";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
 
+const programs = new WeakMap<RuleInputs["sources"], ts.Program>();
+
 export function storyProgram(inputs: RuleInputs, graph: ImportGraph): ts.Program {
+	const known = programs.get(inputs.sources);
+	if (known !== undefined) {
+		return known;
+	}
 	const sources = new Map(inputs.sources.map((file) => [join(inputs.root, file.path), file.text]));
 	const targets = new Map(
 		graph.edges.flatMap((edge) =>
@@ -25,5 +31,7 @@ export function storyProgram(inputs: RuleInputs, graph: ImportGraph): ts.Program
 				return path === undefined ? undefined : { extension: ts.Extension.Ts, resolvedFileName: path };
 			}),
 	};
-	return ts.createProgram([...sources.keys()], options, host);
+	const program = ts.createProgram([...sources.keys()], options, host);
+	programs.set(inputs.sources, program);
+	return program;
 }

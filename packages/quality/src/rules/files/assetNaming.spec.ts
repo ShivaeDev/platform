@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { otherNames } from "#rules/files/otherNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-const CONTENT = { content: ["content/"] };
+const CONTENT = { content: [{ glob: "content/", reason: "Content identifiers follow the content format." }] };
 
 const misnamed = [
 	["a PascalCase document", "docs/ReleaseNotes.md", undefined, '"ReleaseNotes.md" is named in kebab-case, such as release-notes.md.'],

@@ -27,6 +27,8 @@ ruleKit.it(
 		),
 	],
 	function* ({ checks }) {
-		expect(yield* checks(httpStatus, { edge: ["src/http/**"] })).toEqual([]);
+		expect(
+			yield* checks(httpStatus, { edge: [{ glob: "src/http/**", reason: "This HTTP adapter translates transport statuses into domain errors." }] }),
+		).toEqual([]);
 	},
 );

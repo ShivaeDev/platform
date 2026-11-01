@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -20,7 +20,7 @@ export const app = storyKit({
 		},
 	},
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const sourceApi = yield* fakeHttpService({
 			routes: { post: { path: "/posts/:id", reply: () => ({ body: { title: "A note from outside" } }) } },

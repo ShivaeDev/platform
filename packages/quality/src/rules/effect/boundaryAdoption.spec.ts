@@ -18,8 +18,10 @@ repositoryStory.it(
 	],
 	function* ({ outcome, reads, runs, stdout }) {
 		yield* runs("lint");
-		expect(yield* stdout()).toContain("Uses synchronous IO (node:fs.readFileSync)");
-		expect(yield* outcome()).toBe("rejected");
+		yield* outcomes([
+			["finding", () => stdout(), expect.stringContaining("Uses synchronous IO (node:fs.readFileSync)")],
+			["gate", () => outcome(), "rejected"],
+		]);
 
 		yield* runs("baseline", "write", "--rule", "effect/boundary", "--first-adoption");
 

@@ -5,6 +5,7 @@ import { type SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { RepositoryListFilter } from "#repositoryFilter.ts";
+import type { Update, UpdateVoid } from "#repositoryUpdate.ts";
 import { repositoryWrites } from "#repositoryWrites.ts";
 import type { IdColumn, NativeRepository } from "#versionedRepository.ts";
 
@@ -14,28 +15,16 @@ type DeleteWhere<TModel extends Model.Any> = (
 	where: RepositoryListFilter<TModel>,
 ) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][keyof TModel["fields"]]["EncodingServices"]>;
 
-interface Update<TModel extends Model.Any> {
-	(
-		input: TModel["update"]["Type"],
-		options: { readonly onMissing: "fail" },
-	): Effect.Effect<
-		TModel["Type"],
-		SqlError | Schema.SchemaError | Cause.NoSuchElementError,
-		TModel["update"]["EncodingServices"] | TModel["DecodingServices"]
-	>;
-	(
-		input: TModel["update"]["Type"],
-	): Effect.Effect<TModel["Type"], SqlError | Schema.SchemaError, TModel["update"]["EncodingServices"] | TModel["DecodingServices"]>;
-}
-
 export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = [TId] extends [IdColumn<TModel>]
-	? Omit<NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>, "delete" | "update"> & {
+	? Omit<NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>, "delete" | "update" | "updateVoid"> & {
 			readonly delete: NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>["delete"] & DeleteWhere<TModel>;
-			readonly update: Update<TModel>;
+			readonly update: Update<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
+			readonly updateVoid: UpdateVoid<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
 		}
 	: TId extends CompositeKey<TModel>
-		? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete" | "update"> & {
-				readonly update: Update<TModel>;
+		? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete" | "update" | "updateVoid"> & {
+				readonly update: Update<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
+				readonly updateVoid: UpdateVoid<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
 				readonly findById: (
 					id: Pick<TModel["Type"], TId[number]>,
 				) => Effect.Effect<

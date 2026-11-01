@@ -1,12 +1,12 @@
 import type { AuthContext } from "better-auth";
 import type { testUtils } from "better-auth/plugins";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 
 type TestContext = ReturnType<ReturnType<typeof testUtils>["init"]>["context"];
 type AccountContext = Pick<AuthContext, "internalAdapter">;
 
-export async function signedInUser(
-	auth: { readonly $context: Promise<TestContext & AccountContext> },
+export const signedInUser = Effect.fnUntraced(function* (
+	auth: { readonly $context: Promise<TestContext & AccountContext & Pick<AuthContext, "sessionConfig">> },
 	{
 		providerAccounts = [],
 		...fields
@@ -14,13 +14,25 @@ export async function signedInUser(
 		readonly providerAccounts?: readonly { readonly providerId: string; readonly accountId: string }[];
 	},
 ) {
-	const { test, internalAdapter } = await auth.$context;
-	const user = await test.saveUser(test.createUser(fields));
+	const { test, internalAdapter } = yield* Effect.promise(() => auth.$context);
+	const user = yield* Effect.promise(() => test.saveUser(test.createUser(fields)));
 	for (const { providerId, accountId } of providerAccounts) {
-		await internalAdapter.createAccount({ accountId, providerId, userId: user.id });
+		yield* Effect.promise(() => internalAdapter.createAccount({ accountId, providerId, userId: user.id }));
 	}
-	return test.login({ userId: user.id });
-}
+	return yield* signInAgain(auth, user.id);
+});
+
+export const signInAgain = Effect.fnUntraced(function* (
+	auth: { readonly $context: Promise<TestContext & AccountContext & Pick<AuthContext, "sessionConfig">> },
+	userId: string,
+) {
+	const { test, internalAdapter, sessionConfig } = yield* Effect.promise(() => auth.$context);
+	const now = yield* Clock.currentTimeMillis;
+	const login = yield* Effect.promise(() => test.login({ userId }));
+	const expiresAt = new Date(now + sessionConfig.expiresIn * 1000);
+	yield* Effect.promise(() => internalAdapter.updateSession(login.token, { expiresAt }));
+	return { ...login, session: { ...login.session, expiresAt } };
+});
 
 export async function storedProviderAccounts(auth: { readonly $context: Promise<AccountContext> }, userId: string) {
 	const { internalAdapter } = await auth.$context;

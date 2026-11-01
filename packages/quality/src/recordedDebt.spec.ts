@@ -4,12 +4,10 @@ import { CLI_TIMEOUT, trees } from "#test/cli.ts";
 import { findingsBaselined } from "#test/findingsBaselined.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 
-const REGISTRY = {
-	content: JSON.stringify([
-		{ file: "src/long.ts", reason: "Generated from the schema.", rule: "structure/max-lines" },
-		{ file: "src/longer.ts", reason: "Generated from the schema.", rule: "structure/max-lines" },
-	]),
-	path: "quality/registry.json",
+const EXCEPTIONS = {
+	content:
+		'export default { exceptions: [{ files: ["src/long.ts", "src/longer.ts"], reason: "Generated from the schema.", rules: ["structure/max-lines"] }], rules: { "structure/max-lines": { options: { source: 3 } } }, sources: ["src"] };\n',
+	path: "quality.config.ts",
 };
 const LONG_FIXED = { content: "String(0);\n", path: "src/long.ts" };
 const LONGER_SHRUNK = { content: "String(0);\nString(1);\nString(2);\nString(3);\nString(4);\n", path: "src/longer.ts" };
@@ -17,8 +15,8 @@ const LONGER_GROWN = { content: "String(0);\nString(1);\nString(2);\nString(3);\
 const BASELINE = "quality-baseline.jsonl";
 
 repositoryStory.it(
-	"quality lint passes when the registry covers every finding and counts the registered findings",
-	[qualityInstalled(), repositoryHas(...trees.dirty, REGISTRY), biomeFormatted()],
+	"quality lint passes when the config exceptions cover every finding and counts the registered findings",
+	[qualityInstalled(), repositoryHas(...trees.dirty, EXCEPTIONS), biomeFormatted()],
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
@@ -31,8 +29,8 @@ repositoryStory.it(
 );
 
 repositoryStory.it(
-	"once the author fixes a registered file, quality lint rejects its registry entry as matching no violation",
-	[qualityInstalled(), repositoryHas(...trees.dirty, REGISTRY), biomeFormatted()],
+	"once the author fixes a registered file, quality lint rejects its config exception as matching no violation",
+	[qualityInstalled(), repositoryHas(...trees.dirty, EXCEPTIONS), biomeFormatted()],
 	function* ({ runs, writes }) {
 		expect((yield* runs("lint")).outcome).toBe("passed");
 

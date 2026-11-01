@@ -33,8 +33,6 @@ ruleStory.it(
 for (const [module, route] of [
 	["engine", "a dependency"],
 	["types", "a peer dependency of its dependency"],
-	["quality", "a dev dependency that depends back on its dependency"],
-	["optional", "an optional dependency"],
 ] as const) {
 	ruleStory.it(
 		`tests/story-specs exempts modules/${module}, which test-story reaches through ${route}`,
@@ -47,7 +45,9 @@ for (const [module, route] of [
 
 for (const [module, relation] of [
 	["app", "depends on test-story"],
-	["unrelated", "is named @shivaedev/test, a prefix of test-story's name"],
+	["unrelated", "has a similar name to test"],
+	["quality", "is a development dependency of test-story"],
+	["optional", "is an optional dependency of test-story"],
 ] as const) {
 	ruleStory.it(
 		`tests/story-specs checks modules/${module}, which ${relation}`,

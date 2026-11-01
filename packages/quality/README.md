@@ -30,7 +30,7 @@ The work has three parts: connect the repository to the shared tools once; descr
 
 ### Rule lifecycle
 
-`defineRule` accepts synchronous, Promise and Effect checks. Promise checks receive an abort signal as `context.signal`; pass it to cancellable APIs. Effect checks compose filesystem and child-process work in the run's scope. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
+`defineRule` accepts synchronous, Promise and Effect checks. Promise checks receive an abort signal as `context.signal`; pass it to cancellable APIs. Effect checks compose filesystem and child-process work in the run's scope. An optional `validate(context)` callback returns inventory-dependent configuration issues before `check`; those issues stop the run as invalid configuration. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
 
 Interrupting a run stops its Biome and knip processes and removes their scoped temporary configs before it ends. A rule crash is a defect; the CLI prints the rule id and original stack. Expected setup failures retain their underlying cause without including it in enumerable error data.
 
@@ -189,7 +189,7 @@ export default defineConfig({
 
 Keep story kits and fixtures in `src/test-support` and keep each spec specific to its story. [`@shivaedev/test-story`](https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme) explains how to build the kit, traits and verbs over a real engine.
 
-Quality's `tests/story-specs` rule reports a test file that declares tests without a kit's `it`, including plain Vitest `it` and `test` declarations mixed with stories. Typecheck tests are exempt, as are test-story itself and its transitive workspace dependencies, including development, optional and peer dependencies: requiring those packages to depend on test-story would create a cycle.
+Quality's `tests/story-specs` rule reports a test file that declares tests without a kit's `it`, including plain Vitest `it` and `test` declarations mixed with stories. Typecheck tests are exempt, as are only the packages named `@shivaedev/test-story`, `@shivaedev/test` and `@shivaedev/types`, wherever they live in the workspace or at its root. Other dependencies of test-story, including development dependencies, remain checked.
 
 Quality's `tests/story-engine` rule reports a kit story with no traits whose body never references its verbs, its story or its test context. Drive the engine through one of the kit's verbs or traits, or, if the code under test is pure, move it to `<stem>.unit.test.ts`, which reaches no engine and mocks nothing. The rule follows the same kit origins and prerequisite exemptions as `tests/story-specs`; unit and typecheck files are exempt.
 
@@ -197,25 +197,35 @@ There is one other honest form. A pure function with no engine behind it gets a 
 
 Every finding names both repairs: drive the engine through the package's story kit, or, when the code under test is pure, move the test to a `.unit` file. Never wrap a pure function in a story that ignores its kit.
 
-Every package tests its real engine through its own story kit, so setup and actions share the package's domain vocabulary. To repair a finding, build the kit with `storyKit` from `@shivaedev/test-story/server/storyKit.ts` in `src/test-support`, import it in the spec and replace plain registrations with `kit.it(name, traits, body)`. The rule follows imports, aliases and conditional registrars back to the kit; it checks declarations, while review and runtime tests establish whether the kit exercises the real engine.
+Every package tests its real engine through its own story kit, so setup and actions share the package's domain vocabulary. To repair a finding, build the kit with `storyKit` from `@shivaedev/test-story/server/storyKit.ts` in `src/test-support`, import it in the spec and replace plain registrations with `kit.it(name, traits, body)`. The rule follows imports, aliases, conditional registrars and arrays of kits (including tuple loops) back to the kit; it checks declarations, while review and runtime tests establish whether the kit exercises the real engine.
 
 Quality's `tests/story-setup` rule reports top-level test functions named with the words `seed`, `make`, `build` or `setup`, and fixture-writing calls imported from Node's `fs` or `fs/promises`. It leaves source and `test-support/` files alone. This is a check for those syntax patterns; a passing test file still needs review of what it tests.
 
 Specs keep expectations visible. `tests/spec-helpers` moves all module-level helper functions out of specs and into the kit; `tests/no-expect-in-support` moves `expect` calls into the spec, except in test-support files that register tests at module top level and are not imported by any module, so nested Vitest runs can execute them as test files with real assertions. `tests/named-values` rejects numeric literals passed to `toBe` or `toHaveLength` in specs, except zero and process exit codes asserted on an `exitCode` subject: assert the observed items or use a domain name that comes from the story's inputs or the product. For HTTP statuses, import `* as HttpStatus` from `effect/http/HttpStatus` and use `HttpStatus.fromLiteral("NotFound")`; subjects named `status` or `code` do not exempt numeric assertions. A spec-local numeric const that only feeds these matchers is reported, including aliases for zero and codes. `tests/no-limit-imports` rejects importing `MAX_*` constants from a `limits` module into specs, so a story proves behavior instead of copying an implementation cap.
 
-Three more rules keep a spec readable as a story, as the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md) describes. They read every story file, whatever its suffix: any `.test` or `.spec` file outside `test-support` that is not a type or unit test, such as `orders.spec.ts`, `pane.dom.test.ts` or `orders.slow.test.ts`. The suffix says where a test sits under `tests/follow`, not whether it is a story, and `tests/story-specs` already holds every such file to the story kit. They exempt the same test-story prerequisites as `tests/story-specs`. `tests/domain-outcomes` reports each use of Effect's `Exit`, `Cause` or `Result` module, each `_tag` read or destructuring, and each object literal tagged `"Success"` or `"Failure"`: the kit's verb or readout returns the outcome in the domain's words, such as `"unauthorized"`, and a trait builds any failing input. A domain's own tagged value, such as `{ _tag: "Resync" }`, passes. `tests/grouped-outcomes` reports each run of two or more consecutive `expect(yield* …)` statements once, at its first statement: write the outcomes as rows of one `outcomes` call. `tests/wait-on-events` reports `Effect.sleep`, `setTimeout` and `setInterval`, calls to an imported `eventually`, Vitest's fake timers, `vi.waitFor`, and `TestClock.adjust` and `TestClock.setTime`: settle on the engine's own signal through a kit verb, and when time passing is the behaviour, advance the clock in a verb named for it.
+Three more rules keep a spec readable as a story, as the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md) describes. Together with `tests/spec-helpers`, `tests/named-values` and `tests/no-limit-imports`, they read files whose test declarations trace to a story kit, whatever their suffix: a `.test` or `.spec` file outside `test-support` that is not a type or unit test, such as `orders.spec.ts`, `pane.dom.test.ts` or `orders.slow.test.ts`. The suffix says where a test sits under `tests/follow`, not whether it is a story, and `tests/story-specs` already holds every such file to the story kit. They exempt the same test-story prerequisites as `tests/story-specs`. `tests/domain-outcomes` reports each use of Effect's `Exit`, `Cause` or `Result` module, each `_tag` read or destructuring, and each object literal tagged `"Success"` or `"Failure"`: the kit's verb or readout returns the outcome in the domain's words, such as `"unauthorized"`, and a trait builds any failing input. A domain's own tagged value, such as `{ _tag: "Resync" }`, passes. `tests/grouped-outcomes` reports each run of two or more consecutive `expect(yield* …)` statements once, at its first statement: write the outcomes as rows of one `outcomes` call. `tests/wait-on-events` reports `Effect.sleep`, `setTimeout` and `setInterval`, calls to an imported `eventually`, Vitest's fake timers, `vi.waitFor`, and `TestClock.adjust` and `TestClock.setTime`: settle on the engine's own signal through a kit verb, and when time passing is the behaviour, advance the clock in a verb named for it.
 
 `boundaries/queue-sql` rejects SQL mentioning the private `pgboss.` schema. Apps use their queue definitions and let workers process jobs; there is no queue-purge API by design. `boundaries/auth-sql` rejects SQL accessing Better Auth's `user`, `account`, `session` and `verification` tables. App tables reference users by foreign key: migrations may reference only `user(id)` with `ON DELETE CASCADE` or `ON DELETE SET NULL`. Import `userReference` from `@shivaedev/identity/server/better-auth/userReference.ts` and interpolate `sql(userReference.table)` and `sql(userReference.column)` in the reference. Apps use identity for account data; `options.owners` names platform's own auth implementation and its migrations. These rules inspect SQL templates, literal query calls and query variables, and inventoried `.sql` files. They do not evaluate arbitrary runtime SQL construction.
 
 `boundaries/http-status` rejects comparisons with HTTP error status numbers, switch cases and literal status-list membership outside `options.edge`. Domain code handles typed errors; the named HTTP edge translates them into transport responses. Process exit codes remain ordinary domain values.
 
-Declare these architectural facts in the repository's quality config; paths and patterns are relative to that config's directory:
+Glob options (`toolOwned`, `content`, `edge`, `owners` and `suites`) use `{ glob, reason }` declarations. Every declaration needs a nonblank reason and must match a current inventoried file; otherwise configuration fails. Remove declarations when their files disappear. Paths and patterns are relative to the config's directory. Naming and suite options use gitignore patterns; `edge` and `owners` use Node glob patterns.
+
+Declare these architectural facts in the repository's quality config:
 
 ```ts
 export default defineConfig({
 	rules: {
-		"boundaries/auth-sql": { options: { owners: ["packages/identity/src/server/better-auth/**", "examples/starter/src/server/migrations/**"] } },
-		"boundaries/http-status": { options: { edge: ["src/http/**"] } },
+		"boundaries/auth-sql": {
+			options: {
+				owners: [{ glob: "src/auth/**", reason: "This module implements the auth storage API." }],
+			},
+		},
+		"boundaries/http-status": {
+			options: {
+				edge: [{ glob: "src/http/**", reason: "These HTTP adapters translate transport statuses into domain errors." }],
+			},
+		},
 	},
 });
 ```

@@ -1,6 +1,7 @@
 import { isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
 import { ManifestFailure } from "#adapters/manifestInventory.ts";
+import { SetupFailure } from "#failure.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
 import type { ActiveLevel, Violation } from "./violation.ts";
@@ -48,9 +49,13 @@ function violationOf(rule: ActiveRule, root: string, finding: Finding, exception
 	};
 }
 
-function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], never, RuleServices> {
+function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure, RuleServices> {
 	return Effect.suspend(() => rule.check(inputs)).pipe(
-		Effect.orDie,
+		Effect.catch((cause) =>
+			cause instanceof SetupFailure
+				? Effect.fail(new SetupFailure({ cause, message: `rule ${rule.id} failed: ${cause.message}` }))
+				: Effect.die(cause),
+		),
 		Effect.map((findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile))),
 		Effect.catchDefect((cause) =>
 			cause instanceof ManifestFailure

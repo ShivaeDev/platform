@@ -1,4 +1,5 @@
-export const RPC_URL = "http://localhost/_board/rpc";
+export const BOARD_ORIGIN = "http://localhost";
+export const RPC_URL = `${BOARD_ORIGIN}/_board/rpc`;
 
 export interface RpcRequest {
 	payload: unknown;
@@ -23,16 +24,15 @@ export function workFolder(directory: string): string {
 	return `${directory === "/" ? "" : directory}/.work`;
 }
 
+export function rpcPost(directory: string, body: string): RpcInit {
+	return { body, headers: { "content-type": "application/ndjson" }, method: "POST", socketPath: `${workFolder(directory)}/board.sock` };
+}
+
 export function rpcInit(directory: string, requests: readonly RpcRequest[]): RpcInit {
 	const body = requests.map((request, index) =>
 		JSON.stringify({ _tag: "Request", headers: [], id: String(index + 1), payload: request.payload, tag: request.tag }),
 	);
-	return {
-		body: `${body.join("\n")}\n`,
-		headers: { "content-type": "application/ndjson" },
-		method: "POST",
-		socketPath: `${workFolder(directory)}/board.sock`,
-	};
+	return rpcPost(directory, `${body.join("\n")}\n`);
 }
 
 export function readExits(stream: string): Map<number, RpcExit> {

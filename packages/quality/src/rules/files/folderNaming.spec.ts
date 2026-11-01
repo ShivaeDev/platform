@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
-const CONTENT = { content: ["content/"] };
+const CONTENT = { content: [{ glob: "content/", reason: "Content identifiers follow the content format." }] };
 
 ruleStory.it(
 	"files/folder-names reports a package folder that is not named after its package",

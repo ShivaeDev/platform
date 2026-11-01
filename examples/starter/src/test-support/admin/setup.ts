@@ -44,9 +44,11 @@ export const adminSetup = storyKit({
 					{ ...authOptions(), database: yield* betterAuthDatabase(), plugins: [testUtils()], secret: Redacted.value(secret) },
 					{ defaultRole: User.name, roles: AppAccess },
 				).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
-				const session = yield* Effect.promise(() =>
-					signedInUser(auth, { email: "alice@github.test", name: "alice", providerAccounts: [{ accountId: "1001", providerId: "github" }] }),
-				);
+				const session = yield* signedInUser(auth, {
+					email: "alice@github.test",
+					name: "alice",
+					providerAccounts: [{ accountId: "1001", providerId: "github" }],
+				});
 				engine.cookie = session.headers.get("cookie") ?? "";
 			}),
 			prepareAuth: Effect.fn("AdminSetup.prepareAuth")(function* () {

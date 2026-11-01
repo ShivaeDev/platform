@@ -98,7 +98,9 @@ accountRoles.it(
 	function* ({ boot, sessionRole }) {
 		expect(yield* sessionRole("alice")).toBe("admin");
 
-		expect(yield* boot()).toBe("last role assigner");
+		const startup = yield* boot();
+
+		expect(startup).toBe("last role assigner");
 
 		expect(yield* sessionRole("alice")).toBe("admin");
 	},

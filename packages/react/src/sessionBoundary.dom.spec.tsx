@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { sessionBoundaryScreens, visitorAt } from "#test/session-boundary/story.tsx";
@@ -9,8 +10,10 @@ for (const browserHistory of [false, true]) {
 		`a visitor asks for a protected address, signs in and reaches it after the signed-out router unmounts (${browserHistory ? "browser" : "memory"} history)`,
 		[visitorAt(TARGET, { browserHistory })],
 		function* ({ heading, href, signIn }) {
-			expect(yield* heading()).toBe("Sign in");
-			expect(new URL(yield* href(), "http://app.test").searchParams.get("returnTo")).toBe(TARGET);
+			yield* outcomes([
+				["screen", () => heading(), "Sign in"],
+				["return address", () => Effect.map(href(), (address) => new URL(address, "http://app.test").searchParams.get("returnTo")), TARGET],
+			]);
 
 			yield* signIn();
 

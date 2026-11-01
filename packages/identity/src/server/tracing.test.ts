@@ -38,9 +38,10 @@ for (const [reason, requestId] of [
 }
 
 tracing.it("each request without a request id gets its own generated id", [], function* ({ echo }) {
-	expect(yield* echo()).toBe("generated id 1");
-
-	expect(yield* echo()).toBe("generated id 2");
+	yield* outcomes([
+		["first request", () => echo(), "generated id 1"],
+		["second request", () => echo(), "generated id 2"],
+	]);
 });
 
 tracing.it(

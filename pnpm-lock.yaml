@@ -1181,6 +1181,9 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.6.2
+      '@shivaedev/heavy-lock':
+        specifier: workspace:*
+        version: link:../heavy-lock
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types

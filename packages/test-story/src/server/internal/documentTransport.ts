@@ -16,8 +16,11 @@ export function documentTransport(fetch: typeof globalThis.fetch): IFetchInterce
 			let current = request;
 			let body = current.body === null ? null : Buffer.from(await current.arrayBuffer());
 			for (let redirects = 0; redirects <= 20; redirects += 1) {
-				const headers = FetchRequestHeaderUtility.getRequestHeaders({ browserFrame: frame, request: current, window });
-				delete headers.Connection;
+				const { Connection: _connection, ...headers } = FetchRequestHeaderUtility.getRequestHeaders({
+					browserFrame: frame,
+					request: current,
+					window,
+				});
 				const { release, response } = await documentRequest(fetch, current, body, headers);
 				const responseHeaders = documentResponseHeaders(response, current, frame);
 				const location = response.headers.get("location");

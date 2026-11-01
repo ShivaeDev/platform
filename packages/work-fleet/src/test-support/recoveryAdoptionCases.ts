@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { HEAD, MOVED, PR, resultFixture } from "#test/githubResult.ts";
+import { BASE, HEAD, MOVED, PR, resultFixture } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
@@ -37,7 +37,7 @@ const faults: readonly AdoptionFault[] = [
 ];
 export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 	return faults.map((fault) => {
-		const healthy = { "changed_files": 1, head: { sha: HEAD }, merged: false, state: "open" };
+		const healthy = { base: { ref: "main", sha: BASE }, "changed_files": 1, head: { sha: HEAD }, merged: false, state: "open" };
 		const before: Record<string, unknown> = { ...healthy, ...fault.before };
 		const after: Record<string, unknown> = {
 			...healthy,
@@ -64,8 +64,6 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 				Effect.sync(() => {
 					Object.assign(before, healthy);
 					Object.assign(after, healthy);
-					delete before.base;
-					delete after.base;
 					options.files = [[{ filename: "src/one.ts" }]];
 					options.invalidJson = false;
 				}),

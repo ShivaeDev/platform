@@ -70,6 +70,6 @@ for (const path of [".git/config", "parent/../file", "link\\file", "file\u0000ba
 	attachmentStory.it(`records an unsafe path without reconstructing it: ${JSON.stringify(path)}`, [], function* (attachments) {
 		const result = yield* attachments.reconstruct([addedAttachment(path, "unsafe")], "");
 		expect(result.files).toEqual([]);
-		expect(result.unavailable).toHaveLength(1);
+		expect(result.unavailable).toEqual([{ path, reason: expect.stringContaining("path") }]);
 	});
 }

@@ -3,6 +3,27 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { sessionClock } from "#test/sessionClock.ts";
 
+sessionClock.it(
+	"in 2100, alice stays signed in for her configured hour and expires at its end",
+	[],
+	function* ({ request, timePasses }) {
+		expect(yield* request("alice")).toBe("alice");
+
+		yield* timePasses("59 minutes");
+
+		expect(yield* request("alice")).toBe("alice");
+
+		yield* timePasses("1 minute");
+
+		expect(yield* request("alice")).toBe("failed with unauthorized");
+
+		yield* timePasses("1 milli");
+
+		expect(yield* request("alice")).toBe("failed with unauthorized");
+	},
+	{ clock: DateTime.makeUnsafe("2100-01-01T00:00:00Z") },
+);
+
 for (const millisecondsAfter of [0, 1]) {
 	sessionClock.it(
 		`alice's session expires and is swept ${millisecondsAfter} milliseconds after its lifetime while bob stays signed in`,
@@ -69,3 +90,33 @@ sessionClock.it(
 		);
 	},
 );
+
+sessionClock.it(
+	"alice signs in again after 30 days on the same account for another configured hour",
+	[],
+	function* ({ request, requestUserId, timePasses, signsInAgain, mintedSession }) {
+		const original = yield* mintedSession("alice");
+		const userId = yield* requestUserId("alice");
+		expect(yield* request("alice")).toBe("alice");
+
+		yield* timePasses("30 days");
+
+		expect(yield* request("alice")).toBe("failed with unauthorized");
+
+		yield* signsInAgain("alice");
+
+		yield* outcomes([
+			["protected request", () => request("alice"), "alice"],
+			["fresh session", () => mintedSession("alice"), expect.not.objectContaining({ id: original.id })],
+			["same account", () => requestUserId("alice"), userId],
+		]);
+
+		yield* timePasses("1 hour");
+
+		expect(yield* request("alice")).toBe("failed with unauthorized");
+	},
+);
+
+sessionClock.it("Better Auth accepts alice's minted session with the default clock", [], function* ({ providerSession }) {
+	expect(yield* providerSession("alice")).toMatchObject({ user: { email: "alice@clock.test", name: "alice" } });
+});

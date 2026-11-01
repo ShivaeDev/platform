@@ -88,7 +88,7 @@ export function availabilityActions(engine: ScreenEngine, tell: (line: string) =
 			if (!refresh) {
 				throw new Error("No refresh after an answer is held");
 			}
-			delete engine.heldAnswerRefresh;
+			engine.heldAnswerRefresh = undefined;
 			await act(() => Promise.resolve().then(() => Effect.runSync(Deferred.succeed(refresh.gate, undefined))));
 		},
 		releaseWorkspace: async () => {
@@ -102,7 +102,7 @@ export function availabilityActions(engine: ScreenEngine, tell: (line: string) =
 					Effect.runSync(Deferred.succeed(gate, undefined));
 				}),
 			);
-			delete engine.indexGate;
+			engine.indexGate = undefined;
 		},
 	};
 }

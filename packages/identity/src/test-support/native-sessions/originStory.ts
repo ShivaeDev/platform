@@ -8,7 +8,7 @@ import { originVerbs } from "./originVerbs.ts";
 
 interface State {
 	host?: Host;
-	nativeOrigins?: readonly string[];
+	nativeOrigins?: readonly string[] | undefined;
 	trustedProxy?: string;
 }
 export const origins = storyKit({
@@ -33,7 +33,7 @@ export const origins = storyKit({
 	},
 });
 export const withoutNativeOrigins = origins.trait("configured", "native origins are not configured", (state) => {
-	delete state.nativeOrigins;
+	state.nativeOrigins = undefined;
 });
 export function proxyTrust(address: string) {
 	return origins.trait("configured", "the host configures its trusted proxy peer", (state) => {

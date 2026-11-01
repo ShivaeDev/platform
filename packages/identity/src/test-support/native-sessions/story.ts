@@ -246,7 +246,7 @@ function accounts(names: readonly string[], password: boolean) {
 				? yield* passwordUser(auth, { ...fields, password: "story-password-123" }).pipe(
 						Effect.flatMap((user) => Effect.promise(async () => (await auth.$context).test.login({ userId: user.id }))),
 					)
-				: yield* Effect.promise(() => signedInUser(auth, { ...fields, providerAccounts: [{ accountId: `${name}-github`, providerId: "github" }] }));
+				: yield* signedInUser(auth, { ...fields, providerAccounts: [{ accountId: `${name}-github`, providerId: "github" }] });
 			const credential = decodeURIComponent(session.cookies.find((cookie) => cookie.name.endsWith("session_token"))?.value ?? "");
 			state.accounts.set(name, {
 				cookie: session.headers.get("cookie") ?? "",

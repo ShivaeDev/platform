@@ -26,8 +26,8 @@ export type Person = "alice" | "bob";
 const people = { alice: "1001", bob: "1002" };
 
 export const accountRoleHost = Effect.fnUntraced(function* () {
-	const env: Record<string, string> = { "AUTH_RATE_LIMIT_ENABLED": "false" };
-	const config = ConfigProvider.layer(ConfigProvider.fromEnv({ env }));
+	const env: Record<string, string | undefined> = { "AUTH_RATE_LIMIT_ENABLED": "false" };
+	const config = ConfigProvider.layer(ConfigProvider.fromEnvRecord(env));
 	const options = {
 		database: yield* betterAuthDatabase(),
 		logger: { disabled: true },
@@ -69,17 +69,13 @@ export const accountRoleHost = Effect.fnUntraced(function* () {
 	});
 	return {
 		configure: (entries: string | undefined, assignedRole: SeedRole = "operator") => {
-			if (entries === undefined) {
-				delete env.AUTH_OPERATOR_ACCOUNTS;
-			} else {
-				env.AUTH_OPERATOR_ACCOUNTS = entries;
-			}
+			env.AUTH_OPERATOR_ACCOUNTS = entries;
 			seededRole = assignedRole;
 		},
 		// Minted sessions isolate boot-time grants from OAuth registration.
 		mint: (person: Person, storedRole: SeedRole = "user") =>
-			Effect.promise(async () => {
-				const session = await signedInUser(base.auth, {
+			Effect.gen(function* () {
+				const session = yield* signedInUser(base.auth, {
 					email: `${person}@github.test`,
 					name: person,
 					providerAccounts: [{ accountId: people[person], providerId: "github" }],

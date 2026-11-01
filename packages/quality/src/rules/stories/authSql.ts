@@ -1,10 +1,12 @@
-import { Effect, Schema } from "effect";
+import { matchesGlob } from "node:path";
+import { Schema } from "effect";
+import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { defineRule } from "#rule.ts";
 import { matchesAny } from "./matchesAny.ts";
 import { sqlTexts } from "./sqlText.ts";
 
 const AuthSqlOptions = Schema.Struct({
-	owners: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+	owners: GlobDeclarations,
 });
 
 const TOKENS = /--[^\n]*|\/\*[\s\S]*?\*\/|'(?:''|[^'])*'|"(?:""|[^"])*"|[\w$]+|[.,;()]/gu;
@@ -126,7 +128,7 @@ function authTableIn(text: string): boolean {
 export const authSql = defineRule({
 	check: async ({ options, ...inputs }) =>
 		(await sqlTexts(inputs))
-			.filter((query) => !matchesAny(query.file, options.owners) && authTableIn(query.text))
+			.filter((query) => !matchesAny(query.file, globPatterns(options.owners)) && authTableIn(query.text))
 			.map((query) => ({
 				file: query.file,
 				line: query.line,
@@ -136,4 +138,5 @@ export const authSql = defineRule({
 	description: "Apps reference user IDs by foreign key and use identity for account data.",
 	id: "boundaries/auth-sql",
 	options: Schema.toStandardSchemaV1(AuthSqlOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
+	validate: (context) => validateGlobs(context, matchesGlob),
 });

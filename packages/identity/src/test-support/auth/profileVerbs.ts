@@ -38,7 +38,7 @@ export function profileVerbs(host: AdminHost, story: { tell: (line: string) => v
 			readonly image?: string;
 		}) {
 			story.tell(`sign in ${fields.name} through Better Auth`);
-			return yield* Effect.promise(() => signedInUser(host.auth, fields));
+			return yield* signedInUser(host.auth, fields);
 		}),
 		stopAuthStorage: Effect.fn("AuthStory.stopAuthStorage")(function* () {
 			story.tell("the auth storage pool closes");

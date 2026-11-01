@@ -1,5 +1,12 @@
 import { Effect, Layer } from "effect";
-import { type LaunchSettings, SessionFailure, type SessionObservation, type SessionReceipt, type StartSession } from "#session/schema.ts";
+import {
+	type ContinueSession,
+	type LaunchSettings,
+	SessionFailure,
+	type SessionObservation,
+	type SessionReceipt,
+	type StartSession,
+} from "#session/schema.ts";
 import { SessionTransport } from "#session/service.ts";
 import { acceptTurn } from "#test/acceptTurn.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
@@ -8,6 +15,7 @@ import { reviewerObservation } from "#test/reviewerObservation.ts";
 export function engineProvider(options: EngineOptions, reviews: string[]) {
 	const launched: string[] = [];
 	const starts: StartSession[] = [];
+	const submittedTurns: ContinueSession[] = [];
 	const reviewers = new Set<string>();
 	let reviewFailed = false;
 	let reviewLost = options.lostReviewAcknowledgement ?? false;
@@ -92,6 +100,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 		startTurn: (input) =>
 			Effect.gen(function* () {
 				turns += 1;
+				submittedTurns.push(input);
 				settings.push({ call: "turn", operationId: input.operationId, settings: input.settings });
 				const rejected = rejectNext;
 				rejectNext = undefined;
@@ -135,6 +144,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 		settings,
 		starts,
 		steered,
+		submittedTurns,
 		transport,
 	};
 }
