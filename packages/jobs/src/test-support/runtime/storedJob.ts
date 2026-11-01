@@ -15,7 +15,7 @@ export function storedJob(name: string, id: string, data: unknown, state: JobWit
 		id,
 		keepUntil: new Date(0),
 		name,
-		output: {},
+		output: { _tag: "Error", message: "The worker rejected the job" },
 		pendingDependencies: 0,
 		policy: "standard",
 		priority: 0,

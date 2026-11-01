@@ -1,9 +1,16 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
 import type { PgBossClient } from "#client.ts";
-import { toPgBossError } from "#error.ts";
+import { PgBossPayloadError, toPgBossError } from "#error.ts";
 import { decodeStoredData } from "#internal/storedRows.ts";
+import { JobFailure } from "#JobFailure.ts";
 import type { PgBossService } from "#service.ts";
+
+function decodeFailure(queue: string, output: unknown) {
+	return Schema.decodeUnknownEffect(JobFailure)(output).pipe(
+		Effect.mapError((error) => new PgBossPayloadError({ direction: "decode", original: Redacted.make(error), queue })),
+	);
+}
 
 export function getJobFor(client: PgBossClient): PgBossService["getJob"] {
 	return (queue, id) =>
@@ -16,10 +23,16 @@ export function getJobFor(client: PgBossClient): PgBossService["getJob"] {
 				return (await client.findJobs(queue.name, { id }))[0];
 			},
 		}).pipe(
-			Effect.flatMap((job) =>
-				job === undefined
-					? Effect.succeed(Option.none())
-					: decodeStoredData(queue, job.data).pipe(Effect.map((data) => Option.some({ ...job, data: redact(data) }))),
+			Effect.flatMap(
+				Effect.fnUntraced(function* (job) {
+					if (job === undefined) {
+						return Option.none();
+					}
+					const data = yield* decodeStoredData(queue, job.data);
+					const output = job.output === null ? job.output : yield* decodeFailure(queue.name, job.output);
+					const sourceOutput = job.sourceOutput === null ? null : yield* decodeFailure(queue.name, job.sourceOutput);
+					return Option.some({ ...job, data: redact(data), output, sourceOutput });
+				}),
 			),
 		);
 }
