@@ -6,7 +6,7 @@ import { exportFits } from "#naming/exportFits.ts";
 import { mainExport } from "#naming/mainExport.ts";
 import { isMigrationFile } from "#naming/migrationFile.ts";
 import { moduleRoot } from "#naming/moduleRoot.ts";
-import { ownExports } from "#naming/ownExports.ts";
+import { ownDeclarations, ownExports } from "#naming/ownExports.ts";
 import { type PackageLayout, packageLayout } from "#naming/packageLayout.ts";
 import { CAMEL, KEBAB, sameWord, wordsOf } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
@@ -48,6 +48,10 @@ function repeated(stem: string, folders: readonly string[]): string | undefined 
 function nameFinding(file: SourceFile, stem: string, folders: readonly string[]): string | undefined {
 	const source = parse(file);
 	const exports = source === undefined ? [] : ownExports(source);
+	const constants = source === undefined ? [] : ownDeclarations(source).filter((entry) => entry.constant);
+	if (constants.some((entry) => exportFits(entry.name, stem, folders))) {
+		return undefined;
+	}
 	const [only] = exports;
 	if (only === undefined) {
 		return CAMEL.test(stem)
@@ -93,7 +97,7 @@ export const namedAfterExport = defineRule({
 			.flatMap((file) => findingsOf(file, layout));
 	},
 	description:
-		"A file is named after its main export, including a single constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	validate: validateGlobs,
