@@ -14,9 +14,9 @@ interface Outcome {
 	readonly summary: (line: string) => void;
 }
 
-function mergeTest(first: Task, task: Task) {
-	const unresolved = first.result?.state === "fail" && !["pass", "fail"].includes(task.result?.state ?? "");
-	if (first.result !== undefined && (first.result.state === "pass" || unresolved)) {
+function mergeResult(first: Task, task: Task) {
+	const completed = ["pass", "fail"].includes(task.result?.state ?? "");
+	if (first.result !== undefined && ["pass", "fail"].includes(first.result.state) && !completed) {
 		task.mode = first.mode;
 		task.result = first.result;
 		task.logs = first.logs ?? [];
@@ -25,31 +25,29 @@ function mergeTest(first: Task, task: Task) {
 	}
 }
 
-function restorePassed(original: Task[], rerun: Task[]) {
+function mergeTasks(original: Task[], rerun: Task[]) {
 	for (const task of rerun) {
 		const first = original.find((item) => item.id === task.id);
 		if (first === undefined) {
 			continue;
 		}
 		if (task.type === "suite" && first.type === "suite") {
-			restorePassed(first.tasks, task.tasks);
-		} else {
-			mergeTest(first, task);
+			mergeTasks(first.tasks, task.tasks);
+		}
+		mergeResult(first, task);
+		if (task.type === "suite" && task.tasks.some((child) => child.result?.state === "fail") && task.result !== undefined) {
+			task.result.state = "fail";
 		}
 	}
 }
 
-function finishFile(file: File, next: File, ranTests: boolean) {
-	const duration = (file.result?.duration ?? 0) + (next.result?.duration ?? 0);
-	if (!ranTests && file.tasks.length > 0 && file.result !== undefined) {
-		next.result = { ...file.result };
-	}
+function finishFile(file: File, next: File) {
+	mergeResult(file, next);
 	if (next.result !== undefined) {
-		if (tests(next.tasks).some((test) => test.result?.state === "fail")) {
+		if (next.tasks.some((task) => task.result?.state === "fail")) {
 			next.result.state = "fail";
 		}
 		next.result.startTime = file.result?.startTime ?? next.result.startTime ?? 0;
-		next.result.duration = duration;
 	}
 }
 
@@ -72,16 +70,13 @@ function recordAttempts(file: File, retried: Task[], outcome: Outcome) {
 function mergeFile(file: File, next: File, outcome: Outcome) {
 	const original = tests(file.tasks);
 	const retried = tests(next.tasks);
-	const ranTests = retried.some(
-		(test) => ["pass", "fail"].includes(test.result?.state ?? "") && original.some((item) => item.id === test.id && item.result?.state !== "pass"),
-	);
 	recordAttempts(file, retried, outcome);
 	if (original.length === 0 && next.result?.state === "pass") {
 		outcome.summary(`- Flaky: ${junitClassname(relative(outcome.root, file.filepath), file.projectName ?? "")} — collection failure`);
 	} else if (original.length > 0) {
-		restorePassed(file.tasks, next.tasks);
+		mergeTasks(file.tasks, next.tasks);
 	}
-	finishFile(file, next, ranTests);
+	finishFile(file, next);
 }
 
 interface Merged {
