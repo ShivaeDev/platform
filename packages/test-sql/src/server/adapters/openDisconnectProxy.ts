@@ -4,7 +4,10 @@ import { notificationFilter } from "./notificationFilter.ts";
 
 export async function openDisconnectProxy(destination: string, options: DisconnectProxyOptions) {
 	const target = new URL(destination);
-	const address = { host: target.hostname, port: Number(target.port || 5432) };
+	const address = {
+		host: target.searchParams.get("host") || target.hostname,
+		port: Number(target.searchParams.get("port") || target.port || 5432),
+	};
 	const sockets = new Set<Socket>();
 	const clients = new Set<Socket>();
 	const pending = new Set<Socket>();
@@ -73,6 +76,8 @@ export async function openDisconnectProxy(destination: string, options: Disconne
 	if (listening === null || typeof listening === "string") {
 		throw new Error("Expected a TCP listener");
 	}
+	target.searchParams.delete("host");
+	target.searchParams.delete("port");
 	target.hostname = "127.0.0.1";
 	target.port = String(listening.port);
 	if (options.dropNotifications === true) {

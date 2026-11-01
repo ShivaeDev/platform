@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { connected, proxy } from "#test/disconnectProxy.ts";
+import { connected, proxy, proxyWithUrlParameters } from "#test/disconnectProxy.ts";
 
 proxy.it("disconnecting cuts an established PostgreSQL connection", [connected], function* ({ disconnect, query }) {
 	expect(yield* query()).toEqual([[42]]);
@@ -39,3 +39,22 @@ proxy.it(
 		expect(yield* queryAnswer()).toEqual([[42]]);
 	},
 );
+
+for (const parameters of [["host"], ["port"], ["host", "port"]] as const) {
+	const parameterProxy = proxyWithUrlParameters(parameters);
+	const description = parameters.join(" and ");
+
+	parameterProxy.it(`refusing cuts PostgreSQL traffic with ${description} URL parameters`, [], function* ({ query, refuse }) {
+		expect(yield* query()).toEqual([[42]]);
+
+		yield* refuse();
+
+		expect(yield* query()).toBe("connection failed");
+	});
+
+	parameterProxy.it(`refusing rejects a new PostgreSQL connection with ${description} URL parameters`, [], function* ({ query, refuse }) {
+		yield* refuse();
+
+		expect(yield* query()).toBe("connection failed");
+	});
+}
