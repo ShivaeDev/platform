@@ -46,7 +46,10 @@ export const fakeRepository = Effect.gen(function* () {
 		}
 		const numbers = Array.from({ length: state.pullRequests }, (_, index) => index + 1).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 		const next = page * PAGE_SIZE < state.pullRequests ? { Link: `</repos/acme/widgets/pulls?page=${page + 1}>; rel="next"` } : {};
-		return core({ body: numbers.map(pullRequest), headers: next });
+		const etag = `"pulls-${page}-${state.pullRequests}"`;
+		return request.headers["if-none-match"] === etag
+			? core({ headers: next, status: HttpStatus.fromLiteral("NotModified") })
+			: core({ body: numbers.map(pullRequest), headers: { ...next, "ETag": etag } });
 	}
 	function search(): FakeHttpReply {
 		const budget = state.budgets.search;
