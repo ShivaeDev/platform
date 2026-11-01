@@ -11,14 +11,19 @@ export interface Entry {
 export const parseBody = Effect.fn("Changesets.parseBody")(function* (name: string, body: string) {
 	const entries: Entry[] = [];
 	let section: Section | undefined;
+	let blankLines = "";
 	for (const line of body.split("\n")) {
 		if (line.startsWith("### ")) {
+			blankLines = "";
 			section = sections.find((value) => line === `### ${value}`);
 			if (section === undefined) {
 				return yield* new ChangesetError({ message: `${name}: use ### Added, ### Changed, ### Fixed, ### Breaking or ### Quality rules.` });
 			}
-		} else if (line.trim() !== "") {
-			yield* appendEntry(name, line, section, entries);
+		} else if (line.trim() === "") {
+			blankLines += `\n${line}`;
+		} else {
+			yield* appendEntry(name, line, section, entries, blankLines);
+			blankLines = "";
 		}
 	}
 	if (entries.length === 0) {
@@ -27,7 +32,13 @@ export const parseBody = Effect.fn("Changesets.parseBody")(function* (name: stri
 	return entries;
 });
 
-const appendEntry = Effect.fn("Changesets.appendEntry")(function* (name: string, line: string, section: Section | undefined, entries: Entry[]) {
+const appendEntry = Effect.fn("Changesets.appendEntry")(function* (
+	name: string,
+	line: string,
+	section: Section | undefined,
+	entries: Entry[],
+	blankLines: string,
+) {
 	if (line.startsWith("- ") && section !== undefined) {
 		if (line.slice(2).trim() === "") {
 			return yield* new ChangesetError({ message: `${name}: write text after '- '.` });
@@ -39,7 +50,7 @@ const appendEntry = Effect.fn("Changesets.appendEntry")(function* (name: string,
 	if (previous === undefined || previous.section !== section || !/^\s+\S/u.test(line)) {
 		return yield* new ChangesetError({ message: `${name}: start each entry with '- ' under a ### section heading.` });
 	}
-	entries[entries.length - 1] = { ...previous, text: `${previous.text}\n${line}` };
+	entries[entries.length - 1] = { ...previous, text: `${previous.text}${blankLines}\n${line}` };
 });
 
 export function renderEntries(entries: readonly Entry[]): string {
