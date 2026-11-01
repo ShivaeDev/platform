@@ -91,7 +91,7 @@ migrationHost.it(
 		theHostIsInterrupted,
 	}) {
 		yield* hostStarts();
-		expect(yield* openPoolConnections()).toBe("one open connection");
+		expect(yield* openPoolConnections()).toBe("2 open connections");
 		yield* theHostIsInterrupted();
 		expect(yield* interruptionProgress()).toBe("waiting for the pool to disconnect");
 
