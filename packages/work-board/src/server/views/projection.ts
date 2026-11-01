@@ -11,6 +11,7 @@ export interface Projection {
 	readonly selected: Item | undefined;
 	readonly selectedOutside: boolean;
 	readonly title: string;
+	readonly unavailable?: readonly string[];
 	readonly validBoard: boolean;
 }
 function boardItems(board: Item, items: readonly Item[], snapshot: Snapshot) {
@@ -48,6 +49,7 @@ export function projectItems(snapshot: Snapshot, state: State): Projection {
 		? (snapshot.model.diagnostics.get(board.document.file) ?? []).map((problem) => `${board.document.file}:${problem.line}: ${problem.message}`)
 		: [];
 	return {
+		...(snapshot.unavailable.length > 0 ? { unavailable: snapshot.unavailable } : {}),
 		boards,
 		issues: [...issues, ...sourceIssues],
 		items,

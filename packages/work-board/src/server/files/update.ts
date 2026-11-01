@@ -1,27 +1,28 @@
 import { Effect, FileSystem, Option } from "effect";
 import { attachmentType } from "#path/attachment.ts";
 import { isMarkdown } from "#path/isMarkdown.ts";
-import { byFolder, listMarkdown, type MarkdownFile } from "./list.ts";
+import { byFolder, type MarkdownInventory, scanMarkdown } from "./list.ts";
 import { markdownPath } from "./markdownPath.ts";
 
 export const updateFiles = Effect.fn("WorkBoard.updateFiles")(function* (
 	root: string,
 	realRoot: string,
-	previous: readonly MarkdownFile[],
+	previous: MarkdownInventory,
 	paths: ReadonlySet<string> | undefined,
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	// Root disappearance must reach callers as a filesystem failure.
 	yield* fs.stat(realRoot);
 	if (
-		paths === undefined
+		previous.unavailable.length > 0
+		|| paths === undefined
 		|| [...paths].some(
-			(path) => (!isMarkdown(path) && attachmentType(path) === undefined) || previous.some((file) => file.path.startsWith(`${path}/`)),
+			(path) => (!isMarkdown(path) && attachmentType(path) === undefined) || previous.files.some((file) => file.path.startsWith(`${path}/`)),
 		)
 	) {
-		return yield* listMarkdown(root, realRoot);
+		return yield* scanMarkdown(root, realRoot);
 	}
-	const files = new Map(previous.map((file) => [file.path, file]));
+	const files = new Map(previous.files.map((file) => [file.path, file]));
 	for (const file of paths) {
 		if (!isMarkdown(file)) {
 			continue;
@@ -43,11 +44,11 @@ export const updateFiles = Effect.fn("WorkBoard.updateFiles")(function* (
 		);
 		files.delete(file);
 		if (Option.isSome(found) && found.value === "directory") {
-			return yield* listMarkdown(root, realRoot);
+			return yield* scanMarkdown(root, realRoot);
 		}
 		if (Option.isSome(found) && found.value && typeof found.value !== "string") {
 			files.set(file, found.value);
 		}
 	}
-	return [...files.values()].toSorted((left, right) => byFolder(left.path, right.path));
+	return { files: [...files.values()].toSorted((left, right) => byFolder(left.path, right.path)), unavailable: [] };
 });

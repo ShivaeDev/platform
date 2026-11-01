@@ -32,7 +32,7 @@ export function page(options: PageOptions, changes: Changes, index: Effect.Succe
 		}
 		const current = yield* index;
 		const snapshot = yield* current.archived?.(expectedIdentity ?? requested) ?? Effect.succeed(current);
-		const file = readingFiles(yield* changes.files, snapshot).find((candidate) => candidate.path === requested);
+		const file = readingFiles((yield* changes.inventory).files, snapshot).find((candidate) => candidate.path === requested);
 		if (!file) {
 			return layout(HttpStatus.fromLiteral("NotFound"));
 		}

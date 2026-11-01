@@ -3,6 +3,7 @@ import { fleetHolder, stageTime } from "#browser/views/nowCard.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "#client/react/components/ui/card.tsx";
 import { EmptyState } from "./EmptyState.tsx";
+import { IndexIncomplete } from "./IndexIncomplete.tsx";
 import { LoadingRows } from "./loading.tsx";
 
 export function SystemFleetLane({ data }: { readonly data: FleetItemsProjection | undefined }) {
@@ -16,6 +17,7 @@ export function SystemFleetLane({ data }: { readonly data: FleetItemsProjection 
 					</CardTitle>
 				</CardHeader>
 				<CardContent>
+					<IndexIncomplete paths={data?.state === "ready" ? data.unavailable : undefined} />
 					<FleetItems data={data} items={items} />
 				</CardContent>
 			</Card>

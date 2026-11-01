@@ -41,7 +41,7 @@ export function Sidebar({
 		work: data?.counts.now,
 	};
 	const workCount =
-		counts.work === undefined ? null : (
+		counts.work === undefined || counts.work === null ? null : (
 			<Badge aria-hidden="true" variant="secondary">
 				{counts.work}
 			</Badge>

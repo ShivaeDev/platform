@@ -9,6 +9,9 @@ export interface Item {
 	readonly title: string;
 }
 export function itemsOf(snapshot: Snapshot): readonly Item[] {
+	if (snapshot.unavailable.length > 0) {
+		return [];
+	}
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 	return [...snapshot.model.ids].flatMap(([id, documents]) => {
 		const document = documents.length === 1 ? documents[0] : undefined;

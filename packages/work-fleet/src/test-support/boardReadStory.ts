@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { queryObjects } from "node:v8";
 import { NodeServices } from "@effect/platform-node";
 import { Context, Deferred, Effect, Fiber, FileSystem, Layer } from "effect";
@@ -58,6 +59,7 @@ export const boardReadStory = storyKit({
 				story.tell("list approved Board work");
 				return approvedIds;
 			},
+			approvedIdsFailure: () => refusal(approvedIds),
 			board: state.board,
 			decide: (id: string, decision: Parameters<typeof state.board.decision>[1]) => {
 				story.tell(`publish decision ${decision.id} for ${id}`);
@@ -153,6 +155,15 @@ export const boardReadStory = storyKit({
 				yield* Effect.yieldNow;
 				return { results: () => Fiber.join(readers) };
 			}),
+			storedSource: (file: string) => {
+				story.tell(`read the stored Board source ${file}`);
+				return fs.readFileString(join(fixture.root, file)).pipe(
+					Effect.catchIf(
+						(error) => error.reason._tag === "NotFound",
+						() => Effect.succeed("missing"),
+					),
+				);
+			},
 			write: (file: string, id: string) => {
 				story.tell(`write Board file ${file} with ${id}`);
 				return fixture.write(file, fixture.source(id));

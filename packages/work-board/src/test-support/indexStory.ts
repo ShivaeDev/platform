@@ -38,7 +38,7 @@ function advancingListing(engine: IndexEngine, index: Effect.Success<ReturnType<
 		engine.notes.write("added.md", "---\nid: added\n---\n# Added");
 		return index.update(["added.md"]);
 	});
-	return { ...index.changes, files: index.changes.files.pipe(Effect.tap(() => addFile)) };
+	return { ...index.changes, inventory: index.changes.inventory.pipe(Effect.tap(() => addFile)) };
 }
 
 // Maps and Sets compare by content and missing fields equal undefined ones, as a reader of the index sees them.

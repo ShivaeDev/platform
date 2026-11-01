@@ -68,14 +68,14 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.indexing": () => (indexing ?? Effect.succeed(undefined)).pipe(readBoundary),
 			"work-board.library": (input) =>
 				Effect.gen(function* () {
-					return libraryData(yield* changes.files, yield* index, input);
+					return libraryData((yield* changes.inventory).files, yield* index, input);
 				}).pipe(readBoundary),
 			"work-board.navigation": () =>
 				Effect.gen(function* () {
 					const snapshot = yield* index;
 					const [work, fleet] = yield* Effect.all([projections.work("/_board/work"), fleetOver(snapshot)], { concurrency: "unbounded" });
 					const now = openLaneCount(laneRows(work.rows, fleet, yield* Clock.currentTimeMillis).lanes);
-					return navigationData(yield* changes.files, home, snapshot, now);
+					return navigationData((yield* changes.inventory).files, home, snapshot, now);
 				}).pipe(readBoundary),
 			"work-board.overview": () => overview(fleetFolder, options.fleetPort).pipe(readBoundary),
 			"work-board.result": ({ url }) => remaining.result(url).pipe(documentBoundary),

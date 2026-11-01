@@ -43,12 +43,12 @@ for (const status of ["done", "dropped"]) {
 }
 
 boardStory.it(
-	"while part of the workspace is unreadable, goals count no asks and the Inbox count is unknown",
+	"while part of the workspace is unreadable, goal membership and navigation counts are unknown",
 	[linkedAsks, projectFiles({ "unreadable.md": "# Unreadable source" }), unreadableFile("unreadable.md")],
-	function* ({ goalCounts, navigationCounts }) {
+	function* ({ navigationCounts, rpc }) {
 		yield* outcomes([
-			["goal", () => goalCounts("project.example"), expect.objectContaining({ openAsks: 0 })],
-			["navigation", () => navigationCounts(), expect.objectContaining({ inbox: "unknown" })],
+			["goals", () => rpc((client) => client("work-board.goals", undefined)), { goals: [], unavailable: ["unreadable.md"] }],
+			["navigation", () => navigationCounts(), expect.objectContaining({ goals: null, inbox: "unknown" })],
 		]);
 	},
 );

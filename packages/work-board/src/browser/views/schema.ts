@@ -24,6 +24,7 @@ export const WorkProjection = Schema.Struct({
 	selectionProblem: Schema.optional(Schema.String),
 	state: State,
 	title: Schema.String,
+	unavailable: Schema.optionalKey(Schema.Array(Schema.String)),
 	validBoard: Schema.Boolean,
 });
 export type WorkProjection = typeof WorkProjection.Type;

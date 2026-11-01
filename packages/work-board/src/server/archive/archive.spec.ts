@@ -2,7 +2,8 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { archiveFixture, finishedBrief } from "#test/archiveFixture.ts";
-import { boardStory, deferredServing } from "#test/boardStory.ts";
+import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
+import { unreadableDirectory } from "#test/incompleteInventory.ts";
 
 const ALL_ACTIVE = ["tasks/board/dropped.md", "tasks/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"];
 const OLD_ARCHIVED = ["archive/board/dropped.md", "archive/board/old.md", "tasks/board/open.md", "tasks/board/recent.md"];
@@ -122,3 +123,21 @@ boardStory.it("moving an archived brief out by hand keeps it active", [archiveFi
 		["path", () => foundAt("old"), "tasks/board/old.md"],
 	]);
 });
+
+boardStory.it(
+	"automatic archiving waits for an unreadable directory and resumes after recovery",
+	[archiveFixture(), projectFiles({ "hidden/note.md": "# Hidden note" }), unreadableDirectory("hidden")],
+	function* ({ briefFiles, restoreDirectory, searchUnavailable }) {
+		yield* outcomes([
+			["incomplete inventory", () => searchUnavailable("brief"), ["hidden"]],
+			["active briefs", () => briefFiles(), ALL_ACTIVE],
+		]);
+
+		yield* restoreDirectory("hidden");
+
+		yield* outcomes([
+			["complete inventory", () => searchUnavailable("brief"), []],
+			["archived briefs", () => briefFiles(), OLD_ARCHIVED],
+		]);
+	},
+);

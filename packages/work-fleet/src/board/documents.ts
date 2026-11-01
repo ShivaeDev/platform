@@ -11,7 +11,17 @@ const READ_CONCURRENCY = 16;
 
 export type BoardDocument = MetadataDocument & { readonly source: string };
 
+const completeSources = Effect.fn("FleetBoard.completeSources")(function* (problems: ReadonlyMap<string, BoardFailure>) {
+	const unavailable = [...problems.values()].filter((problem) => problem.code === "incomplete-observation");
+	if (unavailable.length > 0) {
+		return yield* Effect.fail(
+			new BoardFailure({ code: "incomplete-observation", message: unavailable.map((problem) => problem.message).join("; ") }),
+		);
+	}
+});
+
 export const snapshotDocument = Effect.fn("FleetBoard.snapshotDocument")(function* (snapshot: BoardSnapshot, workId: string) {
+	yield* completeSources(snapshot.problems);
 	const matches = snapshot.model.ids.get(workId);
 	const found = matches?.length === 1 ? snapshot.files.get(matches[0]?.file ?? "") : undefined;
 	if (found === undefined) {
@@ -22,8 +32,7 @@ export const snapshotDocument = Effect.fn("FleetBoard.snapshotDocument")(functio
 			`Board identity is missing or ambiguous: ${workId}`,
 			...Array.from(snapshot.problems.values(), (failure) => failure.message),
 		].join("; ");
-		const incomplete = Array.from(snapshot.problems.values()).some((failure) => failure.code === "incomplete-observation");
-		return yield* Effect.fail(new BoardFailure({ code: incomplete ? "incomplete-observation" : undefined, message }));
+		return yield* Effect.fail(new BoardFailure({ message }));
 	}
 	const problem = snapshot.problems.get(found.file);
 	return yield* problem === undefined ? Effect.succeed(found) : Effect.fail(problem);
@@ -52,6 +61,8 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 		),
 	);
 	const reads = batches.flat();
+	const problems = new Map(reads.flatMap(({ file, problem }) => (problem === undefined ? [] : [[file, problem] as const])));
+	yield* completeSources(problems);
 	const moved = new Set(
 		yield* boardApi
 			.archiveSettled(
@@ -60,7 +71,6 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 			)
 			.pipe(Effect.mapError((error) => new BoardFailure({ message: `Settled Board records could not be archived: ${error.message}` }))),
 	);
-	const problems = new Map(reads.flatMap(({ file, problem }) => (problem === undefined ? [] : [[file, problem] as const])));
 	return new BoardSnapshot(
 		reads.flatMap(({ document }) => (document === undefined || moved.has(document.file) ? [] : [document])),
 		problems,
@@ -87,7 +97,9 @@ export const refreshSnapshotDocument = Effect.fn("FleetBoard.refreshSnapshotDocu
 
 export const boardSnapshot = Effect.fn("FleetBoard.boardSnapshot")(function* (root: string, realRoot: string) {
 	const watched = yield* Effect.serviceOption(BoardIndex);
-	return yield* readSnapshot(realRoot, watched._tag === "Some" ? watched.value.snapshot : readDocuments(root, realRoot));
+	const snapshot = yield* readSnapshot(realRoot, watched._tag === "Some" ? watched.value.snapshot : readDocuments(root, realRoot));
+	yield* completeSources(snapshot.problems);
+	return snapshot;
 });
 
 export function boardDocuments(root: string, realRoot: string) {

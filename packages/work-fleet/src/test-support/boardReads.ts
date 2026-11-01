@@ -20,7 +20,7 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 				scannedFolders.push(path.relative(root, folder) || ".");
 			}).pipe(
 				Effect.andThen(() =>
-					unreadable.has(".")
+					unreadable.has(path.relative(root, folder) || ".")
 						? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readDirectory", module: "FileSystem" }))
 						: fs.readDirectory(folder),
 				),
@@ -42,7 +42,9 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 		return `---\nid: ${id}\nkind: task\nfleet: ${approved ? "approved" : "held"}\n---\n# ${id}\n\n${body}\n`;
 	}
 	function write(file: string, content: string) {
-		return fs.writeFileString(path.join(root, file), content);
+		return fs
+			.makeDirectory(path.dirname(path.join(root, file)), { recursive: true })
+			.pipe(Effect.andThen(fs.writeFileString(path.join(root, file), content)));
 	}
 	for (let index = 0; index < count; index += 1) {
 		yield* write(`${index}.md`, source(`item.${index}`));

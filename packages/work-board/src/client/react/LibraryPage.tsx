@@ -1,4 +1,5 @@
 import { type Library, type LibraryState, libraryInput, libraryState, libraryUrl } from "#browser/navigation/library.ts";
+import { IndexIncomplete } from "./IndexIncomplete.tsx";
 import { LibraryContents } from "./LibraryContents.tsx";
 import { LibraryControls } from "./LibraryControls.tsx";
 import { useEntryPaging } from "./libraryPaging.ts";
@@ -12,7 +13,15 @@ export function LibraryPage({ api, data, url }: { readonly api: ShellApi; readon
 	const filtered = Boolean(state.kind || state.status || state.query);
 	return (
 		<div className="max-w-5xl">
-			<PageHeader summary="Every document in this workspace. Filter by kind or status, or browse by folder." title="Library" />
+			<PageHeader
+				summary={
+					data.unavailable?.length
+						? "Known documents in this workspace."
+						: "Every document in this workspace. Filter by kind or status, or browse by folder."
+				}
+				title="Library"
+			/>
+			<IndexIncomplete paths={data.unavailable} />
 			<LibraryControls data={data} state={state} />
 			<LibraryCount data={data} shown={paging.shown} state={state} />
 			<section aria-label="Documents" id={shellIds.libraryResults}>

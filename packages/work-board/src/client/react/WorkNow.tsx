@@ -11,6 +11,7 @@ import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#client/react/components/ui/tabs.tsx";
 import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
 import { FleetStartHelp } from "#client/react/FleetStopped.tsx";
+import { IndexIncomplete } from "#client/react/IndexIncomplete.tsx";
 import { useMedia } from "#client/react/useMedia.ts";
 import { WorkLane } from "#client/react/WorkLane.tsx";
 
@@ -24,6 +25,7 @@ export function WorkNow({ data }: { readonly data: WorkProjection }) {
 	const shown = chosen ?? lanes.find(({ rows }) => rows.length > 0)?.lane ?? nowLanes[0];
 	return (
 		<>
+			<IndexIncomplete paths={fleet?.state === "ready" ? fleet.unavailable : undefined} />
 			{fleet?.state !== "ready" && <FleetNotice fleet={fleet} />}
 			{phone ? <PhoneLanes lanes={lanes} shown={shown} {...shared} onChoose={setChosen} /> : <DesktopLanes lanes={lanes} {...shared} />}
 		</>

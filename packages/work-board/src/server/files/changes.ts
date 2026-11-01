@@ -1,6 +1,6 @@
 import { Deferred, Effect, FileSystem, Option, Path, type PlatformError, PubSub, Ref, Schedule } from "effect";
 import { registerInvalidations, trackInvalidations } from "./invalidations.ts";
-import type { MarkdownFile } from "./list.ts";
+import type { MarkdownInventory } from "./list.ts";
 import { updateFiles } from "./update.ts";
 import { watchDirectories } from "./watchDirectories.ts";
 import { unconfirmedWatch } from "./watchSentinel.ts";
@@ -11,7 +11,7 @@ export type Change = ({ readonly _tag: "Changed"; readonly paths: readonly strin
 
 export interface Changes {
 	readonly events: PubSub.PubSub<Change>;
-	readonly files: Effect.Effect<readonly MarkdownFile[], PlatformError.PlatformError>;
+	readonly inventory: Effect.Effect<MarkdownInventory, PlatformError.PlatformError>;
 	readonly realRoot: string;
 	readonly refresh?: Effect.Effect<void>;
 	readonly refreshPaths?: (paths: readonly string[]) => Effect.Effect<void>;
@@ -25,8 +25,8 @@ export function refreshWritten(changes: Changes, paths: readonly string[]): Effe
 }
 
 interface Cached {
-	readonly files: readonly MarkdownFile[];
 	readonly generation: number;
+	readonly inventory: MarkdownInventory;
 }
 
 const BACKLOG = 16;
@@ -77,7 +77,7 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 		);
 	}
 	const attempt = watchDirectories(root, realRoot, {
-		listed: (listing) => Effect.flatMap(stale, (current) => Ref.set(cached, Option.some({ files: listing, generation: current }))),
+		listed: (listing) => Effect.flatMap(stale, (current) => Ref.set(cached, Option.some({ generation: current, inventory: listing }))),
 		observed,
 		publish: (paths) => Effect.andThen(invalidate(paths), Effect.andThen(finishPending, publish({ _tag: "Changed", paths }))),
 		settled: finishPending,
@@ -92,7 +92,7 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 		Effect.forkScoped,
 	);
 	yield* Deferred.await(settled);
-	const files = Effect.gen(function* () {
+	const inventory = Effect.gen(function* () {
 		let waiting = pending;
 		while (waiting) {
 			yield* Deferred.await(waiting);
@@ -100,21 +100,23 @@ export const watchChanges = Effect.fn("WorkBoard.watchChanges")(function* (root:
 		}
 		const now = yield* Ref.get(generation);
 		const hit = Option.filter(yield* Ref.get(cached), (entry) => entry.generation === now);
-		if ((yield* Ref.get(watching)) && Option.isSome(hit)) {
-			return hit.value.files;
+		if ((yield* Ref.get(watching)) && Option.isSome(hit) && hit.value.inventory.unavailable.length === 0) {
+			return hit.value.inventory;
 		}
 		const previous = yield* Ref.get(cached);
 		const dirty = Option.isSome(previous) && (yield* Ref.get(watching)) ? invalidations.since(previous.value.generation) : undefined;
-		const listed = yield* updateFiles(root, realRoot, Option.isSome(previous) ? previous.value.files : [], dirty).pipe(
-			Effect.provideService(FileSystem.FileSystem, fs),
-			Effect.provideService(Path.Path, path),
-		);
-		yield* Ref.set(cached, Option.some({ files: listed, generation: now }));
+		const listed = yield* updateFiles(
+			root,
+			realRoot,
+			Option.isSome(previous) ? previous.value.inventory : { files: [], unavailable: [] },
+			dirty,
+		).pipe(Effect.provideService(FileSystem.FileSystem, fs), Effect.provideService(Path.Path, path));
+		yield* Ref.set(cached, Option.some({ generation: now, inventory: listed }));
 		return listed;
 	});
 	const changes: Changes = {
 		events,
-		files,
+		inventory,
 		realRoot,
 		refresh: Effect.asVoid(stale),
 		refreshPaths: (paths) => Effect.asVoid(invalidate(paths)),

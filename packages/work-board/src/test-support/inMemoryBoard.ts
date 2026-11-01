@@ -63,7 +63,10 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 			});
 			const changes: Changes = {
 				events: yield* Effect.acquireRelease(PubSub.unbounded<Change>(), PubSub.shutdown),
-				files: Effect.sync(() => Object.keys(files).map((file) => ({ modified: configuration?.modified?.get(file) ?? 0, path: file }))),
+				inventory: Effect.sync(() => ({
+					files: Object.keys(files).map((file) => ({ modified: configuration?.modified?.get(file) ?? 0, path: file })),
+					unavailable: [],
+				})),
 				realRoot: memory.root,
 				revision: Effect.succeed(0),
 				watching: yield* Ref.make(false),

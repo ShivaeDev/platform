@@ -26,7 +26,7 @@ export function searchStatus(
 		message = `${data.total} matches.`;
 	}
 	if (data.unavailable.length > 0) {
-		message += ` Could not read ${data.unavailable.length} files; results are incomplete.`;
+		message += ` Could not read ${data.unavailable.join(", ")}; results are incomplete.`;
 	}
 	return message;
 }

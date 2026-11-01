@@ -7,8 +7,9 @@ import { type Snapshot, searchSnapshot } from "./snapshot.ts";
 function changedPaths(before: Snapshot, after: Snapshot) {
 	const previous = new Map(before.documents.map((document) => [document.file, document]));
 	const next = new Map(after.documents.map((document) => [document.file, document]));
-	return [...new Set([...before.modified.keys(), ...after.modified.keys()])].filter(
-		(file) => previous.get(file) !== next.get(file) || before.modified.get(file) !== after.modified.get(file),
+	const availability = before.unavailable.join("\0") === after.unavailable.join("\0") ? [] : [...before.unavailable, ...after.unavailable];
+	return [...new Set([...before.modified.keys(), ...after.modified.keys(), ...availability])].filter(
+		(file) => availability.includes(file) || previous.get(file) !== next.get(file) || before.modified.get(file) !== after.modified.get(file),
 	);
 }
 

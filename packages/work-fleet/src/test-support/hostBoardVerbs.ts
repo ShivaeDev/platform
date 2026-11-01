@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { Context, Effect } from "effect";
 import { inProgress } from "@shivaedev/work-board/browser/views/inProgress.ts";
@@ -15,6 +15,11 @@ import { questionPublicationVerbs } from "#test/questionPublicationVerbs.ts";
 import { storedBoardPath, storedBoardResponses, storedBoardSource } from "#test/storedBoard.ts";
 
 export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
+	const permissions = new Map<string, number>();
+	const fleetItems = Effect.gen(function* () {
+		const board = yield* boardHttp(engine.fixture.host.boardDir, undefined, undefined, engine.running.port);
+		return yield* Effect.promise(() => board.client.run(board.client.api.fleetItems.run(undefined)));
+	});
 	return {
 		awaitBoardResponse: (ready: (source: string) => boolean) => {
 			tell("wait for a closing Board response");
@@ -38,10 +43,39 @@ export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => 
 				snapshot.documents.some((document) => document.file === file && (document.parsed.raw ?? "") + document.parsed.body === source),
 			);
 		},
+		boardFleetItems: () => {
+			tell("read Fleet execution records and their document joins through Board HTTP");
+			return fleetItems;
+		},
+		denyBoardDirectory: (file: string) =>
+			Effect.acquireRelease(
+				Effect.sync(() => {
+					tell(`deny directory reads of ${file}`);
+					const path = join(engine.fixture.host.boardDir, file);
+					const mode = statSync(path).mode & 0o777;
+					permissions.set(file, mode);
+					chmodSync(path, 0o000);
+					return { mode, path };
+				}),
+				({ path, mode }) => Effect.sync(() => chmodSync(path, mode)),
+			).pipe(Effect.asVoid),
 		publishBoardDecision: (workId: string, decision: Decision) => {
 			tell(`publish a Fleet decision for ${workId}`);
 			return Effect.flatMap(BoardGateway, (board) => board.decision(workId, decision)).pipe(Effect.provideContext(engine.running.context));
 		},
+		refreshBoardIndex: () => {
+			tell("Fleet reconciles its Board inventory");
+			return Context.get(engine.running.context, BoardIndex).index.reconcile;
+		},
+		restoreBoardDirectory: (file: string) =>
+			Effect.sync(() => {
+				tell(`restore directory reads of ${file}`);
+				const mode = permissions.get(file);
+				if (mode === undefined) {
+					throw new Error(`Directory reads were not denied for ${file}`);
+				}
+				chmodSync(join(engine.fixture.host.boardDir, file), mode);
+			}),
 		...questionPublicationVerbs(engine, tell),
 		boardAcknowledgements: () => boardHttpFiles(engine.fixture.host.boardDir).receiptRecords(),
 		boardExists: (file: string) => existsSync(join(engine.fixture.host.boardDir, file)),
@@ -50,12 +84,7 @@ export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			return boardHttp(engine.fixture.host.boardDir, undefined, undefined, engine.running.port);
 		},
 		boardPath: (file: string) => join(engine.fixture.host.boardDir, file),
-		boardProgress: () =>
-			Effect.gen(function* () {
-				const board = yield* boardHttp(engine.fixture.host.boardDir, undefined, undefined, engine.running.port);
-				const data = yield* Effect.promise(() => board.client.run(board.client.api.fleetItems.run(undefined)));
-				return inProgress(data)?.rows.map((row) => row.workId);
-			}),
+		boardProgress: () => Effect.map(fleetItems, (data) => inProgress(data)?.rows.map((row) => row.workId)),
 		inbox: (board: Effect.Success<ReturnType<typeof boardHttp>>) => Effect.tryPromise(() => board.client.run(board.client.api.inbox.run(undefined))),
 		publishAnswer: (board: Effect.Success<ReturnType<typeof boardHttp>>, input: Parameters<typeof board.client.responses.recordResponse.run>[0]) => {
 			tell(`publish Board answer ${input.id}`);

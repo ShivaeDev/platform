@@ -6,7 +6,7 @@ import { isolatedEngine } from "#test/engineStory.ts";
 import { readableBoard } from "#test/readableBoard.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
 
-for (const unavailable of ["decision", "question", "answer"] as const) {
+for (const unavailable of ["decision", "question", "answer", "directory"] as const) {
 	isolatedEngine.it(
 		`an unreadable ${unavailable} keeps its acknowledgement pending until the Markdown source recovers`,
 		[readableBoard(true)],
@@ -44,14 +44,20 @@ for (const unavailable of ["decision", "question", "answer"] as const) {
 			const applied = yield* fleet.resolve("item.0", decision.id, responseId);
 			expect(pendingAcknowledgements(applied.value)).toMatchObject([{ input: { decision: published, disposition: "applied", responseId } }]);
 			const starts = providerStarts();
-			const file = { answer: responseFile, decision: published.sourcePath, question: `responses/${published.questionId}.md` }[unavailable];
+			const file = { answer: responseFile, decision: published.sourcePath, directory: "responses", question: `responses/${published.questionId}.md` }[
+				unavailable
+			];
 			makeBoardUnreadable(file);
 			resumeAcknowledgements();
 			yield* restart();
 			const waiting = yield* fleet.reconcile("item.0");
 			expect(waiting.value.responses).toEqual(applied.value.responses);
 			expect(pendingAcknowledgements(waiting.value)).toMatchObject([{ input: { decision: published, disposition: "applied", responseId } }]);
-			expect(waiting.value.blocker).toContain(`Board source could not be read: ${file}`);
+			expect(waiting.value.blocker).toContain(
+				unavailable === "directory" ? "Board sources could not be listed" : `Board source could not be read: ${file}`,
+			);
+			expect(waiting.value.blocker).toContain(file);
+			expect(waiting.value.integrationRetry).toBeUndefined();
 
 			expect(boardReceipts()).toHaveLength(0);
 			restoreBoardReads();

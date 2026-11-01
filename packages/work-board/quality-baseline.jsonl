@@ -41,7 +41,7 @@
 {"path":"packages/work-board/src/client/react/GoalWorkGroup.tsx","rule":"react/jsx-conditionals","count":10}
 {"path":"packages/work-board/src/client/react/GoalWorkStatus.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/work-board/src/client/react/GoalWorkTable.tsx","rule":"react/jsx-conditionals","count":1}
-{"path":"packages/work-board/src/client/react/GoalsPage.tsx","rule":"react/jsx-conditionals","count":3}
+{"path":"packages/work-board/src/client/react/GoalsPage.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/work-board/src/client/react/HandoffForm.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/work-board/src/client/react/HandoffPage.tsx","rule":"react/jsx-conditionals","count":7}
 {"path":"packages/work-board/src/client/react/HandoffPrompt.tsx","rule":"react/jsx-conditionals","count":1}
@@ -85,13 +85,13 @@
 {"path":"packages/work-board/src/client/react/SystemPage.tsx","rule":"react/jsx-conditionals","count":4}
 {"path":"packages/work-board/src/client/react/TodayAnswer.tsx","rule":"react/jsx-conditionals","count":3}
 {"path":"packages/work-board/src/client/react/TodayContext.tsx","rule":"react/jsx-conditionals","count":4}
-{"path":"packages/work-board/src/client/react/TodayGoals.tsx","rule":"react/jsx-conditionals","count":2}
+{"path":"packages/work-board/src/client/react/TodayGoals.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/TodayNeeds.tsx","rule":"react/jsx-conditionals","count":3}
 {"path":"packages/work-board/src/client/react/TodayNeedsYou.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/TodayOptionButton.tsx","rule":"react/jsx-conditionals","count":2}
-{"path":"packages/work-board/src/client/react/TodayPage.tsx","rule":"react/jsx-conditionals","count":12}
+{"path":"packages/work-board/src/client/react/TodayPage.tsx","rule":"react/jsx-conditionals","count":11}
 {"path":"packages/work-board/src/client/react/TodayProgress.dom.test.tsx","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/client/react/TodayProgress.tsx","rule":"react/jsx-conditionals","count":15}
+{"path":"packages/work-board/src/client/react/TodayProgress.tsx","rule":"react/jsx-conditionals","count":14}
 {"path":"packages/work-board/src/client/react/TodayReadOnly.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"packages/work-board/src/client/react/TodaySummary.tsx","rule":"react/jsx-conditionals","count":6}
 {"path":"packages/work-board/src/client/react/UpdatesToggle.tsx","rule":"react/jsx-conditionals","count":2}
@@ -106,7 +106,7 @@
 {"path":"packages/work-board/src/client/react/WorkControls.tsx","rule":"react/jsx-conditionals","count":3}
 {"path":"packages/work-board/src/client/react/WorkDetail.tsx","rule":"react/jsx-conditionals","count":3}
 {"path":"packages/work-board/src/client/react/WorkNow.tsx","rule":"react/jsx-conditionals","count":5}
-{"path":"packages/work-board/src/client/react/WorkPage.tsx","rule":"react/jsx-conditionals","count":5}
+{"path":"packages/work-board/src/client/react/WorkPage.tsx","rule":"react/jsx-conditionals","count":4}
 {"path":"packages/work-board/src/client/react/WorkTable.tsx","rule":"react/jsx-conditionals","count":3}
 {"path":"packages/work-board/src/client/react/WorkTableRow.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"packages/work-board/src/client/react/adapters/loadBoardPage.ts","rule":"effect/service-parameters","count":2}
@@ -176,7 +176,6 @@
 {"path":"packages/work-board/src/server/files/changes.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/files/home.ts","rule":"effect/failure-honesty","count":4}
 {"path":"packages/work-board/src/server/files/invalidations.ts","rule":"effect/service-parameters","count":2}
-{"path":"packages/work-board/src/server/files/list.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-board/src/server/files/repository.ts","rule":"effect/failure-honesty","count":4}
 {"path":"packages/work-board/src/server/files/watchDirectories.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-board/src/server/files/watchSentinel.ts","rule":"biome/plugin","count":1}

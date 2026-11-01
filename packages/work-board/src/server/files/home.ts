@@ -1,5 +1,5 @@
 import { Effect, FileSystem, Option, Path, Schema } from "effect";
-import { listMarkdown } from "./list.ts";
+import { scanMarkdown } from "./list.ts";
 
 export class HomeMissing extends Schema.TaggedError<HomeMissing>()("HomeMissing", { message: Schema.String }) {}
 
@@ -21,7 +21,7 @@ export const homeIn = Effect.fn("WorkBoard.homeIn")(function* (root: string, hom
 	if (Option.isNone(target)) {
 		return yield* missing;
 	}
-	const files = yield* listMarkdown(root, realRoot);
+	const { files } = yield* scanMarkdown(root, realRoot);
 	const logical = path.relative(root, path.resolve(root, home)).split(path.sep).join("/");
 	if (files.some((file) => file.path === logical)) {
 		return logical;

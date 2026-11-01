@@ -1,9 +1,13 @@
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { EmptyState } from "./EmptyState.tsx";
 import { GoalProgress } from "./GoalProgress.tsx";
+import { IndexIncomplete } from "./IndexIncomplete.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 
 export function TodayGoals({ data }: { readonly data: GoalsProjection }) {
+	if (data.unavailable?.length) {
+		return <IndexIncomplete paths={data.unavailable} />;
+	}
 	return data.goals.length > 0 ? (
 		<div className="space-y-3">
 			{data.goals.map((goal) => (

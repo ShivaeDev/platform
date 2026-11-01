@@ -1,6 +1,7 @@
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { viewUrl } from "#browser/views/state.ts";
 import { EmptyState } from "#client/react/EmptyState.tsx";
+import { IndexIncomplete } from "#client/react/IndexIncomplete.tsx";
 import { LinkButton } from "#client/react/LinkButton.tsx";
 import { PageHeader } from "#client/react/PageHeader.tsx";
 import { SavedViews } from "#client/react/SavedViews.tsx";
@@ -13,6 +14,16 @@ import { WorkTools } from "#client/react/WorkTools.tsx";
 export function WorkPage({ data, api }: { readonly data: WorkProjection; readonly api?: ShellApi | undefined }) {
 	const { state } = data;
 	const source = `/_board/item/${encodeURIComponent(state.board)}/`;
+	let content = data.validBoard ? (
+		<WorkContent api={api} data={data} />
+	) : (
+		<p className="empty">
+			{state.board} is missing, has a duplicate ID, or is not a declared board. Choose another board or open its <a href={source}>source identity</a>.
+		</p>
+	);
+	if (data.unavailable?.length) {
+		content = <IndexIncomplete paths={data.unavailable} />;
+	}
 	const options = (
 		<>
 			<WorkControls data={data} key={viewUrl(state)} />
@@ -35,14 +46,7 @@ export function WorkPage({ data, api }: { readonly data: WorkProjection; readonl
 			) : (
 				<div className="work-options mb-4 grid gap-3">{options}</div>
 			)}
-			{data.validBoard ? (
-				<WorkContent api={api} data={data} />
-			) : (
-				<p className="empty">
-					{state.board} is missing, has a duplicate ID, or is not a declared board. Choose another board or open its{" "}
-					<a href={source}>source identity</a>.
-				</p>
-			)}
+			{content}
 		</>
 	);
 }

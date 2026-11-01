@@ -6,6 +6,7 @@ import type { FileSystemWrapper } from "#test/board.ts";
 import { held } from "#test/browser.ts";
 import { distinctVerbs } from "#test/distinctVerbs.ts";
 import { fileVerbs } from "#test/fileVerbs.ts";
+import { inventoryVerbs } from "#test/inventoryVerbs.ts";
 import { liveBoardVerbs } from "#test/liveBoardVerbs.ts";
 import { livePageVerbs } from "#test/livePageVerbs.ts";
 import { metadataScreen } from "#test/metadataScreen.tsx";
@@ -44,6 +45,7 @@ export const boardStory = storyKit({
 	verbs: (engine, story) =>
 		distinctVerbs(
 			archiveVerbs(engine, story.tell),
+			inventoryVerbs(engine, story.tell),
 			readingVerbs(engine, story.tell),
 			migrationVerbs(engine, story.tell),
 			responseServiceVerbs(engine, story.tell),

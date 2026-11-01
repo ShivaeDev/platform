@@ -15,15 +15,15 @@ boardReadStory.it(
 );
 
 boardReadStory.it(
-	"an unreadable file leaves the other lookups and approved work in the same pass",
+	"an unreadable file prevents other identities and complete approved membership from being established",
 	[hasBoardItems(2)],
-	function* ({ approvalOf, approvedIds, duringOnePass, makeUnreadable }) {
+	function* ({ approvedIdsFailure, duringOnePass, makeUnreadable, refusalOf }) {
 		makeUnreadable("1.md");
 
 		yield* duringOnePass(
 			outcomes([
-				["readable item", () => approvalOf("item.0"), "approved"],
-				["approved work", () => approvedIds(), ["item.0"]],
+				["readable item", () => refusalOf("item.0"), expect.stringContaining("1.md")],
+				["approved membership", () => approvedIdsFailure(), expect.stringContaining("1.md")],
 			]),
 		);
 	},
