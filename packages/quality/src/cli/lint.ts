@@ -20,6 +20,7 @@ export const lint = Effect.fn("Cli.lint")(
 			...evaluated,
 			looseBaseline: evaluated.looseBaseline.filter(({ entry }) => !rejected.has(keyOf(entry.rule, entry.file))),
 			staleBaseline: [...evaluated.staleBaseline, ...loose],
+			staleRegistry: [...evaluated.staleRegistry, ...session.staleRegistry],
 		};
 		yield* Console.log(
 			render(outcome, {

@@ -63,15 +63,17 @@ export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
 	root: string,
 	args: readonly string[],
 	exceptions: readonly ExceptionDeclaration[] = [],
+	files: readonly string[] = ["."],
 ) {
-	const [report, tracked] = yield* Effect.all([reportFor(root, args, ["."], exceptions), ignoredTrackedPaths(root)], {
+	const [report, tracked] = yield* Effect.all([reportFor(root, args, files, exceptions), ignoredTrackedPaths(root)], {
 		concurrency: "unbounded",
 	});
 	const paths = tracked
 		.map((path) => relative(root, path))
+		.filter((path) => files.includes(".") || files.includes(path))
 		.filter((path) => !path.split(sep).some((part) => part === ".git" || part === ".worktrees" || part === "node_modules"));
-	const extra =
-		paths.length === 0 ? undefined : yield* reportFor(root, [...args, "--vcs-enabled=false", "--no-errors-on-unmatched"], paths, exceptions);
+	const extraArgs = [...args, "--vcs-enabled=false", ...(args.includes("--no-errors-on-unmatched") ? [] : ["--no-errors-on-unmatched"])];
+	const extra = paths.length === 0 ? undefined : yield* reportFor(root, extraArgs, paths, exceptions);
 	const diagnostics = [...report.diagnostics, ...(extra?.diagnostics ?? [])];
 	const unique = [...new Map(diagnostics.map((diagnostic) => [JSON.stringify(diagnostic), diagnostic])).values()];
 	return {
