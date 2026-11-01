@@ -6,7 +6,7 @@ import { applyLowMemoryPostgres } from "@shivaedev/sql/applyLowMemoryPostgres.ts
 import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type Consumer, startConsumer } from "#test/low-memory/consumer.ts";
-import { cgroupMemory, command, connect, DATA_DIRECTORY, type Machine, machine, ready } from "#test/low-memory/machine.ts";
+import { cgroupMemory, command, connect, DATA_DIRECTORY, type Machine, machine, ready, reloadReceived } from "#test/low-memory/machine.ts";
 import { trimPostgresPageCache } from "#trimPostgresPageCache.ts";
 
 interface State {
@@ -53,6 +53,7 @@ export const lowMemoryPostgres = storyKit({
 			story.tell("the consumer commits a write and its change key");
 			return consumer(state).publishChange();
 		},
+		reloadReceived: () => reloadReceived(state.machine.container),
 		restart: () => {
 			story.tell("the operator restarts PostgreSQL to activate shared-memory settings");
 			return Effect.gen(function* () {

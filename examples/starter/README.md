@@ -112,6 +112,20 @@ Railway needs no hand-written proxy setting. `.railway/railway.ts` uses `.railwa
 
 The [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy) describes the Railway rollout, the worker drain and the timeouts this app configures.
 
+### Opt into low-memory PostgreSQL
+
+Trial this on the app's throwaway PostgreSQL environment before production. With an owner connection in `DATABASE_URL`, choose recovery explicitly and run the separate operation:
+
+```sh
+POSTGRES_POINT_IN_TIME_RECOVERY=false pnpm postgres:low-memory
+```
+
+Restart PostgreSQL after it completes. `false` disables WAL archiving and needs no backup bucket; remove any existing archive and backup jobs as well. `true` retains the host's working PITR setup and adjusts its archive timeout; it does not create a bucket or enable backups. Read sql's [preset and recovery trade-offs](https://github.com/ShivaeDev/platform/tree/main/packages/sql#low-memory-postgresql-hosts) before choosing.
+
+For a Node-capable process inside the PostgreSQL container or with its PGDATA mounted, run `PGDATA=/absolute/path/to/pgdata pnpm postgres:trim-cache` as the PGDATA owner. It trims immediately and every five minutes. The standard Railway PostgreSQL image needs the equivalent GNU `dd` command scheduled in the database container; see server's [trim setup and safety](https://github.com/ShivaeDev/platform/tree/main/packages/server#low-memory-postgresql-hosts). Web and worker startup never run these operations.
+
+The Railway database declares 2 CPUs and 1 GiB memory in `.railway/railway.ts` so the next infrastructure plan keeps its limits. Retain explicit limits when changing the service size. For PITR images, pgBackRest sizes its process count from the CPU limit; keep the CPU limit at 2 or set `PGBACKREST_BACKUP_PROCESS_MAX=1`. Check `memory.current` after a representative peak and at five and ten minutes idle before adopting these settings in production.
+
 ## Look at the running app
 
 With `pnpm dev` running, use `pnpm browser-check --page / --text "Sign in"` for a local screenshot and smoke check. It installs Chromium on the first run and reuses the cached browser after that; `pnpm install` never downloads browsers. Screenshots stay in the git-ignored `.browser-check/` folder. For an existing test user, set `BROWSER_CHECK_EMAIL` and `BROWSER_CHECK_PASSWORD` in your shell, then choose the page and visible text to check. See [browser-check](https://github.com/ShivaeDev/platform/tree/main/packages/browser-check#readme) for options.

@@ -36,12 +36,15 @@ for (const [recovery, traits] of [
 lowMemoryPostgres.it(
 	"the preset and unprivileged trim lower shared and cgroup memory while preserving the consumer's data",
 	[],
-	function* ({ applyPreset, cgroupMemory, sharedMemory, storedPayloads, restart, startApp, trim, warmData }) {
+	function* ({ applyPreset, cgroupMemory, settings, sharedMemory, storedPayloads, restart, startApp, trim, warmData }) {
+		const settingsBefore = yield* settings();
 		const sharedBefore = yield* sharedMemory();
 		yield* applyPreset();
 		yield* restart();
 		yield* startApp();
 		yield* warmData();
+		const settingsAfter = yield* settings();
+		expect(settingsAfter.shared_buffers).not.toBe(settingsBefore.shared_buffers);
 		expect(yield* sharedMemory()).toBeLessThan(sharedBefore);
 		const before = yield* cgroupMemory();
 
@@ -68,6 +71,25 @@ lowMemoryPostgres.it(
 
 		yield* publishChange();
 		expect(yield* nextHint()).toBe("changed the list");
+	},
+	120_000,
+);
+
+lowMemoryPostgres.it(
+	"the preset reloads query settings while shared memory awaits a restart",
+	[],
+	function* ({ applyPreset, reloadReceived, settings }) {
+		const before = yield* settings();
+		expect(before.jit).toBe("on");
+
+		yield* applyPreset();
+		yield* reloadReceived();
+
+		expect(yield* settings()).toMatchObject({
+			"idle_in_transaction_session_timeout": "600000 ms",
+			jit: "off",
+			"shared_buffers": before.shared_buffers,
+		});
 	},
 	120_000,
 );

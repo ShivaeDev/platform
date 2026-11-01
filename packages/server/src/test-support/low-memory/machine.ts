@@ -95,3 +95,20 @@ export const connect = Effect.fnUntraced(function* (container: string) {
 	const url = Redacted.make(`postgresql://postgres@${port}/postgres`);
 	return { layer: postgresLayer(url, { maxConnections: 1 }), url };
 });
+
+export function reloadReceived(container: string) {
+	return Effect.scoped(
+		Effect.gen(function* () {
+			const since = yield* command("docker", ["inspect", "--format", "{{.State.StartedAt}}", container]);
+			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+			const logs = yield* spawner.spawn(ChildProcess.make("docker", ["logs", "--follow", "--since", since, container]));
+			yield* Stream.merge(logs.stdout, logs.stderr).pipe(
+				Stream.decodeText(),
+				Stream.splitLines,
+				Stream.filter((line) => line.includes("received SIGHUP, reloading configuration files")),
+				Stream.take(1),
+				Stream.runDrain,
+			);
+		}),
+	);
+}

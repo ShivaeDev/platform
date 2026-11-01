@@ -347,6 +347,33 @@ export async function consumeSubscription(
 
 The signal aborts on an additional signal, socket close, incomplete request close or an already destroyed connection. Normal completion of a request does not abort a continuing response. Without an explicit `nodeRequest`, the helper can read one from an srvx Web request's `runtime.node.req`. `dispose()` removes Node listeners and can be called repeatedly.
 
+### Low-memory PostgreSQL hosts
+
+Use sql's [opt-in preset](https://github.com/ShivaeDev/platform/tree/main/packages/sql#low-memory-postgresql-hosts) with the host's ten-minute connection lifetime and one-minute idle timeout. The preset bounds PostgreSQL shared memory and per-operation work; connection recycling releases backend memory, and a page-cache trim releases clean file pages charged to the container. A busy workload still needs memory for its working set.
+
+`trimPostgresPageCache(dataDirectory)` from `@shivaedev/server/trimPostgresPageCache.ts` runs `find` and GNU `dd` through Effect's `ChildProcessSpawner`. Run it inside the PostgreSQL container, or in a process that can read its mounted PGDATA, as the PGDATA owner. Provide `NodeServices.layer` at the entry point. It needs Linux, GNU coreutils (`dd iflag=nocache`) and `find`; Alpine's BusyBox `dd` does not support this flag. Spawn failures remain typed `PlatformError`s; a nonzero trim exit fails with `PostgresPageCacheTrimError`.
+
+```ts
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import { Config, Effect, Schedule } from "effect";
+import { trimPostgresPageCache } from "@shivaedev/server/trimPostgresPageCache.ts";
+
+const trim = Effect.gen(function* () {
+	const dataDirectory = yield* Config.String("PGDATA");
+	yield* trimPostgresPageCache(dataDirectory).pipe(Effect.repeat(Schedule.spaced("5 minutes")));
+}).pipe(Effect.provide(NodeServices.layer));
+```
+
+The cadence starts with one trim, then waits five minutes between completed runs. Scope or interrupt the Effect with its owning process. For a PostgreSQL image without Node, schedule the equivalent command every five minutes using that image's scheduler, as its database OS user:
+
+```sh
+find "$PGDATA" -type f -exec sh -c 'for path do dd if="$path" iflag=nocache count=0 status=none || exit; done' sh {} +
+```
+
+The command reads no file contents and writes no data. It asks the kernel to discard only clean pages; dirty pages stay until ordinary PostgreSQL and kernel writeback makes them eligible. It requires no root privileges, global `drop_caches`, forced checkpoint or `sync`. It does not follow symlinks, including tablespace links. The next read can incur disk I/O, so begin with five minutes and lengthen the interval if cache misses affect latency. Files removed during a run can fail that run. The repeating Effect then fails; a cron scheduler launches a fresh run at its next tick. The reported Railway trim took 88 ms and left a 1 GB container at 68–191 MiB; duration and retained pages depend on the workload and filesystem.
+
+Enable the preset and trim per app in a throwaway environment first. Record `memory.current` and `memory.stat` inside the PostgreSQL cgroup before applying the preset, after restart, after a representative request/backup peak, and at five and ten minutes idle with trimming and the normal pool lifetime enabled. Check that LISTEN delivery and application reads still work. `docker stats` can subtract cache and is not the billed cgroup total. Keep PITR and non-PITR trials separate. Roll out to production only after that consumer trial; starter deployments must also keep these operations opt-in until the trial succeeds. The starter does not apply instance settings or schedule a trim during application startup.
+
 ### API
 
 Import the module that defines the name; there is no package-root entry. Paths below follow `@shivaedev/server/`.
@@ -384,30 +411,3 @@ Install the optional peers for the selected integration:
 - A development cache key is ignored when `NODE_ENV` is `production`. The application owns runtime disposal.
 
 The [framework request-context guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md) explains the browser and native-client Origin choices.
-
-### Low-memory PostgreSQL hosts
-
-Use sql's [opt-in preset](https://github.com/ShivaeDev/platform/tree/main/packages/sql#low-memory-postgresql-hosts) with the host's ten-minute connection lifetime and one-minute idle timeout. The preset bounds PostgreSQL shared memory and per-operation work; connection recycling releases backend memory, and a page-cache trim releases clean file pages charged to the container. A busy workload still needs memory for its working set.
-
-`trimPostgresPageCache(dataDirectory)` from `@shivaedev/server/trimPostgresPageCache.ts` runs `find` and GNU `dd` through Effect's `ChildProcessSpawner`. Run it inside the PostgreSQL container, or in a process that can read its mounted PGDATA, as the PGDATA owner. Provide `NodeServices.layer` at the entry point. It needs Linux, GNU coreutils (`dd iflag=nocache`) and `find`; Alpine's BusyBox `dd` does not support this flag. Spawn failures remain typed `PlatformError`s; a nonzero trim exit fails with `PostgresPageCacheTrimError`.
-
-```ts
-import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Config, Effect, Schedule } from "effect";
-import { trimPostgresPageCache } from "@shivaedev/server/trimPostgresPageCache.ts";
-
-const trim = Effect.gen(function* () {
-	const dataDirectory = yield* Config.String("PGDATA");
-	yield* trimPostgresPageCache(dataDirectory).pipe(Effect.repeat(Schedule.spaced("5 minutes")));
-}).pipe(Effect.provide(NodeServices.layer));
-```
-
-The cadence starts with one trim, then waits five minutes between completed runs. Scope or interrupt the Effect with its owning process. For a PostgreSQL image without Node, schedule the equivalent command every five minutes using that image's scheduler, as its database OS user:
-
-```sh
-find "$PGDATA" -type f -exec sh -c 'for path do dd if="$path" iflag=nocache count=0 status=none || exit; done' sh {} +
-```
-
-The command reads no file contents and writes no data. It asks the kernel to discard only clean pages; dirty pages stay until ordinary PostgreSQL and kernel writeback makes them eligible. It requires no root privileges, global `drop_caches`, forced checkpoint or `sync`. It does not follow symlinks, including tablespace links. The next read can incur disk I/O, so begin with five minutes and lengthen the interval if cache misses affect latency. Files removed during a run can fail that run; let the next scheduled invocation try again. The reported Railway trim took 88 ms and left a 1 GB container at 68–191 MiB; duration and retained pages depend on the workload and filesystem.
-
-Enable the preset and trim per app in a throwaway environment first. Record `memory.current` and `memory.stat` inside the PostgreSQL cgroup before applying the preset, after restart, after a representative request/backup peak, and at five and ten minutes idle with trimming and the normal pool lifetime enabled. Check that LISTEN delivery and application reads still work. `docker stats` can subtract cache and is not the billed cgroup total. Keep PITR and non-PITR trials separate. Roll out to production only after that consumer trial; starter deployments must also keep these operations opt-in until the trial succeeds. The starter does not apply instance settings or schedule a trim during application startup.
