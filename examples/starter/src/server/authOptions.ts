@@ -5,5 +5,6 @@ export function authOptions() {
 		advanced: { database: { validateSchema: true } },
 		emailAndPassword: { enabled: true },
 		session: { cookieCache: { enabled: false } },
+		user: { changeEmail: { enabled: true } },
 	} satisfies BetterAuthOptions;
 }
