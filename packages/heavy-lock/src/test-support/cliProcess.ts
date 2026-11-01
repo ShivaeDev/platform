@@ -24,6 +24,7 @@ function shell(script: string): CommandLine {
 
 // Each command reports "running" on stdout once the CLI has started it; a command that waits ends by itself after the test timeout, because it runs in its own process group where the cleanup of an abandoned test cannot reach it.
 export const commands = {
+	blocksRelease: shell('rm "$HEAVY_PROCESS_LOCK"; mkdir "$HEAVY_PROCESS_LOCK"'),
 	exitsWith: (code: number) => shell(`exit ${code}`),
 	holdsUntilReleased: shell("read line"),
 	killsItselfWith: (signal: NodeJS.Signals) => shell(`kill -${signal.slice(3)} $$`),

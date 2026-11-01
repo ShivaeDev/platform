@@ -3,6 +3,20 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { ci, heldBy, inheritsHolderIdOf, liveCli, locale, lockStory, workingDirectory } from "#test/kit.ts";
 
 lockStory.it(
+	"when check's command leaves the lock path unreadable, the CLI reports the release failure and exits 1",
+	[],
+	function* ({ cli }) {
+		yield* cli.runs("check", cli.commands.blocksRelease);
+
+		yield* outcomes([
+			["check's exit code", () => cli.exitCodeOf("check"), 1],
+			["printed by check", () => cli.printedBy("check"), [expect.stringContaining("heavy-lock: Could not release the heavy-process lock")]],
+		]);
+	},
+	liveCli,
+);
+
+lockStory.it(
 	"the CLI gives check's command the holder id it recorded in the lock for check",
 	[],
 	function* ({ cli }) {

@@ -1,4 +1,5 @@
 import { Clock, Console, Duration, Effect, Option } from "effect";
+import { failWith } from "./error.ts";
 import type { Holder } from "./holder.ts";
 import { release, tryAcquire } from "./lockFile.ts";
 import { acquiredLine, waitingLine } from "./status.ts";
@@ -19,7 +20,11 @@ interface Announced {
 function attempt(lock: string, holder: Holder) {
 	return Effect.uninterruptible(
 		Effect.tap(tryAcquire(lock, holder), (blocker) =>
-			Option.isNone(blocker) ? Effect.addFinalizer(() => Effect.ignore(release(lock, holder.id))) : Effect.void,
+			Option.isNone(blocker)
+				? Effect.addFinalizer(() =>
+						release(lock, holder.id).pipe(Effect.mapError(failWith(`Could not release the heavy-process lock at ${lock}.`)), Effect.orDie),
+					)
+				: Effect.void,
 		),
 	);
 }

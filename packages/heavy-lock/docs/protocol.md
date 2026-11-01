@@ -34,16 +34,22 @@ The PID alone is insufficient. The holder is live only when `ps` succeeds, print
 
 1. Resolve the path from the Effect API's explicit `lockPath`, then `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`. Create its directory if missing.
 2. Read this process's start time before taking a new hold. If `ps` cannot run or supplies no start time, fail before starting the command.
-3. Write the complete holder to `<lock>.<id>.draft`, hard-link the draft to `<lock>` and remove the draft. The complete file is published through the link rather than written into an already visible lock path.
+3. Register cleanup for `<lock>.<id>.draft`, write the complete holder there, hard-link the draft to `<lock>` and remove the draft. Cleanup also runs after a partial write, failure or interruption. If cleanup fails after publication, release that attempt's hold and report the failure.
 4. If the path already exists and its holder is live, return that holder to the waiting loop. Do not preempt it.
-5. Otherwise rename the path to `<lock>.<uuid>.stale`. If the path disappeared before the rename, retry acquisition.
-6. Read the renamed file. If it identifies a different live holder that raced in before the rename, hard-link it back to `<lock>`, leaving an already existing lock path alone. Remove the stale file and retry acquisition.
+5. Otherwise acquire the reclamation gate by atomically creating the directory `<lock>.reclaim`. If it already exists, leave the lock alone and retry acquisition.
+6. While owning the gate, read the lock again. If the path is absent, leave it absent. If it identifies a different hold or a live holder, leave it in place. Otherwise remove the dead or undecodable file. Keep the gate until the removal completes, then remove the gate and retry acquisition. Gate ownership and cleanup are uninterruptible.
 
 An interrupted waiter leaves the current holder's file unchanged and no draft behind.
+
+Every implementation sharing a path must follow the gate protocol. A participant that renames a possibly live lock before checking ownership can admit a second holder even when other participants use the gate. Stop participants before upgrading implementations of the protocol.
+
+An uncatchable termination during reclamation can leave the gate directory behind. After stopping participants, remove the abandoned `<lock>.reclaim` directory before restarting them; automatic recovery of an abandoned gate is not part of this protocol.
 
 ## Release and joined holds
 
 Release removes the lock only when the decoded file still names the releasing hold's ID. A joined caller neither acquires nor registers a release for the outer hold.
+
+Draft and gate cleanup failures fail acquisition. Scoped release failures surface as defects containing a `HeavyLockError` and the filesystem cause; Effect retains any work failure alongside the cleanup failure.
 
 A child receives `HEAVY_PROCESS_LOCK_ID=<id>`. A run joins when its inherited ID equals the ID in the lock file. This join checks the recorded ID; it does not repeat the liveness check used when competing for a new hold. If the old file is gone, an inherited ID does not prevent a fresh acquisition.
 
