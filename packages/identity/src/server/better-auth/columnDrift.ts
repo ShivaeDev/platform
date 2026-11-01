@@ -4,6 +4,7 @@ import { matchType } from "better-auth/db/migration";
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import type { StoredRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
+import { tables } from "./tables.ts";
 
 const Column = Schema.Struct({
 	column: Schema.String,
@@ -56,11 +57,11 @@ export const authColumnDrift = Effect.fnUntraced(function* (options: BetterAuthO
 		}
 	}
 	if (role !== undefined) {
-		const table = options.user?.modelName ?? "user";
-		const column = columns.find((entry) => entry.table === table && entry.column === "role");
+		const { user } = tables(options);
+		const column = columns.find((entry) => entry.table === user.table && entry.column === user.role);
 		const value = `'${role.defaultRole.replaceAll("'", "''")}'`;
 		if (column !== undefined && column.default !== `${value}::text`) {
-			missing.push(`column ${table}.role requires DEFAULT ${value}`);
+			missing.push(`column ${user.table}.${user.role} requires DEFAULT ${value}`);
 		}
 	}
 	return missing;

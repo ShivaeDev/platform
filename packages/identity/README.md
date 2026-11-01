@@ -199,6 +199,8 @@ yield* assignRole(AppAccess, userId, "owner");
 
 Supply the application's `SqlClient` Layer. `assignRole` uses the existing Reactivity service when present and supplies its own when absent, so server-only apps need no Users page or Reactivity Layer. This trusted server verb has no caller authorization check; authorize operator access before calling it. It returns whether the role changed, fails with `NotFound` for a missing user, and refuses to remove the final holder of `AssignRoles` (`roles.assign`) with `LastRoleAssigner`. Both declarations live in `@shivaedev/access/roles.ts`. Writes serialize through the same PostgreSQL transaction lock and invalidate the Users list after commit. The Users page adds its caller permission check and audit log.
 
+For custom auth tables, pass the same Better Auth options used by `betterAuthMount` as the fourth argument: `assignRole(AppAccess, userId, "owner", authOptions)`. Role administration uses `user.modelName`, `user.fields.updatedAt` and `user.additionalFields.role.fieldName`. Role-aware migrations and schema checks preserve the role field mapping. Omitting the options keeps Better Auth's default table and column names.
+
 For named provider accounts, declare the role once and pass a configured `accountRoleSeed` to the mount:
 
 ```ts
@@ -224,7 +226,7 @@ const mounted = yield* betterAuthMount(authOptions, {
 
 Set `AUTH_OPERATOR_ACCOUNTS=github:1001,github:1002` using stable provider account IDs. `ProviderAccounts` shares the parser and account-ID validation of `AllowedAccounts`, while accepting an empty list. `Config.withDefault([])` also accepts an unset variable. Both grant nothing. Invalid entries fail boot with `ConfigError`.
 
-The mount runs the seed at boot for existing users and before creating sign-in sessions, including the first provider sign-in. A listed account that has never signed in is ignored until it does. Assignments go through `assignRole`, including its last-role-assigner guard and commit invalidation. The seed uses the application's SQL Layer and default Better Auth PostgreSQL tables.
+The mount runs the seed at boot for existing users and before creating sign-in sessions, including the first provider sign-in. A listed account that has never signed in is ignored until it does. Assignments go through `assignRole`, including its last-role-assigner guard and commit invalidation. The seed uses the application's SQL Layer. With custom mappings, pass `authOptions` as the fourth argument to `accountRoleSeed(AppAccess, Operator.name, operators, authOptions)`. It follows the user mapping above and `account.modelName` plus `account.fields.accountId`, `providerId` and `userId` at boot and sign-in.
 
 The seed only grants: removing an account from config does not restore its previous role. To demote it, first remove the account from config and restart the server, then assign the desired role through the Users page or a trusted `assignRole` command. Keep another holder of `AssignRoles` before demoting the last administrator. A still-listed account receives the configured role again on sign-in or boot.
 

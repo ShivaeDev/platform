@@ -13,8 +13,10 @@ import { AssignRoles } from "@shivaedev/access/roles.ts";
 import { accountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { ProviderAccounts } from "#server/better-auth/allowedAccounts.ts";
+import { assertBetterAuthSchema } from "#server/better-auth/assertSchema.ts";
 import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
+import type { AuthTableOptions } from "#server/better-auth/tables.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { gitHubSignIn } from "#test/sign-in-policy/flows.ts";
@@ -25,13 +27,14 @@ export type SeedRole = typeof Access.Role.Type;
 export type Person = "alice" | "bob";
 const people = { alice: "1001", bob: "1002" };
 
-export const accountRoleHost = Effect.fnUntraced(function* () {
+export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOptions = {}) {
 	const env: Record<string, string | undefined> = { "AUTH_RATE_LIMIT_ENABLED": "false" };
 	const config = ConfigProvider.layer(ConfigProvider.fromEnvRecord(env));
 	const options = {
+		...mapping,
 		database: yield* betterAuthDatabase(),
 		logger: { disabled: true },
-		plugins: [testUtils()],
+		plugins: [...(mapping.plugins ?? []), testUtils()],
 		secret: "account-role-story-secret-at-least-32-characters",
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 	};
@@ -47,7 +50,7 @@ export const accountRoleHost = Effect.fnUntraced(function* () {
 	const start = Effect.fnUntraced(function* () {
 		const mount = betterAuthMount(options, {
 			defaultRole: "user",
-			roleSeed: accountRoleSeed(Access, seededRole, Config.schema(ProviderAccounts, "AUTH_OPERATOR_ACCOUNTS").pipe(Config.withDefault([]))),
+			roleSeed: accountRoleSeed(Access, seededRole, Config.schema(ProviderAccounts, "AUTH_OPERATOR_ACCOUNTS").pipe(Config.withDefault([])), options),
 			roles: Access,
 		}).pipe(Effect.provide(config));
 		// Server-only stories must not inherit the PostgreSQL kit's Reactivity service.
@@ -68,6 +71,7 @@ export const accountRoleHost = Effect.fnUntraced(function* () {
 		baseUrl = `http://127.0.0.1:${server.address.port}`;
 	});
 	return {
+		checkSchema: () => assertBetterAuthSchema(options, { defaultRole: "user" }).pipe(Effect.as("matches")),
 		configure: (entries: string | undefined, assignedRole: SeedRole = "operator") => {
 			env.AUTH_OPERATOR_ACCOUNTS = entries;
 			seededRole = assignedRole;

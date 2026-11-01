@@ -1,4 +1,5 @@
 import type { BetterAuthOptions } from "better-auth";
+import { tables } from "#server/better-auth/tables.ts";
 
 export interface StoredRoleOptions {
 	readonly defaultRole: string;
@@ -14,7 +15,13 @@ export function storedRoleOptions<TOptions extends BetterAuthOptions>(options: T
 			...options.user,
 			additionalFields: {
 				...options.user?.additionalFields,
-				role: { defaultValue: role.defaultRole, input: false, required: true, type: "string" },
+				role: {
+					defaultValue: role.defaultRole,
+					fieldName: tables(options).user.role,
+					input: false,
+					required: true,
+					type: "string",
+				},
 			},
 		},
 	};

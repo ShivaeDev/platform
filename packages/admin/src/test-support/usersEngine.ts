@@ -7,6 +7,7 @@ import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/tables.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
@@ -23,15 +24,20 @@ export interface LogRecord {
 	readonly message: unknown;
 }
 
-export const usersEngine = Effect.gen(function* () {
+export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOptions = {}) {
 	const sql = yield* SqlClient.SqlClient;
 	const pool = yield* betterAuthDatabase();
-	const { auth } = yield* betterAuthMount({
+	const authOptions = {
+		...mapping,
 		"baseURL": "http://localhost",
 		database: pool,
 		secret: "admin-user-story-secret-at-least-32-characters",
-		user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" } } },
-	});
+		user: {
+			...mapping.user,
+			additionalFields: { role: { ...mapping.user?.additionalFields?.role, defaultValue: "user", input: false, type: "string" as const } },
+		},
+	};
+	const { auth } = yield* betterAuthMount(authOptions);
 	const context = yield* Effect.promise(() => auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
 	function register(id: string, role: typeof Access.Role.Type, createdAt?: Date) {
@@ -65,7 +71,7 @@ export const usersEngine = Effect.gen(function* () {
 		}),
 	]);
 	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
-	const handlers = Layer.merge(usersHandlers(Page, Access), hostChanges(Page.contract)).pipe(
+	const handlers = Layer.merge(usersHandlers(Page, Access, authOptions), hostChanges(Page.contract)).pipe(
 		Layer.provide(Layer.succeed(LiveServer, live)),
 		Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
 		Layer.provide(logger),
@@ -98,3 +104,5 @@ export const usersEngine = Effect.gen(function* () {
 	}
 	return { answers: new Map<string, string>(), assignment: { finished: 0, started: 0 }, clientAs, logs, register, spans };
 });
+
+export const usersEngine = makeUsersEngine();
