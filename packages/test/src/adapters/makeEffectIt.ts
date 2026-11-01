@@ -21,13 +21,12 @@ export function makeEffectIt<THarness, TTestLayer extends AnyTestLayer>(
 	options: MakeEffectItOptions<THarness, TTestLayer>,
 ): MakeEffectItResult<THarness, Layer.Success<TTestLayer>> {
 	type Provided = Layer.Success<TTestLayer>;
-	const tests = fixtureIt<THarness, TTestLayer>(options.layer, (body, context, services) => {
+	const tests = fixtureIt<THarness, TTestLayer>(options.layer, (body, context) => {
 		const ready = Effect.gen(function* () {
 			const harness = yield* options.makeHarness(context);
 			return yield* effectOf(body)(harness, context);
 		});
-		const wrapped = options.around?.(ready) ?? ready;
-		return wrapped.pipe(Effect.provide(services));
+		return options.around?.(ready) ?? ready;
 	});
 	const defaultClock = options.clock ?? "test";
 

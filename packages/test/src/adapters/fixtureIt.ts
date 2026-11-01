@@ -1,5 +1,4 @@
 import { it as effectIt, type TestContext } from "@effect/vitest";
-import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import type * as Layer from "effect/Layer";
@@ -14,8 +13,7 @@ export function fixtureIt<THarness, TLayer extends AnyTestLayer>(
 	run: <A>(
 		body: EffectTestBody<THarness, Layer.Success<TLayer>, A>,
 		context: TestContext,
-		services: Context.Context<Layer.Success<TLayer>>,
-	) => Effect.Effect<A, unknown, Scope.Scope>,
+	) => Effect.Effect<A, unknown, Layer.Success<TLayer> | Scope.Scope>,
 ) {
 	const withLayer = effectIt.extend("__effectTestContext", { scope: "file" }, ({}, { onCleanup }) => {
 		const scope = Effect.runSync(Scope.make());
@@ -26,6 +24,10 @@ export function fixtureIt<THarness, TLayer extends AnyTestLayer>(
 	return withLayer.extend("__effectTestRun", ({ __effectTestContext, task }) => {
 		const context = task.context;
 		return <A>(body: EffectTestBody<THarness, Layer.Success<TLayer>, A>, clock: EffectClock) =>
-			runEffectTest(Effect.flatMap(__effectTestContext, (services) => run(body, context, services)).pipe(Effect.asVoid), context, clock);
+			runEffectTest(
+				Effect.flatMap(__effectTestContext, (services) => run(body, context).pipe(Effect.provide(services))).pipe(Effect.asVoid),
+				context,
+				clock,
+			);
 	});
 }
