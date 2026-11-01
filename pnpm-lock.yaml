@@ -1142,6 +1142,9 @@ importers:
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:../local-postgres
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/react':
         specifier: workspace:*
         version: link:../react
@@ -1273,6 +1276,33 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.6
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/rate-limit:
+    devDependencies:
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.6
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))

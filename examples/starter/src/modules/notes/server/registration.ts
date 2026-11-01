@@ -3,6 +3,7 @@ import { Effect, Layer } from "effect";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { Create, Delete, Get, Import, List, NoteReadAccess, Notes, Update } from "#modules/notes/notes.ts";
 import { jsonPlaceholderNotes } from "#modules/notes/server/adapters/jsonPlaceholder.ts";
 import { adminRegistration } from "#modules/notes/server/admin/registration.ts";
@@ -35,5 +36,8 @@ export const notesRegistration = {
 	services: Layer.effect(
 		NoteReadAccess,
 		Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(rpcBoundary(Get.error, boundaryOptions))),
-	).pipe(Layer.provideMerge(NotesService.layer.pipe(Layer.provide(jsonPlaceholderNotes))), Layer.provideMerge(noteProducer)),
+	).pipe(
+		Layer.provideMerge(NotesService.layer.pipe(Layer.provide(Layer.merge(jsonPlaceholderNotes, memoryStore)))),
+		Layer.provideMerge(noteProducer),
+	),
 };

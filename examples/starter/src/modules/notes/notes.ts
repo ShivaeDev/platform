@@ -7,6 +7,7 @@ import { signedIn } from "@shivaedev/contract/readPolicy.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { Conflict, InternalServerError, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
+import { TooManyRequests } from "@shivaedev/rate-limit/TooManyRequests.ts";
 
 export class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
@@ -40,13 +41,13 @@ export const List = query("list", {
 export const Create = command("create", {
 	invalidates: () => [],
 	payload: NoteFields,
-	rejections: { Conflict, InternalServerError, Invalid: fieldRejection(NoteFields), ServiceUnavailable },
+	rejections: { Conflict, InternalServerError, Invalid: fieldRejection(NoteFields), ServiceUnavailable, TooManyRequests },
 	success: Note.json,
 });
 export const Import = command("import", {
 	invalidates: () => [],
 	payload: NoteId,
-	rejections: { Conflict, InternalServerError, Invalid: fieldRejection(NoteFields), NotFound, ServiceUnavailable },
+	rejections: { Conflict, InternalServerError, Invalid: fieldRejection(NoteFields), NotFound, ServiceUnavailable, TooManyRequests },
 	success: Note.json,
 });
 export const Update = command("update", {
