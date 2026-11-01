@@ -20,7 +20,7 @@ A **holder** is the process that takes the lock and waits for its command. The l
 
 A **hold** lasts until the owner's scope closes. Another caller using the same lock path waits while the holder is live. A dead holder, a mismatched process start time or an invalid holder file can be reclaimed. Release checks the hold ID before removing the file, so a caller cannot release a different holder's lock.
 
-A **joined hold** lets nested work share its owner's lifetime. The command line gives the child `HEAVY_PROCESS_LOCK_ID`; a nested run joins when that ID matches the lock file. In an Effect program, an existing `HeldLock` service joins directly. Joining does not take ownership of release: the outer hold remains in charge.
+A **joined hold** lets nested work share its owner's lifetime. The command line gives the child `HEAVY_PROCESS_LOCK_ID` and the selected path in `HEAVY_PROCESS_LOCK`; a nested run joins when that ID matches the lock file. In an Effect program, an existing `HeldLock` service joins directly. Joining does not take ownership of release: the outer hold remains in charge.
 
 This is an advisory lock. Give cooperating commands the same path and route their heavy work through it. [The shared protocol](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md) describes how another implementation can participate.
 
@@ -140,7 +140,7 @@ Import the module that defines each name; there is no root entry.
 | `@shivaedev/heavy-lock/HeldLock.ts`      | `HeldLock`, `HeldLockShape`                                 |
 | `@shivaedev/heavy-lock/error.ts`         | `HeavyLockError`, `failWith`                                |
 
-`HeldLock` is an Effect service whose value is `HeldLockShape`. Its `env` contains the hold ID for children, and is empty when CI skips acquisition. `HeavyLockError` has the tag `HeavyLockError`, a `message` and an optional `cause`; caller failures remain separate from acquisition failures. `failWith(message)` constructs an error mapper that keeps the cause.
+`HeldLock` is an Effect service whose value is `HeldLockShape`. Its `env` contains the hold ID and selected lock path for children, including when an explicit `lockPath` overrides `HEAVY_PROCESS_LOCK`, and is empty when CI skips acquisition. Pass `held.env` to child processes so nested runs join the same hold. `HeavyLockError` has the tag `HeavyLockError`, a `message` and an optional `cause`; caller failures remain separate from acquisition failures. `failWith(message)` constructs an error mapper that keeps the cause.
 
 | Option         | Meaning                                   | Default                                                            |
 | -------------- | ----------------------------------------- | ------------------------------------------------------------------ |

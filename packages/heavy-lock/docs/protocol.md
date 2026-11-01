@@ -51,7 +51,7 @@ Release removes the lock only when the decoded file still names the releasing ho
 
 Draft and gate cleanup failures fail acquisition. Scoped release failures surface as defects containing a `HeavyLockError` and the filesystem cause; Effect retains any work failure alongside the cleanup failure.
 
-A child receives `HEAVY_PROCESS_LOCK_ID=<id>`. A run joins when its inherited ID equals the ID in the lock file. This join checks the recorded ID; it does not repeat the liveness check used when competing for a new hold. If the old file is gone, an inherited ID does not prevent a fresh acquisition.
+A child receives `HEAVY_PROCESS_LOCK_ID=<id>` and `HEAVY_PROCESS_LOCK=<selected path>`, including when an explicit `lockPath` overrides the parent's environment. A run joins when its inherited ID equals the ID in the lock file. This join checks the recorded ID; it does not repeat the liveness check used when competing for a new hold. If the old file is gone, an inherited ID does not prevent a fresh acquisition.
 
 ## CI and waiting output
 
