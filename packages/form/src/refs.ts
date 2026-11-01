@@ -12,7 +12,6 @@ export function fromRef<TValue>(ref: AtomRef.ReadonlyRef<TValue>): Atom.Atom<TVa
 // Native prop refs retain removed keys; form fields must observe their absence.
 export function propertyRef<TValue, TKey extends keyof TValue>(parent: AtomRef.AtomRef<TValue>, name: TKey): AtomRef.AtomRef<TValue[TKey]> {
 	const read = parent.map((value) => value[name]);
-	const write = parent.prop(name);
 	const ref: AtomRef.AtomRef<TValue[TKey]> = {
 		[AtomRef.TypeId]: AtomRef.TypeId,
 		[Equal.symbol]: (other) => Equal.equals(read, other),
@@ -21,7 +20,9 @@ export function propertyRef<TValue, TKey extends keyof TValue>(parent: AtomRef.A
 		map: (transform) => read.map(transform),
 		prop: (key) => propertyRef(ref, key),
 		set: (value) => {
-			write.set(value);
+			parent.update((current) =>
+				Array.isArray(current) ? Object.assign(current.slice(), current, { [name]: value }) : { ...current, [name]: value },
+			);
 			return ref;
 		},
 		subscribe: (listener) => read.subscribe(listener),
