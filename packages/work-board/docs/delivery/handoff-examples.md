@@ -8,22 +8,21 @@ Review a uniquely identified project item. Open **Prepare an agent handoff**, ch
 
 The file's frontmatter records direction and the reviewed source SHA-256. Its body contains the complete source, including original frontmatter and declared criteria. A focused item's context is bounded to 256 KiB of UTF-8. The page renders its Markdown/Mermaid body through the safe Markdown reader and discloses the exact source separately.
 
-```markdown
+```text
 ---
 
 id: handoff.search.keyboard.1
 handoff:
-item: work.search
-recipient: agent-navigation
-state: requested
-source: items/search.md
-reviewed_revision: 691e2b8c3ca54cd66afa1533e9917cbef69e8a13a5bb79275abf65a101ee6dde
-prepared_at: 1791319869349
-goal: Fix keyboard focus
-constraints: Preserve keyboard navigation and local-only operation.
-next_action: Inspect the current source and report browser evidence.
+  item: work.search
+  recipient: agent-navigation
+  state: requested
+  source: items/search.md
+  reviewed_revision: 52b297ebbbebcf3815c195deebd99cf4eb8896647914b28d0dc1f5c7de5a4d72
+  prepared_at: 1791319869349
+  goal: Fix keyboard focus
+  constraints: Preserve keyboard navigation and local-only operation.
+  next_action: Inspect the current source and report browser evidence.
 ---
-
 ---
 
 id: work.search

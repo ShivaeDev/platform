@@ -106,6 +106,8 @@ export function handoffFormVerbs(engine: ScreenEngine, tell: (line: string) => v
 				})),
 				title: document.querySelector("#doc [data-page-header] > h1")?.textContent ?? "none",
 			})),
+		handoffPreview: () =>
+			read("the reader reads the handoff file preview", () => document.querySelector("#handoff-preview-content")?.textContent ?? "none"),
 		handoffStatus: () => read("the reader reads the handoff status line", () => document.querySelector("#handoff-status")?.textContent ?? "none"),
 		handoffStatusLines: () =>
 			read("the reader counts the status lines inside the handoff form", () =>
