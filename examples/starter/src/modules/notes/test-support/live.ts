@@ -8,7 +8,7 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { Notes } from "#modules/notes/notes.ts";
-import { answerWithReason } from "#test-support/answers.ts";
+import { answerWithReason, refusal } from "#test-support/answers.ts";
 import type { RpcAddress } from "./Engine.ts";
 
 const liveClient = Effect.fn("AppStory.liveClient")(function* (address: RpcAddress, cookie: string) {
@@ -64,12 +64,21 @@ export const watchedNote = Effect.fn("AppStory.watchedNote")(function* (address:
 	return { nextNote: results.next, refresh: () => Effect.sync(() => registry.refresh(query)) };
 });
 
-export const changeHints = Effect.fn("AppStory.changeHints")(function* (address: RpcAddress, cookie: string, describe: (key: Key) => string) {
-	const client = yield* makeClient(Notes, {
+function changesClient(address: RpcAddress, cookie: string) {
+	return makeClient(Notes, {
 		headers: { cookie, origin: address.origin },
 		url: `${address.baseUrl}/rpc`,
 		webSocketConstructor: layerWebSocketConstructorWS,
 	}).client;
+}
+
+export const noteChangesSubscription = Effect.fn("AppStory.noteChangesSubscription")(function* (address: RpcAddress, cookie: string, id: number) {
+	const client = yield* changesClient(address, cookie);
+	return yield* refusal(client["notes.$changes"]({ queries: [{ payload: { id }, query: "get" }] }).pipe(Stream.runHead));
+});
+
+export const changeHints = Effect.fn("AppStory.changeHints")(function* (address: RpcAddress, cookie: string, describe: (key: Key) => string) {
+	const client = yield* changesClient(address, cookie);
 	const hints = yield* Queue.unbounded<LiveHint>();
 	yield* client["notes.$changes"]({ queries: [{ payload: undefined, query: "list" }] }).pipe(
 		Stream.runForEach((hint) => Queue.offer(hints, hint)),

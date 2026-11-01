@@ -15,7 +15,7 @@ import { authPost, credentials } from "#test-support/authHttp.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 import type { Account, Engine } from "./Engine.ts";
-import { changeHints, watchedList, watchedNote } from "./live.ts";
+import { changeHints, noteChangesSubscription, watchedList, watchedNote } from "./live.ts";
 import { foreignOriginRequest, notesRequests, signOutOver } from "./requests.ts";
 
 export function runningHost(engine: Engine) {
@@ -130,6 +130,10 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		listensForChangeHints: (name: string) => {
 			story.tell(`${name}'s socket listens for change hints on her notes list`);
 			return changeHints(liveAddress(engine), account(engine, name).cookie, describeKey);
+		},
+		listensForChangesTo: (name: string, note: Pick<Note, "id" | "title">) => {
+			story.tell(`${name}'s socket asks for change hints on ${JSON.stringify(note.title)}`);
+			return noteChangesSubscription(liveAddress(engine), account(engine, name).cookie, note.id);
 		},
 		noteCommitsRecover: Effect.fn("AppStory.noteCommitsRecover")(function* () {
 			story.tell("PostgreSQL accepts note commits again");
