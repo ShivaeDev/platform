@@ -4,7 +4,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { authEmailApp } from "#test-support/authEmailApp.tsx";
 
 authEmailApp.it(
-	"the starter delivers one confirmation email and its app route confirms alice's account",
+	"alice's confirmation email is delivered once and its app route confirms her account",
 	[],
 	function* ({ request, messages, followConfirmation, confirmation, session }) {
 		expect(yield* session()).toMatchObject({ user: { emailVerified: false } });

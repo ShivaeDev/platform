@@ -32,7 +32,7 @@ export const authEmailApp = storyKit({
 		return { alice, auth, host, messages, surface };
 	},
 	layer: postgres,
-	name: "starter auth emails",
+	name: "auth emails",
 	stages: [],
 	verbs: (engine, story) => {
 		const { host, messages, surface, auth } = engine;
