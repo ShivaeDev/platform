@@ -20,9 +20,15 @@ export interface Create<TFields extends Fields, TCreated, TSaveError, TRuntimeEr
 	readonly created: Option.Option<TCreated>;
 	readonly form: Form<TFields, TCreated, TSaveError | FieldFailure, TRuntimeError>;
 }
-function editedSince<TV extends object>(current: TV, submitted: TV | undefined): Readonly<Record<string, unknown>> {
-	const before = new Map(Object.entries(submitted ?? current));
-	return Object.fromEntries(Object.entries(current).filter(([name, value]) => !Equal.equals(value, before.get(name))));
+function resetValues<TV extends object>(baseline: TV, current: TV, submitted: TV | undefined): TV;
+function resetValues(baseline: Readonly<Record<string, unknown>>, current: Readonly<Record<string, unknown>>, submitted = current): object {
+	return Object.fromEntries(
+		Object.keys({ ...baseline, ...current, ...submitted }).flatMap((name) => {
+			const changed = Object.hasOwn(current, name) !== Object.hasOwn(submitted, name) || !Equal.equals(current[name], submitted[name]);
+			const source = changed ? current : baseline;
+			return Object.hasOwn(source, name) ? [[name, source[name]]] : [];
+		}),
+	);
 }
 export function useCreate<TFields extends Fields, TCreated, TSaveError, R, TRuntimeError>(
 	config: CreateConfig<TFields, TCreated, TSaveError, R, TRuntimeError>,
@@ -46,7 +52,7 @@ export function useCreate<TFields extends Fields, TCreated, TSaveError, R, TRunt
 	const settled = useCallback(
 		(value: TCreated) => {
 			const next = fresh();
-			next.form.values.set({ ...baseline, ...editedSince(current.form.values.value, current.submitted()) });
+			next.form.values.set(resetValues(baseline, current.form.values.value, current.submitted()));
 			hold({ ...entry, created: Option.some(value), current: next });
 		},
 		[entry, current, fresh, baseline],
