@@ -16,9 +16,9 @@ function holderIdGiven(engine: Lock, run: CliRun) {
 }
 
 export function cli(engine: Lock, tell: (line: string) => void) {
-	const launch = Effect.fn("LockStory.launch")(function* (name: string, args: readonly string[]) {
+	const launch = Effect.fn("LockStory.launch")(function* (name: string, args: readonly string[], env = cliEnvironment(engine.lock, engine.env)) {
 		const run = yield* Effect.acquireRelease(
-			Effect.sync(() => startCli(args, cliEnvironment(engine.lock, engine.env), engine.cliOptions.cwd)),
+			Effect.sync(() => startCli(args, env, engine.cliOptions.cwd)),
 			(child) =>
 				Effect.promise(async () => {
 					child.stop();
@@ -47,6 +47,11 @@ export function cli(engine: Lock, tell: (line: string) => void) {
 			return Effect.asVoid(Effect.flatMap(launch(name, args), exits));
 		},
 		ledItsProcessGroup: (name: string) => afterExit(name, (run) => run.stdout().includes("\nleads its process group\n")),
+		lockPathGivenTo: (name: string) =>
+			afterExit(name, (run) => {
+				const path = /^lock path=(?<path>.*)$/mu.exec(run.stdout())?.groups?.path;
+				return Object.entries(engine.paths).find(([, value]) => value === path)?.[0] ?? "no known lock path";
+			}),
 		pidOf: (name: string) => Effect.map(runOf(name), ({ pid }) => pid),
 		printedBy: (name: string) =>
 			afterExit(name, (run) =>
@@ -74,6 +79,16 @@ export function cli(engine: Lock, tell: (line: string) => void) {
 			tell(`${name} runs heavy-lock -- ${command.join(" ")}`);
 			return Effect.asVoid(Effect.flatMap(launch(name, ["--", ...command]), exits));
 		},
+		runsInside: (name: string, parent: string, command: CommandLine) =>
+			Effect.gen(function* () {
+				tell(`${name} runs heavy-lock inside ${parent}'s acquired hold`);
+				const hold = engine.holds[parent];
+				if (hold === undefined) {
+					return yield* Effect.die(new Error(`${parent} has no acquired hold.`));
+				}
+				const run = yield* launch(name, ["--", ...command], { "PATH": "/usr/bin:/bin", ...engine.env, ...hold.env });
+				yield* exits(run);
+			}),
 		standardOutputOf: (name: string) => afterExit(name, (run) => run.stdout()),
 		starts: (name: string, command: CommandLine) =>
 			Effect.gen(function* () {

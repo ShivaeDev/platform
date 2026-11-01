@@ -18,8 +18,8 @@ export interface HeavyLockOptions {
 
 const REMIND_EVERY = Duration.minutes(1);
 
-function heldBy(id: string): HeldLockShape {
-	return { env: { [HOLDER_ID_ENV]: id } };
+function heldBy(id: string, lockPath: string): HeldLockShape {
+	return { env: { [HOLDER_ID_ENV]: id, "HEAVY_PROCESS_LOCK": lockPath } };
 }
 
 const ownStartTime = Effect.gen(function* () {
@@ -38,7 +38,7 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 	const current = yield* readHolder(settings.lock).pipe(Effect.mapError(failWith(`Could not read the heavy-process lock at ${settings.lock}.`)));
 	const inherited = Option.filter(settings.inherited, (id) => Option.exists(current, (currentHolder) => currentHolder.id === id));
 	if (Option.isSome(inherited)) {
-		return heldBy(inherited.value);
+		return heldBy(inherited.value, settings.lock);
 	}
 	const processStartedAt = yield* ownStartTime;
 	const holder = yield* waitForLock(
@@ -52,7 +52,7 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 		},
 		{ pollInterval: options.pollInterval ?? Duration.seconds(1), remindEvery: REMIND_EVERY },
 	).pipe(Effect.mapError(failWith(`Could not take the heavy-process lock at ${settings.lock}.`)));
-	return heldBy(holder.id);
+	return heldBy(holder.id, settings.lock);
 });
 
 export type HeavyLockServices = FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner;
