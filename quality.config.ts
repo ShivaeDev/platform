@@ -17,15 +17,15 @@ export default defineConfig({
 			"rules": ["biome/files/includes"],
 		},
 		{
-			"files": ["packages/test/src/anyTestLayer.ts"],
+			"files": ["packages/test/src/adapters/anyTestLayer.ts"],
 			"reason":
 				"test declares the shared test Layer bound. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
 			"rules": ["biome/lint/suspicious/noExplicitAny"],
 		},
 		{
-			"files": ["packages/test/src/makeEffectIt.ts"],
+			"files": ["packages/test/src/adapters/fixtureIt.ts"],
 			"reason":
-				"Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The worker-scoped Layer fixture depends on none, so its pattern is empty.",
+				"Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The file-scoped Layer fixture depends on none, so its pattern is empty.",
 			"rules": ["biome/lint/correctness/noEmptyPattern"],
 		},
 		{
