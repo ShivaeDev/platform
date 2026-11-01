@@ -1,6 +1,7 @@
 import { inspect } from "node:util";
+import { Schema, SchemaIssue } from "effect";
 import { expect, it } from "vitest";
-import { redact } from "#redact.ts";
+import { redact, redactWire } from "#redact.ts";
 
 it("credential-shaped keys are redacted whatever their casing or separator", () => {
 	const keys = [
@@ -83,4 +84,9 @@ it("cyclic payloads stop at the depth limit while nearby secrets are redacted", 
 		expected = { child: expected, password: "<redacted>" };
 	}
 	expect(redact(payload)).toEqual(expected);
+});
+
+it.each([redact, redactWire])("%s masks native issue inputs without hiding application fields named input", (mask) => {
+	const issue = new SchemaIssue.InvalidType(Schema.Number.ast, "private note", { reportInput: true });
+	expect(mask({ input: "public field", issue }, () => false)).toMatchObject({ input: "public field", issue: { input: "<redacted>" } });
 });

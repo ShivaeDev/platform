@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { isSensitiveKey, redactText, redactUrl } from "./sensitive.ts";
+import { isSensitiveKey, redactText, redactUrl } from "#sensitive.ts";
 
 it.each([
 	["error: sig=abc&x=1", "error: sig=<redacted>&x=1"],
@@ -76,4 +76,30 @@ it.each([
 	["custom", "{invalid https://example.test/path?q=secret", "{invalid https://example.test/path?q=<redacted>"],
 ])("redacts %s containing %s", (key, input, expected) => {
 	expect(redactUrl(input, key)).toBe(expected);
+});
+
+it.each([
+	['Expected number, got "private note"\n  at ["age"]', 'Expected number, got <redacted>\n  at ["age"]'],
+	['Expected "ready" | "done", actual "private note"', 'Expected "ready" | "done", actual <redacted>'],
+	['Expected number, got "private \\"note\\" with \\\\ and \\n"', "Expected number, got <redacted>"],
+	['Expected number, got "private\nnote"\n  at ["age"]', 'Expected number, got <redacted>\n  at ["age"]'],
+	['Expected number, got {"note":"private","nested":["other"]}', "Expected number, got <redacted>"],
+	['Expected string, actual ["private","other"]', "Expected string, actual <redacted>"],
+	["Expected string, actual 123456789", "Expected string, actual <redacted>"],
+	['Expected number, got ""', "Expected number, got <redacted>"],
+	['decode failed: got "private \\"note\\"" at ["age"]', 'decode failed: got <redacted> at ["age"]'],
+	['Expected number, got "https://example.test/?note=private#other"\n  at ["age"]', 'Expected number, got <redacted>\n  at ["age"]'],
+	['Expected number\n  at ["age"]', 'Expected number\n  at ["age"]'],
+	["the worker got a request with an actual count", "the worker got a request with an actual count"],
+])("masks schema-echoed values while keeping diagnostics in %s", (input, expected) => {
+	expect(redactText(input, isSensitiveKey)).toBe(expected);
+});
+
+it("masks each echoed value before truncation and with an application policy", () => {
+	const input = `Expected number, got "${"private".repeat(500)}"\n  at ["age"]\nExpected string, actual 123456789\n  at ["name"]`;
+	for (const maxLength of [undefined, Number.POSITIVE_INFINITY]) {
+		expect(redactText(input, () => false, maxLength)).toBe(
+			'Expected number, got <redacted>\n  at ["age"]\nExpected string, actual <redacted>\n  at ["name"]',
+		);
+	}
 });

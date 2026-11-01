@@ -64,8 +64,13 @@ function scrub(text: string, sensitive: SensitiveKey): string {
 	const credentials = text.replaceAll(PRIVATE_KEY, REDACTED).replaceAll(AUTH_SCHEME, `$<scheme> ${REDACTED}`).replaceAll(JWT, REDACTED);
 	return redactAssignments(credentials, sensitive);
 }
+function redactSchemaValues(text: string): string {
+	return text
+		.replaceAll(/(?<expected>\bExpected[^\r\n]*?, (?:got|actual)[ \t]+)(?:"(?:\\[\s\S]|[^"\\])*"|[^\r\n]*)/gu, `$<expected>${REDACTED}`)
+		.replaceAll(/\bgot[ \t]+"(?:\\[\s\S]|[^"\\])*"/gu, `got ${REDACTED}`);
+}
 export function redactText(text: string, sensitive: SensitiveKey, maxLength = MAX_STRING, key = ""): string {
-	const scrubbed = scrub(redactUrl(text, key), sensitive);
+	const scrubbed = scrub(redactUrl(redactSchemaValues(text), key), sensitive);
 	return scrubbed.length > maxLength ? `${scrubbed.slice(0, maxLength)}…<${scrubbed.length - maxLength} more chars>` : scrubbed;
 }
 export function redactErrorStack(error: Error, sensitive: SensitiveKey): string | undefined {

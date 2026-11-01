@@ -1,4 +1,4 @@
-import { Predicate, Redacted } from "effect";
+import { Predicate, Redacted, SchemaIssue } from "effect";
 import { isSensitiveKey, REDACTED, redactErrorStack, redactText, type SensitiveKey } from "#sensitive.ts";
 
 const MAX_DEPTH = 8;
@@ -33,7 +33,8 @@ function collection(value: object, sensitive: SensitiveKey, depth: number, bound
 	const entries = entriesOf(value, sensitive, bounded);
 	const kept = entries.slice(0, bounded ? MAX_ENTRIES : entries.length).map(([key, nested]): [string, unknown] => {
 		const stackHeader = key === "stack" && typeof nested === "string" && (sensitive("name") || sensitive("message"));
-		return [key, sensitive(key) || stackHeader ? REDACTED : walk(nested, sensitive, depth + 1, bounded, key)];
+		const schemaInput = key === "input" && SchemaIssue.isIssue(value);
+		return [key, sensitive(key) || stackHeader || schemaInput ? REDACTED : walk(nested, sensitive, depth + 1, bounded, key)];
 	});
 	return Object.fromEntries(bounded && entries.length > MAX_ENTRIES ? [...kept, ["<truncated>", `${entries.length - MAX_ENTRIES} more keys`]] : kept);
 }
