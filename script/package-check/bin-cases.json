@@ -31,6 +31,7 @@
 			"-e",
 			"const fs = require('node:fs'); const held = JSON.parse(fs.readFileSync(process.env.HEAVY_PROCESS_LOCK, 'utf8')); require('node:assert/strict').equal(held.id, process.env.HEAVY_PROCESS_LOCK_ID); fs.writeFileSync('held.txt', 'completed')"
 		],
+		"checkVersion": true,
 		"env": {
 			"CI": null,
 			"HEAVY_PROCESS_LOCK": "{consumer}/locks/heavy-process.lock",
