@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
+import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { command } from "#package-check/io.ts";
 import { type DocumentedImport, packageName } from "./imports.ts";
 
@@ -19,5 +20,15 @@ export const checkRuntimeImports = Effect.fn("Published.checkRuntimeImports")(fu
 });`;
 	});
 	yield* fs.writeFileString(join(consumer, "documented-runtime.test.ts"), `import { test } from "vitest";\n${tests.join("\n")}\n`);
-	yield* Effect.log(yield* command(consumer, "pnpm", ["exec", "vitest", "run", "documented-runtime.test.ts"]));
+	const environment = yield* postgresTestEnvironment;
+	yield* Effect.log(
+		yield* command(consumer, "env", [
+			...Object.entries(environment).map(([name, value]) => `${name}=${value}`),
+			"pnpm",
+			"exec",
+			"vitest",
+			"run",
+			"documented-runtime.test.ts",
+		]),
+	);
 });
