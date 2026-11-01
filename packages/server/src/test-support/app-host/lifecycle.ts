@@ -12,6 +12,7 @@ export function start(state: HostState) {
 			recordLog(state, {
 				annotations: options.fiber.getRef(References.CurrentLogAnnotations),
 				attempt: state.receiver?.requests.length ?? 0,
+				cause: options.cause,
 				level: options.logLevel,
 				message: options.message,
 				spans: Object.fromEntries(options.fiber.getRef(References.CurrentLogSpans)),

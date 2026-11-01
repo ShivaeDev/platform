@@ -55,7 +55,13 @@ export function appHostHttp<
 					const sessions = Layer.mergeAll(Layer.empty, ...(options.sessions === undefined ? [] : [options.sessions]));
 					const server = nodeHttpServer(host, options.config);
 					const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
-					const httpRoutes = Layer.mergeAll(routes, healthRoute, browserErrorRoute(trustedProxy), assets, applicationRoutes).pipe(
+					const httpRoutes = Layer.mergeAll(
+						routes,
+						healthRoute,
+						browserErrorRoute(trustedProxy, options.browserErrors),
+						assets,
+						applicationRoutes,
+					).pipe(
 						Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
 						Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, options.nativeOrigins === undefined ? "preflight" : true)),
 					);

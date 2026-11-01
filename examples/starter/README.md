@@ -152,6 +152,6 @@ Long jumps expire signed-in sessions. After `yield* timePasses("30 days")`, use 
 
 Railway tracing is the default and only production error and trace destination. `.railway/railway.ts` enables manual tracing for web and worker; Railway supplies the OTLP endpoint and authentication on deployment. Leave exporter endpoint overrides unset. Open the project's Traces page to see application spans, log events and Effect `ErrorReporter` reports. The framework redacts diagnostics before exporting.
 
-`App` mounts `useBrowserErrors` once, including before sign-in. `appHost` mounts `POST /_platform/errors`, forwarding uncaught browser errors and unhandled rejections through that same redacting pipeline. The route limits reports to 20 per minute per client IP per process.
+`App` mounts `useBrowserErrors` once. `appHost` uses `browserErrors: { log: true, includeUserId: true, requireSession: true }` for `POST /_platform/errors`: signed-in reports reach Error logs and traces with `user.id`, and quoted user text in messages and stacks is masked. Reports before sign-in receive 401. The route limits reports to 20 per minute per client IP per process.
 
 Local development and tests run without export when no endpoint is configured. To inspect traces locally, follow the loopback OpenTelemetry Collector setup in the [server guide](https://github.com/ShivaeDev/platform/blob/main/packages/server/README.md). Agents extending this starter must keep Railway as the sink and must not add another error service.
