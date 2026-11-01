@@ -24,7 +24,7 @@ export class MainSource extends Context.Service<
 	}
 >()("@shivaedev/work-fleet/host/MainSource") {}
 
-function git(cwd: string, args: readonly string[]) {
+function git(cwd: string, args: readonly string[]): Effect.Effect<string, FleetError> {
 	return gitProcess(cwd, args).pipe(Effect.map(({ stdout }) => stdout.trim()));
 }
 

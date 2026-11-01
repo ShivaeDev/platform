@@ -1,7 +1,8 @@
 import { Effect } from "effect";
+import type { FleetError } from "#errors.ts";
 import { gitProcess } from "#host/adapters/gitProcess.ts";
 
-export function predictionGit(cwd: string, args: readonly string[], conflicts = false) {
+export function predictionGit(cwd: string, args: readonly string[], conflicts = false): Effect.Effect<string, FleetError> {
 	return gitProcess(cwd, args, { acceptExitOne: conflicts, maxBuffer: 10 * 1024 * 1024 }).pipe(Effect.map(({ stdout }) => stdout));
 }
 
