@@ -2,6 +2,8 @@ import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { Conflict, NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
+import { Store } from "@shivaedev/rate-limit/Store.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { OptimisticConcurrencyError } from "@shivaedev/sql/repository.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
@@ -34,11 +36,8 @@ export const NotesService = defineService({
 			});
 		}
 		function create({ title }: typeof Create.payload.Type, userId: string) {
-			return Effect.gen(function* () {
-				const row = yield* repository.insert({ title, userId, wordCount: null });
-				return row;
-			}).pipe(
-				transact({ onSqlError: notesSqlFailure }),
+			return rateLimit({ key: `notes.create:${userId}`, per: 10, window: "1 minute" }).pipe(
+				Effect.andThen(repository.insert({ title, userId, wordCount: null }).pipe(transact({ onSqlError: notesSqlFailure }))),
 				Effect.tap((row) => enqueue(row.id)),
 			);
 		}
@@ -72,5 +71,5 @@ export const NotesService = defineService({
 				),
 		};
 	},
-	requires: [SqlClient.SqlClient, Reactivity.Reactivity, NoteJobs, NoteSource],
+	requires: [Store, SqlClient.SqlClient, Reactivity.Reactivity, NoteJobs, NoteSource],
 });

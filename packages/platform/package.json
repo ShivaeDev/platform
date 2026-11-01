@@ -33,6 +33,7 @@
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/react": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",
