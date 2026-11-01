@@ -15,12 +15,13 @@ for (const client of ["its own", "a shared"] as const) {
 		[
 			enqueuedEarlier(Held, {}, { as: "held job" }),
 			...(client === "a shared" ? [running("producer", [Held], { clientCacheKey })] : []),
-			running("app", [worker(Held, { waitsFor: "held" })], { clientCacheKey, finalizesInParallel: true }),
+			running("app", [worker(Held, { waitsFor: "held" })], { clientCacheKey, finalizesInParallel: true, stop: { timeout: 1000 } }),
 			waiting("held", "the held job's handler is running"),
 		],
-		function* ({ interruptions, job, open, shutdown, stopInBackground, untilPgBossStopsWorking, untilStopped }) {
+		function* ({ drainTimePasses, interruptions, job, logged, open, shutdown, stopInBackground, untilPgBossStopsWorking, untilStopped }) {
 			yield* stopInBackground("app");
 			yield* untilPgBossStopsWorking();
+			yield* drainTimePasses(999);
 
 			yield* outcomes([
 				["held job", () => job("held job"), expect.objectContaining({ state: "active" })],
@@ -34,7 +35,9 @@ for (const client of ["its own", "a shared"] as const) {
 				["held job", () => job("held job"), expect.objectContaining({ state: "completed" })],
 				["interrupted handlers", () => interruptions(Held), []],
 				["shutdown", () => shutdown("app"), "stopped"],
+				["worker reports", () => logged("app"), []],
 			]);
 		},
+		{ clock: "test" },
 	);
 }

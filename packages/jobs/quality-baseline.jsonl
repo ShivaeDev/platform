@@ -1,4 +1,4 @@
-{"path":"packages/jobs/src/server/adapters/registerWorker.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/jobs/src/server/adapters/registerWorker.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/adapters/runSchemaPlan.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/client.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/defaultClientFactory.ts","rule":"effect/boundary","count":4}
