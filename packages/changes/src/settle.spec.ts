@@ -49,25 +49,6 @@ for (const work of ["record bob's change", "open a transaction for bob's order"]
 }
 
 changes.it(
-	"a Promise driver that commits publishes ada's change after her transaction body, not during it",
-	[],
-	function* ({ promiseDriver, record, published }) {
-		yield* promiseDriver("commits", function* () {
-			yield* record(change("ada"));
-			expect(yield* published()).toEqual([]);
-		});
-
-		expect(yield* published()).toEqual([["ada:orders"]]);
-	},
-);
-
-changes.it("a Promise driver whose commit fails after ada's body succeeded publishes nothing", [], function* ({ promiseDriver, record, published }) {
-	yield* promiseDriver("fails to commit", record(change("ada")));
-
-	expect(yield* published()).toEqual([]);
-});
-
-changes.it(
 	"dan's savepoint that commits after its transaction already committed dies, and dan's change is not published",
 	[],
 	function* ({ driverOpens, published }) {

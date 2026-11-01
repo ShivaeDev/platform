@@ -33,7 +33,7 @@ changes.it(
 	},
 );
 
-for (const ending of ["rejected", "died", "interrupted", "commit failed"] as const) {
+for (const ending of ["rejected", "died", "commit failed"] as const) {
 	changes.it(
 		`when ada's order transaction ends as ${ending}, nothing is committed and nothing is published`,
 		[transactionEnds(ending)],
@@ -103,18 +103,45 @@ changes.it("a write outside any transaction publishes its changes at once, each 
 });
 
 changes.it(
-	"an interruption that arrives while ada's commit is in flight ends her save as interrupted and still publishes the committed order",
+	"cancelling ada's in-flight commit waits for the database, then publishes her committed order and leaves her caller interrupted",
 	[commitWaits()],
-	function* ({ startSavingOrder, interruptOrder, orderEnding, committedRows, published }) {
+	function* ({ startSavingOrder, interruptOrder, finishCommit, orderIsSaving, orderEnding, committedRows, published }) {
 		yield* startSavingOrder("ada");
 		expect(yield* published()).toEqual([]);
 
 		yield* interruptOrder();
 
 		yield* outcomes([
-			["committed rows", () => committedRows(), ["ada's order"]],
+			["the save still waits for commit", () => orderIsSaving(), true],
+			["committed rows before the database finishes", () => committedRows(), []],
+			["published changes before the database finishes", () => published(), []],
+		]);
+
+		yield* finishCommit();
+
+		yield* outcomes([
 			["how the transaction ended", () => orderEnding(), "interrupted"],
+			["committed rows", () => committedRows(), ["ada's order"]],
 			["published changes", () => published(), [["ada:orders"]]],
+		]);
+	},
+);
+
+changes.it(
+	"cancelling ada's body before commit rolls back and publishes nothing, even after the database is allowed to commit",
+	[commitWaits(), transactionEnds("interrupted")],
+	function* ({ startSavingOrder, interruptOrder, finishCommit, orderEnding, committedRows, published }) {
+		yield* startSavingOrder("ada");
+
+		yield* interruptOrder();
+
+		expect(yield* orderEnding()).toBe("interrupted");
+
+		yield* finishCommit();
+
+		yield* outcomes([
+			["committed rows", () => committedRows(), []],
+			["published changes", () => published(), []],
 		]);
 	},
 );
