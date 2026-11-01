@@ -58,6 +58,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/react": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
