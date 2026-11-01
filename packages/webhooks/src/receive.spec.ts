@@ -27,6 +27,7 @@ const refusals: ReadonlyArray<readonly [Delivery, string]> = [
 	["a delivery without a delivery ID", "400 Bad Request: Invalid delivery"],
 	["a delivery without an event header", "400 Bad Request: Invalid delivery"],
 	["an issue delivery whose number is a string", "400 Bad Request"],
+	["a signed non-JSON delivery", "400 Bad Request"],
 	["a delivery over the host's 256-byte limit", "413 Payload Too Large"],
 	["a delivery to an unregistered source", "404 Not Found"],
 ];

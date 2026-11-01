@@ -4,6 +4,7 @@ import { githubSource } from "#server/github.ts";
 import { receive } from "#server/internal/receive.ts";
 import { webhookEvent, webhookJob } from "#server/registration.ts";
 import { webhookRoute } from "#server/route.ts";
+import type { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
 import { issueQueue, Jobs } from "#test/fixture.ts";
 import { SenderCheckFailed, SenderPreferences } from "#test/senderCheck.ts";
 
@@ -31,9 +32,9 @@ const separateSources = webhookRoute({
 expectTypeOf<Extract<Layer.Services<typeof separateSources>, SenderPreferences | OtherService>>().toEqualTypeOf<SenderPreferences | OtherService>();
 const route = webhookRoute({ basePath: "/hooks", jobs: Jobs, sources: { github: source } });
 
-expectTypeOf<Effect.Error<ReturnType<typeof checked.decode>>>().toEqualTypeOf<Schema.SchemaError | SenderCheckFailed>();
+expectTypeOf<Effect.Error<ReturnType<typeof checked.decode>>>().toEqualTypeOf<WebhookPayloadError | SenderCheckFailed>();
 expectTypeOf<Effect.Services<ReturnType<typeof checked.decode>>>().toEqualTypeOf<SenderPreferences>();
-expectTypeOf<Effect.Error<ReturnType<typeof pure.decode>>>().toEqualTypeOf<Schema.SchemaError>();
+expectTypeOf<Effect.Error<ReturnType<typeof pure.decode>>>().toEqualTypeOf<WebhookPayloadError>();
 expectTypeOf<Effect.Services<ReturnType<typeof pure.decode>>>().toEqualTypeOf<never>();
 expectTypeOf<Extract<Layer.Services<typeof route>, SenderPreferences | OtherService>>().toEqualTypeOf<SenderPreferences | OtherService>();
 
@@ -49,4 +50,4 @@ const received = Jobs.use((jobs) => receive("github", source, Redacted.make("com
 expectTypeOf<Extract<Effect.Error<typeof received>, SenderCheckFailed | OtherFailure>>().toEqualTypeOf<SenderCheckFailed | OtherFailure>();
 
 const refused = webhookEvent(Payload, () => Effect.fail(new SenderCheckFailed()));
-expectTypeOf<Effect.Error<ReturnType<typeof refused.decode>>>().toEqualTypeOf<Schema.SchemaError | SenderCheckFailed>();
+expectTypeOf<Effect.Error<ReturnType<typeof refused.decode>>>().toEqualTypeOf<WebhookPayloadError | SenderCheckFailed>();

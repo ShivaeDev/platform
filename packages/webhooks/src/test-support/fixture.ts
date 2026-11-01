@@ -3,6 +3,7 @@ import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { githubSource } from "#server/github.ts";
 import { webhookEvent, webhookJob } from "#server/registration.ts";
+import { mappingFailures } from "#test/mappingFailures.ts";
 import { SenderPreferences } from "#test/senderCheck.ts";
 
 export const WEBHOOK_SECRET = "webhook-story-signing-secret";
@@ -14,6 +15,7 @@ export const auditQueue = defineQueue({ name: "webhook-audit", queue: { notify: 
 export const sources = {
 	github: githubSource({
 		events: {
+			...mappingFailures,
 			issues: webhookEvent(Schema.Struct({ action: Schema.String, issue: Schema.Struct({ number: Schema.Number }) }), ({ issue }) => [
 				webhookJob(issueQueue, { number: issue.number }),
 				webhookJob(auditQueue, { number: issue.number }),
