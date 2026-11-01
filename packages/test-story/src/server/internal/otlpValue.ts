@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 
 export interface OtlpValue {
 	readonly arrayValue?: { readonly values?: readonly OtlpValue[] };

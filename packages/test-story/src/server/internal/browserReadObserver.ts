@@ -1,5 +1,8 @@
-import { Effect, PubSub, Schema } from "effect";
-import { RpcClient, type RpcMessage } from "effect/rpc";
+import * as Effect from "effect/Effect";
+import * as PubSub from "effect/PubSub";
+import * as RpcClient from "effect/rpc/RpcClient";
+import type * as RpcMessage from "effect/rpc/RpcMessage";
+import * as Schema from "effect/Schema";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import type { BrowserRead, BrowserReadsOptions } from "#browserReads.ts";
 import { browserSubscriptions } from "#internal/browserSubscriptions.ts";

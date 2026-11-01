@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import * as Schema from "effect/Schema";
 import { otlpProtobuf } from "#internal/otlpProtobuf.ts";
 import { Attribute } from "#internal/otlpValue.ts";
 

@@ -1,4 +1,8 @@
-import { Clock, Duration, Effect, Queue, Stream } from "effect";
+import * as Clock from "effect/Clock";
+import * as Duration from "effect/Duration";
+import * as Effect from "effect/Effect";
+import * as Queue from "effect/Queue";
+import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import { type UntilOptions, until } from "#until.ts";
 

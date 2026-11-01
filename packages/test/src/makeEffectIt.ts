@@ -1,5 +1,9 @@
 import { it as effectIt, type TestContext, type TestOptions } from "@effect/vitest";
-import { type Context, Effect, Exit, type Layer, Scope } from "effect";
+import type * as Context from "effect/Context";
+import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import type * as Layer from "effect/Layer";
+import * as Scope from "effect/Scope";
 import { runEffectTest } from "#internal/runEffectTest.ts";
 import { type AnyTestLayer, buildTestLayer } from "./anyTestLayer.ts";
 import type { EffectClock, EffectTest, EffectTestBody, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";

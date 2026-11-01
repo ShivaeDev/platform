@@ -1,4 +1,5 @@
-import { Effect, Stream } from "effect";
+import * as Effect from "effect/Effect";
+import * as Stream from "effect/Stream";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 
 export const nextClientHint = Effect.fnUntraced(function* (activity: ClientActivity) {

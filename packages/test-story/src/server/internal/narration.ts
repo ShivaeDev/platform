@@ -1,4 +1,5 @@
-import { Cause, Effect } from "effect";
+import * as Cause from "effect/Cause";
+import * as Effect from "effect/Effect";
 import type { TestContext } from "vitest";
 import { callSite } from "#internal/callSite.ts";
 import { failureReport } from "#internal/failureReport.ts";

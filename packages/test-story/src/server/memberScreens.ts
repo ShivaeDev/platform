@@ -1,9 +1,9 @@
-import { Effect, Option, type Scope } from "effect";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { GlobalWindow } from "happy-dom";
+import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type * as Scope from "effect/Scope";
 import { domFetch } from "#domFetch.ts";
 import { memberFetch } from "#internal/adapters/memberFetch.ts";
-import { documentTransport } from "#internal/documentTransport.ts";
 import { type DomCookie, seedCookies } from "#seedCookies.ts";
 
 export interface MemberScreen {
@@ -21,6 +21,9 @@ export function memberScreens<E, R, TVerbs>(options: {
 	const members = new Map<string, MemberScreen>();
 	return {
 		open: Effect.fnUntraced(function* (name: string, cookies: readonly DomCookie[]) {
+			const [{ GlobalWindow }, registryModule, { documentTransport }] = yield* Effect.promise(() =>
+				Promise.all([import("happy-dom"), import("effect/reactivity/AtomRegistry"), import("#internal/documentTransport.ts")]),
+			);
 			const browser = yield* Effect.acquireRelease(
 				Effect.sync(() => new GlobalWindow({ url: options.baseUrl })),
 				(target) => Effect.promise(() => target.happyDOM.abort()).pipe(Effect.andThen(Effect.sync(() => target.close()))),
@@ -34,7 +37,7 @@ export function memberScreens<E, R, TVerbs>(options: {
 					return {
 						fetch: domFetch(options.baseUrl, { fetch: memberFetch(browser), location: browser.location }),
 						name,
-						registry: AtomRegistry.make(),
+						registry: registryModule.make(),
 						root,
 					};
 				}),

@@ -20,6 +20,11 @@
 			"source": "./src/server/*.ts",
 			"types": "./dist/server/*.d.ts",
 			"default": "./dist/server/*.js"
+		},
+		"#client/*.ts": {
+			"source": "./src/client/*.ts",
+			"types": "./dist/client/*.d.ts",
+			"default": "./dist/client/*.js"
 		}
 	},
 	"exports": {

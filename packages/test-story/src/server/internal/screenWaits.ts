@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import type { screenElements } from "#adapters/screenElements.ts";
 import { screenNavigation } from "#adapters/screenNavigation.ts";

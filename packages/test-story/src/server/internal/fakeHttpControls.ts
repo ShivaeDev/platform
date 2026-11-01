@@ -1,5 +1,5 @@
 import type { ServerResponse } from "node:http";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import type {
 	FakeHttpFault,
 	FakeHttpHoldOptions,
