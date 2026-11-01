@@ -23,16 +23,17 @@ export const waitScreen = storyKit({
 			Effect.promise(() => render(<WaitPage />)),
 			(mounted) => Effect.promise(mounted.unmount),
 		);
-		return { view };
+		return { reportsPending: false, view };
 	},
 	inspect: ({ view }) => ({ location: window.location.href, screen: view.container.ownerDocument.body.innerHTML }),
 	name: "screen waits",
 	stages: ["screen"],
-	verbs: ({ view }, story) => {
+	verbs: ({ reportsPending, view }, story) => {
 		const driver = screenDriver({
 			act: async (action) => {
 				await act(action);
 			},
+			...(reportsPending ? { pending: () => false } : {}),
 			root: view.container,
 			tell: story.tell,
 		});
@@ -50,6 +51,10 @@ export const waitScreen = storyKit({
 			unmount: () => Effect.promise(view.unmount),
 		};
 	},
+});
+
+export const pendingSignal = waitScreen.trait("screen", "the screen reports no pending application work", (state) => {
+	state.reportsPending = true;
 });
 
 export const duplicateText = waitScreen.trait("screen", "two visible readouts can have the same text", ({ view }) =>
