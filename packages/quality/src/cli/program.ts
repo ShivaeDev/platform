@@ -1,4 +1,5 @@
 import { Console, Effect } from "effect";
+import { cleanupMergeFiles } from "#baseline/cleanupMergeFiles.ts";
 import { installDriver } from "#baseline/installDriver.ts";
 import { mergeBaseline } from "#baseline/merge.ts";
 import { parseCommand } from "#cli/args.ts";
@@ -42,6 +43,7 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 		case "Fix":
 			return yield* command.rules.length === 0 ? fix(cwd, command.config) : fixRule(cwd, command.config, command.rules);
 		case "BaselineMerge":
+			yield* cleanupMergeFiles(cwd, [command.base, command.ours, command.theirs]);
 			return yield* mergeBaseline(command.base, command.ours, command.theirs);
 		case "BaselineInstallDriver":
 			return yield* installDriver(cwd, launch);

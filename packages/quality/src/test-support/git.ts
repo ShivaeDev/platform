@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { Config, Effect, Option } from "effect";
 
 const HEAVY_ENV = Object.fromEntries(
@@ -40,6 +40,18 @@ export function git(root: string, ...args: readonly string[]): string {
 export function commitAll(root: string, message: string): void {
 	git(root, "add", "--all");
 	git(root, "commit", "--quiet", "--message", message);
+}
+
+export function mergeBranch(root: string, branch: string): "merged" | "conflicted" {
+	const result = spawnSync("git", [...SETTINGS.flatMap((setting) => ["-c", setting]), "merge", "--quiet", "--no-edit", branch], {
+		cwd: root,
+		encoding: "utf8",
+		env: ISOLATED_ENV,
+	});
+	if (result.status !== 0 && result.status !== 1) {
+		throw new Error(`git merge failed: ${result.error ?? result.stderr}`);
+	}
+	return result.status === 0 ? "merged" : "conflicted";
 }
 
 export function branchOff(root: string): string {

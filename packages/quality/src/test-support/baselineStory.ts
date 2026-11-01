@@ -1,11 +1,11 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { runQuality } from "./cli.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
-import { git } from "./git.ts";
+import { git, mergeBranch } from "./git.ts";
 import { ROOT_SHARD, readOrUndefined, recordedDebt, sourceOf, writeAll } from "./recordedDebt.ts";
 
 export interface BaselineEngine {
@@ -46,10 +46,11 @@ export const baselineStory = storyKit({
 			merges: (branch: string) =>
 				Effect.sync(() => {
 					story.tell(`git merges ${branch} into the current branch`);
-					git(engine.root, "merge", "--quiet", "--no-edit", branch);
+					return mergeBranch(engine.root, branch);
 				}),
 			reads: (path: string) => Effect.sync(() => readOrUndefined(engine.root, path)),
 			recorded: (shard = ROOT_SHARD) => Effect.sync(() => recordedDebt(engine.root, shard)),
+			rootFiles: () => Effect.sync(() => readdirSync(engine.root).sort()),
 			shallow: () => Effect.sync(() => (git(engine.root, "rev-parse", "--is-shallow-repository").trim() === "true" ? "shallow" : "complete")),
 			stages: (...paths: readonly string[]) =>
 				Effect.sync(() => {
