@@ -1,5 +1,5 @@
 import { Data, Effect, Layer } from "effect";
-import { makeEffectIt } from "#makeEffectIt.ts";
+import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { releasedOnClose } from "./lifecycleLog.ts";
 
 class BodyFailure extends Data.TaggedError("BodyFailure")<{ readonly message: string }> {}

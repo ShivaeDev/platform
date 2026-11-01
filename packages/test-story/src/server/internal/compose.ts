@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import type { AnyTestLayer } from "@shivaedev/test/anyTestLayer.ts";
+import type { AnyTestLayer } from "@shivaedev/test/adapters/anyTestLayer.ts";
 import { type KitList, kitDefinition } from "#internal/compositionTypes.ts";
 import { hooked } from "#internal/hooked.ts";
 import { runUntil } from "#internal/runUntil.ts";

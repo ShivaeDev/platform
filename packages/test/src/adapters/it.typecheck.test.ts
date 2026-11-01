@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Scope } from "effect";
 import { expectTypeOf } from "vitest";
-import { it } from "#it.ts";
+import { it } from "#adapters/it.ts";
 
 class Missing extends Context.Service<Missing, string>()("@types/Missing") {}
 

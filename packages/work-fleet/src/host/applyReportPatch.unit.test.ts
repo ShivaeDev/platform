@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { applyReportPatch } from "#host/applyReportPatch.ts";
 
 it.effect("replays multiple hunks against their original positions", function* () {

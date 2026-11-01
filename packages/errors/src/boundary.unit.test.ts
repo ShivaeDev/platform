@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Schema } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { rpcBoundary } from "#boundary.ts";
 import { Conflict, InternalServerError, ServiceUnavailable } from "#taxonomy.ts";
 

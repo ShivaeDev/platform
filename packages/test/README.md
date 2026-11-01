@@ -10,7 +10,7 @@ Wrapping every body in `Effect.gen` hides the test's work, and copying a runner 
 import { expect } from "@effect/vitest";
 import { Clock } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 
 it.effect("advances the test's time", function* () {
 	expect(yield* Clock.currentTimeMillis).toBe(0);
@@ -40,7 +40,7 @@ The work usually splits into two parts:
 ```ts
 import { expect } from "@effect/vitest";
 import { Clock, Context, Effect, Layer } from "effect";
-import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
+import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
 
 class Token extends Context.Service<Token, string>()("test/Token") {}
 
@@ -69,7 +69,7 @@ A fixture that needs no services uses `Layer.empty`. This separate module replac
 ```ts
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
+import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
 
 const { effectApp } = makeEffectIt({
 	layer: Layer.empty,
@@ -90,7 +90,7 @@ This alternative token fixture adds a tracing wrapper:
 ```ts
 import { expect } from "@effect/vitest";
 import { Context, Effect, Layer } from "effect";
-import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
+import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
 
 class Token extends Context.Service<Token, string>()("test/Token") {}
 
@@ -114,7 +114,7 @@ effectApp("reads the harness", function* (token) {
 ```ts
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 
 it.effect("reads an Effect result", function* ({ task }) {
 	expect(task.name).toBe("reads an Effect result");
@@ -220,12 +220,12 @@ The entire wrapped Effect, including readiness checks and retry delays, uses liv
 
 ### API
 
-Import the module that defines the name; the package has no root entry. Every source module is available through its `.ts` subpath, including modules under `internal/`.
-- `@shivaedev/test/it.ts`: `it`, with generator-aware `effect` and `live` testers.
-- `@shivaedev/test/makeEffectIt.ts`: `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`.
+Import the module that defines the name; the package has no root entry. Every source module is available through its `.ts` subpath, including modules under `adapters/` and `internal/`.
+- `@shivaedev/test/adapters/it.ts`: `it`, with generator-aware `effect` and `live` testers.
+- `@shivaedev/test/adapters/makeEffectIt.ts`: `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`.
 - `@shivaedev/test/eventually.ts`: `eventually(effect, options?)` and `EventuallyOptions`.
 - `@shivaedev/test/withLive.ts`: `withLive(effect)`, a live-time region under either clock.
-- `@shivaedev/test/anyTestLayer.ts`: `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope.
+- `@shivaedev/test/adapters/anyTestLayer.ts`: `AnyTestLayer` and `buildTestLayer(layer)`, an Effect that builds the Layer's service Context using Scope from the Effect environment.
 - `@shivaedev/test/types.ts`: `EffectClock`, `EffectTestOptions`, `EffectTestBody`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`.
 
 `eventually` waits `"10 millis"` between attempts by default; omitting `times` leaves retries unbounded.

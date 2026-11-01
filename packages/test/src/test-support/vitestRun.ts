@@ -20,6 +20,10 @@ const FIXTURE_TESTS = {
 	"an it.live test whose cleanup never finishes": "stuckCleanupFixture",
 	"it.effect.each case alpha": "testerFixture",
 	"it.effect.each case beta": "testerFixture",
+	"ordinary Effect failure": "registrationFixture",
+	"ordinary generator failure": "registrationFixture",
+	"table Effect failure": "registrationFixture",
+	"table generator failure": "registrationFixture",
 	"the test after a cleanup that never finishes": "stuckCleanupFixture",
 	"the test after the failed worker startup": "startupFailureFixture",
 } as const;
@@ -97,6 +101,10 @@ export const vitestRun = storyKit({
 			runsPendingLayerFile: () => {
 				story.tell("Vitest runs a test that times out waiting for its file Layer, and reports when the file is complete");
 				return start("pendingLayerFixture");
+			},
+			runsRegistrationFile: () => {
+				story.tell("Vitest runs ordinary and table failures with one file Layer");
+				return start("registrationFixture");
 			},
 			runsSharedLayerFile: () => {
 				story.tell("Vitest runs a file whose two tests use one file Layer, and reports when the file is complete");

@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer } from "effect";
 import { it } from "vitest";
-import { makeEffectIt } from "#makeEffectIt.ts";
+import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { note, releasedOnClose } from "./lifecycleLog.ts";
 
 class StartupFailure extends Data.TaggedError("StartupFailure")<{ readonly message: string }> {}

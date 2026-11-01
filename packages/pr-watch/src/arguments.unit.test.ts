@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { type Input, optionsFor } from "#arguments.ts";
 
 const input: Input = {

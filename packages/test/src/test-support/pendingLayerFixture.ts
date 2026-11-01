@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import { makeEffectIt } from "#makeEffectIt.ts";
+import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { note } from "./lifecycleLog.ts";
 
 class FileService extends Context.Service<FileService, string>()("@test/PendingFileService") {}

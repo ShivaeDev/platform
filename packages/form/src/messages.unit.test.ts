@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect, Schema, SchemaIssue, SchemaParser } from "effect";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { messagesByField } from "#messages.ts";
 
 const Fields = Schema.Struct({

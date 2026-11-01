@@ -910,7 +910,7 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();

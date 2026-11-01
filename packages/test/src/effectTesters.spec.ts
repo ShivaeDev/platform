@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { it } from "#it.ts";
+import { it } from "#adapters/it.ts";
 import { clockReading } from "#test/clockReading.ts";
 
 const GENERATOR_STORY = "it.effect runs a generator body on the test clock from 0 ms with this test's Vitest context";

@@ -5,7 +5,7 @@ import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
 import { defineService } from "@shivaedev/service/defineService.ts";
-import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
+import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
 import type { PostgresTestDatabase, PostgresTestServices } from "./database.ts";
 import { makePostgresTestLayer } from "./postgres.ts";
 import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";
