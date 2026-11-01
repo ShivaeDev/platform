@@ -5,9 +5,8 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { signedIn } from "@shivaedev/contract/readPolicy.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
-import { Conflict, InternalServerError, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { Conflict, InternalServerError, NotFound, ServiceUnavailable, TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
-import { TooManyRequests } from "@shivaedev/rate-limit/TooManyRequests.ts";
 
 export class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),

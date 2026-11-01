@@ -50,7 +50,9 @@
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},
-	"dependencies": {},
+	"dependencies": {
+		"@shivaedev/errors": "workspace:*"
+	},
 	"devDependencies": {
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/sql": "workspace:*",

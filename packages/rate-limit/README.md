@@ -40,14 +40,14 @@ The migration creates `rate_limit_windows`. PostgreSQL retains one row per key; 
 
 `rateLimit({ key, per, window })` reads `Store` from the environment and returns `void`. `per` must be a positive safe integer and `window` a finite positive Effect duration; invalid policies die with `RangeError`.
 
-`TooManyRequests`, from `@shivaedev/rate-limit/TooManyRequests.ts`, is an Effect Schema tagged error with `key`, `message` and `retryAt`. The retry time is Unix epoch milliseconds. Declare this schema in a contract's rejections to preserve it across RPC. Applications choose the message shown to the user and whether to retry. Refusals are immediate; the limiter does not sleep or queue callers.
+`TooManyRequests`, from `@shivaedev/errors/taxonomy.ts`, is an Effect Schema tagged error with `message` and optional `key` and `retryAt` fields. Both built-in stores supply `key` and `retryAt` on every refusal. The retry time is Unix epoch milliseconds. Declare this schema in a contract's rejections to preserve it across RPC. Applications choose the message shown to the user and whether to retry. Refusals are immediate; the limiter does not sleep or queue callers.
 
 A custom store implements `Store.consume` from `@shivaedev/rate-limit/Store.ts`, atomically consuming a `WindowRequest` or failing with `TooManyRequests` or `StoreError`. A store owns its clock and consistency boundary.
 
 ### Install
 
 ```sh
-pnpm add @shivaedev/rate-limit effect
+pnpm add @shivaedev/rate-limit @shivaedev/errors effect
 ```
 
 For PostgreSQL, also install `@shivaedev/sql` and its PostgreSQL driver peer. Applications depending on `@shivaedev/platform` reach the limiter through the framework hoist.

@@ -58,3 +58,17 @@ memory.it("concurrent memory calls share one remaining admission", [], function*
 
 	expect(results).toEqual(expect.arrayContaining(["admitted", { key: "notes:alice", refusal: "TooManyRequests", retryAt: started + 60_000 }]));
 });
+
+memory.it("the JSON RPC client decodes a rate-limit refusal as the shared TooManyRequests with its retry details", [], function* ({ request }) {
+	yield* request();
+	yield* request();
+
+	const refused = yield* request();
+
+	expect(refused).toEqual({
+		key: "notes:alice",
+		message: "Rate limit exceeded",
+		refusal: "shared TooManyRequests",
+		retryAt: expect.any(Number),
+	});
+});

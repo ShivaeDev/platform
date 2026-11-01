@@ -23,7 +23,7 @@ There are two kinds of failure. Expected failures are part of an operation's con
 
 ### Expected failures
 
-`taxonomy.ts` exports `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError` and `ServiceUnavailable`. Each class is a Schema tagged error with a string `message`; `BadRequest` and `Conflict` also accept an optional string `field`. Declare only the failures an operation can return:
+`taxonomy.ts` exports `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError` and `ServiceUnavailable`. Each class is a Schema tagged error with a string `message`; `BadRequest` and `Conflict` also accept an optional string `field`. `TooManyRequests` accepts an optional string `key` and numeric `retryAt` (Unix epoch milliseconds), supplied by the rate-limit stores. Declare only the failures an operation can return:
 
 ```ts
 import { Schema } from "effect";

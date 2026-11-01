@@ -1,5 +1,5 @@
 import { Context, Data, type Effect } from "effect";
-import type { TooManyRequests } from "#TooManyRequests.ts";
+import type { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 
 export class StoreError extends Data.TaggedError("RateLimitStoreError")<{ readonly cause: unknown }> {}
 
