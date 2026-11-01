@@ -65,6 +65,8 @@ The Layer needs `Prefix`. After a caller resolves `Greetings`, `greet` needs no 
 
 `initialize` and ordinary methods may require the listed services and `Scope.Scope`. The compiler rejects a definition that reads another service. Scope is supplied by the Layer or method caller, so `Scope.Scope` itself cannot appear in `requires`.
 
+Native `Context.Reference` keys can appear in `requires`. Their defaults make them requirement-free in Effect, so they add no Layer dependency, including when the reference's value is a scope.
+
 Return functions from the method factory, each producing an Effect. An Effect value placed directly in the method record is rejected. Keep the private state behind those functions; it is absent from the emitted public service declaration.
 
 ### 2. Annotate generators when inference needs help
@@ -173,6 +175,8 @@ const preserved = Effect.gen(function* () {
 ```
 
 The wrapped Effect still requires `Caller`, which the caller supplies separately. The generic service's Layer has no declared dependencies. The emitted declarations preserve the generic success and failure types as well as caller requirements.
+
+A generic method's remaining requirements follow native Effect rules: execution without them is a compile error. Composing the call into a Layer retains those dependencies until they are provided; an initializer cannot use the call unless its service declares those dependencies.
 
 Marked generic methods also work with declared initializer dependencies. Their signatures keep all caller requirements unchanged; unlike ordinary methods, they do not subtract declared dependencies from the public signature. The compiler rejects an unmarked generic that correlates its input and returned Effect, and a structurally distinct two-signature overload; it may not reject other generic or overloaded signatures. Use initialization state to close over bound dependencies in generic methods.
 
