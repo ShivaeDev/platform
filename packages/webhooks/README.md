@@ -116,6 +116,8 @@ Refused requests create no receipt and no jobs. Signatures are checked before de
 
 Mapping, database and enqueue failures log their redacted cause and `errorTag` at error level before the empty 503 response. The HTTP request span records the redacted failure with its original tag. Receiving a delivery runs under the `Webhooks.receive` span.
 
+`webhookEvent` wraps payload decoding failures in `WebhookPayloadError` from `@shivaedev/webhooks/server/WebhookPayloadError.ts`, retaining the original `SchemaError` in `cause`. Direct callers catch `WebhookPayloadError` for invalid payloads. Custom `WebhookEvent.decode` implementations wrap only payload schema failures in `new WebhookPayloadError({ cause })`; application failures keep their original types. An application `SchemaError` receives a logged 503, and frozen tagged failures retain their tag in diagnostics without being mutated.
+
 The receipt insert and every enqueue use one SQL transaction. Concurrent copies wait on the receipt's unique key: a committed first copy makes the second a duplicate; a rolled-back first copy lets the second receive the delivery itself. If any enqueue fails, earlier enqueues and the receipt roll back, and the sender's retry can succeed. Receipts for ignored events are deduplicated too.
 
 ### Other senders

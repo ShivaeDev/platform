@@ -1,5 +1,5 @@
 import { Cause, type Config, type Context, Effect, Layer, Predicate, type Redacted } from "effect";
-import { HttpRouter, HttpServerRespondable, HttpServerResponse } from "effect/http";
+import { HttpRouter, type HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
 import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
@@ -16,6 +16,27 @@ export interface WebhookRouteOptions<TJobs, R, E = never> {
 
 type SourceServices<T> = T extends WebhookSource<infer R, unknown> ? R : never;
 type RouteLayer<TJobs, R> = Layer.Layer<never, Config.ConfigError, HttpRouter.HttpRouter | TJobs | R | SqlClient.SqlClient>;
+
+function webhookBody(request: HttpServerRequest.HttpServerRequest) {
+	return readBoundedBody(request).pipe(
+		Effect.map((body) => new Uint8Array(body)),
+		Effect.catchTag("RequestBodyTooLarge", () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("PayloadTooLarge") }))),
+	);
+}
+
+function receiptFailure(error: unknown) {
+	const response = HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") });
+	const cause = redactDiagnosticCause(Cause.fail(error));
+	const responseCause = Cause.map(cause, (failure) =>
+		Object.assign(new Error("Webhook receipt failed", { cause: failure }), {
+			[HttpServerRespondable.symbol]: () => Effect.succeed(response),
+		}),
+	);
+	return Effect.logError("Webhook receipt failed", cause).pipe(
+		Effect.annotateLogs({ errorTag: Predicate.hasProperty(error, "_tag") ? error._tag : "Unknown" }),
+		Effect.andThen(Effect.failCause(responseCause)),
+	);
+}
 
 export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<TJobs, R, E>): RouteLayer<TJobs, R>;
 export function webhookRoute<TJobs, const TSources extends Readonly<Record<string, WebhookSource<unknown, unknown>>>>(
@@ -39,27 +60,12 @@ export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<T
 					if (source === undefined || key === undefined) {
 						return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NotFound") });
 					}
-					const body = new Uint8Array(yield* readBoundedBody(request));
+					const body = yield* webhookBody(request);
+					if (HttpServerResponse.isHttpServerResponse(body)) {
+						return body;
+					}
 					return yield* receive(name, source, key, body, request.headers, jobs).pipe(Effect.scoped, Effect.provideContext(context));
-				}).pipe(
-					Effect.catchTag("RequestBodyTooLarge", () =>
-						Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("PayloadTooLarge") })),
-					),
-					Effect.catchTag("WebhookUnauthorized", () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Unauthorized") }))),
-					Effect.catchTag("SchemaError", () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("BadRequest") }))),
-					Effect.catch((error) => {
-						const response = HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") });
-						// Preserve the failure for HTTP tracing without attaching the request's credentials to a synthetic 503 error.
-						const failure = Predicate.isObject(error) ? error : new Error("Webhook receipt failed", { cause: error });
-						const cause = redactDiagnosticCause(
-							Cause.fail(Object.assign(failure, { [HttpServerRespondable.symbol]: () => Effect.succeed(response) })),
-						);
-						return Effect.logError("Webhook receipt failed", cause).pipe(
-							Effect.annotateLogs({ errorTag: Predicate.hasProperty(error, "_tag") ? error._tag : "Unknown" }),
-							Effect.andThen(Effect.failCause(cause)),
-						);
-					}),
-				),
+				}).pipe(Effect.catch(receiptFailure)),
 			);
 		}),
 	);

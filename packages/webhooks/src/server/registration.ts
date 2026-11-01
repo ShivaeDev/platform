@@ -2,6 +2,7 @@ import { type Config, Effect, type Option, type Redacted, Schema } from "effect"
 import type { JobPayloadSchema, QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
+import { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
 import type { WebhookUnauthorized } from "#server/WebhookUnauthorized.ts";
 
 const enqueue = Symbol("WebhookJob.enqueue");
@@ -18,7 +19,7 @@ export function webhookJob<const TName extends string, TPayload extends JobPaylo
 }
 
 export interface WebhookEvent<R = never, E = never> {
-	readonly decode: (body: Uint8Array) => Effect.Effect<readonly WebhookJob<R>[], Schema.SchemaError | E, R>;
+	readonly decode: (body: Uint8Array) => Effect.Effect<readonly WebhookJob<R>[], WebhookPayloadError | E, R>;
 }
 
 export function webhookEvent<TSchema extends Schema.Constraint, R = never, E = never>(
@@ -28,6 +29,7 @@ export function webhookEvent<TSchema extends Schema.Constraint, R = never, E = n
 	return {
 		decode: (body) =>
 			Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(new TextDecoder().decode(body)).pipe(
+				Effect.mapError((cause) => new WebhookPayloadError({ cause })),
 				Effect.flatMap((payload) => {
 					const result = jobs(payload);
 					return Effect.isEffect(result) ? result : Effect.succeed(result);
