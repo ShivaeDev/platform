@@ -26,7 +26,7 @@ export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
 			const ready = yield* Deferred.make<string>();
 			const started = yield* Deferred.make<void>();
 			const hold = Effect.gen(function* () {
-				yield* Effect.timeout(options.lock, timeout);
+				yield* options.lock;
 				const [holder] = yield* sql<{ pid: number }>`select pg_backend_pid() as pid`;
 				const race = `raceWithLock ${holder?.pid}.`;
 				yield* Deferred.succeed(ready, race);
@@ -46,7 +46,9 @@ export function raceWithLock<A, E, R, TLockError, TLockServices>(options: {
 			const holder = yield* (
 				options.release === "commit" ? transact(Effect.scoped(hold), { onSqlError: (error) => error }) : withTestTransaction(hold)
 			).pipe(Effect.forkScoped);
-			const race = yield* Effect.raceFirst(Deferred.await(ready), Fiber.join(holder).pipe(Effect.andThen(Effect.never)));
+			const race = yield* Effect.raceFirst(Deferred.await(ready), Fiber.join(holder).pipe(Effect.andThen(Effect.never))).pipe(
+				Effect.timeout(timeout),
+			);
 			const racing = yield* Effect.forEach(
 				options.effects,
 				(effect, index) => Effect.result(everyBlockedSession ? effect : tagged(effect, `${race}${index}`)),

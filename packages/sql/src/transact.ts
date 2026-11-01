@@ -58,8 +58,13 @@ export const transact: {
 	2,
 	Effect.fn("Transact.transact")(function* <A, E, R, TError>(effect: Effect.Effect<A, E, R>, options: TransactOptions<TError>) {
 		const sql = yield* SqlClient.SqlClient;
+		const native = yield* Effect.serviceOption(sql.transactionService);
 		return yield* invalidations
-			.within(sql.withTransaction)(effect)
+			.within((body, boundary) =>
+				native._tag === "Some"
+					? sql.withTransaction(body)
+					: boundary.restore(sql.withTransaction(Effect.tap(body, () => sql.afterCommit(boundary.committed)))),
+			)(effect)
 			.pipe(Effect.catchIf(isSqlError, (error) => Effect.fail(options.onSqlError(error))));
 	}),
 );
