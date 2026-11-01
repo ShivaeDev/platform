@@ -1,5 +1,6 @@
 import { Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/rpc";
+import { declarationError } from "#internal/declarationError.ts";
 import type { CommandShape, OperationShape, QueryShape, StreamShape } from "#operation.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 import { changesRpc, KeyScope, operationAnnotations } from "#serverMetadata.ts";
@@ -65,10 +66,10 @@ type Unique<TOperations extends readonly OperationShape[]> = [Duplicated<TOperat
 	? unknown
 	: `Operation names must be unique; duplicated: ${Duplicated<TOperations>}`;
 
-function assertUnique(operations: readonly OperationShape[]) {
-	const duplicated = operations.map(({ name }) => name).filter((name, index, names) => names.indexOf(name) !== index);
-	if (duplicated.length > 0) {
-		throw new Error(`Operation names must be unique; duplicated: ${[...new Set(duplicated)].join(", ")}`);
+function assertValid(name: string, operations: readonly (QueryShape | CommandShape | StreamShape)[]) {
+	const error = declarationError(name, operations);
+	if (error !== undefined) {
+		throw new Error(error);
 	}
 }
 
@@ -125,7 +126,7 @@ export function contract(
 	},
 ): DeclaredGroup {
 	const { queries = [], commands = [], streams = [], keyScope } = operations;
-	assertUnique([...queries, ...commands, ...streams]);
+	assertValid(name, [...queries, ...commands, ...streams]);
 	const rpcs = [...queries, ...commands, ...streams].map((operation) =>
 		Rpc.make(`${name}.${operation.name}`, {
 			error: operation.kind === "query" ? Schema.Union([operation.error, QueryReadDenied]) : operation.error,
