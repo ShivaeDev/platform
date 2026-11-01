@@ -3,6 +3,22 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { deniedStory, readable, rejected, watching } from "#test/deniedStory.ts";
 
 for (const delivery of ["hints", "pushed"] as const) {
+	deniedStory.it(
+		`${delivery}: an explicit refresh recovers a denied query after access is restored`,
+		[watching(delivery)],
+		function* ({ allow, attempts, refresh, shown, untilLive }) {
+			expect(yield* shown()).toBe("failed with read denied");
+			allow();
+
+			refresh();
+			yield* untilLive();
+
+			yield* outcomes([
+				["query", () => shown(), "Alice's record"],
+				["subscriptions", () => attempts(), 2],
+			]);
+		},
+	);
 	for (const rejection of ["denied", "NotFound", "Rejected"] as const) {
 		deniedStory.it(
 			`${delivery}: ${rejection} settles after one policy check for a minute`,
