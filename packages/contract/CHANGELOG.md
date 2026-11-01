@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.1 - 2026-11-01
+
+### Fixed
+
+- Reject untyped `readsCollections` declarations with ordinary member policies when building a contract, with a message requiring `permissionReadPolicy`.
+
 ## 0.30.0 - 2026-10-31
 
 ### Added

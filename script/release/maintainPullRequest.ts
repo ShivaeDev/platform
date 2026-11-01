@@ -1,8 +1,10 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import process from "node:process";
-import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Clock, Config, Console, Effect } from "effect";
 import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
+import { isChangeset } from "@shivaedev/releases/workspace.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
 import config from "#release-config";
 import { compareRelease } from "./compare.ts";
@@ -15,11 +17,14 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 		return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" }).trim();
 	}
 	const { pull, head, hold } = yield* github.snapshot();
-	if (
-		hold !== undefined
-		&& (hold === "merge queue" || spawnSync("git", ["-C", root, "merge-tree", "--write-tree", "origin/main", head]).status === 0)
-	) {
+	if (hold === "merge queue") {
 		return `held: ${hold}`;
+	}
+	if (hold !== undefined) {
+		const merge = spawnSync("git", ["-C", root, "merge-tree", "--write-tree", "origin/main", head], { encoding: "utf8" });
+		if (merge.status === 0 && !git("ls-tree", "--name-only", `${merge.stdout.trim()}:.changeset`).split("\n").some(isChangeset)) {
+			return `held: ${hold}`;
+		}
 	}
 	git("switch", "-C", "release/next", "origin/main");
 	const plan = yield* planPullRequest(root);

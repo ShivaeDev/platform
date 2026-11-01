@@ -90,7 +90,7 @@ CLI status records the request time, acknowledged delivery time or failure; inte
 
 ## Answers and continuations
 
-Each waiting request tracks its exact published decision and response before resolution. `work-fleet answer` refreshes the managed decision and registers its current question before answering, including after a changed template was republished. If reconciliation replaces a decision with another of the same kind during the command, the answer applies to the current decision. A different kind or a move out of waiting records `Decision changed` with the current reason in status.
+Each waiting request tracks its exact published decision and response before resolution. `work-fleet answer` refreshes the managed decision and registers its current question before answering, including after a changed template was republished. If reconciliation replaces a decision with another of the same kind during publication, the answer applies to the current decision. A different kind is refused as `Decision changed` with the current reason in status. If a question changes during background application, the current question stays open, and `status` shows it alongside the answer failure so another answer can continue the same worker session. A late application failure after the work has left waiting does not put it back into a wait.
 
 When reconciliation continues a worker thread with an answer, the response receipt and continuation intent commit together before submission. Concurrent resolution, repeated resolution and restart do not submit the answer again; a lost acknowledgement reconciles the stored operation. If a crash occurs before submission and no authoritative receipt is available, Fleet retains the uncertain operation for human inspection.
 

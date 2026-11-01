@@ -29,7 +29,7 @@ export const database = storyKit({
 		...runtimeVerbs(engine, story.tell),
 		...connectionVerbs(engine, story.tell),
 		...controllerVerbs(engine, story.tell),
-		...deferralVerbs(engine),
+		...deferralVerbs(engine, story.tell),
 		...listingVerbs(engine, story.tell),
 		...releaseVerbs(engine, story.tell),
 		...teardownVerbs(engine, story.tell),

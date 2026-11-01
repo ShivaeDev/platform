@@ -7,6 +7,7 @@ import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { authSession } from "#client/authSession.ts";
 import { Notes, ReadPermission, type Role, Roles } from "./feature.ts";
 
 export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) {
@@ -60,7 +61,13 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 	});
 	return {
 		api,
-		payload: (role: Role) => Effect.map(Roles.resolve(role), (access) => ({ user: { id: "alice", ...access } })),
+		readSession: (role: Role) =>
+			authSession(
+				async (_signal): Promise<{ data: { user: { id: string } }; error: null }> => ({
+					data: { user: { id: "alice", ...(await Effect.runPromise(Roles.resolve(role))) } },
+					error: null,
+				}),
+			),
 		requests,
 		state,
 		url,

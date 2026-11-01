@@ -1,7 +1,8 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { CLI_TIMEOUT } from "#test/cli.ts";
-import { ALPHA_SHARD, branchEdits, driverInstalled, merged, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
+import { ALPHA_SHARD, branchEdits, branchWrites, driverInstalled, merged, packageWorkspace, shardsRecorded } from "#test/packageWorkspace.ts";
 
 baselineStory.it(
 	"baseline install-driver adds the merge.quality-baseline.driver setting to the repository's local config and changes nothing else",
@@ -16,16 +17,31 @@ baselineStory.it(
 	CLI_TIMEOUT,
 );
 
-baselineStory.it(
-	"the driver merges branches that each remove a neighbouring entry into a shard without either entry",
-	[packageWorkspace(), shardsRecorded(), driverInstalled(), branchEdits("left", { removes: ["a.ts"] }), branchEdits("right", { removes: ["b.ts"] })],
-	function* ({ merges, recorded }) {
-		yield* merges("left");
+for (const conflict of [false, true]) {
+	baselineStory.it(
+		`the driver merges a three-way baseline shard without leaving temporary files after a ${conflict ? "conflicting" : "clean"} merge`,
+		[
+			packageWorkspace(),
+			shardsRecorded(),
+			driverInstalled(),
+			branchEdits("left", { removes: ["a.ts"] }),
+			branchEdits("right", { removes: ["b.ts"] }),
+			...(conflict ? [branchWrites("left", "src/root.ts", 'String("left");\n'), branchWrites("right", "src/root.ts", 'String("right");\n')] : []),
+		],
+		function* ({ merges, recorded, rootFiles }) {
+			const before = yield* rootFiles();
 
-		expect(yield* recorded(ALPHA_SHARD)).toEqual(["packages/alpha/src/c.ts structure/max-lines 3"]);
-	},
-	CLI_TIMEOUT,
-);
+			const result = yield* merges("left");
+
+			expect(result).toBe(conflict ? "conflicted" : "merged");
+			yield* outcomes([
+				["merged shard", () => recorded(ALPHA_SHARD), ["packages/alpha/src/c.ts structure/max-lines 3"]],
+				["repository root files", () => rootFiles(), before],
+			]);
+		},
+		CLI_TIMEOUT,
+	);
+}
 
 baselineStory.it(
 	"the driver keeps an entry removed on one branch removed when the other branch lowers it",
@@ -37,8 +53,9 @@ baselineStory.it(
 		branchEdits("remove", { removes: ["a.ts"] }),
 	],
 	function* ({ merges, recorded }) {
-		yield* merges("lower");
+		const result = yield* merges("lower");
 
+		expect(result).toBe("merged");
 		expect(yield* recorded(ALPHA_SHARD)).toEqual(["packages/alpha/src/b.ts structure/max-lines 3", "packages/alpha/src/c.ts structure/max-lines 3"]);
 	},
 	CLI_TIMEOUT,
@@ -54,8 +71,9 @@ baselineStory.it(
 		branchEdits("right", { adds: { "e.ts": 4 }, lowers: { "a.ts": 2 } }),
 	],
 	function* ({ merges, recorded }) {
-		yield* merges("left");
+		const result = yield* merges("left");
 
+		expect(result).toBe("merged");
 		expect(yield* recorded(ALPHA_SHARD)).toEqual([
 			"packages/alpha/src/a.ts structure/max-lines 1",
 			"packages/alpha/src/b.ts structure/max-lines 3",

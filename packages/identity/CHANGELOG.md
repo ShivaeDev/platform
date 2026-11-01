@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.16.0 - 2026-11-01
+
+### Added
+
+- Wire Better Auth's four email callbacks through one `emails` mount option. Deliver typed account confirmation, email-change approval, new-address confirmation, password-reset and existing-account messages with application route links and decoded new addresses.
+- Throttle email delivery attempts per account and message kind within a configurable, mount-local window that defaults to one minute.
+- Generated starters wire typed, throttled auth emails and provide application confirmation and password-reset routes.
+
+## 0.15.0 - 2026-11-01
+
+### Added
+
+- Applications supply Better Auth database hooks as Effects through `betterAuthMount`'s `databaseHooks` option. Mounted requests provide their services, tracing and interruption; typed failures carry an application code and message, and defects remain request defects.
+- Identity exposes `signInAgain(auth, userId)` to mint a fresh test session for an existing user using the caller's Effect Clock and Better Auth's configured lifetime.
+- Generated apps provide session renewal verbs for HTTP visitors and browser cookies after long story clock jumps.
+
+### Changed
+
+- The starter's app and cookie story kits start TestClock at the present by default so Better Auth's wall-clock endpoints accept minted sessions. Stories can still choose an explicit clock.
+
 ## 0.14.0 - 2026-10-31
 
 ### Fixed

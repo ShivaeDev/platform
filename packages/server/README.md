@@ -142,7 +142,7 @@ const host = appHost({
 
 Construct Better Auth inside `application`, since its constructor starts schema validation. Keep validation enabled so a current migration ledger with missing auth columns still reports drift. The starter uses this form after its pre-deploy migrations.
 
-Set `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to export `appHost`'s Effect spans over OTLP/HTTP. Without an endpoint, no exporter or export loop is built, even when service metadata is set. The `http/protobuf` default follows the [OpenTelemetry recommendation](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#specify-protocol); unsupported protocols, including `grpc`, fail startup with a `ConfigError` naming the value. Header and resource-attribute values are `key=value` pairs with URL-encoded values. Configuration is read through Effect Config.
+Railway tracing is the default error and trace destination. The starter enables tracing for both services in `.railway/railway.ts`; Railway injects the endpoint, authentication headers and service identity. `appHost` exports through the redacting Effect OTLP/HTTP pipeline. Leave exporter endpoints unset on Railway so its injected configuration takes effect. Without an endpoint, no exporter or export loop is built, even when service metadata is set. The `http/protobuf` default follows the [OpenTelemetry recommendation](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#specify-protocol); unsupported protocols, including `grpc`, fail startup with a `ConfigError` naming the value. Header and resource-attribute values are `key=value` pairs with URL-encoded values. Configuration is read through Effect Config.
 
 The supported tracing variables and defaults are:
 
@@ -164,7 +164,29 @@ The supported tracing variables and defaults are:
 
 Timeouts fail through the HTTP client's typed transport-error channel and use the same warning path as other transport failures. Effect retains its native retry policy; the request timeout applies to each attempt. The batch defaults follow Effect's `OtlpTracer.layer`. Its options cannot express a separate batch-operation deadline or a queue capacity, so `OTEL_BSP_EXPORT_TIMEOUT` controls shutdown only and `OTEL_BSP_MAX_QUEUE_SIZE` is unsupported. Other `OTEL_BSP_*` variables are unsupported.
 
-On Railway, enable the per-service tracing setting separately for the web service and worker, and leave both exporter endpoint variables unset in your app's configuration. Railway documents that it injects the `OTEL_*` variables, including `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, only when the app sets no endpoint of its own. The framework exports through Effect's own `effect/observability` OTLP tracer; eBPF auto-instrumentation is outside this path. For a worker, provide `otlpTracing` from `@shivaedev/server/otlpTracing.ts` to its application Layer. It batches ended Effect spans and flushes during scoped shutdown with a three-second bound by default. The first failed export logs a warning with the collector status and redacted response body, or the transport failure kind when no response arrives. Repeated failures stay quiet until a successful export. Collector connection failures and HTTP errors leave requests, jobs and shutdown successful.
+For existing Railway services, enable manual tracing per service and environment, then redeploy. The starter does this through `tracing: { enabled: true, autoInstrumentation: false }` in its infrastructure configuration (Railway CLI 5.63.0 or newer). Railway documents that it injects the `OTEL_*` variables, including `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`, only when the app sets no endpoint of its own. The framework exports through Effect's own `effect/observability` OTLP tracer; eBPF auto-instrumentation is outside this path. For a worker, provide `otlpTracing` from `@shivaedev/server/otlpTracing.ts` to its application Layer. Railway accepts traces only: logs become `effect.log` spans with a `log` event, and Effect `ErrorReporter` reports become failed `effect.error` spans with exception events. Both use the same exporter and redaction as application spans; no OTLP logs endpoint is used. Exported diagnostic annotations mask the entire `rpc.payload`, since a request value can repeat a sensitive error field under a public payload key. The exporter batches ended Effect spans and flushes during scoped shutdown with a three-second bound by default. The first failed export logs a warning with the collector status and redacted response body, or the transport failure kind when no response arrives. Repeated failures stay quiet until a successful export. Collector connection failures and HTTP errors leave requests, jobs and shutdown successful.
+
+`appHost` mounts `POST /_platform/errors`. Mount `useBrowserErrors` from `@shivaedev/react/client/adapters/useBrowserErrors.ts` once in the root component to forward uncaught browser errors and unhandled rejections, including before sign-in. The route accepts `{ kind: "error" | "unhandledrejection", message, stack?, url }`, returns 202, and reports through the same server redaction and `ErrorReporter` pipeline. It accepts at most 20 reports per minute per client IP per process, returning 429 afterwards. Railway's `x-real-ip` is used only from a configured trusted proxy; otherwise the socket peer identifies the client. Foreign origins return 403. Invalid JSON or reports over 16 KiB return 400. Limits reset with the process and are independent across replicas.
+
+For local traces, run an OpenTelemetry Collector on loopback with an OTLP HTTP receiver and its `debug` exporter. Set `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318` for the app and worker; the collector's console shows the redacted spans, diagnostic events and reported errors. A minimal collector configuration is:
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 127.0.0.1:4318
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    traces:
+      receivers: [ otlp ]
+      exporters: [ debug ]
+```
+
+Save the configuration as `otelcol.local.yaml` and run `otelcol --config=otelcol.local.yaml`. Start the web and worker processes with `OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318`, then read the collector console. Without an endpoint, local development and tests start with export disabled. Console logging remains available. Railway is the production sink; do not add another error service.
 
 Exported HTTP server spans use `{method} {route}` with `http.route` for matched RPC and router paths, including parameter templates; unmatched requests use the method alone. `appHost` continues incoming W3C `traceparent` context in RPC handling, including one sent by an edge proxy, whether or not an exporter is configured.
 
@@ -336,7 +358,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `setupDatabases.ts`                                                             | `setupDatabases()`: prepare the local development and test databases.                                                                                                         |
 | `development.ts`                                                                | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode.                                                     |
 | `rpc-server/publicConfigLayer.ts`                                               | `publicConfigLayer(declaration, path?)`: serve a `publicConfig` declaration from native Config.                                                                               |
-| `otlpTracing.ts`                                                                | `otlpTracing`: opt-in Effect OTLP trace export for worker Layers.                                                                                                             |
+| `otlpTracing.ts`                                                                | `otlpTracing`: redacting Railway OTLP export for worker spans, logs and error reports.                                                                                        |
 | `RedactionPolicy.ts`                                                            | `RedactionPolicy`: provide the app's diagnostic key predicate derived by errors.                                                                                              |
 | `redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive, maskFailure?)`: compose native diagnostic and NDJSON boundaries. |
 | `runtime/makePlatform.ts`                                                       | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                                       |

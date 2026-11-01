@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.34.0 - 2026-11-01
+
+### Added
+
+- Wire Better Auth's four email callbacks through one `emails` mount option. Deliver typed account confirmation, email-change approval, new-address confirmation, password-reset and existing-account messages with application route links and decoded new addresses.
+- Throttle email delivery attempts per account and message kind within a configurable, mount-local window that defaults to one minute.
+- Generated starters wire typed, throttled auth emails and provide application confirmation and password-reset routes.
+
+## 0.33.0 - 2026-11-01
+
+### Added
+
+- Export Effect logs as trace events and ErrorReporter reports as error spans through the redacting Railway OTLP pipeline in appHost and worker Layers.
+- Mount a same-origin browser error reporting route in appHost, with server redaction, bounded reports and per-client rate limiting.
+- Generated starters enable Railway manual tracing for web and worker services and mount browser reporting by default.
+- Add useBrowserErrors to forward uncaught browser errors and unhandled rejections to the host, removing listeners on unmount.
+- Rules can validate inventory-dependent configuration through `defineRule`'s `validate` callback before checking files.
+- Identity exposes `signInAgain(auth, userId)` to mint a fresh test session for an existing user using the caller's Effect Clock and Better Auth's configured lifetime.
+- Generated apps provide session renewal verbs for HTTP visitors and browser cookies after long story clock jumps.
+
+### Changed
+
+- Generated starters declare auth ownership with reasoned globs for Quality.
+- The starter's app and cookie story kits start TestClock at the present by default so Better Auth's wall-clock endpoints accept minted sessions. Stories can still choose an explicit clock.
+
+### Fixed
+
+- Mask complete RPC payload annotations before exporting logs and error reports, keeping sensitive error values out of Railway diagnostics even when the request uses public field names.
+- Enable Biome's `noDelete` as an error while disabling its automatic fix so diagnostics remain visible without rewriting deletion behavior.
+
+### Breaking
+
+- Glob options (`toolOwned`, `content`, `edge`, `owners` and `suites`) require `{ glob, reason }` declarations. Replace each string with a declaration explaining its purpose, and remove patterns that match no current inventoried file. Stale declarations fail configuration.
+- Lint and baseline commands refuse legacy exception registries. Run `quality exceptions migrate` (or `quality exceptions migrate --from <registry>`) to move entries into config exceptions.
+
 ## 0.32.1 - 2026-10-31
 
 ### Changed

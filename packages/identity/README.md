@@ -170,6 +170,19 @@ Fail a `before` hook with `{ code: "MEMBERS_ONLY", message: "Membership is requi
 
 Native callbacks in the first argument run before the corresponding Effect callbacks. A native `before` returning `false` stops the Effect callback too. Data changes compose in order. Identity's sign-in policy still runs after the application's session hook.
 
+#### Application password-reset hook
+
+Pass `onPasswordReset` in the mount's second argument to run an Effect after a password reset. Its `{ user }` argument follows Better Auth's callback; `BetterAuthPasswordReset` lives in `@shivaedev/identity/server/better-auth/PasswordReset.ts`. The callback reads the mounted request's services, or the mount's services for direct `auth.api` calls, so an application can invoke its grant-revocation service without capturing a runtime or the returned auth instance.
+
+```ts
+const authentication = (options: BetterAuthOptions) =>
+	betterAuthMount(options, {
+		onPasswordReset: ({ user }) => Effect.flatMap(SessionAdmission, ({ check }) => check(user.id)),
+	});
+```
+
+The native `emailAndPassword.onPasswordReset` callback runs first. An Effect failure with `BetterAuthHookError` fields reaches the caller as HTTP 403 with its code and message. This callback follows Better Auth's post-reset lifecycle; a failure does not undo the password change.
+
 ### Role assignments
 
 Pass `{ defaultRole: "member", roles: AppAccess }` as the second argument to `betterAuthMount`. Identity adds `/admin/set-role`, `/admin/update-user` and `/admin/create-user` to the disabled HTTP paths and sets the Better Auth admin plugin's `adminRoles` to `[]`. Existing disabled paths remain in effect. The admin Users page remains the application path for role changes.
@@ -420,6 +433,8 @@ const sessions = { ...mounted.sessions, origin: trustedOrigins({ allow: ["https:
 
 For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. A missing or null stored role refuses access with `Forbidden` (HTTP 403 at the session endpoint) and logs the fix: generate and apply a frozen migration with `defaultRole`, then use `assignRole` for administrators. An undeclared non-null stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
 
+React's `authSession` reads the session's grants as typed values while preserving the provider's session and user data. Applications using it need no session permission decoder.
+
 ### Frozen auth migrations
 
 Generate each auth migration once, review its SQL and commit the generated module. `generateBetterAuthMigration(options, roleOptions?)` reads the current PostgreSQL schema through `SqlClient` and returns a TypeScript migration module. It does not apply the migration. The module imports only native Effect and executes fixed SQL on the migrator's transaction connection. Later auth option changes and Better Auth upgrades cannot change its SQL.
@@ -638,9 +653,11 @@ const { user, headers, cookies } = await Effect.runPromise(
 );
 ```
 
-`options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns an Effect containing Better Auth's login result: the user, session, signed request headers, browser cookies and token. In a story, call `yield* signedInUser(auth, fields)` so minting uses that story's TestClock. If the story also calls Better Auth's auth endpoints, start its TestClock at the present or a future date because those endpoints still check the provider's wall clock. To mint users with roles, use the auth instance returned by `betterAuthMount(options, { defaultRole: "member", roles: Access })`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+`options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns an Effect containing Better Auth's login result: the user, session, signed request headers, browser cookies and token. In a story, call `yield* signedInUser(auth, fields)` so minting uses that story's TestClock. If the story also calls Better Auth's auth endpoints, start its TestClock at the present because those endpoints still check the provider's wall clock. The starter’s app and cookie story kits select that default; stories can still pass an explicit `clock`. To mint users with roles, use the auth instance returned by `betterAuthMount(options, { defaultRole: "member", roles: Access })`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
 
 `passwordUser(auth, { email, password, ...fields })` from the same testing module saves a user and a credential account using Better Auth's configured password hasher, and returns an Effect containing the user without minting a session. Use it for the one story that signs in through `/api/auth/sign-in/email`; keep feature stories on `signedInUser` so they avoid password hashing.
+
+Call `yield* signInAgain(auth, userId)` from `server/better-auth/testing.ts` to mint a fresh session for an existing user after a long story clock jump. It returns the same login shape as `signedInUser` and sets expiry from the caller’s Effect Clock and the configured session lifetime. Replace the visitor’s request headers or seed the returned browser cookies.
 
 Use `storedProviderAccounts(auth, userId)` to observe credential storage through Better Auth's internal adapter. It returns account and provider IDs with `hasAccessToken`, `hasRefreshToken`, `hasIdToken` and `hasPassword` booleans. It never returns token values, passwords or password hashes. A DOM story kit that exposes its test auth instance and a session readout can use both helpers:
 
@@ -677,6 +694,32 @@ app.it("the member's provider account stores no credentials", [member], function
 
 With database-backed sessions and cookie caching disabled, revocation rejects that same minted session on the next protected HTTP or RPC request. Cookie caching and secondary storage can change revocation timing.
 
+### Deliver typed auth emails
+
+Give `betterAuthMount` one `emails` configuration instead of four Better Auth callbacks. The application supplies absolute route URLs and a delivery Effect; it owns the transport and message text.
+
+```ts
+const mounted = yield* betterAuthMount(options, {
+  emails: {
+    routes: {
+      ConfirmAccount: "https://app.example/confirm-account",
+      ApproveEmailChange: "https://app.example/approve-email-change",
+      ConfirmNewAddress: "https://app.example/confirm-new-address",
+      ResetPassword: "https://app.example/reset-password",
+      AccountAlreadyExists: "https://app.example/sign-in",
+    },
+    deliver: (message) => mailer.deliver(message),
+    window: "1 minute",
+  },
+});
+```
+
+`AuthEmail` from `server/better-auth/emails.ts` is a union discriminated by `_tag`: `ConfirmAccount`, `ApproveEmailChange`, `ConfirmNewAddress`, `ResetPassword` and `AccountAlreadyExists`. Each message carries `user` and `url`. All except `AccountAlreadyExists` carry `token`; both change messages also carry `newEmail`, decoded inside identity for the reused verification callback. The new-address message's `user.email` is the destination address. The app URL preserves its own query parameters and receives the token in a `token` query parameter. A confirmation route passes that token to Better Auth's verification API; a reset page submits it with the new password to its reset API.
+
+The wiring replaces the four delivery callbacks and preserves the other Better Auth settings. Enable the flows through native options: `emailAndPassword.enabled`, `emailVerification.sendOnSignUp` or `emailAndPassword.requireEmailVerification`, and `user.changeEmail.enabled`. Better Auth calls `onExistingUserSignUp` only with its generic duplicate-signup response enabled, such as with `requireEmailVerification`.
+
+Each mount reserves one delivery attempt per account id and message kind for one minute by default. `window` accepts an Effect Duration input. Different accounts and different kinds have separate windows; changing the destination address does not change the account key. Concurrent requests share the reservation, and another delivery is allowed at expiry. Suppressed requests return normally. A failed delivery keeps its reservation until expiry. The window uses the Effect Clock, lives in the mount's scope, and is held in memory; separate processes or mounts have separate windows. It complements Better Auth's request rate limits. Delivery Effects use the same `BetterAuthHookError` and request runtime as database hooks.
+
 ### Sweep expired sessions in a worker
 
 Better Auth removes an expired session when it is presented. Use `sweepExpiredSessions` from `@shivaedev/identity/server/better-auth/sweepExpiredSessions.ts` to remove expired rows that are never presented again. The Effect reads the application's `SqlClient`, deletes sessions whose `expiresAt` is at or before Effect's current time, and returns the number removed. It preserves live sessions and needs no Better Auth mount or auth pool. It assumes the default Better Auth PostgreSQL table and column mappings.
@@ -687,38 +730,39 @@ Register the Effect with a worker schedule, as the starter does at midnight UTC.
 
 Import the module that defines the name; there is no package-root entry. Paths below follow `@shivaedev/identity/`.
 
-| Module                                       | Names and purpose                                                                                                                                                                                                           |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `identity.ts`                                | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`, `SessionUserSchema`: request-local services and the shared user schema.                                                      |
-| `middleware.ts`                              | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`, `IdentityFailures`: native RPC middleware declarations and their shared failure schema.              |
-| `server/providerFailure.ts`                  | `providerFailure(cause)`: log a redacted provider failure and fail with `AuthUnavailable`.                                                                                                                                  |
-| `permission.ts`                              | `permissionMiddleware`, `hasPermission`: native permission middleware declarations and predicates over resolved grants.                                                                                                     |
-| `server/permissions.ts`                      | `permissionLayer`, `permissionRoute`: permission middleware Layers and HTTP route guards.                                                                                                                                   |
-| `server/session.ts`                          | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
-| `server/adapters/betterAuthSessions.ts`      | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                        |
-| `server/origin.ts`                           | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                            |
-| `server/local.ts`                            | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`: loopback and proxy guards.                                                                                                                               |
-| `server/trustedProxyRanges.ts`               | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                               |
-| `server/proxyRanges.ts`                      | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                        |
-| `server/transportHeaders.ts`                 | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                            |
-| `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                        |
-| `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                           |
-| `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware.                                                                                                                   |
-| `server/better-auth/mount.ts`                | `betterAuthMount(options, { signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`: native auth routes and the sign-in policy.           |
-| `server/better-auth/adapters/database.ts`    | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                           |
-| `server/better-auth/allowedAccounts.ts`      | `ProviderAccounts`, `AllowedAccounts`, `allowedAccounts`: provider-account list Schemas and the non-empty `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                   |
-| `server/better-auth/accountRoleSeed.ts`      | `accountRoleSeed(access, role, accounts)`: grant a configured role at boot and sign-in through `assignRole`.                                                                                                                |
-| `server/better-auth/signInGate.ts`           | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy.                                                                                                                                           |
-| `server/better-auth/revokeUnadmitted.ts`     | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                        |
-| `server/better-auth/userProfiles.ts`         | Public profile lookups for other users.                                                                                                                                                                                     |
-| `server/better-auth/sweepExpiredSessions.ts` | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                         |
-| `server/better-auth/userReference.ts`        | `userReference`: the default auth user table and id column for application foreign keys.                                                                                                                                    |
-| `server/better-auth/testDatabase.ts`         | `authTestDatabase`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                  |
-| `server/better-auth/testing.ts`              | `signedInUser(auth, fields)`, `passwordUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only users, minted sessions and credential storage observations.                                                   |
+| Module                                       | Names and purpose                                                                                                                                                                                                                            |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `identity.ts`                                | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`, `SessionUserSchema`: request-local services and the shared user schema.                                                                       |
+| `middleware.ts`                              | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`, `IdentityFailures`: native RPC middleware declarations and their shared failure schema.                               |
+| `server/providerFailure.ts`                  | `providerFailure(cause)`: log a redacted provider failure and fail with `AuthUnavailable`.                                                                                                                                                   |
+| `permission.ts`                              | `permissionMiddleware`, `hasPermission`: native permission middleware declarations and predicates over resolved grants.                                                                                                                      |
+| `server/permissions.ts`                      | `permissionLayer`, `permissionRoute`: permission middleware Layers and HTTP route guards.                                                                                                                                                    |
+| `server/session.ts`                          | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary.                  |
+| `server/adapters/betterAuthSessions.ts`      | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                                         |
+| `server/origin.ts`                           | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                             |
+| `server/local.ts`                            | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`: loopback and proxy guards.                                                                                                                                                |
+| `server/trustedProxyRanges.ts`               | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                                                |
+| `server/proxyRanges.ts`                      | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                         |
+| `server/transportHeaders.ts`                 | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                             |
+| `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                         |
+| `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                                            |
+| `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware.                                                                                                                                    |
+| `server/better-auth/mount.ts`                | `betterAuthMount(options, { emails?, onPasswordReset?, signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`: native auth routes and the sign-in policy. |
+| `server/better-auth/adapters/database.ts`    | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                                            |
+| `server/better-auth/emails.ts`               | `AuthEmail`, `BetterAuthEmails`: typed delivery messages, app routes and per-account delivery windows for the mount.                                                                                                                         |
+| `server/better-auth/allowedAccounts.ts`      | `ProviderAccounts`, `AllowedAccounts`, `allowedAccounts`: provider-account list Schemas and the non-empty `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                                    |
+| `server/better-auth/accountRoleSeed.ts`      | `accountRoleSeed(access, role, accounts)`: grant a configured role at boot and sign-in through `assignRole`.                                                                                                                                 |
+| `server/better-auth/signInGate.ts`           | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy.                                                                                                                                                            |
+| `server/better-auth/revokeUnadmitted.ts`     | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                                         |
+| `server/better-auth/userProfiles.ts`         | Public profile lookups for other users.                                                                                                                                                                                                      |
+| `server/better-auth/sweepExpiredSessions.ts` | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                          |
+| `server/better-auth/userReference.ts`        | `userReference`: the default auth user table and id column for application foreign keys.                                                                                                                                                     |
+| `server/better-auth/testDatabase.ts`         | `authTestDatabase`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                                   |
+| `server/better-auth/testing.ts`              | `signedInUser(auth, fields)`, `passwordUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only users, minted sessions and credential storage observations.                                                                    |
 
 ### Install, setup and limits
 
-Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peer `better-auth` and the application’s PostgreSQL `SqlClient`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports only `identity.ts`, `middleware.ts` and `permission.ts`.
+Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peer `better-auth` and the application’s PostgreSQL `SqlClient`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports `identity.ts`, `middleware.ts` and `permission.ts`.
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.

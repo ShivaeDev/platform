@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import process from "node:process";
-import { NodeRuntime } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Console, Effect, Schema } from "effect";
 
 const Consumer = Schema.Struct({ timings: Schema.Array(Schema.Struct({ durationMs: Schema.Number, name: Schema.String })) });

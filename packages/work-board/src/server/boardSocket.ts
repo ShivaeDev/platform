@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { createConnection } from "node:net";
-import { NodeHttpServer } from "@effect/platform-node";
+import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Duration, Effect, FileSystem, Layer, Path, Scope } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";

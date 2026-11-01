@@ -14,6 +14,7 @@ import { distinctCase } from "#rules/files/distinctCase.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { otherNames } from "#rules/files/otherNames.ts";
+import { adminPaths } from "#rules/imports/adminPaths.ts";
 import { importsAliased } from "#rules/imports/aliased.ts";
 import { importCycles } from "#rules/imports/cycles.ts";
 import { importFences } from "#rules/imports/fences.ts";
@@ -83,6 +84,7 @@ export const builtInRules = [
 	importsResolvable,
 	importsManifest,
 	importsAliased,
+	adminPaths,
 	noTestCode,
 	manifestsValid,
 	manifestsSorted,

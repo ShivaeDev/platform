@@ -23,6 +23,13 @@ const mounted = betterAuthMount(
 
 expectTypeOf<Effect.Services<typeof mounted>>().toEqualTypeOf<Application | Scope.Scope>();
 
+const resetMount = betterAuthMount(
+	{ secret: "typecheck-only-secret-at-least-32-characters" },
+	{ onPasswordReset: ({ user }) => Effect.flatMap(Application, (app) => Effect.sync(() => void app.admits(user.id))) },
+);
+
+expectTypeOf<Effect.Services<typeof resetMount>>().toEqualTypeOf<Application | Scope.Scope>();
+
 const invalidFailure: BetterAuthDatabaseHooks = {
 	user: {
 		create: {

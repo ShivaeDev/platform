@@ -21,17 +21,16 @@ function generatorParameter(node: ts.Node): boolean {
 
 function tagHandler(node: ts.Node, syntax: Syntax): boolean {
 	const property = node.parent;
-	if (!ts.isPropertyAssignment(property) || property.name !== node || !ts.isObjectLiteralExpression(property.parent)) {
+	if (
+		!(ts.isPropertyAssignment(property) || ts.isMethodDeclaration(property))
+		|| property.name !== node
+		|| !ts.isObjectLiteralExpression(property.parent)
+	) {
 		return false;
 	}
 	const handlers = property.parent;
 	const call = handlers.parent;
-	return (
-		nativeEffectCall(call, "catchTags", syntax)
-		&& call.arguments.includes(handlers)
-		&& ts.isArrowFunction(property.initializer)
-		&& nativeEffectCall(property.initializer.body, "fail", syntax)
-	);
+	return nativeEffectCall(call, "catchTags", syntax) && call.arguments.includes(handlers);
 }
 
 function misclassified(diagnostic: Diagnostic, syntax: Syntax): boolean {

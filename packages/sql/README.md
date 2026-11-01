@@ -413,6 +413,48 @@ Unconditional batch writes use one `INSERT ... RETURNING` statement per chunk, w
 
 Each batch call starts `transact`, so a later chunk failure rolls back earlier chunks. A surrounding `transact` groups several calls into one commit and one deduplicated change batch.
 
+### Retention purges
+
+On PostgreSQL, `deleteBatched({ where, batchSize, maxRows, pause })` removes matching rows in independently committed transactions and returns the number removed. `where` uses the same encoded filters as `findMany`, including comparisons. Each batch deletes at most `batchSize` rows; the last batch shrinks to respect `maxRows`. `batchSize` is a positive safe integer and `maxRows` is a nonnegative safe integer. A zero cap or no matching rows returns zero without announcing changes.
+
+Each nonempty batch publishes one table-level change hint after commit, so queries watching the table refresh once per batch. It does not enumerate record or bucket keys. Use table subscriptions for data subject to retention purges. A later failure rolls back only its batch and its hint; earlier batches remain committed. SQL failures remain typed `SqlError` and invalid limits fail with `SchemaError`.
+
+`pause` is an Effect duration between full batches while the cap permits more work. The method holds a PostgreSQL session advisory lock for the run; another purge of that table skips and returns zero, even when called through another repository instance. The lock is released on completion, failure or interruption. The run reserves one connection for the lock and uses another for batch transactions: allow at least two pool connections, plus capacity for other work. Use a direct PostgreSQL connection or session pooling, since transaction pooling cannot preserve session locks. Rows locked by other transactions are skipped and can be removed by a later run. Purges have no ordering guarantee.
+
+Call it outside `transact` and native transactions so each batch can commit independently. Calling it inside either, or on another SQL driver, fails with `BatchedDeleteUnavailable` from `@shivaedev/sql/batchedDelete.ts`, whose `reason` is `"transaction"` or `"dialect"`.
+
+An hourly job can bound retention work without keeping one large transaction open:
+
+```ts
+import { Clock, Effect } from "effect";
+import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
+import { AuditEntry } from "./models.ts";
+
+export const PurgeAudit = defineSchedule({
+	name: "purge-audit",
+	cron: "0 * * * *",
+}).run(
+	Effect.gen(function* () {
+		const audit = yield* makeRepository(AuditEntry, {
+			idColumn: "id",
+			tableName: "audit_entries",
+			spanPrefix: "AuditEntry",
+		});
+		const now = yield* Clock.currentTimeMillis;
+		const removed = yield* audit.deleteBatched({
+			where: { createdAt: { lt: new Date(now - 30 * 24 * 60 * 60 * 1_000) } },
+			batchSize: 1_000,
+			maxRows: 50_000,
+			pause: "100 millis",
+		});
+		yield* Effect.log({ removed });
+	}),
+);
+```
+
+Here the application's `AuditEntry` model has a `createdAt` field decoded as `Date`. Register `PurgeAudit` in the jobs Layer's `jobs` list and provide the database and change-feed Layers to the worker.
+
 ### Optimistic concurrency
 
 Declare a numeric version field in the model's select and update variants, leave it out of insert, and select it with `versionColumn`:

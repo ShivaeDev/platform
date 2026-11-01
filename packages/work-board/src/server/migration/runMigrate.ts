@@ -1,5 +1,6 @@
 import process from "node:process";
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Cause, Console, Effect } from "effect";
 import { Argument, Command } from "effect/cli";
 import { migrate } from "#server/migration/migrate.ts";

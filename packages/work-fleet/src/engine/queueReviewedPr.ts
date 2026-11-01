@@ -5,6 +5,7 @@ import { EngineContext } from "#engine/makeState.ts";
 import { awaitHumanMerge } from "#engine/mergeReadiness.ts";
 import { observeDeliveryFailure } from "#engine/observeDeliveryFailure.ts";
 import { reconcileSweepHold } from "#engine/reconcileSweepHold.ts";
+import { observeReleaseWindow } from "#engine/releaseWindowHold.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import type { MergeQueueResult } from "#MergeQueueResult.ts";
 import type { FleetRecord } from "#model.ts";
@@ -56,6 +57,7 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 			mergeQueue: { head: result.head, status: status === "queued" || current.value.mergeQueue?.status === "queued" ? "queued" : "requested" },
 			mergeReadyAt: current.value.mergeReadyAt,
 			mergeReadyHead: result.head,
+			releaseWindow: observeReleaseWindow(current.value.releaseWindow, status, state.policy.now()),
 			step: "waiting",
 			supersededDecisions:
 				record.decision?.published === undefined

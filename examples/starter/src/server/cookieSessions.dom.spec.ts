@@ -22,3 +22,19 @@ cookieApp.it(
 		expect(revoked.result.data).toBeNull();
 	},
 );
+
+cookieApp.it(
+	"alice signs in again in the browser after 30 days with a fresh session on the same account",
+	[mintedCookieSession()],
+	function* ({ timePasses, browserSignsInAgain, session }) {
+		const original = yield* session();
+
+		yield* timePasses("30 days");
+
+		yield* browserSignsInAgain();
+
+		const renewed = yield* session();
+		expect(renewed.result.data?.user.id).toBe(original.result.data?.user.id);
+		expect(renewed.result.data?.session.id).not.toBe(original.result.data?.session.id);
+	},
+);

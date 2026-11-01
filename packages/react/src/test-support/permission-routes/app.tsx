@@ -2,7 +2,7 @@ import { createMemoryHistory, createRootRouteWithContext, createRoute, createRou
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { authAction } from "#client/authAction.ts";
-import { useCan } from "#client/permissionBoundary.ts";
+import { PermissionBoundaryError, useCan } from "#client/permissionBoundary.ts";
 import { useQuery } from "#client/resultState.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { permissionGuard } from "#permissionGuard.ts";
@@ -10,7 +10,7 @@ import type { PermissionSession } from "#permissions.ts";
 import { queryRoute } from "#queryRoute.ts";
 import { ReadNotes } from "./feature.ts";
 import type { Host } from "./host.ts";
-import { Login, SignOutButton } from "./view.tsx";
+import { Login, PermissionRoutes, SignOutButton } from "./view.tsx";
 
 function Controls() {
 	const can = useCan();
@@ -23,10 +23,17 @@ function Controls() {
 	);
 }
 
-export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, session: PermissionSession | undefined, initial: string) {
+export function permissionApp(
+	host: Host,
+	registry: AtomRegistry.AtomRegistry,
+	session: PermissionSession | undefined,
+	initial: string,
+	hidden = false,
+) {
 	const auth = { current: session };
 	const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; host: Host; auth: typeof auth }>()({
-		beforeLoad: permissionGuard({ session: () => auth.current, signIn: "/login" }),
+		beforeLoad: permissionGuard({ hidden, session: () => auth.current, signIn: "/login" }),
+		notFoundComponent: () => <h1>Page not found</h1>,
 	});
 	const signOut = authAction(async () => {
 		auth.current = undefined;
@@ -60,6 +67,15 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 		path: "/query",
 	});
 	const controls = createRoute({ component: Controls, getParentRoute: () => root, path: "/controls" });
+	const admin = createRoute({
+		component: () => <h1>Admin users</h1>,
+		getParentRoute: () => root,
+		path: "/admin/users",
+		staticData: { permission: ReadNotes.any },
+		...queryRoute(({ context }: { context: typeof root.types.allContext; params: Record<string, never>; search: Record<string, never> }) =>
+			context.host.api.get.query({ id: "admin" }),
+		),
+	});
 	const account = createRoute({ getParentRoute: () => root, path: "/account", staticData: { signedIn: true } });
 	const profile = createRoute({ component: () => <h1>Profile</h1>, getParentRoute: () => account, path: "/profile" });
 	const privateAccount = createRoute({
@@ -76,10 +92,12 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 	});
 	const router = createRouter({
 		context: { auth, host, registry },
+		defaultErrorComponent: PermissionBoundaryError,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		disableGlobalCatchBoundary: true,
 		history: createMemoryHistory({ initialEntries: [initial] }),
-		routeTree: root.addChildren([note, direct, controls, login, account.addChildren([profile, privateAccount])]),
+		InnerWrap: PermissionRoutes,
+		routeTree: root.addChildren([note, direct, controls, login, admin, account.addChildren([profile, privateAccount])]),
 	});
 	return { auth, host, router };
 }

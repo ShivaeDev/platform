@@ -1,5 +1,6 @@
 import process from "node:process";
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Console, Effect, FileSystem } from "effect";
 import { Argument, Command } from "effect/cli";
 import { listMarkdown } from "#server/files/list.ts";

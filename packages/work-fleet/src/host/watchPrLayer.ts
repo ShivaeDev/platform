@@ -1,4 +1,4 @@
-import { NodeFileSystem } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Clock, Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { GitHub as GitHubClient } from "@shivaedev/github/GitHub.ts";

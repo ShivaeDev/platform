@@ -1,6 +1,5 @@
 import { type RouterHistory, RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
-import { PermissionBoundary } from "@shivaedev/react/client/permissionBoundary.ts";
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 import { type Routing, useAppRouter } from "#client/adapters/useAppRouter.ts";
 import type { AppSession, AuthActions } from "./auth.ts";
@@ -12,19 +11,7 @@ interface Session {
 }
 function RoutedApp(routing: Routing) {
 	const router = useAppRouter(routing);
-	return (
-		<PermissionBoundary
-			fallback={
-				<main className="space-y-4 p-8">
-					<h1 className="text-3xl font-semibold">Permission denied</h1>
-					<p>You do not have access to this page.</p>
-				</main>
-			}
-			session={routing.session}
-		>
-			<RouterProvider router={router} />
-		</PermissionBoundary>
-	);
+	return <RouterProvider router={router} />;
 }
 
 function identify(session: Session) {

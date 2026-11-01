@@ -26,6 +26,8 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 	const recorded = recorder();
 	const storage = yield* authTestDatabase;
 	const defects: string[] = [];
+	const resetTokens = new Map<string, string>();
+	const resetHooks: string[] = [];
 	const options = {
 		"baseURL": ORIGIN,
 		database: yield* betterAuthDatabase(),
@@ -33,7 +35,17 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 			session: { create: { before: async () => (application.state.nativeRefuses ? false : undefined) } },
 			user: { create: { before: async (user: { name: string }) => ({ data: { name: `native ${user.name}` } }) } },
 		},
-		emailAndPassword: { enabled: true },
+		emailAndPassword: {
+			enabled: true,
+			onPasswordReset: ({ user }: { user: { name: string } }) => {
+				resetHooks.push(`native ${user.name}`);
+				return Promise.resolve();
+			},
+			sendResetPassword: ({ user, token }: { user: { email: string }; token: string }) => {
+				resetTokens.set(user.email, token);
+				return Promise.resolve();
+			},
+		},
 		logger: { disabled: true },
 		plugins: [testUtils()],
 		secret: "effect-hooks-story-secret-at-least-32-characters",
@@ -41,6 +53,12 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
 	const mounted = yield* betterAuthMount(options, {
 		databaseHooks: application.state.userHooks ? userCreationHooks(application.state.userTransforms) : application.hooks,
+		onPasswordReset: ({ user }) =>
+			Effect.gen(function* () {
+				const admission = yield* Admission;
+				yield* admission.check(user.id);
+				resetHooks.push(`effect ${user.name}`);
+			}),
 		signIn: application.state.policyRefuses ? { rule: () => Effect.succeed(false) } : undefined,
 	}).pipe(
 		Effect.provideService(Admission, application.admission("nobody at mount time")),
@@ -62,6 +80,7 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 	const fixtures = betterAuth({ ...options, databaseHooks: undefined });
 	return {
 		defects,
+		directReset: (token: string) => mounted.auth.api.resetPassword({ asResponse: true, body: { newPassword: "replacement-password", token } }),
 		directSignIn: (person: string) => mounted.auth.api.signInEmail({ asResponse: true, body: credentials(person) }),
 		logs: () => recorded.logs.filter(({ message }) => Array.isArray(message) && message.includes("Application session admitted")),
 		request: (path: string, body: object, signal?: AbortSignal, member = "alice") =>
@@ -73,6 +92,14 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 					...(signal === undefined ? {} : { signal }),
 				}),
 			),
+		resetHooks,
+		resetToken: (person: string) => {
+			const token = resetTokens.get(`${person}@hooks.test`);
+			if (token === undefined) {
+				throw new Error(`No reset email reached ${person}`);
+			}
+			return token;
+		},
 		seed: (person: string) =>
 			Effect.promise(async () => {
 				const { test, internalAdapter } = await fixtures.$context;

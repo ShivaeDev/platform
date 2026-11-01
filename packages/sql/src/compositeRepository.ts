@@ -3,6 +3,7 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { type SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import type { BatchedDelete } from "#batchedDelete.ts";
 import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { RepositoryListFilter } from "#repositoryFilter.ts";
 import type { Update, UpdateVoid } from "#repositoryUpdate.ts";
@@ -15,29 +16,30 @@ type DeleteWhere<TModel extends Model.Any> = (
 	where: RepositoryListFilter<TModel>,
 ) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][keyof TModel["fields"]]["EncodingServices"]>;
 
-export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = [TId] extends [IdColumn<TModel>]
-	? Omit<NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>, "delete" | "update" | "updateVoid"> & {
-			readonly delete: NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>["delete"] & DeleteWhere<TModel>;
-			readonly update: Update<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
-			readonly updateVoid: UpdateVoid<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
-		}
-	: TId extends CompositeKey<TModel>
-		? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete" | "update" | "updateVoid"> & {
+export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = BatchedDelete<TModel> &
+	([TId] extends [IdColumn<TModel>]
+		? Omit<NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>, "delete" | "update" | "updateVoid"> & {
+				readonly delete: NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>["delete"] & DeleteWhere<TModel>;
 				readonly update: Update<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
 				readonly updateVoid: UpdateVoid<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
-				readonly findById: (
-					id: Pick<TModel["Type"], TId[number]>,
-				) => Effect.Effect<
-					TModel["Type"],
-					SqlError | Schema.SchemaError | Cause.NoSuchElementError,
-					TModel["DecodingServices"] | TModel["fields"][TId[number]]["EncodingServices"]
-				>;
-				readonly delete: ((
-					id: Pick<TModel["Type"], TId[number]>,
-				) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][TId[number]]["EncodingServices"]>) &
-					DeleteWhere<TModel>;
 			}
-		: never;
+		: TId extends CompositeKey<TModel>
+			? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete" | "update" | "updateVoid"> & {
+					readonly update: Update<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
+					readonly updateVoid: UpdateVoid<TModel, TId extends readonly PropertyKey[] ? TId[number] : Extract<TId, PropertyKey>>;
+					readonly findById: (
+						id: Pick<TModel["Type"], TId[number]>,
+					) => Effect.Effect<
+						TModel["Type"],
+						SqlError | Schema.SchemaError | Cause.NoSuchElementError,
+						TModel["DecodingServices"] | TModel["fields"][TId[number]]["EncodingServices"]
+					>;
+					readonly delete: ((
+						id: Pick<TModel["Type"], TId[number]>,
+					) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][TId[number]]["EncodingServices"]>) &
+						DeleteWhere<TModel>;
+				}
+			: never);
 
 export function makeCompositeCrud(
 	model: Model.Any,

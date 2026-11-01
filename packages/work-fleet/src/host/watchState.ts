@@ -1,8 +1,10 @@
 import { Schema } from "effect";
 import { DispatchRequest } from "#DispatchRequest.ts";
 import { State } from "#host/waitOutcome.ts";
+import { MergeState } from "#MergeState.ts";
 
 export const watchRecordFields = {
+	releaseWindow: MergeState.fields.releaseWindow,
 	result: Schema.optional(Schema.Struct({ head: Schema.String, pr: Schema.optional(Schema.String) })),
 	stageEnteredAt: Schema.optional(Schema.Number),
 };

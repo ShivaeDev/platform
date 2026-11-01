@@ -25,11 +25,13 @@ export const sessions = storyKit(
 		(state, screen) => ({
 			answer: () => screen.act("the session read answers from stored user data", state.client.answer),
 			completedFrames: () => state.frames.filter((frame) => frame.completed),
+			malformPermissions: () => screen.act("the session answers with malformed permission grants", state.client.malformPermissions),
 			press: (label: "Rename" | "Verify" | "Refresh") => screen.act(`press ${label}`, () => clickButton(view(state).container, label)),
 			refuse: () => screen.act("the session read is refused", state.client.refuse),
 			reject: () => screen.act("the session connection rejects", state.client.reject),
 			shown: () => ({
 				busy: view(state).container.querySelector("section")?.getAttribute("aria-busy"),
+				grants: view(state).container.querySelector("section")?.getAttribute("data-grants"),
 				text: view(state).container.textContent,
 			}),
 			signOut: () => screen.act("the auth owner clears its session", state.client.signOut),

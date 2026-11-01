@@ -47,6 +47,10 @@ New apps start with `0001_auth`, which creates Better Auth's tables through `get
 
 The application's roles live in `src/roles`, one file per role, and `src/AppAccess.ts` composes their explicit grants. Identity declares the role column through `betterAuthMount` with `defaultRole: User.name`. The stored-role migration applies the same default and non-null constraint to fresh and existing databases. For named provider accounts, the mount declares `accountRoleSeed(AppAccess, Owner.name, ...)` from `AUTH_OWNER_ACCOUNTS`, using identity's shared `ProviderAccounts` schema. Set a comma-separated list such as `AUTH_OWNER_ACCOUNTS=github:1001,github:1002`. Identity assigns owner at first sign-in and at boot for existing users; an empty or unset list grants nothing. Removing an account does not demote its user. Remove it from config and restart first, then use the Users page or a trusted `assignRole` command to demote, keeping another role assigner. Configure the corresponding social provider in `authOptions` before using provider sign-in.
 
+The host wires Better Auth's email callbacks through identity's typed `emails` configuration. Confirmation links enter `/auth/confirm`, which forwards the token to Better Auth and returns to `/sign-in`. Password reset links open `/reset-password`, where the app submits the token and new password. The route origin comes from `PUBLIC_URL`, defaulting to `http://127.0.0.1:5173` for Vite development. Set `PUBLIC_URL=http://127.0.0.1:3000` when running the local built UI instead. Identity applies its default per-account, per-message one minute window.
+
+The starter's delivery Effect writes typed messages, including their links, to the development log. Supply `applicationHost({ deliverAuthEmail: (message) => ... })` with your mail transport before deploying; links contain credentials and must stay out of production logs. The app owns email text and transport. Enable Better Auth's required-verification policy when the app requires verified signups; the starter keeps email/password sign-in available for bootstrap.
+
 For email/password bootstrap after `pnpm migrate`, create the first owner with a new email address:
 
 ```sh
@@ -86,7 +90,7 @@ app.it("saves a title for the signed-in account", [signedIn()], function* ({ act
 });
 ```
 
-The kit uses `@shivaedev/test-story` on `test`. Database stories run serially within each worker, use a live clock, commit HTTP writes and dispose their database clones after the host and pools close. Failures print the story and account aliases and host details, without session cookies. The deploy story uses a loopback proxy with HTTPS forwarding headers and checks secure session cookies and foreign-origin rejection. It does not exercise a browser or TLS termination. [`src/modules/notes/test-support/screens.ts`](src/modules/notes/test-support/screens.ts) supplies the separate happy-dom story kit; those stories use the in-memory RPC fixture to prove screen and form behavior. [`src/modules/notes/test-support/migration.ts`](src/modules/notes/test-support/migration.ts) checks the notes schema on the foundation without starting a host. Verbs perform actions, readouts return values, and specs own expectations and waits.
+The kit uses `@shivaedev/test-story` on `test`. Database stories run serially within each worker, start TestClock at the present, commit HTTP writes and dispose their database clones after the host and pools close. Failures print the story and account aliases and host details, without session cookies. The deploy story uses a loopback proxy with HTTPS forwarding headers and checks secure session cookies and foreign-origin rejection. It does not exercise a browser or TLS termination. [`src/modules/notes/test-support/screens.ts`](src/modules/notes/test-support/screens.ts) supplies the separate happy-dom story kit; those stories use the in-memory RPC fixture to prove screen and form behavior. [`src/modules/notes/test-support/migration.ts`](src/modules/notes/test-support/migration.ts) checks the notes schema on the foundation without starting a host. Verbs perform actions, readouts return values, and specs own expectations and waits.
 
 The [`notesApp` kit](src/modules/notes/test-support/app.tsx) renders `App` against the real HTTP host. Better Auth and RPC use `domFetch` with the DOM cookie session, without bearer tokens or copied cookies.
 
@@ -115,3 +119,17 @@ With `pnpm dev` running, use `pnpm browser-check --page / --text "Sign in"` for 
 With those credentials set for a disposable account, run `pnpm browser-check --live-notes` to check two tabs sharing one session. It creates a note through the first tab, requires the second tab to receive its socket hint and display the note without navigation, then signs out in the first tab and requires the second tab's live socket and private notes to disappear. Inspect `.browser-check/live-notes.png` and `.browser-check/signed-out.png`. The note remains in the disposable account. Run with `--url http://127.0.0.1:3000` against `pnpm build && pnpm start` to check the production socket path too. This local check covers awake Chromium tabs, not tab sleep or other browsers.
 
 End-to-end browser tests do not belong in an app's CI because they cost CI minutes on private repositories. Stories prove behavior; browser check is for looking at the app locally. It is opt-in and stays out of CI and `pnpm ready`/`ci`.
+
+### Clock jumps and sessions
+
+The app and cookie story kits start TestClock at the present so Better Auth’s own endpoints, which use wall time, accept minted sessions. Pass `{ clock: DateTime.makeUnsafe("2100-01-01T00:00:00Z") }` as a story’s last argument to choose a different start.
+
+Long jumps expire signed-in sessions. After `yield* timePasses("30 days")`, use `yield* signsInAgain("alice")` in the notes app kit, or `yield* browserSignsInAgain()` in the cookie kit. These verbs use `signInAgain(auth, userId)` from `@shivaedev/identity/server/better-auth/testing.ts` to mint a session for the same account on the caller’s Clock. They replace the visitor’s request credentials or browser cookies in one step. Read the actor again after renewal to use its fresh notes client; an earlier client still carries its old credentials.
+
+## Errors and traces
+
+Railway tracing is the default and only production error and trace destination. `.railway/railway.ts` enables manual tracing for web and worker; Railway supplies the OTLP endpoint and authentication on deployment. Leave exporter endpoint overrides unset. Open the project's Traces page to see application spans, log events and Effect `ErrorReporter` reports. The framework redacts diagnostics before exporting.
+
+`App` mounts `useBrowserErrors` once, including before sign-in. `appHost` mounts `POST /_platform/errors`, forwarding uncaught browser errors and unhandled rejections through that same redacting pipeline. The route limits reports to 20 per minute per client IP per process.
+
+Local development and tests run without export when no endpoint is configured. To inspect traces locally, follow the loopback OpenTelemetry Collector setup in the [server guide](https://github.com/ShivaeDev/platform/blob/main/packages/server/README.md). Agents extending this starter must keep Railway as the sink and must not add another error service.

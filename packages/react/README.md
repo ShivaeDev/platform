@@ -668,12 +668,16 @@ Permissions come from the session payload's `user.permissions`, populated by `@s
 
 Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. Install `permissionGuard` once as the root route's `beforeLoad`; it checks all matched routes before their loaders run, including requirements on parents. Signed-out visitors go to the app's `signIn` path with the full requested location in the `returnTo` search field. A signed-in session without a required grant throws the shared `Forbidden` failure. A signed-in-only parent does not bypass a child's permission requirement.
 
+Set `permissionGuard({ session, signIn, hidden: true })` to hide refused routes from signed-in members. The guard throws TanStack's native not-found result, renders the app's `notFoundComponent` at the requested URL and prevents the route's loader from running. Signed-out visitors still go to sign-in with their return location; sessions with the required grant still enter the route.
+
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
-import { createRootRouteWithContext, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
+import { createRootRouteWithContext, createRoute, createRouter, Link, RouterProvider, useRouter } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { permission } from "@shivaedev/access/permission.ts";
-import { PermissionBoundary, useCan } from "@shivaedev/react/client/permissionBoundary.ts";
+import { Forbidden } from "@shivaedev/react/client/Forbidden.ts";
+import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/client/permissionBoundary.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
 import { can, type PermissionSession } from "@shivaedev/react/permissions.ts";
@@ -682,8 +686,8 @@ import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
 
 const ReadNotes = permission("notes.read");
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api }>()({
-	beforeLoad: permissionGuard({ session: () => auth.session, signIn: "/login" }),
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; api: typeof api; session: PermissionSession | undefined }>()({
+	beforeLoad: ({ context, ...route }) => permissionGuard({ session: () => context.session, signIn: "/login" })(route),
 });
 const profile = createRoute({
 	getParentRoute: () => root,
@@ -715,7 +719,9 @@ const login = createRoute({
 	},
 });
 const router = createRouter({
-	context: { registry, api },
+	context: { registry, api, session: auth.session },
+	InnerWrap: PermissionShell,
+	defaultErrorComponent: PermissionBoundaryError,
 	routeTree: root.addChildren([profile, note, login]),
 	disableGlobalCatchBoundary: true,
 });
@@ -725,23 +731,43 @@ function Controls() {
 	return can(ReadNotes) ? <button type="button">Read notes</button> : null;
 }
 
+function PermissionShell({ children }: { readonly children: ReactNode }): ReactNode {
+	const session = useRouter<typeof router>().options.context?.session;
+	return (
+		<PermissionBoundary session={session} fallback={<NoAccess />}>
+			<Controls />
+			{children}
+		</PermissionBoundary>
+	);
+}
+
+function NoAccess(): ReactNode {
+	return (
+		<>
+			<Forbidden to="/profile" backLabel="Back to profile" />
+			<Link to="/login">Use another account</Link>
+		</>
+	);
+}
+
 export function App({ session }: { readonly session: PermissionSession | undefined }) {
 	return (
-		<PermissionBoundary session={session} fallback={<h1>Permission denied</h1>}>
-			<RegistryContext.Provider value={registry}>
-				<Controls />
-				<RouterProvider router={router} />
-			</RegistryContext.Provider>
-		</PermissionBoundary>
+		<RegistryContext.Provider value={registry}>
+			<RouterProvider router={router} context={{ session }} />
+		</RegistryContext.Provider>
 	);
 }
 
 const showNotes = can(auth.session, ReadNotes);
 ```
 
-`auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native.
+`auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native. The guard returns `void` explicitly, so `beforeLoad` needs no return annotation, including when it reads the session from route context.
 
-`PermissionBoundary` renders the app's one fallback at the denied URL for a refused route, a loader's `Forbidden`, or a `useQuery`/`useLoaderQuery` result containing the shared `Forbidden` class. Other errors propagate to an enclosing error boundary. Set TanStack's `disableGlobalCatchBoundary: true` and leave permission failures to this boundary; a route-specific `errorComponent` that consumes an error owns its rendering instead. Without a permission boundary, query failures keep their normal typed state. Like a React error boundary, remount it to clear a caught failure.
+`InnerWrap` puts `PermissionBoundary` inside the router. Its fallback can render `Link` and read route context. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
+
+`Forbidden` from `@shivaedev/react/client/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
+
+`PermissionBoundary` also catches component query failures containing the shared `Forbidden` class. Without a boundary, query failures keep their normal typed state. TanStack resets route failures when the viewer navigates away; remount a boundary to clear a failure it catches outside the route error path.
 
 #### Better Auth actions
 
@@ -775,7 +801,7 @@ const onSubmit = (credentials: { email: string; password: string }) => signIn(cr
 
 `authCall` returns a function from input to `Effect<A, AuthFailure>`. It uses the same failure codes and successful data as `authAction`.
 
-Use `authSession` from `@shivaedev/react/client/authSession.ts` for the application's Better Auth session. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
+Use `authSession` from `@shivaedev/react/client/authSession.ts` for the application's Better Auth session. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Both expose typed `user.permissions` alongside the provider's existing session and user fields, using the `PermissionSession` schema from `@shivaedev/react/permissions.ts`. Applications do not decode `get-session` themselves. Missing grants stay optional; malformed grants fail with `AuthUnavailable`. The reader must return a nullable session with a `user` object; use `authQuery` for other payload shapes. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
 
 ```tsx
 import { Effect } from "effect";
@@ -1003,7 +1029,7 @@ pnpm add @shivaedev/react @effect/atom-react effect react
 pnpm add @shivaedev/form
 ```
 
-Add the optional router peer when using `queryRoute`, `loadQuery`, `permissionGuard`, `PermissionBoundary` or `useSignOut`:
+Add the optional router peer when using `queryRoute`, `loadQuery`, `permissionGuard`, `PermissionBoundary`, `PermissionBoundaryError`, `Forbidden` or `useSignOut`:
 
 ```sh
 pnpm add @tanstack/react-router
@@ -1012,3 +1038,9 @@ pnpm add @tanstack/react-router
 The package needs Node 24 or newer.
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - The package has no SSR registry/hydration adapter, offline write queue or optimistic reconciliation policy.
+
+## Browser errors
+
+Mount `useBrowserErrors` from `@shivaedev/react/client/adapters/useBrowserErrors.ts` once in the root component, outside the signed-in subtree. It forwards uncaught window errors and unhandled promise rejections to `appHost`'s `POST /_platform/errors` route, using the current page URL and available message and stack. Unmounting removes both listeners. Failed reporting requests are discarded. The starter mounts it by default.
+
+The server rate-limits and redacts browser reports before sending them to Railway tracing alongside server errors and traces. Browser code receives no exporter credentials. See the [server guide](https://github.com/ShivaeDev/platform/blob/main/packages/server/README.md) for the route and local trace setup.

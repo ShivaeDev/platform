@@ -1,4 +1,4 @@
-import { NodeRuntime } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Console, Effect, Schema } from "effect";
 import { read } from "@shivaedev/github/GitHub.ts";
 import { githubLayer } from "#lib/githubLayer.ts";

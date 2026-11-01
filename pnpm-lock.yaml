@@ -723,6 +723,9 @@ importers:
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
@@ -1619,6 +1622,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/react':
+        specifier: workspace:*
+        version: link:../react
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2

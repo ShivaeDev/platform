@@ -38,5 +38,6 @@ export function hostProviderVerbs(engine: HostStoryEngine, tell: (line: string) 
 		providerCalls: () => [...engine.observedProvider.settings],
 		providerStarts: () => [...engine.observedProvider.starts],
 		providerSteers: () => [...engine.observedProvider.steered],
+		providerTurns: () => [...engine.observedProvider.submittedTurns],
 	};
 }

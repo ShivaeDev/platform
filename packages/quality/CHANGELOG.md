@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.53.1 - 2026-11-01
+
+### Fixed
+
+- Allow specific admin file names such as `inboxRoutes.ts` inside a module's `client/admin/` and `server/admin/` folders without treating the module name as a repeated prefix. File names must still match their exports.
+- Allow a module's client or server registration to import its own admin subtree through `./admin/…`. Other relative imports that leave their folder still require aliases.
+- Remove untracked repository-root `.merge_file_*` leftovers older than five minutes when the baseline merge driver starts. Preserve the current merge's inputs, tracked files and recent files.
+
+## 0.53.0 - 2026-11-01
+
+### Added
+
+- Rules can validate inventory-dependent configuration through `defineRule`'s `validate` callback before checking files.
+
+### Changed
+
+- Generated starters declare auth ownership with reasoned globs for Quality.
+
+### Fixed
+
+- Accept a file named after its single exported constant in `files/named-after-export`, applying the existing export-name and folder-prefix checks.
+- Run `quality lint`, including its Biome checks and pre-commit lint, under the shared heavy-process lock so concurrent local heavy commands wait their turn.
+- Enable Biome's `noDelete` as an error while disabling its automatic fix so diagnostics remain visible without rewriting deletion behavior.
+- Check story kits in all packages except test-story, test and types, including test-story's development dependencies. Apply story syntax rules to kit declarations in both `.test` and `.spec` files; keep unit and typecheck tests outside those rules.
+
+### Breaking
+
+- Glob options (`toolOwned`, `content`, `edge`, `owners` and `suites`) require `{ glob, reason }` declarations. Replace each string with a declaration explaining its purpose, and remove patterns that match no current inventoried file. Stale declarations fail configuration.
+- Lint and baseline commands refuse legacy exception registries. Run `quality exceptions migrate` (or `quality exceptions migrate --from <registry>`) to move entries into config exceptions.
+- Remove `isSpec` from `@shivaedev/quality/rules/stories/syntax.ts`. Consumers selecting story files must use `storySources` from `@shivaedev/quality/rules/stories/sources.ts` and run its Effect with the rule inputs; story kit origins determine coverage instead of a `.spec` suffix.
+
 ## 0.52.0 - 2026-10-31
 
 ### Added

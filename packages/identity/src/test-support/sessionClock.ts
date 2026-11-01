@@ -15,7 +15,7 @@ import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { listSessions } from "#server/better-auth/sessionAdministration.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
+import { signedInUser, signInAgain } from "#server/better-auth/testing.ts";
 import { withSessionUser } from "#server/session.ts";
 import { ManageSessions } from "#sessionPermissions.ts";
 
@@ -79,14 +79,21 @@ export const sessionClock = storyKit({
 					engine.extraSession = Option.some({ expiresAt: login.session.expiresAt, id: login.session.id });
 				}),
 			mintedSession: (person: Person) => Effect.sync(() => ({ expiresAt: accounts[person].session.expiresAt, id: accounts[person].session.id })),
+			providerSession: (person: Person) => Effect.promise(() => mounted.auth.api.getSession({ headers: accounts[person].headers })),
 			request: (person: Person) => {
 				story.tell(`${person} makes a protected request with the minted cookie`);
 				return Effect.map(SessionUser, (user) => user.name).pipe(protectedRequest(person), answered);
 			},
+			requestUserId: (person: Person) => Effect.map(SessionUser, (user) => user.id).pipe(protectedRequest(person)),
 			signOut: (person: Person) => {
 				story.tell(`${person} signs out`);
 				return Effect.promise(() => mounted.auth.api.signOut({ headers: accounts[person].headers }));
 			},
+			signsInAgain: (person: Person) =>
+				Effect.gen(function* () {
+					story.tell(`${person} signs in again`);
+					accounts[person] = yield* signInAgain(mounted.auth, accounts[person].user.id);
+				}),
 			storedSessions: (person: Person) => storage.sessionsFor(accounts[person].user.id),
 			sweep: () =>
 				Effect.gen(function* () {

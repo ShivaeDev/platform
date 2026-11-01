@@ -2,8 +2,10 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { effectHookOptions } from "#server/better-auth/adapters/effectHookOptions.ts";
+import { emailOptions } from "#server/better-auth/adapters/emailOptions.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
 import { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
+import { passwordResetOptions } from "#server/better-auth/adapters/passwordResetOptions.ts";
 import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
@@ -17,12 +19,16 @@ import type { AccountRoleSeed } from "./accountRoleSeed.ts";
 import { admittedSessions } from "./admittedSessions.ts";
 import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
 import type { BetterAuthDatabaseHooks } from "./databaseHooks.ts";
+import type { BetterAuthEmails } from "./emails.ts";
 import { mountedSessions } from "./mountedSessions.ts";
+import type { BetterAuthPasswordReset } from "./PasswordReset.ts";
 
 export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly databaseHooks?: BetterAuthDatabaseHooks<R> | undefined;
+	readonly emails?: BetterAuthEmails<R> | undefined;
 	readonly hardening?: BetterAuthHardeningOptions;
+	readonly onPasswordReset?: BetterAuthPasswordReset<R> | undefined;
 	readonly signIn?: SignInPolicy<E, R> | undefined;
 } & (
 	| { readonly roles?: undefined; readonly roleSeed?: undefined }
@@ -45,7 +51,8 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	}
 	const gate = yield* signInGate(policy);
 	const runtime = yield* hookRuntime<R>();
-	const hooked = effectHookOptions(options, mount.databaseHooks, runtime);
+	const reset = passwordResetOptions(options, mount.onPasswordReset, runtime);
+	const hooked = effectHookOptions(yield* emailOptions(reset, mount.emails, runtime), mount.databaseHooks, runtime);
 	const configured = mount.roles === undefined ? hooked : storedRoleOptions(closeRoleEndpoints(hooked), mount);
 	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
 	const seed = mount.roleSeed === undefined ? undefined : yield* mount.roleSeed;

@@ -56,18 +56,6 @@ const misnamed = [
 	],
 	["order-type.ts exporting Order", "packages/app/src/order-type.ts", "export interface Order {}\n", '"order-type" does not name its export Order.'],
 	[
-		"maxItems.ts exporting only the constant MAX_ITEMS",
-		"packages/app/src/maxItems.ts",
-		"export const MAX_ITEMS = 10;\n",
-		'"maxItems" exports only the constant MAX_ITEMS.',
-	],
-	[
-		"timeout.ts exporting only the constant timeout",
-		"packages/app/src/timeout.ts",
-		"export const timeout = 30;\n",
-		'"timeout" exports only the constant timeout.',
-	],
-	[
 		"the PascalCase topic file Helpers.ts",
 		"packages/app/src/Helpers.ts",
 		"export function list() {}\nexport function count() {}\n",

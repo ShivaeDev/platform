@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.29.1 - 2026-11-01
+
+### Changed
+
+- Update `@shivaedev/contract` from 0.30.0 to 0.30.1.
+- Update `@shivaedev/errors` from 0.4.0 to 0.4.1.
+- Update `@shivaedev/github` from 0.8.4 to 0.8.5.
+- Update `@shivaedev/pr-watch` from 0.6.4 to 0.6.5.
+- Update `@shivaedev/server` from 0.16.0 to 0.16.1.
+- Update `@shivaedev/work-board` from 0.41.0 to 0.41.1.
+
+## 0.29.0 - 2026-11-01
+
+### Added
+
+- Include a bounded digest of failed required GitHub Actions job logs in CI repair turns, retaining test failures and assertions, counting repeats and reporting unavailable logs or truncated output.
+
+### Fixed
+
+- Keep the current worker question answerable after an in-flight answer is refused, and show it beside the answer failure in status. An answer failure after the worker has continued no longer puts active work back in a questionless wait.
+
 ## 0.28.2 - 2026-10-31
 
 ### Changed

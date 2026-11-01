@@ -33,9 +33,11 @@ export interface StartedAttempt {
 	readonly at: number;
 	readonly budget: number;
 	readonly deadline: number;
+	readonly deferralCount: number;
 	readonly id: string;
 	readonly payload: unknown;
 	readonly queue: string;
+	readonly retryCount: number;
 }
 
 interface Gate {
@@ -215,9 +217,9 @@ const performed = Effect.fnUntraced(function* (
 		log.overlaps.push(job.id);
 	}
 	log.peaks.set(queue, Math.max(log.peaks.get(queue) ?? 0, count(log.running, queue, 1)));
-	log.started.push({ at, budget, deadline: at + budget, id: job.id, payload, queue });
-	notifyWork(log);
-	yield* run(choose(index), log, job).pipe(
+	log.started.push({ at, budget, deadline: at + budget, deferralCount: job.deferralCount, id: job.id, payload, queue, retryCount: job.retryCount });
+	yield* Effect.sync(() => notifyWork(log)).pipe(
+		Effect.andThen(Effect.suspend(() => run(choose(index), log, job))),
 		Effect.tap(() => moment(log.finished, job.id)),
 		Effect.onInterrupt(() => moment(log.interrupted, job.id)),
 		Effect.ensuring(
@@ -251,11 +253,13 @@ export function scheduled<const TName extends string>(schedule: ScheduleDefiniti
 		schedule.run(
 			Effect.suspend(() => {
 				const job: JobContext = {
+					deferralCount: 0,
 					expireInSeconds: 0,
 					heartbeatSeconds: null,
 					id: `run ${log.attemptsOf(schedule.name).length + 1} of ${schedule.name}`,
 					name: schedule.name,
 					remainingBudget: Effect.succeed(Duration.zero),
+					retryCount: 0,
 					signal: new AbortController().signal,
 				};
 				return performed(log, schedule.name, null, job, (index) => attemptOf(script, index), true);

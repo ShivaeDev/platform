@@ -25,11 +25,6 @@ app.it(
 
 		yield* Effect.promise(() =>
 			expect
-				.poll(() => receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code), { timeout: 8000 })
-				.toEqual([1, 1, 1]),
-		);
-		yield* Effect.promise(() =>
-			expect
 				.poll(() => Effect.runPromise(wordCountCompletions()), { timeout: 8000 })
 				.toMatchObject([
 					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "node:url";
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, FileSystem, Runtime, Schema } from "effect";
 import { Argument, CliError, Command } from "effect/cli";
 import { program } from "#cli/program.ts";
