@@ -13,6 +13,7 @@ const Case = Schema.Struct({
 	env: Schema.optional(Schema.Record(Schema.String, Schema.NullOr(Schema.String))),
 	expectedFiles: Versions,
 	files: Versions,
+	git: Schema.optional(Schema.Boolean),
 	output: Schema.optional(Schema.String),
 	packedInstall: Schema.optional(Schema.Boolean),
 	pages: Schema.optional(Versions),
@@ -30,6 +31,9 @@ export const checkBins = Effect.fn("Packed.checkBins")(function* (root: string, 
 			yield* fs.makeDirectory(dirname(join(consumer, path)), { recursive: true });
 			yield* fs.writeFileString(join(consumer, path), content);
 		}
+		if (scenario.git) {
+			yield* initializeGit(consumer, Object.keys(scenario.files));
+		}
 		const bin = join(consumer, "node_modules/.bin", name);
 		yield* checkVersion(consumer, bin, pkg.manifest.version, scenario.checkVersion);
 		if (scenario.pages === undefined) {
@@ -40,6 +44,22 @@ export const checkBins = Effect.fn("Packed.checkBins")(function* (root: string, 
 		}
 		yield* checkResults(consumer, name, scenario);
 	}
+});
+
+const initializeGit = Effect.fn("Packed.initializeGit")(function* (consumer: string, files: readonly string[]) {
+	yield* command(consumer, "git", ["init", "-b", "main"]);
+	yield* command(consumer, "git", ["add", "--", ...files]);
+	yield* command(consumer, "git", [
+		"-c",
+		"core.hooksPath=.git/hooks",
+		"-c",
+		"user.name=Packed CLI",
+		"-c",
+		"user.email=packed@example.test",
+		"commit",
+		"-m",
+		"Packed release baseline",
+	]);
 });
 
 const checkVersion = Effect.fn("Packed.checkVersion")(function* (consumer: string, bin: string, version: string, enabled: boolean | undefined) {

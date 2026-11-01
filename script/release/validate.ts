@@ -14,7 +14,7 @@ export const validateRelease = Effect.fn("Release.validateRelease")(function* (
 ) {
 	const after = yield* readWorkspace(root, config);
 	const before = yield* readHistory(root, config, reference);
-	yield* computePlan(after.packages, after.changesets);
+	yield* computePlan(after.packages, after.changesets, before.packages);
 	const plan = yield* planDiff(before, after);
 	const input = starterPinsInput(plan, pins);
 	const releaseBase = input === undefined ? before : { ...before, changesets: [...before.changesets, input] };

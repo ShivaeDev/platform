@@ -33,13 +33,16 @@ const checkDependencyPins = Effect.fn("Release.checkDependencyPins")(function* (
 	}
 });
 
-const checkStarterPins = Effect.fn("Release.checkStarterPins")(function* (root: string) {
+const readStarterPins = Effect.fn("Release.readStarterPins")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
-	const pins = yield* Schema.decodeUnknownEffect(Versions)(yield* fs.readFileString(join(root, "examples/starter/published-versions.json"))).pipe(
+	return yield* Schema.decodeUnknownEffect(Versions)(yield* fs.readFileString(join(root, "examples/starter/published-versions.json"))).pipe(
 		Effect.mapError(
 			(cause) => new ChangesetError({ cause, message: "Fix examples/starter/published-versions.json to map package names to versions." }),
 		),
 	);
+});
+
+const checkStarterPins = Effect.fn("Release.checkStarterPins")(function* (root: string, pins: Readonly<Record<string, string>>) {
 	const workspace = yield* readWorkspace(root, config);
 	const published = new Map(workspace.packages.filter((pkg) => !pkg.manifest.private).map((pkg) => [pkg.manifest.name, pkg.manifest]));
 	for (const [name, pin] of Object.entries(pins)) {
@@ -51,7 +54,6 @@ const checkStarterPins = Effect.fn("Release.checkStarterPins")(function* (root: 
 		}
 		yield* checkDependencyPins(manifest, published, pins);
 	}
-	return pins;
 });
 
 export const checkPlatform = Effect.fn("Release.checkPlatform")(function* (root: string, reference?: string) {
@@ -69,10 +71,12 @@ export const checkPlatform = Effect.fn("Release.checkPlatform")(function* (root:
 			}
 		}
 	}
-	const pins = yield* checkStarterPins(root);
+	const pins = yield* readStarterPins(root);
+	const plan = yield* validateRelease(root, pins, reference);
+	yield* checkStarterPins(root, pins);
 	yield* checkStarterPnpm(root);
 	yield* checkStarterCatalog(root);
-	return yield* validateRelease(root, pins, reference);
+	return plan;
 });
 
 if (import.meta.main) {
