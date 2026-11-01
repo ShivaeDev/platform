@@ -4,6 +4,16 @@ import { makePostgresTestLayer } from "#postgres.ts";
 import { adminUrl } from "./postgres.ts";
 
 export const migrations = {
+	components: [
+		{
+			apply: Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`create or replace view contact_directory as select contact_id, address from emails`;
+			}),
+			name: "contact directory",
+			pending: Effect.succeed(undefined),
+		},
+	],
 	loader: Migrator.fromRecord({
 		"001_create_contacts": Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
@@ -20,6 +30,7 @@ export const migrations = {
 		}),
 	}),
 	lockTimeout: "5 seconds" as const,
+	release: "contacts-current",
 	table: "BackfillMigrations",
 };
 

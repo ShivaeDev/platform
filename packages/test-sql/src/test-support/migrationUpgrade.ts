@@ -14,6 +14,16 @@ export class Item extends Model.Class<Item>("Item")({
 export const types = { id: "integer", name: "text", price: "numeric(10,2)" };
 
 export const migrations = {
+	components: [
+		{
+			apply: Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`create or replace view current_items as select id, name from items`;
+			}),
+			name: "current items",
+			pending: Effect.succeed(undefined),
+		},
+	],
 	loader: Migrator.fromRecord({
 		"1_create_items": Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
@@ -28,6 +38,7 @@ export const migrations = {
 		}),
 	}),
 	lockTimeout: "5 seconds" as const,
+	release: "items-current",
 	table: "upgrade_migrations",
 };
 

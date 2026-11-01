@@ -20,7 +20,7 @@ export const migrationSteps = Effect.fn("PostgresTest.migrationSteps")(function*
 	const resolved = yield* migrations.loader;
 	const ledger = migrations.table ?? "effect_sql_migrations";
 	const identifier = sql`${sql(ledger)}`.compile()[0];
-	function run(loader: Migrator.Loader, target?: number) {
+	function run(options: PostgresMigrationOptions<R, E>, target?: number) {
 		return Effect.gen(function* () {
 			yield* outsideTransaction(sql);
 			if (target !== undefined) {
@@ -32,7 +32,7 @@ export const migrationSteps = Effect.fn("PostgresTest.migrationSteps")(function*
 					}
 				}
 			}
-			return yield* migratePostgres({ ...migrations, loader }).pipe(Effect.provideContext(context));
+			return yield* migratePostgres(options).pipe(Effect.provideContext(context));
 		});
 	}
 	return {
@@ -47,8 +47,15 @@ export const migrationSteps = Effect.fn("PostgresTest.migrationSteps")(function*
 			if (matches.length > 1) {
 				return invalid(`Migration "${name}" is ambiguous in the loader.`);
 			}
-			return run(Effect.succeed(resolved.filter(([id]) => id <= target[0])), target[0]);
+			return run(
+				{
+					loader: Effect.succeed(resolved.filter(([id]) => id <= target[0])),
+					lockTimeout: migrations.lockTimeout,
+					table: ledger,
+				},
+				target[0],
+			);
 		},
-		migrateToLatest: run(Effect.succeed(resolved)),
+		migrateToLatest: run({ ...migrations, loader: Effect.succeed(resolved) }),
 	};
 });

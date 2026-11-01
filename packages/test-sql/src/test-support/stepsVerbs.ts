@@ -1,5 +1,6 @@
 import { Effect, Exit, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { readPostgresRelease } from "@shivaedev/sql/postgresRelease.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrationSteps } from "#migrationSteps.ts";
 import { withTestTransaction } from "#withTestTransaction.ts";
@@ -64,6 +65,11 @@ export function stepsVerbs(engine: StepsEngine, story: Story<StepsEngine>) {
 			Effect.flatMap(SqlClient.SqlClient, (sql) =>
 				Effect.map(sql<{ email: string }>`select email from contacts order by id`, (rows) => rows.map(({ email }) => email)),
 			),
+		directoryAddresses: () =>
+			Effect.flatMap(
+				SqlClient.SqlClient,
+				(sql) => sql<{ address: string; contactId: number }>`select contact_id as "contactId", address from contact_directory order by contact_id`,
+			),
 		emailAddresses: () =>
 			Effect.flatMap(
 				SqlClient.SqlClient,
@@ -81,6 +87,7 @@ export function stepsVerbs(engine: StepsEngine, story: Story<StepsEngine>) {
 				engine.migration = yield* attempt(engine.steps.migrateTo(target));
 			}),
 		migration: () => Effect.sync(() => engine.migration),
+		recordedRelease: () => Effect.map(readPostgresRelease(migrations.table), (release) => release?.release ?? "none"),
 		tables: () => tableNames,
 	};
 }
