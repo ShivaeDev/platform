@@ -1,4 +1,4 @@
-import { DateTime, Effect } from "effect";
+import { DateTime, Effect, Stream } from "effect";
 import { HttpClient, type HttpClientResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { RemoteGone, RemoteHttpError, RemoteNotFound, RemoteRateLimited, type RemoteStatusError, RemoteUnauthorized } from "./errors.ts";
@@ -31,6 +31,7 @@ const checkStatus = Effect.fnUntraced(function* (response: HttpClientResponse.Ht
 			}
 		}
 	}
+	yield* Effect.scoped(Stream.toPull(response.stream));
 	return yield* Effect.fail(error);
 });
 

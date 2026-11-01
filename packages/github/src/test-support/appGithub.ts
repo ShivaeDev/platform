@@ -22,6 +22,7 @@ import { appServer } from "./appServer.ts";
 import { appTransport } from "./appTransport.ts";
 import { PullRequest } from "./fixtures.ts";
 import { answered } from "./outcome.ts";
+import { pooledApp } from "./pooledApp.ts";
 import { telemetry } from "./telemetry.ts";
 import { seenIn } from "./telemetryReadouts.ts";
 
@@ -72,6 +73,7 @@ export const appGithub = storyKit({
 			app: yield* Layer.build(layer({})),
 			background: yield* Layer.build(layer({ installationId: 7 })),
 			contents: yield* Layer.build(layer({ installationId: 7, scope: scopes.contents })),
+			pooled: yield* Layer.build(pooledApp(server.url)),
 			repository: yield* Layer.build(layer({ owner: "acme", repository: "widgets" })),
 		};
 		const decoded = { count: 0 };
@@ -123,6 +125,10 @@ export const appGithub = storyKit({
 			appFailures: () => Effect.sync(() => [...failures]),
 			appJwts: () => Effect.sync(() => state.jwts),
 			bodiesDecoded: () => Effect.sync(() => decoded.count),
+			bodyReleased: (path: string) => {
+				story.tell(`GitHub waits for the unfinished ${path} response to be abandoned`);
+				return server.untilAbandoned((request) => request.path === path, { name: "rejected App response released" }).pipe(Effect.as("released"));
+			},
 			credentialsSeenIn: () =>
 				Effect.sync(() => {
 					const sent = server.requests.flatMap(({ headers }) =>
@@ -205,6 +211,8 @@ export const appGithub = storyKit({
 					return yield* Fiber.join(reads);
 				}),
 			readPull: () => readPull(),
+			readPullFromOneConnectionPool: () =>
+				attempt("the client reads pull request 1 through a one-connection pool", read(PULL, PullRequest).pipe(Effect.provide(contexts.pooled))),
 			readPullThrough: (scope: Scope) =>
 				attempt(`the ${scope} client reads pull request 1`, read(PULL, PullRequest).pipe(Effect.provide(contexts[scope]))),
 			readRepositoryPull: () =>

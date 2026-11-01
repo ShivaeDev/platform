@@ -66,7 +66,7 @@ export function githubApp(options: GitHubAppOptions) {
 }
 
 function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
-	const checked = filterStatus(client);
+	const checked = filterStatus(HttpClient.withScope(client));
 	return Effect.fnUntraced(function* <TSchema extends Schema.Constraint>(
 		method: "GET" | "POST",
 		path: string,
@@ -92,5 +92,5 @@ function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
 		return yield* readBoundedJson(response, 64 * 1024, schema).pipe(
 			Effect.mapError((cause) => new GitHubAppError({ reason: cause._tag === "HttpClientError" ? "transport" : "response" }, { cause })),
 		);
-	});
+	}, Effect.scoped);
 }

@@ -1,4 +1,4 @@
-import { DateTime, Effect, Option, Redacted } from "effect";
+import { DateTime, Effect, Option, Redacted, Stream } from "effect";
 import { FetchHttpClient, type HttpClient, type HttpClientError, HttpClientRequest } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { GitHubTransportError } from "./errors.ts";
@@ -30,12 +30,14 @@ export function authenticatedRequest<R>(
 		const credential = yield* accessToken;
 		let response = yield* send(credential);
 		if (isUnauthorized(response) && refresh !== undefined) {
+			yield* Effect.scoped(Stream.toPull(response.stream));
 			yield* refresh(credential);
 			response = yield* send(yield* accessToken);
 		}
 		const observedResource = rates.observe(response);
 		if (!((mode === "revalidate" && isUnchanged(response)) || (mode === "manual" && response.status === HttpStatus.fromLiteral("Found")))) {
 			yield* checkStatus(response, observedResource, rates.failures.get(observedResource) ?? 0).pipe(
+				Effect.onError(() => Effect.scoped(Stream.toPull(response.stream))),
 				Effect.catchTag("HttpClientError", (cause) => Effect.fail(new GitHubTransportError({ path }, { cause }))),
 				Effect.catchTag("GitHubRateLimited", (error) => {
 					rates.blocked.set(error.resource, error);

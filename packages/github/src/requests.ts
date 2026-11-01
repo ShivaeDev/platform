@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { type HttpClient, HttpClientRequest } from "effect/http";
+import { HttpClient, HttpClientRequest } from "effect/http";
 import { readBoundedBody } from "@shivaedev/http/body.ts";
 import { ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
 import { authenticatedRequest } from "./authenticatedRequest.ts";
@@ -17,7 +17,7 @@ export function requests(
 	refresh: typeof TokenRefresh.Service = undefined,
 ) {
 	const cache = responseCache();
-	const send = authenticatedRequest(client, token, rates, refresh);
+	const send = authenticatedRequest(HttpClient.withScope(client), token, rates, refresh);
 	return Effect.fn("GitHub.request")(function* (input: HttpClientRequest.HttpClientRequest, limit: number) {
 		const key = `${input.url} ${input.headers.accept}`;
 		const cached = input.method === "GET" ? cache.get(key) : undefined;
@@ -40,5 +40,5 @@ export function requests(
 			cache.set(key, entry);
 		}
 		return entry;
-	});
+	}, Effect.scoped);
 }
