@@ -240,7 +240,9 @@ Use `{ in: values }` to match any value in a list, alongside equality entries:
 yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 ```
 
-Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field; only the explicit `{ in: [...] }` entry requests SQL `IN`.
+Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field.
+
+A value accepted by the field's decoded schema uses equality through its codec before filter operators are considered. For a JSONB field whose schema accepts `{ gt: 7 }` or `{ in: [7] }`, those objects compare as JSON values. An object is an operator filter only when the field's decoded schema does not accept it. A nullable field's `null` equality matches SQL NULL, including on JSONB columns; it does not match JSON null. This rule applies to reads, counts and deletes.
 
 Use `count` with the same `where` shape as `findMany` to return the matching row count decoded as a number:
 
