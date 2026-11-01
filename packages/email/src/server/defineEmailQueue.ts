@@ -4,12 +4,30 @@ import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import type { Email } from "#Email.ts";
 import { Mailer } from "./Mailer.ts";
 
-export function defineEmailQueue<const TSchema extends JobPayloadSchema, E, R, const TName extends string = "transactional-email">(
+type Render<TSchema extends JobPayloadSchema, E, R> = (message: Schema.Schema.Type<TSchema>) => Effect.Effect<Email, E, R>;
+
+export function defineEmailQueue<const TSchema extends JobPayloadSchema, E, R>(
 	schema: TSchema,
-	render: (message: Schema.Schema.Type<TSchema>) => Effect.Effect<Email, E, R>,
-	options?: { readonly name: TName },
+	render: Render<TSchema, E, R>,
+): ReturnType<typeof makeEmailQueue<TSchema, E, R, "transactional-email">>;
+export function defineEmailQueue<const TSchema extends JobPayloadSchema, E, R, const TName extends string>(
+	schema: TSchema,
+	render: Render<TSchema, E, R>,
+	options: { readonly name: TName },
+): ReturnType<typeof makeEmailQueue<TSchema, E, R, TName>>;
+export function defineEmailQueue<TSchema extends JobPayloadSchema, E, R>(
+	schema: TSchema,
+	render: Render<TSchema, E, R>,
+	options?: { readonly name: string },
+): unknown {
+	return makeEmailQueue(schema, render, options?.name ?? "transactional-email");
+}
+
+function makeEmailQueue<TSchema extends JobPayloadSchema, E, R, const TName extends string>(
+	schema: TSchema,
+	render: Render<TSchema, E, R>,
+	name: TName,
 ) {
-	const name = options?.name ?? "transactional-email";
 	const queue = defineQueue({
 		name,
 		queue: { retryBackoff: true, retryDelay: 30, retryLimit: 3 },

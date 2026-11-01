@@ -19,7 +19,7 @@ export const AuthEmailQueue = defineEmailQueue(
 	AuthMessage,
 	(message) =>
 		Effect.gen(function* () {
-			const from = yield* Config.String("EMAIL_FROM").pipe(Config.withDefault("Starter <onboarding@resend.dev>"));
+			const from = yield* Config.String("EMAIL_FROM").pipe(Config.withDefault("Accounts <onboarding@resend.dev>"));
 			const subject = subjects[message.kind];
 			const url = Redacted.value(message.url);
 			const escaped = url.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
