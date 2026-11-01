@@ -9,7 +9,7 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 export default async function workspace() {
 	const projects: TestProjectConfiguration[] = [];
 	for (const { configFile, directory, name } of [
-		{ configFile: `${root}vitest.config.ts`, directory: root, name: "orchestration" },
+		{ configFile: `${root}vitest.config.ts`, directory: `${root}script`, name: "orchestration" },
 		...testPackages(root),
 	]) {
 		const { default: config }: { default: { test?: ReturnType<typeof testProjects> } } = await import(pathToFileURL(configFile).href);
@@ -23,9 +23,6 @@ export default async function workspace() {
 				root: directory,
 				test: {
 					...project.test,
-					...(directory === root && project.test.include !== undefined
-						? { include: project.test.include.map((pattern) => `script/${pattern}`) }
-						: {}),
 					name: `${name}:${project.test.name}`,
 				},
 			});

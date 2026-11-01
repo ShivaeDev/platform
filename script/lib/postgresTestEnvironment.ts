@@ -18,5 +18,6 @@ export const postgresTestEnvironment = Effect.gen(function* () {
 		"PLATFORM_JOBS_TEST_DATABASE_URL": select("JOBS"),
 		"PLATFORM_SQL_TEST_DATABASE_URL": select("SQL"),
 		"PLATFORM_TEST_SQL_TEST_DATABASE_URL": select("TEST_SQL"),
+		"TEST_DATABASE_URL": Effect.succeed(base.toString()),
 	});
 });
