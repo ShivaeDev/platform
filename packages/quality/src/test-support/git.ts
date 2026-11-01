@@ -1,9 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { Config, Effect } from "effect";
+import { Config, Effect, Option } from "effect";
+
+const HEAVY_ENV = Object.fromEntries(
+	["CI", "HOME", "HEAVY_PROCESS_LOCK", "HEAVY_PROCESS_LOCK_ID"].flatMap((name) =>
+		Option.toArray(Effect.runSync(Config.option(Config.String(name)))).map((value) => [name, value]),
+	),
+);
 
 // Git reads no user or system config, so a machine-wide hooks path neither runs nor hides a hook under test, and no GIT_DIR or
 // GIT_INDEX_FILE from a hook that runs the tests points git at the outer repository.
 export const ISOLATED_ENV = {
+	...HEAVY_ENV,
 	"GIT_AUTHOR_EMAIL": "quality@example.invalid",
 	"GIT_AUTHOR_NAME": "Quality",
 	"GIT_COMMITTER_EMAIL": "quality@example.invalid",
