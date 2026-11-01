@@ -61,6 +61,7 @@
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/react": "workspace:*",

@@ -301,21 +301,43 @@ Set `localAddress` to choose the source socket address of the proxy's connection
 
 #### Reading OTLP exports
 
-Use `otlpReceiver` from `@shivaedev/test-story/server/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Point the application's real exporter at `${receiver.url}/v1/traces`, then flush the exporter before reading:
+Use `otlpReceiver` from `@shivaedev/test-story/server/otlpReceiver.ts` in a kit's scoped `create` hook. It listens on an allocated loopback port and closes with the story scope. Build the application's tracing layer with `receiver.tracerLayer(options?)`, providing native OTLP serialization and an HTTP client:
 
 ```ts
-app.it("exports the work span without the planted secret", [], function* ({ runWork, disposeRuntime, exportedSpanNames, exportsContaining }) {
-	yield* runWork();
-	yield* disposeRuntime();
+const receiver = yield* otlpReceiver();
+const tracing = receiver.tracerLayer({ resource: { serviceName: "documents" } }).pipe(
+  Layer.provide(OtlpSerialization.layerJson),
+  Layer.provide(FetchHttpClient.layer),
+);
+const context = yield* Layer.build(tracing);
+```
+
+Import `Layer` from `effect`, `OtlpSerialization` from `effect/observability` and `FetchHttpClient` from `effect/http`. Provide `context` to the application's work. The layer accepts native tracer options except the destination URL and compression; the receiver supplies its own URL. Use `OtlpSerialization.layerProtobuf` for protobuf exports. The layer includes Effect's tracer logger, so logs become span events even when the surrounding test logger omits it. Logger changes stay inside the provided context, and the story's Scope releases the exporter.
+
+Expose `receiver.flush` as a separate story step. It exports buffered traces and waits on receiver signals for every sampled span that ended before the step, including exports already in flight. It leaves tracing running for later actions. Finish the traced operation before flushing; a span still running has nothing to export. This step tracks exporters built with `receiver.tracerLayer`; an independently configured exporter still needs its own flush.
+
+```ts
+app.it("exports a leaked credential and omits a redacted credential", [], function* ({ tracesSecret, flush, exportsSecret }) {
+	yield* tracesSecret("redacted credential", true);
+	yield* tracesSecret("leaked credential", false);
+	yield* flush();
 
 	yield* outcomes([
-		["exported spans", () => exportedSpanNames(), ["CountWords"]],
-		["exports with the planted secret", () => exportsContaining("planted-secret"), 0],
+		["redacted credential exported", () => exportsSecret("redacted credential"), false],
+		["leaked credential exported", () => exportsSecret("leaked credential"), true],
 	]);
 });
 ```
 
-Here `app` is the application's kit. Its `create` acquires the receiver and the real exporter pointed at that receiver, `runWork` performs the traced operation, `disposeRuntime` disposes the exporter's runtime and flushes pending spans, and `exportedSpanNames` and `exportsContaining` are Effect readouts over the receiver's `spans` and `requests`. Each action is visible in the spec. The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Search all body bytes when checking that a secret was not exported. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
+Here `app` is the application's kit. `tracesSecret` performs one traced action, and the kit exposes the receiver's readouts through its own domain verbs. Readouts return values and the spec states expectations:
+
+| Readout                         | Returns                                                                                                                                                                                                                                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `receiver.exportsSecret(value)` | Whether the value occurs in any received export body. It searches raw bytes and decoded JSON keys and values, including escaped strings and fields outside the decoded spans. Transport headers are excluded.                                                                                                   |
+| `receiver.queries()`            | SQL text from `db.query.text` or the older `db.statement` attribute, in received span order. Repeated queries remain repeated.                                                                                                                                                                                  |
+| `receiver.errors()`             | Exception events as `{ operation, message, type }`, where operation is the span name and type is the optional exception type. A failed span without an exception event contributes its status message (or span name), with no type. Status and exception representations of the same failure produce one entry. |
+
+The receiver accepts OTLP/HTTP JSON and protobuf. `spans` flattens all exports into decoded trace and span IDs, parent span IDs, names, numeric OTLP kinds and status codes, attributes, events and links. Attributes retain OTLP key/value objects, including lossless decimal strings for integers; each span also has `resourceAttributes`. `requests` retains every request's unmodified `body` Buffer, parsed `headers`, original `rawHeaders` pairs and `path`. Optional `path`, `status` (a number or attempt callback) and `answer` configure collector responses for failure stories.
 
 For timeout stories, return `undefined` from the `status` callback to accept an export without sending response headers. Set `answer: null` to send headers without completing the response body.
 
@@ -936,7 +958,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/domEnvironment.config.ts`    | Default Vitest environment preserving Node host globals and happy-dom document transport                                                                                                                                                                                                                                                                                            |
 | `server/fakeHttpService.ts`          | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
 | `server/forwardingProxy.ts`          | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
-| `server/otlpReceiver.ts`             | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`                                                                                                                                                                                                                                                                                                           |
+| `server/otlpReceiver.ts`             | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`, `OtlpTracerOptions`                                                                                                                                                                                                                                                                                      |
 
 ### Install and limits
 
