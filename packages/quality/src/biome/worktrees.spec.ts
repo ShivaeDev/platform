@@ -10,9 +10,8 @@ const MESSY = {
 };
 const FIXED = 'import { readFile } from "node:fs/promises";\nimport { join } from "node:path";\n\nexport const total = [join, readFile].length;\n';
 const UNFORMATTED = `${MESSY.path}  Is not formatted. Run \`quality fix\`.`;
-// Biome matches this folder glob against the folders above the root too, so inside `.worktrees/` it ignores every file.
-const IGNORING_WORKTREES = {
-	content: '{ "extends": ["@shivaedev/quality/biome/preset.json"], "files": { "includes": ["**", "!**/.worktrees"] } }\n',
+const IGNORING_EVERY_FILE = {
+	content: '{ "extends": ["@shivaedev/quality/biome/preset.json"], "files": { "includes": ["**", "!**"] } }\n',
 	path: "biome.json",
 };
 
@@ -93,15 +92,15 @@ checkoutStory.it(
 
 for (const command of ["lint", "fix"]) {
 	checkoutStory.it(
-		`quality ${command} in a linked worktree whose Biome config leaves no file to check refuses with Biome's message`,
-		[withoutConfig(), linkedWorktree("feature", { files: [MESSY, IGNORING_WORKTREES] })],
+		`quality ${command} in a linked worktree whose Biome config leaves no file to check refuses with Quality's repair message`,
+		[withoutConfig(), linkedWorktree("feature", { files: [MESSY, IGNORING_EVERY_FILE] })],
 		function* ({ outcome, runsIn, stderr }) {
 			yield* runsIn("feature", command);
 
 			yield* outcomes([
 				["exit", () => outcome(), "invalid"],
-				["explanation", () => stderr(), expect.stringContaining("exited 1 without a failing diagnostic:")],
-				["message", () => stderr(), expect.stringContaining("No files were processed in the specified paths.")],
+				["explanation", () => stderr(), expect.stringContaining("processed no files.")],
+				["repair", () => stderr(), expect.stringContaining("Check files.includes in biome.json or biome.jsonc so Quality has files to check.")],
 			]);
 		},
 		CLI_TIMEOUT,

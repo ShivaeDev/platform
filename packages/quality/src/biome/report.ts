@@ -19,7 +19,7 @@ export type Diagnostic = typeof Diagnostic.Type;
 
 const Report = Schema.Struct({
 	diagnostics: Schema.Array(Diagnostic),
-	summary: Schema.Struct({ changed: Schema.Int }),
+	summary: Schema.Struct({ changed: Schema.Int, unchanged: Schema.Int }),
 });
 
 export type Report = typeof Report.Type;
@@ -32,7 +32,6 @@ function failure(args: readonly string[], run: BiomeRun, missing: string, output
 	return new SetupFailure({ message: `biome ${args.join(" ")} exited ${run.code} without ${missing}:\n${output.trim()}` });
 }
 
-// Biome exits with an error but prints an empty report when no file was processed, so only a failing diagnostic explains a failed run.
 function unexplained(run: BiomeRun, report: Report): boolean {
 	return run.code !== 0 && !report.diagnostics.some((diagnostic) => FAILING.has(diagnostic.severity));
 }
@@ -48,6 +47,11 @@ const reportFor = Effect.fn("Biome.reportFor")(function* (
 	const report = decodeReport(run.stdout.trim());
 	if (report._tag === "None") {
 		return yield* Effect.fail(failure(command, run, "a report", [run.stdout, run.stderr].join("\n")));
+	}
+	if (report.value.summary.changed + report.value.summary.unchanged === 0 && !args.includes("--no-errors-on-unmatched")) {
+		return yield* new SetupFailure({
+			message: `biome ${command.join(" ")} processed no files. Check files.includes in biome.json or biome.jsonc so Quality has files to check.`,
+		});
 	}
 	if (unexplained(run, report.value)) {
 		return yield* Effect.fail(failure(command, run, "a failing diagnostic", run.stderr));

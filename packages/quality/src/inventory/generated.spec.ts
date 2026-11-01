@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
 import { repositoryTracks } from "#test/repositoryTracks.ts";
 import { config } from "#test/tree.ts";
 
@@ -55,3 +55,24 @@ repositoryStory.it(
 		]);
 	},
 );
+
+for (const command of ["lint", "fix"]) {
+	repositoryStory.it(
+		`quality ${command} accepts checked files when the ignored tracked files contain nothing Biome supports`,
+		[
+			qualityInstalled(),
+			repositoryHas(
+				GENERATED_IGNORED,
+				{ content: "export function value(): number { return 1; }", path: "src/value.ts" },
+				{ content: "Generated notes", path: "src/generated/notes.txt" },
+			),
+			biomeFormatted(),
+			repositoryTracks("src/generated/notes.txt"),
+		],
+		function* ({ outcome, runs }) {
+			yield* runs(command);
+
+			expect(yield* outcome()).toBe("passed");
+		},
+	);
+}
