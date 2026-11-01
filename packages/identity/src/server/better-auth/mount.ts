@@ -14,7 +14,8 @@ import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
 import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
 import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
 import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
-import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
+import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
+import { providerFailure } from "#server/providerFailure.ts";
 import type { AccountRoleSeed } from "./accountRoleSeed.ts";
 import { admittedSessions } from "./admittedSessions.ts";
 import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
@@ -97,8 +98,16 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 		trustedProxy,
 	});
 	const admit = admittedSessions(gate, () => auth.$context, mount.bearerSessions);
+	const admission = yield* signInGate({ ...policy, recheckInterval: 0 });
+	const admitsUser = Effect.fn("Identity.admitsUser")(function* (userId: string) {
+		if (!admission.active) {
+			return true;
+		}
+		const storage = yield* fromStorage(() => auth.$context);
+		return yield* admission.admitsUser(storage, userId).pipe(Effect.catch(providerFailure));
+	});
 	const revoke = revokeUnadmitted(gate, () => auth.$context);
 	const lookupSession: unknown = Reflect.get(auth.api, "getSession");
 	const sessions = mountedSessions(lookupSession, admit, mount.roles);
-	return { admittedSessions: admit, auth, revokeUnadmitted: revoke, routes: authRoutes, sessions };
+	return { admitsUser, admittedSessions: admit, auth, revokeUnadmitted: revoke, routes: authRoutes, sessions };
 });
