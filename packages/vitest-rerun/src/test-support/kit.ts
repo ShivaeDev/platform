@@ -4,6 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { changingIdentity, type IdentityChange } from "./identityFiles.ts";
+import { pendingVerbs } from "./pendingAttempt.ts";
 import { reportReadouts } from "./reports.ts";
 import {
 	alwaysFailing,
@@ -36,6 +37,7 @@ export const rerunStory = storyKit({
 	name: "vitest rerun",
 	stages: ["configuration", "tests"],
 	verbs: (suite, story) => ({
+		...pendingVerbs(suite),
 		...reportReadouts(suite),
 		run: (...args: string[]) => {
 			story.tell(`vitest-rerun runs${withArgs(args)}`);
@@ -104,12 +106,15 @@ export function inProjects(...projects: string[]) {
 	});
 }
 
-export function withCoverage() {
+export function withCoverage(threshold?: number) {
 	return rerunStory.trait(
 		"configuration",
-		`coverage is enabled for covered.ts, whose covered() only "${FLAKY}" calls once it passes and whose alsoCovered() only "passes" calls`,
+		`coverage is enabled for covered.ts, whose covered() only "${FLAKY}" calls once it passes and whose alsoCovered() only "passes" calls${threshold === undefined ? "" : `, with a ${threshold}% function threshold`}`,
 		(suite) => {
 			suite.config.coverage = true;
+			if (threshold !== undefined) {
+				suite.config.threshold = threshold;
+			}
 		},
 	);
 }

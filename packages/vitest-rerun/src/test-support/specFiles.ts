@@ -9,16 +9,18 @@ export const BESIDE = "checkout > passes beside it";
 export interface SuiteConfig {
 	coverage: boolean;
 	projects: readonly string[];
+	threshold?: number;
 }
 
-export function vitestConfig(root: string, { coverage, projects }: SuiteConfig): string {
+export function vitestConfig(root: string, { coverage, projects, threshold }: SuiteConfig): string {
 	const include = "include: ['*.spec.ts']";
 	const tests =
 		projects.length === 0
 			? include
 			: `projects: [${projects.map((name) => `{ extends: true, test: { name: '${name}', ${include}, env: { PROJECT: '${name}' } } }`).join(", ")}]`;
+	const thresholds = threshold === undefined ? "" : `, thresholds: { functions: ${threshold} }`;
 	const coverageOptions = coverage
-		? ", coverage: { enabled: true, provider: 'v8', include: ['covered.ts'], reporter: ['lcov'], reportOnFailure: true, reportsDirectory: 'coverage' }"
+		? `, coverage: { enabled: true, provider: 'v8', include: ['covered.ts'], reporter: ['lcov'], reportOnFailure: true, reportsDirectory: 'coverage'${thresholds} }`
 		: "";
 	return `export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions} } };\n`;
 }
@@ -99,12 +101,12 @@ it('leaves an unhandled error', async () => {
 
 export const COVERED_MODULE = "export function covered() {\n\treturn 2;\n}\nexport function alsoCovered() {\n\treturn 1;\n}\n";
 
-export function perAttempt(body: string): string {
+export function perAttempt(body: string, counter = "collections.txt"): string {
 	return `import { appendFileSync, readFileSync } from 'node:fs';
-import { describe, it } from ${vitest};
+import { describe, expect, it } from ${vitest};
 
-appendFileSync('collections.txt', 'attempt\\n');
-const attempt = readFileSync('collections.txt', 'utf8').split('\\n').length - 1;
+appendFileSync(${JSON.stringify(counter)}, 'attempt\\n');
+const attempt = readFileSync(${JSON.stringify(counter)}, 'utf8').split('\\n').length - 1;
 ${body}`;
 }
 

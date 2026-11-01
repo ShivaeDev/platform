@@ -3,7 +3,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Console, Effect, FileSystem } from "effect";
+import { Console, Deferred, Effect, type Fiber, FileSystem } from "effect";
 import { vi } from "vitest";
 import { main } from "#internal/main.ts";
 import { type SuiteConfig, vitestConfig } from "./specFiles.ts";
@@ -21,7 +21,9 @@ export const createSuite = Effect.gen(function* () {
 	const directory = yield* fs.makeTempDirectoryScoped({ prefix: "vitest-rerun-" });
 	const config: SuiteConfig = { coverage: false, projects: [] };
 	const runs: Run[] = [];
-	return { config, directory, runs };
+	const attemptPending = yield* Deferred.make<void>();
+	const pendingRun: { fiber?: Fiber.Fiber<void, unknown> } = {};
+	return { attemptPending, config, directory, pendingRun, runs };
 });
 
 export type Suite = Effect.Success<typeof createSuite>;

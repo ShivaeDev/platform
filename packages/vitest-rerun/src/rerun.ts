@@ -58,6 +58,7 @@ const removeSnapshots = Effect.fn("VitestRerun.removeSnapshots")(function* (outp
 export const rerun = Effect.fn("VitestRerun.rerun")(function* (options: RerunOptions) {
 	yield* removeReports(options.outputDir);
 	let attempts = 1;
+	yield* Effect.addFinalizer(() => removeSnapshots(options.outputDir, attempts).pipe(Effect.orDie));
 	let code = yield* spawnAttempt(options, attempts);
 	while (attempts <= options.reruns && Option.exists(code, (status) => status !== 0) && (yield* rerunnable(options.outputDir, attempts))) {
 		if (attempts === 1) {
@@ -66,6 +67,5 @@ export const rerun = Effect.fn("VitestRerun.rerun")(function* (options: RerunOpt
 		attempts += 1;
 		code = yield* spawnAttempt(options, attempts);
 	}
-	yield* removeSnapshots(options.outputDir, attempts);
 	return Option.getOrElse(code, () => 1);
-});
+}, Effect.scoped);

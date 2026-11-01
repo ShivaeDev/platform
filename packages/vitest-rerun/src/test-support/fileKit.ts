@@ -38,7 +38,28 @@ export const filesStory = storyKit({
 
 export function snapshotFile(format: "truncated" | "older" | "invalid task" | "invalid history" | "invalid flaky test") {
 	return filesStory.trait("files", `attempt.snapshot contains a ${format} snapshot`, ({ directory, fs }) => {
-		const fields = { errors: [], failures: {}, files: [], flaky: [] };
+		const fields = {
+			errors: [],
+			failures: {},
+			files: [],
+			flaky: [],
+			summary: {
+				added: 0,
+				didUpdate: false,
+				failure: false,
+				filesAdded: 0,
+				filesRemoved: 0,
+				filesRemovedList: [],
+				filesUnmatched: 0,
+				filesUpdated: 0,
+				matched: 0,
+				total: 0,
+				unchecked: 0,
+				uncheckedKeysByFile: [],
+				unmatched: 0,
+				updated: 0,
+			},
+		};
 		const contents = {
 			"invalid flaky test": { ...fields, flaky: [{ attempts: "two" }] },
 			"invalid history": { ...fields, failures: { test: { attempts: "two", messages: [] } } },
