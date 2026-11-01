@@ -1,11 +1,12 @@
-import { Cache, Clock, Context, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
+import { Cache, Clock, Context, Effect, Exit, Layer, Option, type Redacted, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { readBoundedJson } from "@shivaedev/http/body.ts";
-import { filterStatus } from "@shivaedev/http/filterStatus.ts";
 import { type AppCredentials, appJwt } from "#appJwt.ts";
+import { authenticatedRequest } from "#authenticatedRequest.ts";
 import { GitHubAppError } from "#errors.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { rateLimits } from "#rateLimits.ts";
 import { TokenRefresh } from "#TokenRefresh.ts";
 
 export interface InstallationScope {
@@ -66,7 +67,8 @@ export function githubApp(options: GitHubAppOptions) {
 }
 
 function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
-	const checked = filterStatus(HttpClient.withScope(client));
+	const scoped = HttpClient.withScope(client);
+	const rates = rateLimits();
 	return Effect.fnUntraced(function* <TSchema extends Schema.Constraint>(
 		method: "GET" | "POST",
 		path: string,
@@ -75,20 +77,25 @@ function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
 		body?: unknown,
 	) {
 		let input = HttpClientRequest.make(method)(new URL(path, apiUrl).href, {
-			headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${Redacted.value(jwt)}`, "X-GitHub-Api-Version": "2022-11-28" },
+			headers: { Accept: "application/vnd.github+json" },
 		});
 		if (body !== undefined) {
 			input = yield* HttpClientRequest.bodyJson(input, body).pipe(Effect.mapError((cause) => new GitHubAppError({ reason: "encode" }, { cause })));
 		}
-		const response = yield* checked
-			.execute(input)
-			.pipe(
-				Effect.mapError((cause) =>
-					cause._tag === "HttpClientError"
-						? new GitHubAppError({ reason: "transport" }, { cause })
-						: new GitHubAppError({ reason: "status", status: cause.status }),
-				),
-			);
+		const response = yield* authenticatedRequest(
+			scoped,
+			Option.some(jwt),
+			rates,
+		)(input).pipe(
+			Effect.mapError((cause) => {
+				if (cause._tag === "GitHubRateLimited") {
+					return cause;
+				}
+				return cause._tag === "GitHubTransportError"
+					? new GitHubAppError({ reason: "transport" }, { cause: cause.cause })
+					: new GitHubAppError({ reason: "status", status: "status" in cause ? cause.status : 403 });
+			}),
+		);
 		return yield* readBoundedJson(response, 64 * 1024, schema).pipe(
 			Effect.mapError((cause) => new GitHubAppError({ reason: cause._tag === "HttpClientError" ? "transport" : "response" }, { cause })),
 		);
