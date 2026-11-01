@@ -37,6 +37,9 @@ const definition = {
 };
 
 export const mcp = storyKit({ ...definition, create: () => startEngine() });
-export const localMcp = storyKit({ ...definition, create: () => startEngine(true) });
+export const localMcp = storyKit({ ...definition, create: () => startEngine({ inProcess: true }) });
 
-export const admittedMcp = storyKit({ ...definition, create: () => startEngine(false, true) });
+export const admittedMcp = storyKit({ ...definition, create: () => startEngine({ withAdmission: true }) });
+
+export const customIssuerMcp = storyKit({ ...definition, create: () => startEngine({ issuerPath: "/identity/tenant" }) });
+export const rootIssuerMcp = storyKit({ ...definition, create: () => startEngine({ issuerPath: "/" }) });

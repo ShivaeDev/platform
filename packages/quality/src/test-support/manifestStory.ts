@@ -54,7 +54,7 @@ export const manifestStory = storyKit({
 				engine.manifests = yield* Effect.promise(() =>
 					Promise.all([readPackageManifest(readText, path), readPackageManifest(readText, `./${path}`)]),
 				);
-			}).pipe(Effect.provide(NodeFileSystem.layer)),
+			}).pipe(Effect.scoped, Effect.provide(NodeFileSystem.layer)),
 	}),
 });
 

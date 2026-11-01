@@ -92,7 +92,7 @@ const grant = (owner: string, member: string) =>
 	});
 ```
 
-Provide the application's native SQL layer when running `grant`. Publication happens after the native transaction succeeds and before the wrapper returns. A typed failure, defect, body interruption or failed commit discards the root frame. A nested commit merges into its parent; a nested rollback leaves the parent's own changes intact.
+Provide the application's native SQL layer when running `grant`. Publication happens after the native transaction succeeds and before the wrapper returns. A typed failure, defect, body interruption or failed commit discards the root frame. A savepoint commit merges into its enclosing transaction; a nested rollback leaves the parent's own changes intact.
 
 When interruption arrives while commit is in flight, the boundary waits for the native outcome. A successful commit still publishes its changes, and the caller still sees the interruption.
 
@@ -138,7 +138,7 @@ const grantSeveral = Effect.gen(function* () {
 
 This example uses no transaction: the native SQL writes autocommit, while `batch` groups their notifications. Success, typed failure and interruption all publish the batch's recorded changes, because those writes have already landed.
 
-A transaction inside a batch merges into the batch when it commits and drops its changes when it rolls back. A batch inside a transaction merges into that transaction, including when the batch fails and its failure is caught; the enclosing transaction decides whether those changes publish.
+A transaction inside a batch publishes at its own commit through the transaction's sink and drops its changes when it rolls back. Nontransactional batch changes still wait for the batch to end. A batch inside a transaction merges into that transaction, including when the batch fails and its failure is caught; the enclosing transaction decides whether those changes publish. A savepoint inside that batch also waits for the enclosing transaction's commit.
 
 Without a frame or batch, a record publishes immediately. An optional `unowned` guard runs before an unframed record or a root transaction frame opens. A batch is not an owned transaction, so its records and transactions opened inside it still run that guard. A binding can use the guard to refuse a native transaction whose commit the channel cannot observe.
 
@@ -182,7 +182,7 @@ const observe = Layer.succeed(membershipChanges.Observer, (observation: Observat
 const capturedGrant = grant("ada", "bob").pipe(Effect.provide(Layer.merge(captureSink, observe)));
 ```
 
-`Sink` and `Observer` are channel-specific `Context.Reference`s. Within the provided scope, the sink receives the changes instead of the configured publish function; the configured sink resumes outside it. The observer receives `Recorded` for the distinct changes in a record call, `Published` for the buffer passed to publication and `Discarded` for a rolled-back frame's changes. `Published` is emitted before the sink runs; it does not prove successful delivery. Discarded parent changes include changes merged from children that committed earlier. A rollback therefore remains visible to a coverage check through its earlier `Recorded` observation.
+`Sink` and `Observer` are channel-specific `Context.Reference`s. Within the provided scope, the sink receives the changes instead of the configured publish function; the configured sink resumes outside it. The observer receives `Recorded` for the distinct changes in a record call, `Published` for the buffer passed to publication and `Discarded` for a rolled-back frame's changes. `Published` is emitted before the sink runs; it does not prove successful delivery. Discarded parent changes include changes merged from children that committed earlier. A rollback therefore remains visible to a coverage check through its earlier `Recorded` observation. A synchronous throw or Effect defect from the observer is logged without blocking sink delivery or changing the transaction's outcome.
 
 ### Work inside the committing transaction
 

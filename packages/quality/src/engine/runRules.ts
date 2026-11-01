@@ -1,7 +1,8 @@
-import { isAbsolute, relative } from "node:path";
+import { basename, isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
 import { ManifestFailure } from "#adapters/manifestInventory.ts";
 import { SetupFailure } from "#failure.ts";
+import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
 import type { ActiveLevel, Violation } from "./violation.ts";
@@ -49,19 +50,38 @@ function violationOf(rule: ActiveRule, root: string, finding: Finding, exception
 	};
 }
 
+function expectedFailure(rule: ActiveRule, root: string, cause: unknown): readonly Violation[] | undefined {
+	if (cause instanceof ManifestFailure || cause instanceof FilesystemFailure) {
+		const manifest = cause instanceof ManifestFailure || basename(cause.path) === "package.json";
+		return [
+			{
+				file: repositoryPath(root, cause.path),
+				level: rule.level,
+				message: cause.message,
+				rule: manifest ? "manifests/valid" : rule.id,
+			},
+		];
+	}
+	return undefined;
+}
+
 function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure, RuleServices> {
 	return Effect.suspend(() => rule.check(inputs)).pipe(
-		Effect.catch((cause) =>
-			cause instanceof SetupFailure
-				? Effect.fail(new SetupFailure({ cause, message: `rule ${rule.id} failed: ${cause.message}` }))
-				: Effect.die(cause),
-		),
 		Effect.map((findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile))),
-		Effect.catchDefect((cause) =>
-			cause instanceof ManifestFailure
-				? Effect.succeed([{ file: cause.path, level: "error" as const, message: cause.message, rule: "manifests/valid" }])
-				: Effect.die(new Error(`rule ${rule.id} failed: ${messageOf(cause)}`, { cause })),
-		),
+		Effect.catch((cause) => {
+			const findings = expectedFailure(rule, inputs.root, cause);
+			if (findings !== undefined) {
+				return Effect.succeed(findings);
+			}
+			if (cause instanceof SetupFailure) {
+				return Effect.fail(new SetupFailure({ cause, message: `rule ${rule.id} failed: ${cause.message}` }));
+			}
+			return Effect.die(cause);
+		}),
+		Effect.catchDefect((cause) => {
+			const findings = expectedFailure(rule, inputs.root, cause);
+			return findings === undefined ? Effect.die(new Error(`rule ${rule.id} failed: ${messageOf(cause)}`, { cause })) : Effect.succeed(findings);
+		}),
 	);
 }
 

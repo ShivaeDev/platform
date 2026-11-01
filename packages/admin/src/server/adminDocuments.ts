@@ -15,7 +15,7 @@ export function adminDocuments<E, R>(
 		Effect.gen(function* () {
 			yield* router.add("GET", "/admin/*", (request) => {
 				const path = new URL(request.url, "http://localhost").pathname;
-				const route = path.replace(/\/$/u, "") === "/admin" ? routes[0] : matchAdminRoute(routes, path);
+				const route = matchAdminRoute(routes, path);
 				return route === undefined
 					? Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NotFound") }))
 					: permissionRoute(route.permission)(handler)(request);

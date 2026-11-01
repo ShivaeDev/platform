@@ -44,5 +44,12 @@ export const keyStory = storyKit({
 				}),
 				(release) => Effect.sync(release),
 			),
+		withThrowingPublicationObserver: <A, E, R>(body: Effect.Effect<A, E, R>) =>
+			Effect.provideService(body, engine.channel.Observer, (observation) => {
+				if (observation._tag === "Published") {
+					throw new Error("the publication observer threw");
+				}
+				return Effect.void;
+			}),
 	}),
 });

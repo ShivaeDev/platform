@@ -23,16 +23,16 @@ for (const ending of ["succeeds", "fails", "is interrupted"] as const) {
 }
 
 changes.it(
-	"bob's transaction inside a batch publishes nothing at its own commit and publishes with the batch when it ends",
+	"bob's transaction inside a batch publishes at its own commit while ada's change waits for the batch to end",
 	[],
 	function* ({ batch, inTransaction, write, published }) {
 		yield* batch(function* () {
 			yield* write("ada's order", change("ada"));
 			yield* inTransaction(write("bob's order", change("bob")));
-			expect(yield* published()).toEqual([]);
+			expect(yield* published()).toEqual([["bob:orders"]]);
 		});
 
-		expect(yield* published()).toEqual([["ada:orders", "bob:orders"]]);
+		expect(yield* published()).toEqual([["bob:orders"], ["ada:orders"]]);
 	},
 );
 

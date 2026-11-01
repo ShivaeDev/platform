@@ -75,7 +75,9 @@ export async function loadPackageManifests(readText: ReadText, files: readonly s
 	const failures: ManifestFailure[] = [];
 	for (const file of files) {
 		try {
-			await manifestEntry(readText, file);
+			if ((await manifestEntry(readText, file)) === undefined) {
+				throw new ManifestFailure({ message: `required input is missing: ${file}`, path: file });
+			}
 		} catch (cause) {
 			if (!(cause instanceof ManifestFailure)) {
 				throw cause;

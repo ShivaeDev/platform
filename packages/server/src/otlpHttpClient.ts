@@ -2,6 +2,7 @@ import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest, type HttpClientResponse } from "effect/http";
 import { redactText } from "@shivaedev/errors/sensitive.ts";
 import { filterStatus } from "@shivaedev/http/filterStatus.ts";
+import { boundedOtlpResponse } from "#adapters/boundedOtlpResponse.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 
 function timeoutError(request: HttpClientRequest.HttpClientRequest) {
@@ -41,7 +42,7 @@ export function otlpHttpClient(timeout = 10_000) {
 				});
 			}
 			return client.pipe(
-				HttpClient.tap((response) => response.arrayBuffer),
+				HttpClient.transformResponse(Effect.flatMap(boundedOtlpResponse)),
 				HttpClient.transform((requestEffect, request) =>
 					requestEffect.pipe(
 						Effect.timeoutOrElse({
