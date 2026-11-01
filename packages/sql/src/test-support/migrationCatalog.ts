@@ -21,7 +21,7 @@ export type MigrationName =
 
 export type Migration = `${number}_${MigrationName}`;
 
-export type ComponentName = "failing jobs storage" | "order index" | "release watcher";
+export type ComponentName = "failing jobs storage" | "order index" | "release watcher" | "paused component" | "component observer";
 
 function bodies(engine: MigrationEngine): ReadonlyMap<string, Effect.Effect<unknown, unknown>> {
 	const { sql, tables } = engine;
@@ -85,6 +85,18 @@ export function componentOf(engine: MigrationEngine, name: ComponentName): Schem
 	const { sql, tables } = engine;
 	const index = `${tables.orders}_name`;
 	switch (name) {
+		case "paused component":
+			return {
+				apply: Effect.sync(() => engine.componentEvents.push("pause entered")).pipe(
+					Effect.andThen(Deferred.succeed(engine.pause.entered, undefined)),
+					Effect.andThen(Deferred.await(engine.pause.resume)),
+					Effect.andThen(Effect.sync(() => engine.componentEvents.push("pause resumed"))),
+				),
+				name,
+				pending: Effect.succeed(undefined),
+			};
+		case "component observer":
+			return { apply: Effect.sync(() => engine.componentEvents.push("observer ran")), name, pending: Effect.succeed(undefined) };
 		case "failing jobs storage":
 			return { apply: Effect.fail(new Error("jobs storage unavailable")), name, pending: Effect.succeed("jobs storage missing") };
 		case "order index":

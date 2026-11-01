@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
+import { MigrationStartedAt } from "#internal/MigrationStartedAt.ts";
 import type { SchemaComponent } from "./SchemaComponent.ts";
 
 export const readPostgresRelease = Effect.fn("EffectSql.readPostgresRelease")(function* (table = "effect_sql_migrations") {
@@ -22,6 +23,11 @@ export function postgresRelease(release: string, table = "effect_sql_migrations"
 	return {
 		apply: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
+			const startedAt = yield* MigrationStartedAt;
+			const timestamp = startedAt === undefined ? sql`clock_timestamp()` : sql`${startedAt}::timestamptz`;
+			const [invocation] = yield* sql`select ${timestamp}::text as at`.withoutTransform.pipe(
+				Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ at: Schema.String })))),
+			);
 			yield* sql`create table if not exists ${sql(`${table}_release`)} (
 				id boolean primary key default true check (id),
 				release text not null,
@@ -33,8 +39,9 @@ export function postgresRelease(release: string, table = "effect_sql_migrations"
 				heartbeat timestamptz not null
 			)`;
 			yield* sql`insert into ${sql(`${table}_release`)} (id, release, recorded_at)
-				values (true, ${release}, clock_timestamp())
-				on conflict (id) do update set release = excluded.release, recorded_at = excluded.recorded_at`;
+				values (true, ${release}, ${invocation?.at}::timestamptz)
+				on conflict (id) do update set release = excluded.release, recorded_at = excluded.recorded_at
+				where ${sql(`${table}_release`)}.recorded_at < excluded.recorded_at`;
 		}),
 		name: "database release",
 		pending: Effect.gen(function* () {

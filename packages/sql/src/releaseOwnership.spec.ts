@@ -51,3 +51,18 @@ migrationRuns.it(
 		]);
 	},
 );
+
+migrationRuns.it(
+	"a failed component keeps the previous release, and a later successful invocation can deploy that earlier label again",
+	[applied(["1_record_first"], { release: "first" })],
+	function* ({ migrate, recordedRelease }) {
+		yield* migrate(["1_record_first"], { components: ["failing jobs storage"], release: "failed" });
+
+		expect(yield* recordedRelease()).toBe("first");
+
+		yield* migrate(["1_record_first"], { release: "second" });
+		yield* migrate(["1_record_first"], { release: "first" });
+
+		expect(yield* recordedRelease()).toBe("first");
+	},
+);
