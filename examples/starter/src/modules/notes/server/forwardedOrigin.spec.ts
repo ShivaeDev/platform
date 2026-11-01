@@ -1,15 +1,23 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { app, behindProxy, signedIn } from "#modules/notes/test-support/application.ts";
+import { app, behindHttpsProxy, signedIn } from "#modules/notes/test-support/application.ts";
 
-app.it("without PUBLIC_URL, a forwarded HTTPS caller can create a note", [behindProxy("unset"), signedIn()], function* ({ actor }) {
-	const note = yield* actor().notes.create({ title: "A note behind TLS" });
+for (const publicUrl of ["with PUBLIC_URL", "without PUBLIC_URL"] as const) {
+	app.it(`behind an HTTPS proxy ${publicUrl}, alice creates a note`, [behindHttpsProxy(publicUrl), signedIn("alice")], function* ({ notesOf }) {
+		expect(yield* notesOf("alice").list()).toEqual([]);
 
-	expect(note.title).toBe("A note behind TLS");
-});
+		const note = yield* notesOf("alice").create("A note behind TLS");
 
-app.it("without PUBLIC_URL, a foreign origin receives Forbidden", [behindProxy("unset"), signedIn()], function* ({ actor, foreignRequest }) {
-	const response = yield* foreignRequest(actor().cookie);
+		expect(yield* notesOf("alice").list()).toEqual([note]);
+	});
 
-	expect(response.status).toBe(HttpStatus.fromLiteral("Forbidden"));
-});
+	app.it(
+		`behind an HTTPS proxy ${publicUrl}, a page on a foreign origin is forbidden to use alice's cookie`,
+		[behindHttpsProxy(publicUrl), signedIn("alice")],
+		function* ({ foreignOriginCalls }) {
+			const status = yield* foreignOriginCalls("alice");
+
+			expect(status).toBe(HttpStatus.fromLiteral("Forbidden"));
+		},
+	);
+}

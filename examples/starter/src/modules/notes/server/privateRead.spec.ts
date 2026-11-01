@@ -1,18 +1,19 @@
 import { Effect } from "effect";
-import { expect } from "vitest";
-import { NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
+import { refusal } from "#test-support/answers.ts";
 
-app.it("bob receives the same NotFound for alice's private note and a nonexistent note", [signedIn(), signedIn("bob")], function* ({ actor }) {
-	const alice = actor().notes;
-	const bob = actor("bob").notes;
-	const note = yield* alice.create({ title: "Alice's private note" });
+app.it(
+	"bob opening alice's note gets the same not-found answer as opening a note that does not exist",
+	[signedIn("alice"), signedIn("bob")],
+	function* ({ notesOf }) {
+		const note = yield* notesOf("alice").create("Alice's private note");
 
-	const privateAnswer = yield* bob.get({ id: note.id }).pipe(Effect.flip);
-	const missingAnswer = yield* bob.get({ id: -1 }).pipe(Effect.flip);
+		const opened = yield* refusal(notesOf("bob").open(note));
 
-	expect(privateAnswer).toBeInstanceOf(NotFound);
-	expect(missingAnswer).toBeInstanceOf(NotFound);
-	expect(privateAnswer).toMatchObject({ _tag: "NotFound", message: "Note not found" });
-	expect(missingAnswer).toEqual(privateAnswer);
-});
+		yield* outcomes([
+			["bob opening alice's note", () => Effect.succeed(opened), "not found: Note not found"],
+			["bob opening a missing note", () => refusal(notesOf("bob").open({ id: -1 })), "not found: Note not found"],
+		]);
+	},
+);

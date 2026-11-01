@@ -1,22 +1,20 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { developmentLifecycle } from "#test-support/developmentLifecycle.ts";
 
 developmentLifecycle.it(
-	"releases Vite and drains both output streams before its scope ends with an optimizer still building",
+	"closing the development server while its optimizer is still building stops Vite and drains both output streams",
 	[],
-	function* ({ optimizerBlocked, output, startDevelopment }) {
-		const running = yield* Effect.scoped(
-			Effect.gen(function* () {
-				const server = yield* startDevelopment();
-				yield* optimizerBlocked;
-				expect(yield* server.child.isRunning).toBe(true);
-				return server;
-			}),
-		);
-		expect(yield* running.child.isRunning).toBe(false);
-		expect(output().stdout).toContain("development server closed");
-		expect(output().stdout).toContain("development process exited");
-		expect(output().stderr).toContain("development stderr ended");
+	function* ({ developmentServerCloses, output, serverState, startsWithBlockedOptimizer }) {
+		yield* startsWithBlockedOptimizer();
+		expect(yield* serverState()).toBe("running");
+
+		yield* developmentServerCloses();
+
+		yield* outcomes([
+			["Vite", () => serverState(), "stopped"],
+			["stdout", () => output("stdout"), expect.arrayContaining(["development server closed", "development process exited"])],
+			["stderr", () => output("stderr"), expect.arrayContaining(["development stderr ended"])],
+		]);
 	},
 );

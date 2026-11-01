@@ -2,11 +2,12 @@ import { expect } from "vitest";
 import { homeScreen } from "#test-support/homeScreen.tsx";
 import { screens } from "#test-support/screens.ts";
 
-screens.it("keeps a home page and sign-in route without feature modules", [homeScreen], function* ({ settle, screenContent, clickControl }) {
-	const content = yield* screenContent();
+screens.it("an app without feature modules shows its home page, which links to sign-in", [homeScreen], function* ({ clickControl, heading, settle }) {
 	yield* settle();
-	expect(content.querySelector("h1")?.textContent).toBe("Your app");
+	expect(yield* heading()).toBe("Your app");
+
 	yield* clickControl("a");
 	yield* settle();
-	expect(content.querySelector("h1")?.textContent).toBe("Sign in");
+
+	expect(yield* heading()).toBe("Sign in");
 });

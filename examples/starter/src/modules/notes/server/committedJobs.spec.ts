@@ -2,16 +2,16 @@ import { expect } from "vitest";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it(
-	"refreshes the owner's open list after the worker counts a committed title",
-	[signedIn()],
-	function* ({ actor, liveNotes, startWorker }) {
-		const note = yield* actor().notes.create({ title: "Count these four words" });
-		const live = yield* liveNotes();
-		expect(yield* live.nextNotes()).toEqual([note]);
+	"the worker's word count refreshes alice's open notes list",
+	[signedIn("alice")],
+	function* ({ notesOf, watchesNotes, workerCountsQueuedNotes }) {
+		const note = yield* notesOf("alice").create("Count these four words");
+		const aliceList = yield* watchesNotes("alice");
+		expect(yield* aliceList.nextList()).toEqual([note]);
 
-		yield* startWorker();
+		yield* workerCountsQueuedNotes();
 
-		expect(yield* live.nextNotes()).toEqual([{ ...note, version: 1, wordCount: 4 }]);
+		expect(yield* aliceList.nextList()).toEqual([{ ...note, version: 1, wordCount: 4 }]);
 	},
 	15_000,
 );

@@ -2,42 +2,56 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
-import { requestOutcome } from "#modules/notes/test-support/requestOutcome.ts";
 
 adminHost.it(
-	"serves app statistics across owners and the registered job queue on the existing RPC host",
+	"an admin's statistics and word-count queue count every owner's new notes",
 	[adminAccount("alice"), adminAccount("bob"), adminAccount("operator", "admin")],
-	function* ({ createNote, openAdmin, startWorker }) {
-		yield* createNote("alice", "Alice's note");
-		yield* createNote("bob", "Bob's note");
-		const client = yield* openAdmin("operator");
+	function* ({ createsNote, noteStatistics, wordCountQueue }) {
+		expect(yield* noteStatistics("operator")).toEqual({ notes: 0, pending: 0, words: 0 });
+
+		yield* createsNote("alice", "Alice's note");
+		yield* createsNote("bob", "Bob's note");
+
 		yield* outcomes([
-			[
-				"admin jobs counts",
-				() => client["admin.jobs.counts"]({ queue: "count-note-words" }),
-				expect.objectContaining({ queuedCount: 2, totalCount: 2 }),
-			],
-			["admin notes statistics", () => client["admin.notes.statistics"](), { notes: 2, pending: 2, words: 0 }],
+			["notes statistics", () => noteStatistics("operator"), { notes: 2, pending: 2, words: 0 }],
+			["word-count queue", () => wordCountQueue("operator"), { queued: 2, total: 2 }],
 		]);
-		const health = yield* client["admin.jobs.health"]();
-		expect(health.jobs.map((queue) => queue.name)).toEqual(["count-note-words"]);
-		yield* startWorker();
-		yield* Effect.promise(() =>
-			expect.poll(() => Effect.runPromise(client["admin.notes.statistics"]()), { timeout: 8000 }).toEqual({ notes: 2, pending: 0, words: 4 }),
-		);
 	},
 );
 
 adminHost.it(
-	"keeps both app admin pages forbidden to users without the domain permissions",
-	[adminAccount("reader"), adminAccount("reader-two")],
-	function* ({ openAdmin }) {
-		for (const name of ["reader", "reader-two", "visitor"]) {
-			const client = yield* openAdmin(name);
-			for (const query of [requestOutcome(client["admin.notes.statistics"]()), requestOutcome(client["admin.jobs.health"]())]) {
-				const result = yield* query;
-				expect(result).toBe(name === "visitor" ? "sign in required" : "permission denied");
-			}
-		}
+	"after the worker counts the queued notes, an admin's statistics show their words",
+	[adminAccount("alice"), adminAccount("operator", "admin")],
+	function* ({ createsNote, noteStatistics, workerCountsQueuedNotes }) {
+		yield* createsNote("alice", "Alice's first note");
+		yield* createsNote("alice", "Second");
+		expect(yield* noteStatistics("operator")).toEqual({ notes: 2, pending: 2, words: 0 });
+
+		yield* workerCountsQueuedNotes();
+
+		expect(yield* noteStatistics("operator")).toEqual({ notes: 2, pending: 0, words: 4 });
 	},
+	15_000,
 );
+
+adminHost.it("an admin's job health lists the app's word-count queue", [adminAccount("operator", "admin")], function* ({ jobQueues }) {
+	const queues = yield* jobQueues("operator");
+
+	expect(queues).toEqual(["count-note-words"]);
+});
+
+const refusedReaders = [
+	["reader", [adminAccount("reader")], "permission denied"],
+	["visitor", [], "sign in required"],
+] as const;
+
+for (const [name, accounts, refused] of refusedReaders) {
+	adminHost.it(`the notes statistics and job health answer ${name} with ${refused}`, accounts, function* ({ jobQueues, noteStatistics }) {
+		const statistics = yield* noteStatistics(name);
+
+		yield* outcomes([
+			["notes statistics", () => Effect.succeed(statistics), refused],
+			["job health", () => jobQueues(name), refused],
+		]);
+	});
+}

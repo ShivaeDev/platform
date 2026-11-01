@@ -1,14 +1,21 @@
 import { expect } from "vitest";
 import { expiredSession, worker } from "#test-support/worker.ts";
 
-worker.it("the worker registers a daily UTC sweep and removes expired sessions", [expiredSession], function* (app) {
-	expect(yield* app.storedSessions()).toEqual([
-		{ email: "alice@app.test", id: expect.any(String), userId: expect.any(String) },
-		{ email: "bob@app.test", id: expect.any(String), userId: expect.any(String) },
-	]);
-	yield* app.startWorker();
-	expect(yield* app.schedules()).toContainEqual({ cron: "0 0 * * *", name: "sweep-expired-auth-sessions", timezone: "UTC" });
-	yield* app.triggerSweep();
-	yield* app.waitForIdle();
-	expect(yield* app.storedSessions()).toEqual([{ email: "bob@app.test", id: expect.any(String), userId: expect.any(String) }]);
+worker.it("the worker registers a daily session sweep at midnight UTC", [], function* ({ schedules, workerStarts }) {
+	yield* workerStarts();
+
+	expect(yield* schedules()).toContainEqual({ cron: "0 0 * * *", name: "sweep-expired-auth-sessions", timezone: "UTC" });
 });
+
+worker.it(
+	"the session sweep removes alice's expired session and keeps bob's live one",
+	[expiredSession],
+	function* ({ sessionSweepRuns, storedSessions, workerStarts }) {
+		yield* workerStarts();
+		expect(yield* storedSessions()).toEqual(["alice@app.test", "bob@app.test"]);
+
+		yield* sessionSweepRuns();
+
+		expect(yield* storedSessions()).toEqual(["bob@app.test"]);
+	},
+);

@@ -1,61 +1,50 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { notes } from "#modules/notes/notes.ts";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
+app.it("alice's open notes list receives her new note", [signedIn("alice")], function* ({ notesOf, watchesNotes }) {
+	const aliceList = yield* watchesNotes("alice");
+	expect(yield* aliceList.nextList()).toEqual([]);
+
+	const note = yield* notesOf("alice").create("Alice's note");
+
+	expect(yield* aliceList.nextList()).toEqual([note]);
+});
+
 app.it(
-	"refreshes alice's open list without sending her write to bob's open list",
-	[signedIn(), signedIn("bob")],
-	function* ({ actor, liveNotes, listHints }) {
-		const alice = yield* liveNotes();
-		const bob = yield* liveNotes("bob");
-		const bobHints = yield* listHints("bob");
-		yield* outcomes([
-			["alice's initial list", () => alice.nextNotes(), []],
-			["bob's initial list", () => bob.nextNotes(), []],
-		]);
+	"alice's new note sends bob no change hint, so his next hint is about his own note",
+	[signedIn("alice"), signedIn("bob")],
+	function* ({ listensForChangeHints, notesOf }) {
+		const bobHints = yield* listensForChangeHints("bob");
 
-		const aliceNote = yield* actor().notes.create({ title: "Alice's private note" });
+		yield* notesOf("alice").create("Alice's private note");
 
-		yield* outcomes([
-			["alice's live list", () => alice.nextNotes(), [aliceNote]],
-			["bob's unchanged list", () => Effect.sync(bob.notes), []],
-		]);
-
-		const bobNote = yield* actor("bob").notes.create({ title: "Bob's delivery checkpoint" });
-
-		yield* outcomes([
-			["bob's live list", () => bob.nextNotes(), [bobNote]],
-			["bob's next socket delivery", () => bobHints.nextDelivery(), { keys: [notes.bucket.userId(actor("bob").userId)], kind: "change" }],
-		]);
+		yield* notesOf("bob").create("Bob's checkpoint note");
+		expect(yield* bobHints.nextHint()).toBe("changed bob's notes");
 	},
 	15_000,
 );
 
-app.it("refreshes an open note detail after its title changes", [signedIn()], function* ({ actor, liveNote }) {
-	const client = actor().notes;
-	const note = yield* client.create({ title: "Original title" });
-	const live = yield* liveNote(note.id);
-	expect(yield* live.nextNote()).toEqual(note);
+app.it("alice's open note refreshes after she edits its title", [signedIn("alice")], function* ({ notesOf, watchesNote }) {
+	const note = yield* notesOf("alice").create("Original title");
+	const aliceNote = yield* watchesNote("alice", note);
+	expect(yield* aliceNote.nextNote()).toEqual(note);
 
-	const edited = yield* client.update({ ...note, title: "Changed title" });
+	const edited = yield* notesOf("alice").edit(note, "Changed title");
 
-	expect(yield* live.nextNote()).toEqual(edited);
+	expect(yield* aliceNote.nextNote()).toEqual(edited);
 });
 
 app.it(
-	"reports a database failure checking the owner's live note as ServiceUnavailable",
-	[signedIn()],
-	function* ({ actor, failNoteReads, liveNote }) {
-		const note = yield* actor().notes.create({ title: "Alice's note" });
-		const live = yield* liveNote(note.id);
-		expect(yield* live.nextNote()).toEqual(note);
-		yield* failNoteReads;
+	"alice's open note answers service unavailable when PostgreSQL loses its connection",
+	[signedIn("alice")],
+	function* ({ noteReadsLoseTheDatabase, notesOf, watchesNote }) {
+		const note = yield* notesOf("alice").create("Alice's note");
+		const aliceNote = yield* watchesNote("alice", note);
+		expect(yield* aliceNote.nextNote()).toEqual(note);
+		yield* noteReadsLoseTheDatabase();
 
-		yield* live.refresh();
+		yield* aliceNote.refresh();
 
-		const failure = yield* live.nextNote().pipe(Effect.flip);
-		expect(failure).toMatchObject({ _tag: "ServiceUnavailable", message: "Could not reach the notes database" });
+		expect(yield* aliceNote.nextNote()).toBe("service unavailable: Could not reach the notes database");
 	},
 );

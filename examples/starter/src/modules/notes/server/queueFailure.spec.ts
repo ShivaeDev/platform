@@ -1,69 +1,61 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { app, rejectedNoteCommits, signedIn } from "#modules/notes/test-support/application.ts";
+import { app, noteCommitsFail, signedIn } from "#modules/notes/test-support/application.ts";
+import { answer } from "#test-support/answers.ts";
 
 app.it(
-	"saves and edits notes when the queue client rejects enqueueing",
-	[signedIn()],
-	function* ({ actor, storedNotes, logs, recordedEnqueueFailures, failNextNoteJob }) {
-		const { notes } = actor();
-		yield* failNextNoteJob();
-		const created = yield* notes.create({ title: "Still saved" });
-		expect(logs()).toContainEqual(
-			expect.objectContaining({
-				message: expect.arrayContaining([
-					expect.objectContaining({
-						error: expect.objectContaining({ operation: "enqueue", queue: "count-note-words" }),
-						event: "note_enqueue_failed",
-						noteId: created.id,
-					}),
-				]),
-			}),
-		);
-		yield* failNextNoteJob();
-		const edited = yield* notes.update({ ...created, title: "Still edited" });
-		const expectedEnqueueFailures = [created, edited].map((note) =>
-			expect.objectContaining({
-				message: expect.arrayContaining([
-					expect.objectContaining({
-						error: expect.objectContaining({ operation: "enqueue", queue: "count-note-words" }),
-						event: "note_enqueue_failed",
-						noteId: note.id,
-					}),
-				]),
-			}),
-		);
+	"when the queue refuses the word-count job, alice's new note is still saved and the failure is logged",
+	[signedIn("alice")],
+	function* ({ notesOf, queueRefusesNextWordCount, recordedEnqueueFailures }) {
+		yield* queueRefusesNextWordCount();
+
+		const note = yield* notesOf("alice").create("Still saved");
+
 		yield* outcomes([
-			["logs", () => recordedEnqueueFailures(), expectedEnqueueFailures],
-			["notes get", () => notes.get({ id: created.id }), edited],
-			[
-				"stored notes",
-				() => storedNotes(),
-				[{ id: created.id, title: "Still edited", version: 1, wordCount: null }].map((note) => expect.objectContaining(note)),
-			],
+			["alice's notes", () => notesOf("alice").list(), [note]],
+			["logged enqueue failures", () => recordedEnqueueFailures(), [{ noteId: note.id, queue: "count-note-words" }]],
 		]);
 	},
 );
 
 app.it(
-	"does not enqueue a note when its write transaction fails at commit",
-	[signedIn(), rejectedNoteCommits()],
-	function* ({ actor, storedNotes, collector, acceptNoteCommits }) {
+	"when the queue refuses the word-count job, alice's edit is still saved and the failure is logged",
+	[signedIn("alice")],
+	function* ({ notesOf, queueRefusesNextWordCount, recordedEnqueueFailures }) {
+		const note = yield* notesOf("alice").create("First title");
+		yield* queueRefusesNextWordCount();
+
+		yield* notesOf("alice").edit(note, "Still edited");
+
 		yield* outcomes([
-			["actor", () => actor().notes.create({ title: "Not committed" }).pipe(Effect.flip), expect.objectContaining({ _tag: "InternalServerError" })],
-			["stored notes", () => storedNotes(), []],
+			["alice's note", () => notesOf("alice").open(note), { ...note, title: "Still edited", version: 1, wordCount: null }],
+			["logged enqueue failures", () => recordedEnqueueFailures(), [{ noteId: note.id, queue: "count-note-words" }]],
 		]);
-		yield* acceptNoteCommits;
-		const control = yield* actor().notes.create({ title: "Committed control" });
-		const receiver = yield* collector();
-		const stopWorker = yield* receiver.startWorker();
-		yield* Effect.promise(() =>
-			expect
-				.poll(() => Effect.runPromise(actor().notes.get({ id: control.id })), { timeout: 8000 })
-				.toEqual({ ...control, version: 1, wordCount: 2 }),
-		);
-		yield* stopWorker;
-		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1]);
+	},
+);
+
+app.it(
+	"a note PostgreSQL rejects at commit answers internal server error and is not saved",
+	[signedIn("alice"), noteCommitsFail()],
+	function* ({ notesOf }) {
+		const created = yield* answer(notesOf("alice").create("Not committed"));
+
+		yield* outcomes([
+			["alice's create", () => Effect.succeed(created), "internal server error"],
+			["alice's notes", () => notesOf("alice").list(), []],
+		]);
+	},
+);
+
+app.it(
+	"a note PostgreSQL rejects at commit queues no word-count job, while the next committed note queues one",
+	[signedIn("alice"), noteCommitsFail()],
+	function* ({ noteCommitsRecover, notesOf, wordCountJobs }) {
+		yield* answer(notesOf("alice").create("Not committed"));
+
+		yield* noteCommitsRecover();
+		const control = yield* notesOf("alice").create("Committed control");
+		expect(yield* wordCountJobs()).toEqual([{ noteId: control.id, state: "created" }]);
 	},
 );

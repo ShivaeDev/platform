@@ -18,12 +18,15 @@ export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => voi
 		controlText: driver.text,
 		enterControl: driver.enter,
 		findControl: driver.find,
+		heading: () => Effect.sync(() => screenView(engine).container.querySelector("h1")?.textContent ?? "no heading"),
 		screenContent: () =>
 			Effect.sync(() => {
 				tell("read the rendered screen");
 				return screenView(engine).container;
 			}),
 		settle: () => settleScreen(engine, tell),
+		shown: (selector: string) =>
+			Effect.sync(() => (screenView(engine).container.ownerDocument.querySelector(selector) === null ? "hidden" : "shown")),
 		submitControl: driver.submit,
 	};
 }
