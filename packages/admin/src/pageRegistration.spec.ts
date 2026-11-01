@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { pageHost } from "#test/pageHost.ts";
 
@@ -26,15 +27,6 @@ pageHost.it("an unregistered admin document is not served", [], function* ({ ope
 	expect(yield* openDocument("/admin/workspaces/studio/settings", "workspace-reader")).toMatchObject({ body: "", status: 404 });
 });
 
-for (const [role, status] of [
-	["workspace-reader", 403],
-	["auditor", 200],
-] as const) {
-	pageHost.it(`an exact child page uses its own grant for ${role} before a parent's detail pattern`, [], function* ({ openDocument }) {
-		expect(yield* openDocument("/admin/workspaces/export", role)).toMatchObject({ status });
-	});
-}
-
 for (const path of ["/admin", "/admin/"]) {
 	for (const [role, status] of [
 		["workspace-reader", 200],
@@ -49,3 +41,22 @@ for (const path of ["/admin", "/admin/"]) {
 pageHost.it("an auditor holding only users.read loads the users document", [], function* ({ openDocument }) {
 	expect(yield* openDocument("/admin/users", "auditor")).toMatchObject({ status: 200 });
 });
+
+for (const [role, status] of [
+	["workspace-reader", 403],
+	["auditor", 200],
+] as const) {
+	pageHost.it(`the exports page uses its own grant for ${role}`, [], function* ({ openDocument }) {
+		expect(yield* openDocument("/admin/exports", role)).toMatchObject({ status });
+	});
+}
+
+for (const path of ["/admin", "/admin/"]) {
+	pageHost.it(`a visitor is refused ${path} on the server and sent to sign-in on the client`, [], function* ({ openClientAsVisitor, openDocument }) {
+		const document = yield* openDocument(path);
+		const destination = yield* openClientAsVisitor(path);
+
+		expect(document.status).toBe(HttpStatus.fromLiteral("Unauthorized"));
+		expect(destination).toBe("/sign-in");
+	});
+}

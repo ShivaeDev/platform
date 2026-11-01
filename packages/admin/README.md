@@ -51,7 +51,7 @@ export const Jobs = adminPage({
 export const Admin = adminRegistry(Jobs);
 ```
 
-`Jobs.contract` keeps the native `.declaration` and `.application.toLayer` APIs. `adminRegistry(...pages)` returns `pages` and a native `group`. Duplicate page ids, route paths and RPC tags, including generated subscriptions, fail when the registry is created.
+`Jobs.contract` keeps the native `.declaration` and `.application.toLayer` APIs. `adminRegistry(...pages)` returns `pages` and a native `group`. Duplicate page ids and RPC tags, including generated subscriptions, fail when the registry is created. Route patterns that can match the same path also fail, including a static page that overlaps another page's `$` detail parameter. Choose distinct routes rather than relying on route order.
 
 Register server handler Layers by page id in `src/modules/admin/jobs/server/registration.ts`, importing `Admin` and `Jobs` from that module's `pages.ts`:
 
@@ -77,9 +77,9 @@ Pass `registration.group` and `handlers` to the existing application's RPC host 
 
 Provide the application's session policy through `SessionPolicy` once. Registration builds each page's permission layer with that policy. The handler Layer requires identity's `SessionPolicy` service.
 
-A page can declare `route: { path: "/admin/workspaces", detail: "/admin/workspaces/$id", title: "Workspaces" }`. The detail must be under the page's path. Mount `adminDocuments(registration, handler)` from `@shivaedev/admin/server/adminDocuments.ts` beside the application's public document routes and provide the same `SessionPolicy` layer. The handler serves the application's document; the guard checks the matched page's permission first. Unregistered admin paths return 404. `/admin` and `/admin/` use the first registered page's permission.
+A page can declare `route: { path: "/admin/workspaces", detail: "/admin/workspaces/$id", title: "Workspaces" }`. The detail must be a descendant of the page's path; composition rejects a detail elsewhere or equal to the page path. Mount `adminDocuments(registration, handler)` from `@shivaedev/admin/server/adminDocuments.ts` beside the application's public document routes and provide the same `SessionPolicy` layer. The handler serves the application's document; the guard checks the matched page's permission first. Unregistered admin paths return 404. `/admin` and `/admin/` use the first registered page's permission.
 
-Use `adminPermissionGuard(registration.pages, permissionGuard({ session, signIn: "/sign-in" }))` from `@shivaedev/admin/client/adapters/adminPermissionGuard.ts` as the client root route's `beforeLoad`, using the native `permissionGuard` from `@shivaedev/react/permissionGuard.ts`. It applies the matched list or detail page's permission together with other route permissions. The application still declares the detail component in its router.
+Use `adminPermissionGuard(registration.pages, permissionGuard({ session, signIn: "/sign-in" }))` from `@shivaedev/admin/client/adapters/adminPermissionGuard.ts` as the client root route's `beforeLoad`, using the native `permissionGuard` from `@shivaedev/react/permissionGuard.ts`. It applies the matched list or detail page's permission together with other route permissions. Like the document guard, `/admin` and `/admin/` use the first registered page's permission. The application still declares the detail component in its router.
 
 ### Pages owned by modules
 

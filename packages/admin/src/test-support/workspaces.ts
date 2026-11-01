@@ -21,7 +21,7 @@ export const Workspaces = adminPage({
 	}),
 	id: "workspaces",
 	permission: WorkspacesPermission,
-	route: { detail: "/admin/workspaces/$id", path: "/admin/workspaces", title: "Workspaces" },
+	route: { detail: "/admin/workspaces/$id/", path: "/admin/workspaces", title: "Workspaces" },
 });
 const WorkspaceExports = adminPage({
 	contract: contract("admin.exports", {
@@ -29,7 +29,7 @@ const WorkspaceExports = adminPage({
 	}),
 	id: "exports",
 	permission: UsersPermission,
-	route: { path: "/admin/workspaces/export", title: "Exports" },
+	route: { path: "/admin/exports", title: "Exports" },
 });
 export const workspaceRegistration = registerAdmin(adminRegistry(Workspaces, Users, WorkspaceExports), {
 	exports: WorkspaceExports.contract.application.toLayer({ "admin.exports.read": () => Effect.succeed("exports") }),
