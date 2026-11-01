@@ -23,7 +23,8 @@ const checkDependencyPins = Effect.fn("Release.checkDependencyPins")(function* (
 		if (target === undefined) {
 			continue;
 		}
-		const expected = version === "workspace:*" ? target.version : version.replace(/^workspace:/u, "");
+		const range = version.replace(/^workspace:/u, "");
+		const expected = /^workspace:[*^~]$/u.test(version) ? target.version : range.replace(/^[~^]/u, "");
 		if (pins[dependency] !== expected) {
 			return yield* new ChangesetError({
 				message: `Starter published-versions.json: ${manifest.name}@${manifest.version} depends on ${dependency}@${expected}, but its pin is ${pins[dependency] ?? "missing"}. Align the dependency release and starter pin, then release create-app.`,
