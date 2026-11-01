@@ -1,14 +1,16 @@
 import type { Context, Scope } from "effect";
-import type { RequirementRecord } from "./ServiceRequirements.ts";
+import type { RequirementRecord } from "#ServiceRequirements.ts";
 
 interface ScopeCannotBeDeclaredAsServiceRequirement {
 	readonly _serviceDefinitionError: "Scope.Scope is caller-owned and cannot be declared as a service requirement";
 }
 
 type ProveRequirement<TRequirement> = TRequirement extends Context.Service.Any
-	? Context.Service.Identifier<TRequirement> extends Scope.Scope
-		? ScopeCannotBeDeclaredAsServiceRequirement
-		: TRequirement
+	? [Context.Service.Identifier<TRequirement>] extends [never]
+		? TRequirement
+		: Context.Service.Identifier<TRequirement> extends Scope.Scope
+			? ScopeCannotBeDeclaredAsServiceRequirement
+			: TRequirement
 	: never;
 
 export type RequirementProof<TRequirements extends RequirementRecord> = {
