@@ -1,5 +1,6 @@
 import { Clock, Effect } from "effect";
 import { waitingOwner } from "#attention.ts";
+import { releaseWindowAttention } from "#engine/releaseWindowHold.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { FleetRecord } from "#model.ts";
 import { fleetStage, waitingReason } from "#stage.ts";
@@ -39,7 +40,7 @@ export const fleetItems = Effect.gen(function* () {
 	const store = yield* FleetRepository;
 	return Effect.gen(function* () {
 		const now = yield* Clock.currentTimeMillis;
-		const records = (yield* store.list()).map(({ value }) => value);
+		const records = releaseWindowAttention((yield* store.list()).map(({ value }) => value));
 		return {
 			completed: records.flatMap((record) =>
 				record.step === "done" && record.completedAt !== undefined && record.completedAt >= now - 7 * 24 * 60 * 60 * 1000 && record.completedAt <= now

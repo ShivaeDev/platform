@@ -5,6 +5,7 @@ import { Model } from "effect/schema";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { waitingOwner } from "#attention.ts";
 import { recoveryStatus } from "#engine/recoveryStatus.ts";
+import { releaseWindowAttention } from "#engine/releaseWindowHold.ts";
 import { State } from "#host/waitOutcome.ts";
 import { watchRecordFields } from "#host/watchState.ts";
 import { Attempt, FleetRecord } from "#model.ts";
@@ -22,7 +23,7 @@ export interface ReadOptions {
 export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* (options: ReadOptions, ids?: readonly string[]) {
 	const Summary = Schema.Struct({
 		...Struct.omit(State.fields, ["recovery"]),
-		...Struct.pick(FleetRecord.fields, ["predictedConflictHold", "sweepHold"]),
+		...Struct.pick(FleetRecord.fields, ["predictedConflictHold", "sweepHold", "releaseWindow"]),
 		launchRetry: StageInput.fields.launchRetry,
 		result: watchRecordFields.result,
 		step: Schema.String,
@@ -74,7 +75,7 @@ export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* 
 			waiting: state.stage === "waiting",
 		})),
 	);
-	const selectedStates = states.filter((state) => ids === undefined || ids.includes(state.workId));
+	const selectedStates = releaseWindowAttention(states).filter((state) => ids === undefined || ids.includes(state.workId));
 	return selectedStates.map(({ attempts, step, launchRetry, predictedConflictHold: _prediction, sweepHold: _sweep, result, ...state }) => {
 		const record = { ...state, launchRetry, step };
 		const recovery = recoveryStatus(attempts, step);
