@@ -1,44 +1,54 @@
-import { randomUUID } from "node:crypto";
-import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
+import { Effect, FileSystem, Option, Path } from "effect";
 import { decodeHolder, encodeHolder, type Holder } from "./holder.ts";
 import { isHolderAlive } from "./processStart.ts";
 
-function hasReason(tag: string) {
-	return (error: PlatformError.PlatformError) => error.reason._tag === tag;
-}
-
-export const readHolder = Effect.fn("HeavyLock.readHolder")(function* (lock: string) {
+const readContents = Effect.fn("HeavyLock.readContents")(function* (lock: string) {
 	const fs = yield* FileSystem.FileSystem;
 	return yield* fs.readFileString(lock).pipe(
-		Effect.map(decodeHolder),
-		Effect.catchIf(hasReason("NotFound"), () => Effect.succeed(Option.none<Holder>())),
+		Effect.map(Option.some),
+		Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(Option.none<string>())),
 	);
 });
 
-// A racing waiter may have replaced the dead lock with a live one before the rename; that lock goes back.
-export const reclaim = Effect.fn("HeavyLock.reclaim")(function* (lock: string, dead: Option.Option<Holder>) {
-	const fs = yield* FileSystem.FileSystem;
-	const aside = `${lock}.${randomUUID()}.stale`;
-	const moved = yield* fs.rename(lock, aside).pipe(
-		Effect.as(true),
-		Effect.catchIf(hasReason("NotFound"), () => Effect.succeed(false)),
-	);
-	if (!moved) {
+export const readHolder = Effect.fn("HeavyLock.readHolder")(function* (lock: string) {
+	return Option.flatMap(yield* readContents(lock), decodeHolder);
+});
+
+const removeDead = Effect.fn("HeavyLock.removeDead")(function* (lock: string, dead: Option.Option<Holder>) {
+	const contents = yield* readContents(lock);
+	if (Option.isNone(contents)) {
 		return;
 	}
-	const current = yield* readHolder(aside);
-	const raced = Option.isSome(current) && !Option.exists(dead, (holder) => holder.id === current.value.id);
-	if (raced && (yield* isHolderAlive(current.value))) {
-		yield* fs.link(aside, lock).pipe(Effect.catchIf(hasReason("AlreadyExists"), () => Effect.void));
+	const current = decodeHolder(contents.value);
+	if (Option.isSome(current) && (!Option.exists(dead, (holder) => holder.id === current.value.id) || (yield* isHolderAlive(current.value)))) {
+		return;
 	}
-	yield* fs.remove(aside, { force: true });
+	const fs = yield* FileSystem.FileSystem;
+	yield* fs.remove(lock, { force: true });
+});
+
+// Reclaimers serialize the check and removal; a live holder's path never disappears.
+export const reclaim = Effect.fn("HeavyLock.reclaim")(function* (lock: string, dead: Option.Option<Holder>) {
+	const fs = yield* FileSystem.FileSystem;
+	const gate = `${lock}.reclaim`;
+	yield* Effect.uninterruptible(
+		Effect.acquireUseRelease(
+			fs.makeDirectory(gate).pipe(
+				Effect.as(true),
+				Effect.catchReason("PlatformError", "AlreadyExists", () => Effect.succeed(false)),
+				Effect.catchReason("PlatformError", "NotFound", () => Effect.succeed(false)),
+			),
+			(acquired) => (acquired ? removeDead(lock, dead) : Effect.void),
+			(acquired) => (acquired ? fs.remove(gate, { recursive: true }) : Effect.void),
+		),
+	);
 });
 
 const linked = Effect.fn("HeavyLock.linked")(function* (draft: string, lock: string) {
 	const fs = yield* FileSystem.FileSystem;
 	return yield* fs.link(draft, lock).pipe(
 		Effect.as(true),
-		Effect.catchIf(hasReason("AlreadyExists"), () => Effect.succeed(false)),
+		Effect.catchReason("PlatformError", "AlreadyExists", () => Effect.succeed(false)),
 	);
 });
 
@@ -59,8 +69,12 @@ export const tryAcquire = Effect.fn("HeavyLock.tryAcquire")(function* (lock: str
 	const path = yield* Path.Path;
 	yield* fs.makeDirectory(path.dirname(lock), { recursive: true });
 	const draft = `${lock}.${holder.id}.draft`;
-	yield* fs.writeFileString(draft, yield* encodeHolder(holder));
-	return yield* linkOrFindBlocker(draft, lock).pipe(Effect.ensuring(Effect.ignore(fs.remove(draft, { force: true }))));
+	const contents = yield* encodeHolder(holder);
+	return yield* Effect.acquireUseRelease(
+		Effect.succeed(draft),
+		() => Effect.andThen(fs.writeFileString(draft, contents), linkOrFindBlocker(draft, lock)),
+		() => fs.remove(draft, { force: true }),
+	).pipe(Effect.onError(() => release(lock, holder.id).pipe(Effect.orDie)));
 });
 
 export const release = Effect.fn("HeavyLock.release")(function* (lock: string, id: string) {

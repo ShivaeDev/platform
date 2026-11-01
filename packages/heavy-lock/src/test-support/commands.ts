@@ -15,6 +15,7 @@ type Observation =
 export interface Command {
 	readonly done: Deferred.Deferred<void, string>;
 	failure?: unknown;
+	failureReport?: string;
 	fiber?: Fiber.Fiber<void, unknown>;
 	held?: Context.Context<HeldLock>;
 	readonly observations: Queue.Queue<Observation>;
@@ -45,6 +46,7 @@ function settle(command: Command) {
 			command.state = "interrupted";
 		} else {
 			command.failure = Cause.squash(observation.exit.cause);
+			command.failureReport = Cause.pretty(observation.exit.cause);
 			command.state = failureOf(command.failure);
 		}
 	});
@@ -163,6 +165,7 @@ export function commandVerbs(engine: Lock, tell: (line: string) => void) {
 			Effect.map(commandOf(engine, name), ({ failure }) =>
 				failure instanceof HeavyLockError ? String(failure.cause).replaceAll(engine.directory, "<story directory>") : "no heavy-lock error",
 			),
+		failureReportOf: (name: string) => Effect.map(commandOf(engine, name), ({ failureReport }) => failureReport ?? "no failure"),
 		finishes: (name: string) => {
 			tell(`${name} finishes its work`);
 			return ends(name, (command) => Deferred.succeed(command.done, undefined));

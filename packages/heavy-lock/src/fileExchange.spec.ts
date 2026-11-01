@@ -96,7 +96,7 @@ lockStory.it("a waiter reclaiming crashed's lock removes it and leaves no file b
 });
 
 lockStory.it(
-	"a waiter reclaiming crashed's lock after raced took it over puts raced's lock back",
+	"a waiter reclaiming crashed's lock after raced took it over leaves raced's lock in place",
 	[heldBy("crashed", "exited")],
 	function* ({ lock }) {
 		yield* lock.tries("raced");

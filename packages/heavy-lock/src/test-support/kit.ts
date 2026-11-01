@@ -8,8 +8,11 @@ import { HOLDER_ID_ENV } from "#holder.ts";
 import { cli } from "./cli.ts";
 import { TEST_TIMEOUT_MS } from "./cliProcess.ts";
 import { acquireInScope, buildLayer, commandVerbs, startCommand } from "./commands.ts";
+import { draft } from "./draft.ts";
+import { cleanupFails, draftWriteFails } from "./fileFaults.ts";
 import { createLock, type HolderProcess, lockDirectory, lockVerbs, readLock, seedHolder, writeLock } from "./lock.ts";
 import { protocolVerbs, writeReference } from "./protocol.ts";
+import { reclamation } from "./reclamation.ts";
 
 export const liveCli = { clock: "live", timeout: TEST_TIMEOUT_MS } as const;
 
@@ -21,11 +24,25 @@ export const lockStory = storyKit({
 	stages: ["configuration", "holder", "command"],
 	verbs: (engine, story) => ({
 		cli: cli(engine, story.tell),
+		draft: draft(engine, story.tell),
 		...commandVerbs(engine, story.tell),
 		lock: lockVerbs(engine, story.tell),
 		protocol: protocolVerbs(engine, story.tell),
+		reclamation: reclamation(engine, story.tell),
 	}),
 });
+
+export function partialDraftWrite() {
+	return lockStory.trait("configuration", "the filesystem runs out of space after writing part of a draft", (engine) => {
+		engine.fileSystem = draftWriteFails(engine.fileSystem);
+	});
+}
+
+export function failingCleanup(resource: "draft" | "lock" | "gate") {
+	return lockStory.trait("configuration", `the filesystem refuses to remove the ${resource}`, (engine) => {
+		engine.fileSystem = cleanupFails(engine.fileSystem, engine.lock, resource);
+	});
+}
 
 const LEFT_BY = {
 	exited: "a process that has exited",

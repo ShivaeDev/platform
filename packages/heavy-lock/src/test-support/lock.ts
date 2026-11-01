@@ -39,6 +39,7 @@ export const createLock = Effect.gen(function* () {
 		commands,
 		directory,
 		env,
+		fileSystem: fs,
 		holders,
 		holds,
 		home,
@@ -81,7 +82,10 @@ function holderOf(engine: Lock, path = engine.lock): string {
 
 export const configured = Effect.fn("LockStory.configured")(function* <A, E, R>(engine: Lock, effect: Effect.Effect<A, E, R>) {
 	const provider = engine.unreadable ? yield* ConfigProvider.fromDir({ rootPath: engine.directory }) : ConfigProvider.fromEnv({ env: engine.env });
-	return yield* Effect.provideService(effect, ConfigProvider.ConfigProvider, provider);
+	return yield* effect.pipe(
+		Effect.provideService(ConfigProvider.ConfigProvider, provider),
+		Effect.provideService(FileSystem.FileSystem, engine.fileSystem),
+	);
 });
 
 export type HolderProcess = "live" | "exited" | "reused";
@@ -139,7 +143,10 @@ export function lockVerbs(engine: Lock, tell: (line: string) => void) {
 				const attempt = makeHolder(name);
 				engine.holders[name] = attempt;
 				engine.names.set(attempt.id, name);
-				engine.answers[name] = answerOf(engine, yield* tryAcquire(engine.lock, attempt));
+				engine.answers[name] = answerOf(
+					engine,
+					yield* tryAcquire(engine.lock, attempt).pipe(Effect.provideService(FileSystem.FileSystem, engine.fileSystem)),
+				);
 			}),
 	};
 }

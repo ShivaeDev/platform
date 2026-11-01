@@ -57,12 +57,12 @@ heavy-process lock: acquired after 2m 0s
 
 The waiting line identifies the holder's PID, command and directory. The time is local; the duration in that line is the age of the hold. The acquired line measures this caller's wait.
 
-| Exit code             | Meaning                                                                                       |
-| --------------------- | --------------------------------------------------------------------------------------------- |
-| The command's code    | The command exited on its own, including an exit chosen by its signal handler.                |
-| `128 + signal number` | The command died from a signal, or the wrapper received a supported signal while waiting.     |
-| `127`                 | The executable could not start.                                                               |
-| `1`                   | Invalid CLI arguments or lock acquisition failed, including an unreadable process start time. |
+| Exit code             | Meaning                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| The command's code    | The command exited on its own, including an exit chosen by its signal handler.            |
+| `128 + signal number` | The command died from a signal, or the wrapper received a supported signal while waiting. |
+| `127`                 | The executable could not start.                                                           |
+| `1`                   | Invalid CLI arguments, acquisition failure or lock cleanup failure.                       |
 
 The child is the leader of its own process group. While it runs, the wrapper forwards `SIGINT`, `SIGTERM` and `SIGHUP` to it, and the child's exit decides the wrapper's exit. A signal while waiting stops the wait and leaves the current holder's file alone.
 
@@ -93,6 +93,8 @@ const program = withHeavyLock(build, { command: "pnpm build" }).pipe(Effect.prov
 ```
 
 `withHeavyLock` provides `HeldLock` to `build`. `NodeServices.layer` supplies the filesystem, path and process-spawning services. The lock is released when the Effect succeeds, fails or is interrupted; a failure from `build` stays its own failure. Interrupting a waiter leaves the existing holder and no temporary draft behind.
+
+Filesystem cleanup failures are reported. Draft and reclamation-gate cleanup failures fail acquisition; a scoped release failure surfaces as a defect containing a `HeavyLockError` and the filesystem cause. Effect retains a work failure alongside a release failure. The CLI reports cleanup failures and exits with code 1.
 
 For a service that owns the hold through a Layer, use `heavyLockLayer`:
 
@@ -168,7 +170,8 @@ The Effect API reads these through Effect's `Config`, so a `ConfigProvider` can 
 ### Limits
 
 - Participants must share a lock path. This does not stop commands that run outside the protocol.
-- Acquisition needs `ps -o lstart= -p <pid>` in the C locale and a filesystem that supports hard links and rename in the lock directory.
+- Acquisition needs `ps -o lstart= -p <pid>` in the C locale and a filesystem that supports hard links and atomic directory creation in the lock directory. All participants must use the [reclamation gate protocol](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md#acquire-and-reclaim); stop participants before upgrading from an implementation that renames stale locks.
 - The holder's identity is the wrapper process and its start time. A matching inherited hold ID joins the recorded hold; it is not an authentication token.
 - A stopped holder can leave a file behind. The next acquisition checks its identity and reclaims a stale file; do not remove a live holder's file to hurry a waiter.
+- An uncatchable termination during reclamation can leave `<lock>.reclaim` behind. Stop participants and remove that abandoned directory before restarting them.
 - Signal forwarding does not promise delivery to every descendant or exactly-once delivery under terminal-generated signals.
