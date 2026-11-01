@@ -31,6 +31,7 @@ Every package has a README for people and agents using it and a short `AGENTS.md
 - [`@shivaedev/github`](./packages/github): Typed GitHub REST requests, conditional reads and resource budgets.
 - [`@shivaedev/pr-watch`](./packages/pr-watch): One REST watcher for pull request transitions across a repository.
 - [`@shivaedev/create-app`](./packages/create-app): Creates and installs an application from the maintained starter and merges later starter releases into it.
+- [`@shivaedev/deploy`](./packages/deploy): Composable Railway web and worker services with overridable migration, proxy and draining defaults.
 - [`@shivaedev/releases`](./packages/releases): Explicit changesets and reproducible workspace releases.
 - [`@shivaedev/quality`](./packages/quality): Opinionated repository quality policy with shared tooling and minimal setup; counted existing debt keeps adoption practical without weakening the checks.
 - [`@shivaedev/types`](./packages/types): Type-only helpers shared by the packages, such as `Bivariant`.
