@@ -5,6 +5,7 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminVerbs } from "./adminVerbs.ts";
+import { admissionVerbs } from "./admissionVerbs.ts";
 import { clientVerbs } from "./client.ts";
 import { discoveryReadouts } from "./discoveryReadouts.ts";
 import { grantVerbs } from "./grantVerbs.ts";
@@ -27,6 +28,7 @@ const definition = {
 	stages: ["people", "tokens", "connections"] as const,
 	verbs: (engine: Engine, story: { readonly tell: (line: string) => void }) => ({
 		...adminVerbs(engine, story.tell),
+		...admissionVerbs(engine, story.tell),
 		...clientVerbs(engine, story.tell),
 		...discoveryReadouts(engine),
 		...grantVerbs(engine, story.tell),
@@ -36,3 +38,5 @@ const definition = {
 
 export const mcp = storyKit({ ...definition, create: () => startEngine() });
 export const localMcp = storyKit({ ...definition, create: () => startEngine(true) });
+
+export const admittedMcp = storyKit({ ...definition, create: () => startEngine(false, true) });

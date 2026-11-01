@@ -19,6 +19,7 @@ export function mcpProvider({
 }
 
 export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: {
+	readonly admitsUser: (userId: string) => Effect.Effect<boolean, AuthUnavailable>;
 	readonly auth: OauthAuth;
 	readonly resource: string;
 	readonly jwks?: JwksSource;
@@ -47,7 +48,7 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 						return Option.none();
 					}
 					const user = yield* grantedUser(auth, claims.value.sub, claims.value.client_id);
-					if (user === null) {
+					if (user === null || !(yield* options.admitsUser(user.id))) {
 						return Option.none();
 					}
 					const role: unknown = Reflect.get(user, "role");

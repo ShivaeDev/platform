@@ -99,7 +99,7 @@ const application = Effect.gen(function* () {
 		{ roles: Roles },
 	);
 	const origin = trustedOrigins({ allow: ["https://app.example.com"], missing: "allow" });
-	const oauth = yield* betterAuthMcp({ auth: mounted.auth, resource, origin, roles: Roles });
+	const oauth = yield* betterAuthMcp({ admitsUser: mounted.admitsUser, auth: mounted.auth, resource, origin, roles: Roles });
 	return appHost({
 		group: Api,
 		handlers: Handlers,
@@ -121,7 +121,7 @@ const application = Effect.gen(function* () {
 
 `authPool`, `Api` and `Handlers` are the application's existing auth database, RPC group and handlers. Run the Better Auth migrations with the OAuth and JWT plugins included. For existing role management, keep the application's existing role plugin and `RoleSet` in this configuration.
 
-The edge adapter verifies access-token signatures, issuer, endpoint audience and `mcp` scope, then loads the current user and the token client's consent through Better Auth. Banned users and clients without consent receive the same unauthorized response as invalid tokens. Identity resolves the stored role on each request. An invalid token receives `401` with a `WWW-Authenticate` protected-resource metadata pointer. The metadata names the authorization server and its discovery endpoint, so a client can start OAuth. MCP bearer credentials are separate from browser session cookies. Provide the OAuth policy Layer to the MCP routes before merging them with a cookie-authenticated host; this makes the authentication scope explicit.
+The edge adapter verifies access-token signatures, issuer, endpoint audience and `mcp` scope, then loads the current user and the token client's consent through Better Auth. Pass `mounted.admitsUser` so every MCP request checks the mount's current sign-in policy against the user's stored provider accounts. MCP evaluates the rule afresh on every request, without the browser session recheck cache; admission changes apply to the next request with the same token. A failed admission lookup answers `503` without an OAuth challenge. Denied or banned users and clients without consent receive the same unauthorized response as invalid tokens. Identity resolves the stored role on each request. An invalid token receives `401` with a `WWW-Authenticate` protected-resource metadata pointer. The metadata names the authorization server and its discovery endpoint, so a client can start OAuth. MCP bearer credentials are separate from browser session cookies. Provide the OAuth policy Layer to the MCP routes before merging them with a cookie-authenticated host; this makes the authentication scope explicit.
 
 ### Revoke client grants
 
@@ -142,6 +142,7 @@ By default verification fetches the authorization server's JWKS URL. Pass `jwks`
 
 ```ts
 const oauth = yield* betterAuthMcp({
+	admitsUser: mounted.admitsUser,
 	auth: mounted.auth,
 	resource,
 	origin,

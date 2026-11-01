@@ -12,6 +12,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
+import { admissionPolicy } from "./admissionPolicy.ts";
 import { jwksEndpoint } from "./jwksEndpoint.ts";
 import { audiences, Roles } from "./tools.ts";
 
@@ -26,7 +27,8 @@ async function availablePort() {
 	return address.port;
 }
 
-const startHost = Effect.fnUntraced(function* (inProcess: boolean) {
+const startHost = Effect.fnUntraced(function* (inProcess: boolean, withAdmission: boolean) {
+	const admission = admissionPolicy();
 	const pool = yield* betterAuthDatabase();
 	const port = yield* Effect.promise(availablePort);
 	const baseUrl = `http://127.0.0.1:${port}`;
@@ -53,8 +55,13 @@ const startHost = Effect.fnUntraced(function* (inProcess: boolean) {
 		trustedOrigins: [baseUrl],
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: Roles });
+	const mounted = yield* betterAuthMount(options, {
+		defaultRole: "user",
+		roles: Roles,
+		...(withAdmission ? { signIn: admission.policy } : {}),
+	});
 	const oauth = yield* betterAuthMcp({
+		admitsUser: mounted.admitsUser,
 		auth: mounted.auth,
 		...(inProcess ? { jwks: () => mounted.auth.api.getJwks() } : {}),
 		origin: trustedOrigins({ allow: [baseUrl], missing: "allow" }),
@@ -83,7 +90,7 @@ const startHost = Effect.fnUntraced(function* (inProcess: boolean) {
 			sessions: Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true }),
 		}).pipe(Layer.provide(jwks.logger)),
 	);
-	return { auth: mounted.auth, baseUrl, issuer: `${publicUrl}/api/auth`, jwks, oauth, resource };
+	return { admission: admission.state, auth: mounted.auth, baseUrl, issuer: `${publicUrl}/api/auth`, jwks, oauth, resource };
 });
 type Host = Effect.Success<ReturnType<typeof startHost>>;
 
@@ -102,8 +109,8 @@ interface Story {
 	readonly tokens: Map<string, string>;
 }
 
-export function startEngine(inProcess = false) {
-	return Effect.map(startHost(inProcess), (host): Host & Story => ({
+export function startEngine(inProcess = false, withAdmission = false) {
+	return Effect.map(startHost(inProcess, withAdmission), (host): Host & Story => ({
 		...host,
 		clientIds: new Map(),
 		clients: new Map(),
