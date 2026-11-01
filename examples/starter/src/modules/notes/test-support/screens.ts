@@ -8,6 +8,7 @@ import { themeScreenVerbs } from "#test-support/themeScreenVerbs.tsx";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 import { authScreenVerbs } from "./authScreenVerbs.ts";
 import { notesClient } from "./client.ts";
+import { deleteControls, deleteControlVerbs } from "./deleteControls.tsx";
 import { notesRefreshVerbs } from "./refreshVerbs.ts";
 import { screenActions } from "./screenActions.ts";
 import { screenObservations } from "./screenObservations.ts";
@@ -37,6 +38,7 @@ export const screens = storyKit({
 		...noteScreenVerbs(engine, story.tell),
 		...notesRefreshVerbs(engine, story.tell),
 		...authScreenVerbs(engine, story.tell),
+		...deleteControlVerbs(engine, story.tell),
 	}),
 });
 
@@ -78,8 +80,20 @@ export function noteRevisedElsewhere(title: string) {
 	);
 }
 
+export function saveDefect() {
+	return screens.trait("elsewhere", "the notes server defects when saving", (engine) =>
+		Effect.sync(() => {
+			engine.client.faults.saveDefect = true;
+		}),
+	);
+}
+
 export function notesRoute() {
 	return screens.trait("screen", "the app is open at the notes route", (engine) => openRoute(engine, "/"));
+}
+
+export function noteDeleteControls() {
+	return screens.trait("screen", "each saved note has its own mounted delete control", deleteControls);
 }
 
 export function signedOutNotesRoute() {

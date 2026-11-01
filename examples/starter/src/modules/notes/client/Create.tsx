@@ -1,4 +1,4 @@
-import { Option, Predicate } from "effect";
+import { Cause, Option, Predicate } from "effect";
 import { useId } from "react";
 import { useField } from "@shivaedev/form/client/react.ts";
 import { useCreate } from "@shivaedev/react/client/create.ts";
@@ -24,9 +24,12 @@ export function NoteCreate({ client }: { readonly client: NotesClient }) {
 			{title.error}
 		</p>
 	);
-	const failureMessage = Option.isSome(create.failure) && (
+	const failure = Option.map(create.failure, (error) =>
+		Predicate.isTagged(error, "Unauthorized") ? "Sign in to add a note." : "Could not add the note. Try again.",
+	).pipe(Option.orElse(() => Option.map(Option.filter(create.cause, Cause.hasDies), () => "Could not add the note. Try again.")));
+	const failureMessage = Option.isSome(failure) && (
 		<p className="text-destructive text-sm" role="alert">
-			{Predicate.isTagged(create.failure.value, "Unauthorized") ? "Sign in to add a note." : "Could not add the note. Try again."}
+			{failure.value}
 		</p>
 	);
 	const statusMessage = Option.isSome(create.created) ? `Added ${create.created.value.title}` : "Notes are saved to PostgreSQL.";

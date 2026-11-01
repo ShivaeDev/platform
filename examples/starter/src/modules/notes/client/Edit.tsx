@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Option, Predicate } from "effect";
+import { Cause, Option, Predicate } from "effect";
 import { useId } from "react";
 import { useField } from "@shivaedev/form/client/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
@@ -66,7 +66,7 @@ export function NoteEdit({
 			return "Sign in to save this note.";
 		}
 		return "Could not save the note. Try again.";
-	});
+	}).pipe(Option.orElse(() => Option.map(Option.filter(editor.cause, Cause.hasDies), () => "Could not save the note. Try again.")));
 	const loadFailure = Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>;
 	const saveFailure = Option.isSome(failure) && (
 		<p className="text-destructive text-sm" role="alert">

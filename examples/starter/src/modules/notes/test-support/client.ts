@@ -10,6 +10,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 	const rows = [...initial];
 	const hints = Effect.runSync(PubSub.unbounded<LiveHint>());
 	const session = { signedIn: true };
+	const faults = { saveDefect: false };
 	let listStarted = Deferred.makeUnsafe<void>();
 	let listGate: Deferred.Deferred<void> | undefined;
 	function holdList() {
@@ -43,13 +44,17 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 	const handlers = Notes.toLayer({
 		"notes.$changes": () => Stream.concat(Stream.make({ _tag: "Resync" } as const), Stream.fromPubSub(hints)),
 		"notes.create": ({ title }) =>
-			title === "reserved"
-				? Create.reject.Invalid({ field: "title", message: "Choose another title" })
-				: Effect.sync(() => {
-						const row = { id: rows.length + 1, title, version: 0, wordCount: null };
-						rows.unshift(row);
-						return row;
-					}),
+			Effect.gen(function* () {
+				if (faults.saveDefect) {
+					return yield* Effect.die("Save unavailable");
+				}
+				if (title === "reserved") {
+					return yield* Create.reject.Invalid({ field: "title", message: "Choose another title" });
+				}
+				const row = { id: rows.length + 1, title, version: 0, wordCount: null };
+				rows.unshift(row);
+				return row;
+			}),
 		"notes.delete": (input) =>
 			Effect.gen(function* () {
 				const row = yield* get(input.id);
@@ -74,6 +79,9 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 			}),
 		"notes.update": (input) =>
 			Effect.gen(function* () {
+				if (faults.saveDefect) {
+					return yield* Effect.die("Save unavailable");
+				}
 				const row = yield* get(input.id);
 				if (row.version !== input.version) {
 					return yield* Effect.fail(conflict());
@@ -107,6 +115,7 @@ export const notesClient = Effect.fn("ScreenStory.notesClient")(function* (initi
 	}
 	return {
 		...client,
+		faults,
 		finishNote,
 		holdList,
 		listHeld: () => listGate !== undefined,
