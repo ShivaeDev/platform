@@ -11,6 +11,7 @@ export type ScreenTarget = string | { readonly role: string; readonly name: stri
 
 export interface ScreenDriverOptions {
 	readonly act?: (action: () => Promise<void>) => PromiseLike<void>;
+	readonly loadingTimeoutMs?: number;
 	readonly pending?: (() => boolean) | Stream.Stream<boolean> | ClientActivity;
 	readonly root: HTMLElement | (() => HTMLElement);
 	readonly tell: (line: string) => void;
@@ -56,10 +57,13 @@ function makeDriver(options: ScreenDriverOptions, dialogs: boolean): ScreenDrive
 	};
 }
 
-function makeScreenActions({ root, pending, tell, act = (action) => action(), timeoutMs = 3000 }: ScreenDriverOptions, dialogs: boolean) {
+function makeScreenActions(
+	{ root, pending, tell, act = (action) => action(), timeoutMs = 3000, loadingTimeoutMs = 10_000 }: ScreenDriverOptions,
+	dialogs: boolean,
+) {
 	const currentRoot = typeof root === "function" ? root : () => root;
 	const elements = screenElements(currentRoot, dialogs);
-	const waits = screenWaits({ act, pending, root: currentRoot, tell, timeoutMs }, elements);
+	const waits = screenWaits({ act, loadingTimeoutMs, pending, root: currentRoot, tell, timeoutMs }, elements, dialogs);
 	function perform(line: string, action: () => void) {
 		return Effect.promise(async () => {
 			tell(line);
