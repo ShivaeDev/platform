@@ -8,13 +8,27 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 
 export default async function workspace() {
 	const projects: TestProjectConfiguration[] = [];
-	for (const { configFile, directory, name } of testPackages(root)) {
+	for (const { configFile, directory, name } of [
+		{ configFile: `${root}vitest.config.ts`, directory: root, name: "orchestration" },
+		...testPackages(root),
+	]) {
 		const { default: config }: { default: { test?: ReturnType<typeof testProjects> } } = await import(pathToFileURL(configFile).href);
 		for (const project of config.test?.projects ?? []) {
 			if (typeof project !== "object" || project === null || !("test" in project) || typeof project.test?.name !== "string") {
 				throw new Error(`${configFile}: expected named inline test projects`);
 			}
-			projects.push({ ...project, extends: configFile, root: directory, test: { ...project.test, name: `${name}:${project.test.name}` } });
+			projects.push({
+				...project,
+				extends: configFile,
+				root: directory,
+				test: {
+					...project.test,
+					...(directory === root && project.test.include !== undefined
+						? { include: project.test.include.map((pattern) => `script/${pattern}`) }
+						: {}),
+					name: `${name}:${project.test.name}`,
+				},
+			});
 		}
 	}
 	return {
