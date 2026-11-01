@@ -58,7 +58,10 @@ export function makeChannel<A, R = never, THookError = never>(options: ChannelOp
 		return frame === undefined || frame.kind === "batch";
 	}
 	function observe(observation: Observation<A>) {
-		return Effect.flatMap(Effect.service(CurrentObserver), (observer) => observer(observation));
+		return Effect.catchDefect(
+			Effect.flatMap(Effect.service(CurrentObserver), (observer) => observer(observation)),
+			(defect) => Effect.logError("Changes observer failed; delivery continues", defect).pipe(Effect.annotateLogs({ channel: name })),
+		);
 	}
 	function deliver(changes: readonly A[], committed = false) {
 		return Effect.andThen(

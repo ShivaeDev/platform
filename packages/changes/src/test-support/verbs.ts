@@ -227,6 +227,16 @@ export function verbs(engine: Engine, tell: (line: string) => void) {
 					engine.committedSink.push(labels(changes));
 				}),
 			),
+		withFailingObserver: <A, E, R>(failure: "a synchronous throw" | "a defect", event: Observation<Change>["_tag"], body: Body<A, E, R>) =>
+			Effect.provideService(effectOf(body), channel.Observer, (observation) => {
+				if (observation._tag !== event) {
+					return observe(observation);
+				}
+				if (failure === "a synchronous throw") {
+					throw new Error("the observer failed");
+				}
+				return Effect.die(new Error("the observer failed"));
+			}),
 		withScopedHook: <A, E, R>(body: Body<A, E, R>) =>
 			Effect.provideService(effectOf(body), channel.BeforeCommit, (changes: readonly Change[]) =>
 				Effect.sync(() => {
