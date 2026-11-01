@@ -948,8 +948,8 @@ pnpm add --save-dev @shivaedev/test-story @effect/platform-node @effect/vitest e
 
 Test-story is an application's one test dependency: it brings [`@shivaedev/test`](https://github.com/ShivaeDev/platform/tree/main/packages/test#readme) and [`@shivaedev/test-sql`](https://github.com/ShivaeDev/platform/tree/main/packages/test-sql#readme), which an application on `@shivaedev/platform` imports by their own names without listing them. `@effect/sql-pg` is an optional peer for `test-sql`'s PostgreSQL helpers; install it when the stories use them. A library that tests with test-story still declares `test` or `test-sql` directly when it imports them.
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
-- Layer acquisition and engine creation failures precede that hook and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file.
+- Engine creation failures name the kit and the create phase and include a rerun command. Layer acquisition failures precede the story and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.
-- `inspect` runs when the story fails, before its Scope closes. Plain functions, generators and functions returning an Effect are supported.
+- `inspect` runs when the story fails, before its Scope closes. If only cleanup fails, it runs after cleanup with the kit's services. Plain functions, generators and functions returning an Effect are supported.
 - The spec line under the `✗` is found by matching the spec's path in the failure's stack, or else in the call site of the last line the story told or the last `runUntil`. A failure raised inside an Effect that the spec does not call directly may have none.
 - The package is built for ShivaeDev applications and may change without a deprecation period.

@@ -1,10 +1,9 @@
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
-import type { TestContext } from "vitest";
+import { type FailureContext, reportOnFailure } from "#adapters/storyFailure.ts";
 import { callSite } from "#internal/callSite.ts";
-import { failureReport } from "#internal/failureReport.ts";
+import { creationReport, failureReport } from "#internal/failureReport.ts";
 import { hooked } from "#internal/hooked.ts";
-import { describeFailure } from "#internal/render.ts";
 
 export interface Refusal {
 	readonly cause: unknown;
@@ -28,7 +27,11 @@ export interface Subject<TEngine> {
 	readonly snapshot?: { readonly value: unknown } | { readonly threw: unknown };
 }
 
-export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed, task }: Pick<TestContext, "onTestFailed" | "task">) {
+export function narrateCreation(name: string, context: FailureContext) {
+	return reportOnFailure(context, (test) => Effect.sync(() => creationReport(name, test)));
+}
+
+export const narrate = Effect.fnUntraced(function* <TEngine>(subject: Subject<TEngine>, context: FailureContext) {
 	let captured: string | undefined;
 	const narration: Narration = {
 		at: undefined,
@@ -45,28 +48,25 @@ export function narrate<TEngine>(subject: Subject<TEngine>, { onTestFailed, task
 			narration.at = site;
 		},
 	};
-	onTestFailed(({ task: failedTask }) => {
-		const failure = failedTask.result?.errors?.[0];
-		if (failure !== undefined) {
-			failure.message = `${failure.message === "" ? describeFailure(failure) : failure.message}\n\n${captured ?? failureReport(narration, subject, { file: task.file.filepath, name: task.name, stack: failure.stack })}`;
-		}
-	});
-	return {
-		captureFailure: (stack: string | undefined) =>
-			hooked(() => (subject.inspect === undefined ? subject.engine : subject.inspect(subject.engine))).pipe(
-				Effect.matchCause({
-					onFailure: (cause) => ({ threw: Cause.squash(cause) }),
-					onSuccess: (value) => ({ value }),
-				}),
-				Effect.tap((snapshot) =>
-					Effect.sync(() => {
-						captured = failureReport(narration, { ...subject, snapshot }, { file: task.file.filepath, name: task.name, stack });
-					}),
-				),
+	function captureFailure(stack: string | undefined) {
+		return hooked(() => (subject.inspect === undefined ? subject.engine : subject.inspect(subject.engine))).pipe(
+			Effect.matchCause({
+				onFailure: (cause) => ({ threw: Cause.squash(cause) }),
+				onSuccess: (value) => ({ value }),
+			}),
+			Effect.map((snapshot) =>
+				failureReport(narration, { ...subject, snapshot }, { file: context.task.file.filepath, name: context.task.name, stack }),
 			),
-		narration,
-	};
-}
+			Effect.tap((report) =>
+				Effect.sync(() => {
+					captured = report;
+				}),
+			),
+		);
+	}
+	yield* reportOnFailure(context, (test) => (captured === undefined ? captureFailure(test.stack) : Effect.succeed(captured)));
+	return { captureFailure, narration };
+});
 
 export function tellGiven(narration: Narration, given: readonly { readonly line: string; readonly site: Error }[]): void {
 	for (const part of given) {

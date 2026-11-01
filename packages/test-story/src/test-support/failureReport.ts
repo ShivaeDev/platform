@@ -8,6 +8,8 @@ function fixture(name: string) {
 
 export const STORIES = fixture("failingStories");
 
+export const LIFECYCLE_STORIES = fixture("lifecycleFailureStories");
+
 export const OUTCOME_STORIES = fixture("outcomeStories");
 
 export const UNLOCATED_STORIES = fixture("unlocatedStories");

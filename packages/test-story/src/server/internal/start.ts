@@ -5,7 +5,7 @@ import * as Tracer from "effect/Tracer";
 import type { TestContext } from "vitest";
 import { callSite } from "#internal/callSite.ts";
 import { hooked } from "#internal/hooked.ts";
-import { narrate } from "#internal/narration.ts";
+import { narrate, narrateCreation } from "#internal/narration.ts";
 import { runUntil } from "#internal/runUntil.ts";
 import { type LooseDefinition, type LooseStory, type LooseTrait, seed } from "#internal/seed.ts";
 
@@ -15,8 +15,11 @@ export const start = Effect.fnUntraced(function* (
 	context: TestContext,
 	body: (told: object) => Effect.Effect<unknown, unknown, unknown>,
 ) {
-	const engine = yield* hooked(definition.create).pipe(Effect.updateContext(Context.omit(Tracer.ParentSpan)));
-	const { narration, captureFailure } = narrate({ engine, inspect: definition.inspect, name: definition.name }, context);
+	const engine = yield* hooked(definition.create).pipe(
+		Effect.updateContext(Context.omit(Tracer.ParentSpan)),
+		Effect.tapCause(() => narrateCreation(definition.name, context)),
+	);
+	const { narration, captureFailure } = yield* narrate({ engine, inspect: definition.inspect, name: definition.name }, context);
 	return yield* Effect.gen(function* () {
 		yield* seed(definition, engine, narration, given);
 		const story: LooseStory = {
