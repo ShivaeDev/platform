@@ -1,7 +1,8 @@
-import { type ErrorComponentProps, getRouteApi, Link, type NotFoundRouteProps, Outlet, useRouter, useRouterState } from "@tanstack/react-router";
+import { type ErrorComponentProps, getRouteApi, Link, type NotFoundRouteProps, Outlet, useRouterState } from "@tanstack/react-router";
 import { useLayoutEffect } from "react";
 import { isNotFound } from "@shivaedev/errors/taxonomy.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
+import { noteQuery } from "./noteQuery.ts";
 import type { routerApp } from "./routerApp.ts";
 import { NoteMissing } from "./routerClient.ts";
 
@@ -39,17 +40,13 @@ export function RouterNote() {
 }
 
 export function RouterFailure({ error }: ErrorComponentProps) {
-	const router = useRouter();
-	const { client, registry, viewer } = noteRoute.useRouteContext<Router>();
-	const { id } = noteRoute.useParams<Router>();
-	const { page } = noteRoute.useSearch<Router>();
+	const retry = noteQuery.useRetry();
 	return (
 		<>
 			<p role="alert">{error instanceof NoteMissing ? `${error._tag}:${error.id}` : "Could not load"}</p>
 			<button
 				onClick={() => {
-					registry.refresh(client.api.get.query({ id, page: page * viewer.page }));
-					void router.invalidate();
+					void retry();
 				}}
 				type="button"
 			>
@@ -75,4 +72,13 @@ export function SharedNotFound({ data }: NotFoundRouteProps) {
 
 export function RouterPending() {
 	return <p>Route loading</p>;
+}
+
+export function RouterSignIn() {
+	const { returnTo } = getRouteApi<"/sign-in", Router>("/sign-in").useSearch<Router>();
+	return <h1>Sign in to return to {returnTo}</h1>;
+}
+
+export function RouterRefused() {
+	return <h1>Choose a note you can read</h1>;
 }

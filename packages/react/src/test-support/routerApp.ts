@@ -1,11 +1,23 @@
-import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
+import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter, redirect } from "@tanstack/react-router";
 import { Effect, Option, Schema } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type { QueryRouteRedirect } from "#adapters/queryRouteFailure.ts";
 import { queryRoute } from "#queryRoute.ts";
+import { signInSearch } from "#signInSearch.ts";
+import { noteQuery } from "./noteQuery.ts";
 import type { routerClient } from "./routerClient.ts";
-import { RouterFailure, RouterNote, RouterNotFound, RouterPending, RouterShell, SharedNotFound } from "./routerScreens.tsx";
+import {
+	RouterFailure,
+	RouterNote,
+	RouterNotFound,
+	RouterPending,
+	RouterRefused,
+	RouterShell,
+	RouterSignIn,
+	SharedNotFound,
+} from "./routerScreens.tsx";
 
-const root = createRootRouteWithContext<{
+export const root = createRootRouteWithContext<{
 	readonly client: ReturnType<typeof routerClient>;
 	readonly viewerPage: number;
 	readonly frames: string[];
@@ -24,10 +36,7 @@ function noteRoute() {
 		component: RouterNote,
 		errorComponent: RouterFailure,
 		getParentRoute: () => root,
-		...queryRoute(
-			({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof RouterSearch.Type }) =>
-				context.client.api.get.query({ ...params, page: search.page * context.viewer.page }),
-		),
+		...noteQuery,
 		path: "/notes/$id",
 		validateSearch: Schema.toStandardSchemaV1(RouterSearch),
 	});
@@ -42,12 +51,36 @@ const customNotFoundRoute = createRoute({
 	path: "/custom-notes/$id",
 });
 
+const signIn = createRoute({
+	component: RouterSignIn,
+	getParentRoute: () => root,
+	path: "/sign-in",
+	validateSearch: Schema.toStandardSchemaV1(Schema.Struct({ returnTo: Schema.optionalKey(Schema.String) })),
+});
+const refused = createRoute({ component: RouterRefused, getParentRoute: () => root, path: "/no-access" });
+const redirected = createRoute({
+	getParentRoute: () => root,
+	path: "/redirected/$id",
+	validateSearch: Schema.toStandardSchemaV1(RouterSearch),
+	...queryRoute(
+		({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof RouterSearch.Type }) =>
+			context.client.api.get.query({ ...params, page: search.page }),
+		{
+			redirects: {
+				refused: (): QueryRouteRedirect => redirect<ReturnType<typeof routerApp>, "/no-access">({ to: refused.fullPath }),
+				signedOut: (location): QueryRouteRedirect =>
+					redirect<ReturnType<typeof routerApp>, "/sign-in">({ search: signInSearch(location), to: signIn.fullPath }),
+			},
+		},
+	),
+});
+
 export function routerApp(registry: AtomRegistry.AtomRegistry, client: ReturnType<typeof routerClient>, initial = "/notes/first", page = 1) {
 	return createRouter({
 		context: { client, frames: client.frames, registry, viewerPage: page },
 		defaultPendingComponent: RouterPending,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		history: createMemoryHistory({ initialEntries: [initial] }),
-		routeTree: root.addChildren([noteRoute(), customNotFoundRoute]),
+		routeTree: root.addChildren([noteRoute(), customNotFoundRoute, signIn, refused, redirected]),
 	});
 }

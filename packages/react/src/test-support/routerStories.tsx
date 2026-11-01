@@ -5,7 +5,7 @@ import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { routerApp } from "./routerApp.ts";
-import { type NoteMissing, routerClient } from "./routerClient.ts";
+import { type NoteFailure, type NoteMissing, routerClient } from "./routerClient.ts";
 import { clickButton, type Screen, screenWarnings, typeInput } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
@@ -46,10 +46,10 @@ function answer(state: State, screen: Screen, id: string, title: string, page: n
 		.pipe(Effect.andThen(settle(state, screen)));
 }
 
-function reject(state: State, screen: Screen, id: string, failure: NoteMissing | NotFound) {
+function reject(state: State, screen: Screen, id: string, failure: NoteFailure, page = 1) {
 	const answerLine = failure instanceof NotFound ? "not found" : "missing";
 	return screen
-		.act(`the server answers that note ${id} is ${answerLine}`, () => Effect.runPromise(Deferred.fail(state.client.gate(id), failure)))
+		.act(`the server answers that note ${id} is ${answerLine}`, () => Effect.runPromise(Deferred.fail(state.client.gate(id, page), failure)))
 		.pipe(Effect.andThen(settle(state, screen)));
 }
 
@@ -82,6 +82,7 @@ function routeVerbs(state: State, screen: Screen) {
 		clientRuntimes: () => Effect.sync(() => state.client.builds()),
 		firstFrame: () => Effect.sync(() => state.client.frames[0] ?? "none"),
 		heading: () => Effect.sync(() => text(state, "h1")),
+		location: () => Effect.sync(() => current(state).router.state.location.href),
 		navigating: () => Effect.sync(() => text(state, "[data-pending]")),
 		openSecondNote: () =>
 			screen
@@ -94,10 +95,10 @@ function routeVerbs(state: State, screen: Screen) {
 				})
 				.pipe(Effect.andThen(requestArrives(state, screen))),
 		queryText: () => Effect.sync(() => text(state, "[data-query]")),
-		reject: (id: string, failure: NoteMissing | NotFound) => reject(state, screen, id, failure),
+		reject: (id: string, failure: NoteFailure, page = 1) => reject(state, screen, id, failure, page),
 		requests: () => Effect.sync(() => state.client.calls.map(({ id, page }) => `${id} page ${page}`)),
-		retry: () => {
-			state.client.next("first");
+		retry: (page = 1) => {
+			state.client.next("first", page);
 			return screen.act("click Retry", () => clickButton(current(state).root.container, "Retry")).pipe(Effect.andThen(requestArrives(state, screen)));
 		},
 		routeError: () => Effect.sync(() => current(state).router.state.matches.at(-1)?.error),
@@ -118,7 +119,13 @@ interface Engine {
 	readonly state: State;
 }
 
-function* openRoute({ screen, state }: Engine, initial: string, expectedFailure?: NoteMissing, viewerPage = 1) {
+function* openRoute(
+	{ screen, state }: Engine,
+	initial: string,
+	expectedFailure?: NoteFailure,
+	viewerPage = 1,
+	wait: "request" | "settled" = "request",
+) {
 	const root = yield* screen.open(
 		null,
 		expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === expectedFailure) } : undefined,
@@ -127,10 +134,20 @@ function* openRoute({ screen, state }: Engine, initial: string, expectedFailure?
 	const router = routerApp(root.registry, state.client, initial, viewerPage);
 	state.router = router;
 	yield* Effect.promise(() => act(() => root.render(<RouterProvider router={router} />)));
-	yield* screen.act(`the loader at ${initial} reaches the server`, () => state.client.requestArrives(1));
+	if (wait === "settled") {
+		yield* settle(state, screen);
+	} else {
+		yield* screen.act(`the loader at ${initial} reaches the server`, () => state.client.requestArrives(1));
+	}
 }
 
-export function routeRequested(initial = "/notes/first", expectedFailure?: NoteMissing, viewerPage = 1) {
+export function routeReadRefused(initial: string) {
+	return routes.trait("screen", `the read policy refuses the query at ${initial} before its handler runs`, (engine) =>
+		openRoute(engine, initial, undefined, 1, "settled"),
+	);
+}
+
+export function routeRequested(initial = "/notes/first", expectedFailure?: NoteFailure, viewerPage = 1) {
 	return routes.trait(
 		"screen",
 		`the notes router opened ${initial} with viewer page ${viewerPage} and its loader's request waits on the server`,
@@ -161,27 +178,27 @@ export function secondNoteRequested() {
 	});
 }
 
-function* failLoader(engine: Engine, failure: NoteMissing, draft: string) {
-	yield* openRoute(engine, "/notes/first", failure);
-	yield* reject(engine.state, engine.screen, failure.id, failure);
+function* failLoader(engine: Engine, failure: NoteMissing, draft: string, page: number) {
+	yield* openRoute(engine, `/notes/first?page=${page}`, failure);
+	yield* reject(engine.state, engine.screen, failure.id, failure, page);
 	yield* routeVerbs(engine.state, engine.screen).typeShellDraft(draft);
 	const { container } = current(engine.state).root;
 	engine.state.marked = { input: container.querySelector('[name="shell"]'), shell: container.querySelector("main") };
 }
 
-export function loaderFailed(failure: NoteMissing, draft: string) {
-	return routes.trait("screen", `the note's loader failed as ${failure._tag} and the shell input holds ${draft}`, (engine) =>
-		failLoader(engine, failure, draft),
+export function loaderFailed(failure: NoteMissing, draft: string, page = 1) {
+	return routes.trait("screen", `the note's page ${page} loader failed as ${failure._tag} and the shell input holds ${draft}`, (engine) =>
+		failLoader(engine, failure, draft, page),
 	);
 }
 
-export function retryRequested(failure: NoteMissing, draft: string) {
+export function retryRequested(failure: NoteMissing, draft: string, page = 1) {
 	return routes.trait(
 		"screen",
-		`the note's loader failed as ${failure._tag}, the shell input holds ${draft} and a retry waits on the server`,
+		`the note's page ${page} loader failed as ${failure._tag}, the shell input holds ${draft} and a retry waits on the server`,
 		function* (engine) {
-			yield* failLoader(engine, failure, draft);
-			yield* routeVerbs(engine.state, engine.screen).retry();
+			yield* failLoader(engine, failure, draft, page);
+			yield* routeVerbs(engine.state, engine.screen).retry(page);
 		},
 	);
 }
