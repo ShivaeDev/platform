@@ -64,7 +64,30 @@ const validateRequest = Effect.fn("Changesets.validateRequest")(function* (
 		});
 	}
 });
-export const computePlan = Effect.fn("Changesets.computePlan")(function* (packages: readonly WorkspacePackage[], sources: readonly Source[]) {
+const validateDependencies = Effect.fn("Changesets.validateDependencies")(function* (
+	packages: readonly WorkspacePackage[],
+	previousPackages: readonly WorkspacePackage[],
+) {
+	const names = new Set(packages.map((pkg) => pkg.manifest.name));
+	const removed = new Set(previousPackages.filter((pkg) => !names.has(pkg.manifest.name)).map((pkg) => pkg.manifest.name));
+	for (const { manifest } of packages.filter((pkg) => !pkg.manifest.private)) {
+		for (const field of ["dependencies", "optionalDependencies", "peerDependencies"] as const) {
+			for (const [name, range] of Object.entries(manifest[field] ?? {})) {
+				if (removed.has(name) || (range.startsWith("workspace:") && !names.has(name))) {
+					return yield* new ChangesetError({
+						message: `${manifest.name} depends on removed package ${name}; remove or replace this published dependency before planning a release.`,
+					});
+				}
+			}
+		}
+	}
+});
+export const computePlan = Effect.fn("Changesets.computePlan")(function* (
+	packages: readonly WorkspacePackage[],
+	sources: readonly Source[],
+	previousPackages: readonly WorkspacePackage[] = [],
+) {
+	yield* validateDependencies(packages, previousPackages);
 	const bumps = yield* requestedBumps(packages, sources);
 	let changed = true;
 	while (changed) {
