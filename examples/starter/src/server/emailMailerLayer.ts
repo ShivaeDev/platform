@@ -6,7 +6,11 @@ export function emailMailerLayer() {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const production = yield* Config.String("NODE_ENV").pipe(Config.withDefault("development"));
-			return production === "production" ? resendMailerLayer() : logMailerLayer;
+			if (production !== "production") {
+				return logMailerLayer;
+			}
+			yield* Config.String("EMAIL_FROM");
+			return resendMailerLayer();
 		}),
 	);
 }
