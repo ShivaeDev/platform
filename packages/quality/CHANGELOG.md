@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.54.0 - 2026-11-01
+
+### Added
+
+- Enforce `imports/admin-paths`: report admin-only source files outside an `admin/` path and admin files reached by member code, naming the destination folder. Follow production imports within each source tree while allowing registration composition and shared member dependencies.
+
+### Fixed
+
+- Count an entry point's dependency as used when an application's live source imports that piece through it, while keeping unused pieces and abandoned-file imports visible.
+- Quality reports HTTP error branches written with `HttpStatus.fromLiteral` outside configured HTTP edges, including comparisons, switch cases and status-list membership.
+- GitHub App requests and artifact storage downloads use the shared HTTP status filter while retaining their GitHub error tags and reasons.
+- Server OTLP exports use the shared HTTP status filter to reset warning suppression after success and report redacted collector failures.
+- Report production imports of the `@effect/platform-node` barrel with module subpaths that avoid loading optional integrations such as redis.
+- Recognize native Effect `catchTags` record keys regardless of the handler body while retaining diagnostics for actual nested component and hook factories.
+- Keep a constant's matching filename valid when the constant becomes private.
+- Name each conflicting fix and format pass's file and line/column range when `quality fix` cannot settle.
+- Use Node platform module subpaths in package runtimes and commands instead of loading the barrel.
+
+### Breaking
+
+- Generated apps keep shared declarations outside the admin-only tree. Migrate custom `ReadStatistics` imports from `#admin/ReadStatistics.ts` to `#ReadStatistics.ts`, and custom `AdminNavigation` type imports from `#client/admin/Shell.tsx` to `#client/AdminNavigation.ts`.
+
 ## 0.53.1 - 2026-11-01
 
 ### Fixed

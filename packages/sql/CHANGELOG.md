@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.31.0 - 2026-11-01
+
+### Added
+
+- Apply an opt-in low-memory PostgreSQL preset with an explicit per-app point-in-time recovery choice.
+- Trim PostgreSQL's clean filesystem cache without privileges through the server's Effect process boundary.
+
 ## 0.30.0 - 2026-11-01
 
 ### Added

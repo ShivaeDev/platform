@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.17.0 - 2026-11-01
+
+### Added
+
+- Apply an opt-in low-memory PostgreSQL preset with an explicit per-app point-in-time recovery choice.
+- Trim PostgreSQL's clean filesystem cache without privileges through the server's Effect process boundary.
+
+### Changed
+
+- Identity operation spans use the `Identity` prefix, including `Identity.resolveSession` and `Identity.betterAuthSession`. Adjust trace queries that used `Platform` or `PlatformRpc` names.
+
+### Fixed
+
+- Quality reports HTTP error branches written with `HttpStatus.fromLiteral` outside configured HTTP edges, including comparisons, switch cases and status-list membership.
+- GitHub App requests and artifact storage downloads use the shared HTTP status filter while retaining their GitHub error tags and reasons.
+- Server OTLP exports use the shared HTTP status filter to reset warning suppression after success and report redacted collector failures.
+
+### Breaking
+
+- Identity reads `SessionPolicy` from the Effect environment. Import the service from `@shivaedev/identity/server/SessionPolicy.ts` and construct one `Layer.succeed(SessionPolicy, { origin, provider, roles, streamRevalidationInterval })`, omitting optional fields as needed. Replace `SessionPolicy<TSession>` annotations with `SessionPolicy["Service"]`; provider-specific types remain on `SessionProvider<TSession>`. Remove policy arguments from session middleware constructors, `resolveSession`, `withSessionUser`, `permissionLayer`, `permissionRoute`, session lookup, rechecks and stream revalidation; provide the policy Layer to the composed readers. Profiles and provider accounts are decoded at their middleware boundaries from the shared provider.
+- Server's `appHost` `sessions` option accepts that Layer and supplies it to middleware, application routes, sockets and change subscriptions. Wrap the previous policy object in `Layer.succeed(SessionPolicy, policy)`. Remove the session-shape generic from host option and factory types, and remove the policy argument from `hostChanges` and `bearerSocketRpc`.
+- Admin uses identity's `SessionPolicy` directly. Replace `AdminSessions` imports and Layers with the identity service, and provide the policy once through the host instead of separately to admin handlers and documents.
+- MCP's `mcpRoutes` reads `SessionPolicy` from the environment. Remove its `sessions` option and the session-shape generic from `McpOptions`; `betterAuthMcp` now returns `sessions` as a policy Layer, which can be passed to the host or supplied to MCP routes with `HttpRouter.provideRequest(oauth.sessions)` when the host also serves cookie-authenticated RPC.
+
 ## 0.16.1 - 2026-11-01
 
 ### Changed

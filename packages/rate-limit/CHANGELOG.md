@@ -1,8 +1,6 @@
----
-"@shivaedev/rate-limit": minor
-"@shivaedev/platform": minor
-"@shivaedev/create-app": minor
----
+# Changelog
+
+## 0.1.0 - 2026-11-01
 
 ### Added
 
