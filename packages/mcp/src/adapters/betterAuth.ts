@@ -27,13 +27,14 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 	readonly roles?: RoleSet;
 }) {
 	const config = yield* Effect.tryPromise({
-		catch: () => new AuthUnavailable({ message: "OAuth provider configuration failed" }),
+		catch: (cause) => Object.assign(new AuthUnavailable({ message: "OAuth provider configuration failed" }), { cause }),
 		try: () => options.auth.api.getOAuthServerConfig(),
 	});
 	const { auth, resource } = options;
 	const url = new URL(resource);
 	const metadataPath = `/.well-known/oauth-protected-resource${url.pathname}` as const;
 	const resourceMetadataUrl = new URL(metadataPath, url).href;
+	const authorizationMetadataPath = `/.well-known/oauth-authorization-server${new URL(config.issuer).pathname.replace(/\/$/u, "")}` as const;
 	const verify = bearer(options.jwks ?? config.jwks_uri ?? new URL("/api/auth/jwks", url).href, resource, config.issuer);
 	const sessions = Layer.succeed(SessionPolicy, {
 		origin: options.origin,
@@ -42,7 +43,7 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 			get: (headers) =>
 				Effect.gen(function* () {
 					const authorization = headers.authorization;
-					const token = authorization?.startsWith("Bearer ") ? authorization.slice(7) : undefined;
+					const token = authorization?.match(/^Bearer (?<token>.+)$/iu)?.groups?.token;
 					const claims = yield* verify(token);
 					if (Option.isNone(claims) || typeof claims.value.sub !== "string" || typeof claims.value.client_id !== "string") {
 						return Option.none();
@@ -59,7 +60,12 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 	const metadata = oauthProviderAuthServerMetadata(auth);
 	const authorizationMetadata = Effect.fn("Mcp.authorizationMetadata")(function* (request: HttpServerRequest.HttpServerRequest) {
 		const web = yield* HttpServerRequest.toWeb(request);
-		return HttpServerResponse.fromWeb(yield* Effect.promise(() => metadata(web)));
+		return HttpServerResponse.fromWeb(
+			yield* Effect.tryPromise({
+				catch: (cause) => Object.assign(new AuthUnavailable({ message: "OAuth server metadata failed" }), { cause }),
+				try: () => metadata(web),
+			}),
+		);
 	});
 	const routes = HttpRouter.use((router) =>
 		Effect.gen(function* () {
@@ -68,7 +74,7 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 				metadataPath,
 				HttpServerResponse.jsonUnsafe({ "authorization_servers": [config.issuer], resource, "scopes_supported": ["mcp"] }),
 			);
-			yield* router.add("GET", "/.well-known/oauth-authorization-server/api/auth", authorizationMetadata);
+			yield* router.add("GET", authorizationMetadataPath, authorizationMetadata);
 		}),
 	);
 	return { ...oauthGrants(auth), resourceMetadataUrl, routes, sessions };

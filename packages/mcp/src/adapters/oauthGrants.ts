@@ -16,7 +16,7 @@ export interface OauthAuth {
 export function oauthGrants(auth: OauthAuth) {
 	const revoke = Effect.fn("Mcp.revoke")(function* (userId: string, clientId?: string) {
 		yield* Effect.tryPromise({
-			catch: () => new AuthUnavailable({ message: "OAuth grant revocation failed" }),
+			catch: (cause) => Object.assign(new AuthUnavailable({ message: "OAuth grant revocation failed" }), { cause }),
 			try: async () => {
 				const { adapter } = await auth.$context;
 				const where = [{ field: "userId", value: userId }, ...(clientId === undefined ? [] : [{ field: "clientId", value: clientId }])];
@@ -36,7 +36,7 @@ export function oauthGrants(auth: OauthAuth) {
 
 export const grantedUser = Effect.fn("Mcp.grantedUser")(function* (auth: OauthAuth, userId: string, clientId: string) {
 	return yield* Effect.tryPromise({
-		catch: () => new AuthUnavailable({ message: "OAuth grant lookup failed" }),
+		catch: (cause) => Object.assign(new AuthUnavailable({ message: "OAuth grant lookup failed" }), { cause }),
 		try: async () => {
 			const { adapter, internalAdapter } = await auth.$context;
 			const user = await internalAdapter.findUserById(userId);

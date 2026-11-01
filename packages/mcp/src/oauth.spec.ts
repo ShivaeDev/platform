@@ -4,6 +4,16 @@ import { mcp } from "#test/mcp.ts";
 import { holdsToken, jwksUnavailable, jwksUnreachable, REFUSED_TOKENS, signedIn } from "#test/traits.ts";
 
 mcp.it(
+	"alice's client authenticates with a lowercase bearer scheme and whoami answers alice",
+	[signedIn("alice", "user"), holdsToken("alice")],
+	function* ({ call, connects }) {
+		yield* connects("alice", "bearer");
+
+		expect(yield* call("alice", "whoami")).toBe("answered alice");
+	},
+);
+
+mcp.it(
 	"an unreachable JWKS endpoint answers 503 without an OAuth restart challenge",
 	[signedIn("alice", "user"), holdsToken("alice"), jwksUnreachable],
 	function* ({ connects, oauthChallenge }) {
