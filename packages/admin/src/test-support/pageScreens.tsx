@@ -4,6 +4,7 @@ import { PermissionBoundary } from "@shivaedev/react/client/permissionBoundary.t
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { matchAdminRoute } from "#adapters/matchAdminRoute.ts";
+import { workspaceServer } from "./pageHost.ts";
 import { WorkspaceScreen } from "./WorkspaceScreen.tsx";
 import { WorkspaceAccess, type WorkspaceRole, workspaceRegistration } from "./workspaces.ts";
 
@@ -13,10 +14,17 @@ const warnings = expectNoReactWarnings();
 
 export const pageScreens = storyKit({
 	clock: "live",
-	create: (): { screen: Rendered | undefined } => ({ screen: undefined }),
+	create: () => Effect.map(workspaceServer, ({ url }): { screen: Rendered | undefined; url: string } => ({ screen: undefined, url })),
 	name: "admin page screen",
 	stages: [],
 	verbs: (engine, story) => ({
+		openDocument: (path: string, role: WorkspaceRole) => {
+			story.tell(`${role} opens ${path} on the server`);
+			return Effect.promise(async () => {
+				const response = await fetch(`${engine.url}${path}`, { headers: { authorization: role } });
+				return { body: await response.text(), status: response.status };
+			});
+		},
 		openScreen: (path: string, role: WorkspaceRole) =>
 			Effect.gen(function* () {
 				story.tell(`${role} opens ${path} on the client`);

@@ -1,4 +1,5 @@
 import { RpcGroup } from "effect/rpc";
+import { validateAdminRoutes } from "#adapters/validateAdminRoutes.ts";
 import type { AdminPage } from "./page.ts";
 
 export interface AdminRegistry<TPages extends readonly AdminPage[]> {
@@ -38,7 +39,6 @@ export function mergeAdminRegistries(...registries: readonly AnyAdminRegistry[])
 
 export function adminRegistry<const TPages extends readonly AdminPage[]>(...pages: TPages & UniquePageIds<TPages>): AdminRegistry<TPages> {
 	const ids = new Set<string>();
-	const paths = new Set<string>();
 	const tags = new Set<string>();
 	function unique(seen: Set<string>, value: string, kind: string) {
 		if (seen.has(value)) {
@@ -48,12 +48,10 @@ export function adminRegistry<const TPages extends readonly AdminPage[]>(...page
 	}
 	for (const page of pages) {
 		unique(ids, page.id, "page id");
-		for (const path of [page.route.path, ...(page.route.detail === undefined ? [] : [page.route.detail])]) {
-			unique(paths, path.replace(/\$[^/]+/gu, "$").replace(/\/$/u, ""), "path");
-		}
 		for (const tag of page.contract.requests.keys()) {
 			unique(tags, tag, "RPC tag");
 		}
 	}
+	validateAdminRoutes(pages.map((page) => page.route));
 	return { group: RpcGroup.make().merge(...pages.map((page) => page.contract)), pages };
 }
