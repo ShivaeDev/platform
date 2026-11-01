@@ -54,7 +54,7 @@ export class FakeClient implements PgBossClient {
 	duringStop: (() => void) | undefined;
 
 	getDb() {
-		return { executeSql: async () => ({ rows: [{ now: this.databaseNow ?? Effect.runSync(Clock.currentTimeMillis) }] }) };
+		return { executeSql: async () => ({ rows: [{ count: "0", now: this.databaseNow ?? Effect.runSync(Clock.currentTimeMillis) }] }) };
 	}
 	complete(name: string, target: JobAttempt | string | JobAttempt[] | string[]) {
 		for (const id of idsOf(target)) {

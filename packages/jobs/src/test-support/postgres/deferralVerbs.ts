@@ -3,7 +3,7 @@ import type { QueueDefinition } from "#definition.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { idOf, testingOf } from "./verbs.ts";
 
-export function deferralVerbs(engine: DatabaseEngine) {
+export function deferralVerbs(engine: DatabaseEngine, tell: (line: string) => void) {
 	return {
 		deferrals: (name: string, queue: Pick<QueueDefinition, "name">) =>
 			Effect.map(
@@ -31,5 +31,13 @@ export function deferralVerbs(engine: DatabaseEngine) {
 						return early > 0 ? `ran again ${early} ms early` : "ran again at or after the deferral time";
 					});
 			}),
+		handlerCounts: (queue: Pick<QueueDefinition, "name">) =>
+			Effect.sync(() =>
+				engine.work.started.filter((attempt) => attempt.queue === queue.name).map(({ retryCount, deferralCount }) => ({ deferralCount, retryCount })),
+			),
+		runDueNow: (name: string, queue: Pick<QueueDefinition, "name">) => {
+			tell(`the testing controller of ${name} makes waiting ${queue.name} jobs due now`);
+			return Effect.suspend(() => testingOf(engine, name).runDueNow(queue));
+		},
 	};
 }

@@ -1,5 +1,6 @@
 import { type DateTime, Duration, Effect, Redacted } from "effect";
 import type { PgBoss } from "pg-boss";
+import { testingDueNow } from "#adapters/testingDueNow.ts";
 import type { PgBossClientFactory } from "#client.ts";
 import { defaultClientFactory } from "#defaultClientFactory.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
@@ -64,7 +65,8 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 		return testingClient(current, clientOptions.schema ?? "pgboss", controls);
 	};
 	return {
-		...testingDeferrals(client, () => schema, signal.changed),
+		...testingDeferrals(client),
+		...testingDueNow(client, () => schema, signal.changed),
 		...testingSchedules(client, signal.changed),
 		...testingWaits(client, () => fetches, signal),
 		checkBatchWindow: (queue: Pick<QueueDefinition, "name" | "workerOptions">, millisecondsPerJob: number) =>
