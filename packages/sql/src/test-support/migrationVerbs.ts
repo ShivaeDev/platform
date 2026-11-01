@@ -1,11 +1,11 @@
-import { Cause, Clock, Deferred, type Duration, Effect, Exit, Fiber, Option, Schedule } from "effect";
-import { Migrator, type SqlClient } from "effect/sql";
-import { advisoryXactLock } from "#advisoryXactLock.ts";
+import { Cause, Clock, Deferred, type Duration, Effect, Exit, Option } from "effect";
+import { Migrator } from "effect/sql";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 import { readPostgresRelease } from "#postgresRelease.ts";
 import { type ComponentName, componentOf, described, loaderOf, type Migration } from "./migrationCatalog.ts";
+import { migrationConcurrency } from "./migrationConcurrency.ts";
 import type { Applied, MigrationEngine } from "./migrationEngine.ts";
 import { failureOf, outcomeOf } from "./outcome.ts";
 
@@ -34,15 +34,6 @@ function withOptions(options: RunOptions) {
 	return parts.length === 0 ? "" : ` with ${parts.join(" and ")}`;
 }
 
-function waitersOn(sql: SqlClient.SqlClient, key: string, count: number) {
-	const waiting = sql<{ readonly waiting: number }>`select count(*)::integer as waiting from pg_locks
-		where locktype = 'advisory' and not granted and objsubid = 1
-		and database = (select oid from pg_database where datname = current_database())
-		and ((classid::bigint << 32) | objid::bigint) = hashtextextended(${key}, 0)`;
-	// PostgreSQL signals nothing when a session starts waiting on a lock, so the kit polls the lock table for the ledger key's waiters.
-	return waiting.pipe(Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => (row?.waiting ?? 0) < count }));
-}
-
 export function migrationVerbs(engine: MigrationEngine, tell: (line: string) => void) {
 	const { sql, tables } = engine;
 	function optionsOf(migrations: readonly Migration[], options: RunOptions) {
@@ -54,14 +45,22 @@ export function migrationVerbs(engine: MigrationEngine, tell: (line: string) => 
 			...(options.release === undefined ? {} : { release: options.release }),
 		};
 	}
-	function run(migrations: readonly Migration[], options: RunOptions) {
+	function run(migrations: readonly Migration[], options: RunOptions, pauseLoader = false) {
 		return Effect.gen(function* () {
 			engine.firstRunStarted.at ??= yield* Clock.currentTimeMillis;
-			const exit = yield* Effect.exit(migratePostgres(optionsOf(migrations, options)));
+			const configured = optionsOf(migrations, options);
+			const loader = pauseLoader
+				? Deferred.succeed(engine.pause.entered, undefined).pipe(
+						Effect.andThen(Deferred.await(engine.pause.resume)),
+						Effect.andThen(configured.loader),
+					)
+				: configured.loader;
+			const exit = yield* Effect.exit(migratePostgres({ ...configured, loader }));
 			return Exit.isSuccess(exit) ? exit.value : runOutcome(exit);
 		});
 	}
 	return {
+		...migrationConcurrency(engine, tell, run),
 		assertReady: (migrations: readonly Migration[], options: RunOptions = {}) =>
 			Effect.gen(function* () {
 				tell(`a service checks readiness for ${described(migrations)}${withOptions(options)}`);
@@ -137,55 +136,7 @@ export function migrationVerbs(engine: MigrationEngine, tell: (line: string) => 
 				};
 			}).pipe(Effect.orDie),
 		releasesSeenByComponents: () => Effect.sync(() => [...engine.releasesSeenByComponents]),
-		resumePausedRunner: () =>
-			Effect.gen(function* () {
-				const paused = engine.paused;
-				if (paused === undefined) {
-					return yield* Effect.die(new Error("Start a paused runner before resuming it"));
-				}
-				tell("the paused runner resumes and finishes its batch");
-				yield* Deferred.succeed(engine.pause.resume, undefined);
-				engine.runs.push(yield* Fiber.join(paused));
-			}),
-		runnersRaceForTheLedger: (count: number, migrations: readonly Migration[]) =>
-			Effect.gen(function* () {
-				tell(
-					`${count} runners migrate ${described(migrations)} at once while another session holds the advisory lock effect_sql_migrations:<ledger>, which it releases once all of them wait on it`,
-				);
-				const key = `effect_sql_migrations:${tables.ledger}`;
-				const held = yield* Deferred.make<void>();
-				const release = yield* Deferred.make<void>();
-				const holder = yield* Effect.forkScoped(
-					sql.withTransaction(advisoryXactLock(key).pipe(Effect.andThen(Deferred.succeed(held, undefined)), Effect.andThen(Deferred.await(release)))),
-				);
-				yield* Deferred.await(held);
-				const runners = yield* Effect.forkScoped(
-					Effect.forEach(
-						Array.from({ length: count }, () => run(migrations, {})),
-						(runner) => runner,
-						{ concurrency: "unbounded" },
-					),
-				);
-				yield* Effect.raceFirst(
-					waitersOn(sql, key, count),
-					Effect.andThen(Fiber.await(runners), Effect.die(new Error("The runners finished without waiting on the ledger lock"))),
-				);
-				yield* Deferred.succeed(release, undefined);
-				yield* Fiber.join(holder);
-				const outcomes = yield* Fiber.join(runners);
-				engine.runs.push(...outcomes.toSorted((left, right) => right.length - left.length));
-			}).pipe(Effect.orDie),
 		runs: () => Effect.sync((): ReadonlyArray<Applied | string> => [...engine.runs]),
-		startPausedRunner: (migrations: readonly Migration[]) =>
-			Effect.gen(function* () {
-				tell(`a runner migrates ${described(migrations)} and pauses inside the batch while it holds the ledger lock`);
-				const fiber = yield* Effect.forkScoped(run(migrations, {}));
-				engine.paused = fiber;
-				yield* Effect.raceFirst(
-					Deferred.await(engine.pause.entered),
-					Effect.andThen(Fiber.await(fiber), Effect.die(new Error("The runner finished before it paused"))),
-				);
-			}),
 		verdicts: () => Effect.sync(() => [...engine.verdicts]),
 	};
 }

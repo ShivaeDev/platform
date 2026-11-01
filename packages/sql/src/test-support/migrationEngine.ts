@@ -6,6 +6,8 @@ export type Applied = ReadonlyArray<readonly [id: number, name: string]>;
 
 export interface MigrationEngine {
 	readonly bodiesRun: string[];
+	competing: Fiber.Fiber<Applied | string> | undefined;
+	readonly componentEvents: string[];
 	readonly firstRunStarted: { at: number | undefined };
 	readonly lockTimeouts: string[];
 	readonly logs: RecordedLogs["Service"];
@@ -30,6 +32,8 @@ export const migrationEngine = Effect.fnUntraced(function* () {
 	);
 	const engine: MigrationEngine = {
 		bodiesRun: [],
+		competing: undefined,
+		componentEvents: [],
 		firstRunStarted: { at: undefined },
 		lockTimeouts: [],
 		logs: yield* RecordedLogs,

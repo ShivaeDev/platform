@@ -1,8 +1,9 @@
-import { Duration, Effect, Option, Schema } from "effect";
+import { type Duration, Effect, Option, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { advisoryXactLock } from "./advisoryXactLock.ts";
+import { MigrationStartedAt } from "#internal/MigrationStartedAt.ts";
+import { migrationLock } from "#internal/migrationLock.ts";
 import { postgresRelease } from "./postgresRelease.ts";
 import { runSchemaComponent, type SchemaComponent } from "./SchemaComponent.ts";
 import { transact } from "./transact.ts";
@@ -25,19 +26,23 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 	release,
 }: PostgresMigrationOptions<R, E>) {
 	const sql = yield* SqlClient.SqlClient;
+	const [invocation] =
+		release === undefined
+			? []
+			: yield* sql`select clock_timestamp()::text as "startedAt"`.withoutTransform.pipe(
+					Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ startedAt: Schema.String })))),
+				);
+	const current = [...(yield* loader)].sort(([left], [right]) => left - right);
+	const timeout = yield* migrationLock(table, lockTimeout);
 	const available = yield* Effect.serviceOption(Reactivity.Reactivity);
 	const reactivity = Option.isSome(available) ? available.value : yield* Reactivity.make;
-	const millis = Duration.toMillis(lockTimeout);
-	const timeout = millis === Number.POSITIVE_INFINITY ? "0" : `${Math.max(1, Math.ceil(millis))}ms`;
 	const appliedMigrations = yield* Effect.gen(function* () {
 		yield* sql`select set_config('lock_timeout', ${timeout}, true)`;
-		yield* advisoryXactLock(`effect_sql_migrations:${table}`).pipe(Effect.catchTag("AdvisoryLockOutsideTransaction", Effect.die));
 		yield* sql`create table if not exists ${sql(table)} (
   migration_id integer primary key,
   created_at timestamp with time zone not null default now(),
   name text not null
 )`;
-		const current = [...(yield* loader)].sort(([left], [right]) => left - right);
 		const applied = yield* sql`select migration_id as id from ${sql(table)}`.withoutTransform.pipe(
 			Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ id: Schema.Int })))),
 		);
@@ -59,7 +64,7 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 		...(release === undefined ? [] : [postgresRelease(release, table)]),
 	];
 	for (const component of schemaComponents) {
-		yield* runSchemaComponent(component.name, component.apply);
+		yield* runSchemaComponent(component.name, component.apply).pipe(Effect.provideService(MigrationStartedAt, invocation?.startedAt));
 	}
 	return appliedMigrations;
-});
+}, Effect.scoped);
