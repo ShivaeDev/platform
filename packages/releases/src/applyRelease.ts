@@ -5,6 +5,7 @@ import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { ReleasePlan, WorkspacePackage } from "#model.ts";
 import { computePlan, publishedDependencies } from "#planner.ts";
+import { updatedRange } from "#updatedRange.ts";
 import { readWorkspace } from "#workspace.ts";
 
 const updatedPackage = Effect.fn("Changesets.updatedPackage")(function* (pkg: WorkspacePackage, plan: ReleasePlan, version: string) {
@@ -16,23 +17,6 @@ const updatedPackage = Effect.fn("Changesets.updatedPackage")(function* (pkg: Wo
 		}
 	}
 	return `${JSON.stringify(json, null, "\t")}\n`;
-});
-const updatedRange = Effect.fn("Changesets.updatedRange")(function* (
-	pkg: WorkspacePackage,
-	plan: ReleasePlan,
-	[name, range]: readonly [string, string],
-) {
-	const target = plan.releases.find((release) => release.name === name);
-	if (target === undefined || ["workspace:*", "workspace:^", "workspace:~"].includes(range)) {
-		return [name, range];
-	}
-	const match = /^(?<prefix>(?:workspace:)?[~^]?)\d+\.\d+\.\d+$/u.exec(range);
-	if (match === null) {
-		return yield* new ChangesetError({
-			message: `${pkg.manifest.name}: replace ${name}'s ${range} range with an exact version, ^version, ~version or workspace:* before applying a release.`,
-		});
-	}
-	return [name, `${match.groups?.prefix ?? ""}${target.to}`];
 });
 
 export const applyRelease = Effect.fn("Changesets.applyRelease")(function* (root: string, config: ChangesetConfig = {}) {
