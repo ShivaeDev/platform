@@ -7,6 +7,7 @@ import { failureOwner } from "#engine/failureOwner.ts";
 import type { makeAdvance } from "#engine/makeAdvance.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { releaseMissingBoardWork } from "#engine/missingBoardWork.ts";
+import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { persistTerminalReceipts } from "#engine/persistTerminalReceipts.ts";
 import { clearIntegrationRetry, readRetry, retryPending } from "#engine/readRetry.ts";
 import { holdRejectedReadiness } from "#engine/reconcileSweepHold.ts";
@@ -26,6 +27,10 @@ function capacityFailure(error: unknown) {
 }
 
 const recoverFailure = Effect.fn("Fleet.recoverFailure")(function* (state: EngineState, current: Versioned<FleetRecord>, error: unknown) {
+	if (failureCode(error) === "incomplete-observation" && pendingAcknowledgements(current.value).length > 0) {
+		// The acknowledgement already owns this read failure and retries when sources recover.
+		return current;
+	}
 	if (failureCode(error) === "fleet-stale") {
 		const refreshed = yield* refreshBrief(state, current, yield* state.board.get(current.value.workId));
 		if (refreshed.version !== current.version) {
