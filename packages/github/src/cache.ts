@@ -4,7 +4,12 @@ import type { HttpClientResponse } from "effect/http";
 export interface CachedResponse {
 	readonly bytes: Uint8Array;
 	readonly decoded: Map<Schema.Constraint, unknown>;
+	readonly etag?: string | undefined;
 	readonly response: HttpClientResponse.HttpClientResponse;
+}
+
+export function revalidatedResponse(cached: CachedResponse, response: HttpClientResponse.HttpClientResponse): CachedResponse {
+	return { ...cached, etag: response.headers.etag ?? cached.etag, response };
 }
 
 export function responseCache() {
