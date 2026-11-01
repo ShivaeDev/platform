@@ -25,6 +25,7 @@
 		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/email": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/form": "workspace:*",
 		"@shivaedev/github": "workspace:*",
