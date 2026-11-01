@@ -10,6 +10,7 @@ export const BOT = "coverage[bot]";
 const CommentBody = Schema.Struct({ body: Schema.String });
 const Output = Schema.Struct({ summary: Schema.String, text: Schema.optional(Schema.String), title: Schema.String });
 const Create = Schema.Struct({
+	conclusion: Schema.optional(Schema.String),
 	detailsUrl: Schema.optional(Schema.String),
 	headSha: Schema.String,
 	name: Schema.String,
@@ -24,6 +25,7 @@ const Update = Schema.Struct({
 }).pipe(Schema.encodeKeys({ detailsUrl: "details_url" }));
 
 export interface CheckOnGitHub {
+	readonly app?: { readonly id: number } | null;
 	readonly conclusion: string | null;
 	readonly detailsUrl: string | null;
 	readonly headSha: string;
@@ -69,6 +71,25 @@ export function pullRequestWrites() {
 					return check === undefined ? { status: HttpStatus.fromLiteral("NotFound") } : { body: checkBody(check) };
 				},
 			},
+			checkRuns: {
+				path: "/repos/acme/widgets/commits/:sha/check-runs",
+				reply: ({ params, query }: FakeHttpRequest) => {
+					const page = Number(query.get("page") ?? 1);
+					const matches = state.checks.filter(
+						(check) => check.headSha === params.sha && (query.get("check_name") === null || check.name === query.get("check_name")),
+					);
+					const checks =
+						query.get("filter") === "all"
+							? matches
+							: matches.filter((check) => !matches.some((other) => other.name === check.name && other.id > check.id));
+					const next = new URLSearchParams(query);
+					next.set("page", String(page + 1));
+					return {
+						body: { "check_runs": checks.slice((page - 1) * 2, page * 2).map(checkBody) },
+						headers: page * 2 < checks.length ? { Link: `</repos/acme/widgets/commits/${params.sha}/check-runs?${next}>; rel="next"` } : {},
+					};
+				},
+			},
 			comments: {
 				path: "/repos/acme/widgets/issues/1/comments",
 				reply: ({ query }: FakeHttpRequest) => {
@@ -89,9 +110,9 @@ export function pullRequestWrites() {
 					}
 					const check = {
 						...input,
-						conclusion: null,
+						conclusion: input.conclusion ?? null,
 						detailsUrl: input.detailsUrl ?? null,
-						id: state.checks.length + 1,
+						id: Math.max(0, ...state.checks.map(({ id }) => id)) + 1,
 						output: { summary: input.output?.summary ?? null, text: input.output?.text ?? null, title: input.output?.title ?? null },
 					};
 					state.checks.push(check);
