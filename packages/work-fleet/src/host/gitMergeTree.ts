@@ -1,18 +1,8 @@
-import { execFile } from "node:child_process";
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import type { FleetError } from "#errors.ts";
+import { gitProcess } from "#host/adapters/gitProcess.ts";
 
 export function predictionGit(cwd: string, args: readonly string[], conflicts = false) {
-	return Effect.callback<string, FleetError>((resume) => {
-		execFile("git", [...args], { cwd, maxBuffer: 10 * 1024 * 1024, timeout: 60_000 }, (error, stdout) => {
-			resume(
-				error === null || (conflicts && error.code === 1)
-					? Effect.succeed(stdout)
-					: Effect.fail(new ServiceUnavailable({ message: `git ${args[0]} failed: ${error.message}` })),
-			);
-		});
-	});
+	return gitProcess(cwd, args, { acceptExitOne: conflicts, maxBuffer: 10 * 1024 * 1024 }).pipe(Effect.map(({ stdout }) => stdout));
 }
 
 export function mergeTreeConflicts(cwd: string, head: string, otherHead: string) {
