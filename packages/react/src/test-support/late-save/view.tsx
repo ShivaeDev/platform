@@ -62,7 +62,9 @@ function Controls({
 			<button onClick={() => form.values.set({ name: form.values.value.name })} type="button">
 				Remove note
 			</button>
-			<output data-saving={current.saving}>{JSON.stringify({ dirty: current.dirty, values: form.values.value })}</output>
+			<output data-has-note={Object.hasOwn(form.values.value, "note")} data-saving={current.saving}>
+				{JSON.stringify({ dirty: current.dirty, values: form.values.value })}
+			</output>
 		</section>
 	);
 }

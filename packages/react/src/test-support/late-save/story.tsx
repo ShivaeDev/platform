@@ -41,7 +41,11 @@ export const lateSaves = storyKit(
 	screenKit(
 		"late save screen",
 		(): State => ({ model: model() }),
-		(state, screen) => ({ ...verbs(state, screen), shown: () => Effect.sync(() => shown(state)) }),
+		(state, screen) => ({
+			...verbs(state, screen),
+			noteKey: () => Effect.sync(() => current(state).container.querySelector("output")?.getAttribute("data-has-note")),
+			shown: () => Effect.sync(() => shown(state)),
+		}),
 	),
 );
 export function openForm(kind: "editor" | "create") {

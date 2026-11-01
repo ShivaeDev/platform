@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { lateSaves, openForm } from "#test/late-save/story.tsx";
 
 for (const submit of ["Save", "Atom submit"]) {
@@ -48,13 +49,16 @@ lateSaves.it("a late save keeps the newer refresh baseline", [openForm("editor")
 	expect(yield* shown()).toEqual({ dirty: false, values: { name: "Remote", note: "Remote note" } });
 });
 
-lateSaves.it("a create keeps an optional key removed during its save", [openForm("create")], function* ({ click, finish, shown, type }) {
+lateSaves.it("a create keeps an optional key removed during its save", [openForm("create")], function* ({ click, finish, noteKey, shown, type }) {
 	yield* type("name", "Submitted");
 	yield* click("Save");
 	yield* click("Remove note");
 	yield* finish();
 
-	expect(yield* shown()).toStrictEqual({ dirty: true, values: { name: "First" } });
+	yield* outcomes([
+		["reset form", () => shown(), { dirty: true, values: { name: "First" } }],
+		["note key", () => noteKey(), "false"],
+	]);
 });
 
 lateSaves.it(
