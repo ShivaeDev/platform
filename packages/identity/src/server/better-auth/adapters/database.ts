@@ -1,5 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
-import { Effect, Exit, Option, Schema, Scope } from "effect";
+import { APIError } from "better-auth/api";
+import { Cause, Effect, Exit, Option, Schema, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import { authCallSignal } from "#server/adapters/authCall.ts";
 import { betterAuthTransaction } from "./transaction.ts";
@@ -18,22 +19,33 @@ interface QueryResult<R> {
 	rows: R[];
 }
 
+function databaseResult<A, E>(exit: Exit.Exit<A, E>): A {
+	if (Exit.isSuccess(exit)) {
+		return exit.value;
+	}
+	if (Cause.hasInterruptsOnly(exit.cause)) {
+		throw new APIError("REQUEST_TIMEOUT", { code: "REQUEST_CANCELLED", message: "Authentication request was cancelled" });
+	}
+	throw Cause.squash(exit.cause);
+}
+
 export const betterAuthDatabase = Effect.fn("Identity.betterAuthDatabase")(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const transaction = yield* Effect.serviceOption(sql.transactionService);
 	const parent = yield* Scope.Scope;
 	const context = yield* Effect.context<SqlClient.SqlClient>();
 	const run = Effect.runPromiseWith(context);
+	const runQuery = Effect.runPromiseExitWith(context);
 	const pool: PostgresPool = {
 		async connect(): Promise<PoolClient> {
 			const scope = await run(Scope.fork(parent));
-			const connection = await run(
+			const connection = await runQuery(
 				(Option.isSome(transaction) ? Effect.succeed(transaction.value[0]) : sql.reserve).pipe(
 					Scope.provide(scope),
 					Effect.onError((cause) => Scope.close(scope, Exit.failCause(cause))),
 				),
 				{ signal: authCallSignal.getStore() },
-			);
+			).then(databaseResult);
 			const control = Option.isSome(transaction) ? await run(betterAuthTransaction.pipe(Scope.provide(scope))) : undefined;
 			function query<R>(text: string, parameters: readonly unknown[]): Promise<QueryResult<R>>;
 			function query<R>(cursor: Cursor<R>): Cursor<R>;
@@ -48,7 +60,7 @@ export const betterAuthDatabase = Effect.fn("Identity.betterAuthDatabase")(funct
 				const signal = text === "begin" || text === "commit" || text === "rollback" ? undefined : authCallSignal.getStore();
 				return (
 					nested === undefined
-						? run(connection.executeRaw(text, parameters), { signal })
+						? runQuery(connection.executeRaw(text, parameters), { signal }).then(databaseResult)
 						: nested.then(() => ({ command: text, rowCount: 0, rows: [] }))
 				).then(Schema.decodeUnknownSync(Result));
 			}
