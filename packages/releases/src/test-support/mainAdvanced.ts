@@ -22,3 +22,18 @@ export const mainAdvanced = workspace.trait(
 		yield* git(root, ["merge", "--no-edit", "main"]);
 	},
 );
+
+export const recordedReleaseBase = workspace.trait("main", "the release records its base revision", function* ({ root }) {
+	const base = yield* git(root, ["rev-parse", "HEAD"]);
+	yield* write(root, ".changeset/release-base", base);
+});
+
+export const squashedRelease = workspace.trait("changed", "main squash-merges the frozen release", function* ({ root }) {
+	yield* git(root, ["switch", "main"]);
+	yield* git(root, ["merge", "--squash", "feature"]);
+	yield* git(root, ["commit", "-m", "Release approved versions"]);
+});
+
+export const baseFromReleaseBranch = workspace.trait("changed", "the recorded base points to the release commit outside main", function* ({ root }) {
+	yield* write(root, ".changeset/release-base", yield* git(root, ["rev-parse", "HEAD^1"]));
+});

@@ -6,27 +6,21 @@ import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
 const LATER = PENDING.replace("Keep a saved draft.", "Restore the latest draft.");
 
-releasePullRequest.it(
-	"a conflicting release with successful CI is regenerated from current main",
-	[],
-	function* ({ pushMain, run, git, readGitHub, setCiRun, check }) {
-		yield* pushMain(".changeset/draft.md", PENDING);
-		yield* run();
-		yield* setCiRun("completed", "success");
-		const head = yield* git("rev-parse", "origin/release/next");
-		yield* pushMain(".changeset/draft.md", LATER);
+releasePullRequest.it("a conflicting release with successful CI stays frozen", [], function* ({ pushMain, run, git, readGitHub, setCiRun }) {
+	yield* pushMain(".changeset/draft.md", PENDING);
+	yield* run();
+	yield* setCiRun("completed", "success");
+	const head = yield* git("rev-parse", "origin/release/next");
+	yield* pushMain(".changeset/draft.md", LATER);
 
-		expect(yield* run()).toBe("updated");
+	expect(yield* run()).toBe("held: CI succeeded");
 
-		yield* outcomes([
-			["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
-			["release base", () => git("rev-parse", "origin/release/next^"), yield* git("rev-parse", "origin/main")],
-			["PR notes", () => readGitHub(), { body: expect.stringContaining("Restore the latest draft.") }],
-			["withdrawn notes", () => readGitHub(), { body: expect.not.stringContaining("Keep a saved draft.") }],
-			["validated release", () => check(), { changesets: expect.arrayContaining([{ name: "draft.md", text: LATER }]) }],
-		]);
-	},
-);
+	yield* outcomes([
+		["release head", () => git("rev-parse", "origin/release/next"), head],
+		["PR notes", () => readGitHub(), { body: expect.stringContaining("Keep a saved draft.") }],
+		["later notes", () => readGitHub(), { body: expect.not.stringContaining("Restore the latest draft.") }],
+	]);
+});
 
 releasePullRequest.it(
 	"a conflicting release in the merge queue is held even with successful CI",
@@ -74,9 +68,9 @@ for (const [status, conclusion, reason] of [
 		},
 	);
 	releasePullRequest.it(
-		`${status} approved CI yields to a newer changeset and publishes complete release notes`,
+		`${status} approved CI freezes the release while a newer changeset lands on main`,
 		[],
-		function* ({ pushMain, run, git, readGitHub, setCiRun, check }) {
+		function* ({ pushMain, run, git, readGitHub, setCiRun }) {
 			yield* pushMain(".changeset/draft.md", PENDING);
 			yield* run();
 			yield* setCiRun(status, conclusion);
@@ -84,15 +78,12 @@ for (const [status, conclusion, reason] of [
 			expect((yield* readGitHub()).body).not.toContain("Restore the latest draft.");
 			yield* pushMain(".changeset/later.md", LATER);
 
-			expect(yield* run()).toBe("updated");
+			expect(yield* run()).toBe(`held: ${reason}`);
 
 			yield* outcomes([
-				["release head", () => git("rev-parse", "origin/release/next"), expect.not.stringContaining(head)],
-				["release base", () => git("rev-parse", "origin/release/next^"), yield* git("rev-parse", "origin/main")],
+				["release head", () => git("rev-parse", "origin/release/next"), head],
 				["original PR notes", () => readGitHub(), { body: expect.stringContaining("Keep a saved draft.") }],
-				["new PR notes", () => readGitHub(), { body: expect.stringContaining("Restore the latest draft.") }],
-				["pending changesets", () => git("ls-tree", "--name-only", "origin/release/next:.changeset"), "README.md"],
-				["validated release", () => check().pipe(Effect.as("valid")), "valid"],
+				["later PR notes", () => readGitHub(), { body: expect.not.stringContaining("Restore the latest draft.") }],
 			]);
 		},
 	);

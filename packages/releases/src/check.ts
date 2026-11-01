@@ -87,5 +87,5 @@ export const checkRepository = Effect.fn("Changesets.checkRepository")(function*
 	yield* computePlan(after.packages, after.changesets);
 	const before = yield* readHistory(root, config, reference);
 	yield* validateDiff(before, after);
-	yield* checkReleaseCoverage(root, yield* planDiff(before, after), after.changesets);
+	yield* checkReleaseCoverage(root, yield* planDiff(before, after), after.changesets, reference);
 });

@@ -1,10 +1,10 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
 import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Clock, Config, Console, Effect } from "effect";
+import { Clock, Config, Console, Effect, FileSystem } from "effect";
 import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
-import { isChangeset } from "@shivaedev/releases/workspace.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
 import config from "#release-config";
 import { compareRelease } from "./compare.ts";
@@ -16,15 +16,13 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 	function git(...args: readonly string[]) {
 		return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" }).trim();
 	}
+	const apply = Effect.gen(function* () {
+		yield* applyRelease(root, config);
+		yield* (yield* FileSystem.FileSystem).writeFileString(join(root, ".changeset/release-base"), `${git("rev-parse", "HEAD")}\n`);
+	});
 	const { pull, head, hold } = yield* github.snapshot();
-	if (hold === "merge queue") {
-		return `held: ${hold}`;
-	}
 	if (hold !== undefined) {
-		const merge = spawnSync("git", ["-C", root, "merge-tree", "--write-tree", "origin/main", head], { encoding: "utf8" });
-		if (merge.status === 0 && !git("ls-tree", "--name-only", `${merge.stdout.trim()}:.changeset`).split("\n").some(isChangeset)) {
-			return `held: ${hold}`;
-		}
+		return `held: ${hold}`;
 	}
 	git("switch", "-C", "release/next", "origin/main");
 	const plan = yield* planPullRequest(root);
@@ -37,7 +35,7 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 	const comparison = yield* compareRelease(root, head);
 	const clock = yield* Clock.Clock;
 	// Reuse the standing release date for comparison so midnight alone cannot trigger a push.
-	yield* applyRelease(root, config).pipe(
+	yield* apply.pipe(
 		Effect.provideService(Clock.Clock, {
 			currentTimeMillis: comparison === undefined ? clock.currentTimeMillis : Effect.succeed(Date.parse(comparison.date)),
 			currentTimeMillisUnsafe: () => clock.currentTimeMillisUnsafe(),
@@ -60,7 +58,7 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 	if (comparison !== undefined) {
 		git("reset", "--hard", "origin/main");
 		yield* planPullRequest(root);
-		yield* applyRelease(root, config);
+		yield* apply;
 		git("add", "--all");
 	}
 	git("commit", "-m", title);
