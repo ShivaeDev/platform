@@ -85,7 +85,7 @@ export const watch = Effect.fn("PrWatch.watch")(function* (
 			if (exit._tag === "Failure") {
 				reason = Exit.hasInterrupts(exit) ? "interrupted" : "failed";
 			}
-			return health(emit, "stopped", { reason }).pipe(Effect.orDie);
+			return health(emit, "stopped", { reason });
 		}),
 	);
 });

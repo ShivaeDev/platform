@@ -32,7 +32,7 @@ export const Watcher = defineService({
 							? { ...snapshot, merged: false, state: "open" as const }
 							: before;
 					for (const line of events(baseline, snapshot, options.events)) {
-						yield* emit(line);
+						yield* Effect.interruptible(emit(line));
 					}
 					const next = {
 						...state,

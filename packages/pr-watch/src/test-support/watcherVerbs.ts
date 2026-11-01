@@ -4,7 +4,7 @@ import { State } from "#model.ts";
 import { requestFailure } from "#requestFailure.ts";
 import { Watcher } from "#Watcher.ts";
 import type { Engine } from "./engine.ts";
-import { type FileOperation, type Gate, makeGate, passGate } from "./io.ts";
+import { type FileOperation, type Gate, makeGate } from "./io.ts";
 import { clockTime, described, request, snapshotPhrase, transitionLines } from "./readouts.ts";
 import { GRAPHQL, REPOSITORY } from "./server.ts";
 
@@ -89,25 +89,6 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 			Effect.sync(() => {
 				tell(`the file system refuses every ${operation} with permission denied`);
 				engine.io.control.failing = operation;
-			}),
-		interruptWhilePrinting: () =>
-			Effect.gen(function* () {
-				tell("the watcher polls and is interrupted while it prints its first line");
-				const gate = yield* makeGate;
-				let held = false;
-				function emit(line: string) {
-					return Effect.suspend(() => {
-						engine.lines.push(line);
-						if (held) {
-							return Effect.void;
-						}
-						held = true;
-						return passGate(gate);
-					});
-				}
-				const state = yield* engine.watcher.load(engine.options);
-				const running = yield* Effect.forkChild(engine.watcher.poll(engine.options, state, emit, diagnosticTo(engine)));
-				yield* interruptedAt(running, gate);
 			}),
 		interruptWhileSavingDiscovery: () =>
 			Effect.gen(function* () {

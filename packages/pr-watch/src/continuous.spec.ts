@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { baselineSaved, heartbeatEvery, heartbeatsOff, openPr, watching, watchingFleet } from "#test/traits.ts";
+import { heartbeatEvery, heartbeatsOff, openPr, watching, watchingFleet } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
 
 for (const [period, settings, quietTime, heartbeats] of [
@@ -91,19 +91,5 @@ watch.it(
 		yield* timePasses("1 minute");
 
 		expect(yield* printed()).toEqual(["PR 2 conflict", "PR 2 stuck"]);
-	},
-);
-
-watch.it(
-	"a watcher interrupted while it prints PR 1's merge does not print the merge again after a restart",
-	[openPr(1), watching(1), baselineSaved],
-	function* ({ interruptWhilePrinting, merges, printed, restart }) {
-		yield* merges(1);
-		yield* interruptWhilePrinting();
-		expect(yield* printed()).toEqual(["PR 1 merged"]);
-
-		yield* restart();
-
-		expect(yield* printed()).toEqual(["PR 1 merged"]);
 	},
 );

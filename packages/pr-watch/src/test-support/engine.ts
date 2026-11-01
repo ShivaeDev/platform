@@ -5,6 +5,7 @@ import { FetchHttpClient } from "effect/http";
 import type { Options } from "#model.ts";
 import { Watcher } from "#Watcher.ts";
 import { makeIo } from "./io.ts";
+import { makeOutput } from "./makeOutput.ts";
 import { startServer } from "./server.ts";
 import { services } from "./services.ts";
 import { makeWatchProcess } from "./watchProcess.ts";
@@ -60,6 +61,7 @@ export const makeEngine = Effect.gen(function* () {
 		lines,
 		observation,
 		options,
+		output: makeOutput(lines, process.changed),
 		process,
 		roundStart: 0,
 		settings,
