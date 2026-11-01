@@ -49,7 +49,7 @@ export const releasePullRequest = storyKit({
 			);
 		});
 		return {
-			check: () => checkPlatform(root, "origin/main"),
+			check: (base = "origin/main") => checkPlatform(root, base),
 			close: () => github.close(1).pipe(Effect.provide(context)),
 			failedRun: () =>
 				run().pipe(
