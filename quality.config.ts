@@ -35,7 +35,7 @@ export default defineConfig({
 		},
 		{
 			files: [
-				"packages/work-board-plugin/src/connect.ts",
+				"packages/work-board-plugin/src/adapters/hostBoard.ts",
 				"packages/work-board-plugin/src/findBoard.ts",
 				"packages/work-board-plugin/src/flights.tsx",
 				"packages/work-board-plugin/src/goalRows.tsx",

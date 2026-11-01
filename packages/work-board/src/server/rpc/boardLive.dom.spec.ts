@@ -17,34 +17,18 @@ const DONE =
 	"---\nid: task.brief\nkind: task\nstatus: done\nrelationships:\n - kind: implements\n   target: goal.ship\n---\n# Write the brief\n\nReviewed draft.";
 
 boardStory.it(
-	"finishing the task on disk shows in the open page and in the plugin's goal progress",
+	"finishing the task on disk shows in the open page and in the plugin's next read of its goal progress",
 	project,
-	function* ({ editFile, nextPluginProgress, openPlugin, pageShowing }) {
+	function* ({ editFile, openPlugin, pageShowing, pluginProgress }) {
 		yield* openPlugin();
-		expect(yield* nextPluginProgress()).toBe("0 of 1 done");
+		expect(yield* pluginProgress()).toBe("0 of 1 done");
 
 		editFile("brief.md", DONE);
 
 		yield* outcomes([
 			["the page", () => pageShowing("Reviewed draft."), "showing"],
-			["the plugin", () => nextPluginProgress(), "1 of 1 done"],
+			["the plugin", () => pluginProgress(), "1 of 1 done"],
 		]);
-	},
-);
-
-boardStory.it(
-	"after a disk edit the plugin re-reads only the Inbox and the overview",
-	project,
-	function* ({ editFile, followDocument, nextPluginProgress, openPlugin, pluginReadsSinceMark, socketsMarked }) {
-		yield* openPlugin();
-		yield* followDocument("/other.md");
-		expect(yield* nextPluginProgress()).toBe("0 of 1 done");
-		socketsMarked();
-
-		editFile("brief.md", DONE);
-		yield* nextPluginProgress();
-
-		expect(yield* pluginReadsSinceMark()).toEqual(["work-board.inbox", "work-board.overview"]);
 	},
 );
 
@@ -67,20 +51,18 @@ boardStory.it(
 );
 
 boardStory.it(
-	"a disk edit opens no new sockets: the page keeps one and the plugin and a following client one each",
+	"across a disk edit the page and a following client keep one socket each, and the plugin reads goal progress over none",
 	project,
-	function* ({ editFile, followDocument, nextPluginProgress, openPlugin, pageShowing, socketsOpened }) {
+	function* ({ editFile, followDocument, openPlugin, pageShowing, pluginProgress, socketsOpened }) {
 		yield* openPlugin();
 		yield* followDocument("/other.md");
-		expect(yield* nextPluginProgress()).toBe("0 of 1 done");
 
 		editFile("brief.md", DONE);
 		yield* pageShowing("Reviewed draft.");
-		yield* nextPluginProgress();
 
-		expect(yield* socketsOpened()).toEqual({
-			"node clients": ["the board's RPC socket", "the board's RPC socket"],
-			"the page": ["the board's RPC socket"],
-		});
+		yield* outcomes([
+			["the plugin's goal progress", () => pluginProgress(), "1 of 1 done"],
+			["sockets opened", () => socketsOpened(), { "node clients": ["the board's RPC socket"], "the page": ["the board's RPC socket"] }],
+		]);
 	},
 );

@@ -24,6 +24,7 @@ export function engineEvidence(state: EngineStory) {
 		providerOperationCount: () => fixture().operations.size,
 		providerOperations: () => [...fixture().operations.keys()],
 		providerStarts: () => structuredClone(fixture().starts),
+		providerTurns: () => structuredClone(fixture().submittedTurns),
 		publishedDecisions: () => [...fixture().decisions],
 		reviewedHeads: () => [...fixture().reviews],
 		turnOutput: (receipt: SessionReceipt | undefined) => (receipt === undefined ? undefined : fixture().observations.get(receipt.turnId)?.output),

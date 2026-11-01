@@ -1,11 +1,11 @@
 import type { EngineInterface, On } from "claude-code";
+import { withBoard } from "#adapters/hostBoard.ts";
 import { type Board, item, needsYou, overview } from "./boardTools.ts";
-import { connect } from "./connect.ts";
 import { text } from "./rpc.ts";
 
 async function answer($: EngineInterface, read: (board: Board) => Promise<unknown>) {
 	try {
-		return { result: JSON.stringify(await read(await connect($))) };
+		return { result: JSON.stringify(await withBoard($, read)) };
 	} catch (error) {
 		return { deny: error instanceof Error ? error.message : String(error) };
 	}

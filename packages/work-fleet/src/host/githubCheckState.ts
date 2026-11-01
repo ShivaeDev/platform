@@ -52,6 +52,9 @@ function newestChecks(pages: typeof CheckPages.Type) {
 	}
 	return [...newest.values()];
 }
+export function failedCheckRuns(pages: typeof CheckPages.Type, names: readonly string[]) {
+	return newestChecks(pages).filter((check) => names.includes(check.name) && checkState(check) === "fail");
+}
 export function githubCheckState(
 	head: string,
 	pr: string,

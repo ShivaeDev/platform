@@ -14,7 +14,7 @@ A Work Board runs beside your sessions, but its browser tab is not where you are
 
 ### How it finds the Board
 
-The plugin needs a running Work Board. It finds one by walking up from the session's folder to the nearest folder that holds `.work`, and discovers its browser address over `.work/board.sock`. Its overview and tools then use Platform’s shared WebSocket client; file edits refresh the affected authorized queries. Start the Board in that folder:
+The plugin needs a running Work Board. It finds one by walking up from the session's folder to the nearest folder that holds `.work`, and asks it through Platform's contract client over `.work/board.sock`, one HTTP request through Claude Code's fetch per query, because Claude Code gives a plugin no WebSocket. The pane and band read the Board when the session starts or the plugin reloads, when you press Refresh, and every 30 seconds; a Board that cannot be reached shows why, and the next read tries again. Start the Board in that folder:
 
 ```sh
 npx @shivaedev/work-board .work

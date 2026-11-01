@@ -1,6 +1,6 @@
 import type { EngineInterface, On, UiOpenResult } from "claude-code";
 import { atom, read, update } from "claude-code";
-import { connection } from "#connect.ts";
+import { withClient } from "#adapters/hostBoard.ts";
 import { clip, updatedLabel } from "#lines.ts";
 import { paneView } from "#pane.tsx";
 import { registerTools } from "#registerTools.ts";
@@ -11,6 +11,7 @@ import type { WorkboardAsk, WorkboardBoard } from "#types/index.d.ts";
 const PANE = "workboard";
 const TITLE = "Work Board";
 const OPEN_LABEL = "Open board";
+const REFRESH_MS = 30_000;
 
 const board = atom({ key: "board", plugin: "workboard" } as const, { kind: "loading" }, { shape: "board-2" });
 const seenAsks = atom({ key: "seenAsks", plugin: "workboard" } as const, null);
@@ -30,11 +31,13 @@ async function receive($: EngineInterface, next: WorkboardBoard): Promise<void> 
 }
 
 async function refresh($: EngineInterface): Promise<void> {
+	let next: WorkboardBoard;
 	try {
-		(await connection($, (next) => void receive($, next))).refresh();
+		next = await withClient($, (client) => client.board());
 	} catch (cause) {
-		await receive($, { kind: "error", message: cause instanceof Error ? cause.message : String(cause) });
+		next = { kind: "error", message: cause instanceof Error ? cause.message : String(cause) };
 	}
+	await receive($, next);
 }
 
 function openUrl($: EngineInterface, url: string | null): void {
@@ -73,6 +76,7 @@ export function register(on: On): void {
 			name: "workboard",
 		});
 		await registerTools($);
+		$.clock.every(REFRESH_MS, () => void refresh($));
 		void refresh($);
 
 		return next(e);

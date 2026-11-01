@@ -24,6 +24,7 @@ export const FilePages = Schema.Array(
 export interface GithubRead {
 	readonly get: (endpoint: string) => Effect.Effect<string, FleetError>;
 	readonly pages: (endpoint: string) => Effect.Effect<string, FleetError>;
+	readonly text?: (endpoint: string) => Effect.Effect<string, FleetError>;
 }
 
 export function githubJson<TSchema extends Schema.Top>(schema: TSchema, read: Effect.Effect<string, FleetError>) {
