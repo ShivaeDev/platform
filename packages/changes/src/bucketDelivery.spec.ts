@@ -18,3 +18,19 @@ keyStory.it(
 		expect(refreshed()).toEqual(["row 1's reader", "alice's reader", "list 42's reader"]);
 	},
 );
+
+keyStory.it(
+	"a throwing publication observer still lets both row 1's reader and alice's reader refresh after commit",
+	[],
+	function* ({ watch, opensTransaction, refreshed, withThrowingPublicationObserver }) {
+		yield* watch("row 1's reader", [rows.item(1)]);
+		yield* watch("alice's reader", [rows.bucket.userId("alice")]);
+		const transaction = yield* withThrowingPublicationObserver(opensTransaction());
+		yield* transaction.record([rows.item(1), rows.bucket.userId("alice")]);
+		expect(refreshed()).toEqual([]);
+
+		yield* transaction.commit();
+
+		expect(refreshed()).toEqual(["row 1's reader", "alice's reader"]);
+	},
+);

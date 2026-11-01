@@ -76,7 +76,7 @@ export function makeFrame<A, E = never>(options: {
 			return;
 		}
 		buffer.open = false;
-		if (outcome === "committed" && buffer.parent !== undefined) {
+		if (outcome === "committed" && buffer.parent !== undefined && (buffer.kind === "batch" || transactionParent(buffer.parent))) {
 			return yield* add(name, buffer.parent, buffer.changes);
 		}
 		const changes = [...buffer.changes.values()];
