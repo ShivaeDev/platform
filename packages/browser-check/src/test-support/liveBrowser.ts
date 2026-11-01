@@ -31,11 +31,13 @@ export const liveBrowser = storyKit({
 		writer.setDefaultTimeout(5000);
 		const options: LiveAppOptions = { blockAdd: false, brokenNavigation: false, nonRpc: "none" };
 		const draft = Promise.withResolvers<void>();
-		yield* Effect.promise(() => liveApp(context, options, () => draft.resolve()));
+		yield* Effect.promise(() => context.exposeBinding("drafted", () => draft.resolve()));
+		const url = yield* liveApp(options);
+		yield* Effect.promise(() => context.route("**/*", (route) => (options.brokenNavigation ? route.abort() : route.continue())));
 		const run: { failure: string; outcome: string; waiting: Promise<void> | undefined } = { failure: "", outcome: "not run", waiting: undefined };
 		function start() {
 			run.outcome = "waiting";
-			run.waiting = liveNotes(context, writer, "http://browser-check.test", folder).then(
+			run.waiting = liveNotes(context, writer, url, folder).then(
 				() => {
 					run.outcome = "passed";
 				},

@@ -69,6 +69,20 @@ liveBrowser.it(
 );
 
 liveBrowser.it(
+	"a live-wait timeout during an unfinished add leaves no unhandled rejection",
+	[addIsBlocked()],
+	function* ({ checksLiveNotes, closesTabs, outcome, unhandledRejections }) {
+		yield* checksLiveNotes();
+		yield* closesTabs();
+
+		yield* outcomes([
+			["check", () => outcome(), "failed"],
+			["unhandled rejections", () => unhandledRejections(), []],
+		]);
+	},
+);
+
+liveBrowser.it(
 	"closing tabs during an unfinished add fails the check without an unhandled rejection",
 	[addIsBlocked()],
 	function* ({ startsLiveCheck, waitsForDraft, closesTabs, outcome, unhandledRejections }) {
