@@ -14,6 +14,7 @@ export const COMMIT_REFUSED = "the database refused the commit";
 
 export interface Engine {
 	batchEnding: BatchEnding;
+	readonly callbackNotes: string[];
 	readonly channel: () => Channel<Change, Current, string>;
 	commitGate: { readonly begun: Deferred.Deferred<void>; readonly release: Deferred.Deferred<void> } | undefined;
 	readonly committedSink: string[][];
@@ -25,6 +26,10 @@ export interface Engine {
 	readonly options: Options;
 	order: Exit.Exit<unknown, unknown> | undefined;
 	readonly owners: Map<string, FakeDatabase>;
+	promiseCommit: () => Promise<void>;
+	promiseExit: Exit.Exit<unknown, string> | undefined;
+	promiseFiber: Fiber.Fiber<void> | undefined;
+	promiseGate: { readonly begun: Deferred.Deferred<void>; readonly release: PromiseWithResolvers<void> } | undefined;
 	readonly published: string[][];
 	readonly scopedSink: string[][];
 	straggler: { readonly fiber: Fiber.Fiber<void, unknown>; readonly release: Deferred.Deferred<void> } | undefined;
@@ -44,6 +49,7 @@ export function createEngine(): Engine {
 	let channel: Channel<Change, Current, string> | undefined;
 	return {
 		batchEnding: "succeeds",
+		callbackNotes: [],
 		channel: () => {
 			channel ??= makeChannel<Change, Current, string>({
 				key: label,
@@ -68,6 +74,10 @@ export function createEngine(): Engine {
 		options,
 		order: undefined,
 		owners: new Map([["main", makeDatabase("main")]]),
+		promiseCommit: () => Promise.resolve(),
+		promiseExit: undefined,
+		promiseFiber: undefined,
+		promiseGate: undefined,
 		published,
 		scopedSink: [],
 		straggler: undefined,

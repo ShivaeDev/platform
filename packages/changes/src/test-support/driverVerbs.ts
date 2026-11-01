@@ -61,13 +61,5 @@ export function driverVerbs(engine: Engine, tell: (line: string) => void) {
 				tell(`a driver opens its own transaction on main${provided ? ` with ${provided.note}` : ""}`);
 				return Effect.map(noted(Effect.provideService(channel.open, Current, main()), provided), (frame) => transaction("its transaction", frame));
 			}),
-		promiseDriver: <A, E>(outcome: "commits" | "fails to commit", body: Body<A, E, never>) =>
-			Effect.gen(function* () {
-				tell(`a Promise driver runs a transaction on main whose commit ${outcome === "commits" ? "lands" : "fails"}`);
-				const frame = yield* Effect.provideService(channel.open, Current, main());
-				const exit = yield* Effect.promise(() => Effect.runPromiseExit(frame.provide(Effect.tap(effectOf(body), () => frame.beforeCommit))));
-				yield* frame.settle(outcome === "commits" && Exit.isSuccess(exit) ? "committed" : "rolledBack");
-				return yield* exit;
-			}),
 	};
 }

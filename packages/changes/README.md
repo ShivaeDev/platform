@@ -150,7 +150,7 @@ Capture the application's Effect context before running callback work in another
 
 Settle with `"committed"` only after the root commit or successful native nested outcome, and `"rolledBack"` when that operation fails. The first settlement outcome wins, so calling it again cannot publish twice.
 
-For an interruptible Promise driver, the binding must keep waiting for the pending transaction result after caller interruption and settle from that result. Do not treat an interrupted wait or a successful body as the driver's commit result.
+The package does not provide a Promise-driver binding. The binding owns caller interruption and waiting for the native transaction result; `open` does not cancel or await the driver's transaction.
 
 ### Decide what a publish failure means
 

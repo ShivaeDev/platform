@@ -116,3 +116,28 @@ export function failedPublishDies() {
 		engine.options.onPublishFailure = "die";
 	});
 }
+
+export function promiseCommitWaits() {
+	return changes.trait("owners", "the Promise driver's commit waits for the story to resolve or reject it", function* (engine) {
+		const begun = yield* Deferred.make<void>();
+		const release = Promise.withResolvers<void>();
+		engine.promiseGate = { begun, release };
+		engine.promiseCommit = async () => {
+			await Effect.runPromise(Deferred.succeed(begun, undefined));
+			return release.promise;
+		};
+	});
+}
+
+export function callbacksReadNote() {
+	return changes.trait("channel", "the hook and sink read the caller's note", (engine) => {
+		engine.options.beforeCommit = () =>
+			Effect.map(Note, (note) => {
+				engine.callbackNotes.push(`hook: ${note}`);
+			});
+		engine.options.publish = () =>
+			Effect.map(Note, (note) => {
+				engine.callbackNotes.push(`sink: ${note}`);
+			});
+	});
+}

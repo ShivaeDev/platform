@@ -2,8 +2,10 @@ import { Deferred, Effect, Fiber } from "effect";
 import type { Observation } from "#observe.ts";
 import { type Body, effectOf } from "./body.ts";
 import { driverVerbs } from "./driverVerbs.ts";
-import { database, defectOf, type Engine, endingOf, labels } from "./engine.ts";
+import { database, type Engine, endingOf, labels } from "./engine.ts";
 import { type Change, Current, change, type FakeDatabase } from "./fakeDatabase.ts";
+import { orderControl } from "./orderControl.ts";
+import { promiseVerbs } from "./promiseVerbs.ts";
 
 const REJECTED = "rejected";
 
@@ -146,47 +148,20 @@ export function verbs(engine: Engine, tell: (line: string) => void) {
 	return {
 		...main,
 		...drivers,
+		...orderControl(engine, tell, order),
+		...promiseVerbs(engine, tell),
 		batch,
 		committedSinkReceived: () => Effect.sync(() => [...engine.committedSink]),
 		database: databaseVerbs,
 		guardAsked: () => Effect.sync(() => [...engine.guardAsked]),
 		hookCalls: () => Effect.sync(() => [...engine.hookCalls]),
 		inPlace,
-		interruptOrder: () =>
-			Effect.gen(function* () {
-				const fiber = engine.inFlight;
-				const gate = engine.commitGate;
-				if (fiber === undefined || gate === undefined) {
-					return yield* Effect.die(new Error("Start an order whose commit waits before interrupting it"));
-				}
-				tell("the caller interrupts the order while its commit waits, then the database finishes the commit");
-				const interruption = yield* Effect.forkChild(Fiber.interrupt(fiber), { startImmediately: true });
-				yield* Deferred.succeed(gate.release, undefined);
-				yield* Fiber.join(interruption);
-				engine.order = yield* Fiber.await(fiber);
-			}),
 		loggedErrors: () => Effect.sync(() => [...engine.logs.errors]),
 		observed: () => Effect.sync(() => [...engine.observed]),
 		observing: <A, E, R>(body: Body<A, E, R>) => Effect.provideService(effectOf(body), channel.Observer, observe),
-		orderDefect: () => Effect.sync(() => defectOf(engine.order)),
-		orderEnding: () => Effect.sync(() => endingOf(engine.order)),
 		published: () => Effect.sync(() => engine.published.map((changes) => [...changes])),
 		publishedInAnyOrder: () => Effect.sync(() => engine.published.map((changes) => [...changes].sort((left, right) => left.localeCompare(right)))),
 		rollback,
-		saveOrder: (subject: string) =>
-			Effect.gen(function* () {
-				const ending = engine.transactionEnding;
-				tell(`main saves ${subject}'s order in a transaction${ending ? ` that ends as ${ending}` : ""}`);
-				if (ending !== "interrupted") {
-					engine.order = yield* Effect.exit(order(subject));
-					return;
-				}
-				const written = yield* Deferred.make<void>();
-				const fiber = yield* Effect.forkChild(order(subject, written));
-				yield* untilDone(written, fiber);
-				yield* Fiber.interrupt(fiber);
-				engine.order = yield* Fiber.await(fiber);
-			}),
 		saveOrderLeavingStraggler: (subject: string, work: StragglerWork) =>
 			Effect.gen(function* () {
 				tell(`main saves ${subject}'s order, and a fiber forked inside its transaction waits to ${work}`);
@@ -198,17 +173,6 @@ export function verbs(engine: Engine, tell: (line: string) => void) {
 				engine.order = yield* Effect.exit(main.write(`${subject}'s order`, change(subject)));
 			}),
 		scopedSinkReceived: () => Effect.sync(() => [...engine.scopedSink]),
-		startSavingOrder: (subject: string) =>
-			Effect.gen(function* () {
-				const gate = engine.commitGate;
-				if (gate === undefined) {
-					return yield* Effect.die(new Error("Declare commitWaits() before starting an order whose commit waits"));
-				}
-				tell(`main saves ${subject}'s order, and the database holds its commit`);
-				const fiber = yield* Effect.forkDetach(Effect.asVoid(order(subject)));
-				engine.inFlight = fiber;
-				yield* untilDone(gate.begun, fiber);
-			}),
 		stragglerEnding: () => Effect.sync(() => endingOf(engine.stragglerExit)),
 		stragglerResumes: () =>
 			Effect.gen(function* () {
