@@ -16,6 +16,7 @@ import { daemonSnapshots } from "#host/daemonSnapshots.ts";
 import { dispatchRequests } from "#host/dispatchRequests.ts";
 import { fleetStatus } from "#host/fleetStatus.ts";
 import { reserveForeignPr } from "#host/foreignReservations.ts";
+import { LaunchTier } from "#host/launchTier.ts";
 import { LiveConfig } from "#host/liveConfig.ts";
 import { nameStoredThreads } from "#host/nameThreads.ts";
 import { decisionResponses } from "#host/releaseWork.ts";
@@ -56,7 +57,12 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	const diagnostics = yield* daemonDiagnostics(host.boardDir);
 	const dispatch = yield* dispatchRequests(host);
 	const live = yield* LiveConfig;
-	const status = Effect.zipWith(read(fleetStatus(host)), live.current, (views, applied) => ({ ...views, config: configStatus(applied) }));
+	const tier = yield* LaunchTier;
+	const status = Effect.map(Effect.all([read(fleetStatus(host)), live.current, tier.status]), ([views, applied, launchTier]) => ({
+		...views,
+		config: configStatus(applied),
+		launchTier,
+	}));
 	// Start Board observation beside the handlers so startup does not wait for its initial scan.
 	const responses = yield* Layer.buildWithScope(decisionResponses(host), scope).pipe(Effect.forkIn(scope));
 	function withResponses<A, E, R>(effect: Effect.Effect<A, E, R>) {

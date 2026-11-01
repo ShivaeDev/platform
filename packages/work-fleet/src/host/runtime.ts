@@ -8,6 +8,7 @@ import { Fleet } from "#fleet.ts";
 import { type FleetHost, HostFailure } from "#host/config.ts";
 import { type GithubApi, githubApiLayer } from "#host/githubApi.ts";
 import { hostIntegrations } from "#host/integrations.ts";
+import { LaunchTier, launchTierLayer } from "#host/launchTier.ts";
 import { type AppliedConfig, LiveConfig, staticConfig } from "#host/liveConfig.ts";
 import { localOnlyBoardPath } from "#host/localOnlyBoardPath.ts";
 import { MainSource } from "#host/mainSource.ts";
@@ -24,6 +25,7 @@ export function hostPolicy(host: FleetHost) {
 			const clock = yield* Clock.Clock;
 			const main = yield* MainSource;
 			const live = yield* LiveConfig;
+			const launchTier = yield* LaunchTier;
 			const localPath = host.provider === "cloud" ? yield* localOnlyBoardPath(host.boardDir, main.repositoryRoot) : undefined;
 			function now() {
 				return clock.currentTimeMillisUnsafe();
@@ -39,12 +41,12 @@ export function hostPolicy(host: FleetHost) {
 				quotas.set(applied.quota, created);
 				return created;
 			}
-			function configuration({ guidance, host: applied }: AppliedConfig): FleetConfiguration {
+			const configuration = Effect.fnUntraced(function* ({ guidance, host: applied }: AppliedConfig): Effect.fn.Return<FleetConfiguration> {
 				return {
 					areaMergeWaitMs: applied.areaMergeWaitMs,
 					deliveryBacklog: applied.backlog,
 					executionConcurrency: applied.concurrency,
-					launch: applied.launch,
+					launch: yield* launchTier.resolve(applied),
 					...(localPath === undefined ? {} : { localOnlyBoardPath: localPath }),
 					now,
 					...(applied.openPullRequests === undefined ? {} : { openPullRequests: applied.openPullRequests }),
@@ -57,8 +59,8 @@ export function hostPolicy(host: FleetHost) {
 					stallMinutes: applied.stallMinutes,
 					...(applied.worker === undefined ? {} : { sharedEnvironment: applied.worker.sharedEnvironment }),
 				};
-			}
-			return FleetPolicy.of({ ...configuration(yield* live.current), current: Effect.map(live.current, configuration) });
+			});
+			return FleetPolicy.of({ ...(yield* configuration(yield* live.current)), current: Effect.flatMap(live.current, configuration) });
 		}),
 	);
 }
@@ -106,17 +108,19 @@ export function fleetHostLayer<TProvider, TMain>(
 	const github = parts.github ?? githubApiLayer.pipe(Layer.provide(NodeServices.layer));
 	const board = (parts.board ?? hostReportBoard(host)).pipe(Layer.provide(parts.main), Layer.provide(NodeServices.layer));
 	const integrations = (parts.integrations ?? hostIntegrations(host)).pipe(Layer.provide(parts.main));
+	const tiers = launchTierLayer.pipe(Layer.provide(parts.main), Layer.provide(NodeServices.layer));
 	return Fleet.layer.pipe(
 		Layer.provideMerge(
 			Layer.mergeAll(
 				repository,
 				sessions,
 				board,
-				parts.policy ?? hostPolicy(host).pipe(Layer.provide([parts.main, config])),
+				parts.policy ?? hostPolicy(host).pipe(Layer.provide([parts.main, config, tiers])),
 				integrations,
 				parts.main,
 			),
 		),
+		Layer.provideMerge(tiers),
 		Layer.provideMerge(github),
 		Layer.provideMerge(hostSql(host)),
 	);

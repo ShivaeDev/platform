@@ -5,6 +5,22 @@ import { refusal } from "#test/refusal.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 describe("work-fleet host configuration", () => {
+	for (const fastAt of [5, 6]) {
+		configuration.it(`refuses a CI recovery threshold of ${fastAt} when slowdown starts at 5`, [], function* (daemon) {
+			const failure = yield* refusal(
+				daemon.loadConfiguration(
+					JSON.stringify({
+						database: syntheticDatabase,
+						launch: { serviceTier: { ciCapacity: { fastAt, slowAt: 5 } } },
+						provider: "local",
+					}),
+				),
+			);
+
+			expect(failure).toContain("ciCapacity.fastAt must be below ciCapacity.slowAt");
+		});
+	}
+
 	configuration.it("defaults leave a hundred working and a hundred in backlog", [], function* (daemon) {
 		const host = yield* daemon.loadConfiguration('{ "database": { "url": "postgresql://synthetic.invalid/work_fleet" }, "provider": "local" }');
 		expect(host).toMatchObject({

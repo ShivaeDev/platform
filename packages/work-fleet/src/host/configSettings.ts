@@ -1,5 +1,6 @@
 import { Equal, Schema } from "effect";
 import { type FleetHost, type HostConfig, HostSettings } from "#host/config.ts";
+import { LaunchTierStatus } from "#host/launchTier.ts";
 import type { AppliedConfig } from "#host/liveConfig.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
 
@@ -28,7 +29,12 @@ export const ConfigStatus = Schema.Struct({
 });
 export type ConfigStatus = typeof ConfigStatus.Type;
 
-export const DaemonStatus = Schema.Struct({ ...FleetViews.fields, config: Schema.optional(ConfigStatus), record: Schema.optional(FleetRecord) });
+export const DaemonStatus = Schema.Struct({
+	...FleetViews.fields,
+	config: Schema.optional(ConfigStatus),
+	launchTier: Schema.optional(LaunchTierStatus),
+	record: Schema.optional(FleetRecord),
+});
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
