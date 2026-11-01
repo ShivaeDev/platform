@@ -66,5 +66,13 @@ export const repositoryChanges = Effect.fnUntraced(function* (
 	function write<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return provide(transact(effect, { onSqlError: (error) => error }));
 	}
-	return { record, returning, write };
+	const recordTable = Effect.fnUntraced(function* (rows: number) {
+		if (rows === 0) {
+			return;
+		}
+		const declarations = yield* ChangeDeclarations;
+		yield* declarations.declare(table, [table], rows);
+		yield* provide(invalidateOnCommit([table]));
+	});
+	return { record, recordTable, returning, write };
 });

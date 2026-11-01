@@ -1,6 +1,7 @@
 import { Data, Effect, type Schema } from "effect";
 import type { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
+import { makeBatchedDelete } from "#batchedDelete.ts";
 import { type BatchWrites, makeInsertMany } from "#batchWrites.ts";
 import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeRepository.ts";
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
@@ -120,28 +121,29 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		const composite = typeof options.idColumn === "object";
 		const idColumns = (composite ? options.idColumn : [options.idColumn]).map(String);
 		const changes = yield* repositoryChanges(sql, options.tableName, idColumns, model.fields);
-		const crud = makeCompositeCrud(model, sql, { ...options, columns: idColumns }, changes);
+		const crud = {
+			...makeCompositeCrud(model, sql, { ...options, columns: idColumns }, changes),
+			deleteBatched: yield* makeBatchedDelete(model, options, changes),
+		};
 		const queries = makeQueries(model, sql, options);
-		return options.versionColumn === undefined
-			? {
-					...crud,
-					insertFromSelect: makeInsertFromSelect(model, sql, { ...options, changes }, "insertFromSelect"),
-					insertMany: makeInsertMany(model, sql, { ...options, changes }, "insertMany"),
-					...(options.conflictColumns === undefined
-						? {}
-						: makeConflictWrites(model, sql, { ...options, changes, conflictColumns: options.conflictColumns, idColumns })),
-					...queries,
-				}
-			: {
-					...crud,
-					...makeVersionedWrites(model, sql, {
+		return {
+			...crud,
+			...queries,
+			...(options.versionColumn === undefined
+				? {
+						insertFromSelect: makeInsertFromSelect(model, sql, { ...options, changes }, "insertFromSelect"),
+						insertMany: makeInsertMany(model, sql, { ...options, changes }, "insertMany"),
+						...(options.conflictColumns === undefined
+							? {}
+							: makeConflictWrites(model, sql, { ...options, changes, conflictColumns: options.conflictColumns, idColumns })),
+					}
+				: makeVersionedWrites(model, sql, {
 						...options,
 						changes,
 						conflict: (id, expectedVersion, reason) => new OptimisticConcurrencyError({ expectedVersion, id, reason, tableName: options.tableName }),
 						idColumns,
 						versionColumn: options.versionColumn,
-					}),
-					...queries,
-				};
+					})),
+		};
 	})();
 }
