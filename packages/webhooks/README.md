@@ -126,4 +126,28 @@ The receipt insert and every enqueue use one SQL transaction. Concurrent copies 
 
 For another sender, supply a `WebhookSource` from `registration.ts` with its own `WebhookStrategy`. Its `verify(body, headers, key)` returns an Effect that fails with `WebhookUnauthorized` from `WebhookUnauthorized.ts` for invalid signatures. Its `delivery(headers)` returns `{ id, event }`; neither field comes from the payload. The route, receipts and queue mapping stay the same.
 
+### Send deliveries in stories
+
+Use `deliverWebhook` from the separate testing entry point to send a signed body to your running application's real route. It resolves `source.key` through the current Effect Config provider, signs the exact UTF-8 body with GitHub's SHA-256 format by default, and posts it through the `HttpClient` in Effect's environment. It returns the native HTTP response, including refusal responses. Your kit supplies the client and configuration, waits for the application's workers, and exposes their results for the spec to assert. The helper has no test-story dependency.
+
+```ts
+import { FetchHttpClient } from "effect/http";
+import { deliverWebhook } from "@shivaedev/webhooks/server/testing.ts";
+
+const response = yield* deliverWebhook({
+	url: `${appUrl}/webhooks/github`,
+	source: sources.github,
+	body: JSON.stringify({ issue: { number: 42 } }),
+	headers: {
+		"x-github-delivery": "story-issue-42",
+		"x-github-event": "issues",
+	},
+}).pipe(Effect.provide(FetchHttpClient.layer));
+const answer = yield* response.text;
+```
+
+`appUrl` is the kit's running host URL, and `sources` is the application's registration above. Header overrides apply after signing: set `"x-hub-signature-256"` to a wrong signature to exercise refusal, or to `null` to omit it. The helper accepts raw strings so stories can also send signed malformed JSON.
+
+For a different signature format, pass `sign: (body, key) => Effect.succeed(headers)`, returning that provider's signed headers. The callback receives the resolved redacted secret; its typed errors and service requirements remain in the delivery Effect. A timestamp-aware signer can close over a stale timestamp and sign it together with the body to exercise the application's expiry policy. GitHub's own strategy does not check timestamps. Production routes do not import the testing entry point.
+
 Applications install `@shivaedev/platform` and import this package by name. Libraries can install `@shivaedev/webhooks` directly with the Effect, Node HTTP and pg-boss peers used by their host. The stories run against `PLATFORM_JOBS_TEST_DATABASE_URL`, using real HTTP and isolated PostgreSQL databases.
