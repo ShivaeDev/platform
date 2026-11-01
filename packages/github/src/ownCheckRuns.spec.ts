@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { checkListingRefused, checksFromSeveralApps, checkWithoutApp } from "#test/checkRunTraits.ts";
+import { actionsCheckInState, checkListingRefused, checksFromSeveralApps, checkWithoutApp } from "#test/checkRunTraits.ts";
 import { github } from "#test/github.ts";
 import { HEAD } from "#test/writeTraits.ts";
 
@@ -124,3 +124,13 @@ github.it(
 github.it("app ownership excludes newer runs with absent or null app metadata", [checksFromSeveralApps, checkWithoutApp], function* ({ findCheck }) {
 	expect(yield* findCheck({ appId: 7, headSha: HEAD, name: "Coverage" })).toMatchObject({ id: 15 });
 });
+
+for (const status of ["waiting", "requested", "pending"] as const) {
+	github.it(
+		`app ownership excludes another app's newer ${status} Actions run`,
+		[checksFromSeveralApps, actionsCheckInState(status)],
+		function* ({ findCheck }) {
+			expect(yield* findCheck({ appId: 7, headSha: HEAD, name: "Coverage" })).toMatchObject({ id: 15 });
+		},
+	);
+}

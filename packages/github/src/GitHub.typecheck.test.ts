@@ -16,4 +16,6 @@ const invalidCreate = Effect.flatMap(GitHub, (github) => {
 	// @ts-expect-error The service also requires a conclusion for completed creates.
 	return github.createCheckRun("acme", "widgets", { headSha: "abc", name: "Coverage", status: "completed" });
 });
-void [completed, missingConclusion, invalidCreate];
+// @ts-expect-error GitHub Apps cannot create an Actions-only status.
+const waiting: typeof CreateCheckRun.Type = { headSha: "abc", name: "Coverage", status: "waiting" };
+void [completed, missingConclusion, invalidCreate, waiting];

@@ -28,3 +28,18 @@ export const checkWithoutApp = github.trait("github", "a newer check has no app 
 	};
 	writes.checks.push(check, { ...check, app: null, id: 201 });
 });
+
+export function actionsCheckInState(status: "waiting" | "requested" | "pending") {
+	return github.trait("github", `another app has a newer Coverage check in the GitHub Actions ${status} state`, ({ writes }) => {
+		writes.checks.push({
+			app: { id: 9 },
+			conclusion: null,
+			detailsUrl: null,
+			headSha: HEAD,
+			id: 300,
+			name: "Coverage",
+			output: { summary: null, text: null, title: null },
+			status,
+		});
+	});
+}

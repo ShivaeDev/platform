@@ -8,7 +8,7 @@ export const CheckRunOutput = Schema.Struct({
 });
 
 export const CheckRunConclusion = Schema.Literals(["action_required", "cancelled", "failure", "neutral", "success", "skipped", "stale", "timed_out"]);
-export const CheckRunStatus = Schema.Literals(["queued", "in_progress", "completed"]);
+export const CheckRunStatus = Schema.Literals(["queued", "in_progress", "completed", "waiting", "requested", "pending"]);
 
 const createFields = {
 	detailsUrl: Schema.optional(Schema.String),
