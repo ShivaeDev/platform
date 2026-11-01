@@ -1,8 +1,6 @@
-import { Effect, Layer } from "effect";
-import * as Atom from "effect/reactivity/Atom";
-import { RpcClient, RpcSerialization } from "effect/rpc";
-import * as Socket from "effect/socket/Socket";
-import { browserReadObserver } from "#internal/browserReadObserver.ts";
+import * as Effect from "effect/Effect";
+import type * as Layer from "effect/Layer";
+import type * as Socket from "effect/socket/Socket";
 
 export type BrowserSubscription = {
 	readonly payload: unknown;
@@ -25,18 +23,6 @@ export interface BrowserReadsOptions {
 }
 
 export const browserReads = Effect.fn("BrowserStory.browserReads")(function* (options: BrowserReadsOptions) {
-	const { observeProtocol, ...observed } = yield* browserReadObserver(options.contracts);
-	const memoMap = yield* Layer.makeMemoMap;
-	const protocol = Atom.family((_identity: string | undefined) => {
-		const layer = Layer.effect(RpcClient.Protocol, observeProtocol).pipe(Layer.provide(socketProtocol(options)));
-		return Layer.effectContext(Effect.flatMap(Effect.scope, (scope) => Layer.buildWithMemoMap(layer, memoMap, scope)));
-	});
-	return { ...observed, protocol };
+	const { observeBrowser } = yield* Effect.promise(() => import("#internal/observeBrowser.ts"));
+	return yield* observeBrowser(options);
 });
-
-function socketProtocol(options: BrowserReadsOptions) {
-	const socket = Socket.layerWebSocket(options.url.replace(/^http/u, "ws"), { headers: options.headers }).pipe(
-		Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal),
-	);
-	return RpcClient.layerProtocolSocket().pipe(Layer.provide(socket), Layer.provide(RpcSerialization.layerNdjson));
-}

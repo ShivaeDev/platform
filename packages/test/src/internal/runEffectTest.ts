@@ -1,5 +1,7 @@
 import type { TestContext } from "@effect/vitest";
-import { Data, Effect, type Scope } from "effect";
+import * as Data from "effect/Data";
+import * as Effect from "effect/Effect";
+import type * as Scope from "effect/Scope";
 import type { EffectClock } from "#types.ts";
 import { environmentFor } from "./environmentFor.ts";
 

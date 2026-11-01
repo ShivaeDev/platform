@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { inDom } from "#internal/domDocument.ts";
 import { installOutbound } from "#internal/installOutbound.ts";
 

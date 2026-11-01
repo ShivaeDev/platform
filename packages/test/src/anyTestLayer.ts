@@ -1,4 +1,7 @@
-import { type Context, type Effect, Layer, type Scope } from "effect";
+import type * as Context from "effect/Context";
+import type * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
+import type * as Scope from "effect/Scope";
 
 export type AnyTestLayer = Layer.Layer<any, any, never> | Layer.Layer<never, any, never>;
 

@@ -1,4 +1,5 @@
-import { Effect, Exit } from "effect";
+import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import type { ScreenDriverOptions } from "#screenDriver.ts";
 
 export function screenAct(act: NonNullable<ScreenDriverOptions["act"]>, action: Effect.Effect<void>) {

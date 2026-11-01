@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 export function screenNavigation(root: () => HTMLElement, prefix: string) {
 	return Effect.suspend(() => {

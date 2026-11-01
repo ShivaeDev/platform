@@ -1,11 +1,15 @@
-import { RegistryContext } from "@effect/atom-react";
-import { Clock, Effect, Exit, Scope } from "effect";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { act, createElement, type ReactNode } from "react";
-import { createRoot, type RootOptions } from "react-dom/client";
+import * as Clock from "effect/Clock";
+import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as Scope from "effect/Scope";
+import type { ReactNode } from "react";
+import type { RootOptions } from "react-dom/client";
 import { beforeEach, expect, vi } from "vitest";
 import { eventually as retry } from "@shivaedev/test/eventually.ts";
 import { withLive } from "@shivaedev/test/withLive.ts";
+import { reactRendering } from "#client/adapters/reactRendering.ts";
+import { waitForReact } from "#client/adapters/waitForReact.ts";
 
 type CaughtErrorHandler = NonNullable<RootOptions["onCaughtError"]>;
 
@@ -86,12 +90,7 @@ export function eventually(assert: () => void) {
 			const started = yield* Clock.currentTimeMillis;
 			return yield* retry(Effect.try({ catch: (error) => error, try: assert }), {
 				timeout: "3 seconds",
-				// Responses and React updates must settle together inside act.
-				wait: Effect.promise(() =>
-					act(async () => {
-						await new Promise<void>((resolve) => setTimeout(resolve, 10));
-					}),
-				),
+				wait: Effect.promise(waitForReact),
 			}).pipe(
 				Effect.catch((error) =>
 					Effect.gen(function* () {
@@ -105,6 +104,7 @@ export function eventually(assert: () => void) {
 		}),
 	);
 }
+
 export interface Rendered {
 	readonly container: HTMLDivElement;
 	readonly registry: AtomRegistry.AtomRegistry;
@@ -112,7 +112,8 @@ export interface Rendered {
 	readonly unmount: () => Promise<void>;
 }
 export async function render(node: ReactNode, options?: RootOptions): Promise<Rendered> {
-	const registry = AtomRegistry.make();
+	const [{ RegistryContext }, registryModule, { createRoot }, { act, createElement }] = await reactRendering();
+	const registry = registryModule.make();
 	const container = document.createElement("div");
 	document.body.append(container);
 	const root = createRoot(container, options);

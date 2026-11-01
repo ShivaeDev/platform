@@ -1,5 +1,5 @@
 import type { Server } from "node:http";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 export const loopbackServer = Effect.fnUntraced(function* (server: Server, options: { readonly host?: string; readonly port?: number } = {}) {
 	yield* Effect.acquireRelease(

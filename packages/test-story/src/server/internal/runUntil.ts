@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { broken, cannotRun, unfinished } from "#internal/errors.ts";
 import { type AnyEffect, type Hook, hooked } from "#internal/hooked.ts";
 import type { RunUntilOptions } from "#storyKit.ts";

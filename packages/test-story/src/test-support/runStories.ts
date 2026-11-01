@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { stripVTControlCharacters } from "node:util";
 import * as VitestNode from "vitest/node";
 import type { GenreTag } from "#genreTags.ts";
+import { importViolations } from "./importViolations.ts";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -10,6 +11,7 @@ export interface StoriesRun {
 	readonly allowOnly?: boolean;
 	readonly env?: Readonly<Record<string, string>>;
 	readonly environment?: string;
+	readonly guardImports?: boolean;
 	readonly include: string;
 	readonly tags?: readonly GenreTag[];
 	readonly tagsFilter?: string[];
@@ -36,6 +38,7 @@ export async function runStories({
 	env = {},
 	environment,
 	include,
+	guardImports = false,
 	tags = [],
 	tagsFilter = [],
 	testNamePattern,
@@ -49,6 +52,8 @@ export async function runStories({
 			config: false,
 			env: { ...env },
 			...(environment === undefined ? {} : { environment }),
+			execArgv: ["--import", fileURLToPath(import.meta.resolve("@shivaedev/quality/adapters/compileCache.config.ts"))],
+			experimental: { importDurations: { limit: guardImports ? 10_000 : 0 } },
 			include: [include],
 			reporters: [],
 			root,
@@ -64,6 +69,7 @@ export async function runStories({
 		const { testModules } = await vitest.start();
 		return {
 			moduleErrors: [
+				...(guardImports ? importViolations(testModules) : []),
 				...testModules.flatMap((module) => module.errors().map((error) => error.message)),
 				...vitest.state.getUnhandledErrors().map((error) => (error instanceof Error ? error.message : String(error))),
 			],

@@ -44,6 +44,7 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 	const { coverage = false } = options;
 	const output = Effect.runSync(TestOutput.pipe(Effect.provide(TestOutput.layer)));
 	return {
+		execArgv: ["--import", fileURLToPath(import.meta.resolve("#adapters/compileCache.config.ts"))],
 		maxWorkers: workerCount(options),
 		...(coverage === false
 			? {}

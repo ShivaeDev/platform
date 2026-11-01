@@ -1,5 +1,6 @@
 import { createServer, type IncomingHttpHeaders } from "node:http";
-import { Clock, Effect } from "effect";
+import * as Clock from "effect/Clock";
+import * as Effect from "effect/Effect";
 import { fakeHttpControls } from "#internal/fakeHttpControls.ts";
 import { fakeHttpReceive } from "#internal/fakeHttpReceive.ts";
 import { loopbackServer } from "#internal/loopback.ts";

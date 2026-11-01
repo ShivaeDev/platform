@@ -1,4 +1,6 @@
-import { Data, Effect, type Stream } from "effect";
+import * as Data from "effect/Data";
+import * as Effect from "effect/Effect";
+import type * as Stream from "effect/Stream";
 import type { ClientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { screenElements } from "#adapters/screenElements.ts";

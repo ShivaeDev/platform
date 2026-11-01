@@ -1,4 +1,5 @@
-import { Deferred, Effect } from "effect";
+import * as Deferred from "effect/Deferred";
+import * as Effect from "effect/Effect";
 import type { FakeHttpHold, FakeHttpRequest, FakeHttpScope } from "#fakeHttpService.ts";
 import { fakeHttpSelection } from "#internal/fakeHttpSelection.ts";
 

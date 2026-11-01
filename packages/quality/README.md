@@ -497,7 +497,7 @@ import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";
 export default appTestConfig();
 ```
 
-Use this in `vitest.config.ts`. It composes `testProjects` with browser and server resolution and inlines the `@shivaedev` packages for the test server, since an application imports each framework piece by its own name. Both helpers accept extra export conditions for workspace development: `appViteConfig(plugins, ["source"])` and `appTestConfig(["source"])`. Published apps use the defaults.
+Use this in `vitest.config.ts`. It composes `testProjects` with browser and server resolution and inlines the `@shivaedev` packages for the test server, since an application imports each framework piece by its own name. Its `testProjects` defaults enable Node’s on-disk compilation cache in workers to reuse compiled dependencies while Vitest keeps module state isolated between files. Node’s `NODE_DISABLE_COMPILE_CACHE=1` disables that cache. Both helpers accept extra export conditions for workspace development: `appViteConfig(plugins, ["source"])` and `appTestConfig(["source"])`. Published apps use the defaults.
 
 For Vitest, install `vitest`, and add `@shivaedev/test-story` and `happy-dom` when the repository has DOM tests, then use:
 

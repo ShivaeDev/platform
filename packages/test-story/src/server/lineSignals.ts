@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline";
 import type { Readable } from "node:stream";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { recordedSignals } from "#internal/recordedSignals.ts";
 import { type UntilOptions, until } from "#until.ts";
 

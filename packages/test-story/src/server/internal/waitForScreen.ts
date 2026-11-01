@@ -1,4 +1,7 @@
-import { Effect, Queue, Result, Stream } from "effect";
+import * as Effect from "effect/Effect";
+import * as Queue from "effect/Queue";
+import * as Result from "effect/Result";
+import * as Stream from "effect/Stream";
 import { isClientIdle } from "@shivaedev/contract/clientActivity.ts";
 import { screenAct } from "#adapters/screenAct.ts";
 import { screenMutations } from "#adapters/screenMutations.ts";
