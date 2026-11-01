@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.32.0 - 2026-11-01
+
+### Added
+
+- `domPage(url)` scopes global fetch URL resolution to an open DOM page and restores fetch and location when its scope closes. Pass its `pending` stream to `screenDriver` to wait for page fetches to resolve or reject.
+- DOM `find` and `findText` keep waiting while the screen shows a visible loading status, `aria-busy="true"`, `Loading…` text or an open dialog. The normal 3-second budget extends to at most 10 seconds, configurable with `loadingTimeoutMs`. Explicit per-call timeouts remain hard deadlines; an idle screen keeps the usual timeout and target diagnostics.
+
+### Fixed
+
+- Report production imports of the `@effect/platform-node` barrel with module subpaths that avoid loading optional integrations such as redis.
+- Recognize native Effect `catchTags` record keys regardless of the handler body while retaining diagnostics for actual nested component and hook factories.
+- Keep a constant's matching filename valid when the constant becomes private.
+- Name each conflicting fix and format pass's file and line/column range when `quality fix` cannot settle.
+- Use Node platform module subpaths in package runtimes and commands instead of loading the barrel.
+
 ## 0.31.4 - 2026-11-01
 
 ### Changed

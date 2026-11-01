@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.35.0 - 2026-11-01
+
+### Added
+
+- Enforce `imports/admin-paths`: report admin-only source files outside an `admin/` path and admin files reached by member code, naming the destination folder. Follow production imports within each source tree while allowing registration composition and shared member dependencies.
+- Admit per-key budgets through `@shivaedev/rate-limit`, with an Effect-clock memory store, a PostgreSQL adapter, and typed `TooManyRequests` carrying a retry time.
+- Include rate limiting in Platform and demonstrate a per-user note creation budget in generated applications.
+- Send transactional email through a Resend-backed Mailer or development log, with typed message queues, job-id idempotency, backoff and provider-timed rate-limit retries.
+- Read delivered messages and one-time links through a fake Resend inbox in stories.
+- Include the email package in Platform for applications, including the starter's queued authentication emails.
+
+### Fixed
+
+- Report production imports of the `@effect/platform-node` barrel with module subpaths that avoid loading optional integrations such as redis.
+- Recognize native Effect `catchTags` record keys regardless of the handler body while retaining diagnostics for actual nested component and hook factories.
+- Keep a constant's matching filename valid when the constant becomes private.
+- Name each conflicting fix and format pass's file and line/column range when `quality fix` cannot settle.
+- Use Node platform module subpaths in package runtimes and commands instead of loading the barrel.
+
+### Breaking
+
+- Generated apps keep shared declarations outside the admin-only tree. Migrate custom `ReadStatistics` imports from `#admin/ReadStatistics.ts` to `#ReadStatistics.ts`, and custom `AdminNavigation` type imports from `#client/admin/Shell.tsx` to `#client/AdminNavigation.ts`.
+
 ## 0.34.0 - 2026-11-01
 
 ### Added

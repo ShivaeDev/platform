@@ -1,8 +1,6 @@
----
-"@shivaedev/email": minor
-"@shivaedev/create-app": minor
-"@shivaedev/platform": minor
----
+# Changelog
+
+## 0.1.0 - 2026-11-01
 
 ### Added
 

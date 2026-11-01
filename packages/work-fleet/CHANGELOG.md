@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.29.2 - 2026-11-01
+
+### Fixed
+
+- Report production imports of the `@effect/platform-node` barrel with module subpaths that avoid loading optional integrations such as redis.
+- Recognize native Effect `catchTags` record keys regardless of the handler body while retaining diagnostics for actual nested component and hook factories.
+- Keep a constant's matching filename valid when the constant becomes private.
+- Name each conflicting fix and format pass's file and line/column range when `quality fix` cannot settle.
+- Use Node platform module subpaths in package runtimes and commands instead of loading the barrel.
+- Surface a release window stalled for five minutes as one orchestrator wait naming the release PR, its queue removal or idle state, and the number of held PRs. Clear the wait when the release moves or merges, and include held release PRs in watch merge-queue events.
+
 ## 0.29.1 - 2026-11-01
 
 ### Changed
