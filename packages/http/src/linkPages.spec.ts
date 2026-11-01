@@ -1,5 +1,16 @@
 import { expect } from "vitest";
-import { httpClient, pageOneLinksToAnotherOrigin, threeLinkedPages } from "#test/http-client/story.ts";
+import { pageOneLinksToAnotherOrigin, redirectedPages, threeLinkedPages } from "#test/http-client/pages.ts";
+import { httpClient } from "#test/http-client/story.ts";
+
+httpClient.it(
+	"pagination resolves a relative next link against the redirected response URL",
+	[redirectedPages],
+	function* ({ readEveryPage, requests }) {
+		yield* readEveryPage();
+
+		expect(yield* requests()).toEqual(["GET /pages/1?token=private", "GET /archive/pages/1", "GET /archive/pages/2"]);
+	},
+);
 
 httpClient.it("reading every page returns paper, ink and pens", [threeLinkedPages], function* ({ readEveryPage }) {
 	expect(yield* readEveryPage()).toEqual(["paper", "ink", "pens"]);
