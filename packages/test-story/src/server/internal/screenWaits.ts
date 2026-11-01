@@ -3,7 +3,9 @@ import { withLive } from "@shivaedev/test/withLive.ts";
 import type { screenElements } from "#adapters/screenElements.ts";
 import { screenNavigation } from "#adapters/screenNavigation.ts";
 import type { ScreenDriverOptions, ScreenTarget } from "#screenDriver.ts";
+import { loadingDeadline } from "./loadingDeadline.ts";
 import { targetName } from "./screenAccessibility.ts";
+import { screenLoading } from "./screenLoading.ts";
 import { waitForScreen } from "./waitForScreen.ts";
 
 type Options = Omit<ScreenDriverOptions, "act" | "root" | "timeoutMs" | "pending"> & {
@@ -13,18 +15,24 @@ type Options = Omit<ScreenDriverOptions, "act" | "root" | "timeoutMs" | "pending
 	readonly timeoutMs: number;
 };
 
-export function screenWaits(options: Options, elements: ReturnType<typeof screenElements>) {
+export function screenWaits(options: Options, elements: ReturnType<typeof screenElements>, dialogs: boolean) {
 	const { act, pending, root, tell, timeoutMs } = options;
+	const loading = screenLoading(root, dialogs);
 	function unsettled(limit: number) {
 		return new Error(
 			`The screen did not settle within ${limit}ms.\nhelp: Release held requests and check the app's pending signal and renderer act adapter.\nScreen: ${root().textContent}`,
 		);
 	}
-	function wait<A>(line: string, read: () => A, timeout: number, expired: () => Effect.Effect<A>) {
+	function wait<A>(line: string, read: () => A, timeout: number | undefined, expired: () => Effect.Effect<A>) {
+		const limit = timeout ?? timeoutMs;
 		return withLive(
 			Effect.sync(() => tell(line)).pipe(
-				Effect.andThen(waitForScreen({ act, pending, root }, Effect.try(read))),
-				Effect.timeoutOrElse({ duration: timeout, orElse: expired }),
+				Effect.andThen(
+					Effect.raceFirst(
+						waitForScreen({ act, pending, root }, Effect.try(read)),
+						loadingDeadline(root, loading, limit, timeout === undefined ? (options.loadingTimeoutMs ?? 10_000) : limit, expired),
+					),
+				),
 			),
 		);
 	}
@@ -34,7 +42,7 @@ export function screenWaits(options: Options, elements: ReturnType<typeof screen
 			return wait(
 				`find ${targetName(target)}`,
 				() => elements.element(target),
-				limit,
+				settings.timeout,
 				() => {
 					const lookup = Effect.sync(() => elements.element(target));
 					return pending === undefined ? lookup : lookup.pipe(Effect.andThen(Effect.die(unsettled(limit))));
@@ -47,7 +55,7 @@ export function screenWaits(options: Options, elements: ReturnType<typeof screen
 			return wait(
 				`find text ${name}`,
 				() => elements.textElement(text),
-				limit,
+				settings.timeout,
 				() =>
 					Effect.sync(() => elements.textElement(text)).pipe(
 						Effect.andThen(

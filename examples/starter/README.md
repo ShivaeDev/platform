@@ -102,6 +102,12 @@ To verify the generated app, run `pnpm --filter @shivaedev/starter check:publish
 
 Add `--registry` to generate the app with the published `pnpm create @shivaedev/app` command instead of packing the local generator; it cannot be combined with `--archives`. The Published starter workflow runs registry mode on a schedule and after each package publish.
 
+### Transactional email
+
+The web process enqueues identity's auth emails on `identity.auth-emails` through `@shivaedev/email`. Run the worker to deliver them. The worker logs rendered messages in development; in production, set `RESEND_API_KEY` and `EMAIL_FROM` to send through Resend. `PUBLIC_URL` determines the links' application origin.
+
+The authentication stories use the email package's fake Resend inbox with real PostgreSQL. They confirm an account and reset a password by following the delivered link, including the React reset form.
+
 ### Auth schema changes
 
 Numbered auth migrations contain frozen SQL. After changing `src/server/authOptions.ts` or the default role, follow identity's [frozen migration workflow](https://github.com/ShivaeDev/platform/tree/main/packages/identity#frozen-auth-migrations): apply the existing migrations to a disposable PostgreSQL database, generate the next module with `generateBetterAuthMigration`, then review and commit its SQL. Register the generated file in `boundaries/auth-sql`'s `options.owners` in `quality.config.ts`. Run `pnpm migrate` to apply it. Keep earlier migrations unchanged.

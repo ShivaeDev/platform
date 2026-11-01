@@ -6,7 +6,7 @@ import { authEmailApp } from "#test-support/authEmailApp.tsx";
 authEmailApp.it("alice's confirmation email links to the app's confirm route", [], function* ({ deliveredEmails, requestsConfirmation }) {
 	yield* requestsConfirmation();
 
-	expect(yield* deliveredEmails()).toEqual(["confirm account for alice@app.test at http://127.0.0.1:5173/auth/confirm"]);
+	expect(yield* deliveredEmails()).toEqual(["Confirm your account for alice@app.test at http://127.0.0.1:5173/auth/confirm"]);
 });
 
 authEmailApp.it(
@@ -28,7 +28,7 @@ authEmailApp.it(
 authEmailApp.it("alice's password reset email links to the app's reset screen", [], function* ({ deliveredEmails, requestsPasswordReset }) {
 	yield* requestsPasswordReset();
 
-	expect(yield* deliveredEmails()).toEqual(["reset password for alice@app.test at http://127.0.0.1:5173/reset-password"]);
+	expect(yield* deliveredEmails()).toEqual(["Reset your password for alice@app.test at http://127.0.0.1:5173/reset-password"]);
 });
 
 authEmailApp.it(

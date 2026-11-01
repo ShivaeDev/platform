@@ -3,12 +3,17 @@ import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { ambientModules } from "#imports/ambient.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
+import { packageNameOf } from "#imports/packageName.ts";
 import { projectsFor } from "#imports/projects.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { entryPointsOf, isApplication, provider } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { Findings, RuleInputs } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
+
+function importedPackage(specifier: string) {
+	return /^[.#/]/u.test(specifier) ? undefined : packageNameOf(specifier);
+}
 
 export async function entryPointFindings(inputs: RuleInputs, findings: Findings): Promise<Findings> {
 	const graph = await importGraph(inputs);
@@ -53,16 +58,18 @@ export async function entryPointFindings(inputs: RuleInputs, findings: Findings)
 			return true;
 		}
 		return ![...graph.edges, ...graph.unresolved].some((edge) => {
-			if (owner(edge.from) !== directory || unusedFiles.has(edge.from)) {
+			if (unusedFiles.has(edge.from)) {
 				return false;
 			}
-			const target = /^[.#/]/u.test(edge.specifier)
-				? undefined
-				: edge.specifier
-						.split("/")
-						.slice(0, edge.specifier.startsWith("@") ? 2 : 1)
-						.join("/");
-			return target !== undefined && provider(entries, target, development(directory, edge.from), true)?.name === name;
+			const target = importedPackage(edge.specifier);
+			if (target === undefined) {
+				return false;
+			}
+			const consumer = owner(edge.from);
+			const supplied = provider(policies.get(consumer) ?? [], target, development(consumer, edge.from), true);
+			return consumer === directory
+				? supplied?.name === name
+				: supplied !== undefined && workspace.get(supplied.name) === directory && target === name;
 		});
 	});
 }

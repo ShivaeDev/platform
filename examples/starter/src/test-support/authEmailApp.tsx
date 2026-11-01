@@ -1,16 +1,20 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { Effect, Schema } from "effect";
+import { ConfigProvider, Effect, Layer, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import type { AuthEmail } from "@shivaedev/identity/server/better-auth/emails.ts";
+import { emailLink, inbox } from "@shivaedev/email/server/testing/adapters/inbox.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
-import { words } from "@shivaedev/test/answers.ts";
+import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appRouter } from "#client/appRouter.tsx";
 import { makeAuth } from "#client/auth.ts";
+import { applicationWorker } from "#server/applicationWorker.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { startHost } from "#test-support/host.ts";
+import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
@@ -21,31 +25,36 @@ export const authEmailApp = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const messages: AuthEmail[] = [];
-		const host = yield* startHost({
-			deliverAuthEmail: (message) =>
-				Effect.sync(() => {
-					messages.push(message);
-				}),
-		});
+		const mail = yield* inbox();
+		const host = yield* startHost();
+		const database = yield* PostgresTestDatabase;
+		const testing = makePgBossTesting();
+		const workerConfig = ConfigProvider.layer(
+			ConfigProvider.fromEnv({
+				env: {
+					"NODE_ENV": "production",
+					"RESEND_API_KEY": "re_story",
+				},
+			}),
+		);
+		yield* Layer.build(
+			applicationWorker({
+				databaseUrl: database.url,
+				poolSizes: testPoolSizes,
+				replacements: Layer.succeed(JobsClientFactory, testing.clientFactory),
+			}).pipe(Layer.provide(workerConfig)),
+		);
 		const precondition = yield* sessionPrecondition(host);
 		const alice = yield* signedInUser(precondition, { email: "alice@app.test", emailVerified: false, name: "alice" });
 		const auth = makeAuth({ baseUrl: host.baseUrl });
 		const surface: ScreenSurface = { view: undefined };
-		return { alice, auth, host, messages, surface };
+		return { alice, auth, host, mail, surface, testing };
 	},
 	layer: postgres,
 	name: "auth emails",
 	stages: [],
 	verbs: (engine, story) => {
-		const { host, messages, surface, auth } = engine;
-		function message(kind: AuthEmail["_tag"]) {
-			const delivered = messages.find((mail) => mail._tag === kind);
-			if (delivered === undefined) {
-				throw new Error(`No ${kind} email was delivered`);
-			}
-			return delivered;
-		}
+		const { host, mail, testing, surface, auth } = engine;
 		const driver = screenDriver({
 			act,
 			pending: () => surface.view?.registry.get(auth.actions.resetPassword).waiting ?? false,
@@ -77,30 +86,35 @@ export const authEmailApp = storyKit({
 					yield* driver.settle();
 				}),
 			deliveredEmails: () =>
-				Effect.sync(() =>
-					messages.map((mail) => {
-						const link = new URL(mail.url);
-						return `${words(mail._tag)} for ${mail.user.email} at ${link.origin}${link.pathname}`;
-					}),
+				testing.waitForIdle.pipe(
+					Effect.andThen(mail.emails()),
+					Effect.map((emails) =>
+						emails.map((email) => {
+							const link = new URL(emailLink(email));
+							return `${email.subject} for ${email.to} at ${link.origin}${link.pathname}`;
+						}),
+					),
 				),
 			followsConfirmationLink: () =>
-				Effect.promise(async () => {
-					story.tell("alice follows the link in her confirmation email");
-					const link = new URL(message("ConfirmAccount").url);
-					const response = await fetch(`${host.baseUrl}${link.pathname}${link.search}`, { redirect: "manual" });
-					await response.text();
-					const location = response.headers.get("location");
-					if (location === null) {
-						throw new Error("The app did not forward the confirmation token");
-					}
-					const confirmed = await fetch(new URL(location, host.baseUrl), { redirect: "manual" });
-					await confirmed.text();
-					return confirmed.headers.get("location") ?? `no redirect, HTTP ${confirmed.status}`;
+				Effect.gen(function* () {
+					const link = new URL(emailLink(yield* mail.nextEmail));
+					return yield* Effect.promise(async () => {
+						story.tell("alice follows the link in her confirmation email");
+						const response = await fetch(`${host.baseUrl}${link.pathname}${link.search}`, { redirect: "manual" });
+						await response.text();
+						const location = response.headers.get("location");
+						if (location === null) {
+							throw new Error("The app did not forward the confirmation token");
+						}
+						const confirmed = await fetch(new URL(location, host.baseUrl), { redirect: "manual" });
+						await confirmed.text();
+						return confirmed.headers.get("location") ?? `no redirect, HTTP ${confirmed.status}`;
+					});
 				}),
 			opensResetLink: () =>
 				Effect.gen(function* () {
 					story.tell("alice opens the link in her password reset email");
-					const link = new URL(message("ResetPassword").url);
+					const link = new URL(emailLink(yield* mail.nextEmail));
 					const view = yield* acquireScreen(surface);
 					const router = yield* appRouter(
 						{ modules: [] },
