@@ -33,6 +33,7 @@ function holds(engine: ScreenEngine): readonly Hold[] {
 		...(engine.indexGate ? [{ held: open(engine.indexGate), started: engine.indexWaiting === true }] : []),
 		...(engine.startupGate ? [{ held: open(engine.startupGate), started: true }] : []),
 		...startedLaterRead(engine),
+		...(engine.chunkResponse ? [engine.chunkResponse] : []),
 		...(engine.sessionTransport?.release ? [{ held: true, started: engine.sessionTransport.commandWaiting === true }] : []),
 	].filter(({ held }) => held);
 }
@@ -53,7 +54,7 @@ export const screenPendingWork = Effect.fn("ScreenSettle.screenPendingWork")(fun
 			: yield* screenPending({ router: engine.router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, registry));
 	return () => {
 		const held = holds(engine);
-		return held.length > 0 ? held.some(({ started }) => !started) : sessionStarting(engine) || pending();
+		return held.length > 0 ? held.some(({ started }) => !started) : engine.chunkResponse?.pending === true || sessionStarting(engine) || pending();
 	};
 });
 

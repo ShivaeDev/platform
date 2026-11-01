@@ -1,12 +1,13 @@
-import { type ComponentProps, Suspense, use } from "react";
-import { type MarkdownRenderers, markdownChunk } from "./lazyChunks.ts";
+import { type ComponentProps, Suspense, use, useContext } from "react";
+import { LazyChunksContext, type MarkdownRenderers } from "./lazyChunks.ts";
 
 type DocumentProps = ComponentProps<MarkdownRenderers["DocumentView"]>;
 type InlineProps = ComponentProps<MarkdownRenderers["InlineMarkdown"]>;
 type ResponseProps = ComponentProps<MarkdownRenderers["ResponseMarkdown"]>;
 
 function useMarkdownRenderers() {
-	return markdownChunk.loaded() ?? use(markdownChunk.load());
+	const chunk = useContext(LazyChunksContext).markdown;
+	return chunk.loaded() ?? use(chunk.load());
 }
 
 function MarkdownUnavailable({ error }: { readonly error: string }) {
