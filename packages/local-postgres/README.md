@@ -129,7 +129,7 @@ postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f
 
 A newly created container uses username and password `postgres`; connection URLs supply credentials for client commands. Setup refuses a running version other than 18.6 with `PostgresVersionMismatch` from `@shivaedev/local-postgres/server/PostgresVersionMismatch.ts`. The error carries `_tag: "PostgresVersionMismatch"`, `expectedVersion` and `observedVersion`. A running PostgreSQL 17 service is refused without losing its existing rows; upgrading it while preserving its data is your job. Container preparation and container-client fallback also check the managed image; a successful host-`psql` version probe does not inspect that image.
 
-Read Docker settings through Effect Config and pass them to `localPostgres`, as in the configuration example. With `DOCKER_CONTEXT`, endpoint validation uses that context and ignores `DOCKER_HOST`; otherwise it validates `DOCKER_HOST` or the active context. Remote endpoints are rejected before a Docker operation. Docker subprocesses receive the supplied settings in addition to their inherited environment.
+Read Docker settings through Effect Config and pass them to `localPostgres`, as in the configuration example. With `DOCKER_CONTEXT`, endpoint validation uses that context and ignores `DOCKER_HOST`; otherwise it validates `DOCKER_HOST` or the active context. Remote endpoints are rejected before a Docker operation. Each operation pins `DOCKER_HOST` to the validated endpoint and clears `DOCKER_CONTEXT`. The lower-level `docker` function refuses command environment settings that conflict with the supplied `DOCKER_HOST` or `DOCKER_CONTEXT` before invoking Docker.
 
 ### Limits
 
