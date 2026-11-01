@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { aliceCredentialsSet, browser } from "#test/browser.ts";
+import { aliceCredentialsSet, browser, onlyFullChromiumCached } from "#test/browser.ts";
 import { addIsBlocked, liveBrowser, navigationFails, nonRpcFrame } from "#test/liveBrowser.ts";
 
 browser.it(
@@ -15,6 +15,44 @@ browser.it(
 		]);
 	},
 );
+
+browser.it(
+	"a cache with full Chromium and no headless shell is reused to capture the page",
+	[onlyFullChromiumCached()],
+	function* ({ checks, outcome, browserActivity, screenshots }) {
+		yield* checks();
+
+		yield* outcomes([
+			["outcome", () => outcome(), "passed"],
+			["browser activity", () => browserActivity(), ["reusing cached Chromium."]],
+			["screenshots", () => screenshots(), ["1.png: a PNG image"]],
+		]);
+	},
+);
+
+for (const [name, args, result, captures] of [
+	["a shorter run", ["--page", "/notes"], "passed", ["1.png: a PNG image"]],
+	[
+		"a failure on the second page",
+		["--page", "/notes", "--page", "/missing"],
+		"failed: Error: Page the app/missing returned HTTP 404.",
+		["1.png: a PNG image"],
+	],
+	["a failure on the first page", ["--page", "/missing"], "failed: Error: Page the app/missing returned HTTP 404.", []],
+	["an invalid page", ["--page", "http://["], "failed: Invalid --page: expected an HTTP(S) URL or page path.", []],
+] as const) {
+	browser.it(`${name} leaves only its own screenshots after a longer run in the same folder`, [], function* ({ checks, outcome, screenshots }) {
+		yield* checks("--page", "/", "--page", "/notes");
+		expect(yield* screenshots()).toEqual(["1.png: a PNG image", "2.png: a PNG image"]);
+
+		yield* checks(...args);
+
+		yield* outcomes([
+			["outcome", () => outcome(), result],
+			["screenshots", () => screenshots(), captures],
+		]);
+	});
+}
 
 browser.it("a check whose text shows on every page passes with a smoke pass for each page", [], function* ({ checks, outcome, smokeChecks }) {
 	yield* checks("--page", "/", "--page", "/notes", "--text", "Local app");
