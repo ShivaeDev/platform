@@ -13,6 +13,7 @@ import { auditQueue, issueQueue, Jobs, MAX_BODY_BYTES, sources, WEBHOOK_SECRET }
 import { mappingResources, resourceEvent } from "#test/mappingResources.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { senderPreferences } from "#test/senderCheck.ts";
+import { TIMESTAMPED_SECRET, timestampedSource } from "#test/timestampedSource.ts";
 
 export interface HandledJob {
 	readonly id: string;
@@ -85,6 +86,14 @@ export function hostLayer(state: InboxState) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const { url } = yield* PostgresTestDatabase;
+			const registeredSources = {
+				github: { ...sources.github, events: { ...sources.github.events, "resource_issues": resourceEvent(state.resources) } },
+				timestamped: timestampedSource,
+			};
+			const signingEnvironment = {
+				...(state.signingKey === undefined ? {} : { "WEBHOOK_SECRET": state.signingKey }),
+				"TIMESTAMPED_WEBHOOK_SECRET": TIMESTAMPED_SECRET,
+			};
 			return appHost({
 				application: Effect.gen(function* () {
 					const sql = yield* SqlClient.SqlClient;
@@ -109,7 +118,7 @@ export function hostLayer(state: InboxState) {
 						routes: webhookRoute({
 							basePath: "/hooks",
 							jobs: Jobs,
-							sources: { github: { ...sources.github, events: { ...sources.github.events, "resource_issues": resourceEvent(state.resources) } } },
+							sources: registeredSources,
 						}).pipe(Layer.provide(jobs), Layer.provide(senderPreferences), Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))),
 						services: jobs,
 					};
@@ -122,9 +131,7 @@ export function hostLayer(state: InboxState) {
 					...(state.mode === "wait" ? { pollInterval: "10 millis" } : {}),
 				},
 			}).pipe(
-				Layer.provide(
-					ConfigProvider.layer(ConfigProvider.fromEnv({ env: state.signingKey === undefined ? {} : { "WEBHOOK_SECRET": state.signingKey } })),
-				),
+				Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: signingEnvironment }))),
 				Layer.provide(Layer.succeed(Tracer.Tracer, state.telemetry.tracer)),
 				Layer.provide(Logger.layer([hostLogger(state)])),
 			);
