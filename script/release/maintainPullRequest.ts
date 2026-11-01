@@ -1,6 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import process from "node:process";
-import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Clock, Config, Console, Effect } from "effect";
 import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
 import { isChangeset } from "@shivaedev/releases/workspace.ts";

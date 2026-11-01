@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import process from "node:process";
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Cause, Console, Effect, Option } from "effect";
 import { Argument, CliError, Command, Flag } from "effect/cli";
 import manifest from "@shivaedev/releases/package.json" with { type: "json" };

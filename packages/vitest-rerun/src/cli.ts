@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import process from "node:process";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { main } from "#internal/main.ts";
 
