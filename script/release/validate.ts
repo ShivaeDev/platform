@@ -20,6 +20,6 @@ export const validateRelease = Effect.fn("Release.validateRelease")(function* (
 	const releaseBase = input === undefined ? before : { ...before, changesets: [...before.changesets, input] };
 	yield* validateDiff(releaseBase, after);
 	const collected = input === undefined ? plan : yield* planDiff(releaseBase, after);
-	yield* checkReleaseCoverage(root, collected, after.changesets);
+	yield* checkReleaseCoverage(root, collected, after.changesets, reference);
 	return collected;
 });
