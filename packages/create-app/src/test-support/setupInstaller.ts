@@ -42,6 +42,9 @@ if (args[0] === "install") {
   const manifest = JSON.parse(fs.readFileSync("package.json", "utf8"));
   manifest.devDependencies["@shivaedev/quality"] = "link:" + qualityPackage;
   fs.writeFileSync("package.json", JSON.stringify(manifest, null, "\\t") + "\\n");
+  const compiler = JSON.parse(fs.readFileSync("tsconfig.json", "utf8"));
+  compiler.compilerOptions.customConditions = ["source"];
+  fs.writeFileSync("tsconfig.json", JSON.stringify(compiler, null, "\\t") + "\\n");
   fs.writeFileSync("pnpm-lock.yaml", "lockfileVersion: 9.0\\n");
   const modules = ${JSON.stringify(modules)};
   fs.rmSync("node_modules", { recursive: true, force: true });

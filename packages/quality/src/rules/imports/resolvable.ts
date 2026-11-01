@@ -11,12 +11,15 @@ export const importsResolvable = defineRule({
 	check: Effect.fn("Imports.check")(function* ({ options, ...inputs }) {
 		const graph = yield* Effect.promise(() => importGraph(inputs));
 		const unresolved = yield* withoutGenerated(inputs, graph, options.generated);
-		return unresolved.map((request) => ({
-			file: request.from,
-			line: request.line,
-			message: `Cannot resolve "${request.specifier}". Fix the path, install or declare the package, or declare the module in a .d.ts file among the sources.`,
-			subject: request.specifier,
-		}));
+		return [
+			...graph.configFindings,
+			...unresolved.map((request) => ({
+				file: request.from,
+				line: request.line,
+				message: `Cannot resolve "${request.specifier}". Fix the path, install or declare the package, or declare the module in a .d.ts file among the sources.`,
+				subject: request.specifier,
+			})),
+		];
 	}),
 	description: "Every import resolves to a file, a package or a declared module, so no edge of the import graph goes unchecked.",
 	id: "imports/resolvable",

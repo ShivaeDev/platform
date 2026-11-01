@@ -281,7 +281,7 @@
 	],
 	"resolution": [
 		{
-			"content": "{\"compilerOptions\": {\"paths\": {\"~/*\": [\"./src/*\"]}}}\n",
+			"content": "{\"compilerOptions\": {\"module\": \"ESNext\", \"moduleResolution\": \"Bundler\", \"customConditions\": [\"source\"], \"resolveJsonModule\": true, \"paths\": {\"~/*\": [\"./src/*\"]}}}\n",
 			"path": "tsconfig.json"
 		},
 		{
