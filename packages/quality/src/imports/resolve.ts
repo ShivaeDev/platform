@@ -60,8 +60,9 @@ function located(request: ImportRequest, from: string, project: Project): string
 		return ts.sys.fileExists(path) ? path : undefined;
 	}
 	return (
-		ts.resolveModuleName(specifier, from, project.options, ts.sys, project.cache).resolvedModule?.resolvedFileName
-		?? ts.resolveModuleName(specifier, from, project.typesOptions, assetHost, project.typesCache).resolvedModule?.resolvedFileName
+		ts.resolveModuleName(specifier, from, project.options, ts.sys, project.cache, undefined, request.mode).resolvedModule?.resolvedFileName
+		?? ts.resolveModuleName(specifier, from, project.typesOptions, assetHost, project.typesCache, undefined, request.mode).resolvedModule
+			?.resolvedFileName
 	);
 }
 
@@ -74,7 +75,8 @@ export function presumedTarget(root: string, request: ImportRequest, from: strin
 	if (request.kind !== "import" || !request.specifier.startsWith(PACKAGE_IMPORT)) {
 		return undefined;
 	}
-	const path = ts.resolveModuleName(request.specifier.replace(QUERY, ""), from, project.options, presumingHost).resolvedModule?.resolvedFileName;
+	const path = ts.resolveModuleName(request.specifier.replace(QUERY, ""), from, project.options, presumingHost, undefined, undefined, request.mode)
+		.resolvedModule?.resolvedFileName;
 	return path === undefined ? undefined : posix(relative(root, path));
 }
 

@@ -1,6 +1,7 @@
 import { realpathSync } from "node:fs";
 import { join, posix } from "node:path";
-import type { RuleInputs, SourceFile } from "#rule.ts";
+import ts from "typescript";
+import type { Findings, RuleInputs, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { ambientModules } from "./ambient.ts";
 import { type ImportKind, type ImportRequest, importsOf } from "./extract.ts";
@@ -20,6 +21,7 @@ export interface ImportEdge {
 export type UnresolvedImport = Omit<ImportEdge, "to"> & { readonly missing: string | undefined };
 
 export interface ImportGraph {
+	readonly configFindings: Findings;
 	readonly edges: readonly ImportEdge[];
 	readonly modules: readonly string[];
 	readonly packages: readonly WorkspacePackage[];
@@ -42,7 +44,7 @@ function missingTarget(root: string, from: string, request: ImportRequest, proje
 	return target === undefined || target.startsWith("../") ? undefined : target;
 }
 
-function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "modules" | "unresolved"> {
+function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "configFindings" | "edges" | "modules" | "unresolved"> {
 	const projectOf = projectsFor(root);
 	const parsed = inputs.sources.flatMap((file) => {
 		const syntax = parse(file);
@@ -53,7 +55,8 @@ function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "mo
 	const unresolved: UnresolvedImport[] = [];
 	for (const { file, path, syntax } of parsed) {
 		const project = projectOf(path);
-		for (const request of importsOf(syntax, isDeclarationFile(file.path))) {
+		syntax.impliedNodeFormat = ts.getImpliedNodeFormatForFile(path, undefined, ts.sys, project.options);
+		for (const request of importsOf(syntax, isDeclarationFile(file.path), project.options)) {
 			const to = resolveImport(root, ambient, request, path, project);
 			if (to === undefined) {
 				const missing = missingTarget(root, file.path, request, project);
@@ -64,7 +67,7 @@ function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "edges" | "mo
 			}
 		}
 	}
-	return { edges, modules: parsed.map(({ file }) => file.path), unresolved };
+	return { configFindings: projectOf.findings, edges, modules: parsed.map(({ file }) => file.path), unresolved };
 }
 
 async function build(inputs: RuleInputs): Promise<ImportGraph> {

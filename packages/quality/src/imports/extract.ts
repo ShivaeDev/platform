@@ -5,6 +5,7 @@ export type ImportKind = "import" | "path-reference" | "resolve" | "type-referen
 export interface ImportRequest {
 	readonly kind: ImportKind;
 	readonly line: number;
+	readonly mode?: ts.ResolutionMode;
 	readonly specifier: string;
 	readonly type: boolean;
 }
@@ -80,27 +81,28 @@ function nested(node: ts.Node): Found | undefined {
 	return undefined;
 }
 
-function requestOf(source: ts.SourceFile, at: ts.Node, found: Found | undefined): readonly ImportRequest[] {
+function requestOf(source: ts.SourceFile, at: ts.Node, found: Found | undefined, options?: ts.CompilerOptions): readonly ImportRequest[] {
 	if (found?.node === undefined || !ts.isStringLiteralLike(found.node)) {
 		return [];
 	}
-	return [{ kind: found.kind, line: lineAt(source, at.getStart(source)), specifier: found.node.text, type: found.type }];
+	const mode = options === undefined ? {} : { mode: ts.getModeForUsageLocation(source, found.node, options) };
+	return [{ ...mode, kind: found.kind, line: lineAt(source, at.getStart(source)), specifier: found.node.text, type: found.type }];
 }
 
-function nestedRequests(source: ts.SourceFile): readonly ImportRequest[] {
+function nestedRequests(source: ts.SourceFile, options?: ts.CompilerOptions): readonly ImportRequest[] {
 	if (!MAY_CALL.test(source.text)) {
 		return [];
 	}
 	const requests: ImportRequest[] = [];
 	function visit(node: ts.Node): void {
-		requests.push(...requestOf(source, node, nested(node)));
+		requests.push(...requestOf(source, node, nested(node), options));
 		ts.forEachChild(node, visit);
 	}
 	visit(source);
 	return requests;
 }
 
-function jsDocRequests(source: ts.SourceFile): readonly ImportRequest[] {
+function jsDocRequests(source: ts.SourceFile, options?: ts.CompilerOptions): readonly ImportRequest[] {
 	if (!source.text.includes(JSDOC_IMPORT)) {
 		return [];
 	}
@@ -108,7 +110,7 @@ function jsDocRequests(source: ts.SourceFile): readonly ImportRequest[] {
 		.flatMap((node) => ts.getJSDocCommentsAndTags(node))
 		.flatMap((doc) => (ts.isJSDoc(doc) ? (doc.tags ?? []) : [doc]))
 		.filter(ts.isJSDocImportTag);
-	return tags.flatMap((tag) => requestOf(source, tag, { kind: "import", node: tag.moduleSpecifier, type: true }));
+	return tags.flatMap((tag) => requestOf(source, tag, { kind: "import", node: tag.moduleSpecifier, type: true }, options));
 }
 
 function referenceRequests(source: ts.SourceFile): readonly ImportRequest[] {
@@ -118,12 +120,12 @@ function referenceRequests(source: ts.SourceFile): readonly ImportRequest[] {
 	return [...source.typeReferenceDirectives.map(requestFor("type-reference")), ...source.referencedFiles.map(requestFor("path-reference"))];
 }
 
-export function importsOf(source: ts.SourceFile, declarationFile: boolean): readonly ImportRequest[] {
+export function importsOf(source: ts.SourceFile, declarationFile: boolean, options?: ts.CompilerOptions): readonly ImportRequest[] {
 	const all = [
 		...referenceRequests(source),
-		...source.statements.flatMap((statement) => requestOf(source, statement, declared(statement))),
-		...jsDocRequests(source),
-		...nestedRequests(source),
+		...source.statements.flatMap((statement) => requestOf(source, statement, declared(statement), options)),
+		...jsDocRequests(source, options),
+		...nestedRequests(source, options),
 	];
 	return declarationFile ? all.map((request) => ({ ...request, type: true })) : all;
 }
