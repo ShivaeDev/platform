@@ -3,7 +3,6 @@
 {"path":"packages/react/src/client/authAction.ts","rule":"effect/boundary","count":2}
 {"path":"packages/react/src/client/authQuery.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/authSession.ts","rule":"effect/boundary","count":1}
-{"path":"packages/react/src/client/mountLive.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/permissionBoundary.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/reactWarnings.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/resultState.ts","rule":"effect/boundary","count":1}
