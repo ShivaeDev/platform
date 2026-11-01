@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/webhooks",
-	"version": "0.3.9",
+	"version": "0.3.10",
 	"description": "Verified webhook receipts and transactional job delivery over Effect HTTP",
 	"keywords": [
 		"effect"
