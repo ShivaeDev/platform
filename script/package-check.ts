@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 import process from "node:process";
 import { parseArgs } from "node:util";
-import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
+import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Effect, FileSystem } from "effect";
 import { parseShard } from "#ci/shard.ts";
 import { prepareArchives, verifyArchives, workspaceArchives } from "#package-check/archives.ts";

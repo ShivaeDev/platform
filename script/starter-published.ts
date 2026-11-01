@@ -1,7 +1,8 @@
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Effect, FileSystem } from "effect";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { verifyArchives, workspaceArchives } from "#package-check/archives.ts";

@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import process from "node:process";
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Console, Effect, FileSystem, Schema } from "effect";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import type { PackageManifest } from "@shivaedev/releases/model.ts";

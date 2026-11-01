@@ -1,5 +1,6 @@
 import process from "node:process";
-import { NodeRuntime, NodeServices } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Effect, Schema } from "effect";
 import { write } from "@shivaedev/github/GitHub.ts";
 import { collectReleaseNotes } from "@shivaedev/releases/releaseNotes.ts";
