@@ -1,6 +1,18 @@
 import ts from "typescript";
 
-export type Origin = "factory" | "kit" | "story" | "plain" | "suite" | "vitest" | "stories" | "function" | readonly Origin[] | undefined;
+export type Origin =
+	| "factory"
+	| "kit"
+	| "story"
+	| "plain"
+	| "suite"
+	| "vitest"
+	| "stories"
+	| "effectFactory"
+	| "effectKit"
+	| "function"
+	| readonly Origin[]
+	| undefined;
 
 export function commonOrigin(values: readonly Origin[]): Origin {
 	const first = values[0];

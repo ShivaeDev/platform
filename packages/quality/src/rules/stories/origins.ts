@@ -3,18 +3,10 @@ import ts from "typescript";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
 import { iterationOrigin, type Origin } from "./collectionOrigins.ts";
-import { importOrigin } from "./importOrigin.ts";
+import { importFrom, importOrigin } from "./importOrigin.ts";
 import { storyProgram } from "./program.ts";
 import { returnValues } from "./returnValues.ts";
-
-function importFrom(node: ts.Node): string | undefined {
-	for (let current: ts.Node | undefined = node; current !== undefined; current = current.parent) {
-		if (ts.isImportDeclaration(current) && ts.isStringLiteral(current.moduleSpecifier)) {
-			return current.moduleSpecifier.text;
-		}
-	}
-	return undefined;
-}
+import { memberName } from "./syntax.ts";
 
 export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 	const program = storyProgram(inputs, graph);
@@ -75,8 +67,8 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 	}
 
 	function member(receiver: Origin, name: string): Origin {
-		if (receiver === "kit" && name === "it") {
-			return "story";
+		if ((receiver === "effectKit" && name === "effectApp") || (receiver === "kit" && name === "it")) {
+			return receiver === "kit" ? "story" : "plain";
 		}
 		if (receiver === "story" || receiver === "plain" || receiver === "suite") {
 			return receiver;
@@ -112,7 +104,10 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 			const values = returnValues(checker.getResolvedSignature(node)?.declaration);
 			return values.length > 0 && values.every((value) => value !== undefined && visit(value) === "kit") ? "kit" : callee;
 		}
-		return callee === "factory" ? "kit" : callee;
+		if (callee === "factory" || callee === "effectFactory") {
+			return callee === "factory" ? "kit" : "effectKit";
+		}
+		return callee;
 	}
 
 	function expression(node: ts.Node): Origin {
@@ -122,8 +117,14 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		if (ts.isCallExpression(node)) {
 			return call(node);
 		}
+		if (ts.isTaggedTemplateExpression(node)) {
+			return visit(node.tag);
+		}
 		if (ts.isPropertyAccessExpression(node)) {
 			return member(visit(node.expression), node.name.text) ?? symbol(checker.getSymbolAtLocation(node.name));
+		}
+		if (ts.isElementAccessExpression(node)) {
+			return member(visit(node.expression), memberName(node) ?? "");
 		}
 		return ts.isIdentifier(node) ? identifier(node) : declaration(node);
 	}
