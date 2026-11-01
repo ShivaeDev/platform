@@ -8,6 +8,7 @@ import { type HandledJob, type InboxState, inboxState, startHost } from "#test/h
 import { postgresLayer } from "#test/postgresLayer.ts";
 import { raceVerbs } from "#test/raceVerbs.ts";
 import { type Delivery, deliver } from "#test/requests.ts";
+import { resourceVerbs } from "#test/resourceVerbs.ts";
 import { requestOutcomes, secretsSeenIn, spanNames } from "#test/telemetry.ts";
 
 function testingOf(state: InboxState) {
@@ -38,6 +39,7 @@ export const inbox = storyKit({
 	stages: ["host", "inbox"],
 	verbs: (state, story) => ({
 		...raceVerbs(state, story.tell),
+		...resourceVerbs(state, story.tell),
 		answer: () => Effect.sync(() => state.answers.at(-1) ?? "no answer yet"),
 		answers: () => Effect.sync(() => state.answers.toSorted()),
 		deliver: (delivery: Delivery) => {
@@ -93,3 +95,11 @@ export function senderOptIn(expiry: "future" | "past") {
 export const senderPreferencesGone = inbox.trait("inbox", "the sender preferences table is unavailable", () =>
 	SqlClient.SqlClient.use((sql) => sql`drop table webhook_senders`),
 );
+
+export const mappingWaitsForResource = inbox.trait("inbox", "the mapping must wait for a resource", (state) => {
+	state.resources.blocked = true;
+});
+
+export const mappingRefusesDelivery = inbox.trait("inbox", "the mapping refuses the delivery after acquiring a resource", (state) => {
+	state.resources.refused = true;
+});

@@ -10,6 +10,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { webhookRoute } from "#server/route.ts";
 import { webhookReceipts } from "#server/webhookReceipts.ts";
 import { auditQueue, issueQueue, Jobs, MAX_BODY_BYTES, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
+import { mappingResources, resourceEvent } from "#test/mappingResources.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { senderPreferences } from "#test/senderCheck.ts";
 
@@ -31,6 +32,7 @@ export interface InboxState {
 	host: Fiber.Fiber<void, unknown> | undefined;
 	readonly logs: Array<{ readonly annotations: unknown; readonly cause: string; readonly level: string; readonly message: unknown }>;
 	mode: "check" | "wait" | undefined;
+	readonly resources: ReturnType<typeof mappingResources>;
 	readonly sent: Sent[];
 	signingKey: string | undefined;
 	readonly telemetry: ReturnType<typeof recordingTracer>;
@@ -47,6 +49,7 @@ export function inboxState(mode: InboxState["mode"]): InboxState {
 		host: undefined,
 		logs: [],
 		mode,
+		resources: mappingResources(),
 		sent: [],
 		signingKey: WEBHOOK_SECRET,
 		telemetry: recordingTracer(),
@@ -103,11 +106,11 @@ export function hostLayer(state: InboxState) {
 						group: RpcGroup.make(),
 						handlers: Layer.empty,
 						policy: "loopback" as const,
-						routes: webhookRoute({ basePath: "/hooks", jobs: Jobs, sources }).pipe(
-							Layer.provide(jobs),
-							Layer.provide(senderPreferences),
-							Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
-						),
+						routes: webhookRoute({
+							basePath: "/hooks",
+							jobs: Jobs,
+							sources: { github: { ...sources.github, events: { ...sources.github.events, "resource_issues": resourceEvent(state.resources) } } },
+						}).pipe(Layer.provide(jobs), Layer.provide(senderPreferences), Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))),
 						services: jobs,
 					};
 				}),
