@@ -65,6 +65,23 @@ export const notesApp = storyKit({
 					yield* quietly.click("Add note");
 					yield* settleScreen(engine, story.tell);
 				}),
+			arrivesAt: (path: string) =>
+				Effect.callback<void>((resume) => {
+					if (engine.history.location.pathname === path) {
+						resume(Effect.void);
+						return;
+					}
+					const unsubscribe = engine.history.subscribe(({ location }) => {
+						if (location.pathname === path) {
+							unsubscribe();
+							resume(Effect.void);
+						}
+					});
+					return Effect.sync(unsubscribe);
+				}).pipe(
+					Effect.timeoutOrElse({ duration: "10 seconds", orElse: () => Effect.die(`The app never reached ${path}`) }),
+					Effect.andThen(settleScreen(engine, story.tell)),
+				),
 			route: () => Effect.sync(() => engine.history.location.pathname),
 			signInButton: () =>
 				Effect.sync(() => {

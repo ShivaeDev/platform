@@ -5,12 +5,12 @@ import { aliceAccount, notesApp, notesHostScreen, signedInAccount } from "#modul
 notesApp.it(
 	"signing in on screen stores a session for alice and opens her notes",
 	[aliceAccount(), notesHostScreen()],
-	function* ({ heading, route, settle, shownNotes, signsIn, storedSessions }) {
+	function* ({ arrivesAt, heading, route, settle, shownNotes, signsIn, storedSessions }) {
 		yield* settle();
 		expect(yield* storedSessions).toEqual([]);
 
 		yield* signsIn("correct-horse-battery-staple");
-		yield* settle();
+		yield* arrivesAt("/");
 
 		yield* outcomes([
 			["page", heading, "Notes"],
@@ -19,6 +19,7 @@ notesApp.it(
 			["stored sessions", () => storedSessions, [{ email: "alice@app.test" }]],
 		]);
 	},
+	15_000,
 );
 
 notesApp.it(
@@ -83,10 +84,8 @@ notesApp.it(
 
 notesApp.it(
 	"signing out on screen deletes alice's stored session and shows sign-in",
-	[aliceAccount(), notesHostScreen()],
-	function* ({ click, heading, route, settle, signsIn, storedSessions }) {
-		yield* settle();
-		yield* signsIn("correct-horse-battery-staple");
+	[signedInAccount(), notesHostScreen("/")],
+	function* ({ click, heading, route, settle, storedSessions }) {
 		yield* settle();
 		expect(yield* storedSessions).toEqual([{ email: "alice@app.test" }]);
 

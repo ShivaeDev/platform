@@ -20,6 +20,22 @@ app.it(
 );
 
 app.it(
+	"alice's edit of a counted note clears its word count until the worker counts again",
+	[signedIn("alice")],
+	function* ({ notesOf, workerCountsQueuedNotes }) {
+		const note = yield* notesOf("alice").create("Three new words");
+		yield* workerCountsQueuedNotes();
+		const counted = yield* notesOf("alice").open(note);
+		expect(counted).toEqual({ ...note, version: 1, wordCount: 3 });
+
+		const edited = yield* notesOf("alice").edit(counted, "Four brand new words");
+
+		expect(edited).toEqual({ ...counted, title: "Four brand new words", version: 2, wordCount: null });
+	},
+	15_000,
+);
+
+app.it(
 	"alice's edit from before the worker's count is refused as a conflict and keeps the counted note",
 	[signedIn("alice")],
 	function* ({ notesOf, workerCountsQueuedNotes }) {
