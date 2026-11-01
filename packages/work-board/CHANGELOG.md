@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.41.0 - 2026-11-01
+
+### Added
+
+- `browserClient` takes a `protocol` option, an Effect RPC client protocol layer that replaces the shared WebSocket, and a `live` option that turns off automatic live queries, so a host without WebSocket can read the Board one request at a time.
+
 ## 0.40.1 - 2026-10-31
 
 ### Fixed
