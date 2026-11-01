@@ -30,9 +30,11 @@ The final JUnit and JSON reports still describe the whole run, so CI, coverage a
 
 ### How a run works
 
-`vitest-rerun` runs `vitest run` once in a child process with Vitest's own retries turned off. If tests failed, it starts a new process that runs only the failed tests: tests that passed are skipped by their Vitest test IDs, including passing tests in a failed file. A file that failed to load runs again in full. A failed `beforeAll` or `afterAll`, at file level or in a nested suite, also reruns the whole file so its hooks run again. Tests that passed in that file run again too; any new failure counts. A hook that fails again keeps the run failed and its diagnostic in the final JUnit report. A hook skipped by the rerun keeps its earlier failure and diagnostic. Each rerun is one more attempt, and only tests still failing take part in the next one. The run ends when every test passes or the reruns are used up, and its exit code is the last attempt's: `0` when everything passed, `1` when a test is still failing, and `2` for invalid options.
+`vitest-rerun` runs `vitest run` once in a child process with Vitest's project retry set to `0`. If tests failed, it starts a new process that runs only the failed tests: tests that passed are skipped by their Vitest test IDs, including passing tests in a failed file. A file that failed to load runs again in full. A failed `beforeAll` or `afterAll`, at file level or in a nested suite, also reruns the whole file so its hooks run again. Tests that passed in that file run again too; any new failure counts. A hook that fails again keeps the run failed and its diagnostic in the final JUnit report. A hook skipped by the rerun keeps its earlier failure and diagnostic. Each rerun is one more attempt, and only tests still failing take part in the next one. The run ends when every test passes or the reruns are used up, and its exit code is the last attempt's: `0` when everything passed, `1` when a test is still failing, and `2` for invalid options.
 
 An unhandled error, such as an exception thrown after a test finished, cannot be fixed by running a test again, so a run with one is not rerun and fails.
+
+Retries are global only, and every recovery is recorded in `flaky-tests.json`. Per-test and per-suite retry options that enable Vitest retries are refused: after an attempt, the run fails with a message naming every affected file and test, including tests that inherit a suite's retry. Remove those retry options and use `--reruns` to set the global fresh-process retry policy.
 
 A rerun must collect the same tests as the attempt before it, with the same test names, suite names and task kinds at each Vitest ID. When an identity changes, a new test appears or an original test disappears, `vitest-rerun` refuses to merge it: it prints a `vitest-rerun:` message naming the test or file, the run fails with exit code `1`, and the final reports keep the results of the attempt before it.
 
@@ -93,5 +95,5 @@ npm install --save-dev @shivaedev/vitest-rerun vitest effect @effect/platform-no
 ```
 
 `vitest`, `effect` and the Effect Node platform packages are peers, so your own versions run the tests. The package needs Node 24 or later.
-- Vitest's `retry` is always `0`; the fresh-process rerun replaces it.
+- Vitest's project `retry` is set to `0`; per-test and per-suite retries are refused in favor of the global, recorded fresh-process reruns.
 - The package is built for ShivaeDev repositories and may change without a deprecation period.
