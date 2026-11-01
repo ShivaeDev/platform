@@ -19,6 +19,7 @@ export type Fixture =
 	| "genreStories"
 	| "invalidTagStories"
 	| "lifetimeStories"
+	| "lifecycleFailureStories"
 	| "onlyStories"
 	| "outboundStories"
 	| "outcomeStories"

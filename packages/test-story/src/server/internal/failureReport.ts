@@ -4,12 +4,19 @@ import { locate } from "#internal/callSite.ts";
 import { engineSnapshot } from "#internal/engineSnapshot.ts";
 import type { Narration, Subject } from "#internal/narration.ts";
 import { describeValue } from "#internal/render.ts";
-import { WIDTH, wrap } from "#internal/wrap.ts";
+import { explained, WIDTH, wrap } from "#internal/wrap.ts";
 
 export interface FailedTest {
 	readonly file: string;
 	readonly name: string;
 	readonly stack: string | undefined;
+}
+
+export function creationReport(name: string, test: FailedTest): string {
+	return `${explained(
+		`the ${name} story kit failed during create`,
+		`create builds the engine before traits and the story run. Fix the create hook in the ${name} story kit or the resources it needs.`,
+	)}\n\n${rerun(test)}`;
 }
 
 export function failureReport<TEngine>(narration: Narration, subject: Subject<TEngine>, test: FailedTest): string {
