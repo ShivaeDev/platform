@@ -33,11 +33,6 @@ app.it(
 		yield* Effect.promise(() =>
 			expect.poll(() => Effect.runPromise(client.get({ id: saved.id })), { timeout: 8000 }).toEqual({ ...saved, version: 2, wordCount: 2 }),
 		);
-		yield* Effect.promise(() =>
-			expect
-				.poll(() => receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code), { timeout: 8000 })
-				.toEqual([1, 1]),
-		);
 		yield* stopWorker;
 		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1, 1]);
 		const counted = yield* client.get({ id: saved.id });
