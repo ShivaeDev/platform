@@ -4,7 +4,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
-import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
+import { useLiveWindow } from "#client/adapters/useLiveWindow.ts";
 import type { AtomServices } from "#fieldRejection.ts";
 import { acceptLoaderQuery } from "#internal/queryHandoff.ts";
 import { requestsRecheck } from "#internal/sessionRecheck.ts";
@@ -59,14 +59,7 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 	const result = useAtomValue(atom);
 	const registry = useContext(RegistryContext);
 	useEffect(() => acceptLoaderQuery(registry, atom), [registry, atom]);
-	useEffect(() => {
-		if (options.coalesceWindow === undefined) {
-			return;
-		}
-		const window = queryCoalesceWindow(atom);
-		registry.set(window, options.coalesceWindow);
-		return () => registry.set(window, undefined);
-	}, [registry, atom, options.coalesceWindow]);
+	useLiveWindow(atom, options.coalesceWindow);
 	const keepPreviousData = options.keepPreviousData === true;
 	const nativeData = AsyncResult.value(result);
 	const [held, hold] = useState<HeldQuery<A, E>>(() => ({ atom, data: nativeData, dataAtom: atom, keepPreviousData, registry, result }));

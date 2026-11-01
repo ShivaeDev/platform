@@ -55,6 +55,8 @@ export const loaderWindowStory = storyKit({
 			atom,
 			handled,
 			hints,
+			loaded: 0,
+			readers: new Map<string, QueryOptions | undefined>(),
 			requests,
 			responses,
 			screen,
@@ -69,17 +71,40 @@ export const loaderWindowStory = storyKit({
 	stages: ["screen"],
 	verbs: (engine, story) => {
 		engine.screen.tell = story.tell;
+		function renderReaders() {
+			return Effect.promise(() =>
+				engine.view.render(
+					[...engine.readers].map(([name, options]) => <LoaderWindowRead atom={engine.atom} key={name} loaded={engine.loaded} options={options} />),
+				),
+			);
+		}
 		return {
+			addReader: (name: string, options?: QueryOptions) =>
+				Effect.gen(function* () {
+					story.tell(`mount the ${name} reader`);
+					engine.readers.set(name, options);
+					yield* renderReaders();
+				}),
+			changeReaderWindow: (name: string, window: Duration.Input | undefined) =>
+				Effect.gen(function* () {
+					story.tell(`change the ${name} reader's window to ${window}`);
+					if (!engine.readers.has(name)) {
+						throw new Error(`Missing ${name} reader`);
+					}
+					engine.readers.set(name, { coalesceWindow: window });
+					yield* renderReaders();
+				}),
 			open: (sessionWindow: Duration.Input, options?: QueryOptions) =>
 				Effect.gen(function* () {
 					story.tell("load the query and mount its screen");
 					yield* Effect.acquireRelease(
-						Effect.sync(() => mountLive(engine.view.registry, engine.api, sessionWindow)),
+						mountLive(engine.api, sessionWindow).pipe(Effect.provideService(AtomRegistry.AtomRegistry, engine.view.registry)),
 						(stop) => Effect.sync(stop),
 					);
-					const loaded = yield* Effect.promise(() => loadQuery(engine.view.registry, engine.atom, { abortController: new AbortController() }));
+					engine.loaded = yield* Effect.promise(() => loadQuery(engine.view.registry, engine.atom, { abortController: new AbortController() }));
 					yield* Queue.take(engine.responses);
-					yield* Effect.promise(() => engine.view.render(<LoaderWindowRead atom={engine.atom} loaded={loaded} options={options} />));
+					engine.readers.set("first", options);
+					yield* renderReaders();
 				}),
 			publish: (next: number) =>
 				engine.screen.act(`publish the changed note ${next}`, async () => {
@@ -92,6 +117,14 @@ export const loaderWindowStory = storyKit({
 				engine.screen.act("wait for the live refetch response", async () => {
 					await Effect.runPromise(Queue.take(engine.responses));
 					await Effect.runPromise(AtomRegistry.getResult(engine.view.registry, engine.atom, { suspendOnWaiting: true }));
+				}),
+			removeReader: (name: string) =>
+				Effect.gen(function* () {
+					story.tell(`unmount the ${name} reader`);
+					if (!engine.readers.delete(name)) {
+						throw new Error(`Missing ${name} reader`);
+					}
+					yield* renderReaders();
 				}),
 			requests: () => [...engine.requests],
 			shown: () => engine.view.container.textContent,

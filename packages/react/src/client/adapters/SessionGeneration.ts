@@ -1,5 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
-import type { Duration } from "effect";
+import { type Duration, Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, type ReactNode, useEffect, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
@@ -72,7 +72,9 @@ export function SessionGeneration<TSession, TClient>({
 	useEffect(() => registerSessionRecheck(owned.registry, recheckLatest), [owned, recheckLatest]);
 	useEffect(() => {
 		owned.mounted += 1;
-		const stopLive = mountLive(owned.registry, owned.client, liveCoalesceWindow);
+		const stopLive = Effect.runSync(
+			mountLive(owned.client, liveCoalesceWindow).pipe(Effect.provideService(AtomRegistry.AtomRegistry, owned.registry)),
+		);
 		return () => {
 			stopLive();
 			owned.mounted -= 1;

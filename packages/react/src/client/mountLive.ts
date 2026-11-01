@@ -1,8 +1,9 @@
-import { Cause, type Duration, Option, Predicate } from "effect";
+import { Cause, type Duration, Effect, Option, Predicate } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { liveBindings } from "#internal/liveBindings.ts";
+import { registerLiveWindow } from "#internal/registerLiveWindow.ts";
 import { recheckUnauthorized } from "#internal/sessionRecheck.ts";
 
 function recheckFailure(registry: AtomRegistry.AtomRegistry, failure: Option.Option<Cause.Cause<unknown>>) {
@@ -12,7 +13,8 @@ function recheckFailure(registry: AtomRegistry.AtomRegistry, failure: Option.Opt
 	}
 }
 
-export function mountLive(registry: AtomRegistry.AtomRegistry, client: unknown, coalesceWindow?: Duration.Input) {
+export const mountLive = Effect.fn("Live.mountLive")(function* (client: unknown, coalesceWindow?: Duration.Input) {
+	const registry = yield* AtomRegistry.AtomRegistry;
 	const releases: Array<() => void> = [];
 	const found = new Set<unknown>();
 	for (const value of liveBindings(client)) {
@@ -24,7 +26,7 @@ export function mountLive(registry: AtomRegistry.AtomRegistry, client: unknown, 
 				&& Atom.isAtom(live.coalesceWindow)
 				&& Atom.isWritable(live.coalesceWindow)
 			) {
-				registry.set(live.coalesceWindow, coalesceWindow);
+				releases.push(yield* registerLiveWindow(live.coalesceWindow, coalesceWindow));
 			}
 			found.add(live.connection);
 			releases.push(
@@ -37,9 +39,9 @@ export function mountLive(registry: AtomRegistry.AtomRegistry, client: unknown, 
 			releases.push(registry.mount(live.connection));
 		}
 	}
-	return () => {
+	return (): void => {
 		for (const release of releases) {
 			release();
 		}
 	};
-}
+});
