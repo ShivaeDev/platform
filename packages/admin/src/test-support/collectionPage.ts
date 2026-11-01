@@ -20,6 +20,7 @@ export const workspaces = collection("admin_workspaces", Schema.Int, { tenant: S
 export function collectionPage() {
 	return adminPage({
 		contract: contract("admin.workspaces", {
+			keyScope: "session",
 			queries: [
 				query("all", {
 					readPolicy: permissionReadPolicy(ReadUsers, (_permission, viewer) =>

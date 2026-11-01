@@ -62,23 +62,24 @@ export function adminPage<
 	TRpcs extends Rpc.AnyWithProps,
 	const TStreams extends readonly StreamShape[],
 	TMiddleware extends RpcMiddleware.AnyService & PagePermission,
+	const TScope extends "session" | undefined = undefined,
 >(page: {
 	readonly id: TId;
 	readonly route: TRoute;
 	readonly permission: TMiddleware;
-	readonly contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams>;
+	readonly contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams, TScope>;
 }): AdminPage & {
 	readonly route: TRoute & { readonly permission: Permission };
 	readonly id: TId;
 	readonly permissionKey: TMiddleware["key"];
-	readonly contract: Contract<TName, PageQueries<TQueries>, TCommands, Rpc.AddMiddleware<PageRpcs<TRpcs>, TMiddleware>, TStreams>;
+	readonly contract: Contract<TName, PageQueries<TQueries>, TCommands, Rpc.AddMiddleware<PageRpcs<TRpcs>, TMiddleware>, TStreams, TScope>;
 };
 export function adminPage(page: {
 	readonly id: string;
 	readonly route: Omit<AdminRoute, "permission">;
 	readonly permission: PagePermission & RpcMiddleware.AnyService;
 	readonly contract: {
-		readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[]>;
+		readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
 		readonly requests: ReadonlyMap<string, Rpc.AnyWithProps>;
 	};
 }): AdminPage {
