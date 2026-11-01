@@ -12,9 +12,12 @@ const FIXTURE_TESTS = {
 	"a body that succeeds holding its resource": "scopeFixture",
 	"a plain Vitest test": "testerFixture",
 	"a test of a worker whose Layer fails to start": "startupFailureFixture",
+	"a test waiting for its file Layer": "pendingLayerFixture",
 	"a test whose cleanup never finishes": "stuckCleanupFixture",
 	"an it.effect body behind a true skip condition": "testerFixture",
 	"an it.effect body that fails": "testerFixture",
+	"an it.effect test whose cleanup never finishes": "stuckCleanupFixture",
+	"an it.live test whose cleanup never finishes": "stuckCleanupFixture",
 	"it.effect.each case alpha": "testerFixture",
 	"it.effect.each case beta": "testerFixture",
 	"the test after a cleanup that never finishes": "stuckCleanupFixture",
@@ -28,6 +31,7 @@ interface VitestRun {
 	readonly log: string;
 	requested: readonly FixtureTestName[];
 	tests: readonly FixtureTest[];
+	unhandledErrors: readonly unknown[];
 }
 
 function fixtureOf(tests: readonly FixtureTestName[]): Fixture {
@@ -50,7 +54,7 @@ export const vitestRun = storyKit({
 			Effect.sync(() => mkdtempSync(join(tmpdir(), "test-vitest-run-"))),
 			(path) => Effect.sync(() => rmSync(path, { force: true, recursive: true })),
 		);
-		const run: VitestRun = { log: join(directory, "lifecycle.log"), requested: [], tests: [] };
+		const run: VitestRun = { log: join(directory, "lifecycle.log"), requested: [], tests: [], unhandledErrors: [] };
 		return run;
 	},
 	inspect: ({ requested, tests }) =>
@@ -62,16 +66,19 @@ export const vitestRun = storyKit({
 			return Effect.promise(async () => {
 				rmSync(run.log, { force: true });
 				run.requested = tests ?? [];
-				run.tests = await runFixture({
+				const result = await runFixture({
 					env: { [LIFECYCLE_LOG]: run.log },
 					file,
 					...(tests === undefined
 						? { reporter: { onTestModuleEnd: () => appendFileSync(run.log, "Vitest reported the file complete\n") } }
 						: { tests }),
 				});
+				run.tests = result.tests;
+				run.unhandledErrors = result.unhandledErrors;
 			});
 		}
 		return {
+			errorNames: (name: FixtureTestName) => Effect.sync(() => run.tests.find((test) => test.name === name)?.errorNames),
 			lifecycle: () => Effect.sync(() => (existsSync(run.log) ? readFileSync(run.log, "utf8").trimEnd().split("\n") : [])),
 			outcome: (name?: FixtureTestName) =>
 				Effect.sync(() => {
@@ -87,10 +94,15 @@ export const vitestRun = storyKit({
 				story.tell(`Vitest runs ${tests.map((test) => `"${test}"`).join(", then ")}`);
 				return start(fixtureOf(tests), tests);
 			},
+			runsPendingLayerFile: () => {
+				story.tell("Vitest runs a test that times out waiting for its file Layer, and reports when the file is complete");
+				return start("pendingLayerFixture");
+			},
 			runsSharedLayerFile: () => {
 				story.tell("Vitest runs a file whose two tests use one file Layer, and reports when the file is complete");
 				return start("sharedLayerFixture");
 			},
+			unhandledErrors: () => Effect.sync(() => run.unhandledErrors),
 		};
 	},
 });

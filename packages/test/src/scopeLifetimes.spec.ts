@@ -16,22 +16,26 @@ vitestRun.it("a test interrupted by its timeout still releases the body's resour
 	expect(yield* lifecycle()).toEqual(["released the body's resource", "released the harness's resource"]);
 });
 
-vitestRun.it(
-	"a cleanup that never finishes fails its own test after the 5 s scope close limit, and the next test in the file still runs",
-	[],
-	function* ({ outcome, runs }) {
-		yield* runs("a test whose cleanup never finishes", "the test after a cleanup that never finishes");
+for (const test of [
+	"a test whose cleanup never finishes",
+	"an it.effect test whose cleanup never finishes",
+	"an it.live test whose cleanup never finishes",
+] as const) {
+	vitestRun.it(
+		`${test} fails after the 5 s scope close limit with TestScopeCloseTimeout and no unhandled errors, and the next test still runs`,
+		[],
+		function* ({ errorNames, outcome, runs, unhandledErrors }) {
+			yield* runs(test, "the test after a cleanup that never finishes");
 
-		yield* outcomes([
-			["the next test", () => outcome("the test after a cleanup that never finishes"), "passed"],
-			[
-				"the stuck test",
-				() => outcome("a test whose cleanup never finishes"),
-				'failed: Test timed out in 25ms. / Test scope "a test whose cleanup never finishes" did not close within 5000ms.',
-			],
-		]);
-	},
-);
+			yield* outcomes([
+				["the next test", () => outcome("the test after a cleanup that never finishes"), "passed"],
+				["the stuck test", () => outcome(test), `failed: Test timed out in 25ms. / Test scope "${test}" did not close within 5000ms.`],
+				["reported error names", () => errorNames(test), ["Error", "TestScopeCloseTimeout"]],
+				["unhandled errors", () => unhandledErrors(), []],
+			]);
+		},
+	);
+}
 
 vitestRun.it(
 	"a Layer that fails during worker startup releases what it acquired before the next test runs, and runs no test body",

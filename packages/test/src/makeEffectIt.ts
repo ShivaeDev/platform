@@ -3,17 +3,18 @@ import { type Context, Effect, Exit, type Layer, Scope } from "effect";
 import { runEffectTest } from "#internal/runEffectTest.ts";
 import { type AnyTestLayer, buildTestLayer } from "./anyTestLayer.ts";
 import type { EffectClock, EffectTest, EffectTestBody, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";
+import { withLive } from "./withLive.ts";
 
 const FIXTURE_NAME = "__effectTestContext";
 
 type EffectFixture<TProvided> = TestContext & {
-	readonly [FIXTURE_NAME]: Context.Context<TProvided>;
+	readonly [FIXTURE_NAME]: Effect.Effect<Context.Context<TProvided>, unknown>;
 };
 
 type FixtureTest<TProvided> = (name: string, options: TestOptions, body: (context: EffectFixture<TProvided>) => Promise<unknown>) => void;
 
 function restoreContext<TProvided>(
-	fixture: Context.Context<TProvided>,
+	fixture: Effect.Effect<Context.Context<TProvided>, unknown>,
 	context: Omit<EffectFixture<TProvided>, typeof FIXTURE_NAME>,
 ): EffectFixture<TProvided> {
 	return {
@@ -37,16 +38,10 @@ function splitOptions(options: number | EffectTestOptions | undefined): {
 }
 
 function makeFixtureIt<TLayer extends AnyTestLayer>(layer: TLayer) {
-	return effectIt.extend(FIXTURE_NAME, { scope: "file" }, async ({}, { onCleanup }) => {
+	return effectIt.extend(FIXTURE_NAME, { scope: "file" }, ({}, { onCleanup }) => {
 		const scope = Effect.runSync(Scope.make());
 		onCleanup(() => Effect.runPromise(Scope.close(scope, Exit.void)));
-
-		try {
-			return await Effect.runPromise(buildTestLayer(layer, scope));
-		} catch (error) {
-			await Effect.runPromise(Scope.close(scope, Exit.void));
-			throw error;
-		}
+		return Effect.runSync(Effect.cached(withLive(buildTestLayer(layer, scope))));
 	});
 }
 
@@ -64,7 +59,7 @@ export function makeEffectIt<THarness, TTestLayer extends AnyTestLayer>(
 			return yield* Effect.isEffect(result) ? result : Effect.gen(() => result);
 		});
 		const wrapped = options.around?.(ready) ?? ready;
-		return wrapped.pipe(Effect.provide(context[FIXTURE_NAME]));
+		return Effect.flatMap(context[FIXTURE_NAME], (services) => wrapped.pipe(Effect.provide(services)));
 	}
 
 	function register(current: FixtureTest<Provided>): EffectTest<THarness, Provided> {
