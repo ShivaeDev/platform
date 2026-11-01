@@ -1,8 +1,7 @@
-import { execFile } from "node:child_process";
 import { Clock, Context, Effect, Layer, Schedule, Semaphore } from "effect";
-import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { FleetError } from "#errors.ts";
+import { gitProcess } from "#host/adapters/gitProcess.ts";
 import type { FleetHost } from "#host/config.ts";
 import { predictedMergeConflicts, predictionGit } from "#host/gitMergeTree.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
@@ -25,14 +24,8 @@ export class MainSource extends Context.Service<
 	}
 >()("@shivaedev/work-fleet/host/MainSource") {}
 
-function git(cwd: string, args: readonly string[]) {
-	return Effect.callback<string, FleetError>((resume) => {
-		execFile("git", [...args], { cwd, timeout: 60_000 }, (error, stdout) => {
-			resume(
-				error === null ? Effect.succeed(stdout.trim()) : Effect.fail(new ServiceUnavailable({ message: `git ${args[0]} failed: ${error.message}` })),
-			);
-		});
-	});
+function git(cwd: string, args: readonly string[]): Effect.Effect<string, FleetError> {
+	return gitProcess(cwd, args).pipe(Effect.map(({ stdout }) => stdout.trim()));
 }
 
 function refUpdateRace(ref: string, error: FleetError) {

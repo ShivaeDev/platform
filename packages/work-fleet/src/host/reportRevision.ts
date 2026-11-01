@@ -1,21 +1,15 @@
-import { execFile } from "node:child_process";
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import type { FleetError } from "#errors.ts";
+import { gitProcess } from "#host/adapters/gitProcess.ts";
 import { predictionGit } from "#host/gitMergeTree.ts";
 
 export function reportRevision(cwd: string, remote: string) {
 	return Effect.fn("FleetHost.reportRevision")(function* (base: string, revision: string) {
 		yield* predictionGit(cwd, ["fetch", "--quiet", remote, base, revision]);
-		return yield* Effect.callback<boolean, FleetError>((resume) => {
-			execFile("git", ["merge-base", "--is-ancestor", base, revision], { cwd, timeout: 60_000 }, (error) => {
-				resume(
-					error === null || error.code === 1
-						? Effect.succeed(error === null)
-						: Effect.fail(new ServiceUnavailable({ message: `Report revision ancestry could not be checked: ${error.message}` })),
-				);
-			});
+		const result = yield* gitProcess(cwd, ["merge-base", "--is-ancestor", base, revision], {
+			acceptExitOne: true,
+			failureMessage: (message) => `Report revision ancestry could not be checked: ${message}`,
 		});
+		return result.exitCode === 0;
 	});
 }
 
