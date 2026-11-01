@@ -9,6 +9,7 @@ import { TimedJsonReporter } from "#internal/adapters/TimedJsonReporter.ts";
 import { writeMergedReports } from "#internal/adapters/writeMergedReports.ts";
 import { RerunJunitReporter } from "#internal/junit.ts";
 import { mergeAttempt } from "#internal/mergeAttempt.ts";
+import { refuseDeclaredRetries } from "#internal/refuseDeclaredRetries.ts";
 import { attemptPaths, reportPaths } from "#internal/reportPaths.ts";
 import { failedFiles, readSnapshot, type Snapshot, saveSnapshot, tests } from "#internal/snapshot.ts";
 
@@ -71,6 +72,7 @@ const rerunFailed = Effect.fn("VitestRerun.rerunFailed")(function* (vitest: Vite
 		return yield* Effect.fail(failWith("No failed specifications found for the fresh rerun")(undefined));
 	}
 	yield* promise("Vitest could not rerun the failed tests", () => vitest.runTestSpecifications(specifications));
+	yield* refuseDeclaredRetries(vitest.state.getFiles(), vitest.config.root);
 	const lines: string[] = [];
 	const merged = yield* mergeAttempt(previous, vitest.state.getFiles(), vitest.config.root, (line) => lines.push(line));
 	for (const file of merged.files) {
@@ -105,6 +107,7 @@ export const runAttempt = Effect.fn("VitestRerun.runAttempt")(function* (input: 
 	const snapshot: Snapshot = rerun
 		? yield* rerunFailed(vitest, input)
 		: yield* promise("Vitest could not run the tests", () => vitest.start(filter)).pipe(
+				Effect.tap(() => refuseDeclaredRetries(vitest.state.getFiles(), vitest.config.root)),
 				Effect.map(() => ({
 					errors: vitest.state.getUnhandledErrors(),
 					failures: {},

@@ -3,14 +3,26 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { alwaysFails, collectionFailsOnce, failsTimes, leavesUnhandledError, passes, rerunStory } from "#test/kit.ts";
 
 rerunStory.it(
-	"a test that failed its first attempt passes in a fresh-process rerun that runs only that test again",
+	"a test that failed its first attempt passes in a fresh-process rerun that runs only that test again and records its recovery",
 	[failsTimes(1), passes()],
-	function* ({ exitCode, run, timesRan }) {
+	function* ({ exitCode, flakyTests, run, timesRan }) {
 		yield* run();
 
 		yield* outcomes([
 			["exit code", () => exitCode(), 0],
 			["times each test ran", () => timesRan(), { "checkout > passes beside it": 1, "checkout > recovers only in a fresh process": 2, passes: 1 }],
+			[
+				"flaky tests",
+				() => flakyTests(),
+				[
+					{
+						attempts: 2,
+						file: "flaky.spec.ts",
+						messages: ["Attempt 1 leaves module state behind"],
+						name: "checkout > recovers only in a fresh process",
+					},
+				],
+			],
 		]);
 	},
 );
