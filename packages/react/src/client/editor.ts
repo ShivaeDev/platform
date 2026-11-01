@@ -1,7 +1,7 @@
 import { type Effect, Option, type Schema } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { type BrowserDraftConfig, usePersistedDraft } from "@shivaedev/form/client/react.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
 import type { AtomServices, FieldRejectionMapping } from "#fieldRejection.ts";
@@ -62,6 +62,7 @@ export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError,
 				initialValues: config.values(row.value),
 				persistedDraft,
 				runtime: config.runtime,
+				savedValues: config.values,
 			}).form,
 			query: config.query,
 			runtime: config.runtime,
@@ -77,8 +78,7 @@ export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError,
 			form.receive(values(received));
 		}
 	}, [form, values, received]);
-	const settled = useCallback((saved: TRow) => (form && values ? form.receive(values(saved)) : undefined), [form, values]);
-	const saveState = useSaveState(form, settled);
+	const saveState = useSaveState(form);
 	if ("loaded" in config && form !== undefined) {
 		return { ...saveState, form, query: loadedQuery(query, config.loaded) };
 	}

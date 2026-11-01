@@ -2,18 +2,14 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { activityDraft, drafts, draftTyped, laterEditSaved, saveHeld } from "#test/draftStories.ts";
 
-drafts.it(
-	"an edit made while a save waits survives the save's success and stays stored",
-	[saveHeld(true)],
-	function* ({ fields, finishSave, stored }) {
-		yield* finishSave();
+drafts.it("an edit and refreshed quantity survive a late save and stay stored", [saveHeld(true)], function* ({ fields, finishSave, stored }) {
+	yield* finishSave();
 
-		yield* outcomes([
-			["fields", () => fields(), { name: "Later edit", quantity: "300" }],
-			["stored", () => stored(), { name: "Later edit", quantity: "300" }],
-		]);
-	},
-);
+	yield* outcomes([
+		["fields", () => fields(), { name: "Later edit", quantity: "350" }],
+		["stored", () => stored(), { name: "Later edit", quantity: "350" }],
+	]);
+});
 
 drafts.it("a reload after the save restores the later edit as unsaved", [laterEditSaved()], function* ({ fields, reload, status }) {
 	yield* reload();
