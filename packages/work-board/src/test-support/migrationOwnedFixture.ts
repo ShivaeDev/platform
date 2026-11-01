@@ -1,1 +1,1 @@
-export const LEGACY_PLAN = "---\nkind: project\nstatus: active\n---\n# Plan\n";
+export const migrationOwnedFixture = { plan: "---\nkind: project\nstatus: active\n---\n# Plan\n" };

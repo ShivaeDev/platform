@@ -3,9 +3,10 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { linkedProject } from "#test/linkedProject.ts";
-import { LEGACY_PLAN } from "#test/migrationOwnedFixture.ts";
+import { migrationOwnedFixture } from "#test/migrationOwnedFixture.ts";
 import { referenceFile, workspaceLink } from "#test/servingStoryTraits.ts";
 
+const LEGACY_PLAN = migrationOwnedFixture.plan;
 const MIGRATED = "---\nkind: goal\nstatus: ready\n---\n# Plan\n";
 const excluded = ["node_modules/pkg/plan.md", "notes/node_modules/pkg/plan.md", ".drafts/plan.md", "notes/.drafts/plan.md", "plan.MD"];
 const owned = ["plan.md", "notes/plan.md"];
