@@ -42,12 +42,12 @@ function connection(engine: Engine, name: string) {
 	return client;
 }
 
-function connect(engine: Engine, token: string | undefined): Effect.Effect<McpClient.McpClient | string, never, Scope.Scope> {
+function connect(engine: Engine, token: string | undefined, scheme = "Bearer"): Effect.Effect<McpClient.McpClient | string, never, Scope.Scope> {
 	return McpClient.make({ name: "Story client", version: "1" }).pipe(
 		Effect.provideServiceEffect(
 			McpClient.Transport,
 			McpClient.http({
-				headers: token === undefined ? {} : { authorization: `Bearer ${token}` },
+				headers: token === undefined ? {} : { authorization: `${scheme} ${token}` },
 				protocol: McpProtocol.v2026_07_28,
 				url: `${engine.baseUrl}/mcp`,
 			}),
@@ -57,8 +57,8 @@ function connect(engine: Engine, token: string | undefined): Effect.Effect<McpCl
 	);
 }
 
-export function connects(engine: Engine, name: string) {
-	return Effect.map(connect(engine, engine.tokens.get(name)), (client) => {
+export function connects(engine: Engine, name: string, scheme = "Bearer") {
+	return Effect.map(connect(engine, engine.tokens.get(name), scheme), (client) => {
 		if (typeof client === "string") {
 			return client;
 		}
@@ -78,10 +78,10 @@ export function clientVerbs(engine: Engine, tell: (line: string) => void) {
 				Effect.map((result) => (result.isError === true ? `failed: ${textOf(result)}` : `answered ${named(engine, decoded(textOf(result)))}`)),
 				Effect.catch((error) => Effect.succeed(failureOf(engine, error))),
 			),
-		connects: (name: string) =>
+		connects: (name: string, scheme = "Bearer") =>
 			Effect.suspend(() => {
 				tell(`${name}'s client connects to the MCP endpoint`);
-				return connects(engine, name);
+				return connects(engine, name, scheme);
 			}),
 		connectsWithoutToken: () =>
 			Effect.suspend(() => {
