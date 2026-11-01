@@ -321,7 +321,7 @@ Preferences.application.toLayer({
 
 `store` is the application's persistence service. No owner or client key scope is accepted from a request. The database app host of `@shivaedev/server` resolves the server key scope from that same request-local identity.
 
-The registry is required for session-scoped bindings. Query atoms and live connections belong in it; command and one-off query Effects execute through it. A successful command invalidates its owner's keys, while a rejected command declares no invalidation. Ordinary contracts keep unscoped keys and the two-argument `bind` call.
+The registry is required for session-scoped bindings. Query atoms and live connections belong in it; command and one-off query Effects execute through it. Explicit streams also run through its client, preserving the session transport and headers; disposing the registry ends those streams. Streams on ordinary contracts use the caller's client. A successful command invalidates its owner's keys, while a rejected command declares no invalidation. Ordinary contracts keep unscoped keys and the two-argument `bind` call.
 
 `List` and `Item` are still the key shapes. `readKeys(keys, { scope })` and `invalidationKeys(keys, { scope })` resolve the extra dimension while preserving item, list and wildcard semantics. An item invalidation refreshes that scope's item and list; a wildcard reaches only that scope's items. The client's opaque scope comes from its registry and is never sent as an owner id.
 
