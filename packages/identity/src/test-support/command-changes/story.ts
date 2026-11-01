@@ -2,7 +2,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, Redacted } from "effect";
 import { RpcTest } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
-import { BeforeCommit } from "@shivaedev/sql/transact.ts";
+import { BeforeCommit, ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -10,8 +10,8 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
 import { recorder } from "#test/rpc/harness.ts";
-import { Api, handlers } from "./fixture.ts";
 import { host } from "./host.ts";
+import { viewerFixture } from "./viewerFixture.ts";
 
 const { url } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const postgres = makePostgresTestLayer({
@@ -50,12 +50,28 @@ export const commandChanges = storyKit({
 			}),
 		);
 		const recorded = recorder();
-		const application = yield* Layer.build(
-			handlers.pipe(Layer.provideMerge(requestTracingLayer()), Layer.provideMerge(recorded.layer), Layer.provide(Layer.succeedContext(services))),
+		const fixture = viewerFixture();
+		const publications: Array<readonly unknown[]> = [];
+		const observer = yield* ChangeObserver;
+		const observed = Context.add(services, ChangeObserver, (event) =>
+			Effect.gen(function* () {
+				if (event._tag === "Published") {
+					publications.push(event.changes);
+				}
+				yield* observer(event);
+			}),
 		);
-		const client = yield* RpcTest.makeClient(Api).pipe(Effect.provide(application));
-		return { client, local, logs: recorded.logs, remote, services, state };
+		const application = yield* Layer.build(
+			fixture.application.pipe(
+				Layer.provideMerge(requestTracingLayer()),
+				Layer.provideMerge(recorded.layer),
+				Layer.provide(Layer.succeedContext(observed)),
+			),
+		);
+		const client = yield* RpcTest.makeClient(fixture.api).pipe(Effect.provide(application));
+		return { client, local, logs: recorded.logs, publications, remote, services: observed, state, viewers: fixture.viewers };
 	},
+	inspect: (engine) => ({ publicationAttempts: engine.state.attempts, publications: engine.publications, viewers: engine.viewers }),
 	layer: postgres,
 	name: "command changes",
 	runIf: url !== undefined,
@@ -64,12 +80,23 @@ export const commandChanges = storyKit({
 		errorMessages: () =>
 			Effect.sync(() => engine.logs.filter((log) => log.level === "Error").map((log) => (Array.isArray(log.message) ? log.message[0] : log.message))),
 		initialHint: (location: "local" | "remote") => Effect.succeed(engine[location].initial),
+		invalidationViewers: () => Effect.sync(() => engine.viewers),
 		nextHint: (location: "local" | "remote") => engine[location].next,
 		publicationSaw: () => Effect.sync(() => engine.state.attempts),
+		publishedChanges: () => Effect.sync(() => engine.publications),
 		read: () => engine.client["notes.list"](undefined).pipe(Effect.provide(engine.services)),
 		save: (title: string) => {
 			story.tell(`save the note "${title}" through the command`);
 			return engine.client["notes.save"]({ title }).pipe(Effect.provide(engine.services));
+		},
+		saveAs: (auth: "required" | "optional" | "user" | "accounts", caller: "alice" | "anonymous" = "alice") => {
+			story.tell(`${caller} saves a note through the ${auth}-auth command with a pre-resolved session`);
+			return engine.client[`${auth}.save`](
+				{ title: "Alice's note" },
+				{
+					headers: caller === "anonymous" ? {} : { authorization: caller },
+				},
+			).pipe(Effect.provide(engine.services));
 		},
 	}),
 });

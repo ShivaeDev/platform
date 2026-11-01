@@ -65,10 +65,11 @@ export function maybeAuthenticatedLayer() {
 					Effect.gen(function* () {
 						const session = yield* resolveSession(headers, rpc._tag);
 						if (Option.isNone(session)) {
-							return yield* Effect.provideService(authorizeReads(effect, { payload, rpc }, Option.none()), OptionalIdentity, Option.none());
+							const invocation = authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.none());
+							return yield* Effect.provideService(invocation, OptionalIdentity, Option.none());
 						}
 						const id = yield* identified(session.value.user.id);
-						return yield* authorizeReads(effect, { payload, rpc }, Option.some({ id })).pipe(
+						return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
 							revalidateStream(rpc, id, recheckSession(headers, rpc._tag)),
 							Effect.provideService(OptionalIdentity, Option.some({ id })),
 							Effect.annotateLogs({ userId: id }),
