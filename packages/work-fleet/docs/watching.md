@@ -34,11 +34,11 @@ The JSON watch emits `board-answer` once per response from someone other than th
 
 `--pr-events` watches the PR links in Fleet snapshots, including release PRs holding changeset PRs, through the pr-watch engine. PR lines use the same `kind` field: `pr-dequeued` (with `reason`), `pr-stuck`, `pr-conflict`, `pr-auto-merge-off`, `pr-merged` and `pr-closed`. They include `repository`, `number`, `pr` and `workId`.
 
-Targets are grouped by repository. Completed Fleet work adds no targets. Only open PRs enter the watch; each stays watched through the first poll that sees it merged or closed. New Fleet PRs and held release PRs join as snapshots arrive. Release events carry the work ID of a held item; a release leaving the merge queue emits `pr-dequeued` with its reason just like a work PR.
+Targets are grouped by repository. Completed Fleet work adds no targets. Tracked PRs are reconciled on startup, including a merge or closure that happened while the watcher was stopped. Open PRs stay watched through the first poll that sees them merged or closed; saved terminal snapshots stay quiet on restart. New Fleet PRs and held release PRs join as snapshots arrive. Release events carry the work ID of a held item; a release leaving the merge queue emits `pr-dequeued` with its reason just like a work PR.
 
 `--pr-interval` sets the GitHub polling interval in seconds (default 60); `--api-url` selects the REST base. Authentication uses `GH_TOKEN`, then `GITHUB_TOKEN`. Snapshots live under `<board>/.pr-watch/OWNER-REPO.json` and retain pr-watch's restart delivery limits.
 
-A PR-specific failure emits `pr-error` once per distinct error while other PRs keep reporting. Non-retryable refusals such as HTTP 422 back off before that PR is read again. Repository-wide transient GitHub failures retry; pacing emits `pr-cooldown`. A repository-wide fatal failure prints `pr-error` and `pr-stopped` before the command exits unsuccessfully. `--events` filters transition kinds while daemon and PR health changes remain visible.
+A failed queue confirmation preserves the previous snapshot without emitting transitions until confirmation succeeds. A PR-specific failure emits `pr-error` once per distinct error while other PRs keep reporting. Non-retryable refusals such as HTTP 422 back off before that PR is read again. Repository-wide transient GitHub failures retry; pacing emits `pr-cooldown`. A repository-wide fatal failure prints `pr-error` and `pr-stopped` before the command exits unsuccessfully. `--events` filters transition kinds while daemon and PR health changes remain visible.
 
 ## Outcomes for selected items
 

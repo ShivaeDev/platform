@@ -13,10 +13,9 @@ type Report = (number: number, message: string) => Effect.Effect<void>;
 
 const prGitHub = Effect.fn("FleetWatch.prGitHub")(function* (report: Report) {
 	const client = yield* GitHub;
-	const following = new Set<number>();
 	const retryAt = new Map<number, number>();
 	const reported = new Set<string>();
-	function isolate<A, E>(number: number, read: Effect.Effect<A, E>, fallback: A) {
+	function isolate<A, E>(number: number, read: Effect.Effect<A, E>) {
 		return read.pipe(
 			Effect.catch((error) =>
 				Effect.gen(function* () {
@@ -29,32 +28,25 @@ const prGitHub = Effect.fn("FleetWatch.prGitHub")(function* (report: Report) {
 						yield* report(number, failure.message);
 						reported.add(key);
 					}
-					return fallback;
+					return undefined;
 				}),
 			),
 		);
 	}
 	return {
 		...client,
-		confirmQueue: (options, snapshot) => isolate(snapshot.number, client.confirmQueue(options, snapshot), { ...snapshot, queued: true }),
+		confirmQueue: (options, snapshot) => isolate(snapshot.number, client.confirmQueue(options, snapshot)),
 		discover: (options) =>
 			Effect.gen(function* () {
-				const open = new Set(yield* client.discover(options));
-				const numbers = options.numbers.filter((number) => open.has(number));
-				for (const number of numbers) {
-					following.add(number);
-				}
-				return numbers;
+				yield* client.discover(options);
+				return [...options.numbers];
 			}),
 		snapshot: (options, number, queue) =>
 			Effect.gen(function* () {
-				if (!following.has(number)) {
-					return undefined;
-				}
 				if ((retryAt.get(number) ?? 0) > (yield* Clock.currentTimeMillis)) {
 					return undefined;
 				}
-				return yield* isolate(number, client.snapshot(options, number, queue), undefined);
+				return yield* isolate(number, client.snapshot(options, number, queue));
 			}),
 	} satisfies typeof GitHub.Service;
 });

@@ -5,6 +5,12 @@ import { confirmQueue } from "./confirmQueue.ts";
 import { GitHubHttp } from "./GitHubHttp.ts";
 import { type Options, type Snapshot, WatchError } from "./model.ts";
 
+type QueueConfirmation = Effect.Effect<
+	Snapshot | undefined,
+	Effect.Error<ReturnType<typeof confirmQueue>>,
+	Effect.Services<ReturnType<typeof confirmQueue>>
+>;
+
 const Pull = Schema.Struct({
 	autoMerge: Schema.NullOr(Schema.Struct({ mergeMethod: Schema.String }).pipe(Schema.encodeKeys({ mergeMethod: "merge_method" }))),
 	head: Schema.Struct({ ref: Schema.String, sha: Schema.String }),
@@ -30,7 +36,7 @@ export const GitHub = defineService({
 			return http.list(`${options.apiUrl}/repos/${options.repository}${path}`);
 		}
 		return {
-			confirmQueue: (options: Options, snapshot: Snapshot) => confirmQueue(options, snapshot),
+			confirmQueue: (options: Options, snapshot: Snapshot): QueueConfirmation => confirmQueue(options, snapshot),
 			delay: http.delay,
 			discover: (options: Options) =>
 				Effect.gen(function* () {
