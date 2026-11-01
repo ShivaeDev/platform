@@ -1,7 +1,7 @@
 import { Cache, Clock, Context, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { readBoundedJson } from "@shivaedev/http/body.ts";
+import { filterStatus } from "@shivaedev/http/filterStatus.ts";
 import { type AppCredentials, appJwt } from "#appJwt.ts";
 import { GitHubAppError } from "#errors.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
@@ -66,6 +66,7 @@ export function githubApp(options: GitHubAppOptions) {
 }
 
 function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
+	const checked = filterStatus(client);
 	return Effect.fnUntraced(function* <TSchema extends Schema.Constraint>(
 		method: "GET" | "POST",
 		path: string,
@@ -79,10 +80,15 @@ function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
 		if (body !== undefined) {
 			input = yield* HttpClientRequest.bodyJson(input, body).pipe(Effect.mapError((cause) => new GitHubAppError({ reason: "encode" }, { cause })));
 		}
-		const response = yield* client.execute(input).pipe(Effect.mapError((cause) => new GitHubAppError({ reason: "transport" }, { cause })));
-		if (response.status < HttpStatus.fromLiteral("OK") || response.status >= HttpStatus.fromLiteral("MultipleChoices")) {
-			return yield* new GitHubAppError({ reason: "status", status: response.status });
-		}
+		const response = yield* checked
+			.execute(input)
+			.pipe(
+				Effect.mapError((cause) =>
+					cause._tag === "HttpClientError"
+						? new GitHubAppError({ reason: "transport" }, { cause })
+						: new GitHubAppError({ reason: "status", status: cause.status }),
+				),
+			);
 		return yield* readBoundedJson(response, 64 * 1024, schema).pipe(
 			Effect.mapError((cause) => new GitHubAppError({ reason: cause._tag === "HttpClientError" ? "transport" : "response" }, { cause })),
 		);
