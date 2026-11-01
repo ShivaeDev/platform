@@ -53,9 +53,6 @@ function nameFinding(file: SourceFile, stem: string, folders: readonly string[])
 			? undefined
 			: `"${stem}" exports nothing, so it is named in camelCase, such as setupTests.ts. A file that a package.json script or bin runs is kebab-case.`;
 	}
-	if (exports.length === 1 && only.constant) {
-		return `"${stem}" exports only the constant ${only.name}. Constants live in a topic file with related constants, such as limits.ts holding MAX_ITEMS and MAX_DEPTH.`;
-	}
 	if (exports.some((entry) => exportFits(entry.name, stem, folders))) {
 		return undefined;
 	}
@@ -93,7 +90,7 @@ export const namedAfterExport = defineRule({
 			.flatMap((file) => findingsOf(file, layout));
 	},
 	description:
-		"A file is named after its main export, with its folders as the prefix; a file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main export, including a single constant, with its folders as the prefix; a file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	validate: validateGlobs,
