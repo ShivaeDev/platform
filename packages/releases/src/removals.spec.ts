@@ -33,26 +33,18 @@ for (const { dependency, dependent, declaration } of [
 	{ declaration: removalDeclared("@test/api", CORE), dependency: "@test/api", dependent: "@test/optional" },
 	{ declaration: retireOptional, dependency: "@test/optional", dependent: "@test/peer" },
 ]) {
-	workspace.it(
-		`check refuses removing ${dependency} while ${dependent} still has a published dependency on it`,
-		[declaration, removed(dependency)],
-		function* ({ check }) {
-			expect(yield* check()).toBe(
-				`refused: ${dependent} depends on removed package ${dependency}; remove or replace this published dependency before planning a release.`,
-			);
-		},
-	);
-}
-
-workspace.it(
-	"plan refuses a removed workspace dependency and names both packages",
-	[retireOptional, removed("@test/optional")],
-	function* ({ plan }) {
-		expect(yield* plan()).toBe(
-			"refused: @test/peer depends on removed package @test/optional; remove or replace this published dependency before planning a release.",
+	for (const action of ["plan", "apply", "check"] as const) {
+		workspace.it(
+			`${action} refuses removing ${dependency} while ${dependent} still has a published dependency on it`,
+			[declaration, removed(dependency)],
+			function* (story) {
+				expect(yield* story[action]()).toBe(
+					`refused: ${dependent} depends on removed package ${dependency}; remove or replace this published dependency before planning a release.`,
+				);
+			},
 		);
-	},
-);
+	}
+}
 
 workspace.it(
 	"plan rejects a missing workspace dependency even when a peer range names the same package",

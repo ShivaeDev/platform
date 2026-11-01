@@ -3,6 +3,7 @@ import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { Bump, PackageManifest, Release, ReleasePlan, Source, WorkspacePackage } from "#model.ts";
 import { type Changeset, parseChangeset } from "#parser.ts";
+import { readHistory } from "#readHistory.ts";
 import { readWorkspace } from "#workspace.ts";
 
 const rank = { major: 2, minor: 1, patch: 0 };
@@ -116,5 +117,6 @@ export function summarizePlan(plan: ReleasePlan): string {
 }
 export const planRelease = Effect.fn("Changesets.planRelease")(function* (root: string, config: ChangesetConfig = {}) {
 	const workspace = yield* readWorkspace(root, config);
-	return yield* computePlan(workspace.packages, workspace.changesets);
+	const before = yield* readHistory(root, config);
+	return yield* computePlan(workspace.packages, workspace.changesets, before.packages);
 });
