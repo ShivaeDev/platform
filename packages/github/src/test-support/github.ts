@@ -83,6 +83,12 @@ export const github = storyKit({
 						to: path.startsWith("/storage/") ? "storage" : "GitHub",
 					})),
 				),
+			bodyReleased: () => {
+				story.tell("GitHub waits for the unfinished pull response to be abandoned");
+				return server
+					.untilAbandoned((request) => request.path === "/repos/acme/widgets/pulls/1", { name: "rejected pull response released" })
+					.pipe(Effect.as("released"));
+			},
 			coreBudgetSpentElsewhere: (remaining: number, reset: number) =>
 				Effect.sync(() => {
 					story.tell(`other clients spend the core budget down to ${remaining} with its reset moved to ${reset} seconds`);

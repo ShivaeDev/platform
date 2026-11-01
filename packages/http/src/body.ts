@@ -5,6 +5,7 @@ import { ResponseBodyTooLarge } from "./errors.ts";
 export const readBoundedBody = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse, limit: number) {
 	const length = response.headers["content-length"];
 	if (length !== undefined && Number(length) > limit) {
+		yield* Effect.scoped(Stream.toPull(response.stream));
 		return yield* new ResponseBodyTooLarge({ limit });
 	}
 	const chunks: Uint8Array[] = [];
