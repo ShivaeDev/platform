@@ -668,6 +668,8 @@ Permissions come from the session payload's `user.permissions`, populated by `@s
 
 Declare a route's requirement in TanStack's native `staticData`: `signedIn: true` admits any signed-in viewer, and `permission` requires a specific grant. Routes that declare neither stay public. Install `permissionGuard` once as the root route's `beforeLoad`; it checks all matched routes before their loaders run, including requirements on parents. Signed-out visitors go to the app's `signIn` path with the full requested location in the `returnTo` search field. A signed-in session without a required grant throws the shared `Forbidden` failure. A signed-in-only parent does not bypass a child's permission requirement.
 
+Set `permissionGuard({ session, signIn, hidden: true })` to hide refused routes from signed-in members. The guard throws TanStack's native not-found result, renders the app's `notFoundComponent` at the requested URL and prevents the route's loader from running. Signed-out visitors still go to sign-in with their return location; sessions with the required grant still enter the route.
+
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
 import { createRootRouteWithContext, createRoute, createRouter, Link, RouterProvider, useRouter } from "@tanstack/react-router";
