@@ -1,5 +1,5 @@
-import { Effect, Stream } from "effect";
-import { type HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
+import { Effect, Option, Stream } from "effect";
+import { FetchHttpClient, type HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
 import { PaginationLinkError } from "./errors.ts";
 import { nextLink } from "./nextLink.ts";
 
@@ -14,7 +14,7 @@ const nextRequest = Effect.fnUntraced(function* (response: HttpClientResponse.Ht
 		catch: () => new PaginationLinkError({ reason: "invalid", url }),
 		try: () => new URL(link, current),
 	});
-	if (next.origin !== new URL(current).origin) {
+	if (next.origin !== new URL(response.request.url).origin) {
 		return yield* new PaginationLinkError({ reason: "cross-origin", url });
 	}
 	return HttpClientRequest.setUrl(response.request, next);
@@ -32,7 +32,10 @@ export function paginate<E, R>(client: HttpClient.HttpClient.With<E, R>, first: 
 			if (request === undefined) {
 				return undefined;
 			}
-			const response = yield* client.execute(request);
+			const options = yield* Effect.serviceOption(FetchHttpClient.RequestInit);
+			const response = yield* client
+				.execute(request)
+				.pipe(Effect.provideService(FetchHttpClient.RequestInit, { ...Option.getOrUndefined(options), redirect: "error" }));
 			return [response, response] as const;
 		}),
 	);
