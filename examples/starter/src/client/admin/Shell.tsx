@@ -1,12 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import type { Permission } from "@shivaedev/access/permission.ts";
 import { useCan } from "@shivaedev/react/client/permissionBoundary.ts";
-
-export interface AdminNavigation {
-	readonly id: string;
-	readonly route: { readonly path: string; readonly detail?: string; readonly permission: Permission; readonly title: string };
-}
+import type { AdminNavigation } from "#client/AdminNavigation.ts";
 
 export function AdminShell({
 	pages,
