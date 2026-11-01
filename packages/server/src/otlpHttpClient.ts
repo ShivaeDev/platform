@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest } from "effect/http";
-import * as HttpStatus from "effect/http/HttpStatus";
+import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest, type HttpClientResponse } from "effect/http";
 import { redactText } from "@shivaedev/errors/sensitive.ts";
+import { filterStatus } from "@shivaedev/http/filterStatus.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 
 function timeoutError(request: HttpClientRequest.HttpClientRequest) {
@@ -26,6 +26,20 @@ export function otlpHttpClient(timeout = 10_000) {
 					return Effect.flatMap(diagnostic, (annotations) => Effect.logWarning("OTLP trace export failed").pipe(Effect.annotateLogs(annotations)));
 				});
 			}
+			function recordStatus(response: HttpClientResponse.HttpClientResponse) {
+				const diagnostic = response.text.pipe(
+					Effect.orElseSucceed(() => "Unable to read collector response"),
+					Effect.map((body) => ({ "otlp.response": redactText(body, sensitive), "otlp.status": response.status })),
+				);
+				const checked = filterStatus(HttpClient.makeWith(() => Effect.succeed(response), Effect.succeed)).execute(response.request);
+				return Effect.matchEffect(checked, {
+					onFailure: () => warnOnce(diagnostic),
+					onSuccess: () =>
+						Effect.sync(() => {
+							warned = false;
+						}),
+				});
+			}
 			return client.pipe(
 				HttpClient.tap((response) => response.arrayBuffer),
 				HttpClient.transform((requestEffect, request) =>
@@ -36,18 +50,7 @@ export function otlpHttpClient(timeout = 10_000) {
 						}),
 					),
 				),
-				HttpClient.tap((response) => {
-					if (response.status >= HttpStatus.fromLiteral("OK") && response.status < HttpStatus.fromLiteral("MultipleChoices")) {
-						warned = false;
-						return Effect.void;
-					}
-					return warnOnce(
-						response.text.pipe(
-							Effect.orElseSucceed(() => "Unable to read collector response"),
-							Effect.map((body) => ({ "otlp.response": redactText(body, sensitive), "otlp.status": response.status })),
-						),
-					);
-				}),
+				HttpClient.tap(recordStatus),
 				HttpClient.tapError((error) => warnOnce(Effect.succeed({ "otlp.failure": error.reason._tag }))),
 			);
 		}),
