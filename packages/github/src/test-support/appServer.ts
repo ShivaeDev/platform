@@ -2,6 +2,7 @@ import { Clock, Deferred, Effect } from "effect";
 import { type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { APP_ID, APP_TOKEN, type AppJwt, appJwtOf, signedByApp } from "./appFixture.ts";
 import { artifactFixture } from "./artifactFixture.ts";
+import { mutationRoutes } from "./mutationRoutes.ts";
 
 export interface PullArrivals {
 	readonly expected: number;
@@ -39,6 +40,7 @@ export const appServer = Effect.gen(function* () {
 	const server = yield* fakeHttpService({
 		routes: {
 			...archive.routes,
+			...mutationRoutes,
 			app: { guard: appRequest, path: "/app", reply: () => ({ body: { id: Number(APP_ID), slug: "widgets-app" } }) },
 			artifactRedirect: { ...archive.routes.artifactRedirect, guard: installationToken },
 			installation: { guard: appRequest, path: "/repos/acme/widgets/installation", reply: () => ({ body: { id: 7 } }) },

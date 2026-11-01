@@ -45,9 +45,9 @@ export function representations(
 			),
 		);
 	}
-	function writeRepresentation(method: "POST" | "PATCH", path: string, body: unknown, byteLimit = responseByteLimit) {
+	function writeRepresentation(method: "POST" | "PATCH" | "PUT" | "DELETE", path: string, body?: unknown, byteLimit = responseByteLimit) {
 		return HttpClientRequest.make(method)(new URL(path, apiUrl).href, { headers: { Accept: "application/vnd.github+json" } }).pipe(
-			HttpClientRequest.bodyJson(body),
+			(input) => (body === undefined ? Effect.succeed(input) : HttpClientRequest.bodyJson(input, body)),
 			Effect.flatMap((input) => request(input, byteLimit)),
 			Effect.map(jsonResponse),
 		);

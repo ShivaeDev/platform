@@ -42,7 +42,7 @@ await Effect.runPromise(program.pipe(Effect.provide(github)));
 
 The default base URL is `https://api.github.com`. Provide `GitHubConfig` from `@shivaedev/github/GitHubConfig.ts` with `{ apiUrl }` for another GitHub API endpoint.
 
-`read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST` or `PATCH` and decodes its response. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to these helpers for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
+`read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST`, `PATCH`, `PUT` or `DELETE` and decodes its response. Pass `undefined` for a bodyless request. For a 204 response, omit the schema to receive `void`, or pass `Schema.Void` explicitly; the service representation also supports `decode(Schema.Void)`. These mutations share authentication, quota observations and the single installation-token refresh. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to these helpers for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
 
 For large comparisons and listings, allow up to 16 MiB through the same bounded, Schema-decoded path instead of maintaining a separate fetch, body reader and decoder in the application.
 
@@ -191,7 +191,30 @@ const report = Effect.gen(function* () {
 });
 ```
 
-`createCheckRun(owner, repo, input)` creates a check for `headSha` with a name and status. `updateCheckRun(owner, repo, id, input)` moves it to `in_progress` or `completed`; completion requires a conclusion. Output contains `title`, `summary` and optional `text`. An optional `detailsUrl` on creation and either update shape links to an external report; the returned `CheckRun.detailsUrl` is the GitHub URL or `null` when none exists. It is sent and decoded as `details_url`. Request and response Schemas are exported from `checkRuns.ts`.
+`createCheckRun(owner, repo, input)` creates a check for `headSha` with a name and status. `updateCheckRun(owner, repo, id, input)` moves it to `in_progress` or `completed`; both creation and update with `status: "completed"` require a conclusion, including runtime validation before any request. Output contains `title`, `summary` and optional `text`. An optional `detailsUrl` on creation and either update shape links to an external report; the returned `CheckRun.detailsUrl` is the GitHub URL or `null` when none exists. It is sent and decoded as `details_url`. Request and response Schemas are exported from `checkRuns.ts`.
+
+`findLatestCheckRun(owner, repo, { headSha, name?, appId? })` pages the commit's check runs and returns an `Option<CheckRun>`. Supply a name, an app ID, or both; both filters must match when supplied together. It selects the greatest run ID across all pages. `CheckRun.app` exposes the app ID when GitHub supplies it.
+
+`upsertCheckRun(owner, repo, input, appId?)` uses the same name and commit lookup, then updates the latest match or creates a run when none exists. Pass the app ID to keep another app's same-named check untouched. Without an app ID, use a name unique to your app. A lookup failure propagates without creating a run. Lookup and mutation are separate GitHub requests, so concurrent callers can create duplicates; callers own serialization.
+
+```ts
+const publishCheck = (headSha: string) =>
+	Effect.gen(function* () {
+		const github = yield* GitHub;
+		return yield* github.upsertCheckRun(
+			"acme",
+			"widgets",
+			{
+				headSha,
+				name: "Coverage",
+				status: "completed",
+				conclusion: "success",
+				output: { title: "Coverage", summary: "90% covered" },
+			},
+			123456,
+		);
+	});
+```
 
 ```ts
 const check = (headSha: string) =>

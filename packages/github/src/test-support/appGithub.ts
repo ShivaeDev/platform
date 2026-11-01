@@ -21,6 +21,7 @@ import {
 import { appServer } from "./appServer.ts";
 import { appTransport } from "./appTransport.ts";
 import { PullRequest } from "./fixtures.ts";
+import { mutationAppVerbs } from "./mutationAppVerbs.ts";
 import { answered } from "./outcome.ts";
 import { pooledApp } from "./pooledApp.ts";
 import { telemetry } from "./telemetry.ts";
@@ -122,6 +123,7 @@ export const appGithub = storyKit({
 			);
 		}
 		return {
+			...mutationAppVerbs(contexts.background, server, attempt, credentialOf),
 			appFailures: () => Effect.sync(() => [...failures]),
 			appJwts: () => Effect.sync(() => state.jwts),
 			bodiesDecoded: () => Effect.sync(() => decoded.count),
