@@ -1,6 +1,7 @@
 import { Effect, Ref } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
@@ -14,6 +15,7 @@ export const derivedReadsStory = storyKit({
 	create: () => derivedReadsEngine,
 	layer: derivedDatabase,
 	name: "server-derived timeline reads",
+	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
 	stages: ["adapter", "data", "view"],
 	verbs: ({ client, query, registry, sql }, story) => ({
 		create: (scope: string, id: number, body: string) => {

@@ -1,6 +1,7 @@
-import { Config, type Duration, Effect, Redacted } from "effect";
+import { type Duration, Effect, Redacted } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Migrator, SqlClient } from "effect/sql";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -9,7 +10,7 @@ import { connect, holdReReadOfNoteOne, type LiveView, liveSnapshot, makeLiveEngi
 import { liveNotesVerbs } from "./liveNotesVerbs.ts";
 import { Note } from "./notes.ts";
 
-const databaseUrl = Effect.runSync(Config.String("PLATFORM_SQL_TEST_DATABASE_URL"));
+const { url: databaseUrl, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const layer = makePostgresTestLayer({
 	migrations: {
 		loader: Migrator.fromRecord({
@@ -21,7 +22,7 @@ const layer = makePostgresTestLayer({
 		}),
 		lockTimeout: "5 seconds",
 	},
-	url: Redacted.make(databaseUrl),
+	url: Redacted.make(databaseUrl ?? "postgresql://integration-tests-disabled"),
 });
 
 function notesSource(sql: SqlClient.SqlClient): NotesSource {
@@ -61,6 +62,7 @@ export const postgresLive = storyKit({
 	inspect: liveSnapshot,
 	layer,
 	name: "committed live notes over HTTP",
+	runIf: configured,
 	stages: ["consumer", "views", "connection", "after"],
 	verbs: liveNotesVerbs,
 });

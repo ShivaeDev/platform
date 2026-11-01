@@ -3,7 +3,7 @@ import { Context, Effect, Layer, Redacted } from "effect";
 import { RpcTest } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { BeforeCommit } from "@shivaedev/sql/transact.ts";
-import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -13,7 +13,7 @@ import { recorder } from "#test/rpc/harness.ts";
 import { Api, handlers } from "./fixture.ts";
 import { host } from "./host.ts";
 
-const url = environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL");
+const { url } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const postgres = makePostgresTestLayer({
 	fixtures: Effect.flatMap(
 		SqlClient.SqlClient,

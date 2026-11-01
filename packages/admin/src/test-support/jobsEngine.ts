@@ -1,4 +1,4 @@
-import { Config, Context, Data, Effect, Exit, Layer, Option, Predicate, type Queue, Redacted, Schema, Scope } from "effect";
+import { Context, Data, Effect, Exit, Layer, Option, Predicate, type Queue, Redacted, Schema, Scope } from "effect";
 import { Migrator } from "effect/sql";
 import { vi } from "vitest";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -6,6 +6,7 @@ import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
@@ -16,11 +17,9 @@ import { Mail, Private, pages, Sync } from "./jobsPages.ts";
 import { Users } from "./pages.ts";
 import { ScheduledWorker } from "./ScheduledWorker.ts";
 
-const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_JOBS_TEST_DATABASE_URL"))));
-export const postgresConfigured = url !== undefined && url !== "";
-if (!postgresConfigured && Effect.runSync(Config.String("CI").pipe(Config.withDefault(""))) !== "") {
-	throw new Error("CI requires PLATFORM_JOBS_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
-}
+const { url, configured: postgresConfigured } = postgresTestUrl("PLATFORM_JOBS_TEST_DATABASE_URL");
+
+export { postgresConfigured };
 export const postgresLayer = makePostgresTestLayer({
 	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },
 	prepare: false,

@@ -3,7 +3,7 @@ import * as PgPool from "@effect/sql-pg/PgPool";
 import { Config, Context, Deferred, Effect, Fiber, Layer, Predicate } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { answered } from "@shivaedev/test/answers.ts";
-import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#appDatabase.ts";
 import { appHost } from "#appHost.ts";
@@ -48,7 +48,7 @@ export const pool = storyKit({
 	create: () => Effect.sync((): PoolState => ({ limit: 3, mode: "database", releases: new Map() })),
 	inspect: (state) => ({ heldBackends: [...state.releases.keys()], limit: state.limit, mode: state.mode }),
 	name: "host pool",
-	runIf: environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL") !== undefined,
+	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
 	stages: ["configured"],
 	verbs: (state, story) => {
 		function client() {

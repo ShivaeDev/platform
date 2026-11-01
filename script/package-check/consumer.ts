@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
+import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { checkBrowserEntries } from "#package-check/browserEntries.ts";
 import { consumerDependencies } from "#package-check/consumerDependencies.ts";
 import { consumerWorkspace } from "#package-check/consumerWorkspace.ts";
@@ -95,7 +96,10 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 		const problems = declarationProblems(consumer, config, "entries.ts");
 		yield* requireThat(problems.length === 0, `${pkg.manifest.name}: ${problems.join("\n")}`);
 	}
-	yield* command(consumer, "node", [
+	const environment = yield* postgresTestEnvironment;
+	yield* command(consumer, "env", [
+		...Object.entries(environment).map(([name, value]) => `${name}=${value}`),
+		"node",
 		"--input-type=module",
 		"--eval",
 		entries
