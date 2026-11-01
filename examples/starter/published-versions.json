@@ -4,6 +4,7 @@
 	"@shivaedev/browser-check": "0.2.1",
 	"@shivaedev/changes": "0.6.0",
 	"@shivaedev/contract": "0.30.1",
+	"@shivaedev/email": "0.0.0",
 	"@shivaedev/errors": "0.4.1",
 	"@shivaedev/form": "0.10.0",
 	"@shivaedev/github": "0.8.5",

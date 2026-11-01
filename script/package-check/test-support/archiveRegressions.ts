@@ -47,3 +47,9 @@ export function packedFile(path: string, source: string) {
 		yield* fs.writeFileString(join(directory, "package", path), source);
 	});
 }
+
+export function changelogPending(version: string) {
+	return archiveRegressions.trait("archive", `the package at ${version} has no changelog yet`, function* ({ directory, manifest }) {
+		yield* writeJson(join(directory, "package/package.json"), { ...manifest, files: [...(manifest.files ?? []), "CHANGELOG.md"], version });
+	});
+}

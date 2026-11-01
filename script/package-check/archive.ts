@@ -22,7 +22,9 @@ function filesEntryHolds(pattern: string, contents: ReadonlySet<string>): boolea
 		: [...contents].some((path) => path === packedPath(pattern) || path.startsWith(`${packedPath(pattern)}/`));
 }
 
-function checkFiles(name: string, patterns: readonly string[], contents: ReadonlySet<string>) {
+function checkFiles(manifest: Manifest, contents: ReadonlySet<string>) {
+	const patterns = (manifest.files ?? []).filter((pattern) => manifest.version !== "0.0.0" || pattern !== "CHANGELOG.md");
+	const name = manifest.name;
 	return Effect.forEach(patterns, (pattern) =>
 		requireThat(
 			filesEntryHolds(pattern, contents),
@@ -59,7 +61,7 @@ export const checkPackedArchive = Effect.fn("Packed.checkPackedArchive")(functio
 	for (const target of required) {
 		yield* requireThat(contents.has(packedPath(target)), `${manifest.name}: missing manifest target ${target}`);
 	}
-	yield* checkFiles(manifest.name, manifest.files ?? [], contents);
+	yield* checkFiles(manifest, contents);
 	yield* checkMaps(unpacked, contents);
 	return manifest;
 }, Effect.scoped);

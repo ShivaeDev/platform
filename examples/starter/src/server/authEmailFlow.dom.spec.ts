@@ -13,7 +13,7 @@ authEmailApp.it(
 		yield* request("ConfirmAccount");
 
 		expect(yield* messages()).toMatchObject([
-			{ _tag: "ConfirmAccount", url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:5173\/auth\/confirm\?token=.+/u) },
+			{ subject: "Confirm your account", text: expect.stringMatching(/http:\/\/127\.0\.0\.1:5173\/auth\/confirm\?token=.+/u) },
 		]);
 		yield* followConfirmation();
 
@@ -30,7 +30,7 @@ authEmailApp.it(
 	function* ({ request, messages, openReset, enter, click, settle, screenText, signIn }) {
 		yield* request("ResetPassword");
 		expect(yield* messages()).toMatchObject([
-			{ _tag: "ResetPassword", url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:5173\/reset-password\?token=.+/u) },
+			{ subject: "Reset your password", text: expect.stringMatching(/http:\/\/127\.0\.0\.1:5173\/reset-password\?token=.+/u) },
 		]);
 		yield* openReset();
 		yield* settle();

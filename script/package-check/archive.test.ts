@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { archiveRegressions, missingFile, missingSharedPeer, packedFile } from "#package-check/test-support/archiveRegressions.ts";
+import { archiveRegressions, changelogPending, missingFile, missingSharedPeer, packedFile } from "#package-check/test-support/archiveRegressions.ts";
 
 archiveRegressions.it("accepts the intact packed fixture", [], function* ({ check }) {
 	expect(yield* check()).toBeUndefined();
@@ -28,3 +28,11 @@ archiveRegressions.it(
 		expect(yield* check()).toContain("package/dist/error.js.map references missing package/src/missing.ts");
 	},
 );
+
+archiveRegressions.it("accepts the unreleased placeholder before its first changelog exists", [changelogPending("0.0.0")], function* ({ check }) {
+	expect(yield* check()).toBeUndefined();
+});
+
+archiveRegressions.it("rejects a released package whose declared changelog is missing", [changelogPending("1.0.0")], function* ({ check }) {
+	expect(yield* check()).toContain("archive-probe: empty files entry CHANGELOG.md");
+});
