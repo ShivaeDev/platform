@@ -28,7 +28,7 @@ export function SessionView({ client, frames }: { readonly client: SessionClient
 	}
 	const failure = Option.isSome(query.cause) ? <p role="alert">Session unavailable</p> : null;
 	return (
-		<section aria-busy={query.pending}>
+		<section aria-busy={query.pending} data-grants={session?.user.permissions?.map((grant) => `${grant.name}:${grant.strength}`).join(",")}>
 			<output>{name}</output>
 			<span>{verified ? "Verified" : "Unverified"}</span>
 			<p>{status}</p>

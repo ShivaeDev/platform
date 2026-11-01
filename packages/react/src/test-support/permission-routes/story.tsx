@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { isForbidden, isServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -74,6 +75,19 @@ function routeVerbs(state: State, screen: Screen) {
 		});
 	}
 	return {
+		goBack: () =>
+			Effect.gen(function* () {
+				const navigation = navigated(state);
+				yield* screen.act("follow the no-access screen's way back", () => {
+					const link = [...current(state).view.container.querySelectorAll("a")].find((candidate) => candidate.textContent === "Go back");
+					if (!link) {
+						throw new Error("Missing way back");
+					}
+					link.click();
+				});
+				yield* screen.act("the navigation resolves", () => navigation);
+				yield* settle(state, screen);
+			}),
 		signIn: () => clickAndNavigate("Sign in", "sign in as a reader"),
 		signOut: () => clickAndNavigate("Sign out", "sign out explicitly"),
 		visit: (path: string) =>
@@ -84,7 +98,7 @@ function routeVerbs(state: State, screen: Screen) {
 				}
 				const failure = expectedFailure(state, path);
 				const view = yield* screen.open(null, failure ? { onCaughtError: screenWarnings.expectCaughtError(failure) } : undefined);
-				const session = state.role === undefined ? undefined : yield* host.payload(state.role);
+				const session = state.role === undefined ? undefined : yield* AtomRegistry.getResult(view.registry, host.readSession(state.role).atom);
 				const app = permissionApp(host, view.registry, session, path, state.hidden);
 				state.view = view;
 				state.app = app;
@@ -101,7 +115,12 @@ export const permissionScreens = storyKit(
 		(state, screen) => ({
 			...routeVerbs(state, screen),
 			buttons: () => Effect.sync(() => [...current(state).view.container.querySelectorAll("button")].map((button) => button.textContent)),
+			fallbackRole: () => Effect.sync(() => current(state).view.container.querySelector("[data-role]")?.getAttribute("data-role")),
 			heading: () => Effect.sync(() => heading(state)),
+			links: () =>
+				Effect.sync(() =>
+					[...current(state).view.container.querySelectorAll("a")].map((link) => ({ label: link.textContent, to: link.getAttribute("href") })),
+				),
 			location: () => Effect.sync(() => current(state).router.state.location.href),
 			path: () => Effect.sync(() => current(state).router.state.location.pathname),
 			requests: () => Effect.sync(() => [...current(state).host.requests]),

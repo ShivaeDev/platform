@@ -1,21 +1,20 @@
-import { CatchBoundary, getRouteApi, RouterProvider, useRouter } from "@tanstack/react-router";
+import { CatchBoundary, getRouteApi, Link, RouterProvider, useRouter } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
-import { createContext, type ReactNode, useContext, useState } from "react";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type { ReactNode } from "react";
+import { Forbidden } from "#client/Forbidden.ts";
 import { PermissionBoundary } from "#client/permissionBoundary.ts";
 import { useSignOut } from "#client/useSignOut.ts";
-import type { PermissionSession } from "#permissions.ts";
 import type { permissionApp } from "./app.tsx";
 
 type App = ReturnType<typeof permissionApp>;
 type Router = App["router"];
 const login = getRouteApi<"/login", Router>("/login");
-const ApplySessionContext = createContext<(session: PermissionSession) => void>(() => undefined);
 
 export function Login(): ReactNode {
 	const { returnTo } = login.useSearch<Router>();
-	const { host, auth } = login.useRouteContext<Router>();
-	const apply = useContext(ApplySessionContext);
+	const { host, auth, registry } = login.useRouteContext<Router>();
 	const router = useRouter<Router>();
 	return (
 		<main>
@@ -23,8 +22,7 @@ export function Login(): ReactNode {
 			<button
 				onClick={async () => {
 					host.state.role = "reader";
-					auth.current = await Effect.runPromise(host.payload("reader"));
-					apply(auth.current);
+					auth.current = await Effect.runPromise(AtomRegistry.getResult(registry, host.readSession("reader").atom));
 					await router.navigate({ href: returnTo ?? "/controls" });
 				}}
 				type="button"
@@ -36,15 +34,10 @@ export function Login(): ReactNode {
 }
 
 export function PermissionApp({ app }: { readonly app: App }): ReactNode {
-	const [current, apply] = useState(app.auth.current);
 	return (
-		<ApplySessionContext.Provider value={apply}>
-			<CatchBoundary errorComponent={ApplicationFailure} getResetKey={() => "app"}>
-				<PermissionBoundary fallback={<h1 data-boundary="permission">Permission denied</h1>} session={current}>
-					<RouterProvider router={app.router} />
-				</PermissionBoundary>
-			</CatchBoundary>
-		</ApplySessionContext.Provider>
+		<CatchBoundary errorComponent={ApplicationFailure} getResetKey={() => "app"}>
+			<RouterProvider router={app.router} />
+		</CatchBoundary>
 	);
 }
 
@@ -58,5 +51,24 @@ export function SignOutButton({ action }: { readonly action: Atom.AtomResultFn<v
 		<button onClick={signOut.dispatch} type="button">
 			Sign out
 		</button>
+	);
+}
+
+export function PermissionRoutes({ children }: { readonly children: ReactNode }) {
+	const router = useRouter<Router>();
+	return (
+		<PermissionBoundary fallback={<DeniedRoute />} session={router.options.context?.auth.current}>
+			{children}
+		</PermissionBoundary>
+	);
+}
+
+function DeniedRoute() {
+	const { host } = getRouteApi<"__root__", Router>("__root__").useRouteContext<Router>();
+	return (
+		<div data-boundary="permission" data-role={host.state.role}>
+			<Forbidden to="/controls" />
+			<Link to="/login">Use another account</Link>
+		</div>
 	);
 }

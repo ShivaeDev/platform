@@ -433,6 +433,8 @@ const sessions = { ...mounted.sessions, origin: trustedOrigins({ allow: ["https:
 
 For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. A missing or null stored role refuses access with `Forbidden` (HTTP 403 at the session endpoint) and logs the fix: generate and apply a frozen migration with `defaultRole`, then use `assignRole` for administrators. An undeclared non-null stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
 
+React's `authSession` reads the session's grants as typed values while preserving the provider's session and user data. Applications using it need no session permission decoder.
+
 ### Frozen auth migrations
 
 Generate each auth migration once, review its SQL and commit the generated module. `generateBetterAuthMigration(options, roleOptions?)` reads the current PostgreSQL schema through `SqlClient` and returns a TypeScript migration module. It does not apply the migration. The module imports only native Effect and executes fixed SQL on the migrator's transaction connection. Later auth option changes and Better Auth upgrades cannot change its SQL.
@@ -760,7 +762,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 ### Install, setup and limits
 
-Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peer `better-auth` and the application’s PostgreSQL `SqlClient`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports only `identity.ts`, `middleware.ts` and `permission.ts`.
+Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peer `better-auth` and the application’s PostgreSQL `SqlClient`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports `identity.ts`, `middleware.ts` and `permission.ts`.
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.

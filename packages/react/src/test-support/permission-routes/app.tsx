@@ -2,7 +2,7 @@ import { createMemoryHistory, createRootRouteWithContext, createRoute, createRou
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { authAction } from "#client/authAction.ts";
-import { useCan } from "#client/permissionBoundary.ts";
+import { PermissionBoundaryError, useCan } from "#client/permissionBoundary.ts";
 import { useQuery } from "#client/resultState.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { permissionGuard } from "#permissionGuard.ts";
@@ -10,7 +10,7 @@ import type { PermissionSession } from "#permissions.ts";
 import { queryRoute } from "#queryRoute.ts";
 import { ReadNotes } from "./feature.ts";
 import type { Host } from "./host.ts";
-import { Login, SignOutButton } from "./view.tsx";
+import { Login, PermissionRoutes, SignOutButton } from "./view.tsx";
 
 function Controls() {
 	const can = useCan();
@@ -92,9 +92,11 @@ export function permissionApp(
 	});
 	const router = createRouter({
 		context: { auth, host, registry },
+		defaultErrorComponent: PermissionBoundaryError,
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		disableGlobalCatchBoundary: true,
 		history: createMemoryHistory({ initialEntries: [initial] }),
+		InnerWrap: PermissionRoutes,
 		routeTree: root.addChildren([note, direct, controls, login, admin, account.addChildren([profile, privateAccount])]),
 	});
 	return { auth, host, router };

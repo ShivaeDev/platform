@@ -17,7 +17,6 @@ import { SessionApp } from "#client/SessionApp.tsx";
 import { CodePreview, type CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { NotesScreen } from "#modules/notes/client/Screen.tsx";
-import { requireSetup } from "#modules/notes/test-support/requireSetup.ts";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
 import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen } from "#test-support/screenState.ts";
@@ -98,7 +97,7 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 	const fixture = appAuth(options);
 	engine.auth = fixture;
 	engine.pending = () =>
-		(fixture.auth.client.$store.atoms.session?.get().isPending ?? false)
+		(engine.view?.registry.get(fixture.auth.session.atom).waiting ?? false)
 		|| (engine.view !== undefined
 			&& (engine.view.registry.get(fixture.auth.actions.submit).waiting || engine.view.registry.get(fixture.auth.actions.signOut).waiting));
 	const view = yield* acquireScreen(engine);
@@ -106,9 +105,12 @@ export const openApp = Effect.fn("ScreenStory.openApp")(function* (engine: Scree
 	yield* Effect.promise(() =>
 		view.render(<App auth={fixture.auth} connect={() => connectModules([notesRegistration(engine.client)])} history={history} />),
 	);
-	const session = fixture.auth.client.$store.atoms.session;
-	yield* requireSetup(session !== undefined, "The auth client has no session atom");
-	yield* screenDriver({ act, pending: () => session?.get().isPending ?? false, root: view.container, tell: () => undefined }).settle();
+	yield* screenDriver({
+		act,
+		pending: () => view.registry.get(fixture.auth.session.atom).waiting,
+		root: view.container,
+		tell: () => undefined,
+	}).settle();
 });
 
 export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: Screen, signOutFailure?: string) {
