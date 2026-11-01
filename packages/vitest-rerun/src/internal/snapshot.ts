@@ -53,6 +53,10 @@ export function tests(tasks: readonly Task[]): Task[] {
 	return tasks.flatMap((task) => (task.type === "suite" ? tests(task.tasks) : [task]));
 }
 
+export function hasSuiteErrors(task: Task): boolean {
+	return task.type === "suite" && ((task.result?.errors?.length ?? 0) > 0 || task.tasks.some(hasSuiteErrors));
+}
+
 export const saveSnapshot = Effect.fn("VitestRerun.saveSnapshot")(function* (path: string, snapshot: Snapshot) {
 	const fs = yield* FileSystem.FileSystem;
 	yield* fs.writeFile(path, serialize(snapshot));

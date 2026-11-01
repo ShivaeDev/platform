@@ -10,7 +10,7 @@ import { writeMergedReports } from "#internal/adapters/writeMergedReports.ts";
 import { RerunJunitReporter } from "#internal/junit.ts";
 import { mergeAttempt } from "#internal/mergeAttempt.ts";
 import { attemptPaths, reportPaths } from "#internal/reportPaths.ts";
-import { failedFiles, readSnapshot, type Snapshot, saveSnapshot, tests } from "#internal/snapshot.ts";
+import { failedFiles, hasSuiteErrors, readSnapshot, type Snapshot, saveSnapshot, tests } from "#internal/snapshot.ts";
 
 export interface Attempt {
 	readonly attempt: number;
@@ -50,7 +50,8 @@ const failedSpecifications = Effect.fn("VitestRerun.failedSpecifications")(funct
 			return [];
 		}
 		const runnable = tests(file.tasks).filter((test) => !["pass", "skip", "todo"].includes(test.result?.state ?? test.mode));
-		return [spec.project.createSpecification(spec.moduleId, file.tasks.length === 0 ? {} : { testIds: runnable.map((test) => test.id) }, spec.pool)];
+		const filter = file.tasks.length === 0 || hasSuiteErrors(file) ? {} : { testIds: runnable.map((test) => test.id) };
+		return [spec.project.createSpecification(spec.moduleId, filter, spec.pool)];
 	});
 });
 
