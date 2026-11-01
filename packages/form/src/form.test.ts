@@ -134,14 +134,10 @@ profiles.it(
 	},
 );
 
-profiles.it.fails(
-	"BUG: setting the profile count through the field's count prop shows the new count",
-	[],
-	function* ({ setCountThroughProp, shown }) {
-		expect(yield* shown("profile")).toEqual({ count: 1, label: "First" });
+profiles.it("setting the profile count through the field's count prop shows the new count", [], function* ({ setCountThroughProp, shown }) {
+	expect(yield* shown("profile")).toEqual({ count: 1, label: "First" });
 
-		yield* setCountThroughProp(2);
+	yield* setCountThroughProp(2);
 
-		expect(yield* shown("profile")).toEqual({ count: 2, label: "First" });
-	},
-);
+	expect(yield* shown("profile")).toEqual({ count: 2, label: "First" });
+});
