@@ -1,5 +1,5 @@
 import type { AnyRoute } from "@tanstack/react-router";
-import type { AdminNavigation } from "#client/admin/Shell.tsx";
+import type { AdminNavigation } from "./AdminNavigation.ts";
 import type { rootRoute } from "./rootRoute.ts";
 
 export interface RouteContext {
