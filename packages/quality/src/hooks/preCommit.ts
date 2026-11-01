@@ -25,7 +25,7 @@ const commitScripts = Effect.fnUntraced(function* (root: string) {
 		return yield* new SetupFailure({ message: `${file}: unsupported packageManager "${manager}". Use npm, pnpm, yarn or bun.` });
 	}
 	return { manager, scripts: ["typecheck", "quality:commit"].filter((script) => manifest.scripts?.[script] !== undefined) };
-});
+}, Effect.scoped);
 
 const runScript = Effect.fnUntraced(
 	function* (root: string, manager: string, script: string) {

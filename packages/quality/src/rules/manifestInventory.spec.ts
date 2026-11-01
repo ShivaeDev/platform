@@ -24,14 +24,16 @@ for (const content of ['{"name":', '{"dependencies":[]}', '{"bin":[]}']) {
 }
 
 manifestStory.it(
-	"quality lint stops with an error that names an unreadable package.json",
+	"quality lint reports an unreadable package.json as a manifests/valid finding",
 	[manifestIsDirectory],
-	function* ({ outcome, runs, stderr }) {
+	function* ({ outcome, runs, stderr, reportLines, stdout }) {
 		yield* runs("lint");
 
 		yield* outcomes([
-			["error", () => stderr(), expect.stringMatching(/cannot read.*package\.json/u)],
-			["exit", () => outcome(), "invalid"],
+			["error output", () => stderr(), ""],
+			["exit", () => outcome(), "rejected"],
+			["manifest finding", () => reportLines("cannot read"), [expect.stringContaining("package.json")]],
+			["rule", () => stdout(), expect.stringContaining("manifests/valid")],
 		]);
 	},
 	CLI_TIMEOUT,

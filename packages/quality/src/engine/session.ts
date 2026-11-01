@@ -1,5 +1,5 @@
 import { relative } from "node:path";
-import { Effect } from "effect";
+import { Effect, type Scope } from "effect";
 import { setManifestFiles } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
@@ -30,7 +30,7 @@ function setup<TValue, TRequirements>(effect: Effect.Effect<TValue, Error, TRequ
 
 export const scan = Effect.fn("Engine.scan")(function* (
 	config: ResolvedConfig,
-): Effect.fn.Return<Pick<Session, "inventory" | "staleRegistry" | "violations">, SetupFailure, RuleServices> {
+): Effect.fn.Return<Pick<Session, "inventory" | "staleRegistry" | "violations">, SetupFailure, RuleServices | Scope.Scope> {
 	const inventory = yield* setup(collectInventory(config.root, config));
 	const readText = yield* manifestReader(config.root);
 	setManifestFiles(readText, inventory.manifestFiles);
@@ -45,7 +45,7 @@ export const scan = Effect.fn("Engine.scan")(function* (
 	const violations = yield* runRules(config.active, inputs);
 	const staleRegistry = yield* setup(staleBiomeExceptions(inputs));
 	return { inventory, staleRegistry, violations };
-});
+}, Effect.scoped);
 
 export const openSession = Effect.fn("Engine.openSession")(function* (
 	cwd: string,
