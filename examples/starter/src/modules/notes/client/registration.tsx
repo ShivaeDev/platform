@@ -1,7 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { Schema } from "effect";
 import type { ReactElement } from "react";
-import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import type { RouteContext } from "#client/Module.ts";
 import { Admin } from "#modules/notes/admin/pages.ts";
 import { type AdminClient, makeAdminClient } from "#modules/notes/client/admin/make.ts";

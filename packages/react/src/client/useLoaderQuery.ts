@@ -2,8 +2,8 @@ import { RegistryContext } from "@effect/atom-react";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useContext } from "react";
+import { useLoaderHandoff } from "#adapters/useLoaderHandoff.ts";
 import { loadedQuery } from "#internal/loadedQuery.ts";
-import { useLoaderHandoff } from "#internal/useLoaderHandoff.ts";
 import { type QueryOptions, type QueryState, useQuery } from "./resultState.ts";
 
 export interface LoadedQueryState<A, E> extends Omit<QueryState<A, E>, "data" | "result"> {

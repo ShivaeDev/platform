@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { screenPending } from "@shivaedev/react/client/screenPending.ts";
+import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { session } from "#client/session.ts";
 import { laterReads } from "./laterReads.ts";
