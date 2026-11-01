@@ -1,5 +1,6 @@
 import { sessionStatus } from "#engine/sessionStatus.ts";
 import { type DaemonStatus, renderConfig } from "#host/configSettings.ts";
+import { renderLaunchTier } from "#host/launchTier.ts";
 import type { FleetViews } from "#model.ts";
 
 type View = (typeof FleetViews.Type)["active"][number];
@@ -36,5 +37,9 @@ export function renderStatus(current: typeof DaemonStatus.Type, selection: { rea
 		dispatches.length === 0
 			? rendered
 			: `${rendered}\nDispatches (${dispatches.length})\n${dispatches.map((request) => `  ${request.workId}  dispatch ${request.status}${request.error === undefined ? "" : `: ${request.error}`}`).join("\n")}`;
-	return current.config === undefined ? views : `${views}\n${renderConfig(current.config)}`;
+	return [
+		views,
+		...(current.launchTier === undefined ? [] : [renderLaunchTier(current.launchTier)]),
+		...(current.config === undefined ? [] : [renderConfig(current.config)]),
+	].join("\n");
 }

@@ -1,8 +1,8 @@
 import * as Schema from "effect/Schema";
 import { DEFAULT_READ_RETRY_MS } from "#engine/readRetry.ts";
 import { DEFAULT_NAMESPACE, NAMESPACE } from "#host/defaults.ts";
+import { HostLaunchSettings } from "#host/launchTier.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
-import { LaunchSettings } from "#session/schema.ts";
 import type { OpenPullRequestCurve } from "#storage/model.ts";
 
 const Positive = Schema.Int.check(Schema.isGreaterThan(0));
@@ -30,7 +30,7 @@ const settingFields = {
 	),
 	concurrency: Schema.optional(Positive),
 	intervalSeconds: Schema.optional(Positive),
-	launch: Schema.optional(LaunchSettings),
+	launch: Schema.optional(HostLaunchSettings),
 	local: Schema.optional(Schema.Struct({ endpoint: Text, requestTimeoutMs: Schema.optional(Positive) })),
 	namespace: Schema.optional(Schema.String.check(Schema.isPattern(NAMESPACE))),
 	openPullRequests: Schema.optional(
