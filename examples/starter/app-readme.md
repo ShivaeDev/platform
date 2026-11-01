@@ -52,7 +52,20 @@ pnpm migrate
 pnpm start
 ```
 
-The built server serves the UI, authentication and RPC on port 3000 by default. Run `pnpm worker` as a separate process for background jobs. Set `DATABASE_URL` on both processes; the worker and `pnpm migrate` need only this variable. On web, also set a random `BETTER_AUTH_SECRET` of at least 32 characters and `PUBLIC_URL` to your public app URL. For web in a container, use `HOST=0.0.0.0` and the host's `PORT`. Railway works out of the box: `.railway/railway.ts` supplies `TRUSTED_PROXY=100.64.0.0/10` and `AUTH_CLIENT_IP_HEADER=x-real-ip` from `.railway/proxy.json`. `TRUSTED_PROXY` selects the peers allowed to supply forwarded client IPs and the HTTPS authority used by RPC origin checks; an HTTPS `PUBLIC_URL` selects secure session cookies. On other hosts, set `TRUSTED_PROXY` to your proxy's peer IP addresses or CIDR ranges, or use `config.trustedProxy`. A session host bound to a non-loopback address refuses to boot without this setting, with a typed `TrustedProxyRequired` error explaining how to set it. Local loopback development keeps working without it.
+The built server serves the UI, authentication and RPC on port 3000 by default. Run `pnpm worker` as a separate process for background jobs and queued auth email delivery. Set `DATABASE_URL` on both processes; `pnpm migrate` needs only this variable. On web, also set a random `BETTER_AUTH_SECRET` of at least 32 characters. Set `PUBLIC_URL` to your public app URL on both web and worker. For web in a container, use `HOST=0.0.0.0` and the host's `PORT`.
+
+In production (`NODE_ENV=production`), the worker sends auth emails through Resend. Configure these worker variables before deploying:
+
+| Variable         | Value                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`   | The same PostgreSQL connection URL as web.                                                            |
+| `RESEND_API_KEY` | Your Resend API key, kept in the host's secret settings.                                              |
+| `EMAIL_FROM`     | A sender on your verified Resend domain, such as `Accounts <accounts@example.com>`.                   |
+| `PUBLIC_URL`     | The same public app URL as web, such as `https://app.example`. Web uses it when queueing email links. |
+
+Production worker startup fails with a typed configuration error naming `RESEND_API_KEY` or `EMAIL_FROM` when either is missing. Development logs rendered emails without Resend credentials. `.railway/railway.ts` connects the worker's email settings to shared variables; create `RESEND_API_KEY`, `EMAIL_FROM` and `PUBLIC_URL` in Railway before the first plan/apply.
+
+Railway works out of the box: `.railway/railway.ts` supplies `TRUSTED_PROXY=100.64.0.0/10` and `AUTH_CLIENT_IP_HEADER=x-real-ip` from `.railway/proxy.json`. `TRUSTED_PROXY` selects the peers allowed to supply forwarded client IPs and the HTTPS authority used by RPC origin checks; an HTTPS `PUBLIC_URL` selects secure session cookies. On other hosts, set `TRUSTED_PROXY` to your proxy's peer IP addresses or CIDR ranges, or use `config.trustedProxy`. A session host bound to a non-loopback address refuses to boot without this setting, with a typed `TrustedProxyRequired` error explaining how to set it. Local loopback development keeps working without it.
 
 `.railway/railway.ts` defines the PostgreSQL, web and worker services for Railway. The [deployment guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy) explains the rollout and worker drain, trace export, Railway setup, the server environment, database connection security, health checks and migration modes; follow it before the first deploy and after each change to `.railway/railway.ts`. The [framework docs](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md) explain the design boundaries.
 

@@ -32,6 +32,7 @@ export const authEmailApp = storyKit({
 		const workerConfig = ConfigProvider.layer(
 			ConfigProvider.fromEnv({
 				env: {
+					"EMAIL_FROM": "Accounts <accounts@app.test>",
 					"NODE_ENV": "production",
 					"RESEND_API_KEY": "re_story",
 				},
