@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { LocalPostgresError } from "#LocalPostgresError.ts";
 import { startContainer } from "#localContainer.ts";
 import { docker } from "#localDocker.ts";
 import { assertLocalDatabase } from "#localPostgres.ts";
@@ -23,6 +24,13 @@ export function shown(call: readonly string[]) {
 
 function commandOf(failure: unknown) {
 	return failure instanceof PostgresCommandError ? `the failed ${failure.command} command` : "no command error";
+}
+
+function failureOf(failure: unknown) {
+	if (failure instanceof LocalPostgresError) {
+		return "invalid local connection";
+	}
+	return failure instanceof PostgresCommandError ? "setup command failed" : "another failure";
 }
 
 function readinessChecks(engine: PostgresEngine) {
@@ -82,16 +90,14 @@ export function postgresVerbs(engine: PostgresEngine, story: { readonly tell: (l
 			),
 		dockerCommands: () => Effect.sync(() => dockerCalls(engine).map(shown)),
 		failedCommand: () => Effect.map(present(engine.failure, "Run an action that fails first"), commandOf),
-		failureKind: () =>
-			Effect.sync(() =>
-				engine.failure instanceof PostgresCommandError && engine.failure._tag === "PostgresCommandError" ? "setup command failed" : "another failure",
-			),
+		failureKind: () => Effect.sync(() => failureOf(engine.failure)),
 		inspectedContexts: () =>
 			Effect.sync(() =>
 				engine.calls
 					.filter(([file, command]) => file === "docker" && command === "context")
 					.map(([, , , name]) => (name === "--format" ? "the active context" : (name ?? "none"))),
 			),
+		maxConnections: () => Effect.map(usingCli(engine, engine.manager.sql(SERVER, "SHOW max_connections")), Number),
 		outcome: () => recorded(engine.outcome),
 		passwordsInFailure: () => Effect.map(present(engine.failure, "Run an action that fails first"), passwordsShownIn),
 		prepare: (urls: readonly string[]) => act(`setup prepares ${urls.join(" and ")}`, Effect.as(engine.manager.prepareDatabases(urls), "prepared")),

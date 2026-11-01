@@ -31,7 +31,14 @@ export const ensureConnections = Effect.fn("LocalPostgres.ensureConnections")(fu
 		if (current >= 500) {
 			return;
 		}
-		if ((yield* docker(["inspect", "--format", "{{.Config.Image}}", "development-postgres"])) !== POSTGRES_IMAGE) {
+		const managed = yield* docker(["ps", "--filter", "name=^/development-postgres$", "--filter", "publish=55432", "--format", "{{.ID}}"]).pipe(
+			Effect.catchTag("PostgresCommandError", () => Effect.succeed("")),
+		);
+		if (!managed) {
+			return;
+		}
+		const image = yield* docker(["inspect", "--format", "{{.Config.Image}}", "development-postgres"]);
+		if (image !== POSTGRES_IMAGE) {
 			return yield* new LocalPostgresError({
 				message: "The shared PostgreSQL container uses a different image. Preserve its data and upgrade it explicitly.",
 			});

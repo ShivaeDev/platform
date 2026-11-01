@@ -24,7 +24,7 @@ export const sqlInContainer = Effect.fn("LocalPostgres.sqlInContainer")(function
 			message: "The shared PostgreSQL image differs from the pinned baseline. Upgrade explicitly, preserving data.",
 		});
 	}
-	const { url: inside, options: settings } = clientConnection(url, options);
+	const { url: inside, options: settings } = yield* clientConnection(url, options);
 	inside.hostname = "127.0.0.1";
 	inside.port = "5432";
 	return yield* docker(["exec", "--env", "PGPASSWORD", id, "psql", ...args, "--dbname", inside.toString()], settings);
