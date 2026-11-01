@@ -64,7 +64,7 @@ biomeStory.it(
 );
 
 biomeStory.it(
-	"quality drops Biome's noComponentHookFactories for catchTags handlers of Effect's own imports that only fail and keeps it for factories, JSX handlers, shadowed Effect names and plain objects",
+	"quality drops Biome's noComponentHookFactories for catchTags keys of Effect's own imports and keeps it for actual factories, shadowed Effect names and plain objects",
 	[presetInstalled(), repositoryHas(TAG_HANDLERS)],
 	function* ({ checks, reported }) {
 		yield* checks();
@@ -72,10 +72,7 @@ biomeStory.it(
 		expect(yield* reported("lint/correctness/noComponentHookFactories")).toEqual([
 			"src/tags.tsx:7",
 			"src/tags.tsx:8",
-			"src/tags.tsx:9",
 			"src/tags.tsx:10",
-			"src/tags.tsx:10",
-			"src/tags.tsx:12",
 			"src/tags.tsx:13",
 		]);
 	},
@@ -88,5 +85,30 @@ biomeStory.it(
 		yield* checks();
 
 		expect(yield* reported("lint/correctness/noComponentHookFactories")).toEqual(["src/fake-tags.tsx:2"]);
+	},
+);
+
+const RECOVERING_TAGS = {
+	content: [
+		'import { Effect } from "effect";',
+		'function recover() { return Effect.catchTags({ Missing: () => Effect.succeed("fallback") }); }',
+		'function recoverBlock() { return Effect.catchTags({ Missing: () => { return Effect.succeed("fallback"); } }); }',
+		"function recoverNamed() { return Effect.catchTags({ Missing: function () { return Effect.void; } }); }",
+		"function recoverMethod() { return Effect.catchTags({ Missing() { return Effect.void; } }); }",
+		"function recoverExisting() { return Effect.catchTags({ Missing: recover }); }",
+		"function recoverCurried(work: any) { return Effect.catchTags(work, { Missing: () => Effect.void }); }",
+	]
+		.join("\n")
+		.concat("\n"),
+	path: "src/recovery.ts",
+};
+
+biomeStory.it(
+	"quality accepts catchTags keys for successful, block, named, method, referenced and data-first handlers",
+	[presetInstalled(), repositoryHas(RECOVERING_TAGS)],
+	function* ({ checks, reported }) {
+		yield* checks();
+
+		expect(yield* reported("lint/correctness/noComponentHookFactories")).toEqual([]);
 	},
 );

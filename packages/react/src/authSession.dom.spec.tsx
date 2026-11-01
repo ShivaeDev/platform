@@ -46,3 +46,19 @@ sessions.it("a refresh can settle with a signed-out session", [sessionReady()], 
 	yield* answer();
 	expect(shown()).toMatchObject({ busy: "false", text: expect.stringContaining("Signed out") });
 });
+
+sessions.it("malformed permissions make the session unavailable", [sessionLoading()], function* ({ malformPermissions, shown }) {
+	yield* malformPermissions();
+
+	expect(shown()).toMatchObject({ busy: "false", text: expect.stringContaining("Session unavailable") });
+});
+
+sessions.it(
+	"the client session read exposes typed permission grants without an application decoder",
+	[sessionLoading()],
+	function* ({ answer, shown }) {
+		yield* answer();
+
+		expect(shown().grants).toBe("notes.read:any");
+	},
+);

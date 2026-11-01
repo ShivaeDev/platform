@@ -128,5 +128,13 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				yield* sql`alter table ${sql(table)} add column "mergeQueueRepair" boolean`;
 			}
 		}),
+		"35_release_window": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "releaseWindow" boolean,
+					add column "releaseWindow__pr" text, add column "releaseWindow__progress" text,
+					add column "releaseWindow__reason" text, add column "releaseWindow__since" double precision,
+					add column "releaseWindow__observedAt" double precision`;
+			}
+		}),
 	});
 });

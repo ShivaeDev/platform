@@ -16,7 +16,8 @@ interface Read {
 }
 
 export function sessionClient() {
-	let stored: Session | null = { user: { emailVerified: false, name: "Alice" } };
+	const signedIn = { user: { emailVerified: false, name: "Alice", permissions: [{ name: "notes.read", strength: "any" }] } };
+	let stored: Session | null = signedIn;
 	const reads: Read[] = [];
 	const session = authSession(
 		(signal) => new Promise<{ data: Session | null; error: Refused | null }>((resolve, reject) => reads.push({ reject, resolve, signal })),
@@ -35,6 +36,10 @@ export function sessionClient() {
 	}
 	return {
 		answer: () => latest().resolve({ data: stored, error: null }),
+		malformPermissions: () => {
+			const data = { user: { emailVerified: false, name: "Alice", permissions: [{ name: "notes.read", strength: "invalid" }] } };
+			latest().resolve({ data, error: null });
+		},
 		mutation,
 		refuse: () => latest().resolve({ data: null, error: { code: "FAILED_TO_GET_SESSION" } }),
 		reject: () => latest().reject("offline"),

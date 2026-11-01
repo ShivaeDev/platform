@@ -61,8 +61,12 @@ function declared(statement: ts.Statement): readonly OwnExport[] {
 	return named !== undefined && ts.isIdentifier(named) ? [{ constant: false, kind: "value", name: named.text }] : [];
 }
 
+export function ownDeclarations(source: ts.SourceFile): readonly OwnExport[] {
+	return source.statements.flatMap(declared);
+}
+
 function locals(source: ts.SourceFile): ReadonlyMap<string, OwnExport> {
-	const all = source.statements.flatMap(declared);
+	const all = ownDeclarations(source);
 	return new Map(all.map((local) => [local.name, local]));
 }
 

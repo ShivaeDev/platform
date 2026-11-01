@@ -1,6 +1,6 @@
 import { connect } from "node:net";
 import { join } from "node:path";
-import { NodeHttpClient } from "@effect/platform-node";
+import * as NodeHttpClient from "@effect/platform-node/NodeHttpClient";
 import { Effect, Layer, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";

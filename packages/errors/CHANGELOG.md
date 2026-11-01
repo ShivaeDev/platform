@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-11-01
+
+### Fixed
+
+- Mask rejected values in Schema error text (`got` and `Expected …, actual …`) and native issue inputs during diagnostic and wire redaction, including error reporting. Keep schema paths and expected types readable.
+
 ## 0.4.0 - 2026-10-31
 
 ### Fixed

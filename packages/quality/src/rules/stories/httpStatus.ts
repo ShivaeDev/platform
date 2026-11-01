@@ -1,5 +1,6 @@
 import { matchesGlob } from "node:path";
 import { Schema } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import ts from "typescript";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { defineRule } from "#rule.ts";
@@ -25,8 +26,18 @@ const COMPARISONS = new Set([
 ]);
 
 function isErrorStatus(node: ts.Expression): boolean {
-	const number = numericValue(node);
-	return number !== undefined && number >= 400 && number <= 599;
+	const value = unwrapped(node);
+	const literal =
+		ts.isCallExpression(value)
+		&& ts.isPropertyAccessExpression(value.expression)
+		&& ts.isIdentifier(value.expression.expression)
+		&& value.expression.expression.text === "HttpStatus"
+		&& value.expression.name.text === "fromLiteral"
+			? value.arguments[0]
+			: undefined;
+	const number: unknown =
+		literal !== undefined && ts.isStringLiteralLike(literal) ? Reflect.apply(HttpStatus.fromLiteral, undefined, [literal.text]) : numericValue(value);
+	return typeof number === "number" && number >= 400 && number <= 599;
 }
 
 function statusBranch(node: ts.Node): boolean {

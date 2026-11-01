@@ -1,3 +1,4 @@
+import { RegistryProvider } from "@effect/atom-react";
 import { Effect } from "effect";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
@@ -14,6 +15,10 @@ Effect.runSync(
 			return yield* Effect.die(new Error("Missing application root"));
 		}
 		const auth = makeAuth({ baseUrl: window.location.origin });
-		createRoot(container).render(<App auth={auth} />);
+		createRoot(container).render(
+			<RegistryProvider>
+				<App auth={auth} />
+			</RegistryProvider>,
+		);
 	}),
 );

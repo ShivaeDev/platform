@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { countWords } from "@shivaedev/test/answers.ts";
 import { screenActions } from "./screenActions.ts";
@@ -39,13 +40,11 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		refreshSession: () =>
 			Effect.promise(async () => {
 				tell("the app's auth client refreshes the session");
-				const session = auth().auth.client.$store.atoms.session;
-				if (session === undefined) {
-					throw new Error("The auth client has no session atom");
+				const view = engine.view;
+				if (view === undefined) {
+					throw new Error("The app is not open");
 				}
-				await act(async () => {
-					await session.get().refetch();
-				});
+				await act(() => Effect.runPromise(auth().auth.session.refresh.pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry))));
 			}),
 		sessionChecks: () =>
 			Effect.sync(() => countWords(auth().requests.filter((url) => url.pathname === "/api/auth/get-session").length, "session check")),

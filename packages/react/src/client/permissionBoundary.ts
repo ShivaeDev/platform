@@ -16,7 +16,7 @@ export function useCan(): (permission: Permission) => boolean {
 	return (permission) => can(context?.session, permission);
 }
 
-function PermissionFailure({ error }: { readonly error: unknown }): ReactNode {
+export function PermissionBoundaryError({ error }: { readonly error: unknown }): ReactNode {
 	const context = useContext(PermissionContext);
 	if (!isForbidden(error)) {
 		throw error;
@@ -28,6 +28,6 @@ export function PermissionBoundary({ children, fallback, session }: PermissionBo
 	return createElement(
 		PermissionContext.Provider,
 		{ value: { fallback, session } },
-		createElement(CatchBoundary, { children, errorComponent: PermissionFailure, getResetKey: () => "permission" }),
+		createElement(CatchBoundary, { children, errorComponent: PermissionBoundaryError, getResetKey: () => "permission" }),
 	);
 }

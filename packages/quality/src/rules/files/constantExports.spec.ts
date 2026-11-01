@@ -35,3 +35,27 @@ for (const [path, content, reason] of misnamed) {
 		expect(yield* messages()).toEqual([expect.stringContaining(reason)]);
 	});
 }
+
+for (const otherExport of ["", "export function available() { return MAX_ITEMS; }\n"]) {
+	ruleStory.it(
+		`files/named-after-export keeps a constant's filename when it becomes private ${otherExport === "" ? "with no remaining export" : "beside a remaining function export"}`,
+		[repositoryHas({ content: `export const MAX_ITEMS = 10;\n${otherExport}`, path: "src/MaxItems.ts" })],
+		function* ({ check, writes }) {
+			expect(yield* check(namedAfterExport)).toEqual([]);
+
+			yield* writes({ content: `const MAX_ITEMS = 10;\n${otherExport}`, path: "src/MaxItems.ts" });
+
+			expect(yield* check(namedAfterExport)).toEqual([]);
+		},
+	);
+}
+
+ruleStory.it(
+	"files/named-after-export still rejects a private constant's unrelated PascalCase filename",
+	[repositoryHas({ content: "const MAX_ITEMS = 10;\n", path: "src/Limits.ts" })],
+	function* ({ check, locations }) {
+		yield* check(namedAfterExport);
+
+		expect(yield* locations()).toEqual(["src/Limits.ts"]);
+	},
+);
