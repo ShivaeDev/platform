@@ -27,6 +27,7 @@ host.it(
 			"active",
 			"completed",
 			"config",
+			"launchTier",
 			"waiting",
 		]);
 		expect(JSON.parse(json.stdout)).toMatchObject({
