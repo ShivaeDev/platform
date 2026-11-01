@@ -3,11 +3,11 @@ import { Effect } from "effect";
 import { setManifestFiles } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
-import type { RegistryEntry } from "#exceptions/registry.ts";
+import { staleBiomeExceptions } from "#exceptions/biomeFindings.ts";
+import type { RegistryEntry, StaleRegistryEntry } from "#exceptions/registry.ts";
 import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { collectInventory, type Inventory } from "#inventory/collect.ts";
-import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { RuleServices } from "#rule.ts";
 import { type BaselineFile, readBaseline, readInput } from "./baselineFile.ts";
 import { runRules } from "./runRules.ts";
@@ -18,12 +18,11 @@ export interface Session {
 	readonly config: ResolvedConfig;
 	readonly inventory: Inventory;
 	readonly registry: readonly RegistryEntry[];
+	readonly staleRegistry: readonly StaleRegistryEntry[];
 	readonly violations: readonly Violation[];
 }
 
-function setup<TValue, TRequirements>(
-	effect: Effect.Effect<TValue, FilesystemFailure | SetupFailure, TRequirements>,
-): Effect.Effect<TValue, SetupFailure, TRequirements> {
+function setup<TValue, TRequirements>(effect: Effect.Effect<TValue, Error, TRequirements>): Effect.Effect<TValue, SetupFailure, TRequirements> {
 	return Effect.mapError(effect, (failure) =>
 		failure instanceof SetupFailure ? failure : new SetupFailure({ cause: failure, message: failure.message }),
 	);
@@ -31,19 +30,21 @@ function setup<TValue, TRequirements>(
 
 export const scan = Effect.fn("Engine.scan")(function* (
 	config: ResolvedConfig,
-): Effect.fn.Return<Pick<Session, "inventory" | "violations">, SetupFailure, RuleServices> {
+): Effect.fn.Return<Pick<Session, "inventory" | "staleRegistry" | "violations">, SetupFailure, RuleServices> {
 	const inventory = yield* setup(collectInventory(config.root, config));
 	const readText = yield* manifestReader(config.root);
 	setManifestFiles(readText, inventory.manifestFiles);
-	const violations = yield* runRules(config.active, {
+	const inputs = {
 		configFile: relative(config.root, config.file),
 		exceptions: config.exceptions,
 		files: inventory.files,
 		readText,
 		root: config.root,
 		sources: inventory.sources,
-	});
-	return { inventory, violations };
+	};
+	const violations = yield* runRules(config.active, inputs);
+	const staleRegistry = yield* setup(staleBiomeExceptions(inputs));
+	return { inventory, staleRegistry, violations };
 });
 
 export const openSession = Effect.fn("Engine.openSession")(function* (
@@ -60,6 +61,6 @@ export const openSession = Effect.fn("Engine.openSession")(function* (
 		}
 	}
 	const baseline = yield* readBaseline(config);
-	const { inventory, violations } = yield* scan(config);
-	return { baseline, config, inventory, registry: registryEntries(config.exceptions), violations };
+	const scanned = yield* scan(config);
+	return { ...scanned, baseline, config, registry: registryEntries(config.exceptions) };
 });

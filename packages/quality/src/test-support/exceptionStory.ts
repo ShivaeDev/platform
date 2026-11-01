@@ -6,6 +6,7 @@ import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { quality } from "./cli.ts";
 import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
+import { git } from "./git.ts";
 import { writes } from "./hookRepository.ts";
 import { formatTree } from "./qualityTree.ts";
 import { DEFAULT_FILES, linkPackage, type SeedFile } from "./tree.ts";
@@ -75,6 +76,11 @@ export const exceptionStory = storyKit({
 		config: (file = "quality.config.ts") => Effect.sync(() => exportedConfig(engine.root, file)),
 		files: () => Effect.sync(() => textsIn(engine.root)),
 		reads: (path: string) => Effect.sync(() => (existsSync(join(engine.root, path)) ? readFileSync(join(engine.root, path), "utf8") : undefined)),
+		writes: (file: SeedFile) =>
+			Effect.sync(() => {
+				story.tell(`the author writes ${file.path}`);
+				writes(engine.root, file.path, file.content);
+			}),
 	}),
 });
 
@@ -85,6 +91,13 @@ export function repositoryHas(...files: readonly SeedFile[]) {
 export function biomeFormatted() {
 	return exceptionStory.trait("formatting", "Biome has formatted every file, so formatting raises no finding", (engine) => {
 		formatTree(engine.root);
+	});
+}
+
+export function repositoryTracks(...paths: readonly string[]) {
+	return exceptionStory.trait("repository", `git tracks ${paths.join(", ")}, ignored or not`, (engine) => {
+		git(engine.root, "init", "--quiet");
+		git(engine.root, "add", "--force", ...paths);
 	});
 }
 
