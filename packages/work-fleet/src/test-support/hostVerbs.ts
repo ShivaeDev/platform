@@ -6,6 +6,7 @@ import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
 import { admissionFetchVerbs } from "#test/admissionFetch.ts";
+import { answerApplicationRaceVerbs } from "#test/answerApplicationRace.ts";
 import { approvalBackoffVerbs } from "#test/approvalBackoff.ts";
 import { retainedBoardSnapshots } from "#test/boardReadStory.ts";
 import { cloudHostVerbs } from "#test/cloudHost.ts";
@@ -46,6 +47,7 @@ import { watchScheduler } from "#test/watchScheduler.ts";
 
 export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		...answerApplicationRaceVerbs(engine, tell),
 		...preparationReadVerbs(engine, tell),
 		awaitSchedulerPause: () => {
 			tell("wait for the scheduler to enter its GitHub-paced pause");
