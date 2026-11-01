@@ -16,6 +16,7 @@ export interface Follower {
 	readonly isRunning: () => boolean;
 	readonly output: () => string;
 	readonly ready: Promise<void>;
+	readonly stop: () => Promise<FollowRun>;
 }
 
 export interface FollowOptions {
@@ -84,6 +85,10 @@ export function followerProcess(
 				isRunning: () => child.exitCode === null && child.signalCode === null,
 				output: () => stdout,
 				ready,
+				stop: () => {
+					child.kill();
+					return done;
+				},
 			};
 		}),
 		({ child, done }) =>

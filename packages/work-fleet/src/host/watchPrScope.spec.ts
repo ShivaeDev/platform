@@ -12,7 +12,6 @@ for (const terminal of ["merged", "closed"] as const) {
 		[
 			storedWork("finished", "done", { result: { head: HEAD, kind: "change", pr: PR } }),
 			storedWork("open", "waiting", { result: { head: HEAD, kind: "change", pr: SECOND_PR } }),
-			storedWork("stale", "waiting", { result: { head: HEAD, kind: "change", pr: "https://github.com/example/repository/pull/9" } }),
 		],
 		function* (daemon) {
 			const github = yield* daemon.prApi();

@@ -91,6 +91,7 @@ export const watchPrApi = Effect.gen(function* () {
 				{ message: status === HttpStatus.fromLiteral("UnprocessableEntity") ? "too many files changed" : "GitHub unavailable" },
 				{ status },
 			),
+		failQueue: (status: number) => github.reply("/graphql", { message: "GitHub unavailable" }, { status }),
 		failRepository: (status: number) => github.reply(`${base}/pulls?state=open&per_page=100`, { message: "GitHub unavailable" }, { status }),
 		pr: `https://github.com/${repository}/pull/7`,
 		pull,

@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
-import { type Duration, Effect, FileSystem } from "effect";
+import { type Duration, Effect, FileSystem, Schema } from "effect";
+import { State } from "@shivaedev/pr-watch/model.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import type { FleetRecord } from "#model.ts";
 import { answerQueueFailure } from "#test/answerRecordingFailure.ts";
@@ -57,6 +58,12 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 			});
 		},
 		prApi: () => watchPrApi,
+		prWatchState: (repository: string) =>
+			Effect.gen(function* () {
+				const fs = yield* FileSystem.FileSystem;
+				const text = yield* fs.readFileString(join(engine.fixture.host.boardDir, ".pr-watch", `${repository.replace("/", "-")}.json`));
+				return yield* Schema.decodeUnknownEffect(Schema.fromJsonString(State))(text);
+			}),
 		repositoryWithBoard: () =>
 			Effect.gen(function* () {
 				tell("create a repository with its Board in .work");
@@ -67,6 +74,10 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 				return root;
 			}),
 		stalledWatchProxy: () => stalledWatchProxy(engine.running.port),
+		stopWatch: () => {
+			tell("stop the Fleet event watcher");
+			return Effect.promise(() => follower().stop());
+		},
 		streamProxy: () => forwardingProxy(`http://127.0.0.1:${engine.running.port}`),
 		watchDefault: (options: FollowOptions = {}) => {
 			tell("watch Fleet with its default event selection and output");
