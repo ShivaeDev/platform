@@ -44,6 +44,7 @@ export function boundQuery(service: ErasedClient, tag: string, query: QueryShape
 				keys,
 				Schema.toEquivalence(query.success),
 				query.live === "rerun-and-compare" ? Schema.decodeUnknownSync(Schema.toType(query.success)) : undefined,
+				options.headers,
 			);
 			const tracked = clientActivities.get(service)?.watch(result) ?? result;
 			cached.set(atom, tracked);

@@ -1,4 +1,5 @@
 import { type Duration, Effect, type Schema, Stream } from "effect";
+import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
@@ -71,6 +72,7 @@ export function automaticLive(
 		keys: readonly Key[],
 		equivalent: (left: A, right: A) => boolean,
 		decode?: (value: unknown) => A,
+		headers?: Headers.Input,
 	) {
 		if (!enabled) {
 			return atom;
@@ -84,7 +86,7 @@ export function automaticLive(
 			resume: signal,
 			resyncKeys: decode === undefined ? localQueryKeys(keys) : [],
 			retryKeys: keys,
-			stream: Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries: [reference] })))).pipe(
+			stream: Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries: [reference] }, { headers })))).pipe(
 				delivery.stream,
 				Stream.map((hint) => queryHint(hint, [{ keys }])),
 			),
