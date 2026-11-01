@@ -4,7 +4,7 @@
 
 ### Breaking
 
-- Migration runners now hold a session advisory lock through components and release publication. Allocate at least two pool connections for an active runner plus capacity for waiting runners and other work, and migrate transaction-pooled connections to direct connections or session pooling. Components continue to run outside the ledger transaction.
+- Migration runners with schema components or a release now hold a session advisory lock through components and release publication. Allocate at least two pool connections for an active runner plus capacity for waiting runners and other work, and migrate transaction-pooled connections to direct connections or session pooling. Components continue to run outside the ledger transaction. Runs with only numbered migrations retain their transaction lock and one-connection pool support.
 
 - Direct callers of `postgresRelease(...).apply` must handle `SchemaError` alongside `SqlError` because the component now decodes its PostgreSQL clock row.
 

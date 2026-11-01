@@ -8,6 +8,7 @@ import { type ComponentName, componentOf, described, loaderOf, type Migration } 
 import { migrationConcurrency } from "./migrationConcurrency.ts";
 import type { Applied, MigrationEngine } from "./migrationEngine.ts";
 import { failureOf, outcomeOf } from "./outcome.ts";
+import { singleConnectionMigration } from "./singleConnectionMigration.ts";
 
 export interface RunOptions {
 	readonly components?: readonly ComponentName[];
@@ -109,6 +110,11 @@ export function migrationVerbs(engine: MigrationEngine, tell: (line: string) => 
 			Effect.suspend(() => {
 				tell(`a runner migrates ${described(migrations)}${withOptions(options)}`);
 				return Effect.tap(run(migrations, options), (outcome) => Effect.sync(() => engine.runs.push(outcome)));
+			}),
+		migrateWithOneConnection: (migrations: readonly Migration[]) =>
+			Effect.suspend(() => {
+				tell(`a runner migrates ${described(migrations)} using a pool with one connection`);
+				return singleConnectionMigration(engine, migrations);
 			}),
 		orders: () =>
 			Effect.map(sql<{ readonly name: string }>`select name from ${sql(tables.orders)} order by name`, (rows) => rows.map(({ name }) => name)).pipe(

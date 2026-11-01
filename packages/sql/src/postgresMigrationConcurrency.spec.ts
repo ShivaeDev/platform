@@ -65,3 +65,53 @@ migrationRuns.it(
 		]);
 	},
 );
+
+migrationRuns.it(
+	"numbered migrations without components or a release still commit using a one-connection pool",
+	[],
+	function* ({ migrateWithOneConnection, orders, runs }) {
+		yield* migrateWithOneConnection(["1_create_orders", "2_add_printer_paper"]);
+
+		yield* outcomes([
+			["committed orders", () => orders(), ["Printer paper"]],
+			[
+				"completed run",
+				() => runs(),
+				[
+					[
+						[1, "create_orders"],
+						[2, "add_printer_paper"],
+					],
+				],
+			],
+		]);
+	},
+);
+
+migrationRuns.it(
+	"a runner with only numbered migrations waits for a runner's schema component on the same ledger",
+	[],
+	function* ({
+		startRunnerPausedInComponent,
+		startCompetingRunner,
+		competingRunnerWaitsOnLedger,
+		orders,
+		resumePausedRunner,
+		finishCompetingRunner,
+		runs,
+	}) {
+		yield* startRunnerPausedInComponent(["1_create_orders"]);
+		yield* startCompetingRunner(["1_create_orders", "2_add_printer_paper"]);
+		yield* competingRunnerWaitsOnLedger();
+
+		expect(yield* orders()).toEqual([]);
+
+		yield* resumePausedRunner();
+		yield* finishCompetingRunner();
+
+		yield* outcomes([
+			["committed orders", () => orders(), ["Printer paper"]],
+			["completed runs", () => runs(), [[[1, "create_orders"]], [[2, "add_printer_paper"]]]],
+		]);
+	},
+);
