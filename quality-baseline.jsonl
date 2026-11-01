@@ -49,7 +49,6 @@
 {"path":"script/release/compare.ts","rule":"effect/boundary","count":3}
 {"path":"script/release/maintainPullRequest.ts","rule":"effect/boundary","count":2}
 {"path":"script/release/pullRequest.spec.ts","rule":"tests/grouped-outcomes","count":5}
-{"path":"script/release/pullRequestHold.spec.ts","rule":"tests/grouped-outcomes","count":6}
 {"path":"script/release/pullRequestStability.spec.ts","rule":"tests/grouped-outcomes","count":8}
 {"path":"script/release/repository.spec.ts","rule":"tests/grouped-outcomes","count":4}
 {"path":"script/starter-published/documentation.ts","rule":"code/unused","count":1}
