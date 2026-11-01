@@ -23,10 +23,17 @@ function Controls() {
 	);
 }
 
-export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, session: PermissionSession | undefined, initial: string) {
+export function permissionApp(
+	host: Host,
+	registry: AtomRegistry.AtomRegistry,
+	session: PermissionSession | undefined,
+	initial: string,
+	hidden = false,
+) {
 	const auth = { current: session };
 	const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; host: Host; auth: typeof auth }>()({
-		beforeLoad: permissionGuard({ session: () => auth.current, signIn: "/login" }),
+		beforeLoad: permissionGuard({ hidden, session: () => auth.current, signIn: "/login" }),
+		notFoundComponent: () => <h1>Page not found</h1>,
 	});
 	const signOut = authAction(async () => {
 		auth.current = undefined;
@@ -60,6 +67,15 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 		path: "/query",
 	});
 	const controls = createRoute({ component: Controls, getParentRoute: () => root, path: "/controls" });
+	const admin = createRoute({
+		component: () => <h1>Admin users</h1>,
+		getParentRoute: () => root,
+		path: "/admin/users",
+		staticData: { permission: ReadNotes.any },
+		...queryRoute(({ context }: { context: typeof root.types.allContext; params: Record<string, never>; search: Record<string, never> }) =>
+			context.host.api.get.query({ id: "admin" }),
+		),
+	});
 	const account = createRoute({ getParentRoute: () => root, path: "/account", staticData: { signedIn: true } });
 	const profile = createRoute({ component: () => <h1>Profile</h1>, getParentRoute: () => account, path: "/profile" });
 	const privateAccount = createRoute({
@@ -79,7 +95,7 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 		defaultPendingMs: Number.POSITIVE_INFINITY,
 		disableGlobalCatchBoundary: true,
 		history: createMemoryHistory({ initialEntries: [initial] }),
-		routeTree: root.addChildren([note, direct, controls, login, account.addChildren([profile, privateAccount])]),
+		routeTree: root.addChildren([note, direct, controls, login, admin, account.addChildren([profile, privateAccount])]),
 	});
 	return { auth, host, router };
 }

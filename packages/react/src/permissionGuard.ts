@@ -1,4 +1,4 @@
-import { redirect } from "@tanstack/react-router";
+import { notFound, redirect } from "@tanstack/react-router";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { forbidden } from "@shivaedev/access/refusal.ts";
 import { can, type PermissionSession } from "./permissions.ts";
@@ -12,6 +12,7 @@ declare module "@tanstack/react-router" {
 }
 
 export interface PermissionGuardOptions {
+	readonly hidden?: boolean;
 	readonly session: () => PermissionSession | null | undefined;
 	readonly signIn: string;
 }
@@ -21,7 +22,7 @@ export interface PermissionGuardContext {
 	readonly matches: readonly { readonly staticData: { readonly permission?: Permission; readonly signedIn?: boolean } }[];
 }
 
-export function permissionGuard({ session, signIn }: PermissionGuardOptions): (context: PermissionGuardContext) => void {
+export function permissionGuard({ session, signIn, hidden = false }: PermissionGuardOptions): (context: PermissionGuardContext) => void {
 	return ({ matches, location }) => {
 		const required = matches.flatMap((match) => (match.staticData.permission === undefined ? [] : [match.staticData.permission]));
 		if (required.length === 0 && !matches.some((match) => match.staticData.signedIn === true)) {
@@ -33,7 +34,7 @@ export function permissionGuard({ session, signIn }: PermissionGuardOptions): (c
 		}
 		for (const permission of required) {
 			if (!can(current, permission)) {
-				throw forbidden(permission);
+				throw hidden ? notFound() : forbidden(permission);
 			}
 		}
 	};
