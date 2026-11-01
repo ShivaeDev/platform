@@ -5,6 +5,7 @@ import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts"
 import { exportFits } from "#naming/exportFits.ts";
 import { mainExport } from "#naming/mainExport.ts";
 import { isMigrationFile } from "#naming/migrationFile.ts";
+import { moduleRoot } from "#naming/moduleRoot.ts";
 import { ownExports } from "#naming/ownExports.ts";
 import { type PackageLayout, packageLayout } from "#naming/packageLayout.ts";
 import { CAMEL, KEBAB, sameWord, wordsOf } from "#naming/words.ts";
@@ -73,7 +74,9 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 			? []
 			: [{ file: file.path, message: `"${stem}" is run as a script, so it is named in kebab-case, such as build-docs.ts.` }];
 	}
-	const folder = repeated(stem, folders);
+	const root = moduleRoot(file.path);
+	const admin = root === undefined ? undefined : /^(?:client|server)\/(?<path>admin\/.+)$/u.exec(file.path.slice(root.length + 1))?.groups?.path;
+	const folder = repeated(stem, admin === undefined ? folders : posix.dirname(admin).split("/"));
 	const messages = [
 		nameFinding(file, stem, folders),
 		folder === undefined ? undefined : `"${stem}" repeats its folder "${folder}". The folder is the prefix: items/listItems.ts is items/list.ts.`,
@@ -90,7 +93,7 @@ export const namedAfterExport = defineRule({
 			.flatMap((file) => findingsOf(file, layout));
 	},
 	description:
-		"A file is named after its main export, including a single constant, with its folders as the prefix; a file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
+		"A file is named after its main export, including a single constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",
 	options: Schema.toStandardSchemaV1(NamedAfterExportOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 	validate: validateGlobs,
