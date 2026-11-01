@@ -2,6 +2,7 @@ import { Effect, Option, Redacted, Schema } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
 import type { PgBossClient } from "#client.ts";
 import { PgBossPayloadError, toPgBossError } from "#error.ts";
+import { deferralOf } from "#internal/deferral.ts";
 import { decodeStoredData } from "#internal/storedRows.ts";
 import { JobFailure } from "#JobFailure.ts";
 import type { PgBossService } from "#service.ts";
@@ -29,7 +30,7 @@ export function getJobFor(client: PgBossClient): PgBossService["getJob"] {
 						return Option.none();
 					}
 					const data = yield* decodeStoredData(queue, job.data);
-					const output = job.output === null ? job.output : yield* decodeFailure(queue.name, job.output);
+					const output = job.output === null || deferralOf(job) !== undefined ? job.output : yield* decodeFailure(queue.name, job.output);
 					const sourceOutput = job.sourceOutput === null ? null : yield* decodeFailure(queue.name, job.sourceOutput);
 					return Option.some({ ...job, data: redact(data), output, sourceOutput });
 				}),
