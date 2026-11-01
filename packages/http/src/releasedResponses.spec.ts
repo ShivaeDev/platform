@@ -9,6 +9,7 @@ for (const transport of ["fetch", "node"] as const) {
 		["status", "RemoteNotFound"],
 		["length", "ResponseBodyTooLarge"],
 		["chunked", "ResponseBodyTooLarge"],
+		["invalid", "InvalidBodyLimit"],
 	] as const) {
 		rejections.it(`a ${reply} rejection closes the connection while the server withholds the body`, [], function* ({ connectionClosed, read }) {
 			const result = yield* read(reply);

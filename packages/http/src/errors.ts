@@ -26,3 +26,7 @@ export class PaginationLinkError extends Schema.TaggedError<PaginationLinkError>
 export class ResponseBodyTooLarge extends Schema.TaggedError<ResponseBodyTooLarge>()("ResponseBodyTooLarge", {
 	limit: Schema.Number,
 }) {}
+
+export class InvalidBodyLimit extends Schema.TaggedError<InvalidBodyLimit>()("InvalidBodyLimit", {
+	limit: Schema.Number,
+}) {}
