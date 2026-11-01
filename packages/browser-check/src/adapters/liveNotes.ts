@@ -1,19 +1,21 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { BrowserContext, Page } from "playwright";
+import { rpcHint, rpcListRequest } from "./rpcFrames.ts";
 
 export async function liveNotes(context: BrowserContext, writer: Page, url: string, folder: string) {
 	const observer = await context.newPage();
 	observer.setDefaultTimeout(5000);
-	const socketReady = observer
-		.waitForEvent("websocket", { predicate: (socket) => new URL(socket.url()).pathname === "/rpc" })
-		.then(async (socket) => {
-			await socket.waitForEvent("framereceived", { predicate: (frame) => String(frame.payload).includes('"Resync"') });
+	const [rpcSocket] = await Promise.all([
+		observer.waitForEvent("websocket", { predicate: (socket) => new URL(socket.url()).pathname === "/rpc" }).then(async (socket) => {
+			await socket.waitForEvent("framereceived", { predicate: ({ payload }) => rpcHint(payload, "Resync") });
 			return socket;
-		});
-	await writer.goto(new URL("/", url).href);
-	await observer.goto(new URL("/", url).href);
-	const rpcSocket = await socketReady;
+		}),
+		(async () => {
+			await writer.goto(new URL("/", url).href);
+			await observer.goto(new URL("/", url).href);
+		})(),
+	]);
 	await observer.getByRole("heading", { exact: true, name: "Notes" }).waitFor();
 	let navigated = false;
 	observer.on("framenavigated", (frame) => {
@@ -22,11 +24,15 @@ export async function liveNotes(context: BrowserContext, writer: Page, url: stri
 		}
 	});
 	const title = `Browser check ${randomUUID()}`;
-	const changed = rpcSocket.waitForEvent("framereceived", { predicate: (frame) => String(frame.payload).includes('"Changed"') });
-	const reread = rpcSocket.waitForEvent("framesent", { predicate: (frame) => String(frame.payload).includes('"notes.list"') });
-	await writer.getByLabel("New note", { exact: true }).fill(title);
-	await writer.getByRole("button", { exact: true, name: "Add note" }).click();
-	await Promise.all([changed, reread, observer.getByRole("link", { exact: true, name: title }).waitFor()]);
+	await Promise.all([
+		rpcSocket.waitForEvent("framereceived", { predicate: ({ payload }) => rpcHint(payload, "Changed") }),
+		rpcSocket.waitForEvent("framesent", { predicate: ({ payload }) => rpcListRequest(payload) }),
+		(async () => {
+			await writer.getByLabel("New note", { exact: true }).fill(title);
+			await writer.getByRole("button", { exact: true, name: "Add note" }).click();
+			await observer.getByRole("link", { exact: true, name: title }).waitFor();
+		})(),
+	]);
 	if (navigated) {
 		throw new Error("The second tab navigated instead of updating its open notes list.");
 	}
