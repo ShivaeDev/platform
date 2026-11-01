@@ -151,7 +151,7 @@ export const fileWatcherStory = storyKit({
 					return paths.filter((path) => engine.checked.includes(path));
 				}),
 			listedPaths: () =>
-				Effect.map(watcher().changes.files, (files) => {
+				Effect.map(watcher().changes.inventory, ({ files }) => {
 					story.tell("the reader reads the watched Markdown listing");
 					return files.map((file) => file.path).sort(Order.String);
 				}),

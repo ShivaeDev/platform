@@ -46,6 +46,7 @@ export const projectionQueries = Effect.gen(function* () {
 				}
 				const selected = projection.selected ? yield* read(identityUrl(projection.selected.id)) : undefined;
 				return {
+					...(projection.unavailable ? { unavailable: projection.unavailable } : {}),
 					boards: projection.boards.map(toItem),
 					issues: projection.issues,
 					items: projection.items.map(toItem),

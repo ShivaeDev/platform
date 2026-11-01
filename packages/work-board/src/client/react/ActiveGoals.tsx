@@ -2,12 +2,17 @@ import { Option } from "effect";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { EmptyState } from "#client/react/EmptyState.tsx";
 import { GoalProgress } from "#client/react/GoalProgress.tsx";
+import { IndexIncomplete } from "#client/react/IndexIncomplete.tsx";
 import { LoadingRows } from "#client/react/loading.tsx";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 
 export function ActiveGoals({ api }: { readonly api: ShellApi }) {
 	const query = useQuery(api.goals.query(undefined, { timeToLive: 60_000 }), { keepPreviousData: true });
-	const goals = Option.getOrUndefined(query.data)?.goals;
+	const data = Option.getOrUndefined(query.data);
+	const goals = data?.goals;
+	if (data?.unavailable?.length) {
+		return <IndexIncomplete paths={data.unavailable} />;
+	}
 	return (
 		<>
 			{goals === undefined && Option.isNone(query.cause) && <LoadingRows framed={false} label="Loading active goals" rows={2} />}

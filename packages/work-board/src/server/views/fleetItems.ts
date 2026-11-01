@@ -60,7 +60,7 @@ export function fleetItems(folder: string, fleetPort: number | null = DAEMON_POR
 		const settings = yield* workspace.settings();
 		const briefs = [...new Set([...data.completed, ...data.items].map((item) => item.workId))].flatMap((workId) => {
 			const matches = snapshot.model.ids.get(workId);
-			const document = matches?.length === 1 ? matches[0] : undefined;
+			const document = snapshot.unavailable.length === 0 && matches?.length === 1 ? matches[0] : undefined;
 			return document !== undefined && fleetChecksBrief(document.parsed.fields.kind, document.parsed.fields.status)
 				? [{ sourcePath: join(settings.realRoot, document.file), workId }]
 				: [];
@@ -71,8 +71,9 @@ export function fleetItems(folder: string, fleetPort: number | null = DAEMON_POR
 				? []
 				: yield* readDaemon(fleetPort, (client) => client("daemon.briefProblems", { briefs })).pipe(Effect.catch(() => Effect.succeed([])));
 		const refused = new Set(refusals.map((refusal) => refusal.workId));
-		const ready = mergeWaits(snapshot);
+		const ready = snapshot.unavailable.length === 0 ? mergeWaits(snapshot) : new Set<string>();
 		return {
+			...(snapshot.unavailable.length === 0 ? {} : { unavailable: snapshot.unavailable }),
 			...(data.areas === undefined ? {} : { areas: data.areas }),
 			completed: data.completed
 				.filter((item) => !refused.has(item.workId))

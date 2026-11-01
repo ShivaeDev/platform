@@ -36,7 +36,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 				actions={home !== undefined && <LinkButton href={fileUrl(home.file)}>{home.title ?? home.file}</LinkButton>}
 				summary={
 					<TodaySummary
-						goals={goals?.goals.length}
+						goals={goals?.unavailable?.length ? undefined : goals?.goals.length}
 						goalsFailed={Option.isSome(query.cause)}
 						issues={data.issues}
 						needs={data.complete ? answering.items.length : undefined}

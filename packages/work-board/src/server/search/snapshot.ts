@@ -2,9 +2,8 @@ import { Clock, Effect, type FileSystem, Option, type Path, type PlatformError, 
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { MetadataDocument } from "#integration/metadata.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
-import { archiveDocuments, refreshArchived } from "#server/archive/documents.ts";
+import { refreshArchived } from "#server/archive/documents.ts";
 import { loadSettled } from "#server/archive/loadSettled.ts";
-import { archiveSettled } from "#server/archive/settled.ts";
 import { readCatalogue } from "#server/archive/settledCatalogue.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { invalidationsSince } from "#server/files/invalidations.ts";
@@ -12,6 +11,7 @@ import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPaths } from "#server/files/markdownPath.ts";
 import type { metadataModel } from "#server/metadata/model.ts";
 import { updateModel } from "#server/metadata/updateModel.ts";
+import { archiveInventory } from "./archiveInventory.ts";
 import type { Entry } from "./entries.ts";
 import { fileCounter } from "./fileCounter.ts";
 import { type IndexedDocument, readDocument } from "./readDocument.ts";
@@ -19,8 +19,10 @@ import { updateEntries } from "./updateEntries.ts";
 
 const READ_CONCURRENCY = 16;
 
-function currentSnapshot(hit: Snapshot | undefined, revision: number, watching: boolean, elapsed: number) {
-	return hit?.revision === revision && hit.unavailable.length === 0 && watching && elapsed < 60 * 60 * 1000 ? hit : undefined;
+function currentSnapshot(hit: Snapshot | undefined, revision: number, watching: boolean, elapsed: number, unlisted: readonly string[]) {
+	return hit?.revision === revision && hit.unavailable.length === 0 && unlisted.length === 0 && watching && elapsed < 60 * 60 * 1000
+		? hit
+		: undefined;
 }
 
 export interface Snapshot {
@@ -50,12 +52,12 @@ function shouldRead(
 
 const settledListing = Effect.fn("WorkBoard.settledListing")(function* (changes: Changes) {
 	let revision = yield* changes.revision;
-	let files = yield* changes.files;
+	let inventory = yield* changes.inventory;
 	while ((yield* changes.revision) !== revision) {
 		revision = yield* changes.revision;
-		files = yield* changes.files;
+		inventory = yield* changes.inventory;
 	}
-	return { files, revision };
+	return { ...inventory, revision };
 });
 
 export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
@@ -87,16 +89,16 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 		// Only a build without a previous snapshot reads the whole workspace; later builds reread the files that changed.
 		const progress = hit === undefined ? report : () => Effect.void;
 		yield* progress({ _tag: "Indexing", read: 0 });
-		const { files, revision } = yield* settledListing(changes);
+		const { files, revision, unavailable: unlisted } = yield* settledListing(changes);
 		const watching = yield* Ref.get(changes.watching);
-		const current = currentSnapshot(hit, revision, watching, now - housekeptAt);
+		const current = currentSnapshot(hit, revision, watching, now - housekeptAt, unlisted);
 		if (current) {
 			return current;
 		}
 		const dirty = hit && watching ? invalidationsSince(changes, hit.revision) : undefined;
 		const next = new Map<string, IndexedDocument>();
 		const documents: MetadataDocument[] = [];
-		const unavailable: string[] = [];
+		const unavailable: string[] = [...unlisted];
 		yield* progress({ _tag: "Indexing", read: 0, total: files.length });
 		const counted = fileCounter(files.length, progress);
 		const resolve = yield* markdownPaths(changes.realRoot);
@@ -111,12 +113,7 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 			}
 		}
 		const modified = new Map(files.map((file) => [file.path, file.modified]));
-		const moved = yield* archiveDocuments(
-			root,
-			documents.map((document) => ({ ...document, modified: modified.get(document.file) ?? now })),
-			now,
-		);
-		moved.push(...(yield* archiveSettled(root, documents)));
+		const moved = yield* archiveInventory(root, documents, modified, now, unavailable);
 		housekeptAt = now;
 		if (moved.length > 0) {
 			yield* refreshArchived(changes, moved);

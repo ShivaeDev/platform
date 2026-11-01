@@ -162,3 +162,12 @@ export function deniedClipboard() {
 		vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("Denied"));
 	});
 }
+
+export function incompleteInventory(paths: readonly string[]) {
+	return screenStory.trait("workspace", `the index cannot read ${paths.join(", ")}`, (engine) => {
+		engine.options = {
+			...engine.options,
+			index: fixtureSnapshot(engine.files, engine.options?.home).pipe(Effect.map((snapshot) => ({ ...snapshot, unavailable: paths }))),
+		};
+	});
+}

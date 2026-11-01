@@ -1,6 +1,7 @@
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { EmptyState } from "./EmptyState.tsx";
 import { GoalOverviewCard } from "./GoalOverviewCard.tsx";
+import { IndexIncomplete } from "./IndexIncomplete.tsx";
 import { LinkButton } from "./LinkButton.tsx";
 import { PageHeader } from "./PageHeader.tsx";
 
@@ -8,13 +9,7 @@ export function GoalsPage({ data }: { readonly data: GoalsProjection }) {
 	return (
 		<div className="max-w-5xl space-y-6">
 			<PageHeader summary={goalsSummary(data)} title="Goals" />
-			{data.goals.length > 0 ? (
-				<GoalCards goals={data.goals} />
-			) : (
-				<EmptyState action={<LinkButton href="/_board/start">Getting started</LinkButton>} title="No active goals">
-					A goal appears here when a file in this workspace declares one{listedBelow(data)}
-				</EmptyState>
-			)}
+			<ActiveGoalList data={data} />
 			{data.deferredGoals.length > 0 && (
 				<details>
 					<summary className="text-muted-foreground cursor-pointer text-sm">Deferred goals</summary>
@@ -57,5 +52,18 @@ function GoalCards({ goals }: { readonly goals: GoalsProjection["goals"] }) {
 				<GoalOverviewCard goal={goal} key={goal.id} />
 			))}
 		</div>
+	);
+}
+
+function ActiveGoalList({ data }: { readonly data: GoalsProjection }) {
+	if (data.unavailable?.length) {
+		return <IndexIncomplete paths={data.unavailable} />;
+	}
+	return data.goals.length > 0 ? (
+		<GoalCards goals={data.goals} />
+	) : (
+		<EmptyState action={<LinkButton href="/_board/start">Getting started</LinkButton>} title="No active goals">
+			A goal appears here when a file in this workspace declares one{listedBelow(data)}
+		</EmptyState>
 	);
 }

@@ -1,4 +1,4 @@
-import { Deferred, Effect, FileSystem, Path, Queue, Stream } from "effect";
+import { Deferred, Effect, FileSystem, Order, Path, Queue, Stream } from "effect";
 import { scanMarkdown } from "./list.ts";
 import { watcherEnded, watchSentinel } from "./watchSentinel.ts";
 
@@ -49,12 +49,13 @@ export const watchedScan = Effect.fn("WorkBoard.watchedScan")(function* (root: s
 		{ capacity: "unbounded" },
 	);
 	yield* watchSentinel(realRoot, rootEvents, unconfirmed);
-	const { files, roots } = yield* scanMarkdown(root, realRoot);
+	const { files, roots, unavailable } = yield* scanMarkdown(root, realRoot);
 	return {
 		files,
-		listing: roots.length > 1 ? undefined : files,
+		listing: roots.length > 1 ? undefined : { files, unavailable },
 		rootEvents: Stream.merge(Stream.fromQueue(rootEvents), removals),
 		roots,
+		unavailable,
 	};
 });
 
@@ -64,23 +65,31 @@ export const rescanFolders = Effect.fn("WorkBoard.rescanFolders")(function* (
 	folders: readonly string[],
 	roots: WatchRoots,
 	contents: ReadonlyMap<string, number>,
+	unavailable: readonly string[] = [],
 ) {
 	const everything = Effect.map(scanMarkdown(root, realRoot), (scanned) => ({
 		contents: new Map(scanned.files.map((file) => [file.path, file.modified])),
 		roots: scanned.roots,
+		unavailable: scanned.unavailable,
 	}));
 	if (roots.length > 1 || folders.includes("")) {
 		return yield* everything;
 	}
 	const next = new Map([...contents].filter(([file]) => !folders.some((folder) => file.startsWith(`${folder}/`))));
 	let found = roots;
+	const missing = new Set(unavailable.filter((file) => !folders.some((folder) => file === folder || file.startsWith(`${folder}/`))));
 	for (const folder of folders) {
 		const scanned = yield* scanMarkdown(root, realRoot, folder);
 		for (const file of scanned.files) {
 			next.set(file.path, file.modified);
 		}
+		for (const file of scanned.unavailable) {
+			missing.add(file);
+		}
 		found = [...found, ...scanned.roots.slice(1)];
 	}
 	// Files no event named may have moved in from elsewhere in the workspace, whose old paths only a full scan finds gone.
-	return [...next.keys()].some((file) => !contents.has(file)) ? yield* everything : { contents: next, roots: found };
+	return [...next.keys()].some((file) => !contents.has(file))
+		? yield* everything
+		: { contents: next, roots: found, unavailable: [...missing].sort(Order.String) };
 });

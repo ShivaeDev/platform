@@ -31,5 +31,6 @@ export const GoalsProjection = Schema.Struct({
 	deferredGoals: Schema.Array(Goal),
 	goals: Schema.Array(Goal),
 	items: Schema.Array(Schema.Struct({ ...WorkItem.fields, modified: Schema.optional(Schema.Number) })),
+	unavailable: Schema.optionalKey(Schema.Array(Schema.String)),
 });
 export type GoalsProjection = typeof GoalsProjection.Type;

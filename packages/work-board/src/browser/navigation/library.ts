@@ -23,6 +23,7 @@ export const Library = Schema.Struct({
 	folders: Schema.Array(Schema.Struct({ count: Schema.Number, name: Schema.String, path: Schema.String })),
 	kinds: Schema.Array(Schema.String),
 	statuses: Schema.Array(Schema.String),
+	unavailable: Schema.optionalKey(Schema.Array(Schema.String)),
 });
 export type Library = typeof Library.Type;
 

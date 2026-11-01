@@ -11,6 +11,7 @@ export const FleetItemsProjection = Schema.Union([
 		completed: Schema.Array(Schema.Struct({ ...CompletedFleetItem.fields, document: FleetDocument })),
 		items: Schema.Array(Schema.Struct({ ...FleetItem.fields, document: FleetDocument, readyToMerge: Schema.optionalKey(Schema.Boolean) })),
 		state: Schema.Literal("ready"),
+		unavailable: Schema.optionalKey(Schema.Array(Schema.String)),
 	}),
 	Schema.Struct({
 		authored: Schema.optional(Schema.Array(AuthoredProgress)),

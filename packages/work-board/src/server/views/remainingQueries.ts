@@ -55,7 +55,11 @@ export const remainingQueries = Effect.gen(function* () {
 				}
 				return yield* resultProjection(item, result, data, yield* read(identityUrl(item)));
 			}),
-		start: () => Effect.map(changes.files, (files) => ({ empty: files.length === 0, templates: startTemplates })),
+		start: () =>
+			Effect.map(changes.inventory, ({ files, unavailable }) => ({
+				empty: files.length === 0 && unavailable.length === 0,
+				templates: startTemplates,
+			})),
 	};
 });
 

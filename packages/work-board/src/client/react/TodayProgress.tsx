@@ -3,6 +3,7 @@ import { inProgress, type ProgressRow as Row } from "#browser/views/inProgress.t
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { FleetStopped } from "./FleetStopped.tsx";
+import { IndexIncomplete } from "./IndexIncomplete.tsx";
 import { LoadingRows } from "./loading.tsx";
 
 const FROM_FILES = "These show the status written in each task, not what Fleet reports.";
@@ -11,6 +12,7 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 	const progress = inProgress(data);
 	return (
 		<div className="space-y-3">
+			<IndexIncomplete paths={data?.state === "ready" ? data.unavailable : undefined} />
 			{data === undefined && !failed && <LoadingRows label="Loading work in progress" />}
 			{data?.state === "unavailable" && data.startCommand !== undefined ? (
 				<FleetStopped command={data.startCommand} reason={data.reason}>

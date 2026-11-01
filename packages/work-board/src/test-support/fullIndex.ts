@@ -1,16 +1,16 @@
 import { Effect, Option } from "effect";
 import type { MetadataDocument } from "#integration/metadata.ts";
-import { listMarkdown } from "#server/files/list.ts";
+import { scanMarkdown } from "#server/files/list.ts";
 import { metadataModel } from "#server/metadata/model.ts";
 import type { Entry } from "#server/search/entries.ts";
 import { metadataEntries } from "#server/search/metadataEntries.ts";
 import { readDocument } from "#server/search/readDocument.ts";
 
 export const fullIndex = Effect.fn("Test.fullIndex")(function* (root: string, home?: string) {
-	const files = yield* listMarkdown(root, root);
+	const { files, unavailable: unlisted } = yield* scanMarkdown(root, root);
 	const documents: MetadataDocument[] = [];
 	const entries: Entry[] = [];
-	const unavailable: string[] = [];
+	const unavailable: string[] = [...unlisted];
 	for (const file of files) {
 		const found = yield* Effect.option(readDocument(root, root, file.path, home, file.modified));
 		if (Option.isSome(found) && found.value) {

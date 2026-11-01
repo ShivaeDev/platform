@@ -39,6 +39,7 @@ export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, 
 		}
 	}
 	return {
+		...(snapshot.unavailable.length > 0 ? { unavailable: snapshot.unavailable } : {}),
 		files: visible
 			.filter((file) => input.folder === undefined || (file.path.startsWith(prefix) && !file.path.slice(prefix.length).includes("/")))
 			.toSorted((a, b) => a.title.localeCompare(b.title) || a.path.localeCompare(b.path)),

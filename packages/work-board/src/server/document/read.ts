@@ -70,7 +70,7 @@ function referenceDetails(
 export function readDocument({ changes, fleetPort, home, pullRequests = Effect.succeed(undefined), root, realRoot, writable }: WorkspaceSettings) {
 	return Effect.fn("WorkBoard.document")(function* (url: string, indexed: Snapshot) {
 		const snapshot = yield* archivedReading(indexed, url);
-		const files = readingFiles(yield* changes.files, snapshot);
+		const files = readingFiles((yield* changes.inventory).files, snapshot);
 		const { file, item } = yield* selected(url, snapshot, files, home);
 		const real = yield* documentPath(root, realRoot, file.path, item);
 		if (!real) {

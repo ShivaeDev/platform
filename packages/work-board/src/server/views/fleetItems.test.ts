@@ -2,6 +2,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
+import { unreadableDirectory } from "#test/incompleteInventory.ts";
 import { unlistableWorkspace } from "#test/readTraits.ts";
 import { nestedProject } from "#test/servingTraits.ts";
 import { fleetDaemon, rejectingFleetDaemon } from "#test/workspaceBoardTraits.ts";
@@ -147,6 +148,35 @@ boardStory.it(
 			],
 			reason: "Fleet isn't set up for this Board.",
 			state: "unavailable",
+		});
+	},
+);
+
+boardStory.it(
+	"Fleet keeps active and completed execution records without joining documents while a directory may hide duplicate IDs, then joins readable unique documents after recovery",
+	[project, fleetDaemon(reported), projectFiles({ "hidden/note.md": "# Note" }), unreadableDirectory("hidden")],
+	function* ({ fleetWork, restoreDirectory }) {
+		expect(yield* fleetWork()).toMatchObject({
+			completed: [{ document: null, workId: "done" }],
+			items: [
+				{ document: null, workId: "one" },
+				{ document: null, workId: "missing" },
+				{ document: null, workId: "duplicate" },
+			],
+			state: "ready",
+			unavailable: ["hidden"],
+		});
+
+		yield* restoreDirectory("hidden");
+
+		expect(yield* fleetWork()).toMatchObject({
+			completed: [{ document: { file: "done.md" }, workId: "done" }],
+			items: [
+				{ document: { file: "one.md" }, workId: "one" },
+				{ document: null, workId: "missing" },
+				{ document: null, workId: "duplicate" },
+			],
+			state: "ready",
 		});
 	},
 );

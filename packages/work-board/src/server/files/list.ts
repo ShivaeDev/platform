@@ -1,9 +1,14 @@
-import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
+import { Effect, FileSystem, Option, Order, Path, PlatformError } from "effect";
 import { readPaths } from "./readPaths.ts";
 
 export interface MarkdownFile {
 	readonly modified: number;
 	readonly path: string;
+}
+
+export interface MarkdownInventory {
+	readonly files: readonly MarkdownFile[];
+	readonly unavailable: readonly string[];
 }
 
 export function within(realRoot: string, separator: string, real: string): boolean {
@@ -26,22 +31,32 @@ export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (_root
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const resolve = yield* readPaths(realRoot);
+	const unavailable = new Set<string>();
+	function unresolved(relative: string, failure: PlatformError.PlatformError) {
+		if (failure.reason._tag !== "NotFound") {
+			unavailable.add(relative);
+		}
+	}
 	const roots: Array<{ readonly real: string; readonly relative: string }> = [{ real: realRoot, relative: "" }];
 	function entry(relative: string, boundary: string, ancestors: ReadonlySet<string>, parent: string): Listing {
 		return Effect.gen(function* () {
-			const real = yield* Effect.option(resolve(relative));
-			if (Option.isNone(real)) {
+			const real = yield* Effect.result(resolve(relative));
+			if (real._tag === "Failure") {
+				unresolved(relative, real.failure);
 				return [];
 			}
-			const info = yield* Effect.option(fs.stat(real.value));
-			if (Option.isNone(info)) {
+			const info = yield* Effect.result(fs.stat(real.success));
+			if (info._tag === "Failure") {
+				unavailable.add(relative);
 				return [];
 			}
-			if (info.value.type === "Directory") {
-				return yield* directory(relative, real.value, boundary, ancestors, real.value !== path.join(parent, path.basename(relative)));
+			if (info.success.type === "Directory") {
+				return yield* directory(relative, real.success, boundary, ancestors, real.success !== path.join(parent, path.basename(relative)));
 			}
-			const modified = Option.match(info.value.mtime, { onNone: () => 0, onSome: (date) => date.getTime() });
-			return info.value.type === "File" && relative.endsWith(".md") && within(boundary, path.sep, real.value) ? [{ modified, path: relative }] : [];
+			const modified = Option.match(info.success.mtime, { onNone: () => 0, onSome: (date) => date.getTime() });
+			return info.success.type === "File" && relative.endsWith(".md") && within(boundary, path.sep, real.success)
+				? [{ modified, path: relative }]
+				: [];
 		});
 	}
 	function directory(relative: string, real: string, boundary: string, ancestors: ReadonlySet<string>, alias: boolean): Listing {
@@ -52,7 +67,14 @@ export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (_root
 		if (alias) {
 			roots.push({ real, relative });
 		}
-		return Effect.orElseSucceed(folder(relative, real, linked ? real : boundary, ancestors), () => []);
+		return Effect.gen(function* () {
+			const listing = yield* Effect.result(folder(relative, real, linked ? real : boundary, ancestors));
+			if (listing._tag === "Failure") {
+				unavailable.add(relative);
+				return [];
+			}
+			return listing.success;
+		});
 	}
 	function folder(relative: string, real: string, boundary: string, ancestors: ReadonlySet<string>): Listing {
 		return Effect.gen(function* () {
@@ -70,9 +92,24 @@ export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (_root
 		from === ""
 			? yield* folder("", realRoot, realRoot, new Set())
 			: yield* entry(from, realRoot, new Set([realRoot]), path.join(realRoot, path.dirname(from)));
-	return { files: files.toSorted((left, right) => byFolder(left.path, right.path)), roots };
+	return {
+		files: files.toSorted((left, right) => byFolder(left.path, right.path)),
+		roots,
+		unavailable: [...unavailable].sort(Order.String),
+	};
 });
 
 export const listMarkdown = Effect.fn("WorkBoard.listMarkdown")(function* (root: string, realRoot: string) {
-	return (yield* scanMarkdown(root, realRoot)).files;
+	const inventory = yield* scanMarkdown(root, realRoot);
+	if (inventory.unavailable.length > 0) {
+		return yield* Effect.fail(
+			PlatformError.systemError({
+				_tag: "Unknown",
+				description: `Workspace index incomplete; could not read ${inventory.unavailable.join(", ")}.`,
+				method: "readDirectory",
+				module: "FileSystem",
+			}),
+		);
+	}
+	return inventory.files;
 });

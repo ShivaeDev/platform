@@ -44,13 +44,13 @@ export const incrementalIndex = Effect.fn("Test.incrementalIndex")(function* (ro
 			return listed.files;
 		}
 		const dirty = listed && current ? tracker.since(listed.revision) : undefined;
-		const next = yield* updateFiles(root, root, listed?.files ?? [], dirty);
+		const next = yield* updateFiles(root, root, listed?.files ?? { files: [], unavailable: [] }, dirty);
 		listed = { files: next, revision: now };
 		return next;
 	});
 	const changes: Changes = {
 		events: yield* PubSub.unbounded<Change>(),
-		files: files.pipe(Effect.provide(context)),
+		inventory: files.pipe(Effect.provide(context)),
 		realRoot: root,
 		revision: Ref.get(revision),
 		watching,

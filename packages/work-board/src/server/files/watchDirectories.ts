@@ -1,12 +1,16 @@
 import { Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
 import { attachmentType } from "#path/attachment.ts";
 import { isMarkdown } from "#path/isMarkdown.ts";
-import type { MarkdownFile } from "./list.ts";
+import type { MarkdownInventory } from "./list.ts";
 import { folderEvents, rescanFolders, SETTLE, type WatchRoots, watchedScan } from "./watchedScan.ts";
 import { unconfirmedWatch, watcherEnded } from "./watchSentinel.ts";
 
 function changedFiles(previous: ReadonlyMap<string, number>, next: ReadonlyMap<string, number>) {
 	return [...new Set([...previous.keys(), ...next.keys()])].filter((file) => previous.get(file) !== next.get(file));
+}
+
+function changedAvailability(previous: readonly string[], next: readonly string[]) {
+	return previous.join("\0") === next.join("\0") ? [] : ["", ...previous, ...next];
 }
 
 function sameRoots(previous: WatchRoots, next: WatchRoots): boolean {
@@ -36,7 +40,7 @@ function recordFile(contents: Map<string, number>, relative: string, info: Optio
 }
 
 export interface WatchHooks {
-	readonly listed: (files: readonly MarkdownFile[]) => Effect.Effect<unknown>;
+	readonly listed: (inventory: MarkdownInventory) => Effect.Effect<unknown>;
 	readonly observed?: Effect.Effect<void>;
 	readonly publish: (paths: readonly string[]) => Effect.Effect<unknown>;
 	readonly settled?: Effect.Effect<unknown>;
@@ -55,8 +59,9 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 	const warnUnconfirmed = unconfirmed ?? (yield* Effect.cached(unconfirmedWatch(realRoot)));
 	const cycle = Effect.scoped(
 		Effect.gen(function* () {
-			const { files, listing, rootEvents, roots } = yield* watchedScan(root, realRoot, warnUnconfirmed);
+			const { files, listing, rootEvents, roots, unavailable: unlisted } = yield* watchedScan(root, realRoot, warnUnconfirmed);
 			let contents = new Map(files.map((file) => [file.path, file.modified]));
+			let unavailable = unlisted;
 			if (listing) {
 				yield* listed(listing);
 			}
@@ -102,14 +107,15 @@ export const watchDirectories = Effect.fn("WorkBoard.watchDirectories")(function
 				if (rescan.size > 0) {
 					const folders = [...rescan];
 					rescan.clear();
-					const next = yield* rescanFolders(root, realRoot, folders, roots, contents);
+					const next = yield* rescanFolders(root, realRoot, folders, roots, contents, unavailable);
 					if (!sameRoots(roots, next.roots)) {
 						return yield* Deferred.succeed(topology, undefined);
 					}
-					for (const file of changedFiles(contents, next.contents)) {
+					for (const file of [...changedFiles(contents, next.contents), ...changedAvailability(unavailable, next.unavailable)]) {
 						pending.add(file);
 					}
 					contents = next.contents;
+					unavailable = next.unavailable;
 				}
 				const paths = [...pending];
 				pending.clear();

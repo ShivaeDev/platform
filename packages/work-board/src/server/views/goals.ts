@@ -60,6 +60,7 @@ export function goals(snapshot: Snapshot, fleet?: FleetItemsProjection): GoalsPr
 		};
 	}
 	return {
+		...(snapshot.unavailable.length > 0 ? { unavailable: snapshot.unavailable } : {}),
 		closedGoals: projects.filter((item) => !openItem(item.document)).map(toGoal),
 		deferredGoals: projects.filter((item) => !item.document.parsed.fields.standing && deferredItem(item.document)).map(toGoal),
 		goals: projects.filter((item) => openItem(item.document) && !(!item.document.parsed.fields.standing && deferredItem(item.document))).map(toGoal),

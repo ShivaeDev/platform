@@ -118,6 +118,6 @@ screenStory.it(
 	function* ({ searchFor, searchStatus }) {
 		yield* searchFor("Shared phrase");
 
-		expect(yield* searchStatus()).toBe("1 matches. Could not read 1 files; results are incomplete.");
+		expect(yield* searchStatus()).toBe("1 matches. Could not read home.md; results are incomplete.");
 	},
 );
