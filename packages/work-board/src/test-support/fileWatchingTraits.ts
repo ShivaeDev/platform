@@ -34,6 +34,24 @@ export function aSilentWatcher() {
 	});
 }
 
+export function aReportedWatcher() {
+	return fileReadingStory.trait("project", "the filesystem delivers explicitly reported changes", function* (engine) {
+		const events = yield* Queue.unbounded<FileSystem.WatchEvent>();
+		engine.notify = (path) => Queue.offer(events, { _tag: "Create", path });
+		engine.services = Layer.effect(
+			FileSystem.FileSystem,
+			Effect.map(FileSystem.FileSystem, (fs) => ({
+				...fs,
+				watch: (path, options) =>
+					Stream.suspend(() => {
+						options?.onReady?.();
+						return path === engine.notes.root && options?.recursive ? Stream.fromQueue(events) : Stream.never;
+					}),
+			})),
+		).pipe(Layer.provide(engine.services));
+	});
+}
+
 export function failedSentinelWrite(code: string): FileSystemWrapper {
 	return (fs) => ({
 		...fs,

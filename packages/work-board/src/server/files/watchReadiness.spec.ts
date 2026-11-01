@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { fileReadingStory, readableFiles } from "#test/fileReadingStory.ts";
-import { aLinkedFolder, aSilentWatcher, sentinelWriteFails } from "#test/fileWatchingTraits.ts";
+import { aLinkedFolder, aReportedWatcher, aSilentWatcher, sentinelWriteFails } from "#test/fileWatchingTraits.ts";
 
 fileReadingStory.it(
 	"once the real watcher reports its sentinel the watch publishes the next edit and leaves no sentinel behind",
@@ -89,14 +89,15 @@ fileReadingStory.it(
 
 fileReadingStory.it(
 	"an unwritable root warns only once when linking a folder restarts its watcher",
-	[readableFiles({ "note.md": "# Note" }), sentinelWriteFails("EACCES"), aLinkedFolder()],
-	function* ({ linkFolder, root, sentinelWarnings, startWatching, watchStarted }) {
+	[readableFiles({ "note.md": "# Note" }), aReportedWatcher(), sentinelWriteFails("EACCES"), aLinkedFolder()],
+	function* ({ linkFolder, root, sentinelWarnings, startWatching, watcherReports, watchStarted }) {
 		const warning = `Cannot write the workspace watch sentinel in ${root}; trusting the watcher without confirmation.`;
 		yield* startWatching();
 		yield* watchStarted();
 		expect(yield* sentinelWarnings()).toEqual([warning]);
 
 		yield* linkFolder();
+		yield* watcherReports("linked");
 		yield* watchStarted();
 
 		expect(yield* sentinelWarnings()).toEqual([warning]);
