@@ -114,3 +114,12 @@ export function formatPassRestores(path: string) {
 		engine.formatPass = rewriting(engine.root, [path], (original) => original);
 	});
 }
+
+export function fixPassWrites(path: string, content: string) {
+	return fixRounds.trait("biome", `Biome's fix pass writes its conflicting version of ${path} in every round`, (engine) => {
+		engine.fixPass = () => {
+			writeFileSync(join(engine.root, path), content);
+			return 1;
+		};
+	});
+}

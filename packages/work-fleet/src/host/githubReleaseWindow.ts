@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import { githubJson } from "#host/github.ts";
 import { GithubApi } from "#host/githubApi.ts";
+import { readQueueState } from "#host/githubQueueStatus.ts";
 import type { ChangeResult } from "#policy.ts";
 
 const Releases = Schema.Array(
@@ -9,15 +10,20 @@ const Releases = Schema.Array(
 			draft: Schema.Boolean,
 			head: Schema.Struct({ sha: Schema.String }),
 			htmlUrl: Schema.String,
-		}).pipe(Schema.encodeKeys({ htmlUrl: "html_url" })),
+			nodeId: Schema.String,
+		}).pipe(Schema.encodeKeys({ htmlUrl: "html_url", nodeId: "node_id" })),
 	),
 );
 const Files = Schema.Array(Schema.Array(Schema.Struct({ filename: Schema.String, status: Schema.String })));
 const Runs = Schema.Struct({
 	workflowRuns: Schema.Array(
-		Schema.Struct({ conclusion: Schema.NullOr(Schema.String), headSha: Schema.String, status: Schema.String }).pipe(
-			Schema.encodeKeys({ headSha: "head_sha" }),
-		),
+		Schema.Struct({
+			conclusion: Schema.NullOr(Schema.String),
+			headSha: Schema.String,
+			id: Schema.Number,
+			runAttempt: Schema.Number,
+			status: Schema.String,
+		}).pipe(Schema.encodeKeys({ headSha: "head_sha", runAttempt: "run_attempt" })),
 	),
 }).pipe(Schema.encodeKeys({ workflowRuns: "workflow_runs" }));
 
@@ -56,8 +62,27 @@ export const githubReleaseWindow = Effect.fn("FleetHost.githubReleaseWindow")(fu
 		}
 		const files = yield* githubJson(Files, github.pages(`${endpoint}/files?per_page=100`));
 		if (files.flat().some((file) => changeset(file.filename) && ["added", "renamed"].includes(file.status))) {
-			return { releasePr: release.htmlUrl, status: "held" as const };
+			return yield* releaseStatus(release, run);
 		}
 	}
 	return undefined;
+});
+
+const releaseStatus = Effect.fn("FleetHost.releaseStatus")(function* (
+	release: (typeof Releases.Type)[number][number],
+	run: (typeof Runs.Type)["workflowRuns"][number],
+) {
+	const queue = yield* readQueueState(release.nodeId);
+	const removal = queue.timelineItems.nodes.at(-1);
+	const stopped = queue.mergeQueueEntry === null && run.status !== "in_progress";
+	const reason =
+		removal?.__typename === "RemovedFromMergeQueueEvent"
+			? `Removed from the merge queue${removal.reason ? ` for ${removal.reason.replaceAll("_", " ")}` : "; GitHub supplied no reason"}`
+			: "Not in the merge queue and no running CI";
+	return {
+		releasePr: release.htmlUrl,
+		releaseProgress: JSON.stringify([release.head.sha, run.id, run.runAttempt, run.status, removal?.createdAt]),
+		releaseStuckReason: stopped ? reason : undefined,
+		status: "held" as const,
+	};
 });

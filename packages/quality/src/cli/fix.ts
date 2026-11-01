@@ -1,6 +1,7 @@
 import { relative } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { biomeReport } from "#biome/report.ts";
+import { changedRanges } from "#cli/changedRanges.ts";
 import { loadConfig } from "#config/load.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { SetupFailure } from "#failure.ts";
@@ -66,7 +67,7 @@ function biomePasses(root: string, exceptions: readonly ExceptionDeclaration[]):
 const round = Effect.fn("Cli.round")(function* <TFailure, TRequirements>(
 	passes: readonly Pass<TFailure, TRequirements>[],
 	index: number,
-	afterEachPass: Effect.Effect<void, TFailure, TRequirements>,
+	afterEachPass: (label: string) => Effect.Effect<void, TFailure, TRequirements>,
 ): Effect.fn.Return<number, TFailure, TRequirements> {
 	let total = 0;
 	const parts: string[] = [];
@@ -74,22 +75,18 @@ const round = Effect.fn("Cli.round")(function* <TFailure, TRequirements>(
 		const changed = yield* pass.run;
 		total += changed;
 		parts.push(`${plural(changed, "file")} ${pass.label}`);
-		yield* afterEachPass;
+		yield* afterEachPass(pass.label);
 	}
 	yield* Console.log(`quality: Biome round ${index} rewrote ${parts.join(" and ")}.`);
 	return total;
 });
-
-function changedBetween(before: ReadonlyMap<string, string>, after: ReadonlyMap<string, string>): readonly string[] {
-	return [...new Set([...before.keys(), ...after.keys()])].filter((path) => before.get(path) !== after.get(path));
-}
 
 function unsettled(changed: ReadonlySet<string>): SetupFailure {
 	const paths = [...changed].sort((left, right) => left.localeCompare(right));
 	const stopped = `Biome still rewrote files after ${MAX_FIX_ROUNDS} rounds, so quality fix stopped.`;
 	const named =
 		paths.length > 0
-			? [`${stopped} These files changed in the last round:`, ...paths.map((path) => `  ${path}`)]
+			? [`${stopped} These ranges changed in the last round (before each pass):`, ...paths.map((path) => `  ${path}`)]
 			: [
 					`${stopped} The files it changed in the last round are ones quality fix does not read, such as files .gitignore lists.`,
 					"Run `biome check --write --unsafe --verbose` to name them.",
@@ -104,18 +101,20 @@ export const settle = Effect.fn("Cli.settle")(function* <TFailure, TRequirements
 	snapshot,
 }: Settling<TFailure, TRequirements>): Effect.fn.Return<void, TFailure | SetupFailure, TRequirements> {
 	for (let index = 1; index < MAX_FIX_ROUNDS; index += 1) {
-		if ((yield* round(passes, index, Effect.void)) === 0) {
+		if ((yield* round(passes, index, () => Effect.void)) === 0) {
 			return;
 		}
 	}
 	const changed = new Set<string>();
 	let previous = yield* snapshot;
-	const record = Effect.map(snapshot, (current) => {
-		for (const path of changedBetween(previous, current)) {
-			changed.add(path);
-		}
-		previous = current;
-	});
+	function record(label: string) {
+		return Effect.map(snapshot, (current) => {
+			for (const path of changedRanges(previous, current, label)) {
+				changed.add(path);
+			}
+			previous = current;
+		});
+	}
 	if ((yield* round(passes, MAX_FIX_ROUNDS, record)) === 0) {
 		return;
 	}

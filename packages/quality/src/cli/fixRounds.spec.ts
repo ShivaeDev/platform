@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { MAX_FIX_ROUNDS } from "#cli/fix.ts";
-import { fixPassKeepsRewriting, fixPassReports, fixRounds, formatPassRestores, repositoryHas } from "#test/fixRounds.ts";
+import { fixPassKeepsRewriting, fixPassReports, fixPassWrites, fixRounds, formatPassRestores, repositoryHas } from "#test/fixRounds.ts";
 
 const FLIP = { content: "export const flip = 1;\n", path: "src/flip.ts" };
 const STILL = { content: "export const still = 1;\n", path: "src/still.ts" };
@@ -37,7 +37,11 @@ fixRounds.it(
 		yield* fixes();
 
 		yield* outcomes([
-			["failure", () => failure(), [`${STOPPED} These files changed in the last round:`, "  src/flip.ts", REPAIR].join("\n")],
+			[
+				"failure",
+				() => failure(),
+				[`${STOPPED} These ranges changed in the last round (before each pass):`, "  src/flip.ts:2:1-2:1 (with fixes)", REPAIR].join("\n"),
+			],
 			["fix", () => outcome(), "stopped"],
 			[
 				"rounds",
@@ -52,12 +56,19 @@ fixRounds.it(
 );
 
 fixRounds.it(
-	"quality fix names a file that the fix pass rewrites and the format pass restores within each round",
+	"quality fix names both pass ranges when formatting restores the original file within every round",
 	[repositoryHas(FLIP), fixPassKeepsRewriting(FLIP.path), formatPassRestores(FLIP.path)],
 	function* ({ failure, fixes }) {
 		yield* fixes();
 
-		expect(yield* failure()).toBe([`${STOPPED} These files changed in the last round:`, "  src/flip.ts", REPAIR].join("\n"));
+		expect(yield* failure()).toBe(
+			[
+				`${STOPPED} These ranges changed in the last round (before each pass):`,
+				"  src/flip.ts:2:1-2:1 (with fixes)",
+				"  src/flip.ts:2:1-2:11 (with the format pass)",
+				REPAIR,
+			].join("\n"),
+		);
 	},
 );
 
@@ -67,7 +78,9 @@ fixRounds.it(
 	function* ({ failure, fixes }) {
 		yield* fixes();
 
-		expect(yield* failure()).toBe([`${STOPPED} These files changed in the last round:`, "  src/flip.ts", REPAIR].join("\n"));
+		expect(yield* failure()).toBe(
+			[`${STOPPED} These ranges changed in the last round (before each pass):`, "  src/flip.ts:2:1-2:1 (with fixes)", REPAIR].join("\n"),
+		);
 	},
 );
 
@@ -81,6 +94,27 @@ fixRounds.it(
 			[
 				`${STOPPED} The files it changed in the last round are ones quality fix does not read, such as files .gitignore lists.`,
 				"Run `biome check --write --unsafe --verbose` to name them.",
+				REPAIR,
+			].join("\n"),
+		);
+	},
+);
+
+fixRounds.it(
+	"quality fix names the Markdown line and column range changed by each conflicting pass",
+	[
+		repositoryHas({ content: "# Guide\n\n-   item\n", path: "README.md" }),
+		fixPassWrites("README.md", "# Guide\n\n- item\n"),
+		formatPassRestores("README.md"),
+	],
+	function* ({ failure, fixes }) {
+		yield* fixes();
+
+		expect(yield* failure()).toBe(
+			[
+				`${STOPPED} These ranges changed in the last round (before each pass):`,
+				"  README.md:3:3-3:3 (with the format pass)",
+				"  README.md:3:3-3:5 (with fixes)",
 				REPAIR,
 			].join("\n"),
 		);

@@ -40,7 +40,7 @@ const query = `query FleetQueueStatus($pr: ID!) {
 	}
 }`;
 
-const readQueueState = Effect.fn("FleetHost.readQueueState")(function* (pr: string) {
+export const readQueueState = Effect.fn("FleetHost.readQueueState")(function* (pr: string) {
 	const github = yield* GithubApi;
 	const response = yield* github
 		.write({ query, variables: { pr } })

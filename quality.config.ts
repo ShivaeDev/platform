@@ -78,9 +78,19 @@ export default defineConfig({
 				edge: [
 					{ glob: "packages/github/src/status.ts", reason: "This HTTP adapter translates transport statuses into domain errors." },
 					{ glob: "packages/identity/src/server/**", reason: "This HTTP adapter translates transport statuses into domain errors." },
+					{
+						glob: "packages/identity/src/test-support/better-auth/database.ts",
+						reason: "This HTTP story adapter translates Better Auth responses into storage outcomes.",
+					},
+					{
+						glob: "packages/identity/src/test-support/native-sessions/originVerbs.ts",
+						reason: "This HTTP story adapter translates origin-check responses into caller outcomes.",
+					},
 					{ glob: "packages/pr-watch/src/requestFailure.ts", reason: "This HTTP adapter translates transport statuses into domain errors." },
-					{ glob: "packages/server/src/rpc-server/**", reason: "This HTTP adapter translates transport statuses into domain errors." },
-					{ glob: "packages/server/src/node-http/**", reason: "This HTTP adapter translates transport statuses into domain errors." },
+					{
+						glob: "packages/react/src/client/authAction.ts",
+						reason: "This Better Auth client adapter translates HTTP rate limits into typed AuthFailure errors.",
+					},
 				],
 			},
 		},

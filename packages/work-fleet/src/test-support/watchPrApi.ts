@@ -49,13 +49,16 @@ export const watchPrApi = Effect.gen(function* () {
 			[...pulls.values()].filter((entry) => entry.state === "open" && !entry.merged),
 		);
 	}
-	function queue(queued: boolean, reason = "") {
-		github.reply(`${base}/git/matching-refs/heads/gh-readonly-queue/`, queued ? [{ ref: "refs/heads/gh-readonly-queue/main/pr-7-head" }] : []);
+	function queue(queued: boolean, reason = "", number = 7) {
+		github.reply(
+			`${base}/git/matching-refs/heads/gh-readonly-queue/`,
+			queued ? [{ ref: `refs/heads/gh-readonly-queue/main/pr-${number}-head` }] : [],
+		);
 		github.reply("/graphql", {
 			data: {
 				repository: {
 					pullRequest: {
-						autoMergeRequest: pr.auto_merge === null ? null : { enabledAt: "2026-01-01T00:00:00Z" },
+						autoMergeRequest: (pulls.get(number) ?? pr).auto_merge === null ? null : { enabledAt: "2026-01-01T00:00:00Z" },
 						mergeQueueEntry: queued ? { id: "queue-entry" } : null,
 						state: "OPEN",
 						timelineItems: { nodes: reason ? [{ reason }] : [] },

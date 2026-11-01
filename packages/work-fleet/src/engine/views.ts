@@ -1,5 +1,6 @@
 import { waitingOwner } from "#attention.ts";
 import { recoveryStatus } from "#engine/recoveryStatus.ts";
+import { releaseWindowAttention } from "#engine/releaseWindowHold.ts";
 import type { Attempt, FleetRecord, FleetViews } from "#model.ts";
 import { waitCycles } from "#scheduling/adapters/waitCycles.ts";
 import { fleetStage, waitingReason } from "#stage.ts";
@@ -7,7 +8,17 @@ import { fleetStage, waitingReason } from "#stage.ts";
 type ViewAttempt = Pick<Attempt, "receipt" | "briefSteers" | "progress" | "overLimit" | "status" | "publishedRecovery" | "output">;
 type ViewRecord = Pick<
 	FleetRecord,
-	"workId" | "step" | "attentionOwner" | "blocker" | "decision" | "outcome" | "launchRetry" | "result" | "predictedConflictHold" | "sweepHold"
+	| "workId"
+	| "step"
+	| "attentionOwner"
+	| "blocker"
+	| "decision"
+	| "outcome"
+	| "launchRetry"
+	| "result"
+	| "predictedConflictHold"
+	| "sweepHold"
+	| "releaseWindow"
 > & {
 	readonly attempts: readonly ViewAttempt[];
 	readonly checks?: Pick<NonNullable<FleetRecord["checks"]>, "pending"> | undefined;
@@ -21,7 +32,8 @@ export function newestCompletion<A extends { readonly completedAt?: unknown; rea
 		Number(right.completedAt ?? right.updatedAt ?? 0) - Number(left.completedAt ?? left.updatedAt ?? 0) || workId(right).localeCompare(workId(left));
 }
 
-export function views(records: readonly ViewRecord[]): typeof FleetViews.Type {
+export function views(input: readonly ViewRecord[]): typeof FleetViews.Type {
+	const records = releaseWindowAttention(input);
 	const cycles = waitCycles(
 		records.map((record) => ({
 			item: record.workId,

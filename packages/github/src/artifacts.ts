@@ -1,7 +1,9 @@
 import { Effect } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import { FetchHttpClient, HttpClient, type HttpClientError, HttpClientRequest } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { readBoundedBody } from "@shivaedev/http/body.ts";
+import type { RemoteStatusError } from "@shivaedev/http/errors.ts";
+import { filterStatus } from "@shivaedev/http/filterStatus.ts";
 import { authenticatedRequest } from "./authenticatedRequest.ts";
 import { GitHubArtifactError, GitHubArtifactTooLarge, GitHubTransportError } from "./errors.ts";
 import type { GitHubToken } from "./GitHubToken.ts";
@@ -15,6 +17,12 @@ export interface ArtifactArchiveOptions {
 	readonly repo: string;
 }
 
+function downloadFailure(path: string, cause: HttpClientError.HttpClientError | RemoteStatusError) {
+	return cause._tag === "HttpClientError"
+		? new GitHubTransportError({ path }, { cause })
+		: new GitHubArtifactError({ stage: "download", status: cause.status });
+}
+
 export function artifacts(
 	apiUrl: string,
 	client: HttpClient.HttpClient,
@@ -23,7 +31,7 @@ export function artifacts(
 	refresh: typeof TokenRefresh.Service = undefined,
 ) {
 	const send = authenticatedRequest(HttpClient.withScope(client), token, rates, refresh);
-	const download = HttpClient.withScope(client);
+	const download = filterStatus(HttpClient.withScope(client));
 	return {
 		downloadArtifactArchive: (options: ArtifactArchiveOptions) =>
 			Effect.scoped(
@@ -41,11 +49,8 @@ export function artifacts(
 					}
 					const response = yield* download.get(location).pipe(
 						Effect.provideService(FetchHttpClient.RequestInit, { credentials: "omit", redirect: "manual" }),
-						Effect.mapError((cause) => new GitHubTransportError({ path }, { cause })),
+						Effect.mapError((cause) => downloadFailure(path, cause)),
 					);
-					if (response.status < HttpStatus.fromLiteral("OK") || response.status >= HttpStatus.fromLiteral("MultipleChoices")) {
-						return yield* new GitHubArtifactError({ stage: "download", status: response.status });
-					}
 					return yield* readBoundedBody(response, options.byteLimit).pipe(
 						Effect.catchTags({
 							HttpClientError: (cause) => Effect.fail(new GitHubTransportError({ path }, { cause })),

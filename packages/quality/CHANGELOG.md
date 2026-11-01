@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.53.1 - 2026-11-01
+
+### Fixed
+
+- Allow specific admin file names such as `inboxRoutes.ts` inside a module's `client/admin/` and `server/admin/` folders without treating the module name as a repeated prefix. File names must still match their exports.
+- Allow a module's client or server registration to import its own admin subtree through `./admin/…`. Other relative imports that leave their folder still require aliases.
+- Remove untracked repository-root `.merge_file_*` leftovers older than five minutes when the baseline merge driver starts. Preserve the current merge's inputs, tracked files and recent files.
+
 ## 0.53.0 - 2026-11-01
 
 ### Added

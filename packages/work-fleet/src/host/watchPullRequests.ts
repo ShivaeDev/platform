@@ -54,7 +54,7 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 		if (!options.prEvents) {
 			return;
 		}
-		for (const state of states) {
+		for (const state of states.flatMap((entry) => [entry, ...(entry.releaseWindow ? [{ ...entry, result: { pr: entry.releaseWindow.pr } }] : [])])) {
 			if (state.stage === "done") {
 				continue;
 			}
