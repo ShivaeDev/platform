@@ -1,6 +1,31 @@
-import { Hash, Schema } from "effect";
+import { Hash, Schema, SchemaAST } from "effect";
 
 export type Identity = string | number;
+
+export function isBucketSchema(schema: Schema.Constraint): boolean {
+	function supported(ast: SchemaAST.AST): boolean {
+		switch (ast._tag) {
+			case "String":
+			case "Number":
+			case "TemplateLiteral":
+			case "Enum":
+			case "Null":
+			case "Undefined":
+			case "Void":
+			case "Never":
+				return true;
+			case "Literal":
+				return typeof ast.literal === "string" || typeof ast.literal === "number";
+			case "Union":
+				return ast.types.every(supported);
+			case "Suspend":
+				return supported(SchemaAST.toType(ast.thunk()));
+			default:
+				return false;
+		}
+	}
+	return supported(SchemaAST.toType(schema.ast));
+}
 
 export function compositeId(values: readonly unknown[]): string {
 	return JSON.stringify(values, (_key, value: unknown) => (typeof value === "bigint" ? String(value) : value));

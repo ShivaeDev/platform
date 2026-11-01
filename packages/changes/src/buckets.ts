@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import type { Identity } from "#keys.ts";
+import { type Identity, isBucketSchema } from "#keys.ts";
 
 type BucketValue = Identity | null | undefined;
 
@@ -13,6 +13,6 @@ export function declaredBuckets(fields: Schema.Struct.Fields) {
 			return [];
 		}
 		const codec = Schema.make<Schema.Codec<BucketValue, unknown>>(schema.ast);
-		return [{ decode: Schema.decodeUnknownEffect(codec), field }];
+		return [{ decode: Schema.decodeUnknownEffect(codec), field, supported: isBucketSchema(schema) }];
 	});
 }

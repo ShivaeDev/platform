@@ -121,7 +121,7 @@ import { bucket } from "@shivaedev/changes/buckets.ts";
 const listId = bucket(Schema.NumberFromString);
 ```
 
-The SQL binding reads these declarations with `declaredBuckets(model.fields)` and decodes old and new stored values into the same identity values queries use. Bucket schemas decode to strings, numbers, null or undefined and require no services. Absent values contribute no key. See the [SQL guide](https://github.com/ShivaeDev/platform/blob/main/packages/sql/README.md#transactions-and-invalidation) for repository writes and PostgreSQL requirements.
+The SQL binding reads these declarations with `declaredBuckets(model.fields)` and decodes old and new stored values into the same identity values queries use. Bucket schemas decode to strings, numbers, null or undefined and require no services. Collection declarations reject other value types at compile time. `isBucketSchema(schema)` from `keys.ts` checks the decoded schema shape; `declaredBuckets` exposes that result as `supported` for each field. Absent values contribute no key. See the [SQL guide](https://github.com/ShivaeDev/platform/blob/main/packages/sql/README.md#transactions-and-invalidation) for repository writes and PostgreSQL requirements.
 
 Query read policies belong to the contract. The query checks its session viewer before its record or bucket scope can become a subscription; a change key grants no read permission. See the [contract query guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#query-policies-record-keys-and-buckets).
 
