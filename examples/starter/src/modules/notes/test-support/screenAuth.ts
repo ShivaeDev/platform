@@ -5,5 +5,5 @@ export function screenAuth(): AuthActions {
 	function unavailable(): Promise<never> {
 		return Promise.reject(new Error("This screen fixture does not provide authentication"));
 	}
-	return { signOut: authAction(unavailable), submit: authAction(unavailable) };
+	return { resetPassword: authAction(unavailable), signOut: authAction(unavailable), submit: authAction(unavailable) };
 }

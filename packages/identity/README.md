@@ -679,6 +679,32 @@ app.it("the member's provider account stores no credentials", [member], function
 
 With database-backed sessions and cookie caching disabled, revocation rejects that same minted session on the next protected HTTP or RPC request. Cookie caching and secondary storage can change revocation timing.
 
+### Deliver typed auth emails
+
+Give `betterAuthMount` one `emails` configuration instead of four Better Auth callbacks. The application supplies absolute route URLs and a delivery Effect; it owns the transport and message text.
+
+```ts
+const mounted = yield* betterAuthMount(options, {
+  emails: {
+    routes: {
+      ConfirmAccount: "https://app.example/confirm-account",
+      ApproveEmailChange: "https://app.example/approve-email-change",
+      ConfirmNewAddress: "https://app.example/confirm-new-address",
+      ResetPassword: "https://app.example/reset-password",
+      AccountAlreadyExists: "https://app.example/sign-in",
+    },
+    deliver: (message) => mailer.deliver(message),
+    window: "1 minute",
+  },
+});
+```
+
+`AuthEmail` from `server/better-auth/emails.ts` is a union discriminated by `_tag`: `ConfirmAccount`, `ApproveEmailChange`, `ConfirmNewAddress`, `ResetPassword` and `AccountAlreadyExists`. Each message carries `user` and `url`. All except `AccountAlreadyExists` carry `token`; both change messages also carry `newEmail`, decoded inside identity for the reused verification callback. The new-address message's `user.email` is the destination address. The app URL preserves its own query parameters and receives the token in a `token` query parameter. A confirmation route passes that token to Better Auth's verification API; a reset page submits it with the new password to its reset API.
+
+The wiring replaces the four delivery callbacks and preserves the other Better Auth settings. Enable the flows through native options: `emailAndPassword.enabled`, `emailVerification.sendOnSignUp` or `emailAndPassword.requireEmailVerification`, and `user.changeEmail.enabled`. Better Auth calls `onExistingUserSignUp` only with its generic duplicate-signup response enabled, such as with `requireEmailVerification`.
+
+Each mount reserves one delivery attempt per account id and message kind for one minute by default. `window` accepts an Effect Duration input. Different accounts and different kinds have separate windows; changing the destination address does not change the account key. Concurrent requests share the reservation, and another delivery is allowed at expiry. Suppressed requests return normally. A failed delivery keeps its reservation until expiry. The window uses the Effect Clock, lives in the mount's scope, and is held in memory; separate processes or mounts have separate windows. It complements Better Auth's request rate limits. Delivery Effects use the same `BetterAuthHookError` and request runtime as database hooks.
+
 ### Sweep expired sessions in a worker
 
 Better Auth removes an expired session when it is presented. Use `sweepExpiredSessions` from `@shivaedev/identity/server/better-auth/sweepExpiredSessions.ts` to remove expired rows that are never presented again. The Effect reads the application's `SqlClient`, deletes sessions whose `expiresAt` is at or before Effect's current time, and returns the number removed. It preserves live sessions and needs no Better Auth mount or auth pool. It assumes the default Better Auth PostgreSQL table and column mappings.
@@ -706,8 +732,9 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                        |
 | `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                           |
 | `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware.                                                                                                                   |
-| `server/better-auth/mount.ts`                | `betterAuthMount(options, { signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`: native auth routes and the sign-in policy.           |
+| `server/better-auth/mount.ts`                | `betterAuthMount(options, { emails?, signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`: native auth routes and the sign-in policy.  |
 | `server/better-auth/adapters/database.ts`    | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                           |
+| `server/better-auth/emails.ts`               | `AuthEmail`, `BetterAuthEmails`: typed delivery messages, app routes and per-account delivery windows for the mount.                                                                                                        |
 | `server/better-auth/allowedAccounts.ts`      | `ProviderAccounts`, `AllowedAccounts`, `allowedAccounts`: provider-account list Schemas and the non-empty `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                   |
 | `server/better-auth/accountRoleSeed.ts`      | `accountRoleSeed(access, role, accounts)`: grant a configured role at boot and sign-in through `assignRole`.                                                                                                                |
 | `server/better-auth/signInGate.ts`           | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy.                                                                                                                                           |

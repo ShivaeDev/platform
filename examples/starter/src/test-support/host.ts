@@ -1,6 +1,7 @@
 import { ConfigProvider, Effect, Layer, Logger, Redacted, References } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import type { BetterAuthEmails } from "@shivaedev/identity/server/better-auth/emails.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
@@ -13,6 +14,7 @@ export const secret = Redacted.make("app-test-secret-with-at-least-32-characters
 export const PUBLIC_URL = "https://app.example";
 
 export interface HostOptions {
+	readonly deliverAuthEmail?: BetterAuthEmails["deliver"];
 	readonly deployed?: boolean;
 	readonly ownerAccounts?: string;
 	readonly publicUrl?: "unset";
@@ -37,6 +39,7 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	}
 	const host = applicationHost({
 		databaseUrl: database.url,
+		deliverAuthEmail: options.deliverAuthEmail,
 		poolSizes: testPoolSizes,
 		replacements: Layer.merge(Layer.succeed(JobsClientFactory, jobsTesting.clientFactory), options.replacements ?? Layer.empty),
 		secret,

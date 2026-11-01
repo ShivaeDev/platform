@@ -59,6 +59,7 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: Screen, rejection: string) {
 	engine.login.outcome = rejection;
 	const auth: AuthActions = {
+		resetPassword: screenAuth().resetPassword,
 		signOut: authAction<void, unknown, never>(() => Promise.resolve({ data: {}, error: null })),
 		submit: authAction(({ mode, credentials }: { mode: "sign-in" | "sign-up"; credentials: Credentials }) => {
 			engine.login.calls.push({ credentials, mode });

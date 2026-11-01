@@ -7,6 +7,7 @@ import { Home } from "./Home.tsx";
 import { LoginScreen } from "./LoginScreen.tsx";
 import type { ClientModule } from "./Module.ts";
 import type { clientModules } from "./modules.ts";
+import { ResetPassword } from "./ResetPassword.tsx";
 import { rootRoute } from "./rootRoute.ts";
 import { parseSearch, stringifySearch } from "./search.ts";
 
@@ -26,6 +27,12 @@ export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 		validateSearch: (search: Record<string, unknown>) => (typeof search.returnTo === "string" ? { returnTo: search.returnTo } : {}),
 	});
 	const adminPages = client.modules.flatMap((module) => module.admin?.pages ?? []);
+	const resetPassword = createRoute({
+		component: (): ReactElement => <ResetPassword auth={auth} token={resetPassword.useSearch().token} />,
+		getParentRoute: () => root,
+		path: "/reset-password",
+		validateSearch: (search: Record<string, unknown>) => ({ token: typeof search.token === "string" ? search.token : "" }),
+	});
 	const routes = client.modules.flatMap((module) => module.routes({ getParentRoute: () => root }));
 	const home = createRoute({ component: (): ReactElement => <Home auth={auth} />, getParentRoute: () => root, path: "/" });
 	const router = createRouter({
@@ -38,6 +45,7 @@ export const appRouter = Effect.fnUntraced(function* <TRoute extends AnyRoute>(
 		...(history === undefined ? {} : { history }),
 		routeTree: root.addChildren([
 			login,
+			resetPassword,
 			...routes,
 			...(routes.flatMap((route) => route.children ?? [route]).some((route) => "path" in route.options && route.options.path === "/") ? [] : [home]),
 		]),
