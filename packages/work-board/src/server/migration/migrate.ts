@@ -1,4 +1,5 @@
 import { Effect, FileSystem, Path } from "effect";
+import { listMarkdown, within } from "#server/files/list.ts";
 import { decisionAnswers } from "#server/migration/decisionAnswers.ts";
 import { replacements } from "#server/migration/replacements.ts";
 import { migrateSource } from "#server/migration/source.ts";
@@ -9,19 +10,14 @@ import { waitingQuestions } from "#server/migration/waitingQuestions.ts";
 export const migrate = Effect.fn("WorkBoard.migrate")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const files: { file: string; source: string }[] = [];
-	const scan = Effect.fn("BoardMigration.scan")(function* (directory: string): Effect.fn.Return<void, import("effect/PlatformError").PlatformError> {
-		for (const name of yield* fs.readDirectory(directory)) {
-			const file = path.join(directory, name);
-			const stat = yield* fs.stat(file);
-			if (stat.type === "Directory") {
-				yield* scan(file);
-			} else if (/\.md$/iu.test(file)) {
-				files.push({ file: path.relative(root, file), source: yield* fs.readFileString(file) });
-			}
-		}
-	});
-	yield* scan(root);
+	const realRoot = yield* fs.realPath(root);
+	const inventory = yield* listMarkdown(root, realRoot);
+	const owned = yield* Effect.filter(inventory, (file) =>
+		Effect.map(fs.realPath(path.join(realRoot, file.path)), (real) => within(realRoot, path.sep, real)),
+	);
+	const files = yield* Effect.forEach(owned, (file) =>
+		Effect.map(fs.readFileString(path.join(realRoot, file.path)), (source) => ({ file: file.path, source })),
+	);
 	const prepared = files.map(({ file, source }) => ({
 		file,
 		...migrateSource(source, { answers: new Set(), blocking: new Set(), file, replaces: [] }),
