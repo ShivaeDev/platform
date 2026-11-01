@@ -4,7 +4,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Access } from "./Access.ts";
 import { answered } from "./answers.ts";
 import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
-import { usersEngine } from "./usersEngine.ts";
+import { mappedTables } from "./mappedTables.ts";
+import { makeUsersEngine, usersEngine } from "./usersEngine.ts";
 
 type Role = typeof Access.Role.Type;
 type Engine = Effect.Success<typeof usersEngine>;
@@ -34,62 +35,70 @@ function describePage(list: { readonly next: Option.Option<string>; readonly use
 	};
 }
 
-export const usersStory = storyKit({
-	around: withIsolatedDatabase,
-	clock: "live",
-	create: () => usersEngine,
-	layer: postgresLayer,
-	name: "admin user permissions",
-	runIf: postgresConfigured,
-	stages: ["users", "roles"],
-	verbs: (engine, story) => ({
-		answerTo: (actor: string) => Effect.sync(() => engine.answers.get(actor) ?? `${actor} has not asked`),
-		assign: (actor: string, userId: string, role: Role) => {
-			story.tell(`${actor} assigns ${role} to ${userId}`);
-			return Effect.gen(function* () {
-				engine.assignment.started = yield* Clock.currentTimeMillis;
-				const answer = yield* changeRole(engine, actor, userId, role);
-				engine.assignment.finished = yield* Clock.currentTimeMillis;
-				engine.answers.set(actor, answer);
-				return answer;
-			});
-		},
-		creationTimesSeenBy: (reader: string) => {
-			story.tell(`${reader} lists every user's creation instant`);
-			return listAs(engine, reader, { limit: 100 }).pipe(
-				Effect.map((list) =>
-					Predicate.isString(list) ? list : Object.fromEntries(list.users.map(({ id, createdAt }) => [id, DateTime.formatIso(createdAt)])),
-				),
-			);
-		},
-		page: (reader: string, page: { readonly limit: number; readonly cursor?: string }) => {
-			story.tell(`${reader} reads a page of ${page.limit} users${page.cursor === undefined ? "" : ` after ${page.cursor}`}`);
-			return listAs(engine, reader, page).pipe(Effect.map((list) => (Predicate.isString(list) ? list : describePage(list))));
-		},
-		roleChangeLog: () =>
-			Effect.sync(() =>
-				engine.logs
-					.filter(({ message }) => JSON.stringify(message).includes("User role changed"))
-					.map(({ annotations }) => {
-						const changedAt = Date.parse(String(annotations.changedAt));
-						const during = changedAt >= engine.assignment.started && changedAt <= engine.assignment.finished;
-						return {
-							actor: annotations.actorId,
-							changedAt: during ? "during the assignment" : String(annotations.changedAt),
-							role: annotations.role,
-							user: annotations.userId,
-						};
-					}),
-			),
-		rolesSeenBy: (reader: string) => {
-			story.tell(`${reader} lists every user's role`);
-			return listAs(engine, reader, { limit: 100 }).pipe(
-				Effect.map((list) => (Predicate.isString(list) ? list : Object.fromEntries(list.users.map(({ id, role }) => [id, role])))),
-			);
-		},
-		spanNames: () => Effect.sync(() => engine.spans.filter(({ name }) => name.startsWith("Admin.")).map(({ name }) => name)),
-	}),
-});
+function roleChangeLog(engine: Engine) {
+	return Effect.sync(() =>
+		engine.logs
+			.filter(({ message }) => JSON.stringify(message).includes("User role changed"))
+			.map(({ annotations }) => {
+				const changedAt = Date.parse(String(annotations.changedAt));
+				const during = changedAt >= engine.assignment.started && changedAt <= engine.assignment.finished;
+				return {
+					actor: annotations.actorId,
+					changedAt: during ? "during the assignment" : String(annotations.changedAt),
+					role: annotations.role,
+					user: annotations.userId,
+				};
+			}),
+	);
+}
+
+function usersKit(engineEffect: typeof usersEngine) {
+	return storyKit({
+		around: withIsolatedDatabase,
+		clock: "live",
+		create: () => engineEffect,
+		layer: postgresLayer,
+		name: "admin user permissions",
+		runIf: postgresConfigured,
+		stages: ["users", "roles"],
+		verbs: (engine, story) => ({
+			answerTo: (actor: string) => Effect.sync(() => engine.answers.get(actor) ?? `${actor} has not asked`),
+			assign: (actor: string, userId: string, role: Role) => {
+				story.tell(`${actor} assigns ${role} to ${userId}`);
+				return Effect.gen(function* () {
+					engine.assignment.started = yield* Clock.currentTimeMillis;
+					const answer = yield* changeRole(engine, actor, userId, role);
+					engine.assignment.finished = yield* Clock.currentTimeMillis;
+					engine.answers.set(actor, answer);
+					return answer;
+				});
+			},
+			creationTimesSeenBy: (reader: string) => {
+				story.tell(`${reader} lists every user's creation instant`);
+				return listAs(engine, reader, { limit: 100 }).pipe(
+					Effect.map((list) =>
+						Predicate.isString(list) ? list : Object.fromEntries(list.users.map(({ id, createdAt }) => [id, DateTime.formatIso(createdAt)])),
+					),
+				);
+			},
+			page: (reader: string, page: { readonly limit: number; readonly cursor?: string }) => {
+				story.tell(`${reader} reads a page of ${page.limit} users${page.cursor === undefined ? "" : ` after ${page.cursor}`}`);
+				return listAs(engine, reader, page).pipe(Effect.map((list) => (Predicate.isString(list) ? list : describePage(list))));
+			},
+			roleChangeLog: () => roleChangeLog(engine),
+			rolesSeenBy: (reader: string) => {
+				story.tell(`${reader} lists every user's role`);
+				return listAs(engine, reader, { limit: 100 }).pipe(
+					Effect.map((list) => (Predicate.isString(list) ? list : Object.fromEntries(list.users.map(({ id, role }) => [id, role])))),
+				);
+			},
+			spanNames: () => Effect.sync(() => engine.spans.filter(({ name }) => name.startsWith("Admin.")).map(({ name }) => name)),
+		}),
+	});
+}
+
+export const usersStory = usersKit(usersEngine);
+export const mappedUsersStory = usersKit(makeUsersEngine(mappedTables));
 
 export function isRegistered(id: string, role: Role, createdAt?: string) {
 	return usersStory.trait("users", `${id} is registered with the ${role} role${createdAt === undefined ? "" : ` at ${createdAt}`}`, ({ register }) =>

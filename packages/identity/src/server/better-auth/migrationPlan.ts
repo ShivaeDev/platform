@@ -4,6 +4,7 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
+import { tables } from "./tables.ts";
 
 export const betterAuthMigrationPlan = Effect.fn("Identity.betterAuthMigrationPlan")(function* (
 	options: Omit<BetterAuthOptions, "database">,
@@ -23,12 +24,13 @@ export const betterAuthMigrationPlan = Effect.fn("Identity.betterAuthMigrationPl
 	let ddl = compiled === ";" ? "" : compiled;
 	if (role !== undefined) {
 		const sql = (yield* SqlClient.SqlClient).withoutTransforms();
-		const table = options.user?.modelName ?? "user";
+		const { user } = tables(options);
 		const value = `'${role.defaultRole.replaceAll("'", "''")}'`;
-		const identifier = sql`${sql(table)}`.compile()[0];
-		ddl += `\nalter table ${identifier} alter column role set default ${value};\n`;
-		ddl += `update ${identifier} set role = ${value} where role is null;\n`;
-		ddl += `alter table ${identifier} alter column role set not null;`;
+		const identifier = sql`${sql(user.table)}`.compile()[0];
+		const column = sql`${sql(user.role)}`.compile()[0];
+		ddl += `\nalter table ${identifier} alter column ${column} set default ${value};\n`;
+		ddl += `update ${identifier} set ${column} = ${value} where ${column} is null;\n`;
+		ddl += `alter table ${identifier} alter column ${column} set not null;`;
 	}
 	return { ddl, missing };
 });
