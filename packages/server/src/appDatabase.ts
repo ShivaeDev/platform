@@ -32,16 +32,15 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 			postgresLayer(url, config).pipe(Layer.provide(clock)),
 		),
 	);
-	const prepared = Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(pool));
 	const live = LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer));
 	const migrations = options.migrations;
 	const worker =
 		migrations.mode === "wait" && migrations.release !== undefined
 			? Layer.effect(WorkerRelease, coordinateWorkerRelease(migrations.release, migrations.pollInterval, migrations.table))
 			: Layer.empty;
-	const base = Layer.merge(worker.pipe(Layer.provideMerge(prepared)), live);
+	const base = Layer.merge(pool, live);
 	const changes = options.config?.changes;
-	return Layer.unwrap(
+	const connected = Layer.unwrap(
 		Effect.gen(function* () {
 			const client = yield* PgClient.PgClient;
 			const hints = yield* LiveServer;
@@ -71,6 +70,8 @@ export function appDatabase<R, E = never>(options: AppDatabaseOptions<R, E>) {
 			}).pipe(Layer.provide(clock));
 		}),
 	).pipe(Layer.provideMerge(base));
+	const prepared = Layer.effectDiscard(prepareMigrations(migrations)).pipe(Layer.provideMerge(connected));
+	return worker.pipe(Layer.provideMerge(prepared));
 }
 
 function prepareMigrations<R, E>(migrations: AppDatabaseOptions<R, E>["migrations"]) {
