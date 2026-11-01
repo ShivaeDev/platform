@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, type Redacted, type Scope } from "effect";
+import { Clock, Context, Effect, Layer, type Redacted, type Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlNameTransforms } from "@shivaedev/sql/clientOptions.ts";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/sql/migrations.ts";
@@ -62,7 +62,9 @@ export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(o
 			const clone: PostgresTestDatabaseService["clone"] = (source) =>
 				Effect.gen(function* () {
 					const target = yield* database(options.url, release, source === "empty" ? empty.name : template.name);
-					const context = yield* Layer.build(connection(target.url, maxConnections, options));
+					const context = yield* Layer.build(
+						connection(target.url, maxConnections, options).pipe(Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue()))),
+					);
 					return Context.add(context, PostgresTestDatabase, { awaitCleanup, clone, isolated, url: target.url });
 				});
 			const isolated = clone("migrated");
