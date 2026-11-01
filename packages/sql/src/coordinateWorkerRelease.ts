@@ -1,8 +1,12 @@
-import { Duration, Effect, Exit, Schedule, Scope } from "effect";
+import { Duration, Effect, Exit, Predicate, Schedule, Scope } from "effect";
 import { isSqlError } from "effect/sql/SqlError";
 import { readPostgresRelease } from "./postgresRelease.ts";
 import { releaseWorkers } from "./releaseWorkers.ts";
 import { makeWorkerRelease } from "./WorkerRelease.ts";
+
+function isCloseable(scope: Scope.Scope): scope is Scope.Closeable {
+	return Predicate.hasProperty(scope, "~effect/Scope/Closeable") && scope["~effect/Scope/Closeable"] === "~effect/Scope/Closeable";
+}
 
 export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRelease")(function* (
 	release: string,
@@ -10,7 +14,11 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 	table = "effect_sql_migrations",
 ) {
 	const gate = yield* makeWorkerRelease();
-	const scope = yield* Scope.fork(yield* Effect.scope);
+	const owningScope = yield* Effect.scope;
+	if (!isCloseable(owningScope)) {
+		return yield* Effect.die(new Error("Worker release coordination requires a closeable owning scope"));
+	}
+	const scope = owningScope;
 	const retries = Schedule.spaced(Duration.toMillis(pollInterval) / 4).pipe(Schedule.upTo({ times: 3 }));
 	const rows = yield* releaseWorkers(release, Duration.toMillis(pollInterval) * 5, table);
 	let claimed = false;
@@ -46,7 +54,9 @@ export const coordinateWorkerRelease = Effect.fn("EffectSql.coordinateWorkerRele
 	}
 	yield* Scope.addFinalizer(
 		scope,
-		rows.remove.pipe(
+		gate.setActive(false).pipe(
+			Effect.orDie,
+			Effect.andThen(rows.remove),
 			Effect.tapCause((cause) => Effect.logError("Worker release cleanup failed", cause)),
 			Effect.orDie,
 		),

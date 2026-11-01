@@ -40,7 +40,8 @@ for (const loop of ["heartbeat", "poll"] as const) {
 	workerHandover.it(
 		`a ${loop} that keeps losing its connection logs each of its four attempts and then fails the owning scope with that cause`,
 		[],
-		function* ({ connectionDiesFor, loggedWarnings, owningScopeEnding, retriesRunOut }) {
+		function* ({ connectionDiesFor, loggedWarnings, originalFailurePreserved, owningScopeEnding, retriesRunOut, workingQueues }) {
+			expect(yield* workingQueues()).toEqual(["handover"]);
 			yield* connectionDiesFor(loop);
 
 			yield* retriesRunOut();
@@ -48,7 +49,31 @@ for (const loop of ["heartbeat", "poll"] as const) {
 			yield* outcomes([
 				["logged warnings", () => loggedWarnings(), Array.from({ length: 4 }, () => `Worker release ${loop} failed: connection closed`)],
 				["owning scope", () => owningScopeEnding(), "failed with connection closed"],
+				["original failure", () => originalFailurePreserved(), true],
+				["old worker's fetching queues", () => workingQueues(), []],
 			]);
 		},
 	);
 }
+
+workerHandover.it(
+	"exhausted heartbeat retries fail the owning scope with the original cause and stop fetching before lease removal and the next worker",
+	[],
+	function* ({ connectionDiesFor, originalFailurePreserved, owningScopeEnding, recordSecondRelease, retriesRunOut, secondWorkerStarts, timeline }) {
+		yield* connectionDiesFor("heartbeat");
+		yield* retriesRunOut();
+		yield* owningScopeEnding();
+		yield* recordSecondRelease();
+		yield* secondWorkerStarts();
+
+		yield* outcomes([
+			["owning scope", () => owningScopeEnding(), "failed with connection closed"],
+			["original failure", () => originalFailurePreserved(), true],
+			[
+				"handover order",
+				() => timeline(),
+				["first started fetching", "first stopped fetching", "first lease removal requested", "second started fetching"],
+			],
+		]);
+	},
+);
