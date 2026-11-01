@@ -62,6 +62,8 @@ The owner is the native SQL client's transaction-service identity. The key group
 
 `within(native)(body)` wraps an Effect transaction combinator. Its native combinator must run the body once and return success only after the root commit or successful native nested outcome. A successful nested scope can leave its savepoint open until the root transaction settles. Use an existing binding when it already owns the job: [sql](https://github.com/ShivaeDev/platform/tree/main/packages/sql#readme) provides the SQL boundary for Reactivity keys.
 
+The native adapter receives a second argument, a `TransactionBoundary`. Use its `restore` function around connection acquisition to let an interrupted caller stop waiting, while keeping commit and settlement protected. If the native combinator restores interruption around the entire transaction, register `boundary.committed` with its native after-commit hook so a commit that lands during interruption is announced before that interruption resumes. The SQL binding does this for outer transactions and keeps native savepoint settlement protected. Wrap a combinator that takes its own options as `(body) => native(body, options)`.
+
 ### 2. Once per feature: record the affected subjects
 
 ```ts

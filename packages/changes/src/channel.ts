@@ -5,6 +5,11 @@ import { type Publish, type PublishFailure, publisher } from "./publish.ts";
 
 export type BeforeCommit<A, E = never, R = never> = (changes: readonly A[]) => Effect.Effect<void, E, R>;
 
+export interface TransactionBoundary {
+	readonly committed: Effect.Effect<void>;
+	readonly restore: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>;
+}
+
 export interface ChannelOptions<A, R, E = never> {
 	readonly beforeCommit?: BeforeCommit<A, E, R>;
 	readonly key?: (change: A) => unknown;
@@ -26,7 +31,10 @@ export interface Channel<A, R, THookError = never> {
 	readonly record: (changes: Iterable<A>) => Effect.Effect<void, never, R>;
 	readonly Sink: Context.Reference<Publish<A, R>>;
 	readonly within: <TValue, E, TBodyRequirements, TNativeError, TNativeRequirements>(
-		native: (body: Effect.Effect<TValue, E | THookError, TBodyRequirements>) => Effect.Effect<TValue, TNativeError, TNativeRequirements>,
+		native: (
+			body: Effect.Effect<TValue, E | THookError, TBodyRequirements>,
+			boundary: TransactionBoundary,
+		) => Effect.Effect<TValue, TNativeError, TNativeRequirements>,
 	) => (body: Effect.Effect<TValue, E, TBodyRequirements>) => Effect.Effect<TValue, TNativeError, R | TNativeRequirements>;
 }
 
@@ -119,8 +127,9 @@ export function makeChannel<A, R = never, THookError = never>(options: ChannelOp
 	const within: Channel<A, R, THookError>["within"] = (native) => (body) =>
 		Effect.uninterruptibleMask((restore) =>
 			Effect.flatMap(open, (frame) =>
-				Effect.onExit(native(restore(frame.provide(Effect.tap(body, () => frame.beforeCommit)))), (exit) =>
-					frame.settle(Exit.isSuccess(exit) ? "committed" : "rolledBack"),
+				Effect.onExit(
+					native(restore(frame.provide(Effect.tap(body, () => frame.beforeCommit))), { committed: frame.settle("committed"), restore }),
+					(exit) => frame.settle(Exit.isSuccess(exit) ? "committed" : "rolledBack"),
 				),
 			),
 		);

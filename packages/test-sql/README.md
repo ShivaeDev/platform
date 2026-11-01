@@ -127,6 +127,8 @@ Setup and the test wrappers report PostgreSQL's connection-limit failure (`53300
 
 `around: withTestTransaction` wraps harness acquisition, the body and their scope finalizers. Success returns the body's value after rollback. Typed failures, defects and interruption also roll back and retain their failure kind. A nested `transact` uses the native savepoint path: a rejected nested write can roll back without losing earlier writes in the test. Commit-bound invalidations stay buffered and are discarded when the wrapping transaction rolls back.
 
+A rollback test waiting for a pooled connection can be interrupted before a connection becomes available; it ends interrupted without running its body.
+
 Tests may run concurrently on the shared database, with separate transaction connections. Other tests do not see uncommitted writes. PostgreSQL still enforces row locks and unique constraints: updates to the same keyed row, or inserts with the same unique key, can wait until the first test rolls back. Do not make tests wait for each other after acquiring conflicting locks. Use different keys or isolated databases when a scenario needs overlapping writes without that contention.
 
 PostgreSQL sequence advances survive rollback. Avoid asserting exact generated sequence numbers on the shared database; use an isolated database when its sequence state must start from the template.
@@ -171,7 +173,7 @@ expect(results.filter(Result.isSuccess)).toHaveLength(1);
 expect(results.filter(Result.isFailure).map((result) => result.failure)).toEqual(["full", "full"]);
 ```
 
-`claimLastPlace` is the application's guarded write, failing with the typed `"full"` value when no place remains; `Result` is Effect's native `Result` module. Results stay in input order, including each call's typed failure. The holder rolls back by default, discarding any writes in `lock`; set `release: "commit"` when a contender must observe the holder's committed write. `timeout` accepts an Effect duration, five seconds by default, and bounds each phase on its own: taking the lock and the contenders' finish after release fail with `TimeoutError`, and contenders that never all block fail with `NeverSettled` from `observeUntil`, naming how many blocked at the last read. The wait for blocked contenders runs on live time. Defects and interruption retain their native failure kind, and the helper's scope owns the holder and competing fibers.
+`claimLastPlace` is the application's guarded write, failing with the typed `"full"` value when no place remains; `Result` is Effect's native `Result` module. Results stay in input order, including each call's typed failure. The holder rolls back by default, discarding any writes in `lock`; set `release: "commit"` when a contender must observe the holder's committed write. `timeout` accepts an Effect duration, five seconds by default, and bounds each phase on its own: acquiring the holder's connection and taking the lock share one deadline and fail with `TimeoutError`, as does the contenders' finish after release. Contenders that never all block fail with `NeverSettled` from `observeUntil`, naming how many blocked at the last read. The wait for blocked contenders runs on live time. Defects and interruption retain their native failure kind, and the helper's scope owns the holder and competing fibers.
 
 ### Wait for PostgreSQL state that sends no notification
 
