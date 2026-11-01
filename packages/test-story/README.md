@@ -277,7 +277,48 @@ app.it("continues the trace context a request's headers carry", [], function* ({
 
 `describeSpan` turns each span into words once in the kit, so the specs compare sentences instead of reading span fields and tags. Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
-#### Forwarding requests to a host
+#### Visiting an app over HTTP
+
+Use `httpVisitor` from `@shivaedev/test-story/server/httpVisitor.ts` in the kit's scoped `create` or `after` hook after starting the real app. Each call acquires a separate cookie jar and a separate edge proxy, which closes with the calling Scope:
+
+```ts
+import { httpVisitor } from "@shivaedev/test-story/server/httpVisitor.ts";
+
+const ada = yield* httpVisitor(upstream, {
+  baseUrl: "https://app.example",
+  headers: {
+    origin: "https://foreign.example",
+    "x-forwarded-for": "198.51.100.7",
+    "x-real-ip": "192.0.2.4",
+  },
+  edge: { forwardedHops: ["203.0.113.9"] },
+});
+
+const bob = yield* httpVisitor(upstream, { baseUrl: "https://app.example" });
+```
+
+`upstream` is the app's local HTTP listener. `baseUrl` is the public URL the visitor sees; it defaults to `upstream`. HTTPS here models TLS termination at the edge: transport to the local app remains HTTP. Requests present that public URL through `X-Forwarded-Host` and `X-Forwarded-Proto`. Secure cookies are accepted and sent only for HTTPS public URLs, including when the hostname is localhost. Ordinary and HttpOnly cookies are kept automatically, scoped by host/domain and path, and updated or removed by the app's Set-Cookie headers. Cookie expiry uses the story's Effect Clock. The visitors never share cookies.
+
+`headers` supplies visitor request defaults; a request's own headers override them without case sensitivity. In this example the app receives Origin `https://foreign.example`, X-Forwarded-For `198.51.100.7, 203.0.113.9`, and X-Real-IP `192.0.2.4`. `edge` accepts `ForwardingProxyOptions`: its headers override the visitor's headers, and `forwardedHops` chooses which addresses the edge appends. Give each visitor its own edge policy to test trusted proxy boundaries.
+
+`yield* ada.request("/session")` returns a native Response in an Effect. It accepts a path or an absolute public URL and optional fetch request options for method, headers, body and signal. Every request goes through this visitor's edge to the same upstream app; an absolute URL changes the public host/scheme used for headers and cookie selection. Redirects are returned without following them, and their cookies are retained, so the next story action can explicitly visit the Location. There is no credentials or redirect option. This HTTP client does not enforce browser CORS or SameSite policy.
+
+Keep requests and response decoding inside the application's verbs and readouts. A verb performs one action, and a readout translates the HTTP answer into domain words such as `"signed in as ada"` or `"signed out"`; specs never inspect Exit, Cause or `_tag` shapes. For example, an application's kit exposes `as(name).signsIn()` and `as(name).session()` over its visitor:
+
+```ts
+app.it("keeps ada's session separate from bob's", [visiting("ada"), visiting("bob")], function* ({ as }) {
+	yield* as("ada").signsIn();
+
+	yield* outcomes([
+		["ada's session", () => as("ada").session(), "signed in as ada"],
+		["bob's session", () => as("bob").session(), "signed out"],
+	]);
+});
+```
+
+The kit awaits the HTTP answer directly; it needs no sleeps, polling or manual Cookie header copying. For DOM rendering and browser sign-in flows, use the document and member-screen transports below.
+
+#### Controlling a forwarding proxy directly
 
 Use `forwardingProxy` from `@shivaedev/test-story/server/forwardingProxy.ts` in the kit's scoped `create` or `after` hook after starting the host under test:
 
@@ -935,6 +976,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/genreTags.ts`                | `genreTags(...kitNames)`, `GenreTag`                                                                                                                                                                                                                                                                                                                                                |
 | `server/domEnvironment.config.ts`    | Default Vitest environment preserving Node host globals and happy-dom document transport                                                                                                                                                                                                                                                                                            |
 | `server/fakeHttpService.ts`          | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
+| `server/httpVisitor.ts`              | `httpVisitor(upstream, options?)`, `HttpVisitorOptions`, `VisitorRequest`                                                                                                                                                                                                                                                                                                           |
 | `server/forwardingProxy.ts`          | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
 | `server/otlpReceiver.ts`             | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`                                                                                                                                                                                                                                                                                                           |
 
