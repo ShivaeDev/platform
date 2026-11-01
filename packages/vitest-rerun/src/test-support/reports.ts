@@ -105,6 +105,7 @@ export function reportReadouts(suite: Suite) {
 			),
 		junitResults: (name = "tests.junit.xml") => Effect.sync(() => testcases(reportText(name))),
 		printedError: () => Effect.sync(() => /^vitest-rerun: (?<message>.+)$/mu.exec(lastRun(suite).output)?.groups?.message ?? "nothing"),
+		reportContents: (name: string) => Effect.sync(() => reportText(name)),
 		reports: () => Effect.sync(() => listFiles(suite, REPORTS).filter((path) => REPORT_FILE.test(path))),
 		resultsCaches: () =>
 			Effect.sync(() =>

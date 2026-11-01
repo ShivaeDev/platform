@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { changingIdentity, type IdentityChange } from "./identityFiles.ts";
 import { reportReadouts } from "./reports.ts";
 import {
 	alwaysFailing,
@@ -132,5 +133,11 @@ export function losesTest() {
 		"tests",
 		'in losing.spec.ts, "disappears in the rerun" fails in the first attempt and the rerun no longer collects it, beside "stays", which passes',
 		(suite) => writeFile(suite, "losing.spec.ts", losingTest),
+	);
+}
+
+export function changesIdentity(change: IdentityChange) {
+	return rerunStory.trait("tests", `identity.spec.ts changes its ${change} at the same position after the first attempt fails`, (suite) =>
+		writeFile(suite, "identity.spec.ts", changingIdentity(change)),
 	);
 }

@@ -3,20 +3,26 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { alwaysFails, collectionFailsOnce, failsTimes, inProjects, passes, rerunStory } from "#test/kit.ts";
 
 rerunStory.it(
-	"a test that fails once and then passes is listed in flaky-tests.json with its JUnit identity and failure message",
-	[failsTimes(1)],
-	function* ({ flakyTests, run }) {
+	"a test that fails once and then passes is listed in flaky-tests.json with its final JUnit identity and failure message",
+	[inProjects("first", "second"), failsTimes(1, { steadyProject: "second" })],
+	function* ({ flakyTests, junitResults, run }) {
 		yield* run();
 
-		expect(yield* flakyTests()).toEqual([
+		const flaky = yield* flakyTests();
+		expect(flaky).toEqual([
 			{
 				attempts: 2,
-				classname: "flaky.spec.ts",
+				classname: "|first| flaky.spec.ts",
 				file: "flaky.spec.ts",
 				messages: ["Attempt 1 leaves module state behind"],
 				name: "checkout > recovers only in a fresh process",
 			},
 		]);
+		const identities = flaky === "not written" ? flaky : flaky.map(({ classname, file, name }) => ({ classname, file, name }));
+		const recovered = (yield* junitResults())
+			.filter((test) => test.classname === "|first| flaky.spec.ts" && test.name === "checkout > recovers only in a fresh process")
+			.map(({ classname, file, name }) => ({ classname, file, name }));
+		expect(identities).toEqual(recovered);
 	},
 );
 

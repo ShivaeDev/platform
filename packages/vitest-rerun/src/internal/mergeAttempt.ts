@@ -93,7 +93,7 @@ interface Merged {
 function unexpectedTask(original: readonly Task[], rerun: readonly Task[]): Task | undefined {
 	for (const task of rerun) {
 		const first = original.find((item) => item.id === task.id);
-		if (first === undefined) {
+		if (first === undefined || first.name !== task.name || first.type !== task.type) {
 			return task;
 		}
 		const unexpected = first.type === "suite" && task.type === "suite" ? unexpectedTask(first.tasks, task.tasks) : undefined;
