@@ -29,6 +29,29 @@ Migrations are ordinary Effects loaded by native Migrator. `migratePostgres` add
 
 The work has three parts: describe the model and provide its database once, choose repository operations per feature, and put each changed write inside the transaction that owns its commit.
 
+### Low-memory PostgreSQL hosts
+
+`applyLowMemoryPostgres({ pointInTimeRecovery })` from `@shivaedev/sql/applyLowMemoryPostgres.ts` is an opt-in database-owner operation for small applications on Linux hosts that bill cgroup memory, including filesystem page cache. It uses the provided native `SqlClient` to write `ALTER SYSTEM` settings and request a reload. Run it once, outside a transaction, against the app's dedicated PostgreSQL instance with a role allowed to change these settings. It changes the whole instance, including every database on it. Keep it out of normal application startup and numbered migrations.
+
+```ts
+import { Config, Effect } from "effect";
+import { applyLowMemoryPostgres } from "@shivaedev/sql/applyLowMemoryPostgres.ts";
+import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
+
+const configure = Effect.gen(function* () {
+	const url = yield* Config.Redacted("DATABASE_URL");
+	yield* applyLowMemoryPostgres({ pointInTimeRecovery: false }).pipe(Effect.provide(postgresLayer(url)));
+}).pipe(Effect.scoped);
+```
+
+Restart PostgreSQL after this operation. `shared_buffers=32MB`, `max_connections=50` and `wal_buffers=4MB` take effect on restart. The reload settings are `jit=off`, `max_parallel_workers_per_gather=0`, `hash_mem_multiplier=1`, `autovacuum_max_workers=2`, `autovacuum_work_mem=32MB`, `idle_in_transaction_session_timeout=10min` and `wal_compression=zstd`. `idle_session_timeout=0` keeps idle LISTEN connections alive. Use PostgreSQL 18 with zstd support; older versions can require a restart for additional settings. Command-line `-c` settings override `ALTER SYSTEM`, so remove conflicting overrides. A failed operation can leave earlier settings written; correct the reported SQL error before restarting.
+
+Point-in-time recovery is an explicit per-app memory and storage choice. With `pointInTimeRecovery: false`, the preset disables WAL archiving with `archive_mode=off`; it leaves `archive_timeout` alone and needs no backup bucket or pgBackRest configuration. Remove the host's archive and backup jobs and bucket configuration as well. This choice gives up recovery to a time between backups. With `true`, retain the host's working WAL archiving, backup bucket and restore procedure; the preset sets `archive_timeout=300` seconds. It does not provision backups or enable archiving. A timeout of 60 seconds can force a 16 MB WAL segment each minute even when the app is idle.
+
+For PITR hosts, pgBackRest derives its process count from the CPU limit. Set a CPU limit of 2 or explicitly set `PGBACKREST_BACKUP_PROCESS_MAX=1` on the PostgreSQL service. Eight processes under a 32-vCPU limit exhausted a 477 MiB container in the reported Railway workload. Declare both CPU and memory limits in infrastructure as code: an omitted limit can be reset by the next plan. Keep enough headroom for backups, maintenance and the app's total connection budget across replicas and workers.
+
+Pair this preset with server's [cache trim and connection lifetime](https://github.com/ShivaeDev/platform/tree/main/packages/server#low-memory-postgresql-hosts). Railway measurements supplied with this preset found billing within 0.2% of `memory.current`, shared memory around 45 MB instead of 175 MB, and small-app idle usage around 150–250 MB instead of 0.95 GB with preset, trim and connection recycling. Peaks returned within 5–10 minutes. These are workload observations, not memory limits or a promise for another app; measure your own cgroup before selecting a memory limit.
+
 ### One PostgreSQL pool per application
 
 `postgresLayer(url, options)` from `@shivaedev/sql/postgresLayer.ts` provides the native `PgPool` service from `@effect/sql-pg/PgPool`, `PgClient` and `SqlClient` together. `options` accepts `applicationName`, `maxConnections`, `minConnections`, `connectionTTL`, `idleTimeout`, `transformQueryNames` and `transformResultNames`. Queries, transactions and raw connections reserved with `yield* pool.reserve` share the same `maxConnections` budget. A reservation holds its connection until its scope closes; release it before waiting for work that needs that slot.

@@ -18,6 +18,8 @@
 		"format": "quality fix",
 		"lint": "quality lint",
 		"migrate": "node --conditions=source --env-file-if-exists=.env.local src/server/migrate.ts",
+		"postgres:low-memory": "node --conditions=source --env-file-if-exists=.env.local src/server/low-memory-postgres.ts",
+		"postgres:trim-cache": "node --conditions=source --env-file-if-exists=.env.local src/server/trim-postgres-page-cache.ts",
 		"ready": "pnpm run ci",
 		"setup": "pnpm install && quality setup",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",

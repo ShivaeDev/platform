@@ -3,6 +3,7 @@ import proxy from "./proxy.json" with { type: "json" };
 
 export default defineRailway((ctx) => {
 	const database = postgres("Postgres");
+	database.deploy = { ...database.deploy, limitOverride: { containers: { cpu: 2, memoryBytes: 1_073_741_824 } } };
 	const web = service("web", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
 		env: {
