@@ -11,7 +11,14 @@ export const docker = Effect.fn("LocalPostgres.docker")(function* (
 ) {
 	const context = environment.DOCKER_CONTEXT;
 	const host = environment.DOCKER_HOST;
-	const settings = { ...options, env: { ...environment, ...options.env }, extendEnv: true };
+	if ((["DOCKER_CONTEXT", "DOCKER_HOST"] as const).some((key) => options.env?.[key] && options.env[key] !== environment[key])) {
+		return yield* new LocalPostgresError({ message: "Docker command environment conflicts with the Docker endpoint settings." });
+	}
+	const settings = {
+		...options,
+		env: { ...environment, ...options.env, "DOCKER_CONTEXT": context ?? "", "DOCKER_HOST": host ?? "" },
+		extendEnv: true,
+	};
 	const endpoint =
 		(!context && host)
 		|| (yield* runCommand("docker", ["context", "inspect", ...(context ? [context] : []), "--format", "{{.Endpoints.docker.Host}}"], settings));
@@ -24,5 +31,5 @@ export const docker = Effect.fn("LocalPostgres.docker")(function* (
 	) {
 		return yield* new LocalPostgresError({ message: "Local database setup requires a local Docker endpoint; remote contexts are refused." });
 	}
-	return yield* runCommand("docker", args, settings);
+	return yield* runCommand("docker", args, { ...settings, env: { ...settings.env, "DOCKER_CONTEXT": "", "DOCKER_HOST": endpoint } });
 });
