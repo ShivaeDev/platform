@@ -99,9 +99,9 @@ it('leaves an unhandled error', async () => {
 
 export const COVERED_MODULE = "export function covered() {\n\treturn 2;\n}\nexport function alsoCovered() {\n\treturn 1;\n}\n";
 
-function perAttempt(body: string): string {
+export function perAttempt(body: string): string {
 	return `import { appendFileSync, readFileSync } from 'node:fs';
-import { it } from ${vitest};
+import { describe, it } from ${vitest};
 
 appendFileSync('collections.txt', 'attempt\\n');
 const attempt = readFileSync('collections.txt', 'utf8').split('\\n').length - 1;
