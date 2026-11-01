@@ -18,7 +18,7 @@ overrides:
   "@effect/platform-node-shared": "catalog:"
 
 catalog:
-  resend: 6.9.4
+  resend: 6.34.1
   playwright: 1.64.1
   "cn": 0.5.0
   "@base-ui/react": 1.9.0
