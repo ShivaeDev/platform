@@ -1,7 +1,7 @@
-import { Effect, Stream } from "effect";
-import { Rpc, type RpcGroup, type RpcSchema } from "effect/rpc";
+import { Effect, Result, Stream } from "effect";
+import { Rpc, type RpcGroup, RpcSchema } from "effect/rpc";
 
-type Result = Effect.Effect<unknown, unknown, unknown> | Stream.Stream<unknown, unknown, unknown>;
+type HandlerResult = Effect.Effect<unknown, unknown, unknown> | Stream.Stream<unknown, unknown, unknown>;
 type Handlers<R extends Rpc.Any> = {
 	readonly [TRpc in R as TRpc["_tag"]]: (
 		...args: Parameters<Rpc.ToHandlerFn<TRpc>>
@@ -31,17 +31,24 @@ export function rpcBoundaryHandlers<TRpcs extends Rpc.Any, E, THandlers extends 
 	handlers: THandlers,
 ): BoundedHandlers<THandlers, E>;
 export function rpcBoundaryHandlers(
-	_group: RpcGroup.RpcGroup<Rpc.Any>,
+	group: RpcGroup.RpcGroup<Rpc.Any>,
 	boundary: <A, TError, R>(effect: Effect.Effect<A, TError, R>) => Effect.Effect<A, unknown, R>,
-	handlers: Readonly<Record<string, (...args: never[]) => Rpc.WrapperOr<Result>>>,
+	handlers: Readonly<Record<string, (...args: never[]) => Rpc.WrapperOr<HandlerResult>>>,
 ) {
 	return Object.fromEntries(
-		Object.entries<(...args: never[]) => Rpc.WrapperOr<Result>>(handlers).map(([tag, handler]) => [
+		Object.entries<(...args: never[]) => Rpc.WrapperOr<HandlerResult>>(handlers).map(([tag, handler]) => [
 			tag,
-			(...args: never[]) =>
-				Rpc.wrapMap(handler(...args), (result) =>
+			(...args: never[]) => {
+				const constructed = Result.try(() => handler(...args));
+				if (Result.isFailure(constructed)) {
+					const failure = boundary(Effect.die(constructed.failure));
+					const rpc = group.requests.get(tag);
+					return Rpc.isRpc(rpc) && RpcSchema.isStreamSchema(rpc.successSchema) ? Stream.fromEffect(failure) : failure;
+				}
+				return Rpc.wrapMap(constructed.success, (result) =>
 					Effect.isEffect(result) ? boundary(result) : Stream.catchCause(result, (cause) => Stream.fromEffect(boundary(Effect.failCause(cause)))),
-				),
+				);
+			},
 		]),
 	);
 }

@@ -27,45 +27,61 @@ interface Field {
 
 function fieldsOf(ast: SchemaAST.AST, schema: string, extra: readonly string[], candidates: ReadonlySet<string>): Field[] {
 	const fields: Field[] = [];
-	function visitIndex(index: SchemaAST.IndexSignature, path: string, hidden: boolean, seen: ReadonlySet<SchemaAST.AST>) {
+	function visitIndex(
+		index: SchemaAST.IndexSignature,
+		path: string,
+		hidden: boolean,
+		seen: ReadonlySet<SchemaAST.AST>,
+		encoded: ReadonlySet<string>,
+	) {
 		const accepts = Schema.is(Schema.make(index.parameter));
 		for (const key of candidates) {
 			if (accepts(key)) {
-				fields.push({ key, path: `${path}[${key}]`, sensitive: hidden || extra.includes(key) || isSensitiveKey(key) });
+				fields.push({ key, path: `${path}[${key}]`, sensitive: hidden || encoded.has(key) || extra.includes(key) || isSensitiveKey(key) });
 			}
 		}
-		visit(index.type, `${path}[value]`, hidden, seen);
+		visit(index.type, `${path}[value]`, hidden, seen, encoded);
 	}
-	function visitObject(node: SchemaAST.Objects, path: string, hidden: boolean, seen: ReadonlySet<SchemaAST.AST>) {
+	function visitObject(node: SchemaAST.Objects, path: string, hidden: boolean, seen: ReadonlySet<SchemaAST.AST>, encoded: ReadonlySet<string>) {
 		for (const property of node.propertySignatures) {
 			if (typeof property.name !== "string") {
 				continue;
 			}
 			const sensitive =
-				hidden || extra.includes(property.name) || isSensitiveKey(property.name) || maskedValue(property.type, schemaFieldKeys(property.type, []));
+				hidden
+				|| encoded.has(property.name)
+				|| extra.includes(property.name)
+				|| isSensitiveKey(property.name)
+				|| maskedValue(property.type, schemaFieldKeys(property.type, []));
 			const fieldPath = `${path}.${property.name}`;
 			fields.push({ key: property.name, path: fieldPath, sensitive });
-			visit(property.type, fieldPath, sensitive, seen);
+			visit(property.type, fieldPath, sensitive, seen, encoded);
 		}
 		for (const index of node.indexSignatures) {
-			visitIndex(index, path, hidden, seen);
+			visitIndex(index, path, hidden, seen, encoded);
 		}
 	}
-	function visit(node: SchemaAST.AST, path: string, hidden: boolean, ancestors: ReadonlySet<SchemaAST.AST>) {
+	function visit(node: SchemaAST.AST, path: string, hidden: boolean, ancestors: ReadonlySet<SchemaAST.AST>, encoded: ReadonlySet<string>) {
 		if (ancestors.has(node)) {
 			return;
 		}
 		const seen = new Set(ancestors).add(node);
 		const masked = hidden || marked(node);
 		if (node._tag === "Objects") {
-			visitObject(node, path, masked, seen);
-			return;
+			visitObject(node, path, masked, seen, encoded);
+		} else {
+			for (const [index, child] of children(node).entries()) {
+				visit(child, `${path}[${index}]`, masked, seen, encoded);
+			}
 		}
-		for (const [index, child] of children(node).entries()) {
-			visit(child, `${path}[${index}]`, masked, seen);
+		if (node.encoding !== undefined) {
+			const keys = new Set([...encoded, ...schemaFieldKeys(node, [])]);
+			for (const link of node.encoding) {
+				visit(link.to, `${path}.encoded`, masked, seen, keys);
+			}
 		}
 	}
-	visit(ast, schema, false, new Set());
+	visit(ast, schema, false, new Set(), new Set());
 	for (const key of schemaFieldKeys(ast, [])) {
 		if (!fields.some((field) => field.key === key && field.sensitive)) {
 			fields.push({ key, path: `${schema}.encoded.${key}`, sensitive: true });
