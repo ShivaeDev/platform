@@ -5,7 +5,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Identity, SessionUser } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
 import type { OriginPolicy } from "#server/origin.ts";
-import { authenticatedUserLayer, type SessionPolicy, type UserSessionShape } from "#server/session.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
+import { authenticatedUserLayer, type UserSessionShape } from "#server/session.ts";
 
 const Seen = Schema.Record(Schema.String, Schema.Unknown);
 
@@ -17,8 +18,10 @@ const handlers = Api.toLayer({
 		}),
 });
 
-const openProfile = Effect.fnUntraced(function* (policy: SessionPolicy<UserSessionShape>) {
-	const services = yield* Layer.build(handlers.pipe(Layer.provideMerge(authenticatedUserLayer(policy))));
+const openProfile = Effect.fnUntraced(function* (policy: SessionPolicy["Service"]) {
+	const services = yield* Layer.build(
+		handlers.pipe(Layer.provideMerge(authenticatedUserLayer()), Layer.provide(Layer.succeed(SessionPolicy, policy))),
+	);
 	const client = yield* RpcTest.makeClient(Api).pipe(Effect.provide(services));
 	return { client, services };
 });

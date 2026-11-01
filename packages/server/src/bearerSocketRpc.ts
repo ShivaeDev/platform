@@ -4,12 +4,12 @@ import * as Socket from "effect/socket/Socket";
 import { SocketAuthentication } from "@shivaedev/contract/socketAuthentication.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
-import { resolveSession, type SessionPolicy, type SessionShape } from "@shivaedev/identity/server/session.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { resolveSession } from "@shivaedev/identity/server/session.ts";
 import { makeSocketSession, SocketSession } from "@shivaedev/identity/server/socketSession.ts";
 
-export const bearerSocketRpc = Effect.fnUntraced(function* <TSession extends SessionShape>(
+export const bearerSocketRpc = Effect.fnUntraced(function* (
 	handler: Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>,
-	policy: SessionPolicy<TSession>,
 ) {
 	const request = yield* HttpServerRequest.HttpServerRequest;
 	const socket = yield* Effect.orDie(request.upgrade);
@@ -54,12 +54,12 @@ export const bearerSocketRpc = Effect.fnUntraced(function* <TSession extends Ses
 			get: (target, key, receiver) => (key === "upgrade" ? Effect.succeed(authenticatedSocket) : Reflect.get(target, key, receiver)),
 		});
 		return yield* Effect.gen(function* () {
-			const initial = yield* resolveSession(policy, Headers.empty, "$connect");
+			const initial = yield* resolveSession(Headers.empty, "$connect");
 			if (Option.isNone(initial)) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
-			const session = yield* makeSocketSession(policy.streamRevalidationInterval ?? "30 seconds");
-			const check = recheckSession(policy, Headers.empty, "$connect").pipe(
+			const session = yield* makeSocketSession((yield* SessionPolicy).streamRevalidationInterval ?? "30 seconds");
+			const check = recheckSession(Headers.empty, "$connect").pipe(
 				Effect.flatMap((current) =>
 					Option.isSome(current) && current.value.user.id === initial.value.user.id
 						? Effect.void

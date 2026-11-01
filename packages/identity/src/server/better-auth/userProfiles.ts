@@ -9,7 +9,7 @@ export interface UserProfile {
 	readonly name: string;
 }
 
-export const userProfiles = Effect.fn("Platform.userProfiles")(function* (
+export const userProfiles = Effect.fn("Identity.userProfiles")(function* (
 	auth: { readonly $context: Promise<{ readonly adapter: Pick<Awaited<Auth["$context"]>["adapter"], "findMany"> }> },
 	userIds: readonly string[],
 ): Effect.fn.Return<readonly UserProfile[], AuthUnavailable> {

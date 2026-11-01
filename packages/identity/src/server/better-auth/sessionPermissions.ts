@@ -7,7 +7,7 @@ import { resolveRole } from "#server/resolveRole.ts";
 const Fields = Schema.Record(Schema.String, Schema.Unknown);
 const SessionPayload = Schema.NullOr(Schema.StructWithRest(Schema.Struct({ user: Schema.StructWithRest(SessionUserSchema, [Fields]) }), [Fields]));
 
-export const sessionPermissions = Effect.fn("Platform.sessionPermissions")(function* (
+export const sessionPermissions = Effect.fn("Identity.sessionPermissions")(function* (
 	response: Response,
 	roles: RoleSet,
 ): Effect.fn.Return<Response, Cause.UnknownError | Schema.SchemaError | Forbidden> {

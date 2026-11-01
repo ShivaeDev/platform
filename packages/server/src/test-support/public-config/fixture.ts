@@ -1,5 +1,6 @@
 import { Config, Layer, Schema } from "effect";
 import { publicConfig } from "@shivaedev/contract/publicConfig.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { publicConfigLayer } from "#rpc-server/publicConfigLayer.ts";
 import { sessions } from "#test/app-host/fixture.ts";
@@ -18,6 +19,6 @@ export function configuredHost(state: HostState, path?: string) {
 		group: AuthenticatedPing.merge(PublicConfig),
 		handlers: Layer.merge(pingHandlers, publicConfigLayer(PublicConfig, path)),
 		services: Layer.effectDiscard(Config.Redacted("SERVER_SECRET")),
-		sessions: sessions(state.lookups),
+		sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 	});
 }

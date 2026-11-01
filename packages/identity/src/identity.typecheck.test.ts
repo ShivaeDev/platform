@@ -1,4 +1,4 @@
-import { Effect, type Layer, Option, Schema } from "effect";
+import { Effect, Layer, Option, Schema } from "effect";
 import { Headers } from "effect/http";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
@@ -6,6 +6,7 @@ import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/rea
 import { AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { permissionLayer } from "#server/permissions.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";
 import { Identity, type ProviderAccountValue, SessionUser, SessionUserWithProviderAccounts } from "./identity.ts";
@@ -45,16 +46,14 @@ Effect.gen(function* () {
 	const client = yield* RpcTest.makeClient(RpcGroup.make(AdminTools.middleware(ToolsPermission)));
 	const failure = yield* Effect.flip(client.AdminTools());
 	expectTypeOf(failure).toEqualTypeOf<Unauthorized | AuthUnavailable | Forbidden | MissingReadPolicy | QueryReadDenied>();
-}).pipe(Effect.provide(adminHandlers), Effect.provide(permissionLayer(ToolsPermission, adminPolicy)), Effect.scoped);
-permissionLayer(ManagementPermission, adminPolicy);
+}).pipe(
+	Effect.provide(adminHandlers),
+	Effect.provide(permissionLayer(ToolsPermission).pipe(Layer.provide(Layer.succeed(SessionPolicy, adminPolicy)))),
+	Effect.scoped,
+);
+permissionLayer(ManagementPermission);
 
-authenticatedUserLayer({
-	origin: () => true,
-	provider: {
-		// @ts-expect-error Profile providers must supply name and email as well as id.
-		get: () => Effect.succeed(Option.some({ user: { id: "alice" } })),
-	},
-});
+authenticatedUserLayer();
 Effect.gen(function* () {
 	const client = yield* RpcTest.makeClient(Profile);
 	const failure = yield* Effect.flip(client.Whoami());
@@ -68,14 +67,7 @@ function getSession() {
 }
 const plain = betterAuthSessions(getSession);
 const accounts = betterAuthSessions(getSession, () => Promise.resolve([{ accountId: "123", providerId: "github" }]));
-const plainPolicy = { origin: () => true, provider: plain };
-authenticatedUserWithProviderAccountsLayer({
-	...plainPolicy,
-	provider: accounts,
-});
-// @ts-expect-error An accounts-capable boundary requires a provider with an accounts Effect.
-authenticatedUserWithProviderAccountsLayer(plainPolicy);
-
+authenticatedUserWithProviderAccountsLayer();
 Effect.gen(function* () {
 	const plainSession = yield* plain.get(Headers.empty);
 	if (Option.isSome(plainSession)) {

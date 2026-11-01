@@ -7,6 +7,7 @@ import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 
 export class Note extends Schema.Class<Note>("RerunNote")({ id: Schema.BigIntFromString, owner: Schema.String, title: Schema.String }) {}
@@ -74,9 +75,9 @@ export function rerunHost(state: RerunState) {
 			}),
 		),
 		services: Layer.mergeAll(Layer.succeed(Store, state), LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer))),
-		sessions: {
+		sessions: Layer.succeed(SessionPolicy, {
 			origin: () => true,
 			provider: { get: (headers) => Effect.succeed(Option.fromUndefinedOr(headers.authorization).pipe(Option.map((id) => ({ user: { id } })))) },
-		},
+		}),
 	});
 }

@@ -16,6 +16,7 @@ import { answered } from "@shivaedev/test/answers.ts";
 import { Authenticated } from "#middleware.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { createProvider } from "./harness.ts";
 
 export const documents = collection("documents", Schema.String);
@@ -48,7 +49,7 @@ export const liveSubscriptionEngine = Effect.gen(function* () {
 			group: Api,
 			handlers: Api.application.toLayer({ "documents.get": () => Effect.succeed("alice's document") }),
 			services: Layer.merge(Layer.succeed(LiveServer, live), Layer.succeed(Reactivity.Reactivity, reactivity)),
-			sessions: {
+			sessions: Layer.succeed(SessionPolicy, {
 				origin: () => true,
 				provider: {
 					get: (headers) =>
@@ -57,7 +58,7 @@ export const liveSubscriptionEngine = Effect.gen(function* () {
 						),
 				},
 				streamRevalidationInterval: "5 seconds",
-			},
+			}),
 		}).pipe(Layer.provideMerge(Layer.succeed(Clock.Clock, clock))),
 	);
 	const server = Context.getUnsafe(services, HttpServer.HttpServer);

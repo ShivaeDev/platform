@@ -5,7 +5,7 @@ import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { AdminSessions } from "@shivaedev/admin/server/AdminSessions.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { JobsPermission, ReadJobs } from "@shivaedev/admin/permissions.ts";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
@@ -17,12 +17,12 @@ const registry = adminRegistry(Jobs);
 const registered = registerAdmin(registry, {
   jobs: Jobs.contract.application.toLayer({ "admin.jobs.failed": () => Effect.service(JobStore) }),
 });
-const handlers: Layer.Layer<Layer.Success<typeof registered.handlers>, never, JobStore | AdminSessions> = registered.handlers;
+const handlers: Layer.Layer<Layer.Success<typeof registered.handlers>, never, JobStore | SessionPolicy> = registered.handlers;
 type Equal<A, B> = [A, B] extends [B, A] ? true : false;
-const preserved: Equal<Layer.Services<typeof registered.handlers>, JobStore | AdminSessions> = true;
+const preserved: Equal<Layer.Services<typeof registered.handlers>, JobStore | SessionPolicy> = true;
 void preserved;
 const changes = Jobs.contract.toLayerHandler("admin.jobs.$changes", () => Stream.empty);
-const sessions = Layer.succeed(AdminSessions, { roles: roleSet(role("operator", [ReadJobs])),
+const sessions = Layer.succeed(SessionPolicy, { roles: roleSet(role("operator", [ReadJobs])),
   origin: () => true,
   provider: { get: () => Effect.succeed(Option.some({ user: { id: "operator", email: "operator@example.test", name: "Operator", role: "operator" } })) },
 });

@@ -10,6 +10,7 @@ import { Identity, OptionalIdentity, SessionUser, SessionUserWithProviderAccount
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#middleware.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer, authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer, maybeAuthenticatedLayer } from "#server/session.ts";
 import { makeSocketSession, SocketSession } from "#server/socketSession.ts";
 import { createProvider } from "./harness.ts";
@@ -77,12 +78,6 @@ export const streamSession = storyKit({
 				return state.interval;
 			},
 		};
-		const profilePolicy = {
-			...policy,
-			get streamRevalidationInterval() {
-				return state.interval;
-			},
-		};
 		const handlers = Api.toLayer({
 			Accounts: () =>
 				Stream.fromQueue(input).pipe(Stream.mapEffect((value) => Effect.map(SessionUserWithProviderAccounts, (user) => `${user.id}: ${value}`))),
@@ -96,13 +91,9 @@ export const streamSession = storyKit({
 		const services = yield* Layer.build(
 			handlers.pipe(
 				Layer.provideMerge(
-					Layer.mergeAll(
-						authenticatedLayer(policy),
-						authenticatedUserLayer(profilePolicy),
-						authenticatedUserWithProviderAccountsLayer(policy),
-						maybeAuthenticatedLayer(policy),
-					),
+					Layer.mergeAll(authenticatedLayer(), authenticatedUserLayer(), authenticatedUserWithProviderAccountsLayer(), maybeAuthenticatedLayer()),
 				),
+				Layer.provide(Layer.succeed(SessionPolicy, policy)),
 			),
 		);
 		const client = yield* RpcTest.makeClient(Api).pipe(Effect.provide(services));

@@ -13,6 +13,7 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer, authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
 import { ProviderAccounts, providerAccountHandlers, readProviderAccounts } from "#test/better-auth/providerAccounts.ts";
@@ -62,14 +63,10 @@ export const policyHost = Effect.fnUntraced(function* (
 		accounts === undefined
 			? Layer.empty
 			: RpcServer.layerHttp({ group: ProviderAccounts, path: "/accounts", protocol: "http" }).pipe(
-					Layer.provide([
-						providerAccountHandlers,
-						authenticatedUserWithProviderAccountsLayer({ ...sessions, provider: accounts }),
-						RpcSerialization.layerNdjson,
-					]),
+					Layer.provide([providerAccountHandlers, authenticatedUserWithProviderAccountsLayer(), RpcSerialization.layerNdjson]),
 				);
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, authenticatedLayer(sessions), requestTracingLayer(), RpcSerialization.layerJson]),
+		Layer.provide([handlers, authenticatedLayer(), requestTracingLayer(), RpcSerialization.layerJson]),
 	);
 	const recorded = recorder();
 	const context = yield* Layer.build(
@@ -77,6 +74,7 @@ export const policyHost = Effect.fnUntraced(function* (
 			Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),
 			Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))),
 			Layer.provide(recorded.layer),
+			Layer.provide(Layer.succeed(SessionPolicy, sessions)),
 		),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));

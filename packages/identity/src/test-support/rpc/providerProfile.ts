@@ -4,6 +4,7 @@ import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Identity, SessionUserWithProviderAccounts } from "#identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "#middleware.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer, type ProviderAccountsSessionShape } from "#server/session.ts";
 
 const READS_PER_CALL = 3;
@@ -43,11 +44,13 @@ const handlers = Api.toLayer({
 		),
 });
 const openProviderProfile = Effect.fnUntraced(function* (user: ProviderAccountsSessionShape["user"]) {
-	const middleware = authenticatedUserWithProviderAccountsLayer({
-		origin: () => true,
-		provider: { get: () => Effect.succeed(Option.some({ user })) },
-	});
-	const services = yield* Layer.build(handlers.pipe(Layer.provideMerge(middleware)));
+	const middleware = authenticatedUserWithProviderAccountsLayer();
+	const services = yield* Layer.build(
+		handlers.pipe(
+			Layer.provideMerge(middleware),
+			Layer.provide(Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Effect.succeed(Option.some({ user })) } })),
+		),
+	);
 	const client = yield* RpcTest.makeClient(Api).pipe(Effect.provide(services));
 	return { client, services };
 });

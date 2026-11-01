@@ -5,6 +5,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { Notes, notes, ReadAccess } from "./notes.ts";
@@ -76,11 +77,11 @@ export async function openHost() {
 				Reactivity.layer,
 				Layer.succeed(ReadAccess, () => state.allowed),
 			),
-			sessions: {
+			sessions: Layer.succeed(SessionPolicy, {
 				origin: () => true,
 				provider: { get: resolveSession },
 				streamRevalidationInterval: "100 millis",
-			},
+			}),
 		}),
 	);
 	try {

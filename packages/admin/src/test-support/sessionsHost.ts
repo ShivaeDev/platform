@@ -14,6 +14,7 @@ import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapt
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { sessionsHandlers } from "@shivaedev/identity/server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { ManageSessions, SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { nodeHttpServer } from "@shivaedev/server/nodeHttpServer.ts";
@@ -68,7 +69,8 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live), Reactivity.layer]),
 	);
 	const routes = RpcServer.layerHttp({ group: SessionsPage.contract, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, permissionLayer(SessionsPermission, policy), RpcSerialization.layerJson]),
+		Layer.provide([handlers, permissionLayer(SessionsPermission), RpcSerialization.layerJson]),
+		Layer.provide(Layer.succeed(SessionPolicy, policy)),
 	);
 	const handler = yield* HttpRouter.toHttpEffect(routes);
 	const server = yield* Layer.build(HttpServer.serve(handler).pipe(Layer.provideMerge(nodeHttpServer("127.0.0.1", { port: 0 }))));

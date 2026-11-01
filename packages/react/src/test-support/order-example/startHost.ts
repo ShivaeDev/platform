@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Option, type Redacted } from "effect";
 import { Cookies, type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { Orders } from "./contract.ts";
 import { migrations } from "./postgres.ts";
@@ -29,13 +30,13 @@ export const startHost = Effect.fn("Orders.startHost")(function* (
 			handlers: orderHandlers(options),
 			migrations,
 			services: OrderService.layer.pipe(Layer.provide(Layer.effect(OrdersRepository, makeOrdersRepository))),
-			sessions: {
+			sessions: Layer.succeed(SessionPolicy, {
 				origin: () => true,
 				provider: {
 					get: (headers: Headers.Headers) =>
 						Effect.sync(() => Option.fromUndefinedOr(sessions.get(Cookies.parseHeader(headers.cookie ?? "")["order-session"] ?? ""))),
 				},
-			},
+			}),
 		}),
 	);
 	const server = Context.get(context, HttpServer.HttpServer);

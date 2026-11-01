@@ -22,12 +22,6 @@ for (const [role, answer] of [
 	});
 }
 
-pageHost.it("a missing admin permission policy fails startup naming the page and permission", [], function* ({ startWithoutPermissions }) {
-	expect(yield* startWithoutPermissions()).toContain(
-		"Missing admin permission policy: page workspaces, permission workspaces.read; provide AdminSessions",
-	);
-});
-
 pageHost.it("an unregistered admin document is not served", [], function* ({ openDocument }) {
 	expect(yield* openDocument("/admin/workspaces/studio/settings", "workspace-reader")).toMatchObject({ body: "", status: 404 });
 });

@@ -1,6 +1,5 @@
 import type { Crypto, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppHostInput } from "#AppHostInput.ts";
 import type { AppDatabaseOptions, AppHttpHostOptions } from "#appHost.ts";
 import type { appHostHttp, deferredHost } from "#appHostHttp.ts";
@@ -22,7 +21,6 @@ export interface AppHostFactory {
 		TServiceError = never,
 		TServiceRequirements = never,
 		TMigrations = never,
-		TSession extends SessionShape = SessionShape,
 		TApplicationError = never,
 		TApplicationRequirements = never,
 		TPreflight = never,
@@ -41,7 +39,6 @@ export interface AppHostFactory {
 			TServiceError,
 			TServiceRequirements,
 			TMigrations,
-			TSession,
 			TApplicationError,
 			TApplicationRequirements,
 			TPreflight,
@@ -62,7 +59,6 @@ export interface AppHostFactory {
 				TServiceError,
 				TServiceRequirements,
 				TMigrations,
-				TSession,
 				TApplicationError,
 				TApplicationRequirements,
 				TRouteError,
@@ -83,7 +79,6 @@ export interface AppHostFactory {
 		TServices = never,
 		TServiceError = never,
 		TServiceRequirements = never,
-		TSession extends SessionShape = SessionShape,
 		TPreflight = never,
 		TPreflightError = never,
 		TPreflightRequirements = never,
@@ -98,7 +93,6 @@ export interface AppHostFactory {
 			TServices,
 			TServiceError,
 			TServiceRequirements,
-			TSession,
 			TPreflight,
 			TPreflightError,
 			TPreflightRequirements,
@@ -115,7 +109,6 @@ export interface AppHostFactory {
 				TServices,
 				TServiceError,
 				TServiceRequirements,
-				TSession,
 				TRouteError,
 				TRouteRequirements
 			>

@@ -12,6 +12,7 @@ import { Identity } from "@shivaedev/identity/identity.ts";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 import { commandChanges } from "@shivaedev/identity/server/commandChanges.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import {
 	authenticatedUserLayer,
 	authenticatedUserWithProviderAccountsLayer,
@@ -47,16 +48,22 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 		},
 		roles: TestRoles,
 	};
-	const customAuth = Layer.succeed(CustomAuthenticated, (effect, { headers, rpc, payload }) =>
-		Effect.gen(function* () {
-			const session = yield* resolveSession(sessions, headers, rpc._tag);
-			if (Option.isNone(session)) {
-				return yield* new Unauthorized({ message: "Sign in" });
-			}
-			return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id: session.value.user.id })).pipe(
-				Effect.provideService(Identity, { id: session.value.user.id }),
-			);
-		}),
+	const customAuth = Layer.effect(
+		CustomAuthenticated,
+		Effect.map(
+			SessionPolicy,
+			(policy) =>
+				(effect, { headers, rpc, payload }) =>
+					Effect.gen(function* () {
+						const session = yield* resolveSession(headers, rpc._tag);
+						if (Option.isNone(session)) {
+							return yield* new Unauthorized({ message: "Sign in" });
+						}
+						return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id: session.value.user.id })).pipe(
+							Effect.provideService(Identity, { id: session.value.user.id }),
+						);
+					}).pipe(Effect.provideService(SessionPolicy, policy)),
+		),
 	);
 	const published: (readonly unknown[])[] = [];
 	const context = yield* Layer.build(
@@ -67,10 +74,10 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 				handlers: handlers.pipe(
 					Layer.provideMerge(
 						Layer.mergeAll(
-							authenticatedUserLayer(sessions),
-							authenticatedUserWithProviderAccountsLayer(sessions),
-							permissionLayer(ToolsPermission, sessions),
-							permissionLayer(ManagementPermission, sessions),
+							authenticatedUserLayer(),
+							authenticatedUserWithProviderAccountsLayer(),
+							permissionLayer(ToolsPermission),
+							permissionLayer(ManagementPermission),
 							customAuth,
 						),
 					),
@@ -83,7 +90,7 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 						}
 					}),
 				),
-				sessions,
+				sessions: Layer.succeed(SessionPolicy, sessions),
 			}),
 		),
 	);

@@ -1,10 +1,10 @@
 import { type OAuthOptions, oauthProvider, oauthProviderAuthServerMetadata, type Scope } from "@better-auth/oauth-provider";
-import { Effect, Option } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { OriginPolicy } from "@shivaedev/identity/server/origin.ts";
-import type { SessionPolicy, UserSessionShape } from "@shivaedev/identity/server/session.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { bearer, type JwksSource } from "./bearer.ts";
 import { grantedUser, type OauthAuth, oauthGrants } from "./oauthGrants.ts";
 
@@ -34,7 +34,7 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 	const metadataPath = `/.well-known/oauth-protected-resource${url.pathname}` as const;
 	const resourceMetadataUrl = new URL(metadataPath, url).href;
 	const verify = bearer(options.jwks ?? config.jwks_uri ?? new URL("/api/auth/jwks", url).href, resource, config.issuer);
-	const sessions: SessionPolicy<UserSessionShape> = {
+	const sessions = Layer.succeed(SessionPolicy, {
 		origin: options.origin,
 		...(options.roles === undefined ? {} : { roles: options.roles }),
 		provider: {
@@ -54,7 +54,7 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 					return Option.some({ user: { email: user.email, id: user.id, name: user.name, ...(typeof role === "string" ? { role } : {}) } });
 				}),
 		},
-	};
+	});
 	const metadata = oauthProviderAuthServerMetadata(auth);
 	const authorizationMetadata = Effect.fn("Mcp.authorizationMetadata")(function* (request: HttpServerRequest.HttpServerRequest) {
 		const web = yield* HttpServerRequest.toWeb(request);

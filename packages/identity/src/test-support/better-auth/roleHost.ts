@@ -10,6 +10,7 @@ import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
 import { TestRoles } from "#test/auth/permissions.ts";
@@ -35,9 +36,15 @@ export const roleHost = Effect.fnUntraced(function* () {
 	);
 	const recorded = recorder();
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, authenticatedUserLayer({ ...mounted.sessions, origin: () => true }), requestTracingLayer(), RpcSerialization.layerJson]),
+		Layer.provide([handlers, authenticatedUserLayer(), requestTracingLayer(), RpcSerialization.layerJson]),
 	);
-	const app = HttpRouter.toWebHandler(Layer.merge(mounted.routes, rpc).pipe(Layer.provide(recorded.layer)), { disableLogger: true });
+	const app = HttpRouter.toWebHandler(
+		Layer.merge(mounted.routes, rpc).pipe(
+			Layer.provide(recorded.layer),
+			Layer.provide(Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true })),
+		),
+		{ disableLogger: true },
+	);
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 	const storage = yield* authTestDatabase;
 	const headers = new Headers({ origin: ORIGIN });

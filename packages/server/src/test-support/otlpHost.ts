@@ -1,3 +1,5 @@
+import { Layer } from "effect";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { sessions } from "#test/app-host/fixture.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
@@ -11,6 +13,6 @@ export function otlpHost(state: HostState) {
 		handlers: pingHandlers,
 		routes: state.routes,
 		rpcPath: state.rpcPath,
-		...(state.loopback ? { policy: "loopback" as const } : { sessions: sessions(state.lookups) }),
+		...(state.loopback ? { policy: "loopback" as const } : { sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)) }),
 	});
 }

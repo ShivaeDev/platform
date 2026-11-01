@@ -7,7 +7,7 @@ import { AuthUnavailable, Forbidden, isAuthUnavailable, isForbidden, isUnauthori
 import { Identity, SessionUser } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
 import { permissionRoute } from "#server/permissions.ts";
-import { type SessionPolicy, type UserSessionShape, withSessionUser } from "#server/session.ts";
+import { withSessionUser } from "#server/session.ts";
 import { ManagementPermission, TestRoles, ToolsPermission, UseTools } from "#test/auth/permissions.ts";
 
 export const AdminApi = RpcGroup.make(
@@ -52,8 +52,8 @@ const routeErrors = {
 	Unauthorized: () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Unauthorized") })),
 };
 
-export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { handlerRequests: string[] }) {
-	const guarded = permissionRoute(sessions, UseTools);
+export function adminRoutes(state: { handlerRequests: string[] }) {
+	const guarded = permissionRoute(UseTools);
 	const tools = guarded((request) =>
 		Effect.gen(function* () {
 			state.handlerRequests.push(request.method);
@@ -78,7 +78,7 @@ export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { 
 			),
 			router.add("GET", "/profile", (request) =>
 				SessionUser.pipe(
-					withSessionUser(sessions, request.headers, "profile"),
+					withSessionUser(request.headers, "profile"),
 					Effect.map(HttpServerResponse.jsonUnsafe),
 					Effect.catchIf(isAuthUnavailable, routeErrors.AuthUnavailable),
 					Effect.catchIf(isForbidden, routeErrors.Forbidden),

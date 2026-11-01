@@ -3,10 +3,12 @@ import { getMigrations } from "better-auth/db/migration";
 import { admin, jwt, testUtils } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
 import type { McpClient } from "effect/ai";
+import { HttpRouter } from "effect/http";
 import { RpcGroup } from "effect/rpc";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
@@ -75,11 +77,10 @@ const startHost = Effect.fnUntraced(function* (inProcess: boolean) {
 					name: "Story app",
 					path: "/mcp",
 					resourceMetadataUrl: oauth.resourceMetadataUrl,
-					sessions: oauth.sessions,
 					version: "1",
-				}),
+				}).pipe(HttpRouter.provideRequest(oauth.sessions)),
 			),
-			sessions: { ...mounted.sessions, origin: () => true },
+			sessions: Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true }),
 		}).pipe(Layer.provide(jwks.logger)),
 	);
 	return { auth: mounted.auth, baseUrl, issuer: `${publicUrl}/api/auth`, jwks, oauth, resource };

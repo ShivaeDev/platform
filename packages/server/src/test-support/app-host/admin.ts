@@ -8,7 +8,7 @@ import { Rpc, RpcGroup } from "effect/rpc";
 import { AuthUnavailable, Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { permissionLayer, permissionRoute } from "@shivaedev/identity/server/permissions.ts";
-import type { SessionPolicy, UserSessionShape } from "@shivaedev/identity/server/session.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { TestRoles, ToolsPermission, UseTools } from "#test/permissions.ts";
 import { staticAssets } from "./fixture.ts";
@@ -42,17 +42,14 @@ function adminSessions(state: HostState) {
 	};
 }
 
-function adminRoutes(root: string, sessions: SessionPolicy<UserSessionShape>, state: HostState) {
+function adminRoutes(root: string, state: HostState) {
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			const spa = yield* HttpStaticServer.make({ root, spa: true });
 			yield* router.add(
 				"*",
 				"/admin/*",
-				permissionRoute(
-					sessions,
-					UseTools,
-				)((request) =>
+				permissionRoute(UseTools)((request) =>
 					Effect.andThen(
 						Effect.sync(() => state.calls.push(request.url)),
 						spa,
@@ -84,8 +81,8 @@ export const adminApplication = host.trait("configured", "admin routes and RPC s
 				),
 			adminStream: () => Stream.concat(Stream.fromEffect(read), Stream.never),
 			publicRead: () => Effect.succeed("public result"),
-		}).pipe(Layer.provideMerge(permissionLayer(ToolsPermission, sessions)));
-		const routes = adminRoutes(files.path, sessions, state);
+		}).pipe(Layer.provideMerge(permissionLayer(ToolsPermission)));
+		const routes = adminRoutes(files.path, state);
 		state.build = () =>
 			appHost({
 				assets: { root: files.path, spa: true },
@@ -94,7 +91,7 @@ export const adminApplication = host.trait("configured", "admin routes and RPC s
 				handlers,
 				routes,
 				services: Layer.empty,
-				sessions,
+				sessions: Layer.succeed(SessionPolicy, sessions),
 			});
 	}),
 );

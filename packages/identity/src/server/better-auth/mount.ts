@@ -35,7 +35,7 @@ export type BetterAuthMountOptions<E = never, R = never> = {
 	| (StoredRoleOptions & { readonly roles: RoleSet; readonly roleSeed?: Effect.Effect<AccountRoleSeed<E>, E, R> })
 );
 
-export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <const TOptions extends BetterAuthOptions, E = never, R = never>(
+export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <const TOptions extends BetterAuthOptions, E = never, R = never>(
 	options: TOptions,
 	mount: BetterAuthMountOptions<E, R> = {},
 ) {

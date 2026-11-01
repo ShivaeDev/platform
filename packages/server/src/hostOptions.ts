@@ -1,7 +1,7 @@
 import type { Duration, Layer } from "effect";
 import type { HttpRouter } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
+import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { AssetOptions } from "#AssetOptions.ts";
 import type { AppDatabaseOptions } from "#appHost.ts";
 
@@ -44,6 +44,6 @@ export type HostOptions<
 > = HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
 	HostRoutes<TRouteError, TRouteRequirements>;
 
-export type HostPolicy<TSession extends SessionShape> =
-	| { readonly policy?: undefined; readonly sessions: SessionPolicy<TSession> }
+export type HostPolicy =
+	| { readonly policy?: undefined; readonly sessions: Layer.Layer<SessionPolicy> }
 	| { readonly policy: "loopback"; readonly sessions?: never };

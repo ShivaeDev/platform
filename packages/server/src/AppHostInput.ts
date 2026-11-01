@@ -1,6 +1,5 @@
 import type { Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppDatabaseOptions, AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#appHost.ts";
 import type { HostRouteRequirements } from "#hostOptions.ts";
 
@@ -17,7 +16,6 @@ export type AppHostInput<
 	TServiceError = never,
 	TServiceRequirements = never,
 	TMigrations = never,
-	TSession extends SessionShape = SessionShape,
 	TApplicationError = never,
 	TApplicationRequirements = never,
 	TPreflight = never,
@@ -38,7 +36,6 @@ export type AppHostInput<
 						TServices,
 						TServiceError,
 						TServiceRequirements,
-						TSession,
 						never,
 						never,
 						never,
@@ -58,7 +55,6 @@ export type AppHostInput<
 				TServiceError,
 				TServiceRequirements,
 				TMigrations,
-				TSession,
 				TPreflight,
 				TPreflightError,
 				TPreflightRequirements,
@@ -90,7 +86,6 @@ export type AppHostInput<
 				TServices,
 				TServiceError,
 				TServiceRequirements,
-				TSession,
 				TPreflight,
 				TPreflightError,
 				TPreflightRequirements,

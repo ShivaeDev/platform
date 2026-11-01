@@ -569,7 +569,7 @@ The session middleware supplies the viewer and runs `authorizeReads(effect, requ
 
 ### Policy services
 
-Use the policy's `viewer` argument for the viewer ID. Read richer session context from Effect requirements. For example, a policy service can require `SessionUserWithProviderAccounts` from `@shivaedev/identity/identity.ts` and yield its `providerAccounts` Effect. Apply `AuthenticatedUserWithProviderAccounts` middleware to the contract and supply `authenticatedUserWithProviderAccountsLayer(sessionPolicy)` from `@shivaedev/identity/server/session.ts` alongside its handlers. The middleware provides this request-local context for both RPC calls and live change hints, including each policy recheck before a hint is delivered.
+Use the policy's `viewer` argument for the viewer ID. Read richer session context from Effect requirements. For example, a policy service can require `SessionUserWithProviderAccounts` from `@shivaedev/identity/identity.ts` and yield its `providerAccounts` Effect. Apply `AuthenticatedUserWithProviderAccounts` middleware to the contract and supply `authenticatedUserWithProviderAccountsLayer()` from `@shivaedev/identity/server/session.ts` alongside its handlers, with the shared `SessionPolicy` Layer provided once by the application host. The middleware provides this request-local context for both RPC calls and live change hints, including each policy recheck before a hint is delivered.
 
 Keep the policy service tag and query declaration browser-safe; put its implementation on the server. Its method retains the session service in its requirements so the session is read when the policy runs:
 

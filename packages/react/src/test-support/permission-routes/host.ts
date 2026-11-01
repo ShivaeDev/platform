@@ -7,6 +7,7 @@ import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authSession } from "#client/authSession.ts";
 import { Notes, ReadPermission, type Role, Roles } from "./feature.ts";
 
@@ -31,7 +32,8 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 			id === "offline" ? Effect.fail(new ServiceUnavailable({ message: "Query service unavailable" })) : Effect.succeed(`Note ${id}`),
 	});
 	const routes = RpcServer.layerHttp({ group: Notes, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, permissionLayer(ReadPermission, sessions), RpcSerialization.layerJson]),
+		Layer.provide([handlers, permissionLayer(ReadPermission), RpcSerialization.layerJson]),
+		Layer.provide(Layer.succeed(SessionPolicy, sessions)),
 	);
 	const context = yield* Layer.build(
 		HttpRouter.serve(routes, { disableLogger: true }).pipe(

@@ -19,20 +19,22 @@ Unexpected failures stay defects rather than declared errors carrying a server-w
 `appHost` adds `RequestTracing` outermost on a server-side copy of every served group, so shared contracts do not declare it. When you build a native RPC server directly, declare `RequestTracing` yourself and add it last: the middleware added last runs outermost, so tracing also annotates logs written by the auth middleware and redacts defects raised there.
 
 ```ts
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+
 const Account = RpcGroup.make(/* ... */).middleware(Authenticated).middleware(RequestTracing);
 
 const policy = {
 	provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
 	origin: trustedOrigins({ allow: [appOrigin, "capacitor://localhost"], missing: "reject" }),
 };
-const Middleware = Layer.mergeAll(authenticatedLayer(policy), requestTracingLayer());
+const Middleware = Layer.mergeAll(authenticatedLayer(), requestTracingLayer()).pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
 ```
 
 The request id is for correlation only; a caller can choose it. Tracing logs declared failures at Info and defects at Error, with the payload in redacted form, and never logs headers or the raw `Cause`. It also replaces each defect in the request's `Cause` with its redacted form, so the client, the server span and every `ErrorReporter` see the same redacted defect. Defects raised outside the tracing boundary, including RPCs that omit tracing on a hand-built server, stay unredacted; for causes reported outside RPC, wrap the reporter with `redactingErrorReporter`.
 
 Redaction masks common credential shapes in strings (Bearer and Basic credentials, JWTs, URL passwords, sensitive `key=value` text). A secret interpolated into a message in any other form is kept, so messages still must not carry secrets.
 
-`Authenticated` gives handlers `Identity` and fails with `Unauthorized`, `AuthUnavailable` or `Forbidden`. `MaybeAuthenticated` gives `OptionalIdentity`; a provider failure is `AuthUnavailable` in both, never treated as anonymous. An application that needs more than an id, such as a role, calls `resolveSession(policy, headers, rpc)` inside its own `RpcMiddleware`, which runs the same Origin check and provider lookup.
+`Authenticated` gives handlers `Identity` and fails with `Unauthorized`, `AuthUnavailable` or `Forbidden`. `MaybeAuthenticated` gives `OptionalIdentity`; a provider failure is `AuthUnavailable` in both, never treated as anonymous. An application that needs more than an id, such as a role, calls `resolveSession(headers, rpc)` inside its own `RpcMiddleware`, which runs the same Origin check and provider lookup.
 
 ## Transport headers and message headers
 
