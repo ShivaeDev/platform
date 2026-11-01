@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
-import { ConfigProvider, DateTime, type Duration, Effect, Option } from "effect";
+import { ConfigProvider, DateTime, type Duration, Effect, Layer, Option } from "effect";
 import { Headers as HttpHeaders } from "effect/http";
 import * as TestClock from "effect/testing/TestClock";
 import { role } from "@shivaedev/access/role.ts";
@@ -16,6 +16,7 @@ import { listSessions } from "#server/better-auth/sessionAdministration.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser, signInAgain } from "#server/better-auth/testing.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { withSessionUser } from "#server/session.ts";
 import { ManageSessions } from "#sessionPermissions.ts";
 
@@ -58,7 +59,11 @@ export const sessionClock = storyKit({
 	verbs: (engine, story) => {
 		const { accounts, mounted, storage } = engine;
 		function protectedRequest(person: Person) {
-			return withSessionUser({ ...mounted.sessions, origin: () => true }, HttpHeaders.fromInput(accounts[person].headers), "story.profile");
+			return <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+				effect.pipe(
+					withSessionUser(HttpHeaders.fromInput(accounts[person].headers), "story.profile"),
+					Effect.provide(Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true })),
+				);
 		}
 		return {
 			clockReachesExpiry: (millisecondsAfter = 0) => {

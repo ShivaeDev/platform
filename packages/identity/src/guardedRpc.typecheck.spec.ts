@@ -1,4 +1,4 @@
-import { Effect, type Layer, Schema } from "effect";
+import { Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
@@ -16,6 +16,7 @@ import { Identity, OptionalIdentity, RequestId } from "#identity.ts";
 import { Authenticated, RequestTracing } from "#middleware.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { trustedOrigins } from "#server/origin.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
 
@@ -42,10 +43,14 @@ Effect.gen(function* () {
 }).pipe(
 	Effect.provide(Handlers),
 	Effect.provide(
-		authenticatedLayer({
-			origin: trustedOrigins({ allow: [], missing: "reject" }),
-			provider: betterAuthSessions(() => Promise.resolve({ user: { id: "typed" } })),
-		}),
+		authenticatedLayer().pipe(
+			Layer.provide(
+				Layer.succeed(SessionPolicy, {
+					origin: trustedOrigins({ allow: [], missing: "reject" }),
+					provider: betterAuthSessions(() => Promise.resolve({ user: { id: "typed" } })),
+				}),
+			),
+		),
 	),
 	Effect.provide(requestTracingLayer()),
 	Effect.scoped,

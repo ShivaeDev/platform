@@ -8,6 +8,7 @@ import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middl
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { allowedAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -51,9 +52,9 @@ export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (e
 		appHost({
 			config: { port: 0 },
 			group: Api,
-			handlers: Layer.merge(handlers, authenticatedUserWithProviderAccountsLayer(sessions)),
+			handlers: Layer.merge(handlers, authenticatedUserWithProviderAccountsLayer()),
 			routes: mounted.routes,
-			sessions,
+			sessions: Layer.succeed(SessionPolicy, sessions),
 		}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));

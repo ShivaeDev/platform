@@ -177,3 +177,9 @@ sessions.it(
 		]);
 	},
 );
+
+sessions.it("session resolution and provider spans name identity", [browserOrigins, signedUp("alice")], function* ({ whoami, operationSpans }) {
+	yield* whoami("alice");
+
+	expect(yield* operationSpans()).toEqual(["Identity.resolveSession", "Identity.betterAuthSession"]);
+});

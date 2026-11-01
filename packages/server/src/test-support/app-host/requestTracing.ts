@@ -1,5 +1,6 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { Authenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { sessions } from "./fixture.ts";
 import { AuthenticatedPing, Ping, pingHandlers } from "./ping.ts";
@@ -21,7 +22,7 @@ export function tracingDeclaration(position: "omitted" | "first" | "last") {
 	return host.trait("configured", `the shared group's tracing declaration is ${position}`, (state) => {
 		const authenticated = AuthenticatedPing;
 		function build() {
-			const options = { config: state.config, handlers: pingHandlers, sessions: sessions(state.lookups) };
+			const options = { config: state.config, handlers: pingHandlers, sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)) };
 			if (position === "omitted") {
 				return appHost({ ...options, group: authenticated });
 			}

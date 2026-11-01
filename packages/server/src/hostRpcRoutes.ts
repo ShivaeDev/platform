@@ -4,9 +4,9 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, type RpcGroup, RpcSerialization } from "effect/rpc";
 import { validateReadPolicies } from "@shivaedev/contract/validateReadPolicies.ts";
 import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
-import type { Authenticated, MaybeAuthenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
-import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "@shivaedev/identity/server/session.ts";
+import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/identity/server/session.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import { hostChanges } from "#hostChanges.ts";
 import type { HostPolicy } from "#hostOptions.ts";
@@ -16,19 +16,44 @@ import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import { rpcRequestTracing } from "#rpcRequestTracing.ts";
 import { socketRpc } from "#socketRpc.ts";
 
-export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TSession extends SessionShape>(
-	options: {
-		readonly group: RpcGroup.RpcGroup<TRpcs>;
-		readonly handlers: Layer.Layer<THandlers, TError, TRequirements>;
-		readonly rpcPath?: HttpRouter.PathInput;
-	} & HostPolicy<TSession>,
+type BuiltRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements> = ReturnType<
+	typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>
+>;
+type RouteOptions<TRpcs extends Rpc.Any, THandlers, TError, TRequirements> = {
+	readonly group: RpcGroup.RpcGroup<TRpcs>;
+	readonly handlers: Layer.Layer<THandlers, TError, TRequirements>;
+	readonly rpcPath?: HttpRouter.PathInput;
+} & HostPolicy;
+
+export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>(
+	options: RouteOptions<TRpcs, THandlers, TError, TRequirements> & { readonly policy: "loopback" },
+	transport: Effect.Success<ReturnType<typeof hostTransport>>,
+	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
+): Layer.Layer<
+	Layer.Success<BuiltRoutes<TRpcs, THandlers, TError, TRequirements>>,
+	Layer.Error<BuiltRoutes<TRpcs, THandlers, TError, TRequirements>>,
+	| TRequirements
+	| Exclude<Rpc.ServicesServer<TRpcs>, THandlers>
+	| Exclude<Layer.Services<BuiltRoutes<TRpcs, THandlers, TError, TRequirements>>, SessionPolicy | HttpRouter.Request<"Requires", SessionPolicy>>
+>;
+export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>(
+	...args: Parameters<typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>>
+): BuiltRoutes<TRpcs, THandlers, TError, TRequirements>;
+export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>(
+	...args: Parameters<typeof buildRpcRoutes<TRpcs, THandlers, TError, TRequirements>>
+) {
+	return buildRpcRoutes(...args);
+}
+
+function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>(
+	options: RouteOptions<TRpcs, THandlers, TError, TRequirements>,
 	{ bodySize, trustedProxy, nativeOrigins }: Effect.Success<ReturnType<typeof hostTransport>>,
 	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
 ) {
-	const middleware: Layer.Layer<RequestTracing> | Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> =
+	const middleware =
 		options.policy === "loopback"
 			? rpcRequestTracing(sensitive)
-			: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), rpcRequestTracing(sensitive));
+			: Layer.mergeAll(authenticatedLayer(), maybeAuthenticatedLayer(), rpcRequestTracing(sensitive));
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
@@ -58,12 +83,7 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 			);
 		}),
 	).pipe(
-		Layer.provide(
-			Layer.merge(
-				middleware,
-				hostChanges(options.group, options.policy === "loopback" ? undefined : options.sessions).pipe(Layer.provideMerge(options.handlers)),
-			),
-		),
+		Layer.provide(Layer.merge(middleware, hostChanges(options.group).pipe(Layer.provideMerge(options.handlers)))),
 		Layer.provide(RpcSerialization.layerNdjson),
 	);
 }

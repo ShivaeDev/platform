@@ -1,6 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Redacted } from "effect";
+import { Config, Effect, Layer, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { appDatabase } from "#appDatabase.ts";
 import { appHost } from "#appHost.ts";
@@ -34,7 +35,7 @@ export const postgresFeature = host.trait("configured", "PostgreSQL migrations p
 			migrations: { loader, table: ledger },
 			routes: state.routes,
 			services,
-			sessions: sessions(state.lookups),
+			sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 		});
 });
 export const migratedSql = host.trait("configured", "omitted services retain migrated SQL in the RPC handler", function* (state) {
@@ -63,7 +64,7 @@ export const failedMigration = host.trait("configured", "a failed migration prev
 				table: `host_failed_${crypto.randomUUID().replaceAll("-", "")}`,
 			},
 			services,
-			sessions: sessions(state.lookups),
+			sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 		});
 });
 export function databaseHealth(source: "migrations" | "services") {
@@ -79,7 +80,7 @@ export function databaseHealth(source: "migrations" | "services") {
 				group: Ping,
 				handlers: Ping.toLayer({ ping: () => Effect.succeed("pong") }),
 				...(state.assets === undefined ? {} : { assets: state.assets }),
-				sessions: sessions(state.lookups),
+				sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 			};
 			return source === "migrations" ? appHost({ ...options, migrations }) : appHost({ ...options, services: appDatabase({ config, migrations }) });
 		}

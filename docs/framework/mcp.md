@@ -5,6 +5,7 @@ Use `@shivaedev/mcp` to expose native Effect toolkits through the host's existin
 ```ts
 import { Effect, Layer, Schema } from "effect";
 import { McpServer, Tool, Toolkit } from "effect/ai";
+import { HttpRouter } from "effect/http";
 import { permission } from "@shivaedev/access/permission.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { mcpRoutes } from "@shivaedev/mcp/routes.ts";
@@ -30,14 +31,13 @@ const routes = mcpRoutes({
 	name: "My app",
 	version: "1",
 	path: "/mcp",
-	sessions: oauth.sessions,
 	resourceMetadataUrl: oauth.resourceMetadataUrl,
 	audiences: [{ tools: userTools }, { permission: ManageTools.any, tools: adminTools }],
-});
+}).pipe(HttpRouter.provideRequest(oauth.sessions));
 ```
 
 Grant `ManageTools.any` to the administrator role in the application's `RoleSet`. A signed-in user sees `whoami`; an administrator also sees `adminIdentity`. A user cannot invoke the admin tool by naming it directly, because it is absent from that request's native MCP registry.
 
-Pass `Layer.mergeAll(mounted.routes, oauth.routes, routes)` as `appHost`'s `routes`. `mounted` comes from identity's `betterAuthMount`; `oauth` comes from `betterAuthMcp` in `@shivaedev/mcp/adapters/betterAuth.ts`. The [complete OAuth setup](../../packages/mcp/README.md#connect-oauth-to-identity-and-the-host) includes provider registration, the JWT plugin, roles, discovery routes, login and consent URLs, and the host.
+Pass `Layer.mergeAll(mounted.routes, oauth.routes, routes)` as `appHost`'s `routes` with its own cookie session policy Layer; the MCP routes resolve their OAuth policy from the explicitly provided `oauth.sessions` Layer. `mounted` comes from identity's `betterAuthMount`; `oauth` comes from `betterAuthMcp` in `@shivaedev/mcp/adapters/betterAuth.ts`. The [complete OAuth setup](../../packages/mcp/README.md#connect-oauth-to-identity-and-the-host) includes provider registration, the JWT plugin, roles, discovery routes, login and consent URLs, and the host.
 
 Tools use native `Tool` failure schemas and Effect handlers. Identity and service requirements remain explicit. The endpoint supports MCP `2026-07-28` over request-scoped Streamable HTTP; clients must support this protocol.

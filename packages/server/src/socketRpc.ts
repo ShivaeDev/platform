@@ -3,14 +3,27 @@ import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { isAuthUnavailable, isForbidden } from "@shivaedev/errors/taxonomy.ts";
 import { localTransport } from "@shivaedev/identity/server/local.ts";
-import { resolveSession, type SessionShape } from "@shivaedev/identity/server/session.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { resolveSession } from "@shivaedev/identity/server/session.ts";
 import { makeSocketSession, SocketSession } from "@shivaedev/identity/server/socketSession.ts";
 import { bearerSocketRpc } from "#bearerSocketRpc.ts";
 import type { HostPolicy } from "#hostOptions.ts";
 
-export function socketRpc<TSession extends SessionShape>(
+export function socketRpc(
 	handler: Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>,
-	policy: HostPolicy<TSession>,
+	policy: Extract<HostPolicy, { readonly policy: "loopback" }>,
+	trustedProxy: string | undefined,
+	nativeOrigins: readonly string[],
+): Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>;
+export function socketRpc(
+	handler: Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>,
+	policy: HostPolicy,
+	trustedProxy: string | undefined,
+	nativeOrigins: readonly string[],
+): Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope | SessionPolicy>;
+export function socketRpc(
+	handler: Effect.Effect<HttpServerResponse.HttpServerResponse, never, HttpServerRequest.HttpServerRequest | Scope.Scope>,
+	policy: HostPolicy,
 	trustedProxy: string | undefined,
 	nativeOrigins: readonly string[],
 ) {
@@ -21,10 +34,10 @@ export function socketRpc<TSession extends SessionShape>(
 		}
 		if (policy.policy !== "loopback") {
 			if (new URL(request.url, "http://localhost").searchParams.get("auth") === "frame") {
-				return yield* bearerSocketRpc(handler, policy.sessions);
+				return yield* bearerSocketRpc(handler);
 			}
-			yield* resolveSession(policy.sessions, Headers.empty, "$connect");
-			const session = yield* makeSocketSession(policy.sessions.streamRevalidationInterval ?? "30 seconds");
+			yield* resolveSession(Headers.empty, "$connect");
+			const session = yield* makeSocketSession((yield* SessionPolicy).streamRevalidationInterval ?? "30 seconds");
 			return yield* Effect.provideService(handler, SocketSession, session);
 		}
 		return yield* handler;

@@ -3,7 +3,6 @@ import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
-import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { appDatabase } from "#appDatabase.ts";
 import type { AppHttpHostOptions } from "#appHost.ts";
 import { browserErrorRoute } from "#browserErrorRoute.ts";
@@ -28,7 +27,6 @@ export function appHostHttp<
 	TServices,
 	TServiceError,
 	TServiceRequirements,
-	TSession extends SessionShape,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
 >(
@@ -43,7 +41,7 @@ export function appHostHttp<
 		TRouteError,
 		TRouteRequirements
 	> &
-		HostPolicy<TSession>,
+		HostPolicy,
 ) {
 	return Layer.unwrap(
 		Effect.map(schemaSensitiveKeys(options.group, options.config?.sensitiveKeys), (sensitive) =>
@@ -54,6 +52,7 @@ export function appHostHttp<
 					const routes = hostRpcRoutes(options, transport, sensitive);
 					const assets = options.assets === undefined ? Layer.empty : hostAssets(options.assets);
 					const application = Layer.mergeAll(options.services ?? Layer.empty);
+					const sessions = Layer.mergeAll(Layer.empty, ...(options.sessions === undefined ? [] : [options.sessions]));
 					const server = nodeHttpServer(host, options.config);
 					const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
 					const httpRoutes = Layer.mergeAll(routes, healthRoute, browserErrorRoute(trustedProxy), assets, applicationRoutes).pipe(
@@ -64,7 +63,7 @@ export function appHostHttp<
 						HttpRouter.toHttpEffect(httpRoutes).pipe(
 							Effect.map((handler) => HttpServer.serve(handler).pipe(HttpServer.withLogAddress, Layer.provideMerge(server))),
 						),
-					).pipe(Layer.provideMerge(application), Layer.provideMerge(NodeHttpServer.layerHttpServices));
+					).pipe(Layer.provideMerge(application), Layer.provide(sessions), Layer.provideMerge(NodeHttpServer.layerHttpServices));
 				}),
 			).pipe(Layer.provide(redactingDiagnostics(sensitive)), Layer.provide(otlpTracing), Layer.provide(Layer.succeed(RedactionPolicy, sensitive))),
 		),
@@ -80,7 +79,6 @@ export function migratedHost<
 	TServiceError,
 	TServiceRequirements,
 	TMigrations,
-	TSession extends SessionShape,
 	TRouteError = never,
 	TRouteRequirements = HostRouteRequirements,
 	TMigrationError = never,
@@ -96,7 +94,7 @@ export function migratedHost<
 		TRouteError,
 		TRouteRequirements
 	> &
-		HostPolicy<TSession> & {
+		HostPolicy & {
 			readonly migrations: MigrationOptions<TMigrations, TMigrationError>;
 		},
 	database: ReturnType<typeof appDatabase<TMigrations, TMigrationError>>,
@@ -114,7 +112,6 @@ export function deferredHost<
 	TServiceError,
 	TServiceRequirements,
 	TMigrations,
-	TSession extends SessionShape,
 	TApplicationError,
 	TApplicationRequirements,
 	TRouteError = never,
@@ -130,7 +127,6 @@ export function deferredHost<
 			TServices,
 			TServiceError,
 			TServiceRequirements,
-			TSession,
 			never,
 			never,
 			never,

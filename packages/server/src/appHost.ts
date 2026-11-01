@@ -1,7 +1,7 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Layer } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
+import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput, HostPreflight } from "#AppHostInput.ts";
 import { appDatabase, type DatabaseConfig } from "#appDatabase.ts";
@@ -23,7 +23,6 @@ export type AppHostOptions<
 	TServiceError = never,
 	TServiceRequirements = never,
 	TMigrations = never,
-	TSession extends SessionShape = SessionShape,
 	TPreflight = never,
 	TPreflightError = never,
 	TPreflightRequirements = never,
@@ -35,7 +34,7 @@ export type AppHostOptions<
 	HostRoutes<TRouteError, TRouteRequirements> & {
 		readonly migrations: AppDatabaseOptions<TMigrations, TMigrationError>["migrations"];
 		readonly policy?: undefined;
-		readonly sessions: SessionPolicy<TSession>;
+		readonly sessions: Layer.Layer<SessionPolicy>;
 	};
 
 export type AppLocalHostOptions<
@@ -69,7 +68,6 @@ export type AppHttpHostOptions<
 	TServices = never,
 	TServiceError = never,
 	TServiceRequirements = never,
-	TSession extends SessionShape = SessionShape,
 	TPreflight = never,
 	TPreflightError = never,
 	TPreflightRequirements = never,
@@ -78,7 +76,7 @@ export type AppHttpHostOptions<
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
 	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
 	HostRoutes<TRouteError, TRouteRequirements> &
-	HostPolicy<TSession> & { readonly migrations?: undefined };
+	HostPolicy & { readonly migrations?: undefined };
 export const appHost: AppHostFactory = <
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -88,7 +86,6 @@ export const appHost: AppHostFactory = <
 	TServiceError = never,
 	TServiceRequirements = never,
 	TMigrations = never,
-	TSession extends SessionShape = SessionShape,
 	TApplicationError = never,
 	TApplicationRequirements = never,
 	TPreflight = never,
@@ -107,7 +104,6 @@ export const appHost: AppHostFactory = <
 		TServiceError,
 		TServiceRequirements,
 		TMigrations,
-		TSession,
 		TApplicationError,
 		TApplicationRequirements,
 		TPreflight,

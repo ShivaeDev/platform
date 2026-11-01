@@ -3,6 +3,7 @@ import { ByteSize, Effect, Layer, Schema } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import { sessions } from "./fixture.ts";
@@ -32,7 +33,7 @@ export const echoRpc = host.trait("configured", "RPC records accepted NDJSON bod
 					}),
 			}),
 			services: Layer.empty,
-			sessions: sessions(state.lookups),
+			sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 		});
 });
 export const cachedBody = host.trait("configured", "the route reads bounded text and bytes repeatedly", (state) => {

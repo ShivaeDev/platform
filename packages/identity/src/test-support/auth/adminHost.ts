@@ -12,6 +12,7 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { trustedOrigins } from "#server/origin.ts";
 import { permissionLayer } from "#server/permissions.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";
 import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
@@ -64,16 +65,10 @@ export const startAdminHost = Effect.gen(function* () {
 			config: { port: 0 },
 			group: AdminApi,
 			handlers: adminHandlers(state).pipe(
-				Layer.provideMerge(
-					Layer.mergeAll(
-						permissionLayer(ToolsPermission, sessions),
-						permissionLayer(ManagementPermission, sessions),
-						authenticatedUserLayer(sessions),
-					),
-				),
+				Layer.provideMerge(Layer.mergeAll(permissionLayer(ToolsPermission), permissionLayer(ManagementPermission), authenticatedUserLayer())),
 			),
-			routes: Layer.merge(routes, adminRoutes(sessions, state)),
-			sessions,
+			routes: Layer.merge(routes, adminRoutes(state)),
+			sessions: Layer.succeed(SessionPolicy, sessions),
 		}),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));

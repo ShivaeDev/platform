@@ -1,22 +1,17 @@
-import { Cause, Effect, Layer, Option } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { AdminSessions } from "#server/AdminSessions.ts";
 import { adminDocuments } from "#server/adminDocuments.ts";
 import { answered } from "./answers.ts";
 import { WorkspaceAccess, type WorkspaceRole, Workspaces, workspaceRegistration } from "./workspaces.ts";
 
 function sessionFor(role: string | undefined) {
 	return role === undefined ? Option.none() : Option.some({ user: { email: "reader@app.test", id: "reader", name: "reader", role } });
-}
-
-function missingPolicy(cause: Cause.Cause<unknown>) {
-	const error = Cause.squash(cause);
-	return error instanceof Error && error.message.startsWith("Missing admin permission policy:");
 }
 
 export function workspaceSessions() {
@@ -36,14 +31,14 @@ function workspaceHost(documents = true) {
 			? adminDocuments(workspaceRegistration, (request) => Effect.succeed(HttpServerResponse.html(`<main>Workspaces: ${request.url}</main>`)))
 			: Layer.empty,
 		services: Layer.empty,
-		sessions: workspaceSessions(),
+		sessions: Layer.succeed(SessionPolicy, workspaceSessions()),
 	});
 }
 
 export const pageHost = storyKit({
 	clock: "live",
 	*create() {
-		const context = yield* Layer.build(workspaceHost().pipe(Layer.provide(Layer.succeed(AdminSessions, workspaceSessions()))));
+		const context = yield* Layer.build(workspaceHost());
 		const { address } = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 		if (!NetAddress.isInetAddress(address)) {
 			throw new Error("The admin host must listen on TCP");
@@ -70,15 +65,5 @@ export const pageHost = storyKit({
 				const { client } = makeClient(Workspaces.contract, { headers: { authorization: role }, live: false, protocol, url: `${url}/rpc` });
 				return yield* answered(Effect.flatMap(client, (rpc) => rpc["admin.workspaces.read"]({ id: "studio" })));
 			}),
-		startWithoutPermissions: () => {
-			story.tell("the application starts without the admin session policy");
-			const layers: unknown[] = [workspaceHost(false)];
-			const start: Effect.Effect<unknown, unknown> = Reflect.apply(Layer.build, Layer, layers);
-			return start.pipe(
-				Effect.scoped,
-				Effect.as("started"),
-				Effect.catchCauseIf(missingPolicy, (cause) => Effect.succeed(Cause.pretty(cause))),
-			);
-		},
 	}),
 });

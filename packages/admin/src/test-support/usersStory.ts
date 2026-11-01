@@ -87,8 +87,7 @@ export const usersStory = storyKit({
 				Effect.map((list) => (Predicate.isString(list) ? list : Object.fromEntries(list.users.map(({ id, role }) => [id, role])))),
 			);
 		},
-		spanNames: () =>
-			Effect.sync(() => engine.spans.filter(({ name }) => name.startsWith("Admin.") || name.startsWith("Platform.")).map(({ name }) => name)),
+		spanNames: () => Effect.sync(() => engine.spans.filter(({ name }) => name.startsWith("Admin.")).map(({ name }) => name)),
 	}),
 });
 

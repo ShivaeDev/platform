@@ -5,7 +5,6 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { permissionRoute } from "@shivaedev/identity/server/permissions.ts";
 import { matchAdminRoute } from "#adapters/matchAdminRoute.ts";
 import type { AnyAdminRegistry } from "#registry.ts";
-import { AdminSessions } from "./AdminSessions.ts";
 
 export function adminDocuments<E, R>(
 	registry: AnyAdminRegistry,
@@ -14,13 +13,12 @@ export function adminDocuments<E, R>(
 	const routes = registry.pages.map((page) => page.route);
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
-			const sessions = yield* AdminSessions;
 			yield* router.add("GET", "/admin/*", (request) => {
 				const path = new URL(request.url, "http://localhost").pathname;
 				const route = path.replace(/\/$/u, "") === "/admin" ? routes[0] : matchAdminRoute(routes, path);
 				return route === undefined
 					? Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NotFound") }))
-					: permissionRoute(sessions, route.permission)(handler)(request);
+					: permissionRoute(route.permission)(handler)(request);
 			});
 		}),
 	);

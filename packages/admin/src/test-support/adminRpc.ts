@@ -2,17 +2,17 @@ import { Effect, Layer, Option, Ref } from "effect";
 import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { nodeHttpServer } from "@shivaedev/server/nodeHttpServer.ts";
 import type { JobsPermission, UsersPermission } from "#permissions.ts";
-import { AdminSessions } from "#server/AdminSessions.ts";
 import { Access } from "./Access.ts";
 import type { pages } from "./jobsPages.ts";
 
 type Group = ReturnType<typeof pages>["group"];
 export const adminRpc = Effect.fnUntraced(function* (
 	group: Group,
-	handlers: Layer.Layer<Rpc.ToHandler<RpcGroup.Rpcs<Group>> | JobsPermission | UsersPermission, never, AdminSessions>,
+	handlers: Layer.Layer<Rpc.ToHandler<RpcGroup.Rpcs<Group>> | JobsPermission | UsersPermission, never, SessionPolicy>,
 ) {
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const policy = {
@@ -20,7 +20,7 @@ export const adminRpc = Effect.fnUntraced(function* (
 		provider: { get: () => Ref.get(session) },
 		roles: Access,
 	};
-	const registered = handlers.pipe(Layer.provide(Layer.succeed(AdminSessions, policy)));
+	const registered = handlers.pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
 	const routes = RpcServer.layerHttp({ group, path: "/rpc", protocol: "http" }).pipe(Layer.provide([registered, RpcSerialization.layerJson]));
 	const handler = yield* HttpRouter.toHttpEffect(routes);
 	const context = yield* Layer.build(HttpServer.serve(handler).pipe(Layer.provideMerge(nodeHttpServer("127.0.0.1", { port: 0 }))));

@@ -58,14 +58,15 @@ Register server handler Layers by page id in `src/modules/admin/jobs/server/regi
 ```ts
 import { Effect, Layer } from "effect";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { AdminSessions } from "@shivaedev/admin/server/AdminSessions.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 
 const registration = registerAdmin(Admin, {
 	jobs: Jobs.contract.application.toLayer({
 		"admin.jobs.failed": () => Effect.succeed(["mail-42"]),
 	}),
 });
-const handlers = registration.handlers.pipe(Layer.provide(Layer.succeed(AdminSessions, sessions)));
+const sessions = Layer.succeed(SessionPolicy, { origin, provider, roles: Access });
+const handlers = registration.handlers;
 ```
 
 Declare application roles with `@shivaedev/access`, grant the relevant domain permissions explicitly, and supply that role set through the session or auth configuration of `@shivaedev/identity`.
@@ -74,9 +75,9 @@ Pass `registration.group` and `handlers` to the existing application's RPC host 
 
 ### Protect documents and detail routes
 
-Provide the application's session policy through `AdminSessions` once. Registration builds each page's permission layer with that policy. Omitting the policy fails when the handlers start, with a message naming the page and permission.
+Provide the application's session policy through `SessionPolicy` once. Registration builds each page's permission layer with that policy. The handler Layer requires identity's `SessionPolicy` service.
 
-A page can declare `route: { path: "/admin/workspaces", detail: "/admin/workspaces/$id", title: "Workspaces" }`. The detail must be under the page's path. Mount `adminDocuments(registration, handler)` from `@shivaedev/admin/server/adminDocuments.ts` beside the application's public document routes and provide the same `AdminSessions` layer. The handler serves the application's document; the guard checks the matched page's permission first. Unregistered admin paths return 404. `/admin` and `/admin/` use the first registered page's permission.
+A page can declare `route: { path: "/admin/workspaces", detail: "/admin/workspaces/$id", title: "Workspaces" }`. The detail must be under the page's path. Mount `adminDocuments(registration, handler)` from `@shivaedev/admin/server/adminDocuments.ts` beside the application's public document routes and provide the same `SessionPolicy` layer. The handler serves the application's document; the guard checks the matched page's permission first. Unregistered admin paths return 404. `/admin` and `/admin/` use the first registered page's permission.
 
 Use `adminPermissionGuard(registration.pages, permissionGuard({ session, signIn: "/sign-in" }))` from `@shivaedev/admin/client/adapters/adminPermissionGuard.ts` as the client root route's `beforeLoad`, using the native `permissionGuard` from `@shivaedev/react/permissionGuard.ts`. It applies the matched list or detail page's permission together with other route permissions. The application still declares the detail component in its router.
 
@@ -90,7 +91,7 @@ import { mergeAdminRegistrations } from "@shivaedev/admin/server/mergeAdminRegis
 const admin = mergeAdminRegistrations(foundation.admin, catalog.admin);
 ```
 
-Provide `AdminSessions` once to `admin.handlers` and pass it with `admin.group` to the application's RPC host. The combined registration exposes `pages` for navigation and preserves the handler Layers' errors and service requirements. Duplicate page ids across modules fail at the type level; duplicate paths and RPC tags fail at composition. A module cannot register a page without its handlers.
+Pass the policy Layer once as `appHost({ sessions, handlers: admin.handlers, group: admin.group })`. Custom hosts provide it to their composed middleware and routes with `Layer.provide(sessions)`. The combined registration exposes `pages` for navigation and preserves the handler Layers' errors and service requirements. Duplicate page ids across modules fail at the type level; duplicate paths and RPC tags fail at composition. A module cannot register a page without its handlers.
 
 Browser composition uses `mergeAdminRegistries` from `@shivaedev/admin/registry.ts` with the modules' browser-safe registries. A client module can also contribute its registry's `pages` directly to the application's navigation. A feature module adds pages to its own registry and handlers to its own registration; the foundation does not import feature pages.
 
@@ -224,7 +225,7 @@ const changeRole = Client.runtime.fn(users.changeRole.run);
 <UsersView roles={AppAccess.Role.literals} list={users.list.query} changeRole={changeRole} />;
 ```
 
-`admin.users.list` takes `{ limit, cursor? }` (1–100 users) and returns `{ users, next, canChangeRoles }` ordered by user id. Each user has id, name, email, role and a UTC sign-up time. The page's operations and generated subscription require `ReadUsers` (`users.read`), enforced by `UsersPermission`. Registration installs this middleware using `AdminSessions`.
+`admin.users.list` takes `{ limit, cursor? }` (1–100 users) and returns `{ users, next, canChangeRoles }` ordered by user id. Each user has id, name, email, role and a UTC sign-up time. The page's operations and generated subscription require `ReadUsers` (`users.read`), enforced by `UsersPermission`. Registration installs this middleware using `SessionPolicy`.
 
 `admin.users.changeRole` takes `{ userId, role }`; its role Schema is the application's declared role union. The handler also requires `AssignRoles` (`roles.assign`) from `@shivaedev/access/roles.ts`. The view shows a role select only to callers with that permission. Role writes use identity’s `assignRole` verb, serialize in a transaction and return `LastRoleAssigner` (from `@shivaedev/access/roles.ts`) if replacing the final holder's role would remove `roles.assign`, regardless of the role's name. A missing user returns `NotFound`. Changes invalidate the list after commit and emit an Effect log with actor id, target id, role and timestamp.
 
@@ -234,7 +235,7 @@ Keep Better Auth cookie caching disabled so requests see current permissions. Ro
 
 ### Built-in Sessions page
 
-Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registry and register `sessions: sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Registration installs this middleware using `AdminSessions`. The page uses identity's `identity.sessions` contract and `sessions.manage` permission.
+Add `SessionsPage` from `@shivaedev/admin/sessions/Page.ts` to the admin registry and register `sessions: sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Registration installs this middleware using `SessionPolicy`. The page uses identity's `identity.sessions` contract and `sessions.manage` permission.
 
 ```tsx
 import { SessionsView } from "@shivaedev/admin/client/SessionsView.ts";

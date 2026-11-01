@@ -6,6 +6,7 @@ import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { IdentityValue } from "@shivaedev/identity/identity.ts";
 import { Authenticated, AuthenticatedUser, MaybeAuthenticated } from "@shivaedev/identity/middleware.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "#appHost.ts";
 import type { HostState } from "#test/app-host/state.ts";
@@ -87,13 +88,13 @@ export function policyHost(state: HostState, checks: Check[], revoked: Set<strin
 						return "Private document";
 					}),
 			}),
-			authenticatedUserLayer(sessions),
+			authenticatedUserLayer(),
 		),
 		services: Layer.mergeAll(
 			Layer.succeed(ReadChecks, checks),
 			Layer.succeed(ReadStore, rows),
 			LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer)),
 		),
-		sessions,
+		sessions: Layer.succeed(SessionPolicy, sessions),
 	});
 }

@@ -3,6 +3,7 @@ import { Effect, Layer, Option, Schema } from "effect"
 import { Rpc, RpcGroup } from "effect/rpc"
 import { Migrator } from "effect/sql"
 import { appDatabase } from "@shivaedev/server/appDatabase.ts"
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts"
 import { appHost } from "@shivaedev/server/appHost.ts"
 
 const Api = RpcGroup.make(Rpc.make("ping", { success: Schema.String }))
@@ -13,7 +14,7 @@ const host = appHost({
   handlers: Api.toLayer({ ping: () => Effect.succeed("pong") }),
   services: Layer.empty,
   migrations,
-  sessions: { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } },
+  sessions: Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } }),
   config,
 })
 const database = appDatabase({ migrations })

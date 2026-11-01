@@ -16,6 +16,7 @@ import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { sessionsHandlers } from "#server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "#server/permissions.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
 import { ManageSessions, SessionsPermission } from "#sessionPermissions.ts";
 import { Sessions } from "#sessions.ts";
@@ -45,16 +46,19 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 	const sessions = { ...mounted.sessions, origin: () => true, streamRevalidationInterval: "50 millis" as const };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer));
-	const handlers = Layer.mergeAll(sessionsHandlers, Profile.application.toLayer({ "profile.read": () => SessionUser }), hostChanges(Api, sessions));
+	const handlers = Layer.mergeAll(sessionsHandlers, Profile.application.toLayer({ "profile.read": () => SessionUser }), hostChanges(Api));
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([
 			handlers.pipe(Layer.provide([Layer.succeed(SqlClient.SqlClient, sql), Layer.succeed(LiveServer, live)])),
-			permissionLayer(SessionsPermission, sessions),
-			authenticatedUserLayer(sessions),
+			permissionLayer(SessionsPermission),
+			authenticatedUserLayer(),
 			RpcSerialization.layerNdjson,
 		]),
 	);
-	const app = HttpRouter.toWebHandler(Layer.merge(mounted.routes, rpc).pipe(Layer.provide(Reactivity.layer)), { disableLogger: true });
+	const app = HttpRouter.toWebHandler(
+		Layer.merge(mounted.routes, rpc).pipe(Layer.provide(Reactivity.layer), Layer.provide(Layer.succeed(SessionPolicy, sessions))),
+		{ disableLogger: true },
+	);
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 	return {
 		auth: mounted.auth,

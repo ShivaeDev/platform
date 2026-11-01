@@ -8,6 +8,7 @@ import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { UsersPermission } from "#permissions.ts";
 import { usersHandlers } from "#server/usersHandlers.ts";
@@ -78,11 +79,12 @@ export const usersEngine = Effect.gen(function* () {
 		);
 	}
 	function clientAs(id: string) {
-		const authLayer = permissionLayer(UsersPermission, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access });
+		const authLayer = permissionLayer(UsersPermission);
 		return Effect.gen(function* () {
 			const app = HttpRouter.toWebHandler(
 				RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(
 					Layer.provide([handlers, authLayer, RpcSerialization.layerJson, Layer.succeed(Tracer.Tracer, tracer)]),
+					Layer.provide(Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access })),
 				),
 				{ disableLogger: true },
 			);

@@ -17,6 +17,7 @@ import { assignRole } from "#server/better-auth/assignRole.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { permissionLayer } from "#server/permissions.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 
 const Access = roleSet(declareRole("user", []), declareRole("admin", [ReadUsers, AssignRoles]), declareRole("delegate", [ReadUsers, AssignRoles]));
 const Page = usersPage(Access);
@@ -52,7 +53,8 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 		Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
 	);
 	const rpcRoutes = RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(
-		Layer.provide([handlers, permissionLayer(UsersPermission, { ...mounted.sessions, origin: () => true }), RpcSerialization.layerJson]),
+		Layer.provide([handlers, permissionLayer(UsersPermission), RpcSerialization.layerJson]),
+		Layer.provide(Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true })),
 	);
 	const app = HttpRouter.toWebHandler(Layer.merge(mounted.routes, rpcRoutes), { disableLogger: true });
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));

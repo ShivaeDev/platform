@@ -19,7 +19,7 @@ export function betterAuthSessions<TSession extends SessionShape>(
 	getProviderAccounts: GetProviderAccounts,
 ): SessionProvider<SessionWithProviderAccounts<TSession>>;
 export function betterAuthSessions<TSession extends SessionShape>(getSession: GetSession<TSession>, getProviderAccounts?: GetProviderAccounts) {
-	const betterAuthSession = Effect.fn("PlatformRpc.betterAuthSession")(function* (headers: Headers.Headers) {
+	const betterAuthSession = Effect.fn("Identity.betterAuthSession")(function* (headers: Headers.Headers) {
 		const transport = new globalThis.Headers(headers);
 		const session = yield* Effect.tryPromise(() => getSession(transport)).pipe(Effect.catch((error) => providerFailure(error.cause)));
 		if (Schema.is(ExpiringSession)(session) && session.session.expiresAt.getTime() <= (yield* Clock.currentTimeMillis)) {

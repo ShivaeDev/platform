@@ -9,7 +9,7 @@ const OWNER_TOOLS = "Owner tools for member@example.test";
 const grants = [{ name: "tools.use", strength: "own" }];
 
 auth.it(
-	"an admin reaches the protected profile, the admin HTTP route and the admin RPC",
+	"one policy Layer authenticates an admin in the profile, permission route and RPC middleware",
 	[signedInWithRole("admin")],
 	function* ({ callAdminTools, openAdminTools, profile }) {
 		yield* outcomes([

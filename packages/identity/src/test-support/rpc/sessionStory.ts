@@ -164,6 +164,12 @@ export const sessions = storyKit({
 						]),
 					),
 				),
+			operationSpans: () =>
+				Effect.sync(() =>
+					app(engine)
+						.spans.filter((span) => span.name.endsWith(".resolveSession") || span.name.endsWith(".betterAuthSession"))
+						.map((span) => span.name),
+				),
 			providerCloses: () =>
 				Effect.promise(async () => {
 					story.tell("the session provider's PostgreSQL pool closes");

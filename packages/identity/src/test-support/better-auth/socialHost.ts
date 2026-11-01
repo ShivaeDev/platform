@@ -8,6 +8,7 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
@@ -69,9 +70,9 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* () {
 		appHost({
 			config: { host: "127.0.0.1", port: 0 },
 			group: ProviderAccounts,
-			handlers: Layer.merge(providerAccountHandlers, authenticatedUserWithProviderAccountsLayer(sessions)),
+			handlers: Layer.merge(providerAccountHandlers, authenticatedUserWithProviderAccountsLayer()),
 			routes,
-			sessions,
+			sessions: Layer.succeed(SessionPolicy, sessions),
 		}),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));

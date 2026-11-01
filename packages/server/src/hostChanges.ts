@@ -7,14 +7,15 @@ import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
 import { revalidateStream } from "@shivaedev/identity/server/revalidateStream.ts";
-import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import { rerunQuery } from "#rerunQuery.ts";
 
-export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(group: RpcGroup.RpcGroup<R>, sessions?: SessionPolicy<TSession>) {
+export function hostChanges<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
 	return Layer.effectContext(
 		Effect.gen(function* () {
 			const changes = yield* Effect.serviceOption(LiveServer);
+			const sessions = yield* Effect.serviceOption(SessionPolicy);
 			const services = yield* Effect.context<never>();
 			const handlers = new Map<string, unknown>();
 			function subscribe(rpc: Rpc.AnyWithProps, queries: readonly QueryReference[], options: Parameters<Rpc.Handler<string>["handler"]>[1]) {
@@ -22,15 +23,18 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(gr
 					Effect.gen(function* () {
 						const { subscription, context } = yield* resolveChanges(rpc, queries);
 						const viewer = yield* CurrentViewer;
-						const authorized = authorizeSession(sessions, rpc._tag, viewer, subscription.authorized);
+						const authorized = Option.isNone(sessions)
+							? subscription.authorized
+							: authorizeSession(rpc._tag, viewer, subscription.authorized).pipe(Effect.provideService(SessionPolicy, sessions.value));
 						const stream = Option.isSome(changes)
 							? Stream.unwrap(changes.value.subscribe({ ...subscription, authorized }, context, rerunQuery(group, options)))
 							: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
-						if (sessions === undefined || Option.isNone(viewer)) {
+						if (Option.isNone(sessions) || Option.isNone(viewer)) {
 							return stream;
 						}
 						const revalidation = Effect.never.pipe(
-							revalidateStream(sessions, rpc, viewer.value.id, recheckSession(sessions, Headers.empty, rpc._tag)),
+							revalidateStream(rpc, viewer.value.id, recheckSession(Headers.empty, rpc._tag)),
+							Effect.provideService(SessionPolicy, sessions.value),
 						);
 						return Stream.interruptWhen(stream, revalidation);
 					}),
@@ -57,20 +61,10 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(gr
 	);
 }
 
-function authorizeSession<TSession extends SessionShape, E, R>(
-	sessions: SessionPolicy<TSession> | undefined,
-	tag: string,
-	viewer: Option.Option<Viewer>,
-	policy: Effect.Effect<boolean, E, R>,
-) {
-	if (sessions === undefined) {
-		return policy;
+const authorizeSession = Effect.fnUntraced(function* <E, R>(tag: string, viewer: Option.Option<Viewer>, policy: Effect.Effect<boolean, E, R>) {
+	const current = yield* recheckSession(Headers.empty, tag);
+	if (Option.isSome(viewer) && (Option.isNone(current) || current.value.user.id !== viewer.value.id)) {
+		return yield* new Unauthorized({ message: "Authentication required" });
 	}
-	return recheckSession(sessions, Headers.empty, tag).pipe(
-		Effect.map((current) => Option.isNone(viewer) || (Option.isSome(current) && current.value.user.id === viewer.value.id)),
-		Effect.flatMap(
-			(allowed): Effect.Effect<boolean, E | Unauthorized, R> =>
-				allowed ? policy : Effect.fail(new Unauthorized({ message: "Authentication required" })),
-		),
-	);
-}
+	return yield* policy;
+});

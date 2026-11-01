@@ -3,6 +3,7 @@ import { Effect, Layer, Logger, ManagedRuntime, Option, Redacted } from "effect"
 import { type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { type AppDatabaseOptions, appHost } from "@shivaedev/server/appHost.ts";
 import { LiveOrders, type Rejected } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
@@ -73,7 +74,7 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 			handlers: Layer.merge(handlers, privateHandlers(table, options.beforeCommit)),
 			migrations: { loader: orderMigrations(table), table: ledger },
 			services: OrderService.layer.pipe(Layer.provide(repositoryLayer(table))),
-			sessions: policy,
+			sessions: Layer.succeed(SessionPolicy, policy),
 		}).pipe(Layer.provideMerge(options.logger === undefined ? Layer.empty : Logger.layer([options.logger]))),
 	);
 	async function close() {

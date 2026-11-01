@@ -1,12 +1,12 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpServerRespondable, HttpStaticServer } from "effect/http";
-import { AdminSessions } from "@shivaedev/admin/server/AdminSessions.ts";
 import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
 import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
@@ -81,10 +81,10 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 					return {
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: modules.group,
-						handlers: Layer.merge(modules.handlers, authenticatedUserLayer(sessions)),
+						handlers: Layer.merge(modules.handlers, authenticatedUserLayer()),
 						routes: Layer.mergeAll(routes, authEmailRoutes, HttpStaticServer.layer({ root: "dist", spa: true }), adminDocumentRoutes()),
-						services: Layer.merge(Layer.succeedContext(serviceContext), Layer.succeed(AdminSessions, sessions)),
-						sessions,
+						services: Layer.succeedContext(serviceContext),
+						sessions: Layer.succeed(SessionPolicy, sessions),
 					};
 				}),
 			});

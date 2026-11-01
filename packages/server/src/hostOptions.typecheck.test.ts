@@ -3,6 +3,7 @@ import { Context, Data, Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 
 class Queue extends Context.Service<Queue, { readonly size: number }>()("host-inference/Queue") {}
@@ -17,7 +18,7 @@ const group = RpcGroup.make(Rpc.make("ping", { success: Schema.String }));
 const handlers = group.toLayer({ ping: () => Effect.succeed("pong") });
 const services = queueLayer({});
 const migrations = { loader: Migrator.fromRecord({}) };
-const sessions = { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } };
+const sessions = Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } });
 const topLevel = appHost({ group, handlers, policy: "loopback", services: queueLayer({}) });
 const constBound = Layer.unwrap(Effect.succeed(appHost({ group, handlers, policy: "loopback", services })));
 const inlineUnderUnwrap = Layer.unwrap(Effect.succeed(appHost({ group, handlers, policy: "loopback", services: queueLayer({}) })));

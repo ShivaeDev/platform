@@ -2,6 +2,7 @@ import { Effect, Layer, Redacted } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Migrator } from "effect/sql";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { sessions, staticAssets } from "./fixture.ts";
 import { useForwardingProxy } from "./lifecycle.ts";
@@ -35,7 +36,7 @@ export const lifecycleServices = host.trait("configured", "application services 
 						}),
 				),
 			),
-			sessions: sessions(state.lookups),
+			sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 		});
 });
 export const failedRoute = host.trait("configured", "an application route fails with a typed error", (state) => {
@@ -69,7 +70,7 @@ export const invalidTrust = host.trait("configured", "trust validation precedes 
 					state.lifecycle.push("started");
 				}),
 			),
-			sessions: sessions(state.lookups),
+			sessions: Layer.succeed(SessionPolicy, sessions(state.lookups)),
 		});
 });
 

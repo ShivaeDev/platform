@@ -10,6 +10,7 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { Api, diagnostic, handlers } from "./api.ts";
 
@@ -65,7 +66,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		appHost({
 			config: { port: 0, ...(trustedProxy === undefined ? {} : { trustedProxy }) },
 			group: Api,
-			handlers: handlers.pipe(Layer.provideMerge(authenticatedUserWithProviderAccountsLayer(sessions))),
+			handlers: handlers.pipe(Layer.provideMerge(authenticatedUserWithProviderAccountsLayer())),
 			...(nativeOrigins === undefined ? {} : { nativeOrigins }),
 			routes: Layer.mergeAll(
 				mounted.routes,
@@ -77,7 +78,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 				subscribe: (subscription, requestContext, read) =>
 					changes.subscribe(subscription, requestContext, read).pipe(Effect.map(Stream.ensuring(Effect.sync(streamReleased)))),
 			}),
-			sessions,
+			sessions: Layer.succeed(SessionPolicy, sessions),
 		}).pipe(
 			Layer.provide(
 				Logger.layer([

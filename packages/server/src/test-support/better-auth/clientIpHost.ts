@@ -6,6 +6,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 
@@ -29,10 +30,10 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (e
 				group: Ping,
 				handlers: pingHandlers,
 				routes: Layer.merge(mounted.routes, proxyPeer === undefined ? Layer.empty : railwayPeer(proxyPeer)),
-				sessions: {
+				sessions: Layer.succeed(SessionPolicy, {
 					origin: () => true,
 					provider: betterAuthSessions((headers) => mounted.auth.api.getSession({ headers })),
-				},
+				}),
 			}),
 		);
 	}).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));

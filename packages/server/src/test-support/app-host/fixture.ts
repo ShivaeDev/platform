@@ -9,7 +9,7 @@ import { Migrator, SqlClient } from "effect/sql";
 import { AuthUnavailable, Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
-import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
+import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("host-test/Greeting") {}
 export const Api = RpcGroup.make(Rpc.make("greet", { error: Conflict, payload: { reject: Schema.Boolean }, success: Schema.String })).middleware(
@@ -48,7 +48,7 @@ export function feature(table: string, lifecycle: string[]) {
 	return { loader, services };
 }
 
-export function sessions(lookups: string[]): SessionPolicy<SessionShape> {
+export function sessions(lookups: string[]): SessionPolicy["Service"] {
 	return {
 		origin: () => true,
 		provider: {

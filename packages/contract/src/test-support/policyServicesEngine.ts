@@ -5,6 +5,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { LiveServer } from "#LiveServer.ts";
@@ -47,7 +48,7 @@ export const policyServicesEngine = Effect.gen(function* () {
 					providerAccounts: Effect.succeed([]),
 				}),
 			]),
-			Layer.provideMerge(authenticatedUserWithProviderAccountsLayer(sessions)),
+			Layer.provideMerge(authenticatedUserWithProviderAccountsLayer()),
 		);
 	const services = yield* Layer.build(
 		appHost({
@@ -55,7 +56,7 @@ export const policyServicesEngine = Effect.gen(function* () {
 			group: Documents,
 			handlers,
 			services: LiveServer.layer.pipe(Layer.provide(Layer.succeed(Reactivity.Reactivity, reactivity))),
-			sessions,
+			sessions: Layer.succeed(SessionPolicy, sessions),
 		}),
 	);
 	const server = Context.get(services, HttpServer.HttpServer);

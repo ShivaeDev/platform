@@ -4,6 +4,7 @@ import { Identity, OptionalIdentity } from "#identity.ts";
 import { Authenticated, MaybeAuthenticated, RequestTracing } from "#middleware.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import type { OriginPolicy } from "#server/origin.ts";
+import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer } from "#server/session.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
 import { httpClient, type Provider, recorder, rpcHttp, serve } from "./harness.ts";
@@ -39,7 +40,9 @@ const Handlers = Api.toLayer({
 export function serverLayer(provider: Provider, origin: OriginPolicy) {
 	const sessions = betterAuthSessions(provider.getSession);
 	const policy = { origin, provider: sessions };
-	return Layer.mergeAll(Handlers, authenticatedLayer(policy), maybeAuthenticatedLayer(policy), requestTracingLayer());
+	return Layer.mergeAll(Handlers, authenticatedLayer(), maybeAuthenticatedLayer(), requestTracingLayer()).pipe(
+		Layer.provide(Layer.succeed(SessionPolicy, policy)),
+	);
 }
 
 export function makeApp(provider: Provider, origin: OriginPolicy) {

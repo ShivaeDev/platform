@@ -8,12 +8,12 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { adminPage } from "#page.ts";
 import { UsersPermission } from "#permissions.ts";
 import { adminRegistry } from "#registry.ts";
-import { AdminSessions } from "#server/AdminSessions.ts";
 import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "#test/Access.ts";
@@ -54,7 +54,7 @@ export const adminEngine = Effect.gen(function* () {
 		provider: { get: () => Ref.get(session) },
 		roles: Access,
 	};
-	const protocol = Layer.merge(registration.handlers, changes).pipe(Layer.provide(Layer.succeed(AdminSessions, policy)));
+	const protocol = Layer.merge(registration.handlers, changes).pipe(Layer.provide(Layer.succeed(SessionPolicy, policy)));
 	const client = yield* RpcTest.makeClient(registration.group).pipe(Effect.provide(protocol));
 	class Client extends AtomRpc.Service<Client>()("test/AdminLiveClient", {
 		group: registration.group,

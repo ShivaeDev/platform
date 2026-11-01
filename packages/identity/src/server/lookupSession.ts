@@ -3,9 +3,11 @@ import type { Headers } from "effect/http";
 import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { transportOriginRequest } from "./origin.ts";
 import { resolveRole } from "./resolveRole.ts";
-import type { SessionPolicy, SessionShape } from "./session.ts";
+import { SessionPolicy } from "./SessionPolicy.ts";
+import type { SessionShape } from "./session.ts";
 
-export const sessionRequest = Effect.fnUntraced(function* (policy: SessionPolicy<SessionShape>, headers: Headers.Headers, rpc: string) {
+export const sessionRequest = Effect.fnUntraced(function* (headers: Headers.Headers, rpc: string) {
+	const policy = yield* SessionPolicy;
 	const request = yield* transportOriginRequest(headers, rpc);
 	if (!policy.origin(request)) {
 		return yield* new Forbidden({ message: "Origin not allowed" });
@@ -13,10 +15,8 @@ export const sessionRequest = Effect.fnUntraced(function* (policy: SessionPolicy
 	return request;
 });
 
-export const sessionAccess = Effect.fnUntraced(function* <TSession extends SessionShape>(
-	policy: SessionPolicy<SessionShape>,
-	session: Option.Option<TSession>,
-) {
+export const sessionAccess = Effect.fnUntraced(function* <TSession extends SessionShape>(session: Option.Option<TSession>) {
+	const policy = yield* SessionPolicy;
 	if (Option.isNone(session) || policy.roles === undefined) {
 		return session;
 	}
@@ -25,6 +25,7 @@ export const sessionAccess = Effect.fnUntraced(function* <TSession extends Sessi
 	return Option.some({ ...session.value, user: { ...session.value.user, ...access } });
 });
 
-export const lookupSession = Effect.fnUntraced(function* <TSession extends SessionShape>(policy: SessionPolicy<TSession>, headers: Headers.Headers) {
-	return yield* sessionAccess(policy, yield* policy.provider.get(headers));
+export const lookupSession = Effect.fnUntraced(function* (headers: Headers.Headers) {
+	const policy = yield* SessionPolicy;
+	return yield* sessionAccess(yield* policy.provider.get(headers));
 });

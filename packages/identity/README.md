@@ -69,17 +69,19 @@ export const Handlers = Account.toLayer({
 
 The middleware declaration makes `Identity` available to guarded handlers and adds `Unauthorized`, `AuthUnavailable` and `Forbidden` to the client's failure type. An unguarded handler that requires `Identity` cannot become a service-free handler Layer. Keep the group declaration in the shared module and the handler implementation on the server when organizing application files.
 
-Supply a provider and an explicit Origin policy as the host's `sessions` input. For a Better Auth provider, adapt its existing session lookup:
+Provide one `SessionPolicy` Layer as the host's `sessions` input. Middleware, permission routes and session resolution read that service from the Effect environment. For a Better Auth provider, adapt its existing session lookup:
 
 ```ts
+import { Layer } from "effect";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { auth } from "./auth.ts";
 
-export const sessions = {
+export const sessions = Layer.succeed(SessionPolicy, {
 	origin: trustedOrigins({ allow: ["http://localhost:3000"], missing: "allow" }),
 	provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
-};
+});
 ```
 
 `trustedOrigins({ allow, missing })` accepts an exact allowlist and supports `missing: "reject"` or `"allow"`; a custom `OriginPolicy` can decide from the RPC name or transport headers. A denied policy fails with `Forbidden` before provider lookup. The host's HTTP guard also checks Origin against the local request's Host.
@@ -228,7 +230,7 @@ The seed only grants: removing an account from config does not restore its previ
 
 ### Administer signed-in sessions
 
-Merge `Sessions` from `@shivaedev/identity/sessions.ts` into the application's RPC group and provide `sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Install `permissionLayer(SessionsPermission, sessions)` using `SessionsPermission` from `@shivaedev/identity/sessionPermissions.ts` and the mounted session policy. Supply the application's Effect `SqlClient`; the handlers use the default Better Auth PostgreSQL user and session tables.
+Merge `Sessions` from `@shivaedev/identity/sessions.ts` into the application's RPC group and provide `sessionsHandlers` from `@shivaedev/identity/server/better-auth/sessionsHandlers.ts`. Install `permissionLayer(SessionsPermission)` using `SessionsPermission` from `@shivaedev/identity/sessionPermissions.ts` and the mounted session policy. Supply the application's Effect `SqlClient`; the handlers use the default Better Auth PostgreSQL user and session tables.
 
 Grant `ManageSessions` (`sessions.manage`) from `sessionPermissions.ts` to the roles that manage sessions. The starter grants it to admin and owner. Both operations use the same permission middleware and `Forbidden` refusal as the admin Users page. They require no Better Auth admin plugin.
 
@@ -241,6 +243,8 @@ Grant `ManageSessions` (`sessions.manage`) from `sessionPermissions.ts` to the r
 For a Capacitor or similar WebView whose page is served from the app bundle, opt in with the auth host mount's `bearerSessions` option. It installs Better Auth's own `bearer({ requireSignature: true })` plugin from the existing dependency; do not add a second bearer plugin. The option is absent by default. List only bundled-client origins here, and include them in Better Auth's `trustedOrigins` as well.
 
 ```ts
+import { Layer } from "effect";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 const nativeOrigins = ["capacitor://localhost", "https://localhost"];
 const mounted = yield* betterAuthMount(
   {
@@ -251,10 +255,10 @@ const mounted = yield* betterAuthMount(
   },
   { bearerSessions: { origins: nativeOrigins } },
 );
-const sessions = {
+const sessions = Layer.succeed(SessionPolicy, {
   origin: trustedOrigins({ allow: [publicOrigin, ...nativeOrigins], missing: "allow" }),
   provider: mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers })),
-};
+});
 const host = appHost({ group, handlers, routes: mounted.routes, sessions, nativeOrigins });
 ```
 
@@ -275,7 +279,8 @@ Use the WebView's own fetch with `credentials: "omit"` for incremental NDJSON ch
 Give the mount a sign-in policy as its second argument, and resolve RPC sessions through `admittedSessions` so a removal ends access on the next request:
 
 ```ts
-import { Effect } from "effect";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { Effect, Layer } from "effect";
 import { allowedAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
@@ -288,10 +293,10 @@ const authentication = Effect.gen(function* () {
 		{ signIn: { accounts: allowedAccounts, recheckInterval: "5 minutes", rule: inOrganization } },
 	);
 	yield* mounted.revokeUnadmitted;
-	const sessions = {
+	const sessions = Layer.succeed(SessionPolicy, {
 		origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
 		provider: mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers })),
-	};
+	});
 	return { ...mounted, sessions };
 });
 ```
@@ -306,11 +311,11 @@ A removal takes effect on the user's next request through `admittedSessions`: th
 
 `revokeUnadmitted` checks every stored user against the current policy, deletes the sessions of each user it no longer admits and succeeds with `{ users, sessions }`, the number of users and sessions it revoked. Run it at startup, as above, or from an administrative command. It fails with the rule's error or with a `ConfigError`.
 
-Without `signIn`, the mount installs no sign-in policy hooks and `revokeUnadmitted` revokes nothing. `admittedSessions(lookup)` returns an Effect `SessionProvider`; use it directly as `sessions.provider`. Its policy check runs in the request fiber, preserving request spans, log annotations and interruption. `mounted.sessions` supplies this provider with the mount's roles and the default Better Auth lookup. Supply the application's Config provider to the server Layer so request-time account checks read the same configuration as startup.
+Without `signIn`, the mount installs no sign-in policy hooks and `revokeUnadmitted` revokes nothing. `admittedSessions(lookup)` returns an Effect `SessionProvider`; use it as the `provider` in the `SessionPolicy` Layer. Its policy check runs in the request fiber, preserving request spans, log annotations and interruption. `mounted.sessions` supplies this provider with the mount's roles and the default Better Auth lookup. Supply the application's Config provider to the server Layer so request-time account checks read the same configuration as startup.
 
 ### Once per feature: identity and typed refusals
 
-Use `Authenticated` when the operation needs `Identity`, and `MaybeAuthenticated` with `maybeAuthenticatedLayer(policy)` when it reads `OptionalIdentity`:
+Use `Authenticated` when the operation needs `Identity`, and `MaybeAuthenticated` with `maybeAuthenticatedLayer()` when it reads `OptionalIdentity`:
 
 ```ts
 import { Effect, Option, Schema } from "effect";
@@ -366,29 +371,31 @@ export const AccountHandlers = Account.toLayer({
 	Whoami: () => Effect.map(SessionUser, (user) => user),
 });
 
-export const AccountServer = Layer.merge(AccountHandlers, authenticatedUserLayer(sessions));
+export const AccountServer = Layer.merge(AccountHandlers, authenticatedUserLayer());
 ```
 
-Here `sessions` is the application's policy from the previous example, with a Better Auth lookup that returns all three user fields. Merge `authenticatedUserLayer(sessions)` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. The profile contains id, name and email, plus an optional role when the provider supplies it, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
+Here `sessions` is the application's policy Layer from the previous example, with a Better Auth lookup that returns all three user fields. The host provides it once to middleware and routes; custom hosts provide it with `Layer.provide(sessions)`. Merge `authenticatedUserLayer()` alongside the handler Layer when using `appHost`; the host continues to supply its id-only and optional middleware. A missing session fails with typed `Unauthorized`; rejected origins fail with `Forbidden`, and provider failures remain `AuthUnavailable`. The profile contains id, name and email, plus an optional role when the provider supplies it, without exposing the rest of the provider's user record. Handlers do not query the provider's user table.
 
 #### Reading provider account IDs
 
-Pass Better Auth's account lookup as the second argument to the mount's `admittedSessions` to combine provider accounts with its sign-in policy and credential selection. Without a mount, `betterAuthSessions` accepts the same two lookups. Declare `AuthenticatedUserWithProviderAccounts` on account-reading RPCs and merge `authenticatedUserWithProviderAccountsLayer(sessions)` alongside their handlers. This boundary requires a provider whose user has a `providerAccounts` Effect; a provider without the second lookup does not satisfy that type.
+Pass Better Auth's account lookup as the second argument to the mount's `admittedSessions` to combine provider accounts with its sign-in policy and credential selection. Without a mount, `betterAuthSessions` accepts the same two lookups. Declare `AuthenticatedUserWithProviderAccounts` on account-reading RPCs and merge `authenticatedUserWithProviderAccountsLayer()` alongside their handlers. This boundary decodes the user profile and requires a `providerAccounts` Effect from the configured provider.
 
 ```ts
+import { Layer } from "effect";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 
-const sessions = {
+const sessions = Layer.succeed(SessionPolicy, {
 	origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
 	...mounted.sessions,
 	provider: mounted.admittedSessions(
 		(headers) => mounted.auth.api.getSession({ headers }),
 		(headers) => mounted.auth.api.listUserAccounts({ headers }),
 	),
-};
+});
 
 const githubAccount = Effect.gen(function* () {
 	const user = yield* SessionUserWithProviderAccounts;
@@ -420,6 +427,8 @@ The Effect returns an array of `{ id, name, image }`, with `image: null` when un
 Declare application roles with `@shivaedev/access`. Each user row stores one declared role string. Supply the role set once through the existing auth configuration and reuse its returned session policy:
 
 ```ts
+import { Layer } from "effect";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { permission } from "@shivaedev/access/permission.ts";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
@@ -428,7 +437,7 @@ import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts
 const UseTools = permission("tools.use");
 const Access = roleSet(role("member", []), role("operator", [UseTools]));
 const mounted = yield* betterAuthMount(authOptions, { defaultRole: "member", roles: Access });
-const sessions = { ...mounted.sessions, origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }) };
+const sessions = Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }) });
 ```
 
 For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. A missing or null stored role refuses access with `Forbidden` (HTTP 403 at the session endpoint) and logs the fix: generate and apply a frozen migration with `defaultRole`, then use `assignRole` for administrators. An undeclared non-null stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
@@ -508,13 +517,13 @@ import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 class ToolsPermission extends permissionMiddleware<ToolsPermission>()("app/ToolsPermission", UseTools) {}
 const Tools = RpcGroup.make(Rpc.make("tools", { success: Schema.String }).middleware(ToolsPermission));
 const handlers = Tools.toLayer({ tools: () => Effect.map(SessionUser, (user) => user.email) }).pipe(
-	Layer.provideMerge(permissionLayer(ToolsPermission, sessions)),
+	Layer.provideMerge(permissionLayer(ToolsPermission)),
 );
 ```
 
 The middleware resolves and checks the session on every request before invoking the handler. It provides `Identity` and `SessionUser`, rejects signed-out callers with `Unauthorized`, and rejects missing grants with `Forbidden` in its declared error channel. Access evaluates an exact permission name: an `any` grant covers an `own` check, while an `own` grant does not cover an `any` check. Open streams recheck their required permission at the session revalidation interval and end with `Forbidden` after its removal.
 
-For HTTP routes, use `permissionRoute(sessions, UseTools)` around the handler. It uses the same transport session and Origin policy, returns 401 for missing sessions, 403 for missing grants or refused Origins, and 503 for `AuthUnavailable`. Those rejections carry `Cache-Control: private, no-store`. The handler's response and typed failures pass through unchanged.
+For HTTP routes, use `permissionRoute(UseTools)` around the handler. It uses the same transport session and Origin policy, returns 401 for missing sessions, 403 for missing grants or refused Origins, and 503 for `AuthUnavailable`. Those rejections carry `Cache-Control: private, no-store`. The handler's response and typed failures pass through unchanged.
 
 ```ts
 import { HttpRouter, HttpServerResponse } from "effect/http";
@@ -524,7 +533,7 @@ const routes = HttpRouter.use((router) =>
 	router.add(
 		"GET",
 		"/tools",
-		permissionRoute(sessions, UseTools)(() => Effect.map(SessionUser, (user) => HttpServerResponse.text(user.email))),
+		permissionRoute(UseTools)(() => Effect.map(SessionUser, (user) => HttpServerResponse.text(user.email))),
 	),
 );
 ```
@@ -582,14 +591,16 @@ const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, 
 
 `authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, the role layers and signed-in `maybeAuthenticatedLayer` calls revalidate live RPC streams every 30 seconds by default, using the original transport headers. A signed-out, revoked or expired session ends the stream with `Unauthorized`, including an idle stream and a subscription receiving a change hint. A signed-in viewer whose query read policy now refuses ends the subscription with `QueryReadDenied`. Session intervals use Effect’s Clock, so advancing `TestClock` drives revalidation; batched session lookups do not need another clock advance. With a session store that reflects sign-out immediately, delivery can continue for up to that interval plus the session lookup time after sign-out. Provider cookie caching or secondary storage can add their own delay; keep Better Auth's cookie cache disabled for database-backed revocation.
 
-Set `SessionPolicy.streamRevalidationInterval` to an Effect `Duration.Input` to change the interval for middleware using that policy:
+Set `streamRevalidationInterval` in the `SessionPolicy` Layer to an Effect `Duration.Input` to change the interval for middleware using that policy:
 
 ```ts
-const sessions = {
+import { Layer } from "effect";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+const sessions = Layer.succeed(SessionPolicy, {
 	origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }),
 	provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
 	streamRevalidationInterval: "5 seconds",
-};
+});
 ```
 
 An `AuthUnavailable` failure during revalidation ends the stream with `AuthUnavailable`. Initial session lookup failures also reject the subscription. Unary calls resolve their session once per call. `MaybeAuthenticated` streams that start anonymous continue without a session monitor; a signed-in optional stream ends with `Unauthorized` when its session is removed. Callers can subscribe again to continue anonymously.

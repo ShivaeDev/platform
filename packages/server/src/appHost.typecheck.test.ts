@@ -1,8 +1,9 @@
 import { type Config, Context, Effect, Layer, Option, Schema } from "effect";
-import { Headers, HttpRouter, HttpServerResponse } from "effect/http";
+import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { type AppHostOptions, appHost } from "#appHost.ts";
 
 class Required extends Context.Service<Required, string>()("host-test/Required") {}
@@ -13,7 +14,7 @@ const options = {
 	group: Api,
 	handlers,
 	migrations: { loader: Migrator.fromRecord({}) },
-	sessions: { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } },
+	sessions: Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } }),
 };
 const incomplete = appHost(options);
 const complete = appHost({ ...options, services: Layer.effect(Required, Effect.fail(new BuildFailure())) });
@@ -38,7 +39,6 @@ type TypedOptions<
 	TServiceError,
 	TServiceRequirements,
 	never,
-	{ readonly user: { readonly id: string } },
 	TPreflight,
 	TPreflightError,
 	TPreflightRequirements
@@ -52,7 +52,6 @@ const failingRouteHost = appHost({
 	services: Layer.empty,
 });
 const typedHost = appHost(typedOptions);
-const providerSession = typedOptions.sessions.provider.get(Headers.empty);
 it("host composition preserves application requirements and build failures", () => {
 	expectTypeOf<Layer.Services<typeof failingRouteHost>>().toEqualTypeOf<never>();
 	expectTypeOf<Layer.Services<typeof incomplete>>().toEqualTypeOf<Required>();
@@ -64,8 +63,8 @@ it("host composition preserves application requirements and build failures", () 
 	expectTypeOf<Layer.Services<typeof withoutServices>>().toEqualTypeOf<never>();
 	expectTypeOf<Layer.Error<typeof withoutServices>>().not.toBeUnknown();
 	expectTypeOf<Layer.Services<typeof localWithDatabase>>().toEqualTypeOf<never>();
+	expectTypeOf<Extract<Layer.Success<typeof localWithDatabase>, SessionPolicy>>().toEqualTypeOf<never>();
 	expectTypeOf<Layer.Services<typeof typedHost>>().toEqualTypeOf<Required>();
-	expectTypeOf<Effect.Success<typeof providerSession>>().toEqualTypeOf<Option.Option<{ readonly user: { readonly id: string } }>>();
 });
 
 it("annotated options require a Layer for declared service types", () => {

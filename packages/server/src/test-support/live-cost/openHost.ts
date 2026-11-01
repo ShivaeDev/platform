@@ -2,6 +2,7 @@ import { Effect, Layer, Option } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#appHost.ts";
 import { Api, Cost, handlers, migrations } from "./feature.ts";
@@ -29,7 +30,7 @@ export const openHost = Effect.gen(function* () {
 			handlers,
 			migrations,
 			services: Layer.succeed(Cost, cost),
-			sessions,
+			sessions: Layer.succeed(SessionPolicy, sessions),
 		}),
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(services));

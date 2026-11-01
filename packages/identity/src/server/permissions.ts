@@ -13,30 +13,36 @@ import { hasPermission } from "#permission.ts";
 import { commandChanges } from "#server/commandChanges.ts";
 import { recheckSession } from "./recheckSession.ts";
 import { revalidateStream } from "./revalidateStream.ts";
-import { type SessionPolicy, type UserSessionShape, withSessionUser } from "./session.ts";
+import { SessionPolicy } from "./SessionPolicy.ts";
+import { withSessionUser } from "./session.ts";
 
-export function permissionLayer<TMiddleware, TSession extends UserSessionShape>(
+export function permissionLayer<TMiddleware>(
 	middleware: Context.Key<TMiddleware, RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never>> & {
 		readonly permission: Permission;
 	},
-	policy: SessionPolicy<TSession>,
 ) {
 	const permission = middleware.permission;
-	const guard: RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never> = (effect, { headers, rpc, payload }) => {
-		const lookup = Effect.tap(recheckSession(policy, headers, rpc._tag), (session) =>
-			Option.isSome(session) && !hasPermission(session.value.user, permission) ? Effect.fail(forbidden(permission)) : Effect.void,
-		);
-		return Effect.flatMap(Identity, (viewer) => authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some(viewer))).pipe(
-			(invocation) => Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(policy, rpc, id, lookup))),
-			(invocation) =>
-				Effect.andThen(
-					Effect.flatMap(SessionUser, (user) => requirePermission(user, permission)),
-					invocation,
-				),
-			withSessionUser(policy, headers, rpc._tag),
-		);
-	};
-	return Layer.succeed(middleware, guard);
+	return Layer.effect(
+		middleware,
+		Effect.map(SessionPolicy, (policy) => {
+			const guard: RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never> = (effect, { headers, rpc, payload }) => {
+				const lookup = Effect.tap(recheckSession(headers, rpc._tag), (session) =>
+					Option.isSome(session) && !hasPermission(session.value.user, permission) ? Effect.fail(forbidden(permission)) : Effect.void,
+				);
+				return Effect.flatMap(Identity, (viewer) => authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some(viewer))).pipe(
+					(invocation) => Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(rpc, id, lookup))),
+					(invocation) =>
+						Effect.andThen(
+							Effect.flatMap(SessionUser, (user) => requirePermission(user, permission)),
+							invocation,
+						),
+					withSessionUser(headers, rpc._tag),
+					Effect.provideService(SessionPolicy, policy),
+				);
+			};
+			return guard;
+		}),
+	);
 }
 function rejection(error: Unauthorized | Forbidden | AuthUnavailable) {
 	return HttpServerResponse.empty({
@@ -49,14 +55,16 @@ function rejection(error: Unauthorized | Forbidden | AuthUnavailable) {
 	});
 }
 
-export function permissionRoute<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>, permission: Permission) {
+export function permissionRoute(permission: Permission) {
 	return <E, R>(handler: (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) =>
-		(request: HttpServerRequest.HttpServerRequest): Effect.Effect<HttpServerResponse.HttpServerResponse, E, Exclude<R, Identity | SessionUser>> =>
+		(
+			request: HttpServerRequest.HttpServerRequest,
+		): Effect.Effect<HttpServerResponse.HttpServerResponse, E, SessionPolicy | Exclude<R, Identity | SessionUser>> =>
 			Effect.andThen(
 				Effect.flatMap(SessionUser, (user) => requirePermission(user, permission)),
 				Effect.context<Identity | SessionUser>(),
 			).pipe(
-				withSessionUser(policy, request.headers, request.url),
+				withSessionUser(request.headers, request.url),
 				Effect.matchEffect({
 					onFailure: (error) => Effect.succeed(rejection(error)),
 					onSuccess: (context) => Effect.provideContext(handler(request), context),

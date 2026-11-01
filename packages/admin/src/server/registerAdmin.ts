@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
+import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { AdminPage } from "#page.ts";
 import type { AdminRegistry } from "#registry.ts";
-import type { AdminSessions } from "./AdminSessions.ts";
 import { pagePermissions } from "./pagePermissions.ts";
 
 type HandlerLayers<TPages extends readonly AdminPage[]> = {
@@ -21,7 +21,7 @@ export function registerAdmin<const TPages extends readonly AdminPage[], THandle
 		| Layer.Success<RegisteredLayers<THandlers>>
 		| Extract<Rpc.Middleware<RpcGroup.Rpcs<TPages[number]["contract"]>>, { readonly key: TPages[number]["permissionKey"] }>,
 		Layer.Error<RegisteredLayers<THandlers>>,
-		Layer.Services<RegisteredLayers<THandlers>> | AdminSessions
+		Layer.Services<RegisteredLayers<THandlers>> | SessionPolicy
 	>;
 };
 export function registerAdmin(
