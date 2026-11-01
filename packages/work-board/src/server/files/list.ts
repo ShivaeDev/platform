@@ -47,7 +47,7 @@ export const scanMarkdown = Effect.fn("WorkBoard.scanMarkdown")(function* (_root
 			}
 			const info = yield* Effect.result(fs.stat(real.success));
 			if (info._tag === "Failure") {
-				unavailable.add(relative);
+				unresolved(relative, info.failure);
 				return [];
 			}
 			if (info.success.type === "Directory") {
