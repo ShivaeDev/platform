@@ -1,4 +1,4 @@
-import { Console, Effect, type FileSystem, type Path } from "effect";
+import { Console, Effect, FileSystem, Path } from "effect";
 import { checkSkills } from "#checkSkills.ts";
 import { syncSkills } from "#syncSkills.ts";
 import type { Fixture } from "./fixture.ts";
@@ -59,6 +59,12 @@ export function operations(engine: Fixture, tell: (line: string) => void) {
 				cause: causeDetails(failure, engine.repo),
 				message: failure?.message.replaceAll(engine.repo, "<repository>"),
 			})),
+		restoreSourceAccess: Effect.fn("SkillsStory.restoreSourceAccess")(function* (name: string) {
+			tell(`the repository restores read access to the installed ${name}/SKILL.md`);
+			const fs = yield* FileSystem.FileSystem;
+			const path = yield* Path.Path;
+			yield* fs.chmod(path.join(engine.installed.root, "skills", name, "SKILL.md"), 0o644);
+		}),
 		sync: () => {
 			tell("the repository syncs its selection");
 			return run(syncSkills(engine.repo, engine.installed));

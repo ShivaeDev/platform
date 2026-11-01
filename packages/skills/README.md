@@ -65,6 +65,10 @@ When a previously synced skill is deselected, `sync` removes its copy and link. 
 
 A selected name that already exists in either agent directory but is absent from the manifest stops the sync before files change. Rename the local skill, remove it deliberately, or drop that name from the selection. Local skills under other names remain beside the managed copies.
 
+After those collision checks, `sync` records ownership before copying. If a copy fails, fix its cause and run `sync` again; the manifest lets it replace the partial shared copies. The manifest uses empty hashes until the sync completes, so `check` reports incomplete copies as out of sync. Repository-owned skills remain untouched.
+
+The `.agents/skills` and `.claude/skills` paths must resolve to separate directories. If one aliases the other, including through an aliased parent, `sync` refuses the layout before changing files.
+
 ### 3. Check in everyday work
 
 ```json

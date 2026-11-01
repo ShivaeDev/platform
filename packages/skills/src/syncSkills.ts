@@ -4,6 +4,7 @@ import type { Installed } from "./installed.ts";
 import { BIN, CLAUDE_SKILLS, MANIFEST, PACKAGE, SELECTION_FIELD, skillPaths } from "./layout.ts";
 import { readManifest, writeManifest } from "./manifest.ts";
 import { readSelection } from "./readSelection.ts";
+import { refuseAliasedDirectories } from "./refuseAliasedDirectories.ts";
 import { SkillsError } from "./SkillsError.ts";
 
 const isPresent = Effect.fn("Skills.isPresent")(function* (file: string) {
@@ -62,6 +63,7 @@ export const syncSkills = Effect.fn("Skills.syncSkills")(function* (repo: string
 			message: `${PACKAGE} ${installed.version} has no skill named ${unknown.join(", ")}. It ships: ${installed.skills.join(", ")}.`,
 		});
 	}
+	yield* refuseAliasedDirectories(repo);
 	const listed = Option.match(yield* readManifest(repo), { onNone: (): readonly string[] => [], onSome: (manifest) => Object.keys(manifest.skills) });
 	yield* refuseUnlisted(
 		repo,
@@ -69,6 +71,8 @@ export const syncSkills = Effect.fn("Skills.syncSkills")(function* (repo: string
 	);
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
+	// Claim new names before copying so a partial copy can be replaced on the next sync.
+	yield* writeManifest(repo, { skills: Object.fromEntries([...listed, ...selection].map((name) => [name, ""])), version: installed.version });
 	yield* fs.makeDirectory(path.join(repo, CLAUDE_SKILLS), { recursive: true });
 	const deselected = listed.filter((name) => !selection.includes(name));
 	yield* Effect.forEach(deselected, (name) => removeSkill(repo, name));
