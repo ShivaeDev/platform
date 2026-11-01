@@ -1,7 +1,9 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { admittedUser } from "#test/admittedUser.ts";
 import { admittedMcp } from "#test/mcp.ts";
+import { pendingAdmission } from "#test/pendingAdmission.ts";
 import { holdsToken } from "#test/traits.ts";
 
 admittedMcp.it(
@@ -43,5 +45,18 @@ admittedMcp.it(
 		yield* admissionUnavailable();
 
 		expect(yield* requestsMcp("alice", "POST")).toEqual({ challenge: false, status: 503 });
+	},
+);
+
+admittedMcp.it(
+	"a new request observes denial while an earlier admission check is still pending",
+	[admittedUser("alice"), holdsToken("alice"), pendingAdmission("alice")],
+	function* ({ changesAdmission, requestsMcp, resumesAdmission, startsMcpRequest }) {
+		yield* startsMcpRequest("alice");
+		yield* changesAdmission("alice", false);
+
+		const answer = yield* requestsMcp("alice", "POST").pipe(Effect.timeout("5 seconds"), Effect.ensuring(resumesAdmission()));
+
+		expect(answer).toEqual({ challenge: true, status: 401 });
 	},
 );

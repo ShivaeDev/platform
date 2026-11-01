@@ -50,6 +50,7 @@ export const signInGate = Effect.fnUntraced(function* <E, R>(policy: SignInPolic
 					capacity: RULE_CACHE_CAPACITY,
 					timeToLive: (exit) => (Exit.isSuccess(exit) ? recheckInterval : Duration.zero),
 				});
+	const checkRule = Duration.isZero(recheckInterval) ? Cache.refresh : Cache.get;
 	const admits = Effect.fnUntraced(function* (candidates: readonly ProviderAccountValue[]) {
 		const allowed = accounts === undefined ? undefined : yield* accounts;
 		const listed = allowed === undefined ? candidates : candidates.filter((candidate) => allowed.some((entry) => sameAccount(entry, candidate)));
@@ -57,7 +58,7 @@ export const signInGate = Effect.fnUntraced(function* <E, R>(policy: SignInPolic
 			return listed.length > 0;
 		}
 		for (const { accountId, providerId } of listed) {
-			if (yield* Cache.get(verdicts, { accountId, providerId })) {
+			if (yield* checkRule(verdicts, { accountId, providerId })) {
 				return true;
 			}
 		}

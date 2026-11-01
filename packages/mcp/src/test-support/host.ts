@@ -28,7 +28,7 @@ async function availablePort() {
 }
 
 const startHost = Effect.fnUntraced(function* (inProcess: boolean, withAdmission: boolean) {
-	const admission = admissionPolicy();
+	const admission = yield* admissionPolicy;
 	const pool = yield* betterAuthDatabase();
 	const port = yield* Effect.promise(availablePort);
 	const baseUrl = `http://127.0.0.1:${port}`;

@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Deferred, Effect } from "effect";
 import { type Engine, person } from "./host.ts";
 
 const listToolsBody = JSON.stringify({
@@ -14,6 +14,26 @@ const listToolsBody = JSON.stringify({
 });
 
 export function admissionVerbs(engine: Engine, tell: (line: string) => void) {
+	function request(name: string, method: string) {
+		return Effect.promise(async (signal) => {
+			tell(`${name} sends ${method} to the MCP endpoint`);
+			const response = await fetch(`${engine.baseUrl}/mcp`, {
+				...(method === "POST" ? { body: listToolsBody } : {}),
+				headers: {
+					accept: "application/json, text/event-stream",
+					authorization: `Bearer ${engine.tokens.get(name)}`,
+					"content-type": "application/json",
+					"mcp-method": "tools/list",
+					"mcp-protocol-version": "2026-07-28",
+				},
+				method,
+				signal,
+			});
+			await response.text();
+			return { challenge: response.headers.has("www-authenticate"), status: response.status };
+		});
+	}
+
 	return {
 		admissionUnavailable: () =>
 			Effect.sync(() => {
@@ -34,22 +54,12 @@ export function admissionVerbs(engine: Engine, tell: (line: string) => void) {
 					engine.admission.denied.add(name);
 				}
 			}),
-		requestsMcp: (name: string, method: string) =>
-			Effect.promise(async () => {
-				tell(`${name} sends ${method} to the MCP endpoint`);
-				const response = await fetch(`${engine.baseUrl}/mcp`, {
-					...(method === "POST" ? { body: listToolsBody } : {}),
-					headers: {
-						accept: "application/json, text/event-stream",
-						authorization: `Bearer ${engine.tokens.get(name)}`,
-						"content-type": "application/json",
-						"mcp-method": "tools/list",
-						"mcp-protocol-version": "2026-07-28",
-					},
-					method,
-				});
-				await response.text();
-				return { challenge: response.headers.has("www-authenticate"), status: response.status };
+		requestsMcp: request,
+		resumesAdmission: () => Deferred.succeed(engine.admission.resume, undefined),
+		startsMcpRequest: (name: string) =>
+			Effect.gen(function* () {
+				yield* request(name, "POST").pipe(Effect.forkScoped);
+				yield* Deferred.await(engine.admission.entered);
 			}),
 	};
 }
