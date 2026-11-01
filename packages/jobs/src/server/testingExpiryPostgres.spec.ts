@@ -43,7 +43,7 @@ database.it(
 		yield* outcomes([
 			["dead-lettered", () => deadLettered(Stuck), ["job"]],
 			["interruptions", () => interruptions(Stuck), [expect.stringMatching(/^job /u), expect.stringMatching(/^job /u)]],
-			["job", () => job("job"), expect.objectContaining({ error: "handler execution exceeded 1s", retryCount: 1, state: "failed" })],
+			["job", () => job("job"), expect.objectContaining({ error: "Error: handler execution exceeded 1s", retryCount: 1, state: "failed" })],
 		]);
 	},
 );

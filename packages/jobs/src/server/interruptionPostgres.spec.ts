@@ -40,8 +40,8 @@ database.it(
 		yield* untilSettled(Interrupted, 3);
 
 		yield* outcomes([
-			["job 1", () => job("job 1"), expect.objectContaining({ error: "handler execution exceeded 2s", state: "failed" })],
-			["job 2", () => job("job 2"), expect.objectContaining({ error: "handler execution exceeded 2s", state: "failed" })],
+			["job 1", () => job("job 1"), expect.objectContaining({ error: "Error: handler execution exceeded 2s", state: "failed" })],
+			["job 2", () => job("job 2"), expect.objectContaining({ error: "Error: handler execution exceeded 2s", state: "failed" })],
 			["stored states", () => storedStates("interrupted"), { "job 0": "completed", "job 1": "failed", "job 2": "failed" }],
 		]);
 	},

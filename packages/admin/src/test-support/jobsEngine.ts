@@ -95,6 +95,14 @@ export const jobsEngine = Effect.gen(function* () {
 		...rpc,
 		...(yield* jobsClient(page, registry.group, rpc.protocol)),
 		deliveries,
+		failSync: (id: string, output: object) =>
+			Effect.promise(() => {
+				const client = boss.client;
+				if (client?.fail === undefined) {
+					throw new Error("The jobs client cannot fail jobs");
+				}
+				return client.fail(Sync.name, id, output);
+			}),
 		ids: new Map<string, string>(),
 		jobs,
 		names: new Map<string, string>(),

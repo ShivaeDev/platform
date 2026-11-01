@@ -114,7 +114,7 @@ database.it(
 		yield* outcomes([
 			["attempts", () => attempts(Checked), ["job", "job"]],
 			["dead-lettered", () => deadLettered(Checked), ["job"]],
-			["job", () => job("job"), expect.objectContaining({ error: "job timed out", retryCount: 2, state: "failed" })],
+			["job", () => job("job"), expect.objectContaining({ error: "Error: job timed out", retryCount: 2, state: "failed" })],
 		]);
 	},
 );

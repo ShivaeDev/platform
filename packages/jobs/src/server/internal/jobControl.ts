@@ -7,8 +7,11 @@ import { decodeStoredData } from "#internal/storedRows.ts";
 import { JobFailure } from "#JobFailure.ts";
 import type { PgBossService } from "#service.ts";
 
+const StoredFailure = Schema.Union([JobFailure, Schema.Struct({ value: JobFailure })]);
+
 function decodeFailure(queue: string, output: unknown) {
-	return Schema.decodeUnknownEffect(JobFailure)(output).pipe(
+	return Schema.decodeUnknownEffect(StoredFailure)(output).pipe(
+		Effect.map((failure) => ("value" in failure ? failure.value : failure)),
 		Effect.mapError((error) => new PgBossPayloadError({ direction: "decode", original: Redacted.make(error), queue })),
 	);
 }
