@@ -21,6 +21,6 @@ export const importsAliased = defineRule({
 			subject: departure.specifier,
 		})),
 	description:
-		"A relative import names only a file in its own folder. Every other import goes through an alias: the package.json `imports` of its package or another workspace package's name.",
+		"A relative import names only a file in its own folder, except a module's client or server registration may import its own ./admin/ subtree. Every other import goes through an alias: the package.json `imports` of its package or another workspace package's name.",
 	id: "imports/aliased",
 });
