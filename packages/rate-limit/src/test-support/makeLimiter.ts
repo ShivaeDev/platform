@@ -1,14 +1,16 @@
 import { Clock, type Duration, Effect } from "effect";
 import { isSqlError } from "effect/sql/SqlError";
 import { TestClock } from "effect/testing";
+import { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 import { type RateLimitOptions, rateLimit } from "#rateLimit.ts";
 import { Store, StoreError } from "#Store.ts";
-import { TooManyRequests } from "#TooManyRequests.ts";
+import { makeRpcLimiter } from "./makeRpcLimiter.ts";
 
 export const limit = { key: "notes:alice", per: 2, window: "1 minute" } as const;
 
 export const makeLimiter = Effect.gen(function* () {
 	const store = yield* Store;
+	const request = yield* makeRpcLimiter(limit);
 	function attempt(options: RateLimitOptions = limit) {
 		return rateLimit(options).pipe(
 			Effect.provideService(Store, store),
@@ -39,5 +41,6 @@ export const makeLimiter = Effect.gen(function* () {
 			),
 		now: () => Clock.currentTimeMillis,
 		passTime: (duration: Duration.Input) => TestClock.adjust(duration),
+		request,
 	};
 });

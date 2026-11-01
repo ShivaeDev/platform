@@ -8,7 +8,11 @@ export class Forbidden extends Schema.TaggedError<Forbidden>()("Forbidden", desc
 export class BadRequest extends Schema.TaggedError<BadRequest>()("BadRequest", perField) {}
 export class Conflict extends Schema.TaggedError<Conflict>()("Conflict", perField) {}
 export class PreconditionFailed extends Schema.TaggedError<PreconditionFailed>()("PreconditionFailed", described) {}
-export class TooManyRequests extends Schema.TaggedError<TooManyRequests>()("TooManyRequests", described) {}
+export class TooManyRequests extends Schema.TaggedError<TooManyRequests>()("TooManyRequests", {
+	...described,
+	key: Schema.optionalKey(Schema.String),
+	retryAt: Schema.optionalKey(Schema.Number),
+}) {}
 export class AuthUnavailable extends Schema.TaggedError<AuthUnavailable>()("AuthUnavailable", described) {}
 export class InternalServerError extends Schema.TaggedError<InternalServerError>()("InternalServerError", described) {}
 export class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", described) {}

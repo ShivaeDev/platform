@@ -1,5 +1,6 @@
 import { Config, Context, Effect, Layer, Option, Redacted, Result } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 import { advisoryXactLock } from "@shivaedev/sql/advisoryXactLock.ts";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
@@ -12,7 +13,6 @@ import { postgresMigration } from "#adapters/postgresMigration.ts";
 import { postgresStore } from "#adapters/postgresStore.ts";
 import { rateLimit } from "#rateLimit.ts";
 import { Store } from "#Store.ts";
-import { TooManyRequests } from "#TooManyRequests.ts";
 import { limit, makeLimiter } from "./makeLimiter.ts";
 
 const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_SQL_TEST_DATABASE_URL"))));
@@ -63,6 +63,7 @@ export const postgres = storyKit({
 					})
 					.sort();
 			}),
+		request: limiter.request,
 		storageUnavailable: () => sql`drop table rate_limit_windows`,
 	}),
 });

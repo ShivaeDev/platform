@@ -1,10 +1,10 @@
 import { Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
+import { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 import { advisoryXactLock } from "@shivaedev/sql/advisoryXactLock.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import { Store, StoreError, type WindowRequest } from "#Store.ts";
-import { TooManyRequests } from "#TooManyRequests.ts";
 
 export const postgresStore = Layer.effect(Store)(
 	Effect.gen(function* () {

@@ -1,6 +1,6 @@
 import { Clock, Effect, Layer } from "effect";
+import { TooManyRequests } from "@shivaedev/errors/taxonomy.ts";
 import { Store, type WindowRequest } from "#Store.ts";
-import { TooManyRequests } from "#TooManyRequests.ts";
 
 interface Window {
 	count: number;

@@ -24,3 +24,17 @@ postgres.it("unavailable PostgreSQL storage fails with StoreError preserving the
 
 	expect(refused).toEqual({ refusal: "RateLimitStoreError", sqlFailure: true });
 });
+
+postgres.it("the JSON RPC client decodes a rate-limit refusal as the shared TooManyRequests with its retry details", [], function* ({ request }) {
+	yield* request();
+	yield* request();
+
+	const refused = yield* request();
+
+	expect(refused).toEqual({
+		key: "notes:alice",
+		message: "Rate limit exceeded",
+		refusal: "shared TooManyRequests",
+		retryAt: expect.any(Number),
+	});
+});
