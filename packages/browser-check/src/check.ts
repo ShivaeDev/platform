@@ -11,7 +11,24 @@ export interface CheckOptions {
 	readonly url: string;
 }
 
+function httpUrl(value: string, flag: string, base?: URL) {
+	function invalid() {
+		return new BrowserCheckError({
+			message: `Invalid ${flag}: expected ${base === undefined ? "an absolute HTTP(S) URL" : "an HTTP(S) URL or page path"}.`,
+		});
+	}
+	return Effect.gen(function* () {
+		const url = yield* Effect.try({ catch: invalid, try: () => new URL(value, base) });
+		if (url.protocol !== "http:" && url.protocol !== "https:") {
+			return yield* invalid();
+		}
+		return url;
+	});
+}
+
 export const check = Effect.fn("BrowserCheck.check")(function* (options: CheckOptions) {
+	const base = yield* httpUrl(options.url, "--url");
+	const urls = yield* Effect.forEach(options.pages, (path) => httpUrl(path, "--page", base).pipe(Effect.map((url) => url.href)));
 	if (options.liveNotes && options.credentials === undefined) {
 		return yield* new BrowserCheckError({
 			message: "--live-notes requires BROWSER_CHECK_EMAIL and BROWSER_CHECK_PASSWORD for an existing disposable user.",
@@ -23,10 +40,9 @@ export const check = Effect.fn("BrowserCheck.check")(function* (options: CheckOp
 	const folder = ".browser-check";
 	yield* fs.makeDirectory(folder, { recursive: true });
 	if (options.credentials !== undefined) {
-		yield* session.signIn(new URL("/api/auth/sign-in/email", options.url).href, options.credentials.email, options.credentials.password);
+		yield* session.signIn(new URL("/api/auth/sign-in/email", base).href, options.credentials.email, options.credentials.password);
 	}
-	for (const [index, path] of options.pages.entries()) {
-		const url = new URL(path, options.url).href;
+	for (const [index, url] of urls.entries()) {
 		yield* session.visit(url);
 		const screenshot = join(folder, `${index + 1}.png`);
 		for (const text of options.text) {

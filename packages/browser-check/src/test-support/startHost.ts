@@ -26,11 +26,7 @@ export const startHost = Effect.gen(function* () {
 			return;
 		}
 		response.setHeader("content-type", "text/html");
-		let heading = "Local app";
-		if (request.url === "/account") {
-			heading = request.headers.cookie?.includes("session=alice") ? "Alice's account" : "Sign in";
-		}
-		response.end(`<html><body><h1>${heading}</h1></body></html>`);
+		response.end(pageContent(request));
 	});
 	yield* Effect.acquireRelease(
 		Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))),
@@ -42,6 +38,16 @@ export const startHost = Effect.gen(function* () {
 	}
 	return { signIns, url: `http://127.0.0.1:${address.port}`, visits };
 });
+
+function pageContent(request: IncomingMessage) {
+	let heading = "Local app";
+	if (request.url === "/account") {
+		heading = request.headers.cookie?.includes("session=alice") ? "Alice's account" : "Sign in";
+	}
+	const hidden = request.url?.startsWith("/hidden") ? "<p hidden>Expected text</p>" : "";
+	const visible = request.url === "/hidden-first" ? "<p>Expected text</p><p>Expected text</p>" : "";
+	return `<html><body><h1>${heading}</h1>${hidden}${visible}</body></html>`;
+}
 
 async function signIn(request: IncomingMessage, response: ServerResponse, signIns: SignIn[]) {
 	const chunks: Buffer[] = [];

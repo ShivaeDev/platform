@@ -36,9 +36,16 @@ export const browser = storyKit({
 				.map((line) => inWords(line.slice(PREFIX.length)));
 		}
 		return {
+			browserActivity: () => Effect.map(finished(), (result) => reported(result).filter((line) => line.includes("Chromium"))),
 			checks: (...args: readonly string[]) => {
 				story.tell(`browser-check looks at the running app with ${args.join(" ")}`);
 				return Effect.map(runCli(root, host.url, args, run.credentials), (result) => {
+					run.last = result;
+				});
+			},
+			checksAt: (url: string, ...args: readonly string[]) => {
+				story.tell(`browser-check looks at ${url} with ${args.join(" ")}`);
+				return Effect.map(runCli(root, url, args, run.credentials), (result) => {
 					run.last = result;
 				});
 			},

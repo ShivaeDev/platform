@@ -39,7 +39,7 @@ export const playwright = Effect.gen(function* () {
 			checkLiveNotes: (url: string, folder: string) => attempt(() => liveNotes(context, page, url, folder)),
 			checkText: (text: string) =>
 				attempt(async () => {
-					await page.getByText(text, { exact: false }).first().waitFor({ state: "visible" });
+					await page.getByText(text, { exact: false }).filter({ visible: true }).first().waitFor({ state: "visible" });
 				}),
 			screenshot: (path: string) =>
 				attempt(async () => {

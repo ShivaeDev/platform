@@ -24,6 +24,42 @@ browser.it("a check whose text shows on every page passes with a smoke pass for 
 	]);
 });
 
+browser.it("a hidden first text match is skipped when later matches are visible", [], function* ({ checks, outcome }) {
+	yield* checks("--page", "/hidden-first", "--text", "Expected text");
+
+	expect(yield* outcome()).toBe("passed");
+});
+
+for (const url of ["not-a-url", "file:///tmp/page.html"]) {
+	browser.it(
+		`an invalid --url ${url} fails with a diagnostic before opening a browser`,
+		[],
+		function* ({ checksAt, outcome, browserActivity, screenshots }) {
+			yield* checksAt(url);
+
+			yield* outcomes([
+				["outcome", () => outcome(), "failed: Invalid --url: expected an absolute HTTP(S) URL."],
+				["browser activity", () => browserActivity(), []],
+				["screenshots", () => screenshots(), []],
+			]);
+		},
+	);
+}
+
+browser.it(
+	"an invalid later --page fails with a diagnostic before opening a browser or visiting earlier pages",
+	[],
+	function* ({ checks, outcome, browserActivity, pagesVisited }) {
+		yield* checks("--page", "/", "--page", "http://[");
+
+		yield* outcomes([
+			["outcome", () => outcome(), "failed: Invalid --page: expected an HTTP(S) URL or page path."],
+			["browser activity", () => browserActivity(), []],
+			["pages visited", () => pagesVisited(), []],
+		]);
+	},
+);
+
 browser.it(
 	"with alice's credentials set, the check signs in as alice and her session opens her account page",
 	[aliceCredentialsSet()],
@@ -45,6 +81,11 @@ for (const [name, args, failure] of [
 	],
 	["a page that answers HTTP 404", ["--page", "/missing"], "Error: Page the app/missing returned HTTP 404."],
 	["text absent from the page", ["--text", "Text absent from the app"], "TimeoutError: locator.waitFor: Timeout 5000ms exceeded."],
+	[
+		"text whose only match is hidden",
+		["--page", "/hidden-only", "--text", "Expected text"],
+		"TimeoutError: locator.waitFor: Timeout 5000ms exceeded.",
+	],
 ] as const) {
 	browser.it(`a check of ${name} fails with "${failure}"`, [], function* ({ checks, outcome }) {
 		yield* checks(...args);
