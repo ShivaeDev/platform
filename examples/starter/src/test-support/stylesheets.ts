@@ -34,6 +34,9 @@ export const stylesheets = storyKit({
 					.join("\n");
 			}
 		},
-		css: () => engine.css,
+		ruleFor: (utility: string) => {
+			const rule = new RegExp(String.raw`\.text-${utility}\s*\{[^}]*\}`, "u").exec(engine.css);
+			return rule?.[0] ?? `no .text-${utility} rule`;
+		},
 	}),
 });

@@ -2,6 +2,7 @@ import { Effect, Fiber } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { act } from "react";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
+import { countWords } from "@shivaedev/test/answers.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { screenView } from "#test-support/screenState.ts";
 import { settleScreen } from "#test-support/settleScreen.ts";
@@ -23,7 +24,11 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		});
 	}
 	return {
-		cachedTitle: () => AsyncResult.getOrElse(screenView(engine).registry.get(engine.client.api.get.query({ id: 1 })), () => undefined)?.title,
+		cachedTitle: () =>
+			Effect.sync(
+				() =>
+					AsyncResult.getOrElse(screenView(engine).registry.get(engine.client.api.get.query({ id: 1 })), () => undefined)?.title ?? "nothing cached",
+			),
 		finishWordCount: (count: number) =>
 			afterNextHint(
 				Effect.promise(async () => {
@@ -31,9 +36,9 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 					await act(() => engine.client.finishNote(1, count));
 				}),
 			),
-		nextLiveHint: () => driver().nextLiveHint(),
-		queryCount: (query: "get" | "list") => engine.client.observed.readCount(`notes.${query}`),
-		reads: () => engine.client.observed.reads(),
+		listReads: () => Effect.sync(() => countWords(engine.client.observed.readCount("notes.list"), "list read")),
+		noteReads: () => Effect.sync(() => countWords(engine.client.observed.readCount("notes.get"), "note read")),
+		notesReads: () => Effect.sync(() => countWords(engine.client.observed.reads().length, "notes read")),
 		reviseNote: (title: string) =>
 			afterNextHint(
 				Effect.promise(async () => {
@@ -41,7 +46,7 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 					await act(() => engine.client.reviseNote(1, title));
 				}),
 			),
-		route: () => engine.router?.state.location.pathname,
+		route: () => Effect.sync(() => engine.router?.state.location.pathname ?? "no route"),
 		settle: () =>
 			driver()
 				.settle()
@@ -57,6 +62,5 @@ export function noteScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				await act(() => router.navigate({ to: "/" }));
 			}),
 		waitForList: () => Effect.promise(() => act(() => Effect.runPromise(engine.client.listWaiting()))),
-		wordCountText: () => screenView(engine).container.querySelector("tbody td a")?.closest("tr")?.textContent,
 	};
 }

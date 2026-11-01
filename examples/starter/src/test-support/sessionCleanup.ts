@@ -16,9 +16,9 @@ export const sessionCleanup = storyKit({
 	name: "session cleanup",
 	stages: [],
 	verbs: (_engine, story) => ({
-		run: () =>
+		sessionFileRuns: () =>
 			Effect.promise(async () => {
-				story.tell("run the session subscription file through DOM teardown");
+				story.tell("a DOM story file whose session request settles after its story ends runs through teardown");
 				const vitest = await VitestNode.createVitest(
 					{
 						config: false,
@@ -33,8 +33,8 @@ export const sessionCleanup = storyKit({
 				);
 				const { testModules } = await vitest.start().finally(() => vitest.close());
 				return {
-					errors: [...testModules.flatMap((module) => module.errors()), ...vitest.state.getUnhandledErrors()],
-					tests: testModules.flatMap((module) => [...module.children.allTests()].map((test) => ({ name: test.name, result: test.result() }))),
+					errors: [...testModules.flatMap((module) => module.errors()), ...vitest.state.getUnhandledErrors()].map(String),
+					stories: testModules.flatMap((module) => [...module.children.allTests()].map((test) => ({ name: test.name, state: test.result().state }))),
 				};
 			}),
 	}),

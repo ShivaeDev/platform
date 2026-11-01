@@ -67,11 +67,11 @@ To add an app page, follow notes: declare its Schema and native contract with `a
 
 `/admin/sessions` lists signed-in sessions with the user, started, last activity and expiry times for callers with `sessions.manage`. Revocation asks for confirmation in the page. The current session is marked; revoking it signs the viewer out and returns to sign-in.
 
-`/admin/users` lists names, email addresses, roles and sign-up times for callers with `users.read`. Callers with `roles.assign` choose each user's single role from the code-defined role set; the server refuses to remove its final role assigner. The bootstrap command creates an `owner` with all admin domain permissions. Role changes emit actor and timestamp logs through Effect and invalidate the user list after commit. `src/server/authOptions.ts` lists Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints in `disabledPaths`, so role writes use the guarded native contract; the server-side bootstrap API remains available.
+`/admin/users` lists names, email addresses, roles and sign-up times for callers with `users.read`. Callers with `roles.assign` choose each user's single role from the code-defined role set; the server refuses to remove its final role assigner. The bootstrap command creates an `owner` with all admin domain permissions. Role changes emit actor and timestamp logs through Effect and invalidate the user list after commit. Identity's role management adds Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints to `disabledPaths`, so role writes use the guarded native contract; the server-side bootstrap API remains available.
 
 When the worker finds pending migrations, the host logs `Waiting for database migrations`, then `Still waiting for database migrations` every 30 seconds, with pending migration IDs and names and component names and details. It logs `Database migrations current` when the worker can proceed, or `Timed out waiting for database migrations` before failing. An already current schema emits none of these host lines. The worker logs `Worker ready to take jobs` after registering handlers. These lines use Effect’s logger.
 
-The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`. Session checking and auth actions use that instance. Stories can create an auth client for their own HTTP host with the application kit’s `authClient()` verb.
+The browser entry point creates `makeAuth({ baseUrl })` and supplies it to `App`. Session checking and auth actions use that instance. Stories read a session through an auth client for their own HTTP host with the application kit’s `authClientSession(name)` verb.
 
 The TypeScript configuration keeps strict application checking and sets `skipLibCheck: true` for dependencies that declare unused runtime types.
 
@@ -83,10 +83,12 @@ Write new tests as stories following the [story-testing skill](https://github.co
 import { expect } from "vitest";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
-app.it("saves a title for the signed-in account", [signedIn()], function* ({ actor }) {
-	const notes = actor().notes;
-	const saved = yield* notes.create({ title: "First note" });
-	expect(yield* notes.list()).toEqual([saved]);
+app.it("alice's saved note appears in her list", [signedIn("alice")], function* ({ notesOf }) {
+	expect(yield* notesOf("alice").list()).toEqual([]);
+
+	const saved = yield* notesOf("alice").create("First note");
+
+	expect(yield* notesOf("alice").list()).toEqual([saved]);
 });
 ```
 
@@ -142,9 +144,9 @@ End-to-end browser tests do not belong in an app's CI because they cost CI minut
 
 ### Clock jumps and sessions
 
-The app and cookie story kits start TestClock at the present so Better Auth’s own endpoints, which use wall time, accept minted sessions. Pass `{ clock: DateTime.makeUnsafe("2100-01-01T00:00:00Z") }` as a story’s last argument to choose a different start.
+The app story kit starts TestClock at the present so Better Auth’s own endpoints, which use wall time, accept minted sessions. Pass `{ clock: DateTime.makeUnsafe("2100-01-01T00:00:00Z") }` as a story’s last argument to choose a different start.
 
-Long jumps expire signed-in sessions. After `yield* timePasses("30 days")`, use `yield* signsInAgain("alice")` in the notes app kit, or `yield* browserSignsInAgain()` in the cookie kit. These verbs use `signInAgain(auth, userId)` from `@shivaedev/identity/server/better-auth/testing.ts` to mint a session for the same account on the caller’s Clock. They replace the visitor’s request credentials or browser cookies in one step. Read the actor again after renewal to use its fresh notes client; an earlier client still carries its old credentials.
+Long jumps expire signed-in sessions. After `yield* timePasses("30 days")`, use `yield* signsInAgain("alice")` in the notes app kit. The verb uses `signInAgain(auth, userId)` from `@shivaedev/identity/server/better-auth/testing.ts` to mint a session for the same account on the caller’s Clock and replaces alice’s request credentials. Call `notesOf("alice")` again after renewal to use her fresh credentials.
 
 ## Errors and traces
 

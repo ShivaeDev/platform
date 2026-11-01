@@ -1,48 +1,49 @@
-import * as HttpStatus from "effect/http/HttpStatus";
+import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { authEmailApp } from "#test-support/authEmailApp.tsx";
 
+authEmailApp.it("alice's confirmation email links to the app's confirm route", [], function* ({ deliveredEmails, requestsConfirmation }) {
+	yield* requestsConfirmation();
+
+	expect(yield* deliveredEmails()).toEqual(["Confirm your account for alice@app.test at http://127.0.0.1:5173/auth/confirm"]);
+});
+
 authEmailApp.it(
-	"alice's confirmation email is delivered once and its app route confirms her account",
+	"following alice's confirmation link verifies her account and lands on sign-in",
 	[],
-	function* ({ request, messages, followConfirmation, confirmation, session }) {
-		expect(yield* session()).toMatchObject({ user: { emailVerified: false } });
-		yield* request("ConfirmAccount");
+	function* ({ account, followsConfirmationLink, requestsConfirmation }) {
+		yield* requestsConfirmation();
+		expect(yield* account()).toBe("unverified");
 
-		yield* request("ConfirmAccount");
-
-		expect(yield* messages()).toMatchObject([
-			{ subject: "Confirm your account", text: expect.stringMatching(/http:\/\/127\.0\.0\.1:5173\/auth\/confirm\?token=.+/u) },
-		]);
-		yield* followConfirmation();
+		const landing = yield* followsConfirmationLink();
 
 		yield* outcomes([
-			["confirmation response", confirmation, { location: "/sign-in", status: HttpStatus.fromLiteral("Found") }],
-			["verified account", session, { user: { emailVerified: true } }],
+			["landing page", () => Effect.succeed(landing), "/sign-in"],
+			["alice's account", account, "verified"],
 		]);
 	},
 );
 
+authEmailApp.it("alice's password reset email links to the app's reset screen", [], function* ({ deliveredEmails, requestsPasswordReset }) {
+	yield* requestsPasswordReset();
+
+	expect(yield* deliveredEmails()).toEqual(["Reset your password for alice@app.test at http://127.0.0.1:5173/reset-password"]);
+});
+
 authEmailApp.it(
-	"alice's delivered app link opens the reset screen and its new password signs in",
+	"alice changes her password on the screen her reset link opens and signs in with it",
 	[],
-	function* ({ request, messages, openReset, enter, click, settle, screenText, signIn }) {
-		yield* request("ResetPassword");
-		expect(yield* messages()).toMatchObject([
-			{ subject: "Reset your password", text: expect.stringMatching(/http:\/\/127\.0\.0\.1:5173\/reset-password\?token=.+/u) },
+	function* ({ changesPassword, opensResetLink, requestsPasswordReset, screenStatus, signsIn }) {
+		yield* requestsPasswordReset();
+		yield* opensResetLink();
+		expect(yield* signsIn("alice-replacement-password")).toBe("refused: Invalid email or password");
+
+		yield* changesPassword("alice-replacement-password");
+
+		yield* outcomes([
+			["reset screen", screenStatus, "Password changed. Sign in"],
+			["sign-in with the new password", () => signsIn("alice-replacement-password"), "signed in as alice@app.test"],
 		]);
-		yield* openReset();
-		yield* settle();
-		yield* enter('input[type="password"]', "alice-replacement-password");
-
-		yield* click({ name: "Change password", role: "button" });
-		yield* settle();
-
-		const text = yield* screenText();
-		expect(text).toContain("Password changed.");
-
-		const signedIn = yield* signIn("alice-replacement-password");
-		expect(signedIn).toMatchObject({ data: { user: { email: "alice@app.test" } }, error: null });
 	},
 );

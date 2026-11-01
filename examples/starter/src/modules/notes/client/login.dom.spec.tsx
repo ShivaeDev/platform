@@ -1,49 +1,54 @@
 import { expect } from "vitest";
-import { loginScreen, screens } from "#modules/notes/test-support/screens.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { authenticationOffline, loginScreen, screens } from "#modules/notes/test-support/screens.ts";
+
+for (const mode of ["sign-up", "sign-in"] as const) {
+	screens.it(
+		`an accepted ${mode} sends alice's details and authenticates her`,
+		[loginScreen()],
+		function* ({ authenticated, authenticationCalls, settle, submitsCredentials }) {
+			expect(yield* authenticated()).toBe("not authenticated");
+
+			yield* submitsCredentials(mode);
+			yield* settle();
+
+			yield* outcomes([
+				["authentication", authenticated, `authenticated by ${mode}`],
+				[
+					"provider calls",
+					authenticationCalls,
+					[{ credentials: { email: "alice@app.test", password: "correct-horse", ...(mode === "sign-up" ? { name: "Alice" } : {}) }, mode }],
+				],
+			]);
+		},
+	);
+}
 
 screens.it(
-	"submits signup and sign-in, retains rejected input, and shows provider and network failures",
+	"a refused sign-up shows the provider's reason and keeps alice's email",
 	[loginScreen("Email is already registered")],
-	function* ({
-		settle,
-		closeScreen,
-		consoleErrors,
-		click,
-		enter,
-		submit,
-		authenticationCalls,
-		alert,
-		draft,
-		authenticated,
-		authenticationAccepts,
-		authenticationGoesOffline,
-		lastAuthenticationMode,
-	}) {
-		yield* click("Create an account");
-		yield* enter("Alice", "Name");
-		yield* enter("alice@app.test", "Email");
-		yield* enter("correct-horse", "Password");
-		yield* submit();
+	function* ({ alert, authenticated, draft, settle, submitsCredentials }) {
+		yield* submitsCredentials("sign-up");
 		yield* settle();
-		expect(authenticationCalls()).toEqual([{ credentials: { email: "alice@app.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" }]);
-		expect(alert()).toBe("Email is already registered");
-		expect(draft("Email")).toBe("alice@app.test");
-		expect(authenticated()).toEqual([]);
-		yield* authenticationAccepts();
-		yield* submit();
+
+		yield* outcomes([
+			["alert", alert, "Email is already registered"],
+			["email", () => draft("Email"), "alice@app.test"],
+			["authentication", authenticated, "not authenticated"],
+		]);
+	},
+);
+
+screens.it(
+	"an unreachable provider asks alice to try signing in again",
+	[authenticationOffline(), loginScreen()],
+	function* ({ alert, authenticated, settle, submitsCredentials }) {
+		yield* submitsCredentials("sign-in");
 		yield* settle();
-		expect(authenticated()).toEqual(["sign-up"]);
-		yield* click("Use an existing account");
-		yield* authenticationGoesOffline();
-		yield* submit();
-		yield* settle();
-		expect(lastAuthenticationMode()).toBe("sign-in");
-		expect(alert()).toBe("Could not reach authentication. Try again.");
-		yield* authenticationAccepts();
-		yield* submit();
-		yield* settle();
-		expect(authenticated()).toEqual(["sign-up", "sign-in"]);
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["alert", alert, "Could not reach authentication. Try again."],
+			["authentication", authenticated, "not authenticated"],
+		]);
 	},
 );

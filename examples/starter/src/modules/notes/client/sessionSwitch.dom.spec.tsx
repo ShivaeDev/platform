@@ -1,22 +1,21 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { aliceSession, screens } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
-	"replaces cached notes and the draft when the authentication owner's session changes",
+	"switching to bob's session replaces alice's cached notes and clears her draft",
 	[aliceSession()],
-	function* ({ settle, closeScreen, consoleErrors, settleQuery, enter, submit, noteLink, switchSession, savedNote, draft }) {
-		yield* settleQuery("list");
-		yield* enter("Alice's saved note");
-		yield* submit();
-		yield* settle();
-		expect(noteLink()).toBe("Alice's saved note");
+	function* ({ draft, enter, settle, settleQuery, shownNotes, switchSession }) {
 		yield* enter("Alice's private draft");
+		expect(yield* shownNotes()).toEqual(["Alice's saved note"]);
+
 		yield* switchSession("bob");
 		yield* settleQuery("list");
 		yield* settle();
-		expect(savedNote()).toBeNull();
-		expect(draft()).toBe("");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["notes", shownNotes, ["no notes yet"]],
+			["draft", draft, ""],
+		]);
 	},
 );

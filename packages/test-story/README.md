@@ -571,7 +571,7 @@ app.it(
 
 Acquire hosts, workers and screens in per-story Scope so they inherit the story's Clock. An independent runtime or native HTTP handler must capture the Effect Context at acquisition, as with `HttpEffect.toWebHandlerWith(context)` or `Effect.runPromiseWith(context)`. Worker-scoped kit `layer` acquisition stays outside the per-story clock; shared services acquired there do not acquire a new clock for each story. Direct JavaScript wall-time reads are not replaced. Formatting stays with the application, including its locale and time zone.
 
-Long jumps also expire signed-in sessions. With Better Auth, use `signInAgain(auth, userId)` from `@shivaedev/identity/server/better-auth/testing.ts` to mint a fresh session on the caller’s Clock for the same user. Replace the visitor’s headers, or pass its returned cookies to `seedCookies` for a browser. The starter’s app kit exposes `signsInAgain(name)` and its cookie kit exposes `browserSignsInAgain()` for these steps. Their TestClocks start at the present by default so Better Auth’s wall-clock endpoints accept minted sessions; an explicit story `clock` still takes precedence.
+Long jumps also expire signed-in sessions. With Better Auth, use `signInAgain(auth, userId)` from `@shivaedev/identity/server/better-auth/testing.ts` to mint a fresh session on the caller’s Clock for the same user. Replace the visitor’s headers, or pass its returned cookies to `seedCookies` for a browser. The starter’s app kit exposes `signsInAgain(name)` for this step. Its TestClock starts at the present by default so Better Auth’s wall-clock endpoints accept minted sessions; an explicit story `clock` still takes precedence.
 
 A live-clock kit still runs on real time when a story omits the override.
 

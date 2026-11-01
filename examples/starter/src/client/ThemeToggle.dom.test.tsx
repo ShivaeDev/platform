@@ -1,46 +1,70 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screens } from "#test-support/screens.ts";
 
 screens.it(
-	"follows system changes until a light or dark choice overrides them",
+	"with no saved choice, the theme follows the system when it turns dark",
 	[],
-	function* ({ openThemeControl, systemTheme, themeAppearance, chooseTheme, themeSelection }) {
-		yield* systemTheme(true);
+	function* ({ openThemeControl, systemTheme, themeAppearance, themeSelection }) {
 		yield* openThemeControl();
-		expect(themeSelection()).toBe("system");
-		expect(themeAppearance()).toBe("dark");
-		yield* systemTheme(false);
 		expect(themeAppearance()).toBe("light");
-		yield* chooseTheme("dark");
-		expect(themeAppearance()).toBe("dark");
+
 		yield* systemTheme(true);
-		yield* systemTheme(false);
-		expect(themeAppearance()).toBe("dark");
-		yield* chooseTheme("light");
-		yield* systemTheme(true);
-		expect(themeAppearance()).toBe("light");
-		yield* chooseTheme("system");
-		expect(themeAppearance()).toBe("dark");
+
+		yield* outcomes([
+			["selection", () => Effect.sync(themeSelection), "system"],
+			["appearance", () => Effect.sync(themeAppearance), "dark"],
+		]);
 	},
 );
 
+for (const choice of ["dark", "light"] as const) {
+	screens.it(
+		`a ${choice} choice keeps its appearance when the system changes`,
+		[],
+		function* ({ chooseTheme, openThemeControl, systemTheme, themeAppearance }) {
+			yield* openThemeControl();
+			yield* chooseTheme(choice);
+			expect(themeAppearance()).toBe(choice);
+
+			yield* systemTheme(choice === "light");
+
+			expect(themeAppearance()).toBe(choice);
+		},
+	);
+
+	screens.it(
+		`reopening the theme control restores a saved ${choice} choice`,
+		[],
+		function* ({ chooseTheme, closeThemeControl, openThemeControl, savedTheme, systemTheme, themeAppearance, themeSelection }) {
+			yield* openThemeControl();
+			yield* chooseTheme(choice);
+			expect(savedTheme()).toBe(choice);
+			yield* closeThemeControl();
+			yield* systemTheme(choice === "light");
+
+			yield* openThemeControl();
+
+			yield* outcomes([
+				["selection", () => Effect.sync(themeSelection), choice],
+				["appearance", () => Effect.sync(themeAppearance), choice],
+			]);
+		},
+	);
+}
+
 screens.it(
-	"restores the saved override when the control opens again",
+	"choosing system again after a light choice follows a dark system",
 	[],
-	function* ({ openThemeControl, closeThemeControl, systemTheme, chooseTheme, themeAppearance, themeSelection, savedTheme }) {
+	function* ({ chooseTheme, openThemeControl, systemTheme, themeAppearance }) {
 		yield* openThemeControl();
-		yield* chooseTheme("dark");
-		expect(savedTheme()).toBe("dark");
-		yield* closeThemeControl();
-		yield* systemTheme(false);
-		yield* openThemeControl();
-		expect(themeSelection()).toBe("dark");
-		expect(themeAppearance()).toBe("dark");
 		yield* chooseTheme("light");
-		yield* closeThemeControl();
 		yield* systemTheme(true);
-		yield* openThemeControl();
-		expect(themeSelection()).toBe("light");
 		expect(themeAppearance()).toBe("light");
+
+		yield* chooseTheme("system");
+
+		expect(themeAppearance()).toBe("dark");
 	},
 );

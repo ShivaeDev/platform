@@ -27,36 +27,41 @@ export const migration = storyKit({
 	stages: ["schema"],
 	verbs: (engine, story) => ({
 		addNotes: Effect.fn("NotesStory.addNotes")(function* () {
-			story.tell("add the notes module to the foundation schema");
+			story.tell("the notes migration runs on the foundation schema");
 			return yield* migrationUpgrade({ migrations: { ...migrations(), lockTimeout: "5 seconds" }, table: "notes", upTo: 1 });
 		}),
 		addUserReference: () => {
-			story.tell("apply the user foreign-key migration to existing notes");
+			story.tell("the user foreign-key migration runs over the existing notes");
 			return migratePostgres({
 				loader: Migrator.fromRecord({ "3_user_foreign_key": userForeignKey }),
 				lockTimeout: "5 seconds",
 				table: "app_migrations",
 			});
 		},
-		deleteUser: () =>
+		aliceIsDeleted: () =>
 			Effect.gen(function* () {
-				story.tell("delete the auth user who owns the existing note");
+				story.tell("alice's account is deleted");
 				const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
 				yield* Effect.promise(async () => (await auth.$context).internalAdapter.deleteUser(engine.userId));
 			}),
-		storedNoteTitles: Effect.gen(function* () {
+		storedNoteTitles: Effect.fn("NotesStory.storedNoteTitles")(function* () {
 			const sql = yield* SqlClient.SqlClient;
-			return yield* sql<{ title: string }>`select title from notes order by title`;
+			const rows = yield* sql<{ title: string }>`select title from notes order by title`;
+			return rows.map(({ title }) => title);
 		}),
 	}),
 });
 
-export const existingNotes = migration.trait("schema", "Alice has an owned note and a legacy note exists before the foreign key", function* (engine) {
-	const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
-	yield* steps.migrateTo("0002_notes");
-	const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
-	const { user } = yield* signedInUser(auth, { email: "alice@migration.test", name: "Alice" });
-	engine.userId = user.id;
-	const sql = yield* SqlClient.SqlClient;
-	yield* sql`insert into notes (owner_id, title) values (${user.id}, 'Alice note'), (null, 'Legacy note')`;
-});
+export const existingNotes = migration.trait(
+	"schema",
+	"alice owns a note and an unowned legacy note exists before the user foreign key",
+	function* (engine) {
+		const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
+		yield* steps.migrateTo("0002_notes");
+		const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
+		const { user } = yield* signedInUser(auth, { email: "alice@migration.test", name: "Alice" });
+		engine.userId = user.id;
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`insert into notes (owner_id, title) values (${user.id}, 'Alice note'), (null, 'Legacy note')`;
+	},
+);

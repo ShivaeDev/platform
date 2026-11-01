@@ -10,7 +10,7 @@ import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen } from "#test-support/screenState.ts";
 
 export function signInVisitor(initial: string, signedIn = false, moduleLink = false) {
-	return screens.trait("screen", `a ${signedIn ? "signed-in" : "signed-out"} visitor opens ${initial}`, function* (engine) {
+	return screens.trait("screen", `${signedIn ? "signed-in alice" : "a signed-out visitor"} opens ${initial}`, function* (engine) {
 		const history = createMemoryHistory({ initialEntries: [initial] });
 		engine.history = history;
 		engine.client = yield* notesClient([{ id: 1, title: "Deep note", version: 0, wordCount: null }]);
@@ -27,11 +27,7 @@ export function signInVisitor(initial: string, signedIn = false, moduleLink = fa
 			(engine.view?.registry.get(fixture.auth.session.atom).waiting ?? false)
 			|| (engine.view !== undefined
 				&& (engine.view.registry.get(fixture.auth.actions.submit).waiting || engine.view.registry.get(fixture.auth.actions.signOut).waiting));
-		const view = yield* acquireScreen(engine, {
-			onCaughtError: (error) => {
-				engine.routeErrors.push(error);
-			},
-		});
+		const view = yield* acquireScreen(engine);
 		const resume = resumeModule(moduleLink);
 		yield* Effect.promise(() =>
 			view.render(<App auth={fixture.auth} connect={() => connectModules([resume, notesRegistration(engine.client)])} history={history} />),

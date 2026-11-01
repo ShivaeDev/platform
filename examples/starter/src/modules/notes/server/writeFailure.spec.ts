@@ -1,10 +1,17 @@
 import { Effect } from "effect";
-import { expect } from "vitest";
-import { app, constrainedTitles, signedIn } from "#modules/notes/test-support/application.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { app, reservedTitleConstraint, signedIn } from "#modules/notes/test-support/application.ts";
+import { refusal } from "#test-support/answers.ts";
 
-app.it("reports a PostgreSQL constraint violation to the client as a conflict", [signedIn(), constrainedTitles()], function* ({ actor }) {
-	const failure = yield* actor().notes.create({ title: "Reserved" }).pipe(Effect.flip);
+app.it(
+	"a title a PostgreSQL constraint rejects answers conflict and is not saved",
+	[signedIn("alice"), reservedTitleConstraint()],
+	function* ({ notesOf }) {
+		const created = yield* refusal(notesOf("alice").create("Reserved"));
 
-	expect(failure).toMatchObject({ _tag: "Conflict", message: "The note violates a database constraint" });
-	expect(yield* actor().notes.list()).toEqual([]);
-});
+		yield* outcomes([
+			["alice's create", () => Effect.succeed(created), "conflict: The note violates a database constraint"],
+			["alice's notes", () => notesOf("alice").list(), []],
+		]);
+	},
+);
