@@ -1,4 +1,4 @@
-import { Option, Result, SchemaAST, SchemaIssue, type StandardSchema } from "effect";
+import { Result, SchemaAST, SchemaIssue, type StandardSchema } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 
@@ -74,7 +74,8 @@ export function messageAtPath(
 ): string | undefined {
 	for (const entry of formattedIssues(issue, requiredMessages)) {
 		if (
-			path.every((segment, index) => {
+			(path.length > 0 || !entry.path?.length)
+			&& path.every((segment, index) => {
 				const found = entry.path?.[index];
 				return found !== undefined && segment === (typeof found === "object" ? found.key : found);
 			})
@@ -121,23 +122,13 @@ export function schemaFeedback<A, E>(
 	decoded: Atom.Atom<AsyncResult.AsyncResult<Result.Result<A, SchemaIssue.Issue>, E>>,
 	requiredMessages: Readonly<Partial<Record<string, string>>> = noMessages,
 ) {
-	const messages = Atom.map(decoded, (result) =>
-		Option.match(AsyncResult.value(result), {
-			onNone: () => noMessages,
-			onSome: (value) => (Result.isFailure(value) ? messagesByField(value.failure, requiredMessages) : noMessages),
-		}),
+	const issue = Atom.map(decoded, (result) =>
+		AsyncResult.isSuccess(result) && !result.waiting && Result.isFailure(result.value) ? result.value.failure : undefined,
 	);
+	const messages = Atom.map(issue, (value) => (value === undefined ? noMessages : messagesByField(value, requiredMessages)));
 	return {
 		at: (path: readonly PropertyKey[]) =>
-			Atom.map(decoded, (result): string | undefined => {
-				if (result.waiting) {
-					return undefined;
-				}
-				return Option.match(AsyncResult.value(result), {
-					onNone: () => undefined,
-					onSome: (value) => (Result.isFailure(value) ? messageAtPath(value.failure, path, requiredMessages) : undefined),
-				});
-			}),
+			Atom.map(issue, (value) => (value === undefined ? undefined : messageAtPath(value, path, requiredMessages))),
 		field: Atom.family((name: string) => Atom.map(messages, (value) => messageAt(value, name))),
 	};
 }
