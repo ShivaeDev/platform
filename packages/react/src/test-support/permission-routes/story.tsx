@@ -13,6 +13,7 @@ import { PermissionApp } from "./view.tsx";
 
 interface State {
 	app?: ReturnType<typeof permissionApp>;
+	hidden?: boolean;
 	host?: Host;
 	role?: Role | undefined;
 	serverRole?: Role | undefined;
@@ -98,7 +99,7 @@ function routeVerbs(state: State, screen: Screen) {
 				const failure = expectedFailure(state, path);
 				const view = yield* screen.open(null, failure ? { onCaughtError: screenWarnings.expectCaughtError(failure) } : undefined);
 				const session = state.role === undefined ? undefined : yield* AtomRegistry.getResult(view.registry, host.readSession(state.role).atom);
-				const app = permissionApp(host, view.registry, session, path);
+				const app = permissionApp(host, view.registry, session, path, state.hidden);
 				state.view = view;
 				state.app = app;
 				yield* screen.act(`visit ${path}`, () => view.render(<PermissionApp app={app} />));
@@ -127,6 +128,10 @@ export const permissionScreens = storyKit(
 		}),
 	),
 );
+
+export const hiddenRoutes = permissionScreens.trait("screen", "the app hides refused routes as not-found", ({ state }) => {
+	state.hidden = true;
+});
 
 function* openApp(state: State, role: Role | undefined, serverRole: Role | undefined) {
 	state.role = role;
