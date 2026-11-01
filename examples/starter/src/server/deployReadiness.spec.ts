@@ -1,70 +1,129 @@
 import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { deployment } from "#test-support/deployment.ts";
 
+const WAITING = [expect.stringContaining("Waiting for database migrations")];
+
 deployment.it(
-	"web rejects a missing schema while an already-started worker waits for deployment migration",
+	"before migrations, the web process refuses to start without reporting a schema mismatch",
 	[],
-	function* ({ startProcess, holdSchemaCreation, health, signUpAt, migrationTable }) {
-		const prematureWeb = yield* startProcess("web");
-		expect(yield* prematureWeb.exitCode).not.toBe(0);
-		expect([...prematureWeb.logs, ...prematureWeb.errors].join("\n")).toContain("Database migrations are not current");
-		expect([...prematureWeb.logs, ...prematureWeb.errors].join("\n")).not.toContain("Database schema mismatch");
-		const failure = yield* prematureWeb.ready.pipe(Effect.flip);
-		expect(failure.message).toContain("Database migrations are not current");
-		const worker = yield* startProcess("worker");
-		yield* worker.waitingForSchema;
-		expect(yield* worker.child.isRunning).toBe(true);
-		expect(worker.logs.filter((line) => line.includes("migrations"))).toEqual([expect.stringContaining("Waiting for database migrations")]);
-		expect(yield* migrationTable).toEqual([{ ledger: null }]);
-		const schemaCreation = yield* holdSchemaCreation;
-		const migration = yield* Effect.gen(function* () {
-			const pending = yield* startProcess("migrate");
-			yield* schemaCreation.migrationBlocked;
-			expect(yield* migrationTable).toEqual([{ ledger: "app_migrations" }]);
-			expect(worker.logs.filter((line) => line.includes("migrations"))).toEqual([expect.stringContaining("Waiting for database migrations")]);
-			expect(yield* worker.child.isRunning).toBe(true);
-			return pending;
-		}).pipe(Effect.ensuring(schemaCreation.release));
+	function* ({ logLines, webStartAnswer }) {
+		const started = yield* webStartAnswer();
+
 		yield* outcomes([
-			["migration exit code", () => migration.exitCode, 0],
-			["worker readiness", () => worker.ready, "worker"],
-		]);
-		const web = yield* startProcess("web");
-		const address = yield* web.ready;
-		expect(web.logs).toContainEqual(expect.stringMatching(/Loaded module: .*\/NodeHttpServer\.[jt]s$/v));
-		expect(web.logs.filter((line) => /Loaded module: .*\/(?:redis|@redis)[\/@]/v.test(line))).toEqual([]);
-		expect((yield* health(address)).status).toBe(HttpStatus.fromLiteral("OK"));
-		const signup = yield* signUpAt(address, "deploy");
-		expect(signup.status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(signup.cookie).toContain("session_token=");
-		expect([...web.logs, ...web.errors].join("\n")).not.toContain("Database schema mismatch");
-		expect(worker.logs.filter((line) => line.includes("migrations") || line.includes("Worker "))).toEqual([
-			expect.stringContaining("Waiting for database migrations"),
-			expect.stringContaining("Database migrations current"),
-			expect.stringContaining("Worker ready to take jobs"),
-		]);
-		yield* outcomes([
-			["web keeps running", () => web.child.isRunning, true],
-			["worker keeps running", () => worker.child.isRunning, true],
+			["web start", () => Effect.succeed(started), "refused: database migrations are not current"],
+			["schema mismatch reports", () => logLines("web", /Database schema mismatch/v), []],
 		]);
 	},
-	4 * 20_000 + 40_000,
+);
+
+deployment.it(
+	"before migrations, a worker waits for them and keeps running",
+	[],
+	function* ({ logLines, migrationLedger, processState, workerStartsWaiting }) {
+		expect(yield* migrationLedger()).toBe("missing");
+
+		yield* workerStartsWaiting("current");
+
+		yield* outcomes([
+			["worker", () => processState("current worker"), "running"],
+			["worker's migration lines", () => logLines("current worker", /migrations/v), WAITING],
+		]);
+	},
+);
+
+deployment.it(
+	"while a migration waits on the schema lock, its ledger exists and the waiting worker keeps waiting",
+	[],
+	function* ({
+		logLines,
+		migrationBlocksOnTheSchemaLock,
+		migrationLedger,
+		processState,
+		schemaCreationIsHeld,
+		startsMigrating,
+		workerStartsWaiting,
+	}) {
+		yield* workerStartsWaiting("current");
+		yield* schemaCreationIsHeld();
+
+		yield* startsMigrating("current");
+		yield* migrationBlocksOnTheSchemaLock();
+
+		yield* outcomes([
+			["migration ledger", () => migrationLedger(), "app_migrations"],
+			["worker", () => processState("current worker"), "running"],
+			["worker's migration lines", () => logLines("current worker", /migrations/v), WAITING],
+		]);
+	},
+	60_000,
+);
+
+deployment.it(
+	"once the held migration finishes, the waiting worker becomes ready",
+	[],
+	function* ({
+		logLines,
+		migrationBlocksOnTheSchemaLock,
+		migrationFinishes,
+		schemaCreationIsHeld,
+		schemaLockIsReleased,
+		startsMigrating,
+		workerBecomesReady,
+		workerStartsWaiting,
+	}) {
+		yield* workerStartsWaiting("current");
+		yield* schemaCreationIsHeld();
+		yield* startsMigrating("current");
+		yield* migrationBlocksOnTheSchemaLock();
+
+		yield* schemaLockIsReleased();
+
+		yield* outcomes([
+			["migration", () => migrationFinishes("current"), "migrated"],
+			["worker", () => workerBecomesReady("current"), "ready"],
+			[
+				"worker's startup lines",
+				() => logLines("current worker", /migrations|Worker /v),
+				[
+					expect.stringContaining("Waiting for database migrations"),
+					expect.stringContaining("Database migrations current"),
+					expect.stringContaining("Worker ready to take jobs"),
+				],
+			],
+		]);
+	},
+	60_000,
+);
+
+deployment.it(
+	"after migration, the web process starts healthy, signs up alice and loads Node's HTTP server without a Redis client",
+	[],
+	function* ({ health, loadedModules, logLines, migrates, signsUpOverHttp, webStarts }) {
+		yield* migrates("current");
+
+		yield* webStarts();
+
+		yield* outcomes([
+			["health", () => health(), "healthy"],
+			["alice's sign-up", () => signsUpOverHttp("alice"), "signed up with a session"],
+			["HTTP server modules", () => loadedModules("web", /\/NodeHttpServer\.[jt]s$/v), [expect.stringMatching(/^NodeHttpServer\.[jt]s$/v)]],
+			["Redis modules", () => loadedModules("web", /\/(?:redis|@redis)[\/@]/v), []],
+			["schema mismatch reports", () => logLines("web", /Database schema mismatch/v), []],
+		]);
+	},
+	60_000,
 );
 
 deployment.it(
 	"a healthy app on the requested port cannot make a web process with a missing schema ready",
 	[],
-	function* ({ startOtherApplication, startProcess, health }) {
-		const other = yield* startOtherApplication;
-		expect((yield* health(other.address)).status).toBe(HttpStatus.fromLiteral("OK"));
+	function* ({ anotherAppListens, webStartAnswer }) {
+		const port = yield* anotherAppListens();
 
-		const web = yield* startProcess("web", other.port);
-		const failure = yield* web.ready.pipe(Effect.flip);
+		const started = yield* webStartAnswer(port);
 
-		expect(failure.message).toContain("Database migrations are not current");
-		expect(yield* web.exitCode).not.toBe(0);
+		expect(started).toBe("refused: database migrations are not current");
 	},
 );

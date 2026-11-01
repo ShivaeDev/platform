@@ -10,14 +10,14 @@ export function notesRefreshVerbs(engine: Screen, tell: (line: string) => void) 
 				tell("hold the next notes list request");
 				engine.client.holdList();
 			}),
-		loadingMessage: () => screenView(engine).container.querySelector("[role=status]")?.textContent,
-		refreshDisabled: () => {
-			const button = [...screenView(engine).container.querySelectorAll("button")].find((element) => element.textContent === "Refresh");
-			if (button === undefined) {
-				throw new Error("Missing Refresh button");
-			}
-			return button.disabled;
-		},
+		refreshButton: () =>
+			Effect.sync(() => {
+				const button = [...screenView(engine).container.querySelectorAll("button")].find((element) => element.textContent === "Refresh");
+				if (button === undefined) {
+					return "missing";
+				}
+				return button.disabled ? "disabled" : "enabled";
+			}),
 		releaseNotesList: () =>
 			Effect.promise(async () => {
 				tell("release the held notes list request");

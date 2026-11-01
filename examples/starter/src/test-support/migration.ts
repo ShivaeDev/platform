@@ -5,6 +5,7 @@ import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/a
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { answered } from "@shivaedev/test/answers.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -24,13 +25,26 @@ export const migration = storyKit({
 	name: "app authentication schema",
 	stages: ["schema"],
 	verbs: (engine, story) => ({
-		adoptRoles: () => engine.steps.migrateTo("0004_stored_roles"),
-		checkAuthSchema: () => assertBetterAuthSchema(authOptions(), { defaultRole: User.name }),
-		migrate: Effect.fn("AppStory.migrate")(function* () {
-			story.tell("apply every numbered application migration");
+		authSchemaCheck: () => answered(Effect.as(assertBetterAuthSchema(authOptions(), { defaultRole: User.name }), "accepted")),
+		migrates: Effect.fn("AppStory.migrates")(function* () {
+			story.tell("every numbered application migration runs");
 			yield* engine.steps.migrateToLatest;
 		}),
-		roleColumn: () => engine.storage.roleColumn,
+		roleColumn: Effect.fn("AppStory.roleColumn")(function* () {
+			const [column] = yield* engine.storage.roleColumn;
+			if (column === undefined) {
+				return "missing";
+			}
+			return [
+				column.type,
+				column.nullable === "NO" ? "not null" : "nullable",
+				column.default === null ? "no default" : `default ${column.default.replace(/::text$/v, "")}`,
+			].join(", ");
+		}),
+		rolesMigrationRuns: () => {
+			story.tell("the stored-roles migration runs");
+			return engine.steps.migrateTo("0004_stored_roles");
+		},
 		storedRoles: () => engine.storage.userRoles,
 	}),
 });

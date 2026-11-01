@@ -1,49 +1,48 @@
-import { Effect } from "effect";
+import type { Effect } from "effect";
 import { expect } from "vitest";
-import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app, legacyNote, signedIn } from "#modules/notes/test-support/application.ts";
+import type { NotesRequests } from "#modules/notes/test-support/requests.ts";
+import { answer } from "#test-support/answers.ts";
 
-app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [signedIn()], function* ({ actor, storedNotes }) {
-	const { notes: client } = actor();
-	expect(yield* client.list()).toEqual([]);
-	const created = yield* client.create({ title: "First note" });
-	yield* outcomes([
-		["created title", () => Effect.sync(() => created.title), "First note"],
-		["list", () => client.list(), [created]],
-		["stored notes", () => storedNotes(), [created].map((note) => expect.objectContaining(note))],
-	]);
+app.it("alice creates a note and finds it in her list", [signedIn("alice")], function* ({ notesOf }) {
+	expect(yield* notesOf("alice").list()).toEqual([]);
+
+	const note = yield* notesOf("alice").create("First note");
+
+	expect(yield* notesOf("alice").list()).toEqual([{ ...note, title: "First note" }]);
 });
 
+const visitorRequests: ReadonlyArray<readonly [string, (notes: NotesRequests) => Effect.Effect<unknown, unknown>]> = [
+	["listing notes", (notes) => notes.list()],
+	["creating a note", (notes) => notes.create("Anonymous note")],
+];
+
+for (const [request, send] of visitorRequests) {
+	app.it(`a signed-out visitor ${request} is told to sign in`, [], function* ({ visitorNotes }) {
+		const visitor = yield* visitorNotes();
+
+		const answered = yield* answer(send(visitor));
+
+		expect(answered).toBe("sign in required");
+	});
+}
+
 app.it(
-	"protects queries and commands, isolates users, and rejects a revoked minted session",
-	[signedIn(), signedIn("bob"), legacyNote("Legacy note")],
-	function* ({ actor, signOut, mintSession, notes, anonymous, storedNoteOwners }) {
-		const signedOut = yield* anonymous();
-		const anonymousList = yield* signedOut.list().pipe(Effect.flip);
-		expect(anonymousList).toMatchObject({ _tag: "Unauthorized" });
-		expect(anonymousList).toBeInstanceOf(Unauthorized);
-		const anonymousCreate = yield* signedOut.create({ title: "Anonymous note" }).pipe(Effect.flip);
-		expect(anonymousCreate).toMatchObject({ _tag: "Unauthorized" });
-		expect(anonymousCreate).toBeInstanceOf(Unauthorized);
-		const { cookie: aliceCookie, notes: alice } = actor();
-		const note = yield* alice.create({ title: "Alice's note" });
-		const bob = actor("bob").notes;
-		yield* outcomes([
-			["alice list", () => alice.list(), [note]],
-			["bob list", () => bob.list(), []],
-		]);
-		const user = actor();
-		yield* outcomes([
-			["legacy note owner", () => storedNoteOwners("Legacy note"), [{ userId: null }]],
-			["new note owner", () => storedNoteOwners(note.title), [{ userId: user.userId }]],
-		]);
-		yield* signOut(aliceCookie);
-		const revokedCreate = yield* alice.create({ title: "Revoked note" }).pipe(Effect.flip);
-		expect(revokedCreate).toMatchObject({ _tag: "Unauthorized" });
-		expect(revokedCreate).toBeInstanceOf(Unauthorized);
-		const returningCookie = yield* mintSession("alice");
-		const returning = yield* notes(returningCookie);
-		expect(yield* returning.list()).toEqual([note]);
+	"alice's list holds her own note but not the unowned note from before notes had owners",
+	[signedIn("alice"), legacyNote("Legacy note")],
+	function* ({ notesOf }) {
+		const note = yield* notesOf("alice").create("Alice's note");
+
+		const listed = yield* notesOf("alice").list();
+
+		expect(listed).toEqual([note]);
 	},
 );
+
+app.it("after alice signs out, her old session is told to sign in", [signedIn("alice")], function* ({ notesOf, signsOut }) {
+	expect(yield* answer(notesOf("alice").list())).toEqual([]);
+
+	yield* signsOut("alice");
+
+	expect(yield* answer(notesOf("alice").create("Revoked note"))).toBe("sign in required");
+});

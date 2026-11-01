@@ -1,188 +1,139 @@
 import { expect } from "vitest";
-import { heldNotesList, notesRoute, screens } from "#modules/notes/test-support/screens.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { heldNotesList, listedNote, notesRoute, screens } from "#modules/notes/test-support/screens.ts";
 
-screens.it(
-	"shares the route query, validates the form, retains a rejected title and refreshes after creation",
-	[notesRoute()],
-	function* ({
-		settle,
-		closeScreen,
-		consoleErrors,
-		screenText,
-		submit,
-		alert,
-		enter,
-		draft,
-		noteLink,
-		wordCountText,
-		finishWordCount,
-		reads,
-		queryCount,
-	}) {
-		yield* settle();
-		expect(screenText()).toContain("No notes yet");
-		expect(
-			reads()
-				.filter(({ tag }) => tag === "notes.list")
-				.map(({ tag }) => tag),
-		).toEqual(["notes.list"]);
-		yield* submit();
-		yield* settle();
-		expect(alert()).toBe("Enter a title");
-		expect(
-			reads()
-				.filter(({ tag }) => tag === "notes.list")
-				.map(({ tag }) => tag),
-		).toEqual(["notes.list"]);
-		yield* enter("reserved");
-		yield* submit();
-		yield* settle();
-		expect(alert()).toBe("Choose another title");
-		expect(draft()).toBe("reserved");
-		yield* enter("First note");
-		yield* submit();
-		yield* settle();
-		expect(noteLink()).toBe("First note");
-		expect(draft()).toBe("");
-		expect(alert()).toBeUndefined();
-		expect(
-			reads()
-				.filter(({ tag }) => tag === "notes.list")
-				.map(({ tag }) => tag),
-		).toEqual(["notes.list", "notes.list"]);
-		expect(wordCountText()).toContain("Counting words…");
-		yield* finishWordCount(2);
-		yield* settle();
-		expect(wordCountText()).toContain("2 words");
-		expect(queryCount("list")).toBeGreaterThan(2);
-		yield* finishWordCount(1);
-		yield* settle();
-		expect(wordCountText()).toContain("1 word");
-		expect(wordCountText()).not.toContain("1 words");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
-	},
-);
+screens.it("the notes route and its screen share one list read", [notesRoute()], function* ({ listReads, settle }) {
+	yield* settle();
 
-screens.it(
-	"shows loading before the first result and keeps the empty message during a refresh",
-	[heldNotesList(), notesRoute()],
-	function* ({
-		settle,
-		waitForList,
-		closeScreen,
-		consoleErrors,
-		refreshDisabled,
-		loadingMessage,
-		screenText,
-		releaseNotesList,
-		holdNotesList,
-		click,
-		reads,
-		screenContent,
-	}) {
-		expect(loadingMessage()).toBe("Loading…");
-		expect(screenText()).not.toContain("No notes yet");
-		const content = yield* screenContent();
-		expect(content.querySelector("table")).toBeNull();
-		expect(content.querySelector('section[aria-label="Add a note"] form')).toBeNull();
-		yield* releaseNotesList();
-		yield* settle();
-		expect(refreshDisabled()).toBe(false);
-		expect(screenText()).toContain("No notes yet");
-		expect(content.querySelector('section[aria-label="Add a note"] form')).not.toBeNull();
-		expect(loadingMessage()).toBe(undefined);
-		expect(content.querySelector("table")).toBeNull();
-		expect(screenText()).not.toContain("No results.");
-		yield* holdNotesList();
-		yield* click("Refresh");
-		yield* waitForList();
-		expect(
-			reads()
-				.filter(({ tag }) => tag === "notes.list")
-				.map(({ tag }) => tag),
-		).toEqual(["notes.list", "notes.list"]);
-		expect(refreshDisabled()).toBe(true);
-		expect(screenText()).toContain("No notes yet");
-		expect(loadingMessage()).toBe(undefined);
-		expect(content.querySelector("table")).toBeNull();
-		yield* releaseNotesList();
-		yield* settle();
-		expect(refreshDisabled()).toBe(false);
-		expect(screenText()).toContain("No notes yet");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
-	},
-);
-
-screens.it(
-	"keeps the listed note without a loading message during manual and live-hint refreshes",
-	[notesRoute()],
-	function* ({
-		settle,
-		waitForList,
-		closeScreen,
-		consoleErrors,
-		screenText,
-		enter,
-		submit,
-		noteLink,
-		holdNotesList,
-		click,
-		reads,
-		queryCount,
-		refreshDisabled,
-		loadingMessage,
-		releaseNotesList,
-		finishWordCount,
-		wordCountText,
-	}) {
-		yield* settle();
-		expect(screenText()).toContain("No notes yet");
-		yield* enter("First note");
-		yield* submit();
-		yield* settle();
-		expect(noteLink()).toBe("First note");
-		yield* holdNotesList();
-		yield* click("Refresh");
-		yield* waitForList();
-		expect(
-			reads()
-				.filter(({ tag }) => tag === "notes.list")
-				.map(({ tag }) => tag),
-		).toEqual(["notes.list", "notes.list", "notes.list"]);
-		expect(refreshDisabled()).toBe(true);
-		expect(noteLink()).toBe("First note");
-		expect(loadingMessage()).toBe(undefined);
-		yield* releaseNotesList();
-		yield* settle();
-		expect(refreshDisabled()).toBe(false);
-		expect(wordCountText()).toContain("Counting words…");
-		yield* holdNotesList();
-		yield* finishWordCount(2);
-		yield* waitForList();
-		expect(queryCount("list")).toBeGreaterThan(3);
-		expect(refreshDisabled()).toBe(true);
-		expect(noteLink()).toBe("First note");
-		expect(wordCountText()).toContain("Counting words…");
-		expect(loadingMessage()).toBe(undefined);
-		yield* releaseNotesList();
-		yield* settle();
-		expect(refreshDisabled()).toBe(false);
-		expect(wordCountText()).toContain("2 words");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
-	},
-);
-
-screens.it("refuses a whitespace-only title in the form before submit", [notesRoute()], function* ({ enter, alert, reads, draft }) {
-	yield* enter("   ");
-
-	expect(alert()).toBe("Enter a title");
-	expect(draft()).toBe("   ");
-	expect(
-		reads()
-			.filter(({ tag }) => tag === "notes.list")
-			.map(({ tag }) => tag),
-	).toEqual(["notes.list"]);
+	expect(yield* listReads()).toBe("one list read");
 });
+
+screens.it(
+	"the notes screen shows loading until the first list arrives",
+	[heldNotesList(), notesRoute()],
+	function* ({ addNoteForm, releaseNotesList, settle, shownNotes }) {
+		expect(yield* shownNotes()).toEqual(["loading"]);
+
+		yield* releaseNotesList();
+		yield* settle();
+
+		yield* outcomes([
+			["notes", shownNotes, ["no notes yet"]],
+			["add-note form", addNoteForm, "shown"],
+		]);
+	},
+);
+
+for (const title of ["", "   "]) {
+	screens.it(
+		`a ${title === "" ? "blank" : "whitespace-only"} title asks for a title without saving or reading the list again`,
+		[notesRoute()],
+		function* ({ alert, enter, listReads, settle, shownNotes, submit }) {
+			yield* enter(title);
+
+			yield* submit();
+			yield* settle();
+
+			yield* outcomes([
+				["alert", alert, "Enter a title"],
+				["notes", shownNotes, ["no notes yet"]],
+				["list reads", listReads, "one list read"],
+			]);
+		},
+	);
+}
+
+screens.it("a title the server refuses shows its reason and stays in the field", [notesRoute()], function* ({ alert, draft, enter, settle, submit }) {
+	yield* enter("reserved");
+
+	yield* submit();
+	yield* settle();
+
+	yield* outcomes([
+		["alert", alert, "Choose another title"],
+		["draft", draft, "reserved"],
+	]);
+});
+
+screens.it(
+	"adding a note lists it, clears the field and reads the list again",
+	[notesRoute()],
+	function* ({ alert, draft, enter, listReads, settle, shownNotes, submit }) {
+		yield* settle();
+		expect(yield* shownNotes()).toEqual(["no notes yet"]);
+		yield* enter("First note");
+
+		yield* submit();
+		yield* settle();
+
+		yield* outcomes([
+			["notes", shownNotes, ["First note"]],
+			["draft", draft, ""],
+			["alert", alert, "no alert"],
+			["list reads", listReads, "2 list reads"],
+		]);
+	},
+);
+
+for (const [count, shown] of [
+	[2, "2 words"],
+	[1, "1 word"],
+] as const) {
+	screens.it(
+		`a live hint for a finished count of ${count} shows "${shown}" beside the note`,
+		[listedNote(), notesRoute()],
+		function* ({ finishWordCount, settle, wordCounts }) {
+			expect(yield* wordCounts()).toEqual(["First note: Counting words…"]);
+
+			yield* finishWordCount(count);
+			yield* settle();
+
+			expect(yield* wordCounts()).toEqual([`First note: ${shown}`]);
+		},
+	);
+}
+
+for (const { given, trigger, shown } of [
+	{ given: [notesRoute()], shown: ["no notes yet"], trigger: "Refresh" },
+	{ given: [listedNote(), notesRoute()], shown: ["First note"], trigger: "Refresh" },
+	{ given: [listedNote(), notesRoute()], shown: ["First note"], trigger: "live hint" },
+] as const) {
+	screens.it(
+		`while a ${trigger} reloads the list, the screen keeps showing ${shown.join(", ")} with Refresh disabled`,
+		given,
+		function* ({ click, finishWordCount, holdNotesList, refreshButton, settle, shownNotes, waitForList }) {
+			yield* settle();
+			expect(yield* shownNotes()).toEqual(shown);
+			yield* holdNotesList();
+
+			if (trigger === "Refresh") {
+				yield* click("Refresh");
+			} else {
+				yield* finishWordCount(2);
+			}
+			yield* waitForList();
+
+			yield* outcomes([
+				["notes", shownNotes, shown],
+				["Refresh", refreshButton, "disabled"],
+			]);
+		},
+	);
+}
+
+screens.it(
+	"Refresh is enabled again once the reloaded list arrives",
+	[notesRoute()],
+	function* ({ click, holdNotesList, refreshButton, releaseNotesList, settle, waitForList }) {
+		yield* settle();
+		yield* holdNotesList();
+		yield* click("Refresh");
+		yield* waitForList();
+		expect(yield* refreshButton()).toBe("disabled");
+
+		yield* releaseNotesList();
+		yield* settle();
+
+		expect(yield* refreshButton()).toBe("enabled");
+	},
+);

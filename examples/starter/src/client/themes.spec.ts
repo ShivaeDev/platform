@@ -2,68 +2,54 @@ import { expect } from "vitest";
 import { themeStyles } from "#test-support/themeStyles.ts";
 
 for (const theme of ["light", "dark"] as const) {
-	themeStyles.it(`${theme} text and focus pairs meet WCAG AA`, [], function* ({ load, guidance }) {
-		yield* load();
-		const surfaces = ["background", "card", "popover", "muted", "secondary", "accent", "input/0.3"];
-		const pairs = [
-			["foreground", "background"],
-			["card-foreground", "card"],
-			["popover-foreground", "popover"],
-			["primary-foreground", "primary"],
-			["primary-foreground", "primary/0.9"],
-			["secondary-foreground", "secondary"],
-			["accent-foreground", "accent"],
-			["background", "foreground"],
-			["foreground/0.6", "muted"],
-			["#ffffff", theme === "dark" ? "destructive/0.6" : "destructive"],
-			["#ffffff", "destructive/0.9"],
-		];
-		for (const surface of surfaces) {
-			pairs.push(
-				["foreground", surface],
-				["muted-foreground", surface],
-				["destructive", surface],
-				["code-added", surface],
-				["primary-foreground", `primary/0.9 over ${surface}`],
-				["#ffffff", `${theme === "dark" ? "destructive/0.6" : "destructive"} over ${surface}`],
-				["#ffffff", `destructive/0.9 over ${surface}`],
-			);
-		}
-		pairs.push(["code-added", "code-added/0.1 over muted/0.3"], ["destructive", "destructive/0.1 over muted/0.3"]);
-		for (const [foreground = "", background = ""] of pairs) {
-			const result = guidance(theme, foreground, background, 4.5);
-			expect(result.ratio, result.message).toBeGreaterThanOrEqual(4.5);
-		}
-		for (const surface of surfaces) {
-			for (const foreground of ["ring", "ring/0.5"]) {
-				const result = guidance(theme, foreground, surface, 3);
-				expect(result.ratio, result.message).toBeGreaterThanOrEqual(3);
-			}
-		}
+	themeStyles.it(`every ${theme} text pair meets WCAG AA's 4.5:1 contrast`, [], function* ({ textContrastFailures }) {
+		const failures = yield* textContrastFailures(theme);
+
+		expect(failures).toEqual([]);
+	});
+
+	themeStyles.it(`every ${theme} focus ring meets WCAG AA's 3:1 contrast`, [], function* ({ focusRingContrastFailures }) {
+		const failures = yield* focusRingContrastFailures(theme);
+
+		expect(failures).toEqual([]);
 	});
 }
 
-themeStyles.it("a ported palette failure suggests a foreground lightness that passes", [], function* ({ load, setToken, guidance, contrast }) {
-	yield* load();
+themeStyles.it("a muted foreground that fails contrast reports the nearest lightness that passes", [], function* ({ contrastFailures, setToken }) {
 	yield* setToken("muted-foreground", "#aaaaaa", "#aaaaaa");
-	const result = guidance("light", "muted-foreground", "background", 4.5);
-	expect(() => expect(result.ratio, result.message).toBeGreaterThanOrEqual(4.5)).toThrow(
-		/light: muted-foreground on background: 2\.32:1 .*nearest passing HSL lightness for muted-foreground: 46\.27% \(#767676\)/u,
-	);
-	expect(result.suggestion).toBeDefined();
-	yield* setToken("muted-foreground", result.suggestion?.color ?? "#aaaaaa", "#aaaaaa");
-	expect(contrast("light", "muted-foreground", "background")).toBeGreaterThanOrEqual(4.5);
-	yield* setToken("muted-foreground", "#777777", "#aaaaaa");
-	expect(contrast("light", "muted-foreground", "background")).toBeLessThan(4.5);
+
+	const failures = yield* contrastFailures("light", [["muted-foreground", "background"]], 4.5);
+
+	expect(failures).toEqual([
+		"light: muted-foreground on background: 2.32:1 (requires 4.5:1); nearest passing HSL lightness for muted-foreground: 46.27% (#767676), preserving hue and saturation (0.01% search steps)",
+	]);
 });
 
-themeStyles.it("a lightness correction includes surfaces that use the foreground token", [], function* ({ load, setToken, guidance, contrast }) {
-	yield* load();
-	yield* setToken("code-added", "#aaaaaa", "#aaaaaa");
-	const surface = "code-added/0.1 over muted/0.3";
-	const result = guidance("light", "code-added", surface, 4.5);
-	expect(result.ratio).toBeLessThan(4.5);
-	expect(result.suggestion).toBeDefined();
-	yield* setToken("code-added", result.suggestion?.color ?? "#aaaaaa", "#aaaaaa");
-	expect(contrast("light", "code-added", surface), result.message).toBeGreaterThanOrEqual(4.5);
-});
+const nearestColors = [
+	["#767676", "passes, being the suggested lightness", []],
+	["#777777", "fails, being one step lighter than the suggestion", [expect.stringContaining("light: muted-foreground on background: 4.48:1")]],
+] as const;
+
+for (const [color, verdict, failures] of nearestColors) {
+	themeStyles.it(`a muted foreground of ${color} ${verdict}`, [], function* ({ contrastFailures, setToken }) {
+		yield* setToken("muted-foreground", color, "#aaaaaa");
+
+		const found = yield* contrastFailures("light", [["muted-foreground", "background"]], 4.5);
+
+		expect(found).toEqual(failures);
+	});
+}
+
+themeStyles.it(
+	"a code-added correction also passes on the tinted surface that uses the token",
+	[],
+	function* ({ contrastFailures, setToken, suggestedColor }) {
+		const surface = "code-added/0.1 over muted/0.3";
+		yield* setToken("code-added", "#aaaaaa", "#aaaaaa");
+		const suggested = yield* suggestedColor("light", "code-added", surface, 4.5);
+
+		yield* setToken("code-added", suggested, "#aaaaaa");
+
+		expect(yield* contrastFailures("light", [["code-added", surface]], 4.5)).toEqual([]);
+	},
+);

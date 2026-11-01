@@ -8,9 +8,9 @@ export const authPost = Effect.fn("AppTest.authPost")(function* (baseUrl: string
 			method: "POST",
 		}),
 	);
-	yield* Effect.promise(() => response.text());
+	const text = yield* Effect.promise(() => response.text());
 	const cookies = response.headers.getSetCookie();
-	return { cookie: cookies.map((value) => value.split(";")[0]).join("; "), cookies, status: response.status };
+	return { body: text, cookie: cookies.map((value) => value.split(";")[0]).join("; "), cookies, status: response.status };
 });
 
 export function credentials(name: string) {

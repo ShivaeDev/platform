@@ -1,37 +1,38 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failingSessionCheck, refusedAppSignOut, screens } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
-	"checks and retries the session through its injected auth client",
+	"Retry after a failed session check asks the app's auth client again and shows sign-in",
 	[failingSessionCheck()],
-	function* ({ settle, closeScreen, consoleErrors, alert, recoverSessionCheck, click, heading, authRequests }) {
+	function* ({ alert, authRequests, click, heading, recoverSessionCheck, settle }) {
 		yield* settle();
-		expect(alert()).toBe("Could not check your session.");
+		expect(yield* alert()).toBe("Could not check your session.");
 		yield* recoverSessionCheck();
+
 		yield* click("Retry");
 		yield* settle();
-		expect(heading()).toBe("Sign in");
-		expect(authRequests().map((url) => url.href)).toEqual([
-			"http://session.story.test/api/auth/get-session?disableCookieCache=true",
-			"http://session.story.test/api/auth/get-session?disableCookieCache=true",
+
+		yield* outcomes([
+			["page", heading, "Sign in"],
+			["auth requests", authRequests, ["session.story.test/api/auth/get-session", "session.story.test/api/auth/get-session"]],
 		]);
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
 	},
 );
 
 screens.it(
-	"routes sign-out through the same injected auth client as its session check",
+	"sign-out goes through the app's auth client and shows its refusal",
 	[refusedAppSignOut("Provider refused sign-out")],
-	function* ({ settle, closeScreen, consoleErrors, screenText, click, alert, authRequests }) {
+	function* ({ alert, authRequests, click, settle, shownNotes }) {
 		yield* settle();
-		expect(screenText()).toContain("No notes yet");
+		expect(yield* shownNotes()).toEqual(["no notes yet"]);
+
 		yield* click("Sign out");
 		yield* settle();
-		expect(alert()).toBe("Could not sign out. Try again.");
-		expect(authRequests().some((url) => url.pathname === "/api/auth/sign-out")).toBe(true);
-		expect(authRequests().every((url) => url.origin === "http://actions.story.test")).toBe(true);
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["alert", alert, "Could not sign out. Try again."],
+			["auth requests", authRequests, ["actions.story.test/api/auth/get-session", "actions.story.test/api/auth/sign-out"]],
+		]);
 	},
 );

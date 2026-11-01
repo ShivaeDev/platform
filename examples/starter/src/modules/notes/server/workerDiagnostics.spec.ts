@@ -1,12 +1,13 @@
 import { expect } from "vitest";
-import { app } from "#modules/notes/test-support/application.ts";
+import { app, workerExportsTraces } from "#modules/notes/test-support/application.ts";
 
-app.it("the worker exports its startup log through OTLP without an HTTP request", [], function* ({ collector }) {
-	const receiver = yield* collector();
-	const stopWorker = yield* receiver.startWorker();
+app.it(
+	"the worker exports its startup log to the trace collector before it takes a job",
+	[workerExportsTraces()],
+	function* ({ exportedTraceMentions, workerStarts, workerStops }) {
+		yield* workerStarts();
+		yield* workerStops();
 
-	yield* stopWorker;
-
-	expect(receiver.spans.map(({ name }) => name)).toContain("effect.log");
-	expect(receiver.requests.map(({ body }) => body.toString()).join("\n")).toContain("Worker ready to take jobs");
-});
+		expect(yield* exportedTraceMentions("Worker ready to take jobs")).toBe("mentions Worker ready to take jobs");
+	},
+);

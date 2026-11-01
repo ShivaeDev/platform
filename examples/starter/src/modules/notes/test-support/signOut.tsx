@@ -58,29 +58,39 @@ export const signOut = storyKit({
 			root: () => screenView(engine).container,
 			tell: story.tell,
 		});
+		const becomeAnonymous = Effect.promise(() => {
+			story.tell("the session owner replaces alice's session with an anonymous one");
+			return engine.render(false);
+		});
+		const responseArrives = Effect.promise(() =>
+			act(async () => {
+				story.tell("the sign-out response arrives");
+				engine.response.resolve({ data: {}, error: null });
+				await engine.response.promise;
+			}),
+		);
 		return {
-			...driver,
-			becomeAnonymous: () =>
-				Effect.promise(() => {
-					story.tell("the session owner replaces Alice's session with an anonymous session");
-					return engine.render(false);
+			finishesSigningOut: (first: "session refresh" | "sign-out response") =>
+				Effect.gen(function* () {
+					yield* first === "session refresh" ? becomeAnonymous : responseArrives;
+					yield* driver.settle();
+					yield* first === "session refresh" ? responseArrives : becomeAnonymous;
+					yield* driver.settle();
 				}),
-			href: () => engine.history.location.href,
-			releaseResponse: () =>
-				Effect.promise(() =>
-					act(async () => {
-						story.tell("the sign-out response arrives");
-						engine.response.resolve({ data: {}, error: null });
-						await engine.response.promise;
-					}),
-				),
-			requested: () => Effect.promise(() => engine.requested.promise),
+			heading: () => Effect.sync(() => screenView(engine).container.querySelector("h1")?.textContent ?? "no heading"),
+			href: () => Effect.sync(() => engine.history.location.href),
+			settle: driver.settle,
+			startsSigningOut: () =>
+				Effect.gen(function* () {
+					yield* driver.click({ name: "Sign out", role: "button" });
+					yield* Effect.promise(() => engine.requested.promise);
+				}),
 		};
 	},
 });
 
 export function signedInNotes() {
-	return signOut.trait("screen", "Alice opens the real notes route with the sign-out response held", (engine) =>
+	return signOut.trait("screen", "alice opens the notes route and the app holds her sign-out response", (engine) =>
 		Effect.promise(() => engine.render(true)),
 	);
 }

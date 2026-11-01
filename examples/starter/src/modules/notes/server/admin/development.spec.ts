@@ -1,42 +1,65 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
-import { requestOutcome } from "#modules/notes/test-support/requestOutcome.ts";
+import { adminAccount, adminHost, adminThroughDevelopmentServer } from "#modules/notes/test-support/admin/host.ts";
 
 adminHost.it(
-	"serves admin routes and guarded native jobs data through the development server",
-	[adminAccount("reader"), adminAccount("reader-two"), adminAccount("operator", "admin")],
-	function* ({ createNote, openAdmin, request, startDevelopment }) {
-		yield* createNote("reader", "Waiting for word count");
-		yield* startDevelopment();
-		for (const path of ["/admin", "/admin/jobs", "/admin/notes", "/admin/users"]) {
-			expect(yield* request(path)).toContain("/src/client/main.tsx");
-		}
-		for (const name of ["visitor", "reader", "reader-two"]) {
-			const client = yield* openAdmin(name);
-			for (const operation of [
-				requestOutcome(client["admin.jobs.counts"]({ queue: "count-note-words" })),
-				requestOutcome(client["admin.notes.statistics"]()),
-				requestOutcome(client["admin.users.list"]({ limit: 20 })),
-			]) {
-				const result = yield* operation;
-				expect(result).toBe(name === "visitor" ? "sign in required" : "permission denied");
-			}
-		}
-		const client = yield* openAdmin("operator");
+	"through the development server, every admin route serves the app shell",
+	[adminThroughDevelopmentServer()],
+	function* ({ servesAppShell }) {
+		const admin = yield* servesAppShell("/admin");
+
+		yield* outcomes([
+			["/admin", () => Effect.succeed(admin), "the app shell"],
+			["/admin/jobs", () => servesAppShell("/admin/jobs"), "the app shell"],
+			["/admin/notes", () => servesAppShell("/admin/notes"), "the app shell"],
+			["/admin/users", () => servesAppShell("/admin/users"), "the app shell"],
+		]);
+	},
+);
+
+const refusedReaders = [
+	["reader", [adminAccount("reader"), adminThroughDevelopmentServer()], "permission denied"],
+	["visitor", [adminThroughDevelopmentServer()], "sign in required"],
+] as const;
+
+for (const [name, traits, refused] of refusedReaders) {
+	adminHost.it(
+		`through the development server, the word-count queue, notes statistics and users answer ${name} with ${refused}`,
+		traits,
+		function* ({ noteStatistics, users, wordCountQueue }) {
+			const queue = yield* wordCountQueue(name);
+
+			yield* outcomes([
+				["word-count queue", () => Effect.succeed(queue), refused],
+				["notes statistics", () => noteStatistics(name), refused],
+				["users", () => users(name), refused],
+			]);
+		},
+	);
+}
+
+adminHost.it(
+	"through the development server, an admin reads the users, notes statistics and word-count queue",
+	[adminAccount("reader"), adminAccount("operator", "admin"), adminThroughDevelopmentServer()],
+	function* ({ createsNote, noteStatistics, users, wordCountQueue }) {
+		expect(yield* wordCountQueue("operator")).toEqual({ queued: 0, total: 0 });
+
+		yield* createsNote("reader", "Waiting for word count");
+
 		yield* outcomes([
 			[
-				"listed user emails",
-				() => Effect.map(client["admin.users.list"]({ limit: 20 }), ({ users }) => users.map(({ email }) => email)),
-				expect.arrayContaining(["operator@app.test"]),
+				"users",
+				() => users("operator"),
+				{
+					users: [
+						{ email: "operator@app.test", role: "admin" },
+						{ email: "reader@app.test", role: "user" },
+					],
+				},
 			],
-			["note statistics", () => client["admin.notes.statistics"](), { notes: 1, pending: 1, words: 0 }],
-			[
-				"queued word-count jobs",
-				() => client["admin.jobs.counts"]({ queue: "count-note-words" }),
-				expect.objectContaining({ queuedCount: 1, totalCount: 1 }),
-			],
+			["notes statistics", () => noteStatistics("operator"), { notes: 1, pending: 1, words: 0 }],
+			["word-count queue", () => wordCountQueue("operator"), { queued: 1, total: 1 }],
 		]);
 	},
 );

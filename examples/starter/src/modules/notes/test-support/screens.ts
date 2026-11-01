@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { requireSetup } from "#modules/notes/test-support/requireSetup.ts";
@@ -15,6 +16,8 @@ import { createScreen } from "./screenState.ts";
 import { noteScreenVerbs } from "./screenVerbs.ts";
 import { notesUiVerbs } from "./uiVerbs.ts";
 
+expectNoReactWarnings();
+
 export const screens = storyKit({
 	clock: "live",
 	create: createScreen,
@@ -24,7 +27,7 @@ export const screens = storyKit({
 		text: engine.view?.container.textContent,
 	}),
 	name: "app screen",
-	stages: ["list", "screen", "elsewhere"],
+	stages: ["list", "provider", "screen", "elsewhere"],
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),
 		...uiScreenVerbs(engine, story.tell),
@@ -34,10 +37,28 @@ export const screens = storyKit({
 		...noteScreenVerbs(engine, story.tell),
 		...notesRefreshVerbs(engine, story.tell),
 		...authScreenVerbs(engine, story.tell),
-		closeScreen: () => Effect.promise(() => screenView(engine).unmount()),
-		consoleErrors: engine.consoleErrors,
 	}),
 });
+
+export function listedNote() {
+	return screens.trait("list", "alice has saved First note, whose words are still being counted", function* (engine) {
+		engine.client = yield* notesClient([{ id: 1, title: "First note", version: 0, wordCount: null }]);
+	});
+}
+
+export function savedNotes(...titles: readonly string[]) {
+	return screens.trait("list", `alice has saved ${titles.join(" and then ")}`, function* (engine) {
+		engine.client = yield* notesClient(titles.map((title, index) => ({ id: index + 1, title, version: 0, wordCount: null })).reverse());
+	});
+}
+
+export function authenticationOffline() {
+	return screens.trait("provider", "the authentication provider is offline", (engine) =>
+		Effect.sync(() => {
+			engine.login.unavailable = true;
+		}),
+	);
+}
 
 export function heldNotesList() {
 	return screens.trait("list", "the first notes list request is held", (engine) => Effect.sync(() => engine.client.holdList()));
@@ -73,9 +94,11 @@ export function notesScreen(signOutFailure?: string) {
 	);
 }
 
-export function loginScreen(rejection: string) {
-	return screens.trait("screen", `the login screen is open and authentication rejects with ${JSON.stringify(rejection)}`, (engine) =>
-		openLogin(engine, rejection),
+export function loginScreen(rejection?: string) {
+	return screens.trait(
+		"screen",
+		`the login screen is open and authentication ${rejection === undefined ? "accepts" : `rejects with ${JSON.stringify(rejection)}`}`,
+		(engine) => openLogin(engine, rejection),
 	);
 }
 
@@ -92,7 +115,10 @@ export function refusedAppSignOut(message: string) {
 }
 
 export function aliceSession() {
-	return screens.trait("screen", "Alice's session opens the notes app", openSession);
+	return screens.trait("screen", "alice's session opens the notes app with her saved note", function* (engine) {
+		engine.client = yield* notesClient([{ id: 1, title: "Alice's saved note", version: 0, wordCount: null }]);
+		yield* openSession(engine);
+	});
 }
 
 export function codePreviewScreen(lines: readonly CodePreviewLine[]) {

@@ -1,24 +1,27 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { legacyUser, migration } from "#test-support/migration.ts";
 
 migration.it(
-	"numbered migrations cover current auth options with the user role default and non-null constraint",
+	"the numbered migrations leave a schema Better Auth accepts, with a required user role that defaults to user",
 	[],
-	function* ({ migrate, roleColumn, checkAuthSchema }) {
-		yield* migrate();
-		yield* checkAuthSchema();
+	function* ({ authSchemaCheck, migrates, roleColumn }) {
+		yield* migrates();
 
-		expect(yield* roleColumn()).toEqual([{ default: "'user'::text", nullable: "NO", type: "text" }]);
+		yield* outcomes([
+			["auth schema", () => authSchemaCheck(), "accepted"],
+			["role column", () => roleColumn(), "text, not null, default 'user'"],
+		]);
 	},
 );
 
 migration.it(
-	"an existing user receives the default user role through the frozen numbered migration",
+	"the stored-roles migration gives alice, a user from before roles, the user role",
 	[legacyUser],
-	function* ({ adoptRoles, roleColumn, storedRoles }) {
-		expect(yield* roleColumn()).toEqual([{ default: null, nullable: "YES", type: "text" }]);
+	function* ({ roleColumn, rolesMigrationRuns, storedRoles }) {
+		expect(yield* roleColumn()).toBe("text, nullable, no default");
 
-		yield* adoptRoles();
+		yield* rolesMigrationRuns();
 
 		expect(yield* storedRoles()).toEqual([{ email: "alice@migration.test", role: "user" }]);
 	},

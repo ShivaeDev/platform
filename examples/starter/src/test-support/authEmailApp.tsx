@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { ConfigProvider, Effect, Layer } from "effect";
+import { ConfigProvider, Effect, Layer, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { emailLink, inbox } from "@shivaedev/email/server/testing/adapters/inbox.ts";
@@ -18,6 +18,8 @@ import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
+
+const decodeSession = Schema.decodeUnknownSync(Schema.Struct({ user: Schema.Struct({ emailVerified: Schema.Boolean }) }));
 
 export const authEmailApp = storyKit({
 	around: withIsolatedDatabase,
@@ -53,22 +55,51 @@ export const authEmailApp = storyKit({
 	stages: [],
 	verbs: (engine, story) => {
 		const { host, mail, testing, surface, auth } = engine;
-		let confirmation: { readonly location: string | null; readonly status: number } | undefined;
 		const driver = screenDriver({
 			act,
 			pending: () => surface.view?.registry.get(auth.actions.resetPassword).waiting ?? false,
 			root: () => screenView(surface).container,
 			tell: story.tell,
 		});
+		function request(kind: "ConfirmAccount" | "ResetPassword") {
+			return Effect.promise(async () => {
+				const path = kind === "ConfirmAccount" ? "send-verification-email" : "request-password-reset";
+				const response = await fetch(`${host.baseUrl}/api/auth/${path}`, {
+					body: JSON.stringify({ email: "alice@app.test" }),
+					headers: { "content-type": "application/json", origin: host.baseUrl },
+					method: "POST",
+				});
+				await response.text();
+			});
+		}
 		return {
-			click: driver.click,
-			confirmation: () => Effect.sync(() => confirmation),
-			enter: driver.enter,
-			followConfirmation: () =>
+			account: () =>
+				Effect.promise(async () => {
+					const response = await fetch(`${host.baseUrl}/api/auth/get-session`, { headers: engine.alice.headers });
+					const session = decodeSession(await response.json());
+					return session.user.emailVerified ? "verified" : "unverified";
+				}),
+			changesPassword: (password: string) =>
+				Effect.gen(function* () {
+					yield* driver.enter('input[type="password"]', password);
+					yield* driver.click({ name: "Change password", role: "button" });
+					yield* driver.settle();
+				}),
+			deliveredEmails: () =>
+				testing.waitForIdle.pipe(
+					Effect.andThen(mail.emails()),
+					Effect.map((emails) =>
+						emails.map((email) => {
+							const link = new URL(emailLink(email));
+							return `${email.subject} for ${email.to} at ${link.origin}${link.pathname}`;
+						}),
+					),
+				),
+			followsConfirmationLink: () =>
 				Effect.gen(function* () {
 					const link = new URL(emailLink(yield* mail.nextEmail));
-					yield* Effect.promise(async () => {
-						story.tell("alice follows the app's confirmation route");
+					return yield* Effect.promise(async () => {
+						story.tell("alice follows the link in her confirmation email");
 						const response = await fetch(`${host.baseUrl}${link.pathname}${link.search}`, { redirect: "manual" });
 						await response.text();
 						const location = response.headers.get("location");
@@ -77,13 +108,12 @@ export const authEmailApp = storyKit({
 						}
 						const confirmed = await fetch(new URL(location, host.baseUrl), { redirect: "manual" });
 						await confirmed.text();
-						confirmation = { location: confirmed.headers.get("location"), status: confirmed.status };
+						return confirmed.headers.get("location") ?? `no redirect, HTTP ${confirmed.status}`;
 					});
 				}),
-			messages: () => testing.waitForIdle.pipe(Effect.andThen(mail.emails())),
-			openReset: () =>
+			opensResetLink: () =>
 				Effect.gen(function* () {
-					story.tell("alice opens the app route in her password reset email");
+					story.tell("alice opens the link in her password reset email");
 					const link = new URL(emailLink(yield* mail.nextEmail));
 					const view = yield* acquireScreen(surface);
 					const router = yield* appRouter(
@@ -95,27 +125,23 @@ export const authEmailApp = storyKit({
 						await view.render(<RouterProvider router={router} />);
 						await act(() => router.load());
 					});
+					yield* driver.settle();
 				}),
-			request: (kind: "ConfirmAccount" | "ResetPassword") =>
+			requestsConfirmation: () => {
+				story.tell("alice asks for a confirmation email");
+				return request("ConfirmAccount");
+			},
+			requestsPasswordReset: () => {
+				story.tell("alice asks for a password reset email");
+				return request("ResetPassword");
+			},
+			screenStatus: () => Effect.sync(() => screenView(surface).container.querySelector("[role=status]")?.textContent ?? "no status"),
+			signsIn: (password: string) =>
 				Effect.promise(async () => {
-					story.tell(`alice requests ${kind}`);
-					const path = kind === "ConfirmAccount" ? "send-verification-email" : "request-password-reset";
-					const response = await fetch(`${host.baseUrl}/api/auth/${path}`, {
-						body: JSON.stringify({ email: "alice@app.test" }),
-						headers: { "content-type": "application/json", origin: host.baseUrl },
-						method: "POST",
-					});
-					await response.text();
-					return response.status;
+					story.tell("alice signs in with her new password");
+					const { data, error } = await auth.client.signIn.email({ email: "alice@app.test", password });
+					return error === null ? `signed in as ${data.user.email}` : `refused: ${error.message}`;
 				}),
-			screenText: () => Effect.sync(() => screenView(surface).container.textContent),
-			session: () =>
-				Effect.promise(async () => {
-					const response = await fetch(`${host.baseUrl}/api/auth/get-session`, { headers: engine.alice.headers });
-					return response.json();
-				}),
-			settle: driver.settle,
-			signIn: (password: string) => Effect.promise(() => auth.client.signIn.email({ email: "alice@app.test", password })),
 		};
 	},
 });

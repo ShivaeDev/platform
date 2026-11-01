@@ -1,36 +1,36 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
+import { notesDeployment, releaseMigrated, signedUp, webRunning } from "#modules/notes/test-support/deployment.ts";
 
 notesDeployment.it(
-	"a killed old worker stops blocking the owning release after its heartbeat expires",
-	[],
-	function* ({ startProcess, signUpAt, notesAt, holdJob, workerPollPasses }) {
-		const oldRelease = { "RAILWAY_GIT_COMMIT_SHA": "crashed" };
-		const newRelease = { "RAILWAY_GIT_COMMIT_SHA": "replacement" };
-		const migration = yield* startProcess("migrate", 0, oldRelease);
-		expect(yield* migration.child.exitCode).toBe(0);
-		const web = yield* startProcess("web");
-		const address = yield* web.ready;
-		const session = yield* signUpAt(address, "crash");
-		const notes = yield* notesAt(address, session.cookie);
-		const first = yield* notes["notes.create"]({ title: "Interrupted by crash" });
-		const held = yield* holdJob(first.id);
-		const oldWorker = yield* startProcess("worker", 0, oldRelease);
-		yield* oldWorker.ready;
-		yield* held.blocked;
-		const nextMigration = yield* startProcess("migrate", 0, newRelease);
-		expect(yield* nextMigration.child.exitCode).toBe(0);
-		const nextWorker = yield* startProcess("worker", 0, newRelease);
-		yield* nextWorker.ready;
-		const second = yield* notes["notes.create"]({ title: "Replacement handles queued jobs" });
-		yield* oldWorker.child.kill({ killSignal: "SIGKILL" });
-		yield* held.release;
+	"a killed worker of the old release holds back the replacement until its heartbeat expires, then the replacement counts queued notes",
+	[releaseMigrated("crashed"), webRunning(), signedUp("alice")],
+	function* ({
+		heldNoteIsReleased,
+		migrates,
+		noteIsHeld,
+		notesOf,
+		wordCountArrives,
+		wordCountBlocks,
+		wordCountOf,
+		workerIsKilled,
+		workerPollPasses,
+		workerStarts,
+	}) {
+		const interrupted = yield* notesOf("alice").create("Interrupted by crash");
+		yield* noteIsHeld(interrupted);
+		yield* workerStarts("crashed");
+		yield* wordCountBlocks();
+		yield* migrates("replacement");
+		yield* workerStarts("replacement");
+		const queued = yield* notesOf("alice").create("Replacement handles queued jobs");
+		yield* workerIsKilled("crashed");
+		yield* heldNoteIsReleased();
 		yield* workerPollPasses();
-		expect(yield* notes["notes.get"]({ id: second.id })).toMatchObject({ wordCount: null });
-		yield* Effect.promise(() =>
-			expect.poll(() => Effect.runPromise(notes["notes.get"]({ id: second.id })), { timeout: 8000 }).toMatchObject({ wordCount: 4 }),
-		);
+		expect(yield* wordCountOf("alice", queued)).toBe("not counted");
+
+		const counted = yield* wordCountArrives("alice", queued);
+
+		expect(counted).toBe("4 words");
 	},
-	5 * 20_000 + 60_000,
+	120_000,
 );

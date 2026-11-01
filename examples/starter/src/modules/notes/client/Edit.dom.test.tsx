@@ -1,100 +1,116 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { editingNote, noteRevisedElsewhere, screens } from "#modules/notes/test-support/screens.ts";
 
+const CONFLICT = "This note changed. Refresh and review your draft before trying again.";
+
+screens.it("opening a note reads it once for both the route and the editor", [editingNote()], function* ({ noteReads }) {
+	expect(yield* noteReads()).toBe("one note read");
+});
+
 screens.it(
-	"shares the typed detail route's query and retains an edit through a live refresh",
+	"a live revision refreshes the cached note but keeps alice's unsaved draft",
 	[editingNote()],
-	function* ({ settle, closeScreen, consoleErrors, enter, reviseNote, cachedTitle, reads, queryCount, draft, screenText }) {
-		expect(
-			reads()
-				.filter(({ tag }) => tag === "notes.get")
-				.map(({ tag }) => tag),
-		).toEqual(["notes.get"]);
+	function* ({ cachedTitle, draft, enter, reviseNote, saveState, settle }) {
 		yield* enter("Keep my draft");
+		expect(yield* cachedTitle()).toBe("First note");
+
 		yield* reviseNote("Changed elsewhere");
 		yield* settle();
-		expect(cachedTitle()).toBe("Changed elsewhere");
-		expect(queryCount("get")).toBeGreaterThan(1);
-		expect(draft()).toBe("Keep my draft");
-		expect(screenText()).toContain("Unsaved changes");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["cached title", cachedTitle, "Changed elsewhere"],
+			["draft", draft, "Keep my draft"],
+			["save state", saveState, "Unsaved changes"],
+		]);
 	},
 );
 
 screens.it(
-	"shows a stale edit conflict, keeps the input, then refreshes and saves the reviewed draft",
+	"saving over a newer version shows the conflict and keeps the draft",
 	[editingNote(), noteRevisedElsewhere("Saved elsewhere")],
-	function* ({ settle, closeScreen, consoleErrors, enter, click, alert, draft, reads, settleQuery, screenText }) {
+	function* ({ alert, click, draft, enter, settle }) {
+		yield* enter("  My draft  ");
+
+		yield* click("Save note");
+		yield* settle();
+
+		yield* outcomes([
+			["alert", alert, CONFLICT],
+			["draft", draft, "  My draft  "],
+		]);
+	},
+);
+
+screens.it(
+	"after a conflict, Refresh keeps the draft and the next save stores it trimmed",
+	[editingNote(), noteRevisedElsewhere("Saved elsewhere")],
+	function* ({ alert, click, draft, enter, saveState, settle, settleQuery }) {
 		yield* enter("  My draft  ");
 		yield* click("Save note");
 		yield* settle();
-		expect(alert()).toContain("This note changed");
-		expect(draft()).toBe("  My draft  ");
+		expect(yield* alert()).toBe(CONFLICT);
+
 		yield* click("Refresh");
 		yield* settleQuery("get");
-		expect(
-			reads()
-				.filter(({ tag }) => tag === "notes.get")
-				.map(({ tag }) => tag),
-		).toEqual(["notes.get", "notes.get"]);
-		yield* settle();
-		expect(draft()).toBe("  My draft  ");
 		yield* click("Save note");
 		yield* settle();
-		expect(draft()).toBe("My draft");
-		expect(alert()).toBeUndefined();
-		expect(screenText()).toContain("All changes saved");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["draft", draft, "My draft"],
+			["alert", alert, "no alert"],
+			["save state", saveState, "All changes saved"],
+		]);
 	},
 );
 
 screens.it(
-	"retains a field rejection while editing",
+	"a title the server refuses while editing shows its reason and stays in the field",
 	[editingNote()],
-	function* ({ settle, closeScreen, consoleErrors, enter, click, alert, draft }) {
+	function* ({ alert, click, draft, enter, settle }) {
 		yield* enter("reserved");
+
 		yield* click("Save note");
 		yield* settle();
-		expect(alert()).toBe("Choose another title");
-		expect(draft()).toBe("reserved");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["alert", alert, "Choose another title"],
+			["draft", draft, "reserved"],
+		]);
 	},
 );
 
 screens.it(
-	"deletes a note and returns to the refreshed list without it",
+	"deleting a note returns to the list, which no longer shows it",
 	[editingNote()],
-	function* ({ settle, closeScreen, consoleErrors, visitNotes, noteLink, openListedNote, draft, click, route, screenText, savedNote, queryCount }) {
+	function* ({ click, openListedNote, route, settle, shownNotes, visitNotes }) {
 		yield* visitNotes();
 		yield* settle();
-		expect(noteLink()).toBe("First note");
+		expect(yield* shownNotes()).toEqual(["First note"]);
 		yield* openListedNote();
 		yield* settle();
-		expect(draft()).toBe("First note");
+
 		yield* click("Delete note");
 		yield* settle();
-		expect(route()).toBe("/");
-		expect(screenText()).toContain("No notes yet");
-		expect(savedNote()).toBeNull();
-		expect(queryCount("list")).toBeGreaterThan(1);
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["route", route, "/"],
+			["notes", shownNotes, ["no notes yet"]],
+		]);
 	},
 );
 
 screens.it(
-	"keeps the editor open when deletion conflicts with a newer version",
+	"deleting a note that changed elsewhere shows the conflict and keeps the editor open",
 	[editingNote(), noteRevisedElsewhere("Saved elsewhere")],
-	function* ({ settle, closeScreen, consoleErrors, click, alert, route, draft }) {
+	function* ({ alert, click, draft, route, settle }) {
 		yield* click("Delete note");
 		yield* settle();
-		expect(alert()).toContain("This note changed");
-		expect(route()).toBe("/notes/1");
-		expect(draft()).toBe("First note");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["alert", alert, CONFLICT],
+			["route", route, "/notes/1"],
+			["draft", draft, "First note"],
+		]);
 	},
 );

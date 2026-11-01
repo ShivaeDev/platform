@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { codePreviewScreen, screens } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
-	"renders context, removed and added code lines with their markers and text",
+	"the code preview marks context, removed and added lines with a space, minus and plus",
 	[
 		codePreviewScreen([
 			{ kind: "context", number: 1, text: "const note = {" },
@@ -10,12 +10,7 @@ screens.it(
 			{ kind: "added", number: 3, text: '  title: "Saved"' },
 		]),
 	],
-	function* ({ closeScreen, consoleErrors, codePreview }) {
-		const preview = yield* codePreview();
-		const lines = [...preview.querySelectorAll("code > span")];
-		expect(lines.map((line) => line.getAttribute("data-line-kind"))).toEqual(["context", "removed", "added"]);
-		expect(lines.map((line) => line.textContent)).toEqual(["  const note = {\n", '-   title: "Draft"\n', '+   title: "Saved"\n']);
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+	function* ({ codeLines }) {
+		expect(yield* codeLines()).toEqual(["context:   const note = {\n", 'removed: -   title: "Draft"\n', 'added: +   title: "Saved"\n']);
 	},
 );

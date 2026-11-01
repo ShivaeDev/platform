@@ -26,8 +26,17 @@ export const worker = storyKit({
 	stages: ["sessions"],
 	verbs: (engine, story) => ({
 		schedules: () => engine.testing.schedules(),
-		startWorker: Effect.fn("WorkerStory.startWorker")(function* () {
-			story.tell("start the application's worker without an auth host");
+		sessionSweepRuns: Effect.fn("WorkerStory.sessionSweepRuns")(function* () {
+			story.tell("the worker's registered session sweep runs");
+			yield* engine.testing.trigger(SweepExpiredSessions);
+			yield* engine.testing.waitForIdle;
+		}),
+		storedSessions: Effect.fn("WorkerStory.storedSessions")(function* () {
+			const sessions = yield* engine.storage.sessions;
+			return sessions.map(({ email }) => email);
+		}),
+		workerStarts: Effect.fn("WorkerStory.workerStarts")(function* () {
+			story.tell("the application's worker starts without an auth host");
 			yield* Layer.build(
 				applicationWorker({
 					databaseUrl: engine.database.url,
@@ -36,16 +45,10 @@ export const worker = storyKit({
 				}),
 			);
 		}),
-		storedSessions: () => engine.storage.sessions,
-		triggerSweep: () => {
-			story.tell("trigger the worker's registered session sweep");
-			return engine.testing.trigger(SweepExpiredSessions);
-		},
-		waitForIdle: () => engine.testing.waitForIdle,
 	}),
 });
 
-export const expiredSession = worker.trait("sessions", "Alice's session is expired and Bob's is live", function* (engine) {
+export const expiredSession = worker.trait("sessions", "alice's session has expired and bob's is live", function* (engine) {
 	const { user } = yield* mintUser({ origin: "http://localhost:3000" }, "alice");
 	yield* mintUser({ origin: "http://localhost:3000" }, "bob");
 	yield* engine.storage.expireSessions(user.id);

@@ -1,29 +1,33 @@
 import { expect } from "vitest";
-import { notesRoute, screens } from "#modules/notes/test-support/screens.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { notesRoute, savedNotes, screens } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
-	"lists saved notes in the data table and sorts their linked titles in both directions",
-	[notesRoute()],
-	function* ({ settle, closeScreen, consoleErrors, enter, submit, noteLink, notesTable, click }) {
-		yield* enter("Apple");
-		yield* submit();
-		yield* settle();
-		expect(noteLink()).toBe("Apple");
-		yield* enter("Zebra");
-		yield* submit();
-		yield* settle();
-		expect(noteLink()).toBe("Zebra");
-		const table = yield* notesTable();
-		expect(table.getAttribute("aria-label")).toBe("Saved notes");
-		expect([...table.querySelectorAll("tbody td a")].map((link) => link.textContent)).toEqual(["Zebra", "Apple"]);
-		expect(table.querySelector("tbody td a")?.getAttribute("href")).toBe("/notes/2");
-		yield* click("Title");
-		expect([...table.querySelectorAll("tbody td a")].map((link) => link.textContent)).toEqual(["Apple", "Zebra"]);
-		expect(table.querySelector("th")?.getAttribute("aria-sort")).toBe("ascending");
-		yield* click("Title");
-		expect([...table.querySelectorAll("tbody td a")].map((link) => link.textContent)).toEqual(["Zebra", "Apple"]);
-		expect(table.querySelector("th")?.getAttribute("aria-sort")).toBe("descending");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+	"the notes table lists the newest note first and links each title to its note",
+	[savedNotes("Apple", "Zebra"), notesRoute()],
+	function* ({ noteLinks }) {
+		expect(yield* noteLinks()).toEqual(["Zebra links to /notes/2", "Apple links to /notes/1"]);
 	},
 );
+
+for (const [clicks, direction, titles] of [
+	[1, "ascending", ["Apple", "Zebra"]],
+	[2, "descending", ["Zebra", "Apple"]],
+] as const) {
+	screens.it(
+		`sorting by title ${clicks === 1 ? "once" : "twice"} orders the notes ${direction}`,
+		[savedNotes("Apple", "Zebra"), notesRoute()],
+		function* ({ shownNotes, sortsByTitle, titleSort }) {
+			expect(yield* titleSort()).toBe("none");
+
+			for (let click = 0; click < clicks; click += 1) {
+				yield* sortsByTitle();
+			}
+
+			yield* outcomes([
+				["notes", shownNotes, titles],
+				["title column", titleSort, direction],
+			]);
+		},
+	);
+}
