@@ -24,6 +24,9 @@ export const createConnectionEngine = Effect.fn("ConnectionEngine.createConnecti
 			if (arg === "development-postgres") {
 				return name;
 			}
+			if (arg === "publish=55432") {
+				return `name=^/${name}$`;
+			}
 			if (arg === "name=^/development-postgres$") {
 				return `name=^/${name}$`;
 			}

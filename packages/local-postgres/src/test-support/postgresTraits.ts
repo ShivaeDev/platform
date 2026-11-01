@@ -85,9 +85,9 @@ export function unpinnedContainerPublishesPort() {
 	});
 }
 
-export function serviceAnswers() {
-	return postgres.trait("machine", "PostgreSQL 18.6 answers in the pinned container on port 55432 and allows 500 connections", (engine) => {
-		engine.plan.push(...answers("SHOW server_version", "18.6"), ...answers("SHOW max_connections", "500"));
+export function serviceAnswers(version = "18.6") {
+	return postgres.trait("machine", `PostgreSQL ${version} answers on port 55432 and allows 500 connections`, (engine) => {
+		engine.plan.push(...answers("SHOW server_version", version), ...answers("SHOW max_connections", "500"));
 	});
 }
 

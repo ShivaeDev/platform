@@ -44,7 +44,9 @@ export function localPostgres(environment: DockerEnvironment, { attempts = 30, d
 			return sql(server, "SHOW server_version").pipe(Effect.retry({ schedule: Schedule.spaced(delayMillis), times: attempts - 1 }));
 		}
 		function confirmVersion(observed: string) {
-			return observed === "18.6" ? Effect.void : Effect.fail(new PostgresVersionMismatch({ expectedVersion: "18.6", observedVersion: observed }));
+			return /^18\.6(?:\s|$)/u.test(observed)
+				? Effect.void
+				: Effect.fail(new PostgresVersionMismatch({ expectedVersion: "18.6", observedVersion: observed }));
 		}
 		const version = yield* sql(server, "SHOW server_version").pipe(
 			Effect.catchTag("PostgresCommandError", () => Effect.andThen(startContainer(localDocker), waitForVersion)),
@@ -86,7 +88,7 @@ export function localPostgres(environment: DockerEnvironment, { attempts = 30, d
 function localSql(localDocker: (args: readonly string[], options?: CommandOptions) => ReturnType<typeof docker>) {
 	return Effect.fn("LocalPostgres.sql")(function* (value: string | URL, query: string) {
 		const parsed = yield* Effect.try({ catch: () => new LocalPostgresError({ message: "Invalid local database URL." }), try: () => new URL(value) });
-		const { url, options } = clientConnection(yield* assertLocalDatabase(parsed.toString(), [parsed.pathname.slice(1)]));
+		const { url, options } = yield* clientConnection(yield* assertLocalDatabase(parsed.toString(), [parsed.pathname.slice(1)]));
 		const args = ["-X", "--set", "ON_ERROR_STOP=1", "-At", "-c", query];
 		return yield* runCommand("psql", [...args, "--dbname", url.toString()], options).pipe(
 			Effect.catchTag("PostgresCommandError", (error) =>

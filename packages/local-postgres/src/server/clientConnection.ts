@@ -1,9 +1,14 @@
+import { Effect } from "effect";
+import { LocalPostgresError } from "#LocalPostgresError.ts";
 import type { CommandOptions } from "#runCommand.ts";
 
-export function clientConnection(value: URL, options: CommandOptions = {}) {
+export const clientConnection = Effect.fn("LocalPostgres.clientConnection")(function* (value: URL, options: CommandOptions = {}) {
 	const url = new URL(value);
 	// libpq treats + literally in URI passwords.
-	const password = new URLSearchParams(url.search.replaceAll("+", "%2B")).getAll("password").at(-1) ?? decodeURIComponent(url.password);
+	const password = yield* Effect.try({
+		catch: () => new LocalPostgresError({ message: "Invalid local database password escape." }),
+		try: () => new URLSearchParams(url.search.replaceAll("+", "%2B")).getAll("password").at(-1) ?? decodeURIComponent(url.password),
+	});
 	url.password = "";
 	for (const key of ["password", "schema", "connection_limit", "pool_timeout", "pgbouncer"]) {
 		url.searchParams.delete(key);
@@ -12,4 +17,4 @@ export function clientConnection(value: URL, options: CommandOptions = {}) {
 		url.searchParams.set("connect_timeout", "3");
 	}
 	return { options: { ...options, env: { ...options.env, ...(password && { "PGPASSWORD": password }) }, extendEnv: true }, url };
-}
+});
