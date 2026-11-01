@@ -9,7 +9,8 @@ const checkStatus = Effect.fnUntraced(function* (response: HttpClientResponse.Ht
 	if (status >= HttpStatus.fromLiteral("OK") && status < HttpStatus.fromLiteral("MultipleChoices")) {
 		return response;
 	}
-	const fields = { method: request.method, status, url: request.url.split(/[?#]/u)[0] ?? request.url };
+	const url = new URL(request.url);
+	const fields = { method: request.method, status, url: `${url.origin}${url.pathname}` };
 	let error: RemoteStatusError;
 	switch (status) {
 		case HttpStatus.fromLiteral("Unauthorized"):
