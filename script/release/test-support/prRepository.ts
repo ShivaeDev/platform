@@ -24,7 +24,7 @@ export const releasePrRepository = Effect.fn("ReleasePrRepository.releasePrRepos
 	}
 	yield* write(
 		"pnpm-workspace.yaml",
-		'catalog:\n  lucide-react: 1.57.0\n  "@types/node": 24.19.2\n  root-only: 1.0.0\ncatalogs:\n  legacy:\n    lucide-react: 1.0.0\n',
+		'packages:\n  - packages/*\n\ncatalog:\n  lucide-react: 1.57.0\n  "@types/node": 24.19.2\n  root-only: 1.0.0\ncatalogs:\n  legacy:\n    lucide-react: 1.0.0\n',
 	);
 	yield* write(
 		"examples/starter/pnpm-workspace.copy.yaml",

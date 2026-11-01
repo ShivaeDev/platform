@@ -85,7 +85,9 @@ jobs:
         run: pnpm build
 
       - name: Publish new package versions
-        run: pnpm --recursive publish --no-git-checks
+        env:
+          CHANGELOG_BASE_REF: ${{ github.event.before }}
+        run: node --conditions=source script/release/publishPackages.ts
 
       - name: Write GitHub release notes
         env:

@@ -36,13 +36,13 @@ To remove a package, name a remaining package and its bump in the changeset fron
 
 The release PR (`release/next`) collects the pending release plan. To release, press **Approve and run** on the PR, then merge when the normal, full CI is green. The workflow uses only `GITHUB_TOKEN`; the wait for a maintainer's approval is intentional.
 
-Enable **Allow GitHub Actions to create pull requests** in Settings → Actions → General → Workflow permissions. After each push to main, the workflow regenerates an unapproved branch when its applied release changes or it no longer merges cleanly. Unrelated main pushes leave the branch and its waiting CI run alone. It opens a missing PR and closes it when nothing is pending.
+Enable **Allow GitHub Actions to create pull requests** in Settings → Actions → General → Workflow permissions. After each push to main, the workflow regenerates an unapproved branch when its applied release changes or it no longer merges cleanly. Repeated runs without new main commits leave the branch and its waiting CI run alone. It opens a missing PR and closes it when nothing is pending.
 
 Approving the release CI freezes the release. The workflow holds the branch and logs why when the release PR is in the merge queue, or its latest pull-request CI run on the current head is queued, running or successful. Later changesets on main stay pending for the next release PR, even when they conflict with the frozen branch. After the release merges, closes, or its CI fails or is cancelled, the next maintainer run can regenerate the branch. Waiting for approval does not hold a release. Reading CI runs uses `GITHUB_TOKEN` with `actions: read`.
 
 The release PR records its base revision in `.changeset/release-base`. The merge-queue and publishing checks accept pending changesets absent at that revision only when they are present, unchanged, on the checked main revision. They remain in `.changeset` for the next release. A release still cannot drop or rewrite its original changesets or their collected notes. Commit the recorded base with the generated release files so this boundary survives a squash merge.
 
-Merging the release PR changes package versions on main, which starts the existing publish workflow. Publishing still uses npm trusted publishing from main only. The release PR workflow has no npm credential or OIDC permission.
+Merging the release PR changes package versions on main, which starts the existing publish workflow. Publishing selects only the packages in the validated version-bump plan; unchanged packages and pending first releases stay unpublished. Publishing still uses npm trusted publishing from main only. The release PR workflow has no npm credential or OIDC permission.
 
 When released packages change starter pins, the automation derives a patch changeset for `@shivaedev/create-app` before applying the plan so generated apps receive those versions. The check reconstructs only that canonical starter-pin input; all other consumed inputs must be changesets deleted since the base. Altering its generated notes fails validation.
 

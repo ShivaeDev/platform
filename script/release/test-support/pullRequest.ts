@@ -9,11 +9,14 @@ import { checkPlatform } from "#release/check.ts";
 import { releaseGitHub } from "#release/gitHub.ts";
 import { maintainPullRequest } from "#release/maintainPullRequest.ts";
 import { publishNotes } from "#release/publishNotes.ts";
+import { publishPackages } from "#release/publishPackages.ts";
 import { releasePrApi } from "./prApi.ts";
 import { releasePrRepository } from "./prRepository.ts";
+import { releaseRegistry } from "./registry.ts";
 
 const create = Effect.fn("ReleasePullRequest.create")(function* () {
 	const repository = yield* releasePrRepository();
+	const registry = yield* releaseRegistry(repository.root);
 	const api = releasePrApi(() => repository.git("ls-remote", "origin", "refs/heads/release/next").split("\t")[0] ?? "");
 	const server = yield* api.serve;
 	const context = yield* Layer.build(
@@ -23,7 +26,7 @@ const create = Effect.fn("ReleasePullRequest.create")(function* () {
 			),
 		),
 	);
-	return { ...repository, api, context, github: releaseGitHub("example/workspace"), server };
+	return { ...repository, api, context, github: releaseGitHub("example/workspace"), registry, server };
 });
 
 export const releasePullRequest = storyKit({
@@ -32,7 +35,7 @@ export const releasePullRequest = storyKit({
 	layer: NodeServices.layer,
 	name: "Release pull request automation",
 	stages: ["main"],
-	verbs: ({ api, context, git, github, root, pushMain, server }) => {
+	verbs: ({ api, context, git, github, root, pushMain, registry, server }) => {
 		const run = Effect.fn("ReleasePullRequest.run")(function* (date?: string) {
 			const clock = yield* Clock.Clock;
 			return yield* maintainPullRequest(root, github).pipe(
@@ -57,7 +60,9 @@ export const releasePullRequest = storyKit({
 					Effect.map((failure) => failure._tag),
 				),
 			git: (...args: readonly string[]) => Effect.sync(() => git(...args)),
+			publishedPackages: () => Effect.sync(registry.publications),
 			publishNotes: (base: string) => publishNotes(root, "example/workspace", base, git("rev-parse", "HEAD")).pipe(Effect.provide(context)),
+			publishPackages: (base: string) => publishPackages(root, base),
 			pushMain,
 			queue: () =>
 				Effect.sync(() => {

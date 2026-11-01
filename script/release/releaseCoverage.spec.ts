@@ -17,16 +17,17 @@ repository.it(
 );
 
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
-const LATER = '---\n"@shivaedev/create-app": minor\n---\n\n### Added\n\n- Choose an app name.\n';
+const LATER = '---\n"@shivaedev/create-app": minor\n"@shivaedev/pending": minor\n---\n\n### Added\n\n- Choose an app name.\n';
 
 releasePullRequest.it(
 	"a frozen release passes the merge queue and squash publishing gates, leaving later inputs for a new PR",
 	[],
-	function* ({ pushMain, run, git, setCiRun, check, close, readGitHub, publishNotes }) {
+	function* ({ pushMain, run, git, setCiRun, check, close, readGitHub, publishNotes, publishPackages, publishedPackages }) {
 		yield* pushMain(".changeset/draft.md", PENDING);
 		yield* run();
 		yield* setCiRun("in_progress");
 		const head = yield* git("rev-parse", "origin/release/next");
+		yield* pushMain("packages/pending/package.json", '{"name":"@shivaedev/pending","version":"0.0.0"}\n');
 		yield* pushMain(".changeset/later.md", LATER);
 		yield* outcomes([
 			["maintainer", () => run(), "held: approved CI in_progress"],
@@ -48,6 +49,11 @@ releasePullRequest.it(
 		yield* git("commit", "-m", "Release approved versions");
 
 		expect((yield* check(base)).releases).toEqual(queued.releases);
+		yield* publishPackages(base);
+		expect((yield* publishedPackages()).toSorted((left, right) => left.name.localeCompare(right.name))).toEqual([
+			{ name: "@shivaedev/create-app", version: "0.9.1" },
+			{ name: "@shivaedev/platform", version: "0.15.1" },
+		]);
 		yield* publishNotes(base);
 		const published = (yield* readGitHub()).requests.find(({ endpoint }) => endpoint.endsWith("/releases"));
 		expect(published?.body?.body).toContain("Keep a saved draft.");
@@ -58,7 +64,10 @@ releasePullRequest.it(
 		expect(yield* run()).toBe("updated");
 		const next = yield* check();
 		expect(next.changesets).toEqual([{ name: "later.md", text: LATER }]);
-		expect(next.releases.map(({ name, to }) => [name, to])).toEqual([["@shivaedev/create-app", "0.10.0"]]);
+		expect(next.releases.map(({ name, to }) => [name, to])).toEqual([
+			["@shivaedev/create-app", "0.10.0"],
+			["@shivaedev/pending", "0.1.0"],
+		]);
 		const pull = yield* readGitHub();
 		expect(pull.requests.filter(({ method, endpoint }) => method === "POST" && endpoint.endsWith("/pulls")).map(({ body }) => body?.title)).toEqual([
 			expect.stringContaining("0.9.1"),
@@ -67,5 +76,15 @@ releasePullRequest.it(
 		expect(pull.open).toBe(true);
 		expect(pull.body).toContain("Choose an app name.");
 		expect(pull.body).not.toContain("Keep a saved draft.");
+	},
+);
+
+releasePullRequest.it(
+	"a main push without version bumps publishes no workspace packages",
+	[],
+	function* ({ git, publishPackages, publishedPackages }) {
+		yield* publishPackages(yield* git("rev-parse", "origin/main"));
+
+		expect((yield* publishedPackages()).toSorted((left, right) => left.name.localeCompare(right.name))).toEqual([]);
 	},
 );
