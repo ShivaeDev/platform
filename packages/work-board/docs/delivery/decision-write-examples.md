@@ -6,7 +6,7 @@ A packet combines agent-authored Markdown context, question directives, human se
 
 The agent writes a normal item file with an explicit attention request, then prepares a packet in its body. The full source revision and path are captured by registration. Options start unselected; agent-authored descriptions do not count as human choices.
 
-````markdown
+````text
 ---
 
 id: review.direction

@@ -92,7 +92,7 @@ Explicitly linked directories may live outside the workspace. Their documents us
 
 Plain Markdown needs no metadata. Add frontmatter when an item needs stable identity, connected criteria, work views or an explicit request. Save this as `search.md`:
 
-```markdown
+```text
 ---
 
 id: work.search
@@ -103,7 +103,7 @@ next_action: Review the keyboard evidence
 criteria:
 - id: keyboard
   text: Escape returns focus to the search button
-  attention:
+attention:
 - id: keyboard-review
   kind: review
   state: open
@@ -124,7 +124,7 @@ Work fields are optional except that a question requires scope and urgency. IDs 
 
 A board file selects shared items explicitly. Save this as `review.md`:
 
-```markdown
+```text
 ---
 
 id: board.review
@@ -140,7 +140,7 @@ Open **Work** on Now, or choose All work and Table. The same item may belong to 
 
 Use `relationships` for `implements`, `informs`, `depends_on` or `relates_to` links to an item or `item#criterion`. A result can record evidence against the criterion. Save this as `result.md`:
 
-```markdown
+```text
 ---
 
 id: result.search
@@ -148,7 +148,7 @@ kind: report
 relationships:
 - kind: implements
   target: work.search
-  evidence:
+evidence:
 - source: evidence.md
   criterion: work.search#keyboard
   method: DOM regression
@@ -177,7 +177,7 @@ Document content starts with its title and, for frontmatter documents, source st
 
 Metrics and progress use fixed directives with a label and a source:
 
-```markdown
+```text
 :::progress{completed="3" total="8"}
 Browser checks recorded
 
@@ -217,18 +217,20 @@ Fleet decision sources, captured questions, their answers and request receipts a
 
 An agent can ask a standalone question with frontmatter:
 
-```markdown
+```text
 ---
 
 id: question.storage
 kind: question
+scope: task
+urgency: whenever
 status: ready
 options:
 - label: Keep local files
   description: Keep readable Markdown in the project folder.
 - label: Use a database
   description: Store project documents in a shared database.
-  recommended: Keep local files
+recommended: Keep local files
 
 ---
 
@@ -292,7 +294,7 @@ Each stdout line contains the item ID, request ID, response ID and first line of
 
 Add question/option directives to the body of the item with an explicit request:
 
-```markdown
+```text
 ::::question{id="display" select="one"}
 ### How should replies appear?
 

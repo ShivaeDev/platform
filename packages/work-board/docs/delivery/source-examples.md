@@ -24,7 +24,7 @@ Heading boards need no metadata. Section names are presentation, never inferred 
 
 ## A richer item
 
-```markdown
+```text
 ---
 
 id: work.search
@@ -37,7 +37,7 @@ criteria:
   text: Escape returns focus to the opening control
 - id: passage
   text: A search result reaches the second duplicate heading
-  relationships:
+relationships:
 - kind: implements
   target: decision.search-matching
 
@@ -81,7 +81,7 @@ Search includes declared ID, kind, status, owner, next action, and criteria. Res
 
 ## Relationships and board declarations
 
-```markdown
+```text
 ---
 
 id: decision.search-matching

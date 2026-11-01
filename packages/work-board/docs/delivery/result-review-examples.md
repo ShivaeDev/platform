@@ -6,7 +6,7 @@ A result is an ordinary file with `kind: report`, stable identity, explicit rela
 
 Save this task as `items/task.md`:
 
-```markdown
+```text
 ---
 
 id: work.keyboard
@@ -29,16 +29,16 @@ The task declares two criteria and remains in review. Its source status is autho
 
 Save the returned report as `items/result.md`:
 
-```markdown
+```text
 ---
 
 id: result.keyboard
 kind: report
-status: finished
+status: done
 relationships:
 - kind: implements
   target: work.keyboard
-  attention:
+attention:
 - id: review
   kind: review
   state: open
@@ -91,10 +91,10 @@ The report's explicit review request shows as an answer card at the top of the p
 work-board question result.keyboard/review
 ```
 
-This reads the question and its source context without registering it. For the complete LF report above, including its final newline, the reviewed SHA-256 is `49a45f23df2f56d8720c0fd8f8c86483a86f5b8eb016c1d17db4a56152f72060`. Inspect that context before registering the wait:
+This reads the question and its source context without registering it. For the complete LF report above, including its final newline, the reviewed SHA-256 is `0f1815ed056915fb91efab82bcc76bd6adc2a9e15719da34278ad4f0de2f5d4e`. Inspect that context before registering the wait:
 
 ```sh
-work-board wait result.keyboard/review --revision 49a45f23df2f56d8720c0fd8f8c86483a86f5b8eb016c1d17db4a56152f72060
+work-board wait result.keyboard/review --revision 0f1815ed056915fb91efab82bcc76bd6adc2a9e15719da34278ad4f0de2f5d4e
 ```
 
 The server must be running with `--responses` for registration and replies. A successful wait returns the same immutable question/response records as the browser. Its question ID supports later `response` reads, repeatable reattachment and the explicit next-reply cursor described in the [README](../../README.md#wait-for-an-attributable-reply). Feedback receipt is independent of automatic agent continuation.
