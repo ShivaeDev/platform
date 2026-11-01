@@ -42,7 +42,11 @@ export const makeState = Effect.gen(function* () {
 	}
 	const current = policy.current ?? Effect.succeed(policy);
 	function save(stored: Versioned<FleetRecord>, value: FleetRecord, admission?: LaunchAdmission): ReturnType<typeof store.compareAndSet> {
-		const record = { ...value, attentionOwner: waitingOwner(value) };
+		const record = {
+			...value,
+			attentionOwner: waitingOwner(value),
+			releaseWindow: value.step === "waiting" && value.blocker?.startsWith("Waiting for release PR #") ? value.releaseWindow : undefined,
+		};
 		if (admission === undefined) {
 			if (stored.value.step === "waiting" && JSON.stringify(record) === JSON.stringify(stored.value)) {
 				return Effect.succeed(stored);

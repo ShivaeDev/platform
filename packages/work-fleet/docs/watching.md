@@ -32,9 +32,9 @@ The JSON watch emits `board-answer` once per response from someone other than th
 
 ## Pull request events
 
-`--pr-events` watches the PR links in Fleet snapshots through the pr-watch engine. PR lines use the same `kind` field: `pr-dequeued` (with `reason`), `pr-stuck`, `pr-conflict`, `pr-auto-merge-off`, `pr-merged` and `pr-closed`. They include `repository`, `number`, `pr` and `workId`.
+`--pr-events` watches the PR links in Fleet snapshots, including release PRs holding changeset PRs, through the pr-watch engine. PR lines use the same `kind` field: `pr-dequeued` (with `reason`), `pr-stuck`, `pr-conflict`, `pr-auto-merge-off`, `pr-merged` and `pr-closed`. They include `repository`, `number`, `pr` and `workId`.
 
-Targets are grouped by repository. Completed Fleet work adds no targets. Only open PRs enter the watch; each stays watched through the first poll that sees it merged or closed. New Fleet PRs join as snapshots arrive.
+Targets are grouped by repository. Completed Fleet work adds no targets. Only open PRs enter the watch; each stays watched through the first poll that sees it merged or closed. New Fleet PRs and held release PRs join as snapshots arrive. Release events carry the work ID of a held item; a release leaving the merge queue emits `pr-dequeued` with its reason just like a work PR.
 
 `--pr-interval` sets the GitHub polling interval in seconds (default 60); `--api-url` selects the REST base. Authentication uses `GH_TOKEN`, then `GITHUB_TOKEN`. Snapshots live under `<board>/.pr-watch/OWNER-REPO.json` and retain pr-watch's restart delivery limits.
 
