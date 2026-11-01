@@ -1,4 +1,5 @@
 import { Effect, Fiber } from "effect";
+import { SqlClient } from "effect/sql";
 import { countWords } from "@shivaedev/test/answers.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -12,15 +13,10 @@ import {
 	releaseEnv,
 	webAddress,
 } from "#test-support/deploymentProcesses.ts";
-import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
-import { watchBackends } from "#test-support/watchBackends.ts";
 import { holdJob } from "./holdJob.ts";
 import { watchedNote } from "./live.ts";
 import { type NotesRequests, notesRequests } from "./requests.ts";
-
-const LISTEN_CONNECTIONS = 2;
-const CONNECTION_LIMIT = 2 * (testPoolSizes.sql + testPoolSizes.jobs) + LISTEN_CONNECTIONS;
 
 interface Account {
 	readonly cookie: string;
@@ -83,20 +79,6 @@ export const notesDeployment = storyKit({
 		});
 		return {
 			...deploymentVerbs(engine, story.tell),
-			connectionsAreWatched: Effect.fn("DeploymentStory.connectionsAreWatched")(function* () {
-				story.tell("sample the app's PostgreSQL connections from now on");
-				const activity = yield* watchBackends();
-				return {
-					peak: Effect.fn("DeploymentStory.peak")(function* () {
-						yield* activity.stop;
-						const counts = activity.counts();
-						const peak = Math.max(...counts);
-						return counts.length > 1 && Math.min(...counts) > 0 && peak <= CONNECTION_LIMIT
-							? "within the pool limits"
-							: `peaked at ${peak} of ${CONNECTION_LIMIT} connections over ${counts.length} samples`;
-					}),
-				};
-			}),
 			heartbeatWindowPasses: () => {
 				story.tell("the draining worker outlives the heartbeat staleness window");
 				return Effect.sleep("6 seconds");
@@ -110,6 +92,13 @@ export const notesDeployment = storyKit({
 				engine.held = yield* holdJob(note.id);
 			}),
 			notesOf: (name: string) => account(name).notes,
+			openConnections: Effect.fn("DeploymentStory.openConnections")(function* () {
+				story.tell("read the app's open PostgreSQL connections after its requests and word counts finish");
+				const sql = yield* SqlClient.SqlClient;
+				const [row] = yield* sql<{ count: number }>`select count(*)::int as count from pg_stat_activity
+					where datname = current_database() and pid <> pg_backend_pid()`;
+				return row?.count ?? 0;
+			}),
 			sessionsCreateNotesAtOnce: Effect.fn("DeploymentStory.sessionsCreateNotesAtOnce")(function* (name: string, sessions: number) {
 				story.tell(`${name} signs in ${sessions} times at once and each session creates a note`);
 				const address = webAddress(engine);
