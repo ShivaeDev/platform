@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { storyRunner } from "#test/storyRunner.ts";
 
-storyRunner.it("collects and runs the core kit without optional engine imports or Effect's root barrel", [], function* ({ results, run }) {
+storyRunner.it("collects and runs the core kit without optional engines or Effect and Node platform barrels", [], function* ({ results, run }) {
 	yield* run("coreImportStories", { guardImports: true });
 
 	expect(yield* results()).toEqual(["Counter Story: runs without optional engines []: passed"]);
