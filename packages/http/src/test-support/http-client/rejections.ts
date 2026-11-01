@@ -6,6 +6,13 @@ import { readBoundedJson } from "#body.ts";
 import { filterStatus } from "#filterStatus.ts";
 import { connections, type Reply } from "./connections.ts";
 
+function byteLimit(reply: Reply) {
+	if (reply === "invalid") {
+		return Number.NaN;
+	}
+	return reply === "schema" || reply === "ok" ? 100 : 10;
+}
+
 export function rejections(transport: "fetch" | "node") {
 	return storyKit({
 		clock: "live",
@@ -31,12 +38,13 @@ export function rejections(transport: "fetch" | "node") {
 			},
 			connectionsSeen: () => Effect.sync(() => remote.ports),
 			read: (reply: Reply) => {
-				const limit = reply === "schema" || reply === "ok" ? 100 : 10;
+				const limit = byteLimit(reply);
 				story.tell(`the client reads /${reply} as JSON within ${limit} bytes from the loopback server`);
 				return client.get(`${remote.url}/${reply}`).pipe(
 					Effect.flatMap((response) => readBoundedJson(response, limit, Schema.Struct({ name: Schema.String }))),
 					Effect.catchTag("RemoteNotFound", () => Effect.succeed("RemoteNotFound")),
 					Effect.catchTag("ResponseBodyTooLarge", () => Effect.succeed("ResponseBodyTooLarge")),
+					Effect.catchTag("InvalidBodyLimit", () => Effect.succeed("InvalidBodyLimit")),
 					Effect.catchTag("SchemaError", () => Effect.succeed("SchemaError")),
 					Effect.timeout("3 seconds"),
 				);

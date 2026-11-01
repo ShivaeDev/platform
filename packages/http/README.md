@@ -37,7 +37,9 @@ Everything here wraps a native `HttpClient`, `HttpClientResponse` or `HttpServer
 
 `paginate(client, request)` follows quoted or unquoted `rel=next`, including headers with multiple links and relations, resolves relative links and stops at the last page. Taking one page sends one request. A next link on another origin fails with `PaginationLinkError` before that request is sent. `nextLink(header)` exposes the link parsing.
 
-`readBoundedBody(response, limit)` returns bytes; `readBoundedText` decodes UTF-8, and `readBoundedJson(response, limit, schema)` decodes JSON through the supplied Schema. Limits are bytes. An oversized `Content-Length` fails with `ResponseBodyTooLarge` before reading the body; a chunked body that exceeds the limit fails during the read. The error carries `limit`.
+`readBoundedBody(response, limit)` returns bytes; `readBoundedText` decodes UTF-8, and `readBoundedJson(response, limit, schema)` decodes JSON through the supplied Schema. The limit counts bytes exposed by the native client's `response.stream`, including decompressed bytes with `FetchHttpClient`. The reader does no decompression of its own; Node's native HTTP transport exposes encoded bytes. Responses with `Content-Encoding` are limited during streaming, without comparing their wire `Content-Length` to the limit. For unencoded responses, an oversized `Content-Length` fails before reading the body. Crossing the stream-byte limit fails with `ResponseBodyTooLarge`, carrying `limit`.
+
+HEAD responses and statuses 204, 205 and 304 read as empty bytes or text, regardless of metadata lengths. JSON decoding still rejects empty input. Limits must be finite and nonnegative; NaN, either infinity and negative limits fail with `InvalidBodyLimit` from `errors.ts`, carrying `limit`. Zero accepts only an empty body.
 
 ### Reading request bodies on a native route
 

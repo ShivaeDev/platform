@@ -1,11 +1,20 @@
 import { Effect, Schema, Stream } from "effect";
 import type { HttpClientResponse } from "effect/http";
-import { ResponseBodyTooLarge } from "./errors.ts";
+import { InvalidBodyLimit, ResponseBodyTooLarge } from "./errors.ts";
 
 export const readBoundedBody = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse, limit: number) {
+	const empty = response.request.method === "HEAD" || response.status === 204 || response.status === 205 || response.status === 304;
+	const invalid = !Number.isFinite(limit) || limit < 0;
 	const length = response.headers["content-length"];
-	if (length !== undefined && Number(length) > limit) {
+	const oversized = response.headers["content-encoding"] === undefined && length !== undefined && Number(length) > limit;
+	if (invalid || empty || oversized) {
 		yield* Effect.scoped(Stream.toPull(response.stream));
+		if (invalid) {
+			return yield* new InvalidBodyLimit({ limit });
+		}
+		if (empty) {
+			return new Uint8Array();
+		}
 		return yield* new ResponseBodyTooLarge({ limit });
 	}
 	const chunks: Uint8Array[] = [];

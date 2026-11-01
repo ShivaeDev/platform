@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { Effect } from "effect";
 
-export type Reply = "status" | "length" | "chunked" | "schema" | "ok";
+export type Reply = "status" | "length" | "chunked" | "schema" | "invalid" | "ok";
 
 export const connections = Effect.gen(function* () {
 	const ports: (number | undefined)[] = [];
