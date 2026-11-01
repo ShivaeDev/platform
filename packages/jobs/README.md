@@ -157,7 +157,7 @@ export const Cleanup = defineSchedule({
 export const cleanupWorker = Cleanup.run(Effect.flatMap(Mail, (mail) => mail.removeExpired()));
 ```
 
-The queue takes `{ userId: number }` in application code and stores `{ userId: string }`. Its handler receives the decoded number and a job context, including the job's `id`. Keep the queue definition available to producers; the runtime registers the worker created by `handle`.
+The queue takes `{ userId: number }` in application code and stores `{ userId: string }`. Its handler receives the decoded number and a job context, including the job's `id`, `retryCount` and `deferralCount`. Both counts start at zero. `retryCount` is the native retry count; `deferralCount` counts accepted `RetryAt` deferrals before this attempt, independently of native retries. Keep the queue definition available to producers; the runtime registers the worker created by `handle`.
 
 The schedule runs a payload-free Effect. This schedule registers its cron expression with `tz: "UTC"`. The package creates a `<name>-dlq` dead-letter queue for both kinds of worker and supplies `retryLimit: 3` and `retryBackoff: true` by default. The email queue above overrides the retry limit to five. These are pg-boss registration settings; pg-boss runs the retry and scheduling engine.
 
@@ -212,7 +212,9 @@ const waitForQuota = Effect.fail(
 
 The same job returns to waiting with `startAfter` set to `at`; its ID, singleton key, payload and retry count stay unchanged. A past or current `at` is eligible on the next fetch. Deferral does not dead-letter the job or call `onError`. Its job span ends OK with a `job.deferred` event whose `at` is an ISO UTC string and whose `reason` is the supplied string. Deferred jobs rely on polling, including queues using `notify: true`. Stately jobs sharing a singleton key can defer together and still run one at a time. While waiting, their native job metadata reports the adapter's `effect-stately-deferred` policy; a database trigger restores `stately` when pg-boss claims them, preserving its active-job exclusion.
 
-Set `queue: { maxDeferrals: 20 }` on a queue or schedule to change the default limit of ten deferrals per job. The limit must be a nonnegative safe integer; zero disables deferral. Once the limit is reached, `RetryAt` follows the normal failure and retry path. The adapter stores the count in its own table in the pg-boss schema, preserving it across worker restarts, ordinary failures, expiry and heartbeat timeouts. Automatic migrations and `installPgBossSchema` create this table and the stately claim trigger; use `installPgBossSchema` before starting workers with `migrate: false`.
+Set `queue: { maxDeferrals: 20 }` on a queue or schedule to change the default limit of ten deferrals per job. The limit must be a nonnegative safe integer; zero disables deferral. Once the limit is reached, `RetryAt` follows the normal failure and retry path. The adapter stores the count in its own table in the pg-boss schema, preserving it across worker restarts, ordinary failures, expiry and heartbeat timeouts. Queue handlers read this table before every attempt, including handlers that never defer. Automatic migrations and `installPgBossSchema` create this table and the stately claim trigger; use `installPgBossSchema` or the `pgBossSchema` migration component before starting workers with `migrate: false`.
+
+A queue handler can use `job.deferralCount` to grow its `RetryAt` backoff without an application column. The count survives worker restarts and native retries; a deferral leaves `job.retryCount` unchanged.
 
 ### One active job per entity
 
@@ -524,6 +526,8 @@ Set `retryPolicy: testRetryPolicy` through the controller to override queue and 
 `expireAfter(queue, n)` takes a positive attempt count: configure it before enqueueing to limit subsequent jobs to `n` attempts. Each successful send keeps its own expiry rule; later changes and duplicate-ID sends do not alter pending jobs. Earlier attempts run the handler normally; on attempt `n`, the controller expires the claimed job instead of invoking its handler. PostgreSQL supervision performs the terminal failure and dead lettering. A job that succeeds earlier completes normally.
 
 `expireIn(queue, duration)` takes an Effect `Duration.Input`, such as `"1 second"`, and sets the expiry of subsequent sends, rounded up to whole seconds. Durations below one second or nonfinite durations fail with `PgBossTestingError` (`operation: "expireIn"`). Earlier sends retain their expiry, and later calls and duplicate-ID sends do not change stored jobs. It can be combined with `expireAfter`: one sets each attempt's time budget, the other limits attempts. A stuck handler is interrupted at its deadline, and the same worker can fetch its retry after pg-boss fails the attempt. The testing expiry hooks support pg-boss schema version 46.
+
+`runDueNow(queue)` makes future jobs in the queue's `created` or `retry` state due at the database's current time and wakes local workers. It includes delayed sends (`startAfter`), native retries and `RetryAt` deferrals. Yield `waitForIdle` afterwards before observing handler results; future jobs do not hold that wait open. It leaves active and terminal jobs and other queues unchanged.
 
 `deferred(queue)` returns waiting deferrals as `{ at: DateTime.Utc, reason: string }[]`. `runDeferredNow(queue)` pulls those jobs forward to the database’s current time and wakes local workers without waiting for their original due time. Read `revision` before reading deferrals and use `waitForChange(revision)` as with other controls.
 

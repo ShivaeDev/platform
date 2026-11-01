@@ -19,11 +19,13 @@ export interface JobPayloadSchema extends Schema.Top {
 }
 
 export interface JobContext {
+	readonly deferralCount: number;
 	readonly expireInSeconds: number;
 	readonly heartbeatSeconds: number | null;
 	readonly id: string;
 	readonly name: string;
 	readonly remainingBudget: Effect.Effect<Duration.Duration>;
+	readonly retryCount: number;
 	readonly signal: AbortSignal;
 }
 
@@ -122,13 +124,15 @@ export interface DefineScheduleOptions<TName extends string> {
 	readonly worker?: WorkOptions;
 }
 
-export function jobContext(job: Job<unknown>, deadline: number): JobContext {
+export function jobContext(job: Job<unknown>, deadline: number, deferralCount = 0): JobContext {
 	return {
+		deferralCount,
 		expireInSeconds: job.expireInSeconds,
 		heartbeatSeconds: job.heartbeatSeconds,
 		id: job.id,
 		name: job.name,
 		remainingBudget: Effect.map(Clock.currentTimeMillis, (now) => Duration.millis(Math.max(0, deadline - now))),
+		retryCount: job.retryCount,
 		signal: job.signal,
 	};
 }
