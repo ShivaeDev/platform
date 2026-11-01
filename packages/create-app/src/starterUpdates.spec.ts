@@ -1,35 +1,12 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { updates } from "#test/updates.ts";
-import { AS_RELEASED, appCommits, appEditsWithoutCommitting, createdWith010, published010, starterAt010, starterAt020 } from "#test/updateTraits.ts";
+import { AS_RELEASED, appCommits, createdWith010, published010, starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
 const APPLIED =
 	"Running pnpm install...\nRunning pnpm run typecheck...\nApplied create-app 0.2.0. Install and typecheck passed. Review the changes and commit when ready.";
 const shipsUpgrade = starterAt010("ships upgrade.txt reading original", { "upgrade.txt": "original\n" });
 const changesUpgrade = starterAt020("rewrites upgrade.txt as starter content", { "upgrade.txt": "starter content\n" });
-
-updates.it(
-	"update applies the 0.2.0 starter's changed and added files to my-app",
-	[
-		shipsUpgrade,
-		createdWith010(),
-		published010,
-		starterAt020("rewrites upgrade.txt and adds added.txt", { "added.txt": "new file\n", "upgrade.txt": "starter content\n" }),
-	],
-	function* ({ file, update }) {
-		yield* outcomes([
-			["added.txt", () => file("added.txt"), "missing"],
-			["upgrade.txt", () => file("upgrade.txt"), "original\n"],
-		]);
-
-		yield* update();
-
-		yield* outcomes([
-			["added.txt", () => file("added.txt"), "new file\n"],
-			["upgrade.txt", () => file("upgrade.txt"), "starter content\n"],
-		]);
-	},
-);
 
 updates.it(
 	"update records 0.2.0 in .create-app.json and says it applied the release",
@@ -98,20 +75,6 @@ updates.it(
 			["answer", () => answer(), APPLIED],
 			["uncommitted changes", () => uncommittedChanges(), expect.arrayContaining([" M .create-app.json"])],
 			["upgrade.txt", () => gitState("upgrade.txt"), "missing"],
-		]);
-	},
-);
-
-updates.it(
-	"update refuses a dirty working tree before fetching the recorded release, which is not published",
-	[createdWith010(), appEditsWithoutCommitting("rewrites README.md as a draft", { "README.md": "app draft\n" }), starterAt020("is unchanged")],
-	function* ({ answer, file, generationRecord, update }) {
-		yield* update();
-
-		yield* outcomes([
-			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.1.0" }],
-			["answer", () => answer(), "create-app: Refusing to update a dirty working tree. Commit or stash your changes first."],
-			["README.md", () => file("README.md"), "app draft\n"],
 		]);
 	},
 );

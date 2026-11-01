@@ -4,7 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { cliAnswer } from "./answers.ts";
-import { appReadouts } from "./appReadouts.ts";
+import { appReadouts, gitIn } from "./appReadouts.ts";
 import { appFolder, runCli } from "./cli.ts";
 import { createEngine } from "./createEngine.ts";
 import { releases } from "./releases.ts";
@@ -66,6 +66,8 @@ export const updates = storyKit({
 		answer: () => Effect.sync(() => engine.answers.at(-1) ?? "create-app has not run"),
 		exitCode: () => Effect.sync(() => engine.processes.result.status),
 		printedMentions: (text: string) => Effect.sync(() => engine.processes.result.stdout.includes(text)),
+		repositoryFile: (path: string) => Effect.sync(() => readFileSync(join(engine.root, path), "utf8")),
+		stagedRepositoryFile: (path: string) => Effect.sync(() => gitIn(engine.root, ["show", `:${path}`]).stdout),
 		starterFile: (path: string) => Effect.sync(() => readFileSync(join(engine.source.starter, path), "utf8")),
 		update: () => {
 			story.tell("my-app runs create-app update");

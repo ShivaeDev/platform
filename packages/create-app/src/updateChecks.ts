@@ -39,7 +39,7 @@ export const updateChecks = Effect.fn("CreateApp.updateChecks")(function* (targe
 	if (markers.length > 0) {
 		failures.unshift(`Files with conflict markers:\n${markers.join("\n")}`);
 	}
-	const unresolved = (yield* checkedProcess(target, "git", ["diff", "--name-only", "--diff-filter=U"])).trim();
+	const unresolved = (yield* checkedProcess(target, "git", ["diff", "--name-only", "--diff-filter=U", "--", "."])).trim();
 	if (unresolved !== "") {
 		failures.push(`Unresolved Git conflicts:\n${unresolved}`);
 	}
