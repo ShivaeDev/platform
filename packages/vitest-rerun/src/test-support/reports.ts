@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { FlakyTests } from "#flakyTests.ts";
+import { decodeJsonReport, type JsonReport } from "./jsonReport.ts";
 import { RAN } from "./specFiles.ts";
 import { lastRun, listFiles, REPORTS, readFile, type Suite } from "./suite.ts";
 
@@ -9,25 +10,6 @@ export interface Testcase {
 	readonly name: string;
 	readonly result: "failed" | "passed" | "skipped";
 }
-
-const JsonReport = Schema.Struct({
-	testResults: Schema.Array(
-		Schema.Struct({
-			assertionResults: Schema.Array(
-				Schema.Struct({
-					ancestorTitles: Schema.Array(Schema.String),
-					duration: Schema.optional(Schema.NullOr(Schema.Number)),
-					status: Schema.String,
-					title: Schema.String,
-				}),
-			),
-			durationMs: Schema.optional(Schema.Number),
-			name: Schema.String,
-		}),
-	),
-});
-type JsonReport = typeof JsonReport.Type;
-const decodeJsonReport = Schema.decodeUnknownSync(Schema.fromJsonString(JsonReport));
 
 const TESTCASE = /<testcase (?<attributes>[^>]*?)(?<selfClosing>\/?)>(?<body>[\s\S]*?)(?:<\/testcase>|(?=<testcase )|(?=<\/testsuite>))/gu;
 const ATTRIBUTE = /(?<key>\w+)="(?<value>[^"]*)"/gu;
@@ -99,10 +81,17 @@ export function reportReadouts(suite: Suite) {
 				const contents = readFile(suite, `${REPORTS}/flaky-tests.json`);
 				return contents === undefined ? "not written" : Schema.decodeUnknownSync(Schema.fromJsonString(FlakyTests))(contents);
 			}),
+		jsonCoveredFunctions: () =>
+			Effect.sync(() =>
+				Object.values(json("tests.json").coverageMap ?? {})
+					.flatMap((file) => Object.entries(file.fnMap).flatMap(([id, fn]) => ((file.f[id] ?? 0) > 0 ? [fn.name] : [])))
+					.toSorted(byText),
+			),
 		jsonResults: (name = "tests.json") =>
 			Effect.sync(() =>
 				Object.fromEntries(json(name).testResults.flatMap((file) => file.assertionResults.map((test) => [testName(test), test.status]))),
 			),
+		jsonSnapshotTotals: () => Effect.sync(() => json("tests.json").snapshot),
 		junitResults: (name = "tests.junit.xml") => Effect.sync(() => testcases(reportText(name))),
 		printedError: () => Effect.sync(() => /^vitest-rerun: (?<message>.+)$/mu.exec(lastRun(suite).output)?.groups?.message ?? "nothing"),
 		reportContents: (name: string) => Effect.sync(() => reportText(name)),

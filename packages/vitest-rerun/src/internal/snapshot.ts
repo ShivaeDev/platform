@@ -18,6 +18,22 @@ const SnapshotSchema = Schema.Struct({
 	failures: Schema.Record(Schema.String, Schema.Struct({ attempts: Schema.Number, messages: Schema.Array(Schema.String) })),
 	files: SnapshotFiles,
 	flaky: Schema.Array(FlakyTest),
+	summary: Schema.Struct({
+		added: Schema.Number,
+		didUpdate: Schema.Boolean,
+		failure: Schema.Boolean,
+		filesAdded: Schema.Number,
+		filesRemoved: Schema.Number,
+		filesRemovedList: Schema.Array(Schema.String),
+		filesUnmatched: Schema.Number,
+		filesUpdated: Schema.Number,
+		matched: Schema.Number,
+		total: Schema.Number,
+		unchecked: Schema.Number,
+		uncheckedKeysByFile: Schema.Array(Schema.Struct({ filePath: Schema.String, keys: Schema.Array(Schema.String) })),
+		unmatched: Schema.Number,
+		updated: Schema.Number,
+	}),
 });
 export type Snapshot = typeof SnapshotSchema.Type;
 

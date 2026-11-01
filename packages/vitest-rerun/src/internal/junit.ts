@@ -6,6 +6,7 @@ export function junitClassname(file: string, project: string): string {
 }
 
 export class RerunJunitReporter extends JUnitReporter {
+	unhandledErrors: NonNullable<Parameters<JUnitReporter["onTestRunEnd"]>[1]> = [];
 	readonly #root: { path: string };
 
 	constructor(outputFile: string) {
@@ -16,6 +17,11 @@ export class RerunJunitReporter extends JUnitReporter {
 			outputFile,
 		});
 		this.#root = root;
+	}
+
+	override onTestRunEnd(...args: Parameters<JUnitReporter["onTestRunEnd"]>) {
+		this.unhandledErrors = args[1] ?? [];
+		return super.onTestRunEnd(...args);
 	}
 
 	override onInit(vitest: Vitest) {
