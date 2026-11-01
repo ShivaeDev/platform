@@ -1,6 +1,7 @@
 import { type Context, Effect, Scope } from "effect";
 import type { StopOptions } from "pg-boss";
 import { registerWorker } from "#adapters/registerWorker.ts";
+import { workerDiagnostics } from "#adapters/workerDiagnostics.ts";
 import type { PgBossClient } from "#client.ts";
 import type { JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#definition.ts";
 import { PgBossQueueOptionsError, toPgBossError } from "#error.ts";
@@ -90,9 +91,16 @@ const registerSchedule = Effect.fnUntraced(function* (
 	stop: StopOptions | undefined,
 ) {
 	const { schedule } = worker;
-	yield* registerWorker(client, schedule.name, schedule.workerOptions, () => worker.effect, scope, schema, schedule.maxDeferrals, stop).pipe(
-		Effect.provide(context),
-	);
+	yield* registerWorker(
+		client,
+		schedule.name,
+		schedule.workerOptions,
+		() => workerDiagnostics(worker.effect),
+		scope,
+		schema,
+		schedule.maxDeferrals,
+		stop,
+	).pipe(Effect.provide(context));
 	yield* Effect.tryPromise({
 		catch: (error) => toPgBossError("register", error, schedule.name),
 		try: () => client.schedule(schedule.name, schedule.cron, null, schedule.scheduleOptions),

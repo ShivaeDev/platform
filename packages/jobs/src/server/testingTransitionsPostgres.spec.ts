@@ -55,12 +55,12 @@ database.it(
 			[
 				"first-claim job",
 				() => job("first-claim job"),
-				expect.objectContaining({ error: "job timed out", retryCount: 0, retryLimit: 0, state: "failed" }),
+				expect.objectContaining({ error: "Error: job timed out", retryCount: 0, retryLimit: 0, state: "failed" }),
 			],
 			[
 				"third-claim job",
 				() => job("third-claim job"),
-				expect.objectContaining({ error: "job timed out", retryCount: 2, retryLimit: 2, state: "failed" }),
+				expect.objectContaining({ error: "Error: job timed out", retryCount: 2, retryLimit: 2, state: "failed" }),
 			],
 			["unruled job", () => job("unruled job"), expect.objectContaining({ retryCount: 0, retryLimit: 0, state: "failed" })],
 		]);

@@ -1,6 +1,7 @@
 import { Effect, Option } from "effect";
 import type { JobWithMetadata } from "pg-boss";
 import type { QueueDefinition } from "#definition.ts";
+import { deadLetterQueueName } from "#health.ts";
 import { spanTree } from "#test/spanTree.ts";
 import type { DatabaseEngine, StoryPayload } from "./databaseEngine.ts";
 import { admin, anyRuntime, errorOf, labelOf, runningIn } from "./engine.ts";
@@ -44,6 +45,19 @@ export function readouts(engine: DatabaseEngine) {
 			}),
 		attempts: (queue: Pick<QueueDefinition, "name">) => Effect.sync(() => engine.work.attemptsOf(queue.name).map((id) => labelOf(engine, id))),
 		deadLettered: (queue: Pick<QueueDefinition, "name">) => deadLetterSources(engine, queue.name),
+		deadLetterSourceOutput: (as: string) =>
+			Effect.gen(function* () {
+				const client = yield* admin(engine);
+				const { id, queue } = idOf(engine, as);
+				const name = deadLetterQueueName(queue.name);
+				const copies = yield* Effect.promise(() => client.findJobs(name));
+				const copy = copies.find(({ sourceId }) => sourceId === id);
+				if (copy === undefined) {
+					return "missing";
+				}
+				const detail = yield* anyRuntime(engine).jobs.getJob({ ...queue, name }, copy.id);
+				return Option.isSome(detail) ? detail.value.sourceOutput : "missing";
+			}),
 		drained: (runtime: string, queue: Pick<QueueDefinition, "name" | "workerOptions">) =>
 			Effect.sync(() => {
 				const ids = new Set(engine.work.attemptsOf(queue.name));
@@ -63,6 +77,7 @@ export function readouts(engine: DatabaseEngine) {
 				}),
 			),
 		job: (as: string) => Effect.map(lookup(engine, as), (job) => (Option.isSome(job) ? summary(engine, job.value) : "missing")),
+		jobOutput: (as: string) => Effect.map(lookup(engine, as), (job) => (Option.isSome(job) ? job.value.output : "missing")),
 		logContext: (line: string) =>
 			Effect.sync(() => {
 				const entry = engine.logs.find(({ message }) => message === line);
@@ -101,7 +116,13 @@ export function readouts(engine: DatabaseEngine) {
 				const client = yield* admin(engine);
 				return (yield* Effect.promise(() => client.findJobs(queue))).map((job) => summary(engine, job));
 			}),
-		storedOutput: (as: string) => Effect.map(lookup(engine, as), (job) => (Option.isSome(job) ? job.value.output : "missing")),
+		storedOutput: (as: string) =>
+			Effect.gen(function* () {
+				const client = yield* admin(engine);
+				const { id, queue } = idOf(engine, as);
+				const job = yield* Effect.promise(() => client.getJobById(queue.name, id));
+				return job === null ? "missing" : job.output;
+			}),
 		storedPayloads: <const TPayload extends StoryPayload>(queue: QueueDefinition<string, TPayload>) =>
 			Effect.gen(function* () {
 				const client = yield* admin(engine);
