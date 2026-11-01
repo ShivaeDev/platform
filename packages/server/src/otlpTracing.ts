@@ -7,19 +7,20 @@ import { redactingDiagnostics } from "#redactingDiagnostics.ts";
 import { redactingTracer } from "#redactingTracer.ts";
 import { safeOtlpSerialization } from "#safeOtlpSerialization.ts";
 
+const endpointUrl = Schema.URL.check(Schema.makeFilter((url) => url.protocol === "http:" || url.protocol === "https:"));
+
 export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
 	Effect.gen(function* () {
-		const endpoint = yield* Config.URL("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT").pipe(
-			Config.orElse(() =>
-				Config.URL("OTEL_EXPORTER_OTLP_ENDPOINT").pipe(
-					Config.map((url) => {
-						url.pathname = `${url.pathname.replace(/\/$/u, "")}/v1/traces`;
-						return url;
-					}),
-				),
-			),
-			Config.withDefault(undefined),
-		);
+		const tracesEndpoint = yield* Config.schema(endpointUrl, "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT").pipe(Config.withDefault(undefined));
+		const endpoint =
+			tracesEndpoint
+			?? (yield* Config.schema(endpointUrl, "OTEL_EXPORTER_OTLP_ENDPOINT").pipe(
+				Config.map((url) => {
+					url.pathname = `${url.pathname.replace(/\/$/u, "")}/v1/traces`;
+					return url;
+				}),
+				Config.withDefault(undefined),
+			));
 		if (endpoint === undefined) {
 			return Layer.empty;
 		}
