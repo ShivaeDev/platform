@@ -872,15 +872,9 @@ importers:
       '@effect/platform-node-shared':
         specifier: 4.0.6
         version: 4.0.6(effect@4.0.6)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story

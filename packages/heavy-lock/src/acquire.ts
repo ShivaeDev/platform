@@ -1,7 +1,6 @@
-import { randomUUID } from "node:crypto";
-import process from "node:process";
-import { Duration, Effect, type FileSystem, Option, type Path, type Scope } from "effect";
+import { Crypto, Duration, Effect, type FileSystem, Option, type Path, type Scope } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
+import { currentProcess } from "#adapters/currentProcess.ts";
 import { failWith, HeavyLockError } from "./error.ts";
 import { HeldLock, type HeldLockShape } from "./HeldLock.ts";
 import { HOLDER_ID_ENV } from "./holder.ts";
@@ -22,8 +21,8 @@ function heldBy(id: string, lockPath: string): HeldLockShape {
 	return { env: { [HOLDER_ID_ENV]: id, "HEAVY_PROCESS_LOCK": lockPath } };
 }
 
-const ownStartTime = Effect.gen(function* () {
-	const started = yield* processStartTime(process.pid).pipe(Effect.mapError(failWith("Could not run ps to read this process's start time.")));
+const ownStartTime = Effect.fn("HeavyLock.ownStartTime")(function* (pid: number) {
+	const started = yield* processStartTime(pid).pipe(Effect.mapError(failWith("Could not run ps to read this process's start time.")));
 	if (Option.isNone(started)) {
 		return yield* new HeavyLockError({ message: "Could not read this process's start time from ps." });
 	}
@@ -40,14 +39,17 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 	if (Option.isSome(inherited)) {
 		return heldBy(inherited.value, settings.lock);
 	}
-	const processStartedAt = yield* ownStartTime;
+	const self = yield* currentProcess;
+	const processStartedAt = yield* ownStartTime(self.pid);
+	const crypto = yield* Crypto.Crypto;
+	const holderId = yield* crypto.randomUUIDv4().pipe(Effect.mapError(failWith("Could not create the heavy-process lock id.")));
 	const holder = yield* waitForLock(
 		settings.lock,
 		{
-			command: options.command ?? process.argv.slice(1).join(" "),
-			cwd: process.cwd(),
-			id: randomUUID(),
-			pid: process.pid,
+			command: options.command ?? self.command,
+			cwd: self.cwd,
+			id: holderId,
+			pid: self.pid,
 			processStartedAt,
 		},
 		{ pollInterval: options.pollInterval ?? Duration.seconds(1), remindEvery: REMIND_EVERY },
@@ -55,7 +57,7 @@ const acquire = Effect.fn("HeavyLock.acquire")(function* (options: HeavyLockOpti
 	return heldBy(holder.id, settings.lock);
 });
 
-export type HeavyLockServices = FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner;
+export type HeavyLockServices = Crypto.Crypto | FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner;
 
 export function acquireHeavyLock(options: HeavyLockOptions = {}): Effect.Effect<HeldLockShape, HeavyLockError, Scope.Scope | HeavyLockServices> {
 	return Effect.flatMap(Effect.serviceOption(HeldLock), (held) => (Option.isSome(held) ? Effect.succeed(held.value) : acquire(options)));
