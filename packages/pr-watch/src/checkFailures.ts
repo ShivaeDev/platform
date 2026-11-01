@@ -50,6 +50,46 @@ function decode<TSchema extends Schema.Top>(schema: TSchema, body: unknown) {
 		Effect.mapError((cause) => new WatchError({ message: "Invalid GitHub checks response", reason: "response" }, { cause })),
 	);
 }
+function matchRequiredFailures(nodes: readonly (typeof Context.Type)[], checks: Set<string>, statuses: Set<string>) {
+	let failed = false;
+	for (const context of nodes) {
+		const matched = context.__typename === "CheckRun" ? checks.delete(context.id) : statuses.delete(context.context);
+		failed ||= context.isRequired && matched;
+	}
+	return failed;
+}
+const requiredFailures = Effect.fn("GitHub.requiredFailures")(function* (
+	options: Options,
+	number: number,
+	sha: string,
+	failedChecks: Set<string>,
+	failedStatuses: Set<string>,
+) {
+	const http = yield* GitHubHttp;
+	const [owner, name] = options.repository.split("/");
+	let after: string | null = null;
+	let failed = false;
+	do {
+		const response: unknown = yield* http.graphql(options.apiUrl, query, { after, name, number, owner, sha });
+		const { errors } = yield* decode(Errors, response);
+		if (errors !== undefined && errors.length > 0) {
+			return yield* new WatchError(
+				{ message: `GitHub required checks: ${errors.map((error) => error.message).join("; ")}`, reason: "response" },
+				{ cause: errors },
+			);
+		}
+		const body = yield* decode(Required, response);
+		const { nodes, pageInfo } = body.data.repository.object.statusCheckRollup.contexts;
+		const requiredFailed = matchRequiredFailures(nodes, failedChecks, failedStatuses);
+		failed ||= requiredFailed;
+		if (pageInfo.hasNextPage && pageInfo.endCursor === null) {
+			return failed ? true : undefined;
+		}
+		after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
+	} while (after !== null);
+	const complete = failedChecks.size === 0 && failedStatuses.size === 0;
+	return failed || complete ? failed : undefined;
+});
 export const checkFailures = Effect.fn("GitHub.checkFailures")(function* (options: Options, number: number, sha: string) {
 	const http = yield* GitHubHttp;
 	const base = `${options.apiUrl}/repos/${options.repository}`;
@@ -68,24 +108,5 @@ export const checkFailures = Effect.fn("GitHub.checkFailures")(function* (option
 	if (failedChecks.size === 0 && failedStatuses.size === 0) {
 		return false;
 	}
-	const [owner, name] = options.repository.split("/");
-	let after: string | null = null;
-	let failed = false;
-	do {
-		const response: unknown = yield* http.graphql(options.apiUrl, query, { after, name, number, owner, sha });
-		const { errors } = yield* decode(Errors, response);
-		if (errors !== undefined && errors.length > 0) {
-			return yield* new WatchError(
-				{ message: `GitHub required checks: ${errors.map((error) => error.message).join("; ")}`, reason: "response" },
-				{ cause: errors },
-			);
-		}
-		const body = yield* decode(Required, response);
-		const { nodes, pageInfo } = body.data.repository.object.statusCheckRollup.contexts;
-		failed ||= nodes.some(
-			(context) => context.isRequired && (context.__typename === "CheckRun" ? failedChecks.has(context.id) : failedStatuses.has(context.context)),
-		);
-		after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
-	} while (after !== null);
-	return failed;
+	return yield* requiredFailures(options, number, sha, failedChecks, failedStatuses);
 });

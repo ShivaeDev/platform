@@ -62,6 +62,9 @@ export const GitHub = defineService({
 						return undefined;
 					}
 					const failed = open ? yield* checkFailures(options, number, pr.head.sha) : false;
+					if (failed === undefined) {
+						return undefined;
+					}
 					return {
 						autoMerge: pr.autoMerge !== null,
 						branch: pr.head.ref,
