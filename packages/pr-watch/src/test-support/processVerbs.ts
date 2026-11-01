@@ -3,7 +3,7 @@ import { TestClock } from "effect/testing";
 import { program } from "#program.ts";
 import { type Engine, programArguments } from "./engine.ts";
 import { clockTime, cooldown, healthOf, heartbeat } from "./readouts.ts";
-import { diagnosticTo, emitTo } from "./watcherVerbs.ts";
+import { diagnosticTo } from "./watcherVerbs.ts";
 
 function withArguments(extra: readonly string[]) {
 	return extra.length === 0 ? "" : ` with ${extra.join(" ")}`;
@@ -11,11 +11,19 @@ function withArguments(extra: readonly string[]) {
 
 export function processVerbs(engine: Engine, tell: (line: string) => void) {
 	const { process } = engine;
-	const settled = process.settledUnless(() => engine.io.control.stalled > 0);
+	const settled = process.settledUnless(() => engine.io.control.stalled > 0 || engine.output.state.callback === "pending");
 	function run(extra: readonly string[]) {
-		return program(programArguments(engine, ...extra), emitTo(engine), diagnosticTo(engine)).pipe(Effect.provide(engine.context));
+		return program(programArguments(engine, ...extra), engine.output.emit, diagnosticTo(engine)).pipe(
+			Effect.provide(engine.context),
+			Effect.onExit((exit) => Effect.sync(() => engine.output.recordExit(exit))),
+		);
 	}
 	return {
+		blockNextOutput: () =>
+			Effect.sync(() => {
+				tell("the output consumer blocks the next callback until it is interrupted");
+				engine.output.state.blockNext = true;
+			}),
 		cooldownLengths: () => Effect.sync(() => healthOf(engine.lines, "cooldown").map(({ delayMs = 0 }) => `${delayMs / 1000} s`)),
 		cooldowns: () => Effect.sync(() => healthOf(engine.lines, "cooldown").map(cooldown)),
 		errorKinds: () => Effect.sync(() => healthOf(engine.lines, "error").map(({ errorTag }) => errorTag)),
@@ -35,6 +43,13 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 				yield* Fiber.interrupt(process.state.fiber);
 			}),
 		lastError: () => Effect.sync(() => healthOf(engine.lines, "error").at(-1)?.message ?? "none"),
+		outputCallback: () => Effect.sync(() => engine.output.state.callback),
+		programOutcome: () => Effect.sync(() => [...engine.output.state.outcome]),
+		refuseStopOutput: () =>
+			Effect.sync(() => {
+				tell("the output consumer refuses the stopped event with an output failure");
+				engine.output.state.failStop = true;
+			}),
 		runOnce: (...extra: string[]) =>
 			Effect.gen(function* () {
 				tell(`the watcher runs one round with --once${withArguments(extra)}`);
