@@ -12,8 +12,8 @@ screens.it(
 		yield* settle();
 		expect(heading()).toBe("Sign in");
 		expect(authRequests().map((url) => url.href)).toEqual([
-			"http://session.story.test/api/auth/get-session",
-			"http://session.story.test/api/auth/get-session",
+			"http://session.story.test/api/auth/get-session?disableCookieCache=true",
+			"http://session.story.test/api/auth/get-session?disableCookieCache=true",
 		]);
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);

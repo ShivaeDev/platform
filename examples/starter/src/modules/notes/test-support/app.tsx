@@ -118,7 +118,7 @@ export function notesHostScreen(initial = "/sign-in") {
 		engine.history.replace(initial);
 		const view = yield* acquireScreen(engine);
 		engine.pending = () =>
-			(engine.auth.client.$store.atoms.session?.get().isPending ?? false)
+			view.registry.get(engine.auth.session.atom).waiting
 			|| view.registry.get(engine.auth.actions.submit).waiting
 			|| view.registry.get(engine.auth.actions.signOut).waiting;
 		function connect() {

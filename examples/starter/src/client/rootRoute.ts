@@ -13,7 +13,7 @@ export function rootRoute() {
 		readonly adminPages: readonly AdminNavigation[];
 		readonly session: () => AppSession | null | undefined;
 	}>()<unknown>({
-		beforeLoad: (route): void =>
+		beforeLoad: (route) =>
 			adminPermissionGuard(route.context.adminPages, permissionGuard({ session: route.context.session, signIn: "/sign-in" }))(route),
 	});
 }
