@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { rerun } from "#test/failureReport.ts";
+import { LIFECYCLE_STORIES, rerun } from "#test/failureReport.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
 for (const ending of ["throws", "fails", "dies"] as const) {
@@ -12,7 +12,7 @@ for (const ending of ["throws", "fails", "dies"] as const) {
 		expect(failure).toContain("the mill is closed");
 		expect(failure).toContain("the unavailable mill story kit failed during create");
 		expect(failure).toContain("help: create builds the engine before traits and the story run.");
-		expect(failure).toContain(rerun(name, "src/test-support/lifecycleFailureStories.ts"));
+		expect(failure).toContain(rerun(name, LIFECYCLE_STORIES));
 	});
 }
 
