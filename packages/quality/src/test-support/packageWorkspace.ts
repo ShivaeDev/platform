@@ -69,3 +69,11 @@ export function merged(branch: string) {
 		git(engine.root, "merge", "--quiet", "--no-edit", branch);
 	});
 }
+
+export function branchWrites(branch: string, path: string, content: string) {
+	return baselineStory.trait("work", `on ${branch}, the author writes ${path} and commits`, (engine) => {
+		git(engine.root, "switch", "--quiet", branch);
+		writeAll(engine.root, [{ content, path }]);
+		commitAll(engine.root, `Write ${path} on ${branch}`);
+	});
+}
