@@ -40,7 +40,7 @@ export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<T
 						return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NotFound") });
 					}
 					const body = new Uint8Array(yield* readBoundedBody(request));
-					return yield* receive(name, source, key, body, request.headers, jobs).pipe(Effect.provideContext(context));
+					return yield* receive(name, source, key, body, request.headers, jobs).pipe(Effect.scoped, Effect.provideContext(context));
 				}).pipe(
 					Effect.catchTag("RequestBodyTooLarge", () =>
 						Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("PayloadTooLarge") })),

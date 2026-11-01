@@ -96,7 +96,7 @@ const issues = webhookEvent(IssueEvent, ({ issue }) =>
 );
 ```
 
-`Clock` comes from `effect`; `SenderPreferences` and its `allows` method belong to the application, as does the sender field in its event schema. Supply the mapping's services to `webhookRoute` with `Layer.provide`; they remain required in the route Layer's type. `WebhookEvent<R, E>` and `WebhookSource<R, E>` preserve the mapping's service requirements and typed failures. The mapping runs after verification and schema decoding, inside the receipt transaction. An ignored delivery commits an ignored receipt with no jobs. A failed check rolls back the receipt and any transactional database changes; the sender can retry. Duplicate deliveries skip the mapping.
+`Clock` comes from `effect`; `SenderPreferences` and its `allows` method belong to the application, as does the sender field in its event schema. Supply the mapping's services to `webhookRoute` with `Layer.provide`; they remain required in the route Layer's type. `WebhookEvent<R, E>` and `WebhookSource<R, E>` preserve the mapping's service requirements and typed failures. The mapping runs after verification and schema decoding, inside the receipt transaction. Each request gives its mapping a separate scope and releases acquired resources before answering, including on failure. Interrupting a mapping releases its resources and rolls back its receipt, allowing a retry. An ignored delivery commits an ignored receipt with no jobs. A failed check rolls back the receipt and any transactional database changes; the sender can retry. Duplicate deliveries skip the mapping.
 
 ### Answers and retries
 
