@@ -15,6 +15,7 @@ export type Fixture =
 	| "disabledStories"
 	| "enabledStories"
 	| "failingStories"
+	| "findTimeoutStories"
 	| "genreStories"
 	| "invalidTagStories"
 	| "lifetimeStories"

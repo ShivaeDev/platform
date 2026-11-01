@@ -1,5 +1,6 @@
 import { Effect, Queue, Result, Stream } from "effect";
 import { isClientIdle } from "@shivaedev/contract/clientActivity.ts";
+import { screenAct } from "#adapters/screenAct.ts";
 import { screenMutations } from "#adapters/screenMutations.ts";
 import type { ScreenDriverOptions } from "#screenDriver.ts";
 
@@ -35,7 +36,7 @@ export const waitForScreen = Effect.fnUntraced(function* <A, E>({ act, pending, 
 	const isBusy = yield* observePending(pending, changes);
 	do {
 		if (pending !== undefined) {
-			yield* Effect.promise(() => act(() => Promise.resolve()));
+			yield* screenAct(act, Effect.void);
 		}
 		if (!(yield* isBusy)) {
 			const result = yield* Effect.result(read);
@@ -43,6 +44,6 @@ export const waitForScreen = Effect.fnUntraced(function* <A, E>({ act, pending, 
 				return result.success;
 			}
 		}
-		yield* pending === undefined ? Queue.take(changes) : Effect.promise((signal) => act(() => Effect.runPromise(Queue.take(changes), { signal })));
+		yield* pending === undefined ? Queue.take(changes) : screenAct(act, Queue.take(changes));
 	} while (true);
 }, Effect.scoped);
