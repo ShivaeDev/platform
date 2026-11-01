@@ -15,6 +15,7 @@ import { unlinkBeforeStat } from "./fileRaces.ts";
 interface FileReader {
 	link?: () => void;
 	notes: Folder;
+	notify?: (path: string) => Effect.Effect<unknown>;
 	readonly published: Queue.Queue<readonly string[]>;
 	readonly sentinelWrites: Queue.Queue<string>;
 	services: Layer.Layer<FileSystem.FileSystem>;
@@ -111,6 +112,13 @@ export const fileReadingStory = storyKit({
 		stopWatching: () => {
 			story.tell("the host stops watching the workspace");
 			return Fiber.interrupt(running(engine));
+		},
+		watcherReports: (path: string) => {
+			story.tell(`the filesystem reports a change to ${path}`);
+			if (!engine.notify) {
+				throw new Error("The story has no controlled watcher notifications");
+			}
+			return engine.notify(path);
 		},
 		watchFailure: Effect.fn("Story.watchFailure")(function* () {
 			const exit = yield* Fiber.await(running(engine));
