@@ -1012,3 +1012,9 @@ pnpm add @tanstack/react-router
 The package needs Node 24 or newer.
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - The package has no SSR registry/hydration adapter, offline write queue or optimistic reconciliation policy.
+
+## Browser errors
+
+Mount `useBrowserErrors` from `@shivaedev/react/client/adapters/useBrowserErrors.ts` once in the root component, outside the signed-in subtree. It forwards uncaught window errors and unhandled promise rejections to `appHost`'s `POST /_platform/errors` route, using the current page URL and available message and stack. Unmounting removes both listeners. Failed reporting requests are discarded. The starter mounts it by default.
+
+The server rate-limits and redacts browser reports before sending them to Railway tracing alongside server errors and traces. Browser code receives no exporter credentials. See the [server guide](https://github.com/ShivaeDev/platform/blob/main/packages/server/README.md) for the route and local trace setup.

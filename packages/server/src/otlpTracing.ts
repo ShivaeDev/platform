@@ -1,7 +1,9 @@
 import { Config, Effect, Layer, Schema } from "effect";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
+import { traceDiagnostics } from "#adapters/traceDiagnostics.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
+import { redactingDiagnostics } from "#redactingDiagnostics.ts";
 import { redactingTracer } from "#redactingTracer.ts";
 import { safeOtlpSerialization } from "#safeOtlpSerialization.ts";
 
@@ -56,6 +58,10 @@ export const otlpTracing: Layer.Layer<never, Config.ConfigError> = Layer.unwrap(
 			),
 			Layer.provide(otlpHttpClient(requestTimeout)),
 		);
-		return redactingTracer(yield* RedactionPolicy).pipe(Layer.provideMerge(tracer));
+		const sensitive = yield* RedactionPolicy;
+		return redactingDiagnostics(sensitive).pipe(
+			Layer.provideMerge(traceDiagnostics),
+			Layer.provideMerge(redactingTracer(sensitive).pipe(Layer.provideMerge(tracer))),
+		);
 	}),
 );

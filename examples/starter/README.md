@@ -121,3 +121,11 @@ End-to-end browser tests do not belong in an app's CI because they cost CI minut
 The app and cookie story kits start TestClock at the present so Better Auth’s own endpoints, which use wall time, accept minted sessions. Pass `{ clock: DateTime.makeUnsafe("2100-01-01T00:00:00Z") }` as a story’s last argument to choose a different start.
 
 Long jumps expire signed-in sessions. After `yield* timePasses("30 days")`, use `yield* signsInAgain("alice")` in the notes app kit, or `yield* browserSignsInAgain()` in the cookie kit. These verbs use `signInAgain(auth, userId)` from `@shivaedev/identity/server/better-auth/testing.ts` to mint a session for the same account on the caller’s Clock. They replace the visitor’s request credentials or browser cookies in one step. Read the actor again after renewal to use its fresh notes client; an earlier client still carries its old credentials.
+
+## Errors and traces
+
+Railway tracing is the default and only production error and trace destination. `.railway/railway.ts` enables manual tracing for web and worker; Railway supplies the OTLP endpoint and authentication on deployment. Leave exporter endpoint overrides unset. Open the project's Traces page to see application spans, log events and Effect `ErrorReporter` reports. The framework redacts diagnostics before exporting.
+
+`App` mounts `useBrowserErrors` once, including before sign-in. `appHost` mounts `POST /_platform/errors`, forwarding uncaught browser errors and unhandled rejections through that same redacting pipeline. The route limits reports to 20 per minute per client IP per process.
+
+Local development and tests run without export when no endpoint is configured. To inspect traces locally, follow the loopback OpenTelemetry Collector setup in the [server guide](https://github.com/ShivaeDev/platform/blob/main/packages/server/README.md). Agents extending this starter must keep Railway as the sink and must not add another error service.

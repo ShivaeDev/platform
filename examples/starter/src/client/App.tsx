@@ -1,5 +1,6 @@
 import { Result, Schema } from "effect";
 import { useCallback } from "react";
+import { useBrowserErrors } from "@shivaedev/react/client/adapters/useBrowserErrors.ts";
 import { type Auth, SessionAccess } from "./auth.ts";
 import { SessionApp } from "./SessionApp.tsx";
 import { ThemeToggle } from "./ThemeToggle.tsx";
@@ -7,6 +8,7 @@ import { ThemeToggle } from "./ThemeToggle.tsx";
 type SessionProps = Parameters<typeof SessionApp>[0];
 
 export function App(props: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
+	useBrowserErrors();
 	return (
 		<>
 			<ThemeToggle />
