@@ -537,6 +537,9 @@ importers:
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql

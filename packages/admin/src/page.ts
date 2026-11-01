@@ -85,10 +85,13 @@ export function adminPage(page: {
 	const { declaration } = page.contract;
 	const queries = declaration.queries.map((query) => ({
 		...query,
-		readPolicy: (payload: unknown, viewer: Option.Option<Viewer>) =>
-			Effect.flatMap(SessionUser, (user) =>
-				hasPermission(user, page.permission.permission) ? (query.readPolicy?.(payload, viewer) ?? Effect.succeed(true)) : Effect.succeed(false),
-			),
+		readPolicy: Object.assign(
+			(payload: unknown, viewer: Option.Option<Viewer>) =>
+				Effect.flatMap(SessionUser, (user) =>
+					hasPermission(user, page.permission.permission) ? (query.readPolicy?.(payload, viewer) ?? Effect.succeed(true)) : Effect.succeed(false),
+				),
+			query.readPolicy,
+		),
 	}));
 	let protectedContract: PageGroup = contract(declaration.name, { ...declaration, queries });
 	const original = page.contract.requests.values().next().value;

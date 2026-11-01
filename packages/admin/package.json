@@ -60,6 +60,7 @@
 		"@effect/atom-react": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
+		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
