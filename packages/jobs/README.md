@@ -569,7 +569,7 @@ The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Que
 
 `Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Workers also require `getDb()` to read the PostgreSQL clock when a batch arrives. Producer-only clients do not need these capabilities. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and listings, deferral and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
 
-`onError` handles pg-boss client `error` events using the services captured by the Layer. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer.
+`onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer interrupts pending callbacks and waits for them to end before release completes. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer.
 
 Worker registration always requests `includeMetadata: true`, including when `worker` supplies `includeMetadata: false`; custom clients must return pg-boss's `startedOn` metadata. Direct callers use `jobContext(job, deadline)`, where `deadline` is in runtime Clock milliseconds: measure the remaining expiry against PostgreSQL time, then add it to the runtime Clock time. Registered workers receive that translation automatically.
 

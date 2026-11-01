@@ -10,6 +10,7 @@ import { scriptedClient } from "#test/runtime/scriptedClient.ts";
 import { spanTree } from "#test/spanTree.ts";
 import { type Registration, untilWork } from "#test/workers.ts";
 import { described, type Fetched, type Options, provided, type RuntimeEngine, runningIn, runtimeEngine, startRuntime } from "./engine.ts";
+import { errorReportingVerbs } from "./errorReporting.ts";
 
 export const runtime = storyKit({
 	clock: "live",
@@ -18,6 +19,7 @@ export const runtime = storyKit({
 	name: "jobs runtime over a recording pg-boss client",
 	stages: ["client", "runtime"],
 	verbs: (engine, story) => ({
+		...errorReportingVerbs(engine, story.tell),
 		answered: () => Effect.sync(() => engine.answered),
 		applicationLog: () => Effect.sync(() => [...engine.applicationLog]),
 		ask: <A, E>(name: string, request: string, call: (jobs: PgBossService) => Effect.Effect<A, E>) => {

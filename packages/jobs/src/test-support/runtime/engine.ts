@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope } from "effect";
+import { Cause, Context, Deferred, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope } from "effect";
 import type { ConstructorOptions } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
 import { PgBossError } from "#error.ts";
@@ -8,7 +8,7 @@ import { FakeClient } from "#test/fakeClient.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { ApplicationLog, Jobs, type Registration, registrations, type WorkLog, workLog } from "#test/workers.ts";
 
-export type Options = PgBossOptions & Partial<PgBossLayerOptions<readonly [], never>>;
+export type Options = PgBossOptions & Partial<PgBossLayerOptions<readonly [], ApplicationLog>>;
 
 export interface Fetched {
 	readonly data?: unknown;
@@ -30,6 +30,7 @@ export interface RuntimeEngine {
 	batchFailureMessage: string;
 	client: FakeClient;
 	clientsConstructed: number;
+	readonly errorReport: ReturnType<typeof errorReportState>;
 	factory: PgBossClientFactory;
 	readonly failureMessages: Map<string, string>;
 	readonly logs: { readonly level: string; readonly message: unknown }[];
@@ -44,6 +45,15 @@ export interface RuntimeEngine {
 	readonly work: WorkLog;
 }
 
+function errorReportState() {
+	return {
+		allowed: Deferred.makeUnsafe<void>(),
+		finished: Deferred.makeUnsafe<void>(),
+		started: Deferred.makeUnsafe<void>(),
+		stopped: Deferred.makeUnsafe<void>(),
+	};
+}
+
 export function runtimeEngine(): RuntimeEngine {
 	const client = new FakeClient();
 	return {
@@ -53,6 +63,7 @@ export function runtimeEngine(): RuntimeEngine {
 		batchFailureMessage: "no failure",
 		client,
 		clientsConstructed: 0,
+		errorReport: errorReportState(),
 		factory: () => client,
 		failureMessages: new Map(),
 		logs: [],
