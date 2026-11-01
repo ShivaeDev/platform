@@ -1,6 +1,7 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Effect, Exit, Option, Schema, Scope } from "effect";
 import { SqlClient } from "effect/sql";
+import { authCallSignal } from "#server/adapters/authCall.ts";
 import { betterAuthTransaction } from "./transaction.ts";
 
 type PostgresPool = Extract<NonNullable<BetterAuthOptions["database"]>, { connect: unknown }>;
@@ -31,6 +32,7 @@ export const betterAuthDatabase = Effect.fn("Identity.betterAuthDatabase")(funct
 					Scope.provide(scope),
 					Effect.onError((cause) => Scope.close(scope, Exit.failCause(cause))),
 				),
+				{ signal: authCallSignal.getStore() },
 			);
 			const control = Option.isSome(transaction) ? await run(betterAuthTransaction.pipe(Scope.provide(scope))) : undefined;
 			function query<R>(text: string, parameters: readonly unknown[]): Promise<QueryResult<R>>;
@@ -43,8 +45,11 @@ export const betterAuthDatabase = Effect.fn("Identity.betterAuthDatabase")(funct
 					throw new Error("Better Auth database does not support cursors");
 				}
 				const nested = control?.(text);
+				const signal = text === "begin" || text === "commit" || text === "rollback" ? undefined : authCallSignal.getStore();
 				return (
-					nested === undefined ? run(connection.executeRaw(text, parameters)) : nested.then(() => ({ command: text, rowCount: 0, rows: [] }))
+					nested === undefined
+						? run(connection.executeRaw(text, parameters), { signal })
+						: nested.then(() => ({ command: text, rowCount: 0, rows: [] }))
 				).then(Schema.decodeUnknownSync(Result));
 			}
 			return {
