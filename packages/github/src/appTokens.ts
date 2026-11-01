@@ -1,0 +1,85 @@
+import { Cache, Clock, Context, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { readBoundedJson } from "@shivaedev/http/body.ts";
+import { filterStatus } from "@shivaedev/http/filterStatus.ts";
+import { appJwt } from "#appJwt.ts";
+import { GitHubAppError } from "#errors.ts";
+import { GitHubConfig } from "#GitHubConfig.ts";
+import { GitHubToken } from "#GitHubToken.ts";
+import type { GitHubAppOptions } from "#githubApp.ts";
+import { TokenRefresh } from "#TokenRefresh.ts";
+
+const Installation = Schema.Struct({ id: Schema.Number });
+const AccessToken = Schema.Struct({ expiresAt: Schema.DateFromString, token: Schema.RedactedFromValue(Schema.String) }).pipe(
+	Schema.encodeKeys({ expiresAt: "expires_at" }),
+);
+
+export function appTokens(options: GitHubAppOptions) {
+	return Layer.effectContext(
+		Effect.gen(function* () {
+			if (!("installationId" in options || "owner" in options)) {
+				return Context.make(GitHubToken, Effect.map(appJwt(options), Option.some)).pipe(Context.add(TokenRefresh, undefined));
+			}
+			const client = yield* HttpClient.HttpClient;
+			const { apiUrl } = yield* GitHubConfig;
+			let installationId = "installationId" in options ? options.installationId : undefined;
+			const request = appRequests(client, apiUrl);
+			const exchange = Effect.gen(function* () {
+				const jwt = yield* appJwt(options);
+				if (installationId === undefined && "owner" in options && options.owner !== undefined) {
+					const path = `/repos/${encodeURIComponent(options.owner)}/${encodeURIComponent(options.repository)}/installation`;
+					installationId = (yield* request("GET", path, jwt, Installation)).id;
+				}
+				const access = yield* request("POST", `/app/installations/${installationId}/access_tokens`, jwt, AccessToken, {
+					permissions: options.scope?.permissions,
+					repositories: options.scope?.repositories,
+					"repository_ids": options.scope?.repositoryIds,
+				});
+				const now = yield* Clock.currentTimeMillis;
+				return { ...access, timeToLive: Math.max(0, access.expiresAt.getTime() - now - 300_000) };
+			});
+			const cache = yield* Cache.makeWith((_: undefined) => exchange, {
+				capacity: 1,
+				timeToLive: (exit) => (Exit.isSuccess(exit) ? exit.value.timeToLive : 0),
+			});
+			return Context.make(
+				GitHubToken,
+				Effect.map(Cache.get(cache, undefined), ({ token }) => Option.some(token)),
+			).pipe(
+				Context.add(TokenRefresh, (rejected) =>
+					Cache.invalidateWhen(cache, undefined, ({ token }) => Option.isSome(rejected) && token === rejected.value),
+				),
+			);
+		}),
+	);
+}
+
+function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
+	const checked = filterStatus(HttpClient.withScope(client));
+	return Effect.fnUntraced(function* <TSchema extends Schema.Constraint>(
+		method: "GET" | "POST",
+		path: string,
+		jwt: Redacted.Redacted<string>,
+		schema: TSchema,
+		body?: unknown,
+	) {
+		let input = HttpClientRequest.make(method)(new URL(path, apiUrl).href, {
+			headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${Redacted.value(jwt)}`, "X-GitHub-Api-Version": "2022-11-28" },
+		});
+		if (body !== undefined) {
+			input = yield* HttpClientRequest.bodyJson(input, body).pipe(Effect.mapError((cause) => new GitHubAppError({ reason: "encode" }, { cause })));
+		}
+		const response = yield* checked
+			.execute(input)
+			.pipe(
+				Effect.mapError((cause) =>
+					cause._tag === "HttpClientError"
+						? new GitHubAppError({ reason: "transport" }, { cause })
+						: new GitHubAppError({ reason: "status", status: cause.status }),
+				),
+			);
+		return yield* readBoundedJson(response, 64 * 1024, schema).pipe(
+			Effect.mapError((cause) => new GitHubAppError({ reason: cause._tag === "HttpClientError" ? "transport" : "response" }, { cause })),
+		);
+	}, Effect.scoped);
+}

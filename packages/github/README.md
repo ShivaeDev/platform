@@ -116,6 +116,25 @@ const repository = read("/repos/acme/widgets", Schema.Struct({ id: Schema.Number
 
 Provide `clients(privateKey).app` to `appInfo` or `installations`, and `.accessCheck` to `repository`, using `Effect.provide`. The `.background` client receives a full installation token. These Layers replace application-written JWT signing, installation-token exchanges, expiry timers and the resource-401 refresh wrapper; provide the client Layer once around the application or job for each installation and scope to share its token cache.
 
+A single `githubApp(credentials)` Layer also provides `GitHubApp`, whose `installation(id)` method returns a cached `GitHub` client. Use `withInstallation` to run the usual GitHub operations for a selected installation without maintaining client Layers in the application:
+
+```ts
+import { Effect, Layer, Redacted, Schema } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { read } from "@shivaedev/github/GitHub.ts";
+import { githubApp } from "@shivaedev/github/githubApp.ts";
+import { withInstallation } from "@shivaedev/github/installationClients.ts";
+
+const app = (privateKey: Redacted.Redacted<string>) => githubApp({ appId: "123456", privateKey }).pipe(Layer.provide(FetchHttpClient.layer));
+const Repositories = Schema.Struct({ repositories: Schema.Array(Schema.Struct({ id: Schema.Number, name: Schema.String })) });
+const repositories = read("/installation/repositories", Repositories);
+const bothInstallations = Effect.all([withInstallation(7, repositories), withInstallation(8, repositories)]);
+```
+
+Provide `app(privateKey)` once around `bothInstallations` or the application. Each installation has its own full-access token, conditional representations and rate-limit state. A 401 refreshes only that installation's rejected token; a rate limit blocks only that installation's resource. Existing scoped single-installation Layers remain available for access checks.
+
+The shared cache holds at most 100 installation clients and evicts the least recently used client when full. Selecting a client renews its 30-minute idle lifetime; a client idle for that interval is replaced on its next selection. Expiry is lazy, with no background timer. Eviction discards the client's token and request state, and its next request exchanges a new token. Keep operations inside `withInstallation` so each selection uses the cache's current client.
+
 `scope` accepts `repositoryIds` or `repositories` (repository names), and a `permissions` record of GitHub permission names to `"read"`, `"write"` or `"admin"`. Omit `scope` for the installation's full access. Explicit `{ permissions: { metadata: "read" } }` requests a metadata-only token for access checks. GitHub decides whether the requested scope is allowed.
 
 Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets", scope? }`. The Layer resolves the installation through `GET /repos/{owner}/{repo}/installation` before exchanging the App JWT for an installation token. Signing uses Node's built-in crypto. The RS256 JWT carries the App ID as `iss`, `iat` 60 seconds before the current time, and `exp` ten minutes ahead.

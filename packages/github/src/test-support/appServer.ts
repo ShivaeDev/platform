@@ -16,7 +16,7 @@ export const appServer = Effect.gen(function* () {
 		exchanges: 0,
 		jwts: [],
 	};
-	const tokens = new Set<string>();
+	const tokens = new Map<string, number>();
 	function appRequest(request: FakeHttpRequest) {
 		const jwt = appJwtOf(request.headers.authorization, clock.currentTimeMillisUnsafe());
 		state.jwts.push(jwt);
@@ -50,15 +50,23 @@ export const appServer = Effect.gen(function* () {
 						? { body: [{ account: { login: "other" }, id: 8 }] }
 						: { body: [{ account: { login: "acme" }, id: 7 }], headers: { Link: '</app/installations?page=2>; rel="next"' } },
 			},
+			installedRepositories: {
+				guard: installationToken,
+				path: "/installation/repositories",
+				reply: (request) => {
+					const id = tokens.get(request.headers.authorization ?? "");
+					return { body: { repositories: [{ id, name: `repository-${id}` }] }, headers: { "ETag": `"installation-${id}"` } };
+				},
+			},
 			pull: { guard: pullArrives, path: "/repos/acme/widgets/pulls/1", reply: () => ({ body: { number: 1, title: "App read" } }) },
 			token: {
 				guard: appRequest,
 				method: "POST",
-				path: "/app/installations/7/access_tokens",
-				reply: () => {
+				path: "/app/installations/:installationId/access_tokens",
+				reply: (request) => {
 					state.exchanges += 1;
 					const token = `${APP_TOKEN}-${state.exchanges}`;
-					tokens.add(`Bearer ${token}`);
+					tokens.set(`Bearer ${token}`, Number(request.params.installationId));
 					return { body: { "expires_at": new Date(clock.currentTimeMillisUnsafe() + 3_600_000).toISOString(), token } };
 				},
 			},
