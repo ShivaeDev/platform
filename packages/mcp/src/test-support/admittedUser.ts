@@ -3,9 +3,10 @@ import { signInAgain } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { admittedMcp } from "./mcp.ts";
 
 export function admittedUser(name: string) {
-	return admittedMcp.trait("people", `${name} has an account admitted by the sign-in rule`, function* (engine) {
+	return admittedMcp.trait("people", `${name} already has an admitted account and a minted browser session`, function* (engine) {
 		const { adapter, internalAdapter } = yield* Effect.promise(() => engine.auth.$context);
 		const now = DateTime.toDateUtc(yield* DateTime.now);
+		// Minting a pre-existing user keeps sign-up policy out of MCP admission stories.
 		const user = yield* Effect.promise(() =>
 			adapter.create<{ readonly id: string }>({
 				data: { createdAt: now, email: `${name}@mcp.test`, emailVerified: true, name, role: "user", updatedAt: now },

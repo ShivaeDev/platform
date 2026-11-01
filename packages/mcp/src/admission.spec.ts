@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { admittedUser } from "#test/admittedUser.ts";
@@ -7,10 +6,10 @@ import { pendingAdmission } from "#test/pendingAdmission.ts";
 import { holdsToken } from "#test/traits.ts";
 
 admittedMcp.it(
-	"a denied user's bearer token is refused for every HTTP method at the MCP endpoint",
+	"alice's denied bearer token receives 401 with an OAuth challenge for GET, POST, DELETE, PUT, PATCH, HEAD and OPTIONS",
 	[admittedUser("alice"), holdsToken("alice")],
-	function* ({ changesAdmission, requestsMcp }) {
-		yield* changesAdmission("alice", false);
+	function* ({ deniesAdmission, requestsMcp }) {
+		yield* deniesAdmission("alice");
 
 		for (const method of ["GET", "POST", "DELETE", "PUT", "PATCH", "HEAD", "OPTIONS"]) {
 			expect(yield* requestsMcp("alice", method)).toEqual({ challenge: true, status: 401 });
@@ -19,44 +18,46 @@ admittedMcp.it(
 );
 
 admittedMcp.it(
-	"admission changes take effect on the next MCP request with the same token and leave another user admitted",
+	"alice's admission changes affect her next MCP request with the same token, preserving her browser session and bob's access",
 	[admittedUser("alice"), holdsToken("alice"), admittedUser("bob"), holdsToken("bob")],
-	function* ({ browserSessionCount, changesAdmission, requestsMcp }) {
-		expect(yield* requestsMcp("alice", "POST")).toEqual({ challenge: false, status: 200 });
-
-		yield* changesAdmission("alice", false);
-
+	function* ({ browserSession, deniesAdmission, requestsMcp, restoresAdmission }) {
 		yield* outcomes([
-			["denied user", () => requestsMcp("alice", "POST"), { challenge: true, status: 401 }],
-			["another admitted user", () => requestsMcp("bob", "POST"), { challenge: false, status: 200 }],
-			["the browser session", () => browserSessionCount("alice"), 1],
+			["alice's admitted token", () => requestsMcp("alice", "POST"), { status: 200 }],
+			["alice's browser session before denial", () => browserSession("alice"), "signed in as alice"],
 		]);
 
-		yield* changesAdmission("alice", true);
+		yield* deniesAdmission("alice");
 
-		expect(yield* requestsMcp("alice", "POST")).toEqual({ challenge: false, status: 200 });
+		yield* outcomes([
+			["alice after denial", () => requestsMcp("alice", "POST"), { status: 401 }],
+			["bob keeps access", () => requestsMcp("bob", "POST"), { status: 200 }],
+			["alice's browser session after denial", () => browserSession("alice"), "signed in as alice"],
+		]);
+
+		yield* restoresAdmission("alice");
+
+		expect(yield* requestsMcp("alice", "POST")).toMatchObject({ status: 200 });
 	},
 );
 
 admittedMcp.it(
-	"an admission service failure refuses MCP access as unavailable without an OAuth challenge",
+	"an admission service failure answers alice's MCP request with 503 and no OAuth challenge",
 	[admittedUser("alice"), holdsToken("alice")],
-	function* ({ admissionUnavailable, requestsMcp }) {
-		yield* admissionUnavailable();
+	function* ({ admissionServiceFails, requestsMcp }) {
+		yield* admissionServiceFails();
 
 		expect(yield* requestsMcp("alice", "POST")).toEqual({ challenge: false, status: 503 });
 	},
 );
 
 admittedMcp.it(
-	"a new request observes denial while an earlier admission check is still pending",
+	"alice's next MCP request receives 401 while her earlier admission check is pending",
 	[admittedUser("alice"), holdsToken("alice"), pendingAdmission("alice")],
-	function* ({ changesAdmission, requestsMcp, resumesAdmission, startsMcpRequest }) {
+	function* ({ deniesAdmission, requestsMcp, startsMcpRequest }) {
 		yield* startsMcpRequest("alice");
-		yield* changesAdmission("alice", false);
 
-		const answer = yield* requestsMcp("alice", "POST").pipe(Effect.timeout("5 seconds"), Effect.ensuring(resumesAdmission()));
+		yield* deniesAdmission("alice");
 
-		expect(answer).toEqual({ challenge: true, status: 401 });
+		expect(yield* requestsMcp("alice", "POST")).toMatchObject({ status: 401 });
 	},
 );

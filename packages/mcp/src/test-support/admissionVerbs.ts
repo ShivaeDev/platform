@@ -35,27 +35,32 @@ export function admissionVerbs(engine: Engine, tell: (line: string) => void) {
 	}
 
 	return {
-		admissionUnavailable: () =>
+		admissionServiceFails: () =>
 			Effect.sync(() => {
 				tell("The admission service becomes unavailable");
 				engine.admission.unavailable = true;
 			}),
-		browserSessionCount: (name: string) =>
-			Effect.promise(async () => {
-				const { adapter } = await engine.auth.$context;
-				return adapter.count({ model: "session", where: [{ field: "userId", value: person(engine, name).id }] });
+		browserSession: (name: string) =>
+			Effect.promise(async (signal) => {
+				tell(`${name} reads the browser session over HTTP`);
+				const response = await fetch(`${engine.baseUrl}/api/auth/get-session`, {
+					headers: { cookie: person(engine, name).cookie },
+					signal,
+				});
+				const session = await response.json();
+				return session === null ? "signed out" : `signed in as ${session.user.name}`;
 			}),
-		changesAdmission: (name: string, admitted: boolean) =>
+		deniesAdmission: (name: string) =>
 			Effect.sync(() => {
-				tell(`The admission rule ${admitted ? "admits" : "denies"} ${name}`);
-				if (admitted) {
-					engine.admission.denied.delete(name);
-				} else {
-					engine.admission.denied.add(name);
-				}
+				tell(`The admission rule denies ${name}`);
+				engine.admission.denied.add(name);
 			}),
-		requestsMcp: request,
-		resumesAdmission: () => Deferred.succeed(engine.admission.resume, undefined),
+		requestsMcp: (name: string, method: string) => request(name, method).pipe(Effect.timeout("5 seconds")),
+		restoresAdmission: (name: string) =>
+			Effect.sync(() => {
+				tell(`The admission rule admits ${name} again`);
+				engine.admission.denied.delete(name);
+			}),
 		startsMcpRequest: (name: string) =>
 			Effect.gen(function* () {
 				yield* request(name, "POST").pipe(Effect.forkScoped);
