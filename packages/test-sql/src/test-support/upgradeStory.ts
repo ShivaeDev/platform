@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { readPostgresRelease } from "@shivaedev/sql/postgresRelease.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { assertModelColumns } from "#assertModelColumns.ts";
 import { PostgresTestDatabase } from "#database.ts";
@@ -12,9 +13,11 @@ import { configured, secondClient } from "./postgres.ts";
 
 export interface UpgradeEngine {
 	columns: readonly PostgresColumn[];
+	columnsSeenByLaterMigration: readonly string[];
 	drift: string | undefined;
 	ledger: string;
 	loads: number;
+	releaseSeenByLaterMigration: string;
 	seenByLaterMigration: readonly string[];
 	upgrade: string;
 }
@@ -26,9 +29,11 @@ export const upgrade = storyKit({
 	clock: "live",
 	create: (): UpgradeEngine => ({
 		columns: [],
+		columnsSeenByLaterMigration: [],
 		drift: undefined,
 		ledger: migrations.table,
 		loads: 0,
+		releaseSeenByLaterMigration: "not observed",
 		seenByLaterMigration: [],
 		upgrade: "not attempted",
 	}),
@@ -65,6 +70,11 @@ export const upgrade = storyKit({
 					),
 				),
 			columns: () => Effect.sync(() => engine.columns),
+			columnsSeenByLaterMigration: () => Effect.sync(() => engine.columnsSeenByLaterMigration),
+			currentItemNames: () =>
+				Effect.flatMap(SqlClient.SqlClient, (sql) =>
+					Effect.map(sql<{ name: string }>`select name from current_items order by id`, (rows) => rows.map(({ name }) => name)),
+				),
 			itemNamesInOldColumn: () =>
 				Effect.flatMap(SqlClient.SqlClient, (sql) =>
 					Effect.map(sql<{ name: string }>`select old_name as name from items`, (rows) => rows.map(({ name }) => name)),
@@ -75,6 +85,8 @@ export const upgrade = storyKit({
 					Effect.as("matches the model"),
 					Effect.catch((mismatch) => Effect.succeed(failureOf(mismatch))),
 				),
+			recordedRelease: () => Effect.map(readPostgresRelease(engine.ledger), (release) => release?.release ?? "none"),
+			releaseSeenByLaterMigration: () => Effect.sync(() => engine.releaseSeenByLaterMigration),
 			rowsSeenByLaterMigration: () => Effect.sync(() => engine.seenByLaterMigration),
 			runUpgrade: () => {
 				story.tell("the upgrade commits migration 1 and then applies the rest");
@@ -99,6 +111,10 @@ export const upgrade = storyKit({
 					const watch = Effect.gen(function* () {
 						const rows = yield* observer<{ name: string }>`select old_name as name from items`.withoutTransform;
 						engine.seenByLaterMigration = rows.map(({ name }) => name);
+						const columns = yield* observer<{ name: string }>`select column_name as name from information_schema.columns
+							where table_schema = 'public' and table_name = 'items' order by ordinal_position`.withoutTransform;
+						engine.columnsSeenByLaterMigration = columns.map(({ name }) => name);
+						engine.releaseSeenByLaterMigration = (yield* readPostgresRelease(engine.ledger))?.release ?? "none";
 					});
 					yield* run(counted([[2, "watch_committed", Effect.succeed(watch)]]));
 				}),

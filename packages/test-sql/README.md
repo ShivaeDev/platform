@@ -237,13 +237,13 @@ migrationTest("preserves contact emails in the new table", function* (steps) {
 });
 ```
 
-The helper resolves the loader once and uses `migratePostgres` for each step, preserving its ledger table and lock timeout. Unknown or ambiguous targets fail with a typed `MigrationError` that names the requested target. Moving behind an already applied migration and running inside a wrapping transaction also fail with `MigrationError`. Loader dependencies, including `Scope`, remain requirements of `migrationSteps`; its resources live until the caller's scope closes. Use the returned steps inside that database's scope. SQL and loader failures retain their failure channels.
+The helper resolves the loader once and uses `migratePostgres` for each step, preserving its ledger table and lock timeout. `migrateTo` applies only numbered migrations through the target, even when the target is the last migration: it runs no current-schema components and records no release. `migrateToLatest` applies the remaining migrations, runs the configured components and records the configured release. Unknown or ambiguous targets fail with a typed `MigrationError` that names the requested target. Moving behind an already applied migration and running inside a wrapping transaction also fail with `MigrationError`. Loader dependencies, including `Scope`, remain requirements of `migrationSteps`; its resources live until the caller's scope closes. Use the returned steps inside that database's scope. SQL and loader failures retain their failure channels.
 
 For test-story, use the same Layer and `around: withIsolatedDatabase`, acquire `migrationSteps(appMigrations)` in the kit's `create`, and let schema and data traits call `migrateTo` and seed native SQL. A verb can yield `migrateToLatest` before the story asserts the backfilled rows.
 
 ### Check upgrades against the current model
 
-A fresh-database test cannot prove that older databases upgrade to the current model. Run `migrationUpgrade` in a disposable database with an empty migration ledger, outside a wrapping transaction. It resolves the application's loader once, commits migrations through the existing `upTo` id, then applies the remaining migrations through `migratePostgres`. It returns the target table's column names and PostgreSQL `format_type` strings, including type modifiers such as `numeric(10,2)`; dropped columns are excluded.
+A fresh-database test cannot prove that older databases upgrade to the current model. Run `migrationUpgrade` in a disposable database with an empty migration ledger, outside a wrapping transaction. It resolves the application's loader once and commits only numbered migrations through the existing `upTo` id, without components or a release. It then applies the remaining migrations through `migratePostgres`, including the configured current-schema components and release. It returns the target table's column names and PostgreSQL `format_type` strings, including type modifiers such as `numeric(10,2)`; dropped columns are excluded.
 
 ```ts
 import { assertModelColumns } from "@shivaedev/test-sql/server/assertModelColumns.ts";
