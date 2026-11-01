@@ -44,14 +44,17 @@ const AUTH_SCHEME = /\b(?<scheme>Bearer|Basic)\s+[A-Za-z0-9%._~+/-]+=*/giu;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
 const PRIVATE_KEY = /-----BEGIN (?<kind>(?:[A-Z0-9]+ )*PRIVATE KEY)-----[\s\S]*?-----END \k<kind>-----/gu;
 function redactAssignments(text: string, sensitive: SensitiveKey): string {
-	const matcher = /(?<key>[A-Za-z][\w.-]*)(?<separator>["']?\s*[=:]\s*["']?)(?<value>[^\s"'&,;]+)/gu;
+	const matcher =
+		/(?<key>[A-Za-z][\w.-]*)(?<separator>["']?\s*[=:]\s*)(?<value>(?<quote>["'])(?:\\[\s\S]?|(?!\k<quote>)[^\\])*(?<closingQuote>\k<quote>|$)|[^\s"'&,;]+)/gu;
 	let result = "";
 	let cursor = 0;
 	for (let match = matcher.exec(text); match !== null; match = matcher.exec(text)) {
 		const key = match[1] ?? "";
 		const separator = match[2] ?? "";
 		if (sensitive(key)) {
-			result += `${text.slice(cursor, match.index)}${key}${separator}${REDACTED}`;
+			const quote = match.groups?.quote ?? "";
+			const closingQuote = match.groups?.closingQuote ?? "";
+			result += `${text.slice(cursor, match.index)}${key}${separator}${quote}${REDACTED}${closingQuote}`;
 			cursor = matcher.lastIndex;
 		} else if (match[3]?.includes("=")) {
 			// Revisit embedded parameters without parsing URL and source-location colons as assignments.
