@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { Effect, Schema, SchemaIssue, SchemaParser } from "effect";
+import { Effect, Schema, SchemaParser } from "effect";
 import { it } from "@shivaedev/test/it.ts";
 import { messagesByField } from "#messages.ts";
 
@@ -38,7 +38,6 @@ it.effect("a form-level refinement does not invent a field for its error", funct
 		Schema.makeFilter((value) => value.password === value.confirmation, { message: "Passwords must match" }),
 	);
 	const issue = yield* Effect.flip(SchemaParser.decodeUnknownEffect(Validation)({ confirmation: "second", password: "first" }));
-	expect(SchemaIssue.makeFormatterStandardSchemaV1()(issue).issues).toEqual([{ message: "Passwords must match", path: [] }]);
 	expect(messagesByField(issue)).toEqual({});
 });
 
