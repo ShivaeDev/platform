@@ -3,6 +3,7 @@ import { type Cause, Effect, Layer, type LogLevel, type Tracer } from "effect";
 import type { HttpRouter, HttpServer } from "effect/http";
 import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { AssetOptions } from "#AssetOptions.ts";
+import type { BrowserErrorOptions } from "#browserErrorRoute.ts";
 import type { PlatformRuntime } from "#runtime/types.ts";
 import { otlpHost } from "#test/otlpHost.ts";
 import type { otlpReceiver } from "#test/otlpReceiver.ts";
@@ -17,6 +18,7 @@ export interface HostState {
 	assets?: string | AssetOptions;
 	bindAddress: string;
 	bootFailure?: import("effect").Cause.Cause<unknown>;
+	browserErrors?: BrowserErrorOptions;
 	build: (state: HostState) => Layer.Layer<HttpServer.HttpServer, unknown>;
 	calls: (string | Buffer)[];
 	cleanup: (() => void | Promise<void>)[];
@@ -25,7 +27,14 @@ export interface HostState {
 	env: Record<string, string>;
 	expectBootFailure: boolean;
 	lifecycle: string[];
-	logs: { level: string; attempt: number; annotations: Record<string, unknown>; message: unknown; spans?: Readonly<Record<string, number>> }[];
+	logs: {
+		cause?: Cause.Cause<unknown>;
+		level: string;
+		attempt: number;
+		annotations: Record<string, unknown>;
+		message: unknown;
+		spans?: Readonly<Record<string, number>>;
+	}[];
 	logWaiters: (() => void)[];
 	lookups: string[];
 	loopback: boolean;

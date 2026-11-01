@@ -79,6 +79,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 					};
 
 					return {
+						browserErrors: { includeUserId: true, log: true, requireSession: true },
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: modules.group,
 						handlers: Layer.merge(modules.handlers, authenticatedUserLayer()),

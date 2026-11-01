@@ -8,6 +8,7 @@ import type { HostState } from "#test/app-host/state.ts";
 export function otlpHost(state: HostState) {
 	return appHost({
 		...(state.assets === undefined ? {} : { assets: state.assets }),
+		...(state.browserErrors === undefined ? {} : { browserErrors: state.browserErrors }),
 		config: state.config,
 		group: Ping,
 		handlers: pingHandlers,

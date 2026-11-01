@@ -1,5 +1,6 @@
 import { Cause, Effect, ErrorReporter } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
+import type { BrowserErrorOptions } from "#browserErrorRoute.ts";
 import { host } from "./story.ts";
 
 function diagnostic(field: string) {
@@ -53,3 +54,9 @@ export const reportedDiagnostics = host.trait("configured", "a route logs and re
 		}),
 	);
 });
+
+export function browserErrors(options: BrowserErrorOptions) {
+	return host.trait("configured", `browser reporting uses ${JSON.stringify(options)}`, (state) => {
+		state.browserErrors = options;
+	});
+}

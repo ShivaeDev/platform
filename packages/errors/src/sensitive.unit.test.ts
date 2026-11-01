@@ -103,3 +103,8 @@ it("masks each echoed value before truncation and with an application policy", (
 		);
 	}
 });
+
+it("server diagnostics preserve quoted literals outside credential and schema contexts", () => {
+	const message = `TypeError: "a public operation" is not a function`;
+	expect(redactText(message, isSensitiveKey)).toBe(message);
+});
