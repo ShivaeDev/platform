@@ -92,7 +92,7 @@ const build = Effect.gen(function* () {
 const program = withHeavyLock(build, { command: "pnpm build" }).pipe(Effect.provide(NodeServices.layer));
 ```
 
-`withHeavyLock` provides `HeldLock` to `build`. `NodeServices.layer` supplies the filesystem, path and process-spawning services. The lock is released when the Effect succeeds, fails or is interrupted; a failure from `build` stays its own failure. Interrupting a waiter leaves the existing holder and no temporary draft behind.
+`withHeavyLock` provides `HeldLock` to `build`. `NodeServices.layer` supplies the Crypto, filesystem, path and process-spawning services. Lock IDs come from Effect's Crypto service. The lock is released when the Effect succeeds, fails or is interrupted; a failure from `build` stays its own failure. Interrupting a waiter leaves the existing holder and no temporary draft behind.
 
 Filesystem cleanup failures are reported. Draft and reclamation-gate cleanup failures fail acquisition; a scoped release failure surfaces as a defect containing a `HeavyLockError` and the filesystem cause. Effect retains a work failure alongside a release failure. The CLI reports cleanup failures and exits with code 1.
 

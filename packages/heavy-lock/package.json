@@ -52,9 +52,7 @@
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
-		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",
