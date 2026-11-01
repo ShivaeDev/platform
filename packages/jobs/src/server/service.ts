@@ -2,6 +2,7 @@ import { Context, Effect, Exit, Layer, type Option, Redacted, type Schema, Scope
 import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } from "pg-boss";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
+import { clientErrorLogger } from "#adapters/clientErrorLogger.ts";
 import { clientErrorReporter } from "#adapters/clientErrorReporter.ts";
 import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
@@ -58,7 +59,7 @@ export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossE
 	return Layer.effect(
 		PgBoss,
 		Effect.gen(function* () {
-			const report = yield* clientErrorReporter(logClientError);
+			const report = yield* clientErrorLogger();
 			const acquired = yield* Effect.acquireRelease(
 				acquireClient(
 					{

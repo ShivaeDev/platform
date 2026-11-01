@@ -1,8 +1,8 @@
-import { Effect } from "effect";
+import { Effect, FiberSet } from "effect";
 
 export const clientErrorReporter = Effect.fnUntraced(function* <R>(report: (error: Error) => Effect.Effect<unknown, never, R>) {
-	const run = Effect.runPromiseWith(yield* Effect.context<R>());
+	const run = yield* FiberSet.makeRuntime<R>();
 	return (error: Error): void => {
-		void run(Effect.exit(report(error)));
+		run(Effect.exit(Effect.suspend(() => report(error))));
 	};
 });
