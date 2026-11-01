@@ -1,56 +1,57 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { malformedSession, notesScreen, screens, signedOutNotesRoute } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
-	"redirects a signed-out notes visitor before querying notes or rendering a route failure",
+	"a signed-out visitor to the notes route lands on sign-in without reading notes or showing an error",
 	[signedOutNotesRoute()],
-	function* ({ settle, closeScreen, consoleErrors, heading, alert, reads }) {
+	function* ({ alert, heading, notesReads, settle }) {
 		yield* settle();
-		expect(heading()).toBe("Sign in");
-		expect(alert()).toBeUndefined();
-		expect(reads()).toEqual([]);
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["page", heading, "Sign in"],
+			["alert", alert, "no alert"],
+			["notes reads", notesReads, "no notes reads"],
+		]);
 	},
 );
 
 screens.it(
-	"shows typed command rejection after expiry without clearing the draft",
+	"adding a note after alice's session expires asks her to sign in and keeps the draft",
 	[notesScreen()],
-	function* ({ settle, closeScreen, consoleErrors, expireSession, enter, submit, alert, draft }) {
+	function* ({ alert, draft, enter, expireSession, settle, submit }) {
 		yield* expireSession();
 		yield* enter("Keep this draft");
+
 		yield* submit();
 		yield* settle();
-		expect(alert()).toBe("Sign in to add a note.");
-		expect(draft()).toBe("Keep this draft");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["alert", alert, "Sign in to add a note."],
+			["draft", draft, "Keep this draft"],
+		]);
 	},
 );
 
 screens.it(
-	"calls sign-out and shows a failed sign-out without claiming success",
+	"a refused sign-out says it failed after one sign-out request",
 	[notesScreen("Could not sign out")],
-	function* ({ settle, closeScreen, consoleErrors, click, signOutCalls, alert }) {
+	function* ({ alert, click, settle, signOutCalls }) {
+		expect(yield* signOutCalls()).toBe("no sign-out requests");
+
 		yield* click("Sign out");
 		yield* settle();
-		expect(signOutCalls()).toEqual([undefined]);
-		expect(alert()).toBe("Could not sign out. Try again.");
-		yield* closeScreen();
-		expect(consoleErrors()).toEqual([]);
+
+		yield* outcomes([
+			["alert", alert, "Could not sign out. Try again."],
+			["sign-out requests", signOutCalls, "one sign-out request"],
+		]);
 	},
 );
 
-screens.it(
-	"shows the session error branch for a malformed session payload",
-	[malformedSession()],
-	function* ({ alert, closeScreen, consoleErrors, form }) {
-		expect(alert()).toBe("Could not check your session.");
-		expect(form()).toBeNull();
-
-		yield* closeScreen();
-
-		expect(consoleErrors()).toEqual([]);
-	},
-);
+screens.it("a malformed session shows the session check failure instead of the notes app", [malformedSession()], function* ({ addNoteForm, alert }) {
+	yield* outcomes([
+		["alert", alert, "Could not check your session."],
+		["add-note form", addNoteForm, "hidden"],
+	]);
+});

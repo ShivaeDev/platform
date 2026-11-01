@@ -35,7 +35,7 @@ export const adminSessions = storyKit({
 	layer: postgres,
 	name: "admin sessions page",
 	stages: ["viewer", "screen"],
-	verbs: (engine) => {
+	verbs: (engine, story) => {
 		function driver() {
 			if (engine.driver === undefined) {
 				throw new Error("The admin sessions page is not open");
@@ -43,11 +43,22 @@ export const adminSessions = storyKit({
 			return engine.driver;
 		}
 		return {
-			click: (name: string) => Effect.andThen(driver().click({ name, role: "button" }), driver().settle()),
-			content: () => Effect.sync(() => screenView(engine).container.textContent),
-			sessionEmails: () =>
+			heading: () => Effect.sync(() => screenView(engine).container.querySelector("h1")?.textContent ?? "no heading"),
+			revokesSession: (email: string) =>
+				Effect.gen(function* () {
+					story.tell(`alice revokes the session for ${email} and confirms`);
+					yield* driver().click({ name: `Revoke session for ${email}`, role: "button" });
+					yield* driver().click({ name: "Confirm revoke", role: "button" });
+					yield* driver().settle();
+				}),
+			sessions: () =>
 				Effect.sync(() =>
-					[...screenView(engine).container.querySelectorAll('ul[aria-label="Sessions"] li')].map((row) => row.querySelectorAll("p")[1]?.textContent),
+					[...screenView(engine).container.querySelectorAll('ul[aria-label="Sessions"] li')]
+						.map((row) => {
+							const email = row.querySelectorAll("p")[1]?.textContent ?? "no email";
+							return row.textContent.includes("Your current session") ? `${email} (current session)` : email;
+						})
+						.sort((left, right) => left.localeCompare(right)),
 				),
 		};
 	},
@@ -57,37 +68,41 @@ export const withoutSessionsPermission = adminSessions.trait("viewer", "alice ha
 	engine.role = "user";
 });
 
-export const adminSessionsOpen = adminSessions.trait("screen", "alice opens the mounted Sessions page on the real app host", function* (engine) {
-	const alice = yield* mintUser(engine.host, "alice", engine.role);
-	yield* mintUser(engine.host, "bob");
-	const headers = { cookie: alice.headers.get("cookie") ?? "", origin: engine.host.origin };
-	const client = makeFoundationClient(`${engine.host.baseUrl}/rpc`, { headers, live: false, webSocketConstructor: layerWebSocketConstructorWS });
-	let authRequests = 0;
-	const auth = makeAuth({
-		baseUrl: engine.host.baseUrl,
-		fetchOptions: {
-			customFetchImpl: async (input, init) => {
-				authRequests += 1;
-				try {
-					return await fetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init?.headers)), ...headers } });
-				} finally {
-					authRequests -= 1;
-				}
+export const adminSessionsOpen = adminSessions.trait(
+	"screen",
+	"alice and bob are signed in and alice opens the Sessions page on the real app host",
+	function* (engine) {
+		const alice = yield* mintUser(engine.host, "alice", engine.role);
+		yield* mintUser(engine.host, "bob");
+		const headers = { cookie: alice.headers.get("cookie") ?? "", origin: engine.host.origin };
+		const client = makeFoundationClient(`${engine.host.baseUrl}/rpc`, { headers, live: false, webSocketConstructor: layerWebSocketConstructorWS });
+		let authRequests = 0;
+		const auth = makeAuth({
+			baseUrl: engine.host.baseUrl,
+			fetchOptions: {
+				customFetchImpl: async (input, init) => {
+					authRequests += 1;
+					try {
+						return await fetch(input, { ...init, headers: { ...Object.fromEntries(new Headers(init?.headers)), ...headers } });
+					} finally {
+						authRequests -= 1;
+					}
+				},
 			},
-		},
-	});
-	const history = createMemoryHistory({ initialEntries: ["/admin/sessions"] });
-	const view = yield* acquireScreen(
-		engine,
-		engine.role === "admin" ? undefined : { onCaughtError: warnings.expectCaughtError((error) => Predicate.isTagged(error, "Forbidden")) },
-	);
-	engine.driver = screenDriver({
-		act,
-		pending: () =>
-			!isClientIdle(Effect.runSync(client.activity.current)) || authRequests > 0 || view.container.querySelector('[role="status"]') !== null,
-		root: view.container,
-		tell: () => undefined,
-	});
-	yield* Effect.promise(() => view.render(<App auth={auth} connect={() => connectModules([foundationRegistration(client)])} history={history} />));
-	yield* engine.driver.settle();
-});
+		});
+		const history = createMemoryHistory({ initialEntries: ["/admin/sessions"] });
+		const view = yield* acquireScreen(
+			engine,
+			engine.role === "admin" ? undefined : { onCaughtError: warnings.expectCaughtError((error) => Predicate.isTagged(error, "Forbidden")) },
+		);
+		engine.driver = screenDriver({
+			act,
+			pending: () =>
+				!isClientIdle(Effect.runSync(client.activity.current)) || authRequests > 0 || view.container.querySelector('[role="status"]') !== null,
+			root: view.container,
+			tell: () => undefined,
+		});
+		yield* Effect.promise(() => view.render(<App auth={auth} connect={() => connectModules([foundationRegistration(client)])} history={history} />));
+		yield* engine.driver.settle();
+	},
+);

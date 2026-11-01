@@ -60,7 +60,24 @@ export function notesMemberScreens(baseUrl: string) {
 			if (activity === undefined) {
 				throw new Error(`No client for ${member.name}`);
 			}
-			return screenDriver({ act, pending: activity, root: member.root, tell });
+			const driver = screenDriver({ act, pending: activity, root: member.root, tell });
+			return {
+				addsNote: (title: string) =>
+					Effect.gen(function* () {
+						yield* driver.enter({ name: "New note", role: "textbox" }, title);
+						yield* driver.click({ name: "Add note", role: "button" });
+						yield* driver.find({ name: title, role: "link" });
+					}),
+				refreshes: () => Effect.andThen(driver.click({ name: "Refresh", role: "button" }), driver.settle()),
+				savedNotes: () =>
+					Effect.andThen(
+						driver.find({ name: "New note", role: "textbox" }),
+						Effect.sync(() => {
+							const titles = [...member.root.querySelectorAll('table[aria-label="Saved notes"] tbody a')].map((link) => link.textContent);
+							return titles.length === 0 && member.root.textContent.includes("No notes yet") ? ["no notes yet"] : titles;
+						}),
+					),
+			};
 		},
 	});
 }

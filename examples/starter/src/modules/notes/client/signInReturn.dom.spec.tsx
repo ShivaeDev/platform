@@ -1,116 +1,137 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { screens as signInApp } from "#modules/notes/test-support/screens.ts";
 import { signInVisitor } from "#modules/notes/test-support/signInVisitor.tsx";
 
 const SIGNED_TARGET =
 	"/resume?resume=%2Foauth%2Fconsent%3Fscope%3Da%2520b&scope=a%20b&lower=%2f&repeat=first&repeat=last&empty&code=123&state=%22signed%22&signature=a%2Bb%2Fc%3D";
-for (const [path, moduleLink] of [
-	[SIGNED_TARGET, false],
-	["/resume?tab=history", true],
-] as const) {
-	signInApp.it(
-		`returns to ${path} after signing in${moduleLink ? " from a module link" : " through a signed-in guard"}`,
-		[signInVisitor(path, false, moduleLink)],
-		function* ({ settle, heading, href, followLink, enter, submit, click }) {
-			if (moduleLink) {
-				yield* settle();
-				expect(heading()).toBe("Your app");
-				yield* followLink("Sign in");
-			}
-			yield* settle();
-			expect(heading()).toBe("Sign in");
-			expect(new URL(href(), "http://app.test").searchParams.get("returnTo")).toBe(path);
-			yield* enter("alice@app.test", "Email");
-			yield* enter("password123", "Password");
-			yield* submit();
-			yield* settle();
-			expect(heading()).toBe("Your app");
-			expect(href()).toBe(path);
-			yield* click("Sign out");
-			yield* settle();
-			expect(heading()).toBe("Sign in");
-			expect(href()).toBe("/sign-in");
-		},
-	);
-}
 
 signInApp.it(
-	"an explicit sign-out forgets the protected deep link across session refresh",
-	[signInVisitor(SIGNED_TARGET, true)],
-	function* ({ settle, heading, click, href, refreshSession }) {
+	"a signed-in-only route sends a visitor to sign-in and returns to its exact URL afterwards",
+	[signInVisitor(SIGNED_TARGET)],
+	function* ({ heading, href, settle, submitsCredentials }) {
 		yield* settle();
-		expect(heading()).toBe("Your app");
-		expect(href()).toBe(SIGNED_TARGET);
-		yield* click("Sign out");
-		yield* settle();
-		expect(heading()).toBe("Sign in");
-		expect(href()).toBe("/sign-in");
+		expect(new URL(yield* href(), "http://app.test").searchParams.get("returnTo")).toBe(SIGNED_TARGET);
 
-		yield* refreshSession();
+		yield* submitsCredentials("sign-in");
 		yield* settle();
 
-		expect(heading()).toBe("Sign in");
-		expect(href()).toBe("/sign-in");
+		yield* outcomes([
+			["page", heading, "Your app"],
+			["location", href, SIGNED_TARGET],
+		]);
+	},
+);
+
+signInApp.it(
+	"a module's Sign in link returns the visitor to the module page after signing in",
+	[signInVisitor("/resume?tab=history", false, true)],
+	function* ({ followLink, heading, href, settle, submitsCredentials }) {
+		yield* settle();
+		yield* followLink("Sign in");
+		yield* settle();
+		expect(new URL(yield* href(), "http://app.test").searchParams.get("returnTo")).toBe("/resume?tab=history");
+
+		yield* submitsCredentials("sign-in");
+		yield* settle();
+
+		yield* outcomes([
+			["page", heading, "Your app"],
+			["location", href, "/resume?tab=history"],
+		]);
+	},
+);
+
+signInApp.it(
+	"a note route returns to the note and its query after sign-in",
+	[signInVisitor("/notes/1?tab=history")],
+	function* ({ draft, href, settle, submitsCredentials }) {
+		yield* settle();
+		expect(new URL(yield* href(), "http://app.test").searchParams.get("returnTo")).toBe("/notes/1?tab=history");
+
+		yield* submitsCredentials("sign-in");
+		yield* settle();
+
+		yield* outcomes([
+			["editor", draft, "Deep note"],
+			["location", href, "/notes/1?tab=history"],
+		]);
 	},
 );
 
 for (const target of ["https://elsewhere.test/resume", "//elsewhere.test/resume", "/\\elsewhere.test/resume", "javascript:alert(1)"]) {
 	signInApp.it(
-		`refuses the external return target ${target}`,
+		`signing in ignores the external return target ${target} and opens Notes`,
 		[signInVisitor(`/sign-in?returnTo=${encodeURIComponent(target)}`)],
-		function* ({ settle, heading, enter, submit, href }) {
+		function* ({ heading, href, settle, submitsCredentials }) {
 			yield* settle();
-			expect(heading()).toBe("Sign in");
-			yield* enter("alice@app.test", "Email");
-			yield* enter("password123", "Password");
-			yield* submit();
+
+			yield* submitsCredentials("sign-in");
 			yield* settle();
-			expect(heading()).toBe("Notes");
-			expect(href()).toBe("/");
+
+			yield* outcomes([
+				["page", heading, "Notes"],
+				["location", href, "/"],
+			]);
 		},
 	);
 }
 
 signInApp.it(
-	"a signed-in-only route returns to the note and its query after sign-in",
-	[signInVisitor("/notes/1?tab=history")],
-	function* ({ settle, heading, enter, submit, href, draft }) {
+	"after alice signs out, a session refresh keeps her on sign-in instead of the deep link she left",
+	[signInVisitor(SIGNED_TARGET, true)],
+	function* ({ click, heading, href, refreshSession, settle }) {
 		yield* settle();
-		expect(heading()).toBe("Sign in");
-		expect(new URL(href(), "http://app.test").searchParams.get("returnTo")).toBe("/notes/1?tab=history");
-		yield* enter("alice@app.test", "Email");
-		yield* enter("password123", "Password");
-		yield* submit();
+		expect(yield* href()).toBe(SIGNED_TARGET);
+		yield* click("Sign out");
 		yield* settle();
-		expect(draft()).toBe("Deep note");
-		expect(href()).toBe("/notes/1?tab=history");
+		expect(yield* href()).toBe("/sign-in");
+
+		yield* refreshSession();
+		yield* settle();
+
+		yield* outcomes([
+			["page", heading, "Sign in"],
+			["location", href, "/sign-in"],
+		]);
 	},
 );
 
 signInApp.it(
-	"a refused save rechecks the still-signed-in session once and returns to Notes",
+	"a save refused for an expired session rechecks alice's session once and keeps her on Notes",
 	[signInVisitor("/", true)],
-	function* ({ settle, heading, href, expireSession, enter, submit, alert, authRequests }) {
+	function* ({ alert, enter, expireSession, heading, href, sessionChecks, settle, submit }) {
 		yield* settle();
-		expect(heading()).toBe("Notes");
+		expect(yield* sessionChecks()).toBe("one session check");
+		yield* expireSession();
+		yield* enter("Retain this draft");
+
+		yield* submit();
+		yield* settle();
+
+		yield* outcomes([
+			["page", heading, "Notes"],
+			["location", href, "/"],
+			["alert", alert, "Sign in to add a note."],
+			["session checks", sessionChecks, "2 session checks"],
+		]);
+	},
+);
+
+signInApp.it(
+	"typing after a refused save does not recheck alice's session again",
+	[signInVisitor("/", true)],
+	function* ({ enter, expireSession, sessionChecks, settle, submit }) {
+		yield* settle();
 		yield* expireSession();
 		yield* enter("Retain this draft");
 		yield* submit();
 		yield* settle();
-		expect(heading()).toBe("Notes");
-		expect(href()).toBe("/");
-		expect(alert()).toBe("Sign in to add a note.");
-		expect(
-			authRequests()
-				.map((url) => url.pathname)
-				.filter((path) => path === "/api/auth/get-session"),
-		).toEqual(["/api/auth/get-session", "/api/auth/get-session"]);
+		expect(yield* sessionChecks()).toBe("2 session checks");
+
 		yield* enter("A newer draft");
 		yield* settle();
-		expect(
-			authRequests()
-				.map((url) => url.pathname)
-				.filter((path) => path === "/api/auth/get-session"),
-		).toEqual(["/api/auth/get-session", "/api/auth/get-session"]);
+
+		expect(yield* sessionChecks()).toBe("2 session checks");
 	},
 );

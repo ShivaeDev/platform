@@ -1,7 +1,6 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { SqlClient } from "effect/sql";
 import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
@@ -20,8 +19,9 @@ import { screenObservations } from "#modules/notes/test-support/screenObservatio
 import { credentials } from "#test-support/authHttp.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { postgres } from "#test-support/postgres.ts";
-import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
+import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
+import { settleScreen } from "#test-support/settleScreen.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 
 const alice = credentials("alice");
@@ -51,55 +51,55 @@ export const notesApp = storyKit({
 	layer: postgres,
 	name: "notes app",
 	stages: ["account", "transport", "screen"],
-	verbs: (engine, story) => ({
-		...screenActions(engine, story.tell),
-		...uiScreenVerbs(engine, story.tell),
-		...engine.members.verbs(story.tell),
-		...screenObservations(engine),
-		button: (label: string) => {
-			if (engine.view === undefined) {
-				throw new Error("No screen is open");
-			}
-			const button = [...engine.view.container.querySelectorAll("button")].find((element) => element.textContent === label);
-			return button === undefined ? undefined : { disabled: button.disabled, text: button.textContent };
-		},
-		releaseSignIn: () =>
-			Effect.sync(() => {
-				story.tell("release the real sign-in response");
-				engine.signIn.release();
+	verbs: (engine, story) => {
+		const quietly = screenActions(engine, () => undefined);
+		return {
+			...screenActions(engine, story.tell),
+			...uiScreenVerbs(engine, story.tell),
+			...engine.members.verbs(story.tell),
+			...screenObservations(engine),
+			addsNote: (title: string) =>
+				Effect.gen(function* () {
+					story.tell(`alice adds the note ${JSON.stringify(title)}`);
+					yield* quietly.enter(title);
+					yield* quietly.click("Add note");
+					yield* settleScreen(engine, story.tell);
+				}),
+			route: () => Effect.sync(() => engine.history.location.pathname),
+			signInButton: () =>
+				Effect.sync(() => {
+					const button = [...screenView(engine).container.querySelectorAll("button")].find((element) => element.type === "submit");
+					return button === undefined ? "missing" : `${button.textContent}, ${button.disabled ? "disabled" : "enabled"}`;
+				}),
+			signsIn: (password: string) =>
+				Effect.gen(function* () {
+					story.tell(`alice signs in with ${password === alice.password ? "her password" : "a wrong password"}`);
+					yield* quietly.enter(alice.email, "Email");
+					yield* quietly.enter(password, "Password");
+					yield* quietly.click("Sign in");
+				}),
+			storedNotes: Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				const users = yield* engine.authStorage.users;
+				const notes = yield* sql<{
+					title: string;
+					version: number;
+					userId: string;
+				}>`select title, version, user_id from notes order by id`;
+				return notes.map(({ title, version, userId }) => ({ email: users.find(({ id }) => id === userId)?.email ?? null, title, version }));
 			}),
-		route: () => engine.history.location.pathname,
-		signInFailure: () => {
-			if (engine.view === undefined) {
-				throw new Error("No sign-in screen is open");
-			}
-			return AsyncResult.error(engine.view.registry.get(engine.auth.actions.submit));
-		},
-		storedNoteIds: Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			return yield* sql<{ id: number }>`select id from notes`;
-		}),
-		storedNotes: Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			const users = yield* engine.authStorage.users;
-			const notes = yield* sql<{
-				title: string;
-				version: number;
-				userId: string;
-			}>`select title, version, user_id from notes order by id`;
-			return notes.map(({ title, version, userId }) => ({ email: users.find(({ id }) => id === userId)?.email ?? null, title, version }));
-		}),
-		storedSessions: Effect.gen(function* () {
-			return (yield* engine.authStorage.sessions).map(({ email }) => ({ email }));
-		}),
-		storedUsers: Effect.gen(function* () {
-			return (yield* engine.authStorage.users).map(({ email }) => ({ email }));
-		}),
-	}),
+			storedSessions: Effect.gen(function* () {
+				return (yield* engine.authStorage.sessions).map(({ email }) => ({ email }));
+			}),
+			storedUsers: Effect.gen(function* () {
+				return (yield* engine.authStorage.users).map(({ email }) => ({ email }));
+			}),
+		};
+	},
 });
 
 export function aliceAccount() {
-	return notesApp.trait("account", "Alice has an account and is signed out", (engine) =>
+	return notesApp.trait("account", "alice has an account and is signed out", (engine) =>
 		Effect.promise(async () => {
 			const signup = await engine.auth.client.signUp.email(alice);
 			if (signup.error !== null) {
@@ -146,7 +146,7 @@ export function authScreen() {
 }
 
 export function signedInAccount() {
-	return notesApp.trait("account", "Alice has a minted session", function* (engine) {
+	return notesApp.trait("account", "alice has a signed-in session", function* (engine) {
 		const { headers } = yield* mintUser({ origin: engine.baseUrl }, "alice");
 		engine.headers = headers;
 		engine.fetch = globalThis.fetch;

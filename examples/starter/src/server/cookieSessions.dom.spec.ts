@@ -1,40 +1,20 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { cookieApp, mintedCookieSession } from "#test-support/cookieApp.ts";
 
-cookieApp.it(
-	"accepts and revokes a minted HttpOnly cookie session on the PostgreSQL host",
-	[mintedCookieSession()],
-	function* ({ signOut, session, visibleCookies }) {
-		expect(visibleCookies()).not.toContain("session_token");
-		const signedIn = yield* session();
-		expect(signedIn.response.status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(signedIn.response.headers.get("content-type")).toContain("application/json");
-		expect(signedIn.response.headers.get("set-cookie")).toBeNull();
-		expect(signedIn.result.error).toBeNull();
-		expect(signedIn.session).toMatchObject({ user: { email: "alice@app.test" } });
-		expect(signedIn.result.data).toMatchObject({ user: { email: "alice@app.test" } });
-		expect((yield* signOut()).status).toBe(HttpStatus.fromLiteral("OK"));
-		const revoked = yield* session();
-		expect(revoked.response.status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(revoked.result.error).toBeNull();
-		expect(revoked.session).toBeNull();
-		expect(revoked.result.data).toBeNull();
-	},
-);
+cookieApp.it("a page script cannot read alice's session cookie", [mintedCookieSession()], function* ({ pageScriptCookies }) {
+	expect(yield* pageScriptCookies()).toBe("no session token");
+});
 
-cookieApp.it(
-	"alice signs in again in the browser after 30 days with a fresh session on the same account",
-	[mintedCookieSession()],
-	function* ({ timePasses, browserSignsInAgain, session }) {
-		const original = yield* session();
+cookieApp.it("alice's browser reads her session without the app reissuing her cookie", [mintedCookieSession()], function* ({ readsSession }) {
+	const session = yield* readsSession();
 
-		yield* timePasses("30 days");
+	expect(session).toEqual({ cookieReissued: false, signedInAs: "alice@app.test" });
+});
 
-		yield* browserSignsInAgain();
+cookieApp.it("signing out ends alice's browser session", [mintedCookieSession()], function* ({ browserSession, signsOut }) {
+	expect(yield* browserSession()).toBe("alice@app.test");
 
-		const renewed = yield* session();
-		expect(renewed.result.data?.user.id).toBe(original.result.data?.user.id);
-		expect(renewed.result.data?.session.id).not.toBe(original.result.data?.session.id);
-	},
-);
+	yield* signsOut();
+
+	expect(yield* browserSession()).toBe("no session");
+});

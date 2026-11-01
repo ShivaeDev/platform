@@ -2,49 +2,36 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminSessions, adminSessionsOpen, withoutSessionsPermission } from "#test-support/admin/sessions.tsx";
 
-adminSessions.it(
-	"the mounted Sessions page lists signed-in users and marks alice's current session",
-	[adminSessionsOpen],
-	function* ({ content, sessionEmails }) {
-		yield* outcomes([
-			["content", () => content(), expect.stringContaining("Your current session")],
-			["sessions", () => sessionEmails(), expect.arrayContaining(["alice@app.test", "bob@app.test"])],
-		]);
-	},
-);
+adminSessions.it("the Sessions page lists every signed-in user and marks alice's own session", [adminSessionsOpen], function* ({ sessions }) {
+	expect(yield* sessions()).toEqual(["alice@app.test (current session)", "bob@app.test"]);
+});
 
-adminSessions.it("confirming revocation on the mounted page removes bob's session", [adminSessionsOpen], function* ({ click, sessionEmails }) {
-	expect(yield* sessionEmails()).toContain("bob@app.test");
-	yield* click("Revoke session for bob@app.test");
+adminSessions.it("revoking bob's session removes it from the Sessions page", [adminSessionsOpen], function* ({ revokesSession, sessions }) {
+	expect(yield* sessions()).toContain("bob@app.test");
 
-	yield* click("Confirm revoke");
+	yield* revokesSession("bob@app.test");
 
-	expect(yield* sessionEmails()).toEqual(["alice@app.test"]);
+	expect(yield* sessions()).toEqual(["alice@app.test (current session)"]);
+});
+
+adminSessions.it("revoking her own session takes alice to sign-in", [adminSessionsOpen], function* ({ heading, revokesSession, sessions }) {
+	expect(yield* sessions()).toContain("alice@app.test (current session)");
+
+	yield* revokesSession("alice@app.test");
+
+	yield* outcomes([
+		["page", heading, "Sign in"],
+		["listed sessions", sessions, []],
+	]);
 });
 
 adminSessions.it(
-	"revoking alice's current session leaves the admin page and shows sign-in",
-	[adminSessionsOpen],
-	function* ({ click, content, sessionEmails }) {
-		expect(yield* content()).toContain("Your current session");
-		yield* click("Revoke session for alice@app.test");
-
-		yield* click("Confirm revoke");
-
-		yield* outcomes([
-			["admin sessions", () => sessionEmails(), []],
-			["content", () => content(), expect.stringContaining("Sign in")],
-		]);
-	},
-);
-
-adminSessions.it(
-	"the mounted page refuses a viewer without the sessions permission",
+	"the Sessions page refuses alice without the sessions permission",
 	[withoutSessionsPermission, adminSessionsOpen],
-	function* ({ content, sessionEmails }) {
+	function* ({ heading, sessions }) {
 		yield* outcomes([
-			["content", () => content(), expect.stringContaining("Permission denied")],
-			["sessions", () => sessionEmails(), []],
+			["page", heading, "Permission denied"],
+			["listed sessions", sessions, []],
 		]);
 	},
 );

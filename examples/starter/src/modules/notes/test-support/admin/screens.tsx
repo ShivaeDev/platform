@@ -1,7 +1,5 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { Deferred, Effect, Predicate } from "effect";
-import { act } from "react";
-import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
+import { Effect, Predicate } from "effect";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
@@ -32,42 +30,45 @@ export const adminScreens = storyKit({
 	inspect: (engine) => ({ activeStreams: engine.client.backend.state.activeStreams, text: engine.view?.container.textContent }),
 	name: "admin screen",
 	stages: ["backend", "screen"],
-	verbs: (engine, story) => ({
-		...uiScreenVerbs(engine, story.tell),
-		activeAdminStreams: () => engine.client.backend.state.activeStreams,
-		changeSession: () =>
-			Effect.promise(() => {
-				if (engine.switchSession === undefined) {
-					throw new Error("Admin screen is not open");
-				}
-				return engine.switchSession();
-			}),
-		closeScreen: () => Effect.promise(screenView(engine).unmount),
-		recoverHealth: () =>
-			Effect.sync(() => {
-				engine.client.backend.state.failed = false;
-				engine.client.backend.state.jobs = [failedJob("recovered-job")];
-			}),
-		rejectRetry: () =>
-			Effect.sync(() => {
-				engine.client.backend.state.retryFails = true;
-			}),
-		releaseHealth: () =>
-			Effect.promise(async () => {
-				const gate = engine.client.backend.state.gate;
-				if (gate === undefined) {
-					throw new Error("Health is not held");
-				}
-				await act(() => {
-					Effect.runSync(Deferred.succeed(gate, undefined));
-					engine.client.backend.state.gate = undefined;
-				});
-			}),
-	}),
+	verbs: (engine, story) => {
+		const ui = uiScreenVerbs(engine, story.tell);
+		function container() {
+			return screenView(engine).container;
+		}
+		return {
+			changesSession: () =>
+				Effect.promise(() => {
+					story.tell("the signed-in session changes to bob");
+					if (engine.switchSession === undefined) {
+						throw new Error("Admin screen is not open");
+					}
+					return engine.switchSession();
+				}),
+			failedJobs: () => Effect.sync(() => [...container().querySelectorAll("tbody tr button")].map((button) => button.textContent)),
+			heading: ui.heading,
+			liveAdminStreams: () => Effect.sync(() => (engine.client.backend.state.activeStreams > 0 ? "open" : "none open")),
+			noteStatistics: () =>
+				Effect.sync(() =>
+					Object.fromEntries([...container().querySelectorAll("dl dt")].map((term) => [term.textContent, term.nextElementSibling?.textContent])),
+				),
+			offers: (label: string) =>
+				Effect.sync(() => ([...container().querySelectorAll("button")].some((button) => button.textContent === label) ? "offered" : "not offered")),
+			openJob: () =>
+				Effect.sync(() => {
+					const detail = container().querySelector('[aria-label="Job detail"]')?.textContent;
+					return detail === undefined ? "no detail" : (engine.client.backend.state.jobs.find((job) => detail.includes(job.id))?.id ?? "unknown job");
+				}),
+			opensFailedJob: (id: string) => Effect.andThen(ui.clickControl({ name: id, role: "button" }), ui.settle()),
+			opensNoteStatistics: () => Effect.andThen(ui.clickControl({ name: "Note statistics", role: "link" }), ui.settle()),
+			queueFilter: () => Effect.sync(() => [...container().querySelectorAll("select option")].map((option) => option.getAttribute("value"))),
+			settle: ui.settle,
+			shown: ui.shown,
+		};
+	},
 });
 
 export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Type = "admin") {
-	return adminScreens.trait("screen", `the admin opens ${path}`, function* (engine) {
+	return adminScreens.trait("screen", `alice, signed in as ${role === "admin" ? "an admin" : `a ${role}`}, opens ${path}`, function* (engine) {
 		const access = yield* AppAccess.resolve(role);
 		const view = yield* acquireScreen(
 			engine,
@@ -102,24 +103,9 @@ export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Ty
 	});
 }
 
-export const failedJobs = adminScreens.trait("backend", "two original jobs have failed", (engine) => {
+export const twoFailedJobs = adminScreens.trait("backend", "two note word-count jobs have failed", (engine) => {
 	engine.client.backend.state.jobs = [failedJob("first-job"), failedJob("second-job")];
 });
-export const retryRegistration = adminScreens.trait("backend", "the app registers the retry variant", (engine) => {
-	engine.client = adminClient(true);
-	engine.client.backend.state.jobs = [failedJob("retry-job")];
-});
-export const heldHealth = adminScreens.trait("backend", "the health request is held", (engine) => {
-	engine.client.backend.state.gate = Effect.runSync(Deferred.make<void>());
-});
-export const unavailableHealth = adminScreens.trait("backend", "the health backend is unavailable", (engine) => {
-	engine.client.backend.state.failed = true;
-});
-export const countedNotes = adminScreens.trait("backend", "the backend has counted notes across users", (engine) => {
+export const countedNotes = adminScreens.trait("backend", "the backend has counted 7 notes with 53 words and 2 counts pending", (engine) => {
 	engine.client.backend.state.statistics = { notes: 7, pending: 2, words: 53 };
-});
-
-export const emptyJobsScreen = adminScreens.trait("screen", "the Jobs view has no registered queues", function* (engine) {
-	const view = yield* acquireScreen(engine);
-	yield* Effect.promise(() => view.render(<JobsView api={engine.client.jobs} queues={[]} />));
 });

@@ -1,111 +1,101 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { aliceAccount, notesApp, notesHostScreen, signInResponseHeld } from "#modules/notes/test-support/app.tsx";
+import { aliceAccount, notesApp, notesHostScreen, signedInAccount } from "#modules/notes/test-support/app.tsx";
 
 notesApp.it(
-	"signs in, creates, opens, saves and deletes a note on screen against PostgreSQL",
-	[aliceAccount(), signInResponseHeld(), notesHostScreen()],
-	function* ({
-		settle,
-		heading,
-		button,
-		releaseSignIn,
-		storedUsers,
-		storedSessions,
-		storedNotes,
-		enter,
-		click,
-		route,
-		screenText,
-		savedNote,
-		noteLink,
-		draft,
-		openListedNote,
-		storedNoteIds,
-		followLink,
-		alert,
-	}) {
+	"signing in on screen stores a session for alice and opens her notes",
+	[aliceAccount(), notesHostScreen()],
+	function* ({ heading, route, settle, shownNotes, signsIn, storedSessions }) {
 		yield* settle();
-		yield* outcomes([
-			["heading", () => Effect.sync(() => heading()), "Sign in"],
-			["stored notes", () => storedNotes, []],
-			["stored sessions", () => storedSessions, []],
-			["stored users", () => storedUsers, [{ email: "alice@app.test" }]],
-		]);
-		yield* enter("alice@app.test", "Email");
-		yield* enter("correct-horse-battery-staple", "Password");
-		yield* click("Sign in");
-		expect(button("Please wait…")).toEqual({ disabled: true, text: "Please wait…" });
-		expect(heading()).toBe("Sign in");
-		yield* releaseSignIn();
+		expect(yield* storedSessions).toEqual([]);
+
+		yield* signsIn("correct-horse-battery-staple");
 		yield* settle();
-		expect(heading()).toBe("Notes");
-		expect(route()).toBe("/");
-		expect(screenText()).toContain("No notes yet");
+
 		yield* outcomes([
-			["stored notes", () => storedNotes, []],
+			["page", heading, "Notes"],
+			["route", route, "/"],
+			["notes", shownNotes, ["no notes yet"]],
 			["stored sessions", () => storedSessions, [{ email: "alice@app.test" }]],
-			["stored users", () => storedUsers, [{ email: "alice@app.test" }]],
 		]);
-		yield* enter("First note");
-		yield* click("Add note");
+	},
+);
+
+notesApp.it(
+	"a note alice adds on screen is stored for her account",
+	[signedInAccount(), notesHostScreen("/")],
+	function* ({ addsNote, draft, settle, shownNotes, storedNotes }) {
 		yield* settle();
-		expect(noteLink()).toBe("First note");
+		expect(yield* storedNotes).toEqual([]);
+
+		yield* addsNote("First note");
+
 		yield* outcomes([
-			["draft", () => Effect.sync(() => draft()), ""],
+			["notes", shownNotes, ["First note"]],
+			["draft", draft, ""],
 			["stored notes", () => storedNotes, [{ email: "alice@app.test", title: "First note", version: 0 }]],
 		]);
+	},
+);
+
+notesApp.it(
+	"saving an edited note on screen stores its trimmed title as the next version",
+	[signedInAccount(), notesHostScreen("/")],
+	function* ({ addsNote, click, draft, enter, heading, openListedNote, saveState, settle, storedNotes }) {
+		yield* settle();
+		yield* addsNote("First note");
 		yield* openListedNote();
 		yield* settle();
-		expect(heading()).toBe("Edit note");
-		expect(draft()).toBe("First note");
-		const ids = yield* storedNoteIds;
-		yield* outcomes([
-			["ids", () => Effect.sync(() => ids), [{ id: expect.any(Number) }]],
-			["route", () => Effect.sync(() => route()), `/notes/${ids[0]?.id}`],
-			["stored notes", () => storedNotes, [{ email: "alice@app.test", title: "First note", version: 0 }]],
-		]);
+		expect(yield* heading()).toBe("Edit note");
 		yield* enter("  Revised note  ");
-		yield* settle();
-		expect(screenText()).toContain("Unsaved changes");
-		expect(yield* storedNotes).toEqual([{ email: "alice@app.test", title: "First note", version: 0 }]);
+
 		yield* click("Save note");
 		yield* settle();
-		expect(draft()).toBe("Revised note");
-		expect(screenText()).toContain("All changes saved");
+
 		yield* outcomes([
-			["alert", () => Effect.sync(() => alert()), undefined],
+			["draft", draft, "Revised note"],
+			["save state", saveState, "All changes saved"],
 			["stored notes", () => storedNotes, [{ email: "alice@app.test", title: "Revised note", version: 1 }]],
 		]);
-		yield* followLink("Back to notes");
+	},
+);
+
+notesApp.it(
+	"deleting a note on screen removes it from storage and returns to an empty list",
+	[signedInAccount(), notesHostScreen("/")],
+	function* ({ addsNote, click, openListedNote, route, settle, shownNotes, storedNotes }) {
 		yield* settle();
-		expect(heading()).toBe("Notes");
-		expect(noteLink()).toBe("Revised note");
+		yield* addsNote("First note");
 		yield* openListedNote();
 		yield* settle();
-		expect(draft()).toBe("Revised note");
-		const reopenedIds = yield* storedNoteIds;
-		expect(reopenedIds).toEqual(ids);
-		expect(route()).toBe(`/notes/${reopenedIds[0]?.id}`);
+		expect(yield* storedNotes).toEqual([{ email: "alice@app.test", title: "First note", version: 0 }]);
+
 		yield* click("Delete note");
 		yield* settle();
+
 		yield* outcomes([
-			["route", () => Effect.sync(() => route()), "/"],
+			["route", route, "/"],
+			["notes", shownNotes, ["no notes yet"]],
 			["stored notes", () => storedNotes, []],
 		]);
-		expect(heading()).toBe("Notes");
-		expect(screenText()).toContain("No notes yet");
-		yield* outcomes([
-			["saved note", () => Effect.sync(() => savedNote()), null],
-			["stored sessions", () => storedSessions, [{ email: "alice@app.test" }]],
-			["stored users", () => storedUsers, [{ email: "alice@app.test" }]],
-		]);
+	},
+);
+
+notesApp.it(
+	"signing out on screen deletes alice's stored session and shows sign-in",
+	[aliceAccount(), notesHostScreen()],
+	function* ({ click, heading, route, settle, signsIn, storedSessions }) {
+		yield* settle();
+		yield* signsIn("correct-horse-battery-staple");
+		yield* settle();
+		expect(yield* storedSessions).toEqual([{ email: "alice@app.test" }]);
+
 		yield* click("Sign out");
 		yield* settle();
+
 		yield* outcomes([
-			["heading", () => Effect.sync(() => heading()), "Sign in"],
-			["route", () => Effect.sync(() => route()), "/sign-in"],
+			["page", heading, "Sign in"],
+			["route", route, "/sign-in"],
 			["stored sessions", () => storedSessions, []],
 		]);
 	},

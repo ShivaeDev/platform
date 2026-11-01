@@ -1,5 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
+import { countWords } from "@shivaedev/test/answers.ts";
+import { screenActions } from "./screenActions.ts";
 import type { Screen } from "./screenState.ts";
 
 export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
@@ -9,34 +11,26 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		}
 		return engine.auth;
 	}
+	const quietly = screenActions(engine, () => undefined);
 	return {
-		authenticated: () => engine.login.authenticated,
-		authenticationAccepts: () =>
-			Effect.sync(() => {
-				tell("the authentication provider accepts credentials");
-				engine.login.outcome = undefined;
-				engine.login.unavailable = false;
-			}),
-		authenticationCalls: () => engine.login.calls,
-		authenticationGoesOffline: () =>
-			Effect.sync(() => {
-				tell("the authentication provider goes offline");
-				engine.login.unavailable = true;
-			}),
-		authRequests: () => auth().requests,
-		caught: () => engine.routeErrors,
+		authenticated: () =>
+			Effect.sync(() =>
+				engine.login.authenticated.length === 0 ? "not authenticated" : `authenticated by ${engine.login.authenticated.join(" then ")}`,
+			),
+		authenticationCalls: () => Effect.sync(() => engine.login.calls),
+		authRequests: () => Effect.sync(() => auth().requests.map((url) => `${url.host}${url.pathname}`)),
 		expireSession: () =>
 			Effect.sync(() => {
-				tell("the notes session expires");
+				tell("alice's notes session expires");
 				engine.client.session.signedIn = false;
 			}),
-		href: () => {
-			if (engine.history === undefined) {
-				throw new Error("No app history is open");
-			}
-			return engine.history.location.href;
-		},
-		lastAuthenticationMode: () => engine.login.calls.at(-1)?.mode,
+		href: () =>
+			Effect.sync(() => {
+				if (engine.history === undefined) {
+					throw new Error("No app history is open");
+				}
+				return engine.history.location.href;
+			}),
 		recoverSessionCheck: () =>
 			Effect.sync(() => {
 				tell("the session check provider recovers");
@@ -44,7 +38,7 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 			}),
 		refreshSession: () =>
 			Effect.promise(async () => {
-				tell("refresh the session through the app's auth client");
+				tell("the app's auth client refreshes the session");
 				const session = auth().auth.client.$store.atoms.session;
 				if (session === undefined) {
 					throw new Error("The auth client has no session atom");
@@ -53,7 +47,20 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 					await session.get().refetch();
 				});
 			}),
-		signOutCalls: () => engine.signOutCalls,
+		sessionChecks: () =>
+			Effect.sync(() => countWords(auth().requests.filter((url) => url.pathname === "/api/auth/get-session").length, "session check")),
+		signOutCalls: () => Effect.sync(() => countWords(engine.signOutCalls.length, "sign-out request")),
+		submitsCredentials: (mode: "sign-in" | "sign-up") =>
+			Effect.gen(function* () {
+				tell(`alice submits her ${mode} details`);
+				if (mode === "sign-up") {
+					yield* quietly.click("Create an account");
+					yield* quietly.enter("Alice", "Name");
+				}
+				yield* quietly.enter("alice@app.test", "Email");
+				yield* quietly.enter("correct-horse", "Password");
+				yield* quietly.submit();
+			}),
 		switchSession: (id: string) =>
 			Effect.promise(async () => {
 				tell(`the authentication owner switches to ${id}'s session`);

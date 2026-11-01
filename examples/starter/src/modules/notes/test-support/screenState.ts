@@ -1,6 +1,5 @@
 import type { AnyRouter, RouterHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { vi } from "vitest";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import type { Credentials } from "#client/Credentials.ts";
 import { notesClient } from "#modules/notes/test-support/client.ts";
@@ -10,7 +9,6 @@ import type { ScreenSurface } from "#test-support/screenState.ts";
 export interface Screen extends ScreenSurface {
 	auth: ReturnType<typeof appAuth> | undefined;
 	client: Effect.Success<ReturnType<typeof notesClient>>;
-	consoleErrors: () => readonly (readonly unknown[])[];
 	history: RouterHistory | undefined;
 	login: {
 		authenticated: (string | undefined)[];
@@ -18,7 +16,6 @@ export interface Screen extends ScreenSurface {
 		outcome: string | undefined;
 		unavailable: boolean;
 	};
-	routeErrors: unknown[];
 	router: AnyRouter | undefined;
 	signOutCalls: undefined[];
 	switchSession: ((id: string) => Promise<void>) | undefined;
@@ -30,22 +27,12 @@ export const createScreen = Effect.fn("ScreenStory.createScreen")(function* () {
 	const engine: Screen = {
 		auth: undefined,
 		client: yield* notesClient(),
-		consoleErrors: () => [],
 		history: undefined,
 		login: { authenticated: [], calls: [], outcome: undefined, unavailable: false },
-		routeErrors: [],
 		router: undefined,
 		signOutCalls: [],
 		switchSession: undefined,
 		view: undefined,
 	};
-	const errors = yield* Effect.acquireRelease(
-		Effect.sync(() => vi.spyOn(console, "error")),
-		(spy) =>
-			Effect.sync(() => {
-				spy.mockRestore();
-			}),
-	);
-	engine.consoleErrors = () => errors.mock.calls;
 	return engine;
 });

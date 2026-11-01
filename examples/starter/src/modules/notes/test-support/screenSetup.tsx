@@ -56,7 +56,7 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 	}
 });
 
-export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: Screen, rejection: string) {
+export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: Screen, rejection: string | undefined) {
 	engine.login.outcome = rejection;
 	const auth: AuthActions = {
 		resetPassword: screenAuth().resetPassword,
