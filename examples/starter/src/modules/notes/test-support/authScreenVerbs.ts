@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import type { Screen } from "./screenState.ts";
 
@@ -45,13 +46,11 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		refreshSession: () =>
 			Effect.promise(async () => {
 				tell("refresh the session through the app's auth client");
-				const session = auth().auth.client.$store.atoms.session;
-				if (session === undefined) {
-					throw new Error("The auth client has no session atom");
+				const view = engine.view;
+				if (!view) {
+					throw new Error("The app is not open");
 				}
-				await act(async () => {
-					await session.get().refetch();
-				});
+				await act(() => Effect.runPromise(auth().auth.session.refresh.pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry))));
 			}),
 		signOutCalls: () => engine.signOutCalls,
 		switchSession: (id: string) =>

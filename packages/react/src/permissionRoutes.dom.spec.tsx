@@ -126,3 +126,38 @@ permissionScreens.it(
 		]);
 	},
 );
+
+permissionScreens.it(
+	"the no-access fallback reads route context and renders router links inside the router",
+	[visitor("guest")],
+	function* ({ fallbackRole, links, visit }) {
+		yield* visit("/notes/first");
+
+		yield* outcomes([
+			["viewer role from route context", () => fallbackRole(), "guest"],
+			[
+				"links",
+				() => links(),
+				[
+					{ label: "Go back", to: "/controls" },
+					{ label: "Use another account", to: "/login" },
+				],
+			],
+		]);
+	},
+);
+
+permissionScreens.it(
+	"the Forbidden screen takes a refused viewer back to a route they may open",
+	[visited("guest", "/notes/first")],
+	function* ({ goBack, heading, location }) {
+		expect(yield* heading()).toBe("Permission denied");
+
+		yield* goBack();
+
+		yield* outcomes([
+			["screen", () => heading(), "Controls"],
+			["location", () => location(), "/controls"],
+		]);
+	},
+);
