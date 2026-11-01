@@ -7,9 +7,10 @@ type View = (typeof FleetViews.Type)["active"][number];
 function line(view: View, waiting: boolean, selection: string) {
 	const reason = view.blocker ?? view.decision?.reason ?? (view.overLimit ? "launched over the limit" : undefined);
 	const detail = reason === undefined ? "" : `  ${reason}`;
+	const question = view.decision === undefined || view.decision.reason === reason ? "" : `\n    Question: ${view.decision.reason}`;
 	const links = [...(view.recovery === undefined ? [] : [view.recovery]), ...view.links, ...view.sessions.map(sessionStatus)];
 	const answer = waiting ? `\n    work-fleet answer ${view.workId}${selection}` : "";
-	return `  ${view.workId}  ${view.stage}${detail}${links.length === 0 ? "" : `  (${links.join(", ")})`}${answer}`;
+	return `  ${view.workId}  ${view.stage}${detail}${links.length === 0 ? "" : `  (${links.join(", ")})`}${question}${answer}`;
 }
 
 export function renderStatus(current: typeof DaemonStatus.Type, selection: { readonly board?: string; readonly port?: number } = {}): string {

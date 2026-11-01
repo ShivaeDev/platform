@@ -62,11 +62,13 @@ const recordAnswerFailure = Effect.fn("Fleet.recordAnswerFailure")(function* (st
 	yield* Effect.logError(`Failed to apply answer for ${stored.value.workId}`, error);
 	return yield* state.load(stored.value.workId).pipe(
 		Effect.flatMap((current) =>
-			state.save(current, {
-				...current.value,
-				attentionOwner: current.value.decision?.id === stored.value.decision?.id ? failureOwner(error) : current.value.attentionOwner,
-				blocker: `Answer failed: ${failureMessage(error)}`,
-			}),
+			current.value.step !== "waiting" || current.value.decision === undefined
+				? Effect.succeed(current)
+				: state.save(current, {
+						...current.value,
+						attentionOwner: current.value.decision.id === stored.value.decision?.id ? failureOwner(error) : current.value.attentionOwner,
+						blocker: `Answer failed: ${failureMessage(error)}`,
+					}),
 		),
 		Effect.retry({ while: (failure) => failure instanceof StorageConflict }),
 	);
