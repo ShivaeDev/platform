@@ -5,6 +5,20 @@ import type { Release, ReleasePlan, Workspace, WorkspacePackage } from "#model.t
 import type { Changeset } from "#parser.ts";
 import { publishedDependencies } from "#planner.ts";
 import { previousPackage } from "#previousPackage.ts";
+import { updatedRange } from "#updatedRange.ts";
+
+const validateDependencyRanges = Effect.fn("Changesets.validateDependencyRanges")(function* (pkg: WorkspacePackage, plan: ReleasePlan) {
+	for (const field of ["dependencies", "optionalDependencies", "peerDependencies"] as const) {
+		for (const [name, range] of Object.entries(pkg.manifest[field] ?? {})) {
+			const [, expected] = yield* updatedRange(pkg, plan, [name, range]);
+			if (range !== expected) {
+				return yield* new ChangesetError({
+					message: `${pkg.manifest.name}: ${field} range for ${name} is ${range}, but the release plan requires ${expected}; rerun releases apply.`,
+				});
+			}
+		}
+	}
+});
 
 const validatePackage = Effect.fn("Changesets.validatePackage")(function* (
 	pkg: WorkspacePackage,
@@ -16,6 +30,9 @@ const validatePackage = Effect.fn("Changesets.validatePackage")(function* (
 		return yield* new ChangesetError({
 			message: `${pkg.manifest.name}: version differs from the release plan; restore versions and rerun releases apply, including published dependents.`,
 		});
+	}
+	if (release !== undefined) {
+		yield* validateDependencyRanges(pkg, plan);
 	}
 	const previous = old?.changelog ?? "# Changelog\n";
 	let date: string | undefined;
