@@ -1,4 +1,8 @@
-import { Data, type Duration, Effect, Option, Stream } from "effect";
+import * as Data from "effect/Data";
+import type * as Duration from "effect/Duration";
+import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
+import * as Stream from "effect/Stream";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { describeValue } from "#internal/render.ts";
 

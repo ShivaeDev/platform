@@ -1,4 +1,7 @@
-import { Cause, Effect, Queue, Stream } from "effect";
+import * as Cause from "effect/Cause";
+import * as Effect from "effect/Effect";
+import * as Queue from "effect/Queue";
+import * as Stream from "effect/Stream";
 
 export function recordedSignals<A, E = never>() {
 	const values: A[] = [];

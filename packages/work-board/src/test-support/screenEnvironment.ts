@@ -33,7 +33,7 @@ export function screenMedia(matches: readonly string[], touchPoints = 0) {
 		const match = window.matchMedia.bind(window);
 		const mediaQueries = new Map<string, MediaQueryList>();
 		engine.media = mediaQueries;
-		vi.stubGlobal("navigator", Object.create(window.navigator, { maxTouchPoints: { value: touchPoints } }));
+		vi.spyOn(window.navigator, "maxTouchPoints", "get").mockReturnValue(touchPoints);
 		vi.stubGlobal("matchMedia", (query: string) => {
 			const previous = mediaQueries.get(query);
 			if (previous) {

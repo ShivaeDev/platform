@@ -1,4 +1,8 @@
-import { Cause, Context, Effect, type Scope, Tracer } from "effect";
+import * as Cause from "effect/Cause";
+import * as Context from "effect/Context";
+import * as Effect from "effect/Effect";
+import type * as Scope from "effect/Scope";
+import * as Tracer from "effect/Tracer";
 import type { AnyTestLayer } from "@shivaedev/test/anyTestLayer.ts";
 import type { EffectClock } from "@shivaedev/test/types.ts";
 import { refusal } from "#internal/errors.ts";

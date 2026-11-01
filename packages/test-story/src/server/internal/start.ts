@@ -1,4 +1,7 @@
-import { Cause, Context, Effect, Tracer } from "effect";
+import * as Cause from "effect/Cause";
+import * as Context from "effect/Context";
+import * as Effect from "effect/Effect";
+import * as Tracer from "effect/Tracer";
 import type { TestContext } from "vitest";
 import { callSite } from "#internal/callSite.ts";
 import { hooked } from "#internal/hooked.ts";

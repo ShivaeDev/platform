@@ -1,4 +1,7 @@
-import { Clock, Duration, Effect, Result } from "effect";
+import * as Clock from "effect/Clock";
+import * as Duration from "effect/Duration";
+import * as Effect from "effect/Effect";
+import * as Result from "effect/Result";
 import * as TestClock from "effect/testing/TestClock";
 
 export interface EventuallyOptions {

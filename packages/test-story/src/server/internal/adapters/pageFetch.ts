@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 export function pageFetch(url: string, pending: (busy: boolean) => Effect.Effect<void>) {
 	const fetch = globalThis.fetch;

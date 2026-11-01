@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { makeForwardingProxy } from "#adapters/makeForwardingProxy.ts";
 import { loopbackServer } from "#internal/loopback.ts";
 

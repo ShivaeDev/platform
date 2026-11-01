@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import type { FakeHttpFault, FakeHttpRequest, FakeHttpScript, FakeHttpScriptOptions } from "#fakeHttpService.ts";
 import { fakeHttpSelection } from "#internal/fakeHttpSelection.ts";
 

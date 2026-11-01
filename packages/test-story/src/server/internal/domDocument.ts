@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 
 const DOM = Symbol.for("test-story.dom");
 

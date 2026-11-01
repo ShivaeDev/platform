@@ -1,4 +1,6 @@
-import { Deferred, Effect, Predicate } from "effect";
+import * as Deferred from "effect/Deferred";
+import * as Effect from "effect/Effect";
+import * as Predicate from "effect/Predicate";
 import type { RpcMessage } from "effect/rpc";
 import type { BrowserSubscription } from "#browserReads.ts";
 

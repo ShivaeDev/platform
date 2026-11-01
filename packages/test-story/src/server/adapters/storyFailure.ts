@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import type { TestContext } from "vitest";
 import type { FailedTest } from "#internal/failureReport.ts";
 import { describeFailure } from "#internal/render.ts";

@@ -1,4 +1,5 @@
-import { Clock, Effect } from "effect";
+import * as Clock from "effect/Clock";
+import * as Effect from "effect/Effect";
 import { watchedClock } from "#watchedClock.ts";
 
 export function withWatchedClock<A, E, R>(effect: Effect.Effect<A, E, R>) {

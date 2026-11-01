@@ -1,4 +1,5 @@
-import { Effect, SubscriptionRef } from "effect";
+import * as Effect from "effect/Effect";
+import * as SubscriptionRef from "effect/SubscriptionRef";
 import { pageFetch } from "#internal/adapters/pageFetch.ts";
 
 export const domPage = Effect.fn("BrowserStory.domPage")(function* (url: string) {

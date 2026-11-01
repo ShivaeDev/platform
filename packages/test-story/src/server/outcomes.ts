@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import * as Effect from "effect/Effect";
 import { type DeeplyAllowMatchers, expect } from "vitest";
 import type { NumericBound } from "#adapters/outcomeMatchers.ts";
 
