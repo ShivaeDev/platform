@@ -2,6 +2,9 @@ import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import { isPermissionReadPolicy } from "#permissionReadPolicy.ts";
 
 export function declarationError(contractName: string, operations: readonly (QueryShape | CommandShape | StreamShape)[]): string | undefined {
+	if (operations.some(({ name }) => name === "$changes")) {
+		return `Operation name $changes is reserved for the built-in changes stream on contract ${contractName}`;
+	}
 	const duplicated = operations.map(({ name }) => name).filter((name, index, names) => names.indexOf(name) !== index);
 	if (duplicated.length > 0) {
 		return `Operation names must be unique; duplicated: ${[...new Set(duplicated)].join(", ")}`;
