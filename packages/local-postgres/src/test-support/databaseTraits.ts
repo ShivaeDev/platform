@@ -45,3 +45,14 @@ export function appDatabaseWithRow() {
 		yield* usingCli(engine, engine.manager.sql(url, "CREATE TABLE kept (value text NOT NULL); INSERT INTO kept VALUES ('existing data')"));
 	});
 }
+
+export function seededAppDatabase() {
+	return postgres.trait("service", "the app database was seeded with the row 'existing data'", function* (engine) {
+		const name = yield* appDatabase(engine);
+		yield* usingCli(engine, engine.manager.sql(SERVER, `CREATE DATABASE "${name}"`));
+		yield* usingCli(
+			engine,
+			engine.manager.sql(databaseUrl(name), "CREATE TABLE kept (value text NOT NULL); INSERT INTO kept VALUES ('existing data')"),
+		);
+	});
+}
