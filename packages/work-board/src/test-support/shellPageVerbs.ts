@@ -32,21 +32,16 @@ export function shellPageVerbs(engine: ScreenEngine, tell: (line: string) => voi
 				if (!(engine.router && engine.heldRead)) {
 					throw new Error("The story needs a router and a paused document read");
 				}
-				Object.assign(engine.heldRead, { gate: Deferred.makeUnsafe<void>(), started: false });
+				Object.assign(engine.heldRead, { gate: Deferred.makeUnsafe<void>(), started: false, startedSignal: Deferred.makeUnsafe<void>() });
 				vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 				onTestFinished(() => {
 					vi.useRealTimers();
 				});
 				await act(async () => {
 					engine.pendingNavigation = engine.router?.navigate({ to });
-					await Promise.resolve();
+					await vi.advanceTimersByTimeAsync(0);
 				});
-				for (let elapsed = 0; elapsed < PENDING_FEEDBACK_MS - 1 && !engine.heldRead.started; elapsed += 1) {
-					await act(() => vi.advanceTimersByTimeAsync(1));
-				}
-				if (!engine.heldRead.started) {
-					throw new Error(`The read for ${engine.heldRead.url} never started`);
-				}
+				await Effect.runPromise(Deferred.await(engine.heldRead.startedSignal));
 			}),
 		boardTaskCount: () => reading("the reader reads the board's task count", () => document.querySelector(".counts")?.textContent),
 		breadcrumb: () => reading("the reader reads the breadcrumb", () => document.querySelector("#breadcrumbs")?.textContent),

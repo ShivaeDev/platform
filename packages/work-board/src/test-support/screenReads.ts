@@ -1,5 +1,6 @@
 import { Deferred, Effect, PubSub } from "effect";
 import { act } from "react";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
 import { requestAvailability } from "./screenAvailability.tsx";
 import type { ScreenEngine } from "./screenEngine.ts";
@@ -16,7 +17,7 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 				read.started = true;
 				return PubSub.publish(engine.transportEvents, undefined).pipe(
 					Effect.andThen(Deferred.await(read.gate)),
-					Effect.andThen(read.failed ? Effect.die("Older read unavailable") : Effect.void),
+					Effect.andThen(read.failed ? Effect.fail(new InternalServerError({ message: "Internal server error" })) : Effect.void),
 					Effect.ensuring(
 						Effect.sync(() => {
 							read.finished = true;
@@ -26,7 +27,9 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 			}),
 		beforeRead: (kind: "document", url: string) => {
 			engine.pageRequests.push(url);
-			return engine.documentFailed ? Effect.die("Read unavailable") : (options?.beforeRead?.(kind, url) ?? Effect.void);
+			return engine.documentFailed
+				? Effect.fail(new InternalServerError({ message: "Internal server error" }))
+				: (options?.beforeRead?.(kind, url) ?? Effect.void);
 		},
 		beforeRequest: (files: readonly string[]) => requestAvailability(engine, files),
 		...(engine.fleet ? { fleet: engine.fleet } : {}),
@@ -48,6 +51,7 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 						read.started = true;
 					}),
 				),
+				Effect.andThen(Deferred.succeed(read.startedSignal, undefined)),
 				Effect.andThen(Deferred.await(read.gate)),
 			);
 		},

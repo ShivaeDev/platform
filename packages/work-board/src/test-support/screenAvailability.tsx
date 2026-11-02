@@ -1,5 +1,6 @@
-import { Deferred, Effect, PlatformError } from "effect";
+import { Deferred, Effect } from "effect";
 import { act } from "react";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { routeQueryOptions } from "#client/react/routeQuery.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
@@ -12,9 +13,7 @@ export function requestAvailability(engine: ScreenEngine, files: readonly string
 			return Deferred.await(refresh.gate);
 		}
 		if (engine.indexFailed) {
-			return Effect.fail(
-				PlatformError.systemError({ _tag: "Unknown", description: "Workspace unavailable", method: "readDirectory", module: "FileSystem" }),
-			);
+			return Effect.fail(new InternalServerError({ message: "Internal server error" }));
 		}
 		if (!engine.indexGate) {
 			return Effect.void;

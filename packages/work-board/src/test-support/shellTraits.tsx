@@ -22,7 +22,7 @@ export function holdableRead(url: string) {
 	return screenStory.trait("workspace", `the document read for ${url} can be held`, function* (engine) {
 		const gate = yield* Deferred.make<void>();
 		yield* Deferred.succeed(gate, undefined);
-		const read = { gate, started: false, url };
+		const read = { gate, started: false, startedSignal: yield* Deferred.make<void>(), url };
 		engine.heldRead = read;
 		yield* Effect.addFinalizer(() =>
 			Effect.promise(() => act(() => Promise.resolve().then(() => Effect.runSync(Deferred.succeed(read.gate, undefined))))),

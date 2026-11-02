@@ -1,5 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { vi } from "vitest";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import type { FleetHealth } from "#diagnostics/health.ts";
 import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
 import { screenStory } from "./screenStory.ts";
@@ -115,7 +116,10 @@ export function unreadableHome() {
 
 export function failingRead(url: string) {
 	return screenStory.trait("workspace", `reads of ${url} fail`, (engine) => {
-		engine.options = { ...engine.options, beforeRead: (_kind, read) => (read === url ? Effect.die("Read unavailable") : Effect.void) };
+		engine.options = {
+			...engine.options,
+			beforeRead: (_kind, read) => (read === url ? Effect.fail(new InternalServerError({ message: "Internal server error" })) : Effect.void),
+		};
 	});
 }
 

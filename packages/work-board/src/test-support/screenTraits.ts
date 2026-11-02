@@ -107,7 +107,7 @@ export function readingScreen(kind: string) {
 export function pausedDocument(url: string) {
 	return screenStory.trait("workspace", `the document read for ${url} waits`, function* (engine) {
 		const gate = yield* Deferred.make<void>();
-		engine.heldRead = { gate, started: false, url };
+		engine.heldRead = { gate, started: false, startedSignal: yield* Deferred.make<void>(), url };
 		yield* Effect.addFinalizer(() => Deferred.succeed(gate, undefined));
 	});
 }

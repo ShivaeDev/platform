@@ -31,7 +31,7 @@ export interface ScreenEngine {
 	headerFootprints?: number[];
 	health?: boolean;
 	heldAnswerRefresh?: { readonly gate: Deferred.Deferred<void>; started: boolean } | undefined;
-	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; started: boolean };
+	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly startedSignal: Deferred.Deferred<void>; started: boolean };
 	heldRefresh?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly failed: boolean; finished: boolean; started: boolean };
 	indexFailed?: boolean;
 	indexGate?: Deferred.Deferred<void> | undefined;

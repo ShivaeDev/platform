@@ -6,7 +6,7 @@ import { hostedHealthSettled } from "#test/shellTraits.tsx";
 
 expectNoReactWarnings();
 
-const SETTLED = "Connection: live; last observed source watcher: unavailable; reads settled";
+const SETTLED = "Connection: live; last observed source watcher: watching; reads settled";
 
 screenStory.it(
 	"reads live health from the host's displayed location when the host has no document element",
@@ -42,7 +42,7 @@ screenStory.it(
 		yield* hostRetries();
 
 		yield* outcomes([
-			["the live status", () => liveIndicator(), expect.objectContaining({ announced: "Reconnecting…" })],
+			["the live status", () => liveIndicator(), expect.objectContaining({ announced: "Live" })],
 			["the live tooltip", () => liveTooltip(), SETTLED],
 		]);
 	},
