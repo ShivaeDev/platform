@@ -49,7 +49,10 @@ export function stepsVerbs(engine: StepsEngine, story: Story<StepsEngine>) {
 			const failure = new Migrator.MigrationError({ kind: "ImportError", message: "loader refused" });
 			return attempt(Effect.scoped(migrationSteps({ ...migrations, loader: Effect.fail(failure) })));
 		},
-		appliedMigrations: () => ledger,
+		appliedMigrations: () => {
+			story.tell("the story reads the migration ledger");
+			return ledger;
+		},
 		backfill: () => {
 			story.tell("the steps migrate to the latest migration");
 			return engine.steps.migrateToLatest;
@@ -61,22 +64,34 @@ export function stepsVerbs(engine: StepsEngine, story: Story<StepsEngine>) {
 					? Effect.die(new Error("Declare scopedLoader before closing its scope."))
 					: Scope.close(engine.stepsScope, Exit.void);
 			}),
-		contactEmails: () =>
-			Effect.flatMap(SqlClient.SqlClient, (sql) =>
+		contactEmails: () => {
+			story.tell("the story reads the contacts’ email column");
+			return Effect.flatMap(SqlClient.SqlClient, (sql) =>
 				Effect.map(sql<{ email: string }>`select email from contacts order by id`, (rows) => rows.map(({ email }) => email)),
-			),
-		directoryAddresses: () =>
-			Effect.flatMap(
+			);
+		},
+		directoryAddresses: () => {
+			story.tell("the story reads the contact directory addresses");
+			return Effect.flatMap(
 				SqlClient.SqlClient,
 				(sql) => sql<{ address: string; contactId: number }>`select contact_id as "contactId", address from contact_directory order by contact_id`,
-			),
-		emailAddresses: () =>
-			Effect.flatMap(
+			);
+		},
+		emailAddresses: () => {
+			story.tell("the story reads the email addresses");
+			return Effect.flatMap(
 				SqlClient.SqlClient,
 				(sql) => sql<{ address: string; contactId: number }>`select contact_id as "contactId", address from emails order by contact_id`,
-			),
-		loaderResolutions: () => Effect.sync(() => timesOf(engine.counts.loads)),
-		loaderResource: () => Effect.sync(() => engine.loaderResource),
+			);
+		},
+		loaderResolutions: () => {
+			story.tell("the story reads how often the migration loader resolved");
+			return Effect.sync(() => timesOf(engine.counts.loads));
+		},
+		loaderResource: () => {
+			story.tell("the story reads whether the migration loader resource is open");
+			return Effect.sync(() => engine.loaderResource);
+		},
 		migrateInRollbackTest: () => {
 			story.tell("a rollback test migrates with steps acquired outside it");
 			return attempt(withTestTransaction(engine.steps.migrateToLatest));
@@ -86,8 +101,17 @@ export function stepsVerbs(engine: StepsEngine, story: Story<StepsEngine>) {
 				story.tell(`the steps migrate to ${JSON.stringify(target)}`);
 				engine.migration = yield* attempt(engine.steps.migrateTo(target));
 			}),
-		migration: () => Effect.sync(() => engine.migration),
-		recordedRelease: () => Effect.map(readPostgresRelease(migrations.table), (release) => release?.release ?? "none"),
-		tables: () => tableNames,
+		migration: () => {
+			story.tell("the story reads the migration outcome");
+			return Effect.sync(() => engine.migration);
+		},
+		recordedRelease: () => {
+			story.tell("the story reads the recorded PostgreSQL release");
+			return Effect.map(readPostgresRelease(migrations.table), (release) => release?.release ?? "none");
+		},
+		tables: () => {
+			story.tell("the story reads the database’s tables");
+			return tableNames;
+		},
 	};
 }

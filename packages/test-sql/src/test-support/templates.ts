@@ -23,30 +23,52 @@ export const templates = storyKit({
 	runIf: configured,
 	stages: ["database"],
 	verbs: (engine, story) => ({
-		appliedMigrations: () =>
-			engine.run(
+		appliedMigrations: () => {
+			story.tell("the story reads its database’s migration ledger");
+			return engine.run(
 				Effect.flatMap(SqlClient.SqlClient, (sql) =>
 					Effect.map(sql<{ id: number }>`select migration_id as id from effect_sql_migrations`, (rows) => rows.map(({ id }) => id)),
 				),
-			),
+			);
+		},
 		changeItem: (value: string) => {
 			story.tell(`the story commits the item "${value}" in its database`);
 			return engine.run(Effect.flatMap(SqlClient.SqlClient, (sql) => sql`update items set value = ${value}`));
 		},
-		items: () => engine.run(items),
-		itemsInNewClone: () => engine.run(withIsolatedDatabase(items)),
-		loaderResources: () => Effect.sync(() => (preparation.released > 0 ? "released" : "still open")),
-		loaderRows: () =>
-			engine.run(
+		items: () => {
+			story.tell("the story reads its database’s items");
+			return engine.run(items);
+		},
+		itemsInNewClone: () => {
+			story.tell("the story opens a new migrated clone and reads its items");
+			return engine.run(withIsolatedDatabase(items));
+		},
+		loaderResources: () => {
+			story.tell("the story reads whether migration loader resources were released");
+			return Effect.sync(() => (preparation.released > 0 ? "released" : "still open"));
+		},
+		loaderRows: () => {
+			story.tell("the story reads the rows written by the migration loader");
+			return engine.run(
 				Effect.flatMap(SqlClient.SqlClient, (sql) =>
 					Effect.map(sql<{ template: string }>`select template from app_options_fixture`, (rows) =>
 						rows.map(({ template }) => (template === preparation.template ? "written in the migrated template" : `written in ${template}`)),
 					),
 				),
-			),
-		preparationRuns: () => Effect.sync(() => ({ ...preparation.counts, loaders: preparation.loaders })),
-		tables: () => engine.run(tableNames),
-		tablesInNewClone: (template: PostgresTestTemplate) => engine.run(withIsolatedDatabase(tableNames, { template })),
+			);
+		},
+		preparationRuns: () => {
+			story.tell("the story reads how often migrations, fixtures and loaders ran");
+			return Effect.sync(() => ({ ...preparation.counts, loaders: preparation.loaders }));
+		},
+		tables: () => {
+			story.tell("the story reads its database’s tables");
+			return engine.run(tableNames);
+		},
+		tablesInNewClone: (template: PostgresTestTemplate) => {
+			story.tell(`the story opens a new ${template} clone and reads its tables`);
+			return engine.run(withIsolatedDatabase(tableNames, { template }));
+		},
 	}),
 });
 

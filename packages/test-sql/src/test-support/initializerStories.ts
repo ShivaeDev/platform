@@ -22,11 +22,23 @@ function initializerKit(source: InitializerSource) {
 		name: `initializer through ${source}`,
 		runIf: configured,
 		stages: ["database"],
-		verbs: (engine) => ({
-			appState: () => engine.run(appState),
-			initializerResources: () => Effect.sync(() => (preparation.released > 0 ? "released" : "still open")),
-			preparationRuns: () => Effect.sync(() => ({ fixtures: preparation.fixtures, initializer: preparation.initializer })),
-			tables: () => engine.run(tableNames),
+		verbs: (engine, story) => ({
+			appState: () => {
+				story.tell("the story reads the initialized application state");
+				return engine.run(appState);
+			},
+			initializerResources: () => {
+				story.tell("the story reads whether initializer resources were released");
+				return Effect.sync(() => (preparation.released > 0 ? "released" : "still open"));
+			},
+			preparationRuns: () => {
+				story.tell("the story reads how often the initializer and fixtures ran");
+				return Effect.sync(() => ({ fixtures: preparation.fixtures, initializer: preparation.initializer }));
+			},
+			tables: () => {
+				story.tell("the story reads the cloned database’s tables");
+				return engine.run(tableNames);
+			},
 		}),
 	});
 }

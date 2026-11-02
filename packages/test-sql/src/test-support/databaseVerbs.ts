@@ -1,13 +1,13 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Layer, Option, type Scope } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#database.ts";
 import { observeUntil } from "#observeUntil.ts";
-import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
-import type { DatabaseEngine, Services } from "./databaseEngine.ts";
+import type { DatabaseEngine } from "./databaseEngine.ts";
+import { databaseQueries } from "./databaseQueries.ts";
+import { inPlace } from "./inPlace.ts";
 
 export type Ending = "succeeds" | "fails with rejected" | "dies with assertion failed";
 
@@ -16,37 +16,6 @@ const endings: Record<Ending, Effect.Effect<void, string>> = {
 	"fails with rejected": Effect.fail("rejected"),
 	succeeds: Effect.void,
 };
-
-const values = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ value: string }>`select value from items order by id`;
-	return rows.map(({ value }) => value);
-});
-
-const noteValues = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ value: string }>`select value from notes order by value`;
-	return rows.map(({ value }) => value);
-});
-
-const tableNames = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ name: string }>`select table_name as name from information_schema.tables
-		where table_schema = 'public' order by table_name`;
-	return rows.map(({ name }) => name);
-});
-
-const ledger = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ id: number }>`select migration_id as id from effect_sql_migrations order by migration_id`;
-	return rows.map(({ id }) => id);
-});
-
-const nextValue = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const [row] = yield* sql<{ id: number }>`select nextval('test_ids')::int as id`;
-	return row?.id;
-});
 
 export function writeItem(value: string) {
 	return Effect.flatMap(SqlClient.SqlClient, (sql) => sql`update items set value = ${value}`);
@@ -58,16 +27,6 @@ const Items = defineService({
 	methods: () => ({ rename: (value: string) => Effect.asVoid(writeItem(value)) }),
 	requires: [SqlClient.SqlClient],
 });
-
-export function inPlace<A, E>(engine: DatabaseEngine, place: string, effect: Effect.Effect<A, E, Services | Scope.Scope>) {
-	if (place === "the shared database") {
-		return engine.run(Effect.scoped(effect));
-	}
-	if (place === "a new clone") {
-		return engine.run(withIsolatedDatabase(effect));
-	}
-	return engine.inBlock(place, effect);
-}
 
 export function databaseVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) {
 	const admin = engine.admin;
@@ -82,7 +41,9 @@ export function databaseVerbs(engine: DatabaseEngine, story: Story<DatabaseEngin
 		return Effect.map(admin`select 1 from pg_database where datname = ${name}`, (rows) => (rows.length > 0 ? "exists" : "dropped"));
 	}
 	return {
+		...databaseQueries(engine, story),
 		adminSessions: () => {
+			story.tell("the story waits for the worker’s administration sessions to close");
 			const sessions = admin<{ count: number }>`select count(*)::int as count from pg_stat_activity
 				where application_name = ${engine.marker} and datname = current_database()`.pipe(Effect.map(([row]) => row?.count ?? 0));
 			return observeUntil(sessions, (count) => count === 0, "the worker's administration sessions to close").pipe(
@@ -90,70 +51,73 @@ export function databaseVerbs(engine: DatabaseEngine, story: Story<DatabaseEngin
 				Effect.catchTag("NeverSettled", (error) => Effect.succeed(`${Option.getOrElse(error.last, () => "unknown")} open`)),
 			);
 		},
-		appliedMigrations: (place: string) => inPlace(engine, place, ledger),
-		blockOutcome: (block: string) => Effect.sync(() => engine.endings.get(block) ?? "still running"),
+		blockOutcome: (block: string) => {
+			story.tell(`the story reads how ${block} ended`);
+			return Effect.sync(() => engine.endings.get(block) ?? "still running");
+		},
 		buildItemsServiceAndRename: (value: string, place: string) => {
 			story.tell(`an application Layer built in ${place} renames the item to "${value}"`);
 			return inPlace(engine, place, Effect.flatMap(Items, (service) => service.rename(value)).pipe(Effect.provide(Layer.fresh(Items.layer))));
 		},
-		cloneDatabase: (block: string) =>
-			Effect.gen(function* () {
+		cloneDatabase: (block: string) => {
+			story.tell(`the story awaits cleanup and checks whether ${block}’s clone exists`);
+			return Effect.gen(function* () {
 				yield* awaitCleanup;
 				return yield* exists((yield* engine.block(block)).database);
-			}),
+			});
+		},
 		closeWorker: () => {
 			story.tell("the worker closes its PostgreSQL test Layer");
 			return engine.close();
 		},
-		databasesDuringPreparation: () => Effect.sync(() => engine.ownDatabases.map(roleOf).sort()),
+		databasesDuringPreparation: () => {
+			story.tell("the story reads which databases were present during preparation");
+			return Effect.sync(() => engine.ownDatabases.map(roleOf).sort());
+		},
 		end: (block: string, ending: Ending) => {
 			story.tell(`${block} ${ending}`);
 			return engine.end(block, endings[ending]);
 		},
-		finalizerQuery: () => Effect.sync(() => engine.finalizerQuery),
+		finalizerQuery: () => {
+			story.tell("the story reads the finalizer query outcome");
+			return Effect.sync(() => engine.finalizerQuery);
+		},
 		interrupt: (block: string) => {
 			story.tell(`${block} is interrupted`);
 			return engine.interrupt(block);
 		},
-		items: (place: string) => inPlace(engine, place, values),
-		itemsThroughAnotherConnection: (block: string) =>
-			Effect.gen(function* () {
-				const url = yield* engine.inBlock(
-					block,
-					Effect.map(PostgresTestDatabase, (database) => database.url),
-				);
-				const client = yield* PgClient.makeClient({ url });
-				return yield* values.pipe(Effect.provideService(SqlClient.SqlClient, client));
-			}),
 		nestedTransactionFails: (value: string, place: string) => {
 			story.tell(`a nested transaction in ${place} writes "${value}" and fails`);
 			return inPlace(engine, place, transact(Effect.andThen(writeItem(value), Effect.fail("rejected")), { onSqlError: (error) => error })).pipe(
 				Effect.ignore,
 			);
 		},
-		nextId: (place: string) =>
-			inPlace(
-				engine,
-				place,
-				Effect.map(nextValue, (id) => `id ${id}`),
-			),
-		notes: (place: string) => inPlace(engine, place, noteValues),
 		openIsolatedBlock: (name: string) => {
 			story.tell(`${name} opens its clone`);
 			return engine.open(name, "isolated block");
 		},
-		preparationRuns: () => Effect.sync(() => ({ ...engine.fixture.counts })),
-		publishedInvalidations: () => Effect.sync(() => [...engine.published]),
-		tables: (place: string) => inPlace(engine, place, tableNames),
-		workerDatabases: () =>
-			Effect.gen(function* () {
+		preparationRuns: () => {
+			story.tell("the story reads how often migrations and fixtures ran");
+			return Effect.sync(() => ({ ...engine.fixture.counts }));
+		},
+		publishedInvalidations: () => {
+			story.tell("the story reads the published invalidations");
+			return Effect.sync(() => [...engine.published]);
+		},
+		workerDatabases: () => {
+			story.tell("the story checks which worker databases remain");
+			return Effect.gen(function* () {
 				const remaining = new Set(yield* engine.databaseNames());
 				return engine.ownDatabases
 					.filter((name) => remaining.has(name))
 					.map(roleOf)
 					.sort();
-			}),
-		workerStart: () => Effect.sync(() => engine.start),
+			});
+		},
+		workerStart: () => {
+			story.tell("the story reads the worker startup outcome");
+			return Effect.sync(() => engine.start);
+		},
 		writeItem: (value: string, place: string) => {
 			story.tell(`${place} writes the item "${value}"`);
 			return inPlace(engine, place, writeItem(value));
