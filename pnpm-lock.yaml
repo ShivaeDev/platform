@@ -442,6 +442,9 @@ importers:
       '@shivaedev/browser-check':
         specifier: workspace:*
         version: link:../../packages/browser-check
+      '@shivaedev/heavy-lock':
+        specifier: workspace:*
+        version: link:../../packages/heavy-lock
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../../packages/quality
@@ -451,6 +454,9 @@ importers:
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../../packages/test-story
+      '@shivaedev/vitest-rerun':
+        specifier: workspace:*
+        version: link:../../packages/vitest-rerun
       '@tailwindcss/vite':
         specifier: 'catalog:'
         version: 4.3.3(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))

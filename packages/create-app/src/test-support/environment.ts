@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Schema } from "effect";
+import { Config, Effect, Schema } from "effect";
 import { databaseProbe } from "./databaseProbe.ts";
 import { linkStarterModules } from "./starterModules.ts";
 
@@ -21,6 +21,7 @@ export function appScript(app: string, script: string, args: readonly string[] =
 			"DATABASE_URL",
 			"-u",
 			"PLATFORM_SQL_TEST_DATABASE_URL",
+			`PATH=${join(app, "node_modules/.bin")}:${Effect.runSync(Config.String("PATH"))}`,
 			...environment,
 			"sh",
 			"-c",
