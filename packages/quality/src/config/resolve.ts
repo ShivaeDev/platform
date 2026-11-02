@@ -1,8 +1,9 @@
 import { Effect } from "effect";
+import { configureRegistered } from "#adapters/rule.ts";
 import type { Decoded } from "#decoded.ts";
 import type { ActiveRule } from "#engine/runRules.ts";
 import type { RuleIndex } from "#engine/violation.ts";
-import type { Rule } from "#rule.ts";
+import type { RegisteredRule } from "#rule.ts";
 import { builtInRules } from "#rules/builtIn.ts";
 import type { ConfigInput } from "./decode.ts";
 
@@ -20,13 +21,13 @@ function optionsOf(setting: Setting | undefined): unknown {
 	return typeof setting === "object" ? setting.options : undefined;
 }
 
-function duplicateIssues(rules: readonly Rule[]): readonly string[] {
+function duplicateIssues(rules: readonly RegisteredRule[]): readonly string[] {
 	return rules.flatMap((rule, index) =>
 		rules.findIndex((other) => other.id === rule.id) === index ? [] : [`local: rule id "${rule.id}" is already defined`],
 	);
 }
 
-function activeRule(rule: Rule, check: ActiveRule["check"]): ActiveRule {
+function activeRule(rule: RegisteredRule, check: ActiveRule["check"]): ActiveRule {
 	return {
 		check,
 		description: rule.description,
@@ -37,8 +38,8 @@ function activeRule(rule: Rule, check: ActiveRule["check"]): ActiveRule {
 	};
 }
 
-function activate(rule: Rule, setting: Setting | undefined): Effect.Effect<Decoded<ActiveRule>> {
-	return Effect.tryPromise({ catch: messageOf, try: () => rule.configure(optionsOf(setting)) }).pipe(
+function activate(rule: RegisteredRule, setting: Setting | undefined): Effect.Effect<Decoded<ActiveRule>> {
+	return Effect.tryPromise({ catch: messageOf, try: () => configureRegistered(rule, optionsOf(setting)) }).pipe(
 		Effect.match({
 			onFailure: (failure): Decoded<ActiveRule> => ({ _tag: "Invalid", issues: [`rules.${rule.id}.options: validation threw: ${failure}`] }),
 			onSuccess: (configured): Decoded<ActiveRule> =>
@@ -53,7 +54,7 @@ function activate(rule: Rule, setting: Setting | undefined): Effect.Effect<Decod
 }
 
 export const resolveRules = Effect.fn("Config.resolveRules")(function* (config: ConfigInput): Effect.fn.Return<Decoded<ResolvedRules>> {
-	const rules: readonly Rule[] = [...builtInRules, ...(config.local ?? [])];
+	const rules: readonly RegisteredRule[] = [...builtInRules, ...(config.local ?? [])];
 	const settings = config.rules ?? {};
 	const known = new Set(rules.map((rule) => rule.id));
 	const families = new Set(rules.filter((rule) => rule.family === true).map((rule) => rule.id));

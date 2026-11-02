@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { defineConfig, type QualityConfig } from "#config.ts";
-import { defineRule, type Rule } from "#rule.ts";
+import { defineRule, type RegisteredRule } from "#rule.ts";
 import { customServiceRule } from "#test/customServiceRule.ts";
 
 const todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });
@@ -15,7 +15,7 @@ const limited = defineRule({
 	options: Schema.toStandardSchemaV1(Schema.Struct({ max: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))) })),
 });
 
-const rules: readonly Rule[] = [todo, limited];
+const rules: readonly RegisteredRule[] = [todo, limited];
 
 export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defineConfig({
 	local: [todo, limited],

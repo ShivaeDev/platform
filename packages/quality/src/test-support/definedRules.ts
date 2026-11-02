@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
+import type { StandardSchemaV1 } from "#adapters/standardSchema.ts";
 import { defineRule } from "#rule.ts";
-import type { StandardSchemaV1 } from "#standardSchema.ts";
 
 export const todo = defineRule({
 	check: ({ sources }) =>
