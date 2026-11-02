@@ -339,7 +339,13 @@ The registry is required for session-scoped bindings. Query atoms and live conne
 
 Server subscriptions and committed writes use the same plain record, list and bucket keys, including for `keyScope: "session"`. A background worker needs no request identity or account prefix to refresh a session's query. Matching keys trigger the query's own read policy; authorized reads remain responsible for filtering rows to the viewer. A shared key can therefore trigger authorized rechecks for several accounts. Use model buckets to narrow that fan-out.
 
-Client cache isolation belongs to the owning registry. `bind` supplies its opaque context automatically. Custom client coordination can use `clientReadKeys(keys, context)` and `clientInvalidationKeys(keys, context)` with `KeyContext` from `@shivaedev/contract/clientKeys.ts`; never publish those contextual client keys on the server.
+Client cache isolation belongs to the owning registry. `bind` supplies its opaque context automatically. Custom client coordination uses these helpers and context type:
+
+```ts
+import { clientInvalidationKeys, clientReadKeys, type KeyContext } from "@shivaedev/contract/clientKeys.ts";
+```
+
+`clientReadKeys(keys, context)` registers client dependencies; `clientInvalidationKeys(keys, context)` announces client cache changes. The context has type `KeyContext`. Never publish contextual client keys on the server.
 
 ### 4. Live invalidation and resume
 

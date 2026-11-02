@@ -39,7 +39,8 @@ export function recordSubscription(current: QuerySignals, status: LiveStatus<unk
 			return { ...current, subscription: "open" };
 		case "failed":
 			return { ...current, subscription: "refused" };
-		default:
+		case "connecting":
+		case "reconnecting":
 			return { ...current, subscription: "opening" };
 	}
 }
