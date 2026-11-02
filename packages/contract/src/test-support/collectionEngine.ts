@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Redacted, Schema, Stream } from "effect";
+import { Context, Effect, Layer, Option, Redacted, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
@@ -10,7 +10,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
-import { changesSuccess } from "#internal/changesSuccess.ts";
+import { changesHandlerLayer } from "#changesHandlerLayer.ts";
 import { LiveServer } from "#LiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
@@ -49,20 +49,23 @@ export const collectionEngine = Effect.gen(function* () {
 		["member", { email: "member@example.test", id: "member", name: "Member", permissions: [] }],
 	]);
 	const live = Context.get(services, LiveServer);
-	const handlers = Workspaces.toLayer({
-		"workspaces.$changes": ({ queries }, { rpc }) =>
-			Stream.unwrap(
-				Effect.gen(function* () {
-					const viewer = yield* CurrentViewer;
-					const subscription = yield* querySubscription(rpc, queries, viewer);
-					const stream = yield* live.subscribe(subscription, Option.isSome(viewer) ? { scope: viewer.value.id } : undefined);
-					return stream.pipe(
-						Stream.mapEffect((update) => Schema.decodeUnknownEffect(changesSuccess(Workspaces.declaration.queries))(update).pipe(Effect.orDie)),
-					);
-				}),
-			),
-		"workspaces.all": () => repository.findMany({ orderBy: { direction: "asc", field: "title" } }).pipe(Effect.orDie),
-	}).pipe(Layer.provide(Layer.succeed(Permissions, permissions)));
+	const handlers = Layer.merge(
+		Workspaces.application.toLayer({
+			"workspaces.all": () => repository.findMany({ orderBy: { direction: "asc", field: "title" } }).pipe(Effect.orDie),
+		}),
+		changesHandlerLayer(
+			Workspaces,
+			() =>
+				({ queries }, { rpc }) =>
+					Stream.unwrap(
+						Effect.gen(function* () {
+							const viewer = yield* CurrentViewer;
+							const subscription = yield* querySubscription(rpc, queries, viewer);
+							return yield* live.subscribe(subscription, Option.isSome(viewer) ? { scope: viewer.value.id } : undefined);
+						}),
+					),
+		),
+	).pipe(Layer.provide(Layer.succeed(Permissions, permissions)));
 	function protocol(viewer: string) {
 		return Layer.merge(
 			handlers,
