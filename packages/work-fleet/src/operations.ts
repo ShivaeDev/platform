@@ -36,6 +36,12 @@ export const Continue = command("continue", {
 	rejections,
 	success: FleetRecord,
 });
+export const ReleaseCi = command("release-ci", {
+	invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
+	payload: { head: Schema.String, workId: Schema.String },
+	rejections,
+	success: FleetRecord,
+});
 export const Resolve = command("resolve", {
 	invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
 	payload: { decisionId: Schema.String, responseId: Schema.String, workId: Schema.String },
@@ -56,7 +62,10 @@ export const Reassign = command("reassign", {
 	success: FleetRecord,
 });
 export const Views = query("views", { readPolicy: () => Effect.succeed(true), reads: () => [fleetRecords.list], rejections, success: FleetViews });
-export const FleetContract = contract("fleet", { commands: [Prepare, Dispatch, Continue, Reconcile, Resolve, Reassign], queries: [Views, Get] });
+export const FleetContract = contract("fleet", {
+	commands: [Prepare, Dispatch, Continue, Reconcile, Resolve, Reassign, ReleaseCi],
+	queries: [Views, Get],
+});
 
 export const fleetHandlers = FleetContract.application.toLayer(
 	Effect.gen(function* () {
@@ -69,6 +78,7 @@ export const fleetHandlers = FleetContract.application.toLayer(
 			"fleet.reassign": ({ workId, decisionId, attentionOwner }) =>
 				exposeFailure(fleet.reassign(workId, decisionId, attentionOwner).pipe(Effect.map(({ value }) => value))),
 			"fleet.reconcile": ({ workId }) => exposeFailure(fleet.reconcile(workId).pipe(Effect.map(({ value }) => value))),
+			"fleet.release-ci": ({ workId, head }) => exposeFailure(fleet.releaseCi(workId, head).pipe(Effect.map(({ value }) => value))),
 			"fleet.resolve": ({ workId, decisionId, responseId }) =>
 				exposeFailure(fleet.resolve(workId, decisionId, responseId).pipe(Effect.map(({ value }) => value))),
 			"fleet.views": () => exposeFailure(fleet.list().pipe(Effect.map((records) => views(records.map(({ value }) => value))))),

@@ -14,6 +14,7 @@ import { answerCommand, continueCommand, nameThreadsCommand, reassignCommand, re
 import { board, clientPort, config, host, port } from "#host/cliOptions.ts";
 import { closeFinishedDecisionsCommand } from "#host/closeFinishedDecisionsCommand.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
+import { releaseCiCommand } from "#host/releaseCiCommand.ts";
 import { reservePrCommand } from "#host/reservePrCommand.ts";
 import { downCommand, upCommand } from "#host/upCommands.ts";
 import { VERSION } from "#packageInfo.ts";
@@ -100,6 +101,7 @@ const cli = Command.make("work-fleet").pipe(
 		reservePrCommand,
 		continueCommand,
 		releaseCommand,
+		releaseCiCommand,
 		stopCommand,
 		answerCommand,
 		statusCommand,

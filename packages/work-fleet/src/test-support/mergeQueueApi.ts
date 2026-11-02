@@ -8,6 +8,7 @@ export const mergeQueueApi = Effect.gen(function* () {
 	const pulls = new Map<string, { result: typeof ChangeResult.Type; branch: string }>();
 	const release = releaseWindowApi((number) => pulls.get(number)?.result);
 	const queued = new Map<string, string>();
+	const autoMerges = new Set<string>();
 	const removals = new Map<string, { reason: string; commit: string | undefined; createdAt: string }>();
 	const checks = new Map<string, { name: string; conclusion: string | null; url: string }>();
 	let loseReply = false;
@@ -26,7 +27,7 @@ export const mergeQueueApi = Effect.gen(function* () {
 						},
 					];
 		return {
-			autoMergeRequest: queued.has(number) ? { enabledAt: "2026-10-31T00:00:00Z" } : null,
+			autoMergeRequest: autoMerges.has(number) ? { enabledAt: "2026-10-31T00:00:00Z" } : null,
 			mergeQueueEntry: queued.has(number) ? { id: number } : null,
 			state: "OPEN",
 			timelineItems: { nodes },
@@ -70,8 +71,9 @@ export const mergeQueueApi = Effect.gen(function* () {
 					}
 					return {
 						body: {
-							"auto_merge": queued.has(number) ? {} : null,
+							"auto_merge": autoMerges.has(number) ? {} : null,
 							base: { ref: "main", sha: "main-revision" },
+							"changed_files": release.fileCount(pull.result.paths),
 							head: { ref: pull.branch, repo: { "full_name": "example/project" }, sha: pull.result.head },
 							labels: [],
 							mergeable: true,
@@ -91,7 +93,17 @@ export const mergeQueueApi = Effect.gen(function* () {
 					if (query.includes("FleetQueueStatus")) {
 						return { body: { data: { node: observation(variables.pr) } } };
 					}
+					if (query.includes("FleetHoldCi")) {
+						const action = query.includes("dequeuePullRequest") ? "dequeuePullRequest" : "disablePullRequestAutoMerge";
+						if (action === "dequeuePullRequest") {
+							queued.delete(variables.pr);
+						} else {
+							autoMerges.delete(variables.pr);
+						}
+						return { body: { data: { [action]: { clientMutationId: null } } } };
+					}
 					queued.set(variables.pr, variables.head);
+					autoMerges.add(variables.pr);
 					if (loseReply) {
 						loseReply = false;
 						return { body: { message: "Accepted but reply lost" }, status: 503 };
@@ -105,16 +117,18 @@ export const mergeQueueApi = Effect.gen(function* () {
 	});
 	return {
 		...release,
+		autoMerges: () => [...autoMerges],
 		client: yield* httpGithubApi(server.url),
 		dequeue: (number: string, reason: string, commit: string | undefined, at: number) => {
 			queued.delete(number);
+			autoMerges.delete(number);
 			removals.set(number, { commit, createdAt: new Date(at).toISOString(), reason });
 		},
 		loseReply: () => {
 			loseReply = true;
 		},
 		mergeGroupCheck: (commit: string, check: { name: string; conclusion: string | null; url: string }) => checks.set(commit, check),
-		observe: (work: BoardWork, result: typeof ChangeResult.Type) => {
+		observe: (work: Pick<BoardWork, "workId">, result: typeof ChangeResult.Type) => {
 			pulls.set(result.pr.split("/").at(-1) ?? "", { branch: `worker-${work.workId}`, result });
 		},
 		override: (number: string, fields: Record<string, unknown>) => overrides.set(number, fields),

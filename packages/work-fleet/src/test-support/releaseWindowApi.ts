@@ -8,6 +8,7 @@ export function releaseWindowApi(result: (number: string) => typeof ChangeResult
 	let release: { branch: string; base: string; draft: boolean; state: string } | undefined;
 	let run: { id: number; status: string; conclusion: string | null; head: string } | undefined;
 	const files = new Map<string, string>();
+	const renames = new Map<string, string>();
 	const routes = {
 		ci: {
 			path: "/repos/example/project/actions/workflows/ci.yml/runs",
@@ -23,7 +24,10 @@ export function releaseWindowApi(result: (number: string) => typeof ChangeResult
 		files: {
 			path: "/repos/example/project/pulls/:number/files",
 			reply: ({ params }) => ({
-				body: result(params.number ?? "")?.paths.map((filename) => ({ filename, status: files.get(filename) ?? "added" })) ?? [],
+				body:
+					result(params.number ?? "")
+						?.paths.filter((path) => ![...renames.values()].includes(path))
+						.map((filename) => ({ filename, "previous_filename": renames.get(filename), status: files.get(filename) ?? "added" })) ?? [],
 			}),
 		},
 		releases: {
@@ -49,10 +53,12 @@ export function releaseWindowApi(result: (number: string) => typeof ChangeResult
 			}
 			release.state = state;
 		},
+		fileCount: (paths: readonly string[]) => paths.filter((path) => ![...renames.values()].includes(path)).length,
 		fileStatus: (path: string, status: string) => files.set(path, status),
 		openRelease: (options: { branch?: string; base?: string; draft?: boolean } = {}) => {
 			release = { base: "main", branch: "release/next", draft: false, ...options, state: "open" };
 		},
+		renameFile: (from: string, to: string) => renames.set(to, from),
 		routes,
 	};
 }
