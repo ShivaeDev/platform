@@ -39,7 +39,8 @@ export function adminBackend() {
 			"admin.jobs.counts": () =>
 				Effect.sync(() => ({ activeCount: 0, failedCount: state.jobs.length, queuedCount: 0, totalCount: state.jobs.length })),
 			"admin.jobs.deadLettered": () => Effect.succeed({ jobs: [], next: Option.none<string>() }),
-			"admin.jobs.failed": () => Effect.sync(() => ({ jobs: state.jobs, next: Option.none<string>() })),
+			"admin.jobs.failed": ({ queue }: { readonly queue: string }) =>
+				Effect.sync(() => ({ jobs: state.jobs.filter((job) => job.queue === queue), next: Option.none<string>() })),
 			"admin.jobs.health": () => health,
 			"admin.jobs.job": ({ id }: { readonly id: string }) => Effect.sync(() => Option.fromUndefinedOr(state.jobs.find((job) => job.id === id))),
 			"admin.notes.$changes": changes,

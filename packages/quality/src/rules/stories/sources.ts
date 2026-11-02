@@ -8,7 +8,7 @@ import { storyOrigins } from "./origins.ts";
 import { storyPrerequisites } from "./prerequisites.ts";
 
 export const storySources = Effect.fn("Stories.storySources")(function* (inputs: RuleInputs) {
-	const graph = yield* Effect.promise(() => importGraph(inputs));
+	const graph = yield* importGraph(inputs);
 	const packages = graph.packages;
 	const origins = storyOrigins(inputs, graph);
 	const exempt = yield* Effect.promise(() => storyPrerequisites(inputs, packages));

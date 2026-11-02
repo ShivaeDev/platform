@@ -1,5 +1,6 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect, Predicate } from "effect";
+import { act } from "react";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
@@ -43,6 +44,18 @@ export const adminScreens = storyKit({
 						throw new Error("Admin screen is not open");
 					}
 					return engine.switchSession();
+				}),
+			choosesQueue: (name: string) =>
+				Effect.promise(async () => {
+					story.tell(`choose the ${name} queue`);
+					const select = container().querySelector("select");
+					if (select === null) {
+						throw new Error("The Jobs queue picker is not rendered");
+					}
+					await act(() => {
+						select.value = name;
+						select.dispatchEvent(new Event("change", { bubbles: true }));
+					});
 				}),
 			failedJobs: () => Effect.sync(() => [...container().querySelectorAll("tbody tr button")].map((button) => button.textContent)),
 			heading: ui.heading,

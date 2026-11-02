@@ -57,6 +57,7 @@ export const notesModule = {
 			"001_notes": SqlClient.SqlClient.use((sql) => sql`create table module_notes (title text not null)`),
 		}),
 	},
+	name: "notes",
 	ports: Layer.succeed(TitleSource, (title) => Effect.succeed(title)),
 	services: Layer.effect(Notes, migratedTitle("module_notes")),
 } satisfies AppModule;
@@ -71,6 +72,7 @@ export const tasksModule = {
 			"002_tasks": SqlClient.SqlClient.use((sql) => sql`create table module_tasks (title text not null)`),
 		}),
 	},
+	name: "tasks",
 	services: Layer.effect(Tasks, migratedTitle("module_tasks")),
 } satisfies AppModule;
 

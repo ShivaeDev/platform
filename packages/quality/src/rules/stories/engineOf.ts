@@ -1,4 +1,4 @@
-import type { Endpoint } from "#imports/resolve.ts";
+import type { Endpoint } from "#imports/Endpoint.ts";
 
 const ENGINES: ReadonlyArray<readonly [string, readonly string[]]> = [
 	["the file system", ["node:fs"]],

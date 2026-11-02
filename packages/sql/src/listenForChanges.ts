@@ -89,11 +89,11 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 						return;
 					}
 					if (lostAt !== undefined) {
-						yield* Effect.logDebug("PostgreSQL change listener reconnect failed; retrying", cause);
+						yield* Effect.logDebug("PostgreSQL change listener reconnect failed; retrying");
 						return;
 					}
 					lostAt = yield* Clock.currentTimeMillis;
-					yield* Effect.logWarning("PostgreSQL change listener lost; resynchronizing live streams", cause);
+					yield* Effect.logWarning("PostgreSQL change listener lost; resynchronizing live streams");
 				}).pipe(Effect.andThen(Effect.sleep(options.retryDelay ?? "1 second"))),
 			),
 		),

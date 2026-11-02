@@ -1,11 +1,6 @@
-import { Config, Effect, Redacted, Schema } from "effect";
+import { Config, Effect, Redacted } from "effect";
 import { defineEmailQueue } from "@shivaedev/email/server/defineEmailQueue.ts";
-
-const AuthMessage = Schema.Struct({
-	kind: Schema.Literals(["ConfirmAccount", "ApproveEmailChange", "ConfirmNewAddress", "ResetPassword", "AccountAlreadyExists"]),
-	to: Schema.String,
-	url: Schema.Redacted(Schema.String),
-});
+import { authEmail } from "#authEmail.ts";
 
 const subjects = {
 	AccountAlreadyExists: "Sign in to your account",
@@ -16,7 +11,7 @@ const subjects = {
 };
 
 export const AuthEmailQueue = defineEmailQueue(
-	AuthMessage,
+	authEmail.schema,
 	(message) =>
 		Effect.gen(function* () {
 			const from = yield* Config.String("EMAIL_FROM").pipe(Config.withDefault("Accounts <onboarding@resend.dev>"));
@@ -25,5 +20,5 @@ export const AuthEmailQueue = defineEmailQueue(
 			const escaped = url.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 			return { from, html: `<p><a href="${escaped}">${subject}</a></p>`, subject, text: `${subject}\n\n${url}`, to: message.to };
 		}),
-	{ name: "identity.auth-emails" },
+	authEmail,
 );

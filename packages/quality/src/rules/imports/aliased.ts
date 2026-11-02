@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { type Departure, departures } from "#imports/departures.ts";
 import { defineRule } from "#rule.ts";
 
@@ -13,13 +14,15 @@ function messageOf({ installed, specifier, workspace }: Departure): string {
 }
 
 export const importsAliased = defineRule({
-	check: async (inputs) =>
-		(await departures(inputs)).map((departure) => ({
-			file: departure.file,
-			line: departure.line,
-			message: messageOf(departure),
-			subject: departure.specifier,
-		})),
+	check: (inputs) =>
+		Effect.map(departures(inputs), (found) =>
+			found.map((departure) => ({
+				file: departure.file,
+				line: departure.line,
+				message: messageOf(departure),
+				subject: departure.specifier,
+			})),
+		),
 	description:
 		"A relative import names only a file in its own folder, except a module's client or server registration may import its own ./admin/ subtree. Every other import goes through an alias: the package.json `imports` of its package or another workspace package's name.",
 	id: "imports/aliased",

@@ -11,6 +11,7 @@ import { listingVerbs } from "./listingVerbs.ts";
 import { readouts } from "./readouts.ts";
 import { releaseVerbs } from "./releaseVerbs.ts";
 import { teardownVerbs } from "./teardownVerbs.ts";
+import { traceReadouts } from "./traceReadouts.ts";
 import { runtimeVerbs, waitingVerbs } from "./verbs.ts";
 
 export const database = storyKit({
@@ -35,5 +36,6 @@ export const database = storyKit({
 		...teardownVerbs(engine, story.tell),
 		...waitingVerbs(engine, story.tell),
 		...readouts(engine),
+		...traceReadouts(engine),
 	}),
 });
