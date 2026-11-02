@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { Vitest } from "vitest/node";
 import { failWith } from "#error.ts";
-import { RerunJunitReporter } from "#internal/junit.ts";
+import { RerunJunitReporter } from "./RerunJunitReporter.ts";
 import { TimedJsonReporter } from "./TimedJsonReporter.ts";
 
 export function writeMergedReports(

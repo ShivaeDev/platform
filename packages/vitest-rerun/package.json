@@ -48,6 +48,9 @@
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@shivaedev/service": "workspace:*"
+	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
