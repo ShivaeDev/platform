@@ -76,6 +76,7 @@ export const GitHub = defineService({
 						branch: pr.head.ref,
 						dirty: pr.mergeableState === "dirty",
 						failed,
+						head: pr.head.sha,
 						merged: pr.merged,
 						number,
 						queued: queued.has(number),

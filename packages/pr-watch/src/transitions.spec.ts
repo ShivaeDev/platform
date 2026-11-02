@@ -19,19 +19,19 @@ for (const [change, verb, printed] of [
 }
 
 watch.it(
-	"a transition line carries PR 1's number, head branch and title",
+	"a transition line carries PR 1's number, head SHA, branch and title",
 	[openPr(1), watching(1), baselineSaved],
 	function* ({ merges, poll, printedTransitions }) {
 		yield* merges(1);
 
 		yield* poll();
 
-		expect(yield* printedTransitions()).toEqual([{ branch: "feature-1", event: "merged", number: 1, title: "Change 1" }]);
+		expect(yield* printedTransitions()).toEqual([{ branch: "feature-1", event: "merged", head: "sha1", number: 1, title: "Change 1" }]);
 	},
 );
 
 watch.it(
-	"a transition line after a push carries PR 1's new branch and title, line break included",
+	"a transition line after a push carries PR 1's new head SHA, branch and title, line break included",
 	[openPr(1), watching(1), baselineSaved],
 	function* ({ conflicts, poll, printedTransitions, pushesHead }) {
 		yield* pushesHead(1, "new-branch", "new-head", "Changed\ntitle");
@@ -40,8 +40,8 @@ watch.it(
 		yield* poll();
 
 		expect(yield* printedTransitions()).toEqual([
-			{ branch: "new-branch", event: "conflict", number: 1, title: "Changed\ntitle" },
-			{ branch: "new-branch", event: "stuck", number: 1, title: "Changed\ntitle" },
+			{ branch: "new-branch", event: "conflict", head: "new-head", number: 1, title: "Changed\ntitle" },
+			{ branch: "new-branch", event: "stuck", head: "new-head", number: 1, title: "Changed\ntitle" },
 		]);
 	},
 );

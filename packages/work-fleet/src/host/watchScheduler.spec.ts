@@ -15,24 +15,24 @@ for (const paused of [false, true]) {
 		],
 		function* (daemon) {
 			const port = yield* daemon.startReader();
-			yield* daemon.follow("all", "watch", [], { follow: true, port });
-			yield* daemon.follow("explicit", "watch", ["connected", "one"], { follow: true, port });
-			yield* daemon.awaitOutput("all", "connected waiting (waiting on orchestrator): Watch connected\n");
-			yield* daemon.awaitOutput("explicit", "connected waiting (waiting on orchestrator): Watch connected\n");
+			yield* daemon.follow("all", "watch", [], { follow: true, port, prEvents: false });
+			yield* daemon.follow("explicit", "watch", ["connected", "one"], { follow: true, port, prEvents: false });
+			yield* daemon.awaitOutput("all", 'waiting-on-orchestrator workId="connected" reason="Watch connected"\n');
+			yield* daemon.awaitOutput("explicit", 'waiting-on-orchestrator workId="connected" reason="Watch connected"\n');
 			expect(daemon.providerStarts()).toEqual([]);
 			daemon.writeBoard("one.md", task("one", "approved"));
 			yield* daemon.waitForRecord("one", (record) => record.attempts.some((attempt) => attempt.role === "worker" && attempt.receipt !== undefined));
 			daemon.finishWorkers();
 			yield* daemon.waitForRecord("one", (record) => record.attempts.some((attempt) => attempt.role === "reviewer" && attempt.receipt !== undefined));
-			expect([daemon.followerOutput("all").includes("one waiting"), daemon.followerOutput("explicit").includes("one waiting")]).toEqual([
-				false,
-				false,
-			]);
+			expect([
+				daemon.followerOutput("all").includes('reason="Reviewed PR is ready to merge"'),
+				daemon.followerOutput("explicit").includes('reason="Reviewed PR is ready to merge"'),
+			]).toEqual([false, false]);
 			if (paused) {
 				daemon.writeBoard("one.md", task("one", "held"));
 				yield* daemon.waitForRecord("one", (record) => record.decision?.published !== undefined);
-				yield* daemon.awaitOutput("all", "one waiting (waiting on you): Work is no longer approved\n");
-				yield* daemon.awaitOutput("explicit", "one waiting (waiting on you): Work is no longer approved\n");
+				yield* daemon.awaitOutput("all", 'reason="Work is no longer approved"');
+				yield* daemon.awaitOutput("explicit", 'reason="Work is no longer approved"');
 			}
 			daemon.finishWorkers();
 			if (paused) {
@@ -49,7 +49,7 @@ for (const paused of [false, true]) {
 			const ready = yield* daemon.waitForRecord("one", (record) => record.decision?.code === "reviewed-pr-ready");
 			expect(ready.step).toBe("waiting");
 			expect((yield* daemon.readerRecord("one")).decision?.code).toBe("reviewed-pr-ready");
-			const line = "one waiting (waiting on orchestrator): Reviewed PR is ready to merge\n";
+			const line = 'reason="Reviewed PR is ready to merge"';
 			yield* daemon.awaitOutput("all", line);
 			yield* daemon.awaitOutput("explicit", line);
 			expect([daemon.followerRunning("all"), daemon.followerRunning("explicit")]).toEqual([true, true]);

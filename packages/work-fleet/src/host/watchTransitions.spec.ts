@@ -55,7 +55,7 @@ host.it("watch streams a maintainer decision and release once", [approvedWork(["
 });
 
 host.it("watch reports a background dispatch failure once", [approvedWork(["one"]), delayedRefresh(true)], function* (daemon) {
-	yield* daemon.watchEvents();
+	yield* daemon.watchDefault({ follow: true, json: true, prEvents: false });
 	yield* daemon.awaitSnapshot();
 	yield* daemon.acknowledgeDispatch("one");
 	yield* daemon.awaitDelay();
@@ -68,7 +68,7 @@ host.it("watch reports a background dispatch failure once", [approvedWork(["one"
 
 host.it("watch reports an answer that failed to apply once", [approvedWork(["one"])], function* (daemon) {
 	yield* daemon.dispatch("one");
-	yield* daemon.watchEvents();
+	yield* daemon.watchDefault({ follow: true, json: true, prEvents: false });
 	yield* daemon.awaitSnapshot();
 	yield* daemon.failAnswerQueue();
 	yield* daemon.request("daemon.answer", {
@@ -87,7 +87,7 @@ host.it("watch reports an answer that failed to apply once", [approvedWork(["one
 });
 
 host.it(
-	"watch filters events and ignores ordinary dependency and area waits",
+	"the default watch ignores ordinary dependency and area deferrals",
 	[
 		boardWork({
 			"one.md": task("one", "approved").replace("fleet: approved", "fleet: approved\nareas:\n  - shared"),
@@ -96,7 +96,7 @@ host.it(
 		}),
 	],
 	function* (daemon) {
-		yield* daemon.watchEvents({ events: "dispatch-failed,released" });
+		yield* daemon.watchDefault({ follow: true, json: true, prEvents: false });
 		yield* daemon.awaitSnapshot();
 		yield* daemon.dispatch("one");
 		yield* daemon.acknowledgeDispatch("two");
@@ -104,15 +104,18 @@ host.it(
 		yield* daemon.acknowledgeDispatch("three");
 		expect((yield* daemon.dispatchOutcome("three")).error).toContain("waiting for dependency");
 		yield* daemon.workerQuestion();
-		yield* daemon.answer("one", undefined, true);
-		yield* daemon.awaitEvent("released");
-		expect(daemon.eventLines()).toEqual([{ kind: "released", workId: "one" }]);
+		yield* daemon.awaitEvent("waiting-on-orchestrator");
+		expect(daemon.eventLines()).toEqual([
+			{ kind: "waiting-on-orchestrator", reason: "Which storage should I use?\n\nChoose PostgreSQL or SQLite.", workId: "one" },
+		]);
 	},
 );
 
 host.it("watch reports stalled working work once until it advances", [approvedWork(["one"])], function* (daemon) {
-	yield* daemon.watchEvents({
-		events: "stuck,waiting-on-orchestrator",
+	yield* daemon.watchDefault({
+		follow: true,
+		json: true,
+		prEvents: false,
 		stuckAfter: 0.2,
 	});
 	yield* daemon.awaitSnapshot();
