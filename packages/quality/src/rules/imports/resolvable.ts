@@ -9,7 +9,7 @@ const ResolvableOptions = Schema.Struct({
 
 export const importsResolvable = defineRule({
 	check: Effect.fn("Imports.check")(function* ({ options, ...inputs }) {
-		const graph = yield* Effect.promise(() => importGraph(inputs));
+		const graph = yield* importGraph(inputs);
 		const unresolved = yield* withoutGenerated(inputs, graph, options.generated);
 		return [
 			...graph.configFindings,

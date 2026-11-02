@@ -78,9 +78,9 @@ export function importVerbs(engine: ImportEngine, tell: (line: string) => void) 
 			),
 		locations: () => read((finding) => (finding.line === undefined ? finding.file : `${finding.file}:${finding.line}`)),
 		mapsImports: () =>
-			Effect.promise(async () => {
+			Effect.gen(function* () {
 				tell("quality maps the imports of the sources");
-				engine.graph = await importGraph(await scanned(engine.root));
+				engine.graph = yield* importGraph(yield* Effect.promise(() => scanned(engine.root)));
 			}),
 		messages: () => read((finding) => finding.message),
 		refusal: <TInput>(rule: Rule<string, TInput>, options?: TInput) =>

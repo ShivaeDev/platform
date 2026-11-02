@@ -38,7 +38,7 @@ function runtimeFindings(graph: ImportGraph, runtime: (path: string) => Runtime 
 export const importsRuntime = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
-			const graph = yield* Effect.promise(() => importGraph(inputs));
+			const graph = yield* importGraph(inputs);
 			const runtime = yield* runtimeOf(inputs, graph.packages);
 			const imports = [...runtimeFindings(graph, runtime), ...inputs.sources.flatMap(nodePlatformBarrels)];
 			const declarations = (yield* runtimeDeclarationProblems(inputs, graph.packages)).map(({ directory, message }) => ({
@@ -52,7 +52,8 @@ export const importsRuntime = defineRule({
 				return [...imports, ...declarations];
 			}
 			const { browserGlobals } = yield* Effect.promise(() => import("#imports/browserGlobals.ts"));
-			return [...imports, ...declarations, ...shared.flatMap(browserGlobals)];
+			const globals = yield* Effect.forEach(shared, browserGlobals);
+			return [...imports, ...declarations, ...globals.flat()];
 		}),
 	description:
 		"Runtime folders define client, server and shared code. A manifest's quality.runtime declares a single-runtime package whole; executable packages without runtime folders and package-root tooling are server code. Production imports use @effect/platform-node module subpaths so its barrel does not load optional integrations.",
