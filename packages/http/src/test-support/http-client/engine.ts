@@ -8,6 +8,7 @@ import { type Lifecycle, makeLifecycle, observeClient } from "./observation.ts";
 
 interface ClientSelection {
 	readonly clients: Map<"fetch" | "node", HttpClient.HttpClient>;
+	followRedirects: boolean;
 	readonly lifecycle: Lifecycle;
 	transport: "fetch" | "node";
 }
@@ -38,14 +39,14 @@ export const createClientEngine = Effect.fnUntraced(function* () {
 	});
 	const lifecycle = yield* makeLifecycle;
 	const clients = new Map<"fetch" | "node", HttpClient.HttpClient>();
-	const state: ClientSelection = { clients, lifecycle, transport: "fetch" };
+	const state: ClientSelection = { clients, followRedirects: false, lifecycle, transport: "fetch" };
 	yield* selectClient(state, "fetch");
 	function rawClient() {
 		const selected = clients.get(state.transport);
 		if (selected === undefined) {
 			throw new Error(`No ${state.transport} client was built`);
 		}
-		return selected;
+		return state.followRedirects ? HttpClient.followRedirects(selected) : selected;
 	}
 	return { client: () => filterStatus(rawClient()), lifecycle, links, otherOrigin, rawClient, remote, replies, selection: state, statusFailures };
 });
@@ -54,7 +55,9 @@ export type ClientEngine = Effect.Success<ReturnType<typeof createClientEngine>>
 
 export const selectClient = Effect.fnUntraced(function* (state: ClientSelection, transport: "fetch" | "node") {
 	const context = yield* Layer.build(
-		transport === "fetch" ? FetchHttpClient.layer : NodeHttpClient.layerNodeHttpOptions({ keepAlive: true, maxSockets: 1 }),
+		transport === "fetch"
+			? FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "manual" })))
+			: NodeHttpClient.layerNodeHttpOptions({ keepAlive: true, maxSockets: 1 }),
 	);
 	const client = yield* HttpClient.HttpClient.pipe(Effect.provide(context));
 	state.clients.set(transport, observeClient(client, transport, state.lifecycle));

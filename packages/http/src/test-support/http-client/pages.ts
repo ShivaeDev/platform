@@ -20,8 +20,9 @@ export const pageOneLinksToAnotherOrigin = httpClient.trait(
 
 export const redirectedPages = httpClient.trait(
 	"routes",
-	"page 1 redirects to /archive/pages/1 whose next link is relative",
-	({ replies, links }) => {
+	"the client follows page 1’s redirect to /archive/pages/1 whose next link is relative",
+	({ replies, links, selection }) => {
+		selection.followRedirects = true;
 		replies.pageRedirect = { headers: { location: "/archive/pages/1" }, status: 302 };
 		links.set(1, '<2>; rel="next"');
 	},
