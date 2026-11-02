@@ -9,7 +9,7 @@ import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import { type Bound, bind, makeClient } from "#bind.ts";
 import type { MissingReadPolicy } from "#readPolicyErrors.ts";
-import type { ResumeSource } from "#resume.ts";
+import type { ResumeSource, ResumeWindow } from "#resume.ts";
 import { type Note, type NoteMissing, Notes } from "#test/notes.ts";
 import { Preferences } from "#test/sessionContract.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
@@ -46,6 +46,7 @@ expectTypeOf(api.rename.run).parameter(0).toEqualTypeOf<Parameters<typeof flat<"
 declare const scopedClient: AtomRpc.AtomRpcClient<Self, "test/ScopedClient", RpcGroup.Rpcs<typeof Preferences>>;
 declare const registry: AtomRegistry.AtomRegistry;
 declare const resume: ResumeSource;
+declare const resumeWindow: ResumeWindow;
 bind(Notes, client, { resume });
 bind(Preferences, scopedClient, { registry });
 bind(Preferences, scopedClient, { registry, resume });
@@ -63,12 +64,25 @@ expectTypeOf<Effect.Success<ReturnType<typeof httpClient.api.get.run>>>().toEqua
 expectTypeOf(httpClient.api.get.query).returns.toEqualTypeOf<WithSubscription<ReturnType<typeof httpClient.Client.query<"notes.get">>>>();
 httpClient.runtime.atom(httpClient.api.get.run({ id: 1 }));
 httpClient.runtime.fn(httpClient.api.rename.run);
+const resumingClient = makeClient(Notes, { resume, resumeWindow, url: "https://app.test/rpc" });
+expectTypeOf(resumingClient).toEqualTypeOf<typeof httpClient>();
+expectTypeOf(resumingClient.api).toEqualTypeOf<typeof httpClient.api>();
+expectTypeOf<Effect.Error<ReturnType<typeof resumingClient.api.get.run>>>().toEqualTypeOf<
+	Effect.Error<ReturnType<typeof httpClient.api.get.run>>
+>();
+expectTypeOf<Effect.Services<ReturnType<typeof resumingClient.api.rename.run>>>().toEqualTypeOf<
+	Effect.Services<ReturnType<typeof httpClient.api.rename.run>>
+>();
+makeClient(Notes, { resume, url: "https://app.test/rpc" });
+makeClient(Notes, { resumeWindow, url: "https://app.test/rpc" });
 makeClient(Notes, {
 	headers: { authorization: "Bearer token" },
 	url: "https://app.test/rpc",
 });
-makeClient(Preferences, { registry: AtomRegistry.make(), url: "https://app.test/rpc" });
+makeClient(Preferences, { registry: AtomRegistry.make(), resume, resumeWindow, url: "https://app.test/rpc" });
 // @ts-expect-error A session-scoped client needs its registry.
 makeClient(Preferences, { url: "https://app.test/rpc" });
+// @ts-expect-error Resume options do not replace a session-scoped client's registry.
+makeClient(Preferences, { resume, resumeWindow, url: "https://app.test/rpc" });
 // @ts-expect-error Payload types survive client construction.
 httpClient.api.get.run({ id: "1" });
