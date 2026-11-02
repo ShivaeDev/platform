@@ -74,7 +74,13 @@ export function draftVerbs(state: State, screen: Screen, now: () => number) {
 				})
 				.pipe(Effect.andThen(settle(state, screen))),
 		firstFormEdits: (value: string) =>
-			screen.act(`the first session's form edits the name to ${JSON.stringify(value)}`, () => state.firstForm?.change("name", value)),
+			screen.act(`the first session's form edits the name to ${JSON.stringify(value)}`, () => {
+				const form = state.firstForm;
+				if (!form) {
+					throw new Error("Missing first session form");
+				}
+				form.change("name", value);
+			}),
 		hideForm: () => screen.act("hide the form in the first session", () => current(state).show("first", false)),
 		open: (session = "first") => mount(`open the draft editor in the ${session} session`, session),
 		refresh: () => screen.act("the query refreshes to Remote / 350", () => current(state).refresh(remote)),
