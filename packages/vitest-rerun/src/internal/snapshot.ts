@@ -5,14 +5,16 @@ import { failWith } from "#error.ts";
 import { FlakyTest } from "#flakyTests.ts";
 import { SnapshotFiles } from "./SnapshotFiles.ts";
 
-export interface FailureHistory {
-	readonly attempts: number;
-	readonly messages: readonly string[];
-}
+const FailureHistorySchema = Schema.Struct({
+	attempts: Schema.Number,
+	durations: Schema.Array(Schema.Number),
+	messages: Schema.Array(Schema.String),
+});
+export type FailureHistory = typeof FailureHistorySchema.Type;
 
 const SnapshotSchema = Schema.Struct({
 	errors: Schema.Array(Schema.Unknown),
-	failures: Schema.Record(Schema.String, Schema.Struct({ attempts: Schema.Number, messages: Schema.Array(Schema.String) })),
+	failures: Schema.Record(Schema.String, FailureHistorySchema),
 	files: SnapshotFiles,
 	flaky: Schema.Array(FlakyTest),
 	summary: Schema.Struct({
