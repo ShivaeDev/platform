@@ -2,13 +2,12 @@ import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import type { FleetRecord } from "#model.ts";
-import { until } from "#test/cloudRestart.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { storeState } from "#test/storeState.ts";
 
 export function daemonResync(engine: HostStoryEngine) {
 	return {
-		awaitSnapshots: (count: number) => until(() => Effect.succeed(engine.snapshots.length >= count)),
+		awaitSnapshots: (count: number) => Effect.promise(() => engine.observations.nextSnapshot(count - 1)),
 		commitWithoutHint: (record: FleetRecord) =>
 			Effect.gen(function* () {
 				const reactivity = yield* Reactivity.make;

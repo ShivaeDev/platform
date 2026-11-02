@@ -1,4 +1,4 @@
-import { Clock, Effect, Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { Fleet } from "#fleet.ts";
 import { hostLayer } from "#host/commands.ts";
 import { hostProvider } from "#host/providers.ts";
@@ -19,23 +19,30 @@ export type Boundary =
 	| "acknowledged-turn";
 export function restartBackend(boundary: Boundary) {
 	const requests: WireRequest[] = [];
-	let sessions = 0;
-	let turns = 0;
+	const sessions: string[] = [];
+	const turns: string[] = [];
 	let operationId: unknown;
 	let reached = false;
+	const boundaryReached = Promise.withResolvers<void>();
+	function reach() {
+		reached = true;
+		boundaryReached.resolve();
+	}
 	let scans = 0;
 	let retry = false;
 	let acknowledge: ((value: unknown) => void) | undefined;
 	function threadStart() {
-		reached = boundary === "before-thread" || boundary === "after-thread";
+		if (boundary === "before-thread" || boundary === "after-thread") {
+			reach();
+		}
 		if (boundary === "before-thread") {
 			return undefined;
 		}
-		sessions += 1;
+		sessions.push("synthetic-session");
 		return boundary === "after-thread" ? undefined : { thread: { id: "synthetic-session" } };
 	}
 	function turnStart(request: WireRequest) {
-		reached = true;
+		reach();
 		operationId = Schema.decodeUnknownSync(Schema.Struct({ clientUserMessageId: Schema.String }))(request.params).clientUserMessageId;
 		if ((boundary === "before-turn" || boundary === "retry") && !retry && requests.filter(({ method }) => method === "turn/start").length === 1) {
 			return undefined;
@@ -45,23 +52,26 @@ export function restartBackend(boundary: Boundary) {
 				acknowledge = resolve;
 			});
 		}
-		turns += 1;
+		turns.push("synthetic-turn");
 		return boundary === "after-turn" ? undefined : { turn: { id: "synthetic-turn" } };
 	}
 	function turnList() {
 		scans += 1;
 		if (boundary === "late-turn" && scans === 3) {
-			turns += 1;
+			turns.push("synthetic-turn");
 			acknowledge?.({ turn: { id: "synthetic-turn" } });
 		}
 		const data =
-			turns === 0 ? [] : [{ id: "synthetic-turn", items: [{ clientId: operationId, id: "input", type: "userMessage" }], status: "inProgress" }];
+			turns.length === 0
+				? []
+				: [{ id: "synthetic-turn", items: [{ clientId: operationId, id: "input", type: "userMessage" }], status: "inProgress" }];
 		return { data, nextCursor: null };
 	}
 	return {
 		allowRetry() {
 			retry = true;
 		},
+		boundaryReached: Effect.promise(() => boundaryReached.promise),
 		handle(request: WireRequest) {
 			requests.push(request);
 			switch (request.method) {
@@ -69,7 +79,7 @@ export function restartBackend(boundary: Boundary) {
 					return threadStart();
 				case "thread/read":
 					if (["before-turn-request", "changed-context", "revoked-approval"].includes(boundary) && !reached) {
-						reached = true;
+						reach();
 						return undefined;
 					}
 					return cloudThread();
@@ -83,43 +93,11 @@ export function restartBackend(boundary: Boundary) {
 					return {};
 			}
 		},
-		get reached() {
-			return reached;
-		},
 		requests,
-		get sessions() {
-			return sessions;
-		},
-		get turns() {
-			return turns;
-		},
+		sessions,
+		turns,
 	};
 }
-
-interface Progress {
-	readonly done: boolean;
-	readonly progress: number;
-}
-
-export const until = Effect.fn("CloudRestart.until")(function* (condition: () => Effect.Effect<boolean | Progress, unknown>) {
-	let deadline = (yield* Clock.currentTimeMillis) + 20_000;
-	let progress = 0;
-	while (true) {
-		const observed = yield* condition();
-		if (typeof observed === "boolean" ? observed : observed.done) {
-			return;
-		}
-		const now = yield* Clock.currentTimeMillis;
-		if (typeof observed !== "boolean" && observed.progress > progress) {
-			progress = observed.progress;
-			deadline = now + 20_000;
-		}
-		if (now >= deadline) {
-			return yield* Effect.die(new Error(`Restart progress stalled at ${progress} for 20 seconds`));
-		}
-		yield* Effect.sleep("20 millis");
-	}
-});
 
 export function hostRecord(fixture: HostFixture) {
 	return Effect.gen(function* () {
