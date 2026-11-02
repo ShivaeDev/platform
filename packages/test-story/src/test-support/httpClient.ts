@@ -48,7 +48,7 @@ function call(url: URL, send: Send): Call {
 		finished: finished.promise,
 		headers: undefined,
 		headersSeen: headersSeen.promise,
-		request: httpRequest(url, { headers: send.headers, method: send.method }, (response) => {
+		request: httpRequest(url, { agent: false, headers: send.headers, method: send.method }, (response) => {
 			state.status = response.statusCode;
 			state.headers = response.headers;
 			headersSeen.resolve();
