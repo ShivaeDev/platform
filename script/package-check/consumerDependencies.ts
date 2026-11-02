@@ -16,7 +16,7 @@ export const consumerDependencies = Effect.fn("Packed.consumerDependencies")(fun
 		effect: "catalog:",
 	};
 	for (const entry of closure.values()) {
-		Object.assign(dependencies, peers(entry, omitOptionalPeers));
+		Object.assign(dependencies, peers(entry, omitOptionalPeers, entry === pkg));
 		Object.assign(dependencies, fixtureDependencies(entry, imports));
 	}
 	const tarballs = Object.fromEntries([...closure.values()].map((entry) => [entry.manifest.name, entry.tarball]));
@@ -44,7 +44,7 @@ function workspaceClosure(pkg: Package, packages: readonly Package[], imports: R
 		}
 		closure.set(entry.manifest.name, entry);
 		for (const dependency of packages) {
-			const edges = { ...entry.manifest.dependencies, ...peers(entry, omitOptionalPeers), ...entry.manifest.optionalDependencies };
+			const edges = { ...entry.manifest.dependencies, ...peers(entry, omitOptionalPeers, entry === pkg), ...entry.manifest.optionalDependencies };
 			if (edges[dependency.manifest.name] === "workspace:*" || imports.has(dependency.manifest.name)) {
 				visit(dependency);
 			}
@@ -62,10 +62,12 @@ function fixtureDependencies(entry: Package, imports: ReadonlySet<string>): Reco
 	);
 }
 
-function peers(pkg: Package, omitOptionalPeers: boolean) {
+function peers(pkg: Package, omitOptionalPeers: boolean, includeWorkspaceIntegrations: boolean) {
 	return Object.fromEntries(
 		Object.entries(pkg.manifest.peerDependencies ?? {}).filter(
-			([name]) => !omitOptionalPeers || pkg.manifest.peerDependenciesMeta?.[name]?.optional !== true,
+			([name, version]) =>
+				pkg.manifest.peerDependenciesMeta?.[name]?.optional !== true
+				|| (!omitOptionalPeers && (includeWorkspaceIntegrations || !version.startsWith("workspace:"))),
 		),
 	);
 }
