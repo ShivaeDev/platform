@@ -6,20 +6,22 @@ import { SqlClient } from "effect/sql";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/adapters/migrate.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/adapters/tables.ts";
+import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/adapters/userDirectory.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { DirectoryUser } from "@shivaedev/identity/users.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { UsersPermission } from "#permissions.ts";
 import { usersHandlers } from "#server/usersHandlers.ts";
 import { usersPage } from "#users/page.ts";
-import { AppUser } from "#users/roles.ts";
 import { Access } from "./Access.ts";
 
 export const Page = usersPage(Access);
-const Profile = AppUser.mapFields(({ email, id, name, role }) => ({ email, id, name, role }));
+const Profile = DirectoryUser.mapFields(({ email, id, name, role }) => ({ email, id, name, role }));
 export interface LogRecord {
 	readonly annotations: Readonly<Record<string, unknown>>;
 	readonly message: unknown;
@@ -38,9 +40,9 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 			additionalFields: { role: { ...mapping.user?.additionalFields?.role, defaultValue: "user", input: false, type: "string" as const } },
 		},
 	};
+	yield* migrateBetterAuth(authOptions);
 	const { auth } = yield* betterAuthMount(authOptions).pipe(Effect.provide(memoryStore));
 	const context = yield* Effect.promise(() => auth.$context);
-	yield* Effect.promise(() => context.runMigrations());
 	function register(id: string, role: typeof Access.Role.Type, createdAt?: Date) {
 		return Effect.promise(() =>
 			context.internalAdapter.createUser(
@@ -71,12 +73,14 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 			logs.push({ annotations: options.fiber.getRef(References.CurrentLogAnnotations), message: options.message });
 		}),
 	]);
-	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
-	const handlers = Layer.merge(usersHandlers(Page, Access, authOptions), hostChanges(Page.contract)).pipe(
+	const reactivity = Layer.succeed(Reactivity.Reactivity, yield* Reactivity.make);
+	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(reactivity))));
+	const handlers = Layer.merge(usersHandlers(Page), hostChanges(Page.contract)).pipe(
 		Layer.provide(Layer.succeed(LiveServer, live)),
+		Layer.provide(betterAuthUserDirectory(Access, authOptions)),
 		Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
 		Layer.provide(logger),
-		Layer.provide(Reactivity.layer),
+		Layer.provide(reactivity),
 	);
 	function currentUser(id: string) {
 		return Effect.tryPromise(() => context.internalAdapter.findUserById(id)).pipe(
@@ -85,25 +89,28 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 			Effect.mapError(() => new AuthUnavailable({ message: "Could not resolve session" })),
 		);
 	}
-	function clientAs(id: string) {
+	function protocolAs(id: string) {
 		const authLayer = permissionLayer(UsersPermission);
 		return Effect.gen(function* () {
 			const app = HttpRouter.toWebHandler(
 				RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(
-					Layer.provide([handlers, authLayer, RpcSerialization.layerJson, Layer.succeed(Tracer.Tracer, tracer)]),
+					Layer.provide([handlers, authLayer, RpcSerialization.layerNdjson, Layer.succeed(Tracer.Tracer, tracer)]),
 					Layer.provide(Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access })),
 				),
 				{ disableLogger: true },
 			);
 			yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 			const protocol = RpcClient.layerProtocolHttp({ url: "http://localhost/rpc" }).pipe(
-				Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
+				Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
 				Layer.provide(Layer.succeed(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init)))),
 			);
-			return yield* RpcClient.make(Page.contract).pipe(Effect.provide(protocol));
+			return protocol;
 		});
 	}
-	return { answers: new Map<string, string>(), assignment: { finished: 0, started: 0 }, clientAs, logs, register, spans };
+	function clientAs(id: string) {
+		return protocolAs(id).pipe(Effect.flatMap((protocol) => RpcClient.make(Page.contract).pipe(Effect.provide(protocol))));
+	}
+	return { answers: new Map<string, string>(), assignment: { finished: 0, started: 0 }, clientAs, logs, protocolAs, register, spans };
 });
 
 export const usersEngine = makeUsersEngine();

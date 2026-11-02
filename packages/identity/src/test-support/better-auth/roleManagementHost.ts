@@ -15,6 +15,7 @@ import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { AssignRoles } from "#roles.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import { betterAuthUserDirectory } from "#server/better-auth/adapters/userDirectory.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { permissionLayer } from "#server/permissions.ts";
@@ -52,7 +53,8 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 	const accounts = { alice, bob };
 	const sql = yield* SqlClient.SqlClient;
 	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer));
-	const handlers = Layer.merge(usersHandlers(Page, Access), hostChanges(Page.contract)).pipe(
+	const handlers = Layer.merge(usersHandlers(Page), hostChanges(Page.contract)).pipe(
+		Layer.provide(betterAuthUserDirectory(Access)),
 		Layer.provide([Layer.succeed(LiveServer, live), Layer.succeed(SqlClient.SqlClient, sql), Reactivity.layer]),
 	);
 	const rpcRoutes = RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(

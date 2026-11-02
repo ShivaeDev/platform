@@ -2,9 +2,10 @@ import { Cause, Option, Predicate } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { createElement, useState } from "react";
+import type { UserListInput } from "@shivaedev/identity/users.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
+import type { ChangeRoleInput } from "#users/ChangeRoleInput.ts";
 import type { UsersList } from "#users/page.ts";
-import type { ChangeRoleInput, UserListInput } from "#users/roles.ts";
 import { UsersTable } from "./UsersTable.tsx";
 
 export interface UsersViewProps<TRole extends string> {

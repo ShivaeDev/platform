@@ -12,8 +12,8 @@ import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { UsersView } from "#client/UsersView.ts";
 import { UsersPermission } from "#permissions.ts";
+import type { ChangeRoleInput } from "#users/ChangeRoleInput.ts";
 import { usersPage } from "#users/page.ts";
-import type { ChangeRoleInput } from "#users/roles.ts";
 import { Access } from "./Access.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
