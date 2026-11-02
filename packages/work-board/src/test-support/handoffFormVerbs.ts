@@ -36,7 +36,8 @@ function prompt() {
 }
 
 export function handoffFormVerbs(engine: ScreenEngine, tell: (line: string) => void) {
-	const { accessible } = screenDriver({ root: () => document.body, tell: () => undefined });
+	const driver = screenDriver({ act, root: () => document.body, tell });
+	const { accessible } = driver;
 	function settle() {
 		return screenSettles(engine, tell);
 	}
@@ -72,7 +73,7 @@ export function handoffFormVerbs(engine: ScreenEngine, tell: (line: string) => v
 					control.dispatchEvent(new Event("input", { bubbles: true }));
 				},
 			),
-		focusPrepareHandoff: () => perform("the reader moves focus to Prepare handoff", () => button("Prepare handoff").focus()),
+		focusPrepareHandoff: () => driver.focus({ name: "Prepare handoff", role: "button" }).pipe(Effect.andThen(settle())),
 		handoffButtons: () =>
 			read("the reader reads the handoff form's buttons", () =>
 				[...form().querySelectorAll<HTMLButtonElement>("button")].map(

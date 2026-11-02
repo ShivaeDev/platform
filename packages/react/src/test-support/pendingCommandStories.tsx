@@ -3,7 +3,7 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { PendingCommandScreen } from "./PendingCommandScreen.tsx";
 import { pendingCommandClient, ToggleRejected } from "./pendingCommandClient.ts";
-import { clickButton, type Screen } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
 
@@ -74,7 +74,7 @@ function pendingVerbs(state: State, screen: Screen) {
 					return Effect.runPromise(Deferred.succeed(listHeld.gate, enabled).pipe(Effect.andThen(Deferred.await(listHeld.served))));
 				})
 				.pipe(Effect.andThen(settle(state, screen, () => container(state).querySelector('[data-list-pending="true"]') !== null))),
-		toggle: (id = 1) => screen.act(`toggle row ${id} on`, () => clickButton(row(state, id), "Enabled")),
+		toggle: (id = 1) => screen.driver(row(state, id)).click({ name: "Enabled", role: "button" }),
 	};
 }
 

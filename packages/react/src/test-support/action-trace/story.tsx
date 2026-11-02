@@ -6,7 +6,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, Screen } from "#test/Screen.ts";
+import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { connect } from "./connect.ts";
 import { Jobs, migrations, Work } from "./feature.ts";
@@ -73,7 +73,8 @@ function settleWrite(engine: Writer) {
 function clickWrite(engine: Writer) {
 	const writes = engine.headers.length + 2;
 	return engine.screen
-		.act("click Write", () => clickButton(writeButton(engine), "Write"))
+		.driver(writeButton(engine))
+		.click({ name: "Write", role: "button" })
 		.pipe(
 			Effect.andThen(settleWrite(engine)),
 			Effect.andThen(engine.until(() => engine.ended("write").filter(({ kind }) => kind === "server").length >= writes)),

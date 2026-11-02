@@ -17,10 +17,6 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 			const choice = target(`[data-choice="${option}"]`);
 			act(() => choice.click());
 		},
-		focus: (selector: string | HTMLElement | null | undefined) => {
-			tell(`the reader focuses ${selector}`);
-			act(() => target(selector).focus());
-		},
 		openDetails: (selector: string | Element | null | undefined) => {
 			tell(`the reader opens ${selector}`);
 			const details = typeof selector === "string" ? control(selector, HTMLDetailsElement) : selector;

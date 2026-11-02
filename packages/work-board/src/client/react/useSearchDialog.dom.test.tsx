@@ -30,8 +30,8 @@ for (const modifier of ["Ctrl", "Cmd"] as const) {
 	screenStory.it(
 		`Escape from Search opened with ${modifier}+K in an answer returns focus to the answer with its text and backward selection`,
 		[chromeScreen({ "question.md": QUESTION }, "/question.md", { writable: true }), selectionResetOnFocus()],
-		function* ({ focusedField, openSearchWithShortcut, pressInSearch, searchDialog, selectText, typeText }) {
-			yield* typeText("#response-form textarea", "Work in progress");
+		function* ({ focusedField, openSearchWithShortcut, pressInSearch, searchDialog, selectText, roles }) {
+			yield* roles.enter("#response-form textarea", "Work in progress");
 			yield* selectText("#response-form textarea", 4, 8, "backward");
 			yield* openSearchWithShortcut(modifier);
 			expect(yield* searchDialog()).toBe("open");

@@ -3,7 +3,7 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import type { Notice } from "#notices.ts";
 import { Rejected } from "#test/notices/Api.ts";
 import { type HeldKind, noticeClient } from "#test/notices/client.ts";
-import { clickButton, type Screen, submitForm, typeInput } from "#test/Screen.ts";
+import type { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { type FeatureScreen, FeedbackView } from "./view.tsx";
 
@@ -59,19 +59,19 @@ export function feedbackVerbs(state: State, screen: Screen) {
 	function saving() {
 		return view(state).container.querySelector<HTMLButtonElement>("form button")?.disabled === true;
 	}
-	function readStarts(line: string, run: () => void) {
+	function readStarts(line: string, run: () => Promise<void>) {
 		const read = session(state).client.nextRead();
 		return screen.act(line, async () => {
-			run();
+			await run();
 			await read;
 		});
 	}
-	function arrives(kind: HeldKind, title: string, line: string, run: () => void) {
+	function arrives(kind: HeldKind, title: string, line: string, run: () => Promise<void>) {
 		const { arrived, finished } = session(state).client.hold(kind, title);
 		const blocked = title === "blocked";
 		return screen
 			.act(line, async () => {
-				run();
+				await run();
 				await Effect.runPromise(Deferred.await(blocked ? finished : arrived));
 			})
 			.pipe(Effect.andThen(blocked ? settle(saving) : Effect.void));
@@ -114,10 +114,24 @@ export function feedbackVerbs(state: State, screen: Screen) {
 				const title = state.typedSaved ?? "";
 				return release("save", title, undefined, `the server saves ${title}`, true);
 			}).pipe(Effect.andThen(settle(saving))),
-		editFirst: () => readStarts("another edit bumps first's version", () => clickButton(view(state).container, "Edit first")),
+		editFirst: () =>
+			readStarts(
+				"another edit bumps first's version",
+				async () => await Effect.runPromise(screen.driver(view(state).container).click({ name: "Edit first", role: "button" })),
+			),
 		failRead: () => answer("the server fails the latest read", Effect.fail(new Rejected())),
-		refresh: () => readStarts("refresh the notes", () => clickButton(view(state).container, "Refresh")),
-		remove: (title: string) => arrives("remove", title, `remove ${title}`, () => clickButton(view(state).container, `Remove ${title}`)),
+		refresh: () =>
+			readStarts(
+				"refresh the notes",
+				async () => await Effect.runPromise(screen.driver(view(state).container).click({ name: "Refresh", role: "button" })),
+			),
+		remove: (title: string) =>
+			arrives(
+				"remove",
+				title,
+				`remove ${title}`,
+				async () => await Effect.runPromise(screen.driver(view(state).container).click({ name: `Remove ${title}`, role: "button" })),
+			),
 		replaceSession: (name: Session) => {
 			const next = generation(name, state.current.uninterruptible);
 			const read = next.client.nextRead();
@@ -137,17 +151,32 @@ export function feedbackVerbs(state: State, screen: Screen) {
 				}
 				state.retained = notice;
 			}),
-		retry: () => readStarts("retry the notes", () => clickButton(view(state).container, "Retry")),
+		retry: () =>
+			readStarts(
+				"retry the notes",
+				async () => await Effect.runPromise(screen.driver(view(state).container).click({ name: "Retry", role: "button" })),
+			),
 		submit: () =>
 			Effect.suspend(() => {
 				state.typedSaved = state.typed;
-				return arrives("save", state.typed, `save the note ${state.typed}`, () => submitForm(view(state).container));
+				return arrives(
+					"save",
+					state.typed,
+					`save the note ${state.typed}`,
+					async () => await Effect.runPromise(screen.driver(view(state).container).submit()),
+				);
 			}),
 		type: (title: string) =>
-			screen.act(`type ${title}`, () => {
+			screen.act(`type ${title}`, async () => {
 				state.typed = title;
-				typeInput(view(state).container, "title", title);
+				await Effect.runPromise(screen.driver(view(state).container).enter('input[name="title"]', title));
 			}),
-		undo: (title: string) => arrives("restore", title, `undo the removal of ${title}`, () => clickButton(view(state).container, `Undo ${title}`)),
+		undo: (title: string) =>
+			arrives(
+				"restore",
+				title,
+				`undo the removal of ${title}`,
+				async () => await Effect.runPromise(screen.driver(view(state).container).click({ name: `Undo ${title}`, role: "button" })),
+			),
 	};
 }

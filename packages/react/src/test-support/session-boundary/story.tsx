@@ -2,7 +2,7 @@ import { createBrowserHistory, createMemoryHistory } from "@tanstack/react-route
 import { Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, type Screen } from "#test/Screen.ts";
+import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { BoundaryApp, type BoundaryScreen } from "./App.tsx";
@@ -23,7 +23,10 @@ function settle(state: State, screen: Screen) {
 }
 function verbs(state: State, screen: Screen) {
 	function click(label: string) {
-		return screen.act(`click ${label}`, () => clickButton(opened(state).view.container, label)).pipe(Effect.andThen(settle(state, screen)));
+		return screen
+			.driver(opened(state).view.container)
+			.click({ name: label, role: "button" })
+			.pipe(Effect.andThen(settle(state, screen)));
 	}
 	return {
 		changePassword: () => click("Change password"),

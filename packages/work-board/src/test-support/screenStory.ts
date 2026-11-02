@@ -2,6 +2,7 @@ import { act } from "react";
 import type { render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { captureReading, restoreReading } from "#client/react/readingState.ts";
+import { answerActions } from "./answerActions.ts";
 import { answersScreenVerbs } from "./answersScreenVerbs.ts";
 import { appearanceActions } from "./appearanceActions.ts";
 import { chrome } from "./chrome.ts";
@@ -19,7 +20,6 @@ import { readingPageVerbs } from "./readingPageVerbs.ts";
 import { readingScreenVerbs } from "./readingScreenVerbs.ts";
 import { renderRouter } from "./renderRouter.tsx";
 import { responsesScreenVerbs } from "./responsesScreenVerbs.ts";
-import { screenActions } from "./screenActions.ts";
 import { availabilityActions } from "./screenAvailability.tsx";
 import { screenData } from "./screenData.ts";
 import { createScreen, screenView, trackScreen } from "./screenEngine.ts";
@@ -130,7 +130,7 @@ export const screenStory = storyKit({
 		const interactions = screenInteractions(engine, story.tell);
 		return distinctVerbs(
 			settlingVerbs(engine, own, ["boardView", "captureReading", "documentView", "read", "routed", "screen"]),
-			settlingVerbs(engine, screenActions(story.tell), ["control"]),
+			settlingVerbs(engine, answerActions(story.tell)),
 			settlingVerbs(engine, readingActions(story.tell)),
 			settlingVerbs(engine, timeActions(engine, story.tell), ["advanceClock"]),
 			settlingVerbs(engine, appearanceActions(story.tell)),

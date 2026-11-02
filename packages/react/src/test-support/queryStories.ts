@@ -6,7 +6,7 @@ import { act } from "react";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { QueryOptions } from "#client/resultState.ts";
 import { heldReads, queryView, type Unavailable } from "./queryView.ts";
-import { clickButton, type Screen, screenWarnings, typeInput } from "./Screen.ts";
+import { type Screen, screenWarnings } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 
 interface State {
@@ -58,7 +58,7 @@ function queryVerbs(state: State, screen: Screen) {
 		},
 		clickRetry: () => {
 			state.reads.next("retry");
-			return screen.act("click Retry", () => clickButton(view(state).container, "Retry"));
+			return screen.driver(view(state).container).click({ name: "Retry", role: "button" });
 		},
 		crash: () => Effect.sync(() => text(state, "[data-crash]")),
 		die: (label: string, defect: unknown) => settle(label, `read ${label} dies`, Exit.die(defect)),
@@ -110,7 +110,7 @@ function queryVerbs(state: State, screen: Screen) {
 			screen.act("turn keepPreviousData off for the current payload", () =>
 				view(state).render(state.reads.queries(state.payload), { keepPreviousData: false }),
 			),
-		type: (name: string, value: string) => screen.act(`type ${value} into ${name}`, () => typeInput(view(state).container, name, value)),
+		type: (name: string, value: string) => screen.driver(view(state).container).enter(`input[name="${name}"]`, value),
 	};
 }
 

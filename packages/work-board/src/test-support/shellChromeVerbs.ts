@@ -1,5 +1,6 @@
+import { Effect } from "effect";
 import type { ScreenEngine } from "./screenEngine.ts";
-import { accessibleOf, pressKey, shellActs, shellElement } from "./shellScreenAct.ts";
+import { accessibleOf, shellActs, shellElement } from "./shellScreenAct.ts";
 
 const SETTINGS = '[role="dialog"][aria-label="Settings"]';
 
@@ -12,7 +13,7 @@ function settingsChoice(name: string) {
 }
 
 export function shellChromeVerbs(engine: ScreenEngine, tell: (line: string) => void) {
-	const { acting, reading } = shellActs(engine, tell);
+	const { acting, controls, reading } = shellActs(engine, tell);
 	return {
 		appearanceChoices: () =>
 			reading("the reader reads which theme and density Settings shows pressed", () =>
@@ -30,8 +31,7 @@ export function shellChromeVerbs(engine: ScreenEngine, tell: (line: string) => v
 				return { selection: [field.selectionStart, field.selectionEnd, field.selectionDirection], value: field.value };
 			}),
 		focusedId: () => reading("the reader checks which element has keyboard focus", () => document.activeElement?.id),
-		focusSearchButton: () =>
-			acting("the reader moves focus to the header's Search button", () => shellElement("#search-open", "Search button").focus()),
+		focusSearchButton: () => acting("the reader moves focus to the header's Search button", () => Effect.runPromise(controls.focus("#search-open"))),
 		keyboardFocus: () =>
 			reading("the reader checks which control has keyboard focus", () => {
 				const { name, role } = accessibleOf(document.activeElement ?? document.body);
@@ -44,10 +44,7 @@ export function shellChromeVerbs(engine: ScreenEngine, tell: (line: string) => v
 				density: document.documentElement.dataset.density,
 				scheme: document.documentElement.classList.contains("dark") ? "dark" : "light",
 			})),
-		pressKeyboard: (key: string) =>
-			acting(`the reader presses ${key}`, () => {
-				pressKey(document.activeElement ?? document.body, key);
-			}),
+		pressKeyboard: (key: string) => acting(`the reader presses ${key}`, () => Effect.runPromise(controls.pressKey(":focus", key))),
 		settingsPanel: () => reading("the reader checks whether Settings is open", () => (document.querySelector(SETTINGS) ? "open" : "closed")),
 		shellPreferences: () =>
 			reading("the reader checks the page's theme, density and sidebar", () => {
@@ -73,12 +70,7 @@ export function shellChromeVerbs(engine: ScreenEngine, tell: (line: string) => v
 			reading("the reader checks whether the header shows its Today link", () =>
 				shellElement("#inbox-topbar", "Today link").hidden ? "hidden" : "shown",
 			),
-		toggleSidebar: () =>
-			acting("the reader clicks the Sidebar button", () => {
-				const button = shellElement("#sidebar-toggle", "Sidebar button");
-				button.focus();
-				button.click();
-			}),
+		toggleSidebar: () => acting("the reader clicks the Sidebar button", () => Effect.runPromise(controls.click("#sidebar-toggle"))),
 		toggleUpdates: () => acting("the reader clicks the updates toggle in Settings", () => shellElement("#updates-toggle", "updates toggle").click()),
 		updatesToggle: () =>
 			reading("the reader reads the updates toggle and whether live updates are paused", () => {

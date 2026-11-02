@@ -1,7 +1,7 @@
 import { type Duration, Effect, Queue } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, Screen } from "#test/Screen.ts";
+import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { connect } from "./connect.ts";
 import { Editor } from "./Editor.tsx";
@@ -40,7 +40,8 @@ export const socketClockStory = storyKit({
 			},
 			save: () =>
 				screen
-					.act("save the note", () => clickButton(view.container, "Save"))
+					.driver(view.container)
+					.click({ name: "Save", role: "button" })
 					.pipe(Effect.andThen(settleScreen(view.container, () => view.container.querySelector('[data-pending="true"]') !== null, story.tell))),
 			shown: () => Effect.sync(() => view.container.querySelector("output")?.textContent),
 		};

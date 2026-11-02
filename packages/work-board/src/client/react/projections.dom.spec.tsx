@@ -68,8 +68,8 @@ const OUTSIDE = "/_board/work?view=board&item=question.fixture&q=task";
 screenStory.it(
 	"An answer being written in the selected work keeps its text and selection when the Work projection refreshes",
 	[routedScreen(files, OUTSIDE, { writable: true })],
-	function* ({ refreshQuery, selectText, typeText, workDetail, workDetailAnswer }) {
-		yield* typeText("#work-detail #response-form textarea", "Keep my answer");
+	function* ({ refreshQuery, selectText, roles, workDetail, workDetailAnswer }) {
+		yield* roles.enter("#work-detail #response-form textarea", "Keep my answer");
 		yield* selectText("#work-detail #response-form textarea", 5, 7);
 		yield* outcomes([
 			["answer", () => workDetailAnswer(), { selection: [5, 7], value: "Keep my answer" }],

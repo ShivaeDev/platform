@@ -4,10 +4,10 @@ import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode } from "react";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { draftInitial, type Held, type Row, type Save } from "./draftFields.ts";
-import { submitForm, typeInput } from "./Screen.ts";
 
 export async function persistedDraftView(
 	view: Rendered,
@@ -28,6 +28,7 @@ export async function persistedDraftView(
 			</StrictMode>
 		);
 	}
+	const driver = screenDriver({ root: view.container, tell: () => undefined });
 	await view.render(node(session));
 	function editor() {
 		if (!held.current?.form) {
@@ -39,8 +40,8 @@ export async function persistedDraftView(
 		...view,
 		activity: (mode: "visible" | "hidden") => view.render(node(session, true, mode)),
 		change: (name: "name" | "quantity", value: string) =>
-			act(() => {
-				typeInput(view.container, name, value);
+			act(async () => {
+				await Effect.runPromise(driver.enter(`input[name="${name}"]`, value));
 			}),
 		editor,
 		refresh: (row: Row) =>
@@ -51,8 +52,8 @@ export async function persistedDraftView(
 				held.registry.set(query, AsyncResult.success(row));
 			}),
 		save: () =>
-			act(() => {
-				submitForm(view.container);
+			act(async () => {
+				await Effect.runPromise(driver.submit());
 			}),
 		show: (shownSession: string | undefined, visible = true) => view.render(node(shownSession, visible)),
 	};

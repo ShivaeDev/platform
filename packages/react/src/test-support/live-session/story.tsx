@@ -3,7 +3,7 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, Screen } from "#test/Screen.ts";
+import { Screen } from "#test/Screen.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { App } from "./App.tsx";
 import type { connect } from "./connect.ts";
@@ -107,7 +107,10 @@ export const liveSessionStory = storyKit({
 			revokeSession: () => revoke(host, rechecked, screen, view),
 			shown: () => Effect.sync(() => view.container.textContent),
 			signIn: () =>
-				screen.act("alice signs in again", () => clickButton(view.container, "Sign in")).pipe(Effect.andThen(noteGoesLive(host, view, screen.tell))),
+				screen
+					.driver(view.container)
+					.click({ name: "Sign in", role: "button" })
+					.pipe(Effect.andThen(noteGoesLive(host, view, screen.tell))),
 			subscribers: () => Effect.sync(() => [...host.state.active]),
 		};
 	},

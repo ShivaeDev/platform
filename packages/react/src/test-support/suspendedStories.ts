@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { ViewEditor } from "./draftFields.ts";
 import { browserPersistence, draftStorage } from "./draftStorage.ts";
-import { type Screen, typeInput } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { suspendedDraftView } from "./suspendedDraftView.tsx";
 
@@ -35,7 +35,7 @@ function suspendedVerbs(state: State, screen: Screen) {
 		session: (session: string) => screen.act(`show the ${session} session`, () => current(state).show(session)),
 		suspendingTransition: (session: string) =>
 			screen.act(`start a transition to the ${session} session that suspends`, () => current(state).show(session, true, true)),
-		type: (value: string) => screen.act(`type name: ${JSON.stringify(value)}`, () => typeInput(current(state).container, "name", value)),
+		type: (value: string) => screen.driver(current(state).container).enter('input[name="name"]', value),
 	};
 }
 
