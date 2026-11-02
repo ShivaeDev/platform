@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
@@ -8,23 +7,24 @@ import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
 import config from "#release-config";
 import { compareRelease } from "./compare.ts";
+import { git as releaseGit } from "./git.ts";
 import { releaseGitHub } from "./gitHub.ts";
 import { planPullRequest } from "./planPullRequest.ts";
 import { releasePrSummary } from "./prSummary.ts";
 
 export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(function* (root: string, github: ReturnType<typeof releaseGitHub>) {
 	function git(...args: readonly string[]) {
-		return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" }).trim();
+		return releaseGit(root, ...args);
 	}
 	const apply = Effect.gen(function* () {
 		yield* applyRelease(root, config);
-		yield* (yield* FileSystem.FileSystem).writeFileString(join(root, ".changeset/release-base"), `${git("rev-parse", "HEAD")}\n`);
+		yield* (yield* FileSystem.FileSystem).writeFileString(join(root, ".changeset/release-base"), `${yield* git("rev-parse", "HEAD")}\n`);
 	});
 	const { pull, head, hold } = yield* github.snapshot();
 	if (hold !== undefined) {
 		return `held: ${hold}`;
 	}
-	git("switch", "-C", "release/next", "origin/main");
+	yield* git("switch", "-C", "release/next", "origin/main");
 	const plan = yield* planPullRequest(root);
 	if (plan.releases.length === 0) {
 		if (pull !== undefined) {
@@ -46,23 +46,23 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 			sleep: (duration) => clock.sleep(duration),
 		}),
 	);
-	git("add", "--all");
+	yield* git("add", "--all");
 	const { title, body } = yield* releasePrSummary(plan);
-	if (comparison?.base === git("rev-parse", "origin/main") && comparison.tree === git("write-tree")) {
-		git("reset", "--hard", head);
+	if (comparison?.base === (yield* git("rev-parse", "origin/main")) && comparison.tree === (yield* git("write-tree"))) {
+		yield* git("reset", "--hard", head);
 		if (pull === undefined) {
 			yield* github.save(undefined, title, body);
 		}
 		return "unchanged";
 	}
 	if (comparison !== undefined) {
-		git("reset", "--hard", "origin/main");
+		yield* git("reset", "--hard", "origin/main");
 		yield* planPullRequest(root);
 		yield* apply;
-		git("add", "--all");
+		yield* git("add", "--all");
 	}
-	git("commit", "-m", title);
-	git("push", `--force-with-lease=refs/heads/release/next:${head}`, "origin", "HEAD:refs/heads/release/next");
+	yield* git("commit", "-m", title);
+	yield* git("push", `--force-with-lease=refs/heads/release/next:${head}`, "origin", "HEAD:refs/heads/release/next");
 	yield* github.save(pull?.number, title, body);
 	return "updated";
 });
