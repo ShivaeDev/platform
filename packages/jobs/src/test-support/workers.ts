@@ -232,16 +232,16 @@ const performed = Effect.fnUntraced(function* (
 	);
 });
 
-export type WorkerOf = (log: WorkLog) => JobRegistration;
+export type WorkerOf = (log: WorkLog) => JobRegistration<Services>;
 
-export function worker<const TName extends string, const TPayload extends JobPayloadSchema>(
+export function worker<const TName extends string, const TPayload extends JobPayloadSchema & { readonly DecodingServices: Services }>(
 	queue: QueueDefinition<TName, TPayload>,
 	...script: readonly Attempt[]
 ): WorkerOf {
 	return (log) => queue.handle((payload, job) => performed(log, queue.name, payload, job, (index) => attemptOf(script, index)));
 }
 
-export function workerBy<const TName extends string, const TPayload extends JobPayloadSchema>(
+export function workerBy<const TName extends string, const TPayload extends JobPayloadSchema & { readonly DecodingServices: Services }>(
 	queue: QueueDefinition<TName, TPayload>,
 	choose: (payload: TPayload["Type"], attempt: number) => Attempt,
 ): WorkerOf {
@@ -267,8 +267,8 @@ export function scheduled<const TName extends string>(schedule: ScheduleDefiniti
 		);
 }
 
-export type Registration = JobRegistration | WorkerOf;
+export type Registration = JobRegistration<Services> | WorkerOf;
 
-export function registrations(log: WorkLog, jobs: readonly Registration[]): readonly JobRegistration[] {
+export function registrations(log: WorkLog, jobs: readonly Registration[]): readonly JobRegistration<Services>[] {
 	return jobs.map((job) => (typeof job === "function" ? job(log) : job));
 }

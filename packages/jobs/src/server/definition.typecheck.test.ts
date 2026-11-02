@@ -1,8 +1,10 @@
-import { Effect, Schema } from "effect";
+import { Context, Effect, Layer, Redacted, Schema, SchemaGetter } from "effect";
 import type { SendOptions } from "pg-boss";
 import { expectTypeOf } from "vitest";
-import { defineQueue, type QueuePolicy } from "#definition.ts";
-import { makePgBoss } from "#service.ts";
+import { defineSchedule } from "#defineSchedule.ts";
+import { defineQueue, type JobRegistration, type QueuePolicy, type RegistrationRequirements } from "#definition.ts";
+import type { PgBoss } from "#PgBoss.ts";
+import { makePgBoss, pgBossLayer } from "#service.ts";
 import { PullRequestJob } from "#test/singletonQueueOptions.ts";
 
 expectTypeOf<QueuePolicy>().toEqualTypeOf<"standard" | "short" | "singleton" | "stately" | "exclusive" | "key_strict_fifo">();
@@ -44,3 +46,60 @@ defineQueue({ name: "missing-key", queue: { policy: "singleton" }, schema: PullR
 defineQueue({ name: "typo", queue: { policy: "singelton" }, schema: PullRequestJob });
 // @ts-expect-error The key must return a string.
 defineQueue({ key: () => 42, name: "numeric-key", queue: { policy: "singleton" }, schema: PullRequestJob });
+
+class Handler extends Context.Service<Handler, number>()("@test/RegistrationHandler") {}
+class Decoder extends Context.Service<Decoder, number>()("@test/RegistrationDecoder") {}
+class Scheduler extends Context.Service<Scheduler, number>()("@test/RegistrationScheduler") {}
+
+const ServiceQueue = defineQueue({
+	name: "registration",
+	schema: Schema.Struct({
+		value: Schema.String.pipe(
+			Schema.decodeTo(Schema.String, {
+				decode: SchemaGetter.checkEffect(() => Effect.as(Decoder, true)),
+				encode: SchemaGetter.passthrough(),
+			}),
+		),
+	}),
+});
+const OtherQueue = defineQueue({ name: "other", schema: Schema.Struct({ count: Schema.Number }) });
+const Schedule = defineSchedule({ cron: "0 * * * *", name: "scheduled" });
+const RegistrationJobs = makePgBoss("@test/RegistrationJobs");
+const registrations = [
+	ServiceQueue.handle(() => Handler),
+	OtherQueue.handle(() => Effect.void),
+	Schedule.run(Scheduler),
+] satisfies readonly JobRegistration[];
+const layer = RegistrationJobs.layer({ jobs: registrations });
+expectTypeOf<Layer.Services<typeof layer>>().toEqualTypeOf<PgBoss | Handler | Decoder | Scheduler>();
+
+const collection: readonly JobRegistration<Handler | Decoder | Scheduler>[] = registrations;
+const collectionLayer = RegistrationJobs.layer({ jobs: collection });
+expectTypeOf<Layer.Services<typeof collectionLayer>>().toEqualTypeOf<PgBoss | Handler | Decoder | Scheduler>();
+const boot = Layer.build(collectionLayer.pipe(Layer.provide(pgBossLayer({ connectionString: Redacted.make("postgresql://compile-only") })))).pipe(
+	Effect.scoped,
+);
+// @ts-expect-error Worker and decoder services must be provided before the app runs.
+Effect.runPromise(boot);
+Effect.runPromise(boot.pipe(Effect.provideService(Handler, 1), Effect.provideService(Decoder, 1), Effect.provideService(Scheduler, 1)));
+
+const producerLayer = RegistrationJobs.layer({ jobs: [ServiceQueue] });
+expectTypeOf<Layer.Services<typeof producerLayer>>().toEqualTypeOf<PgBoss>();
+const emptyLayer = RegistrationJobs.layer({ jobs: [] });
+expectTypeOf<Layer.Services<typeof emptyLayer>>().toEqualTypeOf<PgBoss>();
+
+const widened: readonly JobRegistration[] = registrations;
+expectTypeOf<RegistrationRequirements<typeof widened>>().toEqualTypeOf<unknown>();
+const widenedLayer = RegistrationJobs.layer({ jobs: widened });
+expectTypeOf<Layer.Services<typeof widenedLayer>>().toEqualTypeOf<unknown>();
+
+// @ts-expect-error A queue worker must include its handler.
+RegistrationJobs.layer({ jobs: [{ _tag: "QueueWorker", queue: ServiceQueue }] });
+// @ts-expect-error A queue worker must include its queue definition.
+RegistrationJobs.layer({ jobs: [{ _tag: "QueueWorker", handler: () => Effect.void }] });
+// @ts-expect-error A scheduled worker must include the effect it runs.
+RegistrationJobs.layer({ jobs: [{ _tag: "ScheduledWorker", schedule: Schedule }] });
+// @ts-expect-error A scheduled worker must include its schedule definition.
+RegistrationJobs.layer({ jobs: [{ _tag: "ScheduledWorker", effect: Effect.void }] });
+// @ts-expect-error A schedule needs an effect before it can be registered.
+RegistrationJobs.layer({ jobs: [Schedule] });
