@@ -1,4 +1,4 @@
-import { Deferred, type Effect, type Fiber, type Tracer } from "effect";
+import type { Deferred, Effect, Fiber, Tracer } from "effect";
 import type { AgentConnection } from "./liveAgent.ts";
 import type { ChangeSubscription } from "./liveChanges.ts";
 import type { BoardEngine } from "./storyEngine.ts";
@@ -35,12 +35,9 @@ export interface CrashingStorage {
 
 export interface LiveState {
 	agent?: AgentConnection;
-	readonly announced: Map<string, Deferred.Deferred<void>>;
 	crashing?: CrashingStorage;
 	directories?: DirectoryReports;
-	readonly dropped: Deferred.Deferred<void>;
 	owned?: OwnedBoard;
-	parsed?: { readonly questions: string[]; readonly responses: string[] };
 	staging?: { path: string };
 	startupReads?: StartupReads;
 	readonly subscriptions: Map<string, ChangeSubscription>;
@@ -54,7 +51,7 @@ const states = new WeakMap<BoardEngine, LiveState>();
 export function liveState(engine: BoardEngine): LiveState {
 	let state = states.get(engine);
 	if (!state) {
-		state = { announced: new Map(), dropped: Deferred.makeUnsafe<void>(), subscriptions: new Map() };
+		state = { subscriptions: new Map() };
 		states.set(engine, state);
 	}
 	return state;
