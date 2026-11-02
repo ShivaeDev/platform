@@ -14,6 +14,7 @@ import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
 import { admissionPolicy } from "./admissionPolicy.ts";
 import { BrowserApi, browserHandlers } from "./browserRpc.ts";
+import { hashGrantToken } from "./hashGrantToken.ts";
 import { jwksEndpoint } from "./jwksEndpoint.ts";
 import { tokenSigner } from "./tokenSigner.ts";
 import { audiences, Roles } from "./tools.ts";
@@ -60,6 +61,7 @@ export const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission
 				loginPage: "/login",
 				resource,
 				scopes: ["mcp", "offline_access"],
+				storeTokens: { hash: hashGrantToken },
 			}),
 		],
 		secret: "mcp-story-secret-with-at-least-thirty-two-characters",

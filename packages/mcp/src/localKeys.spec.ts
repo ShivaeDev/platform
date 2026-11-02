@@ -8,7 +8,7 @@ localMcp.it(
 	function* ({ call, connects }) {
 		yield* connects("alice");
 
-		expect(yield* call("alice", "whoami")).toBe("answered alice");
+		expect(yield* call("alice", "whoami")).toEqual({ answered: "alice" });
 	},
 );
 

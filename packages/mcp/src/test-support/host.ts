@@ -12,7 +12,7 @@ interface Person {
 interface Story {
 	readonly clientIds: Map<string, string>;
 	readonly clients: Map<string, McpClient.McpClient>;
-	readonly flow: { clientId?: string; code?: string; consentQuery?: string };
+	readonly flows: Map<string, { readonly clientId: string; readonly offline: boolean; code?: string; consentQuery?: string }>;
 	readonly people: Map<string, Person>;
 	readonly refreshTokens: Map<string, string>;
 	refusal: { readonly challenge: string | undefined; readonly status: number } | undefined;
@@ -24,7 +24,7 @@ export function startEngine(options: HostOptions = {}) {
 		...host,
 		clientIds: new Map(),
 		clients: new Map(),
-		flow: {},
+		flows: new Map(),
 		people: new Map(),
 		refreshTokens: new Map(),
 		refusal: undefined,

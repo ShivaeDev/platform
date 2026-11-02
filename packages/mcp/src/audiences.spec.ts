@@ -17,23 +17,25 @@ mcp.it(
 	function* ({ call }) {
 		yield* call("ada", "whoami");
 
-		expect(yield* call("alice", "whoami")).toBe("answered alice");
+		expect(yield* call("alice", "whoami")).toEqual({ answered: "alice" });
 	},
 );
 
-mcp.it("adminOnly answers ada's client with admin:ada, naming her as the caller", [connectedAs("ada", "admin")], function* ({ call }) {
-	expect(yield* call("ada", "adminOnly")).toBe("answered admin:ada");
+mcp.it("adminOnly names ada as the caller and receives her nested arguments unchanged", [connectedAs("ada", "admin")], function* ({ call }) {
+	const request = { count: 2, flags: [true, false], message: 'Hello, "ada"\nWelcome' };
+
+	expect(yield* call("ada", "adminOnly", { request })).toEqual({ answered: { caller: "ada", received: request } });
 });
 
 mcp.it("alice's client calling the hidden adminOnly by name is refused as not found", [connectedAs("alice", "user")], function* ({ call }) {
-	expect(yield* call("alice", "adminOnly")).toBe("refused: Tool 'adminOnly' not found");
+	expect(yield* call("alice", "adminOnly")).toEqual({ refused: "tool not found", tool: "adminOnly" });
 });
 
 mcp.it(
 	"refuse's typed failure reaches ada's client as an error result saying Application refused",
 	[connectedAs("ada", "admin")],
 	function* ({ call }) {
-		expect(yield* call("ada", "refuse")).toBe("failed: Application refused");
+		expect(yield* call("ada", "refuse")).toEqual({ failed: "Application refused" });
 	},
 );
 
@@ -53,11 +55,11 @@ mcp.it(
 	"once ada steps down to user, her connected client's adminOnly call is refused as not found",
 	[connectedAs("ada", "admin")],
 	function* ({ call, stepsDown }) {
-		expect(yield* call("ada", "adminOnly")).toBe("answered admin:ada");
+		expect(yield* call("ada", "adminOnly")).toEqual({ answered: { caller: "ada", received: { count: 0, flags: [], message: "" } } });
 
 		yield* stepsDown("ada");
 
-		expect(yield* call("ada", "adminOnly")).toBe("refused: Tool 'adminOnly' not found");
+		expect(yield* call("ada", "adminOnly")).toEqual({ refused: "tool not found", tool: "adminOnly" });
 	},
 );
 
@@ -70,5 +72,17 @@ mcp.it(
 		yield* removesAccount("ada", "alice");
 
 		expect(yield* listTools("alice")).toBe("unauthorized");
+	},
+);
+
+mcp.it(
+	"invalid tool arguments fail the client call instead of reading as a refusal",
+	[connectedAs("ada", "admin")],
+	function* ({ callsWithInvalidArguments }) {
+		const failure = yield* callsWithInvalidArguments("ada");
+
+		expect(failure).toEqual({
+			clientFailure: 'MCP tool reported an error: Invalid parameters for tool \'adminOnly\': Expected number\n  at ["request"]["count"]',
+		});
 	},
 );

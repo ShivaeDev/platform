@@ -41,8 +41,8 @@ requestsStory.it("two servers discover and dispatch only their own tools", [], f
 		["second server discovery", () => toolsOn("second"), ["secondOnly"]],
 		["first server dispatch", () => callOn("first", "firstOnly"), "first server"],
 		["second server dispatch", () => callOn("second", "secondOnly"), "second server"],
-		["first server refuses second tool", () => callOn("first", "secondOnly"), "refused: Tool 'secondOnly' not found"],
-		["second server refuses first tool", () => callOn("second", "firstOnly"), "refused: Tool 'firstOnly' not found"],
+		["first server refuses second tool", () => callOn("first", "secondOnly"), { refused: "tool not found", tool: "secondOnly" }],
+		["second server refuses first tool", () => callOn("second", "firstOnly"), { refused: "tool not found", tool: "firstOnly" }],
 	]);
 });
 

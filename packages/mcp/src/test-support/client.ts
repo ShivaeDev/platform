@@ -1,7 +1,8 @@
-import { Effect, type Scope } from "effect";
+import { Effect, Schema } from "effect";
 import { McpClient, McpClientError, McpProtocol, McpSchema } from "effect/ai";
 import { FetchHttpClient } from "effect/http";
 import { type Engine, named, path } from "./host.ts";
+import { AdminAnswer } from "./tools.ts";
 
 const REFUSALS = new Map([
 	[401, "unauthorized"],
@@ -12,26 +13,32 @@ const REFUSALS = new Map([
 function failureOf(engine: Engine, error: McpClientError.McpClientError) {
 	const { reason } = error;
 	if (reason instanceof McpClientError.HttpError) {
+		const refusal = REFUSALS.get(reason.status);
+		if (refusal === undefined) {
+			return Effect.fail(error);
+		}
 		engine.refusal = { challenge: reason.wwwAuthenticate, status: reason.status };
-		return REFUSALS.get(reason.status) ?? `HTTP ${reason.status}`;
+		return Effect.succeed(refusal);
 	}
-	if (reason instanceof McpClientError.ProtocolError) {
-		return `refused: ${named(engine, reason.description ?? "no description")}`;
-	}
-	return `client failure: ${error.message}`;
+	return Effect.fail(error);
 }
 
-function textOf(result: McpSchema.CallToolResult) {
-	return result.content.map((block) => (block.type === "text" ? block.text : `${block.type} content`)).join(" ");
-}
-
-function decoded(text: string) {
-	try {
-		const value: unknown = JSON.parse(text);
-		return typeof value === "string" ? value : text;
-	} catch {
-		return text;
+function callFailure(
+	engine: Engine,
+	tool: string,
+	error: McpClientError.McpClientError,
+): Effect.Effect<string | { refused: string; tool: string } | { failed: string }, McpClientError.McpClientError> {
+	const { reason } = error;
+	if (reason instanceof McpClientError.ProtocolError && reason.code === -32_602 && reason.description === `Tool '${tool}' not found`) {
+		return Effect.succeed({ refused: "tool not found", tool });
 	}
+	if (tool === "refuse" && reason instanceof McpClientError.ToolError) {
+		const [content] = reason.result.content;
+		if (reason.result.content.length === 1 && content?.type === "text" && content.text === "Application refused") {
+			return Effect.succeed({ failed: content.text });
+		}
+	}
+	return failureOf(engine, error);
 }
 
 function connection(engine: Engine, name: string) {
@@ -42,12 +49,7 @@ function connection(engine: Engine, name: string) {
 	return client;
 }
 
-export function connect(
-	engine: Engine,
-	token: string | undefined,
-	scheme = "Bearer",
-	headers: Readonly<Record<string, string>> = {},
-): Effect.Effect<McpClient.McpClient | string, never, Scope.Scope> {
+export function connect(engine: Engine, token: string | undefined, scheme = "Bearer", headers: Readonly<Record<string, string>> = {}) {
 	return McpClient.make({ name: "Story client", version: "1" }).pipe(
 		Effect.provideServiceEffect(
 			McpClient.Transport,
@@ -58,7 +60,7 @@ export function connect(
 			}),
 		),
 		Effect.provide(FetchHttpClient.layer),
-		Effect.catch((error) => Effect.succeed(failureOf(engine, error))),
+		Effect.catch((error) => failureOf(engine, error)),
 	);
 }
 
@@ -73,15 +75,28 @@ export function connects(engine: Engine, name: string, scheme = "Bearer") {
 }
 
 export function clientVerbs(engine: Engine, tell: (line: string) => void) {
+	function call(name: string, tool: string, args: Record<string, unknown> = {}) {
+		return Effect.suspend(() => {
+			tell(`${name}'s client calls ${tool}`);
+			return connection(engine, name).callTool({
+				arguments: args,
+				schema: Schema.Union([Schema.String, AdminAnswer]),
+				tool: new McpSchema.Tool({ inputSchema: { type: "object" }, name: tool }),
+			});
+		}).pipe(
+			Effect.map((answer) => ({
+				answered: typeof answer === "string" ? named(engine, answer) : { ...answer, caller: named(engine, answer.caller) },
+			})),
+			Effect.catch((error) => callFailure(engine, tool, error)),
+		);
+	}
+
 	return {
 		bearerFailureLogs: () => Effect.sync(() => engine.jwks.logs.filter(([message]) => message === "MCP authentication verification failed")),
-		call: (name: string, tool: string) =>
-			Effect.suspend(() => {
-				tell(`${name}'s client calls ${tool}`);
-				return connection(engine, name).callTool({ tool: new McpSchema.Tool({ inputSchema: { type: "object" }, name: tool }) });
-			}).pipe(
-				Effect.map((result) => (result.isError === true ? `failed: ${textOf(result)}` : `answered ${named(engine, decoded(textOf(result)))}`)),
-				Effect.catch((error) => Effect.succeed(failureOf(engine, error))),
+		call,
+		callsWithInvalidArguments: (name: string) =>
+			call(name, "adminOnly", { request: { count: "two", flags: [], message: "hello" } }).pipe(
+				Effect.catchReason("McpClientError", "ToolError", (reason) => Effect.succeed({ clientFailure: reason.message })),
 			),
 		connects: (name: string, scheme = "Bearer") =>
 			Effect.suspend(() => {
@@ -111,7 +126,7 @@ export function clientVerbs(engine: Engine, tell: (line: string) => void) {
 				return connection(engine, name).listTools();
 			}).pipe(
 				Effect.map((tools): readonly string[] | string => tools.map((tool) => tool.name)),
-				Effect.catch((error) => Effect.succeed(failureOf(engine, error))),
+				Effect.catch((error) => failureOf(engine, error)),
 			),
 		oauthChallenge: () => Effect.sync(() => engine.refusal?.challenge ?? "no challenge"),
 	};
