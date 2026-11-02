@@ -445,6 +445,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../../packages/quality
+      '@shivaedev/skills':
+        specifier: workspace:*
+        version: link:../../packages/skills
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../../packages/test-story

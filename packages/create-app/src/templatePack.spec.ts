@@ -35,7 +35,7 @@ application.it(
 );
 
 application.it(
-	"packing leaves out local output, the lockfile and every .env file except .env.example",
+	"packing leaves out local output, synced agent directories, the lockfile and every .env file except .env.example",
 	[localArtifacts],
 	function* ({ pack, packedFiles }) {
 		yield* pack();
