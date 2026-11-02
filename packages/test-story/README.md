@@ -679,7 +679,7 @@ Outside a story kit, `yield* watchedClock` instruments the active native TestClo
 
 ### Running the engine
 
-Hooks and steps that wait for real workers can use `withLive(Effect.sleep(...))` or `withLive(eventually(...))` from `@shivaedev/test/withLive.ts` and `@shivaedev/test/eventually.ts`. Both work under the kit's live clock and a story's TestClock override. The wrapped work uses live time without advancing the story's virtual time; outside it, the selected clock still applies. Unwrapped `eventually` uses the active clock and advances TestClock between attempts.
+Hooks and verbs wait for real workers through the engine's completion signals: take from a queue the worker offers to, await a Deferred it completes, or use [`until`](#waiting-for-a-signal) on its observable stream. Keep these waits in the kit under domain names. A deadline bounds a failed wait; it never proves completion. For React stories, pass the application's pending signal to a [screen driver](#driving-a-screen), await `settle()` after an action, then read the screen and assert in the spec.
 
 `story.runUntil(condition, { maxSteps })` returns an Effect that asks three questions before every step:
 1. `run.failed` returns a sentence: it dies with it, even when the condition also holds.
@@ -813,7 +813,7 @@ When traits choose an empty or migrated starting database, use test-sql's [`stor
 
 For repository-level tests on a migrated template, `withTestTransaction` from `@shivaedev/test-sql/server/withTestTransaction.ts` provides rollback isolation when all work uses its transaction connection. See the [database test helpers](https://github.com/ShivaeDev/platform/blob/main/packages/test-sql/README.md) for template preparation and both wrappers.
 
-React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms use the same pattern with `useCreate` from `@shivaedev/react/client/create.ts`.
+React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events; the screen driver's `settle()` waits on the application's pending signal and flushes React before readouts. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook. Creation forms use the same pattern with `useCreate` from `@shivaedev/react/client/create.ts`.
 
 For cookie sessions, use the DOM host setup below. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. An `inspect` hook may read engine state through an Effect or generator, using the kit’s layer before the story’s Scope closes.
 
@@ -916,7 +916,7 @@ sharedLists.it("grace sees ada's addition", [signedInMembers("ada", "grace")], f
 
 ### Rendering React components
 
-Use `render`, `eventually`, `captureReactWarnings` and `expectNoReactWarnings` from `@shivaedev/test-story/client/react.ts` in happy-dom tests. Install the optional peers when using this module:
+Use `render`, `captureReactWarnings` and `expectNoReactWarnings` from `@shivaedev/test-story/client/react.ts` in happy-dom tests. Wait for engine signals and use the [screen driver's `settle()`](#driving-a-screen) before asserting rendered results. Install the optional peers when using this module:
 
 ```sh
 pnpm add --save-dev react react-dom @effect/atom-react @types/react @types/react-dom happy-dom

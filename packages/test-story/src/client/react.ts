@@ -1,4 +1,3 @@
-import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -6,10 +5,7 @@ import * as Scope from "effect/Scope";
 import type { ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
 import { beforeEach, expect, vi } from "vitest";
-import { eventually as retry } from "@shivaedev/test/eventually.ts";
-import { withLive } from "@shivaedev/test/withLive.ts";
 import { reactRendering } from "#client/adapters/reactRendering.ts";
-import { waitForReact } from "#client/adapters/waitForReact.ts";
 
 type CaughtErrorHandler = NonNullable<RootOptions["onCaughtError"]>;
 
@@ -84,27 +80,6 @@ export function expectNoReactWarnings() {
 		},
 	};
 }
-export function eventually(assert: () => void) {
-	return withLive(
-		Effect.gen(function* () {
-			const started = yield* Clock.currentTimeMillis;
-			return yield* retry(Effect.try({ catch: (error) => error, try: assert }), {
-				timeout: "3 seconds",
-				wait: Effect.promise(waitForReact),
-			}).pipe(
-				Effect.catch((error) =>
-					Effect.gen(function* () {
-						const elapsed = (yield* Clock.currentTimeMillis) - started;
-						return yield* Effect.fail(
-							new Error(`Assertion did not pass after ${elapsed}ms: ${error instanceof Error ? error.message : String(error)}`, { cause: error }),
-						);
-					}),
-				),
-			);
-		}),
-	);
-}
-
 export interface Rendered {
 	readonly container: HTMLDivElement;
 	readonly registry: AtomRegistry.AtomRegistry;
