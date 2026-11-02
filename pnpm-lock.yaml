@@ -1452,6 +1452,9 @@ importers:
 
   packages/server:
     dependencies:
+      '@shivaedev/admin':
+        specifier: workspace:*
+        version: link:../admin
       '@shivaedev/changes':
         specifier: workspace:*
         version: link:../changes
@@ -1486,9 +1489,6 @@ importers:
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
-      '@shivaedev/admin':
-        specifier: workspace:*
-        version: link:../admin
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
