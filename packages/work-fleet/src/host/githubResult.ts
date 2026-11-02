@@ -1,9 +1,10 @@
 import { Effect } from "effect";
-import { BadRequest, Conflict, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { BadRequest, Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
 import { FilePages, type GithubRead, githubJson, PullRequest } from "#host/github.ts";
+import { compareChangedFiles, completeFileListing } from "#host/githubChangedPaths.ts";
 import { resultReport } from "#host/resultReport.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -39,14 +40,16 @@ const adoptPullRequest = Effect.fn("FleetHost.adoptPullRequest")(function* (
 	const endpoint = `repos/${repository}/pulls/${number}`;
 	const before = yield* githubJson(PullRequest, read.get(endpoint));
 	yield* validatePullRequest(before, head, number, prUrl, host.repository.branch);
-	const files = (yield* githubJson(FilePages, read.pages(`${endpoint}/files?per_page=100`))).flat();
+	let files: (typeof FilePages.Type)[number] = (yield* githubJson(FilePages, read.pages(`${endpoint}/files?per_page=100`))).flat();
 	const after = yield* githubJson(PullRequest, read.get(endpoint));
 	yield* validatePullRequest(after, head, number, prUrl, host.repository.branch);
-	if (before.changedFiles !== after.changedFiles) {
-		return yield* new Conflict({ message: "PR changed paths moved during observation" });
-	}
-	if (files.length !== after.changedFiles || new Set(files.map((file) => file.filename)).size !== files.length) {
-		return yield* new ServiceUnavailable({ message: "GitHub returned an incomplete changed-path observation" });
+	if (before.changedFiles !== after.changedFiles || !completeFileListing(files, after.changedFiles)) {
+		files = yield* compareChangedFiles(read, repository, after, files.length);
+		const verified = yield* githubJson(PullRequest, read.get(endpoint));
+		yield* validatePullRequest(verified, head, number, prUrl, host.repository.branch);
+		if (verified.base.sha !== after.base.sha) {
+			return yield* new Conflict({ message: "PR base moved during changed-path comparison" });
+		}
 	}
 	const paths = [
 		...new Set(files.flatMap((file) => (file.previousFilename === undefined ? [file.filename] : [file.previousFilename, file.filename]))),

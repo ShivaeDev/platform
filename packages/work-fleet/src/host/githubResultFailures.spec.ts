@@ -46,7 +46,7 @@ describe("typed result adoption failures", () => {
 
 		expect(adopted).toMatch(/^conflict: /u);
 	});
-	for (const after of [{ head: { sha: MOVED } }, { base: { ref: "other", sha: MOVED } }, { "changed_files": 3 }, { state: "closed" }]) {
+	for (const after of [{ head: { sha: MOVED } }, { base: { ref: "other", sha: MOVED } }, { state: "closed" }]) {
 		githubHost.it(`rejects movement or closure during path observation: ${JSON.stringify(after)}`, [], function* (github) {
 			const adopted = yield* refusal(github.result({ after }).adopt(work, completed()));
 
@@ -58,11 +58,6 @@ describe("typed result adoption failures", () => {
 		expect(yield* refusal(fixture.adopt(work, completed(REPORT.replace("example/repository", "other/repository"))))).toMatch(/^bad request: /u);
 		expect(fixture.requests).toEqual([]);
 	});
-	for (const files of [[[{ filename: "src/one.ts" }]], [[{ filename: "src/one.ts" }, { filename: "src/one.ts" }]]]) {
-		githubHost.it("rejects incomplete or duplicate file pages", [], function* (github) {
-			expect(yield* refusal(github.result({ files }).adopt(work, completed()))).toMatch(/^unavailable: /u);
-		});
-	}
 	for (const options of [{ before: { head: { sha: "short" } } }, { invalidJson: true }, { unavailable: true }]) {
 		githubHost.it(`fails typed for unavailable or invalid GitHub observations: ${JSON.stringify(options)}`, [], function* (github) {
 			expect(yield* refusal(github.result(options).adopt(work, completed()))).toMatch(/^unavailable: /u);
