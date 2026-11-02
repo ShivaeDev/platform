@@ -49,9 +49,9 @@ export const mixedWrong = defineConfig({
 
 export const configured = numeric.configure({ max: 2 });
 // @ts-expect-error Direct configuration rejects the wrong input type.
-numeric.configure({ max: "2" });
+export const wrongNumericOptions = numeric.configure({ max: "2" });
 // @ts-expect-error No-options rules reject supplied options.
-none.configure({ max: 2 });
+export const unexpectedOptions = none.configure({ max: 2 });
 // @ts-expect-error A typed callback cannot promise to accept arbitrary registry input.
 export const widened: Rule<string, unknown> = numeric;
 // @ts-expect-error Callback input variance stays strict between different options.
@@ -71,7 +71,7 @@ export const decoded = defineRule({
 
 export const configuredDecoded = decoded.configure({ max: "2" });
 // @ts-expect-error Direct configuration takes schema input, not decoded output.
-decoded.configure({ max: 2 });
+export const wrongDecodedOptions = decoded.configure({ max: 2 });
 
 export const narrowedCheck = defineRule({
 	// @ts-expect-error The overload without options also refuses a narrowed callback.

@@ -58,7 +58,6 @@
 	"dependencies": {
 		"@biomejs/biome": "catalog:",
 		"@shivaedev/heavy-lock": "workspace:*",
-		"@shivaedev/types": "workspace:*",
 		"@vitest/coverage-v8": "catalog:",
 		"ignore": "catalog:",
 		"knip": "catalog:",
