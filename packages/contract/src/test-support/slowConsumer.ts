@@ -6,8 +6,7 @@ import { readKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { live } from "#live.ts";
-import { hintWords, shown } from "./answers.ts";
-import { settled } from "./settled.ts";
+import { hintWords } from "./answers.ts";
 import { Notes, notes, viewerEngine } from "./viewerEngine.ts";
 
 const slowConsumerEngine = Effect.gen(function* () {
@@ -49,7 +48,7 @@ const slowConsumerEngine = Effect.gen(function* () {
 	registry.mount(query);
 	registry.mount(connection.connection);
 	yield* Deferred.await(stalled);
-	yield* settled(registry, query);
+	yield* AtomRegistry.getResult(registry, query, { suspendOnWaiting: true });
 	const initialReads = (yield* SubscriptionRef.get(server.reads)).length;
 	return { initialReads, query, received, registry, resumed, server };
 });
@@ -75,7 +74,8 @@ export const slowConsumer = storyKit({
 			story.tell("the stalled consumer resumes pulling the server's pending hints");
 			return Deferred.succeed(engine.resumed, undefined);
 		},
-		shown: () => Effect.map(settled(engine.registry, engine.query), (result) => shown(result, (rows) => rows.map((row) => row.title))),
+		shown: () =>
+			Effect.map(AtomRegistry.getResult(engine.registry, engine.query, { suspendOnWaiting: true }), (rows) => rows.map((row) => row.title)),
 		untilReRead: () => {
 			story.tell("alice's notes are read again after delivery resumes");
 			return until(SubscriptionRef.changes(engine.server.reads), (reads) => reads.length > engine.initialReads, { name: "query read" });

@@ -1,4 +1,4 @@
-import { Effect, Ref, Stream, SubscriptionRef } from "effect";
+import { Effect, Ref, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -8,7 +8,7 @@ import { failure, streams, times } from "./answers.ts";
 import { automaticResumeClient } from "./automaticResumeClient.ts";
 import { localEngine } from "./localEngine.ts";
 import { Note } from "./notes.ts";
-import { type Mark, reRead } from "./reRead.ts";
+import { type Mark, markQuery, reRead } from "./reRead.ts";
 import { syntheticNative, syntheticWindow } from "./resumeSources.ts";
 import { settled } from "./settled.ts";
 
@@ -30,7 +30,7 @@ const resumeEngine = Effect.gen(function* () {
 		...local,
 		...unwatched,
 		browser,
-		marked: new Map<number, Mark<Note, unknown>>(),
+		marked: new Map<number, Mark>(),
 		native,
 		signal: resumeSignal({ native: native.source, window: browser.window }),
 		views: new Map<number, Atom.Atom<AsyncResult.AsyncResult<Note, unknown>>>(),
@@ -71,9 +71,8 @@ function readsOf(reads: readonly string[], id: number) {
 }
 
 function mark(engine: ResumeEngine) {
-	const reads = Effect.runSync(SubscriptionRef.get(engine.server.reads));
 	for (const id of engine.watched) {
-		engine.marked.set(id, { reads: readsOf(reads, id), shown: engine.registry.get(viewAtom(engine, id)) });
+		engine.marked.set(id, markQuery(engine.registry, viewAtom(engine, id)));
 	}
 }
 
@@ -143,12 +142,7 @@ export const resumeStory = storyKit({
 			),
 		untilReRead: (id: number) => {
 			story.tell(`note ${id} is re-read and the new title reaches its view`);
-			return reRead(
-				engine.registry,
-				viewAtom(engine, id),
-				Stream.map(SubscriptionRef.changes(engine.server.reads), (all) => readsOf(all, id)),
-				engine.marked.get(id),
-			);
+			return reRead(engine.registry, viewAtom(engine, id), engine.marked.get(id));
 		},
 	}),
 });

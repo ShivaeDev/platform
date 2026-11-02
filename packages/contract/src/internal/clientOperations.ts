@@ -8,6 +8,7 @@ import { invalidationKeys, type Key, readKeys } from "@shivaedev/changes/keys.ts
 import type { automaticLive } from "#automaticLive.ts";
 import type { QueryOptions } from "#bind.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
+import { shareQuerySignals } from "#querySignals.ts";
 import type { BindingOwner } from "./bindingOwner.ts";
 import { clientActivities } from "./clientActivity.ts";
 import { queryReactivity } from "./queryReactivity.ts";
@@ -48,6 +49,7 @@ function boundQuery(service: ErasedClient, tag: string, query: QueryShape, autom
 				options.headers,
 			);
 			const tracked = clientActivities.get(service)?.watch(result) ?? result;
+			shareQuerySignals(tracked, result);
 			cached.set(atom, tracked);
 			return tracked;
 		},
