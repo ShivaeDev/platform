@@ -22,7 +22,7 @@ export interface UnfinishedJob<TQueue extends SnapshotQueue> {
 	readonly id: string;
 	readonly queue: TQueue["name"];
 	readonly startAfter: DateTime.Utc;
-	readonly state: "active" | "created" | "failed" | "retry";
+	readonly state: "active" | "created" | "deferred" | "failed" | "retry";
 }
 
 export interface PgBossTestingWaitOptions {
