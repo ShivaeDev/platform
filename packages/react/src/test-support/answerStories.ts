@@ -4,7 +4,7 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AnswerList } from "./AnswerList.tsx";
 import { makeAnswerForm } from "./answerForm.ts";
-import { clickButton, type Screen, typeInput } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 
 type Answer = "first" | "second" | "third";
@@ -22,10 +22,11 @@ function current(state: State) {
 
 function answerVerbs(state: State, screen: Screen) {
 	function click(label: string, line: string) {
-		return screen.act(line, () => clickButton(current(state).container, label));
+		screen.tell(line);
+		return screen.driver(current(state).container).click({ name: label, role: "button" });
 	}
 	return {
-		answer: (id: Answer, text: string) => screen.act(`answer ${id}: ${text}`, () => typeInput(current(state).container, id, text)),
+		answer: (id: Answer, text: string) => screen.driver(current(state).container).enter(`input[name="${id}"]`, text),
 		moveFirst: (id: Answer) => click(`Move ${id} first`, `move ${id} to the top`),
 		remove: (id: Answer) => click(`Remove ${id}`, `remove ${id}`),
 		save: () => click("Save", "save the answers"),

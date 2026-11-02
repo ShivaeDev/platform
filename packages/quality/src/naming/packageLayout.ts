@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
@@ -42,13 +43,19 @@ function runBy(directory: string, manifest: unknown): readonly string[] {
 	return [...commands, ...bins].map((target) => posix.join(directory, target));
 }
 
-export async function packageLayout({ files, readText }: Pick<RuleInputs, "files" | "readText">): Promise<PackageLayout> {
+export const packageLayout = Effect.fn("Naming.packageLayout")(function* ({
+	files,
+	readText,
+}: Pick<RuleInputs, "files" | "readText">): Effect.fn.Return<PackageLayout> {
 	const directories = ["", ...files.filter((path) => posix.basename(path) === MANIFEST).map((path) => posix.dirname(path))];
-	const manifests = await Promise.all(
-		[...new Set(directories)].map(async (directory) => ({
-			directory: directory === "." ? "" : directory,
-			manifest: await readPackageManifest(readText, directory === "" ? MANIFEST : `${directory}/${MANIFEST}`),
-		})),
+	const manifests = yield* Effect.forEach(
+		[...new Set(directories)],
+		(directory) =>
+			Effect.map(
+				Effect.promise(() => readPackageManifest(readText, directory === "" ? MANIFEST : `${directory}/${MANIFEST}`)),
+				(manifest) => ({ directory: directory === "." ? "" : directory, manifest }),
+			),
+		{ concurrency: "unbounded" },
 	);
 	const present = manifests.filter((entry) => entry.manifest !== undefined);
 	const roots = present.map((entry) => entry.directory).toSorted((left, right) => right.length - left.length);
@@ -62,4 +69,4 @@ export async function packageLayout({ files, readText }: Pick<RuleInputs, "files
 		names,
 		scripts: new Set(present.flatMap(({ directory, manifest }) => runBy(directory, manifest))),
 	};
-}
+});

@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { act } from "react";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import { diagramDrawingVerbs } from "./diagramDrawingVerbs.ts";
 import { readingHistoryVerbs } from "./readingHistoryVerbs.ts";
@@ -9,6 +10,7 @@ import { readingStructureVerbs } from "./readingStructureVerbs.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 export function readingScreenVerbs(engine: ScreenEngine, tell: (line: string) => void) {
+	const driver = screenDriver({ act, root: () => document.documentElement, tell });
 	const { read, perform } = readingScreenReads(engine, tell);
 	return {
 		...diagramDrawingVerbs(engine, tell),
@@ -43,10 +45,9 @@ export function readingScreenVerbs(engine: ScreenEngine, tell: (line: string) =>
 				"The image viewer is not open",
 				(target) => {
 					if (way === "Escape") {
-						target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Escape" }));
-					} else {
-						target.click();
+						return Effect.runPromise(driver.pressKey(":focus", "Escape"));
 					}
+					return target.click();
 				},
 			),
 		contextTab: () =>
@@ -112,13 +113,7 @@ export function readingScreenVerbs(engine: ScreenEngine, tell: (line: string) =>
 					.map((paragraph) => text(paragraph))
 					.filter((line) => line.endsWith("criteria have recorded evidence")),
 			),
-		focusPin: () =>
-			perform(
-				"the reader moves focus to Pin",
-				() => document.querySelector<HTMLElement>("#favorite-toggle"),
-				"The page has no Pin button",
-				(pin) => pin.focus(),
-			),
+		focusPin: () => driver.focus("#favorite-toggle").pipe(Effect.andThen(readingSettles(engine, tell))),
 		formCaret: () =>
 			read("the reader checks focus and the caret in the form", () => {
 				const field = document.querySelector("form textarea");

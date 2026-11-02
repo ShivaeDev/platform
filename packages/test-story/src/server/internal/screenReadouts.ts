@@ -19,6 +19,18 @@ export function screenReadouts(currentRoot: () => HTMLElement, tell: (line: stri
 			tell(`read the text labelled ${String(label)}: ${JSON.stringify(text)}`);
 			return text;
 		},
+		selection: (selector: ScreenTarget) => {
+			const field = elements.selectField(selector);
+			const selection = {
+				options: [...field.options].map((option) => ({
+					label: option.getAttribute("label") || (option.textContent ?? "").replace(/\s+/gu, " ").trim(),
+					value: option.value,
+				})),
+				value: field.value,
+			};
+			tell(`read the selection in ${targetName(selector)}: ${JSON.stringify(selection)}`);
+			return selection;
+		},
 		table: (label: string | RegExp) => {
 			const target = { name: label, role: "table" };
 			const table = elements.table(target);

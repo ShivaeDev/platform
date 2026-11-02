@@ -1,5 +1,7 @@
-import { Effect } from "effect";
+import { Context, Effect, Option, Stream } from "effect";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { Fleet } from "#fleet.ts";
+import { fleetRecords } from "#fleetRecords.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
 import type { Decision, DecisionResponse } from "#policy.ts";
@@ -14,6 +16,17 @@ import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
 export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string) => void) {
 	return {
+		awaitWorkerReceipt: (workId = "one") => {
+			tell(`wait for ${workId}'s worker receipt to be committed`);
+			const changes = Context.get(engine.running.context, LiveServer);
+			return Stream.unwrap(changes.stream([fleetRecords.item(workId)])).pipe(
+				Stream.mapEffect(() => engine.running.client("fleet.get", { workId })),
+				Stream.filter((record) => record.attempts.at(-1)?.receipt !== undefined),
+				Stream.runHead,
+				Effect.map(Option.getOrThrow),
+				Effect.timeout("10 seconds"),
+			);
+		},
 		boardAcknowledgements: () => boardHttpFiles(engine.host.host.boardDir).receiptRecords(),
 
 		boardReceipts: () => boardHttpFiles(engine.host.host.boardDir).receipts(),

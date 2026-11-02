@@ -1,5 +1,9 @@
 import { Schema } from "effect";
 
+export class MarkdownBudgetTooSmall extends Schema.TaggedError<MarkdownBudgetTooSmall>()("MarkdownBudgetTooSmall", {
+	byteLimit: Schema.Number,
+}) {}
+
 export class GitHubPermissionDenied extends Schema.TaggedError<GitHubPermissionDenied>()("GitHubPermissionDenied", {
 	path: Schema.String,
 }) {}

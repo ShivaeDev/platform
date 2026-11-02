@@ -54,6 +54,10 @@ export const errors = storyKit({
 				story.tell(`the request ends with a ${kind}`);
 				return run(kind === "failure" ? Effect.fail(value) : Effect.die(value));
 			},
+			interruptedFailure: (value: unknown) => {
+				story.tell("the request fails alongside an interruption");
+				return run(Effect.failCause(Cause.combine(Cause.fail(value), Cause.interrupt(123))));
+			},
 			recordedReports: () => Effect.sync(() => [...state.reports]),
 			release: (value: string) => {
 				story.tell("the request finishes and releases its resource");

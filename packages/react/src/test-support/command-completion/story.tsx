@@ -4,7 +4,7 @@ import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { timesWords } from "#test/outcomeWords.ts";
-import { clickButton, type Screen } from "#test/Screen.ts";
+import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { completionClient, Rejected } from "./client.ts";
 import { type CompletionScreen, CompletionView } from "./view.tsx";
@@ -61,7 +61,7 @@ function commandVerbs(state: State, screen: Screen) {
 			finish(state, screen, title, `the server completes ${title} with ${value}`, (gate) => Deferred.doneUnsafe(gate, Effect.succeed(value))),
 		dispatch: (title: Title) =>
 			screen.act(`dispatch ${title}`, async () => {
-				clickButton(view(state).container, title);
+				await Effect.runPromise(screen.driver(view(state).container).click({ name: title, role: "button" }));
 				await Effect.runPromise(Deferred.await(state.current.client.command(title).arrived));
 			}),
 		reject: (title: Title, failure: "Rejected" | "Unauthorized") =>
@@ -105,7 +105,7 @@ export const commands = storyKit(
 				notices: () => Effect.sync(() => [...state.current.notices]),
 				publishedNotices: () => Effect.sync(() => [...view(state).container.querySelectorAll("article")].map((notice) => notice.textContent)),
 				rechecks: () => Effect.sync(() => timesWords(state.current.rechecks)),
-				refreshList: () => screen.act("refresh the list while the command is held", () => clickButton(view(state).container, "Refresh list")),
+				refreshList: () => screen.driver(view(state).container).click({ name: "Refresh list", role: "button" }),
 				renderAgain: () => verbs.commit({}, "render the command screen again"),
 				renderedCallbacks: () => Effect.sync(() => [...state.current.attempts]),
 				startAbandonedRender: () =>

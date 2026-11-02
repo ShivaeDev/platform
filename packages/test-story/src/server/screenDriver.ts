@@ -7,6 +7,7 @@ import { screenAct } from "#adapters/screenAct.ts";
 import { screenElements } from "#adapters/screenElements.ts";
 import { nextClientHint } from "#internal/nextClientHint.ts";
 import { targetName } from "#internal/screenAccessibility.ts";
+import { screenInteractions } from "#internal/screenInteractions.ts";
 import { screenReadouts } from "#internal/screenReadouts.ts";
 import { screenWaits } from "#internal/screenWaits.ts";
 import type { SignalNotReceived } from "#until.ts";
@@ -90,6 +91,7 @@ function makeScreenActions(
 
 	return {
 		...screenReadouts(currentRoot, tell, dialogs),
+		...screenInteractions(elements, perform),
 		...waits,
 		click: (selector: ScreenTarget) =>
 			perform(`click ${targetName(selector)}`, () => {

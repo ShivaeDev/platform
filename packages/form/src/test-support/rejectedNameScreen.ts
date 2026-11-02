@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { useField, useSubmit } from "#adapters/react.ts";
 import { form } from "#form.ts";
@@ -53,13 +54,7 @@ export const rejectedNameScreen = storyKit({
 	name: "rejected name screen",
 	stages: ["screen"],
 	verbs: ({ model, view }, story) => {
-		function input() {
-			const element = view.container.querySelector("input");
-			if (element === null) {
-				throw new Error("The name input is missing");
-			}
-			return element;
-		}
+		const driver = screenDriver({ act, root: view.container, tell: story.tell });
 		function perform(line: string, action: () => void | Promise<void>) {
 			return Effect.promise(async () => {
 				story.tell(line);
@@ -67,13 +62,9 @@ export const rejectedNameScreen = storyKit({
 			});
 		}
 		return {
-			enterName: (value: string) =>
-				perform(`enter ${JSON.stringify(value)} as the name`, () => {
-					input().value = value;
-					input().dispatchEvent(new Event("input", { bubbles: true }));
-				}),
-			focusName: () => perform("focus the name", () => input().focus()),
-			leaveName: () => perform("leave the name", () => input().blur()),
+			enterName: (value: string) => driver.enter({ name: "Name", role: "textbox" }, value),
+			focusName: () => driver.focus({ name: "Name", role: "textbox" }),
+			leaveName: () => driver.blur({ name: "Name", role: "textbox" }),
 			message: () => Effect.sync(() => view.container.querySelector('[role="alert"]')?.textContent),
 			submit: () =>
 				perform("submit the name", async () => {

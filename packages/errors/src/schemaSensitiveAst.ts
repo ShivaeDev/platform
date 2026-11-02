@@ -43,6 +43,9 @@ function containsSensitive(ast: SchemaAST.AST, keys: ReadonlySet<string>): boole
 	);
 }
 function preservesFields(source: SchemaAST.AST, target: SchemaAST.AST): boolean {
+	if (source._tag === "Declaration" && source.annotations?.["~constructor"] !== undefined && source.typeParameters[0] === target) {
+		return true;
+	}
 	return (
 		source._tag === "Declaration"
 		&& Predicate.hasProperty(source.annotations?.representation, "id")
@@ -69,6 +72,16 @@ export function collectEncodedKeys(ast: SchemaAST.AST, keys: Set<string>) {
 		}
 		source = link.to;
 	}
+}
+export function sensitiveEncoding(ast: SchemaAST.AST, keys: ReadonlySet<string>): boolean {
+	let source = ast;
+	for (const link of ast.encoding ?? []) {
+		if (!preservesFields(source, link.to) && (containsSensitive(source, keys) || containsSensitive(link.to, keys))) {
+			return true;
+		}
+		source = link.to;
+	}
+	return false;
 }
 function fixedOutput(ast: SchemaAST.AST): boolean {
 	if (ast._tag === "Union") {

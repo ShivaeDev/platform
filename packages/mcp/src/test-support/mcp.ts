@@ -11,6 +11,7 @@ import { discoveryReadouts } from "./discoveryReadouts.ts";
 import { grantVerbs } from "./grantVerbs.ts";
 import { type Engine, startEngine } from "./host.ts";
 import { oauthVerbs } from "./oauthVerbs.ts";
+import { tokenVerbs } from "./tokenVerbs.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
 const postgres = makePostgresTestLayer({
@@ -33,6 +34,7 @@ const definition = {
 		...discoveryReadouts(engine),
 		...grantVerbs(engine, story.tell),
 		...oauthVerbs(engine, story.tell),
+		...tokenVerbs(engine, story.tell),
 	}),
 };
 

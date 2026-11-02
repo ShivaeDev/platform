@@ -7,7 +7,7 @@ import { type PgBossError, toPgBossError } from "#error.ts";
 
 const InstalledSchema = Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) }));
 const InstalledVersion = Schema.Array(Schema.Struct({ version: Schema.Number }));
-const InstalledResolution = Schema.Array(Schema.Struct({ installed: Schema.Boolean }));
+const MissingArtifacts = Schema.Array(Schema.Struct({ name: Schema.String }));
 
 export interface PgBossSchemaOptions {
 	readonly schema?: string;
@@ -40,10 +40,21 @@ export function pgBossSchema(options: PgBossSchemaOptions = {}): SchemaComponent
 				return `schema ${schema}, installed version ${row?.version ?? "missing"}, required version ${required}`;
 			}
 			const job = sql`${sql(schema)}.${sql("job")}`;
-			const [resolution] = yield* sql`SELECT EXISTS (
-				SELECT 1 FROM pg_trigger WHERE tgrelid = to_regclass(${job.compile()[0]}) AND tgname = 'effect_dead_letter_resolution'
-			) AS installed`.withoutTransform.pipe(Effect.flatMap(Schema.decodeUnknownEffect(InstalledResolution)));
-			return resolution?.installed ? undefined : `schema ${schema}, missing dead-letter resolution trigger`;
+			const deferrals = sql`${sql(schema)}.${sql("effect_job_deferral")}`;
+			const cleanup = sql`${sql(schema)}.${sql("effect_job_deferral_keep_until")}`;
+			const stately = sql`${sql(schema)}.${sql("effect_stately_deferral")}()`;
+			const missing = yield* sql`SELECT name FROM (VALUES
+				('dead-letter resolution trigger', EXISTS (
+					SELECT 1 FROM pg_trigger WHERE tgrelid = to_regclass(${job.compile()[0]}) AND tgname = 'effect_dead_letter_resolution'
+				)),
+				('effect_job_deferral', to_regclass(${deferrals.compile()[0]}) IS NOT NULL),
+				('effect_job_deferral_keep_until', to_regclass(${cleanup.compile()[0]}) IS NOT NULL),
+				('effect_stately_deferral()', to_regprocedure(${stately.compile()[0]}) IS NOT NULL),
+				('effect_stately_deferral trigger', EXISTS (
+					SELECT 1 FROM pg_trigger WHERE tgrelid = to_regclass(${job.compile()[0]}) AND tgname = 'effect_stately_deferral'
+				))
+			) AS artifacts(name, installed) WHERE NOT installed`.withoutTransform.pipe(Effect.flatMap(Schema.decodeUnknownEffect(MissingArtifacts)));
+			return missing.length === 0 ? undefined : `schema ${schema}, missing ${missing.map(({ name }) => name).join(", ")}`;
 		}),
 	};
 }

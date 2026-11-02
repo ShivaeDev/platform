@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { TestClock } from "effect/testing";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, type Screen, typeInput } from "#test/Screen.ts";
+import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { type HeldKind, noticeClient } from "./client.ts";
@@ -40,13 +40,14 @@ const interruptsUndo = Effect.fn("Notices.interruptsUndo")(function* (state: Sta
 
 export function noticeVerbs(state: State, screen: Screen) {
 	function click(label: string, line: string) {
-		return screen.act(line, () => clickButton(view(state).container, label));
+		screen.tell(line);
+		return screen.driver(view(state).container).click({ name: label, role: "button" });
 	}
 	function arrives(kind: HeldKind, title: string, label: string, line: string) {
 		const { arrived, finished } = state.current.client.hold(kind, title);
 		return screen
 			.act(line, async () => {
-				clickButton(view(state).container, label);
+				await Effect.runPromise(screen.driver(view(state).container).click({ name: label, role: "button" }));
 				await Effect.runPromise(Deferred.await(title === "blocked" ? finished : arrived));
 			})
 			.pipe(Effect.andThen(settle(state, screen)));
@@ -84,9 +85,9 @@ export function noticeVerbs(state: State, screen: Screen) {
 		saveEditor: () => arrives("remove", "existing", "Save editor", "save the editor"),
 		submitForm: () => arrives("remove", state.typed, "Submit form", `submit the form with ${state.typed}`),
 		type: (title: string) =>
-			screen.act(`type ${title}`, () => {
+			screen.act(`type ${title}`, async () => {
 				state.typed = title;
-				typeInput(view(state).container, "title", title);
+				await Effect.runPromise(screen.driver(view(state).container).enter('input[name="title"]', title));
 			}),
 		undo: (title: string) => arrives("restore", title, `Undo ${title}`, `undo the removal of ${title}`),
 	};
@@ -111,8 +112,6 @@ export const notifications = storyKit({
 		}),
 		(state, screen) => ({
 			...noticeVerbs(state, screen),
-			clickPendingUndo: (title: string) =>
-				screen.act(`click the pending Undo ${title} again`, () => clickButton(view(state).container, `Undo ${title}`)),
 			commandShown: () => Effect.sync(() => view(state).container.querySelector("[data-command]")?.textContent),
 			hostClockAdvances: (millis: number) => advance(state, screen, millis).pipe(Effect.andThen(settle(state, screen))),
 			notice: (message: string) =>

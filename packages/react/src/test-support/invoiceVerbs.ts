@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
 import type { editing, Session, switching } from "./invoiceScreens.tsx";
-import { clickButton, type Screen, typeInput } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { settleScreen } from "./settleScreen.ts";
 
 type Server = ReturnType<typeof makeInvoiceLineServer>;
@@ -59,7 +59,10 @@ function settle(state: State, screen: Screen) {
 
 export function invoiceVerbs(state: State, screen: Screen) {
 	function click(label: string) {
-		return screen.act(`click ${label}`, () => clickButton(root(state).container, label)).pipe(Effect.andThen(settle(state, screen)));
+		return screen
+			.driver(root(state).container)
+			.click({ name: label, role: "button" })
+			.pipe(Effect.andThen(settle(state, screen)));
 	}
 	return {
 		finishHeld: () =>
@@ -113,7 +116,7 @@ export function invoiceVerbs(state: State, screen: Screen) {
 					),
 					Effect.andThen(settle(state, screen)),
 				),
-		type: (name: Field, value: string) => screen.act(`type ${name}: ${JSON.stringify(value)}`, () => typeInput(root(state).container, name, value)),
+		type: (name: Field, value: string) => screen.driver(root(state).container).enter(`input[name="${name}"]`, value),
 		unauthorized: (session: Session) =>
 			Effect.sync(() => {
 				screen.tell(`${session}'s invoice requests are Unauthorized`);

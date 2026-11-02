@@ -38,6 +38,13 @@ export function screenElements(root: () => HTMLElement, dialogs = true) {
 			throw new Error(`The screen's ${targetName(selector)} is disabled.\nhelp: Wait for the app to enable the control before acting on it.`);
 		}
 	}
+	function selectField(selector: ScreenTarget) {
+		const field = element(selector);
+		if (!(field instanceof HTMLSelectElement)) {
+			throw new Error(`The screen's ${targetName(selector)} is not a select.\nhelp: Select a rendered select control.`);
+		}
+		return field;
+	}
 	return {
 		dialog: queries.dialogElement,
 		element,
@@ -67,10 +74,7 @@ export function screenElements(root: () => HTMLElement, dialogs = true) {
 		matches: queries.matches,
 		rendered,
 		select: (selector: ScreenTarget, value: string) => {
-			const field = element(selector);
-			if (!(field instanceof HTMLSelectElement)) {
-				throw new Error(`The screen's ${targetName(selector)} is not a select.\nhelp: Select a rendered select control.`);
-			}
+			const field = selectField(selector);
 			enabled(field, selector);
 			if (!Array.from(field.options).some((option) => option.value === value)) {
 				throw new Error(`The screen's ${targetName(selector)} has no option ${JSON.stringify(value)}.\nhelp: Choose an available option value.`);
@@ -79,6 +83,7 @@ export function screenElements(root: () => HTMLElement, dialogs = true) {
 			field.value = value;
 			field.dispatchEvent(new Event("change", { bubbles: true }));
 		},
+		selectField,
 		table: (selector: ScreenTarget) => {
 			const found = element(selector);
 			if (!(found instanceof HTMLTableElement)) {

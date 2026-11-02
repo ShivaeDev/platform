@@ -1,10 +1,12 @@
 import { Effect } from "effect";
 import { act } from "react";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { answerBox, answerCardReads, openDetails, required } from "./answerCardReads.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { setNativeValue } from "./setNativeValue.ts";
 
 export function answerCardActions(engine: ScreenEngine, tell: (line: string) => void) {
+	const driver = screenDriver({ act, root: () => document.documentElement, tell });
 	const { settle, perform, read, nextFrame, choice } = answerCardReads(engine, tell);
 	return {
 		changeAnswer: () =>
@@ -45,8 +47,9 @@ export function answerCardActions(engine: ScreenEngine, tell: (line: string) => 
 			}),
 		clearAnswerDraft: () =>
 			perform("the reader clears the answer draft", () => required(document.querySelector<HTMLElement>("#response-clear"), "Clear draft").click()),
-		focusAnswerBox: (prompt?: string) => perform(`the reader puts the cursor in the ${prompt ?? "answer"} box`, () => answerBox(prompt).focus()),
-		focusOption: (option: string) => perform(`the reader moves focus to ${option}`, () => choice(option).focus()),
+		focusAnswerBox: (prompt?: string) =>
+			driver.focus(prompt === undefined ? "#response-form [name='body']" : `[data-prompt="${prompt}"] textarea`).pipe(Effect.andThen(settle())),
+		focusOption: (option: string) => driver.focus(`[data-choice="${option}"]`).pipe(Effect.andThen(settle())),
 		followAnswerLink: (href: string) =>
 			Effect.gen(function* () {
 				tell(`the reader follows ${href}`);
@@ -65,19 +68,7 @@ export function answerCardActions(engine: ScreenEngine, tell: (line: string) => 
 			}),
 		openChangeAnswer: () => perform("the reader opens Change answer", () => openDetails("details[data-key='change-answer']")),
 		openMoreOptions: () => perform("the reader opens More options", () => openDetails("details[data-key='response-details']")),
-		pressKey: (key: string) =>
-			Effect.gen(function* () {
-				tell(`the reader presses ${JSON.stringify(key)}`);
-				for (const type of ["keydown", "keyup"]) {
-					yield* Effect.promise(() =>
-						act(() => {
-							(document.activeElement ?? document).dispatchEvent(new KeyboardEvent(type, { bubbles: true, cancelable: true, key }));
-							return Promise.resolve();
-						}),
-					);
-				}
-				yield* settle();
-			}),
+		pressKey: (key: string) => driver.pressKey(":focus", key).pipe(Effect.andThen(settle())),
 		previewAnswer: () =>
 			perform("the reader previews the answer file", () =>
 				required(document.querySelector<HTMLElement>("#response-preview"), "Preview Markdown").click(),

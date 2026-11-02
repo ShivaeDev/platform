@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, type Screen, typeInput } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { saveSession } from "./saveSession.ts";
 import { screenKit } from "./screenKit.ts";
 
@@ -28,8 +28,8 @@ export const saves = storyKit(
 			rechecks: () => Effect.sync(() => [...current(state).rechecks]),
 			rerender: () => screen.act("the session's screen renders again", () => current(state).render()),
 			status: () => Effect.sync(() => text(state, "output")),
-			submit: () => screen.act("click Save", () => clickButton(current(state).container, "Save")),
-			type: (value: string) => screen.act(`type the name ${value}`, () => typeInput(current(state).container, "name", value)),
+			submit: () => screen.driver(current(state).container).click({ name: "Save", role: "button" }),
+			type: (value: string) => screen.driver(current(state).container).enter('input[name="name"]', value),
 		}),
 	),
 );
@@ -49,8 +49,8 @@ export function unauthorizedSaveAnswered(kind: SaveKind) {
 	return saves.trait("screen", `a ${kind} form saved Unsaved order, and the save failed with Unauthorized`, function* (engine) {
 		yield* openSave(kind, false)(engine);
 		const { screen, state } = engine;
-		yield* screen.act("type the name Unsaved order", () => typeInput(current(state).container, "name", "Unsaved order"));
-		yield* screen.act("click Save", () => clickButton(current(state).container, "Save"));
+		yield* screen.driver(current(state).container).enter('input[name="name"]', "Unsaved order");
+		yield* screen.driver(current(state).container).click({ name: "Save", role: "button" });
 	});
 }
 

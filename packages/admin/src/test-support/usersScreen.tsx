@@ -95,7 +95,9 @@ function screenOf(engine: Engine) {
 }
 
 function rowOf(engine: Engine, name: string) {
-	const row = [...screenOf(engine).querySelectorAll("tbody tr")].find((candidate) => candidate.querySelector("td > div")?.textContent === name);
+	const row = [...screenOf(engine).querySelectorAll<HTMLTableRowElement>("tbody tr")].find(
+		(candidate) => candidate.querySelector("td > div")?.textContent === name,
+	);
 	if (row === undefined) {
 		throw new Error(`${name} is not shown`);
 	}
@@ -135,21 +137,7 @@ export const usersScreen = storyKit({
 		const driver = driverFor(engine, story.tell);
 		return {
 			alert: () => Effect.sync(() => screenOf(engine).querySelector('[role="alert"]')?.textContent ?? "no alert"),
-			chooseRole: (name: string, role: string) =>
-				Effect.gen(function* () {
-					story.tell(`choose ${role} for ${name}`);
-					const select = rowOf(engine, name).querySelector("select");
-					if (select === null) {
-						throw new Error(`${name} has no role control`);
-					}
-					yield* Effect.sync(() =>
-						act(() => {
-							select.value = role;
-							select.dispatchEvent(new Event("change", { bubbles: true }));
-						}),
-					);
-					yield* driver.settle();
-				}),
+			chooseRole: (name: string, role: string) => Effect.andThen(driver.within(rowOf(engine, name)).select("select", role), driver.settle()),
 			nextUsers: () => Effect.andThen(driver.click({ name: "Next users", role: "button" }), driver.settle()),
 			nextUsersButton: () =>
 				Effect.sync(() => {
@@ -160,14 +148,20 @@ export const usersScreen = storyKit({
 			requests: () => Effect.sync(() => [...engine.requests]),
 			roleChoices: (name: string) =>
 				Effect.sync(() => {
-					const select = rowOf(engine, name).querySelector("select");
-					return select === null ? "no role control" : [...select.options].map(({ value }) => value);
+					const row = rowOf(engine, name);
+					if (row.querySelector("select") === null) {
+						return "no role control";
+					}
+					const { options } = driver.within(row).selection("select");
+					return options.map(({ value }) => value);
 				}),
 			roleControl: (name: string) => Effect.sync(() => availability(rowOf(engine, name).querySelector("select"), "no role control")),
 			shownUsers: () =>
 				Effect.sync(() =>
-					[...screenOf(engine).querySelectorAll("tbody tr")].map((row) => {
-						const [name, email, role] = [...row.querySelectorAll("td > div")].map((cell) => cell.querySelector("select")?.value ?? cell.textContent);
+					[...screenOf(engine).querySelectorAll<HTMLTableRowElement>("tbody tr")].map((row) => {
+						const [name, email, role] = [...row.querySelectorAll<HTMLElement>("td > div")].map((cell) =>
+							cell.querySelector("select") === null ? cell.textContent : driver.within(cell).selection("select").value,
+						);
 						const time = row.querySelector("time");
 						return { email, name, role, signedUp: time?.textContent, signedUpDateTime: time?.dateTime };
 					}),

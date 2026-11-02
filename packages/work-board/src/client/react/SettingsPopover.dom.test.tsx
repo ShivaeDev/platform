@@ -79,11 +79,11 @@ screenStory.it(
 screenStory.it(
 	"Escape closes Settings and returns focus to the Settings button",
 	[headerScreen(0, true)],
-	function* ({ keyboardFocus, keyboard, openSettings, settingsPanel }) {
+	function* ({ keyboardFocus, roles, openSettings, settingsPanel }) {
 		yield* openSettings();
 		expect(yield* settingsPanel()).toBe("open");
 
-		yield* keyboard("Escape");
+		yield* roles.pressKey({ name: "System", role: "button" }, "Escape");
 
 		yield* outcomes([
 			["focus", () => keyboardFocus(), { name: "Settings", role: "button" }],

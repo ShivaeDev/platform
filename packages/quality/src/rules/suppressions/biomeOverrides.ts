@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
+import { biomeConfigs, type Chain } from "#adapters/biome/configs.ts";
 import { biomeExceptionHint, missingBiomeFiles } from "#exceptions/biomeFindings.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { ConsumerDeclaration } from "#rules/suppressions/biome/ConsumerDeclaration.ts";
-import { biomeConfigs, type Chain } from "#rules/suppressions/biome/configs.ts";
 import { matches, type Scoped, scoped, scopeText } from "#rules/suppressions/biome/declarations.ts";
 import { type Weakening, weakeningsOf } from "#rules/suppressions/biome/weakenings.ts";
 
@@ -65,21 +65,22 @@ function staleOrRepeated(file: string, weakenings: readonly Weakening[], shipped
 }
 
 export const biomeOverrides = defineRule({
-	check: async (inputs) => {
-		const { chains, problems, root } = await biomeConfigs(inputs);
-		const { declared } = inputs.options;
-		const weakenings = chains.flatMap(weakeningsOf);
-		const shipped = chains.flatMap(shippedBy);
-		function covered(weakening: Weakening): boolean {
-			return [...declared, ...shipped].some((declaration) => matches(declaration, weakening));
-		}
-		return [
-			...problems,
-			...(await missingBiomeFiles(inputs)),
-			...weakenings.filter((weakening) => !covered(weakening)).map((weakening) => undeclared(weakening, inputs.configFile ?? "quality.config.ts")),
-			...declared.flatMap(staleOrRepeated(root, weakenings, shipped)),
-		];
-	},
+	check: (inputs) =>
+		Effect.gen(function* () {
+			const { chains, problems, root } = yield* Effect.promise(() => biomeConfigs(inputs));
+			const { declared } = inputs.options;
+			const weakenings = chains.flatMap(weakeningsOf);
+			const shipped = chains.flatMap(shippedBy);
+			function covered(weakening: Weakening): boolean {
+				return [...declared, ...shipped].some((declaration) => matches(declaration, weakening));
+			}
+			return [
+				...problems,
+				...(yield* missingBiomeFiles(inputs)),
+				...weakenings.filter((weakening) => !covered(weakening)).map((weakening) => undeclared(weakening, inputs.configFile ?? "quality.config.ts")),
+				...declared.flatMap(staleOrRepeated(root, weakenings, shipped)),
+			];
+		}),
 	description:
 		"A Biome setting that turns a check off or down, or keeps files out of it, hides findings for every file it covers. Repair the code and remove the weakening setting.",
 	id: "suppressions/biome-overrides",

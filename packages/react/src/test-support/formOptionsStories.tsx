@@ -5,7 +5,7 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { FormOptionsView } from "./FormOptionsView.tsx";
 import { type Kind, TitleCheck } from "./formOptionsModel.ts";
-import { clickButton, type Screen, typeInput } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 
 interface State {
@@ -29,9 +29,9 @@ function verbs(state: State, screen: Screen) {
 				call.resolve(message);
 			}),
 		elapse: (millis: number) => screen.act(`advance the debounce clock by ${millis}ms`, () => vi.advanceTimersByTimeAsync(millis)),
-		reverse: () => screen.act("reverse the answers", () => clickButton(current(state), "Reverse answers")),
-		save: () => screen.act("save the form", () => clickButton(current(state), "Save")),
-		type: (value: string) => screen.act(`type the title ${JSON.stringify(value)}`, () => typeInput(current(state), "title", value)),
+		reverse: () => screen.driver(current(state)).click({ name: "Reverse answers", role: "button" }),
+		save: () => screen.driver(current(state)).click({ name: "Save", role: "button" }),
+		type: (value: string) => screen.driver(current(state)).enter('input[name="title"]', value),
 	};
 }
 export const formOptions = storyKit(

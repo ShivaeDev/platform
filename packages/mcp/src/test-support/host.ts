@@ -16,6 +16,7 @@ import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
 import { admissionPolicy } from "./admissionPolicy.ts";
 import { jwksEndpoint } from "./jwksEndpoint.ts";
+import { tokenSigner } from "./tokenSigner.ts";
 import { audiences, Roles } from "./tools.ts";
 
 async function availablePort() {
@@ -69,15 +70,16 @@ const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issue
 		...(withAdmission ? { signIn: admission.policy } : {}),
 	}).pipe(Effect.provide(memoryStore));
 	const grants = betterAuthOauthGrants({ admitsUser: mounted.admitsUser, auth: mounted.auth });
+	const tokens = tokenSigner();
+	const jwks = jwksEndpoint(mounted.auth, tokens.jwk);
 	const oauth = yield* betterAuthMcp({
 		auth: mounted.auth,
-		...(inProcess ? { jwks: () => mounted.auth.api.getJwks() } : {}),
+		...(inProcess ? { jwks: jwks.keys } : {}),
 		origin: trustedOrigins({ allow: [baseUrl], missing: "allow" }),
 		resource,
 		roles: Roles,
 	}).pipe(Effect.provide(grants));
 	const group = RpcGroup.make();
-	const jwks = jwksEndpoint(mounted.auth);
 	yield* Layer.build(
 		appHost({
 			config: { port },
@@ -107,6 +109,7 @@ const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issue
 		jwks,
 		oauth,
 		resource,
+		signToken: tokens.sign,
 	};
 });
 type Host = Effect.Success<ReturnType<typeof startHost>>;

@@ -2,41 +2,19 @@ import { Effect } from "effect";
 import { act, type ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 export const screenWarnings = expectNoReactWarnings();
-
-export function typeInput(container: HTMLElement, name: string, value: string) {
-	const field = container.querySelector<HTMLInputElement>(`input[name="${name}"]`);
-	if (!field) {
-		throw new Error(`Missing ${name} input`);
-	}
-	Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
-	field.dispatchEvent(new Event("input", { bubbles: true }));
-	field.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-export function clickButton(container: HTMLElement, label: string) {
-	const button = [...container.querySelectorAll("button")].find((candidate) => candidate.textContent === label);
-	if (!button) {
-		throw new Error(`Missing ${label} button`);
-	}
-	button.click();
-}
-
-export function submitForm(container: HTMLElement) {
-	const form = container.querySelector("form");
-	if (!form) {
-		throw new Error("Missing form");
-	}
-	form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-}
 
 export class Screen {
 	readonly roots: Rendered[] = [];
 	tell: (line: string) => void;
 	constructor(tell: (line: string) => void) {
 		this.tell = tell;
+	}
+	driver(root: HTMLElement) {
+		return screenDriver({ act, root, tell: this.tell });
 	}
 	open(node: ReactNode = null, options?: RootOptions) {
 		const roots = this.roots;

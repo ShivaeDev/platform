@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Schema } from "effect";
-import ignore from "ignore";
+import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { ENVIRONMENTS, type TestName, testName } from "#naming/testName.ts";
 import { CAMEL } from "#naming/words.ts";
@@ -79,7 +79,7 @@ function findingsOf(source: SourceFile, siblings: ReadonlySet<string>): readonly
 
 export const testsFollow = defineRule({
 	check: ({ files, options, sources }) => {
-		const suites = ignore().add([...globPatterns(options.suites)]);
+		const suites = ignorePatterns([...globPatterns(options.suites)]);
 		const siblings = siblingsIn(files);
 		return sources.filter((source) => !suites.ignores(source.path)).flatMap((source) => findingsOf(source, siblings));
 	},

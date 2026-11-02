@@ -18,7 +18,7 @@ export const staleBiomeExceptions = Effect.fn("Exceptions.staleBiomeExceptions")
 		entry.rules.includes("biome/files/includes") ? [{ ...entry, rules: ["biome/files/includes"] as const }] : [],
 	);
 	const report = yield* biomeReport(inputs.root, ["check", "--no-errors-on-unmatched"], exclusions, [...new Set(entries.map(({ file }) => file))]);
-	const diagnostics = yield* Effect.promise(() => withoutEntryPointImports(inputs.readText, report.diagnostics));
+	const diagnostics = yield* withoutEntryPointImports(inputs, report.diagnostics);
 	return entries
 		.filter(({ file, rule }) => !diagnostics.some((diagnostic) => diagnostic.location.path === file && `biome/${diagnostic.category}` === rule))
 		.map(
@@ -29,19 +29,20 @@ export const staleBiomeExceptions = Effect.fn("Exceptions.staleBiomeExceptions")
 		);
 });
 
-export async function missingBiomeFiles(inputs: RuleInputs): Promise<readonly Finding[]> {
+const missingBiomeFile = Effect.fn("Exceptions.missingBiomeFile")(function* (inputs: RuleInputs, file: string): Effect.fn.Return<readonly Finding[]> {
+	const text = yield* Effect.promise(() => inputs.readText(file));
+	return text === undefined
+		? [{ file, message: `This Biome exception names a missing file. Remove it from exceptions in ${inputs.configFile ?? "quality.config.ts"}.` }]
+		: [];
+});
+
+export const missingBiomeFiles = Effect.fn("Exceptions.missingBiomeFiles")(function* (inputs: RuleInputs) {
 	const paths = (inputs.exceptions ?? [])
 		.filter((entry) => entry.rules.some((rule) => rule.startsWith("biome/") && rule !== "biome/files/includes"))
 		.flatMap((entry) => entry.files);
-	const checked = await Promise.all(
-		[...new Set(paths)].map(async (file) =>
-			(await inputs.readText(file)) === undefined
-				? [{ file, message: `This Biome exception names a missing file. Remove it from exceptions in ${inputs.configFile ?? "quality.config.ts"}.` }]
-				: [],
-		),
-	);
+	const checked = yield* Effect.forEach([...new Set(paths)], (file) => missingBiomeFile(inputs, file), { concurrency: "unbounded" });
 	return checked.flat();
-}
+});
 
 export function biomeExceptionHint(files: readonly string[], rule: string, config = "quality.config.ts"): string {
 	const entry = { files, reason: "Explain why this exception is permanent.", rules: [`biome/${rule}`] };
