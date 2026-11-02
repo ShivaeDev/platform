@@ -30,7 +30,7 @@ export const restartStory = storyKit({
 				Effect.gen(function* () {
 					story.tell("the host process is killed and a new process starts on the same port while every query remains mounted");
 					const port = state.host.port;
-					yield* Effect.promise(state.host.stop);
+					yield* state.host.stop();
 					state.host = yield* startHost(port);
 				}),
 		};
