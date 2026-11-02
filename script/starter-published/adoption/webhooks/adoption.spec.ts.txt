@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { webhooks } from "#test-support/webhooks.ts";
+import { webhooksStory } from "#adoption/webhooks/test-support/story.ts";
 
-webhooks.it("a signed delivery indexes issue 42 once even when github retries it", [], function* ({ deliver, answer, indexedIssues }) {
+webhooksStory.it("a signed delivery indexes issue 42 once even when github retries it", [], function* ({ deliver, answer, indexedIssues }) {
 	expect(yield* indexedIssues()).toEqual([]);
 
 	yield* deliver();
@@ -20,7 +20,7 @@ webhooks.it("a signed delivery indexes issue 42 once even when github retries it
 	]);
 });
 
-webhooks.it("a wrong signature is refused without indexing an issue and a signed retry can still index it", [], function* ({ deliver, answer, indexedIssues }) {
+webhooksStory.it("a wrong signature is refused without indexing an issue and a signed retry can still index it", [], function* ({ deliver, answer, indexedIssues }) {
 	yield* deliver("invalid");
 
 	yield* outcomes([

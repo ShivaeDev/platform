@@ -102,6 +102,10 @@ The [`notesApp` kit](src/modules/notes/test-support/app.tsx) renders `App` again
 
 To verify the generated app, run `pnpm --filter @shivaedev/starter check:published` from the repository root. It installs the exact versions in `published-versions.json` into temporary folders outside the workspace, checks imports from the framework READMEs and quickstart, packs the create command, generates an app, and runs its Quality lint, typecheck, build, PostgreSQL/authenticated HTTP tests and notes schema check. It exercises published declaration and runtime exports without the workspace's `source` condition. Use the local test database from setup or set `TEST_DATABASE_URL`; the check fails if PostgreSQL is unavailable. Update the version file when adopting another published framework release, then run the check again.
 
+Package adoption proofs live in the Packed starter app. Packages do not add their own adoption jobs or generate another app: the packed check copies sample features into the full app it already installed and runs their lint, typecheck and PostgreSQL/HTTP stories there. Each run logs the added elapsed time, including fixture wiring and checks.
+
+To add an adoption proof, add one folder under [`script/starter-published/adoption`](https://github.com/ShivaeDev/platform/tree/main/script/starter-published/adoption) with `.ts.txt` source files and stories. The runner discovers every folder, copies its files to `src/adoption/<folder>` with the `.txt` suffix removed, registers the `sample.registration` AppModule and mounts `sample.routes(sql)` from its `sample.ts`. Use the webhooks fixture as the example. No additional dependency install is needed: features use the packages brought by Platform. Adoption stories must pass without skips.
+
 Add `--registry` to generate the app with the published `pnpm create @shivaedev/app` command instead of packing the local generator; it cannot be combined with `--archives`. The Published starter workflow runs registry mode on a schedule and after each package publish.
 
 ### Transactional email

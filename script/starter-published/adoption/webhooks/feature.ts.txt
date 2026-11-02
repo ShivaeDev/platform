@@ -12,7 +12,7 @@ import { webhookEvent, webhookJob } from "@shivaedev/webhooks/server/registratio
 import { webhookReceipts } from "@shivaedev/webhooks/server/webhookReceipts.ts";
 
 export const WebhookJobs = makePgBoss("app/WebhookJobs");
-export const IndexIssue = defineQueue({
+const IndexIssue = defineQueue({
 	name: "index-issue",
 	queue: { notify: true },
 	schema: Schema.Struct({ number: Schema.Number }),

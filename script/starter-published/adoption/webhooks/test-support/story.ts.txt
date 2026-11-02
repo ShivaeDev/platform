@@ -1,4 +1,4 @@
-import { ConfigProvider, Context, Effect, Layer, Redacted } from "effect";
+import { ConfigProvider, Context, Effect, Layer, Redacted, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpServer } from "effect/http";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -9,13 +9,13 @@ import { applicationHost } from "#server/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";
-import { sources } from "#server/webhooks.ts";
-import { testPoolSizes } from "./poolSizes.ts";
-import { postgres } from "./postgres.ts";
+import { sources } from "#adoption/webhooks/feature.ts";
+import { testPoolSizes } from "#test-support/poolSizes.ts";
+import { postgres } from "#test-support/postgres.ts";
 
 const signing = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "GITHUB_WEBHOOK_SECRET": "adoption-signing-secret" } }));
 
-export const webhooks = storyKit({
+export const webhooksStory = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	layer: postgres,
@@ -59,7 +59,8 @@ export const webhooks = storyKit({
 			yield* engine.testing.waitForIdle;
 			const client = yield* HttpClient.HttpClient;
 			const response = yield* client.get(`${engine.baseUrl}/indexed-issues`);
-			return yield* response.json;
+			const rows = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ number: Schema.Number })))(yield* response.json);
+			return rows.map(({ number }) => number);
 		}).pipe(Effect.provide(FetchHttpClient.layer)),
 	}),
 });

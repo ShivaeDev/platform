@@ -169,11 +169,4 @@ Applications install `@shivaedev/platform` and import this package by name. Libr
 
 ### Check generated-app adoption
 
-From the Platform repository, build the packages and run the opt-in check with `PLATFORM_JOBS_TEST_DATABASE_URL` pointing at a PostgreSQL test database whose user can create databases:
-
-```sh
-pnpm build
-pnpm --filter @shivaedev/webhooks check:adoption
-```
-
-The check packs workspace packages, generates and installs a minimal app outside the workspace, and adds a webhook source, receipt migrations and a worker to that app's existing host and worker. It typechecks the app and runs focused stories over real HTTP and isolated PostgreSQL databases. A signed delivery produces an indexed issue visible over HTTP; retrying it leaves one result. A wrong signature produces no result, and a signed retry can still run. Without the database URL it skips locally and fails in CI. Pass `--archives <directory>` to reuse archives prepared by `pnpm test:package --prepare <directory>`.
+The [Packed starter check](https://github.com/ShivaeDev/platform/blob/main/examples/starter/README.md) adds a webhook feature to the full app it already generated and installed. The feature registers receipt migrations, a GitHub source, a queue worker and routes in the app's existing host. Its stories send signed HTTP deliveries and read the worker's indexed issue over HTTP; a retry leaves one result. The check requires PostgreSQL and fails if stories skip. Package adoption proofs live in that shared generated app; packages do not add adoption CI jobs or separate app installs.
