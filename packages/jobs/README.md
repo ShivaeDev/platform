@@ -569,6 +569,8 @@ Import the module that defines the name; the package has no root entry.
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
+Queue and scheduled workers reject `perJobResults: true` and `transactional: true` during Layer acquisition with a registration `PgBossError`; its redacted `original` names the unsupported options. Omit these options or set them to `false`. The adapter settles each job itself and does not expose pg-boss's transaction client to handlers.
+
 `Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Workers also require `getDb()` to read the PostgreSQL clock when a batch arrives. Producer-only clients do not need these capabilities. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and listings, deferral and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
 
 `onError` handles pg-boss client `error` events using the services captured by the Layer. The Layer interrupts pending callbacks and waits for them to end before release completes. Only the owning jobs service is supplied automatically; a handler using another jobs definition still requires that definition's Layer.
