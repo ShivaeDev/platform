@@ -1,7 +1,8 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpReply, FakeHttpRoute } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import { zipArchive } from "./zipArchive.ts";
 
-export const ARCHIVE = new Uint8Array([80, 75, 3, 4, 0, 255, 10, 13]);
+export const ARCHIVE = zipArchive([{ content: "Artifact report\n", path: "report.txt" }]);
 
 export function artifactFixture(origin: () => string) {
 	const state: { redirect: FakeHttpReply | undefined; archive: FakeHttpReply } = {

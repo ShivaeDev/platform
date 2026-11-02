@@ -2,6 +2,14 @@ import { DateTime, Effect, Schema } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { RemoteGone, RemoteHttpError, RemoteNotFound, RemoteRateLimited, RemoteUnauthorized, ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
 import {
+	GitHubArtifactCompressionRatio,
+	GitHubArtifactDuplicateEntry,
+	GitHubArtifactExtractedTooLarge,
+	GitHubArtifactExtractionError,
+	GitHubArtifactPathTraversal,
+	GitHubArtifactSymlink,
+} from "#artifactErrors.ts";
+import {
 	GitHubAppError,
 	GitHubArtifactError,
 	GitHubArtifactTooLarge,
@@ -28,6 +36,12 @@ function on<T>(type: abstract new (...args: never[]) => T, phrase: (error: T) =>
 }
 
 const phrases = [
+	on(GitHubArtifactPathTraversal, ({ path }) => `unsafe archive path: ${path}`),
+	on(GitHubArtifactSymlink, ({ path }) => `archive symlink: ${path}`),
+	on(GitHubArtifactDuplicateEntry, ({ path }) => `duplicate archive entry: ${path}`),
+	on(GitHubArtifactCompressionRatio, ({ limit, path }) => `archive entry ${path} exceeds ${limit}:1 compression`),
+	on(GitHubArtifactExtractedTooLarge, ({ limit }) => `extracted archive over ${size(limit)}`),
+	on(GitHubArtifactExtractionError, ({ reason }) => `archive extraction failed: ${reason}`),
 	on(GitHubRateLimited, ({ resource, retryAt }) => `rate limited on ${resource} until ${clockTime(retryAt)}`),
 	on(GitHubPermissionDenied, ({ path }) => `permission denied at ${path}`),
 	on(GitHubConversationLocked, ({ path }) => `conversation locked at ${path}`),

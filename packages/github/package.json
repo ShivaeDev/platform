@@ -61,12 +61,19 @@
 		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
+		"@zip.js/zip.js": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@zip.js/zip.js": "catalog:",
 		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@zip.js/zip.js": {
+			"optional": true
+		}
 	},
 	"engines": {
 		"node": ">=24"

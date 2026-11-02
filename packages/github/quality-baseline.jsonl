@@ -1,5 +1,4 @@
 {"path":"packages/github/package.json","rule":"code/unused","count":1}
-{"path":"packages/github/src/artifacts.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/github/src/markdownRows.ts","rule":"effect/boundary","count":1}
 {"path":"packages/github/src/markdownRows.unit.test.ts","rule":"effect/boundary","count":8}
 {"path":"packages/github/src/renderedReports.spec.ts","rule":"effect/boundary","count":2}

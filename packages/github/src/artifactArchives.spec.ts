@@ -1,5 +1,4 @@
 import { expect } from "vitest";
-import { ARCHIVE } from "#test/artifactFixture.ts";
 import { archiveRejected, storageHoldsTail, storageSignatureExpired, unavailableArtifact } from "#test/artifactTraits.ts";
 import { github } from "#test/github.ts";
 
@@ -13,8 +12,8 @@ github.it(
 	},
 );
 
-github.it("downloading artifact 7 follows GitHub's redirect to storage and returns the archive bytes", [], function* ({ downloadArchive }) {
-	expect(yield* downloadArchive()).toEqual(ARCHIVE);
+github.it("downloading artifact 7 follows GitHub's redirect to storage and extracts its report", [], function* ({ downloadArchive }) {
+	expect(yield* downloadArchive()).toEqual([{ bytes: new TextEncoder().encode("Artifact report\n"), path: "report.txt" }]);
 });
 
 github.it(
