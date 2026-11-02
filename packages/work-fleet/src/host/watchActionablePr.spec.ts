@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { HEAD, MOVED, PR } from "#test/githubResult.ts";
 import { host, storedWork } from "#test/hostStory.ts";
 
-const tracked = storedWork("one", "waiting", { attentionOwner: "automation", result: { head: HEAD, kind: "change", pr: PR } });
+const tracked = storedWork("one", "waiting", { attentionOwner: "automation", result: { head: HEAD, kind: "change", paths: [], pr: PR } });
 
 for (const reason of ["failed_checks", "INTERNAL_ERROR", "TIMED_OUT"]) {
 	host.it(`the default follow watch prints conflicts, ${reason} dequeues and closed PRs without auto-merge chatter`, [tracked], function* (daemon) {
@@ -102,5 +102,21 @@ host.it("--all includes merged PRs and routine queue diagnostics", [tracked], fu
 		expect.objectContaining({ kind: "pr-dequeued", reason: "MANUAL" }),
 		expect.objectContaining({ kind: "pr-auto-merge-off" }),
 		expect.objectContaining({ kind: "pr-merged" }),
+	]);
+});
+
+host.it("an existing PR conflict is actionable before auto-merge or queue entry", [tracked], function* (daemon) {
+	const github = yield* daemon.prApi();
+	github.pull({ "auto_merge": null, mergeable: false, "mergeable_state": "dirty" });
+	github.queue(false);
+
+	yield* daemon.watchDefault({ apiUrl: github.url, follow: true, json: true, prInterval: 0.1 });
+	yield* daemon.awaitEvent("pr-conflict");
+	github.pull({ state: "closed" });
+	yield* daemon.awaitEvent("pr-closed");
+
+	expect(daemon.eventLines()).toEqual([
+		expect.objectContaining({ head: HEAD, kind: "pr-conflict", workId: "one" }),
+		expect.objectContaining({ head: HEAD, kind: "pr-closed", workId: "one" }),
 	]);
 });

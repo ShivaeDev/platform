@@ -16,3 +16,5 @@
 ### Fixed
 
 - `@shivaedev/work-fleet`: Keep ordinary dispatch deferrals, merged PRs, completed work, brief daemon outages, recovering GitHub errors, requeued Board context changes, unsubstantiated release holds and queue-related auto-merge changes quiet in Fleet's default watch.
+
+- `@shivaedev/pr-watch`: Report an existing watched PR conflict before auto-merge or queue entry.

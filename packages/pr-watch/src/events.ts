@@ -18,7 +18,7 @@ function openEvents(before: Snapshot, after: Snapshot): readonly EventKind[] {
 	return transitions.flatMap(([changed, event]) => (changed ? [event] : []));
 }
 export function events(before: Snapshot | undefined, after: Snapshot, selected?: readonly EventKind[]): readonly string[] {
-	if (before === undefined && !stuck(after)) {
+	if (before === undefined && !stuck(after) && !after.dirty) {
 		return [];
 	}
 	const baseline = before ?? { ...after, autoMerge: false, dirty: false, failed: false };

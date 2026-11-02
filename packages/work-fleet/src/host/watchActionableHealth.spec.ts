@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { HEAD, PR } from "#test/githubResult.ts";
 import { host, storedWork } from "#test/hostStory.ts";
 
-const tracked = storedWork("one", "waiting", { attentionOwner: "automation", result: { head: HEAD, kind: "change", pr: PR } });
+const tracked = storedWork("one", "waiting", { attentionOwner: "automation", result: { head: HEAD, kind: "change", paths: [], pr: PR } });
 
 host.it("a recovered GitHub transport failure stays quiet", [tracked], function* (daemon) {
 	const github = yield* daemon.prApi();

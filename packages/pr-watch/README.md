@@ -10,15 +10,15 @@ Polling each PR with a separate process repeats setup and burns quota. `pr-watch
 pr-watch --repo acme/project --fleet
 ```
 
-```json
-{ "branch": "feature", "event": "merged", "number": 42, "title": "Ship the feature" }
+```text
+{"branch":"feature","event":"merged","head":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","number":42,"title":"Ship the feature"}
 ```
 
-Each PR event occupies one JSON line with its PR number, head branch and title. Health lines share stdout so an orchestrator can distinguish a quiet watch from a stopped one.
+Each PR event occupies one JSON line with its PR number, observed head SHA, head branch and title. Health lines share stdout so an orchestrator can distinguish a quiet watch from a stopped one.
 
 ## Run the watcher
 
-Each successful observation compares a PR with its saved snapshot. The first observation establishes a baseline. If the PR is already queued or has auto-merge enabled with conflicts or failing required checks, it immediately emits `stuck` and the corresponding `conflict` or `checks-failed` events. Failed requests and invalid responses retain the previous snapshot. Pending mergeability skips that PR silently, keeps its previous snapshot or discovery-only tracking, and reads it again next round while other PRs continue normally. Checks and queue refs are polled even when the PR detail response is unchanged.
+Each successful observation compares a PR with its saved snapshot. The first observation establishes a baseline and reports any existing conflict, including before auto-merge or queue entry. If the PR is already queued or has auto-merge enabled with conflicts or failing required checks, it immediately emits `stuck` and the corresponding `conflict` or `checks-failed` events. Failed requests and invalid responses retain the previous snapshot. Pending mergeability skips that PR silently, keeps its previous snapshot or discovery-only tracking, and reads it again next round while other PRs continue normally. Checks and queue refs are polled even when the PR detail response is unchanged.
 
 ```sh
 pr-watch --repo acme/project 42 57 --state ./watch-state.json
@@ -40,7 +40,7 @@ The watcher emits these transitions, once per successful comparison:
 | ---------------- | ------------------------------------------------------------------------------------------------------------- |
 | `merged`         | The PR becomes merged.                                                                                        |
 | `closed`         | An open PR closes without merging.                                                                            |
-| `conflict`       | An open PR's mergeable state becomes `dirty`.                                                                 |
+| `conflict`       | An open PR is first observed with a conflict, becomes `dirty`, or has a conflicting new head.                 |
 | `queued`         | An open PR enters the merge queue.                                                                            |
 | `dequeued`       | A previously queued open PR has no queue ref, and its own queue entry and auto-merge request are both absent. |
 | `auto-merge-off` | An open PR's auto-merge is disabled outside the queue after being enabled or queued.                          |
