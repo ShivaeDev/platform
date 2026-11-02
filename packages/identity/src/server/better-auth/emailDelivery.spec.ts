@@ -1,7 +1,8 @@
-import { Effect } from "effect";
+import { Effect, Redacted } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { aliceAccount, approvalRequested, bobAccount, deliveryHeld, emails, twoMinuteWindow } from "#test/better-auth/emails.ts";
+import { aliceAccount, approvalRequested, bobAccount, deliveryHeld, emails, twoMinuteWindow, twoMounts } from "#test/better-auth/emails.ts";
 
 for (const [kind, path] of [
 	["ConfirmAccount", "/confirm-account"],
@@ -26,21 +27,27 @@ for (const [kind, path] of [
 				...(change ? { newEmail: "alice-new@example.test" } : {}),
 				user: { email: kind === "ConfirmNewAddress" ? "alice-new@example.test" : "alice@example.test", name: "alice" },
 			});
-			const link = new URL(message?.url ?? "");
+			const link = new URL(message === undefined ? "" : Redacted.value(message.url));
 			if (message !== undefined && "token" in message) {
-				expect(message.token.length).toBeGreaterThan(0);
-				expect(link.searchParams.get("token")).toBe(message.token);
+				expect(Redacted.value(message.token).length).toBeGreaterThan(0);
+				expect(link.searchParams.get("token")).toBe(Redacted.value(message.token));
 				link.searchParams.delete("token");
 			}
 			expect(link.href).toBe(`https://app.example.test${path}`);
 		},
 	);
 
-	emails.it(`${kind} is delivered once for concurrent requests inside the default window`, traits, function* ({ request, messages }) {
-		yield* Effect.all([request(kind), request(kind)], { concurrency: "unbounded" });
+	emails.it(
+		`${kind} is delivered once across concurrent mounts and both callers return normally`,
+		[...traits, twoMounts],
+		function* ({ request, messages }) {
+			const responses = yield* Effect.all([request(kind), request(kind, "alice", "second")], { concurrency: "unbounded" });
 
-		expect(yield* messages(kind)).toMatchObject([{ _tag: kind }]);
-	});
+			expect(responses).toEqual([HttpStatus.fromLiteral("OK"), HttpStatus.fromLiteral("OK")]);
+
+			expect(yield* messages(kind)).toMatchObject([{ _tag: kind }]);
+		},
+	);
 }
 
 emails.it("the default window permits another account and another message kind", [aliceAccount(), bobAccount], function* ({ request, messages }) {
@@ -55,24 +62,35 @@ emails.it("the default window permits another account and another message kind",
 	]);
 });
 
-for (const [traits, duration] of [
-	[[], "1 minute"],
-	[[twoMinuteWindow], "2 minutes"],
+for (const [traits, label] of [
+	[[], "default"],
+	[[twoMinuteWindow], "configured"],
 ] as const) {
-	emails.it(`the email window permits delivery again at ${duration}`, [...traits, aliceAccount()], function* ({ request, messages, timePasses }) {
+	emails.it(`an expired ${label} email window permits delivery again`, [...traits, aliceAccount()], function* ({ request, messages, expireWindows }) {
 		yield* request("ResetPassword");
 		expect(yield* messages("ResetPassword")).toMatchObject([{ _tag: "ResetPassword" }]);
 
-		yield* timePasses(duration === "1 minute" ? "59 seconds" : "119 seconds");
-		yield* request("ResetPassword");
-		expect(yield* messages("ResetPassword")).toMatchObject([{ _tag: "ResetPassword" }]);
-
-		yield* timePasses("1 second");
+		yield* expireWindows();
 		yield* request("ResetPassword");
 
 		expect(yield* messages("ResetPassword")).toMatchObject([{ _tag: "ResetPassword" }, { _tag: "ResetPassword" }]);
 	});
 }
+
+emails.it(
+	"a rebuilt mount suppresses delivery and returns normally within the window",
+	[aliceAccount()],
+	function* ({ request, messages, rebuildMount }) {
+		yield* request("ResetPassword");
+		expect(yield* messages("ResetPassword")).toMatchObject([{ user: { name: "alice" } }]);
+
+		yield* rebuildMount();
+		const response = yield* request("ResetPassword");
+
+		expect(response).toBe(HttpStatus.fromLiteral("OK"));
+		expect(yield* messages("ResetPassword")).toMatchObject([{ user: { name: "alice" } }]);
+	},
+);
 
 emails.it(
 	"changing the destination cannot bypass the account's approval window",
@@ -86,19 +104,23 @@ emails.it(
 	},
 );
 
-emails.it("a failed delivery reserves its window until expiry", [aliceAccount()], function* ({ deliveryAvailable, request, messages, timePasses }) {
-	yield* deliveryAvailable(false);
-	yield* request("ResetPassword");
-	expect(yield* messages("ResetPassword")).toEqual([]);
-	yield* deliveryAvailable(true);
+emails.it(
+	"a failed delivery reserves its window until expiry",
+	[aliceAccount()],
+	function* ({ deliveryAvailable, request, messages, expireWindows }) {
+		yield* deliveryAvailable(false);
+		yield* request("ResetPassword");
+		expect(yield* messages("ResetPassword")).toEqual([]);
+		yield* deliveryAvailable(true);
 
-	yield* request("ResetPassword");
+		yield* request("ResetPassword");
 
-	expect(yield* messages("ResetPassword")).toEqual([]);
-	yield* timePasses("1 minute");
-	yield* request("ResetPassword");
-	expect(yield* messages("ResetPassword")).toMatchObject([{ _tag: "ResetPassword" }]);
-});
+		expect(yield* messages("ResetPassword")).toEqual([]);
+		yield* expireWindows();
+		yield* request("ResetPassword");
+		expect(yield* messages("ResetPassword")).toMatchObject([{ _tag: "ResetPassword" }]);
+	},
+);
 
 emails.it(
 	"an in-flight delivery reserves the account's window",

@@ -10,7 +10,7 @@ const cappedRun = { batchSize: 2000, maxRows: 5500, pause: "1 millis", where: {}
 const lockedIds = [1] as const;
 
 purges.it(
-	"retention removes 50,000 matching rows in 50 independent batches with one table hint and refresh per batch",
+	"retention removes 50,000 matching rows in 50 independent batches with one collection hint and refresh per batch",
 	[storedRows(purges, RETAINED_ROWS + RECENT_ROWS)],
 	function* ({ purge, remaining, retainedIds, deletedPerBatch, batchTransactions, hints, refreshes }) {
 		expect(yield* remaining()).toBe(RETAINED_ROWS + RECENT_ROWS);
@@ -22,7 +22,7 @@ purges.it(
 			["retained rows", () => retainedIds(), Array.from({ length: 10 }, (_, i) => 50_001 + i)],
 			["rows per batch", () => deletedPerBatch(), Array.from({ length: 50 }, () => 1000)],
 			["committed batch transactions", () => batchTransactions(), 50],
-			["published hints", () => hints(), Array.from({ length: 50 }, () => ["the table"])],
+			["published hints", () => hints(), Array.from({ length: 50 }, () => ["the table", "all item and bucket readers"])],
 			["live query refreshes", () => refreshes(), 50],
 		]);
 	},
@@ -38,7 +38,15 @@ purges.it(
 		yield* outcomes([
 			["remaining matching rows", () => remaining(), 44_500],
 			["capped batches", () => deletedPerBatch(), [2000, 2000, 1500]],
-			["table hints", () => hints(), [["the table"], ["the table"], ["the table"]]],
+			[
+				"table hints",
+				() => hints(),
+				[
+					["the table", "all item and bucket readers"],
+					["the table", "all item and bucket readers"],
+					["the table", "all item and bucket readers"],
+				],
+			],
 		]);
 	},
 );
@@ -73,7 +81,7 @@ purges.it(
 		yield* outcomes([
 			["remaining rows", () => remaining(), 2000],
 			["committed batches", () => deletedPerBatch(), [1000]],
-			["published hints", () => hints(), [["the table"]]],
+			["published hints", () => hints(), [["the table", "all item and bucket readers"]]],
 		]);
 		expect(yield* purge(options)).toBe(options.maxRows - options.batchSize);
 	},

@@ -4,7 +4,7 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import { changedHint } from "#internal/queryHints.ts";
 import type { LiveHint } from "#live.ts";
 import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
-import type { QueryResult, QueryUpdate } from "#queryUpdate.ts";
+import type { QueryResult, QueryUnchanged, QueryUpdate } from "#queryUpdate.ts";
 import type { QueryRequest } from "#serverMetadata.ts";
 
 function hintsFor(hint: LiveHint, subscription: QuerySubscription<unknown, unknown>): readonly LiveHint[] {
@@ -40,7 +40,7 @@ export function compareQueries<E, R>(subscription: QuerySubscription<unknown, un
 		const digest = yield* crypto.digest("SHA-256", new TextEncoder().encode(JSON.stringify(encoded))).pipe(Effect.orDie);
 		const hash = Hex.encode(digest);
 		if (hash === hashes.get(index)) {
-			return undefined;
+			return { _tag: "Unchanged", queryIndex: index } satisfies QueryUnchanged;
 		}
 		hashes.set(index, hash);
 		return { _tag: "Result", query: request.query.name, queryIndex: index, value } satisfies QueryResult;
@@ -56,9 +56,7 @@ export function compareQueries<E, R>(subscription: QuerySubscription<unknown, un
 			);
 		for (const { index, request } of matching) {
 			const result = yield* resultFor(request, index);
-			if (result !== undefined) {
-				updates.push(result);
-			}
+			updates.push(result);
 		}
 		return [...updates, ...hintsFor(hint, subscription)];
 	});

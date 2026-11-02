@@ -1,4 +1,4 @@
-import { Effect, Stream, SubscriptionRef } from "effect";
+import { Effect, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -6,7 +6,7 @@ import { until } from "@shivaedev/test-story/server/until.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import type { QueryReference } from "#serverMetadata.ts";
 import { answered, failure, thrown, times } from "./answers.ts";
-import { reRead } from "./reRead.ts";
+import { markQuery, reRead } from "./reRead.ts";
 import { type Person, type PreferenceView, type SessionEngine, sessionEngine } from "./sessionEngine.ts";
 import { settled } from "./settled.ts";
 
@@ -43,10 +43,9 @@ function readsOf(engine: SessionEngine, person: Person, view: PreferenceView) {
 
 // Actions mark each watched view first, so a later wait for its re-read cannot miss one that finished before the wait began.
 function mark(engine: SessionEngine) {
-	const reads = Effect.runSync(SubscriptionRef.get(engine.reads));
 	for (const [key, { person, view }] of engine.mounted) {
 		const client = engine.clients[person];
-		engine.marked.set(key, { reads: countOf(reads, person, view), shown: client.registry.get(client.view(view)) });
+		engine.marked.set(key, markQuery(client.registry, client.view(view)));
 	}
 }
 
@@ -168,12 +167,7 @@ export const sessionStory = storyKit({
 				story.tell(`${person}'s ${view} are re-read and the new value reaches the view`);
 				const client = engine.clients[person];
 				const atom = client.view(view);
-				yield* reRead(
-					client.registry,
-					atom,
-					Stream.map(SubscriptionRef.changes(engine.reads), (reads) => countOf(reads, person, view)),
-					engine.marked.get(`${person} ${view}`),
-				);
+				yield* reRead(client.registry, atom, engine.marked.get(`${person} ${view}`));
 			}),
 	}),
 });

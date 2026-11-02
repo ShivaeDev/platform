@@ -1,14 +1,12 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Layer, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { test } from "vitest";
 import { postgresTestUrl } from "#adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "#postgres.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_TEST_SQL_TEST_DATABASE_URL");
 
 export { configured };
-export const integration = configured ? test : test.skip;
 export const adminUrl = Redacted.make(url ?? "postgresql://integration-tests-disabled");
 
 export function setup() {

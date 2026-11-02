@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { authEmailApp } from "#test-support/authEmailApp.tsx";
@@ -45,5 +46,18 @@ authEmailApp.it(
 			["reset screen", screenStatus, "Password changed. Sign in"],
 			["sign-in with the new password", () => signsIn("alice-replacement-password"), "signed in as alice@app.test"],
 		]);
+	},
+);
+
+authEmailApp.it(
+	"a repeated confirmation request returns normally and sends alice one email",
+	[],
+	function* ({ deliveredEmails, requestsConfirmation }) {
+		yield* requestsConfirmation();
+
+		const response = yield* requestsConfirmation();
+
+		expect(response).toBe(HttpStatus.fromLiteral("OK"));
+		expect(yield* deliveredEmails()).toEqual(["Confirm your account for alice@app.test at http://127.0.0.1:5173/auth/confirm"]);
 	},
 );

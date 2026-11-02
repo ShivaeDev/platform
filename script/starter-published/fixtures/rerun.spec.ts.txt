@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { it } from "vitest";
+
+it("generated test script holds the lock and recovers in a fresh process", () => {
+	assert.ok(process.env.HEAVY_PROCESS_LOCK_ID, "test must hold the heavy lock");
+	const held = JSON.parse(readFileSync(process.env.HEAVY_PROCESS_LOCK!, "utf8"));
+	assert.equal(held.id, process.env.HEAVY_PROCESS_LOCK_ID);
+	const previous = join(process.env.TOOLING_PROBE_DIR!, "first-pid");
+	if (!existsSync(previous)) {
+		writeFileSync(previous, String(process.pid));
+		throw new Error("Generated app test must rerun");
+	}
+	assert.notEqual(String(process.pid), readFileSync(previous, "utf8"));
+});

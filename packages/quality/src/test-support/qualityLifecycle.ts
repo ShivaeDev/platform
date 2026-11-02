@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Deferred, Effect, Fiber } from "effect";
-import type { ChildProcessSpawner } from "effect/process";
+import { ConfigProvider, Console, type Context, Deferred, Effect, Fiber } from "effect";
+import { ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { exitCode, services } from "#cli/runMain.ts";
-import { type Output, qualityArgs } from "./cli.ts";
+import { program } from "#cli/program.ts";
+import { exitCode, explained, services } from "#cli/runMain.ts";
+import { capturing, type Output, qualityArgs } from "./cli.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
 import { ISOLATED_ENV } from "./git.ts";
 import { config, defaultTree, removeSeededTrees } from "./tree.ts";
@@ -13,6 +14,7 @@ import { config, defaultTree, removeSeededTrees } from "./tree.ts";
 export interface RunningTool {
 	readonly child: ChildProcessSpawner.ChildProcessHandle;
 	readonly path: string;
+	readonly sourceConfig?: string;
 }
 
 export interface Lifecycle {
@@ -44,6 +46,16 @@ function runningTool(engine: Lifecycle): Effect.Effect<RunningTool> {
 	return Deferred.await(engine.started);
 }
 
+export function startQuality(engine: Lifecycle, spawner: Context.Service.Shape<typeof ChildProcessSpawner.ChildProcessSpawner>) {
+	return program(["lint"], { cwd: engine.root, launch: { options: [], script: "quality" } }).pipe(
+		explained,
+		Effect.provideService(ConfigProvider.ConfigProvider, ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": join(engine.root, "heavy.lock") } })),
+		Effect.provideService(Console.Console, capturing(engine.output)),
+		Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+		Effect.forkScoped,
+	);
+}
+
 export const qualityLifecycle = storyKit({
 	clock: "live",
 	*create() {
@@ -66,7 +78,6 @@ export const qualityLifecycle = storyKit({
 		const cli = cliVerbs(engine, story.tell);
 		return {
 			...cli,
-			biomeIsRunning: () => Effect.flatMap(runningTool(engine), ({ child }) => child.isRunning),
 			interrupts: Effect.fn("QualityLifecycle.interrupts")(function* () {
 				story.tell("the author interrupts quality");
 				if (engine.fiber === undefined) {
@@ -83,7 +94,10 @@ export const qualityLifecycle = storyKit({
 					return closedReaderRun(engine, args);
 				}),
 			promiseSignalAborted: () => Effect.sync(() => engine.promiseSignal?.aborted),
-			temporaryBiomeConfigExists: () => Effect.map(runningTool(engine), ({ path }) => existsSync(path)),
+			temporaryKnipSourceConfigExists: () =>
+				Effect.map(runningTool(engine), ({ sourceConfig }) => sourceConfig !== undefined && existsSync(sourceConfig)),
+			temporaryToolConfigExists: () => Effect.map(runningTool(engine), ({ path }) => existsSync(path)),
+			toolIsRunning: () => Effect.flatMap(runningTool(engine), ({ child }) => child.isRunning),
 		};
 	},
 });

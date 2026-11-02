@@ -5,6 +5,11 @@ import { observeUntil } from "#observeUntil.ts";
 import type { CleanupEngine } from "./cleanup.ts";
 import { attempt } from "./outcome.ts";
 
+export function dropOnStoryEnd(state: CleanupEngine, name: string) {
+	const admin = state.engine.admin;
+	return Effect.addFinalizer(() => Effect.orDie(admin`drop database if exists ${admin(name)} with (force)`));
+}
+
 export function cleanupRole(state: CleanupEngine) {
 	return new URL(Redacted.value(state.engine.options.url)).username;
 }

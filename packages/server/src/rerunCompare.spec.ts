@@ -3,15 +3,19 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { Note, notes } from "#test/rerun/fixture.ts";
 import { mixedSubscription, pageOpen, rerunStory } from "#test/rerun/story.ts";
 
-rerunStory.it("a change excluded by alice's filter sends no result or hint about that change", [], function* ({ arrivals, rename, untilChanged }) {
-	const initial = [{ _tag: "Result", query: "compare", queryIndex: 0, value: [new Note({ id: 1n, owner: "alice", title: "One" })] }];
-	expect(yield* arrivals()).toEqual(initial);
+rerunStory.it(
+	"a change excluded by alice's filter acknowledges completion without a result or change hint",
+	[],
+	function* ({ arrivals, rename, untilChanged }) {
+		const initial = [{ _tag: "Result", query: "compare", queryIndex: 0, value: [new Note({ id: 1n, owner: "alice", title: "One" })] }];
+		expect(yield* arrivals()).toEqual(initial);
 
-	yield* rename(3n, "Still excluded");
-	yield* untilChanged();
+		yield* rename(3n, "Still excluded");
+		yield* untilChanged();
 
-	expect(yield* arrivals()).toEqual(initial);
-});
+		expect(yield* arrivals()).toEqual([...initial, { _tag: "Unchanged", queryIndex: 0 }]);
+	},
+);
 
 rerunStory.it(
 	"contract's LiveServer Layer pushes a change into alice's hosted query without a client read",
@@ -49,13 +53,13 @@ rerunStory.it(
 	},
 );
 
-rerunStory.it("a Resync reruns the subscription without sending an unchanged result", [], function* ({ arrivals, resync, untilChanged }) {
+rerunStory.it("a Resync acknowledges its completed rerun without sending an unchanged result", [], function* ({ arrivals, resync, untilChanged }) {
 	const before = yield* arrivals();
 
 	yield* resync();
 	yield* untilChanged();
 
-	expect(yield* arrivals()).toEqual(before);
+	expect(yield* arrivals()).toEqual([...before, { _tag: "Unchanged", queryIndex: 0 }]);
 });
 
 rerunStory.it("a query without the option refetches after a matching change", [], function* ({ clientReads, openHinted, rename, untilHinted }) {
@@ -82,7 +86,7 @@ rerunStory.it(
 );
 
 rerunStory.it(
-	"a mixed subscription hints only the query that uses hint-and-refetch",
+	"a mixed subscription acknowledges its unchanged query and hints only the query that refetches",
 	[mixedSubscription],
 	function* ({ mixedArrivals, rename, untilMixedHint }) {
 		const initial = [
@@ -94,6 +98,10 @@ rerunStory.it(
 		yield* rename(3n, "Still excluded");
 		yield* untilMixedHint();
 
-		expect(yield* mixedArrivals()).toEqual([...initial, { _tag: "Changed", keys: [notes.bucket.owner("alice")], queryIndexes: [1] }]);
+		expect(yield* mixedArrivals()).toEqual([
+			...initial,
+			{ _tag: "Unchanged", queryIndex: 0 },
+			{ _tag: "Changed", keys: [notes.bucket.owner("alice")], queryIndexes: [1] },
+		]);
 	},
 );

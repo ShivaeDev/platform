@@ -4,7 +4,7 @@ import type { EffectClock, EffectTestOptions } from "@shivaedev/test/types.ts";
 import { compose } from "#internal/compose.ts";
 import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#internal/compositionTypes.ts";
 import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#internal/hooked.ts";
-import type { AfterResults, InferredDefinition } from "#internal/hookInference.ts";
+import type { AfterResults, AfterServices, InferredDefinition } from "#internal/hookInference.ts";
 import type { LooseDefinition } from "#internal/seed.ts";
 import { storyIt } from "#internal/storyIt.ts";
 import { type Parts, trait, traits } from "#internal/traits.ts";
@@ -47,7 +47,7 @@ export interface StoryKitDefinition<
 	TFailed extends AnyEffect,
 	TDiagnose extends AnyEffect,
 > {
-	readonly after?: { readonly [TKey in keyof TAfter]: EffectHook<[engine: TEngine], TAfter[TKey] & AnyEffect, void> };
+	readonly after?: { readonly [TKey in keyof TAfter]: EffectHook<[engine: TEngine], TAfter[TKey] & AnyEffect, unknown> };
 	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | NoInfer<TProvided> | Crypto.Crypto | Scope.Scope>;
 	readonly clock?: EffectClock;
 	readonly create: EffectHook<[], TCreate, TEngine>;
@@ -115,7 +115,7 @@ export function storyKit<
 	TInspect extends (engine: HookValue<ReturnType<TCreate>>) => unknown = (engine: HookValue<ReturnType<TCreate>>) => unknown,
 >(
 	definition: InferredDefinition<TCreate, TStage, TVerbs, TProvided, TAfter, TStep, TFailed, TDiagnose, TInspect>,
-): StoryKit<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided>;
+): StoryKit<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided | AfterServices<TAfter>>;
 export function storyKit<const TKits extends KitList>(definition: Composition<TKits>): ComposedKit<TKits>;
 // TypeScript reports the last overload's error, so it must check both definition shapes.
 export function storyKit<
@@ -131,7 +131,7 @@ export function storyKit<
 	const TKits extends KitList = KitList,
 >(
 	definition: InferredDefinition<TCreate, TStage, TVerbs, TProvided, TAfter, TStep, TFailed, TDiagnose, TInspect> | Composition<TKits>,
-): StoryKit<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided> | ComposedKit<TKits>;
+): StoryKit<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided | AfterServices<TAfter>> | ComposedKit<TKits>;
 export function storyKit(input: LooseDefinition | Composition<KitList>): unknown {
 	const definition = "extends" in input ? compose(input.name, input.extends) : input;
 	return {

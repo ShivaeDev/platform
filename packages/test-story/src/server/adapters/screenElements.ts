@@ -6,6 +6,11 @@ import { screenQueries } from "./screenQueries.ts";
 export function screenElements(root: () => HTMLElement, dialogs = true) {
 	const queries = screenQueries(root, dialogs);
 	function rendered(found: HTMLElement, selector: string) {
+		if (!found.isConnected) {
+			throw new Error(
+				`The screen's ${selector} is detached from the document.\nhelp: Find the target again in the current screen before acting on or reading it.`,
+			);
+		}
 		if (!isRendered(found)) {
 			throw new Error(`The screen's ${selector} is not rendered.\nhelp: Reveal the target and its ancestors before acting on or reading it.`);
 		}
@@ -13,7 +18,7 @@ export function screenElements(root: () => HTMLElement, dialogs = true) {
 	}
 	function element(selector: ScreenTarget) {
 		if (typeof selector !== "string") {
-			return queries.roleElement(selector);
+			return rendered(queries.roleElement(selector), targetName(selector));
 		}
 		const matches = queries.query(selector);
 		const found = matches[0];

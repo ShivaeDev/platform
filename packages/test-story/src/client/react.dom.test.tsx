@@ -1,87 +1,70 @@
-import { Cause, Clock, Effect, Exit } from "effect";
-import { afterAll, expect, vi } from "vitest";
-import { withLive } from "@shivaedev/test/withLive.ts";
-import { isolatedMounts, pendingResultScreen, testing } from "#test/reactRendering.ts";
-import { eventually } from "./react.ts";
+import { afterAll, expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
+import { isolatedMounts, pendingResultScreen, testing, warningRestoration } from "#test/reactRendering.ts";
 
-const originalError = console.error;
 afterAll(() => {
-	expect(console.error).toBe(originalError);
-	expect(vi.isMockFunction(console.error)).toBe(false);
+	expect(warningRestoration()).toBe("restored");
 });
+
 testing.it(
-	"eventually reports the last assertion and elapsed live time",
+	"screen settlement renders native atom results without advancing the story clock",
 	[pendingResultScreen()],
-	function* ({ first }) {
-		const { container } = first();
-		const started = yield* withLive(Clock.currentTimeMillis);
-		let attempts = 0;
-		let lastFailure: unknown;
-		const result = yield* Effect.exit(
-			eventually(() => {
-				attempts += 1;
-				try {
-					expect(`${container.querySelector("output")?.textContent} attempt ${attempts}`).toBe("ready");
-				} catch (error) {
-					lastFailure = error;
-					throw error;
-				}
-			}),
-		);
-		const elapsed = (yield* withLive(Clock.currentTimeMillis)) - started;
-		expect(elapsed).toBeGreaterThanOrEqual(3000);
-		expect(attempts).toBeGreaterThan(1);
-		expect(result._tag).toBe("Failure");
-		const failure = Exit.isFailure(result) ? Cause.squash(result.cause) : undefined;
-		expect(failure).toBeInstanceOf(Error);
-		expect(failure).toHaveProperty("cause", lastFailure);
-		expect(failure).toHaveProperty("message", expect.stringContaining(`attempt ${attempts}`));
-		const reported = failure instanceof Error ? Number(/after (?<elapsed>\d+)ms/u.exec(failure.message)?.groups?.elapsed) : 0;
-		expect(reported).toBeGreaterThanOrEqual(3000);
-		expect(reported).toBeLessThanOrEqual(elapsed);
-		expect(yield* Clock.currentTimeMillis).toBe(0);
-	},
-	{ clock: "test" },
-);
-testing.it(
-	"yieldable assertions let native atom results render without advancing the story clock",
-	[pendingResultScreen()],
-	function* ({ first, answer }) {
-		const { container } = first();
-		yield* eventually(() => {
-			expect(container.querySelector("output")?.textContent).toBe("");
-		});
+	function* ({ answer, settle, shown, storyTime }) {
+		expect(yield* shown()).toBe("");
+
 		yield* answer("Morning walk");
-		yield* eventually(() => {
-			expect(container.querySelector("output")?.textContent).toBe("Morning walk");
-		});
-		expect(yield* Clock.currentTimeMillis).toBe(0);
+		yield* settle();
+
+		expect(yield* shown()).toBe("Morning walk");
+		expect(yield* storyTime()).toBe(0);
 	},
 	{ clock: "test" },
 );
+testing.it("mounts isolate native atom registries", [isolatedMounts()], function* ({ shown, registrySharing, resources }) {
+	yield* outcomes([
+		["registry sharing", () => registrySharing(), "isolated"],
+		["first screen", () => shown("first"), "first:1"],
+		["second screen", () => shown("second"), "second:2"],
+		["native resources", () => resources(), { acquired: 2, released: 0 }],
+	]);
+});
+
+testing.it("rerender preserves the mount's native resources", [isolatedMounts()], function* ({ shown, resources, relabel }) {
+	expect(yield* shown("first")).toBe("first:1");
+
+	yield* relabel("updated:");
+
+	yield* outcomes([
+		["rerendered screen", () => shown("first"), "updated:1"],
+		["native resources", () => resources(), { acquired: 2, released: 0 }],
+	]);
+});
+
 testing.it(
-	"rerender shares a registry; mounts isolate and unmount disposes native resources",
+	"unmount disposes each mount's native resources only once",
 	[isolatedMounts()],
-	function* ({ first: firstMount, second: secondMount, resources, relabel, closeFirst, closeSecond }) {
-		const first = firstMount();
-		const second = secondMount();
-		expect(first.registry).not.toBe(second.registry);
-		expect(first.container.textContent).toBe("first:1");
-		expect(second.container.textContent).toBe("second:2");
-		yield* relabel();
-		expect(first.container.textContent).toBe("updated:1");
-		expect(resources().acquired).toBe(2);
+	function* ({ shown, attachment, resources, closeFirst, closeSecond }) {
+		expect((yield* resources()).released).toBe(0);
+
 		yield* closeFirst();
-		expect(first.container.isConnected).toBe(false);
-		expect(first.container.childNodes).toHaveLength(0);
-		expect(resources().released).toBe(1);
+
+		yield* outcomes([
+			["first mount", () => attachment("first"), "detached"],
+			["first screen", () => shown("first"), ""],
+			["released resources", () => resources(), { released: 1 }],
+			["second screen", () => shown("second"), "second:2"],
+		]);
+
 		yield* closeFirst();
-		expect(resources().released).toBe(1);
-		expect(second.container.textContent).toBe("second:2");
+
+		expect((yield* resources()).released).toBe(1);
+
 		yield* closeSecond();
-		expect(resources().released).toBe(2);
+
+		expect((yield* resources()).released).toBe(2);
 	},
 );
-testing.it.fails("console.error fails a story and the spy is restored afterwards", [], function* ({ warn }) {
+
+testing.it.fails("console.error fails a story", [], function* ({ warn }) {
 	yield* warn();
 });

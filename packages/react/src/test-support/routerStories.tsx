@@ -1,9 +1,12 @@
+import { RegistryContext } from "@effect/atom-react";
 import { RouterProvider } from "@tanstack/react-router";
 import { Deferred, Effect } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { idleRegistry } from "./idleRegistry.ts";
 import { routerApp } from "./routerApp.ts";
 import { type NoteFailure, type NoteMissing, routerClient } from "./routerClient.ts";
 import { type Screen, screenWarnings } from "./Screen.ts";
@@ -15,6 +18,7 @@ interface State {
 	marked?: { readonly input: Element | null; readonly shell: Element | null };
 	root?: Rendered;
 	router?: ReturnType<typeof routerApp>;
+	wrongRetry?: boolean;
 }
 
 function current(state: State) {
@@ -79,9 +83,24 @@ function routeVerbs(state: State, screen: Screen) {
 					void router.invalidate();
 				})
 				.pipe(Effect.andThen(requestArrives(state, screen))),
+		clickRetry: () =>
+			screen
+				.driver(current(state).root.container)
+				.click({ name: "Retry", role: "button" })
+				.pipe(Effect.andThen(settle(state, screen))),
 		clientRuntimes: () => Effect.sync(() => state.client.builds()),
+		failedQuery: (page = 1) =>
+			Effect.sync(() => {
+				const atom = state.client.api.get.query({ id: "first", page });
+				return current(state).router.options.context.registry.getNodes().has(atom) ? "held" : "released";
+			}),
 		firstFrame: () => Effect.sync(() => state.client.frames[0] ?? "none"),
 		heading: () => Effect.sync(() => text(state, "h1")),
+		idleWindowPasses: () => screen.act("the registry sweeps its idle atoms", () => idleRegistry(current(state).router.options.context.registry)),
+		leave: () =>
+			screen
+				.act("leave the failed note route", () => current(state).router.navigate({ to: "/no-access" }))
+				.pipe(Effect.andThen(settle(state, screen))),
 		location: () => Effect.sync(() => current(state).router.state.location.href),
 		navigating: () => Effect.sync(() => text(state, "[data-pending]")),
 		openSecondNote: () =>
@@ -105,6 +124,11 @@ function routeVerbs(state: State, screen: Screen) {
 				.pipe(Effect.andThen(requestArrives(state, screen)));
 		},
 		routeError: () => Effect.sync(() => current(state).router.state.matches.at(-1)?.error),
+		serverRecovers: (title: string, page = 1) =>
+			screen.act(`the server can now answer note first page ${page}: ${title}`, () => {
+				state.client.next("first", page);
+				return Effect.runPromise(Deferred.succeed(state.client.gate("first", page), { id: "first", title }));
+			}),
 		shell: () =>
 			Effect.sync(() => ({
 				draft: current(state).root.container.querySelector<HTMLInputElement>('[name="shell"]')?.value ?? "missing",
@@ -129,14 +153,26 @@ function* openRoute(
 	viewerPage = 1,
 	wait: "request" | "settled" = "request",
 ) {
+	const registry = yield* Effect.acquireRelease(
+		Effect.sync(() => AtomRegistry.make({ "defaultIdleTTL": 400 })),
+		(held) => Effect.sync(() => held.dispose()),
+	);
 	const root = yield* screen.open(
 		null,
 		expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === expectedFailure) } : undefined,
 	);
 	state.root = root;
-	const router = routerApp(root.registry, state.client, initial, viewerPage);
+	const router = routerApp(registry, state.client, initial, viewerPage, state.wrongRetry);
 	state.router = router;
-	yield* Effect.promise(() => act(() => root.render(<RouterProvider router={router} />)));
+	yield* Effect.promise(() =>
+		act(() =>
+			root.render(
+				<RegistryContext.Provider value={registry}>
+					<RouterProvider router={router} />
+				</RegistryContext.Provider>,
+			),
+		),
+	);
 	if (wait === "settled") {
 		yield* settle(state, screen);
 	} else {
@@ -192,6 +228,14 @@ function* failLoader(engine: Engine, failure: NoteMissing, draft: string, page: 
 export function loaderFailed(failure: NoteMissing, draft: string, page = 1) {
 	return routes.trait("screen", `the note's page ${page} loader failed as ${failure._tag} and the shell input holds ${draft}`, (engine) =>
 		failLoader(engine, failure, draft, page),
+	);
+}
+
+export function retryTargetsOtherQuery() {
+	return routes.trait("screen", "Retry is wired to the second note's query", ({ state }) =>
+		Effect.sync(() => {
+			state.wrongRetry = true;
+		}),
 	);
 }
 

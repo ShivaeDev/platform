@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { refusal, refusalOf } from "#test/attempt.ts";
 import { interactionScreen } from "#test/interactionScreen.tsx";
 
@@ -74,3 +74,17 @@ interactionScreen.it("reads a select's chosen value and option values and labels
 interactionScreen.it("refuses a selection readout on a text field", [], function* ({ selection }) {
 	expect(yield* refusalOf(() => selection({ name: "Name", role: "textbox" }))).toBe('threw: The screen\'s textbox named "Name" is not a select.');
 });
+
+for (const [lookup, target, refused] of [
+	["CSS", "input", "died: The screen's input is detached from the document."],
+	["role and name", { name: "Name", role: "textbox" }, 'died: The screen\'s textbox named "Name" is detached from the document.'],
+] as const) {
+	interactionScreen.it(`refuses a detached target selected by ${lookup}`, [], function* ({ detachesScreen, previousScreen }) {
+		expect(previousScreen.value(target)).toBe("");
+
+		yield* detachesScreen();
+
+		const result = yield* refusal(previousScreen.enter(target, "Morning walk"));
+		expect(result).toBe(refused);
+	});
+}

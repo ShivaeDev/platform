@@ -1,0 +1,52 @@
+import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+import { Effect, Layer, Option, Schema } from "effect";
+import { McpClient, McpProtocol, McpSchema, McpServer, Tool, Toolkit } from "effect/ai";
+import { FetchHttpClient, HttpRouter } from "effect/http";
+import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { mcpRoutes } from "@shivaedev/mcp/routes.ts";
+
+const require = createRequire(import.meta.url);
+for (const context of [require, createRequire(require.resolve("@shivaedev/mcp/routes.ts")), createRequire(require.resolve("@shivaedev/identity/server/SessionPolicy.ts"))]) {
+  for (const peer of ["better-auth", "@better-auth/oauth-provider"]) {
+    assert.throws(() => context.resolve(peer), { code: "MODULE_NOT_FOUND" });
+  }
+}
+const Tools = Toolkit.make(Tool.make("caller", { dependencies: [Identity, SessionUser], success: Schema.String }));
+const tools = McpServer.toolkit(Tools).pipe(Layer.provide(Tools.toLayer({
+  caller: () => Effect.gen(function* () {
+    return `${(yield* Identity).id}: ${(yield* SessionUser).email}`;
+  }),
+})));
+const sessions = Layer.succeed(SessionPolicy, {
+  origin: () => true,
+  provider: { get: (headers) => Effect.succeed(headers["x-app-key"] === "app-secret"
+    ? Option.some({ user: { id: "alice", email: "alice@app.test", name: "Alice", role: "user" } })
+    : Option.none()) },
+});
+const app = HttpRouter.toWebHandler(mcpRoutes({
+  audiences: [{ tools }], name: "Packed application", path: "/mcp",
+  resourceMetadataUrl: "https://app.test/resource", version: "1",
+}).pipe(HttpRouter.provideRequest(sessions)), { disableLogger: true });
+try {
+  const refused = await app.handler(new Request("https://app.test/mcp"));
+  assert.equal(refused.status, 401);
+  const answer = await Effect.runPromise(Effect.gen(function* () {
+    const client = yield* McpClient.make({ name: "Packed client", version: "1" }).pipe(
+      Effect.provideServiceEffect(McpClient.Transport, McpClient.http({
+        headers: { "x-app-key": "app-secret" }, protocol: McpProtocol.v2026_07_28, url: "https://app.test/mcp",
+      })),
+    );
+    return yield* client.callTool({
+      schema: Schema.String, tool: new McpSchema.Tool({ name: "caller", inputSchema: { type: "object" } }),
+    });
+  }).pipe(
+    Effect.provide(FetchHttpClient.layer),
+    Effect.provideService(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init))),
+    Effect.scoped,
+  ));
+  assert.equal(answer, "alice: alice@app.test");
+} finally {
+  await app.dispose();
+}

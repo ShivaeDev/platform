@@ -1,7 +1,7 @@
 import { Layer } from "effect";
 import { SqlClient } from "effect/sql";
-import { webhooksRegistration } from "./feature.ts";
-import { webhookRoutes } from "./routes.ts";
+import { webhooksRegistration } from "#adoption/webhooks/feature.ts";
+import { webhookRoutes } from "#adoption/webhooks/routes.ts";
 
 export const sample = {
 	registration: webhooksRegistration,

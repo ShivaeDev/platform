@@ -1,5 +1,4 @@
-import { join } from "node:path";
-import { Clock, Effect, FileSystem, Schema } from "effect";
+import { Clock, Effect, FileSystem, Path, Schema } from "effect";
 import { command, requireThat } from "#package-check/io.ts";
 
 const decodeReport = Schema.decodeUnknownSync(
@@ -8,24 +7,25 @@ const decodeReport = Schema.decodeUnknownSync(
 
 export const checkAdoption = Effect.fn("Published.checkAdoption")(function* (root: string, app: string, database: string) {
 	const started = yield* Clock.currentTimeMillis;
+	const path = yield* Path.Path;
 	const fs = yield* FileSystem.FileSystem;
-	const fixtures = join(root, "script/starter-published/adoption");
+	const fixtures = path.join(root, "script/starter-published/adoption");
 	const features = (yield* fs.readDirectory(fixtures)).toSorted();
-	const modulesPath = join(app, "src/server/modules.ts");
-	const hostPath = join(app, "src/server/applicationHost.ts");
+	const modulesPath = path.join(app, "src/server/modules.ts");
+	const hostPath = path.join(app, "src/server/applicationHost.ts");
 	let modules = yield* fs.readFileString(modulesPath);
 	let host = yield* fs.readFileString(hostPath);
 	for (const [index, feature] of features.entries()) {
-		const source = join(fixtures, feature);
+		const source = path.join(fixtures, feature);
 		const name = `adoption${index}`;
-		const target = join(app, "src/adoption", feature);
+		const target = path.join(app, "src/adoption", feature);
 		for (const file of yield* fs.readDirectory(source, { recursive: true })) {
 			if (!file.endsWith(".txt")) {
 				continue;
 			}
-			const destination = join(target, file.slice(0, -4));
-			yield* fs.makeDirectory(join(destination, ".."), { recursive: true });
-			yield* fs.copyFile(join(source, file), destination);
+			const destination = path.join(target, file.slice(0, -4));
+			yield* fs.makeDirectory(path.join(destination, ".."), { recursive: true });
+			yield* fs.copyFile(path.join(source, file), destination);
 		}
 		const registration = `import { sample as ${name} } from "#adoption/${feature}/sample.ts";\n`;
 		modules = registration + modules.replace("serverRegistration(),", `${name}.registration, serverRegistration(),`);
@@ -41,7 +41,7 @@ export const checkAdoption = Effect.fn("Published.checkAdoption")(function* (roo
 	yield* command(app, "pnpm", ["exec", "quality", "fix"]);
 	yield* Effect.log(yield* command(app, "pnpm", ["run", "lint"]));
 	yield* Effect.log(yield* command(app, "pnpm", ["run", "typecheck"]));
-	const reportPath = join(app, "test-results/adoption.json");
+	const reportPath = path.join(app, "test-results/adoption.json");
 	yield* Effect.log(
 		yield* command(app, "env", [
 			`TEST_DATABASE_URL=${database}`,

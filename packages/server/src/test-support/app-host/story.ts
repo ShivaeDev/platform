@@ -50,7 +50,13 @@ export function environment(env: Record<string, string>) {
 		Object.assign(state.env, env);
 	});
 }
-export function configuration(config: { port?: number; host?: string; trustedProxy?: string; maxBodySize?: number }) {
+export function configuration(config: {
+	port?: number;
+	host?: string;
+	trustedProxy?: string;
+	maxBodySize?: number;
+	sensitiveKeys?: readonly string[];
+}) {
 	return host.trait("configured", `the host configuration is ${JSON.stringify(config)}`, (state) => {
 		Object.assign(state.config, config);
 	});

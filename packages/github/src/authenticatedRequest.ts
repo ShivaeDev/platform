@@ -1,11 +1,12 @@
 import { DateTime, Effect, Option, Redacted, Stream } from "effect";
-import { FetchHttpClient, type HttpClient, type HttpClientError, HttpClientRequest } from "effect/http";
+import { type HttpClient, type HttpClientError, HttpClientRequest } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { GitHubTransportError } from "./errors.ts";
-import type { GitHubToken } from "./GitHubToken.ts";
-import { failRateLimited, type RateLimits } from "./rateLimits.ts";
-import { checkStatus, isUnauthorized, isUnchanged } from "./status.ts";
-import type { TokenRefresh } from "./TokenRefresh.ts";
+import { manualRedirects } from "#adapters/manualRedirects.ts";
+import { GitHubTransportError } from "#errors.ts";
+import type { GitHubToken } from "#GitHubToken.ts";
+import { failRateLimited, type RateLimits } from "#rateLimits.ts";
+import { checkStatus, isUnauthorized, isUnchanged } from "#status.ts";
+import type { TokenRefresh } from "#TokenRefresh.ts";
 
 export function authenticatedRequest<R>(
 	client: HttpClient.HttpClient.With<HttpClientError.HttpClientError, R>,
@@ -23,9 +24,7 @@ export function authenticatedRequest<R>(
 		}
 		function send(current: Option.Option<Redacted.Redacted<string>>) {
 			const sent = client.execute(withCredential(input, current));
-			return (
-				mode === "manual" ? sent.pipe(Effect.provideService(FetchHttpClient.RequestInit, { credentials: "omit", redirect: "manual" })) : sent
-			).pipe(Effect.mapError((cause) => new GitHubTransportError({ path }, { cause })));
+			return (mode === "manual" ? manualRedirects(sent) : sent).pipe(Effect.mapError((cause) => new GitHubTransportError({ path }, { cause })));
 		}
 		const credential = yield* accessToken;
 		let response = yield* send(credential);

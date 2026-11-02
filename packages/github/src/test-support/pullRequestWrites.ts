@@ -1,10 +1,8 @@
 import { Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import type { FakeHttpReply, FakeHttpRequest } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import type { FakeHttpRequest } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { PullRequestComment } from "#stickyComments.ts";
 
-export const COMMENT_LIMIT = 65_536;
-export const SUMMARY_LIMIT = 65_535;
 export const BOT = "coverage[bot]";
 
 const CommentBody = Schema.Struct({ body: Schema.String });
@@ -33,25 +31,6 @@ export interface CheckOnGitHub {
 	readonly name: string;
 	readonly output: { readonly summary: string | null; readonly text: string | null; readonly title: string | null };
 	readonly status: string;
-}
-
-const commentTooLong: FakeHttpReply = {
-	body: {
-		errors: [{ code: "custom", field: "body", message: `body is too long (maximum is ${COMMENT_LIMIT} characters)`, resource: "IssueComment" }],
-		message: "Validation Failed",
-	},
-	status: HttpStatus.fromLiteral("UnprocessableEntity"),
-};
-
-function summaryTooLong(length: number): FakeHttpReply {
-	return {
-		body: { message: `Invalid request.\n\nOnly ${SUMMARY_LIMIT} characters are allowed; ${length} were supplied.` },
-		status: HttpStatus.fromLiteral("UnprocessableEntity"),
-	};
-}
-
-function characters(text: string | undefined) {
-	return [...(text ?? "")].length;
 }
 
 export function pullRequestWrites() {
@@ -105,9 +84,6 @@ export function pullRequestWrites() {
 				path: "/repos/acme/widgets/check-runs",
 				reply: (request: FakeHttpRequest) => {
 					const input = Schema.decodeUnknownSync(Schema.fromJsonString(Create))(request.body.toString());
-					if (characters(input.output?.summary) > SUMMARY_LIMIT) {
-						return summaryTooLong(characters(input.output?.summary));
-					}
 					const check = {
 						...input,
 						conclusion: input.conclusion ?? null,
@@ -124,9 +100,6 @@ export function pullRequestWrites() {
 				path: "/repos/acme/widgets/issues/1/comments",
 				reply: (request: FakeHttpRequest) => {
 					const { body } = commentBody(request);
-					if (characters(body) > COMMENT_LIMIT) {
-						return commentTooLong;
-					}
 					const comment = { body, id: state.comments.length + 1, user: { login: BOT } };
 					state.comments.push(comment);
 					return { body: comment, status: HttpStatus.fromLiteral("Created") };
@@ -167,9 +140,6 @@ export function pullRequestWrites() {
 						return { status: HttpStatus.fromLiteral("NotFound") };
 					}
 					const { body } = commentBody(request);
-					if (characters(body) > COMMENT_LIMIT) {
-						return commentTooLong;
-					}
 					state.comments[index] = { ...comment, body };
 					return { body: state.comments[index] };
 				},

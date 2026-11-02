@@ -21,7 +21,6 @@ export async function loadQuery<A, E>(
 		}
 		return result.success;
 	} catch (error) {
-		handoff.release();
 		if (signal.aborted) {
 			const canceled = new Error("Query loading canceled", { cause: error });
 			canceled.name = "AbortError";

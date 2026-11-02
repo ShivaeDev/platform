@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { type Duration, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { changeSignal } from "#test/changeSignal.ts";
@@ -7,7 +7,8 @@ export const watchPrApi = Effect.gen(function* () {
 	const changed = changeSignal();
 	const replies = new Map<string, FakeHttpReply>();
 	const github = {
-		reply: (path: string, body: unknown, response: { status?: number } = {}) => replies.set(`/${path.replace(/^\//u, "")}`, { body, ...response }),
+		reply: (path: string, body: unknown, response: Pick<FakeHttpReply, "headers" | "status"> = {}) =>
+			replies.set(`/${path.replace(/^\//u, "")}`, { body, ...response }),
 	};
 	const server = yield* fakeHttpService({
 		routes: {
@@ -54,6 +55,10 @@ export const watchPrApi = Effect.gen(function* () {
 	function pull(changes: Partial<typeof pr>, number = 7) {
 		const value = { ...(pulls.get(number) ?? pr), ...changes, number };
 		pulls.set(number, value);
+		if (changes.head) {
+			github.reply(`${base}/commits/${value.head.sha}/check-runs?per_page=100&filter=latest`, { "check_runs": [] });
+			github.reply(`${base}/commits/${value.head.sha}/status`, { state: "success", statuses: [] });
+		}
 		if (number === 7) {
 			pr = value;
 		}
@@ -86,6 +91,8 @@ export const watchPrApi = Effect.gen(function* () {
 	github.reply(`${base}/commits/${pr.head.sha}/check-runs?per_page=100&filter=latest`, { "check_runs": [] });
 	github.reply(`${base}/commits/${pr.head.sha}/status`, { state: "success", statuses: [] });
 	return {
+		awaitAbandonedRequest: (timeout: Duration.Input = "5 seconds") =>
+			server.untilAbandoned(() => true, { name: "GitHub request abandoned", timeout }),
 		awaitPoll: () =>
 			changed.wait(
 				Effect.sync(() => {
@@ -105,14 +112,16 @@ export const watchPrApi = Effect.gen(function* () {
 					(observed) => observed >= count,
 				)
 				.pipe(Effect.asVoid),
-		fail: (status: number, number = 7) =>
+		dropNextRequest: () => server.scriptFault("rest", { kind: "drop" }),
+		fail: (status: number, number = 7, headers?: Readonly<Record<string, string>>) =>
 			github.reply(
 				`${base}/pulls/${number}`,
 				{ message: status === HttpStatus.fromLiteral("UnprocessableEntity") ? "too many files changed" : "GitHub unavailable" },
-				{ status },
+				{ ...(headers === undefined ? {} : { headers }), status },
 			),
 		failQueue: (status: number) => github.reply("/graphql", { message: "GitHub unavailable" }, { status }),
 		failRepository: (status: number) => github.reply(`${base}/pulls?state=open&per_page=100`, { message: "GitHub unavailable" }, { status }),
+		holdNextRequest: () => server.hold("rest", { once: true }),
 		pr: `https://github.com/${repository}/pull/7`,
 		pull,
 		queue,

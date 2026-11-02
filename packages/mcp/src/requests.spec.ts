@@ -37,11 +37,17 @@ requestsStory.it(
 
 requestsStory.it("two servers discover and dispatch only their own tools", [], function* ({ toolsOn, callOn }) {
 	yield* outcomes([
-		["first server discovery", () => toolsOn("first"), ["caller", "readResource", "firstOnly"]],
+		["first server discovery", () => toolsOn("first"), ["whoami", "caller", "readResource", "firstOnly"]],
 		["second server discovery", () => toolsOn("second"), ["secondOnly"]],
 		["first server dispatch", () => callOn("first", "firstOnly"), "first server"],
 		["second server dispatch", () => callOn("second", "secondOnly"), "second server"],
 		["first server refuses second tool", () => callOn("first", "secondOnly"), "refused: Tool 'secondOnly' not found"],
 		["second server refuses first tool", () => callOn("second", "firstOnly"), "refused: Tool 'firstOnly' not found"],
 	]);
+});
+
+requestsStory.it("a custom SessionPolicy authenticates alice at the core MCP routes", [], function* ({ callOn }) {
+	const answer = yield* callOn("first", "whoami");
+
+	expect(answer).toBe("alice");
 });

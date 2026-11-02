@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { outcomes } from "#outcomes.ts";
 import { attempt } from "#test/attempt.ts";
 import { httpArrivalApp } from "#test/httpArrivalApp.ts";

@@ -1,6 +1,7 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
-import { Config, Effect, Layer, Option, Redacted } from "effect";
+import { Config, Effect, Layer, Option, Redacted, type Scope } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import type { Store } from "@shivaedev/rate-limit/Store.ts";
 import type { AccountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/adapters/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIp.ts";
@@ -40,7 +41,7 @@ export type BetterAuthMountOptions<E = never, R = never> = {
 	| (StoredRoleOptions & { readonly roles: RoleSet; readonly roleSeed?: Effect.Effect<AccountRoleSeed<E>, E, R> })
 );
 
-export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <const TOptions extends BetterAuthOptions, E = never, R = never>(
+const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions extends BetterAuthOptions, E = never, R = never>(
 	options: TOptions,
 	mount: BetterAuthMountOptions<E, R> = {},
 ) {
@@ -65,6 +66,8 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 	const base = { ...configured, databaseHooks: seeded.databaseHooks };
 	const preset = mount.preset === "provider-only" ? providerOnlyOptions(base, mount.enabledPaths) : base;
 	const rateLimit = options.rateLimit;
+	const prefix = `/${(options.basePath || "/api/auth").replace(/^\/|\/+$/gu, "")}` as const;
+	const basePath = prefix === "/" ? "" : prefix;
 	const customStorage = yield* rateLimitStorage;
 	const auth = betterAuth({
 		...withHardening(withBearerSessions(preset, mount.bearerSessions !== undefined), mount.hardening),
@@ -96,7 +99,9 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 	const authRoutes = mountRoutes.pipe(
 		Layer.provide(
 			Layer.succeed(AuthRouteHandler, {
+				basePath,
 				handle: authRouteHandler(auth, {
+					basePath,
 					bearerSessions: mount.bearerSessions,
 					clientIpHeader,
 					ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,
@@ -121,3 +126,20 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 	const sessions = mountedSessions(lookupSession, admit, mount.roles);
 	return { admitsUser, admittedSessions: admit, auth, revokeUnadmitted: revoke, routes: authRoutes, sessions };
 });
+
+type Mounted<TOptions extends BetterAuthOptions, E, R> = ReturnType<typeof mountAuth<TOptions, E, R>>;
+
+export function betterAuthMount<const TOptions extends BetterAuthOptions, E = never, R = never>(
+	options: TOptions,
+	mount?: BetterAuthMountOptions<E, R> & { readonly emails?: undefined },
+): Effect.Effect<Effect.Success<Mounted<TOptions, E, R>>, Effect.Error<Mounted<TOptions, E, R>>, R | Scope.Scope | Store>;
+export function betterAuthMount<const TOptions extends BetterAuthOptions, E = never, R = never>(
+	options: TOptions,
+	mount: BetterAuthMountOptions<E, R>,
+): Mounted<TOptions, E, R>;
+export function betterAuthMount<const TOptions extends BetterAuthOptions, E = never, R = never>(
+	options: TOptions,
+	mount: BetterAuthMountOptions<E, R> = {},
+) {
+	return mountAuth(options, mount);
+}

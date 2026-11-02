@@ -31,24 +31,36 @@ host.it(
 for (const continuous of [false, true]) {
 	host.it(
 		continuous
-			? "watch --follow resyncs all work after an HTTP restart without repeating outcomes"
+			? "watch --follow --all resyncs all work after an HTTP restart without repeating outcomes"
 			: "watch resyncs after the HTTP daemon restarts, preserving the selected set and printed outcomes",
 		[storedWork("a", "working"), storedWork("b", "working")],
 		function* (daemon) {
 			const port = daemon.port();
-			yield* daemon.follow("watcher", "watch", continuous ? [] : ["a", "b"], { follow: continuous, interval: 0.1 });
+			yield* daemon.follow("watcher", "watch", continuous ? [] : ["a", "b"], {
+				all: continuous,
+				follow: continuous,
+				interval: 0.1,
+				json: continuous,
+				...(continuous ? { prEvents: false } : {}),
+			});
 			yield* daemon.awaitSnapshot();
 			yield* daemon.store("a", { stage: "released", step: "released" });
-			yield* daemon.awaitOutput("watcher", "a released\n");
+			yield* daemon.awaitOutput("watcher", continuous ? '"kind":"released"' : "a released\n");
 			yield* daemon.stop();
 			yield* daemon.store("b", { stage: "done", step: "done" });
 			yield* daemon.store("new", { stage: "working", step: "working" });
 			yield* daemon.start(port);
 			if (continuous) {
-				yield* daemon.awaitOutput("watcher", "b done\n");
+				yield* daemon.awaitOutput("watcher", '"kind":"done"');
 				yield* daemon.store("new", { stage: "released", step: "released" });
-				yield* daemon.awaitOutput("watcher", "new released\n");
-				expect(daemon.followerOutput("watcher")).toBe("a released\nb done\nnew released\n");
+				yield* daemon.awaitOutput("watcher", '"workId":"new"');
+				expect(daemon.followerEvents("watcher")).toEqual([
+					{ kind: "released", workId: "a" },
+					{ kind: "daemon-unreachable" },
+					{ kind: "daemon-back" },
+					{ kind: "done", workId: "b" },
+					{ kind: "released", workId: "new" },
+				]);
 				expect(daemon.followerRunning("watcher")).toBe(true);
 			} else {
 				expect(yield* daemon.followerExit("watcher")).toEqual({ code: 0, stderr: "", stdout: "a released\nb done" });

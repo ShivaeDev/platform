@@ -13,21 +13,17 @@ import { repositoryReads } from "#repositoryReads.ts";
 import { representations } from "#representations.ts";
 import { requests } from "#requests.ts";
 import { stickyComments } from "#stickyComments.ts";
-import { TokenRefresh } from "#TokenRefresh.ts";
 
 export const GitHub = defineService({
 	id: "@shivaedev/github/GitHub",
 	initialize: Effect.gen(function* () {
 		const config = yield* GitHubConfig;
 		const rates = rateLimits();
-		const client = yield* HttpClient.HttpClient;
-		const token = yield* GitHubToken;
-		const refresh = yield* TokenRefresh;
 		return {
 			apiUrl: config.apiUrl,
 			archive: yield* artifacts(config.apiUrl, rates),
 			rates,
-			request: requests(client, token, rates, refresh),
+			request: yield* requests(rates),
 			responseByteLimit: config.responseByteLimit,
 		};
 	}),

@@ -64,7 +64,8 @@ jobs:
           name: coverage-tests
           path: |
             coverage/lcov.info
-            coverage/junit.xml
+            test-results/tests.junit.xml
+            test-results/flaky-tests.json
             coverage/measured-commits.txt
             coverage/job.txt
           if-no-files-found: error

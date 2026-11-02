@@ -10,3 +10,7 @@
 {"path":"packages/server/src/runtime/types.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/server/src/test-support/app-host/taxonomyGuards.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/server/src/tracedGroup.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Native middleware() cannot reorder an already attached tracing middleware; rebuilding must retain tracing and identity order (likelihood 3 x severity 6 = 18)."}
+{"path":"packages/server/src/appDatabase.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/server/src/development.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/server/src/nodeHttpServer.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/server/src/runtime/makePlatform.ts","rule":"effect/adapter-imports","count":1}

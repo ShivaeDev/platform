@@ -1,16 +1,19 @@
 import { useAtomValue } from "@effect/atom-react";
-import { Deferred, Effect } from "effect";
+import { Clock, Deferred, Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode } from "react";
 import { vi } from "vitest";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 interface State {
 	acquired: number;
 	first?: Rendered;
 	gate: Deferred.Deferred<string>;
+	pending?: Atom.Atom<boolean>;
 	released: number;
 	second?: Rendered;
 	value?: Atom.Atom<number>;
@@ -44,6 +47,11 @@ function ResultProbe({ value }: { readonly value: Atom.Atom<AsyncResult.AsyncRes
 	);
 }
 
+const originalError = console.error;
+export function warningRestoration() {
+	return console.error === originalError && !vi.isMockFunction(console.error) ? "restored" : "still captured";
+}
+
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
@@ -62,25 +70,37 @@ export const testing = storyKit({
 		}
 		return {
 			answer: (value: string) => run(`the atom receives ${value}`, () => Effect.runPromise(Deferred.succeed(state.gate, value).pipe(Effect.asVoid))),
+			attachment: (mount: "first" | "second") =>
+				Effect.sync(() => ((mount === "first" ? first(state) : second(state)).container.isConnected ? "attached" : "detached")),
 			closeFirst: () => run("unmount the first screen", () => first(state).unmount()),
 			closeSecond: () => run("unmount the second screen", () => second(state).unmount()),
-			first: () => first(state),
-			relabel: () =>
+			registrySharing: () => Effect.sync(() => (first(state).registry === second(state).registry ? "shared" : "isolated")),
+			relabel: (label: string) =>
 				run("rerender the first mount", () => {
 					if (!state.value) {
 						throw new Error("No tracked atom");
 					}
-					return first(state).render(createElement(Probe, { label: "updated:", value: state.value }));
+					return first(state).render(createElement(Probe, { label, value: state.value }));
 				}),
-			resources: () => ({ acquired: state.acquired, released: state.released }),
-			second: () => second(state),
+			resources: () => Effect.sync(() => ({ acquired: state.acquired, released: state.released })),
+			settle: () => {
+				const view = first(state);
+				if (!state.pending) {
+					throw new Error("No pending result screen");
+				}
+				return screenDriver({ act, pending: AtomRegistry.toStream(view.registry, state.pending), root: view.container, tell: story.tell }).settle();
+			},
+			shown: (mount: "first" | "second" = "first") => Effect.sync(() => (mount === "first" ? first(state) : second(state)).container.textContent),
+			storyTime: () => Clock.currentTimeMillis,
+
 			warn: () => run("React logs a warning", () => vi.mocked(console.error)("Expected warning for the helper regression")),
 		};
 	},
 });
 export function pendingResultScreen() {
 	return testing.trait("screen", "a native atom awaiting a result", function* (state) {
-		const value = Atom.make(Deferred.await(state.gate).pipe(Effect.flatMap((result) => Effect.succeed(result).pipe(Effect.delay("20 millis")))));
+		const value = Atom.make(Deferred.await(state.gate));
+		state.pending = Atom.map(value, (result) => result.waiting);
 		state.first = yield* open(createElement(ResultProbe, { value }));
 	});
 }

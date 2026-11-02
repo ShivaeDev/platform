@@ -11,10 +11,9 @@ import { until } from "@shivaedev/test-story/server/until.ts";
 import { bind } from "#bind.ts";
 import { type LiveHint, live } from "#live.ts";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
-import { shown, times } from "./answers.ts";
+import { times } from "./answers.ts";
 import { Note, Notes, notes } from "./notes.ts";
 import { notesServer } from "./notesServer.ts";
-import { settled } from "./settled.ts";
 
 type View = "note 1" | "the list";
 
@@ -49,7 +48,7 @@ const runtimeTimeEngine = Effect.gen(function* () {
 	};
 	for (const atom of Object.values(views)) {
 		registry.mount(atom);
-		yield* settled(registry, atom);
+		yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true });
 	}
 	function emit(hint: LiveHint) {
 		return Effect.gen(function* () {
@@ -61,7 +60,7 @@ const runtimeTimeEngine = Effect.gen(function* () {
 	registry.mount(connection.connection);
 	yield* emit({ _tag: "Resync" });
 	for (const atom of Object.values(views)) {
-		yield* settled(registry, atom);
+		yield* AtomRegistry.getResult(registry, atom, { suspendOnWaiting: true });
 	}
 	return { connection, emit, registry, server, views };
 });
@@ -94,8 +93,8 @@ export const runtimeTime = storyKit({
 			return emit({ _tag: "Resync" });
 		},
 		shown: (view: keyof typeof views) =>
-			Effect.map(settled(registry, views[view]), (result) =>
-				shown(result, (value) => (value instanceof Note ? value.title : value.map((note) => note.title))),
+			Effect.map(AtomRegistry.getResult(registry, views[view], { suspendOnWaiting: true }), (value) =>
+				value instanceof Note ? value.title : value.map((note) => note.title),
 			),
 		timesRead: (view: keyof typeof views) =>
 			Effect.map(
