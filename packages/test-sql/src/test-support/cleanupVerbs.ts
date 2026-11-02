@@ -1,6 +1,7 @@
 import { Deferred, Effect, Exit, Layer, Redacted, Scope } from "effect";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#database.ts";
+import { observeUntil } from "#observeUntil.ts";
 import type { CleanupEngine } from "./cleanup.ts";
 import { attempt } from "./outcome.ts";
 
@@ -27,6 +28,12 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 		cloneDatabaseOnceDrained: () => {
 			story.tell("the story awaits cleanup and checks whether its clone still exists");
 			return Effect.andThen(engine.run(Effect.flatMap(PostgresTestDatabase, (database) => database.awaitCleanup)), exists(state.clone));
+		},
+		cloneSessions: () => {
+			story.tell("the story reads the clone's session names from PostgreSQL");
+			return Effect.map(admin<{ name: string }>`select application_name as name from pg_stat_activity where datname = ${state.clone}`, (rows) =>
+				rows.map(({ name }) => name),
+			);
 		},
 		closeClone: () => {
 			story.tell("the story closes its clone's scope");
@@ -63,6 +70,15 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 		otherHostsDatabase: () => {
 			story.tell("the story checks whether the other host’s database exists");
 			return exists(state.otherHost);
+		},
+		pendingDropSessions: () => {
+			story.tell("the story reads the blocked clone drop's application name from PostgreSQL");
+			const sessions = admin<{ name: string }>`select application_name as name from pg_stat_activity
+				where query like 'drop database if exists%' and strpos(query, ${state.clone}) > 0 and wait_event_type = 'Lock'`;
+			return Effect.map(
+				observeUntil(sessions, (rows) => rows.length > 0, "the clone's drop to block"),
+				(rows) => rows.map(({ name }) => name),
+			);
 		},
 		runClosing: () => {
 			story.tell("the story reads the run closing outcome");

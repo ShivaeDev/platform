@@ -1,4 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
+import * as PgPool from "@effect/sql-pg/PgPool";
 import { Effect, Layer, Redacted, type Schema, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
@@ -31,6 +32,7 @@ expectTypeOf<Effect.Services<typeof rollback>>().toEqualTypeOf<Missing | SqlClie
 
 const isolated = withIsolatedDatabase(
 	Effect.gen(function* () {
+		yield* PgPool.PgPool;
 		yield* PgClient.PgClient;
 		yield* SqlClient.SqlClient;
 		yield* Reactivity.Reactivity;
@@ -72,6 +74,7 @@ const initializedLoader = makePostgresTestLayer({
 		Effect.gen(function* () {
 			expectTypeOf(url).toEqualTypeOf<Redacted.Redacted<string>>();
 			yield* Scope.Scope;
+			yield* PgPool.PgPool;
 			yield* PgClient.PgClient;
 			yield* SqlClient.SqlClient;
 			yield* Reactivity.Reactivity;
