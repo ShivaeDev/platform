@@ -3,6 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { streams } from "./answers.ts";
 import { queryHeadersEngine } from "./queryHeadersEngine.ts";
 import { syntheticNative, syntheticWindow } from "./resumeSources.ts";
 import { settled } from "./settled.ts";
@@ -28,7 +29,7 @@ export const clientResumeStory = storyKit({
 			story.tell("the client disposes its registry");
 			engine.registry.dispose();
 		},
-		listeners: () => ({ browser: engine.browser.listeners.size, native: engine.native.listeners.size }),
+		listeners: () => Effect.sync(() => ({ browser: engine.browser.listeners.size, native: engine.native.listeners.size })),
 		resume: (source: "native" | "online" | "visibilitychange") => {
 			story.tell(`the ${source} resume source signals the client`);
 			if (source === "native") {
@@ -41,7 +42,7 @@ export const clientResumeStory = storyKit({
 			Effect.forEach(engine.views, (view) =>
 				Effect.map(settled(engine.registry, view), (result) => (AsyncResult.isSuccess(result) ? result.value : "unavailable")),
 			),
-		subscriptionsOpened: () => engine.subscriptions.length,
+		subscriptionsOpened: () => streams(engine.subscriptions.length, "opened"),
 		untilRefreshed: () =>
 			Effect.forEach(engine.views, (view) =>
 				until(

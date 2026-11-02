@@ -7,7 +7,7 @@ for (const source of ["native", "online", "visibilitychange"] as const) {
 		[watching],
 		function* ({ changeQuietly, resume, shown, subscriptionsOpened, untilRefreshed }) {
 			expect(yield* shown()).toEqual(["default: First", "default: First"]);
-			expect(subscriptionsOpened()).toBe(2);
+			expect(subscriptionsOpened()).toBe("2 streams opened");
 			changeQuietly("Changed while away");
 			expect(yield* shown()).toEqual(["default: First", "default: First"]);
 
@@ -15,15 +15,15 @@ for (const source of ["native", "online", "visibilitychange"] as const) {
 			yield* untilRefreshed();
 
 			expect(yield* shown()).toEqual(["default: Changed while away", "default: Changed while away"]);
-			expect(subscriptionsOpened()).toBe(3);
+			expect(subscriptionsOpened()).toBe("3 streams opened");
 		},
 	);
 }
 
 clientResumeStory.it("disposing makeClient's registry releases both resume sources", [watching], function* ({ dispose, listeners }) {
-	expect(listeners()).toEqual({ browser: 2, native: 1 });
+	expect(yield* listeners()).toEqual({ browser: 2, native: 1 });
 
 	dispose();
 
-	expect(listeners()).toEqual({ browser: 0, native: 0 });
+	expect(yield* listeners()).toEqual({ browser: 0, native: 0 });
 });

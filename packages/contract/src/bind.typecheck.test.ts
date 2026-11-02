@@ -67,9 +67,7 @@ httpClient.runtime.fn(httpClient.api.rename.run);
 const resumingClient = makeClient(Notes, { resume, resumeWindow, url: "https://app.test/rpc" });
 expectTypeOf(resumingClient).toEqualTypeOf<typeof httpClient>();
 expectTypeOf(resumingClient.api).toEqualTypeOf<typeof httpClient.api>();
-expectTypeOf<Effect.Error<ReturnType<typeof resumingClient.api.get.run>>>().toEqualTypeOf<
-	Effect.Error<ReturnType<typeof httpClient.api.get.run>>
->();
+expectTypeOf<Effect.Error<ReturnType<typeof resumingClient.api.get.run>>>().toEqualTypeOf<Effect.Error<ReturnType<typeof httpClient.api.get.run>>>();
 expectTypeOf<Effect.Services<ReturnType<typeof resumingClient.api.rename.run>>>().toEqualTypeOf<
 	Effect.Services<ReturnType<typeof httpClient.api.rename.run>>
 >();
