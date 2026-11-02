@@ -31,7 +31,7 @@ export const ReadPage = contract("page", {
 
 export const readPageHost = Effect.gen(function* () {
 	const titles = new Map([[1, "First page"]]);
-	const held = yield* Deferred.make<void>();
+	const held = yield* Deferred.make<"hint" | "empty" | "defect">();
 	let readGate: Deferred.Deferred<void> | undefined;
 	const reading = yield* Queue.unbounded<void>();
 	function holdRead() {
@@ -62,7 +62,13 @@ export const readPageHost = Effect.gen(function* () {
 						return Stream.fail(new QueryReadDenied({ message: "Private page" }));
 					}
 					if (id === 2) {
-						yield* Deferred.await(held);
+						const reply = yield* Deferred.await(held);
+						if (reply === "empty") {
+							return Stream.empty;
+						}
+						if (reply === "defect") {
+							return Stream.die(new Error("Live page stream failed"));
+						}
 					}
 					return Stream.concat(Stream.succeed(initial), related);
 				}),

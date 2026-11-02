@@ -1,9 +1,8 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import { Deferred, Effect, Fiber, Layer, PubSub, Queue } from "effect";
+import { Deferred, Effect, Fiber, PubSub, Queue } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as Socket from "effect/socket/Socket";
 import { act, createElement } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
@@ -13,6 +12,7 @@ import { domFetch } from "#domFetch.ts";
 import { screenDriver } from "#screenDriver.ts";
 import { storyKit } from "#storyKit.ts";
 import { ReadPage, readPageHost } from "#test/readPageHost.ts";
+import { readPageTransport } from "#test/readPageTransport.ts";
 import { makePageClient, ReadPageView } from "#test/readPageView.ts";
 
 export const readPage = storyKit({
@@ -21,15 +21,8 @@ export const readPage = storyKit({
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const { url, held, opened } = yield* readPageHost;
 		const openings = yield* PubSub.subscribe(opened);
-		const addresses: string[] = [];
-		const socketConstructor = Layer.effect(
-			Socket.WebSocketConstructor,
-			Effect.map(Socket.WebSocketConstructor, (make) => (address, options) => {
-				addresses.push(address);
-				return make(address, options);
-			}),
-		).pipe(Layer.provide(layerWebSocketConstructorWS));
-		const observed = yield* browserReads({ contracts: [ReadPage], url, webSocketConstructor: socketConstructor });
+		const transport = readPageTransport();
+		const observed = yield* browserReads({ contracts: [ReadPage], url, webSocketConstructor: transport.webSocketConstructor });
 		const client = makePageClient(url, observed.protocol);
 		const fetch = domFetch(url);
 		const sessionPending = Atom.make(false);
@@ -62,11 +55,12 @@ export const readPage = storyKit({
 		);
 		return {
 			client,
+			disconnect: transport.disconnect,
 			held,
 			observed,
 			openings,
 			screen,
-			socketAddresses: () => [...addresses],
+			socketAddresses: transport.addresses,
 			socketUrl: () => url.replace(/^http/u, "ws"),
 			updates,
 			writer,
@@ -75,8 +69,16 @@ export const readPage = storyKit({
 	inspect: ({ observed, screen }) => ({ hints: observed.hints(), reads: observed.reads(), text: screen.text("main") }),
 	name: "browser reads",
 	stages: [],
-	verbs: ({ held, openings, client, observed, screen, socketAddresses, socketUrl, updates, writer }, story) => ({
+	verbs: ({ held, openings, client, disconnect, observed, screen, socketAddresses, socketUrl, updates, writer }, story) => ({
 		...observed,
+		disconnect: () => {
+			story.tell("the page's socket disconnects before its subscription answers");
+			return Effect.sync(disconnect);
+		},
+		endSecondPage: (reply: "empty" | "defect") => {
+			story.tell(`the second subscription ends with ${reply === "empty" ? "no values" : "a defect"}`);
+			return Deferred.succeed(held, reply);
+		},
 		nextResult: () =>
 			Effect.promise(async () => {
 				let result: string | undefined;
@@ -103,7 +105,7 @@ export const readPage = storyKit({
 		},
 		releaseSecondPage: () => {
 			story.tell("the server answers the second subscription");
-			return Deferred.succeed(held, undefined);
+			return Deferred.succeed(held, "hint");
 		},
 		signIn: () => {
 			story.tell("alice signs in through the page");
@@ -117,7 +119,7 @@ export const readPage = storyKit({
 		socketUrl,
 		startWaiting: () =>
 			Effect.gen(function* () {
-				story.tell("wait for every subscription opening to answer or be refused");
+				story.tell("wait for every subscription opening to answer, be refused or close");
 				const waiter = yield* observed.waitForSubscriptions.pipe(Effect.forkScoped({ startImmediately: true }));
 				return { finish: Fiber.join(waiter), state: Effect.sync(() => (waiter.pollUnsafe() === undefined ? "waiting" : "settled")) };
 			}),
