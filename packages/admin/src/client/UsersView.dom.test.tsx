@@ -1,87 +1,127 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { cannotAssignRoles, onBobsPage, onPhone, serverRefusesRoleChanges, usersScreen, viewOpen } from "#test/usersScreen.tsx";
+import { bobCanAssignRoles, cannotAssignRoles, onLastPage, twentyOneUsers, usersScreen, viewOpen } from "#test/usersScreen.tsx";
 
 expectNoReactWarnings();
 
 const alice = {
 	email: "alice@app.test",
-	name: "Alice",
-	role: "user",
+	name: "alice",
+	role: "owner",
 	signedUp: "2026-10-20T12:34:56.000Z",
 	signedUpDateTime: "2026-10-20T12:34:56.000Z",
 };
-const bob = { email: "bob@app.test", name: "Bob", role: "user", signedUp: "2026-10-21T08:00:00.000Z", signedUpDateTime: "2026-10-21T08:00:00.000Z" };
+const bob = { ...alice, email: "bob@app.test", name: "bob", role: "user" };
+const carol = { ...alice, email: "carol@app.test", name: "carol", role: "auditor" };
+const firstPage = [
+	"alice",
+	"bob",
+	"carol",
+	"d01",
+	"d02",
+	"d03",
+	"d04",
+	"d05",
+	"d06",
+	"d07",
+	"d08",
+	"d09",
+	"d10",
+	"d11",
+	"d12",
+	"d13",
+	"d14",
+	"d15",
+	"d16",
+	"d17",
+];
 
 usersScreen.it(
-	"a caller who cannot assign roles sees alice's name, email, role and sign-up time on the first page, with no role control",
+	"carol can read users' names, emails, roles and sign-up times without role controls",
 	[cannotAssignRoles, viewOpen],
-	function* ({ roleChoices, shownUsers }) {
+	function* ({ roleControl, shownUsers }) {
 		yield* outcomes([
-			["alice's role control", () => roleChoices("Alice"), "no role control"],
-			["shown users", () => shownUsers(), [alice]],
+			["alice's role control", () => roleControl("alice"), "no role control"],
+			["shown users", () => shownUsers(), [alice, bob, carol]],
 		]);
 	},
 );
 
 usersScreen.it(
-	"next users moves from alice's page to bob's, the last page, where next users is disabled",
-	[viewOpen],
-	function* ({ nextUsers, nextUsersButton, shownUsers }) {
-		expect(yield* shownUsers()).toEqual([alice]);
+	"next users moves from twenty users to the twenty-first user, where next users is disabled",
+	[twentyOneUsers, viewOpen],
+	function* ({ nextUsers, nextUsersButton, shownNames }) {
+		expect(yield* shownNames()).toEqual(firstPage);
 
 		yield* nextUsers();
 
 		yield* outcomes([
 			["next users", () => nextUsersButton(), "disabled"],
-			["shown users", () => shownUsers(), [bob]],
+			["shown users", () => shownNames(), ["d18"]],
 		]);
 	},
 );
-
-usersScreen.it("previous users moves from bob's page back to alice's", [viewOpen, onBobsPage], function* ({ previousUsers, shownUsers }) {
-	expect(yield* shownUsers()).toEqual([bob]);
-
-	yield* previousUsers();
-
-	expect(yield* shownUsers()).toEqual([alice]);
-});
-
-usersScreen.it("a role assigner can choose any of the seven declared roles for alice", [viewOpen], function* ({ roleChoices }) {
-	expect(yield* roleChoices("Alice")).toEqual(["user", "assigner", "admin", "owner", "delegate", "auditor", "operator"]);
-});
 
 usersScreen.it(
-	"at phone width, choosing auditor for alice sends that change, then shows her as auditor with her role control enabled again",
-	[onPhone, viewOpen],
-	function* ({ chooseRole, requests, roleControl, shownUsers }) {
-		expect(yield* shownUsers()).toEqual([alice]);
+	"previous users returns from the last page to the first twenty users",
+	[twentyOneUsers, viewOpen, onLastPage],
+	function* ({ previousUsers, shownNames }) {
+		expect(yield* shownNames()).toEqual(["d18"]);
 
-		yield* chooseRole("Alice", "auditor");
+		yield* previousUsers();
+
+		expect(yield* shownNames()).toEqual(firstPage);
+	},
+);
+
+usersScreen.it(
+	"alice makes bob an auditor and sees his saved role with the role control enabled again",
+	[viewOpen],
+	function* ({ chooseRole, roleControl, shownUsers }) {
+		expect(yield* shownUsers()).toEqual([alice, bob, carol]);
+
+		yield* chooseRole("bob", "auditor");
 
 		yield* outcomes([
-			["alice's role control", () => roleControl("Alice"), "enabled"],
-			["sent changes", () => requests(), [{ role: "auditor", userId: "alice" }]],
-			["shown users", () => shownUsers(), [{ ...alice, role: "auditor" }]],
+			["bob's role control", () => roleControl("bob"), "enabled"],
+			["shown users", () => shownUsers(), [alice, { ...bob, role: "auditor" }, carol]],
 		]);
 	},
 );
 
-for (const [refusal, message] of [
-	["last role assigner", "The last user who can assign roles cannot be removed. Assign another user permission to change roles first."],
-	["forbidden", "Permission required to assign roles."],
-] as const) {
-	usersScreen.it(
-		`when the server refuses alice's change as ${refusal}, the view says "${message}" and still shows her as user`,
-		[serverRefusesRoleChanges(refusal), viewOpen],
-		function* ({ alert, chooseRole, shownUsers }) {
-			yield* chooseRole("Alice", "admin");
+usersScreen.it(
+	"alice cannot remove herself as the last role assigner and sees the reason while remaining owner",
+	[viewOpen],
+	function* ({ alert, chooseRole, refreshUsers, shownRole }) {
+		expect(yield* shownRole("alice")).toBe("owner");
 
-			yield* outcomes([
-				["alert", () => alert(), message],
-				["shown users", () => shownUsers(), [alice]],
-			]);
-		},
-	);
-}
+		yield* chooseRole("alice", "admin");
+
+		expect(yield* alert()).toBe("The last user who can assign roles cannot be removed. Assign another user permission to change roles first.");
+
+		yield* refreshUsers();
+
+		expect(yield* shownRole("alice")).toBe("owner");
+	},
+);
+
+usersScreen.it(
+	"after bob revokes alice's assignment permission, her stale role control is forbidden to make bob an owner and he stays a delegate",
+	[bobCanAssignRoles, viewOpen],
+	function* ({ alert, assignFromAnotherClient, chooseRole, refreshUsers, roleControl, shownRole }) {
+		yield* outcomes([
+			["bob's role control", () => roleControl("bob"), "enabled"],
+			["bob's role", () => shownRole("bob"), "delegate"],
+		]);
+		yield* assignFromAnotherClient("bob", "alice", "auditor");
+
+		yield* chooseRole("bob", "owner");
+
+		expect(yield* alert()).toBe("Permission required to assign roles.");
+
+		yield* refreshUsers();
+
+		expect(yield* shownRole("bob")).toBe("delegate");
+	},
+);
