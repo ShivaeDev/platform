@@ -139,7 +139,6 @@
 {"path":"packages/work-fleet/src/host/daemonHandlers.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/host/dispatchRequests.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/fleetStatus.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-fleet/src/host/followCommands.ts","rule":"biome/plugin","count":3}
 {"path":"packages/work-fleet/src/host/freshRetry.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/healthPublication.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/localOnlyCriteria.spec.ts","rule":"effect/boundary","count":1}

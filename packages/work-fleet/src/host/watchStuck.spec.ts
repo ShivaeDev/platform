@@ -54,6 +54,33 @@ host.it(
 );
 
 host.it(
+	"the default watch reports a reviewer stall after picking up a finished repair on the same head",
+	[approvedWork(["one"]), humanDelivery, publishedBranch, runningReviewer],
+	function* (daemon) {
+		const worker = yield* daemon.dispatch("one");
+		daemon.finishReviewedWorker(worker);
+		daemon.finishTurn(yield* daemon.reconcile("one"));
+		yield* daemon.reviewReady("one");
+		yield* daemon.watchDefault({ follow: true, json: true, prEvents: false, stuckAfter: 1 });
+		yield* daemon.awaitEvent("waiting-on-orchestrator");
+		yield* daemon.answer("one", "Check this revision again.");
+		yield* daemon.reconcile("one");
+		const repair = yield* daemon.waitForRecord(
+			"one",
+			(record) => record.attempts.at(-1)?.role === "repair" && record.attempts.at(-1)?.receipt !== undefined,
+		);
+		daemon.finishReviewedWorker(repair);
+		yield* daemon.waitForRecord("one", (record) => record.step === "reviewing" && record.attempts.length > repair.attempts.length);
+		yield* daemon.awaitEvent("stuck");
+
+		expect(daemon.eventLines()).toEqual([
+			{ head: HEAD, kind: "waiting-on-orchestrator", pr: PR, reason: "Reviewed PR is ready to merge", workId: "one" },
+			{ head: HEAD, kind: "stuck", pr: PR, reason: "No progress for 1 seconds", workId: "one" },
+		]);
+	},
+);
+
+host.it(
 	"a stuck check finds the branch PR and hands the finished worker to review instead of reporting stuck",
 	[approvedWork(["one"]), humanDelivery, publishedBranch],
 	function* (daemon) {

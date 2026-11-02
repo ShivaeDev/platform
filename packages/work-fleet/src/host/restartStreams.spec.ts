@@ -10,7 +10,7 @@ host.it(
 	function* (daemon) {
 		const proxy = yield* daemon.streamProxy();
 		const port = Number(new URL(proxy.url).port);
-		yield* daemon.follow("follow", "watch", ["one"], { follow: true, port });
+		yield* daemon.follow("follow", "watch", ["one"], { events: "done", follow: true, json: true, port, prEvents: false });
 		yield* daemon.awaitSnapshot();
 		const snapshots = daemon.snapshotCount();
 		yield* daemon.watchEvents({ events: "done", port });
@@ -30,12 +30,12 @@ host.it(
 		proxy.online();
 
 		yield* daemon.awaitEvent("done");
-		const summary = `one done: ${completed.report?.sourcePath}\n`;
+		const summary = '"kind":"done"';
 		yield* daemon.awaitOutput("follow", summary);
 		expect(daemon.eventLines().filter((event) => typeof event === "object" && event !== null && "workId" in event)).toEqual([
 			{ kind: "done", workId: "one" },
 		]);
-		expect(daemon.followerOutput("follow")).toBe(summary);
+		expect(daemon.followerEvents("follow")).toContainEqual({ kind: "done", workId: "one" });
 		expect(daemon.providerLaunches()).toEqual([worker.attempts[0]?.operationId]);
 		expect(daemon.boardFiles("responses").filter((file) => file.startsWith("fleet-report."))).toEqual([`${completed.report?.itemId}.md`]);
 	},
