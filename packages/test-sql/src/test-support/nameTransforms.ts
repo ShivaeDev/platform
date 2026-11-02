@@ -106,8 +106,14 @@ export const names = storyKit({
 				story.tell(`the shared database's schema changes by ${change}`);
 				return engine.run(Effect.flatMap(SqlClient.SqlClient, schemaChanges[change]));
 			},
-			columnCheck: (client: Client) => run(client, checkColumns),
-			rows: (client: Client) => run(client, readRows),
+			columnCheck: (client: Client) => {
+				story.tell(`the story checks model columns through ${client}`);
+				return run(client, checkColumns);
+			},
+			rows: (client: Client) => {
+				story.tell(`the story reads rows through ${client}’s repository`);
+				return run(client, readRows);
+			},
 		};
 	},
 });

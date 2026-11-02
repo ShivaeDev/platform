@@ -1,63 +1,12 @@
 import { Effect, Option, Result } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
-import { observeUntil } from "#observeUntil.ts";
 import { raceWithLock } from "#raceWithLock.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { withTestTransaction } from "#withTestTransaction.ts";
 import type { DatabaseEngine } from "./databaseEngine.ts";
 import { failureOf } from "./outcome.ts";
-
-export type Lock = "row" | "table" | "advisory";
-
-function takeLock(sql: SqlClient.SqlClient, lock: Lock) {
-	switch (lock) {
-		case "row":
-			return sql`select id from items where id = 1 for update`;
-		case "table":
-			return sql`lock table items in share mode`;
-		case "advisory":
-			return sql`select pg_advisory_xact_lock(42)`;
-	}
-}
-
-function afterWaiting(sql: SqlClient.SqlClient, count: number) {
-	const waiting = sql`select pg_stat_clear_snapshot()`.pipe(
-		Effect.andThen(sql<{ waiting: number }>`select count(*)::integer as waiting from pg_stat_activity
-			where datname = current_database() and wait_event_type = 'Lock'`),
-		Effect.map(([row]) => row?.waiting ?? 0),
-	);
-	return observeUntil(waiting, (sessions) => sessions === count, `${count} sessions waiting on a lock`);
-}
-
-const anotherSessionWaits = Effect.fnUntraced(function* (sql: SqlClient.SqlClient) {
-	const connection = yield* sql.reserve;
-	yield* Effect.forkScoped(connection.executeRaw("select pg_advisory_xact_lock(42)", []));
-	yield* afterWaiting(sql, 1);
-});
-
-const claim = Effect.fnUntraced(function* (sql: SqlClient.SqlClient, name: string, guarded: boolean, lock: Lock, waitersAhead: number) {
-	if (name === "charlie") {
-		yield* afterWaiting(sql, waitersAhead + 2);
-	}
-	if (lock === "advisory") {
-		yield* sql`select pg_advisory_xact_lock(42)`;
-	}
-	if (!guarded) {
-		const [row] = yield* sql<{ value: string }>`select value from items where id = 1`;
-		if (row?.value !== "seed") {
-			return yield* Effect.fail("full" as const);
-		}
-	}
-	const changed = guarded
-		? yield* sql`update items set value = ${name} where id = 1 and value = 'seed' returning value`
-		: yield* sql`update items set value = ${name} where id = 1 returning value`;
-	return changed.length > 0 ? name : yield* Effect.fail("full" as const);
-});
-
-function claimFailure(failure: unknown) {
-	return typeof failure === "string" ? failure : failureOf(failure);
-}
+import { anotherSessionWaits, claim, type Lock, takeLock } from "./raceClaims.ts";
 
 function waitingOn(query: string) {
 	return query.includes("pg_advisory_xact_lock") ? "the advisory lock" : "the items update";
@@ -65,11 +14,12 @@ function waitingOn(query: string) {
 
 export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) {
 	let waiting: readonly string[] = [];
-	let results: readonly string[] = [];
+	let claims: readonly string[] = [];
+	let failures: readonly string[] = [];
 	let seen: readonly string[] = [];
 	let read = "";
 	let stalled = "";
-	const race = Effect.fnUntraced(function* (guarded: boolean, lock: Lock, outsider: boolean) {
+	const race = Effect.fnUntraced(function* (guarded: boolean, lock: Lock, outsider: boolean, failingRacer?: string) {
 		const sql = yield* SqlClient.SqlClient;
 		const recordWaiting = Effect.gen(function* () {
 			yield* sql`select pg_stat_clear_snapshot()`;
@@ -78,7 +28,13 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 			waiting = rows.map(({ query }) => waitingOn(query));
 		});
 		const raced = yield* raceWithLock({
-			effects: ["alice", "bob", "charlie"].map((name) => sql.withTransaction(claim(sql, name, guarded, lock, outsider ? 1 : 0))),
+			effects: ["alice", "bob", "charlie"].map((name) =>
+				sql.withTransaction(
+					claim(sql, name, guarded, lock, outsider ? 1 : 0).pipe(
+						Effect.tap(() => (name === failingRacer ? Effect.asVoid(sql`select 1 / 0`) : Effect.void)),
+					),
+				),
+			),
 			lock: Effect.gen(function* () {
 				yield* takeLock(sql, lock);
 				if (outsider) {
@@ -87,7 +43,8 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 				yield* Effect.addFinalizer(() => recordWaiting.pipe(Effect.orDie));
 			}),
 		});
-		results = raced.map((result) => (Result.isSuccess(result) ? result.success : claimFailure(result.failure)));
+		claims = raced.filter(Result.isSuccess).map((result) => result.success);
+		failures = raced.filter(Result.isFailure).map((result) => failureOf(result.failure));
 	});
 	const secondTestWrites = Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
@@ -131,17 +88,30 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 			story.tell(`a contender waits to read the row a holder updated, and the holder releases with ${release ?? "its default rollback"}`);
 			return engine.run(withIsolatedDatabase(contenderReads(release)));
 		},
-		contenderSaw: () => Effect.sync(() => read),
+		contenderSaw: () => {
+			story.tell("the story reads the value seen by the contender");
+			return Effect.sync(() => read);
+		},
 		race: (contenders: { readonly lock: Lock; readonly writes: "guarded" | "unguarded" }) => {
 			story.tell(`alice, bob and charlie race with ${contenders.writes} writes against a ${contenders.lock} lock`);
 			return engine.run(withIsolatedDatabase(race(contenders.writes === "guarded", contenders.lock, false)));
 		},
-		raceResults: () => Effect.sync(() => results),
-		raceTally: () =>
-			Effect.sync(() => ({
-				claimed: results.filter((result) => result !== "full").length,
-				full: results.filter((result) => result === "full").length,
-			})),
+		raceResults: () => {
+			story.tell("the story reads the race’s claims and failures separately");
+			return Effect.sync(() => ({ claims, failures }));
+		},
+		raceTally: () => {
+			story.tell("the story counts the race’s claims, full places and other failures");
+			return Effect.sync(() => ({
+				claimed: claims.length,
+				failed: failures.filter((failure) => failure !== "full").length,
+				full: failures.filter((failure) => failure === "full").length,
+			}));
+		},
+		raceWhereBobFails: () => {
+			story.tell("alice, bob and charlie race with unguarded writes behind a table lock, and bob divides by zero before committing");
+			return engine.run(withIsolatedDatabase(race(false, "table", false, "bob")));
+		},
 		raceWhereBobNeverQueues: () => {
 			story.tell("alice updates the item behind a table lock while bob only selects 1, so bob never queues on the lock");
 			return engine.run(withIsolatedDatabase(bobNeverQueues));
@@ -150,12 +120,21 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 			story.tell("another session waits on the advisory lock, then alice, bob and charlie race with guarded writes behind it");
 			return engine.run(withIsolatedDatabase(race(true, "advisory", true)));
 		},
-		secondTestSaw: () => Effect.sync(() => seen),
+		secondTestSaw: () => {
+			story.tell("the story reads the items seen by the second rollback test");
+			return Effect.sync(() => seen);
+		},
 		secondTestWritesLockedRow: () => {
 			story.tell("a second rollback test writes the row the first rollback test holds");
 			return engine.run(secondTestWrites);
 		},
-		stalledRace: () => Effect.sync(() => stalled),
-		waitingAtRelease: () => Effect.sync(() => waiting),
+		stalledRace: () => {
+			story.tell("the story reads why the race did not settle");
+			return Effect.sync(() => stalled);
+		},
+		waitingAtRelease: () => {
+			story.tell("the story reads which locks the contenders waited on at release");
+			return Effect.sync(() => waiting);
+		},
 	};
 }
