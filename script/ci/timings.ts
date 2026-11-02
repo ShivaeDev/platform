@@ -84,31 +84,23 @@ export function durationEstimates(snapshot: TimingSnapshot): Readonly<Record<str
 	return Object.fromEntries(snapshot.timings.map((item) => [item.name, item.durationMs]));
 }
 
-export function decodeVitestTimingReport(report: string): Timing[] {
-	const cache: unknown = JSON.parse(report);
-	if (!record(cache) || cache.version !== 1 || !record(cache.projects)) {
-		throw new Error("Invalid Vitest timing report");
+export function decodeTestTimingReport(report: string): Timing[] {
+	const parsed: unknown = JSON.parse(report);
+	if (!(record(parsed) && Array.isArray(parsed.testResults))) {
+		throw new Error("Invalid test timing report");
 	}
-	const results = Object.entries(cache.projects).flatMap(([project, value]) => {
-		if (!(record(value) && record(value.files))) {
-			throw new Error("Invalid Vitest timing report");
+	return parsed.testResults.map((file: unknown) => {
+		if (
+			!record(file)
+			|| typeof file.projectName !== "string"
+			|| typeof file.relativePath !== "string"
+			|| file.relativePath === ""
+			|| typeof file.durationMs !== "number"
+			|| !Number.isFinite(file.durationMs)
+			|| file.durationMs < 0
+		) {
+			throw new Error("Invalid test timing");
 		}
-		return Object.entries(value.files).map(([file, result]) => {
-			if (
-				!record(result)
-				|| typeof result.failed !== "boolean"
-				|| typeof result.duration !== "number"
-				|| !Number.isFinite(result.duration)
-				|| result.duration < 0
-			) {
-				throw new Error("Invalid test timing");
-			}
-			return { durationMs: Math.max(1, result.duration), failed: result.failed, name: `${project}:${file}` };
-		});
+		return { durationMs: Math.max(1, file.durationMs), name: `${file.projectName}:${file.relativePath}` };
 	});
-	if (results.length === 0) {
-		throw new Error("Invalid Vitest timing report");
-	}
-	// Timings merge only after every shard passed, so a failed file was recovered by the rerun and its failed first attempt is no timing.
-	return results.flatMap(({ durationMs, failed, name }) => (failed ? [] : [{ durationMs, name }]));
 }

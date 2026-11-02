@@ -124,3 +124,16 @@ rerunStory.it(
 		expect(yield* coveredFunctions()).toEqual(["alsoCovered", "covered"]);
 	},
 );
+
+rerunStory.it(
+	"final JSON timings keep distinct portable identities for a file in two projects after a rerun",
+	[inProjects("first", "second"), failsTimes(1, { steadyProject: "second" })],
+	function* ({ fileTimings, run }) {
+		yield* run();
+
+		expect(yield* fileTimings()).toEqual([
+			{ durationMs: expect.any(Number), projectName: "first", relativePath: "flaky.spec.ts" },
+			{ durationMs: expect.any(Number), projectName: "second", relativePath: "flaky.spec.ts" },
+		]);
+	},
+);

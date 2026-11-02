@@ -23,6 +23,8 @@ export const JsonReport = Schema.Struct({
 			),
 			durationMs: Schema.optional(Schema.Number),
 			name: Schema.String,
+			projectName: Schema.String,
+			relativePath: Schema.String,
 		}),
 	),
 });

@@ -7,15 +7,21 @@ const TestResult = Schema.StructWithRest(
 	[ExtraFields],
 );
 
-export const writeTimedReport = Effect.fn("VitestRerun.writeTimedReport")(function* (path: string, durations: readonly number[]) {
+interface FileTiming {
+	readonly durationMs: number;
+	readonly projectName: string;
+	readonly relativePath: string;
+}
+
+export const writeTimedReport = Effect.fn("VitestRerun.writeTimedReport")(function* (path: string, timings: readonly FileTiming[]) {
 	const fs = yield* FileSystem.FileSystem;
 	const contents = yield* fs.readFileString(path);
 	const Report = Schema.StructWithRest(
-		Schema.Struct({ testResults: Schema.Array(TestResult).check(Schema.isBetweenLength(durations.length, durations.length)) }),
+		Schema.Struct({ testResults: Schema.Array(TestResult).check(Schema.isBetweenLength(timings.length, timings.length)) }),
 		[ExtraFields],
 	);
 	const decodeReport = Schema.decodeUnknownEffect(Schema.fromJsonString(Report));
 	const report = yield* decodeReport(contents).pipe(Effect.mapError(failWith(`Could not decode timed report ${path}`)));
-	const testResults = report.testResults.map((result, index) => ({ ...result, durationMs: durations[index] }));
+	const testResults = report.testResults.map((result, index) => ({ ...result, ...timings[index] }));
 	yield* fs.writeFileString(path, JSON.stringify({ ...report, testResults }));
 });

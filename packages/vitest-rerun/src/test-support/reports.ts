@@ -76,6 +76,12 @@ export function reportReadouts(suite: Suite) {
 			),
 		exitCode: () => Effect.sync(() => lastRun(suite).exitCode),
 		fileDurations: (file: string) => durations(file, (written) => written.testResults.find((result) => result.name.endsWith(`/${file}`))?.durationMs),
+		fileTimings: () =>
+			Effect.sync(() =>
+				json("tests.json")
+					.testResults.map(({ durationMs, projectName, relativePath }) => ({ durationMs, projectName, relativePath }))
+					.toSorted((left, right) => byText(`${left.projectName}:${left.relativePath}`, `${right.projectName}:${right.relativePath}`)),
+			),
 		flakyTests: () =>
 			Effect.sync(() => {
 				const contents = readFile(suite, `${REPORTS}/flaky-tests.json`);

@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { mainShardPlan } from "#ci/mainShardPlan.ts";
 import { mergeConsumerTimings } from "#ci/mergeConsumerTimings.ts";
-import { mergeTestTimings } from "#ci/mergeTestTimings.ts";
 import { balancedShards, parseShard } from "#ci/shard.ts";
 import { consumerShardMs, jobDurations, shardTargetMs, wallTimeShardCount } from "#ci/shardCount.ts";
 import { testPackages } from "#ci/testPackages.ts";
 import { decodeTimingSnapshot, durationEstimates, mergeConsumerTimingReports, type TimingSnapshot } from "#ci/timings.ts";
+import { mergeTimingArtifacts } from "./mergeTimingArtifacts.ts";
 import type { Workspace } from "./workspace.ts";
 import { workspaceCoverage } from "./workspaceCoverage.ts";
 
@@ -25,8 +25,7 @@ export function verbs(engine: Workspace) {
 		mergeConsumers: (reports: readonly unknown[], targetMs: number, count = reports.length) =>
 			mergeConsumerTimings(reports, { count, jobs: engine.jobs, runId: "42", sha: "main-sha", targetMs }),
 		mergeReports: (reports: readonly unknown[]) => mergeConsumerTimingReports(reports, "42", "main-sha"),
-		mergeTests: (reports: readonly string[], targetMs: number, count = reports.length) =>
-			mergeTestTimings(reports, { count, jobs: engine.jobs, runId: "42", sha: "main-sha", targetMs }),
+		mergeTimingArtifacts: () => mergeTimingArtifacts(engine),
 		parseShard,
 		planMain: () => {
 			if (engine.githubLayer === undefined) {
