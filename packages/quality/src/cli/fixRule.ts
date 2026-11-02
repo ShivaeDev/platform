@@ -9,7 +9,7 @@ import { plural } from "#report/plural.ts";
 import type { RuleServices } from "#rule.ts";
 
 const GROUPED =
-	"Consecutive assertions stop on the first failure; outcomes evaluates row expressions up front and reads every outcome before asserting. Rewrite these stories by hand to review that change in evaluation and failure order.";
+	"Consecutive assertions stop on the first failure; outcomes constructs rows eagerly, then lazily invokes each readout callback in row order before the grouped assertion. Rewrite these stories by hand to review that change in evaluation and failure order.";
 
 export const fixRule = Effect.fn("Cli.fixRule")(function* (
 	cwd: string,
