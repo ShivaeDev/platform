@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { afterAll, beforeAll } from "vitest";
-import { installOutbound } from "#internal/installOutbound.ts";
+import { routeOutbound } from "#routeOutbound.ts";
 import { storyKit } from "#storyKit.ts";
 import { outbound } from "./outbound.ts";
 
@@ -8,7 +8,28 @@ let restoreNetwork: (() => void) | undefined;
 
 // The previous dispatcher stands in for the network, so no story needs a live third party.
 beforeAll(async () => {
-	restoreNetwork = await installOutbound(outbound);
+	await fetch("data:,");
+	const slots = ["undici.globalDispatcher.1", "undici.globalDispatcher.2"].flatMap((name) => {
+		const key = Symbol.for(name);
+		const previous: unknown = Reflect.get(globalThis, key);
+		if (typeof previous !== "object" || previous === null || !("dispatch" in previous) || typeof previous.dispatch !== "function") {
+			return [];
+		}
+		const dispatch = previous.dispatch.bind(previous);
+		Object.defineProperty(globalThis, key, {
+			value: {
+				dispatch(options: { readonly origin: string | URL }, handler: unknown) {
+					return dispatch({ ...options, origin: outbound["api.github.com"] }, handler);
+				},
+			},
+		});
+		return [{ key, previous }];
+	});
+	restoreNetwork = () => {
+		for (const { key, previous } of slots) {
+			Object.defineProperty(globalThis, key, { value: previous });
+		}
+	};
 });
 afterAll(() => restoreNetwork?.());
 
@@ -21,6 +42,10 @@ function networkKit(passthrough: boolean) {
 		outboundPassthrough: passthrough,
 		stages: [],
 		verbs: (_engine, story) => ({
+			allowsPassthrough: () => {
+				story.tell("another registration allows network passthrough");
+				return routeOutbound({}, { passthrough: true });
+			},
 			requestsProvider: () =>
 				Effect.promise(async () => {
 					story.tell("the application requests GET https://api.github.com/user");
