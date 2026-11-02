@@ -576,6 +576,8 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 
 `transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
 
+Arrays also accept typed keys from `collection`: a list key refreshes list subscribers, an item key refreshes that item and its list, and a bucket key refreshes that bucket. Subscribers register these keys through `readKeys` from `@shivaedev/changes/keys.ts`. Typed keys may share an array with raw Reactivity keys; raw keys keep their native identity.
+
 Mark bucket fields on the model with `bucket` from `@shivaedev/changes/buckets.ts`:
 
 ```ts

@@ -1,20 +1,24 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { dual } from "effect/Function";
 import type { ReadonlyRecord } from "effect/Record";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { isSqlError, type SqlError } from "effect/sql/SqlError";
 import { makeChannel } from "@shivaedev/changes/channel.ts";
-import { recordKey } from "@shivaedev/changes/keys.ts";
+import { invalidationKeys, Key, recordKey } from "@shivaedev/changes/keys.ts";
 
 export type InvalidationKeys = readonly unknown[] | ReadonlyRecord<string, readonly unknown[]>;
+
+const isKey = Schema.is(Key);
 
 function isList(keys: InvalidationKeys): keys is readonly unknown[] {
 	return Array.isArray(keys);
 }
 
 function flatten(keys: InvalidationKeys): readonly unknown[] {
-	return isList(keys) ? keys : Object.entries(keys).flatMap(([name, ids]) => [name, ...ids.map((id) => recordKey(name, id))]);
+	return isList(keys)
+		? keys.flatMap<unknown>((key) => (isKey(key) ? invalidationKeys([key]) : [key]))
+		: Object.entries(keys).flatMap(([name, ids]) => [name, ...ids.map((id) => recordKey(name, id))]);
 }
 
 const guard = Effect.fn("Transact.guard")(function* () {
