@@ -52,6 +52,18 @@ codecs.it(
 );
 
 codecs.it(
+	"an int8 equality filter binds the bigint field and selects only its exact sequence",
+	[paymentExists()],
+	function* ({ insertPayment, paymentsMatching }) {
+		yield* insertPayment({ sequence: 9_007_199_254_740_995n });
+
+		const found = yield* paymentsMatching({ sequence: payment.sequence });
+
+		expect(found).toEqual([{ amount: PRECISE_AMOUNT, sequence: BEYOND_NUMBER }]);
+	},
+);
+
+codecs.it(
 	"a stored NaN amount fails the read with a schema error and the enclosing transaction rolls back its write",
 	[paymentExists()],
 	function* ({ decodeNanAmountInTransaction, endings, payment: storedPayment }) {

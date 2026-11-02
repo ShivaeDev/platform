@@ -1,14 +1,10 @@
-import * as PgTypes from "@effect/sql-pg/PgTypes";
-import { BigDecimal, Result, Schema, SchemaGetter, SchemaParser } from "effect";
+import { BigDecimal, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
+import { int4Array } from "#int4Array.ts";
+import { int8 } from "#int8.ts";
 
 const Integers = Schema.Array(Schema.Int);
-const StoredIntegers = Schema.Unknown.pipe(
-	Schema.decodeTo(Integers, {
-		decode: SchemaGetter.transformEffect((value) => SchemaParser.decodeUnknownEffect(Integers)(PgTypes.isParameter(value) ? value.value : value)),
-		encode: SchemaGetter.transform((values) => Result.getOrThrow(PgTypes.array(values, PgTypes.OID.int4))),
-	}),
-);
+const StoredIntegers = int4Array(Integers);
 
 export class Sample extends Model.Class<Sample>("QuerySample")({
 	id: Schema.Int,
@@ -20,7 +16,7 @@ export class Payment extends Model.Class<Payment>("QueryPayment")({
 	"due_on": Schema.String,
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	note: Schema.NullOr(Schema.String),
-	sequence: Schema.BigInt,
+	sequence: int8(Schema.BigInt),
 	"settled_at": Schema.Date,
 }) {}
 
@@ -77,7 +73,7 @@ export class PartialRow extends Model.Class<PartialRow>("QueryPartialRow")({
 export class LedgerEntry extends Model.Class<LedgerEntry>("QueryLedgerEntry")({
 	account: Schema.String,
 	amount: Schema.String,
-	sequence: Schema.BigInt,
+	sequence: int8(Schema.BigInt),
 }) {}
 
 export class TestResult extends Model.Class<TestResult>("QueryTestResult")({
