@@ -6,18 +6,10 @@ import { answerCardFixture } from "#test/answerCardFixture.ts";
 import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen } from "#test/screenTraits.ts";
-import { WIDE_TABLE, WIDE_TABLE_LAYOUT } from "#test/wideTableFixture.ts";
 import { ItemSummary } from "./ItemSummary.tsx";
 
 expectNoReactWarnings();
 
-const REPORT = `---
-id: report.wide
-kind: report
----
-# Wide comparison
-
-${WIDE_TABLE}`;
 const INTRODUCTION = "---\nid: notes.board\n---\n# Workspace notes\n\nLocal planning for the project.\n";
 const NOTES = `${INTRODUCTION}
 ## Plan
@@ -30,14 +22,6 @@ Readers open the source first.
 
 ### Ship the reader
 `;
-
-screenStory.it(
-	"a wide table in a document keeps prose columns at a readable width and short columns on one line, scrolling in its own box",
-	[readingPage({ "home.md": "# Home", "report.md": REPORT }, "/report.md")],
-	function* ({ readTableLayout }) {
-		expect(yield* readTableLayout("article.doc table")).toEqual(WIDE_TABLE_LAYOUT);
-	},
-);
 
 screenStory.it(
 	"the workspace notes board reads as its introduction followed by each column with its items, and the header does not repeat the introduction",

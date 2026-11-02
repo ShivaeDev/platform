@@ -1,10 +1,10 @@
-import { WIDE_TABLE } from "./wideTableFixture.ts";
+import { wideTableFixture } from "./wideTableFixture.ts";
 
 function section(index: number) {
 	const paragraph = `Finding ${index} records what the reviewer checked, which files it touched and why the result holds for this revision. `.repeat(
 		6,
 	);
-	return `## Finding ${index}\n\n${paragraph}\n\n### Evidence ${index}\n\n${index % 5 === 0 ? WIDE_TABLE : `- Checked file ${index}.\n- Repeated the scan.\n`}\n`;
+	return `## Finding ${index}\n\n${paragraph}\n\n### Evidence ${index}\n\n${index % 5 === 0 ? wideTableFixture : `- Checked file ${index}.\n- Repeated the scan.\n`}\n`;
 }
 
 export const LONG_REPORT_TITLE = "Long research report";
