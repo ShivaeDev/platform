@@ -1,7 +1,6 @@
 import { Effect, type FileSystem, Layer, type Path, type PlatformError } from "effect";
 import type { HttpRouter } from "effect/http";
 import type { MissingReadPolicies } from "@shivaedev/contract/readPolicyErrors.ts";
-import type { SensitiveFieldConflict } from "@shivaedev/errors/schemaFieldScope.ts";
 import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { hostRpcRoutes } from "@shivaedev/server/hostRpcRoutes.ts";
@@ -23,7 +22,7 @@ export interface BoardOptions {
 }
 
 type BoardError =
-	| SensitiveFieldConflict
+	| Effect.Error<ReturnType<typeof schemaSensitiveKeys>>
 	| MissingReadPolicies
 	| InternalServerError
 	| HomeMissing

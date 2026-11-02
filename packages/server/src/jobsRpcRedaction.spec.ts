@@ -22,7 +22,16 @@ jobsRedaction.it(
 			[
 				"job failure",
 				() => wireAnswers(),
-				{ "1": { failed: expect.objectContaining({ data: "<redacted>", output: "<redacted>", queue: "mail", state: "failed" }) } },
+				{
+					"1": {
+						failed: expect.objectContaining({
+							data: "<redacted>",
+							output: { _tag: "<redacted>", message: "<redacted>" },
+							queue: "mail",
+							state: "failed",
+						}),
+					},
+				},
 			],
 			["private payload on the wire", () => answerMentions("private-recipient@example.test", "private job failure detail"), []],
 		]);
