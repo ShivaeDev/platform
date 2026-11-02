@@ -11,7 +11,7 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { Identity } from "#identity.ts";
 import { Authenticated, RequestTracing } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";

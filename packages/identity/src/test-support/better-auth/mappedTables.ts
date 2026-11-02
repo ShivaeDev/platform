@@ -1,5 +1,5 @@
 import { admin } from "better-auth/plugins";
-import type { AuthTableOptions } from "#server/better-auth/tables.ts";
+import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
 
 export const mappedTables = {
 	account: {

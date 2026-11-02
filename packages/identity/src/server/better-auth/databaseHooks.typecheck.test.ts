@@ -1,8 +1,8 @@
 import { Context, Effect, type Scope } from "effect";
 import { expectTypeOf } from "vitest";
 import type { Store } from "@shivaedev/rate-limit/Store.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { BetterAuthDatabaseHooks } from "./databaseHooks.ts";
-import { betterAuthMount } from "./mount.ts";
 
 class Application extends Context.Service<Application, { readonly admits: (id: string) => boolean }>()("identity/typecheck/Application") {}
 

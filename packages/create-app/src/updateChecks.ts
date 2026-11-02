@@ -1,6 +1,6 @@
 import { Console, Effect } from "effect";
-import { CreateAppError } from "./CreateAppError.ts";
-import { checkedProcess, runProcess } from "./runProcess.ts";
+import { CreateAppError } from "#CreateAppError.ts";
+import { checkedProcess, runProcess } from "#runProcess.ts";
 
 const conflictMarkers = Effect.fn("CreateApp.conflictMarkers")(function* (target: string) {
 	const result = yield* runProcess(target, "git", [
@@ -23,7 +23,10 @@ const conflictMarkers = Effect.fn("CreateApp.conflictMarkers")(function* (target
 
 export const updateChecks = Effect.fn("CreateApp.updateChecks")(function* (target: string) {
 	const failures: string[] = [];
-	for (const args of [["install"], ["run", "typecheck"]]) {
+	for (const args of [
+		["install", "--no-frozen-lockfile"],
+		["run", "typecheck"],
+	]) {
 		yield* Console.log(`Running pnpm ${args.join(" ")}...`);
 		const result = yield* runProcess(target, "pnpm", args);
 		if (result.code !== 0) {

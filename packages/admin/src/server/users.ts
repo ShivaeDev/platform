@@ -5,8 +5,8 @@ import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AssignRoles } from "@shivaedev/access/roles.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { type AuthTableOptions, tables } from "@shivaedev/identity/server/better-auth/adapters/tables.ts";
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
-import { type AuthTableOptions, tables } from "@shivaedev/identity/server/better-auth/tables.ts";
 import { ReadUsers } from "#permissions.ts";
 import { AppUser, type ChangeRoleInput, type UserListInput } from "#users/roles.ts";
 

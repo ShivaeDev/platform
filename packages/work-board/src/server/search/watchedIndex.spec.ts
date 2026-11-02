@@ -105,3 +105,15 @@ watchedIndexStory.it(
 		]);
 	},
 );
+
+watchedIndexStory.it(
+	"a reconciliation with unchanged document bytes and timestamps announces no changes",
+	[indexedBriefs({ "brief.md": "# Brief" })],
+	function* ({ announcementsWaiting, bodyOf, fullCheckRuns }) {
+		expect(yield* bodyOf("brief.md")).toBe("# Brief");
+
+		yield* fullCheckRuns();
+
+		expect(yield* announcementsWaiting()).toBe(0);
+	},
+);

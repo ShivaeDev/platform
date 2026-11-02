@@ -1,11 +1,11 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpServerRespondable, HttpStaticServer } from "effect/http";
 import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
