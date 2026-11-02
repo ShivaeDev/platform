@@ -35,6 +35,14 @@ export const browserReadObserver = Effect.fnUntraced(function* (contracts: Brows
 		observeProtocol: Effect.gen(function* () {
 			const underlying = yield* RpcClient.Protocol;
 			const listening = new Map<string, number>();
+			const closeClient = Effect.fnUntraced(function* (clientId: number) {
+				for (const [key, index] of listening) {
+					if (key.startsWith(`${clientId}:`)) {
+						yield* tracked.close(index);
+						listening.delete(key);
+					}
+				}
+			});
 			function record(clientId: number, request: RpcMessage.RequestEncoded) {
 				if (subscriptionTags.has(request.tag)) {
 					listening.set(`${clientId}:${request.id}`, tracked.open(request.payload, request.tag));
@@ -44,6 +52,10 @@ export const browserReadObserver = Effect.fnUntraced(function* (contracts: Brows
 				}
 			}
 			const observeMessage = Effect.fnUntraced(function* (clientId: number, message: RpcMessage.FromServerEncoded) {
+				if (message._tag === "Defect" || message._tag === "ClientProtocolError") {
+					yield* closeClient(clientId);
+					return;
+				}
 				const key = "requestId" in message ? `${clientId}:${message.requestId}` : undefined;
 				yield* receive(key === undefined ? undefined : listening.get(key), message);
 				if (message._tag === "Exit") {
@@ -53,7 +65,9 @@ export const browserReadObserver = Effect.fnUntraced(function* (contracts: Brows
 			const protocol: RpcClient.Protocol["Service"] = {
 				...underlying,
 				run: (clientId, deliver) =>
-					underlying.run(clientId, (message) => observeMessage(clientId, message).pipe(Effect.andThen(() => deliver(message)))),
+					underlying
+						.run(clientId, (message) => observeMessage(clientId, message).pipe(Effect.andThen(() => deliver(message))))
+						.pipe(Effect.ensuring(closeClient(clientId))),
 				send: (clientId, request, transferables) =>
 					Effect.gen(function* () {
 						if (request._tag === "Request") {
