@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
 import { GoalsPage } from "#client/react/GoalsPage.tsx";
+import { LazyChunksContext } from "#client/react/lazyChunks.ts";
 import { SystemPage } from "#client/react/SystemPage.tsx";
 import { shellIds } from "#client/react/shellIds.ts";
 import { goals } from "#server/views/goals.ts";
@@ -20,7 +21,11 @@ export function screenContent(engine: ScreenEngine, content: ReactNode) {
 			</>
 		);
 	}
-	return engine.fleet ? <FleetItemsContext.Provider value={engine.fleet}>{visible}</FleetItemsContext.Provider> : visible;
+	return (
+		<LazyChunksContext.Provider value={engine.chunks}>
+			{engine.fleet ? <FleetItemsContext.Provider value={engine.fleet}>{visible}</FleetItemsContext.Provider> : visible}
+		</LazyChunksContext.Provider>
+	);
 }
 export function screenClient(engine: ScreenEngine, api: BoardTestApi) {
 	engine.api = api;

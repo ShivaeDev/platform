@@ -1,6 +1,6 @@
 import { Effect, Predicate } from "effect";
 import { hasPermission } from "@shivaedev/access/permission.ts";
-import { PermissionBoundary } from "@shivaedev/react/client/permissionBoundary.ts";
+import { PermissionBoundary } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { matchAdminRoute } from "#adapters/matchAdminRoute.ts";

@@ -2,6 +2,7 @@ import { Effect, Schema, SchemaAST, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import { makeFilter } from "#repositoryFilter.ts";
+import type { UpsertAssignment } from "#upsertColumns.ts";
 
 export function makeConflictClause(
 	model: Model.Any,
@@ -33,18 +34,33 @@ export function makeConflictClause(
 			}
 		});
 	}
-	function clause(encoded: Readonly<Record<string, unknown>>, updateColumns?: readonly string[], updateWhere?: Readonly<Record<string, unknown>>) {
+	function assignment(entry: UpsertAssignment) {
+		const column = typeof entry === "string" ? entry : entry.column;
+		const incoming = sql`excluded.${sql(column)}`;
+		const stored = sql`${sql(options.tableName)}.${sql(column)}`;
+		let value = incoming;
+		if (typeof entry !== "string") {
+			value = entry.mode === "add" ? sql`${stored} + ${incoming}` : sql`coalesce(${incoming}, ${stored})`;
+		}
+		return sql`${sql(column)} = ${value}`;
+	}
+	function clause(
+		encoded: Readonly<Record<string, unknown>>,
+		updateColumns?: readonly UpsertAssignment[],
+		updateWhere?: Readonly<Record<string, unknown>>,
+	) {
 		return Effect.gen(function* () {
 			yield* validateColumns(encoded, conflictColumns);
 			if (updateColumns !== undefined) {
-				yield* validateColumns(encoded, updateColumns, [...idColumns, ...conflictColumns, ...immutable]);
+				yield* validateColumns(
+					encoded,
+					updateColumns.map((entry) => (typeof entry === "string" ? entry : entry.column)),
+					[...idColumns, ...conflictColumns, ...immutable],
+				);
 			}
 			const conflict = sql.csv(conflictColumns.map((column) => sql`${sql(column)}`));
 			const where = options.conflictWhere === undefined ? sql`` : sql`where ${yield* filter.where(options.conflictWhere)}`;
-			const action =
-				updateColumns === undefined
-					? sql`do nothing`
-					: sql`do update set ${sql.csv(updateColumns.map((column) => sql`${sql(column)} = excluded.${sql(column)}`))}`;
+			const action = updateColumns === undefined ? sql`do nothing` : sql`do update set ${sql.csv(updateColumns.map(assignment))}`;
 			const condition = updateWhere === undefined ? sql`` : sql`where ${yield* updateFilter.where(updateWhere, true, true)}`;
 			return sql`on conflict (${conflict}) ${where} ${action} ${condition}`;
 		});

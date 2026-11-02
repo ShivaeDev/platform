@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { hookFails } from "#test/hookFails.ts";
 import { passes, rerunStory } from "#test/kit.ts";

@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHub, list, listBounded, read, write } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { artifactVerbs } from "./artifactVerbs.ts";
 import { budgetHeaders } from "./budgetHeaders.ts";
 import { type FakeRepository, fakeRepository, SECONDARY_LIMIT } from "./fakeRepository.ts";
 import { FIXTURE_TOKEN, PRIVATE_QUERY, PullRequest } from "./fixtures.ts";
@@ -75,6 +76,7 @@ export const github = storyKit({
 			return server.requests.filter(({ path }) => route(path.split("?")[0] ?? path));
 		}
 		return {
+			...artifactVerbs(client, engine.archive, story.tell),
 			...paginationVerbs(engine, story.tell),
 			...writeVerbs(client, engine satisfies FakeRepository, run, story.tell),
 			archiveRequestHeaders: () =>
@@ -97,7 +99,7 @@ export const github = storyKit({
 					state.budgets.core = { ...state.budgets.core, remaining, reset };
 				}),
 			credentialsSent: () => Effect.sync(() => server.requests.map(({ headers }) => credentialOf(headers.authorization))),
-			downloadArchive: (byteLimit = 8) =>
+			downloadArchive: (byteLimit = 1024) =>
 				attempt(
 					`the client downloads artifact 7 within ${byteLimit} bytes`,
 					Effect.flatMap(GitHub, (service) => service.downloadArtifactArchive({ artifactId: 7, byteLimit, owner: "acme", repo: "widgets" })),

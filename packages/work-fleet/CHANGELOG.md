@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.30.0 - 2026-11-02
+
+### Added
+
+- Hosts can select fast or default worker service tiers from queued GitHub Actions runs, with configurable hysteresis, interval-cached reads through Fleet's GitHub reserve, and the current decision in status. Failed reads retain the last tier; each attempt records its selected launch settings.
+
+### Fixed
+
+- Stop pending Git fetches, merge predictions and report ancestry checks when their Effect is interrupted, and wait for the child process to close before interruption completes.
+- Fleet reconciles tracked PRs that merged or closed while its watcher was stopped and continues watching open PRs after restart.
+- Failed Fleet queue confirmations preserve the previous snapshot and defer transitions until GitHub confirms the observation.
+- Work Board reports unreadable child directories by path and keeps identity, search and membership incomplete until they can be read again. Fleet execution records remain visible without an unverified document join.
+- Work Fleet refuses to select a Board identity while sources are unavailable.
+
+### Breaking
+
+- Layers composed directly with `hostPolicy` must now provide `LaunchTier` from `host/launchTier.ts`. Provide `launchTierLayer` with the host's `MainSource` and `GithubApi`; `fleetHostLayer` and the CLI wire this automatically.
+- The PR watcher `GitHub` service’s `confirmQueue` method now returns `Snapshot | undefined`. Direct callers must treat `undefined` as an unconfirmed observation and retain the last successful snapshot without emitting transitions. Custom adapters can return `undefined` to defer confirmation.
+- Work Board's `Changes.files` is replaced by `Changes.inventory`, which returns `{ files, unavailable }`. Consumers must read `inventory.files` and qualify identity and membership using `inventory.unavailable`. `updateFiles` accepts and returns this inventory. Navigation membership counts are nullable; treat `null` as unknown while the index is incomplete. `listMarkdown` fails when a directory cannot be read; use `scanMarkdown` to inspect readable files alongside unavailable paths.
+- Work Fleet Board reads fail with `BoardFailure` code `incomplete-observation` while sources are unavailable. Consumers must treat identity and membership as unknown and retain existing execution state until sources can be read again.
+
 ## 0.29.2 - 2026-11-01
 
 ### Fixed

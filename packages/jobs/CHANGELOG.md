@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.29.2 - 2026-11-02
+
+### Fixed
+
+- Bound worker shutdown drain by `stop.timeout` (30 seconds by default). Workers drain concurrently, interrupt in-flight Effects at the timeout and log a warning for each registration that times out. Work that finishes within the timeout completes normally.
+- Tie `onError` callbacks to the jobs Layer's lifetime. Closing the Layer interrupts pending callbacks and waits for them to end before release completes; callbacks that finish before shutdown behave as before.
+- Redact scheduled worker logs using the same diagnostic policy as queue workers. Job details sanitize stored failure output and source failure output through the same schema as job listings, including native pg-boss timeout records.
+- Fail the scope coordinating a worker release with the original cause when heartbeat or ownership polling retries are exhausted, and stop registered jobs workers before removing the release lease. Application-host workers can no longer keep fetching after their release coordinator fails.
+
 ## 0.29.1 - 2026-11-01
 
 ### Changed

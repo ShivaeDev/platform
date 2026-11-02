@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.33.0 - 2026-11-02
+
+### Added
+
+- Form and React submission configurations accept a `savedValues` mapping to normalize a successful submission against its captured baseline while retaining later field edits.
+- Return a `useRetry` hook from `queryRoute` so a route's error component can refresh its query and render a successful result without rebuilding the query or replacing the surrounding shell.
+- Accept optional `redirects.signedOut` and `redirects.refused` callbacks for native typed TanStack redirects. Signed-out redirects can preserve the full return location with `signInSearch`; refused reads handle both `Forbidden` and `QueryReadDenied`.
+
+### Fixed
+
+- Editors preserve newer received baselines when an earlier save completes, and merge normalized saved fields without erasing later edits.
+- Create forms retain optional keys removed while a submission is in flight when resetting their inputs.
+- Keep live coalescing overrides owned by each query reader, so removing a reader restores the remaining reader's override. Clearing a session's live coalescing override restores the binding's original window.
+
+### Breaking
+
+- Direct callers of `@shivaedev/react/client/mountLive.ts` now run `mountLive(client, window)` as an Effect requiring `AtomRegistry.AtomRegistry`, instead of passing the registry as its first argument. Provide the registry with `Effect.provideService(AtomRegistry.AtomRegistry, registry)` and call the returned cleanup when the reader unmounts.
+- Direct calls to the loader returned by `queryRoute` now require `location` alongside `abortController`, context, deps and params. Pass the native TanStack loader context, or add the requested location to a custom loader invocation.
+
 ## 0.32.0 - 2026-11-01
 
 ### Added

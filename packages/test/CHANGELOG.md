@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.12.1 - 2026-11-02
+
+### Changed
+
+- Story kits and the Effect test adapter import native Effect submodules instead of whole barrels. Cookie windows, member windows, React mounting and OTLP decoding load when used; browser RPC imports use dedicated modules.
+- App test workers reuse Node's on-disk compilation cache while keeping Vitest's file isolation.
+
+### Fixed
+
+- Interrupt pending file Layer acquisition when its test times out and run registered finalizers before file completion without unhandled rejections. Fixture tests, `it.effect` and `it.live` share a five-second cleanup limit and `TestScopeCloseTimeout` error.
+
 ## 0.12.0 - 2026-10-30
 
 ### Added

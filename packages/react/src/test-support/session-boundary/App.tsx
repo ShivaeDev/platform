@@ -1,7 +1,7 @@
 import { createRootRoute, createRoute, createRouter, Outlet, type RouterHistory, RouterProvider, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
+import { permissionGuard } from "#adapters/permissionGuard.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import { permissionGuard } from "#permissionGuard.ts";
 
 export interface BoundarySession {
 	readonly id: string;

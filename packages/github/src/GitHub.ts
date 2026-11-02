@@ -21,7 +21,7 @@ export const GitHub = defineService({
 		const refresh = yield* TokenRefresh;
 		return {
 			apiUrl: config.apiUrl,
-			archive: artifacts(config.apiUrl, client, token, rates, refresh),
+			archive: yield* artifacts(config.apiUrl, rates),
 			rates,
 			request: requests(client, token, rates, refresh),
 			responseByteLimit: config.responseByteLimit,

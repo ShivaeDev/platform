@@ -277,7 +277,48 @@ app.it("continues the trace context a request's headers carry", [], function* ({
 
 `describeSpan` turns each span into words once in the kit, so the specs compare sentences instead of reading span fields and tags. Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
-#### Forwarding requests to a host
+#### Visiting an app over HTTP
+
+Use `httpVisitor` from `@shivaedev/test-story/server/httpVisitor.ts` in the kit's scoped `create` or `after` hook after starting the real app. Each call acquires a separate cookie jar and a separate edge proxy, which closes with the calling Scope:
+
+```ts
+import { httpVisitor } from "@shivaedev/test-story/server/httpVisitor.ts";
+
+const ada = yield* httpVisitor(upstream, {
+  baseUrl: "https://app.example",
+  headers: {
+    origin: "https://foreign.example",
+    "x-forwarded-for": "198.51.100.7",
+    "x-real-ip": "192.0.2.4",
+  },
+  edge: { forwardedHops: ["203.0.113.9"] },
+});
+
+const bob = yield* httpVisitor(upstream, { baseUrl: "https://app.example" });
+```
+
+`upstream` is the app's local HTTP listener. `baseUrl` is the public URL the visitor sees; it defaults to `upstream`. HTTPS here models TLS termination at the edge: transport to the local app remains HTTP. Requests present that public URL through `X-Forwarded-Host` and `X-Forwarded-Proto`. Secure cookies are accepted and sent only for HTTPS public URLs, including when the hostname is localhost. Ordinary and HttpOnly cookies are kept automatically, scoped by host/domain and path, and updated or removed by the app's Set-Cookie headers. Cookie expiry uses the story's Effect Clock. The visitors never share cookies.
+
+`headers` supplies visitor request defaults; a request's own headers override them without case sensitivity. In this example the app receives Origin `https://foreign.example`, X-Forwarded-For `198.51.100.7, 203.0.113.9`, and X-Real-IP `192.0.2.4`. `edge` accepts `ForwardingProxyOptions`: its headers override the visitor's headers, and `forwardedHops` chooses which addresses the edge appends. Give each visitor its own edge policy to test trusted proxy boundaries.
+
+`yield* ada.request("/session")` returns a native Response in an Effect. It accepts a path or an absolute public URL and optional fetch request options for method, headers, body and signal. Every request goes through this visitor's edge to the same upstream app; an absolute URL changes the public host/scheme used for headers and cookie selection. Redirects are returned without following them, and their cookies are retained, so the next story action can explicitly visit the Location. There is no credentials or redirect option. This HTTP client does not enforce browser CORS or SameSite policy.
+
+Keep requests and response decoding inside the application's verbs and readouts. A verb performs one action, and a readout translates the HTTP answer into domain words such as `"signed in as ada"` or `"signed out"`; specs never inspect Exit, Cause or `_tag` shapes. For example, an application's kit exposes `as(name).signsIn()` and `as(name).session()` over its visitor:
+
+```ts
+app.it("keeps ada's session separate from bob's", [visiting("ada"), visiting("bob")], function* ({ as }) {
+	yield* as("ada").signsIn();
+
+	yield* outcomes([
+		["ada's session", () => as("ada").session(), "signed in as ada"],
+		["bob's session", () => as("bob").session(), "signed out"],
+	]);
+});
+```
+
+The kit awaits the HTTP answer directly; it needs no sleeps, polling or manual Cookie header copying. For DOM rendering and browser sign-in flows, use the document and member-screen transports below.
+
+#### Controlling a forwarding proxy directly
 
 Use `forwardingProxy` from `@shivaedev/test-story/server/forwardingProxy.ts` in the kit's scoped `create` or `after` hook after starting the host under test:
 
@@ -826,7 +867,7 @@ socialApp.it("a social sign-in returns with a cookie session", [], function* ({ 
 
 #### Several members on one host
 
-Use `memberScreens` from `@shivaedev/test-story/server/memberScreens.ts` inside a DOM kit's `create` hook. Supply `baseUrl`, `mount(member)` returning an Effect, and `verbs(member, tell)` returning that member's verbs and readouts. Each `MemberScreen` carries its `name`, `fetch`, `registry` and `root`. Mount the application into that root with that registry, and give its auth and HTTP clients the member's fetch. Cookie contexts are independent even when every member uses the same host.
+Use `memberScreens` from `@shivaedev/test-story/server/memberScreens.ts` inside a DOM kit's `create` hook. Supply `baseUrl`, `mount(member)` returning an Effect, and `verbs(member, tell)` returning that member's verbs and readouts. Each `MemberScreen` carries its `name`, `fetch`, `registry` and `root`. Mount the application into that root with that registry, and give its auth and HTTP clients the member's fetch. Cookie contexts are independent even when every member uses the same host. Each member's screen driver searches for dialogs only inside that member's root. Portal dialogs into `member.root` so the member can find and act on them; document-wide portals remain available to standalone screen drivers.
 
 A trait calls `yield* members.open("ada", cookies)` with a minted session's cookies. The kit's verbs hook returns `members.verbs(story.tell)`, exposing `as("ada")` to the spec. Member narration includes the name. The calling Scope closes every cookie context, disposes every registry and removes every root. Register renderer unmounting in the mount hook with `Effect.acquireRelease` so it runs before the registry and root are released.
 
@@ -895,7 +936,7 @@ expect(screen.text("output")).toBe("Saved title");
 
 This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
 
-`click(selector)`, `enter(selector, value)`, `select(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root or a dialog portalled into its document; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Select focuses a native `<select>`, sets an available option value and dispatches change inside `act`. Disabled controls refuse clicks, entry and selection, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
+`click(selector)`, `enter(selector, value)`, `select(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root or a dialog portalled into its document (inside the member root for `memberScreens`); missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Select focuses a native `<select>`, sets an available option value and dispatches change inside `act`. Disabled controls refuse clicks, entry and selection, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
 `within(container)` returns the same driver scoped to that container, including nested `within` calls. Pass a selector, a role/name target or an `HTMLElement`. Selector and role containers must resolve to one rendered descendant and use the usual missing or ambiguous target diagnostics. For example, `within({ role: "region", name: "Billing" }).click({ role: "button", name: "Save" })` can address a Save button when Delivery has an identical button. A scoped driver searches only that container, including when the container is a portalled dialog. Settlement keeps the original pending signal and error type.
 
@@ -957,6 +998,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/genreTags.ts`                | `genreTags(...kitNames)`, `GenreTag`                                                                                                                                                                                                                                                                                                                                                |
 | `server/domEnvironment.config.ts`    | Default Vitest environment preserving Node host globals and happy-dom document transport                                                                                                                                                                                                                                                                                            |
 | `server/fakeHttpService.ts`          | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
+| `server/httpVisitor.ts`              | `httpVisitor(upstream, options?)`, `HttpVisitorOptions`, `VisitorRequest`                                                                                                                                                                                                                                                                                                           |
 | `server/forwardingProxy.ts`          | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
 | `server/otlpReceiver.ts`             | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`, `OtlpTracerOptions`                                                                                                                                                                                                                                                                                      |
 

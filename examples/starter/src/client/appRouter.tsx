@@ -2,8 +2,8 @@ import { type AnyRoute, createRoute, createRouter, type RouterHistory, useRouter
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement, ReactNode } from "react";
-import { Forbidden } from "@shivaedev/react/client/Forbidden.ts";
-import { PermissionBoundary, PermissionBoundaryError } from "@shivaedev/react/client/permissionBoundary.ts";
+import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
+import { PermissionBoundary, PermissionBoundaryError } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import type { AppSession, AuthActions } from "./auth.ts";
 import { Home } from "./Home.tsx";
 import { LoginScreen } from "./LoginScreen.tsx";

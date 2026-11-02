@@ -226,6 +226,7 @@ Import the module that defines the name; the package has no root entry. Every so
 - `@shivaedev/test/eventually.ts`: `eventually(effect, options?)` and `EventuallyOptions`.
 - `@shivaedev/test/withLive.ts`: `withLive(effect)`, a live-time region under either clock.
 - `@shivaedev/test/anyTestLayer.ts`: `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope.
+- `@shivaedev/test/adapters/runVitest.ts`: `runVitest({ root, include, env?, tests?, reporter?, hookTimeout?, allowOnly? })`, an Effect that runs nested Vitest fixtures for runner stories. It closes the runner after collecting test outcomes, metadata, module errors and unhandled errors.
 - `@shivaedev/test/types.ts`: `EffectClock`, `EffectTestOptions`, `EffectTestBody`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`.
 
 `eventually` waits `"10 millis"` between attempts by default; omitting `times` leaves retries unbounded.

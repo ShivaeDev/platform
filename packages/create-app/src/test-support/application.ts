@@ -4,6 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { CreateAppError } from "#CreateAppError.ts";
+import { skillActions } from "#test/skillActions.ts";
 import { scriptOutcome } from "./answers.ts";
 import { appReadouts } from "./appReadouts.ts";
 import { appFolder } from "./cli.ts";
@@ -13,7 +14,6 @@ import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "./enviro
 import { createAppIn } from "./generate.ts";
 import { generatedReadouts } from "./generatedReadouts.ts";
 import { runAdminStories } from "./runAdminStories.ts";
-import { skillActions } from "./skillActions.ts";
 import { templateReadouts } from "./templateReadouts.ts";
 
 export type Flag = "--minimal" | "--no-git";

@@ -240,7 +240,9 @@ Use `{ in: values }` to match any value in a list, alongside equality entries:
 yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 ```
 
-Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field; only the explicit `{ in: [...] }` entry requests SQL `IN`.
+Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field.
+
+A value accepted by the field's decoded schema uses equality through its codec before filter operators are considered. For a JSONB field whose schema accepts `{ gt: 7 }` or `{ in: [7] }`, those objects compare as JSON values. An object is an operator filter only when the field's decoded schema does not accept it. A nullable field's `null` equality matches SQL NULL, including on JSONB columns; it does not match JSON null. This rule applies to reads, counts and deletes.
 
 Use `count` with the same `where` shape as `findMany` to return the matching row count decoded as a number:
 
@@ -382,7 +384,7 @@ The application creates `readings` with `PRIMARY KEY (source, sequence)`; `seque
 | `insertManyOrIgnore` | Readonly array of model insert inputs                                | Decoded inserted models; conflicting rows are omitted.                                         |
 | `upsertMany`         | Readonly array of model insert inputs and `{ updateColumns: [...] }` | An array of `{ row, inserted }` results.                                                       |
 
-All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
+All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. String entries replace those columns with their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
 
 For a partial unique index such as `CREATE UNIQUE INDEX ON entries (a, b) WHERE kind = 'x'`, add `conflictWhere` beside `conflictColumns`:
 
@@ -398,6 +400,20 @@ const inserted = yield* entries.insertManyOrIgnore(inputs);
 ```
 
 All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = $n` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses typed equality entries like `findMany.where`: decoded field values pass through their field codecs and remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
+
+Declare conflict behavior per field in the same `updateColumns` list:
+
+```ts
+const saved = yield* counters.upsert(incoming, {
+	updateColumns: [
+		{ column: "count", mode: "add" },
+		{ column: "label", mode: "keepOnNull" },
+		"note",
+	],
+});
+```
+
+`add` computes the stored column plus its incoming encoded value inside the conflict update, so concurrent increments from separate PostgreSQL connections all count. Its model field must decode to a number, bigint or `BigDecimal`; choose a storage codec and SQL column that support native addition. `keepOnNull` uses the incoming value when it is non-null and keeps the stored value when it is SQL `NULL`. A string entry still replaces the field. Inserts use the incoming values directly. These entries also work in `upsertMany` and with `updateWhere`, and publish the same record and old/new bucket keys as other repository writes.
 
 On PostgreSQL, pass `updateWhere` to conditionally apply the update branch:
 

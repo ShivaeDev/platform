@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0 - 2026-11-02
+
+### Added
+
+- Identity mounts expose `admitsUser(userId)` to check the current sign-in policy for authenticated users on other transports, without caching rule verdicts.
+
+### Fixed
+
+- Serve OAuth discovery at the configured issuer's discovery path, including custom and root issuers.
+- Keep OAuth metadata rejections in the typed `AuthUnavailable` channel and retain the original cause of configuration, metadata and grant failures.
+- Accept case-insensitive bearer authorization schemes.
+- Identity checks with a zero recheck interval start an independent rule lookup even while another check for the same account is pending.
+
+### Breaking
+
+- MCP's `betterAuthMcp` requires `admitsUser`. Pass `admitsUser: mounted.admitsUser` from `betterAuthMount` alongside `auth: mounted.auth`. Each MCP request refuses users denied by the identity sign-in policy; existing tokens follow admission changes on the next request.
+
 ## 0.3.0 - 2026-11-01
 
 ### Changed

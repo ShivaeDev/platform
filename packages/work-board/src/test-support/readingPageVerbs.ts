@@ -217,7 +217,6 @@ export function readingPageVerbs(engine: ScreenEngine, tell: (line: string) => v
 				}
 				rememberedReadings.set(engine, captured);
 			}),
-		renderingError: () => read("the reader reads the error the page shows", () => text(document.querySelector("pre code")) || "none"),
 		responseForm: () => read("the reader looks for the answer form", () => (document.querySelector("#response-form") ? "shown" : "none")),
 		responseHistory: () =>
 			read("the reader reads the answer history", () => {
