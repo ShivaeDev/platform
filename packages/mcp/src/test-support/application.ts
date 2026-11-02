@@ -48,6 +48,7 @@ export const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission
 	const options = {
 		"baseURL": { allowedHosts: ["127.0.0.1:*", "mcp.story.test"], fallback: publicUrl },
 		database: pool,
+		emailAndPassword: { enabled: true },
 		logger: { disabled: true },
 		plugins: [
 			admin(),
