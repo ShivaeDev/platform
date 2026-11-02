@@ -5,6 +5,7 @@ import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import type { BetterAuthHardeningOptions } from "#server/better-auth/adapters/hardening.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
@@ -39,9 +40,9 @@ export const startHardeningHost = Effect.fnUntraced(function* (hardening: Better
 		user: { changeEmail: { enabled: true, updateEmailWithoutVerification: true } },
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, { bearerSessions: { origins: ["capacitor://localhost"] }, hardening }).pipe(
-		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
-	);
+	const mounted = yield* betterAuthMount(options, { bearerSessions: { origins: ["capacitor://localhost"] }, hardening })
+		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const context = yield* Layer.build(
 		HttpRouter.serve(mounted.routes, { disableLogger: true }).pipe(
 			Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),

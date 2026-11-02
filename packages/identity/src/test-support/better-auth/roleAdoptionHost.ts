@@ -5,6 +5,7 @@ import { HttpRouter } from "effect/http";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { AssignRoles } from "@shivaedev/access/roles.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
@@ -30,9 +31,9 @@ export const roleAdoptionHost = Effect.fnUntraced(function* () {
 	const legacy = yield* Effect.cached(Effect.sync(() => betterAuth(options)));
 	const application = yield* Effect.cached(
 		Effect.gen(function* () {
-			const mounted = yield* betterAuthMount(options, { defaultRole: "member", roles: Access }).pipe(
-				Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
-			);
+			const mounted = yield* betterAuthMount(options, { defaultRole: "member", roles: Access })
+				.pipe(Effect.provide(memoryStore))
+				.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 			const app = HttpRouter.toWebHandler(mounted.routes, { disableLogger: true });
 			yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 			return app;

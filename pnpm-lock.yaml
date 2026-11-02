@@ -537,6 +537,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
@@ -950,6 +953,9 @@ importers:
       '@shivaedev/errors':
         specifier: workspace:*
         version: link:../errors
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
@@ -1085,6 +1091,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
@@ -1495,6 +1504,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test

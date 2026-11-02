@@ -55,6 +55,7 @@
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {

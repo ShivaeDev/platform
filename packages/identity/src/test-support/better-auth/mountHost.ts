@@ -21,9 +21,7 @@ export interface MountEngine {
 	authDown: boolean;
 	readonly authOptions: Pick<BetterAuthOptions, "baseURL" | "trustedOrigins">;
 	bearerSessions?: BearerSessionsOptions;
-	readonly consumed: Array<{ readonly key: string; readonly rule: { readonly max: number; readonly window: number } }>;
 	readonly env: Record<string, string>;
-	lastAnswer?: string;
 	readonly logs: Array<{ readonly level: LogLevel.LogLevel; readonly message: unknown; readonly traceId: string | undefined }>;
 	readonly providerLogs: Array<{ level: string; message: string }>;
 	providerView?: ProviderView;
@@ -36,7 +34,6 @@ export function emptyMount(): MountEngine {
 	return {
 		authDown: false,
 		authOptions: {},
-		consumed: [],
 		env: {},
 		logs: [],
 		providerLogs: [],

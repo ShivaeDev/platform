@@ -98,6 +98,7 @@ The application's `auth` owns its storage and session configuration. A null look
 import { Effect } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 
 const authentication = Effect.gen(function* () {
 	const database = yield* betterAuthDatabase();
@@ -111,11 +112,13 @@ const authentication = Effect.gen(function* () {
 
 `betterAuthDatabase()` reads the application’s `SqlClient` and reserves connections from its PostgreSQL pool. Build it inside `appHost`’s `application` Effect, or provide sql’s `postgresLayer` for a standalone process. Set `maxConnections` and `applicationName` on the application SQL Layer. Generate frozen numbered auth migrations as described below. Create the database adapter inside a SQL transaction when auth writes must commit or roll back with application writes. The application SQL Layer owns shutdown.
 
+Provide `memoryStore` once around the host Layer with `Layer.provide(memoryStore)`, so auth mounts and other rate-limited operations share it. For a standalone authentication Effect, use `authentication.pipe(Effect.provide(memoryStore))`.
+
 Run this Effect in the host's scope; the application SQL Layer manages its connections. A rejected auth handler returns HTTP 503 with `Authentication is temporarily unavailable`.
 
 The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL` supplies the default base URL, trusted origin and HTTPS secure-cookie setting. With it unset, `baseURL.allowedHosts` defaults to `["127.0.0.1:*", "localhost:*"]` over HTTP and `trustedOrigins` defaults to `["http://127.0.0.1:*", "http://localhost:*"]`, accepting both loopback names on any port through a development proxy. Explicit `baseURL` (including `baseURL.allowedHosts`) and `trustedOrigins` options each replace their corresponding default; their lists are not merged. RPC Origin policy remains an application choice.
 
-`AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`. Each mount owns scoped in-memory buckets when `storage` is unset or `"memory"`. Application `customStorage`, `"database"` and `"secondary-storage"` selections pass through; Better Auth chooses the rules and client-IP keys.
+`AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`. Buckets belong to the host-provided `Store` from `@shivaedev/rate-limit/Store.ts`. Better Auth chooses the rules and client-IP keys; the mount prefixes keys with `identity:auth:` and always uses that Store, overriding Better Auth's `storage` and `customStorage` options. Memory budgets are shared by mounts using the same store and reset when a new host builds a fresh memory store. PostgreSQL budgets are shared across hosts using the same database; include `postgresMigration` from `@shivaedev/rate-limit/adapters/postgresMigration.ts` in the application's numbered migrations and provide `postgresStore` from `@shivaedev/rate-limit/adapters/postgresStore.ts`. Both stores start each window at the first admitted request; refused attempts leave the window unchanged. A refusal returns HTTP 429 with the remaining time rounded up to whole seconds in `X-Retry-After`; a store failure returns HTTP 503.
 
 The mount also requires the current account password on `/change-email`. Send it as `password` beside `newEmail` in the JSON body. Missing, empty, non-string, overlong and incorrect passwords are refused with HTTP 400 and `INVALID_PASSWORD`; accounts without a credential password are also refused. The check uses Better Auth's configured password verifier and applies to cookie and signed bearer sessions before an email can change or a verification email can be sent. Better Auth still owns email verification and the rest of the email-change flow.
 

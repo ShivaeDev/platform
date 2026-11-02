@@ -1,5 +1,6 @@
 import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Deferred, type Duration, Effect } from "effect";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
@@ -43,7 +44,9 @@ export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input) {
 			},
 			hardening: { requirePasswordForEmailChange: false },
 		},
-	).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
+	)
+		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const context = yield* Effect.promise(() => mounted.auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
 	return { auth: mounted.auth, delivery, messages, release, started };

@@ -2,6 +2,7 @@ import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Effect, Option, Schema } from "effect";
 import { Headers as HttpHeaders, HttpRouter } from "effect/http";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
@@ -21,9 +22,9 @@ export const sqlInterruptHost = Effect.gen(function* () {
 		session: { cookieCache: { enabled: false } },
 	};
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options).pipe(
-		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
-	);
+	const mounted = yield* betterAuthMount(options)
+		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const app = HttpRouter.toWebHandler(mounted.routes, { disableLogger: true });
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 	const provider = betterAuthSessions(

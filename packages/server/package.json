@@ -67,6 +67,7 @@
 		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",

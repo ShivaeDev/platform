@@ -16,6 +16,7 @@ import { sessionsHandlers } from "@shivaedev/identity/server/better-auth/session
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { ManageSessions, SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { nodeHttpServer } from "@shivaedev/server/nodeHttpServer.ts";
 import { SessionsPage } from "#sessions/Page.ts";
@@ -29,7 +30,7 @@ export const sessionsHost = Effect.fnUntraced(function* () {
 		logger: { disabled: true },
 		secret: "admin-sessions-story-secret-at-least-32-characters",
 		user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" } } },
-	});
+	}).pipe(Effect.provide(memoryStore));
 	const context = yield* Effect.promise(() => auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
 	// Sessions are preconditions; the stories exercise administration rather than sign-in.
