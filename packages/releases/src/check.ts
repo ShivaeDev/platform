@@ -4,7 +4,7 @@ import { checkReleaseCoverage } from "#checkReleaseCoverage.ts";
 import type { ChangesetConfig } from "#config.ts";
 import { ChangesetError } from "#error.ts";
 import type { Source, Workspace } from "#model.ts";
-import { parseChangeset } from "#parser.ts";
+import { packageAttribution, parseChangeset } from "#parser.ts";
 import { computePlan } from "#planner.ts";
 import { previousPackage } from "#previousPackage.ts";
 import { readHistory } from "#readHistory.ts";
@@ -14,7 +14,11 @@ import { readWorkspace } from "#workspace.ts";
 const validateInputs = Effect.fn("Changesets.validateInputs")(function* (before: readonly Source[], pending: readonly Source[], releasing: boolean) {
 	for (const source of before) {
 		const preserved = pending.find((item) => item.name === source.name);
-		if (preserved === undefined ? !releasing : preserved.text !== source.text) {
+		const unchanged =
+			preserved !== undefined
+			&& (preserved.text === source.text
+				|| (!packageAttribution.test(source.text) && preserved.text.replaceAll(new RegExp(packageAttribution, "gmu"), "- ") === source.text));
+		if (preserved === undefined ? !releasing : !unchanged) {
 			return yield* new ChangesetError({
 				message: `${source.name}: keep pending changesets unchanged; add a new file for later changes or run releases apply to consume them.`,
 			});
@@ -22,8 +26,15 @@ const validateInputs = Effect.fn("Changesets.validateInputs")(function* (before:
 	}
 });
 
+const parseDeclarations = Effect.fn("Changesets.parseDeclarations")(function* (before: Workspace, after: Workspace) {
+	return yield* Effect.forEach(
+		[...before.changesets.filter((source) => !after.changesets.some((pending) => pending.name === source.name)), ...after.changesets],
+		parseChangeset,
+	);
+});
+
 export const planDiff = Effect.fn("Changesets.planDiff")(function* (before: Workspace, after: Workspace) {
-	const declarations = yield* Effect.forEach([...before.changesets, ...after.changesets], parseChangeset);
+	const declarations = yield* parseDeclarations(before, after);
 	const packages = after.packages.map((pkg) => ({
 		...pkg,
 		manifest: { ...pkg.manifest, version: previousPackage(before, declarations, pkg)?.manifest.version ?? "0.0.0" },
@@ -38,7 +49,7 @@ export const planDiff = Effect.fn("Changesets.planDiff")(function* (before: Work
 export const validateDiff = Effect.fn("Changesets.validateDiff")(function* (before: Workspace, after: Workspace) {
 	yield* checkPackageFiles(after.packages);
 	const plan = yield* planDiff(before, after);
-	const declarations = yield* Effect.forEach([...before.changesets, ...after.changesets], parseChangeset);
+	const declarations = yield* parseDeclarations(before, after);
 	for (const old of before.packages) {
 		const replacement = after.packages.find((pkg) => pkg.directory === old.directory);
 		const name = new RegExp(`(?<![\\w@/.-])${RegExp.escape(old.manifest.name)}(?![\\w/-]|\\.[\\w.-])`, "u");
