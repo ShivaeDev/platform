@@ -24,14 +24,16 @@ export function clientVerbs({ client, rawClient, otherOrigin, remote, statusFail
 		return url.startsWith(remote.url) ? url.slice(remote.url.length) : url;
 	}
 	function answered<A, E, R>(effect: Effect.Effect<A, E, R>) {
-		return Effect.catch(effect, (error) =>
-			Effect.sync(() => {
-				if (isStatusError(error)) {
-					statusFailures.push(error);
-				}
-				return failureOf(error, pathOf);
-			}),
-		);
+		return Effect.catch(effect, (error) => {
+			const described = failureOf(error, pathOf);
+			if (described === undefined) {
+				return Effect.fail(error);
+			}
+			if (isStatusError(error)) {
+				statusFailures.push(error);
+			}
+			return Effect.succeed(described);
+		});
 	}
 	const pages = paginate(client(), HttpClientRequest.get(`${remote.url}/pages/1`, { urlParams: { token: "private" } }));
 	function itemsOf(stream: typeof pages) {

@@ -41,7 +41,7 @@ export function failureOf(error: unknown, pathOf: (url: string) => string) {
 			return described;
 		}
 	}
-	return `unexpected failure: ${String(error)}`;
+	return undefined;
 }
 
 export function isStatusError(error: unknown): error is RemoteStatusError {
