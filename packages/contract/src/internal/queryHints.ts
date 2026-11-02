@@ -1,12 +1,13 @@
 import { invalidationKeys, type Key, readKeys } from "@shivaedev/changes/keys.ts";
 import type { LiveHint } from "#live.ts";
+import type { SubscriptionHint } from "#queryUpdate.ts";
 
 export function localQueryKeys(keys: readonly Key[]) {
 	return keys.filter((key) => key.collection.startsWith("@query/"));
 }
 
-export function queryHint(hint: LiveHint, tracked: readonly { readonly keys: readonly Key[] }[]): LiveHint {
-	if (hint._tag === "Resync") {
+export function queryHint(hint: SubscriptionHint, tracked: readonly { readonly keys: readonly Key[] }[]): SubscriptionHint {
+	if (hint._tag !== "Changed") {
 		return hint;
 	}
 	const invalidated = invalidationKeys(hint.keys);

@@ -14,6 +14,7 @@ export interface QuerySubscription<E = never, R = never> {
 	readonly globalKeys?: readonly Key[];
 	readonly keys: readonly Key[];
 	readonly queries?: readonly QueryRequest[];
+	readonly refresh?: Effect.Effect<Context.Context<never>, E, R>;
 	readonly scopes: readonly (readonly Key[])[];
 }
 
@@ -37,7 +38,10 @@ export function querySubscription(rpc: Rpc.Any, references: readonly QueryRefere
 				return {
 					check: Effect.provideContext(checkQuery(query, payload, viewer), context),
 					keys: queryReadKeys(query, payload, viewer).pipe(Effect.provideContext(context)),
-					permitted: Effect.suspend(() => query.readPolicy?.(payload, viewer) ?? Effect.succeed(false)).pipe(Effect.provideContext(context)),
+					permitted: Effect.gen(function* () {
+						const current = yield* policyContext(Rpc.make(`${prefix}${query.name}`));
+						return yield* Effect.suspend(() => query.readPolicy?.(payload, viewer) ?? Effect.succeed(false)).pipe(Effect.provideContext(current));
+					}),
 				};
 			}),
 		);
