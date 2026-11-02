@@ -3,9 +3,9 @@ import { act } from "react";
 import { routeQueryOptions } from "#client/react/routeQuery.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
-export function indexAvailability(engine: ScreenEngine, files: readonly string[]) {
+export function requestAvailability(engine: ScreenEngine, files: readonly string[]) {
 	return Effect.suspend(() => {
-		engine.indexReads += 1;
+		engine.workspaceRequests += 1;
 		const refresh = engine.heldAnswerRefresh;
 		if (refresh && files.some((file) => file.startsWith("responses/response."))) {
 			refresh.started = true;
@@ -46,20 +46,20 @@ export function availabilityActions(engine: ScreenEngine, tell: (line: string) =
 			return setConnection(engine, "reconnecting");
 		},
 		failWorkspace: () => {
-			tell("workspace indexing becomes unavailable");
+			tell("workspace replies become unavailable");
 			engine.indexFailed = true;
 		},
 		holdRefreshAfterAnswer: () => {
-			tell("workspace indexing waits once an answer file is saved");
+			tell("workspace replies wait once an answer file is saved");
 			engine.heldAnswerRefresh = { gate: Deferred.makeUnsafe<void>(), started: false };
 		},
 		holdWorkspace: () => {
-			tell("workspace indexing waits");
+			tell("workspace replies wait at the browser transport");
 			engine.indexGate = Deferred.makeUnsafe<void>();
 		},
-		readIndexReads: () => {
-			tell("the reader checks how many workspace index reads ran");
-			return engine.indexReads;
+		readWorkspaceRequests: () => {
+			tell("the reader checks how many workspace requests ran");
+			return engine.workspaceRequests;
 		},
 		reconnectLive: () => {
 			tell("the Board's live connection comes back");
@@ -92,7 +92,7 @@ export function availabilityActions(engine: ScreenEngine, tell: (line: string) =
 			await act(() => Promise.resolve().then(() => Effect.runSync(Deferred.succeed(refresh.gate, undefined))));
 		},
 		releaseWorkspace: async () => {
-			tell("workspace indexing resumes");
+			tell("workspace replies resume");
 			if (!engine.indexGate) {
 				throw new Error("The workspace index is not held");
 			}

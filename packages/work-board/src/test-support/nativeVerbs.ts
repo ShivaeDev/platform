@@ -9,20 +9,6 @@ export function nativeVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			}
 			engine.connectionBoundary.disconnect();
 		},
-		loseNextChange: () => {
-			tell("the live delivery boundary drops the next server change");
-			if (!engine.changeDelivery) {
-				throw new Error("No delivery fault was prepared");
-			}
-			engine.changeDelivery.loseNext = true;
-		},
-		omitNextPath: (path: string) => {
-			tell(`the next live message omits the observed edit to ${path}`);
-			if (!engine.changeDelivery) {
-				throw new Error("No delivery fault was prepared");
-			}
-			engine.changeDelivery.omitPath = path;
-		},
 		resumeTransport: () => {
 			tell("the native HTTP connection returns");
 			if (!engine.connectionBoundary) {

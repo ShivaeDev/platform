@@ -1,5 +1,5 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
+import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
 import { screenStory } from "./screenStory.ts";
 import { todayFixture } from "./todayFixture.ts";
 export function screenFiles(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions) {

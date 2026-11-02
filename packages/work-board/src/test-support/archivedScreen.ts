@@ -3,8 +3,6 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { archive } from "#server/archive/run.ts";
-import { watchChanges } from "#server/files/changes.ts";
-import { searchSnapshot } from "#server/search/snapshot.ts";
 import { folder } from "./board.ts";
 import { screenStory } from "./screenStory.ts";
 import { settledFixture } from "./settledFixture.ts";
@@ -13,11 +11,7 @@ export function archivedScreen() {
 	return screenStory.trait("workspace", "the workspace has archived a settled question and its answer", function* (engine) {
 		const notes = folder(settledFixture().files);
 		yield* Effect.addFinalizer(() => Effect.sync(notes.remove));
-		const snapshot = yield* Effect.gen(function* () {
-			yield* archive(notes.root);
-			const changes = yield* watchChanges(notes.root);
-			return yield* yield* searchSnapshot(notes.root, undefined, changes);
-		}).pipe(Effect.provide(NodeServices.layer));
+		yield* archive(notes.root).pipe(Effect.provide(NodeServices.layer));
 		engine.files = Object.fromEntries(
 			readdirSync(notes.root, { encoding: "utf8", recursive: true }).flatMap((file) => {
 				const path = join(notes.root, file);
@@ -25,6 +19,6 @@ export function archivedScreen() {
 			}),
 		);
 		engine.path = "/_board/item/settled/";
-		engine.options = { index: Effect.succeed(snapshot) };
+		engine.options = { home: undefined };
 	});
 }

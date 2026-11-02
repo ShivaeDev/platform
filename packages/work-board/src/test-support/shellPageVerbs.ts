@@ -75,8 +75,6 @@ export function shellPageVerbs(engine: ScreenEngine, tell: (line: string) => voi
 				"the reader reads which Work layout is current",
 				() => document.querySelector('nav[aria-label="Work layout"] [aria-current="page"]')?.textContent,
 			),
-		documentReadsOf: (url: string) =>
-			reading(`the reader counts the document reads of ${url}`, () => engine.documentReads.filter((read) => read === url).length),
 		historyEntry: () =>
 			reading("the reader reads which browser history entry is current", () => {
 				const state: unknown = engine.router?.state.location.state;
@@ -133,6 +131,8 @@ export function shellPageVerbs(engine: ScreenEngine, tell: (line: string) => voi
 			}),
 		pageOutline: () =>
 			reading("the reader reads the page outline", () => [...document.querySelectorAll(".document-outline a")].map((link) => link.textContent)),
+		pageRequestsOf: (url: string) =>
+			reading(`the reader counts the document reads of ${url}`, () => engine.pageRequests.filter((read) => read === url).length),
 		pageText: () => reading("the reader reads the page", () => (document.querySelector("#doc") ?? document.body).textContent),
 		pendingFeedback: () =>
 			reading("the reader looks for the header's Opening page bar", () =>

@@ -98,6 +98,6 @@ function wakes(engine: ScreenEngine, sample: () => boolean): Stream.Stream<Clien
 					}),
 			),
 		);
-		return Stream.map(signals, check);
+		return Stream.map(Stream.merge(signals, Stream.fromPubSub(engine.transportEvents)), check);
 	});
 }

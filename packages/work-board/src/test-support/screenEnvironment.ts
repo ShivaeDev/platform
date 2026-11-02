@@ -2,7 +2,6 @@ import { Deferred, Effect } from "effect";
 import { vi } from "vitest";
 import type { FleetHealth } from "#diagnostics/health.ts";
 import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
-import { fixtureSnapshot } from "./fixtureSnapshot.ts";
 import { screenStory } from "./screenStory.ts";
 
 export function intervalClock() {
@@ -94,7 +93,7 @@ export function fallibleDocument() {
 }
 
 export function unavailableWorkspace() {
-	return screenStory.trait("workspace", "the workspace index is temporarily unavailable", (engine) => {
+	return screenStory.trait("workspace", "workspace replies are temporarily unavailable", (engine) => {
 		engine.indexFailed = true;
 		engine.health = true;
 	});
@@ -109,7 +108,7 @@ export function unreadableHome() {
 		engine.options = {
 			...engine.options,
 			home,
-			index: fixtureSnapshot(engine.files, home).pipe(Effect.map((snapshot) => ({ ...snapshot, unavailable: [home] }))),
+			unreadable: [home],
 		};
 	});
 }
@@ -144,13 +143,13 @@ export function pendingFleet() {
 }
 
 export function heldWorkspace() {
-	return screenStory.trait("workspace", "workspace indexing waits", (engine) => {
+	return screenStory.trait("workspace", "workspace replies wait at the browser transport", (engine) => {
 		engine.indexGate = Deferred.makeUnsafe<void>();
 	});
 }
 
 export function startingBoard() {
-	return screenStory.trait("workspace", "the Board RPC services wait before starting", function* (engine) {
+	return screenStory.trait("workspace", "the browser RPC transport waits before connecting", function* (engine) {
 		const gate = yield* Deferred.make<void>();
 		engine.startupGate = gate;
 		engine.options = { ...engine.options, beforeStart: Deferred.await(gate) };
@@ -167,7 +166,7 @@ export function incompleteInventory(paths: readonly string[]) {
 	return screenStory.trait("workspace", `the index cannot read ${paths.join(", ")}`, (engine) => {
 		engine.options = {
 			...engine.options,
-			index: fixtureSnapshot(engine.files, engine.options?.home).pipe(Effect.map((snapshot) => ({ ...snapshot, unavailable: paths }))),
+			unreadable: paths,
 		};
 	});
 }

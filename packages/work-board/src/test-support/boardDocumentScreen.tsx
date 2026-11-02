@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { ProjectionMain } from "#client/react/ProjectionMain.tsx";
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
+import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
 import { renderBoard } from "./react.tsx";
 import { trackScreen } from "./screenEngine.ts";
 import { screenClient, screenContent } from "./screenFeatures.tsx";

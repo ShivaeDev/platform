@@ -1,7 +1,7 @@
 import { Deferred, Effect } from "effect";
 import { act } from "react";
+import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
 import { hostedHealthScreen } from "./hostedHealthScreen.tsx";
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
 import { screenSettles } from "./screenSettle.ts";
 import { screenStory } from "./screenStory.ts";
 import { screenFiles, screenRoute } from "./screenWorkspaceTraits.ts";

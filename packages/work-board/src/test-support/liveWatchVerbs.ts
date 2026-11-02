@@ -1,5 +1,5 @@
 import { relative } from "node:path";
-import { Cause, Deferred, Effect, Exit, Fiber, Order } from "effect";
+import { Cause, Effect, Exit, Fiber, Order } from "effect";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { rawGet } from "./board.ts";
 import { ended, fontFamily, liveBoardReads, watching } from "./liveBoardReads.ts";
@@ -91,12 +91,6 @@ export function liveWatchVerbs(engine: BoardEngine, tell: (line: string) => void
 					? "each wait longer than the one before"
 					: `wait ${shorter + 1} of ${Math.round(waits[shorter] ?? 0)}ms is not longer than wait ${shorter} of ${Math.round(waits[shorter - 1] ?? 0)}ms`;
 			}),
-		serverAnnounced: (path: string) => {
-			tell(`the server announces the file event for ${path}`);
-			const announced = Deferred.makeUnsafe<void>();
-			state.announced.set(path, announced);
-			return Deferred.await(announced);
-		},
 		serverSpanCause: (span: string) =>
 			Effect.sync(() => {
 				tell(`the reader inspects the failures recorded on the server's ${span} spans`);

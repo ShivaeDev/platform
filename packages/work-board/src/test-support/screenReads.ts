@@ -1,7 +1,7 @@
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, PubSub } from "effect";
 import { act } from "react";
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
-import { indexAvailability } from "./screenAvailability.tsx";
+import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
+import { requestAvailability } from "./screenAvailability.tsx";
 import type { ScreenEngine } from "./screenEngine.ts";
 
 export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOptions) {
@@ -14,13 +14,21 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 					return options?.afterRead?.(url) ?? Effect.void;
 				}
 				read.started = true;
-				return Deferred.await(read.gate).pipe(Effect.andThen(read.failed ? Effect.die("Older read unavailable") : Effect.void));
+				return PubSub.publish(engine.transportEvents, undefined).pipe(
+					Effect.andThen(Deferred.await(read.gate)),
+					Effect.andThen(read.failed ? Effect.die("Older read unavailable") : Effect.void),
+					Effect.ensuring(
+						Effect.sync(() => {
+							read.finished = true;
+						}).pipe(Effect.andThen(PubSub.publish(engine.transportEvents, undefined))),
+					),
+				);
 			}),
-		beforeIndex: (files: readonly string[]) => indexAvailability(engine, files),
 		beforeRead: (kind: "document", url: string) => {
-			engine.documentReads.push(url);
+			engine.pageRequests.push(url);
 			return engine.documentFailed ? Effect.die("Read unavailable") : (options?.beforeRead?.(kind, url) ?? Effect.void);
 		},
+		beforeRequest: (files: readonly string[]) => requestAvailability(engine, files),
 		...(engine.fleet ? { fleet: engine.fleet } : {}),
 	};
 	if (!engine.heldRead) {
@@ -49,12 +57,12 @@ export function screenReadVerbs(engine: ScreenEngine, tell: (line: string) => vo
 	return {
 		pauseRead: (url: string, failed = false) => {
 			tell(`the next completed document read for ${url} waits before delivery`);
-			engine.heldRefresh = { failed, gate: Deferred.makeUnsafe<void>(), started: false, url };
+			engine.heldRefresh = { failed, finished: false, gate: Deferred.makeUnsafe<void>(), started: false, url };
 		},
 
-		readDocumentReads: () => {
-			tell("the reader inspects document read requests");
-			return [...engine.documentReads];
+		readPageRequests: () => {
+			tell("the reader inspects page requests");
+			return [...engine.pageRequests];
 		},
 		releaseRead: async () => {
 			const read = engine.heldRead;
