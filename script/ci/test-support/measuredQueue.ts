@@ -10,9 +10,20 @@ import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts
 import { planning } from "./planning.ts";
 
 function measuredGithub(args: string[]) {
-	if (args[1]?.includes("workflows/ci.yml")) {
+	if (args[1]?.includes("workflows/ci.yml/runs?event=merge_group&status=success&per_page=10")) {
 		return JSON.stringify({
-			"workflow_runs": [43, 42].map((id) => ({ conclusion: "success", event: "push", "head_branch": "main", "head_sha": `sha-${id}`, id })),
+			"workflow_runs": [
+				{ conclusion: "success", event: "push", "head_branch": "main", "head_sha": "sha-46", id: 46 },
+				{ conclusion: "success", event: "merge_group", "head_branch": "gh-readonly-queue/release/pr-45", "head_sha": "sha-45", id: 45 },
+				{ conclusion: "failure", event: "merge_group", "head_branch": "gh-readonly-queue/main/pr-44", "head_sha": "sha-44", id: 44 },
+				...[43, 42].map((id) => ({
+					conclusion: "success",
+					event: "merge_group",
+					"head_branch": `gh-readonly-queue/main/pr-${id}`,
+					"head_sha": `sha-${id}`,
+					id,
+				})),
+			],
 		});
 	}
 	if (args[0] === "api") {
@@ -34,10 +45,18 @@ function measuredGithub(args: string[]) {
 	return "";
 }
 
-export function measuredMain(
-	mode: "available" | "denied" | "missing consumers" | "replaced" | "invalid runs" | "invalid artifacts" | "unreadable snapshot" = "available",
+export function measuredQueue(
+	mode:
+		| "available"
+		| "denied"
+		| "missing snapshots"
+		| "missing consumers"
+		| "replaced"
+		| "invalid runs"
+		| "invalid artifacts"
+		| "unreadable snapshot" = "available",
 ) {
-	return planning.trait("workspace", `main timings are ${mode}`, function* (engine) {
+	return planning.trait("workspace", `merge-queue timings are ${mode}`, function* (engine) {
 		let identity = 0;
 		engine.github = (args) => {
 			if (mode === "unreadable snapshot" && args[0] === "run") {
@@ -46,7 +65,7 @@ export function measuredMain(
 			if (!args[1]?.includes("/artifacts?")) {
 				return measuredGithub(args);
 			}
-			if (mode === "missing consumers" && args[1].includes("name=consumer-balancing")) {
+			if (mode === "missing snapshots" || (mode === "missing consumers" && args[1].includes("name=consumer-balancing"))) {
 				return JSON.stringify({ artifacts: [] });
 			}
 			if (mode === "replaced") {

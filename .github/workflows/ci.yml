@@ -140,7 +140,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Pin main snapshots and independent shard counts
+      - name: Pin merge-queue snapshots and independent shard counts
         id: timings
         env:
           GH_TOKEN: ${{ github.token }}
@@ -154,17 +154,18 @@ jobs:
           const deadline = performance.now() + 15000;
           const plan = await Effect.runPromise(mainShardPlan(process.env.GITHUB_REPOSITORY, args => {
             const remaining = deadline - performance.now();
-            if (remaining <= 0) throw new Error('Main snapshot lookup timed out');
+            if (remaining <= 0) throw new Error('Merge-queue snapshot lookup timed out');
             return execFileSync('gh', args, { encoding: 'utf8', timeout: Math.min(10000, Math.ceil(remaining)), stdio: ['ignore', 'pipe', 'pipe'] });
           }).pipe(Effect.scoped, Effect.provide(githubLayer)));
           for (const [kind, value] of Object.entries(plan)) {
-            console.log(`${kind}: ${value.count} shards; main timing run ${value.runId || 'none'}`);
+            console.log(`${kind}: ${value.count} shards; merge-queue timing run ${value.runId || 'none'}`);
             const shards = Array.from({ length: value.count }, (_, index) => index + 1);
             appendFileSync(process.env.GITHUB_OUTPUT, `${kind}-run-id=${value.runId}\n${kind}-artifact-id=${value.artifactId}\n${kind}-count=${value.count}\n${kind}-shards=${JSON.stringify(shards)}\n`);
           }
           JS
 
   tests:
+    if: github.event_name != 'push'
     needs: shard-plan
     permissions:
       contents: read
@@ -333,32 +334,33 @@ jobs:
           for (const [name, job] of Object.entries(jobs)) {
             console.log(`${name}: ${job.result}`);
           }
-          if (Object.values(jobs).some(job => job.result !== 'success')) process.exit(1);
+          const mainPush = process.env.GITHUB_EVENT_NAME === 'push' && process.env.GITHUB_REF === 'refs/heads/main';
+          if (Object.entries(jobs).some(([name, job]) => job.result !== 'success' && !(mainPush && name === 'tests' && job.result === 'skipped'))) process.exit(1);
           JS
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'merge_group'
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'merge_group'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'merge_group'
         with:
           pattern: "*-timings-*"
-          path: .ci/main-timings
-      - name: Read main job wall times
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+          path: .ci/queue-timings
+      - name: Read merge-queue job wall times
+        if: github.event_name == 'merge_group'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node --conditions=source script/ci/mainJobs.ts > .ci/main-jobs.json
-      - name: Merge successful main consumer timings
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: node --conditions=source script/ci/mainJobs.ts > .ci/queue-jobs.json
+      - name: Merge successful merge-queue consumer timings
+        if: github.event_name == 'merge_group'
         run: >-
-          node --conditions=source script/ci/mergeConsumerTimings.ts --directory .ci/main-timings --jobs .ci/main-jobs.json
+          node --conditions=source script/ci/mergeConsumerTimings.ts --directory .ci/queue-timings --jobs .ci/queue-jobs.json
           --target-seconds ${{ vars.PLATFORM_CI_SHARD_SECONDS || 240 }}
           --output .ci/consumer-durations.json --count ${{ needs.shard-plan.outputs.consumers-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'merge_group'
         with:
           overwrite: true
           name: consumer-balancing
@@ -367,14 +369,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Merge successful main test timings
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Merge successful merge-queue test timings
+        if: github.event_name == 'merge_group'
         run: >-
-          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/main-timings --jobs .ci/main-jobs.json
+          node --conditions=source script/ci/mergeTestTimings.ts --directory .ci/queue-timings --jobs .ci/queue-jobs.json
           --target-seconds ${{ vars.PLATFORM_CI_SHARD_SECONDS || 240 }}
           --output .ci/test-durations.json --count ${{ needs.shard-plan.outputs.tests-count }} --run-id=${{ github.run_id }} --sha=${{ github.sha }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'merge_group'
         with:
           overwrite: true
           name: test-balancing
