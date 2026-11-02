@@ -10,7 +10,7 @@ import type { requests } from "#requests.ts";
 
 export function representations(
 	apiUrl: string,
-	request: ReturnType<typeof requests>,
+	request: Effect.Success<ReturnType<typeof requests>>,
 	resource: (path: string) => string,
 	responseByteLimit = 1024 * 1024,
 ) {
