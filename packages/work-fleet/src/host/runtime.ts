@@ -1,3 +1,4 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Effect, Layer, Redacted } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
@@ -75,6 +76,7 @@ export function hostSql(host: FleetHost) {
 		},
 		migrations: { loader: fleetMigrations(host.namespace), table: `${host.namespace}_migrations` },
 	}).pipe(
+		Layer.provide(NodeCrypto.layer),
 		Layer.provide(
 			Layer.effectDiscard(
 				Effect.gen(function* () {

@@ -1,5 +1,6 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { KeyContext } from "@shivaedev/changes/keys.ts";
+import { clientId } from "./clientId.ts";
 
 export interface BindingOwner {
 	readonly context: KeyContext;
@@ -17,7 +18,7 @@ export function bindingOwner(scope: "session" | undefined, registry?: AtomRegist
 	}
 	let context = contexts.get(registry);
 	if (context === undefined) {
-		context = { scope: crypto.randomUUID() };
+		context = { scope: clientId() };
 		contexts.set(registry, context);
 	}
 	return { context, registry };

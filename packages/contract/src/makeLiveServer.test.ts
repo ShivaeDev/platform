@@ -52,3 +52,13 @@ liveHints.it(
 		expect(yield* heard("the watcher")).toEqual(["changed notes 1"]);
 	},
 );
+
+liveHints.it(
+	"a watcher observes the resync before its next change barrier completes",
+	[watcher("the watcher", [notes.item(1)])],
+	function* ({ heard, resync }) {
+		yield* resync();
+
+		expect(yield* heard("the watcher")).toEqual(["resync"]);
+	},
+);

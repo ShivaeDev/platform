@@ -1,3 +1,4 @@
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Effect, Layer } from "effect";
 import { appDatabase } from "#appDatabase.ts";
@@ -14,5 +15,5 @@ NodeRuntime.runMain(
 				migrations: { loader: migrationChangesLoader(table, mode === "rollback" ? "rollback" : "migrate"), table: `${table}_ledger` },
 			}),
 		);
-	}).pipe(Effect.scoped),
+	}).pipe(Effect.scoped, Effect.provide(NodeCrypto.layer)),
 );
