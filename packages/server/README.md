@@ -37,7 +37,7 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` to those Layers.
 
-For feature modules, declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies `group`, `handlers`, `services` and `migrations: { loader, components? }`. Keep default adapters in its optional `ports` Layer, and put an optional `registerAdmin` result in `admin`.
+For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies `group`, `handlers`, `services` and `migrations: { loader, components? }`. Keep default adapters in its optional `ports` Layer, and put an optional `registerAdmin` result in `admin`.
 
 ```ts
 import { appHost } from "@shivaedev/server/appHost.ts";

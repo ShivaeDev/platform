@@ -51,7 +51,6 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
@@ -65,6 +64,7 @@
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/access": "workspace:*",
+		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test": "workspace:*",
@@ -81,6 +81,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
+		"@shivaedev/admin": "workspace:*",
 		"better-auth": "catalog:",
 		"effect": "catalog:"
 	},
@@ -92,6 +93,9 @@
 			"optional": true
 		},
 		"@effect/vitest": {
+			"optional": true
+		},
+		"@shivaedev/admin": {
 			"optional": true
 		},
 		"better-auth": {
