@@ -4,7 +4,7 @@ import { Rpc, type RpcGroup } from "effect/rpc";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
-import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { currentSessionContext } from "@shivaedev/identity/server/currentSessionContext.ts";
 import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
 import { revalidateStream } from "@shivaedev/identity/server/revalidateStream.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
@@ -23,11 +23,9 @@ export function hostChanges<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
 					Effect.gen(function* () {
 						const { subscription, context } = yield* resolveChanges(rpc, queries);
 						const viewer = yield* CurrentViewer;
-						const authorized = Option.isNone(sessions)
-							? subscription.authorized
-							: authorizeSession(rpc._tag, viewer, subscription.authorized).pipe(Effect.provideService(SessionPolicy, sessions.value));
+						const refresh = refreshSession(sessions, viewer, rpc._tag);
 						const stream = Option.isSome(changes)
-							? Stream.unwrap(changes.value.subscribe({ ...subscription, authorized }, context, rerunQuery(group, options)))
+							? Stream.unwrap(changes.value.subscribe({ ...subscription, refresh }, context, rerunQuery(group, options)))
 							: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
 						if (Option.isNone(sessions) || Option.isNone(viewer)) {
 							return stream;
@@ -61,10 +59,9 @@ export function hostChanges<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
 	);
 }
 
-const authorizeSession = Effect.fnUntraced(function* <E, R>(tag: string, viewer: Option.Option<Viewer>, policy: Effect.Effect<boolean, E, R>) {
-	const current = yield* recheckSession(Headers.empty, tag);
-	if (Option.isSome(viewer) && (Option.isNone(current) || current.value.user.id !== viewer.value.id)) {
-		return yield* new Unauthorized({ message: "Authentication required" });
+function refreshSession(sessions: Option.Option<typeof SessionPolicy.Service>, viewer: Option.Option<Viewer>, tag: string) {
+	if (Option.isNone(sessions) || Option.isNone(viewer)) {
+		return Effect.context<never>();
 	}
-	return yield* policy;
-});
+	return currentSessionContext(viewer.value.id, recheckSession(Headers.empty, tag)).pipe(Effect.provideService(SessionPolicy, sessions.value));
+}

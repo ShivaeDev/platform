@@ -73,20 +73,24 @@ readPolicyHost.it("alice's socket subscription hears only the change to her own 
 	expect(yield* nextHint("alice")).toBe("changed alice");
 });
 
-for (const revoke of ["revokeRead", "revokeSession"] as const) {
-	readPolicyHost.it(
-		`when ${revoke === "revokeRead" ? "the read policy denies alice" : "alice loses her session"}, her subscription fails with ${revoke === "revokeRead" ? "query read denied" : "unauthorized"} on the next change without a hint`,
-		[],
-		function* (verbs) {
-			yield* verbs.listen("alice");
+readPolicyHost.it("when the read policy denies alice, the next change delivers a denial", [], function* ({ listen, nextHint, publish, revokeRead }) {
+	yield* listen("alice");
 
-			yield* verbs[revoke]("alice");
-			yield* verbs.publish();
+	yield* revokeRead("alice");
+	yield* publish();
 
-			expect(yield* verbs.subscriptionOutcome("alice")).toEqual({
-				ending: revoke === "revokeRead" ? "failed with query read denied" : "failed with unauthorized",
-				hints: ["resync"],
-			});
-		},
-	);
-}
+	expect(yield* nextHint("alice")).toBe("query read denied");
+});
+
+readPolicyHost.it(
+	"when alice loses her session, the next change ends her subscription without a hint",
+	[],
+	function* ({ listen, publish, revokeSession, subscriptionOutcome }) {
+		yield* listen("alice");
+
+		yield* revokeSession("alice");
+		yield* publish();
+
+		expect(yield* subscriptionOutcome("alice")).toEqual({ ending: "failed with unauthorized", hints: ["resync"] });
+	},
+);
