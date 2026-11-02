@@ -1,31 +1,31 @@
 import assert from "node:assert/strict";
 import { it } from "vitest";
-import { decodeTestTimingReport } from "./timings.ts";
+import { decodeJunitTimingReport } from "./timings.ts";
 
-it("decodes portable project identities and total attempt durations from final reports", () => {
-	const report = {
-		testResults: [
-			{ durationMs: 5000, projectName: "quality:dom", relativePath: "packages/quality/src/cli.test.ts" },
-			{ durationMs: 20_000, projectName: "quality:unit", relativePath: "packages/quality/src/cli.test.ts" },
-			{ durationMs: 0, projectName: "quality:unit", relativePath: "packages/quality/src/empty.test.ts" },
-		],
-	};
-	assert.deepEqual(decodeTestTimingReport(JSON.stringify(report)), [
-		{ durationMs: 5000, name: "quality:dom:packages/quality/src/cli.test.ts" },
+it("uses each file's total time and project identity rather than individual testcase or run times", () => {
+	const report = `<testsuites time="500">
+		<testsuite time="31"><testcase classname="|quality:dom| packages/quality/src/cli.test.ts" time="1" /></testsuite>
+		<testsuite time="20"><testcase classname="|quality:unit| packages/quality/src/cli.test.ts" time="2" /></testsuite>
+		<testsuite time="0"><testcase classname="|quality:unit| packages/quality/src/a&amp;b.test.ts" time="0" /></testsuite>
+	</testsuites>`;
+	assert.deepEqual(decodeJunitTimingReport(report), [
+		{ durationMs: 31_000, name: "quality:dom:packages/quality/src/cli.test.ts" },
 		{ durationMs: 20_000, name: "quality:unit:packages/quality/src/cli.test.ts" },
-		{ durationMs: 1, name: "quality:unit:packages/quality/src/empty.test.ts" },
+		{ durationMs: 1, name: "quality:unit:packages/quality/src/a&b.test.ts" },
 	]);
 });
 
-it("rejects reports without final file results", () => {
-	for (const report of [null, [], {}, { testResults: {} }]) {
-		assert.throws(() => decodeTestTimingReport(JSON.stringify(report)), /Invalid test timing report/u);
+it("rejects reports without file suites", () => {
+	for (const report of ["", "{}", "<testsuites />"]) {
+		assert.throws(() => decodeJunitTimingReport(report), /Invalid test timing report/u);
 	}
 });
 
 it("rejects missing file identities and invalid durations", () => {
-	const file = { durationMs: 10, projectName: "unit", relativePath: "sample.test.ts" };
-	for (const fields of [{ durationMs: null }, { durationMs: -1 }, { projectName: null }, { relativePath: null }, { relativePath: "" }]) {
-		assert.throws(() => decodeTestTimingReport(JSON.stringify({ testResults: [{ ...file, ...fields }] })), /Invalid test timing/u);
+	const reports = ["", 'time=""', 'time="NaN"', 'time="Infinity"', 'time="-1"'].map(
+		(attributes) => `<testsuite ${attributes}><testcase classname="|unit| sample.test.ts" /></testsuite>`,
+	);
+	for (const report of [...reports, '<testsuite time="1"><testcase /></testsuite>']) {
+		assert.throws(() => decodeJunitTimingReport(report), /Invalid test timing/u);
 	}
 });

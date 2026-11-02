@@ -28,7 +28,7 @@ export const filesStory = storyKit({
 			fs.readFileString(join(directory, "tests.json")).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown)))),
 		timeReport: () => {
 			story.tell("the report receives the file's duration");
-			return writeTimedReport(join(directory, "tests.json"), [{ durationMs: 42, projectName: "unit", relativePath: "test.spec.ts" }]).pipe(
+			return writeTimedReport(join(directory, "tests.json"), [42]).pipe(
 				Effect.as({ error: "none", message: "written" }),
 				Effect.catchTag("VitestRerunError", (error) => Effect.succeed({ error: error._tag, message: error.message })),
 			);

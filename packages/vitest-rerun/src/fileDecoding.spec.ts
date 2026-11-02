@@ -22,7 +22,7 @@ for (const contents of ['{"testResults":', "{}", '{"testResults":[{"name":42}]}'
 }
 
 filesStory.it(
-	"timing a report adds the duration and portable project identity and preserves Vitest's other fields",
+	"timing a report adds the duration and preserves Vitest's other fields",
 	[
 		reportFile(
 			'{"success":true,"coverageMap":{"file":{}},"testResults":[{"name":"test.spec.ts","status":"passed","assertionResults":[],"startTime":10}]}',
@@ -34,17 +34,7 @@ filesStory.it(
 		expect(yield* report()).toEqual({
 			coverageMap: { file: {} },
 			success: true,
-			testResults: [
-				{
-					assertionResults: [],
-					durationMs: 42,
-					name: "test.spec.ts",
-					projectName: "unit",
-					relativePath: "test.spec.ts",
-					startTime: 10,
-					status: "passed",
-				},
-			],
+			testResults: [{ assertionResults: [], durationMs: 42, name: "test.spec.ts", startTime: 10, status: "passed" }],
 		});
 	},
 );

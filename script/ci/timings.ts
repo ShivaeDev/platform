@@ -84,23 +84,31 @@ export function durationEstimates(snapshot: TimingSnapshot): Readonly<Record<str
 	return Object.fromEntries(snapshot.timings.map((item) => [item.name, item.durationMs]));
 }
 
-export function decodeTestTimingReport(report: string): Timing[] {
-	const parsed: unknown = JSON.parse(report);
-	if (!(record(parsed) && Array.isArray(parsed.testResults))) {
+const XML_ENTITIES: Readonly<Record<string, string>> = { "&amp;": "&", "&apos;": "'", "&gt;": ">", "&lt;": "<", "&quot;": '"' };
+
+function xmlAttributes(text: string): Record<string, string> {
+	return Object.fromEntries(
+		[...text.matchAll(/(?<key>\w+)="(?<value>[^"]*)"/gu)].map((match) => [
+			match.groups?.key,
+			(match.groups?.value ?? "").replace(/&(?:amp|apos|gt|lt|quot);/gu, (entity) => XML_ENTITIES[entity] ?? entity),
+		]),
+	);
+}
+
+export function decodeJunitTimingReport(report: string): Timing[] {
+	const suites = [...report.matchAll(/<testsuite\s(?<attributes>[^>]*)>(?<body>[\s\S]*?)<\/testsuite>/gu)];
+	if (suites.length === 0) {
 		throw new Error("Invalid test timing report");
 	}
-	return parsed.testResults.map((file: unknown) => {
-		if (
-			!record(file)
-			|| typeof file.projectName !== "string"
-			|| typeof file.relativePath !== "string"
-			|| file.relativePath === ""
-			|| typeof file.durationMs !== "number"
-			|| !Number.isFinite(file.durationMs)
-			|| file.durationMs < 0
-		) {
+	return suites.map((suite) => {
+		const attributes = xmlAttributes(suite.groups?.attributes ?? "");
+		const testcase = /<testcase\s(?<attributes>[^>]*)>/u.exec(suite.groups?.body ?? "");
+		const classname = xmlAttributes(testcase?.groups?.attributes ?? "").classname ?? "";
+		const identity = /^\|(?<project>[^|]+)\| (?<path>.+)$/u.exec(classname);
+		const durationMs = Number(attributes.time) * 1000;
+		if (identity === null || attributes.time === undefined || attributes.time === "" || !Number.isFinite(durationMs) || durationMs < 0) {
 			throw new Error("Invalid test timing");
 		}
-		return { durationMs: Math.max(1, file.durationMs), name: `${file.projectName}:${file.relativePath}` };
+		return { durationMs: Math.max(1, durationMs), name: `${identity.groups?.project}:${identity.groups?.path}` };
 	});
 }

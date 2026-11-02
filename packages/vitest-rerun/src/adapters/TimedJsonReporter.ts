@@ -1,4 +1,3 @@
-import { relative } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { experimental_getRunnerTask, JsonReporter, type TestModule } from "vitest/node";
@@ -15,11 +14,7 @@ export class TimedJsonReporter extends JsonReporter {
 		await Effect.runPromise(
 			writeTimedReport(
 				path,
-				modules.map((module) => ({
-					durationMs: experimental_getRunnerTask(module).result?.duration ?? 0,
-					projectName: module.project.name,
-					relativePath: relative(this.ctx.config.root, module.moduleId).replaceAll("\\", "/"),
-				})),
+				modules.map((module) => experimental_getRunnerTask(module).result?.duration ?? 0),
 			).pipe(Effect.provide(NodeServices.layer)),
 		);
 	}
