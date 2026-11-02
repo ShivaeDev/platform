@@ -1,6 +1,7 @@
 import { Context, Effect, type Layer, Option, Schema, type Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { contract } from "#contract.ts";
 import type { LiveServer } from "#LiveServer.ts";
 import type { makeLiveServer } from "#makeLiveServer.ts";
@@ -13,9 +14,10 @@ import { validateReadPolicies } from "#validateReadPolicies.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
 class Database extends Context.Service<Database, boolean>()("test/PolicyDatabase") {}
-class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", {}) {}
 const policy: QueryReadPolicy<void, ServiceUnavailable, Database> = () =>
-	Effect.flatMap(Database, (available) => (available ? Effect.succeed(true) : Effect.fail(new ServiceUnavailable())));
+	Effect.flatMap(Database, (available) =>
+		available ? Effect.succeed(true) : Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })),
+	);
 const Read = query("read", { readPolicy: policy, reads: () => [], rejections: { ServiceUnavailable } });
 const Reads = contract("reads", { queries: [Read] });
 const handlers = Reads.application.toLayer({ "reads.read": () => Effect.void });
@@ -85,11 +87,17 @@ const Derived = query("derived", {
 	serverReads: ({ scope }, viewer) => {
 		expectTypeOf(scope).toEqualTypeOf<string>();
 		expectTypeOf(viewer).toEqualTypeOf<Option.Option<{ readonly id: string }>>();
-		return Effect.flatMap(Database, (available) => (available ? Effect.succeed([]) : Effect.fail(new ServiceUnavailable())));
+		return Effect.flatMap(Database, (available) =>
+			available ? Effect.succeed([]) : Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })),
+		);
 	},
 });
 const DerivedReads = contract("derivedReads", { queries: [Derived] });
 const derivedHandlers = DerivedReads.application.toLayer({ "derivedReads.derived": () => Effect.void });
 expectTypeOf<Layer.Services<typeof derivedHandlers>>().toEqualTypeOf<Database>();
-// @ts-expect-error Server read-key failures must be declared rejections.
-query("undeclaredKeys", { readPolicy: () => Effect.succeed(true), reads: () => [], serverReads: () => Effect.fail(new ServiceUnavailable()) });
+query("undeclaredKeys", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [],
+	// @ts-expect-error Server read-key failures must be declared rejections.
+	serverReads: () => Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })),
+});

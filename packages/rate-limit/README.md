@@ -44,6 +44,10 @@ The migration creates `rate_limit_windows`. PostgreSQL retains one row per key; 
 
 A custom store implements `Store.consume` from `@shivaedev/rate-limit/Store.ts`, atomically consuming a `WindowRequest` or failing with `TooManyRequests` or `StoreError`. A store owns its clock and consistency boundary.
 
+### PostgreSQL story fixtures
+
+`postgresTestDatabase` from `@shivaedev/rate-limit/postgresTestDatabase.ts` provides `expireWindows`, an Effect that expires all stored windows in an isolated test database. Use it to establish expired windows before exercising the production limiter; it does not advance the PostgreSQL clock.
+
 ### Install
 
 ```sh

@@ -1,7 +1,9 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Effect, Redacted, Schema } from "effect";
+import { postgresStore } from "@shivaedev/rate-limit/adapters/postgresStore.ts";
+import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
+import { Store } from "@shivaedev/rate-limit/Store.ts";
 import type { AuthEmail, BetterAuthEmails } from "#server/better-auth/emails.ts";
-import { emailWindow } from "#server/better-auth/emailWindow.ts";
 import type { hookRuntime } from "./hookRuntime.ts";
 
 type Outgoing = { [TKind in AuthEmail["_tag"]]: Omit<Extract<AuthEmail, { readonly _tag: TKind }>, "url"> }[AuthEmail["_tag"]];
@@ -16,8 +18,8 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 	if (emails === undefined) {
 		return options;
 	}
-	const { routes, deliver } = emails;
-	const claim = yield* emailWindow(emails.window);
+	const { routes, deliver, window = "1 minute" } = emails;
+	const store = yield* Store.pipe(Effect.provide(postgresStore));
 	function send(message: Outgoing, request?: Request) {
 		const url = new URL(routes[message._tag]);
 		if ("token" in message) {
@@ -25,7 +27,11 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 		}
 		return runtime.runHook(
 			() =>
-				claim(message.user.id, message._tag).pipe(
+				rateLimit({ key: `identity:email:${JSON.stringify([message.user.id, message._tag])}`, per: 1, window }).pipe(
+					Effect.provideService(Store, store),
+					Effect.as(true),
+					Effect.catchTag("TooManyRequests", () => Effect.succeed(false)),
+					Effect.orDie,
 					Effect.flatMap((allowed) => (allowed ? deliver({ ...message, url: Redacted.make(url.href) }) : Effect.void)),
 				),
 			request?.signal,

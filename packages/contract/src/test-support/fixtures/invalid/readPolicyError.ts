@@ -1,5 +1,5 @@
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { query } from "#operation.ts";
 
-class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", {}) {}
-query("read", { readPolicy: () => Effect.fail(new ServiceUnavailable()), reads: () => [] });
+query("read", { readPolicy: () => Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })), reads: () => [] });

@@ -17,7 +17,8 @@ answers.it("an interrupted response identity commit cannot publish an answer tha
 	expect(yield* host.storedRequests()).toMatchObject([{ "response_decision_id": null, "response_id": null, text: TEXT }]);
 	yield* identity.release;
 	yield* host.start();
-	const current = yield* host.applied();
+	yield* host.applied();
+	const current = yield* host.awaitWorkerReceipt();
 	expect(current.step).toBe("working");
 	expect(current.pendingAnswers).toBeUndefined();
 	expect(current.responses).toMatchObject([{ action: "continue", boardAcknowledged: true, decisionId: decision.id }]);
