@@ -4,7 +4,7 @@ import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 
 export type OauthResourceOptions = Omit<OAuthOptions<Scope[]>, "resources" | "clientRegistrationDefaultResources"> & { readonly resource: string };
 
-export function betterAuthOauthProvider({ resource, ...options }: OauthResourceOptions) {
+export function betterAuthOauthProvider({ resource, ...options }: OauthResourceOptions): ReturnType<typeof oauthProvider> {
 	return oauthProvider({ ...options, clientRegistrationDefaultResources: [resource], resources: [resource] });
 }
 
