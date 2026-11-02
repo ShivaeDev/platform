@@ -6,7 +6,6 @@ import { readQueueState } from "#host/githubQueueStatus.ts";
 import type { ChangeResult } from "#policy.ts";
 
 const Pull = Schema.Struct({
-	base: Schema.Struct({ sha: Schema.String }),
 	changedFiles: Schema.Number,
 	head: Schema.Struct({ sha: Schema.String }),
 	nodeId: Schema.String,
@@ -26,7 +25,7 @@ export const githubCiHold = Effect.fn("FleetHost.githubCiHold")(function* (resul
 	}
 	const files = (yield* githubJson(FilePages, github.pages(`${endpoint}/files?per_page=100`))).flat();
 	const after = yield* githubJson(Pull, github.get(endpoint));
-	if (before.head.sha !== after.head.sha || before.base.sha !== after.base.sha || before.changedFiles !== after.changedFiles) {
+	if (before.head.sha !== after.head.sha || before.changedFiles !== after.changedFiles) {
 		return yield* new Conflict({ message: "PR diff moved during CI change observation" });
 	}
 	if (files.length !== after.changedFiles) {

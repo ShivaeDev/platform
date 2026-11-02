@@ -32,6 +32,13 @@ export const mergeLoop = storyKit({
 	verbs: (state, story) => ({
 		...engineVerbs(state, story),
 		...releaseWindowVerbs(state, story.tell),
+		advanceMainDuringFiles: () => {
+			if (state.queueApi === undefined) {
+				throw new Error("No GitHub queue API is configured");
+			}
+			state.queueApi.advanceMainDuringFiles();
+			story.tell("GitHub advances main during the next PR changed-files read");
+		},
 		autoMergePullRequests: () => state.queueApi?.autoMerges(),
 		dequeue: (number: string, reason: string, commit?: string, at = state.now) => {
 			state.queueApi?.dequeue(number, reason, commit, at);

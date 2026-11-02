@@ -2,15 +2,25 @@ import { Effect } from "effect";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
 import { httpGithubApi } from "#test/githubApi.ts";
+import { mergeQueueChecks } from "#test/mergeQueueChecks.ts";
 import { releaseWindowApi } from "#test/releaseWindowApi.ts";
 
 export const mergeQueueApi = Effect.gen(function* () {
 	const pulls = new Map<string, { result: typeof ChangeResult.Type; branch: string }>();
-	const release = releaseWindowApi((number) => pulls.get(number)?.result);
+	let base = "main-revision";
+	let moveBase = false;
+	const release = releaseWindowApi(
+		(number) => pulls.get(number)?.result,
+		() => {
+			if (moveBase) {
+				base = "advanced-main";
+			}
+		},
+	);
 	const queued = new Map<string, string>();
 	const autoMerges = new Set<string>();
 	const removals = new Map<string, { reason: string; commit: string | undefined; createdAt: string }>();
-	const checks = new Map<string, { name: string; conclusion: string | null; url: string }>();
+	const checks = mergeQueueChecks();
 	let loseReply = false;
 	const overrides = new Map<string, Record<string, unknown>>();
 	function observation(number: string) {
@@ -34,21 +44,6 @@ export const mergeQueueApi = Effect.gen(function* () {
 			...overrides.get(number),
 		};
 	}
-	function checkRuns(head: string) {
-		const check = checks.get(head);
-		return check === undefined
-			? []
-			: [
-					{
-						conclusion: check.conclusion,
-						"details_url": check.url,
-						"head_sha": head,
-						"html_url": check.url,
-						name: check.name,
-						status: check.conclusion === null ? "in_progress" : "completed",
-					},
-				];
-	}
 	const server = yield* fakeHttpService({
 		routes: {
 			...release.routes,
@@ -58,7 +53,7 @@ export const mergeQueueApi = Effect.gen(function* () {
 			},
 			checks: {
 				path: "/repos/example/project/commits/:head/check-runs",
-				reply: ({ params }) => ({ body: { "check_runs": checkRuns(params.head ?? "") } }),
+				reply: ({ params }) => ({ body: { "check_runs": checks.runs(params.head ?? "") } }),
 			},
 			pull: {
 				method: "GET",
@@ -72,7 +67,7 @@ export const mergeQueueApi = Effect.gen(function* () {
 					return {
 						body: {
 							"auto_merge": autoMerges.has(number) ? {} : null,
-							base: { ref: "main", sha: "main-revision" },
+							base: { ref: "main", sha: base },
 							"changed_files": release.fileCount(pull.result.paths),
 							head: { ref: pull.branch, repo: { "full_name": "example/project" }, sha: pull.result.head },
 							labels: [],
@@ -117,6 +112,9 @@ export const mergeQueueApi = Effect.gen(function* () {
 	});
 	return {
 		...release,
+		advanceMainDuringFiles: () => {
+			moveBase = true;
+		},
 		autoMerges: () => [...autoMerges],
 		client: yield* httpGithubApi(server.url),
 		dequeue: (number: string, reason: string, commit: string | undefined, at: number) => {
@@ -127,7 +125,7 @@ export const mergeQueueApi = Effect.gen(function* () {
 		loseReply: () => {
 			loseReply = true;
 		},
-		mergeGroupCheck: (commit: string, check: { name: string; conclusion: string | null; url: string }) => checks.set(commit, check),
+		mergeGroupCheck: checks.record,
 		observe: (work: Pick<BoardWork, "workId">, result: typeof ChangeResult.Type) => {
 			pulls.set(result.pr.split("/").at(-1) ?? "", { branch: `worker-${work.workId}`, result });
 		},

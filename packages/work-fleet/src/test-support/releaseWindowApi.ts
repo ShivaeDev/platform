@@ -4,7 +4,7 @@ import type { ChangeResult } from "#policy.ts";
 export const RELEASE_PR = "https://github.com/example/project/pull/99";
 export const RELEASE_HEAD = "b".repeat(40);
 
-export function releaseWindowApi(result: (number: string) => typeof ChangeResult.Type | undefined) {
+export function releaseWindowApi(result: (number: string) => typeof ChangeResult.Type | undefined, onFiles?: () => void) {
 	let release: { branch: string; base: string; draft: boolean; state: string } | undefined;
 	let run: { id: number; status: string; conclusion: string | null; head: string } | undefined;
 	const files = new Map<string, string>();
@@ -23,12 +23,15 @@ export function releaseWindowApi(result: (number: string) => typeof ChangeResult
 		},
 		files: {
 			path: "/repos/example/project/pulls/:number/files",
-			reply: ({ params }) => ({
-				body:
-					result(params.number ?? "")
-						?.paths.filter((path) => ![...renames.values()].includes(path))
-						.map((filename) => ({ filename, "previous_filename": renames.get(filename), status: files.get(filename) ?? "added" })) ?? [],
-			}),
+			reply: ({ params }) => {
+				onFiles?.();
+				return {
+					body:
+						result(params.number ?? "")
+							?.paths.filter((path) => ![...renames.values()].includes(path))
+							.map((filename) => ({ filename, "previous_filename": renames.get(filename), status: files.get(filename) ?? "added" })) ?? [],
+				};
+			},
 		},
 		releases: {
 			path: "/repos/example/project/pulls",
