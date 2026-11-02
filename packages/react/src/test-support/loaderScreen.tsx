@@ -1,6 +1,6 @@
 import { type AnyRouter, createMemoryHistory, createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
-import * as Atom from "effect/reactivity/Atom";
+import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
@@ -9,6 +9,7 @@ import { loadQuery } from "#adapters/loadQuery.ts";
 import { screenPending } from "#adapters/screenPending.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
+import { atomRemoved, idleRegistry } from "./idleRegistry.ts";
 import { loaderHost } from "./loaderHost.ts";
 import { NoteShell } from "./NoteShell.tsx";
 import { SessionRegistry } from "./SessionRegistry.tsx";
@@ -43,26 +44,6 @@ function opened(engine: Engine) {
 		throw new Error("The note screen is not open");
 	}
 	return { pending: engine.pending, router: engine.router, view: engine.view };
-}
-
-function removed(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<unknown>) {
-	return new Promise<void>((resolve) => {
-		const before = registry.onNodeRemoved;
-		registry.onNodeRemoved = (node) => {
-			before?.(node);
-			if (node.atom === atom) {
-				registry.onNodeRemoved = before;
-				resolve();
-			}
-		};
-	});
-}
-
-function idleWindowPasses(registry: AtomRegistry.AtomRegistry) {
-	const sentinel = Atom.make(0);
-	const swept = removed(registry, sentinel);
-	registry.get(sentinel);
-	return swept;
 }
 
 function settle(engine: Engine, tell: (line: string) => void) {
@@ -155,7 +136,7 @@ export const loaderScreen = storyKit({
 			idleWindowPasses: () =>
 				Effect.promise(async () => {
 					story.tell("the session registry's idle window passes, shown by an idle atom being swept");
-					await act(() => idleWindowPasses(sessionRegistry(engine)));
+					await act(() => idleRegistry(sessionRegistry(engine)));
 				}),
 			leave: () =>
 				Effect.promise(async () => {
@@ -244,7 +225,7 @@ export function noteMountedAfterIdleWindow(title: string) {
 		"screen",
 		`the note's loader read ${title} and the route mounted only after the session registry's idle window passed`,
 		function* (engine) {
-			engine.mountGate.wait = idleWindowPasses;
+			engine.mountGate.wait = idleRegistry;
 			yield* openNote(engine);
 			yield* respond(engine, title, () => undefined);
 		},
@@ -271,7 +252,7 @@ export function noteLeftAfterShowing(title: string) {
 			yield* respond(engine, title, () => undefined);
 			const home = yield* findLink(engine, "Home");
 			const registry = sessionRegistry(engine);
-			const swept = removed(registry, engine.host.atom);
+			const swept = atomRemoved(registry, engine.host.atom);
 			yield* Effect.promise(async () => {
 				await act(async () => home.click());
 				await act(() => swept);
