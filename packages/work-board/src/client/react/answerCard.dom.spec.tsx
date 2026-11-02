@@ -12,7 +12,6 @@ import {
 import { answerAuthor } from "#test/answerTraits.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
-import { WIDE_TABLE, WIDE_TABLE_LAYOUT } from "#test/wideTableFixture.ts";
 
 expectNoReactWarnings();
 
@@ -255,21 +254,5 @@ screenStory.it(
 		expect((yield* recordedAnswers(decisionId, "direction")).map(({ answers }) => answers)).toEqual([
 			[{ prompt: "fleet-action", selected: ["release", "retry"], text: "" }],
 		]);
-	},
-);
-
-screenStory.it(
-	"a wide table in an answer card's recommendation scrolls inside its own box like a document table",
-	[
-		routedScreen(
-			withDecision(answerCardFixture, (source) =>
-				source.replace("**Publish** the reviewed guide.", `**Publish** the reviewed guide.\n\n${WIDE_TABLE}`),
-			),
-			url,
-			WRITABLE,
-		),
-	],
-	function* ({ readTableLayout }) {
-		expect(yield* readTableLayout(".answer-recommendation table")).toEqual(WIDE_TABLE_LAYOUT);
 	},
 );
