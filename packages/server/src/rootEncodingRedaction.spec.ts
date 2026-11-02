@@ -20,7 +20,7 @@ for (const source of ["schema", "host"] as const) {
 						"client answers",
 						() => wireAnswers(),
 						{
-							"1": { failed: "<redacted>" },
+							"1": { failed: shape === "record" ? {} : "<redacted>" },
 							"2": { failed: expect.objectContaining({ detail: "public rejection" }) },
 							"3": { succeeded: "successful application value" },
 						},

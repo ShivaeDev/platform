@@ -2,7 +2,7 @@ import { type Effect, Layer, Schema } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { BrowserDraftConfig } from "@shivaedev/form/client/react.ts";
+import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Editor } from "#client/editor.ts";
 
 export const DraftFields = Schema.Struct({ name: Schema.NonEmptyString, quantity: Schema.NumberFromString });
@@ -17,7 +17,7 @@ export interface Held {
 }
 export interface ScreenProps {
 	readonly held: Held;
-	readonly persistedDraft: BrowserDraftConfig;
+	readonly persistedDraft: PersistedDraftConfig;
 	readonly query: Atom.Writable<AsyncResult.AsyncResult<Row>, AsyncResult.AsyncResult<Row>>;
 	readonly save: Save;
 }

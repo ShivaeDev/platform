@@ -351,6 +351,8 @@ const check = (headSha: string) =>
 
 Use the pure helpers from `markdown.ts` for test names and error messages. `plainText` encodes ASCII punctuation as HTML entities, including HTML delimiters and link syntax, and adds a zero-width separator after `@` and `#` to prevent mentions and issue references. `codeSpan` chooses a backtick fence longer than any run in the input and flattens line endings to spaces. `tableCell` flattens line endings and protects pipes; pass `"code"` for a code span inside a table cell. Emoji are preserved.
 
+`details(summary, text)` wraps raw text in `<details>` and `<summary>`, escaping both inputs with `plainText`. Closing tags, HTML and Markdown in either input remain literal text. Pass raw text rather than rendered Markdown; body line endings and Unicode are preserved.
+
 ```ts
 import { tableCell } from "@shivaedev/github/markdown.ts";
 import { renderRows } from "@shivaedev/github/markdownRows.ts";
@@ -362,9 +364,23 @@ const summary = renderRows(rows, {
 });
 ```
 
-`renderRows` accepts already-rendered rows and a trusted Markdown header. It counts UTF-8 bytes, keeps a prefix of complete rows and, when rows are dropped, appends one `and N more` paragraph. The header and notice count toward the budget; rows, emoji and escapes are never sliced. The default budget is 60,000 bytes. A budget too small for the header and notice throws `RangeError`.
+`renderRows` accepts already-rendered rows and a trusted Markdown header. It counts UTF-8 bytes, keeps a prefix of complete rows and, when rows are dropped, appends one `and N more` paragraph. The header and notice count toward the budget; rows, emoji and escapes are never sliced. The default budget is 60,000 bytes. It returns `Result<string, MarkdownBudgetTooSmall>`; a budget too small for the header and notice is a typed failure. `MarkdownBudgetTooSmall` is exported from `errors.ts` and carries the requested `byteLimit`.
 
-Use the result as a sticky comment body or check-run summary. The budget covers the rendered body; account for any surrounding text, including the sticky comment marker, when choosing a lower total limit.
+For several lists in one comment, `renderSections` takes sections with `rows` and an optional trusted Markdown `header`, plus one `{ byteLimit }` option for the whole result. It joins sections with blank lines and counts those separators, headers and notices in the shared budget, defaulting to 60,000 bytes. Earlier sections receive spare space first while later sections retain room for their headers and either all their rows or an `and N more` paragraph. Each truncated section has its own omitted-row count. Empty sections without headers are omitted; header-only sections remain. If the total budget cannot fit the required headers and notices or complete shorter lists, it returns a `MarkdownBudgetTooSmall` failure carrying the total requested `byteLimit`.
+
+```ts
+import { renderSections } from "@shivaedev/github/markdownRows.ts";
+
+const report = renderSections(
+	[
+		{ header: "## Failures", rows: failureRows },
+		{ header: "## Warnings", rows: warningRows },
+	],
+	{ byteLimit: 8_000 },
+);
+```
+
+Both row helpers return native Effect `Result` values. Match them with `Result.match`, or convert them with `Effect.fromResult` to pass budget failures through the error channel. Use the successful string as a sticky comment body or check-run summary. The budget covers the rendered body; account for any surrounding text, including the sticky comment marker, when choosing a lower total limit.
 
 ### Rate limits and failures
 

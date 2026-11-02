@@ -54,7 +54,7 @@ Create `client/registration.tsx` following [the notes client registration](../..
 
 ## 8. Build the form and screen
 
-Follow [the notes create form](../../examples/starter/src/modules/notes/client/Create.tsx). Import `useCreate` from `@shivaedev/react/client/create.ts` and `useField` from `@shivaedev/form/client/react.ts`. Supply `BookmarkFields`, `{ title: "" }`, the client runtime and `client.api.create.run`. Bind the title input to the field's value, change and blur handlers, and submit with `create.save()`.
+Follow [the notes create form](../../examples/starter/src/modules/notes/client/Create.tsx). Import `useCreate` from `@shivaedev/react/client/create.ts` and `useField` from `@shivaedev/form/adapters/react.ts`. Supply `BookmarkFields`, `{ title: "" }`, the client runtime and `client.api.create.run`. Bind the title input to the field's value, change and blur handlers, and submit with `create.save()`.
 
 Keep a label, field error, save failure and pending button state. Follow [the notes screen](../../examples/starter/src/modules/notes/client/Screen.tsx) to render `useLoaderQuery` from `@shivaedev/react/client/useLoaderQuery.ts` with the same query atom and the route's loader data. The create command's invalidation refreshes that list. Applications own the wording and layout; the form owns encoded input and submission state.
 

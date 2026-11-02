@@ -188,6 +188,24 @@ const authentication = (options: BetterAuthOptions) =>
 
 The native `emailAndPassword.onPasswordReset` callback runs first. An Effect failure with `BetterAuthHookError` fields reaches the caller as HTTP 403 with its code and message. This callback follows Better Auth's post-reset lifecycle; a failure does not undo the password change.
 
+### User directory
+
+Applications use the `UserDirectory` port from `@shivaedev/identity/server/UserDirectory.ts` instead of reading auth tables. Provide `betterAuthUserDirectory(AppAccess, authOptions)` from `@shivaedev/identity/server/better-auth/adapters/userDirectory.ts` with the application's SQL Layer. The adapter follows Better Auth's configured user model, name, email, creation and modification columns, and additional-field or plugin role mapping. It shares an existing Reactivity service when supplied and creates one otherwise.
+
+```ts
+import { UserDirectory } from "@shivaedev/identity/server/UserDirectory.ts";
+
+const directory = yield* UserDirectory;
+const page = yield* directory.list({ limit: 25 });
+const role = yield* directory.role(userId);
+const changed = yield* directory.assignRole(userId, "member");
+const names = yield* directory.names([userId]);
+```
+
+`list` takes `UserListInput` (a limit of 1–100 and an optional exclusive user-id cursor) and returns `UserList`: users ordered by id with id, name, email, declared role and UTC creation time, plus an optional next cursor. `role` and `assignRole` fail with `NotFound` for a missing user. `names` returns existing `{ id, name }` accounts ordered by id, omitting unknown ids and duplicates; an empty request returns no accounts. Storage and decoding failures return `AuthUnavailable`, including an undeclared role requested through the port.
+
+The port is for trusted server code; applications authorize callers before using it. Assignments share the transactional last-assigner guard below. Identity exports `userKeys` and `roleKeys` collections from `@shivaedev/identity/users.ts`. Successful role changes announce both user and role item keys after commit, also refreshing their list readers. Contract queries can declare `reads: () => [userKeys.list]` or `reads: ({ userId }) => [roleKeys.item(userId)]`.
+
 ### Role assignments
 
 Pass `{ defaultRole: "member", roles: AppAccess }` as the second argument to `betterAuthMount`. Identity adds `/admin/set-role`, `/admin/update-user` and `/admin/create-user` to the disabled HTTP paths and sets the Better Auth admin plugin's `adminRoles` to `[]`. Existing disabled paths remain in effect. The admin Users page remains the application path for role changes.
@@ -200,7 +218,7 @@ import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts
 yield* assignRole(AppAccess, userId, "owner");
 ```
 
-Supply the application's `SqlClient` Layer. `assignRole` uses the existing Reactivity service when present and supplies its own when absent, so server-only apps need no Users page or Reactivity Layer. This trusted server verb has no caller authorization check; authorize operator access before calling it. It returns whether the role changed, fails with `NotFound` for a missing user, and refuses to remove the final holder of `AssignRoles` (`roles.assign`) with `LastRoleAssigner`. Both declarations live in `@shivaedev/access/roles.ts`. Writes serialize through the same PostgreSQL transaction lock and invalidate the Users list after commit. The Users page adds its caller permission check and audit log.
+Supply the application's `SqlClient` Layer. `assignRole` uses the existing Reactivity service when present and supplies its own when absent, so server-only apps need no Users page or Reactivity Layer. This trusted server verb has no caller authorization check; authorize operator access before calling it. It returns whether the role changed, fails with `NotFound` for a missing user, and refuses to remove the final holder of `AssignRoles` (`roles.assign`) with `LastRoleAssigner`. Both declarations live in `@shivaedev/identity/roles.ts`. Writes serialize through the same PostgreSQL transaction lock and publish identity’s user and role change keys after commit. The Users page adds its caller permission check and audit log.
 
 For custom auth tables, pass the same Better Auth options used by `betterAuthMount` as the fourth argument: `assignRole(AppAccess, userId, "owner", authOptions)`. Role administration uses `user.modelName`, `user.fields.updatedAt` and `user.additionalFields.role.fieldName`. Role-aware migrations and schema checks preserve the role field mapping. Omitting the options keeps Better Auth's default table and column names.
 
@@ -210,7 +228,7 @@ For named provider accounts, declare the role once and pass a configured `accoun
 import { Config } from "effect";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { AssignRoles } from "@shivaedev/access/roles.ts";
+import { AssignRoles } from "@shivaedev/identity/roles.ts";
 import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
 import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";

@@ -17,6 +17,22 @@ errors.it("a declared rejection keeps its identity", [], function* ({ answer, fa
 	expect(yield* answer()).toBe(conflict);
 });
 
+errors.it(
+	"a declared rejection alongside an interruption keeps its identity and cancellation without an unexpected report",
+	[],
+	function* ({ answer, cancelled, interruptedFailure, recordedReports }) {
+		const conflict = new Conflict({ field: "name", message: "Name is taken" });
+
+		yield* interruptedFailure(conflict);
+
+		expect(yield* answer()).toBe(conflict);
+		yield* outcomes([
+			["cancellation", () => cancelled(), true],
+			["unexpected reports", () => recordedReports(), []],
+		]);
+	},
+);
+
 for (const kind of ["failure", "defect"] as const) {
 	errors.it(
 		`an unexpected ${kind} becomes an internal rejection, retains the original fault and keeps it off the wire`,

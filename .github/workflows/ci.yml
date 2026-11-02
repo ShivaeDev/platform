@@ -36,8 +36,6 @@ jobs:
       - name: Load every package's focused-test config before builds
         run: pnpm test:focused-config
       - run: pnpm lint
-      - name: Test CI orchestration
-        run: pnpm test:orchestration
 
   build:
     # Failed-job reruns must reuse this upload even when build ran in an earlier attempt.

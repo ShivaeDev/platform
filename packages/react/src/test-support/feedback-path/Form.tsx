@@ -1,4 +1,4 @@
-import { useField } from "@shivaedev/form/client/react.ts";
+import { useField } from "@shivaedev/form/adapters/react.ts";
 import { useCreate } from "#client/create.ts";
 import type { NoticeClient } from "#test/notices/client.ts";
 import { Fields } from "#test/notices/Fields.ts";

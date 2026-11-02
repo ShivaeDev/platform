@@ -26,5 +26,5 @@ export function postgresLayer(url: Redacted.Redacted<string>, options?: Postgres
 			const client = yield* makePostgresClient(config).pipe(Effect.provideService(PgPool.PgPool, pool));
 			return Context.make(PgPool.PgPool, pool).pipe(Context.add(PgClient.PgClient, client), Context.add(SqlClient.SqlClient, client));
 		}),
-	).pipe(Layer.provide(Reactivity.layer));
+	).pipe(Layer.provideMerge(Layer.fresh(Reactivity.layer)));
 }

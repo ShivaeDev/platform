@@ -1,5 +1,5 @@
 import { useAtomRef } from "@effect/atom-react";
-import { Equal, Option, Schema } from "effect";
+import { Equal, Option } from "effect";
 import { useEffect, useState } from "react";
 import { useCreate } from "@shivaedev/react/client/create.ts";
 import { HandoffInput, type HandoffPreview } from "#browser/handoffs/schema.ts";
@@ -8,8 +8,7 @@ import { closedStatus } from "#browser/views/workStatus.ts";
 import { formDraft } from "#client/formDraft.ts";
 import { type DraftInteraction, formStatus } from "#client/formStatus.ts";
 import { useFormClient } from "./FormContext.ts";
-
-const fields = ["constraints", "goal", "id", "item", "nextAction", "recipient", "revision", "source"] as const;
+import { useValidation } from "./useValidation.ts";
 
 export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) {
 	const client = useFormClient();
@@ -36,6 +35,7 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 		runtime: client.runtime,
 	});
 	const form = created.form;
+	const validate = useValidation(form.validate);
 	const values = useAtomRef(form.values);
 	useEffect(() => {
 		if (Option.isSome(created.created)) {
@@ -67,30 +67,29 @@ export function useHandoffForm(data: HandoffProjection, source: HandoffPreview) 
 		}
 		form.change("revision", source.reviewedRevision);
 		form.change("source", source.source);
-		for (const name of fields) {
-			form.blur(name);
-		}
 	}
 	function showPreview() {
 		bind();
-		setPreview(form.values.value);
+		validate((snapshot) => setPreview(snapshot?.encoded));
 	}
 	function prepare() {
 		// A draft written against an older source is rebound first, so the reader sees the change before anything is saved.
 		const changed = stale;
 		bind();
-		if (changed) {
-			setNotice("Updated to the item's new version. Check your text still fits, then prepare the handoff again.");
-			return;
-		}
-		if (!Schema.is(HandoffInput)(form.values.value)) {
-			setInteraction("draft");
-			setNotice("Fill in the marked fields, then prepare the handoff.");
-			return;
-		}
-		setNotice(undefined);
-		setInteraction("submitted");
-		created.save();
+		validate((snapshot) => {
+			if (changed) {
+				setNotice("Updated to the item's new version. Check your text still fits, then prepare the handoff again.");
+				return;
+			}
+			if (!snapshot) {
+				setInteraction("draft");
+				setNotice("Fill in the marked fields, then prepare the handoff.");
+				return;
+			}
+			setNotice(undefined);
+			setInteraction("submitted");
+			created.save();
+		});
 	}
 	function clear() {
 		created.revert();

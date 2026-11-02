@@ -9,7 +9,7 @@ const QUICK = { heartbeatInterval: "1 hour", heartbeatTimeout: "150 millis", ret
 const SECONDS = { heartbeatInterval: "1 second", heartbeatTimeout: "1 second", retryDelay: "1 second" } as const;
 
 changeFeed.it(
-	"a listener whose heartbeat goes unanswered logs its loss, listens again after the retry delay and delivers later commits",
+	"a listener whose heartbeat goes unanswered logs its loss without its cause, listens again after the retry delay and delivers later commits",
 	[feedListens(QUICK), hasTable("rows")],
 	function* ({ deliveryResumes, heartbeatGoesUnanswered, insertRow, listenerHistory, listenerLog, listenerReconnects, published }) {
 		yield* heartbeatGoesUnanswered();
@@ -21,18 +21,14 @@ changeFeed.it(
 		yield* insertRow(1);
 		yield* outcomes([
 			["listener history", () => listenerHistory(), ["listen", "listen"]],
-			[
-				"listener log",
-				() => listenerLog(),
-				[expect.stringMatching(new RegExp(`^${LOST} after .*heartbeat timed out`, "u")), expect.stringMatching(new RegExp(`^${RECOVERED}`, "u"))],
-			],
+			["listener log", () => listenerLog(), [LOST, expect.stringMatching(new RegExp(`^${RECOVERED}`, "u"))]],
 			["published payloads", () => published(), [["rows", "rows:1"]]],
 		]);
 	},
 );
 
 changeFeed.it(
-	"a listener that cannot reconnect logs its loss once as a warning and each failed reconnect at debug level",
+	"a listener that cannot reconnect logs its loss once as a warning and each failed reconnect at debug level without database causes",
 	[feedListens(SECONDS)],
 	function* ({ databaseBecomesUnreachable, listenerConnectionIsTerminated, listenerLog, reconnectFails }) {
 		yield* databaseBecomesUnreachable();
@@ -41,11 +37,7 @@ changeFeed.it(
 		yield* reconnectFails();
 		yield* reconnectFails();
 
-		expect(yield* listenerLog()).toEqual([
-			expect.stringMatching(new RegExp(`^${LOST} after .*terminating connection due to administrator command`, "u")),
-			expect.stringMatching(new RegExp(`^${RETRYING} after .*ECONNREFUSED`, "u")),
-			expect.stringMatching(new RegExp(`^${RETRYING} after .*ECONNREFUSED`, "u")),
-		]);
+		expect(yield* listenerLog()).toEqual([LOST, RETRYING, RETRYING]);
 	},
 );
 
@@ -73,10 +65,7 @@ changeFeed.it(
 
 		yield* listenerReconnectsAnsweringItsHeartbeatAfter("50 millis");
 
-		expect((yield* listenerLog()).filter((line) => !line.startsWith("Debug"))).toEqual([
-			expect.stringMatching(new RegExp(`^${LOST}`, "u")),
-			`${RECOVERED} (downtimeMs 2050, streamCount 2)`,
-		]);
+		expect((yield* listenerLog()).filter((line) => !line.startsWith("Debug"))).toEqual([LOST, `${RECOVERED} (downtimeMs 2050, streamCount 2)`]);
 	},
 );
 

@@ -8,12 +8,15 @@ import type { LiveBound } from "#automaticLive.ts";
 import type { Bound } from "#bind.ts";
 import type { ActiveClient } from "#clientActivity.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
+import type { ResumeSource, ResumeWindow } from "#resume.ts";
 
 export interface ClientOptions {
 	readonly bearerToken?: string;
 	readonly headers?: Readonly<Record<string, string>>;
 	readonly live?: boolean;
 	readonly protocol?: Layer.Layer<RpcClient.Protocol> | ((identity: string | undefined) => Layer.Layer<RpcClient.Protocol>);
+	readonly resume?: ResumeSource;
+	readonly resumeWindow?: ResumeWindow;
 	readonly url: string;
 	readonly webSocketConstructor?: Layer.Layer<Socket.WebSocketConstructor>;
 }

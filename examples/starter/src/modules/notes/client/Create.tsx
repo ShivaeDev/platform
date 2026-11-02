@@ -1,6 +1,6 @@
 import { Cause, Option, Predicate } from "effect";
 import { useId } from "react";
-import { useField } from "@shivaedev/form/client/react.ts";
+import { useField } from "@shivaedev/form/adapters/react.ts";
 import { fieldRejectionOf } from "@shivaedev/form/fieldRejection.ts";
 import { useCreate } from "@shivaedev/react/client/create.ts";
 import { Button } from "#client/ui/button.tsx";

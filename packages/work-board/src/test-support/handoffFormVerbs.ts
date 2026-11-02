@@ -84,7 +84,9 @@ export function handoffFormVerbs(engine: ScreenEngine, tell: (line: string) => v
 		handoffField: (label: string) =>
 			read(`the reader looks at ${label}`, () => {
 				const control = field(label);
+				const feedback = document.getElementById(control.getAttribute("aria-describedby") ?? "");
 				return {
+					feedback: feedback?.hidden ? "" : (feedback?.textContent ?? ""),
 					focused: document.activeElement === control,
 					placeholder: control.placeholder,
 					problem: control.validationMessage,
