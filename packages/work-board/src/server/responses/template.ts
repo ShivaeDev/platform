@@ -1,9 +1,7 @@
 import type { RootContent } from "mdast";
 import type { ContainerDirective } from "mdast-util-directive";
-import remarkDirective from "remark-directive";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import { parseMarkdown } from "#adapters/markdownProcessor.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { optionPrompt } from "./optionPrompt.ts";
@@ -38,11 +36,10 @@ function scopedPrompt(
 }
 export function questionTemplate(context: string, request: string, file?: string): Template {
 	const parsed = metadataParse(context);
-	const parser = unified().use(remarkParse).use(remarkDirective);
 	const body = parsed.body.replace(/\r\n?/gu, "\n");
-	const original = parser.parse(body);
+	const original = parseMarkdown(body, { directives: true });
 	const source = file === undefined ? body : templateLinks(body, original.children, file);
-	const tree = parser.parse(source);
+	const tree = parseMarkdown(source, { directives: true });
 	const definitions = tree.children
 		.filter((node) => node.type === "definition")
 		.map((node) => sliceNode(source, node))

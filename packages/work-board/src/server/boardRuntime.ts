@@ -11,7 +11,6 @@ import { daemonDiagnostics } from "#server/diagnostics/daemon.ts";
 import { homeIn } from "#server/files/home.ts";
 import { repositoryPulls } from "#server/files/repository.ts";
 import { checkBrowserAssets, mermaidRoot } from "#server/http/assets.ts";
-import { Highlighter } from "#server/render/Highlighter.ts";
 import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
 import { publishChanges } from "#server/rpc/publishChanges.ts";
 import { IndexProgress } from "#server/search/IndexProgress.ts";
@@ -28,9 +27,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	const live = Layer.succeedContext(liveContext);
 	const path = yield* Path.Path;
 	const fleetFolder = path.relative(path.resolve(), options.root) || ".";
-	const platform = (yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>()).pipe(
-		Context.pick(Highlighter, FileSystem.FileSystem, Path.Path),
-	);
+	const platform = (yield* Effect.context<FileSystem.FileSystem | Path.Path>()).pipe(Context.pick(FileSystem.FileSystem, Path.Path));
 	const pullRequests = yield* Effect.cached(Effect.provideContext(repositoryPulls(options.root), platform));
 
 	yield* SubscriptionRef.changes(indexing).pipe(
