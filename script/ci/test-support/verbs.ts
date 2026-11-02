@@ -29,7 +29,7 @@ export function verbs(engine: Workspace) {
 		parseShard,
 		planMain: () => {
 			if (engine.githubLayer === undefined) {
-				throw new Error("Declare measuredMain before planning snapshots");
+				throw new Error("Declare measuredQueue before planning snapshots");
 			}
 			return mainShardPlan("owner/repo", engine.github).pipe(Effect.scoped, Effect.provide(engine.githubLayer));
 		},
