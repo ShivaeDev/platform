@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { invoiceKits, linesExist, storedAmountIsText } from "#test/invoices.ts";
 
-const missingField: "name" = JSON.parse('"missing"');
+const MISSING_FIELD = "missing";
 const queries = [
 	{
 		claim: "an equality and a null filter match only the line with that amount and no note, returning only the selected fields",
@@ -19,21 +19,24 @@ const queries = [
 		query: { limit: 1, orderBy: { direction: "desc", field: "name" }, select: ["name"] },
 	},
 	{ claim: "a limit of zero returns no lines", expected: [], query: { limit: 0 } },
+] as const;
+
+const invalidQueries = [
 	{ claim: "a negative limit fails with a schema error", expected: "failed with a schema error", query: { limit: -1 } },
 	{
 		claim: "an unknown selected field fails with a schema error",
 		expected: "failed with a schema error",
-		query: { select: [missingField] },
+		query: { select: [MISSING_FIELD] },
 	},
 	{
 		claim: "an unknown filter field fails with a schema error",
 		expected: "failed with a schema error",
-		query: { where: { [missingField]: "Consulting" } },
+		query: { where: { [MISSING_FIELD]: "Consulting" } },
 	},
 	{
 		claim: "an unknown order field fails with a schema error",
 		expected: "failed with a schema error",
-		query: { orderBy: { direction: "asc", field: missingField } },
+		query: { orderBy: { direction: "asc", field: MISSING_FIELD } },
 	},
 ] as const;
 
@@ -48,6 +51,14 @@ for (const invoices of invoiceKits) {
 				expect(found).toEqual(expected);
 			},
 		);
+	}
+
+	for (const { claim, expected, query } of invalidQueries) {
+		invoices.it(`findMany with ${claim}`, [], function* ({ findUnknownLines }) {
+			const found = yield* findUnknownLines(query);
+
+			expect(found).toBe(expected);
+		});
 	}
 
 	invoices.it(

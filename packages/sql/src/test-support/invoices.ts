@@ -74,6 +74,12 @@ function invoiceVerbs(engine: InvoiceEngine, tell: (line: string) => void) {
 				tell(`findMany runs ${JSON.stringify(query)}`);
 				return attempt(lines.findMany(query));
 			}),
+		findUnknownLines: (query: unknown) =>
+			Effect.suspend(() => {
+				tell(`findMany receives unknown input ${JSON.stringify(query)}`);
+				const found: ReturnType<Lines["findMany"]> = Reflect.apply(lines.findMany, lines, [query]);
+				return attempt(found);
+			}),
 		inFailingTransaction: <TStep extends Step, A>(body: Body<TStep, A>) =>
 			Effect.suspend(() => {
 				tell("a transaction begins, and fails once its body has run");

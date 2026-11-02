@@ -1,12 +1,12 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { queries, sourceRows } from "#test/queries.ts";
+import { queries, queryTables, sourceRows } from "#test/queries.ts";
 import { PartialRow, Payment, payment, SourceRow } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
 queries.it(
 	"a tuple matches a source only when its integer key and its text-stored amount match together",
-	[sourceRows()],
+	[queryTables("sources"), sourceRows()],
 	function* ({ findSources }) {
 		const found = yield* findSources({
 			select: ["sourceKey"],
@@ -27,7 +27,7 @@ queries.it(
 
 queries.it(
 	"a tuple encodes an offset Date, a bigint and a decimal through their field codecs to match the payment",
-	[],
+	[queryTables("payments")],
 	function* ({ findPayments, savePayments }) {
 		yield* savePayments([
 			{ note: "matching" },
@@ -59,7 +59,7 @@ const partialRows = [
 
 queries.it(
 	"findMany reads only rows matching a whole tuple, encoding each tuple value through its field codec, and the in list beside it",
-	[],
+	[queryTables("partialRows")],
 	function* ({ findPartialRows, savePartialRows }) {
 		yield* savePartialRows(partialRows);
 
@@ -88,29 +88,33 @@ queries.it(
 	},
 );
 
-queries.it("select applies a tuple filter beside equality when copying sources", [sourceRows()], function* ({ copySelected }) {
-	const copied = yield* copySelected({
-		select: ["sourceKey", "displayName", "amount"],
-		where: {
-			...tupleIn(
-				SourceRow,
-				["amount", "displayName"],
-				[
-					[20, "second"],
-					[40, "first"],
-				],
-				{ "amount": "text", "displayName": "text" },
-			),
-			status: "flaky",
-		},
-	});
+queries.it(
+	"select applies a tuple filter beside equality when copying sources",
+	[queryTables("copies", "sources"), sourceRows()],
+	function* ({ copySelected }) {
+		const copied = yield* copySelected({
+			select: ["sourceKey", "displayName", "amount"],
+			where: {
+				...tupleIn(
+					SourceRow,
+					["amount", "displayName"],
+					[
+						[20, "second"],
+						[40, "first"],
+					],
+					{ "amount": "text", "displayName": "text" },
+				),
+				status: "flaky",
+			},
+		});
 
-	expect(copied).toEqual([expect.objectContaining({ amount: 20, copiedKey: 2, name: "second" })]);
-});
+		expect(copied).toEqual([expect.objectContaining({ amount: 20, copiedKey: 2, name: "second" })]);
+	},
+);
 
 queries.it(
 	"delete removes only rows matching a whole tuple and the equality beside it, and announces the removed row's key",
-	[],
+	[queryTables("partialRows")],
 	function* ({ announced, deletePartialRows, partialRows: storedRows, savePartialRows, watch }) {
 		yield* savePartialRows([
 			{ a: "one", b: 1, kind: "X", value: 10 },

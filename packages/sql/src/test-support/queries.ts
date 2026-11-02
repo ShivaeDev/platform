@@ -3,6 +3,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { crossTableReads } from "#test/cross-table/reads.ts";
 import { onPostgres } from "./engines.ts";
 import { type QueryEngine, queryEngine } from "./queryEngine.ts";
+import { createQueryTables, type Table } from "./queryTables.ts";
 import { queryVerbs } from "./queryVerbs.ts";
 
 export const queries = storyKit({
@@ -10,9 +11,13 @@ export const queries = storyKit({
 	create: queryEngine,
 	inspect: (engine: QueryEngine) => ({ announced: engine.announced, statements: engine.statements }),
 	name: "PostgreSQL queries",
-	stages: ["rows"],
+	stages: ["tables", "rows"],
 	verbs: (engine: QueryEngine, story) => queryVerbs(engine, story.tell),
 });
+
+export function queryTables(...selected: readonly Table[]) {
+	return queries.trait("tables", `the query uses the ${selected.join(", ")} tables`, ({ sql, tables }) => createQueryTables(sql, tables, selected));
+}
 
 export const resultRows = [
 	{ durationMs: 2, failed: true, file: "a.test.ts", id: 1, project: "web", weight: BigDecimal.fromStringUnsafe("9007199254740993.125") },
