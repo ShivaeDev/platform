@@ -63,7 +63,7 @@ export async function fakeHttpReceive(
 	requests: FakeHttpRequestRecord[],
 	controls: ReturnType<typeof fakeHttpControls>,
 	tell: (line: string) => void,
-	abandoned: (request: FakeHttpRequestRecord) => void,
+	record: (request: FakeHttpRequestRecord, response: ServerResponse) => void,
 ) {
 	try {
 		const path = incoming.url ?? "/";
@@ -89,14 +89,11 @@ export async function fakeHttpReceive(
 				return requestStatus(response);
 			},
 		};
+		const decoded = decodeParams(params);
 		requests.push(request);
-		response.once("close", () => {
-			if (!response.writableFinished) {
-				abandoned(request);
-			}
-		});
+		record(request, response);
 		tell(`fake HTTP received ${method} ${path}`);
-		if (!decodeParams(params)) {
+		if (!decoded) {
 			tell(`fake HTTP rejected ${method} ${path} with 400`);
 			await fakeHttpSend(response, { status: HttpStatus.fromLiteral("BadRequest") });
 			return;
