@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import { CountWords, NoteJobs } from "./jobs.ts";
 import { makeNotesRepository } from "./makeRepository.ts";
@@ -13,6 +14,6 @@ const countWords = CountWords.handle(({ noteId }) =>
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
 );
 
-export const notesWorker = NoteJobs.layer({
+export const notesWorker = jobModule(NoteJobs.layer, {
 	jobs: [countWords],
 });

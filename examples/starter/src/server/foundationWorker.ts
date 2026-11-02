@@ -1,5 +1,6 @@
 import { sweepExpiredSessions } from "@shivaedev/identity/server/better-auth/sweepExpiredSessions.ts";
 import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
+import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { sessionSweep } from "#sessionSweep.ts";
 
@@ -11,6 +12,6 @@ export const SweepExpiredSessions = defineSchedule({
 
 const FoundationJobs = makePgBoss("app/FoundationJobs", [sessionSweep.name]);
 
-export const foundationWorker = FoundationJobs.layer({
+export const foundationWorker = jobModule(FoundationJobs.layer, {
 	jobs: [SweepExpiredSessions.run(sweepExpiredSessions)],
 });

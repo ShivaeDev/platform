@@ -28,7 +28,7 @@ export const migration = storyKit({
 	verbs: (engine, story) => ({
 		addNotes: Effect.fn("NotesStory.addNotes")(function* () {
 			story.tell("the notes migration runs on the foundation schema");
-			return yield* migrationUpgrade({ migrations: { ...migrations(), lockTimeout: "5 seconds" }, table: "notes", upTo: 1 });
+			return yield* migrationUpgrade({ migrations: { ...(yield* migrations()), lockTimeout: "5 seconds" }, table: "notes", upTo: 1 });
 		}),
 		addUserReference: () => {
 			story.tell("the user foreign-key migration runs over the existing notes");
@@ -56,7 +56,7 @@ export const existingNotes = migration.trait(
 	"schema",
 	"alice owns a note and an unowned legacy note exists before the user foreign key",
 	function* (engine) {
-		const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
+		const steps = yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
 		yield* steps.migrateTo("0002_notes");
 		const auth = yield* readyAuth(betterAuth({ ...authOptions(), database: engine.pool, plugins: [testUtils()] }));
 		const { user } = yield* signedInUser(auth, { email: "alice@migration.test", name: "Alice" });

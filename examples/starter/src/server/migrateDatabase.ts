@@ -9,7 +9,7 @@ export const migrateDatabase = Effect.fn("App.migrateDatabase")(function* (datab
 	yield* Layer.build(
 		appDatabase({
 			config: clientOptions({ databaseUrl: url }),
-			migrations: { ...migrations(), ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
+			migrations: { ...(yield* migrations()), ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
 		}),
 	);
 	yield* Effect.logInfo("Migrations applied");
