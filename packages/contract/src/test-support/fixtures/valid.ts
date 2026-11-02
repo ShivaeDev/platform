@@ -9,8 +9,9 @@ import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";
-import type { QueryReadDenied } from "#readPolicyErrors.ts";
+import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { Create, type Denied, Get, Note, NoteMissing, Notes, notes, type Rename } from "#test/notes.ts";
+import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
 export class Client extends AtomRpc.Service<Client>()("fixture/Client", {
 	group: Notes,
@@ -19,7 +20,9 @@ export class Client extends AtomRpc.Service<Client>()("fixture/Client", {
 
 export const api = bind(Notes, Client);
 
-export const noteQuery: Atom.Atom<AsyncResult.AsyncResult<Note, NoteMissing | Denied | QueryReadDenied | RpcClientError>> = api.get.query({
+export const noteQuery: Atom.Atom<
+	AsyncResult.AsyncResult<Note, NoteMissing | Denied | QueryReadDenied | RpcClientError | MissingReadPolicy | WebSocketRequired>
+> = api.get.query({
 	id: 1,
 });
 export const listQuery = api.list.query();
