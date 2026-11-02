@@ -1,7 +1,7 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
-export function oauthProvider() {
+export function oauthProvider({ idToken, refreshToken }: { readonly idToken?: string; readonly refreshToken?: string } = {}) {
 	return fakeHttpService({
 		routes: {
 			authorize: {
@@ -20,7 +20,15 @@ export function oauthProvider() {
 			token: {
 				method: "POST",
 				path: "/login/oauth/access_token",
-				reply: () => ({ body: { "access_token": "story-token", scope: "read:user,user:email", "token_type": "bearer" } }),
+				reply: () => ({
+					body: {
+						"access_token": "story-token",
+						"id_token": idToken,
+						"refresh_token": refreshToken,
+						scope: "read:user,user:email",
+						"token_type": "bearer",
+					},
+				}),
 			},
 			user: {
 				path: "/user",
