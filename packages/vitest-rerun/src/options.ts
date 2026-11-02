@@ -12,11 +12,11 @@ export interface RerunOptions {
 export const DEFAULT_OUTPUT_DIR = "test-results";
 export const DEFAULT_RERUNS = 1;
 
-function option(arg: string, name: string, next: string | undefined): { value: string; consumed: number } | undefined {
-	if (arg === name && next !== undefined) {
-		return { consumed: 2, value: next };
+function option(arg: string, name: string, next: string | undefined): { name: string; value: string | undefined; consumed: number } | undefined {
+	if (arg === name) {
+		return { consumed: 2, name, value: next === "" || next?.startsWith("--") ? undefined : next };
 	}
-	return arg.startsWith(`${name}=`) ? { consumed: 1, value: arg.slice(name.length + 1) } : undefined;
+	return arg.startsWith(`${name}=`) ? { consumed: 1, name, value: arg.slice(name.length + 1) || undefined } : undefined;
 }
 
 export function parseOptions(args: readonly string[], cwd: string): Effect.Effect<RerunOptions, VitestRerunError> {
@@ -31,14 +31,17 @@ export function parseOptions(args: readonly string[], cwd: string): Effect.Effec
 		}
 		const output = option(arg, "--output-dir", args[index + 1]);
 		const count = option(arg, "--reruns", args[index + 1]);
-		if (output !== undefined) {
-			outputDir = output.value;
-		} else if (count === undefined) {
+		const parsed = output ?? count;
+		if (parsed === undefined) {
 			vitestArgs.push(arg);
+		} else if (parsed.value === undefined) {
+			return Effect.fail(new VitestRerunError({ message: `${parsed.name} expects a value` }));
+		} else if (output === undefined) {
+			reruns = parsed.value;
 		} else {
-			reruns = count.value;
+			outputDir = parsed.value;
 		}
-		index += output?.consumed ?? count?.consumed ?? 1;
+		index += parsed?.consumed ?? 1;
 	}
 	if (!/^\d+$/u.test(reruns)) {
 		return Effect.fail(new VitestRerunError({ message: `--reruns expects a whole number, got ${JSON.stringify(reruns)}` }));
