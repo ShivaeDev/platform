@@ -6,12 +6,9 @@ import {
 	RemoteHttpError,
 	RemoteNotFound,
 	RemoteRateLimited,
-	type RemoteStatusError,
 	RemoteUnauthorized,
 	ResponseBodyTooLarge,
 } from "#errors.ts";
-
-const STATUS_ERRORS = [RemoteUnauthorized, RemoteNotFound, RemoteGone, RemoteRateLimited, RemoteHttpError];
 
 function instant(at: DateTime.Utc) {
 	return DateTime.formatIso(at)
@@ -42,8 +39,4 @@ export function failureOf(error: unknown, pathOf: (url: string) => string) {
 		}
 	}
 	return undefined;
-}
-
-export function isStatusError(error: unknown): error is RemoteStatusError {
-	return STATUS_ERRORS.some((type) => error instanceof type);
 }

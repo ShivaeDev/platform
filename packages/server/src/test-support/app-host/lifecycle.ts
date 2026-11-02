@@ -2,7 +2,7 @@ import { ConfigProvider, Context, Effect, Exit, Layer, Logger, Option, Reference
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
-import { makePlatformRuntime } from "#runtime/makePlatform.ts";
+import { makePlatformRuntime } from "#adapters/makePlatformRuntime.ts";
 import { runtimeLayer } from "./runtimeLayer.ts";
 import { type HostState, io, recordLog, runtimeOf } from "./state.ts";
 

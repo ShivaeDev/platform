@@ -330,7 +330,7 @@ Build the application Layer once. `runWithServices` supplies an invocation's ove
 
 ```ts
 import { Context, Layer } from "effect";
-import { makePlatformRuntime } from "@shivaedev/server/runtime/makePlatform.ts";
+import { makePlatformRuntime } from "@shivaedev/server/adapters/makePlatformRuntime.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("app/Greeting") {}
 
@@ -353,7 +353,7 @@ A long-lived response can receive cancellation from a Web request, a procedure a
 
 ```ts
 import type { IncomingMessage } from "node:http";
-import { nodeSubscriptionSignal } from "@shivaedev/server/node-http/subscriptionSignal.ts";
+import { nodeSubscriptionSignal } from "@shivaedev/server/adapters/subscriptionSignal.ts";
 
 export async function consumeSubscription(
 	request: Request,
@@ -449,8 +449,8 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `otlpTracing.ts`                                                                | `otlpTracing`: redacting Railway OTLP export for worker spans, logs and error reports.                                                                          |
 | `RedactionPolicy.ts`                                                            | `RedactionPolicy`: provide the app's diagnostic key predicate derived by errors.                                                                                |
 | `redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
-| `runtime/makePlatform.ts`                                                       | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                         |
-| `node-http/subscriptionSignal.ts`                                               | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                |
+| `adapters/makePlatformRuntime.ts`                                               | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                         |
+| `adapters/subscriptionSignal.ts`                                                | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                |
 
 ### Install, setup and limits
 

@@ -90,7 +90,7 @@
 	],
 	"server": [
 		{
-			"entries": ["./node-http/subscriptionSignal.ts", "./runtime/makePlatform.ts", "./runtime/types.ts"],
+			"entries": ["./adapters/subscriptionSignal.ts", "./adapters/makePlatformRuntime.ts", "./runtime/types.ts"],
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["runtime-minimal.ts"]

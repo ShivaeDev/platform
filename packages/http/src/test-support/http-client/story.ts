@@ -3,6 +3,7 @@ import { FetchHttpClient } from "effect/http";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createClientEngine, selectClient } from "./engine.ts";
 import { lifecycleVerbs } from "./lifecycleVerbs.ts";
+import { statusVerbs } from "./statusVerbs.ts";
 import { clientVerbs } from "./verbs.ts";
 
 export const httpClient = storyKit({
@@ -17,7 +18,7 @@ export const httpClient = storyKit({
 	stages: ["transport", "routes"],
 	verbs: (engine, story) => {
 		engine.remote.narrate(story.tell);
-		return { ...clientVerbs(engine, story), ...lifecycleVerbs(engine, story) };
+		return { ...clientVerbs(engine, story), ...lifecycleVerbs(engine, story), ...statusVerbs(engine, story) };
 	},
 });
 

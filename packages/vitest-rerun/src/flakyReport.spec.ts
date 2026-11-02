@@ -9,7 +9,7 @@ rerunStory.it(
 		yield* run();
 
 		const flaky = yield* flakyTests();
-		expect(flaky).toEqual([
+		expect(flaky).toMatchObject([
 			{
 				attempts: 2,
 				classname: "|first| flaky.spec.ts",
@@ -27,15 +27,17 @@ rerunStory.it(
 );
 
 rerunStory.it(
-	"a test that recovers on its second rerun is listed with three attempts and both failure messages",
+	"a test that recovers on its second rerun is listed with all three attempt durations and both failure messages",
 	[failsTimes(2)],
-	function* ({ flakyTests, run }) {
+	function* ({ flakyTests, run, testDurations }) {
 		yield* run("--reruns", "2");
 
+		const { attempts } = yield* testDurations("checkout > recovers only in a fresh process", 3);
 		expect(yield* flakyTests()).toEqual([
 			{
 				attempts: 3,
 				classname: "flaky.spec.ts",
+				durations: attempts,
 				file: "flaky.spec.ts",
 				messages: ["Attempt 1 leaves module state behind", "Attempt 2 leaves module state behind"],
 				name: "checkout > recovers only in a fresh process",

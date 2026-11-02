@@ -4,7 +4,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
-import { nodeHttpServer } from "@shivaedev/server/nodeHttpServer.ts";
+import { nodeHttpServer } from "@shivaedev/server/adapters/nodeHttpServer.ts";
 import type { JobsPermission, UsersPermission } from "#permissions.ts";
 import { Access } from "./Access.ts";
 import type { pages } from "./jobsPages.ts";

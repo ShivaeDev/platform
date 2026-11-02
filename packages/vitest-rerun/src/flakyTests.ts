@@ -4,6 +4,7 @@ import type { Task } from "#adapters/tasks.ts";
 export const FlakyTest = Schema.Struct({
 	attempts: Schema.Number,
 	classname: Schema.String,
+	durations: Schema.Array(Schema.Number),
 	file: Schema.String,
 	messages: Schema.Array(Schema.String),
 	name: Schema.String,

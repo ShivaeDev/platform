@@ -496,7 +496,24 @@ const readProviderSession = authQuery((disableCookieCache: boolean, signal) =>
 const session = authSession((signal) => authClient.getSession({ query: { disableCookieCache: true }, fetchOptions: { signal } }));
 ```
 
-The example uses the application's Better Auth client. `authCall` returns an input-to-Effect function. Its `AuthActionResult<A, E>` response shape is exported from the same module. Failures use `AuthFailure` from `@shivaedev/identity/client/AuthFailure.ts` and the closed `AuthFailureCode` schema and union from `@shivaedev/identity/client/AuthFailureCode.ts`: supported Better Auth core codes, `RATE_LIMITED` for a code-less 429, and `UNKNOWN` for unsupported or missing codes and rejected promises. The original error stays in `cause`. Applications can supply exhaustive UI text with `Record<AuthFailureCode, string>`.
+The example uses the application's Better Auth client. `authCall` returns an input-to-Effect function. Its `AuthActionResult<A, E>` response shape is exported from the same module. Failures use `AuthFailure` from `@shivaedev/identity/client/AuthFailure.ts` and the closed `AuthFailureCode` schema and union from `@shivaedev/identity/client/AuthFailureCode.ts`: supported Better Auth core codes, `SIGN_IN_REFUSED` for identity's sign-in policy denial, `AUTH_UNAVAILABLE` for a failed policy check or account role seed, `RATE_LIMITED` for a code-less 429, and `UNKNOWN` for unsupported or missing codes and rejected promises. Identity's server and client read the wire codes from `authRefusals` in `@shivaedev/identity/authRefusal.ts`. The original error stays in `cause`. Applications can supply exhaustive UI text with `Record<AuthFailureCode, string>`.
+
+Declare application refusal codes in a shared browser-safe schema and pass its literals as `authCall`'s second argument:
+
+```ts
+import { Effect, Schema } from "effect";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+
+const ApplicationCode = Schema.Literals(["MEMBERS_ONLY", "MAIL_UNAVAILABLE"]);
+const signIn = authCall(
+	(credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }),
+	ApplicationCode.literals,
+);
+type SignInFailure = Effect.Error<ReturnType<typeof signIn>>;
+type Messages = Record<SignInFailure["code"], string>;
+```
+
+The failure's `_tag` remains `AuthFailure`; its `code` union includes the declared application codes, so `Messages` requires text for each one as well as the standard codes. Database-hook and email-delivery Effects return their application code and message through `BetterAuthHookError`. The mounted HTTP route preserves these refusals even when Better Auth catches an email-delivery error internally. Undeclared codes remain `UNKNOWN`. `AuthFailure.withCodes(ApplicationCode.literals)` supplies the corresponding native error schema when the application needs to decode a failure.
 
 `authQuery` returns an input-to-Effect function that preserves returned provider errors and maps rejected Promises to `AuthUnavailable` from `@shivaedev/errors/taxonomy.ts`. Both call adapters pass Effect's abort signal to the supplied client function.
 

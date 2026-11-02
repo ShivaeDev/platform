@@ -57,7 +57,7 @@ export function reportReadouts(suite: Suite) {
 	function json(name: string): JsonReport {
 		return decodeJsonReport(reportText(name));
 	}
-	function durations(entry: string, durationIn: (written: JsonReport) => number | undefined) {
+	function durations(entry: string, durationIn: (written: JsonReport) => number | undefined, attemptCount = 2) {
 		function from(name: string): number {
 			const duration = durationIn(json(name));
 			if (duration === undefined) {
@@ -65,7 +65,12 @@ export function reportReadouts(suite: Suite) {
 			}
 			return duration;
 		}
-		return Effect.sync(() => ({ final: from("tests.json"), firstAttempt: from("tests.attempt-1.json"), rerun: from("tests.attempt-2.json") }));
+		return Effect.sync(() => ({
+			attempts: Array.from({ length: attemptCount }, (_, index) => from(`tests.attempt-${index + 1}.json`)),
+			final: from("tests.json"),
+			firstAttempt: from("tests.attempt-1.json"),
+			rerun: from("tests.attempt-2.json"),
+		}));
 	}
 	return {
 		coveredFunctions: () =>
@@ -103,11 +108,12 @@ export function reportReadouts(suite: Suite) {
 					.toSorted(byText),
 			),
 		summary: () => Effect.sync(() => (readFile(suite, "summary.md") ?? "").split("\n").filter((line) => line !== "")),
-		testDurations: (test: string) =>
+		testDurations: (test: string, attemptCount = 2) =>
 			durations(
 				test,
 				(written) =>
 					written.testResults.flatMap((result) => result.assertionResults).find((result) => testName(result) === test)?.duration ?? undefined,
+				attemptCount,
 			),
 		timesRan: () =>
 			Effect.sync(() => {

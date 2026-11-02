@@ -61,8 +61,10 @@ function subscribe(
 			const subscription = yield* resolveChanges(rpc, queries);
 			const viewer = yield* CurrentViewer;
 			const refresh = refreshSession(sessions, viewer, rpc._tag);
+			const read = rerunQuery(group, options);
+			type Failure = Effect.Error<typeof subscription.authorized | typeof refresh | ReturnType<typeof read>>;
 			const stream = Option.isSome(changes)
-				? Stream.unwrap(changes.value.subscribe({ ...subscription, refresh }, rerunQuery(group, options)))
+				? Stream.unwrap(changes.value.subscribe<Failure, Effect.Services<ReturnType<typeof read>>, typeof read>({ ...subscription, refresh }, read))
 				: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
 			if (Option.isNone(sessions) || Option.isNone(viewer)) {
 				return stream;

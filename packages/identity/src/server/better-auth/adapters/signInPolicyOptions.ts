@@ -2,6 +2,7 @@ import type { BetterAuthOptions, ValidateUserInfoResult, ValidateUserInfoSource 
 import { APIError } from "better-auth/api";
 import { Effect, Exit } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
+import { authRefusals } from "#authRefusal.ts";
 import { fromStorage, type PolicyStorage, type SignInGate } from "#server/better-auth/signInGate.ts";
 
 type SessionCreateBefore = NonNullable<NonNullable<NonNullable<NonNullable<BetterAuthOptions["databaseHooks"]>["session"]>["create"]>["before"]>;
@@ -9,8 +10,8 @@ type ValidateUserInfo = NonNullable<NonNullable<BetterAuthOptions["user"]>["vali
 
 const REFUSED_MESSAGE = "This account may not sign in";
 const UNAVAILABLE_MESSAGE = "Sign-in is temporarily unavailable";
-const refused: ValidateUserInfoResult = { error: "sign_in_refused", errorDescription: REFUSED_MESSAGE };
-const unavailable: ValidateUserInfoResult = { error: "sign_in_unavailable", errorDescription: UNAVAILABLE_MESSAGE };
+const refused: ValidateUserInfoResult = { error: authRefusals.signInRefused.wire, errorDescription: REFUSED_MESSAGE };
+const unavailable: ValidateUserInfoResult = { error: authRefusals.signInUnavailable.wire, errorDescription: UNAVAILABLE_MESSAGE };
 
 function logged<A, E>(effect: Effect.Effect<A, E>) {
 	return Effect.tapCause(effect, (cause) => Effect.logError("Sign-in policy check failed", redact(cause)));
