@@ -3,6 +3,7 @@ import { type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/ser
 import { APP_ID, APP_TOKEN, type AppJwt, appJwtOf, signedByApp } from "./appFixture.ts";
 import { artifactFixture } from "./artifactFixture.ts";
 import { mutationRoutes } from "./mutationRoutes.ts";
+import { viewerFixture } from "./viewerFixture.ts";
 
 export interface PullArrivals {
 	readonly expected: number;
@@ -37,8 +38,10 @@ export const appServer = Effect.gen(function* () {
 		return installationToken(request);
 	}
 	const archive = artifactFixture(() => server.url);
+	const viewer = viewerFixture((request) => tokens.get(request.headers.authorization ?? ""));
 	const server = yield* fakeHttpService({
 		routes: {
+			...viewer.routes,
 			...archive.routes,
 			...mutationRoutes,
 			app: { guard: appRequest, path: "/app", reply: () => ({ body: { id: Number(APP_ID), slug: "widgets-app" } }) },
@@ -56,6 +59,9 @@ export const appServer = Effect.gen(function* () {
 				guard: installationToken,
 				path: "/installation/repositories",
 				reply: (request) => {
+					if (viewer.state.enabled) {
+						return viewer.repositories(request);
+					}
 					const id = tokens.get(request.headers.authorization ?? "");
 					return { body: { repositories: [{ id, name: `repository-${id}` }] }, headers: { "ETag": `"installation-${id}"` } };
 				},
@@ -74,5 +80,5 @@ export const appServer = Effect.gen(function* () {
 			},
 		},
 	});
-	return { server, state };
+	return { server, state, viewer: viewer.state };
 });

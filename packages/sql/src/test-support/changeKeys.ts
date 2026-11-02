@@ -8,7 +8,7 @@ import { onPostgres } from "./engines.ts";
 import { setupOwnedRows } from "./postgresOwnedRows.ts";
 
 function inspect(engine: ChangeKeysEngine) {
-	return { endings: engine.endings, published: [...engine.published], woken: engine.woken };
+	return { createdIds: engine.createdIds, endings: engine.endings, woken: engine.woken };
 }
 
 export const changeKeys = storyKit({

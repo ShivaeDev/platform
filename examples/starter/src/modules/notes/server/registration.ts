@@ -33,11 +33,12 @@ export const notesRegistration = {
 	handlers: Layer.mergeAll(handlers, adminRegistration.handlers),
 	migrations: resolve(import.meta.dirname, "migrations"),
 	queues: [CountWords],
-	services: Layer.effect(
-		NoteReadAccess,
-		Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(rpcBoundary(Get.error, boundaryOptions))),
-	).pipe(
-		Layer.provideMerge(NotesService.layer.pipe(Layer.provide(Layer.merge(jsonPlaceholderNotes, memoryStore)))),
-		Layer.provideMerge(noteProducer),
-	),
+	services<R, E, TRequirements>(replacements: Layer.Layer<R, E, TRequirements>) {
+		const ports = Layer.mergeAll(jsonPlaceholderNotes, memoryStore, noteProducer).pipe(Layer.provide(replacements), Layer.merge(replacements));
+		const services = NotesService.layer.pipe(Layer.provideMerge(ports), Layer.merge(replacements));
+		return Layer.effect(
+			NoteReadAccess,
+			Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(rpcBoundary(Get.error, boundaryOptions))),
+		).pipe(Layer.provideMerge(services), Layer.merge(replacements));
+	},
 };
