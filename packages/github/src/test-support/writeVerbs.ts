@@ -34,6 +34,12 @@ export function writeVerbs(
 			Effect.sync(() =>
 				server.requests.filter(({ path }) => path.includes("check-runs")).map(({ method, path, body }) => ({ body: body.toString(), method, path })),
 			),
+		commentMutations: () =>
+			Effect.sync(() =>
+				server.requests
+					.filter(({ method, path }) => method !== "GET" && path.includes("/comments"))
+					.map(({ method, path, body }) => ({ body: JSON.parse(body.toString()), method, path })),
+			),
 		commentsOnPullRequest: () => Effect.sync(() => writes.comments.map(({ body, user }) => `${user?.login ?? "ghost"}: ${body}`)),
 		createCheck: (input: typeof CreateCheckRun.Type) => {
 			tell(`the client creates the ${input.status} ${input.name} check`);
