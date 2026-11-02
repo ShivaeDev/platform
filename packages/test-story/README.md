@@ -208,6 +208,8 @@ const app = storyKit({
 
 `routeOutbound(routes)` from `@shivaedev/test-story/server/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story. Pass `{ passthrough: true }` as its second argument to allow unrouted Node fetch requests.
 
+Separate registrations compose: every active registration's hosts remain reachable. If registrations name the same host, the newest active registration wins. Closing a scope removes only its registrations, revealing any earlier route for that host. Unrouted external hosts remain refused while any active registration requires strict routing.
+
 Routing uses the global dispatcher that Node's built-in `fetch` already uses. The kit's `outbound` option installs routing before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
 
 #### Asserting on application traces

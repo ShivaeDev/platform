@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { afterAll, beforeAll } from "vitest";
-import { installOutbound } from "#internal/installOutbound.ts";
+import { installOutbound } from "#adapters/installOutbound.ts";
 import { storyKit } from "#storyKit.ts";
 import { outbound } from "./outbound.ts";
 
@@ -23,9 +23,10 @@ function networkKit(passthrough: boolean) {
 		verbs: (_engine, story) => ({
 			requestsProvider: () =>
 				Effect.promise(async () => {
-					story.tell("the application requests GET https://api.github.com/user");
+					const url = passthrough ? "https://api.github.com/user" : "https://unrouted.test/user";
+					story.tell(`the application requests GET ${url}`);
 					try {
-						const response = await fetch("https://api.github.com/user");
+						const response = await fetch(url);
 						const { method, name, path }: { readonly method: string; readonly name: string; readonly path: string } = await response.json();
 						return `the ${name} server answered ${method} ${path}`;
 					} catch {

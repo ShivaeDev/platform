@@ -10,7 +10,7 @@ storyRunner.it(
 
 		expect(yield* message()).toBe(
 			[
-				"test-story refused an outbound request to api.github.com",
+				"test-story refused an outbound request to unrouted.test",
 				"help: Add this hostname to the story kit's outbound map and point it at a fake server. Only loopback requests may run",
 				"      without a route.",
 			].join("\n"),
