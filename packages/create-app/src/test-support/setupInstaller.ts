@@ -1,6 +1,14 @@
 import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { sourceBin } from "./sourceBin.ts";
+
+function sourceBin(cli: string) {
+	return `#!/usr/bin/env node
+import("node:child_process").then(({ spawnSync }) => {
+  const result = spawnSync(process.execPath, ["--conditions=source", ${JSON.stringify(cli)}, ...process.argv.slice(2)], { stdio: "inherit" });
+  if (result.error) throw result.error;
+  process.exit(result.status ?? 1);
+});
+`;
+}
 
 export function setupInstaller(
 	pnpm: string,
@@ -13,8 +21,6 @@ export function setupInstaller(
 	// pnpm rebuilds the seeded install before a package script, so it must keep the workspace Quality engine.
 	const qualityBin = sourceBin(quality);
 	const skillsBin = sourceBin(skills);
-	const heavyBin = sourceBin(fileURLToPath(new URL("../../../heavy-lock/src/cli.ts", import.meta.url)));
-	const rerunBin = sourceBin(fileURLToPath(new URL("../../../vitest-rerun/src/cli.ts", import.meta.url)));
 	return `#!/usr/bin/env node
 const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -66,12 +72,10 @@ if (args[0] === "install") {
     }
   }
   for (const name of fs.readdirSync(join(modules, ".bin"))) {
-    if (!["quality", "shivaedev-skills", "heavy-lock", "vitest-rerun"].includes(name)) fs.symlinkSync(join(modules, ".bin", name), join("node_modules/.bin", name));
+    if (!["quality", "shivaedev-skills"].includes(name)) fs.symlinkSync(join(modules, ".bin", name), join("node_modules/.bin", name));
   }
   fs.writeFileSync("node_modules/.bin/quality", ${JSON.stringify(qualityBin)}, { mode: 0o755 });
   fs.writeFileSync("node_modules/.bin/shivaedev-skills", ${JSON.stringify(skillsBin)}, { mode: 0o755 });
-  fs.writeFileSync("node_modules/.bin/heavy-lock", ${JSON.stringify(heavyBin)}, { mode: 0o755 });
-  fs.writeFileSync("node_modules/.bin/vitest-rerun", ${JSON.stringify(rerunBin)}, { mode: 0o755 });
   if (fs.existsSync(".git")) {
     fs.writeFileSync(".git/setup-order.json", JSON.stringify({
       head: spawnSync("git", ["rev-parse", "--verify", "HEAD"]).status,

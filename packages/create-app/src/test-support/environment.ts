@@ -22,6 +22,7 @@ export function appScript(app: string, script: string, args: readonly string[] =
 			"-u",
 			"PLATFORM_SQL_TEST_DATABASE_URL",
 			`PATH=${join(app, "node_modules/.bin")}:${Effect.runSync(Config.String("PATH"))}`,
+			"NODE_OPTIONS=--conditions=source",
 			...environment,
 			"sh",
 			"-c",

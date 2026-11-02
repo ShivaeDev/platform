@@ -16,7 +16,7 @@
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local src/server/setup-database.ts",
 		"dev": "pnpm db:setup && pnpm migrate && node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
 		"format": "quality fix",
-		"lint": "heavy-lock -- sh -c 'pnpm lint:skills && quality lint'",
+		"lint": "node --conditions=source tooling/heavy.ts -- sh -c 'pnpm lint:skills && quality lint'",
 		"lint:skills": "shivaedev-skills check",
 		"migrate": "node --conditions=source --env-file-if-exists=.env.local src/server/migrate.ts",
 		"postgres:low-memory": "node --conditions=source --env-file-if-exists=.env.local src/server/low-memory-postgres.ts",
@@ -25,9 +25,8 @@
 		"setup": "pnpm install && pnpm skills:sync && quality setup",
 		"skills:sync": "shivaedev-skills sync",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
-		"test": "heavy-lock -- node --env-file-if-exists=.env.local --run test:run --",
-		"test:run": "vitest-rerun",
-		"typecheck": "node --conditions=source node_modules/@shivaedev/heavy-lock/src/cli.ts -- tsc --noEmit",
+		"test": "node --conditions=source tooling/heavy.ts -- node --conditions=source --env-file-if-exists=.env.local tooling/test.ts",
+		"typecheck": "node --conditions=source tooling/heavy.ts -- tsc --noEmit",
 		"worker": "node --conditions=source --env-file-if-exists=.env.local src/server/worker.ts"
 	},
 	"dependencies": {
