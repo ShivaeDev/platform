@@ -5,6 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { ReleasePlan } from "#model.ts";
 import { planRelease } from "#planner.ts";
 import { collectReleaseNotes } from "#releaseNotes.ts";
+import { effectApi } from "./effectApi.ts";
 import { makeFixture, runCli } from "./fixture.ts";
 import { manifestOf, rangeOn } from "./manifests.ts";
 
@@ -44,6 +45,7 @@ export const workspace = storyKit({
 			return yield* (yield* FileSystem.FileSystem).readFileString(join(root, file));
 		});
 		return {
+			...effectApi(root, (line) => story.tell(line)),
 			apply: () => releases(["apply"], printedLines),
 			changelog: Effect.fn("ReleasesStory.changelog")(function* (name: string) {
 				const fs = yield* FileSystem.FileSystem;
