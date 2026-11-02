@@ -3,6 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
+import { shareQuerySignals } from "#querySignals.ts";
 import { resumeSignal } from "#resume.ts";
 import { failure, streams, times } from "./answers.ts";
 import { automaticResumeClient } from "./automaticResumeClient.ts";
@@ -53,6 +54,7 @@ function viewAtom(engine: ResumeEngine, id: number): Atom.Atom<AsyncResult.Async
 		return existing;
 	}
 	const view = Atom.makeRefreshOnSignal(engine.signal)(query);
+	shareQuerySignals(view, query);
 	engine.views.set(id, view);
 	return view;
 }
