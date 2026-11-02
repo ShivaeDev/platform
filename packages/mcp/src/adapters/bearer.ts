@@ -1,8 +1,9 @@
-import { APIError, isAPIError } from "better-auth/api";
+import { isAPIError } from "better-auth/api";
 import { verifyJwsAccessToken } from "better-auth/oauth2";
 import { Effect, Option } from "effect";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { InvalidTokenClaim } from "./InvalidTokenClaim.ts";
 
 export type JwksSource = Parameters<typeof verifyJwsAccessToken>[1]["jwksFetch"];
 
@@ -17,7 +18,17 @@ const INVALID_TOKEN_ERRORS = new Set([
 	"ERR_JOSE_NOT_SUPPORTED",
 ]);
 
-function bearerFailure(cause: unknown) {
+function bearerFailure(cause: unknown): Effect.Effect<Option.Option<never>, AuthUnavailable | InvalidTokenClaim> {
+	const claim = cause instanceof Error ? Reflect.get(cause, "claim") : undefined;
+	if (
+		cause instanceof InvalidTokenClaim
+		|| (cause instanceof Error
+			&& ["ERR_JWT_CLAIM_VALIDATION_FAILED", "ERR_JWT_EXPIRED"].includes(String(Reflect.get(cause, "code")))
+			&& typeof claim === "string")
+	) {
+		const failure = cause instanceof InvalidTokenClaim ? cause : new InvalidTokenClaim({ claim });
+		return Effect.logWarning(failure.message).pipe(Effect.andThen(Effect.fail(failure)));
+	}
 	if (
 		(isAPIError(cause) && (cause.status === "UNAUTHORIZED" || cause.status === "FORBIDDEN"))
 		|| (cause instanceof Error && INVALID_TOKEN_ERRORS.has(String(Reflect.get(cause, "code"))))
@@ -36,10 +47,20 @@ export function bearer(jwks: JwksSource, audience: string, issuer: string) {
 		}
 		return Effect.tryPromise(async () => {
 			const claims = await verifyJwsAccessToken(token, { jwksFetch: jwks, verifyOptions: { audience, issuer } });
-			if (typeof claims.scope !== "string" || !claims.scope.split(" ").includes("mcp") || claims.cnf !== undefined) {
-				throw new APIError("UNAUTHORIZED");
+			const { sub, client_id: clientId } = claims;
+			if (typeof sub !== "string" || sub.trim() === "") {
+				throw new InvalidTokenClaim({ claim: "sub" });
 			}
-			return claims;
+			if (typeof clientId !== "string" || clientId.trim() === "") {
+				throw new InvalidTokenClaim({ claim: "client_id" });
+			}
+			if (typeof claims.scope !== "string" || !claims.scope.split(" ").includes("mcp")) {
+				throw new InvalidTokenClaim({ claim: "scope" });
+			}
+			if (claims.cnf !== undefined) {
+				throw new InvalidTokenClaim({ claim: "cnf" });
+			}
+			return { ...claims, "client_id": clientId, sub };
 		}).pipe(
 			Effect.map(Option.some),
 			Effect.catch(({ cause }) => bearerFailure(cause)),

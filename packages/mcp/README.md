@@ -125,6 +125,12 @@ const application = Effect.gen(function* () {
 
 The edge adapter verifies access-token signatures, issuer, endpoint audience and `mcp` scope, then asks identity's `OauthGrants` service to resolve the subject. The identity Better Auth Layer loads the current user and consent and checks `mounted.admitsUser` afresh on every request. Admission changes apply to the next request with the same token. A failed admission lookup answers `503` without an OAuth challenge. Denied or banned users and clients without consent receive the same unauthorized response as invalid tokens. Identity resolves the stored role on each request. An invalid token receives `401` with a `WWW-Authenticate` protected-resource metadata pointer. The metadata names the authorization server and its discovery endpoint, so a client can start OAuth. MCP bearer credentials are separate from browser session cookies. Provide the OAuth policy Layer to the MCP routes before merging them with a cookie-authenticated host.
 
+### Diagnose token refusals
+
+`betterAuthMcp` returns `authenticate(token)` alongside its route and session Layers. It verifies the token and resolves its current OAuth grant. A successful authentication returns `Option.some({ user })`; a refused grant returns `Option.none()`. Missing or malformed `iss`, `aud`, `sub`, `client_id` or `scope` claims fail with `InvalidTokenClaim` from `@shivaedev/mcp/adapters/InvalidTokenClaim.ts`. The failure names `claim`, and the adapter logs a warning with that name. Claims and token values stay out of this diagnostic. Blank subjects and client identifiers are invalid too.
+
+Use `authenticate` in application stories to distinguish invalid claims from refused grants. HTTP sessions translate `InvalidTokenClaim` into the ordinary `401` resource challenge. A token with an invalid signature still receives that challenge; verification infrastructure failures remain `AuthUnavailable` and answer `503`.
+
 ### Manage client grants
 
 Identity owns grant listing and revocation through its [`OauthGrants` service](https://github.com/ShivaeDev/platform/tree/main/packages/identity#oauth-grants). Provide `betterAuthOauthGrants({ auth: mounted.auth, admitsUser: mounted.admitsUser })` to Effects that use that service. The application authorizes grant management operations.
