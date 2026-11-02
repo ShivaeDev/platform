@@ -17,7 +17,8 @@ export const playwright = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const open = Effect.gen(function* () {
-		if (yield* fs.exists(chromium.executablePath())) {
+		const executablePath = chromium.executablePath();
+		if (yield* fs.exists(executablePath)) {
 			yield* Console.log("browser-check: reusing cached Chromium.");
 		} else {
 			yield* Console.log("browser-check: installing Chromium on first run; pnpm install does not download browsers.");
@@ -29,7 +30,7 @@ export const playwright = Effect.gen(function* () {
 			}
 		}
 		const browser = yield* Effect.acquireRelease(
-			attempt(() => chromium.launch()),
+			attempt(() => chromium.launch({ executablePath })),
 			(acquired) => Effect.promise(() => acquired.close()),
 		);
 		const context = yield* attempt(() => browser.newContext({ viewport: { height: 900, width: 1440 } }));

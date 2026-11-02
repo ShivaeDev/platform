@@ -1,18 +1,10 @@
-import { Console, Effect, Option, type PlatformError, Queue } from "effect";
+import { Console, Effect, Option, Queue } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { type ForwardedSignal, signalExitCode } from "./signals.ts";
+import { type ForwardedSignal, signalledExitCode } from "#adapters/signals.ts";
 
 export type CommandLine = readonly [string, ...string[]];
 
 const COULD_NOT_START = 127;
-const KILLED_BY = /signal: '(?<signal>SIG[A-Z0-9]+)'/u;
-
-// The spawner reports a child killed by a signal only as an error naming that signal.
-function signalledExitCode(error: PlatformError.PlatformError) {
-	const signal = KILLED_BY.exec(error.cause instanceof Error ? error.cause.message : "")?.groups?.signal;
-	return signal === undefined ? Effect.fail(error) : Effect.succeed(signalExitCode(signal));
-}
-
 const spawn = Effect.fn("HeavyLock.spawn")(function* (commandLine: CommandLine, env: Readonly<Record<string, string>>) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const [executable, ...args] = commandLine;

@@ -2,7 +2,7 @@ import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
-import { Effect } from "effect";
+import { Crypto, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { HOLDER_ID_ENV } from "#holder.ts";
 import { cli } from "./cli.ts";
@@ -91,6 +91,15 @@ export function noPollInterval() {
 export function noCommandOption() {
 	return lockStory.trait("configuration", "no command is given", (engine) => {
 		engine.omitsCommand = true;
+	});
+}
+
+export function idBytes(byte: number) {
+	return lockStory.trait("configuration", `Effect's Crypto service supplies id bytes filled with ${byte}`, (engine) => {
+		engine.crypto = Crypto.make({
+			digest: engine.crypto.digest,
+			randomBytes: (size) => new Uint8Array(size).fill(byte),
+		});
 	});
 }
 

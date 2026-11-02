@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import { defineConfig, type QualityConfig } from "#config.ts";
 import { defineRule, type Rule } from "#rule.ts";
+import { customServiceRule } from "#test/customServiceRule.ts";
 
 const todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });
 
@@ -34,6 +35,42 @@ export const typed: QualityConfig<readonly [typeof todo, typeof limited]> = defi
 });
 
 export const loose = defineConfig({ local: rules });
+
+export const customService: QualityConfig<readonly [typeof customServiceRule, typeof todo, typeof limited]> = defineConfig({
+	local: [customServiceRule, todo, limited],
+	rules: {
+		"local/line-limit": { options: { max: "2" } },
+		"local/max-files": { options: { max: 3 } },
+		"local/no-todo": "error",
+		"structure/max-lines": { options: { source: 100 } },
+	},
+});
+
+export const customServiceWrongInput = defineConfig({
+	local: [customServiceRule],
+	// @ts-expect-error Configuration uses the schema input, even when the decoded value is a number.
+	rules: { "local/line-limit": { options: { max: 2 } } },
+});
+
+export const customServiceMisspelledOption = defineConfig({
+	local: [customServiceRule],
+	// @ts-expect-error Custom services do not loosen option names.
+	rules: { "local/line-limit": { options: { maximum: "2" } } },
+});
+
+export const customServiceUnknownRule = defineConfig({
+	local: [customServiceRule],
+	rules: {
+		// @ts-expect-error Custom services do not loosen rule IDs.
+		"local/line-limits": "error",
+	},
+});
+
+export const mixedRuleWrongOption = defineConfig({
+	local: [customServiceRule, limited],
+	// @ts-expect-error Other local rules keep their own option types alongside custom-service rules.
+	rules: { "local/max-files": { options: { max: "3" } } },
+});
 
 export const unknownRule = defineConfig({
 	rules: {

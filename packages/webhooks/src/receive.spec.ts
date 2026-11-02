@@ -23,7 +23,9 @@ inbox.it(
 
 const refusals: ReadonlyArray<readonly [Delivery, string]> = [
 	["a delivery without a signature", "401 Unauthorized"],
-	["a non-JSON delivery signed for another body", "401 Unauthorized"],
+	["a delivery with a wrong signature", "401 Unauthorized"],
+	["a delivery with a stale timestamp", "401 Unauthorized"],
+	["a non-JSON delivery with a wrong signature", "401 Unauthorized"],
 	["a delivery without a delivery ID", "400 Bad Request: Invalid delivery"],
 	["a delivery without an event header", "400 Bad Request: Invalid delivery"],
 	["an issue delivery whose number is a string", "400 Bad Request"],

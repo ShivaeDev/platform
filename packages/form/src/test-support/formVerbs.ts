@@ -95,7 +95,7 @@ export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError, TSuppo
 				engine.session.drop();
 			}),
 		enter: <TKey extends Name<TFields>>(name: TKey, value: Encoded<TFields>[TKey]) => Effect.sync(() => driver.change(name, value)),
-		feedbackAt: (path: Path<Name<TFields>>) => Effect.sync(() => read(current().errorAt(path))),
+		feedbackAt: (path: Path<Name<TFields>> | readonly []) => Effect.sync(() => read(current().errorAt(path))),
 		feedbackOn: (name: Name<TFields>) => Effect.sync(() => read(current().error(name))),
 		finishSave: driver.finishSave,
 		leave: (name: Name<TFields>) =>

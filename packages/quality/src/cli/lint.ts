@@ -1,4 +1,5 @@
 import { relative } from "node:path";
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodePath from "@effect/platform-node/NodePath";
 import { Console, Effect } from "effect";
 import { withHeavyLock } from "@shivaedev/heavy-lock/withHeavyLock.ts";
@@ -38,6 +39,7 @@ export const lint = Effect.fn("Cli.lint")(
 	(effect) =>
 		withHeavyLock(effect, { command: "quality lint" }).pipe(
 			Effect.catchTag("HeavyLockError", (cause) => new SetupFailure({ cause, message: cause.message })),
+			Effect.provide(NodeCrypto.layer),
 			Effect.provide(NodePath.layer),
 		),
 );

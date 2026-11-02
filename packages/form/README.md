@@ -230,6 +230,8 @@ This check produces advisory feedback after the configured debounce and completi
 
 For a nested value held in one top-level field, `errorAt(["answers", index, "text"])` reads Schema feedback and handler rejections for that answer box. A blur or change of the top-level `answers` field, or a submission, reveals its nested messages. The path selects the first message at or beneath that path; a sibling message does not appear there. `error("answers")` retains the top-level summary. Advisory checks remain top-level. Nested values are still edited as a whole top-level field.
 
+Whole-form Schema refinements are available through `errorAt([])` after submission. This root path selects only a whole-form message; field errors stay on their field paths. In React, render it with `useAtomValue(form.errorAt([]))`. A failed submission also keeps that message in `Invalid.formMessage`. Matching the refinement clears the feedback. Schema feedback is hidden while a new asynchronous decode is pending.
+
 ### Errors on array elements
 
 Pass a path tuple to `submitter.fail` to reject one element or a property inside it. Paths use indices in the submitted encoded snapshot. Optional `arrayKeys` selectors receive encoded elements of top-level array fields and return their stable, unique keys:
@@ -302,6 +304,7 @@ The returned form exposes:
 | `blur(name)`               | Field blur operation, supplied as `useField(...).onBlur`                                      |
 | `error(name)`              | Atom of `string \| undefined`                                                                 |
 | `errorAt([name, ...path])` | Atom of nested Schema feedback and handler rejections; visibility follows the top-level field |
+| `errorAt([])`              | Atom of whole-form Schema feedback, visible after submission                                  |
 | `choices(name)`            | Encoded choices or `undefined`                                                                |
 | `dirty`                    | Atom of `boolean`                                                                             |
 | `receive(values)`          | Merge received encoded values                                                                 |
@@ -309,7 +312,7 @@ The returned form exposes:
 | `submit`                   | `AtomResultFn<void, A, E \| ER \| FieldFailure \| Invalid>`                                   |
 | `submitting`               | Atom of `boolean` for submission waiting state                                                |
 
-`F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record.
+`F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record, and optional `formMessage` for a whole-form refinement.
 
 The lower-level `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`) and `statusOf.ts` (`statusOf`) modules hold the machinery the form composes; the examples use the form API instead.
 

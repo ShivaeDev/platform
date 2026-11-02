@@ -103,6 +103,10 @@ Cloud host configuration also accepts `cloud.threadNamePrefix` (default `Fleet: 
 
 Each task can override `launch` per field, as described under [Approve a task](#approve-a-task).
 
+To choose worker speed from repository CI capacity, set `launch.serviceTier` to `{ "ciCapacity": { "slowAt": 5, "fastAt": 2 } }`. Fleet starts on `fast`, switches to `default` at five or more queued GitHub Actions runs, and returns to `fast` at two or fewer. Counts between the thresholds retain the current tier. `fastAt` must be a nonnegative integer below the positive integer `slowAt`. This changes speed without changing concurrency; a fixed service-tier string continues to work, and task overrides still take precedence.
+
+Fleet reads the repository's queued workflow-run count through its GitHub client and rate-limit reserve at most once per `intervalSeconds`. A failed read retains the last tier, initially `fast`. `work-fleet status` shows the selected tier, the last queued count, both thresholds and a failed-read indication. Each attempt records the launch settings it uses.
+
 #### Choose how results are reviewed
 
 Set top-level `review` to `false` (off), `"advisory"` (review without sending findings back to the worker), or `true` (blocking, the default when omitted).

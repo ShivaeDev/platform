@@ -7,7 +7,7 @@ export const settleScreen = Effect.fnUntraced(function* (engine: ScreenSurface, 
 	const view = screenView(engine);
 	const screen = screenDriver({
 		act,
-		pending: () => (engine.pending?.() ?? false) || view.container.querySelector('[role="status"]') !== null,
+		pending: () => engine.pending?.() ?? false,
 		root: view.container,
 		tell,
 	});

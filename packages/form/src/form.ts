@@ -1,9 +1,10 @@
-import { Effect, Equal, Layer, Result, Schema, type SchemaIssue, SchemaParser } from "effect";
+import { Effect, Layer, Result, Schema, type SchemaIssue, SchemaParser } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
+import { checkFeedback } from "./checkFeedback.ts";
 import { draft } from "./draft.ts";
-import { literalChoices, messageAt, messagesByField, schemaFeedback } from "./messages.ts";
+import { literalChoices, messageAt, messageAtPath, messagesByField, schemaFeedback } from "./messages.ts";
 import { pathMessageAt } from "./paths.ts";
 import { persistence } from "./persistence.ts";
 import { fromRef, propertyRef } from "./refs.ts";
@@ -71,26 +72,7 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 
 	const schemaErrors = schemaFeedback(decoded, config.requiredMessages);
 
-	const checkError = Atom.family((name: Name<TFields>): Atom.Atom<string | undefined> => {
-		const check = checks.get(name);
-		if (check === undefined) {
-			return Atom.make((): string | undefined => undefined);
-		}
-		const current = fromRef(refFor(name));
-		const settled = Atom.debounce(current, debounce);
-		const answered = runtime.atom((get) => {
-			const input = get(settled);
-			return Effect.map(check(input), (message) => ({
-				input,
-				message,
-			}));
-		});
-		return Atom.readable((get): string | undefined => {
-			const result = get(answered);
-			const value = get(current);
-			return AsyncResult.isSuccess(result) && !result.waiting && Equal.equals(result.value.input, value) ? result.value.message : undefined;
-		});
-	});
+	const checkError = checkFeedback<TFields, TServices, TRuntimeError>(runtime, checks, refFor, debounce);
 
 	const error = Atom.family((name: Name<TFields>) =>
 		Atom.readable((get): string | undefined => {
@@ -111,7 +93,7 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 			const submission = editing.submission();
 			const submitted = submission.values;
 			const value = yield* decode(submitted).pipe(
-				Effect.mapError((issue) => new Invalid({ messages: messagesByField(issue, config.requiredMessages) })),
+				Effect.mapError((issue) => new Invalid({ formMessage: messageAtPath(issue, []), messages: messagesByField(issue, config.requiredMessages) })),
 			);
 			return yield* onSubmit(value, submitter, submitted).pipe(
 				Effect.tapError(noted(submitted)),
@@ -133,10 +115,14 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 		},
 		dirty: editing.dirty,
 		error,
-		errorAt: Atom.family((path: readonly [Name<TFields>, ...PropertyKey[]]) => {
+		errorAt: Atom.family((path: readonly [Name<TFields>, ...PropertyKey[]] | readonly []) => {
 			const message = schemaErrors.at(path);
+			const name = path[0];
+			if (name === undefined) {
+				return Atom.readable((get) => (get(status.submitted) ? get(message) : undefined));
+			}
 			return Atom.readable((get) =>
-				get(status.touched)[path[0]] === true || get(status.submitted) ? (pathMessageAt(get(status.paths), path) ?? get(message)) : undefined,
+				get(status.touched)[name] === true || get(status.submitted) ? (pathMessageAt(get(status.paths), path) ?? get(message)) : undefined,
 			);
 		}),
 		field: refFor,

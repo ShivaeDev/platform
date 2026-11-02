@@ -27,6 +27,9 @@ function httpUrl(value: string, flag: string, base?: URL) {
 }
 
 export const check = Effect.fn("BrowserCheck.check")(function* (options: CheckOptions) {
+	const fs = yield* FileSystem.FileSystem;
+	const folder = ".browser-check";
+	yield* fs.remove(folder, { force: true, recursive: true });
 	const base = yield* httpUrl(options.url, "--url");
 	const urls = yield* Effect.forEach(options.pages, (path) => httpUrl(path, "--page", base).pipe(Effect.map((url) => url.href)));
 	if (options.liveNotes && options.credentials === undefined) {
@@ -34,10 +37,8 @@ export const check = Effect.fn("BrowserCheck.check")(function* (options: CheckOp
 			message: "--live-notes requires BROWSER_CHECK_EMAIL and BROWSER_CHECK_PASSWORD for an existing disposable user.",
 		});
 	}
-	const fs = yield* FileSystem.FileSystem;
 	const browser = yield* Browser;
 	const session = yield* browser.open;
-	const folder = ".browser-check";
 	yield* fs.makeDirectory(folder, { recursive: true });
 	if (options.credentials !== undefined) {
 		yield* session.signIn(new URL("/api/auth/sign-in/email", base).href, options.credentials.email, options.credentials.password);

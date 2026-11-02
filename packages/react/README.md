@@ -597,13 +597,15 @@ const Search = Schema.Struct({
 		Schema.withDecodingDefaultKey(Effect.succeed(1)),
 	),
 });
+const noteQuery = queryRoute(
+	({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof Search.Type }) =>
+		context.api.get.query({ id: params.id, page: search.page }),
+);
 const note = createRoute({
 	getParentRoute: () => root,
 	path: "/notes/$id",
 	validateSearch: Schema.toStandardSchemaV1(Search),
-	...queryRoute(({ context, params, search }: { context: typeof root.types.allContext; params: { id: string }; search: typeof Search.Type }) =>
-		context.api.get.query({ id: params.id, page: search.page }),
-	),
+	...noteQuery,
 	component: Note,
 	errorComponent: Failure,
 });
@@ -634,7 +636,15 @@ function Note() {
 	return <h1>{query.data.title}</h1>;
 }
 function Failure({ error }: ErrorComponentProps) {
-	return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
+	const retry = noteQuery.useRetry();
+	return (
+		<>
+			<p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>
+			<button type="button" onClick={() => void retry()}>
+				Retry
+			</button>
+		</>
+	);
 }
 function SharedNotFound({ data }: NotFoundRouteProps) {
 	return <h1>{Schema.is(NotFound)(data) ? data.message : "Page not found"}</h1>;
@@ -651,6 +661,25 @@ export function App() {
 `SharedNotFound` narrows `data` with the shared rejection schema before reading the server's message. The fallback handles not-found results without that rejection, such as unmatched URLs.
 
 `validateSearch` stays native: `Schema.toStandardSchemaV1(Search)` supplies TanStack’s search input and output types. The schema defaults a missing or invalid page to `1`. The query callback names its params and schema output type because TypeScript cannot infer them backward through an object spread. Changing search changes the loader dependencies and queries the new payload. Keep `params`, `validateSearch`, `component` and `errorComponent` on the route, with an optional `notFoundComponent` to override the shared screen; options after the spread can override its `loaderDeps` or `loader`.
+
+Keep the result of `queryRoute` to call its `useRetry()` hook inside that route's error component. The returned callback refreshes the query using the current match's params, decoded search dependencies and context, then invalidates that match. A successful retry renders the route again without replacing the surrounding shell or its draft inputs.
+
+For redirects, supply `redirects.signedOut` and `redirects.refused` in the optional second argument. The signed-out callback handles the shared `Unauthorized` rejection; the refusal callback handles `Forbidden` and `QueryReadDenied`. Use TanStack's typed `redirect` with a registered router (or an explicit router type), and `signInSearch` to carry the requested path, search and fragment into sign-in's `returnTo`. Destinations and UI remain application choices:
+
+```ts
+import { redirect } from "@tanstack/react-router";
+import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { signInSearch } from "@shivaedev/react/signInSearch.ts";
+
+const noteQuery = queryRoute(buildQuery, {
+	redirects: {
+		signedOut: (location) => redirect({ to: "/sign-in", search: signInSearch(location) }),
+		refused: () => redirect({ to: "/no-access" }),
+	},
+});
+```
+
+Without the corresponding callback, failures retain their normal error or not-found handling. `NotFound` continues to use the not-found screen even when refusal redirects are configured.
 
 For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/adapters/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
 

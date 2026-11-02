@@ -872,15 +872,9 @@ importers:
       '@effect/platform-node-shared':
         specifier: 4.0.6
         version: 4.0.6(effect@4.0.6)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)(vitest@5.0.5)
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1586,6 +1580,9 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)
+      '@shivaedev/jobs':
+        specifier: workspace:*
+        version: link:../jobs
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1677,9 +1674,6 @@ importers:
 
   packages/test-story:
     dependencies:
-      '@effect/sql-pg':
-        specifier: 'catalog:'
-        version: 4.0.6(effect@4.0.6)
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract
@@ -1699,6 +1693,9 @@ importers:
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.6(effect@4.0.6)
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)(vitest@5.0.5)

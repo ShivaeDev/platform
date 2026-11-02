@@ -18,7 +18,7 @@ Start the app separately, then run the command from the app directory. The defau
 pnpm add -D @shivaedev/browser-check
 ```
 
-Add `"browser-check": "browser-check"` to your package scripts and `.browser-check/` to `.gitignore`. Screenshots go to `.browser-check/1.png`, `.browser-check/2.png` and so on, in page order, replacing previous captures.
+Add `"browser-check": "browser-check"` to your package scripts and `.browser-check/` to `.gitignore`. Screenshots go to `.browser-check/1.png`, `.browser-check/2.png` and so on, in page order. Each check clears this output folder before validating its options or starting the browser, so a shorter or failed run leaves only its own captures. Keep this folder dedicated to browser-check output.
 
 `pnpm install` does not download browsers. The first browser-check run announces and installs Chromium through Playwright; later runs announce reuse of the cached browser. On Linux, Playwright's Chromium system libraries must be available on the machine.
 

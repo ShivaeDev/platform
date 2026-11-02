@@ -1,5 +1,6 @@
 import { createServer, type IncomingHttpHeaders } from "node:http";
 import * as Effect from "effect/Effect";
+import type { OtlpTracer } from "effect/observability";
 import { receiveOtlp } from "#adapters/receiveOtlp.ts";
 import { loopbackServer } from "#internal/loopback.ts";
 import type { otlpReadout } from "#internal/otlpReadout.ts";
@@ -7,6 +8,7 @@ import { recordedSignals } from "#internal/recordedSignals.ts";
 import { type UntilOptions, until } from "#until.ts";
 
 export type OtlpSpan = ReturnType<typeof otlpReadout>[number];
+export type OtlpTracerOptions = Omit<Parameters<typeof OtlpTracer.layer>[0], "url" | "compression">;
 export interface OtlpExport {
 	readonly body: Buffer;
 	readonly headers: IncomingHttpHeaders;
@@ -24,8 +26,14 @@ export const otlpReceiver = Effect.fnUntraced(function* (options: OtlpReceiverOp
 	const signals = recordedSignals<OtlpSpan>();
 	const server = createServer((request, response) => receiveOtlp(request, response, requests, signals.push, options));
 	const url = yield* loopbackServer(server);
+	const { otlpTracing } = yield* Effect.promise(() => import("#internal/otlpTracing.ts"));
+	const { errors, exportsSecret, queries } = yield* Effect.promise(() => import("#internal/otlpReadouts.ts"));
 	yield* Effect.addFinalizer(() => Effect.sync(() => signals.end()));
 	return {
+		...otlpTracing(`${url}${options.path ?? "/v1/traces"}`, signals.stream),
+		errors: () => errors(signals.values),
+		exportsSecret: (secret: string) => exportsSecret(requests, secret),
+		queries: () => queries(signals.values),
 		get requests(): readonly OtlpExport[] {
 			return requests;
 		},

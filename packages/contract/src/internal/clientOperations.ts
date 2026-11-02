@@ -1,4 +1,5 @@
 import { Effect, Option, Schema, Stream } from "effect";
+import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -23,7 +24,7 @@ function run<A, E>(service: ErasedClient, effect: Effect.Effect<A, E, unknown>, 
 	return owner === undefined ? effect : Effect.suspend(() => AtomRegistry.getResult(owner.registry, service.runtime.atom(effect)));
 }
 
-export function boundQuery(service: ErasedClient, tag: string, query: QueryShape, automatic: ReturnType<typeof automaticLive>, owner?: BindingOwner) {
+function boundQuery(service: ErasedClient, tag: string, query: QueryShape, automatic: ReturnType<typeof automaticLive>, owner?: BindingOwner) {
 	const reactive = queryReactivity(service.runtime, clientActivities.get(service)?.queued);
 	const cached = new WeakMap<ReturnType<typeof service.query>, ReturnType<typeof service.query>>();
 	return {
@@ -59,7 +60,7 @@ export function boundQuery(service: ErasedClient, tag: string, query: QueryShape
 	};
 }
 
-export function boundCommand(service: ErasedClient, tag: string, command: CommandShape, owner?: BindingOwner) {
+function boundCommand(service: ErasedClient, tag: string, command: CommandShape, owner?: BindingOwner) {
 	function invalidate(payload: unknown, result: unknown) {
 		const keys: readonly Key[] = [
 			...command.invalidates(payload, result),
@@ -73,8 +74,28 @@ export function boundCommand(service: ErasedClient, tag: string, command: Comman
 	};
 }
 
-export function boundStream(service: ErasedStreamingClient, tag: string) {
+function boundStream(service: ErasedStreamingClient, tag: string, owner?: BindingOwner) {
 	return {
-		run: (payload: unknown) => Stream.unwrap(service.use((client) => Effect.succeed(client(tag, payload)))),
+		run: (payload: unknown) => {
+			const stream = Stream.unwrap(service.use((client) => Effect.succeed(client(tag, payload))));
+			return owner === undefined
+				? stream
+				: Stream.callback<unknown, unknown>(
+						(queue) => AtomRegistry.getResult(owner.registry, service.runtime.atom(Stream.runIntoQueue(stream, queue)).pipe(Atom.setIdleTTL(0))),
+						{ bufferSize: 1 },
+					);
+		},
+	};
+}
+
+export function clientOperations(
+	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
+	automatic: ReturnType<typeof automaticLive>,
+	owner?: BindingOwner,
+) {
+	return {
+		command: (tag: string, command: CommandShape) => boundCommand(service, tag, command, owner),
+		query: (tag: string, query: QueryShape) => boundQuery(service, tag, query, automatic, owner),
+		stream: (tag: string) => boundStream(service, tag, owner),
 	};
 }

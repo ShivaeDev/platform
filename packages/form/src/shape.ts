@@ -31,6 +31,7 @@ export class FieldFailure extends Data.TaggedError("FieldFailure")<{
 }> {}
 
 export class Invalid extends Data.TaggedError("Invalid")<{
+	readonly formMessage?: string | undefined;
 	readonly messages: FieldMessages;
 }> {}
 
@@ -65,7 +66,7 @@ export interface Form<TFields extends Fields, A, E, TRuntimeError> {
 	readonly choices: <TKey extends Name<TFields>>(name: TKey) => readonly Encoded<TFields>[TKey][] | undefined;
 	readonly dirty: Atom.Atom<boolean>;
 	readonly error: (name: Name<TFields>) => Atom.Atom<string | undefined>;
-	readonly errorAt: (path: Path<Name<TFields>>) => Atom.Atom<string | undefined>;
+	readonly errorAt: (path: Path<Name<TFields>> | readonly []) => Atom.Atom<string | undefined>;
 	readonly field: <TKey extends Name<TFields>>(name: TKey) => AtomRef.AtomRef<Encoded<TFields>[TKey]>;
 	readonly receive: (values: Encoded<TFields>) => void;
 	readonly revert: () => void;

@@ -5,7 +5,9 @@ A consumer-visible change adds one `.changeset/<short-name>.md` per PR, naming e
 ```markdown
 ---
 
-## "@shivaedev/react": minor
+"@shivaedev/react": minor
+
+---
 
 ### Added
 
@@ -21,7 +23,9 @@ To rename a package, change its manifest name and add a changeset naming the new
 ```markdown
 ---
 
-## "@shivaedev/new-name": minor
+"@shivaedev/new-name": minor
+
+---
 
 ### Breaking
 

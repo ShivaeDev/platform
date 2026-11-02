@@ -1,22 +1,23 @@
-import { createHmac } from "node:crypto";
 import { STATUS_CODES } from "node:http";
-import { Effect } from "effect";
-import { MAX_BODY_BYTES, PRIVATE_FIELD, WEBHOOK_SECRET } from "#test/fixture.ts";
+import { ConfigProvider, Effect } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { deliverWebhook, type WebhookSigner } from "#server/testing.ts";
+import { MAX_BODY_BYTES, PRIVATE_FIELD, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
 import type { InboxState } from "#test/host.ts";
+import { TIMESTAMPED_SECRET, timestampedHeaders, timestampedSource } from "#test/timestampedSource.ts";
 
 interface DeliveryRequest {
 	readonly body?: string;
 	readonly delivery?: string | null;
 	readonly event?: string | null;
+	readonly sign?: WebhookSigner;
 	readonly signature?: string | null;
 	readonly source?: string;
 }
 
 const issueBody = JSON.stringify({ action: "opened", issue: { number: 42 }, private: PRIVATE_FIELD });
 
-function signature(payload: string) {
-	return `sha256=${createHmac("sha256", WEBHOOK_SECRET).update(payload).digest("hex")}`;
-}
+const wrongSignature = `sha256=${"0".repeat(64)}`;
 
 export const deliveries = {
 	"a delivery over the host's 256-byte limit": { body: "x".repeat(MAX_BODY_BYTES + 1) },
@@ -27,11 +28,15 @@ export const deliveries = {
 	"a delivery whose mapping fails with a frozen error": { event: "frozen_failure" },
 	"a delivery whose mapping fails with a schema error": { event: "schema_failure" },
 	"a delivery whose mapping fails with an unauthorized error": { event: "unauthorized_failure" },
+	"a delivery with a stale timestamp": { sign: timestampedHeaders(0), source: "timestamped" },
+	"a delivery with a wrong signature": { signature: wrongSignature },
 	"a delivery without a delivery ID": { delivery: null },
 	"a delivery without a signature": { signature: null },
 	"a delivery without an event header": { event: null },
-	"a non-JSON delivery signed for another body": { body: "not-json", signature: signature(issueBody) },
+	"a fresh timestamped delivery": { sign: timestampedHeaders(), source: "timestamped" },
+	"a non-JSON delivery with a wrong signature": { body: "not-json", signature: wrongSignature },
 	"a ping": { body: JSON.stringify({ zen: "Keep it simple" }), event: "ping" },
+	"a signed issue 44 delivery with Unicode": { body: JSON.stringify({ action: "opened", issue: { number: 44 }, title: "Hello ☃ café" }) },
 	"a signed non-JSON delivery": { body: "not-json" },
 	"an issue delivery whose number is a string": { body: JSON.stringify({ action: "opened", issue: { number: PRIVATE_FIELD } }) },
 	"an unlisted event whose body is not JSON": { body: "not-json", event: "unlisted" },
@@ -54,21 +59,27 @@ export function deliver(state: InboxState, delivery: Delivery) {
 	const body = request.body ?? issueBody;
 	const delivered = request.delivery === undefined ? "delivery-1" : request.delivery;
 	const event = request.event === undefined ? "issues" : request.event;
-	const signed = request.signature === undefined ? signature(body) : request.signature;
-	return Effect.tryPromise(async (signal) => {
-		state.sent.push({ body, signature: signed });
-		const response = await fetch(`${state.url}/hooks/${request.source ?? "github"}`, {
+	return Effect.gen(function* () {
+		const response = yield* deliverWebhook({
 			body,
 			headers: {
-				...(event === null ? {} : { "x-github-event": event }),
-				...(delivered === null ? {} : { "x-github-delivery": delivered }),
-				...(signed === null ? {} : { "x-hub-signature-256": signed }),
+				"x-github-delivery": delivered,
+				"x-github-event": event,
+				...(request.signature === undefined ? {} : { "x-hub-signature-256": request.signature }),
 			},
-			method: "POST",
-			signal,
+			...(request.sign === undefined ? {} : { sign: request.sign }),
+			source: request.source === "timestamped" ? timestampedSource : sources.github,
+			url: `${state.url}/hooks/${request.source ?? "github"}`,
 		});
-		const answer = answerOf(response.status, await response.text());
+		state.sent.push({ body, signature: response.request.headers["x-hub-signature-256"] ?? null });
+		const answer = answerOf(response.status, yield* response.text);
 		state.answers.push(answer);
 		return answer;
-	}).pipe(Effect.orDie);
+	}).pipe(
+		Effect.provide(FetchHttpClient.layer),
+		Effect.provide(
+			ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "TIMESTAMPED_WEBHOOK_SECRET": TIMESTAMPED_SECRET, "WEBHOOK_SECRET": WEBHOOK_SECRET } })),
+		),
+		Effect.orDie,
+	);
 }

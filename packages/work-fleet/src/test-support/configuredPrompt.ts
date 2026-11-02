@@ -1,5 +1,6 @@
 import { Effect, FileSystem, Layer, Path } from "effect";
 import { loadHost } from "#host/configFile.ts";
+import { launchTierLayer } from "#host/launchTier.ts";
 import { staticConfig } from "#host/liveConfig.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { hostPolicy } from "#host/runtime.ts";
@@ -7,6 +8,7 @@ import { FleetPolicy } from "#policy.ts";
 import { policyGuidance } from "#policyGuidance.ts";
 import { reviewerPrompt } from "#prompt/reviewer.ts";
 import { withWorkerGuidance } from "#prompt/worker.ts";
+import { syntheticGithub } from "#test/githubApi.ts";
 import { MAIN } from "#test/mainSource.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
@@ -31,7 +33,7 @@ export const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function*
 	}
 	const host = yield* loadHost(board);
 	const policy = yield* FleetPolicy.pipe(
-		Effect.provide(hostPolicy(host).pipe(Layer.provide(staticConfig(host)))),
+		Effect.provide(hostPolicy(host).pipe(Layer.provide([staticConfig(host), launchTierLayer.pipe(Layer.provide(syntheticGithub().layer))]))),
 		Effect.provideService(MainSource, {
 			current: Effect.succeed(MAIN),
 			latest: Effect.succeed(MAIN),

@@ -35,7 +35,11 @@ export const migrationUpgrade = Effect.fn("PostgresTest.migrationUpgrade")(funct
 	if (!resolved.some(([id]) => id === options.upTo)) {
 		return yield* invalid(`Migration ${options.upTo} is not in the loader.`);
 	}
-	yield* migratePostgres({ ...options.migrations, loader: Effect.succeed(resolved.filter(([id]) => id <= options.upTo)) });
+	yield* migratePostgres({
+		loader: Effect.succeed(resolved.filter(([id]) => id <= options.upTo)),
+		lockTimeout: options.migrations.lockTimeout,
+		table: ledger,
+	});
 	yield* migratePostgres({ ...options.migrations, loader: Effect.succeed(resolved) });
 	return yield* sql<PostgresColumn>`
 		select attname as name, format_type(atttypid, atttypmod) as type

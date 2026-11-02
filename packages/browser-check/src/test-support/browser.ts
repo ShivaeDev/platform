@@ -1,6 +1,7 @@
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
+import { chromium } from "playwright";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type CliRun, runCli } from "#test/runCli.ts";
 import { type SignIn, startHost } from "#test/startHost.ts";
@@ -15,7 +16,7 @@ export const browser = storyKit({
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "browser-check-story-" });
 		const host = yield* startHost;
-		const run: { credentials: SignIn | undefined; last: CliRun | undefined } = { credentials: undefined, last: undefined };
+		const run: { browserCache?: string; credentials: SignIn | undefined; last: CliRun | undefined } = { credentials: undefined, last: undefined };
 		return { host, root, run };
 	},
 	inspect: ({ host, run }) => ({ output: run.last, signIns: host.signIns, visits: host.visits }),
@@ -39,13 +40,13 @@ export const browser = storyKit({
 			browserActivity: () => Effect.map(finished(), (result) => reported(result).filter((line) => line.includes("Chromium"))),
 			checks: (...args: readonly string[]) => {
 				story.tell(`browser-check looks at the running app with ${args.join(" ")}`);
-				return Effect.map(runCli(root, host.url, args, run.credentials), (result) => {
+				return Effect.map(runCli(root, host.url, args, run.credentials, run.browserCache), (result) => {
 					run.last = result;
 				});
 			},
 			checksAt: (url: string, ...args: readonly string[]) => {
 				story.tell(`browser-check looks at ${url} with ${args.join(" ")}`);
-				return Effect.map(runCli(root, url, args, run.credentials), (result) => {
+				return Effect.map(runCli(root, url, args, run.credentials, run.browserCache), (result) => {
 					run.last = result;
 				});
 			},
@@ -79,4 +80,23 @@ export function aliceCredentialsSet() {
 	return browser.trait("environment", "alice's test-user email and password are set in the environment", ({ run }) => {
 		run.credentials = { email: "alice@example.com", password: "alice-password" };
 	});
+}
+
+export function onlyFullChromiumCached() {
+	return browser.trait("environment", "the cache contains full Chromium but no headless shell", ({ root, run }) =>
+		Effect.gen(function* () {
+			const fs = yield* FileSystem.FileSystem;
+			let installation = dirname(chromium.executablePath());
+			while (!basename(installation).startsWith("chromium-")) {
+				const parent = dirname(installation);
+				if (parent === installation) {
+					return yield* Effect.die(new Error("Expected a Playwright Chromium installation"));
+				}
+				installation = parent;
+			}
+			run.browserCache = join(root, "browser-cache");
+			yield* fs.makeDirectory(run.browserCache);
+			yield* fs.symlink(installation, join(run.browserCache, basename(installation)));
+		}),
+	);
 }

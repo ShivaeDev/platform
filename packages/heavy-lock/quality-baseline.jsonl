@@ -1,2 +1,0 @@
-{"path":"packages/heavy-lock/package.json","rule":"code/unused","count":1}
-{"path":"packages/heavy-lock/src/acquire.ts","rule":"biome/plugin","count":3}

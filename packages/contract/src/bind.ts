@@ -11,7 +11,7 @@ import { automaticLive, type LiveBound, LiveConnection } from "#automaticLive.ts
 import type { ClientOptions, MadeClient } from "#clientOptions.ts";
 import type { Contract, Declared, Tag } from "#contract.ts";
 import { bindingOwner } from "#internal/bindingOwner.ts";
-import { boundCommand, boundQuery, boundStream } from "#internal/clientOperations.ts";
+import { clientOperations } from "#internal/clientOperations.ts";
 import { type RpcSource, rpcClient } from "#internal/rpcClient.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { ResumeSource, ResumeWindow } from "#resume.ts";
@@ -104,11 +104,12 @@ function bindApi(
 	const { name, queries, commands, streams, keyScope } = contract.declaration;
 	const owner = bindingOwner(keyScope, options?.registry);
 	const automatic = automaticLive(service, name, owner, options?.resume, options?.live, options?.resumeWindow);
+	const operations = clientOperations(service, automatic, owner);
 	return Object.assign(
 		Object.fromEntries([
-			...queries.map((query) => [query.name, boundQuery(service, `${name}.${query.name}`, query, automatic, owner)] as const),
-			...commands.map((command) => [command.name, boundCommand(service, `${name}.${command.name}`, command, owner)] as const),
-			...streams.map((stream) => [stream.name, boundStream(service, `${name}.${stream.name}`)] as const),
+			...queries.map((query) => [query.name, operations.query(`${name}.${query.name}`, query)] as const),
+			...commands.map((command) => [command.name, operations.command(`${name}.${command.name}`, command)] as const),
+			...streams.map((stream) => [stream.name, operations.stream(`${name}.${stream.name}`)] as const),
 		]),
 		{ [LiveConnection]: automatic.subscription },
 	);
