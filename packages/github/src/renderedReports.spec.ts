@@ -15,14 +15,22 @@ github.it("a report rendered from hostile text reaches the check summary unchang
 	expect(yield* checkOnGitHub(1)).toMatchObject({ output: { summary: REPORT } });
 });
 
-github.it("a 20,000-row report at the default budget fits GitHub's 65,536-character comment limit with its marker", [], function* ({ postReport }) {
-	expect(yield* postReport({ body: LONG_REPORT, marker: "report" })).toMatchObject({ body: `<!-- report -->\n${LONG_REPORT}` });
+github.it("a 20,000-row report reaches the outbound comment unchanged with its marker", [], function* ({ commentMutations, postReport }) {
+	yield* postReport({ body: LONG_REPORT, marker: "report" });
+
+	expect(yield* commentMutations()).toEqual([
+		{ body: { body: `<!-- report -->\n${LONG_REPORT}` }, method: "POST", path: "/repos/acme/widgets/issues/1/comments" },
+	]);
 });
 
-github.it("a 20,000-row report at the default budget fits GitHub's 65,535-character check summary limit", [], function* ({ createCheck }) {
-	expect(yield* createCheck({ headSha: HEAD, name: "Tests", output: { summary: LONG_REPORT, title: "Tests" }, status: "in_progress" })).toMatchObject(
+github.it("a 20,000-row report reaches the outbound check summary unchanged", [], function* ({ checkMutations, createCheck }) {
+	yield* createCheck({ headSha: HEAD, name: "Tests", output: { summary: LONG_REPORT, title: "Tests" }, status: "in_progress" });
+
+	expect(yield* checkMutations()).toEqual([
 		{
-			output: { summary: LONG_REPORT },
+			body: { "head_sha": HEAD, name: "Tests", output: { summary: LONG_REPORT, title: "Tests" }, status: "in_progress" },
+			method: "POST",
+			path: "/repos/acme/widgets/check-runs",
 		},
-	);
+	]);
 });
