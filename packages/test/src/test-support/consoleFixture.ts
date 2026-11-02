@@ -1,6 +1,6 @@
 import { Console, Effect, Layer } from "effect";
 import * as TestConsole from "effect/testing/TestConsole";
-import { makeEffectIt } from "#makeEffectIt.ts";
+import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { note } from "./lifecycleLog.ts";
 
 for (const clock of ["live", "test"] as const) {

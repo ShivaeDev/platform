@@ -1,20 +1,9 @@
 import { it as effectIt, type TestContext, type TestOptions } from "@effect/vitest";
 import { Effect, type Scope } from "effect";
 import type { TestAPI } from "vitest";
-import { runEffectTest } from "#internal/runEffectTest.ts";
-import type { EffectClock, EffectIt, EffectItTest, EffectItTester } from "./types.ts";
-
-type Body<TArgs extends readonly unknown[], R> = (
-	...args: TArgs
-) => Effect.Effect<unknown, unknown, R> | Generator<Effect.Effect<unknown, unknown, R>, unknown, never>;
-
-function effectOf<TArgs extends readonly unknown[], R>(body: Body<TArgs, R>) {
-	return (...args: TArgs): Effect.Effect<unknown, unknown, R> =>
-		Effect.suspend(() => {
-			const result = body(...args);
-			return Effect.isEffect(result) ? result : Effect.gen(() => result);
-		});
-}
+import { type Body, effectOf } from "#internal/effectOf.ts";
+import type { EffectClock, EffectIt, EffectItTest, EffectItTester } from "#types.ts";
+import { runEffectTest } from "./runEffectTest.ts";
 
 function testOptions(options?: number | TestOptions): TestOptions {
 	return typeof options === "number" ? { timeout: options } : (options ?? {});

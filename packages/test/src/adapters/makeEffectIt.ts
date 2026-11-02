@@ -2,12 +2,21 @@ import { it as effectIt, type TestContext, type TestOptions } from "@effect/vite
 import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
-import type * as Layer from "effect/Layer";
+import * as Layer from "effect/Layer";
 import * as Scope from "effect/Scope";
-import { runEffectTest } from "#internal/runEffectTest.ts";
-import { type AnyTestLayer, buildTestLayer } from "./anyTestLayer.ts";
-import type { EffectClock, EffectTest, EffectTestBody, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";
-import { withLive } from "./withLive.ts";
+import { effectOf } from "#internal/effectOf.ts";
+import type {
+	AnyTestLayer,
+	EffectClock,
+	EffectTest,
+	EffectTestBody,
+	EffectTester,
+	EffectTestOptions,
+	MakeEffectItOptions,
+	MakeEffectItResult,
+} from "#types.ts";
+import { withLive } from "#withLive.ts";
+import { runEffectTest } from "./runEffectTest.ts";
 
 const FIXTURE_NAME = "__effectTestContext";
 
@@ -16,16 +25,6 @@ type EffectFixture<TProvided> = TestContext & {
 };
 
 type FixtureTest<TProvided> = (name: string, options: TestOptions, body: (context: EffectFixture<TProvided>) => Promise<unknown>) => void;
-
-function restoreContext<TProvided>(
-	fixture: Effect.Effect<Context.Context<TProvided>, unknown>,
-	context: Omit<EffectFixture<TProvided>, typeof FIXTURE_NAME>,
-): EffectFixture<TProvided> {
-	return {
-		...context,
-		[FIXTURE_NAME]: fixture,
-	};
-}
 
 function splitOptions(options: number | EffectTestOptions | undefined): {
 	readonly vitest: TestOptions;
@@ -39,6 +38,15 @@ function splitOptions(options: number | EffectTestOptions | undefined): {
 	}
 	const { clock, ...vitest } = options;
 	return { clock, vitest };
+}
+
+// Layer.empty is also accepted without losing the services of a non-empty Layer.
+function buildTestLayer<TLayer extends AnyTestLayer>(
+	layer: TLayer,
+	scope: Scope.Scope,
+): Effect.Effect<Context.Context<Layer.Success<TLayer>>, unknown>;
+function buildTestLayer(layer: Layer.Layer<never, unknown, never>, scope: Scope.Scope) {
+	return Layer.buildWithScope(layer, scope);
 }
 
 function makeFixtureIt<TLayer extends AnyTestLayer>(layer: TLayer) {
@@ -56,33 +64,29 @@ export function makeEffectIt<THarness, TTestLayer extends AnyTestLayer>(
 	const fixtureIt = makeFixtureIt(options.layer);
 	const defaultClock = options.clock ?? "test";
 
-	function run<A>(body: EffectTestBody<THarness, Provided, A>, context: EffectFixture<Provided>): Effect.Effect<A, unknown, Scope.Scope> {
-		const ready: Effect.Effect<A, unknown, Provided | Scope.Scope> = Effect.gen(function* () {
+	function run(
+		body: EffectTestBody<THarness, Provided>,
+		{ task, __effectTestContext }: Pick<EffectFixture<Provided>, "task" | typeof FIXTURE_NAME>,
+		clock: EffectClock,
+	) {
+		const context = task.context;
+		const ready = Effect.gen(function* () {
 			const harness = yield* options.makeHarness(context);
-			const result = body(harness, context);
-			return yield* Effect.isEffect(result) ? result : Effect.gen(() => result);
+			return yield* effectOf(body)(harness, context);
 		});
 		const wrapped = options.around?.(ready) ?? ready;
-		return Effect.flatMap(context[FIXTURE_NAME], (services) => wrapped.pipe(Effect.provide(services)));
+		return runEffectTest(
+			Effect.flatMap(__effectTestContext, (services) => wrapped.pipe(Effect.provide(services), Effect.asVoid)),
+			context,
+			clock,
+		);
 	}
 
 	function register(current: FixtureTest<Provided>): EffectTest<THarness, Provided> {
 		return (name, body, testOptions) => {
 			const split = splitOptions(testOptions);
 			const clock = split.clock ?? defaultClock;
-			current(name, split.vitest, ({ __effectTestContext, task, signal, onTestFailed, onTestFinished, skip, annotate, expect, bench }) => {
-				const context = restoreContext(__effectTestContext, {
-					annotate,
-					bench,
-					expect,
-					onTestFailed,
-					onTestFinished,
-					signal,
-					skip,
-					task,
-				});
-				return runEffectTest(run(body, context), context, clock);
-			});
+			current(name, split.vitest, ({ __effectTestContext, task }) => run(body, { __effectTestContext, task }, clock));
 		};
 	}
 
@@ -96,22 +100,8 @@ export function makeEffectIt<THarness, TTestLayer extends AnyTestLayer>(
 			) => {
 				const split = splitOptions(testOptions);
 				const clock = split.clock ?? defaultClock;
-				fixtureIt.for(cases)(
-					name,
-					split.vitest,
-					(item, { __effectTestContext, task, signal, onTestFailed, onTestFinished, skip, annotate, expect, bench }) => {
-						const context = restoreContext(__effectTestContext, {
-							annotate,
-							bench,
-							expect,
-							onTestFailed,
-							onTestFinished,
-							signal,
-							skip,
-							task,
-						});
-						return runEffectTest(Effect.asVoid(run((harness, testContext) => body(item, harness, testContext), context)), context, clock);
-					},
+				fixtureIt.for(cases)(name, split.vitest, (item, { __effectTestContext, task }) =>
+					run((harness, testContext) => body(item, harness, testContext), { __effectTestContext, task }, clock),
 				);
 			},
 		fails: register(fixtureIt.fails),
