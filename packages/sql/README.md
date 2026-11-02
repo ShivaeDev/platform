@@ -514,6 +514,41 @@ export const PurgeAudit = defineSchedule({
 
 Here the application's `AuditEntry` model has a `createdAt` field decoded as `Date`. Register `PurgeAudit` in the jobs Layer's `jobs` list and provide the database and change-feed Layers to the worker.
 
+#### Whole groups across tables
+
+Use `deleteGroupsBatched` from `@shivaedev/sql/deleteGroupsBatched.ts` when a parent and its children must fit together. Keep `repository.deleteBatched` for single-table purges with constant-size collection hints. The grouped helper takes the same `batchSize`, `maxRows` and `pause`, plus a parent `tableName`, `select(limit)` and `delete(value)` callbacks. It shares the parent table's purge lock with single-table runs and requires PostgreSQL, at least two pool connections and a call outside transactions.
+
+`select` runs inside each batch transaction and returns an ordered array of `{ value, rowCount }`. Return at most `limit` candidates, with a positive safe-integer count including every parent and child row that `delete` will remove. Lock candidate parents with native SQL, and have concurrent group writers take the same parent lock before changing children, so counts remain accurate through deletion. Count rows in a separate statement after acquiring the parent locks, as below, to include changes committed before lock acquisition. The helper selects the longest prefix that fits the smaller of the batch budget and the remaining total budget; it never splits a group or skips past an oversized first group. If no group fits, the run returns the count already removed. A partially filled batch can be followed by another batch after `pause`.
+
+```ts
+import { Effect } from "effect";
+import { deleteGroupsBatched } from "@shivaedev/sql/deleteGroupsBatched.ts";
+import { inValues } from "@shivaedev/sql/inValues.ts";
+
+const removed = yield* deleteGroupsBatched({
+  tableName: "runs",
+  batchSize: 1_000,
+  maxRows: 50_000,
+  pause: "100 millis",
+  select: (limit) => Effect.gen(function* () {
+    const locked = yield* sql<{ id: number }>`
+      select id from runs where finished_at < ${cutoff}
+      order by id limit ${limit} for update skip locked`;
+    const selected = yield* inValues(sql`r.id`, locked.map(({ id }) => id));
+    return yield* sql<{ value: number; rowCount: number }>`
+      select r.id as value,
+        (1 + (select count(*) from run_steps s where s.run_id = r.id))::int as "rowCount"
+      from runs r where ${selected} order by r.id`;
+  }),
+  delete: (runId) => Effect.gen(function* () {
+    yield* steps.delete({ runId });
+    yield* runs.delete(runId);
+  }),
+});
+```
+
+Here `sql` is the native client and `steps` and `runs` are repositories. The callbacks own eligibility, group membership, locking and accurate row counts; the helper owns budget selection and the independent commit boundary. Use repository deletes for each table, including children, so deleted items and declared owner buckets refresh after each committed batch. Unaffected owner readers receive no deleted identities. Raw SQL deletes instead need explicit `invalidateOnCommit` keys. A failure anywhere in a batch discards all of that batch's deletes and announcements, including earlier groups in the same batch; previous committed batches and refreshes remain. Callback failures and required services remain in the returned Effect, alongside SQL, schema and purge-availability errors.
+
 ### Optimistic concurrency
 
 Declare a numeric version field in the model's select and update variants, leave it out of insert, and select it with `versionColumn`:
