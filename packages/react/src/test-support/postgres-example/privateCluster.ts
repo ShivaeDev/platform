@@ -69,14 +69,18 @@ export function privateVerbs(engine: ProcessEngine, tell: (line: string) => void
 		privateDeliveries: (name: PrivateClient) =>
 			Effect.sync(() => since(engine, name).map(({ hint, list, title }) => `${hintWord(hint).split(" ")[0]}: ${title} / ${list.join(", ")}`)),
 		privateRead: (name: PrivateClient) => Effect.promise(() => privateClientOf(engine, name).read()),
+		privateSave: (title: string) =>
+			Effect.promise(async () => {
+				tell(`Alice saves ${title}`);
+				await save("writer", title);
+				await deliveredSinceMark(engine, "writer", "reader");
+			}),
 		privateSaves: () => Effect.sync(() => [...engine.answers]),
 		rejectedPrivateSave: (title: string) =>
 			Effect.promise(async () => {
-				tell(`the first host rejects Alice's save of ${title}; then she saves After rollback`);
+				tell(`the first host rejects Alice's save of ${title}`);
 				await process(engine, "first").send({ _tag: "Reject" }, "Rejected");
 				await save("writer", title);
-				await save("writer", "After rollback");
-				await deliveredSinceMark(engine, "writer", "reader");
 			}),
 		releasePrivateCommit: () =>
 			Effect.promise(async () => {

@@ -23,7 +23,13 @@ function current(state: State) {
 function suspendedVerbs(state: State, screen: Screen) {
 	return {
 		firstFormEdits: (value: string) =>
-			screen.act(`the first session's form edits the name to ${JSON.stringify(value)}`, () => state.firstForm?.change("name", value)),
+			screen.act(`the first session's form edits the name to ${JSON.stringify(value)}`, () => {
+				const form = state.firstForm;
+				if (!form) {
+					throw new Error("Missing first session form");
+				}
+				form.change("name", value);
+			}),
 		hiddenSession: (session: string) =>
 			screen.act(`render the ${session} session inside hidden Activity`, () => current(state).show(session, false, false, "hidden")),
 		session: (session: string) => screen.act(`show the ${session} session`, () => current(state).show(session)),
