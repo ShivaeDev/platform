@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Layer } from "effect";
 import { Cause, Config, Context, Effect, Exit, ManagedRuntime } from "effect";
-import type { PlatformRuntime, PlatformRuntimeOptions } from "./types.ts";
+import type { PlatformRuntime, PlatformRuntimeOptions } from "#runtime/types.ts";
 
 const RuntimeCacheKey = Symbol.for("@shivaedev/server/runtime-cache");
 const sharedCache: unknown = Reflect.get(globalThis, RuntimeCacheKey);

@@ -2,7 +2,7 @@
 
 The client helpers retain native Effect and atom lifetimes. In `useAction`, a newer dispatch interrupts the earlier action, and an older completion cannot replace the latest rendered result.
 
-For Node request lifetimes, [`nodeSubscriptionSignal`](../../packages/server/src/node-http/subscriptionSignal.ts) combines request and caller abort signals; call its `dispose` to remove its Node listeners.
+For Node request lifetimes, [`nodeSubscriptionSignal`](../../packages/server/src/adapters/subscriptionSignal.ts) combines request and caller abort signals; call its `dispose` to remove its Node listeners.
 
 `appHost` forwards an HTTP client disconnect to native RPC cancellation. Aborting a client's `fetch` interrupts both an RPC handler and a live `LiveServer` subscription: the handler's finalizer runs, its open sql transaction rolls back, and its connection returns to the pool. The stream's finalizer runs and releases its Reactivity registrations, so later commits no longer reach it. The [app-host cancellation stories](../../packages/server/src/rpc-server/clientAbort.spec.ts) prove these lifetimes through real HTTP and PostgreSQL.
 
