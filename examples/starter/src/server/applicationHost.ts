@@ -5,6 +5,7 @@ import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigi
 import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/adapters/userDirectory.ts";
 import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
@@ -84,7 +85,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 						group: modules.group,
 						handlers: Layer.merge(modules.handlers, authenticatedUserLayer()),
 						routes: Layer.mergeAll(routes, authEmailRoutes, HttpStaticServer.layer({ root: "dist", spa: true }), adminDocumentRoutes(modules.admin)),
-						services: Layer.succeedContext(serviceContext),
+						services: Layer.merge(Layer.succeedContext(serviceContext), betterAuthUserDirectory(AppAccess, authOptions())),
 						sessions: Layer.succeed(SessionPolicy, sessions),
 					};
 				}),

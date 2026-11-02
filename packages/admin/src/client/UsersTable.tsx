@@ -1,7 +1,8 @@
 import { DateTime } from "effect";
 import type { ReactNode } from "react";
+import type { DirectoryUser } from "@shivaedev/identity/users.ts";
+import type { ChangeRoleInput } from "#users/ChangeRoleInput.ts";
 import type { UsersList } from "#users/page.ts";
-import type { AppUser, ChangeRoleInput } from "#users/roles.ts";
 
 interface RoleControls<TRole extends string> {
 	readonly dispatch: (input: ChangeRoleInput<TRole>) => void;
@@ -16,7 +17,7 @@ function UserRole<TRole extends string>({
 	pending,
 	dispatch,
 }: RoleControls<TRole> & {
-	readonly user: typeof AppUser.Type;
+	readonly user: typeof DirectoryUser.Type;
 	readonly canChangeRoles: boolean;
 }) {
 	if (!canChangeRoles) {
@@ -48,7 +49,7 @@ function UserRow<TRole extends string>({
 	user,
 	canChangeRoles,
 	...controls
-}: RoleControls<TRole> & { readonly user: typeof AppUser.Type; readonly canChangeRoles: boolean }) {
+}: RoleControls<TRole> & { readonly user: typeof DirectoryUser.Type; readonly canChangeRoles: boolean }) {
 	return (
 		<tr className="block min-w-0 rounded-md border sm:table-row sm:rounded-none sm:border-0 sm:border-b">
 			<UserCell label="Name">{user.name}</UserCell>
