@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-11-02
+
+### Breaking
+
+- MCP no longer returns `revokeClient` or `revokeAllClients` from `betterAuthMcp`. Read `OauthGrants` from `@shivaedev/identity/server/oauthGrants.ts` in an Effect and call those methods on the service. Provide `betterAuthOauthGrants({ auth: mounted.auth, admitsUser: mounted.admitsUser })` to that Effect and to `betterAuthMcp`; remove the latter's `admitsUser` option. Applications continue to authorize grant management operations.
+
 ## 0.4.0 - 2026-11-02
 
 ### Added

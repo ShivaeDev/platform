@@ -1,7 +1,8 @@
 import { Effect, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
-import { useField } from "@shivaedev/form/client/react.ts";
+import { useField } from "@shivaedev/form/adapters/react.ts";
+import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import { type ConfigurationProps, type Current, Destination, type Name, Rejected } from "./configurationModel.ts";
@@ -11,7 +12,7 @@ export function ConfigurationView(props: ConfigurationProps) {
 	const { revision, rejected, mapping, held, saved } = props;
 	const config = {
 		fields: props.fields,
-		persistedDraft: { key: `${props.kind}-${revision}`, now: props.now },
+		persistedDraft: { key: `${props.kind}-${revision}`, now: props.now, storage: () => window.localStorage },
 		...(mapping ? { rejectField: (_error: Rejected) => ({ field: "name" as const, message: revision }) } : {}),
 		runtime: props.runtime,
 	};
@@ -36,7 +37,7 @@ export function ConfigurationView(props: ConfigurationProps) {
 }
 interface ViewProps {
 	readonly config: Pick<ConfigurationProps, "fields" | "runtime"> & {
-		readonly persistedDraft: { readonly key: string; readonly now: () => number };
+		readonly persistedDraft: PersistedDraftConfig;
 		readonly rejectField?: (error: Rejected) => { field: "name"; message: string };
 	};
 	readonly held: ConfigurationProps["held"];

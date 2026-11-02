@@ -14,7 +14,7 @@ if (editor.form === undefined) return editor.query.pending ? <Loading /> : <Load
 return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.saving} failure={editor.failure} />;
 ```
 
-Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/client/react.ts` supplies value, change, blur and message.
+Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/adapters/react.ts` supplies value, change, blur and message.
 
 ## Behavior
 

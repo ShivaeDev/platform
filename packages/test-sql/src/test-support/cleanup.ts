@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Context, Deferred, Effect, Exit, Fiber, Layer, Redacted, Scope, type Tracer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { SqlClient } from "effect/sql";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#database.ts";
@@ -61,6 +62,10 @@ function dropOnStoryEnd(state: CleanupEngine, name: string) {
 	return Effect.addFinalizer(() => Effect.orDie(admin`drop database if exists ${admin(name)} with (force)`));
 }
 
+export const namedCleanupPools = cleanup.trait("configuration", "the run's pools use the application name cleanup-fixture", (state) => {
+	state.engine.options = { ...state.engine.options, applicationName: "cleanup-fixture" };
+});
+
 export const limitedCleanupRole = cleanup.trait(
 	"configuration",
 	"the run's role may open 2 connections and cannot drop other owners' databases",
@@ -112,6 +117,7 @@ function openClone(state: CleanupEngine) {
 		Effect.gen(function* () {
 			const database = yield* PostgresTestDatabase;
 			const context = yield* database.isolated.pipe(Effect.provideService(Scope.Scope, state.cloneScope));
+			yield* Effect.flatMap(SqlClient.SqlClient, (sql) => sql`select 1`).pipe(Effect.provideContext(context));
 			state.clone = new URL(Redacted.value(Context.get(context, PostgresTestDatabase).url)).pathname.slice(1);
 			yield* dropOnStoryEnd(state, state.clone);
 		}),

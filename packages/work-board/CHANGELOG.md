@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.42.1 - 2026-11-02
+
+### Fixed
+
+- Keep lazy chunk reads consistent through loading and recovery so cold loads do not emit conditional React `use` warnings.
+- Keep paths to handoff files with invalid handoff fields in unknown history until the records are repaired, while retaining valid handoffs.
+
 ## 0.42.0 - 2026-11-02
 
 ### Fixed

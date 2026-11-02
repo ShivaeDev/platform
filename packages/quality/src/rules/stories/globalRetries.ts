@@ -21,7 +21,7 @@ function optionsOf(call: ts.CallExpression, origin: Origin): readonly ts.Express
 export const globalRetries = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
-			const graph = yield* Effect.promise(() => importGraph(inputs));
+			const graph = yield* importGraph(inputs);
 			const origins = storyOrigins(inputs, graph);
 			const retry = retryOption(origins.checker);
 			return inputs.sources.flatMap((file) => {

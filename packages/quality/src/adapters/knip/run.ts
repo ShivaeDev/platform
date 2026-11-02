@@ -74,5 +74,5 @@ export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) 
 			return report.filter((finding) => checked.has(finding.file));
 		}),
 	);
-	return yield* Effect.promise(() => entryPointFindings(inputs, findings));
+	return yield* entryPointFindings(inputs, findings);
 });

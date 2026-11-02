@@ -2,7 +2,7 @@ import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { form } from "@shivaedev/form/form.ts";
 import type { FieldFailure, Form } from "@shivaedev/form/shape.ts";
-import { useField, useSubmit } from "@shivaedev/form/client/react.ts";
+import { useField, useSubmit } from "@shivaedev/form/adapters/react.ts";
 const schema = Schema.Struct({ count: Schema.NumberFromString });
 const currentForm = form(schema, {
   initialValues: { count: "1" },

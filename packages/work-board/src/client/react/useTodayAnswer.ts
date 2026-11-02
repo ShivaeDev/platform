@@ -55,8 +55,7 @@ export function useTodayAnswer(api: ShellApi, data: Document, preview: QuestionP
 		} else {
 			form.change("body", choice.text);
 		}
-		state.attempt(author.trim());
-		state.created.save();
+		state.attempt(() => state.created.save(), undefined, author.trim());
 	}
 	let status = Option.match(state.created.failure, { onNone: () => "", onSome: (failure) => saveFailure(failure, "response").text });
 	if (offline) {

@@ -9,6 +9,7 @@ import {
 	dropRefusedForLackOfConnections,
 	dropsBlocked,
 	limitedCleanupRole,
+	namedCleanupPools,
 	otherHostDatabase,
 	runStarted,
 	unownedLeftover,
@@ -98,3 +99,26 @@ cleanup.it("starting another run keeps a live worker's clone", [runStarted, clon
 
 	expect(yield* cloneDatabase()).toBe("exists");
 });
+
+cleanup.it(
+	"closing a clone closes its PostgreSQL sessions before its blocked drop can run",
+	[namedCleanupPools, runStarted, cloneOpen, dropsBlocked],
+	function* ({ closeClone, cloneDatabase, cloneSessions }) {
+		expect(yield* cloneSessions()).toEqual(["cleanup-fixture"]);
+
+		yield* closeClone();
+
+		yield* outcomes([
+			["the clone's database", () => cloneDatabase(), "exists"],
+			["the clone's sessions", () => cloneSessions(), []],
+		]);
+	},
+);
+
+cleanup.it(
+	"the fixture's administration pool receives its configured application name when dropping a clone",
+	[namedCleanupPools, runStarted, cloneOpen, dropsBlocked, cloneClosed],
+	function* ({ pendingDropSessions }) {
+		expect(yield* pendingDropSessions()).toEqual(["cleanup-fixture"]);
+	},
+);

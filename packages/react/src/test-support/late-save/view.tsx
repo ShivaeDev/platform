@@ -2,7 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useContext } from "react";
-import { useField } from "@shivaedev/form/client/react.ts";
+import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { FieldFailure, Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";

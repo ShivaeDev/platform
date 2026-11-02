@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { useField, usePersistedDraft } from "@shivaedev/form/client/react.ts";
+import { useField, usePersistedDraft } from "@shivaedev/form/adapters/react.ts";
 import { form } from "@shivaedev/form/form.ts";
 import { useCreate } from "#client/create.ts";
 import type { ProbeProps } from "./createDraftFields.ts";
 import { DraftFields, draftInitial, draftRuntime } from "./draftFields.ts";
 
-export function CreateDraftProbe({ create, held, now }: ProbeProps) {
+export function CreateDraftProbe({ create, held, persistence }: ProbeProps) {
 	held.created = useCreate({
 		create,
 		fields: DraftFields,
 		initialValues: draftInitial,
-		persistedDraft: { key: "create-draft", now },
+		persistedDraft: { key: "create-draft", ...persistence },
 		runtime: draftRuntime,
 	});
 	held.form = held.created.form;
@@ -28,8 +28,8 @@ export function CreateDraftProbe({ create, held, now }: ProbeProps) {
 		</form>
 	);
 }
-export function DirectDraftProbe({ create, held, now }: ProbeProps) {
-	const persistedDraft = usePersistedDraft({ key: "direct-draft", now });
+export function DirectDraftProbe({ create, held, persistence }: ProbeProps) {
+	const persistedDraft = usePersistedDraft({ key: "direct-draft", ...persistence });
 	const [currentForm] = useState(() => form(DraftFields, { initialValues: draftInitial, onSubmit: create, persistedDraft, runtime: draftRuntime }));
 	held.form = currentForm;
 	const name = useField(currentForm, "name");

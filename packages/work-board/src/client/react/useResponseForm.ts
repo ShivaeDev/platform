@@ -1,5 +1,5 @@
 import { useAtomRef } from "@effect/atom-react";
-import { Equal, Option, Schema } from "effect";
+import { Equal, Option } from "effect";
 import { useEffect, useMemo, useState } from "react";
 import { useCreate } from "@shivaedev/react/client/create.ts";
 import { chosenLabels } from "#browser/responses/cardContext.ts";
@@ -18,7 +18,9 @@ import { sourceChanged } from "#client/sourceChanged.ts";
 import type { Metadata } from "#metadata/schema.ts";
 import { createResponse } from "./createResponse.ts";
 import { useFormClient } from "./FormContext.ts";
+import { responseAnswers } from "./responseAnswers.ts";
 import { useResponseAuthor } from "./useResponseAuthor.ts";
+import { useValidation } from "./useValidation.ts";
 
 export function useResponseForm(source: QuestionPreview, prompts: readonly Prompt[], options?: Metadata["options"], supersedes?: string) {
 	const client = useFormClient();
@@ -43,6 +45,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		runtime: client.runtime,
 	});
 	const form = created.form;
+	const validate = useValidation(form.validate);
 	const values = useAtomRef(form.values);
 	useEffect(() => {
 		if (Option.isSome(created.created)) {
@@ -61,15 +64,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		}
 	}, [form, values.recovery, recovery]);
 	function answers(snapshot = form.values.value) {
-		const changedSource =
-			snapshot.answerContext !== JSON.stringify([source.id, source.reviewedRevision])
-			&& (snapshot.question !== source.id || snapshot.revision !== source.reviewedRevision);
-		return prompts.length > 0
-			? prompts.map((prompt) => {
-					const answer = snapshot.answers?.find((entry) => entry.prompt === prompt.id);
-					return { prompt: prompt.id, selected: changedSource ? [] : (answer?.selected ?? []), text: answer?.text ?? "" };
-				})
-			: undefined;
+		return responseAnswers(snapshot, source, prompts);
 	}
 	function editAnswers(index: number, next: PromptAnswer) {
 		form.change(
@@ -79,7 +74,8 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		form.change("answerContext", JSON.stringify([source.id, source.reviewedRevision]));
 		edit();
 	}
-	function showPreview() {
+	function showPreview(onValid?: () => void, onInvalid?: () => void) {
+		setAttempted(true);
 		setInteraction("draft");
 		if (!form.values.value.id || form.values.value.question !== source.id || form.values.value.revision !== source.reviewedRevision) {
 			form.change("id", `response.${crypto.randomUUID()}`);
@@ -88,10 +84,14 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		form.change("answerContext", JSON.stringify([source.id, source.reviewedRevision]));
 		form.change("question", source.id);
 		form.change("revision", source.reviewedRevision);
-		for (const name of ["answerContext", "answers", "author", "body", "id", "question", "recovery", "revision", "supersedes", "type"] as const) {
-			form.blur(name);
-		}
-		setPreview(form.values.value);
+		validate((snapshot) => {
+			setPreview(snapshot?.encoded);
+			if (snapshot) {
+				onValid?.();
+			} else {
+				onInvalid?.();
+			}
+		});
 	}
 	function edit() {
 		if (!form.values.value.id) {
@@ -117,11 +117,9 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const summary = responseSummary(values, prompts, answers(values), attempted);
 	return {
 		answers: answers(values),
-		attempt: (author = readAuthor()) => {
-			setAttempted(true);
+		attempt: (onValid: () => void, onInvalid?: () => void, author = readAuthor()) => {
 			form.change("author", author);
-			showPreview();
-			return Schema.is(schema)(form.values.value);
+			showPreview(onValid, onInvalid);
 		},
 		attempted,
 		author: readAuthor(),
@@ -140,7 +138,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 		outcome,
 		preview: previewed ? responsePreview(values, source.id, prompts) : undefined,
 		recovery: recoveryText(recovery),
-		showPreview,
+		showPreview: () => showPreview(),
 		status: [stale ? sourceChanged() : "", responseFeedback(status, outcome, summary)].filter(Boolean).join(" "),
 		text: draftText(prompts, answers(values), values.body, options),
 	};

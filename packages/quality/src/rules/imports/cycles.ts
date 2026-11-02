@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { cyclicComponents } from "#imports/cyclicComponents.ts";
 import { type ImportEdge, importGraph } from "#imports/graph.ts";
 import { shortestPath } from "#imports/shortestPath.ts";
@@ -33,11 +34,11 @@ function findingOf(edges: readonly RuntimeEdge[], adjacency: ReadonlyMap<string,
 }
 
 export const importCycles = defineRule({
-	check: async (inputs) => {
-		const edges = (await importGraph(inputs)).edges.filter(isRuntime);
+	check: Effect.fn("Imports.check")(function* (inputs) {
+		const edges = (yield* importGraph(inputs)).edges.filter(isRuntime);
 		const adjacency = runtimeAdjacency(edges);
 		return cyclicComponents(adjacency).map((component) => findingOf(edges, adjacency, component));
-	},
+	}),
 	description: "Modules never import each other in a loop at runtime. A group of modules that reach one another counts once for each module in it.",
 	id: "imports/cycles",
 	registrable: false,

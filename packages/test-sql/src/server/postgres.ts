@@ -1,19 +1,17 @@
 import { Clock, Context, Effect, Layer, type Redacted, type Scope } from "effect";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import type { SqlNameTransforms } from "@shivaedev/sql/clientOptions.ts";
 import { migratePostgres, type PostgresMigrationOptions } from "@shivaedev/sql/migrations.ts";
+import { type PostgresOptions, postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { PostgresTestDatabase, type PostgresTestDatabaseService, type PostgresTestServices } from "#database.ts";
 import { connectionLimitHint } from "#internal/connectionLimitHint.ts";
 import { databaseCleanup } from "#internal/databaseCleanup.ts";
-import { connection, database } from "#internal/databases.ts";
+import { database } from "#internal/databases.ts";
 
 export type PostgresTestLoader<E = never, R = never> = (
 	url: Redacted.Redacted<string>,
 ) => Effect.Effect<unknown, E, R | PostgresTestServices | Scope.Scope>;
 
-interface PostgresTestCommonOptions<E, TFixtures> extends SqlNameTransforms {
+interface PostgresTestCommonOptions<E, TFixtures> extends PostgresOptions {
 	readonly fixtures?: Effect.Effect<unknown, E, TFixtures | PostgresTestServices | Scope.Scope> | PostgresTestLoader<E, TFixtures>;
-	readonly maxConnections?: number;
 	readonly prepare?: boolean;
 	readonly url: Redacted.Redacted<string>;
 }
@@ -37,14 +35,14 @@ function runLoader<E, R>(
 export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(options: PostgresTestOptions<E, R, TFixtures>) {
 	return Layer.effectContext(
 		Effect.gen(function* () {
-			const maxConnections = options.maxConnections ?? 2;
-			const { awaitCleanup, release } = yield* databaseCleanup(options.url);
-			const empty = yield* database(options.url, release);
-			const template = options.prepare === false ? empty : yield* database(options.url, release, empty.name);
+			const connectionOptions = { ...options, maxConnections: options.maxConnections ?? 2 };
+			const { awaitCleanup, release } = yield* databaseCleanup(options.url, connectionOptions);
+			const empty = yield* database(options.url, release, undefined, connectionOptions);
+			const template = options.prepare === false ? empty : yield* database(options.url, release, empty.name, connectionOptions);
 			if (options.prepare !== false) {
 				yield* Effect.scoped(
 					Effect.gen(function* () {
-						const services = yield* Layer.build(connection(template.url, maxConnections, options));
+						const services = yield* Layer.build(postgresLayer(template.url, connectionOptions));
 						const initialize = options.initialize;
 						if (initialize === undefined) {
 							yield* migratePostgres(options.migrations).pipe(Effect.provideContext(services));
@@ -57,18 +55,18 @@ export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(o
 					}),
 				);
 			}
-			const shared = yield* database(options.url, release, template.name);
-			const services = yield* Layer.build(connection(shared.url, maxConnections, options));
+			const shared = yield* database(options.url, release, template.name, connectionOptions);
+			const services = yield* Layer.build(postgresLayer(shared.url, connectionOptions));
 			const clone: PostgresTestDatabaseService["clone"] = (source) =>
 				Effect.gen(function* () {
-					const target = yield* database(options.url, release, source === "empty" ? empty.name : template.name);
+					const target = yield* database(options.url, release, source === "empty" ? empty.name : template.name, connectionOptions);
 					const context = yield* Layer.build(
-						connection(target.url, maxConnections, options).pipe(Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue()))),
+						postgresLayer(target.url, connectionOptions).pipe(Layer.provide(Layer.succeed(Clock.Clock, Clock.Clock.defaultValue()))),
 					);
 					return Context.add(context, PostgresTestDatabase, { awaitCleanup, clone, isolated, url: target.url });
 				});
 			const isolated = clone("migrated");
 			return Context.add(services, PostgresTestDatabase, { awaitCleanup, clone, isolated, url: shared.url });
 		}).pipe(Effect.mapError(connectionLimitHint)),
-	).pipe(Layer.provide(Reactivity.layer));
+	);
 }

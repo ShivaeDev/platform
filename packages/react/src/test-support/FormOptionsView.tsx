@@ -2,7 +2,7 @@ import { useAtomValue } from "@effect/atom-react";
 import { Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type { ChangeEvent } from "react";
-import { useField } from "@shivaedev/form/client/react.ts";
+import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { FieldFailure, Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";

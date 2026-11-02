@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.34.0 - 2026-11-02
+
+### Added
+
+- Fake HTTP services expose replaying `received` and `completed` Effect streams so stories can wait independently for each request's arrival and response completion, separately from abandonment.
+- Add scoped HTTP visitors with separate cookie jars and forwarding proxies. Stories can model a public HTTPS origin, retain app cookies, and present foreign Origin and forged forwarding headers over real HTTP.
+- Read labelled element text with `labelledText(label)` and native table rows with `table(label)` in screen drivers.
+- Scope a screen driver to a portal with `dialog(target)`. Member screens find body portals linked by their triggers' `aria-controls` while keeping other members' dialogs out of reach.
+
+### Fixed
+
+- Keep member screen dialog queries inside the member's root, including when the driver uses a child mount. Mount member portals inside `member.root` so their controls remain accessible to that member. Standalone screen drivers continue to find document portals.
+- Compose outbound routes acquired in separate scopes. Each scope removes only its own registrations; the newest active route for a shared hostname wins, and closing it restores the earlier route.
+- Subscription opening waits settle when a stream completes without a value, dies or disconnects, preserving answered subscriptions and tagged refusals.
+
+### Breaking
+
+- Held route replies and scripted status reply functions now compute at request arrival, before waiting for release. Move state changes that should affect the reply before sending the request, or use an immediate `fault` to replace a waiting reply at injection time.
+- `screenDriver` with client activity now exposes `SignalNotReceived` from `nextLiveHint()` when the activity stream ends without a new hint. Handle this typed error from `@shivaedev/test-story/server/until.ts` instead of assuming the wait always succeeds. Subscription readouts include a `closed` state for streams that terminate before answering; consumers matching subscription states must handle `closed`.
+
 ## 0.33.0 - 2026-11-02
 
 ### Added
