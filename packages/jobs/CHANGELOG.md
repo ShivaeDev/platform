@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.30.0 - 2026-11-02
+
+### Fixed
+
+- Wake idle workers when `RetryAt` deferrals become due, without waiting for the polling backstop. Retry and deferral wakes account for differences between the runtime and PostgreSQL clocks.
+
+### Breaking
+
+- Job registrations require complete queue definitions, queue workers or scheduled workers. Reusable collections retain service requirements in the jobs Layer instead of erasing them. Replace tag-only registrations with `defineQueue`, `.handle` or `.run` results. Replace broad `JobRegistration[]` annotations with `satisfies readonly JobRegistration[]` or `readonly JobRegistration<Services>[]`, naming the union of handler, payload-decoding and scheduled-effect services.
+- `waitForIdle` discovers all registered job queues, including producer-only definitions, and waits for ready and active work across clients. Consumers that previously ignored ready jobs without local workers must run a worker for those jobs or leave them scheduled for the future before settling.
+- `UnfinishedJob.state` includes `deferred`. Handle this state when reading `snapshot(queues)`: a future `RetryAt` deferral reads as `deferred`, while a due deferral or a retry after a failure reads as `retry`.
+- Queue and scheduled workers now fail Layer acquisition with a registration `PgBossError` when `worker.perJobResults` or `worker.transactional` is `true`. Omit these options or set them to `false`; the adapter owns per-job settlement and does not pass a pg-boss transaction client to handlers. Consumers needing pg-boss's result-array or transactional callback contracts must register those workers through pg-boss directly.
+
 ## 0.29.2 - 2026-11-02
 
 ### Fixed

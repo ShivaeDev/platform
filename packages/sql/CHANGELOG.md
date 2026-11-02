@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.33.0 - 2026-11-02
+
+### Added
+
+- Repository `upsert` and `upsertMany` accept per-field `add` and `keepOnNull` modes in `updateColumns`, including conditional upserts. Counter additions run atomically in SQL, while null incoming values can preserve stored values; record and bucket changes still publish after commit.
+- `inValues(column, values)` supplies a native SQL predicate that matches nothing for an empty list, including qualified columns in `SqlSchema` queries.
+- `int8(field)` and `int4Array(field)` preserve field schemas while encoding native PostgreSQL storage parameters for bigint values and integer arrays, including empty arrays.
+
 ## 0.32.0 - 2026-11-02
 
 ### Added

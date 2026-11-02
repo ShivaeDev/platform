@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.56.0 - 2026-11-02
+
+### Breaking
+
+- Rule configuration callbacks are strictly typed. Replace heterogeneous `Rule[]` annotations with `RegisteredRule[]`, or use `satisfies readonly RegisteredRule[]` to retain per-rule config inference. Keep each rule's inferred type when configuring it directly, and register local rules with `defineConfig` to validate unknown configuration input.
+- Construct local rules with `defineRule`, which supplies the registry callback; migrate handwritten rule objects to this factory.
+- Import `StandardSchemaV1`, `StandardResult`, `StandardIssue` and `describeIssue` from `@shivaedev/quality/adapters/standardSchema.ts` instead of `@shivaedev/quality/standardSchema.ts`.
+
 ## 0.55.0 - 2026-11-02
 
 ### Added
