@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { exportFits } from "#naming/exportFits.ts";
@@ -89,13 +89,14 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 }
 
 export const namedAfterExport = defineRule({
-	check: async ({ files, options, readText, sources }) => {
-		const layout = await packageLayout({ files, readText });
-		const toolOwned = ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]);
-		return sources
-			.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || toolOwned.ignores(file.path)))
-			.flatMap((file) => findingsOf(file, layout));
-	},
+	check: ({ files, options, readText, sources }) =>
+		Effect.gen(function* () {
+			const layout = yield* packageLayout({ files, readText });
+			const toolOwned = ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]);
+			return sources
+				.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || toolOwned.ignores(file.path)))
+				.flatMap((file) => findingsOf(file, layout));
+		}),
 	description:
 		"A file is named after its main export or a module-level constant, including a private constant, with its folders as the prefix; module client/admin and server/admin files may repeat names from above the admin folder. A file of several exports is a camelCase topic file, and a script is kebab-case. Rename the file or the export; nothing renames them for you.",
 	id: "files/named-after-export",

@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { workspacePackages } from "#imports/workspace.ts";
 import { defineRule, type Finding } from "#rule.ts";
@@ -65,20 +66,24 @@ function findingsIn(file: string, exports: unknown): readonly Finding[] {
 }
 
 export const manifestsExportsShape = defineRule({
-	check: async (inputs) => {
-		const packages = await workspacePackages(inputs);
-		const files = ["package.json", ...packages.map((owner) => posix.join(owner.directory, "package.json"))];
-		const findings = await Promise.all(
-			files.map(async (file) => {
-				const manifest = await readPackageManifest(inputs.readText, file);
-				if (file === "package.json" && manifest === undefined) {
-					return [];
-				}
-				return findingsIn(file, isMap(manifest) ? manifest.exports : undefined);
-			}),
-		);
-		return findings.flat();
-	},
+	check: (inputs) =>
+		Effect.gen(function* () {
+			const packages = yield* Effect.promise(() => workspacePackages(inputs));
+			const files = ["package.json", ...packages.map((owner) => posix.join(owner.directory, "package.json"))];
+			const findings = yield* Effect.forEach(
+				files,
+				(file) =>
+					Effect.gen(function* () {
+						const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, file));
+						if (file === "package.json" && manifest === undefined) {
+							return [];
+						}
+						return findingsIn(file, isMap(manifest) ? manifest.exports : undefined);
+					}),
+				{ concurrency: "unbounded" },
+			);
+			return findings.flat();
+		}),
 	description:
 		"Workspace packages export every module through one file-preserving wildcard, with optional root and exact non-code assets; null entries are rejected, and a package without modules exports only exact assets.",
 	id: "manifests/exports-shape",

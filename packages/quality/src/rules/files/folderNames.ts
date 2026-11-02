@@ -1,6 +1,6 @@
 import { posix } from "node:path";
-import { Order, Schema } from "effect";
-import { ignorePatterns, type IgnoreMatcher } from "#adapters/ignore.ts";
+import { Effect, Order, Schema } from "effect";
+import { type IgnoreMatcher, ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { packageLayout } from "#naming/packageLayout.ts";
@@ -73,20 +73,21 @@ function messageFor(folder: string, context: Context): string | undefined {
 }
 
 export const folderNames = defineRule({
-	check: async ({ files, options, readText }) => {
-		const layout = await packageLayout({ files, readText });
-		const context: Context = {
-			content: ignorePatterns([...globPatterns(options.content)]),
-			names: layout.names,
-			native: nativeNames(files).folders,
-			stems: stemsIn(files),
-			toolOwned: ignorePatterns([...globPatterns(options.toolOwned)]),
-		};
-		return foldersIn(files).flatMap((folder): readonly Finding[] => {
-			const message = messageFor(folder, context);
-			return message === undefined ? [] : [{ file: folder, message }];
-		});
-	},
+	check: ({ files, options, readText }) =>
+		Effect.gen(function* () {
+			const layout = yield* packageLayout({ files, readText });
+			const context: Context = {
+				content: ignorePatterns([...globPatterns(options.content)]),
+				names: layout.names,
+				native: nativeNames(files).folders,
+				stems: stemsIn(files),
+				toolOwned: ignorePatterns([...globPatterns(options.toolOwned)]),
+			};
+			return foldersIn(files).flatMap((folder): readonly Finding[] => {
+				const message = messageFor(folder, context);
+				return message === undefined ? [] : [{ file: folder, message }];
+			});
+		}),
 	description:
 		"A package folder is named after its package, a module folder after its main file, a content folder in snake_case and every other folder in kebab-case.",
 	id: "files/folder-names",

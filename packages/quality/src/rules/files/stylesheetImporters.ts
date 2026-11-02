@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import ts from "typescript";
 import type { RuleInputs, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
@@ -41,13 +42,19 @@ function resolver(aliases: PackageImports, present: ReadonlySet<string>, fromSty
 	};
 }
 
-export async function stylesheetImporters(
+export const stylesheetImporters = Effect.fn("Files.stylesheetImporters")(function* (
 	inputs: Pick<RuleInputs, "files" | "readText" | "sources">,
-): Promise<ReadonlyMap<string, readonly string[]>> {
+): Effect.fn.Return<ReadonlyMap<string, readonly string[]>> {
 	const present = new Set(inputs.files);
-	const aliases = await packageImports(inputs);
-	const stylesheets = await Promise.all(
-		inputs.files.filter((path) => STYLESHEET.test(path)).map(async (path) => ({ path, text: (await inputs.readText(path)) ?? "" })),
+	const aliases = yield* packageImports(inputs);
+	const stylesheets = yield* Effect.forEach(
+		inputs.files.filter((path) => STYLESHEET.test(path)),
+		(path) =>
+			Effect.map(
+				Effect.promise(() => inputs.readText(path)),
+				(text) => ({ path, text: text ?? "" }),
+			),
+		{ concurrency: "unbounded" },
 	);
 	const fromModule = resolver(aliases, present, false);
 	const fromStylesheet = resolver(aliases, present, true);
@@ -62,4 +69,4 @@ export async function stylesheetImporters(
 		}
 	}
 	return found;
-}
+});

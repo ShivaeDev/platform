@@ -1,6 +1,6 @@
 import { posix } from "node:path";
-import { Schema } from "effect";
-import { ignorePatterns, type IgnoreMatcher } from "#adapters/ignore.ts";
+import { Effect, Schema } from "effect";
+import { type IgnoreMatcher, ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { CAMEL, KEBAB } from "#naming/words.ts";
@@ -87,18 +87,19 @@ function messageFor(path: string, context: Context): string | undefined {
 }
 
 export const otherNames = defineRule({
-	check: async ({ files, options, readText, sources }) => {
-		const context: Context = {
-			content: ignorePatterns([...globPatterns(options.content)]),
-			native: nativeNames(files),
-			stylesheets: await stylesheetImporters({ files, readText, sources }),
-			toolOwned: ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]),
-		};
-		return files.flatMap((path): readonly Finding[] => {
-			const message = messageFor(path, context);
-			return message === undefined ? [] : [{ file: path, message }];
-		});
-	},
+	check: ({ files, options, readText, sources }) =>
+		Effect.gen(function* () {
+			const context: Context = {
+				content: ignorePatterns([...globPatterns(options.content)]),
+				native: nativeNames(files),
+				stylesheets: yield* stylesheetImporters({ files, readText, sources }),
+				toolOwned: ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]),
+			};
+			return files.flatMap((path): readonly Finding[] => {
+				const message = messageFor(path, context);
+				return message === undefined ? [] : [{ file: path, message }];
+			});
+		}),
 	description:
 		"Documents, data, assets and GritQL files are kebab-case, a stylesheet that one component imports is named after it, a Prisma schema is camelCase and content is snake_case.",
 	id: "files/other-names",

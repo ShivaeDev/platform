@@ -1,11 +1,8 @@
-import { posix } from "node:path";
 import { Effect } from "effect";
+import { presetConfig } from "#adapters/biome/presetConfig.ts";
 import { recommendedRules } from "#biome/recommendedRules.ts";
 import { defineRule, type Finding, type Rule, type RuleInputs, type RuleServices } from "#rule.ts";
-import { PRESET, rootConfig } from "#rules/biome.ts";
-import { decodeShipped, PRESET_DECLARATIONS } from "#rules/suppressions/biome/declarations.ts";
-import { type Json, member, parseJsonc, textOf } from "#rules/suppressions/biome/json.ts";
-import { resolvePackage } from "#adapters/biome/resolvePackage.ts";
+import { type Json, member, textOf } from "#rules/suppressions/biome/json.ts";
 
 interface Setting {
 	readonly level: string | undefined;
@@ -30,45 +27,29 @@ function looseRule(file: string, rule: string, { level, line }: Setting): Findin
 	return { file, line, message: `Biome recommends "lint/${rule}", which the preset ${state}. ${FIX}`, subject: `lint/${rule}` };
 }
 
-function problem(file: string, message: string): readonly Finding[] {
-	return [{ file, message }];
-}
-
-const check = Effect.fn("BiomeRecommended.check")(function* (readText: RuleInputs["readText"], recommended: Recommended) {
-	const root = yield* Effect.promise(() => rootConfig(readText));
-	if (!root.extendsPreset) {
+const check = Effect.fn("BiomeRecommended.check")(function* (inputs: Pick<RuleInputs, "readText">, recommended: Recommended) {
+	const preset = yield* presetConfig(inputs.readText);
+	if (preset._tag === "Skipped") {
 		return [];
 	}
-	const path = yield* Effect.promise(() => resolvePackage(readText, PRESET));
-	if (path === undefined) {
-		return problem(root.path, `Cannot resolve "${PRESET}" from node_modules. Install @shivaedev/quality at the repository root.`);
+	if (preset._tag === "Problem") {
+		return preset.findings;
 	}
-	const text = yield* Effect.promise(() => readText(path));
-	const parsed = text === undefined ? undefined : parseJsonc(path, text);
-	if (parsed?._tag !== "Parsed") {
-		return problem(path, `Cannot read the preset "${PRESET}": ${parsed?.reason ?? "the file does not exist"}.`);
-	}
-	const declarationsPath = posix.join(posix.dirname(path), PRESET_DECLARATIONS);
-	const declarationText = yield* Effect.promise(() => readText(declarationsPath));
-	const declarations = yield* Effect.promise(() => decodeShipped(declarationText));
-	if (declarations._tag === "Invalid") {
-		return problem(declarationsPath, `Cannot read the declarations shipped with "${PRESET}": ${declarations.issues.join("; ")}.`);
-	}
-	const declared = new Set(declarations.value.map((declaration) => declaration.rule));
-	const rules = member(member(parsed.json, "linter"), "rules");
-	const result = recommended();
-	return (yield* Effect.isEffect(result) ? result : Effect.promise(() => result))
+	const { path } = preset;
+	const declared = new Set(preset.declared.map((declaration) => declaration.rule));
+	const rules = member(member(preset.json, "linter"), "rules");
+	return (yield* recommended())
 		.filter((rule) => !declared.has(`lint/${rule}`))
 		.map((rule) => ({ rule, setting: settingOf(rules, rule) }))
 		.filter(({ setting }) => setting.level !== "error")
 		.map(({ rule, setting }) => looseRule(path, rule, setting));
 });
 
-type Recommended = () => Promise<readonly string[]> | Effect.Effect<readonly string[], unknown, RuleServices>;
+type Recommended = () => Effect.Effect<readonly string[], unknown, RuleServices>;
 
 export function biomeRecommendedFrom(recommended: Recommended): Rule<"suppressions/biome-recommended", undefined> {
 	return defineRule({
-		check: ({ readText }) => check(readText, recommended),
+		check: (inputs) => check(inputs, recommended),
 		description:
 			"Every recommended Biome rule without a shipped internal exception runs at error in the shared preset. Set missing rules to error in the preset and repair the code they report.",
 		id: "suppressions/biome-recommended",

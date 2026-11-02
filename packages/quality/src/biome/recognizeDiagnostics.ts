@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import ts from "typescript";
-import { syntaxOf } from "#adapters/biome/syntax.ts";
+import { syntaxOf } from "#adapters/biome/syntaxOf.ts";
 import { nativeEffectCall } from "./nativeEffectCall.ts";
 import type { Diagnostic } from "./report.ts";
 import { nodeAt, offsetOf, type Syntax } from "./syntax.ts";

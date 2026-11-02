@@ -10,4 +10,3 @@ export function syntaxOf(path: string): Syntax {
 	const program = ts.createProgram([path], options, host);
 	return { checker: program.getTypeChecker(), source };
 }
-
