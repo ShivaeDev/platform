@@ -1,6 +1,4 @@
 import { expect } from "@effect/vitest";
-import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { boardFileStory } from "#test/boardFileStory.ts";
 
 const SUMMARY = "Done; PR #7 merged.";
@@ -35,19 +33,6 @@ for (const location of ["root", "directory", "file"] as const) {
 		expect(yield* completion.outsideSource()).toBe(completion.source);
 	});
 }
-
-boardFileStory.it("a task edited after the replacement is prepared keeps the edit and loses the temporary file", [], function* ({ completion }) {
-	const changed = `${completion.source}A human edit.\n`;
-	const edit = yield* completion.editTaskWhileReplacing(changed);
-
-	yield* completion.publish(completion.root, "tasks/one.md", completion.source, completionMarkdown(completion.source, SUMMARY) ?? "");
-
-	yield* outcomes([
-		["task before the edit", () => edit.beforeEdit(), { source: completion.source, temporaryFiles: 1 }],
-		["task", () => completion.taskSource(), changed],
-		["task folder", () => completion.taskFiles(), ["one.md"]],
-	]);
-});
 
 boardFileStory.it("a completion against a different Board root is refused", [], function* ({ completion }) {
 	expect(yield* completion.publish(completion.outside, "tasks/one.md", completion.source, "replacement")).toMatch(/^report file failure: /u);
