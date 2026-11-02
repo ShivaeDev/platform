@@ -65,8 +65,6 @@ export function makeRuleStory() {
 			Effect.gen(function* () {
 				const fs = yield* FileSystem.FileSystem;
 				const root = yield* fs.makeTempDirectoryScoped({ prefix: "quality-rule-" });
-				yield* fs.makeDirectory(join(root, "node_modules", "@shivaedev"), { recursive: true });
-				yield* fs.symlink(packageRoot, join(root, "node_modules", "@shivaedev", "quality"));
 				const engine: RuleEngine = { answer: undefined, findings: undefined, root };
 				return engine;
 			}),
@@ -125,9 +123,14 @@ export function makeRuleStory() {
 		);
 	}
 
+	function qualityInstalled() {
+		return repositoryLinks("node_modules/@shivaedev/quality", packageRoot);
+	}
+
 	const harness: typeof ruleStory & {
+		readonly qualityInstalled: typeof qualityInstalled;
 		readonly repositoryHas: typeof repositoryHas;
 		readonly repositoryLinks: typeof repositoryLinks;
-	} = { ...ruleStory, repositoryHas, repositoryLinks };
+	} = { ...ruleStory, qualityInstalled, repositoryHas, repositoryLinks };
 	return harness;
 }

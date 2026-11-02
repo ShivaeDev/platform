@@ -1,13 +1,14 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { draftRule } from "#test/draftRule.ts";
-import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { qualityInstalled, repositoryHas, ruleStory } from "#test/ruleStory.ts";
 
 const RULE_URL = new URL("../test-support/draftRule.ts", import.meta.url).href;
 
 ruleStory.it(
 	"a custom rule's findings reject the gate until the author repairs the source",
 	[
+		qualityInstalled(),
 		repositoryHas(
 			{ content: "node_modules/\n", path: ".gitignore" },
 			{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
@@ -40,6 +41,7 @@ ruleStory.it(
 ruleStory.it(
 	"the gate exposes invalid custom-rule options",
 	[
+		qualityInstalled(),
 		repositoryHas({
 			content: `import { draftRule } from ${JSON.stringify(RULE_URL)};\nexport default { local: [draftRule], rules: { "local/no-draft": { options: { word: 1 } } }, sources: ["src"] };\n`,
 			path: "quality.config.ts",
