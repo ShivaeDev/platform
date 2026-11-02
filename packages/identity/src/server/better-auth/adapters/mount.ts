@@ -11,6 +11,7 @@ import { type BetterAuthHardeningOptions, withHardening } from "#server/better-a
 import { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
 import { mountedSessions } from "#server/better-auth/adapters/mountedSessions.ts";
 import { passwordResetOptions } from "#server/better-auth/adapters/passwordResetOptions.ts";
+import { providerOnlyOptions } from "#server/better-auth/adapters/providerOnlyOptions.ts";
 import { rateLimitStorage } from "#server/better-auth/adapters/rateLimitStorage.ts";
 import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
@@ -29,8 +30,10 @@ export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly databaseHooks?: BetterAuthDatabaseHooks<R> | undefined;
 	readonly emails?: BetterAuthEmails<R> | undefined;
+	readonly enabledPaths?: readonly string[];
 	readonly hardening?: BetterAuthHardeningOptions;
 	readonly onPasswordReset?: BetterAuthPasswordReset<R> | undefined;
+	readonly preset?: "provider-only";
 	readonly signIn?: SignInPolicy<E, R> | undefined;
 } & (
 	| { readonly roles?: undefined; readonly roleSeed?: undefined }
@@ -59,10 +62,12 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 	const gated = yield* signInPolicyOptions(configured, gate, (): Promise<PolicyStorage> => auth.$context);
 	const seed = mount.roleSeed === undefined ? undefined : yield* mount.roleSeed;
 	const seeded = roleSeedOptions(gate.active ? { ...configured, ...gated } : configured, seed);
+	const base = { ...configured, databaseHooks: seeded.databaseHooks };
+	const preset = mount.preset === "provider-only" ? providerOnlyOptions(base, mount.enabledPaths) : base;
 	const rateLimit = options.rateLimit;
 	const customStorage = yield* rateLimitStorage;
 	const auth = betterAuth({
-		...withHardening(withBearerSessions(configured, mount.bearerSessions !== undefined), mount.hardening),
+		...withHardening(withBearerSessions(preset, mount.bearerSessions !== undefined), mount.hardening),
 		advanced: {
 			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
 			...options.advanced,
@@ -78,7 +83,6 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 				allowedHosts: ["127.0.0.1:*", "localhost:*"],
 				protocol: "http" as const,
 			})),
-		databaseHooks: seeded.databaseHooks,
 		rateLimit: {
 			...rateLimit,
 			customStorage,
