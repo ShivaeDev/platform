@@ -8,6 +8,19 @@ for (const [signal, code] of [
 	["SIGHUP", 12],
 ] as const) {
 	lockStory.it(
+		`the CLI forwards ${signal} to check's descendant, which acknowledges the signal`,
+		[],
+		function* ({ cli }) {
+			yield* cli.starts("check", cli.commands.withSignalAcknowledgingDescendant(signal));
+
+			yield* cli.receives("check", signal);
+
+			expect(yield* cli.standardOutputOf("check")).toBe(`running\ndescendant received ${signal}\n`);
+		},
+		liveCli,
+	);
+
+	lockStory.it(
 		`the CLI forwards ${signal} to check's command, exits with the command's exit code ${code} and frees the lock`,
 		[],
 		function* ({ cli, lock }) {
