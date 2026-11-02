@@ -1,9 +1,10 @@
 import { expect } from "vitest";
+import { dockerStories } from "#test/dockerStories.ts";
 import { olderPostgres } from "#test/olderPostgres.ts";
 import { postgres } from "#test/postgres.ts";
 import { serviceAnswers } from "#test/postgresTraits.ts";
 
-postgres.it(
+dockerStories.it(
 	"setup refuses a running PostgreSQL 17 service with a version mismatch that names its version",
 	[olderPostgres],
 	function* ({ outcome, runningVersion, start }) {

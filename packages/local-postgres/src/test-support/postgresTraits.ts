@@ -2,8 +2,6 @@ import { answers, containerPlan, daemonAnswers, publishedBy, unanswered } from "
 import { postgres } from "#test/postgres.ts";
 import { configureReadiness } from "#test/postgresEngine.ts";
 
-const NEVER_ANSWERED = 64;
-
 export function dockerHost(endpoint: string) {
 	return postgres.trait("machine", `DOCKER_HOST is ${endpoint}`, (engine) => {
 		engine.environment.DOCKER_HOST = endpoint;
@@ -14,14 +12,20 @@ export function activeDockerContext(endpoint: string) {
 	return postgres.trait("machine", `neither DOCKER_HOST nor DOCKER_CONTEXT is set, and Docker's active context points to ${endpoint}`, (engine) => {
 		engine.environment.DOCKER_HOST = undefined;
 		engine.environment.DOCKER_CONTEXT = undefined;
-		engine.contextEndpoint = endpoint;
+		engine.plan.push({
+			args: ["context", "inspect", "--format", "{{.Endpoints.docker.Host}}"],
+			result: endpoint,
+		});
 	});
 }
 
 export function namedDockerContext(name: string, endpoint: string) {
 	return postgres.trait("machine", `DOCKER_CONTEXT names ${name}, which points to ${endpoint}`, (engine) => {
 		engine.environment.DOCKER_CONTEXT = name;
-		engine.contextEndpoint = endpoint;
+		engine.plan.push({
+			args: ["context", "inspect", name, "--format", "{{.Endpoints.docker.Host}}"],
+			result: endpoint,
+		});
 	});
 }
 
@@ -97,8 +101,9 @@ export function serviceStartsAnswering({ afterUnanswered }: { readonly afterUnan
 		`PostgreSQL does not answer; once its stopped pinned container starts, it answers 18.6 after ${afterUnanswered} unanswered readiness checks and allows 500 connections`,
 		(engine) => {
 			engine.plan.push(
-				...unanswered(1 + afterUnanswered),
+				...unanswered(1),
 				...containerPlan("existing"),
+				...unanswered(afterUnanswered),
 				...answers("SHOW server_version", "18.6"),
 				...answers("SHOW max_connections", "500"),
 			);
@@ -106,9 +111,9 @@ export function serviceStartsAnswering({ afterUnanswered }: { readonly afterUnan
 	);
 }
 
-export function serviceNeverAnswers() {
+export function serviceNeverAnswers(attempts = 30) {
 	return postgres.trait("machine", "PostgreSQL does not answer, not even after its stopped pinned container starts", (engine) => {
-		engine.plan.push(...unanswered(NEVER_ANSWERED), ...containerPlan("existing"));
+		engine.plan.push(...unanswered(1), ...containerPlan("existing"), ...unanswered(attempts));
 	});
 }
 

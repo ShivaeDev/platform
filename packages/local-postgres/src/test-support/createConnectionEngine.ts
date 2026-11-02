@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { Effect, Schedule } from "effect";
+import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { POSTGRES_IMAGE, startContainer } from "#localContainer.ts";
 import { LOCAL_SERVER, localPostgres } from "#localPostgres.ts";
 import { type CommandOptions, runCommand } from "#runCommand.ts";
+import { containerReady } from "#test/containerReady.ts";
 
 export interface ContainerState {
 	readonly id: string;
@@ -60,10 +61,6 @@ export const createConnectionEngine = Effect.fn("ConnectionEngine.createConnecti
 	function sql(query: string) {
 		return manager.sql(`${LOCAL_SERVER}/postgres`, query).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner));
 	}
-	// A restarted container publishes no readiness event, so the kit asks until PostgreSQL accepts a query.
-	function wait() {
-		return sql("SELECT 1").pipe(Effect.retry({ schedule: Schedule.spaced("100 millis"), times: 60 }));
-	}
 	const state = Effect.fn("ConnectionEngine.state")(function* () {
 		if (!(yield* docker(["ps", "-aq", "--filter", `name=^/${name}$`]))) {
 			return undefined;
@@ -92,7 +89,7 @@ export const createConnectionEngine = Effect.fn("ConnectionEngine.createConnecti
 		name,
 		sql,
 		start: (connection?: string) => manager.startPostgres(connection).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner)),
-		startStock: () => Effect.andThen(startContainer(docker), wait),
+		startStock: () => Effect.andThen(startContainer(docker), () => containerReady(name)),
 		startUnpinned: Effect.fn("ConnectionEngine.startUnpinned")(function* () {
 			const image = yield* direct(["image", "inspect", "--format", "{{.Id}}", POSTGRES_IMAGE]);
 			yield* direct([
@@ -108,9 +105,8 @@ export const createConnectionEngine = Effect.fn("ConnectionEngine.createConnecti
 				`type=volume,src=${name},dst=/var/lib/postgresql`,
 				image,
 			]);
-			yield* wait();
+			yield* containerReady(name);
 		}),
 		state,
-		wait,
 	};
 });
