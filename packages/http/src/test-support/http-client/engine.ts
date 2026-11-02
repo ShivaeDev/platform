@@ -55,11 +55,11 @@ export type ClientEngine = Effect.Success<ReturnType<typeof createClientEngine>>
 
 export const selectClient = Effect.fnUntraced(function* (state: ClientSelection, transport: "fetch" | "node") {
 	const context = yield* Layer.build(
-		transport === "fetch"
-			? FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "manual" })))
-			: NodeHttpClient.layerNodeHttpOptions({ keepAlive: true, maxSockets: 1 }),
+		transport === "fetch" ? FetchHttpClient.layer : NodeHttpClient.layerNodeHttpOptions({ keepAlive: true, maxSockets: 1 }),
 	);
 	const client = yield* HttpClient.HttpClient.pipe(Effect.provide(context));
-	state.clients.set(transport, observeClient(client, transport, state.lifecycle));
+	const configured =
+		transport === "fetch" ? HttpClient.transformResponse(client, Effect.provideService(FetchHttpClient.RequestInit, { redirect: "manual" })) : client;
+	state.clients.set(transport, observeClient(configured, transport, state.lifecycle));
 	state.transport = transport;
 });

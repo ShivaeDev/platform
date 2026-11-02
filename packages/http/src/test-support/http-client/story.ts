@@ -1,3 +1,5 @@
+import { Layer } from "effect";
+import { FetchHttpClient } from "effect/http";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createClientEngine, selectClient } from "./engine.ts";
 import { lifecycleVerbs } from "./lifecycleVerbs.ts";
@@ -10,6 +12,7 @@ export const httpClient = storyKit({
 		otherOriginRequests: otherOrigin.requests.map(({ path }) => path),
 		requests: remote.requests.map(({ path }) => path),
 	}),
+	layer: Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "error" }),
 	name: "outbound HTTP client",
 	stages: ["transport", "routes"],
 	verbs: (engine, story) => {
