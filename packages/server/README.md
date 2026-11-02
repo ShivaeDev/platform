@@ -150,6 +150,8 @@ The host provides Effect's native `Crypto` service (`effect/Crypto`) to prefligh
 
 Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements other than `Crypto` remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
 
+Preflight logs pass through the host's redaction, including logged failure causes and annotations. The original typed failure remains available to callers. Direct hosts derive the policy from their RPC schemas and `config.sensitiveKeys`; deferred hosts use the default credential policy during preflight, before their application's schemas are available. Ordinary startup messages and annotations remain intact.
+
 When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 
 ```ts
