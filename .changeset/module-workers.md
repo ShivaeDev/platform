@@ -16,3 +16,4 @@
 ### Fixed
 
 - Generated minimal apps remove the notes module from the shared host and worker list without retaining a separate worker registry.
+- Updating an older minimal app removes its unmodified worker registry when workers move into application modules.
