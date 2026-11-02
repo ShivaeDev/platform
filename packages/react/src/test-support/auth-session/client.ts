@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { authCall } from "#client/authAction.ts";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { authSession } from "#client/authSession.ts";
 
 export interface Session {
@@ -20,7 +21,9 @@ export function sessionClient() {
 	let stored: Session | null = signedIn;
 	const reads: Read[] = [];
 	const session = authSession(
-		(signal) => new Promise<{ data: Session | null; error: Refused | null }>((resolve, reject) => reads.push({ reject, resolve, signal })),
+		readSession(
+			(signal) => new Promise<{ data: Session | null; error: Refused | null }>((resolve, reject) => reads.push({ reject, resolve, signal })),
+		),
 	);
 	const mutate = authCall((change: "rename" | "verify", _signal) => {
 		stored = { user: { emailVerified: change === "verify", name: change === "rename" ? "Alicia" : "Alice" } };

@@ -1,13 +1,14 @@
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
 import { PermissionBoundaryError, useCan } from "#adapters/permissionBoundary.ts";
 import { permissionGuard } from "#adapters/permissionGuard.ts";
 import { queryRoute } from "#adapters/queryRoute.ts";
 import { authAction } from "#client/authAction.ts";
 import { useQuery } from "#client/resultState.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import type { PermissionSession } from "#permissions.ts";
 import { ReadNotes } from "./feature.ts";
 import type { Host } from "./host.ts";
 import { Login, PermissionRoutes, SignOutButton } from "./view.tsx";
@@ -35,11 +36,13 @@ export function permissionApp(
 		beforeLoad: permissionGuard({ hidden, session: () => auth.current, signIn: "/login" }),
 		notFoundComponent: () => <h1>Page not found</h1>,
 	});
-	const signOut = authAction(async () => {
-		auth.current = undefined;
-		await router.invalidate();
-		return { data: undefined, error: null };
-	});
+	const signOut = authAction(
+		authCall(async () => {
+			auth.current = undefined;
+			await router.invalidate();
+			return { data: undefined, error: null };
+		}),
+	);
 	const note = createRoute({
 		component: () => {
 			const { id } = note.useParams();

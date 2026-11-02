@@ -4,6 +4,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -59,25 +60,27 @@ export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: S
 	engine.login.outcome = rejection;
 	const auth: AuthActions = {
 		resetPassword: screenAuth().resetPassword,
-		signOut: authAction<void, unknown, never>(() => Promise.resolve({ data: {}, error: null })),
-		submit: authAction(({ mode, credentials }: { mode: "sign-in" | "sign-up"; credentials: Credentials }) => {
-			engine.login.calls.push({ credentials, mode });
-			if (engine.login.unavailable) {
-				return Promise.reject(new Error("offline"));
-			}
-			if (engine.login.outcome === undefined) {
-				return Promise.resolve({ data: {}, error: null });
-			}
-			return Promise.resolve({
-				data: null,
-				error: {
-					code: mode === "sign-up" ? "USER_ALREADY_EXISTS" : "INVALID_EMAIL_OR_PASSWORD",
-					message: engine.login.outcome,
-					status: HttpStatus.fromLiteral("Unauthorized"),
-					statusText: "Unauthorized",
-				},
-			});
-		}),
+		signOut: authAction(authCall<void, unknown, never>(() => Promise.resolve({ data: {}, error: null }))),
+		submit: authAction(
+			authCall(({ mode, credentials }: { mode: "sign-in" | "sign-up"; credentials: Credentials }) => {
+				engine.login.calls.push({ credentials, mode });
+				if (engine.login.unavailable) {
+					return Promise.reject(new Error("offline"));
+				}
+				if (engine.login.outcome === undefined) {
+					return Promise.resolve({ data: {}, error: null });
+				}
+				return Promise.resolve({
+					data: null,
+					error: {
+						code: mode === "sign-up" ? "USER_ALREADY_EXISTS" : "INVALID_EMAIL_OR_PASSWORD",
+						message: engine.login.outcome,
+						status: HttpStatus.fromLiteral("Unauthorized"),
+						statusText: "Unauthorized",
+					},
+				});
+			}),
+		),
 	};
 	const view = yield* acquireScreen(engine);
 	engine.pending = () => view.registry.get(auth.submit).waiting;
@@ -118,13 +121,15 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 	const signOut =
 		signOutFailure === undefined
 			? undefined
-			: authAction(() => {
-					engine.signOutCalls.push(undefined);
-					return Promise.resolve({
-						data: null,
-						error: { message: signOutFailure, status: HttpStatus.fromLiteral("BadRequest"), statusText: "Bad Request" },
-					});
-				});
+			: authAction(
+					authCall(() => {
+						engine.signOutCalls.push(undefined);
+						return Promise.resolve({
+							data: null,
+							error: { message: signOutFailure, status: HttpStatus.fromLiteral("BadRequest"), statusText: "Bad Request" },
+						});
+					}),
+				);
 	engine.pending = () => signOut !== undefined && view.registry.get(signOut).waiting;
 	engine.client.api.list.query();
 	view.registry.mount(engine.client.api[LiveConnection].connection);

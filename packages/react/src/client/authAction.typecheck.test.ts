@@ -1,6 +1,8 @@
-import type { Cause, Effect, Option } from "effect";
+import type { Cause, Option } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { type AuthFailure, type AuthFailureCode, authAction, authCall } from "#client/authAction.ts";
+import type { AuthFailure } from "@shivaedev/identity/client/AuthFailure.ts";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+import { authAction } from "#client/authAction.ts";
 import { useAction } from "#client/resultState.ts";
 
 function run(input: { readonly email: string }, _signal: AbortSignal) {
@@ -10,19 +12,7 @@ function run(input: { readonly email: string }, _signal: AbortSignal) {
 			: { data: null, error: { code: "INVALID_EMAIL" as const, status: HttpStatus.fromLiteral("Unauthorized") } },
 	);
 }
-const signIn = authAction(run);
-const submit = authCall(run);
-const call: Effect.Effect<{ readonly session: string } | null, AuthFailure> = submit({ email: "alice@example.com" });
-// @ts-expect-error Auth calls retain their input type.
-submit({ email: 123 });
-// @ts-expect-error Supported failure codes are a closed union.
-const unrelated: AuthFailureCode = "UNRELATED";
-export function sentences(messages: Record<AuthFailureCode, string>, failure: AuthFailure) {
-	return messages[failure.code];
-}
-void call;
-void unrelated;
-
+const signIn = authAction(authCall(run));
 export function useSignIn() {
 	const action = useAction(signIn);
 	const failure: Option.Option<Cause.Cause<AuthFailure>> = action.cause;

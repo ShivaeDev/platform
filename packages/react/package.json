@@ -54,7 +54,8 @@
 		"@shivaedev/access": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
-		"@shivaedev/form": "workspace:*"
+		"@shivaedev/form": "workspace:*",
+		"@shivaedev/identity": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
@@ -62,7 +63,6 @@
 		"@effect/sql-pg": "catalog:",
 		"@effect/sql-sqlite-node": "catalog:",
 		"@shivaedev/changes": "workspace:*",
-		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
