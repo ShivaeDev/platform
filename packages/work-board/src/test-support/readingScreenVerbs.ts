@@ -4,7 +4,7 @@ import { shellIds } from "#client/react/shellIds.ts";
 import { diagramDrawingVerbs } from "./diagramDrawingVerbs.ts";
 import { readingHistoryVerbs } from "./readingHistoryVerbs.ts";
 import { all, clipboards, copyButton, firstShells, linkPair, outlinePopover, place, readingScreenReads, text } from "./readingScreenReads.ts";
-import { readingSettles, releaseBody, releaseLaterRead } from "./readingSettle.ts";
+import { readingSettles, releaseLaterRead } from "./readingSettle.ts";
 import { readingStructureVerbs } from "./readingStructureVerbs.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 
@@ -88,12 +88,6 @@ export function readingScreenVerbs(engine: ScreenEngine, tell: (line: string) =>
 				return within?.querySelector('a[aria-current="location"]')?.getAttribute("href") ?? "none";
 			}),
 		documentBody: () => read("the reader reads the document text", () => text(document.querySelector("#doc article.doc"))),
-		documentBodyFinishes: () =>
-			Effect.gen(function* () {
-				tell("the browser lets the rest of the document render");
-				yield* Effect.promise(() => act(async () => releaseBody(engine)));
-				yield* readingSettles(engine, tell);
-			}),
 		documentLinks: () =>
 			read("the reader reads the links in the document text", () =>
 				all("article.doc a")

@@ -11,7 +11,6 @@ import { screenPendingWork } from "./screenSettle.ts";
 const SETTLE_LIMIT_MS = 10_000;
 
 const pendingFrames = new WeakMap<ScreenEngine, Set<number>>();
-const heldBodies = new WeakMap<ScreenEngine, () => void>();
 
 export function followFrames(engine: ScreenEngine) {
 	const pending = new Set<number>();
@@ -67,23 +66,13 @@ export function releaseLaterRead(engine: ScreenEngine) {
 	Effect.runSync(Deferred.succeed(read.gate, undefined));
 }
 
-export function holdBody(engine: ScreenEngine, release: () => void) {
-	heldBodies.set(engine, release);
-}
-
-export function releaseBody(engine: ScreenEngine) {
-	const release = heldBodies.get(engine);
-	heldBodies.delete(engine);
-	release?.();
-}
-
 function open(gate: Deferred.Deferred<void> | undefined) {
 	return gate !== undefined && !Effect.runSync(Deferred.isDone(gate));
 }
 
 function held(engine: ScreenEngine) {
 	return (
-		heldBodies.has(engine)
+		engine.chunkResponse?.held === true
 		|| [engine.heldRead?.gate, engine.heldRefresh?.gate, engine.heldAnswerRefresh?.gate, engine.indexGate, engine.startupGate].some(open)
 	);
 }

@@ -1,13 +1,10 @@
-import { type ComponentProps, Suspense, use } from "react";
-import { type MarkdownRenderers, markdownChunk } from "./lazyChunks.ts";
+import { type ComponentProps, Suspense, useContext } from "react";
+import { LoadedChunk } from "./LoadedChunk.tsx";
+import { LazyChunksContext, type MarkdownRenderers } from "./lazyChunks.ts";
 
 type DocumentProps = ComponentProps<MarkdownRenderers["DocumentView"]>;
 type InlineProps = ComponentProps<MarkdownRenderers["InlineMarkdown"]>;
 type ResponseProps = ComponentProps<MarkdownRenderers["ResponseMarkdown"]>;
-
-function useMarkdownRenderers() {
-	return markdownChunk.loaded() ?? use(markdownChunk.load());
-}
 
 function MarkdownUnavailable({ error }: { readonly error: string }) {
 	return (
@@ -18,18 +15,27 @@ function MarkdownUnavailable({ error }: { readonly error: string }) {
 }
 
 function LoadedDocumentView(props: DocumentProps) {
-	const renderers = useMarkdownRenderers();
-	return "error" in renderers ? <MarkdownUnavailable error={renderers.error} /> : <renderers.DocumentView {...props} />;
+	return (
+		<LoadedChunk chunk={useContext(LazyChunksContext).markdown}>
+			{(renderers) => ("error" in renderers ? <MarkdownUnavailable error={renderers.error} /> : <renderers.DocumentView {...props} />)}
+		</LoadedChunk>
+	);
 }
 
 function LoadedInlineMarkdown(props: InlineProps) {
-	const renderers = useMarkdownRenderers();
-	return "error" in renderers ? props.source : <renderers.InlineMarkdown {...props} />;
+	return (
+		<LoadedChunk chunk={useContext(LazyChunksContext).markdown}>
+			{(renderers) => ("error" in renderers ? props.source : <renderers.InlineMarkdown {...props} />)}
+		</LoadedChunk>
+	);
 }
 
 function LoadedResponseMarkdown(props: ResponseProps) {
-	const renderers = useMarkdownRenderers();
-	return "error" in renderers ? <MarkdownUnavailable error={renderers.error} /> : <renderers.ResponseMarkdown {...props} />;
+	return (
+		<LoadedChunk chunk={useContext(LazyChunksContext).markdown}>
+			{(renderers) => ("error" in renderers ? <MarkdownUnavailable error={renderers.error} /> : <renderers.ResponseMarkdown {...props} />)}
+		</LoadedChunk>
+	);
 }
 
 export function LazyDocumentView(props: DocumentProps) {
