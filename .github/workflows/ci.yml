@@ -196,7 +196,7 @@ jobs:
       - run: pnpm db:setup
       - name: Test workspace shard
         run: >-
-          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
+          pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - name: Record test timings
         if: always()
         run: node --conditions=source script/ci/summary.ts .ci/tests.json
