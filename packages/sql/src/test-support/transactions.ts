@@ -25,6 +25,15 @@ type Kit = StoryKit<TransactionEngine, "schema" | "subscribers", ReturnType<type
 
 export const transactionKits: readonly Kit[] = [postgresTransactions, sqliteTransactions];
 
+export function subscribers(kit: Kit, keys: Readonly<Record<string, readonly unknown[]>>) {
+	return kit.trait("subscribers", `subscribers watch ${Object.keys(keys).join(", ")}`, function* (engine) {
+		for (const [name, watched] of Object.entries(keys)) {
+			const stop = engine.reactivity.registerUnsafe(watched, () => engine.announced.push(name));
+			yield* Effect.addFinalizer(() => Effect.sync(stop));
+		}
+	});
+}
+
 export function watching(kit: Kit, ...keys: readonly string[]) {
 	return kit.trait("subscribers", `a subscriber watches ${keys.join(", ")}`, function* (engine) {
 		for (const key of keys) {
