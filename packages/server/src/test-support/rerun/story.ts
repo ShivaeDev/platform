@@ -25,6 +25,7 @@ const create = Effect.gen(function* () {
 			[3n, new Note({ id: 3n, owner: "alice", title: "Other" })],
 		]),
 		policyUnavailable: false,
+		queryUnavailable: false,
 	};
 	state.build = () => rerunHost(state);
 	yield* Effect.addFinalizer(() => close(state).pipe(Effect.orDie));
@@ -68,6 +69,10 @@ export const rerunStory = storyKit({
 			),
 		clientReads: () => Effect.sync(() => engine.state.calls.filter((tag) => tag === "rerun.compare" || tag === "rerun.hinted")),
 		denyAlice: () => Effect.sync(() => engine.state.denied.add("alice")),
+		failQuery: () =>
+			Effect.sync(() => {
+				engine.state.queryUnavailable = true;
+			}),
 		failReadPolicy: () =>
 			Effect.sync(() => {
 				engine.state.policyUnavailable = true;

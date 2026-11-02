@@ -1,6 +1,6 @@
 import { Layer } from "effect";
 import { HttpServer } from "effect/http";
-import { makePlatformRuntime } from "#runtime/makePlatform.ts";
+import { makePlatformRuntime } from "#adapters/makePlatformRuntime.ts";
 import type { PlatformRuntime } from "#runtime/types.ts";
 import { ping } from "./ping.ts";
 import { RuntimeValue, runtimeLayer } from "./runtimeLayer.ts";

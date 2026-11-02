@@ -17,8 +17,8 @@ import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { ManageSessions, SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { nodeHttpServer } from "@shivaedev/server/adapters/nodeHttpServer.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
-import { nodeHttpServer } from "@shivaedev/server/nodeHttpServer.ts";
 import { SessionsPage } from "#sessions/Page.ts";
 
 const Access = roleSet(role("admin", [ManageSessions]), role("user", []));

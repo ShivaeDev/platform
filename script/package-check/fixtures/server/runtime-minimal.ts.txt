@@ -1,6 +1,6 @@
 import { Identity } from "@shivaedev/identity/identity.ts"
-import { nodeSubscriptionSignal } from "@shivaedev/server/node-http/subscriptionSignal.ts"
-import { makePlatformRuntime } from "@shivaedev/server/runtime/makePlatform.ts"
+import { nodeSubscriptionSignal } from "@shivaedev/server/adapters/subscriptionSignal.ts"
+import { makePlatformRuntime } from "@shivaedev/server/adapters/makePlatformRuntime.ts"
 import { Context, Layer } from "effect"
 
 class Greeting extends Context.Service<Greeting, string>()("@consumer/Greeting") {}

@@ -1,6 +1,6 @@
 import { Identity } from "@shivaedev/identity/identity.ts"
 import { isUnauthorized } from "@shivaedev/errors/taxonomy.ts"
-import { makePlatformRuntime } from "@shivaedev/server/runtime/makePlatform.ts"
+import { makePlatformRuntime } from "@shivaedev/server/adapters/makePlatformRuntime.ts"
 import { Layer } from "effect"
 
 const runtime = makePlatformRuntime(Layer.succeed(Identity, { id: "application" }))

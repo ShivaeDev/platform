@@ -18,7 +18,7 @@ rerunStory.it(
 );
 
 rerunStory.it(
-	"contract's LiveServer Layer pushes a change into alice's hosted query without a client read",
+	"a rerun reads its handler's services and pushes alice's changed notes without a client read",
 	[pageOpen],
 	function* ({ clientReads, rename, shown, untilShown }) {
 		expect((yield* shown()).map((note) => note.title)).toEqual(["One"]);
@@ -103,5 +103,20 @@ rerunStory.it(
 			{ _tag: "Unchanged", queryIndex: 0 },
 			{ _tag: "Changed", keys: [notes.bucket.owner("alice")], queryIndexes: [1] },
 		]);
+	},
+);
+
+rerunStory.it(
+	"a query handler failure ends alice's rerun subscription with its declared error",
+	[],
+	function* ({ arrivals, failQuery, rename, subscriptionEnd }) {
+		expect(yield* arrivals()).toEqual([
+			{ _tag: "Result", query: "compare", queryIndex: 0, value: [new Note({ id: 1n, owner: "alice", title: "One" })] },
+		]);
+		yield* failQuery();
+
+		yield* rename(3n, "One more");
+
+		expect(yield* subscriptionEnd()).toBe("failed with query unavailable");
 	},
 );
