@@ -2,7 +2,7 @@ import { type ErrorComponentProps, getRouteApi, Link, type NotFoundRouteProps, O
 import { useLayoutEffect } from "react";
 import { isNotFound } from "@shivaedev/errors/taxonomy.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import { noteQuery } from "./noteQuery.ts";
+import { noteQuery, otherNoteQuery } from "./noteQuery.ts";
 import type { routerApp } from "./routerApp.ts";
 import { NoteMissing } from "./routerClient.ts";
 
@@ -41,9 +41,19 @@ export function RouterNote() {
 
 export function RouterFailure({ error }: ErrorComponentProps) {
 	const retry = noteQuery.useRetry();
+	return <RouterError error={error} retry={retry} />;
+}
+
+export function RouterWrongRetry({ error }: ErrorComponentProps) {
+	const retry = otherNoteQuery.useRetry();
+	return <RouterError error={error} retry={retry} />;
+}
+
+function RouterError({ error, retry }: { readonly error: unknown; readonly retry: () => Promise<void> }) {
+	const message = error instanceof NoteMissing ? `${error._tag}:${error.id}` : "Could not load";
 	return (
 		<>
-			<p role="alert">{error instanceof NoteMissing ? `${error._tag}:${error.id}` : "Could not load"}</p>
+			<p role="alert">{message}</p>
 			<button
 				onClick={() => {
 					void retry();
