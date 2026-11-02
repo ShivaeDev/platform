@@ -1,19 +1,12 @@
-import { Clock, Deferred, Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { APP_ID, APP_TOKEN, type AppJwt, appJwtOf, signedByApp } from "./appFixture.ts";
 import { artifactFixture } from "./artifactFixture.ts";
 import { mutationRoutes } from "./mutationRoutes.ts";
 
-export interface PullArrivals {
-	readonly expected: number;
-	readonly reached: Deferred.Deferred<void>;
-	seen: number;
-}
-
 export const appServer = Effect.gen(function* () {
 	const clock = yield* Clock.Clock;
-	const state: { arrivals: PullArrivals | undefined; exchanges: number; jwts: (AppJwt | undefined)[] } = {
-		arrivals: undefined,
+	const state: { exchanges: number; jwts: (AppJwt | undefined)[] } = {
 		exchanges: 0,
 		jwts: [],
 	};
@@ -25,16 +18,6 @@ export const appServer = Effect.gen(function* () {
 	}
 	function installationToken(request: FakeHttpRequest) {
 		return tokens.has(request.headers.authorization ?? "");
-	}
-	function pullArrives(request: FakeHttpRequest) {
-		const arrivals = state.arrivals;
-		if (arrivals !== undefined) {
-			arrivals.seen += 1;
-			if (arrivals.seen === arrivals.expected) {
-				Deferred.doneUnsafe(arrivals.reached, Effect.void);
-			}
-		}
-		return installationToken(request);
 	}
 	const archive = artifactFixture(() => server.url);
 	const server = yield* fakeHttpService({
@@ -60,7 +43,7 @@ export const appServer = Effect.gen(function* () {
 					return { body: { repositories: [{ id, name: `repository-${id}` }] }, headers: { "ETag": `"installation-${id}"` } };
 				},
 			},
-			pull: { guard: pullArrives, path: "/repos/acme/widgets/pulls/1", reply: () => ({ body: { number: 1, title: "App read" } }) },
+			pull: { guard: installationToken, path: "/repos/acme/widgets/pulls/1", reply: () => ({ body: { number: 1, title: "App read" } }) },
 			token: {
 				guard: appRequest,
 				method: "POST",

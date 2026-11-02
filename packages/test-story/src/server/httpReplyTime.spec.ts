@@ -3,6 +3,26 @@ import { rateLimited, timedHttpApp } from "#test/httpFaultApp.ts";
 
 for (const phase of ["before", "after"] as const) {
 	timedHttpApp.it(
+		`computes a held ${phase} fault's reply at arrival before the story advances its clock`,
+		[],
+		function* ({ answer, header, hold, scriptFault, sends, timePasses }) {
+			yield* scriptFault("data", { kind: "status", reply: rateLimited }, { phase });
+			const paused = yield* hold("data");
+			yield* timePasses(12_000);
+			yield* sends("client", "/data?value=held");
+			yield* paused.waiting;
+
+			yield* timePasses(42_000);
+			yield* paused.release;
+
+			yield* outcomes([
+				["answer", () => answer("client"), 'HTTP 429 {"value":"held"}'],
+				["rate limit reset", () => header("client", "x-ratelimit-reset"), "72000"],
+			]);
+		},
+	);
+
+	timedHttpApp.it(
 		`builds a one-shot fault's reply ${phase} the route's reply when the request arrives, at the story clock's time`,
 		[],
 		function* ({ answer, header, scriptFault, sends, timePasses }) {

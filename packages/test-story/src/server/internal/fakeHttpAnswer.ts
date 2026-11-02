@@ -25,24 +25,31 @@ export async function fakeHttpAnswer(
 ) {
 	const { method, path } = request;
 	controls.arrive(name, request, response);
+	const before = controls.takeFault(name, request, "before");
+	let reply: FakeHttpReply = {};
+	if (!before) {
+		reply = pageReply(route, request);
+	} else if (before.kind === "status") {
+		reply = controls.reply(before.reply, request);
+	}
+	const after = before ? undefined : controls.takeFault(name, request, "after");
+	if (after?.kind === "status") {
+		reply = controls.reply(after.reply, request);
+	}
 	if (!(await controls.pause(name, request, response))) {
 		return;
 	}
-	const before = controls.takeFault(name, request, "before");
 	if (before && before.kind !== "status") {
 		tell(`fake HTTP ${name} fault ${before.kind} before reply`);
 		await fakeHttpStrike(response, before);
 		return;
 	}
-	let reply = before ? controls.reply(before.reply, request) : pageReply(route, request);
-	const after = before ? undefined : controls.takeFault(name, request, "after");
 	if (after) {
 		tell(`fake HTTP ${name} fault ${after.kind} after reply`);
 		if (after.kind !== "status") {
 			await fakeHttpStrike(response, after, reply);
 			return;
 		}
-		reply = controls.reply(after.reply, request);
 	}
 	tell(`fake HTTP answered ${method} ${path} with ${reply.status ?? HttpStatus.fromLiteral("OK")}`);
 	await fakeHttpSend(response, reply, controls.stallBody(name, request));

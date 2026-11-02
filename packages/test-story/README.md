@@ -414,7 +414,7 @@ yield* paused.release;
 const user = yield* Fiber.join(pending);
 ```
 
-`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
+`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses delivery until `release`; the route's reply handler runs when the request arrives, so a held reply sees the request and state at arrival. `waiting` completes when the first request reaches the hold. For several arrivals, observe `received` as described under [waiting for a signal](#waiting-for-a-signal). Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
 
 Use the controls through kit verbs after acquiring the service. `scriptFault(route, { kind: "status", reply })` scripts the next authorized reply, including raw bytes or `chunks`, a synchronous or asynchronous iterable of strings and byte arrays. Set `headers["content-type"]` to the story's media type; the default is JSON. Chunks are written in iteration order as they become available, so an async iterable can wait between pieces.
 
@@ -441,7 +441,7 @@ const bytes = yield* Fiber.join(pending);
 
 Use `scriptFault(route, fault, options)` to install a fault for future authorized matching requests. It returns a control with a narrated `lift` effect. The default strikes once before the route's reply runs; `{ repeat: true }` keeps it installed until lifted. Status faults can repeat too.
 
-A status fault’s `reply` can be a fixed `FakeHttpReply` or a function `(request, now) => FakeHttpReply`. The fake evaluates the function when it answers, using the request being answered (including a held request for `fault`) and milliseconds from the Effect `Clock` captured when the service was created. A repeating fault rebuilds its reply for every request. TestClock stories therefore get deterministic refusal times:
+A status fault’s `reply` can be a fixed `FakeHttpReply` or a function `(request, now) => FakeHttpReply`. A scripted function runs at arrival, before any hold, using the arriving request and milliseconds from the Effect `Clock` captured when the service was created. A repeating fault rebuilds its reply for every request. An immediate `fault` evaluates its function when injected, using the waiting request and the clock at injection. TestClock stories therefore get deterministic refusal times:
 
 ```ts
 yield* api.scriptFault("user", {
@@ -740,7 +740,34 @@ const completed = yield* receiver.untilSpan(
 );
 ```
 
-`fakeHttpService` offers `untilAbandoned(matches, options)`. It returns the request record when the connection closes before its response finishes, including a held request or a stalled response body. Completed responses do not emit this signal. An unfinished connection closed by a scripted fault also qualifies; the signal observes the connection, not who closed it.
+`fakeHttpService` exposes two Effect streams of `FakeHttpRequestRecord`: `received` emits once the request body is read and path parameters are decoded, before guards and holds; `completed` emits when the server finishes writing the response, including its body. Receipt includes guard rejections, unmatched routes and malformed path parameters. A held request has arrived without completing; a stalled body has sent headers without completing. Each record's `status` reflects its current state, just like `requests`.
+
+```ts
+const arrived = yield* until(
+	service.received,
+	(request) => request.path === "/orders/42",
+	{ name: "order request received" },
+);
+const completed = yield* until(
+	service.completed,
+	(request) => request.path === "/orders/42",
+	{ name: "order response completed" },
+);
+```
+
+Import `until` and `collectUntil` from `@shivaedev/test-story/server/until.ts`. To wait for several new arrivals to the same path, drop the already recorded requests before filtering and collecting. Capture this stream before starting the requests:
+
+```ts
+const arrivals = service.received.pipe(
+	Stream.drop(service.requests.length),
+	Stream.filter((request) => request.path === "/orders/42"),
+);
+yield* collectUntil(arrivals, (requests) => requests.length === 3, { name: "three order requests received" });
+```
+
+Both streams replay observations from acquisition to each subscriber independently. A wait can therefore start before or after arrival or completion; observing one request does not consume another observer's signal. Use different predicates to wait for individual requests, or drop earlier observations as above when requests share a path. These waits use `until`'s live-time deadline and `SignalNotReceived` diagnostics.
+
+`untilAbandoned(matches, options)` returns the request record when the connection closes before its response finishes, including a held request or a stalled response body. Completed responses do not emit this signal, and abandoned responses do not emit `completed`. An unfinished connection closed by a scripted fault also qualifies; the signal observes the connection, not who closed it.
 
 ```ts
 const abandoned = yield* service.untilAbandoned(
