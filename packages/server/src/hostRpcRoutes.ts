@@ -57,7 +57,7 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			yield* validateReadPolicies(options.group);
-			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure, sensitive.forRpc);
+			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive);
 			const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
 			const websocket = yield* hostRpc(options.group, true).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
