@@ -1,6 +1,6 @@
 import { DateTime, Effect, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { migrateBetterAuth } from "./migrate.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
 
 const StoredSession = Schema.Struct({ expiresAt: Schema.DateTimeUtcFromDate, id: Schema.String });
 

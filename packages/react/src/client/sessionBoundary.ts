@@ -2,7 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import type { Duration } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createElement, Fragment, type ReactNode, useContext } from "react";
-import { DraftSessionContext } from "@shivaedev/form/client/react.ts";
+import { DraftSessionContext } from "@shivaedev/form/adapters/react.ts";
 import { SessionGeneration } from "#client/adapters/SessionGeneration.ts";
 import { SessionHandoff } from "#client/adapters/SessionHandoff.ts";
 import { RecheckContext } from "#internal/RecheckContext.ts";

@@ -1,4 +1,4 @@
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
+import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
 import { readingReadyScreen } from "./readingReadyScreen.tsx";
 import { recordClipboard } from "./readingScreenReads.ts";
 import { followFrames, framesSettle, holdLaterRead, readingSettles } from "./readingSettle.ts";

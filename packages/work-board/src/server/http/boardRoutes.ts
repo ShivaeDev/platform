@@ -1,7 +1,7 @@
 import { Effect, type FileSystem, type Path, type Scope } from "effect";
-import { HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { loopbackOnly } from "@shivaedev/identity/server/local.ts";
+import { loopbackOnly } from "@shivaedev/identity/server/adapters/local.ts";
 import type { Diagnostics } from "#diagnostics/source.ts";
 import { responseUrl, resultUrl } from "#responses/url.ts";
 import type { BoardOptions } from "#server/board.ts";
@@ -28,14 +28,12 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 		Effect.gen(function* () {
 			const { changes, context, home, index, mermaid } = runtime;
 			function serve<E>(route: HttpRouter.PathInput, handler: Handler<E>) {
-				return router.add(
-					"GET",
-					route,
-					loopbackOnly((request) =>
-						Effect.provideContext(handler(request), context).pipe(Effect.flatMap((response) => encodeResponse(request, response, encoded))),
-					),
+				const handle = Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) =>
+					Effect.provideContext(handler(request), context).pipe(Effect.flatMap((response) => encodeResponse(request, response, encoded))),
 				);
+				return router.add("GET", route, loopbackOnly(handle));
 			}
+
 			yield* serve("/_board/attachment/*", attachment(options.root, changes.realRoot));
 			for (const [route, target] of [
 				["overview", "/"],

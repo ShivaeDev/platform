@@ -1,5 +1,5 @@
 import { linesOf } from "#inventory/linesOf.ts";
-import type { Findings, Rule, RuleInputs } from "#rule.ts";
+import type { Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
 import { run } from "#test/run.ts";
 import type { SeedFile } from "./tree.ts";
 
@@ -27,7 +27,9 @@ export async function checkRule<TInput>(rule: Rule<string, TInput>, options: TIn
 	return run(configured.check(inputsOf(seed)));
 }
 
-export async function issuesOf(rule: Rule, options: unknown): Promise<readonly string[]> {
-	const configured = await rule.configure(options);
+export async function issuesOf(rule: RegisteredRule, options: unknown): Promise<readonly string[]> {
+	const configured = await configureRegistered(rule, options);
 	return configured._tag === "Invalid" ? configured.issues : [];
 }
+
+import { configureRegistered } from "#adapters/rule.ts";

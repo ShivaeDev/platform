@@ -4,6 +4,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { readBoundedBody } from "@shivaedev/http/body.ts";
 import type { RemoteStatusError } from "@shivaedev/http/errors.ts";
 import { filterStatus } from "@shivaedev/http/filterStatus.ts";
+import { resolveApiUrl } from "#adapters/resolveApiUrl.ts";
 import { type ArtifactExtractionOptions, extractArtifactArchive } from "#artifactExtraction.ts";
 import { authenticatedRequest } from "#authenticatedRequest.ts";
 import { GitHubArtifactError, GitHubArtifactTooLarge, GitHubTransportError } from "#errors.ts";
@@ -33,7 +34,7 @@ export const artifacts = Effect.fn("GitHub.artifacts")(function* (apiUrl: string
 	return {
 		downloadArtifactArchive: Effect.fn("GitHub.downloadArtifactArchive")(function* (options: ArtifactArchiveOptions) {
 			const path = `/repos/${encodeURIComponent(options.owner)}/${encodeURIComponent(options.repo)}/actions/artifacts/${options.artifactId}/zip`;
-			const redirect = yield* send(HttpClientRequest.get(new URL(path, apiUrl).href, { accept: "application/vnd.github+json" }), "manual").pipe(
+			const redirect = yield* send(HttpClientRequest.get(resolveApiUrl(apiUrl, path), { accept: "application/vnd.github+json" }), "manual").pipe(
 				Effect.catchTags({
 					RemoteGone: (error) => Effect.fail(new GitHubArtifactError({ stage: "redirect", status: error.status }, { cause: error })),
 					RemoteNotFound: (error) => Effect.fail(new GitHubArtifactError({ stage: "redirect", status: error.status }, { cause: error })),

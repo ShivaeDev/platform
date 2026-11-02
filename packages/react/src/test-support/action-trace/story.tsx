@@ -1,5 +1,6 @@
-import { Effect, Layer, Option, Redacted, Schema, Tracer } from "effect";
+import { Effect, Layer, Option, Redacted, Tracer } from "effect";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
+import { linkedWorkerSpans, makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
@@ -11,10 +12,6 @@ import { connect } from "./connect.ts";
 import { Jobs, migrations, Work } from "./feature.ts";
 import { openHost } from "./openHost.ts";
 import { Action, Create, Editor } from "./view.tsx";
-
-const StoredJobs = Schema.Array(
-	Schema.Struct({ payload: Schema.Struct({ id: Schema.Number }), span: Schema.Struct({ spanId: Schema.String, traceId: Schema.String }) }),
-);
 
 function recordingTracer() {
 	const spans: Tracer.Span[] = [];
@@ -108,7 +105,6 @@ export const actions = storyKit({
 		function inTrace(trace: string, name: string, kind?: Tracer.SpanKind) {
 			return engine.ended(name).filter((span) => traceName(span.traceId) === trace && (kind === undefined || span.kind === kind));
 		}
-		const storedJobs = engine.stored().pipe(Effect.map((jobs) => Schema.decodeUnknownSync(StoredJobs)(jobs)));
 		return {
 			click: () => clickWrite(engine),
 			rpcTraces: () =>
@@ -116,16 +112,6 @@ export const actions = storyKit({
 					engine.headers.map((header) =>
 						/^00-[a-f0-9]{32}-[a-f0-9]{16}-01$/u.test(header) ? traceName(header.split("-")[1] ?? "") : `malformed ${header}`,
 					),
-				),
-			storedJobs: () =>
-				Effect.map(storedJobs, (jobs) =>
-					jobs.map(({ payload, span }) => ({
-						id: payload.id,
-						span: inTrace(traceName(span.traceId), "Action.enqueue").some(({ spanId }) => spanId === span.spanId)
-							? "its enqueue span"
-							: "an unknown span",
-						trace: traceName(span.traceId),
-					})),
 				),
 			traceSpans: (trace: string) =>
 				Effect.sync(() => ({
@@ -137,25 +123,24 @@ export const actions = storyKit({
 					).length,
 				})),
 			workerAttempts: () =>
-				Effect.map(storedJobs, (jobs) =>
-					jobs.map(({ payload, span }) => {
-						const attempt = engine
-							.ended("action-work")
-							.find(({ links }) => links.some((link) => link.span.spanId === span.spanId && link.span.traceId === span.traceId));
-						return { id: payload.id, trace: attempt === undefined ? "no attempt" : traceName(attempt.traceId) };
-					}),
+				Effect.forEach(engine.ended("Action.enqueue"), (sender, index) =>
+					Effect.map(linkedWorkerSpans(sender, engine.spans), (workers) => ({
+						enqueue: index + 1,
+						trace: traceName(sender.traceId),
+						workers: workers.map((worker) => traceName(worker.traceId)),
+					})),
 				),
 			workerRuns: () =>
 				Effect.gen(function* () {
 					story.tell("a separate worker consumes the durable jobs");
 					const database = yield* PostgresTestDatabase;
-					const jobs = (yield* storedJobs).length;
+					const testing = makePgBossTesting();
 					yield* Layer.build(
 						Jobs.layer({ jobs: [Work.handle(() => Effect.void)] })
-							.pipe(Layer.provide(pgBossLayer({ connectionString: database.url })))
+							.pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory, connectionString: database.url })))
 							.pipe(Layer.provide(Layer.succeed(Tracer.Tracer, engine.tracer))),
 					);
-					yield* engine.until(() => engine.ended("action-work").length >= jobs);
+					yield* testing.waitForIdle;
 				}),
 		};
 	},

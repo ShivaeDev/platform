@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Context, Deferred, Effect, Fiber } from "effect";
+import { Context, Deferred, Effect, Fiber, Stream } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { vi } from "vitest";
 import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
@@ -9,9 +10,9 @@ import { capacityRejected, HealthSnapshot } from "#engine/health.ts";
 import { cycle, run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttp } from "#test/boardHttp.ts";
-import { until } from "#test/cloudRestart.ts";
 import { prepareWork } from "#test/engine.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
+import { fileCondition } from "#test/fileCondition.ts";
 import { blockedHealth } from "#test/health.ts";
 import { blockedStatus } from "#test/status.ts";
 
@@ -43,11 +44,10 @@ export function enginePublicationVerbs(state: EngineStory, tell: (line: string) 
 		awaitPage: (board: StatusPage, step: string) =>
 			Effect.gen(function* () {
 				tell(`wait until Board renders ${step}`);
-				yield* until(() =>
-					Effect.sync(() => {
-						const observed = board.client.registry.get(board.page);
-						return observed._tag === "Success" && observed.value.document.source.includes(`Stage: ${step}`);
-					}),
+				yield* AtomRegistry.toStream(board.client.registry, board.page).pipe(
+					Stream.filter((observed) => observed._tag === "Success" && observed.value.document.source.includes(`Stage: ${step}`)),
+					Stream.take(1),
+					Stream.runDrain,
 				);
 				return yield* Effect.tryPromise(() => board.client.read(board.page));
 			}),
@@ -122,7 +122,7 @@ export function enginePublicationVerbs(state: EngineStory, tell: (line: string) 
 				}
 				const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.provideContext(context()), Effect.forkChild);
 				yield* Deferred.await(entered);
-				yield* until(() => Effect.sync(() => status().includes("Stage: reviewing")));
+				yield* fileCondition(state.root, Effect.sync(status), (source) => source.includes("Stage: reviewing"));
 				yield* Fiber.interrupt(scheduler);
 				return status();
 			}),

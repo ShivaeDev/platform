@@ -1,18 +1,19 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { NodeServices } from "@effect/platform-node";
-import { Clock, Effect, Layer, Schema } from "effect";
+import { Clock, Context, Effect, Layer, Schema, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import type { HostSettings } from "#host/config.ts";
+import { LiveConfig } from "#host/liveConfig.ts";
 import { hostProvider } from "#host/providers.ts";
 import { ciCapacityCloud } from "#test/ciCapacityCloud.ts";
-import { until } from "#test/cloudRestart.ts";
 import { codexServer } from "#test/codex.ts";
 import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
+import { waitForDispatch } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { hostFixture, task } from "#test/fleetHost.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
@@ -74,7 +75,7 @@ export const ciCapacity = storyKit({
 			Effect.gen(function* () {
 				story.tell(`dispatch ${workId} through the daemon`);
 				yield* state.daemon.client("daemon.dispatch", { workId });
-				yield* until(() => state.daemon.client("daemon.dispatch-status", { workId }).pipe(Effect.map((request) => request?.status !== "pending")));
+				yield* waitForDispatch(state.daemon.client, workId, state.daemon.context);
 			}),
 		failRead: () => {
 			story.tell("GitHub refuses queued-run reads");
@@ -95,10 +96,10 @@ export const ciCapacity = storyKit({
 				story.tell("change the host launch setting");
 				const config = JSON.parse(readFileSync(state.fixture.configFile, "utf8"));
 				state.fixture.write("fleet.config.json", JSON.stringify({ ...config, launch }));
-				yield* until(() =>
-					state.daemon
-						.client("daemon.status", {})
-						.pipe(Effect.map((status) => JSON.stringify(status.config?.settings.launch) === JSON.stringify(launch))),
+				yield* Context.get(state.daemon.context, LiveConfig).changes.pipe(
+					Stream.filter((applied) => JSON.stringify(applied.host.launch) === JSON.stringify(launch)),
+					Stream.take(1),
+					Stream.runDrain,
 				);
 			}),
 		queuedRuns: (count: number) => {

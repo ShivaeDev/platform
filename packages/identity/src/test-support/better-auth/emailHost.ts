@@ -2,8 +2,8 @@ import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Deferred, type Duration, Effect } from "effect";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
 
 export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input) {
 	const messages: AuthEmail[] = [];

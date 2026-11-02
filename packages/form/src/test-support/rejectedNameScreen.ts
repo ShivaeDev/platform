@@ -3,7 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { useField, useSubmit } from "#client/react.ts";
+import { useField, useSubmit } from "#adapters/react.ts";
 import { form } from "#form.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });

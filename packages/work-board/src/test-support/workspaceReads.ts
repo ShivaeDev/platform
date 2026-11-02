@@ -1,8 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import process from "node:process";
-import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
@@ -16,11 +15,10 @@ import { documentHeadings } from "#render/documentHeadings.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import { renderMarkdown } from "#server/render/markdown.ts";
-import { fullIndex } from "./fullIndex.ts";
-import { inMemoryBoard } from "./inMemoryBoard.ts";
 import { rpcCall } from "./nativeRpc.ts";
 import { renderRemaining } from "./renderRemaining.tsx";
 import { type BoardEngine, served } from "./storyEngine.ts";
+import { workspaceBoard } from "./workspaceBoard.ts";
 
 export const parser = new Window();
 
@@ -106,24 +104,10 @@ export function workspaceReads(engine: BoardEngine) {
 		return execFileSync(process.execPath, ["--conditions=source", CLI, "migrate", engine.notes.root], { encoding: "utf8" });
 	}
 	function inbox() {
-		return Effect.gen(function* () {
-			const snapshot = yield* fullIndex(engine.notes.root).pipe(Effect.provide(NodeServices.layer));
-			return yield* Effect.scoped(
-				Effect.flatMap(RpcTest.makeClient(workRpcs, { flatten: true }), (client) => client("work-board.inbox", undefined)),
-			).pipe(Effect.provide(inMemoryBoard({}, { home: undefined, index: Effect.succeed(snapshot) })));
-		});
+		return onDisk((client) => client("work-board.inbox", undefined));
 	}
-	// A freshly started board can list a file before its index settles, so readouts that are not about startup read the files on disk.
 	function onDisk<A, E>(read: (client: Effect.Success<typeof workClient>) => Effect.Effect<A, E>) {
-		const files = Object.fromEntries(
-			readdirSync(engine.notes.root, { recursive: true, withFileTypes: true })
-				.filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-				.map((entry) => {
-					const path = relative(engine.notes.root, join(entry.parentPath, entry.name));
-					return [path, saved(path)];
-				}),
-		);
-		return Effect.scoped(Effect.flatMap(workClient, read)).pipe(Effect.provide(inMemoryBoard(files, { home: undefined })));
+		return Effect.scoped(Effect.flatMap(workClient, read)).pipe(Effect.provide(workspaceBoard({}, { home: undefined, workspace: engine.notes })));
 	}
 	function diskLibrary() {
 		return onDisk((client) => client("work-board.library", { showFleet: true }));

@@ -60,6 +60,11 @@ export type Config<TFields extends Fields, A, E, R, TRuntimeError> = {
 	? { readonly runtime?: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError> }
 	: { readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError> });
 
+export interface Snapshot<TFields extends Fields> {
+	readonly decoded: Decoded<TFields>;
+	readonly encoded: Encoded<TFields>;
+}
+
 export interface Form<TFields extends Fields, A, E, TRuntimeError> {
 	readonly blur: (name: Name<TFields>) => void;
 	readonly change: <TKey extends Name<TFields>>(name: TKey, value: Encoded<TFields>[TKey]) => void;
@@ -72,6 +77,7 @@ export interface Form<TFields extends Fields, A, E, TRuntimeError> {
 	readonly revert: () => void;
 	readonly submit: Atom.AtomResultFn<void, A, E | TRuntimeError | FieldFailure | Invalid>;
 	readonly submitting: Atom.Atom<boolean>;
+	readonly validate: Atom.AtomResultFn<void, Snapshot<TFields>, TRuntimeError | Invalid>;
 	readonly values: AtomRef.AtomRef<Encoded<TFields>>;
 }
 

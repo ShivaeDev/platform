@@ -50,7 +50,7 @@ export const pending = platform.trait("pending", "framework and binary changes a
 	const fs = yield* FileSystem.FileSystem;
 	yield* fs.writeFileString(
 		join(root, ".changeset/release-story.md"),
-		'---\n"@shivaedev/platform": patch\n"@shivaedev/create-app": patch\n"@shivaedev/work-board": patch\n"@shivaedev/work-fleet": patch\n---\n\n### Fixed\n\n- Release story behavior.\n',
+		'---\n"@shivaedev/platform": patch\n"@shivaedev/create-app": patch\n"@shivaedev/work-board": patch\n"@shivaedev/work-fleet": patch\n---\n\n### Fixed\n\n- `@shivaedev/platform`: Release story behavior.\n- `@shivaedev/create-app`: Release story behavior.\n- `@shivaedev/work-board`: Release story behavior.\n- `@shivaedev/work-fleet`: Release story behavior.\n',
 	);
 	yield* Effect.sync(() => {
 		git(root, "add", ".changeset/release-story.md");

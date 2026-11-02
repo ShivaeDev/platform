@@ -2,7 +2,7 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import type { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import type { ReactNode } from "react";
 import { boardRouter } from "#client/react/boardRouter.ts";
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
+import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
 import { type BoardTestApi, renderBoard } from "./react.tsx";
 
 export async function renderRouter(

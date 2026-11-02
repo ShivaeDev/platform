@@ -110,7 +110,7 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		},
 		dispatch: (workId: string) => {
 			tell(`dispatch ${workId} through the daemon`);
-			return dispatchAndWait(engine.running.client, workId);
+			return dispatchAndWait(engine.running.client, workId, engine.running.context);
 		},
 		fleetDispatch: (workId: string) => {
 			tell(`launch prepared work ${workId}`);
@@ -180,7 +180,8 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			tell("stop the daemon");
 			return engine.stop();
 		},
-		waitForRecord: (workId: string, ready: Parameters<typeof waitForRecord>[2]) => waitForRecord(engine.running.client, workId, ready),
+		waitForRecord: (workId: string, ready: Parameters<typeof waitForRecord>[2]) =>
+			waitForRecord(engine.running.client, workId, ready, engine.running.context),
 		workerContextCount: () => engine.workerContexts?.length ?? 0,
 	};
 }

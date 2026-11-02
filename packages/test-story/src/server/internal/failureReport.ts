@@ -56,7 +56,11 @@ function storyRows(narration: Narration, test: FailedTest): string[] {
 }
 
 function rerun(test: FailedTest): string {
-	const run = `Rerun: vitest run ${relative(process.cwd(), test.file)}`;
-	const filter = `-t "${test.name.replaceAll(/[$()*+.?[\\\]^{|}]/gu, "\\$&")}"`;
+	const run = `Rerun: vitest run ${shellQuote(relative(process.cwd(), test.file))}`;
+	const filter = `-t ${shellQuote(test.name.replaceAll(/[$()*+.?[\\\]^{|}]/gu, "\\$&"))}`;
 	return run.length + 1 + filter.length > WIDTH ? `${run} \\\n  ${filter}` : `${run} ${filter}`;
+}
+
+function shellQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
 }

@@ -36,7 +36,7 @@ export const modulesHost = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: State) {
 			const database = yield* PostgresTestDatabase;
-			const modules = appModules([notesModule, tasksModule], { replacements: state.replacements });
+			const modules = yield* appModules([notesModule, tasksModule], { replacements: state.replacements });
 			const services = yield* Layer.build(
 				appHost({
 					...modules,

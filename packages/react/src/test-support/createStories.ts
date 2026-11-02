@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { draftStorage } from "./draftStorage.ts";
+import { browserPersistence, draftStorage } from "./draftStorage.ts";
 import { persistedCreateView } from "./persistedCreateView.tsx";
 import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
@@ -35,7 +35,7 @@ function key(state: State) {
 	return state.form === "direct hook" ? "direct-draft" : "create-draft";
 }
 
-function createVerbs(state: State, screen: Screen, now: () => number, held = false) {
+function createVerbs(state: State, screen: Screen, held = false) {
 	function create(values: { readonly name: string; readonly quantity: number }) {
 		return held ? Deferred.await(state.complete).pipe(Effect.as(values)) : Effect.succeed(values);
 	}
@@ -50,14 +50,16 @@ function createVerbs(state: State, screen: Screen, now: () => number, held = fal
 		open: () =>
 			Effect.gen(function* () {
 				const view = yield* screen.open();
-				state.view = yield* Effect.promise(() => persistedCreateView(view, now, create, state.form === "direct hook"));
+				const persistence = yield* browserPersistence;
+				state.view = yield* Effect.promise(() => persistedCreateView(view, persistence, create, state.form === "direct hook"));
 			}),
 		reload: () =>
 			Effect.gen(function* () {
 				screen.tell("reload the create form in a fresh root and registry");
 				yield* Effect.promise(current(state).unmount);
 				const view = yield* screen.open();
-				state.view = yield* Effect.promise(() => persistedCreateView(view, now, create, state.form === "direct hook"));
+				const persistence = yield* browserPersistence;
+				state.view = yield* Effect.promise(() => persistedCreateView(view, persistence, create, state.form === "direct hook"));
 			}),
 		session: (session: string) => screen.act(`show the ${session} session`, () => current(state).show(session)),
 		submit: () =>
@@ -75,8 +77,8 @@ export const creates = storyKit(
 	screenKit(
 		"persisted create screen",
 		(): State => ({ complete: Deferred.makeUnsafe<void>(), form: "create adapter", holding: false }),
-		(state, screen, now) => ({
-			...createVerbs(state, screen, now),
+		(state, screen) => ({
+			...createVerbs(state, screen),
 			name: () => Effect.sync(() => current(state).container.querySelector<HTMLInputElement>('input[name="name"]')?.value),
 			stored: () =>
 				Effect.sync(() => {
@@ -88,17 +90,17 @@ export const creates = storyKit(
 );
 
 export function createTyped(name: string, form: Form = "create adapter") {
-	return creates.trait("screen", `a persisted ${form} form on Paper with the name ${name} typed`, function* ({ now, screen, state }) {
+	return creates.trait("screen", `a persisted ${form} form on Paper with the name ${name} typed`, function* ({ screen, state }) {
 		state.form = form;
-		const { open, type } = createVerbs(state, screen, now);
+		const { open, type } = createVerbs(state, screen);
 		yield* open();
 		yield* type(name);
 	});
 }
 
 export function createRestored() {
-	return creates.trait("screen", "a persisted create form whose draft New order a reload restored", function* ({ now, screen, state }) {
-		const { open, reload, type } = createVerbs(state, screen, now);
+	return creates.trait("screen", "a persisted create form whose draft New order a reload restored", function* ({ screen, state }) {
+		const { open, reload, type } = createVerbs(state, screen);
 		yield* open();
 		yield* type("New order");
 		yield* reload();
@@ -109,8 +111,8 @@ export function createHeldWithLaterEdit() {
 	return creates.trait(
 		"screen",
 		"a persisted create form with a held create of Submitted and the later edit Later edit",
-		function* ({ now, screen, state }) {
-			const { open, submit, type } = createVerbs(state, screen, now, true);
+		function* ({ screen, state }) {
+			const { open, submit, type } = createVerbs(state, screen, true);
 			yield* open();
 			yield* type("Submitted");
 			yield* submit();

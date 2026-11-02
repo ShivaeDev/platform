@@ -11,6 +11,9 @@ export interface AppModule {
 	readonly group: RpcGroup.Any;
 	readonly handlers: ModuleLayer;
 	readonly migrations: Pick<MigrationOptions<unknown, unknown>, "loader" | "components">;
+	readonly name: string;
 	readonly ports?: ModuleLayer;
+	readonly queues?: readonly { readonly name: string }[];
 	readonly services: ModuleLayer;
+	readonly workers?: ModuleLayer;
 }

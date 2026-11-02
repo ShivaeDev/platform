@@ -35,6 +35,19 @@ Use a distinct literal identifier for each jobs service. The service and its Lay
 
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
 
+### Contribute workers to application modules
+
+`jobModule` from `@shivaedev/jobs/server/jobModule.ts` returns `queues` and `workers` fields for an `AppModule` in `@shivaedev/server`. Its queue declarations come from the same registrations its worker Layer runs:
+
+```ts
+import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
+import { Jobs, SendEmail, Mail } from "./app.ts";
+
+const jobs = jobModule(Jobs.layer, { jobs: [SendEmail.handle(({ userId }) => Mail.send(userId))] });
+```
+
+Spread these fields into the owning module. Keep the producer's jobs Layer in its services or ports. The application builds `appModules` once and passes its result to `appHost` or `workerHost`; both hosts provide the module's services and ports to their work. Queue definitions without handlers and scheduled workers can also appear in the registration list.
+
 ### Share queue names with the browser
 
 Keep names and payload Schemas in a browser-safe module such as `queues.ts`:
@@ -486,6 +499,8 @@ const live = Jobs.layer({ jobs: [sendAndQueueReceipt, Receipt] }).pipe(Layer.pro
 Include every target queue in `jobs`, as either a worker or a producer-only definition. Startup creates all queues before starting consumers. The example registers `Receipt` for another process to consume. A follow-up target can also have a worker in the same Layer. Scheduled effects can yield `Jobs` too. Keep one jobs Layer in the process's native Layer graph; that Layer owns one client for enqueueing and handling.
 
 ### Test through the queue contract
+
+`linkedWorkerSpans(sender, spans)` from `@shivaedev/jobs/server/testing.ts` reads native recorded Effect spans and returns the pg-boss consumer spans whose links match both the sender's `traceId` and `spanId`. It returns every matching attempt, including retries, and no matches before a worker runs. An untraced job has no sender link. Settle the workers before reading their completed attempts; this readout does not wait or read queue storage.
 
 `testing.ts` gives story kits a controller for one real pg-boss client. Create a fresh controller per runtime, pass its `clientFactory` to `pgBossLayer`, and keep that Layer scoped as usual. `jobs(queue, options?)` returns native job metadata with `data` decoded through the queue's Schema, including traced payloads. Invalid durable data fails with `PgBossPayloadError`; decoding services remain in the Effect's requirements.
 

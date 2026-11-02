@@ -1,6 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
-import process from "node:process";
+import { writeSnapshot } from "#adapters/writeSnapshot.ts";
 import type { FailedTest } from "#internal/failureReport.ts";
 import type { Subject } from "#internal/narration.ts";
 import { describeValue, toJson } from "#internal/render.ts";
@@ -21,13 +19,6 @@ function snapshot<TEngine>(subject: Subject<TEngine>): Snapshot {
 	}
 }
 
-function slug(text: string): string {
-	return text
-		.toLowerCase()
-		.replaceAll(/[^a-z0-9.]+/gu, "-")
-		.slice(0, 80);
-}
-
 export function engineSnapshot<TEngine>(subject: Subject<TEngine>, test: FailedTest): string[] {
 	const heading = `The ${subject.name} when the test failed`;
 	const taken = snapshot(subject);
@@ -38,14 +29,5 @@ export function engineSnapshot<TEngine>(subject: Subject<TEngine>, test: FailedT
 	if (json.length <= INLINE_CHARACTERS) {
 		return heading.length + 2 + json.length > WIDTH ? [`${heading}:`, ...wrapJson(json)] : [`${heading}: ${json}`];
 	}
-	const file = join(
-		process.cwd(),
-		"node_modules",
-		".cache",
-		"test-story",
-		`${slug(basename(test.file))}--${slug(test.name)}--${slug(subject.name)}.json`,
-	);
-	mkdirSync(dirname(file), { recursive: true });
-	writeFileSync(file, toJson(taken.value, 2));
-	return wrap(`${heading} is ${json.length} characters of JSON, too long to print here. Read it in ${relative(process.cwd(), file)}`);
+	return writeSnapshot(subject.name, test, taken.value, json.length);
 }

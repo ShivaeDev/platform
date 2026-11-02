@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { act, createElement } from "react";
 import { expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { useSubmit } from "#client/react.ts";
+import { useSubmit } from "#adapters/react.ts";
 import { form } from "#form.ts";
 import { Passwords } from "./schemaMessages.ts";
 

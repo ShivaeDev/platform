@@ -87,6 +87,11 @@ export function screenData(engine: ScreenEngine, tell: (line: string) => void) {
 			const { api, registry } = client();
 			await act(() => Promise.resolve().then(() => registry.refresh(api.inbox.query(undefined, routeQueryOptions))));
 		},
+		refreshLibrary: async () => {
+			tell("the reader refreshes the Library");
+			const { api, registry } = client();
+			await act(() => Promise.resolve().then(() => registry.refresh(api.library.query({}, routeQueryOptions))));
+		},
 		refreshQuery: async (
 			kind: "document" | "board" | "handoff" | "work" | "search",
 			input: { readonly url: string } | { readonly query: string },

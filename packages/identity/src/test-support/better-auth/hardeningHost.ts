@@ -8,7 +8,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import type { BetterAuthHardeningOptions } from "#server/better-auth/adapters/hardening.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 
 export const CURRENT_PASSWORD = "alice-current-password";
 // A precomputed Better Auth hash keeps credential verification real without hashing each story's setup.

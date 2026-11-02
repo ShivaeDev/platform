@@ -28,23 +28,14 @@ export function withFollower<A, E, R>(
 		: run(options.port);
 }
 
-export const untilOutput = Effect.fn("FollowerTest.untilOutput")(function* (follower: Follower, text: string, timeoutMs?: number) {
-	yield* untilText(follower.output, text, timeoutMs);
-});
+export function untilOutput(follower: Follower, text: string, timeoutMs?: number) {
+	const printed = follower.text("stdout", text);
+	return timeoutMs === undefined ? printed : printed.pipe(Effect.timeout(timeoutMs), Effect.orDie);
+}
 
-export const untilError = Effect.fn("FollowerTest.untilError")(function* (follower: Follower, text: string, offset = 0) {
-	yield* untilText(() => follower.errors().slice(offset), text);
-});
-
-const untilText = Effect.fn("FollowerTest.untilText")(function* (output: () => string, text: string, timeoutMs = 10_000) {
-	for (let attempt = 0; attempt < timeoutMs / 10; attempt += 1) {
-		if (output().includes(text)) {
-			return;
-		}
-		yield* Effect.sleep("10 millis");
-	}
-	return yield* Effect.die(new Error(`Follower did not print ${text}; got ${output()}`));
-});
+export function untilError(follower: Follower, text: string, offset = 0) {
+	return follower.text("stderr", text, offset);
+}
 
 export function untilEveryOutput(followers: readonly Follower[], text: string) {
 	return Effect.forEach(followers, (follower) => untilOutput(follower, text), { discard: true });

@@ -2,16 +2,18 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { adminScreen, adminScreens, countedNotes, twoFailedJobs } from "#modules/notes/test-support/admin/screens.tsx";
 
-adminScreens.it("the Jobs page filters by the app's note word-count queue", [adminScreen()], function* ({ queueFilter, settle }) {
+adminScreens.it("the Jobs page filters by foundation and note word-count queues", [adminScreen()], function* ({ queueFilter, settle }) {
 	yield* settle();
 
-	expect(yield* queueFilter()).toEqual(["count-note-words"]);
+	expect(yield* queueFilter()).toEqual(["identity.auth-emails", "sweep-expired-auth-sessions", "count-note-words"]);
 });
 
 adminScreens.it(
 	"a failed note job opens its detail without a Retry job control",
 	[twoFailedJobs, adminScreen()],
-	function* ({ failedJobs, offers, openJob, opensFailedJob, settle }) {
+	function* ({ choosesQueue, failedJobs, offers, openJob, opensFailedJob, settle }) {
+		yield* settle();
+		yield* choosesQueue("count-note-words");
 		yield* settle();
 		expect(yield* failedJobs()).toEqual(["first-job", "second-job"]);
 
@@ -27,7 +29,9 @@ adminScreens.it(
 adminScreens.it(
 	"a session change closes the admin streams and clears the failed jobs and the open detail",
 	[twoFailedJobs, adminScreen()],
-	function* ({ changesSession, failedJobs, liveAdminStreams, openJob, opensFailedJob, settle }) {
+	function* ({ changesSession, choosesQueue, failedJobs, liveAdminStreams, openJob, opensFailedJob, settle }) {
+		yield* settle();
+		yield* choosesQueue("count-note-words");
 		yield* settle();
 		yield* opensFailedJob("first-job");
 		yield* outcomes([

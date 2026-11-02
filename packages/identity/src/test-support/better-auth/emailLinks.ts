@@ -10,7 +10,7 @@ import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 
 type Mail = "verification" | "reset";
 

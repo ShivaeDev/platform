@@ -12,7 +12,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUser } from "#identity.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { listSessions } from "#server/better-auth/sessionAdministration.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";

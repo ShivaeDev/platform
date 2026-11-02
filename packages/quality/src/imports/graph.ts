@@ -1,12 +1,8 @@
-import { realpathSync } from "node:fs";
-import { join, posix } from "node:path";
-import ts from "typescript";
+import { Effect } from "effect";
+import { ImportCompiler } from "#adapters/ImportCompiler.ts";
 import type { Findings, RuleInputs, SourceFile } from "#rule.ts";
-import { parse } from "#rules/parse.ts";
-import { ambientModules } from "./ambient.ts";
-import { type ImportKind, type ImportRequest, importsOf } from "./extract.ts";
-import { type Project, projectsFor } from "./projects.ts";
-import { type Endpoint, isDeclarationFile, presumedTarget, resolveImport } from "./resolve.ts";
+import type { Endpoint } from "./Endpoint.ts";
+import type { ImportKind } from "./extract.ts";
 import { type WorkspacePackage, workspacePackages } from "./workspace.ts";
 
 export interface ImportEdge {
@@ -28,61 +24,29 @@ export interface ImportGraph {
 	readonly unresolved: readonly UnresolvedImport[];
 }
 
-const QUERY = /\?.*$/u;
-
-const NO_MODULES =
-	"the import graph covers no modules: the sources hold no TypeScript or JavaScript module. Point `sources` at the TypeScript or JavaScript code.";
-
-function relativeTarget(from: string, request: ImportRequest): string | undefined {
-	const relative = request.kind === "path-reference" || request.specifier.startsWith("./") || request.specifier.startsWith("../");
-	return relative ? posix.join(posix.dirname(from), request.specifier.replace(QUERY, "")) : undefined;
-}
-
-// A relative import or a package import of a missing file still names a path, so fences see it before its generator writes it.
-function missingTarget(root: string, from: string, request: ImportRequest, project: Project): string | undefined {
-	const target = presumedTarget(root, request, join(root, from), project) ?? relativeTarget(from, request);
-	return target === undefined || target.startsWith("../") ? undefined : target;
-}
-
-function walk(inputs: RuleInputs, root: string): Pick<ImportGraph, "configFindings" | "edges" | "modules" | "unresolved"> {
-	const projectOf = projectsFor(root);
-	const parsed = inputs.sources.flatMap((file) => {
-		const syntax = parse(file);
-		return syntax === undefined ? [] : [{ file, path: join(root, file.path), syntax }];
-	});
-	const ambient = ambientModules(parsed);
-	const edges: ImportEdge[] = [];
-	const unresolved: UnresolvedImport[] = [];
-	for (const { file, path, syntax } of parsed) {
-		const project = projectOf(path);
-		syntax.impliedNodeFormat = ts.getImpliedNodeFormatForFile(path, undefined, ts.sys, project.options);
-		for (const request of importsOf(syntax, isDeclarationFile(file.path), project.options)) {
-			const to = resolveImport(root, ambient, request, path, project);
-			if (to === undefined) {
-				const missing = missingTarget(root, file.path, request, project);
-				unresolved.push({ ...request, from: file.path, missing });
-				edges.push(...(missing === undefined ? [] : [{ ...request, from: file.path, to: { kind: "file" as const, path: missing } }]));
-			} else {
-				edges.push({ ...request, from: file.path, to });
-			}
-		}
-	}
-	return { configFindings: projectOf.findings, edges, modules: parsed.map(({ file }) => file.path), unresolved };
-}
-
-async function build(inputs: RuleInputs): Promise<ImportGraph> {
-	const walked = walk(inputs, realpathSync(inputs.root));
+const build = Effect.fn("Imports.build")(function* (inputs: RuleInputs) {
+	const compiler = yield* ImportCompiler;
+	const walked = yield* compiler.graph(inputs);
 	if (walked.modules.length === 0) {
-		throw new Error(NO_MODULES);
+		return yield* Effect.die(
+			new Error(
+				"the import graph covers no modules: the sources hold no TypeScript or JavaScript module. Point `sources` at the TypeScript or JavaScript code.",
+			),
+		);
 	}
-	return { ...walked, packages: await workspacePackages(inputs) };
-}
+	return { ...walked, packages: yield* Effect.promise(() => workspacePackages(inputs)) };
+});
 
-const graphs = new WeakMap<readonly SourceFile[], Promise<ImportGraph>>();
+type Graph = ReturnType<typeof build>;
+const graphs = new WeakMap<readonly SourceFile[], Effect.Effect<ImportGraph, Effect.Error<Graph>>>();
 
 // Import rules run on one scan, so they share the graph built from its sources.
-export function importGraph(inputs: RuleInputs): Promise<ImportGraph> {
-	const known = graphs.get(inputs.sources) ?? build(inputs);
-	graphs.set(inputs.sources, known);
-	return known;
-}
+export const importGraph = Effect.fn("Imports.importGraph")(function* (inputs: RuleInputs) {
+	const known = graphs.get(inputs.sources);
+	if (known !== undefined) {
+		return yield* known;
+	}
+	const graph = yield* Effect.cached(build(inputs).pipe(Effect.provide(ImportCompiler.layer)));
+	graphs.set(inputs.sources, graph);
+	return yield* graph;
+});

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode } from "react";
-import type { BrowserDraftConfig } from "@shivaedev/form/client/react.ts";
+import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
@@ -11,7 +11,7 @@ import { submitForm, typeInput } from "./Screen.ts";
 
 export async function persistedDraftView(
 	view: Rendered,
-	persistedDraft: BrowserDraftConfig,
+	persistedDraft: PersistedDraftConfig,
 	save: Save = (values) => Effect.succeed({ ...values, quantity: String(values.quantity) }),
 	session = "first",
 ) {

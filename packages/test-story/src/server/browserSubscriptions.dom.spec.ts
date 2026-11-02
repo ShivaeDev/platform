@@ -10,6 +10,53 @@ readPage.it("the page's answered subscription settles the wait", [], function* (
 	]);
 });
 
+for (const ending of ["empty", "defect"] as const) {
+	readPage.it(
+		`a subscription ending with ${ending} closes its opening and settles every wait`,
+		[],
+		function* ({ openSecondPage, startWaiting, endSecondPage, readout }) {
+			yield* openSecondPage();
+			const first = yield* startWaiting();
+			const second = yield* startWaiting();
+			yield* outcomes([
+				["first wait", () => first.state, "waiting"],
+				["second wait", () => second.state, "waiting"],
+				["subscription openings", () => readout.subscriptionStates, ["answered", "open"]],
+			]);
+
+			yield* endSecondPage(ending);
+			yield* first.finish;
+			yield* second.finish;
+
+			yield* outcomes([
+				["subscription openings", () => readout.subscriptionStates, ["answered", "closed"]],
+				["received hints", () => readout.hints, [{ _tag: "Resync" }]],
+			]);
+		},
+	);
+}
+
+readPage.it(
+	"a disconnected stream closes its pending subscription and settles every wait",
+	[],
+	function* ({ openSecondPage, startWaiting, disconnect, readout }) {
+		yield* openSecondPage();
+		const first = yield* startWaiting();
+		const second = yield* startWaiting();
+		yield* outcomes([
+			["first wait", () => first.state, "waiting"],
+			["second wait", () => second.state, "waiting"],
+			["subscription openings", () => readout.subscriptionStates, ["answered", "open"]],
+		]);
+
+		yield* disconnect();
+		yield* first.finish;
+		yield* second.finish;
+
+		expect(yield* readout.subscriptionStates).toEqual(["answered", "closed"]);
+	},
+);
+
 readPage.it(
 	"a refused subscription reports its refusal tag and settles the wait without a hint",
 	[],

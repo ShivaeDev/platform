@@ -1,8 +1,10 @@
 import { renameSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
-import { Context, Effect } from "effect";
+import { Context, Effect, Option, Stream } from "effect";
 import type { HostConfig } from "#host/config.ts";
 import type { ConfigStatus } from "#host/configSettings.ts";
+import { configStatus } from "#host/configSettings.ts";
+import { LiveConfig } from "#host/liveConfig.ts";
 import { FleetPolicy } from "#policy.ts";
 import { waitForRecord } from "#test/daemonActions.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
@@ -29,7 +31,12 @@ export function hostConfigVerbs(engine: HostStoryEngine, tell: (line: string) =>
 			}),
 		editText: (text: string) => Effect.sync(() => writeFileSync(engine.fixture.configFile, text)),
 		launched: (workId: string) =>
-			waitForRecord(engine.running.client, workId, (record) => record.step === "working" && record.attempts.at(-1)?.receipt !== undefined),
+			waitForRecord(
+				engine.running.client,
+				workId,
+				(record) => record.step === "working" && record.attempts.at(-1)?.receipt !== undefined,
+				engine.running.context,
+			),
 		policy: () =>
 			Effect.suspend(() => {
 				const policy = Context.get(engine.running.context, FleetPolicy);
@@ -46,20 +53,19 @@ export function hostConfigVerbs(engine: HostStoryEngine, tell: (line: string) =>
 			engine.pullRequest.state.pending = pending;
 		},
 		waitForConfig: (ready: (config: ConfigStatus) => boolean) =>
-			Effect.gen(function* () {
-				while (true) {
-					const config = (yield* engine.running.client("daemon.status", {})).config;
-					if (config !== undefined && ready(config)) {
-						return config;
-					}
-					yield* Effect.sleep("20 millis");
-				}
-			}).pipe(Effect.timeout("10 seconds")),
+			Context.get(engine.running.context, LiveConfig).changes.pipe(
+				Stream.map(configStatus),
+				Stream.filter(ready),
+				Stream.take(1),
+				Stream.runHead,
+				Effect.map(Option.getOrThrow),
+			),
 		waiting: (workId: string) =>
 			waitForRecord(
 				engine.running.client,
 				workId,
 				(record) => record.step === "queued" && record.attempts.length === 0 && record.blocker !== undefined,
+				engine.running.context,
 			),
 	};
 }

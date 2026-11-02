@@ -38,7 +38,7 @@ The bakery when the test failed:
 {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"overfired":false,
 "smoking":false,"starter":false}
 
-Rerun: vitest run src/test-support/failingStories.ts -t "Bakery Story: marks where an assertion stopped the story"
+Rerun: vitest run 'src/test-support/failingStories.ts' -t 'Bakery Story: marks where an assertion stopped the story'
 ```
 
 The first line is the assertion's own message. The box under it tells a reader who has never seen the package how to read what follows. Then comes the story: the two traits the test named, the line the bakery told as it baked, and a `✗` where the test stopped, with the spec line it stopped at. Last come the bakery's whole state at that moment and the command that reruns the test, so the failure alone is enough to find the cause.
@@ -527,7 +527,7 @@ The bakery when the test failed:
 {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"overfired":false,
 "smoking":false,"starter":false}
 
-Rerun: vitest run src/test-support/failingStories.ts -t "Bakery Story: marks the trait that refused"
+Rerun: vitest run 'src/test-support/failingStories.ts' -t 'Bakery Story: marks the trait that refused'
 ```
 
 The first line names the trait and what it threw, which the error also keeps as its `cause`, and the `help:` line says what to change. The `✗` marks the trait that refused, and the line under it points at the spec line that named it. A trait that fails with a string, a plain object or a tagged error prints by its content, never as `[object Object]`, and an interrupted trait stays interrupted.
@@ -786,7 +786,7 @@ After the engine has been created, a failing story test adds the story to its fi
 - a short guide to reading the story, in a box;
 - every line in order, traits marked `given`;
 - `✗` after the last line, on the trait that refused, or alone when the test failed before the story told a line, and under it the spec line where the test stopped or that named the refusing trait;
-- the engine's state from `inspect` as JSON, broken between its fields to fit 120 columns. State longer than 2,000 characters is written to `node_modules/.cache/test-story/` under the working directory, and the failure names the file;
+- the engine's state from `inspect` as JSON, broken between its fields to fit 120 columns. State longer than 2,000 characters is written to `node_modules/.cache/test-story/` under the working directory, and the failure names the file. If writing fails, the report keeps the story and shows the filesystem error;
 - the command that reruns the test, with `-t` on a second line when one line would pass 120 columns.
 
 The package wraps between words or JSON fields toward 120 columns and prints the story's own lines whole. An indivisible word, field or rerun command component can exceed that width. A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.
@@ -963,7 +963,7 @@ yield* screen.settle();
 expect(screen.text("output")).toBe("Saved title");
 ```
 
-This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
+This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. If the client activity stream ends without a new hint, the wait fails with `SignalNotReceived` from `server/until.ts`. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
 
 `click(selector)`, `enter(selector, value)`, `select(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root or a dialog portalled into its document (owned by that member for `memberScreens`); missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Select focuses a native `<select>`, sets an available option value and dispatches change inside `act`. Disabled controls refuse clicks, entry and selection, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
@@ -1006,7 +1006,7 @@ const client = makeClient(Notes, { protocol: observed.protocol, url });
 
 Expose `observed.readCount`, `observed.reads`, `observed.hints` and `observed.watchHints` through the kit's verbs. `readCount()` counts query requests and `$changes` subscription openings; `readCount("notes.list")` selects one tag. `reads()` returns their `tag`, encoded `payload` and `kind` (`"query"` or `"subscription"`), in send order. Commands and protocol acknowledgements do not count. `hints()` returns the `LiveHint` values received for those subscriptions, including `Resync`.
 
-`observed.subscriptions()` returns each opening's `tag`, encoded `payload` and `state`: `"open"`, `"answered"` after its first streamed value, or `"refused"` with `refusalTag` from its failure Exit. A refusal is not a hint. Expose `observed.waitForSubscriptions` through the kit and `yield* waitForSubscriptions` after the page has opened its subscriptions. It waits on response signals until every opening has answered or been refused. It has no polling budget and resolves immediately when no opening is pending. It does not wait for future navigation to open subscriptions or for React to render.
+`observed.subscriptions()` returns each opening's `tag`, encoded `payload` and `state`: `"open"`, `"answered"` after its first streamed value, `"refused"` with `refusalTag` from a tagged failure Exit, or `"closed"` when the stream completes empty, dies or disconnects before answering. A refusal or closure is not a hint. Expose `observed.waitForSubscriptions` through the kit and `yield* waitForSubscriptions` after the page has opened its subscriptions. It waits on response signals until every opening has answered, been refused or closed. Closing a client also closes its unanswered openings and leaves other clients' openings pending. It has no polling budget and resolves immediately when no opening is pending. It does not wait for future navigation to open subscriptions or for React to render.
 
 A story calls `const hints = yield* watchHints()` before the write, then `yield* hints.next` to await its browser delivery. Each watcher buffers its own future deliveries until the calling Scope closes. The wait uses the transport's signal with no polling budget. A hint means the browser received it; wait on the application's query or screen signal separately before asserting its rendered result or refetch count. Give another page its own readout to keep its traffic separate.
 

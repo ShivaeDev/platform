@@ -8,19 +8,19 @@ const breakingPlan = [
 	changeset(
 		"a-shared",
 		{ "@test/api": "minor", "@test/core": "minor" },
-		"### Breaking\n\n- Replace `old` → `current`.\n  Pass the service explicitly.\n",
+		"### Breaking\n\n- `@test/api`: Replace `old` → `current`.\n  Pass the service explicitly.\n- `@test/core`: Replace `oldCore` → `currentCore`.\n",
 	),
 	changeset("z-core", { "@test/core": "minor" }, "### Breaking\n\n- Replace `run` → `execute`.\n"),
 	changeset("optional", { "@test/optional": "patch" }, "### Breaking\n\n- Replace `optional()` → `optional.make()`.\n"),
 	changeset(
 		"rule",
 		{ "@test/api": "minor", "@test/core": "minor" },
-		"### Quality rules\n\n- `imports/aliased`: record findings with `quality baseline write --rule imports/aliased`; fix cross-folder imports with aliases.\n",
+		"### Quality rules\n\n- `@test/core`: `imports/aliased`: record findings with `quality baseline write --rule imports/aliased`; fix cross-folder imports with aliases.\n",
 	),
 ];
 
 workspace.it(
-	"apply prints every breaking entry grouped across three packages, then a shared quality rule once with adoption steps",
+	"apply prints only each package’s breaking entries, then its quality rule once with adoption steps",
 	breakingPlan,
 	function* ({ apply }) {
 		const answer = yield* apply();
@@ -35,8 +35,7 @@ workspace.it(
 			"",
 			"### @test/core",
 			"",
-			"- Replace `old` → `current`.",
-			"  Pass the service explicitly.",
+			"- Replace `oldCore` → `currentCore`.",
 			"- Replace `run` → `execute`.",
 			"",
 			"### @test/optional",
