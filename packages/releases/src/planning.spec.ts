@@ -13,7 +13,11 @@ const coreRelease = [
 workspace.it(
 	"plan --json lists breaking.md and feature.md with their text in filename order, and each release's directory, versions and bump",
 	[
-		changeset("feature", { [CORE]: "patch", "@test/api": "minor" }, "### Fixed\n\n- A fix.\n"),
+		changeset(
+			"feature",
+			{ [CORE]: "patch", "@test/api": "minor" },
+			"### Fixed\n\n- `@test/core`: Fix core behavior.\n- `@test/api`: Fix API behavior.\n",
+		),
 		changeset("breaking", { [CORE]: "minor" }, "### Breaking\n\n- A deliberate breaking change.\n"),
 	],
 	function* ({ changesetText, planJson }) {

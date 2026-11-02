@@ -16,6 +16,26 @@ A consumer-visible change adds one `.changeset/<short-name>.md` per PR, naming e
 
 Use minor for Added or Breaking behavior while a package is pre-1.0, and patch for Changed or Fixed only. Write Markdown bullets under `### Added`, `### Changed`, `### Fixed` or `### Breaking`. One file can name several packages and contain several entries and sections. Describe behavior a consumer would look for, within the tests that prove it. Do not change package versions or changelogs outside a release PR.
 
+When frontmatter names several packages, attribute every bullet to exactly one of them with a backticked package name and a colon. The attribution is removed from the rendered notes; each package receives only its own bullets, including their indented continuations. Single-package changesets can keep plain bullets.
+
+```markdown
+---
+
+"@shivaedev/releases": minor
+"@shivaedev/react": patch
+---
+
+### Added
+
+- `@shivaedev/releases`: Collect each package's attributed release notes.
+
+### Fixed
+
+- `@shivaedev/react`: Keep the editor draft during refresh.
+```
+
+`pnpm changelog:check` rejects unattributed bullets and names the changeset file. Existing pending changesets may gain attribution while keeping their frontmatter and bullet wording unchanged. Once attributed, pending bullets cannot change owners. Released history remains unchanged.
+
 ## Rename or remove packages
 
 To rename a package, change its manifest name and add a changeset naming the new package with its bump. Under `### Breaking`, name the old package and explain the dependency and import changes consumers need:
