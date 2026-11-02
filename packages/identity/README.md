@@ -480,7 +480,29 @@ const sessions = Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: tru
 
 For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. A missing or null stored role refuses access with `Forbidden` (HTTP 403 at the session endpoint) and logs the fix: generate and apply a frozen migration with `defaultRole`, then use `assignRole` for administrators. An undeclared non-null stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
 
-React's `authSession` reads the session's grants as typed values while preserving the provider's session and user data. Applications using it need no session permission decoder.
+### Better Auth client adapters
+
+The browser-safe client adapters turn Better Auth Promises into Effects without React or server imports. The application supplies its Better Auth client and owns UI text and session policy.
+
+```ts
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+import { authQuery } from "@shivaedev/identity/client/adapters/authQuery.ts";
+import { authSession } from "@shivaedev/identity/client/adapters/authSession.ts";
+
+const signIn = authCall((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
+const readProviderSession = authQuery((disableCookieCache: boolean, signal) =>
+	authClient.getSession({ query: { disableCookieCache }, fetchOptions: { signal } }),
+);
+const session = authSession((signal) => authClient.getSession({ query: { disableCookieCache: true }, fetchOptions: { signal } }));
+```
+
+The example uses the application's Better Auth client. `authCall` returns an input-to-Effect function. Its `AuthActionResult<A, E>` response shape is exported from the same module. Failures use `AuthFailure` from `@shivaedev/identity/client/AuthFailure.ts` and the closed `AuthFailureCode` schema and union from `@shivaedev/identity/client/AuthFailureCode.ts`: supported Better Auth core codes, `RATE_LIMITED` for a code-less 429, and `UNKNOWN` for unsupported or missing codes and rejected promises. The original error stays in `cause`. Applications can supply exhaustive UI text with `Record<AuthFailureCode, string>`.
+
+`authQuery` returns an input-to-Effect function that preserves returned provider errors and maps rejected Promises to `AuthUnavailable` from `@shivaedev/errors/taxonomy.ts`. Both call adapters pass Effect's abort signal to the supplied client function.
+
+`authSession` returns a session Effect with the same read failures. It decodes `user.permissions` through `PermissionSession` from `@shivaedev/identity/PermissionSession.ts` while preserving the provider's session and user data. Its `SessionWithPermissions<A>` type is exported from the adapter. Missing grants stay optional, malformed grants fail with `AuthUnavailable`, and a successful `null` means signed out. The reader must return a nullable session with a `user` object; use `authQuery` for other payloads.
+
+React's `authAction`, `authQuery` and `authSession` consume these Effects to create atoms. See [React's Better Auth usage](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#better-auth-actions).
 
 ### Frozen auth migrations
 

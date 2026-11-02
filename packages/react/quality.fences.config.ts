@@ -9,7 +9,7 @@ export default [
 		.from(browserCode)
 		.mayNotReach(
 			anything.except(
-				files("packages/changes/src/keys.ts"),
+				files("packages/changes/src/keys.ts", "packages/identity/src/PermissionSession.ts"),
 				browserCode,
 				packages("access", "contract", "errors", "form", "types"),
 				modules("effect", "@effect/atom-react", "@tanstack/react-router", "react"),

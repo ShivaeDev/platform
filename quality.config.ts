@@ -87,7 +87,7 @@ export default defineConfig({
 					},
 					{ glob: "packages/pr-watch/src/requestFailure.ts", reason: "This HTTP adapter translates transport statuses into domain errors." },
 					{
-						glob: "packages/react/src/client/authAction.ts",
+						glob: "packages/identity/src/client/adapters/authCall.ts",
 						reason: "This Better Auth client adapter translates HTTP rate limits into typed AuthFailure errors.",
 					},
 				],

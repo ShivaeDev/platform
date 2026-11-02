@@ -1368,6 +1368,9 @@ importers:
       '@shivaedev/form':
         specifier: workspace:*
         version: link:../form
+      '@shivaedev/identity':
+        specifier: workspace:*
+        version: link:../identity
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
@@ -1384,9 +1387,6 @@ importers:
       '@shivaedev/changes':
         specifier: workspace:*
         version: link:../changes
-      '@shivaedev/identity':
-        specifier: workspace:*
-        version: link:../identity
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs

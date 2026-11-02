@@ -7,7 +7,7 @@ export interface AuthError {
 	readonly code: "REFUSED";
 	readonly status: number;
 }
-export type AuthReadQuery = ReturnType<ReturnType<typeof authQuery<string, string | null, AuthError>>>;
+export type AuthReadQuery = ReturnType<ReturnType<typeof authQuery<string, string | null, AuthError | AuthUnavailable>>>;
 
 function failureText(cause: Cause.Cause<AuthError | AuthUnavailable>) {
 	return Option.match(Cause.findErrorOption(cause), {

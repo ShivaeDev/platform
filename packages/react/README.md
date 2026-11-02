@@ -709,7 +709,8 @@ import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
 import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
-import { can, type PermissionSession } from "@shivaedev/react/permissions.ts";
+import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
+import { can } from "@shivaedev/react/can.ts";
 import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
@@ -800,10 +801,10 @@ const showNotes = can(auth.session, ReadNotes);
 
 #### Better Auth actions
 
-`authAction` from `@shivaedev/react/client/authAction.ts` turns a Better Auth client call into a native action atom. Create it with the client, then pass it to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
+`authAction` from `@shivaedev/react/client/authAction.ts` turns an input-to-Effect function into a native action atom. Bridge Better Auth with `authCall` from `@shivaedev/identity/client/adapters/authCall.ts`, then pass the atom to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
 
 ```tsx
-const signIn = authAction((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
+const signIn = authAction(authCall((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal })));
 
 function SignInButton({ email, password }: { email: string; password: string }) {
 	const action = useAction(signIn);
@@ -819,27 +820,19 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 }
 ```
 
-The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Actions fail with `AuthFailure` from the same module. Its `code` uses the closed `AuthFailureCode` union: supported Better Auth core codes, `RATE_LIMITED` for a code-less 429, and `UNKNOWN` for unsupported or missing codes and rejected promises. The original error is available in `cause`. Applications own the sentences, and can make their mapping exhaustive with `Record<AuthFailureCode, string>`.
+The example uses `authAction`, identity's `authCall`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Identity owns the Promise bridge and its typed failures; see [Better Auth client adapters](https://github.com/ShivaeDev/platform/blob/main/packages/identity/README.md#better-auth-client-adapters). For a form's Effect-based `onSubmit`, pass the function returned by `authCall` directly.
 
-For a form's Effect-based `onSubmit`, use `authCall` from the same module:
-
-```ts
-const signIn = authCall((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
-const onSubmit = (credentials: { email: string; password: string }) => signIn(credentials);
-```
-
-`authCall` returns a function from input to `Effect<A, AuthFailure>`. It uses the same failure codes and successful data as `authAction`.
-
-Use `authSession` from `@shivaedev/react/client/authSession.ts` for the application's Better Auth session. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Both expose typed `user.permissions` alongside the provider's existing session and user fields, using the `PermissionSession` schema from `@shivaedev/react/permissions.ts`. Applications do not decode `get-session` themselves. Missing grants stay optional; malformed grants fail with `AuthUnavailable`. The reader must return a nullable session with a `user` object; use `authQuery` for other payload shapes. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
+Use `authSession` from `@shivaedev/react/client/authSession.ts` to wrap identity's session Effect. It returns a native `atom` for `useQuery` and a `refresh` Effect that refreshes that same atom and waits through its loading state. Both expose typed `user.permissions` alongside the provider's existing session and user fields, using the `PermissionSession` schema from `@shivaedev/identity/PermissionSession.ts`. Applications do not decode `get-session` themselves. Missing grants stay optional; malformed grants fail with `AuthUnavailable`. The reader must return a nullable session with a `user` object; use `authQuery` for other payload shapes. Supply Better Auth's public `getSession` call with `disableCookieCache: true` so a mutation reads current user data:
 
 ```tsx
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { authCall } from "@shivaedev/react/client/authAction.ts";
+import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
+import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import { authSession } from "@shivaedev/react/client/authSession.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 
-const session = authSession((signal) => authClient.getSession({ query: { disableCookieCache: true }, fetchOptions: { signal } }));
+const session = authSession(readSession((signal) => authClient.getSession({ query: { disableCookieCache: true }, fetchOptions: { signal } })));
 const updateUser = authCall((name: string, signal) => authClient.updateUser({ name }, { signal }));
 const rename = Atom.fn<string>()((name) => updateUser(name).pipe(Effect.andThen(session.refresh)));
 
@@ -859,9 +852,9 @@ function Account() {
 
 The example uses `Option` from `effect` and the application's Better Auth client. The mutation stays pending until the refreshed session settles; the query retains its previous data while refreshing and exposes `pending` for `aria-busy`. Compose email verification with `session.refresh` the same way. Reads preserve returned auth errors and use `AuthUnavailable` from `@shivaedev/errors/taxonomy.ts` for rejected promises; a failed refresh fails the composed mutation. A successful `null` session represents sign-out.
 
-`session.refresh` uses the native `AtomRegistry` service supplied by action atoms and atom runtimes. For an Effect run outside an atom, provide the registry that renders the session with `Effect.provideService(AtomRegistry.AtomRegistry, registry)`. Keep the session atom in the auth owner's registry, above any session boundary whose subtree it replaces. The application owns when to refresh; this adapter does not subscribe to Better Auth's hook or store.
+`session.refresh` uses the native `AtomRegistry` service supplied by action atoms and atom runtimes. For an Effect run outside an atom, provide the registry that renders the session with `Effect.provideService(AtomRegistry.AtomRegistry, registry)`. Keep the session atom in the auth owner's registry, above any session boundary whose subtree it replaces. The application owns when to refresh; the session atom does not subscribe to Better Auth's hook or store.
 
-For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family. Call `authQuery((input, signal) => authClient.getSession({ query: input, fetchOptions: { signal } }))` with an explicitly typed input, then render its atom with `useQuery`. Releasing a pending read interrupts its Effect and aborts the supplied signal.
+For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family. Pass an input-to-Effect function, such as the result of `authQuery` from `@shivaedev/identity/client/adapters/authQuery.ts`, then render its atom with `useQuery`. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
 For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/adapters/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
