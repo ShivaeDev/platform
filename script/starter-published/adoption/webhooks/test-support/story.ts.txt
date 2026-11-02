@@ -13,7 +13,7 @@ import { sources } from "#adoption/webhooks/feature.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
 
-const signing = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { GITHUB_WEBHOOK_SECRET: "adoption-signing-secret" } }));
+const signing = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "GITHUB_WEBHOOK_SECRET": "adoption-signing-secret" } }));
 
 export const webhooksStory = storyKit({
 	around: withIsolatedDatabase,
