@@ -55,7 +55,7 @@ screenStory.it(
 	},
 );
 
-const heldItem = [holdableRead("/_board/item/note.next/"), routedScreen(files, "/_board/goals", { home: "home.md" })];
+const heldItem = [holdableRead("/_board/work?item=note.next"), routedScreen(files, "/_board/goals", { home: "home.md" })];
 const NOW = expect.stringMatching(/^Now/u);
 
 screenStory.it(
