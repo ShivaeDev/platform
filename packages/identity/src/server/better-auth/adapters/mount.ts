@@ -66,6 +66,8 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const base = { ...configured, databaseHooks: seeded.databaseHooks };
 	const preset = mount.preset === "provider-only" ? providerOnlyOptions(base, mount.enabledPaths) : base;
 	const rateLimit = options.rateLimit;
+	const prefix = `/${(options.basePath || "/api/auth").replace(/^\/|\/+$/gu, "")}` as const;
+	const basePath = prefix === "/" ? "" : prefix;
 	const customStorage = yield* rateLimitStorage;
 	const auth = betterAuth({
 		...withHardening(withBearerSessions(preset, mount.bearerSessions !== undefined), mount.hardening),
@@ -97,7 +99,9 @@ const mountAuth = Effect.fn("Identity.mountAuth")(function* <const TOptions exte
 	const authRoutes = mountRoutes.pipe(
 		Layer.provide(
 			Layer.succeed(AuthRouteHandler, {
+				basePath,
 				handle: authRouteHandler(auth, {
+					basePath,
 					bearerSessions: mount.bearerSessions,
 					clientIpHeader,
 					ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,
