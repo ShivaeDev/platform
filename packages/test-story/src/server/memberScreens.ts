@@ -33,6 +33,7 @@ export function memberScreens<E, R, TVerbs>(options: {
 			const member = yield* Effect.acquireRelease(
 				Effect.sync(() => {
 					const root = document.createElement("div");
+					root.setAttribute("data-story-member", name);
 					document.body.append(root);
 					return {
 						fetch: domFetch(options.baseUrl, { fetch: memberFetch(browser), location: browser.location }),

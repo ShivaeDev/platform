@@ -11,10 +11,9 @@ export function screenQueries(root: () => HTMLElement, dialogs: boolean) {
 	function query(selector: string) {
 		const current = root();
 		const found = new Set(current.querySelectorAll<HTMLElement>(selector));
+		const portalRoot = current.closest("[data-story-member]") ?? current.ownerDocument;
 		const portals = dialogs
-			? [...current.ownerDocument.querySelectorAll<HTMLElement>('dialog,[role="dialog"],[role="alertdialog"]')].filter(
-					(dialog) => !current.contains(dialog),
-				)
+			? [...portalRoot.querySelectorAll<HTMLElement>('dialog,[role="dialog"],[role="alertdialog"]')].filter((dialog) => !current.contains(dialog))
 			: [];
 		for (const dialog of portals) {
 			if (dialog.matches(selector)) {
