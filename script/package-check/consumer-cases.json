@@ -23,6 +23,7 @@
 				"./server/adapters/betterAuthSessions.ts",
 				"./server/local.ts",
 				"./server/origin.ts",
+				"./server/oauthGrants.ts",
 				"./server/session.ts",
 				"./server/tracing.ts",
 				"./server/transportHeaders.ts"
@@ -32,6 +33,7 @@
 			"run": ["local-guard.ts"]
 		}
 	],
+	"mcp": [{ "entries": ["./routes.ts"], "fixtures": [], "omitOptionalPeers": true, "run": [] }],
 	"platform": [
 		{
 			"entries": [],
