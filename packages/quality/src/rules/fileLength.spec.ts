@@ -99,6 +99,6 @@ const refused = [
 
 for (const [options, given, named] of refused) {
 	ruleStory.it(`structure/max-lines refuses ${options} and names it`, [], function* ({ optionIssues }) {
-		expect(yield* optionIssues<unknown>(maxLines, given)).toEqual([expect.stringContaining(named)]);
+		expect(yield* optionIssues(maxLines, given)).toEqual([expect.stringContaining(named)]);
 	});
 }

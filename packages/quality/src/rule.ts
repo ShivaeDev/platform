@@ -1,9 +1,8 @@
-import { Effect, type FileSystem } from "effect";
+import type { Effect, FileSystem } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
-import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
-import { validOrFail } from "#decoded.ts";
+import { configureWith, noOptions, type RuleCheckResult, ruleConfiguration } from "#adapters/rule.ts";
+import type { StandardSchemaV1 } from "#adapters/standardSchema.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
-import { describeIssue, type StandardSchemaV1 } from "./standardSchema.ts";
 
 export interface Finding {
 	readonly count?: number | undefined;
@@ -44,21 +43,25 @@ export type Configured<TServices = RuleServices> =
 	| { readonly _tag: "Invalid"; readonly issues: readonly string[] }
 	| { readonly _tag: "Ready"; readonly check: RuleCheck<TServices> };
 
-export interface Rule<TId extends string = string, TInput = unknown, TServices = RuleServices> {
-	// Bivariance keeps rules with different options in one list; configure validates its input at runtime.
-	configure: Bivariant<(options: TInput | undefined) => Promise<Configured<TServices>>>;
+export interface RegisteredRule<TServices = RuleServices> {
 	readonly description: string;
 	readonly family?: boolean;
-	readonly id: TId;
+	readonly id: string;
 	readonly registrable?: boolean;
+	readonly [ruleConfiguration]: (options: unknown) => Promise<Configured<TServices>>;
+}
+
+export interface Rule<TId extends string = string, TInput = unknown, TServices = RuleServices> extends RegisteredRule<TServices> {
+	readonly configure: (options: TInput | undefined) => Promise<Configured<TServices>>;
+	readonly id: TId;
 }
 
 interface RuleDefinition<TId extends string, TOptions, TServices> {
-	readonly check: (context: RuleContext<TOptions>) => Findings | PromiseLike<Findings> | Effect.Effect<Findings, unknown, TServices>;
+	readonly check: (context: RuleContext<NoInfer<TOptions>>) => RuleCheckResult<TServices>;
 	readonly description: string;
 	readonly id: TId;
 	readonly registrable?: false;
-	readonly validate?: (context: RuleContext<TOptions>) => readonly string[];
+	readonly validate?: (context: RuleContext<NoInfer<TOptions>>) => readonly string[];
 }
 
 interface RuleDefinitionWithOptions<TId extends string, TInput, TOptions, TServices> extends RuleDefinition<TId, TOptions, TServices> {
@@ -67,47 +70,6 @@ interface RuleDefinitionWithOptions<TId extends string, TInput, TOptions, TServi
 
 interface RuleDefinitionWithoutOptions<TId extends string, TServices> extends RuleDefinition<TId, undefined, TServices> {
 	readonly options?: undefined;
-}
-
-const noOptions: StandardSchemaV1<undefined, undefined> = {
-	"~standard": {
-		validate: (value) => (value === undefined ? { value: undefined } : { issues: [{ message: "this rule takes no options" }] }),
-		vendor: "@shivaedev/quality",
-		version: 1,
-	},
-};
-
-function configureWith<TInput, TOptions, TServices>(
-	schema: StandardSchemaV1<TInput, TOptions>,
-	check: RuleDefinition<string, TOptions, TServices>["check"],
-	id: string,
-	absent: unknown,
-	validate?: RuleDefinition<string, TOptions, TServices>["validate"],
-) {
-	return async (options: unknown): Promise<Configured<TServices>> => {
-		const result = await schema["~standard"].validate(options ?? absent);
-		if (result.issues !== undefined) {
-			return { _tag: "Invalid", issues: result.issues.map(describeIssue) };
-		}
-		const value = result.value;
-		return {
-			_tag: "Ready",
-			check: (inputs) =>
-				Effect.scoped(
-					Effect.gen(function* () {
-						const context = { ...inputs, options: value };
-						const issues = validate?.(context).map((issue) => `rules.${id}.options: ${issue}`) ?? [];
-						yield* validOrFail(
-							inputs.configFile ?? "quality.config.ts",
-							issues.length === 0 ? { _tag: "Valid", value: undefined } : { _tag: "Invalid", issues },
-						);
-						const signal = yield* Effect.abortSignal;
-						const checked = check({ ...inputs, options: value, signal });
-						return yield* Effect.isEffect(checked) ? checked : Effect.promise(() => Promise.resolve(checked));
-					}),
-				),
-		};
-	};
 }
 
 export function defineRule<const TId extends string, TInput, TOptions, TServices = never>(
@@ -123,5 +85,11 @@ export function defineRule<const TId extends string, TInput, TOptions, TServices
 		definition.options === undefined
 			? configureWith(noOptions, definition.check, definition.id, undefined, definition.validate)
 			: configureWith(definition.options, definition.check, definition.id, {}, definition.validate);
-	return { configure, description: definition.description, id: definition.id, registrable: definition.registrable ?? true };
+	return {
+		[ruleConfiguration]: configure,
+		configure,
+		description: definition.description,
+		id: definition.id,
+		registrable: definition.registrable ?? true,
+	};
 }

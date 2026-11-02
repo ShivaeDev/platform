@@ -19,7 +19,7 @@ ruleStory.it(
 );
 
 ruleStory.it("a rule that declares no options refuses any options", [], function* ({ optionIssues }) {
-	const issues = yield* optionIssues<unknown>(todo, { strict: true });
+	const issues = yield* optionIssues(todo, { strict: true });
 
 	expect(issues).toEqual(["this rule takes no options"]);
 });
@@ -37,7 +37,7 @@ ruleStory.it("an asynchronous check receives the options it was given", [reposit
 });
 
 ruleStory.it("a rule names the option path of each issue its schema raises", [], function* ({ optionIssues }) {
-	const issues = yield* optionIssues<unknown>(echo, {});
+	const issues = yield* optionIssues(echo, {});
 
 	expect(issues).toEqual(["word: needs a word"]);
 });

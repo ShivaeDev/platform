@@ -3,8 +3,9 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { configureRegistered } from "#adapters/rule.ts";
 import { services } from "#cli/runMain.ts";
-import type { Finding, Findings, Rule } from "#rule.ts";
+import type { Finding, Findings, RegisteredRule, Rule } from "#rule.ts";
 import { scanned } from "./imports.ts";
 import type { SeedFile } from "./tree.ts";
 
@@ -60,10 +61,10 @@ export const ruleStory = storyKit({
 		findings: () => Effect.sync(() => checked(engine)),
 		locations: () => Effect.sync(() => checked(engine).map(locationOf)),
 		messages: () => Effect.sync(() => checked(engine).map((finding) => finding.message)),
-		optionIssues: <TInput>(rule: Rule<string, TInput>, options: TInput) =>
+		optionIssues: (rule: RegisteredRule, options: unknown) =>
 			Effect.promise(async () => {
 				story.tell(`quality configures ${rule.id} with ${JSON.stringify(options)}`);
-				const configured = await rule.configure(options);
+				const configured = await configureRegistered(rule, options);
 				return configured._tag === "Invalid" ? configured.issues : [];
 			}),
 		removes: (path: string) =>
