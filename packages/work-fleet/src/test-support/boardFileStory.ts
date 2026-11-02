@@ -67,7 +67,6 @@ export const boardFileStory = storyKit({
 					story.tell(`publish completion at ${file}`);
 					return refusal(writeCompletion(state.completion.root, originalRoot, file, source, content));
 				},
-				taskFiles: () => fs.readDirectory(`${state.completion.root}/tasks`),
 				taskSource: () => fs.readFileString(`${state.completion.root}/tasks/one.md`),
 				writeTask: (content: string) => {
 					story.tell("a person rewrites tasks/one.md");
