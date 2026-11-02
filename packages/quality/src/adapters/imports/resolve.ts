@@ -1,15 +1,12 @@
 import { realpathSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import ts from "typescript";
+import type { Ambient } from "#imports/ambient.ts";
+import type { Endpoint } from "#imports/Endpoint.ts";
+import type { ImportRequest } from "#imports/extract.ts";
+import { builtinName, nameAt, packageNameOf } from "#imports/packageName.ts";
 import { posix } from "#inventory/ignoreScope.ts";
-import type { Ambient } from "./ambient.ts";
-import type { ImportRequest } from "./extract.ts";
-import { builtinName, nameAt, packageNameOf } from "./packageName.ts";
 import type { Project } from "./projects.ts";
-
-export type Endpoint =
-	| { readonly kind: "file"; readonly path: string }
-	| { readonly kind: "external"; readonly package: string; readonly specifier: string };
 
 const NODE_MODULES = "/node_modules/";
 

@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
@@ -85,14 +86,16 @@ function undeclared(owner: WorkspacePackage, policy: ManifestDependencies | unde
 }
 
 export const importsManifest = defineRule({
-	check: async (inputs) => {
-		const graph = await importGraph(inputs);
+	check: Effect.fn("Imports.check")(function* (inputs) {
+		const graph = yield* importGraph(inputs);
 		const root: WorkspacePackage | undefined =
-			(await readPackageManifest(inputs.readText, "package.json")) === undefined ? undefined : { directory: ".", name: "." };
+			(yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) === undefined ? undefined : { directory: ".", name: "." };
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
 		const workspace = new Map(graph.packages.map((owner) => [owner.name, owner.directory]));
 		const policies = new Map(
-			await Promise.all(owners.map(async (owner) => [owner, await manifestDependencies(inputs, owner, graph, workspace)] as const)),
+			yield* Effect.promise(() =>
+				Promise.all(owners.map(async (owner) => [owner, await manifestDependencies(inputs, owner, graph, workspace)] as const)),
+			),
 		);
 		const runtime = new Set([...policies.values()].flatMap((policy) => [...policy.runtime]));
 		const named = new Map(graph.packages.map((owner) => [owner.name, owner]));
@@ -112,7 +115,7 @@ export const importsManifest = defineRule({
 			}
 			return [{ file: request.from, line: request.line, message: undeclared(owner, policy, target.name, development), subject: target.name }];
 		});
-	},
+	}),
 	description:
 		"Workspace imports follow the importing package's manifest; devDependencies are available only outside runtime code, including export-blocked bundle inputs, and an application also reaches the dependencies of the entry points it declares: @shivaedev/platform for any code and @shivaedev/test-story for test code.",
 	id: "imports/manifest",
