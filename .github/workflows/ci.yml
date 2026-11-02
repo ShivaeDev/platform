@@ -310,6 +310,29 @@ jobs:
       - run: pnpm db:setup
       - name: Generate an app from the packed command and test packed workspace dependencies
         run: pnpm --filter @shivaedev/starter check:published --archives .ci/packages
+
+  webhooks-adoption:
+    name: Webhook adoption
+    needs: build
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          postgres: "true"
+      - name: Download package archives
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          artifact-ids: ${{ needs.build.outputs.packages-artifact-id }}
+          path: .ci/packages
+      - run: pnpm db:setup
       - name: Receive a signed webhook and process a retry once in a generated app
         env:
           PLATFORM_JOBS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/platform_test_jobs
@@ -317,7 +340,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke, browser-check ]
+    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, webhooks-adoption, macos-smoke, browser-check ]
     permissions:
       contents: read
       actions: read
