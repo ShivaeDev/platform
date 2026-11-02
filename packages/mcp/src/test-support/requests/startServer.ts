@@ -3,11 +3,12 @@ import { NodeHttpServer } from "@effect/platform-node";
 import { Effect, Layer, Option } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { mcpRoutes } from "#routes.ts";
 
 const sessions = Layer.succeed(SessionPolicy, {
-	origin: () => true,
+	origin: trustedOrigins({ allow: ["https://app.test", "https://policy-only.test"], missing: "allow" }),
 	provider: {
 		// Signed-in callers are preconditions; OAuth is exercised by the OAuth stories.
 		get: (headers) => {
@@ -21,6 +22,7 @@ export const startServer = Effect.fnUntraced(function* <E, R>(tools: Layer.Layer
 	const context = yield* Layer.build(
 		HttpRouter.serve(
 			mcpRoutes({
+				allowedOrigins: ["https://app.test", "https://transport-only.test"],
 				audiences: [{ tools }],
 				name: "Request story",
 				path: "/mcp",

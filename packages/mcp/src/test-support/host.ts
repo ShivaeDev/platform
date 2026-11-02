@@ -4,7 +4,6 @@ import { admin, jwt, testUtils } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
 import type { McpClient } from "effect/ai";
 import { HttpRouter } from "effect/http";
-import { RpcGroup } from "effect/rpc";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthOauthGrants } from "@shivaedev/identity/server/better-auth/adapters/oauthGrants.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
@@ -16,6 +15,7 @@ import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
 import { admissionPolicy } from "./admissionPolicy.ts";
 import { jwksEndpoint } from "./jwksEndpoint.ts";
+import { SessionRpc, sessionHandlers } from "./sessionRpc.ts";
 import { audiences, Roles } from "./tools.ts";
 
 async function availablePort() {
@@ -76,13 +76,12 @@ const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issue
 		resource,
 		roles: Roles,
 	}).pipe(Effect.provide(grants));
-	const group = RpcGroup.make();
 	const jwks = jwksEndpoint(mounted.auth);
 	yield* Layer.build(
 		appHost({
 			config: { port },
-			group,
-			handlers: group.toLayer({}),
+			group: SessionRpc,
+			handlers: sessionHandlers,
 			routes: Layer.mergeAll(
 				jwks.routes,
 				mounted.routes,

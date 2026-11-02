@@ -10,6 +10,7 @@ import { clientVerbs } from "./client.ts";
 import { discoveryReadouts } from "./discoveryReadouts.ts";
 import { grantVerbs } from "./grantVerbs.ts";
 import { type Engine, startEngine } from "./host.ts";
+import { mixedVerbs } from "./mixedVerbs.ts";
 import { oauthVerbs } from "./oauthVerbs.ts";
 
 const { url, configured } = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL");
@@ -33,6 +34,7 @@ const definition = {
 		...discoveryReadouts(engine),
 		...grantVerbs(engine, story.tell),
 		...oauthVerbs(engine, story.tell),
+		...mixedVerbs(engine, story.tell),
 	}),
 };
 

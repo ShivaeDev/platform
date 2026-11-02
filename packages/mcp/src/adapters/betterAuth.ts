@@ -42,6 +42,9 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 		provider: {
 			get: (headers) =>
 				Effect.gen(function* () {
+					if (headers.cookie) {
+						return Option.none();
+					}
 					const authorization = headers.authorization;
 					const token = authorization?.match(/^Bearer (?<token>.+)$/iu)?.groups?.token;
 					const claims = yield* verify(token);
