@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { defineConfig } from "#config.ts";
+import { defineConfig, type QualityConfig } from "#config.ts";
 import { defineRule, type Findings, type RegisteredRule, type Rule, type RuleContext } from "#rule.ts";
 import { customServiceRule, type LineAllowance } from "#test/customServiceRule.ts";
 
@@ -30,6 +30,13 @@ const none = defineRule({
 export const registry = [numeric, textual, none, customServiceRule] as const satisfies readonly RegisteredRule<unknown>[];
 
 export const erased: readonly RegisteredRule<unknown>[] = registry;
+
+export const annotated: QualityConfig = { rules: { "structure/max-lines": { options: { source: 100 } } } };
+
+export const annotatedWrong: QualityConfig = {
+	// @ts-expect-error Erasing local rules preserves the built-in option types.
+	rules: { "structure/max-lines": { options: { source: "100" } } },
+};
 
 export const mixed = defineConfig({
 	local: registry,

@@ -6,7 +6,7 @@ export type Level = "error";
 
 export type RuleSetting<TInput> = "error" | { readonly level?: "error"; readonly options?: TInput };
 
-type InputOf<TCandidate> = TCandidate extends Rule<string, infer TInput, unknown> ? TInput : never;
+type InputOf<TCandidate> = TCandidate extends Rule<string, infer TInput, unknown> ? TInput : unknown;
 
 export type RuleSettings<TRules extends readonly RegisteredRule<unknown>[]> = {
 	readonly [TCandidate in TRules[number] as TCandidate["id"]]?: RuleSetting<InputOf<TCandidate>>;
