@@ -2,8 +2,9 @@ import { Effect, Schema } from "effect";
 import { ChangesetError } from "#error.ts";
 import { Bump, type Source } from "#model.ts";
 import { type Entry, parseBody } from "#sections.ts";
+export const packageAttribution = /^- `(?<package>(?:@[^`/\s]+\/)?[^`/\s]+)`: /mu;
 export interface Changeset extends Source {
-	readonly entries: readonly Entry[];
+	readonly entries: readonly (Entry & { readonly package: string })[];
 	readonly packages: Readonly<Record<string, Bump>>;
 }
 const scalar = Effect.fn("Changesets.scalar")(function* (value: string) {
@@ -24,9 +25,28 @@ export const parseChangeset = Effect.fn("Changesets.parseChangeset")(function* (
 	const packages = yield* parseHeader(source.name, match.groups?.header ?? "");
 	return {
 		...source,
-		entries: yield* parseBody(source.name, match.groups?.body ?? ""),
+		entries: yield* attributeEntries(source.name, yield* parseBody(source.name, match.groups?.body ?? ""), Object.keys(packages)),
 		packages,
 	} satisfies Changeset;
+});
+
+const attributeEntries = Effect.fn("Changesets.attributeEntries")(function* (file: string, entries: readonly Entry[], packages: readonly string[]) {
+	return yield* Effect.forEach(entries, (entry) =>
+		Effect.gen(function* () {
+			const attribution = packageAttribution.exec(entry.text);
+			const name = attribution?.groups?.package ?? (packages.length === 1 ? packages[0] : undefined);
+			if (name === undefined || !packages.includes(name)) {
+				return yield* new ChangesetError({
+					message: `${file}: attribute each bullet to one package named in frontmatter with '- \`package-name\`: text'; found ${entry.text.split("\n")[0]}.`,
+				});
+			}
+			const text = attribution === null ? entry.text : `- ${entry.text.slice(attribution[0].length)}`;
+			if (text.slice(2).trim() === "") {
+				return yield* new ChangesetError({ message: `${file}: write text after the package attribution.` });
+			}
+			return { ...entry, package: name, text };
+		}),
+	);
 });
 
 const parseHeader = Effect.fn("Changesets.parseHeader")(function* (file: string, header: string) {

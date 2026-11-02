@@ -58,7 +58,7 @@ const validateRequest = Effect.fn("Changesets.validateRequest")(function* (
 			message: `${changeset.name}: ${name} has a major bump but is a 0.x package; use minor for breaking changes before 1.0.`,
 		});
 	}
-	const needsMinor = changeset.entries.some((entry) => entry.section === "Added" || entry.section === "Breaking");
+	const needsMinor = changeset.entries.some((entry) => entry.package === name && (entry.section === "Added" || entry.section === "Breaking"));
 	if (pkg.manifest.version.startsWith("0.") && needsMinor && rank[bump] < rank.minor) {
 		return yield* new ChangesetError({
 			message: `${changeset.name}: ${name} has a ${bump} bump but its sections require at least minor; use minor for Added or Breaking before 1.0.`,
