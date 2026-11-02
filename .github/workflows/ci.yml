@@ -194,6 +194,15 @@ jobs:
           artifact-ids: ${{ needs.shard-plan.outputs.tests-artifact-id }}
           path: .ci/test-balancing
       - run: pnpm db:setup
+      - name: Turn off PostgreSQL durability
+        run: |
+          docker exec development-postgres psql --username postgres --set ON_ERROR_STOP=1 \
+            --command "ALTER SYSTEM SET fsync = off" \
+            --command "ALTER SYSTEM SET synchronous_commit = off" \
+            --command "ALTER SYSTEM SET full_page_writes = off" \
+            --command "SELECT pg_reload_conf()"
+          docker exec development-postgres psql --username postgres \
+            --command "SELECT name, setting FROM pg_settings WHERE name IN ('fsync', 'synchronous_commit', 'full_page_writes')"
       - name: Test workspace shard
         run: >-
           pnpm test --workspace --ci-shard --shard=${{ matrix.shard }}/${{ strategy.job-total }} --coverage
