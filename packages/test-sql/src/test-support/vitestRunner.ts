@@ -1,8 +1,7 @@
-import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import type { TaskMeta } from "vitest";
-import * as VitestNode from "vitest/node";
+import { runVitest } from "@shivaedev/test/adapters/runVitest.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { configured } from "./postgres.ts";
 
@@ -31,42 +30,24 @@ interface InnerRun {
 	readonly uncaught: readonly string[];
 }
 
-function storyOutcome(state: string, errors: readonly { message: string }[]) {
-	return errors.some(({ message }) => message.startsWith("Test timed out")) ? "timed out" : state;
+function storyOutcome(state: string, errors: readonly string[]) {
+	return errors.some((message) => message.startsWith("Test timed out")) ? "timed out" : state;
 }
 
-function runVitest(file: string, hookTimeout?: number) {
-	return Effect.acquireUseRelease(
-		Effect.promise(() =>
-			VitestNode.createVitest(
-				{
-					config: false,
-					...(hookTimeout === undefined ? {} : { hookTimeout }),
-					include: [`src/test-support/${file}`],
-					reporters: [],
-					root: fileURLToPath(new URL("../..", import.meta.url)),
-					watch: false,
-				},
-				{ resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } } },
-				{ stderr: new PassThrough(), stdout: new PassThrough() },
-			),
-		),
-		(vitest) =>
-			Effect.promise(async (): Promise<InnerRun> => {
-				const { testModules } = await vitest.start();
-				return {
-					stories: testModules.flatMap((module) =>
-						[...module.children.allTests()].map((test) => ({
-							meta: test.meta(),
-							outcome: storyOutcome(test.result().state, test.result().errors ?? []),
-						})),
-					),
-					uncaught: [...testModules.flatMap((module) => module.errors()), ...vitest.state.getUnhandledErrors()].map(String),
-				};
-			}),
-		(vitest) => Effect.promise(() => vitest.close()),
-	);
-}
+const runFixture = Effect.fnUntraced(function* (file: string, hookTimeout?: number) {
+	const result = yield* runVitest({
+		...(hookTimeout === undefined ? {} : { hookTimeout }),
+		include: `src/test-support/${file}`,
+		root: fileURLToPath(new URL("../..", import.meta.url)),
+	});
+	return {
+		stories: result.tests.map((test) => ({
+			meta: test.meta,
+			outcome: storyOutcome(test.state, test.errors),
+		})),
+		uncaught: [...result.moduleErrors, ...result.unhandledErrors].map(String),
+	};
+});
 
 export const vitestRunner = storyKit({
 	clock: "live",
@@ -101,13 +82,13 @@ export const vitestRunner = storyKit({
 			itemsSeen: (role: ConsumerStory, when: "harness" | "body") => Effect.map(consumer(role), (meta) => meta?.[when]),
 			runConsumerStories: () => {
 				story.tell("Vitest runs a rollback consumer's stories in one file");
-				return Effect.map(runVitest("vitestConsumer.ts"), (run) => {
+				return Effect.map(runFixture("vitestConsumer.ts"), (run) => {
 					engine.run = run;
 				});
 			},
 			runTimeoutStories: () => {
 				story.tell("Vitest runs a story that hangs past its timeout with a job worker running, then the next story");
-				return Effect.map(runVitest("timeoutStories.ts", 50), (run) => {
+				return Effect.map(runFixture("timeoutStories.ts", 50), (run) => {
 					engine.run = run;
 				});
 			},
