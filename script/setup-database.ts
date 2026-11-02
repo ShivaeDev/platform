@@ -1,8 +1,9 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Effect } from "effect";
+import { assertLocalDatabase } from "@shivaedev/local-postgres/server/assertLocalDatabase.ts";
 import { LocalPostgresError } from "@shivaedev/local-postgres/server/LocalPostgresError.ts";
-import { assertLocalDatabase, LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 
 const setup = Effect.gen(function* () {

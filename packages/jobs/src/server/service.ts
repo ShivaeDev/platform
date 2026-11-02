@@ -93,7 +93,10 @@ export interface PgBossDefinition<TIdentifier extends string = string> extends C
 }
 
 export function makePgBoss<const TIdentifier extends string>(identifier: TIdentifier, queueNames?: readonly string[]): PgBossDefinition<TIdentifier> {
-	function definition<R>(options: PgBossLayerOptions<readonly JobRegistration[], R>, dependencies: Context.Context<R>) {
+	function definition<R, E>(
+		options: PgBossLayerOptions<readonly JobRegistration<R>[], E>,
+		dependencies: Context.Context<Exclude<R, TIdentifier> | E>,
+	) {
 		return defineService({
 			id: identifier,
 			initialize: Effect.gen(function* () {
@@ -101,15 +104,16 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 				const acquired = yield* PgBoss;
 				const workerScope = yield* Scope.make();
 				const service = makeService(acquired.client, options.jobs.map(registrationName), acquired.schema);
-				const context = Context.add(dependencies, Service, service);
-				const reportError = options.onError ?? logClientError;
-				const report = yield* clientErrorReporter(reportError).pipe(Effect.provide(context));
-				const unsubscribe = subscribeClientErrors(acquired.client, report);
-				yield* Effect.addFinalizer(() => Scope.close(workerScope, Exit.void).pipe(Effect.ensuring(Effect.sync(unsubscribe))));
-				yield* registerReleasedJobs(acquired.client, options.jobs, context, acquired.reused, acquired.schema, acquired.stop, options.retired).pipe(
-					Effect.provideService(Scope.Scope, workerScope),
-					Effect.provide(dependencies),
-				);
+				yield* Effect.gen(function* () {
+					const context = yield* Effect.context<R | E>();
+					const reportError = options.onError ?? logClientError;
+					const report = yield* clientErrorReporter(reportError).pipe(Effect.provide(context));
+					const unsubscribe = subscribeClientErrors(acquired.client, report);
+					yield* Effect.addFinalizer(() => Scope.close(workerScope, Exit.void).pipe(Effect.ensuring(Effect.sync(unsubscribe))));
+					yield* registerReleasedJobs(acquired.client, options.jobs, context, acquired.reused, acquired.schema, acquired.stop, options.retired).pipe(
+						Effect.provideService(Scope.Scope, workerScope),
+					);
+				}).pipe(Effect.provideService(Service, service), Effect.provide(dependencies));
 				return service;
 			}),
 			methods: (service) => ({
@@ -124,12 +128,16 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 			requires: [PgBoss],
 		});
 	}
-	const Service: Context.Service<TIdentifier, PgBossService> = definition({ jobs: [] }, Context.empty());
-	function layer<const TRegistrations extends readonly JobRegistration[], TErrorRequirements = never>(
-		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
-	) {
-		type Requirements = Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements;
-		return Layer.unwrap(Effect.map(Effect.context<Requirements>(), (dependencies) => definition(options, dependencies).layer));
+	const Service: Context.Service<TIdentifier, PgBossService> = definition<never, never>({ jobs: [] }, Context.empty());
+	function layer<const TRegistrations extends readonly JobRegistration[], E = never>(
+		options: PgBossLayerOptions<TRegistrations, E>,
+	): Layer.Layer<
+		TIdentifier,
+		PgBossError | PgBossQueueNamesError | PgBossQueueOptionsError,
+		PgBoss | Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | E
+	>;
+	function layer<R = never, E = never>(options: PgBossLayerOptions<readonly JobRegistration<R>[], E>) {
+		return Layer.unwrap(Effect.map(Effect.context<Exclude<R, TIdentifier> | E>(), (dependencies) => definition(options, dependencies).layer));
 	}
 	return Object.assign(Service, { layer });
 }

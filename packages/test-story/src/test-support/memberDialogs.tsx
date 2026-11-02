@@ -5,11 +5,11 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { type MemberScreen, memberScreens } from "#memberScreens.ts";
 import { screenDriver } from "#screenDriver.ts";
 import { storyKit } from "#storyKit.ts";
-import { type DialogKind, MemberPreferences } from "./MemberPreferences.tsx";
+import { type DialogKind, MemberPreferences, type PortalTarget } from "./MemberPreferences.tsx";
 
 expectNoReactWarnings();
 
-const mount = Effect.fnUntraced(function* (member: MemberScreen, kind: DialogKind, screens: Map<string, HTMLElement>) {
+const mount = Effect.fnUntraced(function* (member: MemberScreen, kind: DialogKind, screens: Map<string, HTMLElement>, portalTarget: PortalTarget) {
 	const container = document.createElement("div");
 	member.root.append(container);
 	const root = yield* Effect.acquireRelease(
@@ -20,7 +20,7 @@ const mount = Effect.fnUntraced(function* (member: MemberScreen, kind: DialogKin
 			}),
 	);
 	yield* Effect.promise(async () => {
-		await act(() => root.render(<MemberPreferences kind={kind} member={member} />));
+		await act(() => root.render(<MemberPreferences kind={kind} member={member} portalTarget={portalTarget} />));
 	});
 	screens.set(member.name, container);
 });
@@ -52,12 +52,12 @@ export const memberDialogs = storyKit({
 	},
 });
 
-export function twoMembers(kind: DialogKind) {
-	return memberDialogs.trait("members", `ada and grace have open ${kind} preferences`, function* ({ screens }) {
+export function twoMembers(kind: DialogKind, portalTarget: PortalTarget = "member") {
+	return memberDialogs.trait("members", `ada and grace have open ${kind} preferences under ${portalTarget}`, function* ({ screens }) {
 		Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 		const members = memberScreens({
 			baseUrl: "http://localhost:3000",
-			mount: (member) => mount(member, kind, screens),
+			mount: (member) => mount(member, kind, screens, portalTarget),
 			verbs: (member, tell) =>
 				screenDriver({
 					act: async (action) => {

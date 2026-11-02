@@ -3,6 +3,7 @@ import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
 import { Cause, ConfigProvider, Effect } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServerRequest } from "effect/http";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
@@ -60,10 +61,12 @@ export const hookHost = Effect.fnUntraced(function* (application: HookApplicatio
 				resetHooks.push(`effect ${user.name}`);
 			}),
 		signIn: application.state.policyRefuses ? { rule: () => Effect.succeed(false) } : undefined,
-	}).pipe(
-		Effect.provideService(Admission, application.admission("nobody at mount time")),
-		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
-	);
+	})
+		.pipe(Effect.provide(memoryStore))
+		.pipe(
+			Effect.provideService(Admission, application.admission("nobody at mount time")),
+			Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
+		);
 	const app = HttpRouter.toWebHandler(mounted.routes, {
 		disableLogger: true,
 		middleware: (handler) =>

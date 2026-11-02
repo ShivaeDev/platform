@@ -1,4 +1,4 @@
-import { Cause, Effect, Schedule, Semaphore } from "effect";
+import { Cause, Effect, PubSub, Schedule, Semaphore } from "effect";
 import { SqlClient } from "effect/sql";
 import { BadRequest, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
@@ -7,10 +7,9 @@ import { Fleet } from "#fleet.ts";
 import { answerRecords } from "#host/answerRecords.ts";
 import type { AnswerOptions } from "#host/answerWork.ts";
 import type { FleetHost } from "#host/config.ts";
+import { processAnswerRequest } from "#host/processAnswerRequest.ts";
 import type { FleetRecord } from "#model.ts";
-import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
-import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 
 const RETRY = Schedule.min([Schedule.exponential("100 millis"), Schedule.spaced("5 seconds")]);
 
@@ -25,41 +24,30 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 	const sql = yield* SqlClient.SqlClient;
 	const recordingClient = recordingSql ?? sql;
 	const recordingStore = yield* answerStore(host.namespace).pipe(Effect.provideService(SqlClient.SqlClient, recordingClient));
-	const commit = yield* makeFleetTransaction;
 	const locks = new Map<string, { readonly lock: Semaphore.Semaphore; users: number }>();
-	function queue(request: AnswerRequest) {
-		return commit(
-			[],
-			Effect.gen(function* () {
-				yield* sql`select pg_advisory_xact_lock(hashtextextended(${admissionLockKey(host.namespace)}, 0))`;
-				const queued = yield* fleet.queueAnswer(request.work_id, request.text);
-				yield* store.finish(request);
-				return queued;
-			}),
-		);
+	const events = yield* fleet.answerEvents();
+	function finish(request: AnswerRequest, error?: string) {
+		return store
+			.finish(request, error)
+			.pipe(Effect.tapError(() => PubSub.publish(events, { _tag: "CompletionFailed", requestId: request.request_id, workId: request.work_id })));
 	}
-	const process = Effect.fn("FleetAnswer.process")(function* (request: AnswerRequest) {
-		if (request.decision_id === null) {
-			yield* queue(request);
-			return;
-		}
-		if (!taken((yield* fleet.get(request.work_id)).value, request)) {
-			yield* apply(request.work_id, {
-				beforePublish: (response) => store.recordResponse(request, response),
-				originalDecision: { code: request.decision_code ?? undefined, reason: request.decision_reason },
-				queue: () => queue(request),
-				release: request.release,
-				text: request.text,
-			});
-		}
-		yield* store.finish(request);
-	});
+	const process = yield* processAnswerRequest(host, apply, finish);
+
 	function failed(request: AnswerRequest, cause: Cause.Cause<unknown>) {
 		if (Cause.hasInterrupts(cause)) {
 			return Effect.failCause(cause);
 		}
 		return Effect.logError(`Failed to apply answer for ${request.work_id}`, cause).pipe(
-			Effect.andThen(store.finish(request, failureMessage(Cause.squash(cause)))),
+			Effect.andThen(finish(request, failureMessage(Cause.squash(cause)))),
+			Effect.andThen(
+				PubSub.publish(events, {
+					_tag: "Refused",
+					decisionId: request.decision_id,
+					reason: failureMessage(Cause.squash(cause)),
+					requestId: request.request_id,
+					workId: request.work_id,
+				}),
+			),
 		);
 	}
 	const drain = Effect.fn("FleetAnswer.drain")(function* (workId: string) {
@@ -68,7 +56,10 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 			if (request === undefined || request.error !== null) {
 				return;
 			}
-			yield* process(request).pipe(Effect.catchCause((cause) => failed(request, cause)));
+			yield* process(request).pipe(
+				Effect.catchCause((cause) => failed(request, cause)),
+				Effect.andThen(PubSub.publish(events, { _tag: "RequestFinished", requestId: request.request_id, workId })),
+			);
 		}
 	});
 	const start = Effect.fn("FleetAnswer.start")(function* (workId: string) {
@@ -111,16 +102,3 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		return { ...current, attentionOwner: "automation" as const, blocker: ANSWER_RECORDED, stage: "waiting" as const };
 	});
 });
-
-// Fleet records a background answer with the ANSWER_RECORDED blocker and adds the receipt only once the Board
-// resolution applies it, so a retry in between must not publish or queue the same answer again.
-function taken(record: FleetRecord, request: AnswerRequest) {
-	if (request.response_decision_id === null) {
-		return false;
-	}
-	const receipts = [...(record.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(record.responses ?? [])];
-	return (
-		receipts.some((receipt) => receipt.decisionId === request.response_decision_id && receipt.responseId === request.response_id)
-		|| (record.blocker === ANSWER_RECORDED && record.step === "waiting" && record.decision?.id === request.response_decision_id)
-	);
-}

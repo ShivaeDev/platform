@@ -4,6 +4,7 @@ import { Fleet } from "#fleet.ts";
 import type { HostSettings } from "#host/config.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
+import { type AnswerSignals, answerSignals } from "#test/answerSignals.ts";
 import { captureLogs } from "#test/captureLogs.ts";
 import { daemonResources } from "#test/daemonResources.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
@@ -38,6 +39,7 @@ export class HostStoryEngine extends HostStoryScenario {
 	repositoryRoot: string | undefined;
 	briefParseCount: (() => number) | undefined;
 	questionRegistrationClock: Clock.Clock | undefined;
+	signals: AnswerSignals | undefined;
 	readonly followers = new Map<string, Follower>();
 	readonly snapshots: unknown[] = [];
 	readonly logs = captureLogs();
@@ -70,6 +72,24 @@ export class HostStoryEngine extends HostStoryScenario {
 
 	get observations() {
 		return this.#observations;
+	}
+
+	get answers() {
+		if (this.signals === undefined) {
+			throw new Error("The answer observer has not started");
+		}
+		return this.signals;
+	}
+
+	observeAnswers(fleet: typeof Fleet.Service) {
+		return answerSignals(fleet).pipe(
+			Effect.tap((signals) =>
+				Effect.sync(() => {
+					this.signals = signals;
+				}),
+			),
+			Effect.asVoid,
+		);
 	}
 
 	get fleet() {
@@ -145,6 +165,9 @@ export class HostStoryEngine extends HostStoryScenario {
 			engine.#runtime = yield* reads
 				.observe(startHostDaemon(hostStoryDaemon(engine, parts, port, handlerClock, engine.#observations.onSnapshot)))
 				.pipe(Effect.provide(engine.logs.layer));
+			if (engine.scheduled) {
+				yield* engine.observeAnswers(engine.fleet);
+			}
 		});
 	}
 

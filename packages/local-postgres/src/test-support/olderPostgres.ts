@@ -1,6 +1,7 @@
-import { Effect, Schedule } from "effect";
+import { Effect } from "effect";
 import { ChildProcess } from "effect/process";
 import { runCommand } from "#runCommand.ts";
+import { containerReady } from "#test/containerReady.ts";
 import { postgres } from "#test/postgres.ts";
 
 export const olderPostgres = postgres.trait(
@@ -11,10 +12,7 @@ export const olderPostgres = postgres.trait(
 			runCommand("docker", ["run", "--detach", "--rm", "--env", "POSTGRES_PASSWORD=postgres", "postgres:17-alpine"]),
 			(id) => runCommand("docker", ["rm", "--force", id]).pipe(Effect.orDie),
 		);
-		// The image publishes no readiness event, so the trait asks pg_isready until the server accepts connections.
-		yield* runCommand("docker", ["exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]).pipe(
-			Effect.retry({ schedule: Schedule.spaced("100 millis"), times: 100 }),
-		);
+		yield* containerReady(container);
 		engine.hostPsql = true;
 		engine.mode = "real";
 		engine.hostClient = (command) => {

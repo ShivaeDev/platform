@@ -1044,7 +1044,7 @@ const screen = screenDriver({ act, pending, root: view.container, tell: story.te
 
 Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
 
-Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback.
+Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `@shivaedev/form/fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback. Field-rejection mapping types and `fieldRejectionOf` also belong to `@shivaedev/form/fieldRejection.ts`; `AtomServices` belongs to `AtomServices.ts`.
 
 ### Install, setup and limits
 

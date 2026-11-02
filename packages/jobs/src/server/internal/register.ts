@@ -3,35 +3,20 @@ import type { StopOptions } from "pg-boss";
 import { registerWorker } from "#adapters/registerWorker.ts";
 import { workerDiagnostics } from "#adapters/workerDiagnostics.ts";
 import type { PgBossClient } from "#client.ts";
-import type { JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#definition.ts";
+import type { JobPayloadSchema, JobRegistration, QueueDefinition, QueueWorker, ScheduleDefinition, ScheduledWorker } from "#definition.ts";
 import { PgBossQueueOptionsError, toPgBossError } from "#error.ts";
 import { ensureQueue } from "#internal/ensureQueue.ts";
 import { runQueueWorker } from "#internal/runQueueWorker.ts";
 import { registerTestingQueue } from "#internal/testingRegistrations.ts";
 
-function isQueueWorker(registration: JobRegistration): registration is QueueWorker {
-	return registration._tag === "QueueWorker";
-}
-
-function isScheduledWorker(registration: JobRegistration): registration is ScheduledWorker {
-	return registration._tag === "ScheduledWorker";
-}
-
-function isQueueDefinition(registration: JobRegistration): registration is QueueDefinition {
-	return registration._tag === "QueueDefinition";
-}
-
 function registrationDefinition(registration: JobRegistration): QueueDefinition | ScheduleDefinition {
-	if (isQueueDefinition(registration)) {
+	if (registration._tag === "QueueDefinition") {
 		return registration;
 	}
-	if (isQueueWorker(registration)) {
+	if (registration._tag === "QueueWorker") {
 		return registration.queue;
 	}
-	if (isScheduledWorker(registration)) {
-		return registration.schedule;
-	}
-	throw new TypeError(`Unknown pg-boss registration: ${registration._tag}`);
+	return registration.schedule;
 }
 
 export function registrationName(registration: JobRegistration): string {
@@ -40,7 +25,7 @@ export function registrationName(registration: JobRegistration): string {
 
 const prepareQueues = Effect.fnUntraced(function* (client: PgBossClient, registrations: readonly JobRegistration[], replaceWorkers: boolean) {
 	for (const registration of registrations) {
-		if (replaceWorkers && !isQueueDefinition(registration)) {
+		if (replaceWorkers && registration._tag !== "QueueDefinition") {
 			yield* Effect.tryPromise({ catch: (error) => toPgBossError("register", error), try: () => client.offWork(registrationName(registration)) });
 		}
 	}
@@ -52,16 +37,10 @@ const prepareQueues = Effect.fnUntraced(function* (client: PgBossClient, registr
 	}
 });
 
-// The layer requires RegistrationRequirements of its jobs, so its context provides every registered worker.
-function workerContext<R>(context: Context.Context<R>): Context.Context<unknown>;
-function workerContext(context: unknown): unknown {
-	return context;
-}
-
-const registerQueue = Effect.fnUntraced(function* (
+const registerQueue = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,
-	registration: QueueWorker | QueueDefinition,
-	context: Context.Context<unknown>,
+	registration: QueueWorker<JobPayloadSchema & { readonly DecodingServices: R }, R> | QueueDefinition,
+	context: Context.Context<R>,
 	scope: Scope.Scope,
 	schema: string,
 	stop: StopOptions | undefined,
@@ -83,10 +62,10 @@ const registerQueue = Effect.fnUntraced(function* (
 	).pipe(Effect.provide(context));
 });
 
-const registerSchedule = Effect.fnUntraced(function* (
+const registerSchedule = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,
-	worker: ScheduledWorker,
-	context: Context.Context<unknown>,
+	worker: ScheduledWorker<R>,
+	context: Context.Context<R>,
 	scope: Scope.Scope,
 	schema: string,
 	stop: StopOptions | undefined,
@@ -118,7 +97,7 @@ export function registrationNames(registrations: readonly JobRegistration[]): re
 
 export const registerJobs = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,
-	registrations: readonly JobRegistration[],
+	registrations: readonly JobRegistration<R>[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
 	schema = "pgboss",
@@ -134,12 +113,11 @@ export const registerJobs = Effect.fnUntraced(function* <R>(
 	if (!startWorkers) {
 		return;
 	}
-	const provided = workerContext(context);
 	for (const registration of registrations) {
-		if (isQueueWorker(registration) || isQueueDefinition(registration)) {
-			yield* registerQueue(client, registration, provided, scope, schema, stop);
-		} else if (isScheduledWorker(registration)) {
-			yield* registerSchedule(client, registration, provided, scope, schema, stop);
+		if (registration._tag === "QueueWorker" || registration._tag === "QueueDefinition") {
+			yield* registerQueue(client, registration, context, scope, schema, stop);
+		} else {
+			yield* registerSchedule(client, registration, context, scope, schema, stop);
 		}
 	}
 });

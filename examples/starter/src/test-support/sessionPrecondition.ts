@@ -3,6 +3,7 @@ import { Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { User } from "#roles/User.ts";
 import { readyAuth } from "#server/adapters/readyAuth.ts";
@@ -26,7 +27,7 @@ export const sessionPrecondition = Effect.fn("AppStory.sessionPrecondition")(fun
 			secret: Redacted.value(secret),
 		},
 		{ defaultRole: User.name, roles: AppAccess },
-	);
+	).pipe(Effect.provide(memoryStore));
 	return yield* readyAuth(auth);
 });
 

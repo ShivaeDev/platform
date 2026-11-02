@@ -1,6 +1,8 @@
-import { Effect, PlatformError, Schedule } from "effect";
+import { isDeepStrictEqual } from "node:util";
+import { Effect, PlatformError } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { runCommand } from "#runCommand.ts";
+import { containerReady } from "#test/containerReady.ts";
 import { postgres } from "#test/postgres.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";
 
@@ -13,10 +15,7 @@ export function nativePostgres({ dockerAvailable }: { readonly dockerAvailable: 
 				runCommand("docker", ["run", "--detach", "--rm", "--env", "POSTGRES_PASSWORD=postgres", "postgres:18.6"]),
 				(id) => runCommand("docker", ["rm", "--force", id]).pipe(Effect.orDie),
 			);
-			// The private server supplies real PostgreSQL; only the host's executable boundary is redirected.
-			yield* runCommand("docker", ["exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]).pipe(
-				Effect.retry({ schedule: Schedule.spaced("100 millis"), times: 100 }),
-			);
+			yield* containerReady(container);
 			engine.hostPsql = true;
 			engine.mode = "real";
 			engine.hostClient = (command) => {
@@ -32,10 +31,16 @@ export function nativePostgres({ dockerAvailable }: { readonly dockerAvailable: 
 				if (command._tag === "StandardCommand" && command.command === "docker" && command.args[0] === "exec") {
 					return real.spawn(command);
 				}
-				if (dockerAvailable && command._tag === "StandardCommand" && command.command === "docker" && command.args[0] === "ps") {
-					return Effect.succeed(scriptedProcess(""));
+				if (
+					command._tag === "StandardCommand"
+					&& command.command === "docker"
+					&& isDeepStrictEqual(command.args, ["ps", "--filter", "name=^/development-postgres$", "--filter", "publish=55432", "--format", "{{.ID}}"])
+				) {
+					return dockerAvailable
+						? Effect.succeed(scriptedProcess(""))
+						: Effect.fail(PlatformError.systemError({ _tag: "NotFound", method: "spawn", module: "ChildProcess", pathOrDescriptor: "docker" }));
 				}
-				return Effect.fail(PlatformError.systemError({ _tag: "NotFound", method: "spawn", module: "ChildProcess", pathOrDescriptor: "docker" }));
+				return Effect.die(new Error(`Unexpected native PostgreSQL command: ${JSON.stringify(command)}`));
 			});
 		},
 	);

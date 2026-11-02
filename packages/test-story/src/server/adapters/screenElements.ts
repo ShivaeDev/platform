@@ -39,6 +39,7 @@ export function screenElements(root: () => HTMLElement, dialogs = true) {
 		}
 	}
 	return {
+		dialog: queries.dialogElement,
 		element,
 		enabled,
 		enter: (selector: ScreenTarget, value: string) => {
@@ -62,6 +63,7 @@ export function screenElements(root: () => HTMLElement, dialogs = true) {
 			return found;
 		},
 		input,
+		labelled: queries.labelledElement,
 		matches: queries.matches,
 		rendered,
 		select: (selector: ScreenTarget, value: string) => {
@@ -76,6 +78,13 @@ export function screenElements(root: () => HTMLElement, dialogs = true) {
 			field.focus();
 			field.value = value;
 			field.dispatchEvent(new Event("change", { bubbles: true }));
+		},
+		table: (selector: ScreenTarget) => {
+			const found = element(selector);
+			if (!(found instanceof HTMLTableElement)) {
+				throw new Error(`The screen's ${targetName(selector)} is not an HTML table.\nhelp: Select a native table to read its rows and cells.`);
+			}
+			return found;
 		},
 		text: screenText,
 		textElement: queries.textElement,

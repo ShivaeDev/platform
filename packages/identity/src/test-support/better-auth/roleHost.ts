@@ -2,6 +2,7 @@ import { testUtils } from "better-auth/plugins";
 import { Cause, ConfigProvider, Effect, Exit, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { causeWords } from "@shivaedev/test/answers.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser, RequestTracing } from "#middleware.ts";
@@ -31,9 +32,9 @@ export const roleHost = Effect.fnUntraced(function* () {
 		secret: "stored-role-story-secret-at-least-32-characters",
 	};
 	yield* migrateBetterAuth(options, { defaultRole: "user" });
-	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles }).pipe(
-		Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
-	);
+	const mounted = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles })
+		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	const recorded = recorder();
 	const rpc = RpcServer.layerHttp({ group: Api, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([handlers, authenticatedUserLayer(), requestTracingLayer(), RpcSerialization.layerJson]),

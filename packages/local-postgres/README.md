@@ -59,7 +59,8 @@ Use `assertLocalDatabase` when the setup script owns a fixed set of database nam
 
 ```ts
 import { Effect } from "effect";
-import { assertLocalDatabase, LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { assertLocalDatabase } from "@shivaedev/local-postgres/server/assertLocalDatabase.ts";
+import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
 const setup = Effect.gen(function* () {
 	const development = `${LOCAL_SERVER}/example_dev`;
@@ -98,7 +99,7 @@ On each start, setup reads `SHOW max_connections`. Native servers retain their c
 
 ### API
 
-Import the setup API from `@shivaedev/local-postgres/server/localPostgres.ts`:
+Import service preparation from `@shivaedev/local-postgres/server/localPostgres.ts` and fixed-name validation from `@shivaedev/local-postgres/server/assertLocalDatabase.ts`:
 
 | Export                                                                        | Purpose                                                                                                                                                                                                              |
 | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

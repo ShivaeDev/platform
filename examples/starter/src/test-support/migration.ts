@@ -5,6 +5,7 @@ import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/a
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { answered } from "@shivaedev/test/answers.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -58,6 +59,6 @@ export const legacyUser = migration.trait("schema", "alice has a user before rol
 		plugins: [testUtils()],
 		secret: "migration-story-secret-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
-	});
+	}).pipe(Effect.provide(memoryStore));
 	yield* signedInUser(auth, { email: "alice@migration.test", name: "alice" });
 });

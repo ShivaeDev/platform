@@ -2,8 +2,9 @@ import { Effect } from "effect";
 import { daemonRequest } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";
 import type { AnswerHostEngine } from "#test/AnswerHostEngine.ts";
+import { answerSignals } from "#test/answerSignals.ts";
 import { pauseAdmission } from "#test/busyAdmission.ts";
-import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
+import { appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import type { HostDaemon } from "#test/startHostDaemon.ts";
 
@@ -23,16 +24,43 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 			return { ...result, stderr };
 		});
 	}
+	function applied(workId: string) {
+		return appliedAnswer(engine.running.client, workId, engine.answerWaits.get(workId) ?? engine.answers);
+	}
+	function answer(text: string | undefined, release: boolean, workId: string) {
+		return answerSignals(engine.fleet).pipe(
+			Effect.flatMap((signals) => {
+				engine.answerWaits.set(workId, signals);
+				return daemonRequest(engine.running.port, (client) => client("daemon.answer", { release, text, workId }), `answer ${workId}`, 500);
+			}),
+		);
+	}
 	return {
 		answer: (text: string, release = false, workId = "one") => {
 			tell(`record an answer for ${workId}`);
-			return daemonRequest(engine.running.port, (client) => client("daemon.answer", { release, text, workId }), `answer ${workId}`, 500);
+			return answer(text, release, workId);
 		},
 		answerAndWait: (text?: string, release = false, workId = "one") =>
-			answerAndWait(engine.running.client, { release, ...(text === undefined ? {} : { text }), workId }),
-		applied: (workId = "one") => appliedAnswer(engine.running.client, workId),
-		cliAnswer: (workId: string, text: string, release = false) => cli(["answer", workId, ...(release ? ["--release"] : [text])]),
-		cliRelease: (...workIds: readonly string[]) => cli(["release", ...workIds]),
+			answerSignals(engine.fleet).pipe(
+				Effect.flatMap((signals) => {
+					engine.answerWaits.set(workId, signals);
+					return engine.running
+						.client("daemon.answer", { release, ...(text === undefined ? {} : { text }), workId })
+						.pipe(Effect.andThen(applied(workId)));
+				}),
+			),
+		applied: (workId = "one") => applied(workId),
+		cliAnswer: (workId: string, text: string, release = false) =>
+			answerSignals(engine.fleet).pipe(
+				Effect.flatMap((signals) => {
+					engine.answerWaits.set(workId, signals);
+					return cli(["answer", workId, ...(release ? ["--release"] : [text])]);
+				}),
+			),
+		cliRelease: (...workIds: readonly string[]) =>
+			Effect.forEach(workIds, (workId) => answerSignals(engine.fleet).pipe(Effect.map((signals) => engine.answerWaits.set(workId, signals)))).pipe(
+				Effect.andThen(cli(["release", ...workIds])),
+			),
 		cliStatus: () => cli(["status"]),
 		dispatch: (workId = "one") => {
 			tell(`dispatch ${workId}`);

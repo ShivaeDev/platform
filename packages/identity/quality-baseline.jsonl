@@ -1,27 +1,26 @@
 {"path":"packages/identity/src/server/better-auth/admittedSessions.ts","rule":"effect/boundary","count":6}
 {"path":"packages/identity/src/server/better-auth/admittedSessions.typecheck.test.ts","rule":"effect/boundary","count":1}
+{"path":"packages/identity/src/server/better-auth/bearerSessions.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/identity/src/server/better-auth/bearerSessions.ts","rule":"effect/boundary","count":2}
+{"path":"packages/identity/src/server/better-auth/clientIp.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/identity/src/server/better-auth/clientIp.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/identity/src/server/better-auth/memoryRateLimit.ts","rule":"biome/plugin","count":1}
+{"path":"packages/identity/src/server/better-auth/closeRoleEndpoints.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/identity/src/server/better-auth/columnDrift.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/identity/src/server/better-auth/migrationPlan.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/identity/src/server/better-auth/mount.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/identity/src/server/better-auth/mountRoutes.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/identity/src/server/better-auth/mountedSessions.ts","rule":"effect/boundary","count":3}
 {"path":"packages/identity/src/server/better-auth/revokeUnadmitted.ts","rule":"effect/boundary","count":1}
 {"path":"packages/identity/src/server/better-auth/signInGate.ts","rule":"effect/boundary","count":1}
+{"path":"packages/identity/src/server/better-auth/tables.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/identity/src/server/better-auth/testDatabase.ts","rule":"suppressions/no-double-cast","count":5,"reason":"Fixed SQL shapes support identity database assertions; extra decoding of PostgreSQL-owned metadata would add ceremony to a test probe (likelihood 1 x severity 2 = 2)."}
 {"path":"packages/identity/src/server/better-auth/testing.ts","rule":"effect/boundary","count":3}
 {"path":"packages/identity/src/server/better-auth/userProfiles.ts","rule":"effect/boundary","count":2}
 {"path":"packages/identity/src/server/local.ts","rule":"effect/boundary","count":2}
 {"path":"packages/identity/src/server/local.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/identity/src/server/permissions.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/identity/src/server/proxyRanges.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/identity/src/server/redaction.spec.ts","rule":"suppressions/no-double-cast","count":2,"reason":"The stories deliberately attach ignore and severity reporter markers to thrown errors to exercise real redaction; changing those inputs weakens the probes (likelihood 1 x severity 3 = 3)."}
+{"path":"packages/identity/src/server/trustedProxy.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/identity/src/test-support/rpc/profile.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/identity/src/test-support/rpc/providerProfile.ts","rule":"effect/failure-honesty","count":1}
-{"path":"packages/identity/src/server/better-auth/bearerSessions.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/identity/src/server/better-auth/clientIp.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/identity/src/server/better-auth/closeRoleEndpoints.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/identity/src/server/better-auth/columnDrift.ts","rule":"effect/adapter-imports","count":2}
-{"path":"packages/identity/src/server/better-auth/migrationPlan.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/identity/src/server/better-auth/mount.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/identity/src/server/better-auth/tables.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/identity/src/server/proxyRanges.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/identity/src/server/trustedProxy.ts","rule":"effect/adapter-imports","count":1}

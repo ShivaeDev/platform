@@ -2,8 +2,8 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { credentialForms } from "#test/credentials.ts";
 import { queryRole } from "#test/databaseTraits.ts";
-import { postgres } from "#test/postgres.ts";
 import { realPostgres, realPostgresWithoutHostPsql } from "#test/postgresTraits.ts";
+import { sharedPostgres as postgres } from "#test/sharedPostgres.ts";
 
 for (const [client, given, command] of [
 	["host psql", realPostgres(), "the failed psql command"],

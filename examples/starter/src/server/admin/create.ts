@@ -2,6 +2,7 @@ import { Config, Effect, Redacted } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
@@ -17,7 +18,7 @@ export const createAdmin = Effect.fn("App.createAdmin")(
 		const { auth } = yield* betterAuthMount(
 			{ ...authOptions(), "baseURL": baseUrl, database, secret: Redacted.value(secret) },
 			{ defaultRole: User.name, roles: AppAccess },
-		);
+		).pipe(Effect.provide(memoryStore));
 		yield* readyAuth(auth);
 		const email = yield* Config.String("ADMIN_EMAIL");
 		const name = yield* Config.String("ADMIN_NAME").pipe(Config.withDefault("Administrator"));

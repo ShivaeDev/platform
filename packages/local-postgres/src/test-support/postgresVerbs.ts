@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import { LocalPostgresError } from "#LocalPostgresError.ts";
 import { startContainer } from "#localContainer.ts";
 import { docker } from "#localDocker.ts";
-import { assertLocalDatabase } from "#localPostgres.ts";
 import { PostgresCommandError } from "#PostgresCommandError.ts";
 import { type Credentials, connectionAs, passwordsShownIn, ROLE_PASSWORD } from "#test/credentials.ts";
 import { databaseUrl, type PostgresEngine, SERVER, usingCli } from "#test/postgresEngine.ts";
@@ -60,11 +59,6 @@ export function postgresVerbs(engine: PostgresEngine, story: { readonly tell: (l
 		);
 	}
 	return {
-		allowDatabase: (url: string, names: readonly string[]) =>
-			act(
-				`the setup script checks ${url} against its allowlist ${names.join(", ")}`,
-				Effect.map(assertLocalDatabase(url, names), (validated) => `allowed ${validated.pathname.slice(1)}`),
-			),
 		appDatabase: () =>
 			Effect.flatMap(appDatabase(), (name) =>
 				Effect.map(usingCli(engine, engine.manager.sql(SERVER, `SELECT 1 FROM pg_database WHERE datname = '${name}'`)), (value) =>

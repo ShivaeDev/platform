@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { applicationRateLimit, applicationStorage, environment, memoryStorage, mount } from "#test/better-auth/mount.ts";
+import { applicationRateLimit, environment, memoryStorage, mount } from "#test/better-auth/mount.ts";
 
 const TRACE_ID = "1234567890abcdef1234567890abcdef";
 
@@ -79,9 +79,11 @@ for (const header of ["x-forwarded-for", "x-real-ip"]) {
 mount.it(
 	"even when the app's own options switch rate limiting off, a third auth request within a minute is rate limited",
 	[applicationRateLimit(false)],
-	function* ({ request, useAllowance }) {
-		const allowance = yield* useAllowance();
-		expect(allowance).toEqual(["accepted", "accepted"]);
+	function* ({ request }) {
+		yield* outcomes([
+			["first attempt", () => request(), "accepted"],
+			["second attempt", () => request(), "accepted"],
+		]);
 
 		expect(yield* request()).toBe("rate limited");
 	},
@@ -90,9 +92,11 @@ mount.it(
 mount.it(
 	"AUTH_RATE_LIMIT_ENABLED=false lets a third auth request within a minute through even when the app's options enable rate limiting",
 	[applicationRateLimit(true), environment({ "AUTH_RATE_LIMIT_ENABLED": "false" })],
-	function* ({ request, useAllowance }) {
-		const allowance = yield* useAllowance();
-		expect(allowance).toEqual(["accepted", "accepted"]);
+	function* ({ request }) {
+		yield* outcomes([
+			["first attempt", () => request(), "accepted"],
+			["second attempt", () => request(), "accepted"],
+		]);
 
 		expect(yield* request()).toBe("accepted");
 	},
@@ -102,8 +106,11 @@ for (const header of ["x-forwarded-for", "x-real-ip"]) {
 	mount.it(
 		`behind a trusted proxy that names clients in ${header}, alice using up her allowance leaves bob's requests accepted`,
 		[environment({ "AUTH_CLIENT_IP_HEADER": header, "TRUSTED_PROXY": "127.0.0.1" })],
-		function* ({ request, useAllowance }) {
-			expect(yield* useAllowance("alice")).toEqual(["accepted", "accepted"]);
+		function* ({ request }) {
+			yield* outcomes([
+				["alice's first attempt", () => request("alice"), "accepted"],
+				["alice's second attempt", () => request("alice"), "accepted"],
+			]);
 
 			yield* outcomes([
 				["alice", () => request("alice"), "rate limited"],
@@ -117,9 +124,11 @@ for (const [storage, traits] of Object.entries({ "default storage": [], "explici
 	mount.it(
 		`with ${storage}, a second auth host in the same process starts with its own rate-limit buckets`,
 		traits,
-		function* ({ request, requestSecondHost, startSecondHost, useAllowance }) {
-			const allowance = yield* useAllowance();
-			expect(allowance).toEqual(["accepted", "accepted"]);
+		function* ({ request, requestSecondHost, startSecondHost }) {
+			yield* outcomes([
+				["first attempt", () => request(), "accepted"],
+				["second attempt", () => request(), "accepted"],
+			]);
 
 			yield* startSecondHost();
 
@@ -132,27 +141,17 @@ for (const [storage, traits] of Object.entries({ "default storage": [], "explici
 }
 
 mount.it(
-	"the app's own rate-limit storage decides every auth request, asked with the app's rule for one client",
-	[applicationStorage],
-	function* ({ lastAnswer, request, storageCalls, useAllowance }) {
-		yield* useAllowance();
+	"two auth mounts using the same host memory store share a visitor's budget",
+	[],
+	function* ({ request, requestSecondHost, startSecondMount }) {
+		expect(yield* request()).toBe("accepted");
 
-		yield* request();
+		yield* startSecondMount();
 
 		yield* outcomes([
-			[
-				"storage calls",
-				() => storageCalls(),
-				{
-					clients: 1,
-					rules: [
-						{ max: 2, window: 60 },
-						{ max: 2, window: 60 },
-						{ max: 2, window: 60 },
-					],
-				},
-			],
-			["third request", () => lastAnswer(), "accepted"],
+			["second mount uses the remaining attempt", () => requestSecondHost(), "accepted"],
+			["first mount", () => request(), "rate limited"],
+			["second mount", () => requestSecondHost(), "rate limited"],
 		]);
 	},
 );
