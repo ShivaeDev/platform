@@ -5,7 +5,7 @@ import * as VitestNode from "vitest/node";
 import type { GenreTag } from "#genreTags.ts";
 import { importViolations } from "./importViolations.ts";
 
-const root = fileURLToPath(new URL("../..", import.meta.url));
+const packageRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 export interface StoriesRun {
 	readonly allowOnly?: boolean;
@@ -13,6 +13,7 @@ export interface StoriesRun {
 	readonly environment?: string;
 	readonly guardImports?: boolean;
 	readonly include: string;
+	readonly root?: string;
 	readonly tags?: readonly GenreTag[];
 	readonly tagsFilter?: string[];
 	readonly testNamePattern?: string;
@@ -38,6 +39,7 @@ export async function runStories({
 	env = {},
 	environment,
 	include,
+	root = packageRoot,
 	guardImports = false,
 	tags = [],
 	tagsFilter = [],
