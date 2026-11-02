@@ -58,7 +58,7 @@ for (const delivery of ["the signed issue 42 delivery", ...refusals.map(([refuse
 			yield* deliver(delivery);
 
 			yield* outcomes([
-				["secrets seen in", () => secretsSeenIn(), {}],
+				["secrets seen in", () => secretsSeenIn(), []],
 				["spans recorded", () => spanNames(), expect.arrayContaining(["POST"])],
 			]);
 		},
