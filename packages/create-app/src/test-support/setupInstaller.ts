@@ -31,6 +31,7 @@ const started = performance.now();
 process.on("exit", () => console.error("[generated app timing] pnpm " + command + ": " + (performance.now() - started).toFixed(0) + " ms"));
 if (${scriptsOnly} && args[0] === "run") {
   if (args[1] === "format") process.exit(0);
+  if (args[1] === "setup") args.splice(0, args.length, "install");
 }
 if (args[0] === "install") {
   const qualityRoot = ${JSON.stringify(dirname(dirname(quality)))};
@@ -80,6 +81,11 @@ if (args[0] === "install") {
       head: spawnSync("git", ["rev-parse", "--verify", "HEAD"]).status,
       staged: spawnSync("git", ["diff", "--cached", "--name-only"], { encoding: "utf8" }).stdout
     }));
+  }
+  if (${scriptsOnly}) {
+    const result = spawnSync(process.execPath, ["--conditions=source", ${JSON.stringify(skills)}, "sync"], { stdio: "inherit" });
+    if (result.error) throw result.error;
+    process.exit(result.status ?? 1);
   }
   process.exit(0);
 }

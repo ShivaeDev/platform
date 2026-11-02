@@ -33,9 +33,13 @@ export const realSetup = application.trait("installation", "pnpm run setup insta
 	engine.options = { ...engine.options, realSetup: true };
 });
 
-export const linkedPackageScripts = application.trait("installation", "package scripts run with linked workspace dependencies", (engine) => {
-	engine.options = { ...engine.options, linkedPackageScripts: true };
-});
+export const linkedPackageScripts = application.trait(
+	"installation",
+	"package scripts start with linked workspace dependencies and synced skills",
+	(engine) => {
+		engine.options = { ...engine.options, linkedPackageScripts: true };
+	},
+);
 
 export const installedPackageManager = application.trait(
 	"workspace",
