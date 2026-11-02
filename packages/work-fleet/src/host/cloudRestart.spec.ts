@@ -37,7 +37,7 @@ for (const boundary of [
 			const first = yield* daemon.spawnHost();
 			yield* first.until(() => Effect.succeed(first.url !== undefined));
 			const client = yield* daemon.processClient(first.url);
-			yield* first.until(() => Effect.succeed(daemon.cloudBoundaryReached()));
+			yield* daemon.awaitCloudBoundary();
 			if (boundary === "acknowledged-turn") {
 				yield* first.until(() =>
 					client("fleet.get", { workId: "synthetic-work" }).pipe(Effect.map((record) => record.attempts[0]?.receipt !== undefined)),
@@ -92,17 +92,22 @@ for (const boundary of [
 				expect(after.decision).toBeUndefined();
 				expect(after.responses).toMatchObject([{ action: "retry", boardAcknowledged: true }]);
 			}
-			expect(daemon.cloudLaunches().sessions).toBe(expected[boundary].sessions);
-			expect(daemon.cloudLaunches().turns).toBe(expected[boundary].turns);
-			expect(daemon.cloudLaunches().requests.filter((request) => request.method === "thread/start")).toMatchObject([
+			expect(daemon.cloudExecution(after)).toMatchObject({
+				acceptedThreads: Array.from({ length: expected[boundary].sessions }, () => "synthetic-session"),
+				acceptedTurns: Array.from({ length: expected[boundary].turns }, () => "synthetic-turn"),
+				workId: "synthetic-work",
+			});
+			expect(daemon.cloudExecution(after).requests.filter((request) => request.method === "thread/start")).toMatchObject([
 				{ params: { environments: [{ cwd: SYNTHETIC_WORKSPACE, environmentConfigId: SYNTHETIC_ENVIRONMENT }] } },
 			]);
-			expect(daemon.cloudLaunches().requests.filter((request) => request.method === "turn/start")).toHaveLength(expected[boundary].turnRequests);
-			expect(daemon.cloudLaunches().requests.some((request) => request.method === "thread/turns/list")).toBe(
+			expect(daemon.cloudExecution(after).requests.filter((request) => request.method === "turn/start")).toHaveLength(
+				expected[boundary].turnRequests,
+			);
+			expect(daemon.cloudExecution(after).requests.some((request) => request.method === "thread/turns/list")).toBe(
 				before.attempts[0]?.sessionId !== undefined,
 			);
 			// The configured 1 s recovery grace allows about five empty-thread scans at the 250 ms poll; the 5 s default would allow about twenty.
-			expect(daemon.cloudLaunches().requests.filter((request) => request.method === "thread/turns/list").length).toBeLessThanOrEqual(10);
+			expect(daemon.cloudExecution(after).requests.filter((request) => request.method === "thread/turns/list").length).toBeLessThanOrEqual(10);
 		},
 		40_000,
 	);

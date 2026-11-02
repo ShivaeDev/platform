@@ -37,6 +37,7 @@ export function hostFollowerVerbs(engine: HostStoryEngine, tell: (line: string) 
 					Stream.tap((states) =>
 						Effect.sync(() => {
 							engine.snapshots.push(states);
+							engine.snapshotChanges.notify();
 							ready.resolve();
 						}),
 					),

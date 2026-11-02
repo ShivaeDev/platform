@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { FleetRecord } from "#model.ts";
 import { configureCloud } from "#test/cloudHost.ts";
 import { type Boundary, restartBackend } from "#test/cloudRestart.ts";
 import { task } from "#test/fleetHost.ts";
@@ -26,8 +27,13 @@ export function interruptedCloudVerbs(engine: HostStoryEngine) {
 	}
 	return {
 		allowCloudRetry: () => backend().allowRetry(),
-		cloudBoundaryReached: () => backend().reached,
-		cloudLaunches: () => ({ requests: backend().requests, sessions: backend().sessions, turns: backend().turns }),
+		awaitCloudBoundary: () => backend().boundaryReached,
+		cloudExecution: (record: FleetRecord) => ({
+			acceptedThreads: backend().sessions,
+			acceptedTurns: backend().turns,
+			requests: backend().requests,
+			workId: record.workId,
+		}),
 		retryInterrupted: () => retryInterrupted(engine.fixture),
 	};
 }

@@ -6,7 +6,7 @@ import { readWaitStates } from "#host/readWaitStates.ts";
 import { releaseWork } from "#host/releaseWork.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { waitFor } from "#host/wait.ts";
-import { until } from "#test/cloudRestart.ts";
+import { fileCondition } from "#test/fileCondition.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { answerReport } from "#test/report.ts";
 import { reportAttachmentReadout } from "#test/reportAttachments.ts";
@@ -29,7 +29,11 @@ export function hostReportVerbs(engine: HostStoryEngine, tell: (line: string) =>
 			return askWorker(engine.observedProvider, workId).pipe(Effect.provideContext(engine.running.context));
 		},
 		awaitBoardText: (file: string, text: string) =>
-			until(() => Effect.sync(() => readFileSync(join(engine.fixture.host.boardDir, file), "utf8").includes(text))),
+			fileCondition(
+				engine.fixture.host.boardDir,
+				Effect.sync(() => readFileSync(join(engine.fixture.host.boardDir, file), "utf8")),
+				(source) => source.includes(text),
+			),
 		boardFiles: (folder: string) => readdirSync(join(engine.fixture.host.boardDir, folder)),
 		downloadRequests: () => {
 			if (engine.attachmentDownload === undefined) {

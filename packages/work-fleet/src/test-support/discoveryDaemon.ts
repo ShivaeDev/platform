@@ -66,6 +66,7 @@ export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function
 	return {
 		answers,
 		close,
+		context,
 		nextSnapshot,
 		port: address.port,
 		reactivity: Context.get(context, Reactivity.Reactivity),
