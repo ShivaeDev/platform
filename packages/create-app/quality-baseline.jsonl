@@ -1,2 +1,15 @@
+{"path":"packages/create-app/src/appFiles.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/create-app/src/appFiles.unit.test.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/create-app/src/cli.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/create-app/src/commandHelp.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/create-app/src/commandHelp.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/create-app/src/createApp.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/create-app/src/generation.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/create-app/src/historicalTemplate.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/create-app/src/pack.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/create-app/src/packTemplate.ts","rule":"effect/adapter-imports","count":2}
+{"path":"packages/create-app/src/starterPatch.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/create-app/src/template.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/create-app/src/template.ts","rule":"effect/boundary","count":1}
+{"path":"packages/create-app/src/templatePack.spec.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/create-app/src/updateApp.ts","rule":"effect/adapter-imports","count":1}

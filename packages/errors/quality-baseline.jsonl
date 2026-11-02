@@ -1,2 +1,4 @@
 {"path":"packages/errors/src/boundary.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Reporter severity is attached while retaining the original thrown error identity; replacing that contract needs an error-boundary design change (likelihood 2 x severity 3 = 6)."}
+{"path":"packages/errors/src/redact.unit.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/errors/src/redactCause.ts","rule":"suppressions/no-double-cast","count":1,"reason":"Redacted errors copy native reporter attributes while retaining the error prototype; changing metadata ownership needs a redaction design change (likelihood 2 x severity 3 = 6)."}
+{"path":"packages/errors/src/redactCause.unit.test.ts","rule":"effect/adapter-imports","count":1}

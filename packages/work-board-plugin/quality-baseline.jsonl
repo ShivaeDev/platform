@@ -1,3 +1,4 @@
+{"path":"packages/work-board-plugin/script/build-client.ts","rule":"effect/adapter-imports","count":3}
 {"path":"packages/work-board-plugin/script/build-client.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board-plugin/src/board.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board-plugin/src/boardTools.ts","rule":"effect/boundary","count":10}

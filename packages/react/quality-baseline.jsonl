@@ -9,12 +9,22 @@
 {"path":"packages/react/src/client/reactWarnings.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/resultState.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/sessionBoundary.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/react/src/internal/NoticeContext.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/react/src/internal/PermissionContext.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/react/src/internal/RecheckContext.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/react/src/internal/SignOutRegistryContext.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/react/src/internal/noticeEntry.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/noticeStore.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/sessionRecheck.ts","rule":"effect/boundary","count":2}
 {"path":"packages/react/src/internal/sessionRecheck.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/react/src/internal/useLatestCallback.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/react/src/internal/useNoticePublisher.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/react/src/internal/usePermissionFailure.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/react/src/internal/usePermissionFailure.ts","rule":"effect/boundary","count":1}
+{"path":"packages/react/src/internal/useQueryNotice.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/react/src/internal/useSubmissionCallbacks.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/react/src/notices.ts","rule":"biome/plugin","count":1}
+{"path":"packages/react/src/notices.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/react/src/test-support/AnswerList.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/ConfigurationView.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/PendingCommandScreen.tsx","rule":"react/jsx-conditionals","count":2}
@@ -26,3 +36,4 @@
 {"path":"packages/react/src/test-support/routerScreens.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/settings-example/Editor.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/react/src/test-support/submitViews.tsx","rule":"react/jsx-conditionals","count":1}
+{"path":"packages/react/vitest.config.ts","rule":"effect/adapter-imports","count":1}
