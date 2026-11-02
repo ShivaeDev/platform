@@ -4,7 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { runCli } from "./cli.ts";
 import { type Fixture, makeFixture } from "./fixture.ts";
 import { operations } from "./operations.ts";
-import { pushedCommit, runStep, workflow } from "./workflow.ts";
+import { pushedCommit, runStep } from "./workflow.ts";
 
 export const MANIFEST = ".agents/skills/.shivaedev-skills.json";
 
@@ -90,7 +90,6 @@ function verbs(engine: Fixture, tell: (line: string) => void) {
 			};
 		}),
 		workflow: {
-			...workflow,
 			pushedCommit: () => Effect.sync(() => pushedCommit(remote())),
 			runs: (step: string) => {
 				tell(`the sync workflow runs its step: ${step}`);

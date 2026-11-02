@@ -10,17 +10,12 @@ const BRANCH = "change-selection";
 const JOB = "sync-skills";
 
 const WorkflowStep = Schema.Struct({
-	"continue-on-error": Schema.optional(Schema.Boolean),
-	id: Schema.optional(Schema.String),
-	if: Schema.optional(Schema.String),
 	name: Schema.String,
 	run: Schema.optional(Schema.String),
 });
 
 const Workflow = Schema.Struct({
-	jobs: Schema.Record(Schema.String, Schema.Struct({ if: Schema.optional(Schema.String), steps: Schema.Array(WorkflowStep) })),
-	on: Schema.Record(Schema.String, Schema.Unknown),
-	permissions: Schema.Record(Schema.String, Schema.String),
+	jobs: Schema.Record(Schema.String, Schema.Struct({ steps: Schema.Array(WorkflowStep) })),
 });
 
 const template = Effect.fn("SkillsWorkflow.template")(function* () {
@@ -55,14 +50,6 @@ export function runStep(repo: string, name: string) {
 			: Effect.succeed(exec("bash", ["--noprofile", "--norc", "-eo", "pipefail", "-c", run], repo)),
 	);
 }
-
-export const workflow = {
-	jobCondition: () => Effect.map(job, (found) => found.if),
-	permissions: () => Effect.map(template(), ({ permissions }) => permissions),
-	stepField: (name: string, key: Exclude<keyof typeof WorkflowStep.Type, "name">) => Effect.map(step(name), (found) => found[key]),
-	stepNames: () => Effect.map(job, ({ steps }) => steps.map((found) => found.name)),
-	triggers: () => Effect.map(template(), ({ on }) => Object.keys(on)),
-};
 
 export const checkOutPullRequest = Effect.fn("SkillsWorkflow.checkOutPullRequest")(function* (repo: string) {
 	const fs = yield* FileSystem.FileSystem;
