@@ -3,9 +3,10 @@ import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { makeConflictClause } from "#makeConflictClause.ts";
+import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { Comparisons, FindManyFilter } from "#repositoryFilter.ts";
-import type { RepositoryChanges } from "./repositoryChanges.ts";
-import { makeUpsertDecoder, type UpsertRow, upsertReturning } from "./upsertResult.ts";
+import type { UpsertAssignment } from "#upsertColumns.ts";
+import { makeUpsertDecoder, type UpsertRow, upsertReturning } from "#upsertResult.ts";
 
 type Fields<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
 interface Incoming<TModel extends Model.Any, TValue> {
@@ -70,7 +71,7 @@ export function makeConditionalUpsert(
 	const clause = makeConflictClause(model, sql, options);
 	return (
 		inputs: readonly unknown[],
-		settings: { readonly updateColumns: readonly string[]; readonly updateWhere: Readonly<Record<string, unknown>> },
+		settings: { readonly updateColumns: readonly UpsertAssignment[]; readonly updateWhere: Readonly<Record<string, unknown>> },
 	) =>
 		Effect.gen(function* () {
 			const statements = yield* Effect.forEach(inputs, (input) =>
