@@ -10,6 +10,7 @@ import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { failureHonesty } from "#rules/effect/failureHonesty.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
+import { sharedErrorClasses } from "#rules/effect/sharedErrorClasses.ts";
 import { distinctCase } from "#rules/files/distinctCase.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
@@ -60,6 +61,7 @@ export const builtInRules = [
 	effectBoundary,
 	failureHonesty,
 	serviceParameters,
+	sharedErrorClasses,
 	jsxConditionals,
 	maxLines,
 	maxDepth,

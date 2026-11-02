@@ -3,7 +3,7 @@ import ts from "typescript";
 import { projectsFor } from "#adapters/imports/projects.ts";
 import type { RuleInputs } from "#rule.ts";
 
-export function effectProgram(inputs: RuleInputs, externalTypes = true): ts.Program {
+export function effectProgram(inputs: RuleInputs, externalTypes = true, roots: readonly string[] = []): ts.Program {
 	const projectOf = projectsFor(inputs.root);
 	const options: ts.CompilerOptions = {
 		allowJs: true,
@@ -25,5 +25,5 @@ export function effectProgram(inputs: RuleInputs, externalTypes = true): ts.Prog
 			const project = projectOf(from);
 			return ts.resolveModuleName(name, from, project.typesOptions, host, project.typesCache).resolvedModule;
 		});
-	return ts.createProgram([...texts.keys()], options, host);
+	return ts.createProgram([...texts.keys(), ...roots], options, host);
 }
