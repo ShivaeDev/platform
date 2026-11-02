@@ -1,6 +1,7 @@
-import { Effect, Option, Stream } from "effect";
+import { Effect, Option, Stream, SubscriptionRef } from "effect";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { until } from "@shivaedev/test-story/server/until.ts";
 import { type HintViewer, heard, watchHints } from "#testing.ts";
 import { answered, hintWords } from "./answers.ts";
 import { documents } from "./policyServicesContract.ts";
@@ -60,9 +61,16 @@ export const policyServicesStory = storyKit({
 			story.tell("the team's provider account loses read access");
 			return Effect.sync(() => engine.admitted.delete("team"));
 		},
-		subscriptionEnd: (person: Person) => {
+		subscriptionDenial: (person: Person) => {
 			const listener = engine.listeners.get(person);
-			return listener === undefined ? Effect.die(`${person} is not listening`) : answered(listener.finished, () => "completed");
+			return listener === undefined
+				? Effect.die(`${person} is not listening`)
+				: Effect.map(
+						until(SubscriptionRef.changes(listener.hints), (hints) => hints.some((hint) => hint._tag === "QueryReadDenied"), {
+							name: "policy denial",
+						}),
+						() => "read denied",
+					);
 		},
 	}),
 });

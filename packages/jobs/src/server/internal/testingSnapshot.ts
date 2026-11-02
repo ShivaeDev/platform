@@ -11,7 +11,7 @@ const Rows = Schema.Array(
 		id: Schema.String,
 		queue: Schema.String,
 		startAfter: Schema.DateTimeUtcFromDate,
-		state: Schema.Literals(["created", "retry", "active", "failed"]),
+		state: Schema.Literals(["created", "retry", "deferred", "active", "failed"]),
 	}),
 );
 
@@ -29,7 +29,10 @@ export function testingSnapshot(client: () => PgBoss, schema: () => string) {
 			const { rows } = await client()
 				.getDb()
 				.executeSql(
-					`SELECT id, name AS queue, state, data, start_after AS "startAfter"
+					`SELECT id, name AS queue, data, start_after AS "startAfter",
+					CASE WHEN state = 'retry' AND started_on IS NULL AND start_after > ${quoted}.job_now()
+						AND output ? 'jobDeferral'
+					THEN 'deferred' ELSE state::text END AS state
 					FROM ${quoted}.job
 					WHERE name = ANY($1::text[]) AND state IN ('created', 'retry', 'active', 'failed')
 					ORDER BY created_on, id`,

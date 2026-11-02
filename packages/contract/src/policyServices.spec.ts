@@ -35,9 +35,9 @@ policyServicesStory.it(
 );
 
 policyServicesStory.it(
-	"revoking provider-account access denies the next RPC read and ends the live subscription on a hint",
+	"revoking provider-account access denies the next RPC read and delivers a live denial on a hint",
 	[listening],
-	function* ({ announce, read, revoke, subscriptionEnd }) {
+	function* ({ announce, read, revoke, subscriptionDenial }) {
 		expect(yield* read("alice")).toBe("team's document");
 
 		yield* revoke();
@@ -45,7 +45,7 @@ policyServicesStory.it(
 
 		yield* outcomes([
 			["HTTP read", () => read("alice"), "failed with read denied"],
-			["live subscription", () => subscriptionEnd("alice"), "failed with read denied"],
+			["live subscription", () => subscriptionDenial("alice"), "read denied"],
 		]);
 	},
 );
