@@ -1,4 +1,4 @@
-import { Effect, Semaphore } from "effect";
+import { Effect } from "effect";
 import { running } from "#test/engineState.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 
@@ -30,11 +30,4 @@ export const observedQuota = isolatedEngine.trait("configuration", "the provider
 		...engine.options,
 		refreshQuota: () => Effect.succeed({ available: engine.options.quota ?? 100, expiresAt: Number.MAX_SAFE_INTEGER, observedAt: 0 }),
 	};
-});
-
-export const serialReconciliation = isolatedEngine.trait("work", "reconciliation completes in scheduler invocation order", function* (engine) {
-	const runtime = running(engine);
-	const lock = yield* Semaphore.make(1);
-	const { reconcile } = runtime.fleet;
-	runtime.fleet = { ...runtime.fleet, reconcile: (id) => lock.withPermits(1)(reconcile(id)) };
 });
