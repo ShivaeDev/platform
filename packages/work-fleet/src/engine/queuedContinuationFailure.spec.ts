@@ -1,15 +1,9 @@
-import { Effect } from "effect";
+import { Effect, Fiber } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import {
-	completedContinuation,
-	continuationCapacity,
-	fourApproved,
-	needsHumanContinuation,
-	observedQuota,
-	serialReconciliation,
-} from "#test/continuationCapacity.ts";
+import { completedContinuation, continuationCapacity, fourApproved, needsHumanContinuation, observedQuota } from "#test/continuationCapacity.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
+import { schedulerProvider } from "#test/schedulerProvider.ts";
 
 for (const step of ["waiting", "done"] as const) {
 	const resultKind = step === "waiting" ? needsHumanContinuation : completedContinuation;
@@ -78,19 +72,24 @@ isolatedEngine.it(
 
 isolatedEngine.it(
 	"a pass resumes a queued continuation after observing the turn that frees its slot",
-	[continuationCapacity, completedContinuation, fourApproved, serialReconciliation],
+	[continuationCapacity, completedContinuation, fourApproved, schedulerProvider],
 	function* (fleet) {
 		for (const id of ["one", "two", "three", "four"]) {
 			yield* fleet.prepareWork(id);
 		}
 		const first = (yield* fleet.dispatch("one")).value;
-		fleet.finishWorkers();
+		fleet.finishSchedulerTurn(first.attempts[0]?.receipt);
 		yield* fleet.reconcile("one");
-		yield* fleet.dispatch("two");
+		const second = yield* fleet.dispatch("two");
 		yield* fleet.dispatch("three");
 		yield* fleet.continueWork("one", "Finish the queued change");
-		yield* fleet.finishWorker("two");
-		yield* fleet.schedule();
+		fleet.finishSchedulerTurn(second.value.attempts[0]?.receipt);
+		const provider = fleet.holdSchedulerObservation(second.value.attempts[0]?.receipt);
+		const pass = yield* fleet.schedule().pipe(Effect.forkChild);
+		yield* provider.entered;
+		expect((yield* fleet.get("one")).value.pendingContinuation).toBe("Finish the queued change");
+		yield* provider.release;
+		yield* Fiber.join(pass);
 		const resumed = (yield* fleet.get("one")).value;
 		expect(resumed.step).toBe("working");
 		expect(resumed.pendingContinuation).toBeUndefined();

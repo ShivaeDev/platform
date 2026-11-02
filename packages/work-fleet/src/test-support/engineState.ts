@@ -5,6 +5,7 @@ import type { Fleet } from "#fleet.ts";
 import type { MainSource } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardGateway, WorkResult } from "#policy.ts";
+import type { SessionReceipt } from "#session/schema.ts";
 import type { boardReads } from "#test/boardReads.ts";
 import type { bufferedBoard } from "#test/bufferedBoard.ts";
 import { captureLogs } from "#test/captureLogs.ts";
@@ -54,6 +55,10 @@ export interface EngineStory extends EngineWorld {
 	resultObservation?: { value: WorkResult; unavailable: boolean };
 	root: string;
 	runtime?: Effect.Success<ReturnType<typeof createEngine<unknown>>> & { fleet: typeof Fleet.Service };
+	schedulerProvider?: {
+		finish: (receipt: SessionReceipt) => void;
+		hold: (sessionId: string) => { entered: Effect.Effect<void>; release: Effect.Effect<void> };
+	};
 	source: string;
 	sourceReads?: Effect.Success<ReturnType<typeof boardReads>>;
 	sweepReadiness?: { readonly entered: Deferred.Deferred<void>; readonly resume: Deferred.Deferred<void> };
