@@ -1,6 +1,7 @@
-import * as PgTypes from "@effect/sql-pg/PgTypes";
-import { BigDecimal, Result, Schema, SchemaGetter, SchemaParser } from "effect";
+import { BigDecimal, Schema } from "effect";
 import { Model } from "effect/schema";
+import { int4Array } from "#int4Array.ts";
+import { int8 } from "#int8.ts";
 
 export class Payment extends Model.Class<Payment>("Payment")({
 	amount: Schema.BigDecimalFromString,
@@ -9,7 +10,7 @@ export class Payment extends Model.Class<Payment>("Payment")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
 	"local_time": Schema.Date,
 	note: Schema.NullOr(Schema.String),
-	sequence: Schema.BigInt,
+	sequence: int8(Schema.BigInt),
 	"settled_at": Schema.Date,
 }) {}
 
@@ -26,12 +27,7 @@ export const payment = {
 };
 
 const Integers = Schema.Array(Schema.Int);
-const StoredIntegers = Schema.Unknown.pipe(
-	Schema.decodeTo(Integers, {
-		decode: SchemaGetter.transformEffect((value) => SchemaParser.decodeUnknownEffect(Integers)(PgTypes.isParameter(value) ? value.value : value)),
-		encode: SchemaGetter.transform((values) => Result.getOrThrow(PgTypes.array(values, PgTypes.OID.int4))),
-	}),
-);
+const StoredIntegers = int4Array(Integers);
 
 export class Sample extends Model.Class<Sample>("Sample")({
 	id: Schema.Int,
