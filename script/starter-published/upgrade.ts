@@ -53,7 +53,7 @@ export const upgradeStarter = Effect.fn("Published.upgradeStarter")(function* (
 			"run",
 			"test",
 			"src/server/authMigrations.spec.ts",
-			"src/server/deployReadiness.spec.ts",
+			"src/server/browserReports.spec.ts",
 			"--reporter=default",
 			"--reporter=json",
 			`--outputFile=${join(directory, "upgrade-stories.json")}`,
