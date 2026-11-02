@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.0 - 2026-11-02
+
+### Added
+
+- `@shivaedev/changes/keys.ts` exports `isBucketSchema` to check whether a schema decodes to string or number keys, including nullable and optional model fields. `declaredBuckets` includes this check as `supported`.
+- Give native transaction adapters a boundary that restores interruption during connection acquisition and records a commit before pending interruption resumes.
+
+### Fixed
+
+- Exceptions in change observers are logged without stopping sink delivery or changing transaction outcomes, including SQL change observations.
+
+### Breaking
+
+- Transactions inside `batch` now publish at their outermost transaction's commit, honoring the scoped `CommittedSink`, instead of waiting for the batch to end. Use an enclosing transaction when writes and their changes must commit together, or coalesce in the sink when independent transactions need grouped delivery. Nontransactional batch changes still wait for the batch to end, and rolled-back transactions publish nothing.
+- SQL repository registration rejects annotated bucket fields whose decoded schemas cannot be represented by change keys, with `BucketRegistrationError.invalidFields` naming the rejected fields. Use string or number schemas, optionally nullable or optional, for bucket values. Codecs such as `Schema.NumberFromString` remain supported. Replace opaque declarations with an explicit string or number schema and refinements. When constructing `BucketRegistrationError` directly, supply `invalidFields` (an empty array for field-name mismatches).
+- The native adapter passed to `within` now receives a `TransactionBoundary` as its second argument. Unary adapters remain compatible. Wrap a native combinator that already accepts a second options argument as `(body) => native(body, options)` to keep those options explicit.
+
 ## 0.6.0 - 2026-10-30
 
 ### Added

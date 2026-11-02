@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 - 2026-11-02
+
+### Fixed
+
+- Refuse per-test and per-suite Vitest retries after each attempt, naming every affected file and test. Use `--reruns` for global fresh-process retries whose recoveries are recorded in `flaky-tests.json`.
+- Rerun a file in full when its `beforeAll` or `afterAll` fails, including nested suite hooks. Keep unresolved hook diagnostics and new failures in the merged results.
+- Judge coverage thresholds against merged coverage, preserve rerun unhandled errors in JUnit and snapshot totals and coverage in JSON, and remove attempt snapshots when a run is interrupted.
+- Refuse reruns that change a test name, suite name or task kind at the same Vitest ID, preserving the earlier final reports instead of reporting a false recovery.
+
+### Breaking
+
+- Code constructing `Snapshot` values for the exported internal merge API must supply `summary` with Vitest's snapshot summary. The runner creates this field automatically.
+
 ## 0.2.1 - 2026-11-01
 
 ### Fixed

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.11.0 - 2026-11-02
+
+### Added
+
+- Read whole-form Schema refinement messages with `errorAt([])` after submission and with `Invalid.formMessage` on invalid submissions.
+- Form and React submission configurations accept a `savedValues` mapping to normalize a successful submission against its captured baseline while retaining later field edits.
+
+### Fixed
+
+- Hide previous asynchronous Schema messages on top-level fields while decoding changed input.
+- Editors preserve newer received baselines when an earlier save completes, and merge normalized saved fields without erasing later edits.
+- Create forms retain optional keys removed while a submission is in flight when resetting their inputs.
+- Nested field refs read and write object properties and array elements without overflowing the stack.
+- Keep a field's server rejection when it loses focus without a value change. Changing the rejected input still clears the server message.
+
+### Breaking
+
+- `messageAtPath(issue, [])` now selects only whole-form issues. Pass a field path such as `["name"]` to select that field's first message.
+
 ## 0.10.0 - 2026-10-31
 
 ### Added

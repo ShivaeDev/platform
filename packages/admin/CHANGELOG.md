@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.18.0 - 2026-11-02
+
+### Added
+
+- Accept the application's Better Auth options in role assignment, provider-account role seeds and admin Users handlers to follow custom table and column mappings. Existing calls retain the default mapping.
+
+### Fixed
+
+- Preserve permission read policies on admin page queries so live collection reads load and refresh after writes across tenants, while retaining the page grant and query restrictions.
+- Apply the first registered page's permission to `/admin` and `/admin/` in both the client and server guards.
+- Match detail routes with a declared trailing slash consistently with page routes.
+- Accept session-scoped contracts in `adminPage` and preserve their scope through middleware and client binding, including queries using `readsCollections`.
+- Redact scheduled worker logs using the same diagnostic policy as queue workers. Job details sanitize stored failure output and source failure output through the same schema as job listings, including native pg-boss timeout records.
+- Preserve the configured role column when mounting stored roles, generating role-aware migrations and checking the auth schema.
+
+### Breaking
+
+- Reject overlapping admin route patterns and detail paths outside their page at registry composition. Move colliding pages to distinct routes and place each detail under its page path.
+
 ## 0.17.0 - 2026-11-01
 
 ### Changed
