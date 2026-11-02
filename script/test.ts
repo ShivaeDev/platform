@@ -16,7 +16,7 @@ const program = Effect.gen(function* () {
 	if (ciShard) {
 		command = ["node", "--conditions=source", "packages/vitest-rerun/src/cli.ts", "--output-dir", ".ci", "--reruns", "1", "--", ...vitest];
 	}
-	if (workspace) {
+	if (workspace && !ciShard) {
 		const prepared = yield* spawner.exitCode(
 			ChildProcess.make("pnpm", ["--recursive", "--workspace-concurrency=1", "--if-present", "test:prepare"], {
 				stderr: "inherit",

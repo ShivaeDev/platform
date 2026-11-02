@@ -164,8 +164,32 @@ jobs:
           }
           JS
 
+  work-board-tests:
+    name: Prepare Work Board tests
+    outputs:
+      artifact-id: ${{ steps.bundle.outputs.artifact-id }}
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter @shivaedev/work-board test:prepare
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        id: bundle
+        with:
+          name: work-board-tests-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            packages/work-board/dist
+            packages/work-board/assets
+            packages/work-board-plugin/src/adapters/generated
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+
   tests:
-    needs: shard-plan
+    needs: [ shard-plan, work-board-tests ]
     permissions:
       contents: read
       actions: read
@@ -186,6 +210,12 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           postgres: "true"
+      - name: Download Work Board test bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          github-token: ${{ github.token }}
+          artifact-ids: ${{ needs.work-board-tests.outputs.artifact-id }}
+          path: packages
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: needs.shard-plan.outputs.tests-run-id != ''
         with:
@@ -317,7 +347,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke, browser-check ]
+    needs: [ shard-plan, work-board-tests, lint, build, typecheck, tests, consumers, published-starter, macos-smoke, browser-check ]
     permissions:
       contents: read
       actions: read

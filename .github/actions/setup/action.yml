@@ -2,11 +2,17 @@ name: Set up workspace
 description: Install the locked dependencies from npm under the supply-chain policy.
 inputs:
   postgres:
-    description: Pull the pinned PostgreSQL image in the background after dependencies are installed.
+    description: Pull the pinned PostgreSQL image while Node and dependencies are installed.
     default: "false"
 runs:
   using: composite
   steps:
+    - name: Pull PostgreSQL in the background
+      if: inputs.postgres == 'true'
+      shell: bash
+      run: |
+        image=$(sed -n 's/^export const POSTGRES_IMAGE = "\(.*\)";$/\1/p' packages/local-postgres/src/server/localContainer.ts)
+        nohup docker pull --quiet "$image" > "$RUNNER_TEMP/postgres-pull.log" 2>&1 &
     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
       with:
         node-version-file: .node-version
@@ -19,9 +25,3 @@ runs:
     - shell: bash
       # Re-verify every entry against the supply-chain policy that local installs trust.
       run: pnpm install --frozen-lockfile --trust-lockfile=false
-    - name: Pull PostgreSQL in the background
-      if: inputs.postgres == 'true'
-      shell: bash
-      run: |
-        image=$(node --conditions=source --input-type=module -e "import { POSTGRES_IMAGE } from './packages/local-postgres/src/server/localContainer.ts'; console.log(POSTGRES_IMAGE)")
-        nohup docker pull --quiet "$image" > "$RUNNER_TEMP/postgres-pull.log" 2>&1 &
