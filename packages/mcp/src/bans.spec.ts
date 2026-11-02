@@ -5,7 +5,7 @@ import { passwordMember } from "#test/passwordMember.ts";
 import { holdsToken } from "#test/traits.ts";
 
 mcp.it(
-	"an expired temporary ban admits the MCP client before and after its member signs in on the web",
+	"alice's expired temporary ban admits her MCP client before and after she signs in on the web",
 	[passwordMember, holdsToken("alice")],
 	function* ({ browserSession, call, connects, setsBan, signsInOnWeb }) {
 		yield* setsBan("alice", "expired");
@@ -24,7 +24,7 @@ mcp.it(
 
 for (const kind of ["active", "permanent"] as const) {
 	mcp.it(
-		`a member whose ban is ${kind} is refused on web sign-in and MCP`,
+		`alice's ${kind} ban refuses her web sign-in and MCP client`,
 		[passwordMember, holdsToken("alice")],
 		function* ({ connects, setsBan, signsInOnWeb }) {
 			yield* setsBan("alice", kind);
