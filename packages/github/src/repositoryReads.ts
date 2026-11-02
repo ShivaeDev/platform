@@ -1,10 +1,11 @@
 import { Effect } from "effect";
+import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { Commit, CommitDetail, Comparison, GitTree } from "#gitSchemas.ts";
 import { decodedPages, type ListOptions } from "#pagedLists.ts";
 import { CollaboratorPermission, Issue, PullRequestFile, User } from "#repositorySchemas.ts";
 import type { Representations } from "#representations.ts";
 
-export interface RepositoryListOptions extends ListOptions {
+export interface RepositoryListOptions<E = ServiceUnavailable> extends ListOptions<E> {
 	readonly query?: Readonly<Record<string, string | number | boolean | undefined>>;
 }
 
@@ -12,7 +13,7 @@ export function repositoryReads(client: Representations) {
 	function repository(owner: string, repo: string) {
 		return `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
 	}
-	function pathWithQuery(path: string, options?: RepositoryListOptions) {
+	function pathWithQuery<E>(path: string, options?: RepositoryListOptions<E>) {
 		const query = new URLSearchParams({ "per_page": "100" });
 		for (const [key, value] of Object.entries(options?.query ?? {})) {
 			if (value !== undefined) {
@@ -51,11 +52,11 @@ export function repositoryReads(client: Representations) {
 			Effect.flatMap(client.read(username === undefined ? "/user" : `/users/${encodeURIComponent(username)}`, byteLimit), (page) =>
 				page.decode(User),
 			),
-		listCommits: (owner: string, repo: string, options?: RepositoryListOptions) =>
+		listCommits: <E = ServiceUnavailable>(owner: string, repo: string, options?: RepositoryListOptions<E>) =>
 			Effect.succeed(decodedPages(client, pathWithQuery(`${repository(owner, repo)}/commits`, options), Commit, options)),
-		listIssues: (owner: string, repo: string, options?: RepositoryListOptions) =>
+		listIssues: <E = ServiceUnavailable>(owner: string, repo: string, options?: RepositoryListOptions<E>) =>
 			Effect.succeed(decodedPages(client, pathWithQuery(`${repository(owner, repo)}/issues`, options), Issue, options)),
-		listPullRequestFiles: (owner: string, repo: string, number: number, options?: RepositoryListOptions) =>
+		listPullRequestFiles: <E = ServiceUnavailable>(owner: string, repo: string, number: number, options?: RepositoryListOptions<E>) =>
 			Effect.succeed(decodedPages(client, pathWithQuery(`${repository(owner, repo)}/pulls/${number}/files`, options), PullRequestFile, options)),
 	};
 }

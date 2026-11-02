@@ -12,7 +12,8 @@ export function githubVerbs(engine: Engine, tell: (line: string) => void) {
 	}
 	return {
 		answers: (read: Read, answer: Answer) => act(github.answers(read, answer)),
-		budgetIs: (resource: string, remaining: number, limit: number, resetAt: number) => act(github.budget(resource, remaining, limit, resetAt)),
+		budgetIs: (resource: string, remaining: number, limit: number, resetAt: number, read?: Read) =>
+			act(github.budget(resource, remaining, limit, resetAt, read)),
 		checkConcludes: (number: number, check: Check) => act(github.checkConcludes(number, check)),
 		checksBecome: (number: number, checks: readonly Check[]) => act(github.checksBecome(number, checks)),
 		checksPageLinksElsewhere: (number: number) => act(github.checksPageLinksElsewhere(number)),

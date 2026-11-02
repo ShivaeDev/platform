@@ -88,9 +88,9 @@ export const github = {
 		change(`GitHub answers ${read.name} with ${answer.description}`, (fake) => {
 			fake.overrides.set(read.route(fake), answer.reply);
 		}),
-	budget: (resource: string, remaining: number, limit: number, resetAt: number) =>
+	budget: (resource: string, remaining: number, limit: number, resetAt: number, read: Read = reads.status(1)) =>
 		change(`the ${resource} budget has ${remaining} of ${limit} requests left until ${new Date(resetAt).toISOString().slice(11, 19)}`, (fake) => {
-			fake.extraHeaders.set(statusRoute(fake.pullOf(1).sha), quotaHeaders(resource, remaining, limit, resetAt));
+			fake.extraHeaders.set(read.route(fake), quotaHeaders(resource, remaining, limit, resetAt));
 		}),
 	checkConcludes: (number: number, check: Check) =>
 		change(`PR ${number}'s check run is ${check.status} with conclusion ${check.conclusion}`, (fake) => {

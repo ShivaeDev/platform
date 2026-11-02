@@ -11,7 +11,7 @@ export const GitHubHttp = defineService({
 		return { github: yield* GitHub, requests: 0, retryAt: 0 };
 	}),
 	methods: (state) => {
-		function request<T, E, R>(operation: Effect.Effect<T, E, R>) {
+		function beforeRequest() {
 			return Effect.gen(function* () {
 				const now = yield* Clock.currentTimeMillis;
 				const observations = yield* state.github.observations();
@@ -24,8 +24,11 @@ export const GitHubHttp = defineService({
 						retryAt,
 					});
 				}
-				return yield* operation;
-			}).pipe(
+			});
+		}
+		function request<T, E, R>(operation: Effect.Effect<T, E, R>) {
+			return beforeRequest().pipe(
+				Effect.andThen(operation),
 				Effect.scoped,
 				Effect.timeout("30 seconds"),
 				Effect.tapError((error) =>
@@ -69,7 +72,7 @@ export const GitHubHttp = defineService({
 			},
 			list: (url: string) =>
 				request(
-					Stream.unwrap(state.github.list(url)).pipe(
+					Stream.unwrap(state.github.list(url, beforeRequest)).pipe(
 						Stream.mapEffect((response) => counted(response.decode(Schema.Unknown))),
 						Stream.runCollect,
 					),
