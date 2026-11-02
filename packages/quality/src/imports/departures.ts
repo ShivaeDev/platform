@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { ImportCompiler } from "#adapters/ImportCompiler.ts";
 import type { RuleInputs } from "#rule.ts";
 import type { SpecifierSite } from "./specifiers.ts";
+import { workspacePackages } from "./workspace.ts";
 
 export interface Departure extends SpecifierSite {
 	readonly file: string;
@@ -10,6 +11,7 @@ export interface Departure extends SpecifierSite {
 }
 
 export const departures = Effect.fn("Imports.departures")(function* (inputs: RuleInputs) {
+	const packages = yield* Effect.promise(() => workspacePackages(inputs));
 	const compiler = yield* ImportCompiler;
-	return yield* compiler.departures(inputs);
+	return yield* compiler.departures(inputs, packages);
 }, Effect.provide(ImportCompiler.layer));

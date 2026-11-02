@@ -3,7 +3,7 @@ import { posix } from "node:path";
 import type { Departure } from "#imports/departures.ts";
 import type { ImportRequest } from "#imports/extract.ts";
 import { type SpecifierSite, specifierSites } from "#imports/specifiers.ts";
-import { packageOf, type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
+import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import { moduleRoot } from "#naming/moduleRoot.ts";
 import type { RuleInputs } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
@@ -67,10 +67,9 @@ function departureAt(context: FileContext, site: SpecifierSite): Departure | und
 	return { ...site, file: context.path, installed: target?.kind === "external" ? target.package : undefined, workspace };
 }
 
-export async function departures(inputs: RuleInputs): Promise<readonly Departure[]> {
+export function departures(inputs: RuleInputs, packages: readonly WorkspacePackage[]): readonly Departure[] {
 	const root = realpathSync(inputs.root);
 	const projectOf = projectsFor(root);
-	const packages = await workspacePackages(inputs);
 	return inputs.sources.flatMap((file) => {
 		const syntax = MAY_BE_RELATIVE.test(file.text) ? parse(file) : undefined;
 		if (syntax === undefined) {
