@@ -1,12 +1,27 @@
 import { testUtils } from "better-auth/plugins";
-import { ConfigProvider, Deferred, type Duration, Effect } from "effect";
-import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { ConfigProvider, Deferred, type Duration, Effect, Exit, Layer, Scope } from "effect";
+import { postgresStore } from "@shivaedev/rate-limit/adapters/postgresStore.ts";
+import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
+import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
 
-export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input) {
-	const messages: AuthEmail[] = [];
+export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input, messages: AuthEmail[] = []) {
+	const scope = yield* Scope.make();
+	const stop = Scope.close(scope, Exit.void);
+	yield* Effect.addFinalizer(() => stop);
+	const database = yield* PostgresTestDatabase;
+	const context = yield* Layer.build(postgresLayer(database.url, clientOptions({ maxConnections: 2 }))).pipe(Scope.provide(scope));
+	return yield* makeEmailHost(window, messages).pipe(
+		Effect.provideContext(context),
+		Scope.provide(scope),
+		Effect.map((host) => ({ ...host, stop })),
+	);
+});
+
+const makeEmailHost = Effect.fnUntraced(function* (window: Duration.Input | undefined, messages: AuthEmail[]) {
 	const delivery = { available: true, held: false };
 	const started = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
@@ -45,7 +60,7 @@ export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input) {
 			hardening: { requirePasswordForEmailChange: false },
 		},
 	)
-		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(postgresStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const context = yield* Effect.promise(() => mounted.auth.$context);
 	yield* Effect.promise(() => context.runMigrations());

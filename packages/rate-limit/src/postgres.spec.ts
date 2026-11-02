@@ -38,3 +38,14 @@ postgres.it("the JSON RPC client decodes a rate-limit refusal as the shared TooM
 		retryAt: expect.any(Number),
 	});
 });
+
+postgres.it("an expired PostgreSQL window admits a fresh budget", [], function* ({ attempt, burst, expireWindows }) {
+	yield* burst(limit.per, limit);
+	expect(yield* attempt()).toMatchObject({ refusal: "TooManyRequests" });
+
+	yield* expireWindows();
+	const admitted = yield* burst(limit.per, limit);
+
+	expect(admitted).toEqual(["admitted", "admitted"]);
+	expect(yield* attempt()).toMatchObject({ refusal: "TooManyRequests" });
+});

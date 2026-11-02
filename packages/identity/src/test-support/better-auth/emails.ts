@@ -1,5 +1,6 @@
-import { DateTime, Deferred, type Duration, Effect, Fiber } from "effect";
-import * as TestClock from "effect/testing/TestClock";
+import { Deferred, type Duration, Effect, Fiber } from "effect";
+import { postgresMigration } from "@shivaedev/rate-limit/adapters/postgresMigration.ts";
+import { postgresTestDatabase } from "@shivaedev/rate-limit/postgresTestDatabase.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -10,6 +11,7 @@ import { emailHost } from "./emailHost.ts";
 interface Engine {
 	headers: Headers;
 	host?: Effect.Success<ReturnType<typeof emailHost>>;
+	second?: Effect.Success<ReturnType<typeof emailHost>>;
 	window?: Duration.Input;
 }
 
@@ -20,25 +22,29 @@ function host(engine: Engine) {
 	return engine.host;
 }
 
-function request(engine: Engine, kind: AuthEmail["_tag"], person = "alice"): Promise<unknown> {
-	const { auth, messages } = host(engine);
+function request(engine: Engine, kind: AuthEmail["_tag"], person = "alice", replica: "first" | "second" = "first"): Promise<Response> {
+	const selected = replica === "first" ? host(engine) : engine.second;
+	if (selected === undefined) {
+		throw new Error("The second email mount has not started");
+	}
+	const { auth, messages } = selected;
 	const email = `${person}@example.test`;
 	switch (kind) {
 		case "ConfirmAccount":
-			return auth.api.sendVerificationEmail({ body: { email } });
+			return auth.api.sendVerificationEmail({ asResponse: true, body: { email } });
 		case "ResetPassword":
-			return auth.api.requestPasswordReset({ body: { email } });
+			return auth.api.requestPasswordReset({ asResponse: true, body: { email } });
 		case "ApproveEmailChange":
-			return auth.api.changeEmail({ body: { newEmail: "alice-new@example.test" }, headers: engine.headers });
+			return auth.api.changeEmail({ asResponse: true, body: { newEmail: "alice-new@example.test" }, headers: engine.headers });
 		case "ConfirmNewAddress": {
 			const approval = messages.find((message) => message._tag === "ApproveEmailChange");
 			if (approval?._tag !== "ApproveEmailChange") {
 				throw new Error("Alice has no email change to approve");
 			}
-			return auth.api.verifyEmail({ query: { token: approval.token } });
+			return auth.api.verifyEmail({ asResponse: true, query: { token: approval.token } });
 		}
 		case "AccountAlreadyExists":
-			return auth.api.signUpEmail({ body: { email, name: person, password: "unused-signup-password" } });
+			return auth.api.signUpEmail({ asResponse: true, body: { email, name: person, password: "unused-signup-password" } });
 	}
 }
 
@@ -49,12 +55,16 @@ export const emails = storyKit({
 		}),
 	},
 	around: withIsolatedDatabase,
-	clock: Effect.runSync(DateTime.now),
-	create: (): Engine => ({ headers: new Headers() }),
+	clock: "live",
+	*create() {
+		yield* postgresMigration;
+		const engine: Engine = { headers: new Headers() };
+		return engine;
+	},
 	layer: postgres,
 	name: "typed auth emails",
 	runIf: databaseUrl !== undefined,
-	stages: ["configured", "account", "delivery", "approval"],
+	stages: ["configured", "account", "mounts", "delivery", "approval"],
 	verbs: (engine, story) => {
 		let pending: Effect.Effect<unknown> | undefined;
 		return {
@@ -73,6 +83,10 @@ export const emails = storyKit({
 				Effect.sync(() => {
 					host(engine).delivery.available = available;
 				}),
+			expireWindows: () => {
+				story.tell("the stored email reservations expire");
+				return postgresTestDatabase.pipe(Effect.flatMap((database) => database.expireWindows));
+			},
 			finishDelivery: () =>
 				Effect.gen(function* () {
 					story.tell("the mail transport finishes the held delivery");
@@ -83,13 +97,16 @@ export const emails = storyKit({
 					yield* pending;
 				}),
 			messages: (kind: AuthEmail["_tag"]) => Effect.sync(() => host(engine).messages.filter((message) => message._tag === kind)),
-			request: (kind: AuthEmail["_tag"], person = "alice") => {
-				story.tell(`${person} requests ${kind}`);
-				return Effect.promise(() => request(engine, kind, person));
-			},
-			timePasses: (duration: Duration.Input) => {
-				story.tell(`${duration} pass on the email window clock`);
-				return TestClock.adjust(duration);
+			rebuildMount: () =>
+				Effect.gen(function* () {
+					story.tell("the first mount shuts down and is rebuilt against the same database");
+					const previous = host(engine);
+					yield* previous.stop;
+					engine.host = yield* emailHost(engine.window, previous.messages);
+				}),
+			request: (kind: AuthEmail["_tag"], person = "alice", replica: "first" | "second" = "first") => {
+				story.tell(`${person} requests ${kind} on the ${replica} mount`);
+				return Effect.promise(async () => (await request(engine, kind, person, replica)).status);
 			},
 		};
 	},
@@ -117,4 +134,8 @@ export const twoMinuteWindow = emails.trait("configured", "the app chooses a two
 });
 export const deliveryHeld = emails.trait("delivery", "the app's mail transport holds delivery", (engine) => {
 	host(engine).delivery.held = true;
+});
+
+export const twoMounts = emails.trait("mounts", "two mounts share PostgreSQL through independent pools", function* (engine) {
+	engine.second = yield* emailHost(engine.window, host(engine).messages);
 });
