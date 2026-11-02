@@ -1,56 +1,32 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Layer } from "effect";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resolveHost } from "#host/config.ts";
 import { hostProvider } from "#host/providers.ts";
 import type { CodexCloudConfiguration } from "#providers/codexCloud.ts";
-import { SessionJournal, SessionService } from "#session/service.ts";
+import { SessionService } from "#session/service.ts";
 import { captureLogs } from "#test/captureLogs.ts";
-import { codexConfiguration, codexServer, WireRejection, type WireRequest } from "#test/codex.ts";
-import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
-import { receipt } from "#test/session.ts";
+import { codexConfiguration, codexServer, type WireRequest } from "#test/codex.ts";
+import { authFolder, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
+import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
+import { metadataReply, type ProviderSessionState } from "#test/providerSessionState.ts";
+import { refuseAcknowledgement, sessionPersistence } from "#test/sessionPersistence.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 import { scripted, type WireScript, wireLog } from "#test/wireScript.ts";
 
-interface State {
-	cloud: boolean;
-	logs: ReturnType<typeof captureLogs>;
-	metadata: boolean;
-	nameFailure: "rejected" | "timeout" | undefined;
-	options: Partial<CodexCloudConfiguration>;
-	persisted: string[];
-	reply: (request: WireRequest) => unknown;
-	requests: WireRequest[];
-	sessions: typeof SessionService.Service | undefined;
-}
-function metadataReply(state: State, request: WireRequest): unknown {
-	switch (request.method) {
-		case "thread/start":
-			return { thread: { id: receipt.sessionId } };
-		case "thread/read":
-			return cloudThread();
-		case "turn/start":
-			return { turn: { id: receipt.turnId } };
-		case "thread/name/set":
-			state.persisted.push("name requested");
-			if (state.nameFailure === "timeout") {
-				return undefined;
-			}
-			if (state.nameFailure === "rejected") {
-				return new WireRejection("Name rejected");
-			}
-			return {};
-		default:
-			return state.reply(request);
-	}
-}
 export const providerSessionOptions = {
 	after: {
-		*configuration(state: State) {
-			const fixture = yield* codexServer((request) => {
+		*configuration(state: ProviderSessionState) {
+			const persistence = yield* sessionPersistence;
+			state.persistence = persistence;
+			const fixture = yield* codexServer(async (request) => {
 				state.requests.push(request);
 				if (request.method === "initialized") {
 					return undefined;
+				}
+				if (["thread/name/set", "turn/start"].includes(request.method)) {
+					state.mutations.push({ attempts: await Effect.runPromise(persistence.read), method: request.method });
 				}
 				if (state.metadata) {
 					return metadataReply(state, request);
@@ -67,39 +43,37 @@ export const providerSessionOptions = {
 						}),
 					)
 				: codexConfiguration(fixture.endpoint);
-			const journal = Layer.succeed(SessionJournal)({
-				acknowledgeSession: (_operation, sessionId) =>
-					Effect.sync(() => {
-						state.persisted.push(sessionId);
-					}),
-				acknowledgeTurn: () => Effect.void,
-				...(state.metadata ? { sessionName: () => Effect.succeed("synthetic-work: Synthetic work") } : {}),
-			});
 			state.sessions = Context.get(
-				yield* Layer.build(SessionService.layer.pipe(Layer.provide([transport, journal]))).pipe(Effect.provide(state.logs.layer)),
+				yield* Layer.build(SessionService.layer.pipe(Layer.provide([transport, Layer.succeedContext(persistence.journal)]))).pipe(
+					Effect.provide(state.logs.layer),
+				),
 				SessionService,
 			);
 		},
 	},
+	around: withIsolatedDatabase,
 	clock: "live" as const,
-	create: (): State => ({
+	create: (): ProviderSessionState => ({
 		cloud: false,
 		logs: captureLogs(),
 		metadata: false,
+		mutations: [],
 		nameFailure: undefined,
 		options: {},
-		persisted: [],
+		persistence: undefined,
 		reply: () => ({}),
 		requests: [],
 		sessions: undefined,
 	}),
-	inspect: (state: State) => ({ persisted: state.persisted, requests: state.requests }),
-	layer: NodeServices.layer,
+	inspect: (state: ProviderSessionState) => ({ mutations: state.mutations, requests: state.requests }),
+	layer: Layer.merge(NodeServices.layer, postgresLayer),
 	name: "Codex journaled sessions",
+	runIf: postgresEnabled,
 	stages: ["configuration"] as const,
-	verbs: (state: State, story: { tell: (line: string) => void }) => {
+	verbs: (state: ProviderSessionState, story: { tell: (line: string) => void }) => {
 		const sessions = state.sessions;
-		if (sessions === undefined) {
+		const persistence = state.persistence;
+		if (sessions === undefined || persistence === undefined) {
 			throw new Error("The journaled provider did not start");
 		}
 		return {
@@ -109,12 +83,24 @@ export const providerSessionOptions = {
 					story.tell(`the fake provider answers ${Object.keys(script).join(", ")}`);
 					state.reply = scripted(script);
 				}),
-			journal: () => Effect.sync(() => [...state.persisted]),
+			journal: () => {
+				story.tell("reopen the PostgreSQL repository and journal on a new connection");
+				return persistence.read;
+			},
+			mutations: () => Effect.sync(() => [...state.mutations]),
+			refuseAcknowledgement: (field: "sessionId" | "receipt__turnId") => {
+				story.tell(`PostgreSQL refuses acknowledgements with ${field}`);
+				return refuseAcknowledgement(field);
+			},
 			replyWith: (reply: (request: WireRequest) => unknown) =>
 				Effect.sync(() => {
 					story.tell("the fake provider responds to journaled sessions");
 					state.reply = reply;
 				}),
+			reserveContinuation: () => {
+				story.tell("persist the next turn's submission intent");
+				return persistence.reserveContinuation;
+			},
 			sessions: {
 				...sessions,
 				archive: (...args: Parameters<typeof sessions.archive>) => {
