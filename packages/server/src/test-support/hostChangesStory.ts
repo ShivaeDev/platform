@@ -8,7 +8,7 @@ import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts"
 import { contract } from "@shivaedev/contract/contract.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { answered } from "@shivaedev/test/answers.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appHost } from "#appHost.ts";
 import { hintWords } from "#test/rpc/followHints.ts";

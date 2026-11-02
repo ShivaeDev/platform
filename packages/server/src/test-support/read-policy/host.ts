@@ -4,7 +4,7 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
-import { answered } from "@shivaedev/test/answers.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { close, context, start } from "#test/app-host/lifecycle.ts";
 import { emptyHost } from "#test/app-host/state.ts";

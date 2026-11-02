@@ -1,5 +1,5 @@
 import { Effect, Logger, Predicate, Result } from "effect";
-import { errorWords } from "@shivaedev/test/answers.ts";
+import { errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { userProfiles } from "#server/better-auth/userProfiles.ts";
 import type { AdminHost } from "./adminHost.ts";

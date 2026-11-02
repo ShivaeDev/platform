@@ -1,5 +1,5 @@
 import { Effect, Fiber, Predicate, Queue, Stream } from "effect";
-import { words } from "@shivaedev/test/answers.ts";
+import { words } from "@shivaedev/test-story/server/answers.ts";
 import type { Host } from "./host.ts";
 import { client } from "./requests.ts";
 

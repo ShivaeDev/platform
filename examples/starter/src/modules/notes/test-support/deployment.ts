@@ -1,7 +1,7 @@
 import { Effect, Fiber } from "effect";
 import { SqlClient } from "effect/sql";
-import { countWords } from "@shivaedev/test/answers.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Note } from "#modules/notes/notes.ts";
 import { authPost, credentials } from "#test-support/authHttp.ts";

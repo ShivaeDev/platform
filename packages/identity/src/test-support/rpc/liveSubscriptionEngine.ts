@@ -11,7 +11,7 @@ import { query } from "@shivaedev/contract/operation.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { answered } from "@shivaedev/test/answers.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { SessionUser } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
 import { hasPermission } from "#permission.ts";

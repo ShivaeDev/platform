@@ -3,7 +3,7 @@ import { Cause, ConfigProvider, Effect, Exit, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { causeWords } from "@shivaedev/test/answers.ts";
+import { causeWords } from "@shivaedev/test-story/server/answers.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser, RequestTracing } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";

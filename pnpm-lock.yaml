@@ -991,9 +991,6 @@ importers:
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -1523,9 +1520,6 @@ importers:
       '@shivaedev/rate-limit':
         specifier: workspace:*
         version: link:../rate-limit
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql

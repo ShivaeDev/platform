@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { causeWords } from "@shivaedev/test/answers.ts";
+import { causeWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { close, start } from "#test/app-host/lifecycle.ts";
 import { requests } from "#test/app-host/requests.ts";

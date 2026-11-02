@@ -2,7 +2,7 @@ import { Effect, Fiber, Layer, Queue, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SqlClient } from "effect/sql";
-import { answered } from "@shivaedev/test/answers.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { AdminApi } from "./adminApi.ts";
 import type { AdminHost } from "./adminHost.ts";
 import { adminRouteVerbs } from "./adminRouteVerbs.ts";

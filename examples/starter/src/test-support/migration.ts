@@ -6,9 +6,9 @@ import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
-import { answered } from "@shivaedev/test/answers.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { User } from "#roles/User.ts";
 import { authOptions } from "#server/authOptions.ts";
