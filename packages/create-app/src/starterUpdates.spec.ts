@@ -4,7 +4,7 @@ import { updates } from "#test/updates.ts";
 import { AS_RELEASED, appCommits, createdWith010, published010, starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
 const APPLIED =
-	"Running pnpm install...\nRunning pnpm run typecheck...\nApplied create-app 0.2.0. Install and typecheck passed. Review the changes and commit when ready.";
+	"Running pnpm install --no-frozen-lockfile...\nRunning pnpm run typecheck...\nApplied create-app 0.2.0. Install and typecheck passed. Review the changes and commit when ready.";
 const shipsUpgrade = starterAt010("ships upgrade.txt reading original", { "upgrade.txt": "original\n" });
 const changesUpgrade = starterAt020("rewrites upgrade.txt as starter content", { "upgrade.txt": "starter content\n" });
 
