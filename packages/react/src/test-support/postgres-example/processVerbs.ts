@@ -68,17 +68,14 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 		order: (name: Client) => Effect.promise(async () => (await client(engine, name).get()).name),
 		rejectWrite: () =>
 			Effect.promise(async () => {
-				tell("the first server rejects a's transaction before commit; then b commits after rollback");
+				tell("the first server rejects a's transaction before commit");
 				mark();
 				await process(engine, "first").send({ _tag: "Reject" }, "Rejected");
 				await save("a", "rolled back");
-				await save("b", "after rollback");
-				await changedSinceMark("a", "b");
 			}),
 		saveFromServer: (writer: "a" | "b", name: string) =>
 			Effect.promise(async () => {
 				tell(`${writer} commits ${name} through its server`);
-				mark();
 				await save(writer, name);
 				await changedSinceMark("a", "b");
 			}),

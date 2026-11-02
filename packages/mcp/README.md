@@ -72,6 +72,7 @@ The Better Auth adapter is an optional edge module. Add its provider to the auth
 import { admin, jwt } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/http";
+import { betterAuthOauthGrants } from "@shivaedev/identity/server/better-auth/adapters/oauthGrants.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
@@ -99,7 +100,8 @@ const application = Effect.gen(function* () {
 		{ roles: Roles },
 	);
 	const origin = trustedOrigins({ allow: ["https://app.example.com"], missing: "allow" });
-	const oauth = yield* betterAuthMcp({ admitsUser: mounted.admitsUser, auth: mounted.auth, resource, origin, roles: Roles });
+	const grants = betterAuthOauthGrants({ auth: mounted.auth, admitsUser: mounted.admitsUser });
+	const oauth = yield* betterAuthMcp({ auth: mounted.auth, resource, origin, roles: Roles }).pipe(Effect.provide(grants));
 	return appHost({
 		group: Api,
 		handlers: Handlers,
@@ -121,18 +123,11 @@ const application = Effect.gen(function* () {
 
 `authPool`, `Api` and `Handlers` are the application's existing auth database, RPC group and handlers. Run the Better Auth migrations with the OAuth and JWT plugins included. For existing role management, keep the application's existing role plugin and `RoleSet` in this configuration.
 
-The edge adapter verifies access-token signatures, issuer, endpoint audience and `mcp` scope, then loads the current user and the token client's consent through Better Auth. Pass `mounted.admitsUser` so every MCP request checks the mount's current sign-in policy against the user's stored provider accounts. MCP evaluates the rule afresh on every request, without the browser session recheck cache; admission changes apply to the next request with the same token. A failed admission lookup answers `503` without an OAuth challenge. Denied or banned users and clients without consent receive the same unauthorized response as invalid tokens. Identity resolves the stored role on each request. An invalid token receives `401` with a `WWW-Authenticate` protected-resource metadata pointer. The metadata names the authorization server and its discovery endpoint, so a client can start OAuth. MCP bearer credentials are separate from browser session cookies. Provide the OAuth policy Layer to the MCP routes before merging them with a cookie-authenticated host; this makes the authentication scope explicit.
+The edge adapter verifies access-token signatures, issuer, endpoint audience and `mcp` scope, then asks identity's `OauthGrants` service to resolve the subject. The identity Better Auth Layer loads the current user and consent and checks `mounted.admitsUser` afresh on every request. Admission changes apply to the next request with the same token. A failed admission lookup answers `503` without an OAuth challenge. Denied or banned users and clients without consent receive the same unauthorized response as invalid tokens. Identity resolves the stored role on each request. An invalid token receives `401` with a `WWW-Authenticate` protected-resource metadata pointer. The metadata names the authorization server and its discovery endpoint, so a client can start OAuth. MCP bearer credentials are separate from browser session cookies. Provide the OAuth policy Layer to the MCP routes before merging them with a cookie-authenticated host.
 
-### Revoke client grants
+### Manage client grants
 
-The adapter returns `revokeClient(userId, clientId)` and `revokeAllClients(userId)` as Effects that fail with `AuthUnavailable` when storage fails. The application authorizes these operations. Each deletes matching consent, stored access tokens and refresh tokens through Better Auth's adapter. Use the first when disconnecting a client and the second after a password reset. JWT access tokens are refused because each request requires the client's consent.
-
-```ts
-yield* oauth.revokeClient(userId, clientId);
-yield* oauth.revokeAllClients(userId);
-```
-
-Deleting consent through Better Auth also refuses MCP access immediately. Use these revocation methods to delete refresh tokens as well.
+Identity owns grant listing and revocation through its [`OauthGrants` service](https://github.com/ShivaeDev/platform/tree/main/packages/identity#oauth-grants). Provide `betterAuthOauthGrants({ auth: mounted.auth, admitsUser: mounted.admitsUser })` to Effects that use that service. The application authorizes grant management operations.
 
 ### Dynamic origins and local keys
 
@@ -142,13 +137,12 @@ By default verification fetches the authorization server's JWKS URL. Pass `jwks`
 
 ```ts
 const oauth = yield* betterAuthMcp({
-	admitsUser: mounted.admitsUser,
 	auth: mounted.auth,
 	resource,
 	origin,
 	roles: Roles,
 	jwks: () => mounted.auth.api.getJwks(),
-});
+}).pipe(Effect.provide(grants));
 ```
 
 The callback returns the public JWK set from the JWT plugin. Signature, issuer, audience and `mcp` scope checks still apply. Signing keys stay with the auth instance.
@@ -160,6 +154,6 @@ pnpm add @shivaedev/mcp effect
 pnpm add better-auth @better-auth/oauth-provider
 ```
 
-The OAuth dependencies are optional peers, imported only by `adapters/betterAuth.ts`. Core `routes.ts` reads identity's `SessionPolicy` from the Effect environment with the same identity and permission semantics. Provide the adapter's `sessions` Layer once through the host, or supply another `SessionPolicy` Layer.
+Better Auth is an optional peer of MCP. Identity owns the optional `@better-auth/oauth-provider` peer and its edge exports; MCP's Better Auth adapter uses those exports for provider configuration and discovery. Core `routes.ts` reads identity's `SessionPolicy` from the Effect environment with the same identity and permission semantics. Provide the adapter's `sessions` Layer once through the host, or supply another `SessionPolicy` Layer.
 
 The endpoint uses Effect's request-scoped Streamable HTTP transport and MCP `2026-07-28`. Clients must support that protocol; earlier session-based versions and subscription streams are outside this adapter. Endpoint requests do not share registries, identities or MCP sessions.

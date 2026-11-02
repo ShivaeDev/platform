@@ -67,3 +67,11 @@ loaderScreen.it(
 		]);
 	},
 );
+
+loaderScreen.it("clicking a removed Home link fails as missing Home link", [noteShown("Original note")], function* ({ clickLink, removeLink }) {
+	yield* removeLink("Home");
+
+	const outcome = yield* Effect.flip(clickLink("Home"));
+
+	expect(outcome).toBe("missing Home link");
+});

@@ -59,6 +59,7 @@
 		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {
+		"@better-auth/oauth-provider": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@shivaedev/admin": "workspace:*",
@@ -74,10 +75,14 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@better-auth/oauth-provider": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:"
 	},
 	"peerDependenciesMeta": {
+		"@better-auth/oauth-provider": {
+			"optional": true
+		},
 		"better-auth": {
 			"optional": true
 		}
