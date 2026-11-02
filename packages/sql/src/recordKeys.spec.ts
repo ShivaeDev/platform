@@ -18,7 +18,7 @@ writeKeys.it(
 
 		yield* insertEntry("cash", sequence);
 
-		expect(publishedKeys()).toEqual(invalidationKeys([ledger.list, item]));
+		expect(yield* publishedKeys()).toEqual(invalidationKeys([ledger.list, item]));
 		expect(refreshed()).toEqual(["cash entry"]);
 	},
 );
