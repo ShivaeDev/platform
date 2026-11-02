@@ -28,7 +28,7 @@ export const checkAdoption = Effect.fn("Published.checkAdoption")(function* (roo
 			yield* fs.copyFile(path.join(source, file), destination);
 		}
 		const registration = `import { sample as ${name} } from "#adoption/${feature}/sample.ts";\n`;
-		modules = registration + modules.replace("serverRegistration(),", `${name}.registration, serverRegistration(),`);
+		modules = registration + modules.replace("const modules = [", `const modules = [${name}.registration, `);
 		host =
 			registration
 			+ host.replace(
