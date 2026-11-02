@@ -1,10 +1,11 @@
 import { join, posix } from "node:path";
+import { Effect } from "effect";
+import { projectsFor } from "#adapters/imports/projects.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { ambientModules } from "#imports/ambient.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
 import { packageNameOf } from "#imports/packageName.ts";
-import { projectsFor } from "#imports/projects.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { entryPointsOf, isApplication, provider } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";
@@ -15,8 +16,8 @@ function importedPackage(specifier: string) {
 	return /^[.#/]/u.test(specifier) ? undefined : packageNameOf(specifier);
 }
 
-export async function entryPointFindings(inputs: RuleInputs, findings: Findings): Promise<Findings> {
-	const graph = await importGraph(inputs);
+export const entryPointFindings = Effect.fn("Knip.entryPointFindings")(function* (inputs: RuleInputs, findings: Findings) {
+	const graph = yield* importGraph(inputs);
 	const projectOf = projectsFor(inputs.root);
 	const ambient = ambientModules(
 		inputs.sources.flatMap((file) => {
@@ -28,11 +29,13 @@ export async function entryPointFindings(inputs: RuleInputs, findings: Findings)
 	const workspace = new Map(graph.packages.map(({ name, directory }) => [name, directory]));
 	const directories = [".", ...graph.packages.map(({ directory }) => directory)];
 	const policies = new Map(
-		await Promise.all(
-			directories.map(async (directory) => {
-				const manifest = await readPackageManifest(inputs.readText, posix.join(directory, "package.json"));
-				return [directory, isApplication(manifest) ? await entryPointsOf(inputs, directory, manifest, workspace) : []] as const;
-			}),
+		yield* Effect.promise(() =>
+			Promise.all(
+				directories.map(async (directory) => {
+					const manifest = await readPackageManifest(inputs.readText, posix.join(directory, "package.json"));
+					return [directory, isApplication(manifest) ? await entryPointsOf(inputs, directory, manifest, workspace) : []] as const;
+				}),
+			),
 		),
 	);
 	function owner(path: string) {
@@ -72,4 +75,4 @@ export async function entryPointFindings(inputs: RuleInputs, findings: Findings)
 				: supplied !== undefined && workspace.get(supplied.name) === directory && target === name;
 		});
 	});
-}
+});

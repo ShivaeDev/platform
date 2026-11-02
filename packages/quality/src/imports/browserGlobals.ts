@@ -1,14 +1,9 @@
+import { Effect } from "effect";
 import ts from "typescript";
+import { ImportCompiler } from "#adapters/ImportCompiler.ts";
 import type { Finding, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";
 import { browserNames } from "./browserNames.ts";
-
-function checkerOf(source: ts.SourceFile): ts.TypeChecker {
-	const options: ts.CompilerOptions = { allowJs: true, noLib: true, noResolve: true };
-	const host = ts.createCompilerHost(options);
-	host.getSourceFile = (path) => (path === source.fileName ? source : undefined);
-	return ts.createProgram([source.fileName], options, host).getTypeChecker();
-}
 
 function unbound(checker: ts.TypeChecker, node: ts.Identifier): boolean {
 	return (checker.getSymbolAtLocation(node)?.declarations ?? []).length === 0;
@@ -107,13 +102,14 @@ function superclassesOf(node: ts.HeritageClause): readonly ts.Expression[] {
 	return node.types.map((base) => base.expression);
 }
 
-export function browserGlobals(file: SourceFile): readonly Finding[] {
+export const browserGlobals = Effect.fn("Imports.browserGlobals")(function* (file: SourceFile) {
 	const parsed = parse(file);
 	if (parsed === undefined) {
 		return [];
 	}
 	const source = parsed;
-	const checker = checkerOf(source);
+	const compiler = yield* ImportCompiler;
+	const checker = yield* compiler.browserChecker(source);
 	const findings: Finding[] = [];
 	function visit(node: ts.Node): void {
 		if (ts.isHeritageClause(node)) {
@@ -139,4 +135,4 @@ export function browserGlobals(file: SourceFile): readonly Finding[] {
 	}
 	visit(source);
 	return findings;
-}
+}, Effect.provide(ImportCompiler.layer));

@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import ts from "typescript";
+import type { ImportAnalysisFailure } from "#adapters/ImportCompiler.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { importGraph } from "#imports/graph.ts";
 import { packageNameOf } from "#imports/packageName.ts";
@@ -46,18 +48,23 @@ function exempt(path: string, name: string): boolean {
 	);
 }
 
-export async function outsideImportFindings(inputs: RuleInputs): Promise<readonly Finding[]> {
-	const graph = await importGraph(inputs);
+export const outsideImportFindings = Effect.fn("Imports.outsideImportFindings")(function* (
+	inputs: RuleInputs,
+): Effect.fn.Return<readonly Finding[], ImportAnalysisFailure> {
+	const graph = yield* importGraph(inputs);
 	const owners = [...graph.packages.map((owner) => owner.directory), "."];
 	const runtime = new Map(
-		await Promise.all(
-			owners.map(async (directory) => {
-				const manifest = await readPackageManifest(inputs.readText, `${directory}/package.json`);
-				return [
-					directory,
-					new Set(Object.keys({ ...manifest?.dependencies, ...manifest?.peerDependencies, ...manifest?.optionalDependencies })),
-				] as const;
-			}),
+		yield* Effect.forEach(
+			owners,
+			(directory) =>
+				Effect.gen(function* () {
+					const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, `${directory}/package.json`));
+					return [
+						directory,
+						new Set(Object.keys({ ...manifest?.dependencies, ...manifest?.peerDependencies, ...manifest?.optionalDependencies })),
+					] as const;
+				}),
+			{ concurrency: "unbounded" },
 		),
 	);
 	const types = inlineTypes(inputs);
@@ -88,4 +95,4 @@ export async function outsideImportFindings(inputs: RuleInputs): Promise<readonl
 			},
 		];
 	});
-}
+});

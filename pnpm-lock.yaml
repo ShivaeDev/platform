@@ -1270,6 +1270,9 @@ importers:
       '@shivaedev/heavy-lock':
         specifier: workspace:*
         version: link:../heavy-lock
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.5(vitest@5.0.5)
