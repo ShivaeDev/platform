@@ -1,0 +1,9 @@
+import { Layer } from "effect";
+import { SqlClient } from "effect/sql";
+import { webhooksRegistration } from "#adoption/webhooks/feature.ts";
+import { webhookRoutes } from "#adoption/webhooks/routes.ts";
+
+export const sample = {
+	registration: webhooksRegistration,
+	routes: (sql: SqlClient.SqlClient) => webhookRoutes.pipe(Layer.provide(Layer.succeed(SqlClient.SqlClient, sql))),
+};

@@ -1,4 +1,5 @@
 import { Effect, Path } from "effect";
+import { checkAdoption } from "#starter-published/checkAdoption.ts";
 import { checkTooling } from "#starter-published/checkTooling.ts";
 import { generateStarter } from "#starter-published/generate.ts";
 import { runStarter } from "#starter-published/run.ts";
@@ -18,6 +19,9 @@ export const checkStarters = Effect.fn("Published.checkStarters")(function* (
 		yield* runStarter(path.join(temporary, folder), database);
 		if (registryVersion === undefined) {
 			yield* checkTooling(path.join(temporary, folder));
+			if (!minimal) {
+				yield* checkAdoption(root, path.join(temporary, folder), database);
+			}
 			const current = path.join(temporary, minimal ? "generator-minimal" : "generator", "node_modules/.bin/create-app");
 			yield* upgradeStarter(root, temporary, current, tarballs, database, minimal);
 			yield* Effect.log(

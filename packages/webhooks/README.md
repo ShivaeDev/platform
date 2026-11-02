@@ -166,3 +166,7 @@ const answer = yield* response.text;
 For a different signature format, pass `sign: (body, key) => Effect.succeed(headers)`, returning that provider's signed headers. The callback receives the resolved redacted secret; its typed errors and service requirements remain in the delivery Effect. A timestamp-aware signer can close over a stale timestamp and sign it together with the body to exercise the application's expiry policy. GitHub's own strategy does not check timestamps. Production routes do not import the testing entry point.
 
 Applications install `@shivaedev/platform` and import this package by name. Libraries can install `@shivaedev/webhooks` directly with the Effect, Node HTTP and pg-boss peers used by their host. The stories run against `PLATFORM_JOBS_TEST_DATABASE_URL`, using real HTTP and isolated PostgreSQL databases.
+
+### Check generated-app adoption
+
+The [Packed starter check](https://github.com/ShivaeDev/platform/blob/main/examples/starter/README.md) adds a webhook feature to the full app it already generated and installed. The feature registers receipt migrations, a GitHub source, a queue worker and routes in the app's existing host. Its stories send signed HTTP deliveries and read the worker's indexed issue over HTTP; a retry leaves one result. The check requires PostgreSQL and fails if stories skip. Package adoption proofs live in that shared generated app; packages do not add adoption CI jobs or separate app installs.
