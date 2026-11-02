@@ -41,6 +41,12 @@ export function hostStoryDaemon(
 ) {
 	const layer = engine.scheduled
 		? daemonLayer(engine.fixture.host, parts, port)
-		: readDaemonLayer(engine.fixture.host, { onSnapshot, ...(handlerClock === undefined ? {} : { handlerClock }), parts, port });
+		: readDaemonLayer(engine.fixture.host, {
+				observeAnswers: (fleet) => engine.observeAnswers(fleet),
+				onSnapshot,
+				...(handlerClock === undefined ? {} : { handlerClock }),
+				parts,
+				port,
+			});
 	return engine.diagnostics === undefined ? layer : layer.pipe(Layer.provide(Layer.succeed(DiagnosticsSources, engine.diagnostics)));
 }

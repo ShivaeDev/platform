@@ -22,6 +22,7 @@ export class DaemonStoryEngine extends HostStoryEngine {
 			Effect.tap(() =>
 				Effect.sync(() => {
 					this.#daemon = {
+						answers: this.answers,
 						close: this.stop(),
 						nextSnapshot: this.observations.nextSnapshot,
 						port: this.running.port,

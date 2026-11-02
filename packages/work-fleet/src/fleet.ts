@@ -40,6 +40,7 @@ export const Fleet = defineService({
 	}),
 	methods: (state) => ({
 		admissionOrder: admissionOrder(state),
+		answerEvents: () => Effect.succeed(state.answerEvents),
 		areaLanes: state.areaLanes,
 		briefProblem: (workId: string, sourcePath: string) =>
 			state.board

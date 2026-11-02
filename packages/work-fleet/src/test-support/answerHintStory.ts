@@ -46,7 +46,7 @@ export const fleetAnswerHint = storyKit({
 			story.tell(`execute the printed command: ${hint}`);
 			return run(hint, text);
 		},
-		appliedAnswer: () => Effect.flatMap(daemonClient(engine.daemon.port), (client) => appliedAnswer(client, "one")),
+		appliedAnswer: () => Effect.flatMap(daemonClient(engine.daemon.port), (client) => appliedAnswer(client, "one", engine.daemon.answers)),
 		board: () => engine.fixture.host.boardDir,
 		dispatch: () => Effect.flatMap(daemonClient(engine.daemon.port), (client) => dispatchAndWait(client, "one")),
 		port: () => engine.daemon.port,
