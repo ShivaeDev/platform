@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { consentedClient, refreshableClient } from "#test/grantTraits.ts";
 import { mcp } from "#test/mcp.ts";
 import { connectedAs, holdsToken, signedIn } from "#test/traits.ts";
 
@@ -35,12 +36,8 @@ mcp.it(
 
 mcp.it(
 	"allowing offline_access issues a refresh token that obtains a working access token",
-	[signedIn("alice", "user")],
-	function* ({ authorizes, call, connects, consents, exchangesCode, hasRefreshToken, refreshes, registersClient }) {
-		yield* registersClient("alice", true);
-		yield* authorizes("alice", true);
-		yield* consents("alice");
-
+	[signedIn("alice", "user"), consentedClient("alice", "alice", true)],
+	function* ({ call, connects, exchangesCode, hasRefreshToken, refreshes }) {
 		yield* exchangesCode("alice");
 
 		expect(yield* hasRefreshToken("alice")).toBe(true);
@@ -49,22 +46,19 @@ mcp.it(
 
 		expect(refreshed).toBe("refreshed");
 		yield* connects("alice");
-		expect(yield* call("alice", "whoami")).toBe("answered alice");
+		expect(yield* call("alice", "whoami")).toEqual({ answered: "alice" });
 	},
 );
 
 mcp.it(
 	"revoking a client refuses its access and refresh tokens while other clients and users keep access",
-	[signedIn("alice", "user"), holdsToken("alice", "for this endpoint", "tablet"), connectedAs("bob", "user")],
-	function* ({ authorizes, connects, consents, exchangesCode, lastRefusal, listTools, refreshes, registersClient, revokesClient }) {
-		yield* registersClient("alice", true);
-		yield* authorizes("alice", true);
-		yield* consents("alice");
-		yield* exchangesCode("alice");
-		expect(yield* refreshes("alice")).toBe("refreshed");
-		yield* connects("alice");
+	[signedIn("alice", "user"), refreshableClient("alice"), holdsToken("alice", "for this endpoint", "tablet"), connectedAs("bob", "user")],
+	function* ({ connects, lastRefusal, listTools, refreshes, revokesClient }) {
 		yield* connects("tablet");
-		expect(yield* listTools("alice")).toEqual(["whoami"]);
+		yield* outcomes([
+			["access before revocation", () => listTools("alice"), ["whoami"]],
+			["refresh before revocation", () => refreshes("alice"), "refreshed"],
+		]);
 
 		yield* revokesClient("alice");
 
@@ -80,16 +74,13 @@ mcp.it(
 
 mcp.it(
 	"revoking every client refuses both clients' access and refresh tokens",
-	[signedIn("alice", "user")],
-	function* ({ authorizes, connects, consents, exchangesCode, listTools, refreshes, registersClient, revokesAllClients }) {
+	[signedIn("alice", "user"), refreshableClient("alice", "desktop"), refreshableClient("alice", "laptop")],
+	function* ({ listTools, refreshes, revokesAllClients }) {
 		for (const client of ["desktop", "laptop"]) {
-			yield* registersClient("alice", true);
-			yield* authorizes("alice", true);
-			yield* consents("alice");
-			yield* exchangesCode("alice", client);
-			expect(yield* refreshes(client)).toBe("refreshed");
-			yield* connects(client);
-			expect(yield* listTools(client)).toEqual(["whoami"]);
+			yield* outcomes([
+				[`${client} access before revocation`, () => listTools(client), ["whoami"]],
+				[`${client} refresh before revocation`, () => refreshes(client), "refreshed"],
+			]);
 		}
 
 		yield* revokesAllClients("alice");

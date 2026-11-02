@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createServer } from "node:net";
 import { getMigrations } from "better-auth/db/migration";
 import { admin, jwt, testUtils } from "better-auth/plugins";
@@ -36,6 +37,10 @@ interface HostOptions {
 	readonly withAdmission?: boolean;
 }
 
+export function hashGrantToken(token: string) {
+	return createHash("sha256").update(token).digest("hex");
+}
+
 const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issuerPath }: HostOptions) {
 	const admission = yield* admissionPolicy;
 	const pool = yield* betterAuthDatabase();
@@ -58,6 +63,7 @@ const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issue
 				loginPage: "/login",
 				resource,
 				scopes: ["mcp", "offline_access"],
+				storeTokens: { hash: hashGrantToken },
 			}),
 		],
 		secret: "mcp-story-secret-with-at-least-thirty-two-characters",
@@ -122,7 +128,7 @@ interface Person {
 interface Story {
 	readonly clientIds: Map<string, string>;
 	readonly clients: Map<string, McpClient.McpClient>;
-	readonly flow: { clientId?: string; code?: string; consentQuery?: string };
+	readonly flows: Map<string, { readonly clientId: string; readonly offline: boolean; code?: string; consentQuery?: string }>;
 	readonly people: Map<string, Person>;
 	readonly refreshTokens: Map<string, string>;
 	refusal: { readonly challenge: string | undefined; readonly status: number } | undefined;
@@ -134,7 +140,7 @@ export function startEngine(options: HostOptions = {}) {
 		...host,
 		clientIds: new Map(),
 		clients: new Map(),
-		flow: {},
+		flows: new Map(),
 		people: new Map(),
 		refreshTokens: new Map(),
 		refusal: undefined,
