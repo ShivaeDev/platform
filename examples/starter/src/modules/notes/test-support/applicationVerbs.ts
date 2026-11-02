@@ -55,16 +55,6 @@ function signedUpUserId(body: string) {
 		: "";
 }
 
-function enqueueFailure(message: unknown) {
-	const event = Array.isArray(message)
-		? message.find((entry) => Predicate.hasProperty(entry, "event") && entry.event === "note_enqueue_failed")
-		: undefined;
-	if (!(Predicate.hasProperty(event, "noteId") && Predicate.hasProperty(event, "error") && Predicate.hasProperty(event.error, "queue"))) {
-		return [];
-	}
-	return [{ noteId: event.noteId, queue: event.error.queue }];
-}
-
 export function applicationVerbs(engine: Engine, story: { tell: (line: string) => void }) {
 	engine.tell = story.tell;
 	engine.sourceApi.narrate(story.tell);
@@ -135,11 +125,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			story.tell(`${name}'s socket asks for change hints on ${JSON.stringify(note.title)}`);
 			return noteChangesSubscription(liveAddress(engine), account(engine, name).cookie, note.id);
 		},
-		noteCommitsRecover: Effect.fn("AppStory.noteCommitsRecover")(function* () {
-			story.tell("PostgreSQL accepts note commits again");
-			const sql = yield* SqlClient.SqlClient;
-			yield* sql`drop trigger reject_note_commit on notes`;
-		}),
 		noteReadsLoseTheDatabase: Effect.fn("AppStory.noteReadsLoseTheDatabase")(function* () {
 			story.tell("PostgreSQL loses its connection for note reads while sessions stay readable");
 			const sql = yield* SqlClient.SqlClient;
@@ -152,11 +137,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			story.tell("the queue refuses the next word-count job");
 			yield* runningHost(engine).jobsTesting.failNextSend(CountWords);
 		}),
-		recordedEnqueueFailures: () =>
-			Effect.sync(() => {
-				story.tell("read the enqueue failures the app host logged");
-				return runningHost(engine).logs.flatMap(({ message }) => enqueueFailure(message));
-			}),
 		signsInAgain: (name: string) => {
 			story.tell(`${name} signs in again`);
 			return renewSession(name);

@@ -32,13 +32,17 @@ export const NotesService = defineService({
 		function enqueue(noteId: number) {
 			return Effect.gen(function* () {
 				const jobs = yield* NoteJobs;
-				yield* jobs.enqueue(CountWords, { noteId }).pipe(Effect.catch((error) => Effect.logError({ error, event: "note_enqueue_failed", noteId })));
+				yield* jobs.enqueue(CountWords, { noteId });
 			});
 		}
 		function create({ title }: typeof Create.payload.Type, userId: string) {
 			return rateLimit({ key: `notes.create:${userId}`, per: 10, window: "1 minute" }).pipe(
-				Effect.andThen(repository.insert({ title, userId, wordCount: null }).pipe(transact({ onSqlError: notesSqlFailure }))),
-				Effect.tap((row) => enqueue(row.id)),
+				Effect.andThen(
+					repository.insert({ title, userId, wordCount: null }).pipe(
+						Effect.tap((row) => enqueue(row.id)),
+						transact({ onSqlError: notesSqlFailure }),
+					),
+				),
 			);
 		}
 		return {
@@ -66,8 +70,8 @@ export const NotesService = defineService({
 					const saved = yield* repository.update({ ...row, ...input, wordCount: null }).pipe(Effect.catchTag("OptimisticConcurrencyError", changed));
 					return saved;
 				}).pipe(
-					transact({ onSqlError: notesSqlFailure }),
 					Effect.tap((row) => enqueue(row.id)),
+					transact({ onSqlError: notesSqlFailure }),
 				),
 		};
 	},
