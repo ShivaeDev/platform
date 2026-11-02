@@ -1,7 +1,8 @@
-import { Suspense, use, useContext } from "react";
+import { Suspense, useContext } from "react";
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { Skeleton } from "#client/react/components/ui/skeleton.tsx";
 import type { GoalChartRow } from "./GoalChart.tsx";
+import { LoadedChunk } from "./LoadedChunk.tsx";
 import { LazyChunksContext } from "./lazyChunks.ts";
 import { shellIds } from "./shellIds.ts";
 
@@ -47,12 +48,17 @@ export function GoalBreakdown({ goal }: { readonly goal: Goal }) {
 
 function LoadedGoalChart({ height, rows }: { readonly height: number; readonly rows: readonly GoalChartRow[] }) {
 	const chunk = useContext(LazyChunksContext).goalChart;
-	const chart = chunk.loaded() ?? use(chunk.load());
-	return "error" in chart ? (
-		<p className="!m-0" data-goal-chart-error="" role="status">
-			The chart could not be loaded: {chart.error}. Reload the page to try again.
-		</p>
-	) : (
-		<chart.GoalChart height={height} rowHeight={ROW_HEIGHT} rows={rows} />
+	return (
+		<LoadedChunk chunk={chunk}>
+			{(chart) =>
+				"error" in chart ? (
+					<p className="!m-0" data-goal-chart-error="" role="status">
+						The chart could not be loaded: {chart.error}. Reload the page to try again.
+					</p>
+				) : (
+					<chart.GoalChart height={height} rowHeight={ROW_HEIGHT} rows={rows} />
+				)
+			}
+		</LoadedChunk>
 	);
 }

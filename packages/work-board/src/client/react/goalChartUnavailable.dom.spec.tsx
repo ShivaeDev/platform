@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { chunkResponse } from "#test/chunkResponse.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
@@ -6,6 +7,8 @@ import { screenChartLayout } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { boardScreen } from "#test/screenTraits.ts";
 import { DocumentMain } from "./DocumentMain.tsx";
+
+expectNoReactWarnings();
 
 screenStory.it(
 	"a goal page whose chart chunk fails says the chart could not load and keeps its progress and criteria readable",

@@ -1,7 +1,7 @@
 import { errorMessage } from "#errorMessage.ts";
 import { chunkImports } from "./chunkImports.ts";
 
-type ChunkLoad<T> = T | { readonly error: string };
+export type ChunkLoad<T> = T | { readonly error: string };
 
 // A failed chunk stays failed until the reader reloads, rather than refetching on every render.
 function lazyChunk<T>(load: () => Promise<T>) {

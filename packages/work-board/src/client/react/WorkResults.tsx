@@ -1,8 +1,9 @@
-import { Suspense, use, useContext } from "react";
+import { Suspense, useContext } from "react";
 import type { WorkProjection } from "#browser/views/schema.ts";
 import { viewUrl } from "#browser/views/state.ts";
 import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
+import { LoadedChunk } from "./LoadedChunk.tsx";
 import { LazyChunksContext } from "./lazyChunks.ts";
 import { SkeletonTable } from "./skeletons.tsx";
 import { WorkCards } from "./WorkCards.tsx";
@@ -33,12 +34,17 @@ export function WorkResults({ data }: { readonly data: WorkProjection }) {
 
 function LoadedWorkTable({ data }: { readonly data: WorkProjection }) {
 	const chunk = useContext(LazyChunksContext).workTable;
-	const table = chunk.loaded() ?? use(chunk.load());
-	return "error" in table ? (
-		<p data-work-table-error="" role="status">
-			The table could not be loaded: {table.error}. Reload the page to try again.
-		</p>
-	) : (
-		<table.WorkTable data={data} />
+	return (
+		<LoadedChunk chunk={chunk}>
+			{(table) =>
+				"error" in table ? (
+					<p data-work-table-error="" role="status">
+						The table could not be loaded: {table.error}. Reload the page to try again.
+					</p>
+				) : (
+					<table.WorkTable data={data} />
+				)
+			}
+		</LoadedChunk>
 	);
 }

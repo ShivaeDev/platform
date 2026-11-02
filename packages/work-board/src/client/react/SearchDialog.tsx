@@ -1,4 +1,4 @@
-import { type ComponentProps, Suspense, use, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ComponentProps, Suspense, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "#client/react/components/ui/dialog.tsx";
 import { LazyChunksContext } from "#client/react/lazyChunks.ts";
 import type { SearchPalette } from "#client/react/SearchPalette.tsx";
@@ -6,6 +6,7 @@ import type { ShellApi } from "#client/react/ShellApi.ts";
 import { shellIds } from "#client/react/shellIds.ts";
 import { textControl, textSelection } from "#client/react/textSelection.ts";
 import type { AppearanceControls } from "#client/react/useAppearance.ts";
+import { LoadedChunk } from "./LoadedChunk.tsx";
 
 export function SearchDialog({
 	api,
@@ -84,13 +85,18 @@ export function SearchDialog({
 
 function LoadedSearchPalette(props: ComponentProps<typeof SearchPalette>) {
 	const chunk = useContext(LazyChunksContext).searchPalette;
-	const palette = chunk.loaded() ?? use(chunk.load());
-	return "error" in palette ? (
-		<p className="px-3 pb-3 text-sm" data-search-error="" role="status">
-			Search could not be loaded: {palette.error}. Reload the page to try again.
-		</p>
-	) : (
-		<palette.SearchPalette {...props} />
+	return (
+		<LoadedChunk chunk={chunk}>
+			{(palette) =>
+				"error" in palette ? (
+					<p className="px-3 pb-3 text-sm" data-search-error="" role="status">
+						Search could not be loaded: {palette.error}. Reload the page to try again.
+					</p>
+				) : (
+					<palette.SearchPalette {...props} />
+				)
+			}
+		</LoadedChunk>
 	);
 }
 

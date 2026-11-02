@@ -1,9 +1,12 @@
 import { expect } from "vitest";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { chunkResponse } from "#test/chunkResponse.ts";
 import { readingPage } from "#test/readingScreenTraits.tsx";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 import { todayFixture } from "#test/todayFixture.ts";
+
+expectNoReactWarnings();
 
 // Without Markdown the page never reports itself rendered, so these stories settle on the screen alone.
 const board = [chunkResponse("markdown", "failed"), routedScreen(todayFixture(), "/home.md", { home: "home.md" })];
