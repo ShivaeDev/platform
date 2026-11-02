@@ -1,4 +1,4 @@
-import type { Chain, Layer } from "./configs.ts";
+import type { Chain, Layer } from "#adapters/biome/configs.ts";
 import { scoped } from "./declarations.ts";
 import { entriesOf, isFalse, itemsOf, type Json, member, textOf } from "./json.ts";
 

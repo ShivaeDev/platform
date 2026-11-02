@@ -1,11 +1,11 @@
 import { dirname, relative, resolve } from "node:path";
-import ignore from "ignore";
+import { ignorePatterns } from "#adapters/ignore.ts";
 
 export type Verdict = "ignored" | "kept" | "unknown";
 
 interface IgnoreMatcher {
 	readonly base: string;
-	readonly rules: ReturnType<typeof ignore>;
+	readonly rules: ReturnType<typeof ignorePatterns>;
 }
 
 export interface IgnoreScope {
@@ -23,7 +23,7 @@ export function posix(path: string): string {
 export function withIgnoreFile(scope: IgnoreScope, base: string, contents: string): IgnoreScope {
 	return {
 		boundary: scope.boundary,
-		matchers: [...scope.matchers, { base, rules: ignore().add(contents) }],
+		matchers: [...scope.matchers, { base, rules: ignorePatterns(contents) }],
 	};
 }
 
