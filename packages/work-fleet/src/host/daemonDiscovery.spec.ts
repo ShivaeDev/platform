@@ -4,9 +4,15 @@ import { daemonPortIsUnreachable, fleetDaemon, unreadablePortFile } from "#test/
 fleetDaemon.it("watch without --port discovers the daemon's bound port and receives a live transition", [], function* (daemon) {
 	yield* daemon.watch(0.05);
 	yield* daemon.awaitSnapshot();
-	yield* daemon.transition("one", "done");
-	yield* daemon.awaitOutput("one done\n");
-	expect(daemon.output()).toBe("one done\n");
+	yield* daemon.transition("one", "waiting", {
+		attentionOwner: "orchestrator",
+		id: "next",
+		links: [],
+		reason: "Choose the next step",
+		recommendation: "retry",
+	});
+	yield* daemon.awaitOutput('waiting-on-orchestrator workId="one" reason="Choose the next step"\n');
+	expect(daemon.output()).toBe('waiting-on-orchestrator workId="one" reason="Choose the next step"\n');
 	expect(daemon.errors()).toBe("");
 });
 
@@ -23,11 +29,18 @@ fleetDaemon.it("an explicit watch port overrides a dead port file for snapshots 
 	});
 	yield* daemon.watch(0.05, { port: daemon.port() });
 	yield* daemon.awaitSnapshot();
-	const snapshot = "one waiting (waiting on orchestrator): Choose the next step\n";
+	const snapshot = 'waiting-on-orchestrator workId="one" reason="Choose the next step"\n';
 	yield* daemon.awaitOutput(snapshot);
-	yield* daemon.transition("one", "done");
-	yield* daemon.awaitOutput(`${snapshot}one done\n`);
-	expect(daemon.output()).toBe(`${snapshot}one done\n`);
+	yield* daemon.transition("one", "waiting", {
+		attentionOwner: "maintainer",
+		id: "second",
+		links: [],
+		reason: "Confirm scope",
+		recommendation: "retry",
+	});
+	const next = 'waiting-on-you workId="one" reason="Confirm scope"\n';
+	yield* daemon.awaitOutput(next);
+	expect(daemon.output()).toBe(`${snapshot}${next}`);
 	expect(daemon.errors()).toBe("");
 });
 
@@ -44,26 +57,23 @@ fleetDaemon.it("stopping a daemon preserves a port file replaced by another writ
 	expect(yield* daemon.portFile()).toBe(String(replacement));
 });
 
-fleetDaemon.it(
-	"watch without --port repeats an error on each unreachable retry and discovers a restarted daemon on a new port",
-	[daemonPortIsUnreachable()],
-	function* (daemon) {
-		const interval = 0.08;
-		yield* daemon.watch(interval);
-		yield* daemon.awaitError(`retrying in ${interval}s\n`);
-		const line = daemon.errors().split("\n")[0];
-		expect(line).toContain(`work-fleet: ERROR No Fleet daemon is running at 127.0.0.1:${daemon.port()}`);
-		yield* daemon.awaitError(`${line}\n`.repeat(20));
-		expect(daemon.isRunning()).toBe(true);
-		const previousPort = daemon.port();
-		yield* daemon.restart();
-		expect(daemon.port()).not.toBe(previousPort);
-		yield* daemon.awaitSnapshot();
-		yield* daemon.transition("one", "released");
-		yield* daemon.awaitOutput("one released\n");
-		expect(daemon.output()).toBe("one released\n");
-	},
-);
+fleetDaemon.it("watch discovers a daemon that restarts on a new port", [daemonPortIsUnreachable()], function* (daemon) {
+	yield* daemon.watch(0.05);
+	const previousPort = daemon.port();
+	yield* daemon.restart();
+	expect(daemon.port()).not.toBe(previousPort);
+	yield* daemon.awaitSnapshot();
+	yield* daemon.transition("one", "waiting", {
+		attentionOwner: "orchestrator",
+		id: "next",
+		links: [],
+		reason: "Choose the next step",
+		recommendation: "retry",
+	});
+	const line = 'waiting-on-orchestrator workId="one" reason="Choose the next step"\n';
+	yield* daemon.awaitOutput(line);
+	expect(daemon.output()).toBe(line);
+});
 
 fleetDaemon.it("an explicit watch timeout ends initial unreachable retries with exit 4", [daemonPortIsUnreachable()], function* (daemon) {
 	yield* daemon.watch(5, { timeout: 1 });
@@ -71,8 +81,7 @@ fleetDaemon.it("an explicit watch timeout ends initial unreachable retries with 
 	const exitCode = result.code;
 	expect(exitCode).toBe(4);
 	expect(result.stdout).toBe("");
-	expect(result.stderr).toContain(`No Fleet daemon is running at 127.0.0.1:${daemon.port()}`);
-	expect(result.stderr).toContain("watch: timed out waiting for Fleet work");
+	expect(result.stderr).toBe("");
 });
 
 fleetDaemon.it("watch reports an unreadable port file without inventing a daemon endpoint", [unreadablePortFile()], function* (daemon) {

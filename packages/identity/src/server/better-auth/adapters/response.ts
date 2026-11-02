@@ -8,6 +8,7 @@ export interface MountedAuth {
 	readonly handler: (request: Request) => Promise<Response>;
 }
 export interface MountRouteOptions {
+	readonly basePath?: string | undefined;
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly clientIpHeader: string;
 	readonly ipv6Subnet?: number | undefined;
@@ -15,13 +16,13 @@ export interface MountRouteOptions {
 	readonly runRequest?: (<A>(request: (signal: AbortSignal) => Promise<A>) => Effect.Effect<A, Cause.UnknownError>) | undefined;
 	readonly trustedProxy?: string | undefined;
 }
-function replacesSession(request: Request, reply: Response, native: boolean) {
+function replacesSession(request: Request, reply: Response, native: boolean, basePath: string) {
 	return (
 		native
 		&& reply.ok
 		&& reply.headers.has("set-auth-token")
 		&& request.headers.has("authorization")
-		&& new URL(request.url).pathname.startsWith("/api/auth/sign-in/")
+		&& new URL(request.url).pathname.startsWith(`${basePath}/sign-in/`)
 	);
 }
 async function providerResponse(auth: MountedAuth, web: Request, options: MountRouteOptions) {
@@ -34,8 +35,9 @@ async function providerResponse(auth: MountedAuth, web: Request, options: MountR
 	const native = options.bearerSessions.origins.includes(web.headers.get("origin") ?? "") && !hasSessionCookie(web.headers, cookieName);
 	const request = new Request(web, { headers });
 	const reply = await auth.handler(request);
-	if (replacesSession(request, reply, native)) {
-		const revoked = await auth.handler(new Request(new URL("/api/auth/sign-out", web.url), { body: "{}", headers, method: "POST" }));
+	const basePath = options.basePath ?? "/api/auth";
+	if (replacesSession(request, reply, native, basePath)) {
+		const revoked = await auth.handler(new Request(new URL(`${basePath}/sign-out`, web.url), { body: "{}", headers, method: "POST" }));
 		await revoked.body?.cancel();
 		if (!revoked.ok) {
 			throw new Error("Session replacement failed");
@@ -44,7 +46,7 @@ async function providerResponse(auth: MountedAuth, web: Request, options: MountR
 	return native ? reply : cookieSessionResponse(reply);
 }
 export const response = Effect.fnUntraced(function* (auth: MountedAuth, web: Request, options: MountRouteOptions) {
-	const sessionRequest = options.roles !== undefined && new URL(web.url).pathname === "/api/auth/get-session";
+	const sessionRequest = options.roles !== undefined && new URL(web.url).pathname === `${options.basePath ?? "/api/auth"}/get-session`;
 	const url = new URL(web.url);
 	if (sessionRequest) {
 		url.searchParams.set("disableCookieCache", "true");

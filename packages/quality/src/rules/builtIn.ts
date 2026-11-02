@@ -7,6 +7,7 @@ import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
+import { adapterImports } from "#rules/effect/adapterImports.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { failureHonesty } from "#rules/effect/failureHonesty.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
@@ -58,6 +59,7 @@ import { unusedCode } from "./unusedCode.ts";
 
 export const builtInRules = [
 	unusedCode,
+	adapterImports,
 	effectBoundary,
 	failureHonesty,
 	serviceParameters,

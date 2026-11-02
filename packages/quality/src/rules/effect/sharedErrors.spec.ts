@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { effectResolves } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
 import { sharedErrorFiles } from "#test/sharedErrorFiles.ts";

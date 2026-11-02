@@ -1,10 +1,12 @@
 {"path":"packages/jobs/src/server/adapters/registerWorker.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/adapters/runSchemaPlan.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/client.ts","rule":"effect/boundary","count":1}
+{"path":"packages/jobs/src/server/defaultClientFactory.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/jobs/src/server/defaultClientFactory.ts","rule":"effect/boundary","count":4}
 {"path":"packages/jobs/src/server/defineSchedule.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/definition.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/batchHandler.ts","rule":"effect/boundary","count":3}
+{"path":"packages/jobs/src/server/internal/clientCache.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/jobs/src/server/internal/clientCache.ts","rule":"effect/boundary","count":9}
 {"path":"packages/jobs/src/server/internal/clientErrors.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/countsFor.ts","rule":"effect/boundary","count":3}
@@ -27,5 +29,6 @@
 {"path":"packages/jobs/src/server/internal/testingReadout.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/testingSchedules.ts","rule":"effect/boundary","count":6}
 {"path":"packages/jobs/src/server/internal/testingSnapshot.ts","rule":"effect/boundary","count":2}
+{"path":"packages/jobs/src/server/schema.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/jobs/src/server/service.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/testing.ts","rule":"effect/boundary","count":16}

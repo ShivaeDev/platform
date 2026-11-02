@@ -6,6 +6,7 @@ import { Identity, SessionUser, SessionUserSchema } from "@shivaedev/identity/id
 const Caller = Schema.Struct({ identity: Schema.String, user: SessionUserSchema });
 export const CallerAnswer = Schema.Struct({ after: Caller, before: Caller });
 const Tools = Toolkit.make(
+	Tool.make("whoami", { dependencies: [Identity], success: Schema.String }),
 	Tool.make("caller", { dependencies: [Identity, SessionUser], success: CallerAnswer }),
 	Tool.make("readResource", { parameters: Schema.Struct({ wait: Schema.Boolean }), success: Schema.String }),
 	Tool.make("firstOnly", { success: Schema.String }),
@@ -44,6 +45,7 @@ export const requestTools = Effect.fnUntraced(function* (file: string) {
 						}
 						return yield* Effect.promise(() => handle.readFile("utf8"));
 					}).pipe(Effect.scoped),
+				whoami: () => Effect.map(Identity, ({ id }) => id),
 			}),
 		),
 	);

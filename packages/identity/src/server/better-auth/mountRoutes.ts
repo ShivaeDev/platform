@@ -4,6 +4,7 @@ import { HttpRouter, type HttpServerError, type HttpServerRequest, type HttpServ
 export class AuthRouteHandler extends Context.Service<
 	AuthRouteHandler,
 	{
+		readonly basePath?: `/${string}` | "" | undefined;
 		readonly handle: Effect.Effect<HttpServerResponse.HttpServerResponse, HttpServerError.RequestError, HttpServerRequest.HttpServerRequest>;
 	}
 >()("@shivaedev/identity/AuthRouteHandler") {}
@@ -11,6 +12,6 @@ export class AuthRouteHandler extends Context.Service<
 export const mountRoutes = HttpRouter.use((router) =>
 	Effect.gen(function* () {
 		const handler = yield* AuthRouteHandler;
-		yield* router.add("*", "/api/auth/*", handler.handle);
+		yield* router.add("*", `${handler.basePath ?? "/api/auth"}/*`, handler.handle);
 	}),
 );

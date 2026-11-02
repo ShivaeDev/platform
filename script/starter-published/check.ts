@@ -1,5 +1,4 @@
-import { join } from "node:path";
-import { Effect } from "effect";
+import { Effect, Path } from "effect";
 import { checkTooling } from "#starter-published/checkTooling.ts";
 import { generateStarter } from "#starter-published/generate.ts";
 import { runStarter } from "#starter-published/run.ts";
@@ -13,12 +12,13 @@ export const checkStarters = Effect.fn("Published.checkStarters")(function* (
 	registryVersion?: string,
 	variants: readonly boolean[] = [false, true],
 ) {
+	const path = yield* Path.Path;
 	for (const minimal of variants) {
 		const folder = yield* generateStarter(root, temporary, tarballs["@shivaedev/create-app"], tarballs, registryVersion, minimal);
-		yield* runStarter(join(temporary, folder), database);
+		yield* runStarter(path.join(temporary, folder), database);
 		if (registryVersion === undefined) {
-			yield* checkTooling(join(temporary, folder));
-			const current = join(temporary, minimal ? "generator-minimal" : "generator", "node_modules/.bin/create-app");
+			yield* checkTooling(path.join(temporary, folder));
+			const current = path.join(temporary, minimal ? "generator-minimal" : "generator", "node_modules/.bin/create-app");
 			yield* upgradeStarter(root, temporary, current, tarballs, database, minimal);
 			yield* Effect.log(
 				`Packed ${minimal ? "minimal" : "full"} app upgraded with real installs, typechecks and PostgreSQL/HTTP stories without skips.`,

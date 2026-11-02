@@ -8,16 +8,11 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { Follow, RPC_PATH } from "#host/daemonContract.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";
-import type { State } from "#host/waitOutcome.ts";
 import { cliProcess } from "#test/fleetCli.ts";
-import { untilOutput } from "#test/follower.ts";
-import { followerProcess } from "#test/followerProcess.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 
-export type RecoverySnapshots = readonly (readonly (typeof State.Type)[])[];
-
 export const watchRecovery = Effect.fn("FleetStory.watchRecovery")(
-	function* (follow: boolean, expected: string, recorded?: RecoverySnapshots) {
+	function* () {
 		const sql = yield* SqlClient.SqlClient;
 		const snapshots = readWaitStates({ namespace: STORAGE_NAMESPACE }).pipe(
 			Effect.provideService(SqlClient.SqlClient, sql),
@@ -29,8 +24,7 @@ export const watchRecovery = Effect.fn("FleetStory.watchRecovery")(
 				config: { host: "127.0.0.1", port: 0 },
 				group,
 				handlers: group.toLayer({
-					"daemon.follow": () =>
-						(recorded === undefined ? Stream.fromEffect(snapshots) : Stream.fromIterable(recorded)).pipe(Stream.concat(Stream.never)),
+					"daemon.follow": () => Stream.fromEffect(snapshots).pipe(Stream.concat(Stream.never)),
 				}),
 				policy: "loopback",
 				rpcPath: RPC_PATH,
@@ -39,12 +33,7 @@ export const watchRecovery = Effect.fn("FleetStory.watchRecovery")(
 		);
 		const server = Context.get(context, HttpServer.HttpServer);
 		const port = new URL(HttpServer.formatAddress(server.address)).port;
-		if (!follow) {
-			return (yield* Effect.promise(() => cliProcess(["watch", "one", "--timeout", "0.1", "--port", port]))).stdout;
-		}
-		const watcher = yield* followerProcess(".work/fleet.json", "watch", ["one"], { follow: true, port: Number(port) });
-		yield* untilOutput(watcher, expected);
-		return watcher.output().trim();
+		return (yield* Effect.promise(() => cliProcess(["watch", "one", "--timeout", "0.1", "--port", port]))).stdout;
 	},
 	Effect.scoped,
 	withLive,

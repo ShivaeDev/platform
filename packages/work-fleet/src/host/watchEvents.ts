@@ -1,4 +1,5 @@
 import { waitingOwner } from "#attention.ts";
+import { actionableState } from "#host/actionableWatch.ts";
 import type { WatchState } from "#host/watchState.ts";
 import { WAIT_CYCLE } from "#scheduling/adapters/waitCycles.ts";
 
@@ -27,50 +28,55 @@ export interface WatchEvent {
 	readonly workId?: string;
 }
 
+export const actionableKinds: readonly EventKind[] = [
+	"waiting-on-orchestrator",
+	"waiting-on-you",
+	"stuck",
+	"dispatch-failed",
+	"answer-failed",
+	"pr-dequeued",
+	"pr-stuck",
+	"pr-conflict",
+	"pr-closed",
+];
+
 interface Observed {
-	readonly keys: ReadonlySet<string>;
 	readonly progress: number;
 	readonly stage: string;
-	readonly stuck: boolean;
 }
 
-export function watchTransitions(stuckMs: number) {
+export function watchTransitions(stuckMs: number, current = false) {
 	const previous = new Map<string, Observed>();
+	const seen = new Set<string>();
 	let initial = true;
+	function unseen(state: WatchState, event: WatchEvent, progress: number) {
+		const identity = current ? [] : [state.decision?.id, state.answerFailure?.id, state.dispatch?.id];
+		const key = JSON.stringify([event, ...identity, event.kind === "stuck" ? progress : undefined]);
+		const duplicate = seen.has(key);
+		seen.add(key);
+		const visible =
+			!initial
+			|| (current && actionableKinds.some((kind) => kind === event.kind))
+			|| (event.kind === "stuck" && event.reason?.startsWith(WAIT_CYCLE));
+		return !duplicate && visible;
+	}
 	function updateOne(state: WatchState, now: number) {
 		const old = previous.get(state.workId);
-		const candidates = eventsFor(state);
 		const progress = state.progressAt ?? (old?.stage === state.stage ? old.progress : now);
-		const stale = ["working", "reviewing"].includes(state.stage) && now - progress >= stuckMs;
-		const events = candidates.filter(({ key }) => !old?.keys.has(key)).map(({ event }) => event);
-		if (stale && (!old?.stuck || old.progress !== progress)) {
-			events.push({
-				kind: "stuck",
-				reason: `No progress for ${stuckMs / 1000} seconds`,
-				workId: state.workId,
-				...links(state),
-			});
+		const candidates = eventsFor(state).filter((event) => !current || actionableState(state, event));
+		if (["working", "reviewing"].includes(state.stage) && now - progress >= stuckMs) {
+			candidates.push({ kind: "stuck", reason: `No progress for ${stuckMs / 1000} seconds`, workId: state.workId, ...links(state) });
 		}
-		previous.set(state.workId, {
-			keys: new Set(candidates.map(({ key }) => key)),
-			progress,
-			stage: state.stage,
-			stuck: stale,
-		});
-		return initial ? events.filter((event) => event.kind === "stuck" && event.reason?.startsWith(WAIT_CYCLE)) : events;
+		previous.set(state.workId, { progress, stage: state.stage });
+		return candidates.filter((event) => unseen(state, event, progress));
 	}
 	return {
 		reset: () => {
 			previous.clear();
+			seen.clear();
 			initial = true;
 		},
 		update: (states: readonly WatchState[], now: number): readonly WatchEvent[] => {
-			const present = new Set(states.map((state) => state.workId));
-			for (const id of previous.keys()) {
-				if (!present.has(id)) {
-					previous.delete(id);
-				}
-			}
 			const events = states.flatMap((state) => updateOne(state, now));
 			initial = false;
 			return events;
@@ -78,28 +84,11 @@ export function watchTransitions(stuckMs: number) {
 	};
 }
 
-function eventsFor(state: WatchState) {
-	const events: { event: WatchEvent; key: string }[] = [];
+function eventsFor(state: WatchState): WatchEvent[] {
 	const event = eventFor(state);
-	if (event) {
-		events.push({
-			event,
-			key: JSON.stringify([event, state.decision?.id, state.answerFailure?.id]),
-		});
-	}
+	const events = event ? [event] : [];
 	if (state.dispatch?.status === "failed") {
-		const reason = state.dispatch.error ?? "Dispatch failed";
-		if (!(reason.startsWith("waiting for dependency ") || reason.startsWith("waiting for area "))) {
-			events.push({
-				event: {
-					...links(state),
-					kind: "dispatch-failed",
-					reason,
-					workId: state.workId,
-				},
-				key: `dispatch:${state.dispatch.id}`,
-			});
-		}
+		events.push({ ...links(state), kind: "dispatch-failed", reason: state.dispatch.error ?? "Dispatch failed", workId: state.workId });
 	}
 	return events;
 }

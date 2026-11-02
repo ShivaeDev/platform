@@ -24,6 +24,13 @@ export function hostFollowerVerbs(engine: HostStoryEngine, tell: (line: string) 
 				const child = yield* followerProcess(engine.fixture.configFile, command, workIds, { port: engine.running.port, ...options });
 				engine.followers.set(name, child);
 			}),
+		followerEvents: (name: string): readonly unknown[] =>
+			follower(name)
+				.output()
+				.trim()
+				.split("\n")
+				.filter(Boolean)
+				.map((line) => JSON.parse(line)),
 		followerExit: (name: string) => Effect.promise(() => follower(name).done).pipe(Effect.timeout("10 seconds")),
 		followerOutput: (name: string) => follower(name).output(),
 		followerRunning: (name: string) => follower(name).isRunning(),

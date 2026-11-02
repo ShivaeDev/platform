@@ -1,12 +1,12 @@
-import process from "node:process";
 import * as Console from "effect/Console";
 import * as Argument from "effect/cli/Argument";
 import * as Command from "effect/cli/Command";
 import * as Flag from "effect/cli/Flag";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import { setExitCode } from "#host/adapters/setExitCode.ts";
 import { board, config, port } from "#host/cliOptions.ts";
-import { eventKinds } from "#host/watchEvents.ts";
+import { actionableKinds, eventKinds } from "#host/watchEvents.ts";
 
 export const waitCommand = Command.make(
 	"wait",
@@ -34,13 +34,14 @@ export const waitCommand = Command.make(
 			}),
 		});
 		yield* Console.log(outcome.summary);
-		process.exitCode = outcome.code;
+		yield* setExitCode(outcome.code);
 	}),
 ).pipe(Command.withDescription("Block until the work completes (exit 0), needs a human (2) or is released (3); 4 on --timeout, 1 on errors"));
 
 export const watchCommand = Command.make(
 	"watch",
 	{
+		all: Flag.Boolean("all").pipe(Flag.withDefault(false), Flag.withDescription("Include routine progress and health events")),
 		apiUrl: Flag.String("api-url").pipe(Flag.withDefault("https://api.github.com"), Flag.withDescription("GitHub REST base URL")),
 		board,
 		config,
@@ -58,21 +59,23 @@ export const watchCommand = Command.make(
 	},
 	Effect.fn("WorkFleetCli.watch")(function* (input) {
 		if (
-			input.json
+			input.all
+			|| input.follow
+			|| input.json
 			|| Option.isSome(input.prEvents)
 			|| input.heartbeat > 0
 			|| Option.isSome(input.events)
 			|| (!input.follow && input.workIds.length === 0)
 		) {
-			const selected = Option.isSome(input.events)
-				? input.events.value.split(",").map((kind) => kind.trim())
-				: eventKinds.filter((kind) => kind !== "released");
+			const defaults = input.all ? eventKinds : actionableKinds;
+			const selected = Option.isSome(input.events) ? input.events.value.split(",").map((kind) => kind.trim()) : defaults;
 			const unknown = selected.find((kind) => !eventKinds.some((known) => known === kind));
 			if (unknown !== undefined) {
 				return yield* Effect.fail(new Error(`Unknown event kind: ${unknown}; expected ${eventKinds.join(", ")}`));
 			}
 			const { watchStream } = yield* Effect.promise(() => import("#host/watchStream.ts"));
-			process.exitCode = yield* watchStream({
+			const exitCode = yield* watchStream({
+				all: input.all || Option.isSome(input.events),
 				apiUrl: input.apiUrl,
 				board: input.board,
 				events: eventKinds.filter((kind) => selected.includes(kind)),
@@ -92,10 +95,11 @@ export const watchCommand = Command.make(
 					onSome: (seconds) => ({ timeoutMs: seconds * 1000 }),
 				}),
 			});
+			yield* setExitCode(exitCode);
 			return;
 		}
 		const { watchFor } = yield* Effect.promise(() => import("#host/watch.ts"));
-		process.exitCode = yield* watchFor({
+		const exitCode = yield* watchFor({
 			board: input.board,
 			follow: input.follow,
 			intervalMs: input.interval * 1000,
@@ -109,5 +113,8 @@ export const watchCommand = Command.make(
 				onSome: (seconds) => ({ timeoutMs: seconds * 1000 }),
 			}),
 		});
+		yield* setExitCode(exitCode);
 	}),
-).pipe(Command.withDescription("Follow actionable Fleet and PR events, one per line; --json emits JSON; IDs or --follow select text outcomes"));
+).pipe(
+	Command.withDescription("Follow actionable Fleet and PR events once per work item and head; --all includes routine events; --json emits JSON"),
+);

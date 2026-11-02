@@ -56,11 +56,10 @@ host.it(
 		);
 		const attemptOutputs = subscribed.queries.filter((query) => query.text.includes('"output","publishedRecovery"'));
 		expect(new Set(attemptOutputs.map((query) => query.parameters))).toEqual(new Set([overview.active.length]));
-		yield* daemon.follow("watcher", "watch", ["item-0000"], { follow: true });
-		yield* Effect.all(
-			[daemon.requestStatus(), daemon.awaitOutput("watcher", "item-0000 waiting (waiting on you): Choose the synthetic storage option")],
-			{ concurrency: "unbounded" },
-		).pipe(Effect.timeout("5 seconds"));
+		yield* daemon.follow("watcher", "watch", ["item-0000"], { follow: true, prEvents: false });
+		yield* Effect.all([daemon.requestStatus(), daemon.awaitOutput("watcher", 'reason="Choose the synthetic storage option"')], {
+			concurrency: "unbounded",
+		}).pipe(Effect.timeout("5 seconds"));
 		expect(daemon.followerRunning("watcher")).toBe(true);
 		expect(daemon.snapshots()).toMatchObject([[{ stage: "working", workId: "item-0001" }]]);
 	},

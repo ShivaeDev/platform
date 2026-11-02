@@ -476,7 +476,7 @@ Each batch call starts `transact`, so a later chunk failure rolls back earlier c
 
 On PostgreSQL, `deleteBatched({ where, batchSize, maxRows, pause })` removes matching rows in independently committed transactions and returns the number removed. `where` uses the same encoded filters as `findMany`, including comparisons. Each batch deletes at most `batchSize` rows; the last batch shrinks to respect `maxRows`. `batchSize` is a positive safe integer and `maxRows` is a nonnegative safe integer. A zero cap or no matching rows returns zero without announcing changes.
 
-Each nonempty batch publishes one table-level change hint after commit, so queries watching the table refresh once per batch. It does not enumerate record or bucket keys. Use table subscriptions for data subject to retention purges. A later failure rolls back only its batch and its hint; earlier batches remain committed. SQL failures remain typed `SqlError` and invalid limits fail with `SchemaError`.
+Each nonempty batch publishes one collection-wide change hint after commit, so table, item and bucket subscribers refresh after each batch. The hint has a constant size and does not enumerate deleted records or bucket values. Viewers keep their existing query permissions; a refresh does not require access to the whole table. A later failure rolls back only its batch and its hint; earlier batches remain committed. SQL failures remain typed `SqlError` and invalid limits fail with `SchemaError`.
 
 `pause` is an Effect duration between full batches while the cap permits more work. The method holds a PostgreSQL session advisory lock for the run; another purge of that table skips and returns zero, even when called through another repository instance. The lock is released on completion, failure or interruption. The run reserves one connection for the lock and uses another for batch transactions: allow at least two pool connections, plus capacity for other work. Use a direct PostgreSQL connection or session pooling, since transaction pooling cannot preserve session locks. Rows locked by other transactions are skipped and can be removed by a later run. Purges have no ordering guarantee.
 
@@ -575,6 +575,8 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 ```
 
 `transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
+
+Arrays also accept typed keys from `collection`: a list key refreshes list subscribers, an item key refreshes that item and its list, and a bucket key refreshes that bucket. Subscribers register these keys through `readKeys` from `@shivaedev/changes/keys.ts`. Typed keys may share an array with raw Reactivity keys; raw keys keep their native identity.
 
 Mark bucket fields on the model with `bucket` from `@shivaedev/changes/buckets.ts`:
 

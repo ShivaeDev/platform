@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { outcomes } from "#outcomes.ts";
 import { concurrentProviders, overlappingProviders, scopedOutbound, separateProviders } from "#test/scopedOutbound.ts";
 

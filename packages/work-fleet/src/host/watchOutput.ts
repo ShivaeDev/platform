@@ -1,19 +1,18 @@
 import { Clock, Console, Effect } from "effect";
+import { type WatchLine, watchAttention } from "#host/watchAttention.ts";
 import type { BoardAnswer } from "#host/watchState.ts";
 
 export const watchOutput = Effect.fnUntraced(function* (options: {
+	readonly all?: boolean;
 	readonly events: readonly string[];
 	readonly heartbeatMs?: number;
 	readonly json?: boolean;
 }) {
 	const startedAt = yield* Clock.currentTimeMillis;
 	const seenResponses = new Set<string>();
+	const attention = watchAttention();
 	let lastOutputAt = startedAt;
-	const emit = Effect.fnUntraced(function* (event: { readonly kind: string }) {
-		const health = event.kind.startsWith("daemon-") || ["pr-error", "pr-cooldown", "pr-stopped", "heartbeat"].includes(event.kind);
-		if (!(options.events.includes(event.kind) || health)) {
-			return;
-		}
+	const write = Effect.fnUntraced(function* (event: { readonly kind: string }) {
 		yield* Console.log(
 			options.json
 				? JSON.stringify(event)
@@ -26,6 +25,17 @@ export const watchOutput = Effect.fnUntraced(function* (options: {
 		);
 		lastOutputAt = yield* Clock.currentTimeMillis;
 	});
+	const emit = Effect.fnUntraced(function* (event: WatchLine) {
+		const health = event.kind.startsWith("daemon-") || ["pr-error", "pr-cooldown", "pr-stopped", "heartbeat"].includes(event.kind);
+		if (!(options.events.includes(event.kind) || health)) {
+			return;
+		}
+		if (!(options.all || (yield* attention.accept(event)))) {
+			return;
+		}
+		const { retryable: _retryable, ...printed } = event;
+		yield* write(printed);
+	});
 	return {
 		answers: Effect.fnUntraced(function* (answers: readonly (typeof BoardAnswer.Type)[]) {
 			for (const answer of answers) {
@@ -37,7 +47,11 @@ export const watchOutput = Effect.fnUntraced(function* (options: {
 		}),
 		emit,
 		heartbeat: Effect.gen(function* () {
-			if (options.heartbeatMs && (yield* Clock.currentTimeMillis) - lastOutputAt >= options.heartbeatMs) {
+			const now = yield* Clock.currentTimeMillis;
+			if (yield* attention.outage) {
+				yield* write({ kind: "daemon-unreachable" });
+			}
+			if (options.heartbeatMs && now - lastOutputAt >= options.heartbeatMs) {
 				yield* emit({ kind: "heartbeat" });
 			}
 		}),

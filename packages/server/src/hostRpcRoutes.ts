@@ -8,6 +8,7 @@ import { localRpcGuard } from "@shivaedev/identity/server/adapters/local.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/identity/server/session.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";
+import { boundedRpcSocket } from "#boundedRpcSocket.ts";
 import { hostChanges } from "#hostChanges.ts";
 import type { HostPolicy } from "#hostOptions.ts";
 import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
@@ -68,10 +69,15 @@ function buildRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements>
 					status: HttpStatus.fromLiteral("Forbidden"),
 				}),
 			);
-			yield* router.add(
-				"GET",
-				options.rpcPath ?? "/rpc",
-				socketRpc(websocket, options, trustedProxy, nativeOrigins).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire)),
+			yield* router.add("GET", options.rpcPath ?? "/rpc", () =>
+				boundedRpcSocket(bodySize).pipe(
+					Effect.flatMap((request) =>
+						socketRpc(websocket, options, trustedProxy, nativeOrigins).pipe(
+							Effect.provideService(HttpServerRequest.HttpServerRequest, request),
+							Effect.provideService(RpcSerialization.RpcSerialization, wire),
+						),
+					),
+				),
 			);
 			yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
 				guarded.pipe(

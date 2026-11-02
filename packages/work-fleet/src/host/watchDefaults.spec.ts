@@ -3,11 +3,11 @@ import { approvedWork, host } from "#test/hostStory.ts";
 import { humanDelivery } from "#test/humanDelivery.ts";
 
 host.it(
-	"the bare watcher follows new work and PR transitions with one event per line and no heartbeat",
-	[approvedWork(["one"]), humanDelivery],
+	"the default follow watcher reports readiness once and keeps merged PRs and done work quiet",
+	[approvedWork(["one", "two"]), humanDelivery],
 	function* (daemon) {
 		const github = yield* daemon.prApi();
-		yield* daemon.watchDefault({ apiUrl: github.url, prInterval: 0.1 });
+		yield* daemon.watchDefault({ apiUrl: github.url, follow: true, prInterval: 0.1 });
 		yield* daemon.awaitSnapshot();
 		expect(daemon.eventOutput()).toBe("");
 		const worker = yield* daemon.dispatch("one");
@@ -16,11 +16,24 @@ host.it(
 		yield* daemon.awaitOutput("events", "waiting-on-orchestrator ");
 		yield* github.awaitPoll();
 		github.pull({ merged: true, state: "closed" });
-		yield* daemon.awaitOutput("events", "pr-merged ");
+		yield* github.awaitRequests(
+			"/repos/example/repository/pulls?state=open&per_page=100",
+			github.requests().filter(({ path }) => path.includes("?state=open")).length + 2,
+		);
+		daemon.mergePullRequest();
+		yield* daemon.reconcile("one");
+		const next = yield* daemon.dispatch("two");
+		daemon.finishTurn(next, "FLEET_QUESTION: Confirm next scope");
+		yield* daemon.reconcile("two");
+		yield* daemon.awaitOutput("events", 'reason="Confirm next scope"');
+		yield* daemon.stopWatch();
 		const lines = daemon.eventOutput().split("\n");
 		expect(lines.pop()).toBe("");
-		expect(lines).toEqual([expect.stringMatching(/^waiting-on-orchestrator .*workId="one"/u), expect.stringMatching(/^pr-merged .*workId="one"/u)]);
-		expect(daemon.watchRunning()).toBe(true);
+		expect(lines).toEqual([
+			expect.stringMatching(/^waiting-on-orchestrator .*workId="one"/u),
+			'waiting-on-orchestrator workId="two" reason="Confirm next scope"',
+		]);
+
 		expect(daemon.eventErrors()).toBe("");
 	},
 );
