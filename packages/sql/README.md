@@ -366,6 +366,39 @@ const rows = yield* paymentsBySequence([]);
 
 `rows` is empty even when the table contains payments. The helper takes its column explicitly and leaves native `SqlSchema` visible. Use native SQL with composed schemas for joins; this helper adds no query layer or typed join.
 
+### Keyset pages over native SQL
+
+`keysetPage` builds seek and ordering fragments and asks your `read` callback for one extra row. It returns `{ rows, next }`, where `next` is an `Option` containing the last returned row's cursor only when another row exists. Your query keeps its predicates, joins and result schema:
+
+```ts
+import { Effect, Schema } from "effect";
+import { SqlClient } from "effect/sql";
+import { keysetPage } from "@shivaedev/sql/keysetPage.ts";
+
+const Cursor = Schema.Struct({ at: Schema.String, id: Schema.Number });
+const PageRow = Schema.Struct({ id: Schema.Number, cursorAt: Schema.String, updatedAt: Schema.Date });
+
+const listNotes = Effect.fnUntraced(function* (owner: string, after?: typeof Cursor.Type) {
+	const sql = yield* SqlClient.SqlClient;
+	return yield* keysetPage({
+		limit: 20,
+		after,
+		orderBy: [{ column: sql`n.updated_at`, direction: "desc", value: (cursor: typeof Cursor.Type) => cursor.at }],
+		tieBreaker: { column: sql`n.id`, direction: "desc", value: (cursor) => cursor.id },
+		cursorFor: (row: typeof PageRow.Type) => ({ at: row.cursorAt, id: row.id }),
+		read: ({ seek, orderBy, limit }) =>
+			sql`select n.id, n.updated_at as "updatedAt", to_json(n.updated_at) #>> '{}' as "cursorAt"
+				from notes n where n.owner = ${owner} and ${seek} order by ${orderBy} limit ${limit}`.pipe(
+				Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(PageRow))),
+			),
+	});
+});
+```
+
+All ordering expressions must be non-null. The required `tieBreaker` must be unique across the query's rows, normally a primary key; the caller owns that database constraint. It is appended to `orderBy`, which can be empty when the unique key alone orders the list. Each column can be a name or a native fragment, and each direction can be `asc` or `desc`, including mixed directions. `read` must apply the supplied seek predicate, ordering and lookahead limit. Page sizes must be positive safe integers smaller than `Number.MAX_SAFE_INTEGER`; invalid sizes fail with `SchemaError` before `read` runs.
+
+Keep timestamp continuation values separate from decoded dates: the example projects the PostgreSQL `timestamptz` value as exact text with `to_json`, retaining microseconds while the display field uses `Schema.Date`. Order and compare the original timestamp column, and return the text unchanged through `cursorFor`. Cursor values accept strings, numbers, bigints and booleans, excluding `Date` and null. Cursor encoding and request validation stay with the caller. Reuse the same predicates and ordering on subsequent requests. This is a page read, with no snapshot or live infinite-list behavior.
+
 ### Composite keys and idempotent writes
 
 A generated app can ingest the same reading more than once. Declare the table's primary key with an `idColumn` tuple and its unique conflict key with `conflictColumns`:
@@ -748,6 +781,7 @@ NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only
 Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
 - `@shivaedev/sql/inValues.ts`: `inValues(column, values)` — Native list predicate with match-nothing semantics for an empty list; requires `SqlClient`.
+- `@shivaedev/sql/keysetPage.ts`: `keysetPage(options)`, `KeysetOrder`, `KeysetPageQuery`, `KeysetPage` — Native seek and order fragments with a required unique tie-breaker, validated page size and one-row lookahead; predicates, result schemas and cursor formats stay with the caller.
 - `@shivaedev/sql/int8.ts`: `int8(field)` — PostgreSQL bigint storage codec using the supplied field schema.
 - `@shivaedev/sql/int4Array.ts`: `int4Array(field)` — PostgreSQL integer-array storage codec, including typed empty arrays.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
