@@ -91,7 +91,7 @@ for (const [what, declaration, field] of [
 	["an unknown field", { file: "src/a.ts", includes: ["src/a.ts"], reason: REASON, rule: "lint/style/noNonNullAssertion" }, "file"],
 ] as const) {
 	ruleStory.it(`suppressions/biome-overrides refuses a declaration with ${what} and names its ${field}`, [], function* ({ optionIssues }) {
-		expect(yield* optionIssues<unknown>(biomeOverrides, { declared: [declaration] })).toEqual([expect.stringContaining(`declared.0.${field}`)]);
+		expect(yield* optionIssues(biomeOverrides, { declared: [declaration] })).toEqual([expect.stringContaining(`declared.0.${field}`)]);
 	});
 }
 

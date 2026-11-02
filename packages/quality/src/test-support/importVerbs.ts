@@ -1,9 +1,10 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Cause, Effect, Exit } from "effect";
+import { configureRegistered } from "#adapters/rule.ts";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { workspacePackages } from "#imports/workspace.ts";
-import type { Finding, Findings, Rule, RuleInputs } from "#rule.ts";
+import type { Finding, Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
 import { scanned } from "./imports.ts";
 import type { SeedFile } from "./tree.ts";
 
@@ -36,8 +37,8 @@ function only(inputs: RuleInputs, folder: string | undefined): RuleInputs {
 	return { ...inputs, files: sources.map((file) => file.path), sources };
 }
 
-const checked = Effect.fn("ImportStory.checked")(function* (engine: ImportEngine, rule: Rule<string, unknown>, options: unknown, folder?: string) {
-	const configured = yield* Effect.promise(() => rule.configure(options));
+const checked = Effect.fn("ImportStory.checked")(function* (engine: ImportEngine, rule: RegisteredRule, options: unknown, folder?: string) {
+	const configured = yield* Effect.promise(() => configureRegistered(rule, options));
 	if (configured._tag === "Invalid") {
 		return yield* Effect.die(new Error(`${rule.id} refused its options: ${configured.issues.join("; ")}`));
 	}
