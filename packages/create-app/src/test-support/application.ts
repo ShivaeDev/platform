@@ -77,7 +77,7 @@ export const application = storyKit({
 					const started = performance.now();
 					const result = spawnSync(
 						"env",
-						["NODE_OPTIONS=", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, "pnpm", ...args],
+						["NODE_OPTIONS=--conditions=source", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, "pnpm", ...args],
 						{
 							cwd: target(),
 							encoding: "utf8",
