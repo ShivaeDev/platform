@@ -1,9 +1,16 @@
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
-const Publication = Schema.fromJsonString(Schema.Struct({ name: Schema.String, versions: Schema.Record(Schema.String, Schema.Unknown) }));
+const Publication = Schema.fromJsonString(
+	Schema.Struct({
+		attachments: Schema.Record(Schema.String, Schema.Struct({ data: Schema.String })),
+		name: Schema.String,
+		versions: Schema.Record(Schema.String, Schema.Unknown),
+	}).pipe(Schema.encodeKeys({ attachments: "_attachments" })),
+);
 
 export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
@@ -20,6 +27,20 @@ export const releaseRegistry = Effect.fn("ReleaseRegistry.releaseRegistry")(func
 	);
 	yield* fs.writeFileString(join(root, ".git/info/exclude"), ".npmrc\n", { flag: "a" });
 	return {
+		file: Effect.fn("ReleaseRegistry.file")(function* (name: string, path: string) {
+			for (const request of server.requests.filter(({ method }) => method === "PUT")) {
+				const publication = Schema.decodeUnknownSync(Publication)(request.body.toString());
+				if (publication.name !== name) {
+					continue;
+				}
+				const attachment = Object.values(publication.attachments)[0];
+				if (attachment === undefined) {
+					throw new Error(`No tarball published for ${name}.`);
+				}
+				return execFileSync("tar", ["-xzOf", "-", `package/${path}`], { encoding: "utf8", input: Buffer.from(attachment.data, "base64") });
+			}
+			throw new Error(`No publication for ${name}.`);
+		}),
 		publications: () =>
 			server.requests
 				.filter(({ method }) => method === "PUT")
