@@ -1,7 +1,7 @@
 import { Context, Effect, Layer } from "effect";
 import { expectTypeOf } from "vitest";
+import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { eventually } from "#eventually.ts";
-import { makeEffectIt } from "#makeEffectIt.ts";
 
 class Token extends Context.Service<Token, string>()("@types/Token") {}
 

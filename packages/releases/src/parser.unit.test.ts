@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { parseChangeset } from "#parser.ts";
 
 describe("changeset parsing", () => {

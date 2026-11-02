@@ -8,8 +8,7 @@ export type AnyTestLayer = Layer.Layer<any, any, never> | Layer.Layer<never, any
 // Only a Layer that provides never takes every test Layer, Layer.empty included, so the overload restores what the given Layer provides.
 export function buildTestLayer<TLayer extends AnyTestLayer>(
 	layer: TLayer,
-	scope: Scope.Scope,
-): Effect.Effect<Context.Context<Layer.Success<TLayer>>, unknown>;
-export function buildTestLayer(layer: Layer.Layer<never, unknown, never>, scope: Scope.Scope): Effect.Effect<Context.Context<never>, unknown> {
-	return Layer.buildWithScope(layer, scope);
+): Effect.Effect<Context.Context<Layer.Success<TLayer>>, unknown, Scope.Scope>;
+export function buildTestLayer(layer: Layer.Layer<never, unknown, never>): Effect.Effect<Context.Context<never>, unknown, Scope.Scope> {
+	return Layer.build(layer);
 }

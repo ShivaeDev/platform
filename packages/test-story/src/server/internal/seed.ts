@@ -3,7 +3,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import type * as Scope from "effect/Scope";
 import * as Tracer from "effect/Tracer";
-import type { AnyTestLayer } from "@shivaedev/test/anyTestLayer.ts";
+import type { AnyTestLayer } from "@shivaedev/test/adapters/anyTestLayer.ts";
 import type { EffectClock } from "@shivaedev/test/types.ts";
 import { refusal } from "#internal/errors.ts";
 import { type AnyEffect, type EffectHook, type Hook, hooked } from "#internal/hooked.ts";

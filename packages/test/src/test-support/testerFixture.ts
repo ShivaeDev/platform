@@ -1,5 +1,5 @@
 import { Data, Effect } from "effect";
-import { it } from "#it.ts";
+import { it } from "#adapters/it.ts";
 import { note } from "./lifecycleLog.ts";
 
 class BodyFailure extends Data.TaggedError("BodyFailure")<{ readonly message: string }> {}
