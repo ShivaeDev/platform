@@ -41,7 +41,7 @@ try {
   assert.deepEqual((await run()).map((line) => line.event), ["stopped"]);
   closed = true;
   const merged = await run();
-  assert.deepEqual(merged[0], { event: "merged", number: 7, branch: "feature", title: "Packed executable" });
+  assert.deepEqual(merged[0], { event: "merged", head: "abc", number: 7, branch: "feature", title: "Packed executable" });
   assert.equal(merged[1].event, "stopped");
   assert.deepEqual((await run()).map((line) => line.event), ["stopped"]);
   assert.equal(JSON.parse(await readFile(state, "utf8")).prs["7"].merged, true);

@@ -4,7 +4,7 @@ import { humanDelivery } from "#test/humanDelivery.ts";
 
 host.it(
 	"the default follow watcher reports readiness once and keeps merged PRs and done work quiet",
-	[approvedWork(["one"]), humanDelivery],
+	[approvedWork(["one", "two"]), humanDelivery],
 	function* (daemon) {
 		const github = yield* daemon.prApi();
 		yield* daemon.watchDefault({ apiUrl: github.url, follow: true, prInterval: 0.1 });
@@ -22,10 +22,17 @@ host.it(
 		);
 		daemon.mergePullRequest();
 		yield* daemon.reconcile("one");
+		const next = yield* daemon.dispatch("two");
+		daemon.finishTurn(next, "FLEET_QUESTION: Confirm next scope");
+		yield* daemon.reconcile("two");
+		yield* daemon.awaitOutput("events", 'reason="Confirm next scope"');
 		yield* daemon.stopWatch();
 		const lines = daemon.eventOutput().split("\n");
 		expect(lines.pop()).toBe("");
-		expect(lines).toEqual([expect.stringMatching(/^waiting-on-orchestrator .*workId="one"/u)]);
+		expect(lines).toEqual([
+			expect.stringMatching(/^waiting-on-orchestrator .*workId="one"/u),
+			'waiting-on-orchestrator workId="two" reason="Confirm next scope"',
+		]);
 
 		expect(daemon.eventErrors()).toBe("");
 	},

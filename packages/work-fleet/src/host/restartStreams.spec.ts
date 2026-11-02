@@ -30,7 +30,7 @@ host.it(
 		proxy.online();
 
 		yield* daemon.awaitEvent("done");
-		const summary = '{"kind":"done","workId":"one"}\n';
+		const summary = '"kind":"done"';
 		yield* daemon.awaitOutput("follow", summary);
 		expect(daemon.eventLines().filter((event) => typeof event === "object" && event !== null && "workId" in event)).toEqual([
 			{ kind: "done", workId: "one" },
