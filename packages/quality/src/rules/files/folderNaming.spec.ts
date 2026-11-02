@@ -90,5 +90,5 @@ for (const [folders, files, options] of named) {
 }
 
 ruleStory.it("files/folder-names refuses the unknown option folders and names it", [], function* ({ optionIssues }) {
-	expect(yield* optionIssues<unknown>(folderNames, { folders: [] })).toEqual([expect.stringContaining("folders")]);
+	expect(yield* optionIssues(folderNames, { folders: [] })).toEqual([expect.stringContaining("folders")]);
 });

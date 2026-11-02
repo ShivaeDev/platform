@@ -40,3 +40,13 @@ boardStory.it(
 		]);
 	},
 );
+
+boardStory.it(
+	"an agent waiting on a duplicated registered question receives the identity conflict",
+	REGISTERED,
+	function* ({ agentWaits, outsideEditorCopiesQuestionRecord }) {
+		yield* outsideEditorCopiesQuestionRecord("duplicate.md");
+
+		expect(yield* agentWaits()).toBe("conflict: The registered question identity is ambiguous; response history is unknown.");
+	},
+);

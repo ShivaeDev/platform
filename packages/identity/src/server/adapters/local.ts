@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse, HttpTraceContext } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization } from "effect/rpc";
-import { proxyAddresses, proxyMatches } from "./trustedProxy.ts";
+import { proxyAddresses, proxyMatches } from "#server/adapters/trustedProxy.ts";
 
 type TransportRequest = Pick<HttpServerRequest.HttpServerRequest, "headers" | "remoteAddress">;
 
@@ -36,14 +36,12 @@ export function sameOrigin(request: Pick<TransportRequest, "headers">): boolean 
 		return false;
 	}
 }
-export function loopbackOnly<E, R>(
-	handler: (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
-) {
-	return (request: HttpServerRequest.HttpServerRequest) =>
-		loopbackHost(request.headers.host) && Option.match(request.remoteAddress, { onNone: () => true, onSome: loopbackAddress })
-			? handler(request)
-			: Effect.succeed(HttpServerResponse.text("Only loopback hosts are served", { status: HttpStatus.fromLiteral("Forbidden") }));
-}
+export const loopbackOnly = Effect.fnUntraced(function* <E, R>(handler: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) {
+	const request = yield* HttpServerRequest.HttpServerRequest;
+	return loopbackHost(request.headers.host) && Option.match(request.remoteAddress, { onNone: () => true, onSome: loopbackAddress })
+		? yield* handler
+		: HttpServerResponse.text("Only loopback hosts are served", { status: HttpStatus.fromLiteral("Forbidden") });
+});
 export function trustedProxyPeer(trustedProxy?: string): (address: string) => boolean {
 	const addresses = trustedProxy === undefined ? undefined : proxyAddresses(trustedProxy);
 	return (address) => addresses !== undefined && proxyMatches(addresses, address);

@@ -1,9 +1,10 @@
 import { Schema } from "effect";
+import { ruleConfiguration } from "#adapters/rule.ts";
 import { type Decoded, decodeWith } from "#decoded.ts";
 import { ExceptionDeclaration } from "#exceptions/declaration.ts";
-import type { Rule } from "#rule.ts";
+import type { RegisteredRule } from "#rule.ts";
 
-function isRule(value: unknown): value is Rule {
+function isRule(value: unknown): value is RegisteredRule {
 	return (
 		typeof value === "object"
 		&& value !== null
@@ -11,8 +12,8 @@ function isRule(value: unknown): value is Rule {
 		&& typeof value.id === "string"
 		&& "description" in value
 		&& typeof value.description === "string"
-		&& "configure" in value
-		&& typeof value.configure === "function"
+		&& ruleConfiguration in value
+		&& typeof value[ruleConfiguration] === "function"
 	);
 }
 

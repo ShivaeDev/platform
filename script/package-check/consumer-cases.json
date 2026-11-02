@@ -21,7 +21,7 @@
 				"./identity.ts",
 				"./middleware.ts",
 				"./server/adapters/betterAuthSessions.ts",
-				"./server/local.ts",
+				"./server/adapters/local.ts",
 				"./server/origin.ts",
 				"./server/oauthGrants.ts",
 				"./server/session.ts",

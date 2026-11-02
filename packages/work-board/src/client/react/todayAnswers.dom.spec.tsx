@@ -34,20 +34,6 @@ screenStory.it(
 );
 
 screenStory.it(
-	"an answered question that closes says on Today that it's closed now",
-	[INBOX],
-	function* ({ answerOnToday, answeredRows, chooseOnToday, editFile, refreshInbox }) {
-		yield* answerOnToday(STORAGE);
-		yield* chooseOnToday(KEEP_LOCAL);
-
-		yield* editFile("question.md", inboxQuestion.replace("status: ready", "status: done"));
-		yield* refreshInbox();
-
-		expect(yield* answeredRows()).toEqual([[STORAGE, "You chose Keep local files · It's closed now."]]);
-	},
-);
-
-screenStory.it(
 	"a question changed after it was answered says it asks again and returns to Needs you",
 	[INBOX],
 	function* ({ answerOnToday, answeredRows, chooseOnToday, editFile, needsYou, refreshInbox }) {
@@ -65,11 +51,10 @@ screenStory.it(
 );
 
 screenStory.it(
-	"Answered lists every answer still waiting on its agent, and of the answers agents acted on, only the reader's own from the last week",
+	"Answered lists pending answers from every author and omits closed questions",
 	[routedScreen(recentAnswersFixture(NOW), "/", { home: "home.md" })],
 	function* ({ answeredRows }) {
 		expect(yield* answeredRows()).toEqual([
-			["Ship the guide this week?", "You chose Yes · It's closed now."],
 			["Drop the old flag?", "reviewer chose Yes · Waiting on the agent."],
 			["Keep the release branch?", "You chose Yes · Waiting on the agent."],
 		]);

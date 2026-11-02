@@ -8,10 +8,9 @@ import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 import { verifyArchives, workspaceArchives } from "#package-check/archives.ts";
 import { command, requireThat } from "#package-check/io.ts";
 import { decodeVersions } from "#package-check/model.ts";
+import { checkStarters } from "#starter-published/check.ts";
 import { checkDocumentation, readDocumentation } from "#starter-published/documentation.ts";
-import { generateStarter } from "#starter-published/generate.ts";
 import { installDocumentation } from "#starter-published/installDocumentation.ts";
-import { runStarter } from "#starter-published/run.ts";
 
 const { values } = parseArgs({
 	options: { archives: { type: "string" }, "create-app-version": { type: "string" }, registry: { default: false, type: "boolean" } },
@@ -54,10 +53,7 @@ const program = Effect.gen(function* () {
 		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_SQL_TEST_DATABASE_URL)),
 	);
 	const registryVersion = values.registry ? (values["create-app-version"] ?? "latest") : undefined;
-	for (const minimal of [false, true]) {
-		const folder = yield* generateStarter(root, temporary, tarballs["@shivaedev/create-app"], tarballs, registryVersion, minimal);
-		yield* runStarter(join(temporary, folder), database);
-	}
+	yield* checkStarters(root, temporary, tarballs, database, registryVersion);
 	yield* Effect.log("Published starter passed quality lint, typecheck, build and real PostgreSQL/authenticated HTTP round trips.");
 });
 

@@ -3,8 +3,8 @@ import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import { fakeHttpControls } from "#internal/fakeHttpControls.ts";
 import { fakeHttpReceive } from "#internal/fakeHttpReceive.ts";
+import { fakeHttpSignals } from "#internal/fakeHttpSignals.ts";
 import { loopbackServer } from "#internal/loopback.ts";
-import { recordedSignals } from "#internal/recordedSignals.ts";
 import { type UntilOptions, until } from "#until.ts";
 
 export interface FakeHttpRequest {
@@ -76,11 +76,11 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		narrate?.(line);
 	}
 	const controls = fakeHttpControls(tell, () => clock.currentTimeMillisUnsafe());
-	const abandoned = recordedSignals<FakeHttpRequestRecord>();
-	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell, abandoned.push));
+	const signals = fakeHttpSignals();
+	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell, signals.record));
 	const url = yield* loopbackServer(server);
 
-	yield* Effect.addFinalizer(() => Effect.sync(() => abandoned.end()));
+	yield* Effect.addFinalizer(() => Effect.sync(signals.close));
 	yield* Effect.addFinalizer(controls.close);
 	function checkRoute(route: string) {
 		if (!Object.hasOwn(options.routes, route)) {
@@ -88,6 +88,7 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		}
 	}
 	return {
+		completed: signals.completed,
 		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
 			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.fault(route, fault, scope))),
 		hold: (route: string, holdOptions?: FakeHttpHoldOptions) =>
@@ -95,6 +96,7 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		narrate: (sink: (line: string) => void) => {
 			narrate = sink;
 		},
+		received: signals.received,
 		releaseOnArrival: (route: string, arrival: string, scope?: FakeHttpScope) =>
 			Effect.sync(() => {
 				checkRoute(route);
@@ -106,7 +108,7 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		scriptFault: (route: string, fault: FakeHttpFault, scriptOptions?: FakeHttpScriptOptions) =>
 			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.scriptFault(route, fault, scriptOptions))),
 		stall: (route: string, scope?: FakeHttpScope) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.stall(route, scope))),
-		untilAbandoned: (matches: (request: FakeHttpRequestRecord) => boolean, wait: UntilOptions) => until(abandoned.stream, matches, wait),
+		untilAbandoned: (matches: (request: FakeHttpRequestRecord) => boolean, wait: UntilOptions) => until(signals.abandoned, matches, wait),
 		url,
 	};
 });

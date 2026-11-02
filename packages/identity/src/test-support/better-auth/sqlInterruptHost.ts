@@ -5,7 +5,7 @@ import { Headers as HttpHeaders, HttpRouter } from "effect/http";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 
 export type AuthCall = "session lookup" | "provider-account lookup" | "mounted request";

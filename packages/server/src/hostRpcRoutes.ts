@@ -4,7 +4,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, type RpcGroup, RpcSerialization } from "effect/rpc";
 import { validateReadPolicies } from "@shivaedev/contract/validateReadPolicies.ts";
 import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
-import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
+import { localRpcGuard } from "@shivaedev/identity/server/adapters/local.ts";
 import type { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/identity/server/session.ts";
 import { boundedRpcRequest } from "#boundedRpcRequest.ts";

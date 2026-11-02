@@ -3,7 +3,7 @@ import { NodeHttpServer } from "@effect/platform-node";
 import { Effect, Layer, Option } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { mcpRoutes } from "#routes.ts";
 

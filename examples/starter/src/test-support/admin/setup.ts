@@ -2,7 +2,7 @@ import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Effect, Redacted } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";

@@ -2,7 +2,7 @@ import { Effect, type Scope } from "effect";
 import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { isAuthUnavailable, isForbidden } from "@shivaedev/errors/taxonomy.ts";
-import { localTransport } from "@shivaedev/identity/server/local.ts";
+import { localTransport } from "@shivaedev/identity/server/adapters/local.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { resolveSession } from "@shivaedev/identity/server/session.ts";
 import { makeSocketSession, SocketSession } from "@shivaedev/identity/server/socketSession.ts";

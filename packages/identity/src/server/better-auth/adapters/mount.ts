@@ -1,28 +1,29 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
-import { Config, Effect, Option, Redacted } from "effect";
+import { Config, Effect, Layer, Option, Redacted } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import type { AccountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
+import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/adapters/bearerSessions.ts";
+import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIp.ts";
+import { closeRoleEndpoints } from "#server/better-auth/adapters/closeRoleEndpoints.ts";
 import { effectHookOptions } from "#server/better-auth/adapters/effectHookOptions.ts";
 import { emailOptions } from "#server/better-auth/adapters/emailOptions.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
 import { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
+import { mountedSessions } from "#server/better-auth/adapters/mountedSessions.ts";
 import { passwordResetOptions } from "#server/better-auth/adapters/passwordResetOptions.ts";
 import { rateLimitStorage } from "#server/better-auth/adapters/rateLimitStorage.ts";
 import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
-import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
-import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
-import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
+import { admittedSessions } from "#server/better-auth/admittedSessions.ts";
+import type { BetterAuthDatabaseHooks } from "#server/better-auth/databaseHooks.ts";
+import type { BetterAuthEmails } from "#server/better-auth/emails.ts";
+import { AuthRouteHandler, mountRoutes } from "#server/better-auth/mountRoutes.ts";
+import type { BetterAuthPasswordReset } from "#server/better-auth/PasswordReset.ts";
 import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { providerFailure } from "#server/providerFailure.ts";
-import type { AccountRoleSeed } from "./accountRoleSeed.ts";
-import { admittedSessions } from "./admittedSessions.ts";
-import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
-import type { BetterAuthDatabaseHooks } from "./databaseHooks.ts";
-import type { BetterAuthEmails } from "./emails.ts";
-import { mountedSessions } from "./mountedSessions.ts";
-import type { BetterAuthPasswordReset } from "./PasswordReset.ts";
+import { authRouteHandler } from "./routeHandler.ts";
 
 export type BetterAuthMountOptions<E = never, R = never> = {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
@@ -88,14 +89,20 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 			options.trustedOrigins ?? Option.match(origin, { onNone: () => ["http://127.0.0.1:*", "http://localhost:*"], onSome: (url) => [url] }),
 		user: gate.active ? gated.user : configured.user,
 	});
-	const authRoutes = mountRoutes(auth, {
-		bearerSessions: mount.bearerSessions,
-		clientIpHeader,
-		ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,
-		roles: mount.roles,
-		runRequest: runtime.runRequest,
-		trustedProxy,
-	});
+	const authRoutes = mountRoutes.pipe(
+		Layer.provide(
+			Layer.succeed(AuthRouteHandler, {
+				handle: authRouteHandler(auth, {
+					bearerSessions: mount.bearerSessions,
+					clientIpHeader,
+					ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,
+					roles: mount.roles,
+					runRequest: runtime.runRequest,
+					trustedProxy,
+				}),
+			}),
+		),
+	);
 	const admit = admittedSessions(gate, () => auth.$context, mount.bearerSessions);
 	const admission = yield* signInGate({ ...policy, recheckInterval: 0 });
 	const admitsUser = Effect.fn("Identity.admitsUser")(function* (userId: string) {

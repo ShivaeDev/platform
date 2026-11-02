@@ -75,7 +75,7 @@ Provide one `SessionPolicy` Layer as the host's `sessions` input. Middleware, pe
 import { Layer } from "effect";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
-import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 import { auth } from "./auth.ts";
 
 export const sessions = Layer.succeed(SessionPolicy, {
@@ -97,7 +97,7 @@ The application's `auth` owns its storage and session configuration. A null look
 ```ts
 import { Effect } from "effect";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 
 const authentication = Effect.gen(function* () {
@@ -148,7 +148,7 @@ Pass Effect hooks in the mount's second argument under `databaseHooks`. The shap
 import type { BetterAuthOptions } from "better-auth";
 import { Context, Effect } from "effect";
 import type { BetterAuthHookError } from "@shivaedev/identity/server/better-auth/databaseHooks.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 
 class SessionAdmission extends Context.Service<
 	SessionAdmission,
@@ -213,7 +213,7 @@ import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { AssignRoles } from "@shivaedev/access/roles.ts";
 import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
 import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 
 const Member = role("member", []);
 const Operator = role("operator", [AssignRoles]);
@@ -288,8 +288,8 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { Effect, Layer } from "effect";
 import { allowedAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 
 const authentication = Effect.gen(function* () {
 	const database = yield* betterAuthDatabase();
@@ -345,15 +345,15 @@ export const GreetingHandlers = Greetings.toLayer({
 
 A missing session produces `Option.none()` here. The same policy still rejects forbidden origins and distinguishes provider failure from an anonymous caller. Signed-in authenticated requests annotate the user's id on logs as `userId` and spans as `user.id`.
 
-For an HTTP RPC server that serves only the local machine, wrap its HTTP effect with `localRpcGuard` from `@shivaedev/identity/server/local.ts`. Provide the native `HttpServerRequest` and `RpcSerialization` services around the returned effect, using the same serialization as the RPC server. No session provider is required.
+For an HTTP RPC server that serves only the local machine, wrap its HTTP effect with `localRpcGuard` from `@shivaedev/identity/server/adapters/local.ts`. Provide the native `HttpServerRequest` and `RpcSerialization` services around the returned effect, using the same serialization as the RPC server. No session provider is required.
 
 By default, the guard returns HTTP 403 before running the effect unless the transport reports a loopback peer address, the Host is a loopback host, any Origin matches the HTTP Host, and the content type matches the serialization. An absent peer address is rejected, and a DNS-rebinding Host on a loopback connection is refused. The optional second argument, `localRpcGuard(effect, trustedProxy)`, enables the same address and range forwarding policy as `appHost`.
 
-The same module exports `loopbackOnly(handler)` for local page routes and `sameOrigin(request)` for an HTTP Origin check. `loopbackOnly` checks Host and any known peer address; it permits an absent peer address so embedded Fetch page handlers remain usable. It does not check Origin or content type.
+The same module exports `loopbackOnly(effect)` for local page routes, reading `HttpServerRequest` from the Effect environment and `sameOrigin(request)` for an HTTP Origin check. `loopbackOnly` checks Host and any known peer address; it permits an absent peer address so embedded Fetch page handlers remain usable. It does not check Origin or content type.
 
 `trustedProxyPeer(trustedProxy?)` compiles the guard's proxy address list into an `(address: string) => boolean` predicate. Use it with the transport's remote address when another route needs the same proxy trust decision. It supports the same IP addresses, CIDR ranges and IPv4-mapped IPv6 peers as `appHost`; absent or malformed configuration matches no peer. It does not read forwarded headers.
 
-`trustedProxyRanges(trustedProxy?)` from `@shivaedev/identity/server/trustedProxyRanges.ts` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
+`trustedProxyRanges(trustedProxy?)` from `@shivaedev/identity/server/adapters/trustedProxyRanges.ts` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
 
 Declare expected refusals with the shared tagged error schemas from [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme). They work with native RPC without authentication middleware.
 
@@ -439,7 +439,7 @@ import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { permission } from "@shivaedev/access/permission.ts";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 
 const UseTools = permission("tools.use");
 const Access = roleSet(role("member", []), role("operator", [UseTools]));
@@ -459,7 +459,7 @@ Start with a disposable PostgreSQL database containing only your previously ship
 
 ```ts
 import { FileSystem } from "effect";
-import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
+import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/adapters/migrations/generate.ts";
 
 const fs = yield* FileSystem.FileSystem;
 const source = yield* generateBetterAuthMigration({ emailAndPassword: { enabled: true } });
@@ -483,7 +483,7 @@ A numbered migration calling `getMigrations(authOptions)` live is **not frozen**
 After applying all numbered migrations in an isolated story database, check them against the current options:
 
 ```ts
-import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/assertSchema.ts";
+import { assertBetterAuthSchema } from "@shivaedev/identity/server/better-auth/adapters/assertSchema.ts";
 
 yield* assertBetterAuthSchema(authOptions, { defaultRole: "member" });
 ```
@@ -501,7 +501,7 @@ Identity declares `user.additionalFields.role` when the mount has `roles` and `d
 
 ```ts
 import { assignRole } from "@shivaedev/identity/server/better-auth/assignRole.ts";
-import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/migrations/generate.ts";
+import { generateBetterAuthMigration } from "@shivaedev/identity/server/better-auth/adapters/migrations/generate.ts";
 
 const migrationSource = yield* generateBetterAuthMigration(authOptions, { defaultRole: "member" });
 
@@ -757,15 +757,15 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/permissions.ts`                      | `permissionLayer`, `permissionRoute`: permission middleware Layers and HTTP route guards.                                                                                                                                                                |
 | `server/session.ts`                          | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary.                              |
 | `server/adapters/betterAuthSessions.ts`      | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                                                     |
-| `server/origin.ts`                           | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                                         |
-| `server/local.ts`                            | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`: loopback and proxy guards.                                                                                                                                                            |
-| `server/trustedProxyRanges.ts`               | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                                                            |
-| `server/proxyRanges.ts`                      | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                                     |
+| `server/adapters/trustedOrigins.ts`          | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                                         |
+| `server/adapters/local.ts`                   | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`: loopback and proxy guards.                                                                                                                                                            |
+| `server/adapters/trustedProxyRanges.ts`      | `trustedProxyRanges(trustedProxy?)`: normalized proxy ranges.                                                                                                                                                                                            |
+| `server/adapters/proxyRanges.ts`             | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                                     |
 | `server/transportHeaders.ts`                 | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                                         |
 | `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                                     |
 | `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                                                        |
 | `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware.                                                                                                                                                |
-| `server/better-auth/mount.ts`                | `betterAuthMount(options, { emails?, onPasswordReset?, signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, admitsUser, revokeUnadmitted }`: native auth routes and the sign-in policy. |
+| `server/better-auth/adapters/mount.ts`       | `betterAuthMount(options, { emails?, onPasswordReset?, signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, admitsUser, revokeUnadmitted }`: native auth routes and the sign-in policy. |
 | `server/better-auth/adapters/database.ts`    | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                                                        |
 | `server/better-auth/emails.ts`               | `AuthEmail`, `BetterAuthEmails`: typed delivery messages, app routes and per-account delivery windows for the mount.                                                                                                                                     |
 | `server/better-auth/allowedAccounts.ts`      | `ProviderAccounts`, `AllowedAccounts`, `allowedAccounts`: provider-account list Schemas and the non-empty `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                                                |

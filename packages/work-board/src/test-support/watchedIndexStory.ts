@@ -79,6 +79,10 @@ export const watchedIndexStory = storyKit({
 						return change.watching ? "watching again" : "not watching";
 					});
 				}),
+			announcementsWaiting: () => {
+				story.tell("the reader counts announcements already waiting at the index boundary");
+				return Effect.map(PubSub.takeUpTo(started(engine).output, Number.POSITIVE_INFINITY), (changes) => changes.length);
+			},
 			bodyOf: (file: string) =>
 				Effect.map(current(), (snapshot) => {
 					story.tell(`the reader reads the indexed body of ${file}`);

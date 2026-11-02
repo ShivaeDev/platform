@@ -1,8 +1,8 @@
 import type { BetterAuthOptions } from "better-auth";
 import { Effect, Schema } from "effect";
+import { authColumnDrift } from "#server/better-auth/adapters/columnDrift.ts";
+import { betterAuthMigrationPlan } from "#server/better-auth/adapters/migrationPlan.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
-import { authColumnDrift } from "./columnDrift.ts";
-import { betterAuthMigrationPlan } from "./migrationPlan.ts";
 
 export class BetterAuthSchemaDrift extends Schema.TaggedError<BetterAuthSchemaDrift>()("BetterAuthSchemaDrift", {
 	missing: Schema.Array(Schema.String),

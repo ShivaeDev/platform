@@ -72,9 +72,9 @@ The Better Auth adapter is an optional edge module. Add its provider to the auth
 import { admin, jwt } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/http";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { betterAuthOauthGrants } from "@shivaedev/identity/server/better-auth/adapters/oauthGrants.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { betterAuthMcp, mcpProvider } from "@shivaedev/mcp/adapters/betterAuth.ts";
 import { mcpRoutes } from "@shivaedev/mcp/routes.ts";
