@@ -8,11 +8,12 @@ class NotReady extends Data.TaggedError("NotReady")<{ readonly message: string }
 
 interface LiveRegionEngine {
 	answer: unknown;
+	realWaitMillis: number;
 	regionClock: string | undefined;
 }
 
 export const liveRegion = storyKit({
-	create: (): LiveRegionEngine => ({ answer: undefined, regionClock: undefined }),
+	create: (): LiveRegionEngine => ({ answer: undefined, realWaitMillis: 0, regionClock: undefined }),
 	inspect: (engine) => engine,
 	name: "live region",
 	stages: [],
@@ -20,6 +21,7 @@ export const liveRegion = storyKit({
 		answer: () => Effect.sync(() => engine.answer),
 		clock: () => clockReading,
 		clockInRegion: () => Effect.sync(() => engine.regionClock),
+		realWaitMillis: () => Effect.sync(() => engine.realWaitMillis),
 		runsLiveRegion: (ending: "succeeds" | "fails") => {
 			story.tell(`a live region reads its clock and ${ending}`);
 			const region = Effect.gen(function* () {
@@ -28,6 +30,14 @@ export const liveRegion = storyKit({
 			});
 			return Effect.map(answered(withLive(region)), (answer) => {
 				engine.answer = answer;
+			});
+		},
+		waitsInLiveTime: () => {
+			story.tell("a live region sleeps for 30 milliseconds");
+			return Effect.gen(function* () {
+				const started = performance.now();
+				yield* withLive(Effect.sleep("30 millis"));
+				engine.realWaitMillis = performance.now() - started;
 			});
 		},
 	}),

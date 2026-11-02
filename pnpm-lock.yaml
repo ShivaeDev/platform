@@ -228,6 +228,9 @@ catalogs:
     '@vitest/coverage-v8':
       specifier: 5.0.5
       version: 5.0.5
+    '@zip.js/zip.js':
+      specifier: 2.24.0
+      version: 2.24.0
     better-auth:
       specifier: 1.7.12
       version: 1.7.12
@@ -869,6 +872,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
+      '@zip.js/zip.js':
+        specifier: 'catalog:'
+        version: 2.24.0
       effect:
         specifier: 'catalog:'
         version: 4.0.6
@@ -3667,6 +3673,10 @@ packages:
   '@vitest/spy@5.0.5':
     resolution: {integrity: sha512-lwJRExuH417257Q5wv9QYugN9IMJkoxcrKrYxGPQkBzl7wlNpTUxD/5yNX4ESKVUIShKPgkGchYPFMWOOk0wzw==}
 
+  '@zip.js/zip.js@2.24.0':
+    resolution: {integrity: sha512-WlaVKzdqBK+RF3bdiXZWbdCnvGB6PdO4IHC1mn/2Yfl3bASgqUNegnU3+PNg61iecwoPfUi5BgLUPqBukXpyWw==}
+    engines: {bun: '>=0.7.0', deno: '>=1.0.0', node: '>=18.0.0'}
+
   aria-hidden@1.2.6:
     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
     engines: {node: '>=10'}
@@ -6372,6 +6382,8 @@ snapshots:
       vite: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
   '@vitest/spy@5.0.5': {}
+
+  '@zip.js/zip.js@2.24.0': {}
 
   aria-hidden@1.2.6:
     dependencies:

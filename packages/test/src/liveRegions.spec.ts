@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { atLeast } from "@shivaedev/test-story/server/adapters/outcomeMatchers.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { liveRegion } from "#test/liveRegion.ts";
 
@@ -39,3 +40,14 @@ liveRegion.it(
 	},
 	{ clock: "live" },
 );
+
+liveRegion.it("a real wait in withLive leaves virtual time unchanged", [], function* ({ clock, realWaitMillis, waitsInLiveTime }) {
+	expect(yield* clock()).toBe("the test clock at 0 ms");
+
+	yield* waitsInLiveTime();
+
+	yield* outcomes([
+		["real milliseconds spent waiting", () => realWaitMillis(), atLeast(20)],
+		["virtual clock after waiting", () => clock(), "the test clock at 0 ms"],
+	]);
+});

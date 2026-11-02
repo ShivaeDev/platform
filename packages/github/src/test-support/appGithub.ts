@@ -154,9 +154,9 @@ export const appGithub = storyKit({
 			downloadArchive: () =>
 				attempt(
 					"the background client downloads artifact 7",
-					Effect.flatMap(GitHub, (service) => service.downloadArtifactArchive({ artifactId: 7, byteLimit: 8, owner: "acme", repo: "widgets" })).pipe(
-						Effect.provide(contexts.background),
-					),
+					Effect.flatMap(GitHub, (service) =>
+						service.downloadArtifactArchive({ artifactId: 7, byteLimit: 1024, owner: "acme", repo: "widgets" }),
+					).pipe(Effect.provide(contexts.background)),
 				),
 			exchangeRequested: () =>
 				Effect.sync(() => server.requests.filter(({ path }) => path === EXCHANGE).map(({ body }) => JSON.parse(body.toString() || "{}"))),

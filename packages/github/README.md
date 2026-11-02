@@ -147,26 +147,49 @@ Installation lookups and token exchanges follow the same primary and secondary r
 
 Other App authentication failures use `GitHubAppError` from `errors.ts`. Its string `reason` distinguishes `"sign"` (JWT signing), `"encode"` (request body encoding), `"transport"` (sending or reading the response), `"status"` (an HTTP refusal) and `"response"` (invalid or oversized response data). A refused exchange or installation lookup with HTTP 401 has `{ reason: "status", status: 401 }`. Caught failures remain available as a non-enumerable `cause`, excluded from JSON serialization; causes can contain credentials from the underlying HTTP request, so keep them in trusted diagnostics. The serialized errors, logs and spans exclude the private key, App JWT and installation token.
 
-### Downloading workflow-artifact archives
+### Downloading and extracting workflow artifacts
 
-Call `downloadArtifactArchive` with the artifact ID and a byte cap. It requests GitHub's ZIP endpoint with the current installation token, reads the 302 Location explicitly, and issues a fresh request to storage without the GitHub Authorization or API-version headers. Fetch requests use manual redirects and omit ambient credentials; provide an HTTP client without automatic redirect middleware.
+Install the optional ZIP reader to extract artifacts:
+
+```sh
+pnpm add @zip.js/zip.js
+```
+
+Call `downloadArtifactArchive` with the artifact ID and a download byte cap. It requests GitHub's ZIP endpoint with the current installation token, reads the 302 Location explicitly, and issues a fresh request to storage without the GitHub Authorization or API-version headers. Fetch requests use manual redirects and omit ambient credentials; provide an HTTP client without automatic redirect middleware.
 
 ```ts
 import { Effect } from "effect";
 import { GitHub } from "@shivaedev/github/GitHub.ts";
 
-const archive = Effect.gen(function* () {
+const files = Effect.gen(function* () {
 	const github = yield* GitHub;
 	return yield* github.downloadArtifactArchive({
 		owner: "acme",
 		repo: "widgets",
 		artifactId: 7,
 		byteLimit: 10 * 1024 * 1024,
+		totalSizeLimit: 100 * 1024 * 1024,
+		compressionRatioLimit: 100,
 	});
 });
 ```
 
-Provide an installation client such as `clients(privateKey).background` from the GitHub App example above. The result is a `Uint8Array` of archive bytes. The package counts bytes while streaming, independently of transport limits, and stops on overflow with `GitHubArtifactTooLarge({ limit })` from `errors.ts`. This replaces application-owned redirect handling and archive body limits. It does not extract the ZIP.
+Provide an installation client such as `clients(privateKey).background` from the GitHub App example above. The result is an array of `{ path, bytes }` files (`ArtifactFile` from `artifactExtraction.ts`), with relative POSIX paths and `Uint8Array` contents. Directory entries are validated and omitted from the result. Extraction happens in memory and writes no files. The ZIP reader loads on demand; other GitHub operations do not need it.
+
+`byteLimit` caps the downloaded ZIP while streaming and fails with `GitHubArtifactTooLarge({ limit })` from `errors.ts`. Extraction defaults to a `totalSizeLimit` of 100 MiB across all entries and a per-entry `compressionRatioLimit` of 100:1. Both caps are inclusive. The total limit must be a non-negative safe integer; the ratio must be finite and positive. Limits check declared sizes before decompression and emitted bytes before retaining them. No partial file list is returned after a refusal.
+
+Extraction failures come from `artifactErrors.ts`:
+
+| Error                                             | Refusal                                                                                                           |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `GitHubArtifactPathTraversal({ path })`           | Absolute paths, drive paths, backslashes, colons, NUL, empty or dot path components, and parent traversal         |
+| `GitHubArtifactSymlink({ path })`                 | Symbolic links                                                                                                    |
+| `GitHubArtifactDuplicateEntry({ path })`          | Duplicate paths and file/directory conflicts                                                                      |
+| `GitHubArtifactCompressionRatio({ path, limit })` | An entry exceeds the ratio cap                                                                                    |
+| `GitHubArtifactExtractedTooLarge({ limit })`      | Combined extracted contents exceed the total cap                                                                  |
+| `GitHubArtifactExtractionError({ reason })`       | Missing reader (`"reader-unavailable"`), malformed ZIP (`"invalid-archive"`) or invalid caps (`"invalid-limits"`) |
+
+Paths remain case-sensitive.
 
 A missing (404) or expired (410) artifact fails with `GitHubArtifactError({ stage: "redirect", status })`. A storage HTTP failure uses the same error with `stage: "download"`. Transport and GitHub rate-limit failures retain their usual typed errors.
 
