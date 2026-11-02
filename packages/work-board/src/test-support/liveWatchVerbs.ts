@@ -1,5 +1,5 @@
 import { relative } from "node:path";
-import { Cause, Deferred, Effect, Exit, Fiber, Order } from "effect";
+import { Cause, Effect, Exit, Fiber } from "effect";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { rawGet } from "./board.ts";
 import { ended, fontFamily, liveBoardReads, watching } from "./liveBoardReads.ts";
@@ -10,7 +10,7 @@ import { rpcDocument, rpcPaths } from "./nativeRpc.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";
 
 export function liveWatchVerbs(engine: BoardEngine, tell: (line: string) => void) {
-	const { state, subscription, parsing, owned, failingWatcher } = liveBoardReads(engine);
+	const { state, subscription, owned, failingWatcher } = liveBoardReads(engine);
 	return {
 		libraryListing: () => {
 			tell("a native RPC client lists the library");
@@ -47,28 +47,12 @@ export function liveWatchVerbs(engine: BoardEngine, tell: (line: string) => void
 			tell("the owner fiber is interrupted");
 			return Fiber.interrupt(owned().owner);
 		},
-		parsedQuestions: () =>
-			Effect.sync(() => {
-				tell("the reader lists the files the board parsed as questions since it started noting");
-				return [...new Set(parsing().questions)].sort(Order.String);
-			}),
-		parsedResponses: () =>
-			Effect.sync(() => {
-				tell("the reader lists the files the board parsed as responses since it started noting");
-				return [...new Set(parsing().responses)].sort(Order.String);
-			}),
 		questionRegistration: () => {
 			tell("the reader's client registers a question while responses are disabled");
 			const { client } = served(engine);
 			return answeredPromise(() =>
 				client.mutate(client.responses.registerQuestion.run({ item: "missing", request: "review", revision: "0".repeat(64) })),
 			);
-		},
-		recordParsing: () => {
-			tell("the reader starts noting which records the board parses");
-			const parsed = parsing();
-			parsed.questions.length = 0;
-			parsed.responses.length = 0;
 		},
 		requestStates: (path: string) => {
 			tell(`a native RPC client reads whether the requests in ${path} can be answered`);
@@ -91,12 +75,6 @@ export function liveWatchVerbs(engine: BoardEngine, tell: (line: string) => void
 					? "each wait longer than the one before"
 					: `wait ${shorter + 1} of ${Math.round(waits[shorter] ?? 0)}ms is not longer than wait ${shorter} of ${Math.round(waits[shorter - 1] ?? 0)}ms`;
 			}),
-		serverAnnounced: (path: string) => {
-			tell(`the server announces the file event for ${path}`);
-			const announced = Deferred.makeUnsafe<void>();
-			state.announced.set(path, announced);
-			return Deferred.await(announced);
-		},
 		serverSpanCause: (span: string) =>
 			Effect.sync(() => {
 				tell(`the reader inspects the failures recorded on the server's ${span} spans`);

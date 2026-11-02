@@ -1,4 +1,4 @@
-import { Deferred, Effect, Order } from "effect";
+import { Effect, Order } from "effect";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { rawGet } from "./board.ts";
 import { agentReads, agentTools } from "./liveAgent.ts";
@@ -55,10 +55,6 @@ export function liveReadVerbs(engine: BoardEngine, tell: (line: string) => void)
 					? client.read(client.api.document.query({ url: "/note.md" }), canceled)
 					: client.run(client.api.document.run({ url: "/note.md" }), canceled),
 			);
-		},
-		changeLost: () => {
-			tell("the server's live delivery loses that change");
-			return Deferred.await(state.dropped);
 		},
 		changeNaming: (path: string, client = LIVE_CLIENT): Effect.Effect<Change, unknown> => {
 			tell(`${client} waits for the change naming ${path}`);
