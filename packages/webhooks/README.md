@@ -166,3 +166,14 @@ const answer = yield* response.text;
 For a different signature format, pass `sign: (body, key) => Effect.succeed(headers)`, returning that provider's signed headers. The callback receives the resolved redacted secret; its typed errors and service requirements remain in the delivery Effect. A timestamp-aware signer can close over a stale timestamp and sign it together with the body to exercise the application's expiry policy. GitHub's own strategy does not check timestamps. Production routes do not import the testing entry point.
 
 Applications install `@shivaedev/platform` and import this package by name. Libraries can install `@shivaedev/webhooks` directly with the Effect, Node HTTP and pg-boss peers used by their host. The stories run against `PLATFORM_JOBS_TEST_DATABASE_URL`, using real HTTP and isolated PostgreSQL databases.
+
+### Check generated-app adoption
+
+From the Platform repository, build the packages and run the opt-in check with `PLATFORM_JOBS_TEST_DATABASE_URL` pointing at a PostgreSQL test database whose user can create databases:
+
+```sh
+pnpm build
+pnpm --filter @shivaedev/webhooks check:adoption
+```
+
+The check packs workspace packages, generates and installs a minimal app outside the workspace, and adds a webhook source, receipt migrations and a worker to that app's existing host and worker. It typechecks the app and runs focused stories over real HTTP and isolated PostgreSQL databases. A signed delivery produces an indexed issue visible over HTTP; retrying it leaves one result. A wrong signature produces no result, and a signed retry can still run. Without the database URL it skips locally and fails in CI. Pass `--archives <directory>` to reuse archives prepared by `pnpm test:package --prepare <directory>`.

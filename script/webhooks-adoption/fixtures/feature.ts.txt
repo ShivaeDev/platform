@@ -1,0 +1,45 @@
+import { Config, Layer, Schema } from "effect";
+import { RpcGroup } from "effect/rpc";
+import { Migrator, SqlClient } from "effect/sql";
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
+import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { githubSource } from "@shivaedev/webhooks/server/github.ts";
+import { webhookEvent, webhookJob } from "@shivaedev/webhooks/server/registration.ts";
+import { webhookReceipts } from "@shivaedev/webhooks/server/webhookReceipts.ts";
+
+export const WebhookJobs = makePgBoss("app/WebhookJobs");
+export const IndexIssue = defineQueue({
+	name: "index-issue",
+	queue: { notify: true },
+	schema: Schema.Struct({ number: Schema.Number }),
+});
+export const sources = {
+	github: githubSource({
+		key: Config.Redacted("GITHUB_WEBHOOK_SECRET"),
+		events: {
+			issues: webhookEvent(Schema.Struct({ issue: Schema.Struct({ number: Schema.Number }) }), ({ issue }) => [
+				webhookJob(IndexIssue, { number: issue.number }),
+			]),
+		},
+	}),
+};
+const worker = jobModule(WebhookJobs.layer, {
+	jobs: [IndexIssue.handle(({ number }) => SqlClient.SqlClient.use((sql) => sql`insert into indexed_issues (number) values (${number})`))],
+});
+
+export const webhooksRegistration = {
+	name: "webhooks",
+	group: RpcGroup.make(),
+	handlers: Layer.empty,
+	migrations: {
+		components: [webhookReceipts],
+		loader: Migrator.fromRecord({
+			"0005_indexed_issues": SqlClient.SqlClient.use((sql) => sql`create table indexed_issues (number integer not null)`),
+		}),
+	},
+	queues: worker.queues,
+	services: WebhookJobs.layer({ jobs: [IndexIssue] }),
+	workers: worker.workers,
+} satisfies AppModule;

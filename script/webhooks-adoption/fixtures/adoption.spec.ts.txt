@@ -1,0 +1,36 @@
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { webhooks } from "#test-support/webhooks.ts";
+
+webhooks.it("a signed delivery indexes issue 42 once even when github retries it", [], function* ({ deliver, answer, indexedIssues }) {
+	yield* outcomes([["indexed issues before delivery", () => indexedIssues(), []]]);
+
+	yield* deliver();
+
+	yield* outcomes([
+		["delivery answer", () => answer(), { status: 202, body: "queued" }],
+		["worker result over HTTP", () => indexedIssues(), [42]],
+	]);
+
+	yield* deliver();
+
+	yield* outcomes([
+		["retry answer", () => answer(), { status: 200, body: "already queued" }],
+		["worker results after retry", () => indexedIssues(), [42]],
+	]);
+});
+
+webhooks.it("a wrong signature is refused without indexing an issue and a signed retry can still index it", [], function* ({ deliver, answer, indexedIssues }) {
+	yield* deliver("invalid");
+
+	yield* outcomes([
+		["refusal", () => answer(), { status: 401, body: "" }],
+		["worker results after refusal", () => indexedIssues(), []],
+	]);
+
+	yield* deliver();
+
+	yield* outcomes([
+		["signed retry answer", () => answer(), { status: 202, body: "queued" }],
+		["worker result over HTTP", () => indexedIssues(), [42]],
+	]);
+});
