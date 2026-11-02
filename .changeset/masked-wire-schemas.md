@@ -11,7 +11,7 @@
 
 ### Fixed
 
-- `@shivaedev/errors`: Declared failures alongside interruptions retain their classification and interruption.
+- `@shivaedev/errors`: Declared failures alongside interruptions retain their classification and interruption. Native RPC exit schemas supply the complete failure schema, including stream rejections.
 - `@shivaedev/server`: Masked failures retain scalar, array and object wire shapes so native RPC clients decode the declared failure without a schema error.
 
 ### Breaking

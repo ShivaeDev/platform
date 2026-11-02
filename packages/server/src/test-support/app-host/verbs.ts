@@ -40,7 +40,11 @@ export function hostVerbs(state: HostState, story: { tell: (line: string) => voi
 		},
 		receiveMaskedNull: () => {
 			story.tell("the native RPC client requests a declared null failure");
-			return receiveMaskedFailure(state.url, false, true);
+			return receiveMaskedFailure(state.url, false, "null");
+		},
+		receiveMaskedStream: (interrupt: boolean) => {
+			story.tell("the native RPC client consumes a stream with a declared sensitive failure");
+			return receiveMaskedFailure(state.url, interrupt, "stream");
 		},
 		...clientAbortVerbs(state, story.tell),
 		...databaseVerbs(state, story.tell),
