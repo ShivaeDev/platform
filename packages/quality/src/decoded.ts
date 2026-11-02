@@ -1,6 +1,6 @@
 import { Effect, Result, Schema, SchemaIssue } from "effect";
+import { describeIssue } from "#adapters/standardSchema.ts";
 import { SetupFailure } from "./failure.ts";
-import { describeIssue } from "./standardSchema.ts";
 
 export type Decoded<TValue> = { readonly _tag: "Valid"; readonly value: TValue } | { readonly _tag: "Invalid"; readonly issues: readonly string[] };
 

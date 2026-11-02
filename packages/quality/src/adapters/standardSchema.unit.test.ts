@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeIssue } from "#standardSchema.ts";
+import { describeIssue } from "./standardSchema.ts";
 
 describe("describeIssue", () => {
 	for (const [issue, path] of [

@@ -67,5 +67,5 @@ for (const [comments, content] of accepted) {
 }
 
 ruleStory.it("comments/no-jsdoc refuses the misspelled option allows and names it", [], function* ({ optionIssues }) {
-	expect(yield* optionIssues<unknown>(noJsdoc, { allows: [] })).toEqual([expect.stringContaining("allows")]);
+	expect(yield* optionIssues(noJsdoc, { allows: [] })).toEqual([expect.stringContaining("allows")]);
 });

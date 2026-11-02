@@ -27,7 +27,6 @@
 {"path":"packages/quality/src/inventory/shadcnFolders.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/manifests/entryPoints.ts","rule":"effect/boundary","count":4}
 {"path":"packages/quality/src/naming/packageLayout.ts","rule":"effect/boundary","count":4}
-{"path":"packages/quality/src/rule.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/rules/biome.ts","rule":"effect/boundary","count":8}
 {"path":"packages/quality/src/rules/files/folderNames.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/rules/files/namedAfterExport.ts","rule":"effect/boundary","count":2}
