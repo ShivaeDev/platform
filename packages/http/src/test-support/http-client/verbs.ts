@@ -1,9 +1,10 @@
 import { Effect, Schema, Stream } from "effect";
 import { HttpClientRequest, type HttpClientResponse } from "effect/http";
 import { readBoundedBody, readBoundedJson, readBoundedText } from "#body.ts";
+import { isRemoteStatusError } from "#errors.ts";
 import { paginate } from "#paginate.ts";
 import type { ClientEngine } from "./engine.ts";
-import { failureOf, isStatusError } from "./failures.ts";
+import { failureOf } from "./failureOf.ts";
 
 const Items = Schema.Array(Schema.String);
 const Named = Schema.Struct({ name: Schema.String });
@@ -29,7 +30,7 @@ export function clientVerbs({ client, rawClient, otherOrigin, remote, statusFail
 			if (described === undefined) {
 				return Effect.fail(error);
 			}
-			if (isStatusError(error)) {
+			if (isRemoteStatusError(error)) {
 				statusFailures.push(error);
 			}
 			return Effect.succeed(described);

@@ -16,7 +16,9 @@ export class RemoteHttpError extends Schema.TaggedError<RemoteHttpError>()("Remo
 	}
 }
 
-export type RemoteStatusError = RemoteUnauthorized | RemoteNotFound | RemoteGone | RemoteRateLimited | RemoteHttpError;
+const RemoteStatusError = Schema.Union([RemoteUnauthorized, RemoteNotFound, RemoteGone, RemoteRateLimited, RemoteHttpError]);
+export type RemoteStatusError = typeof RemoteStatusError.Type;
+export const isRemoteStatusError = Schema.is(RemoteStatusError);
 
 export class PaginationLinkError extends Schema.TaggedError<PaginationLinkError>()("PaginationLinkError", {
 	reason: Schema.Literals(["cross-origin", "invalid"]),

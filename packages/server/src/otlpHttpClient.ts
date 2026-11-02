@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest, type HttpClientResponse } from "effect/http";
 import { redactText } from "@shivaedev/errors/sensitive.ts";
-import { filterStatus } from "@shivaedev/http/filterStatus.ts";
+import { checkStatus } from "@shivaedev/http/checkStatus.ts";
 import { boundedOtlpResponse } from "#adapters/boundedOtlpResponse.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 
@@ -32,7 +32,7 @@ export function otlpHttpClient(timeout = 10_000) {
 					Effect.orElseSucceed(() => "Unable to read collector response"),
 					Effect.map((body) => ({ "otlp.response": redactText(body, sensitive), "otlp.status": response.status })),
 				);
-				const checked = filterStatus(HttpClient.makeWith(() => Effect.succeed(response), Effect.succeed)).execute(response.request);
+				const checked = checkStatus(response);
 				return Effect.matchEffect(checked, {
 					onFailure: () => warnOnce(diagnostic),
 					onSuccess: () =>
