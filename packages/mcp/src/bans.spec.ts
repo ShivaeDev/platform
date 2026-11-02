@@ -7,17 +7,17 @@ import { holdsToken } from "#test/traits.ts";
 mcp.it(
 	"alice's expired temporary ban admits her MCP client before and after she signs in on the web",
 	[passwordMember, holdsToken("alice")],
-	function* ({ browserSession, call, connects, setsBan, signsInOnWeb }) {
+	function* ({ browserSession, connects, listTools, setsBan, signsInOnWeb }) {
 		yield* setsBan("alice", "expired");
 
 		yield* outcomes([
 			["MCP connection before web sign-in", () => connects("alice"), "connected"],
-			["MCP identity before web sign-in", () => call("alice", "whoami"), "answered alice"],
+			["MCP tools before web sign-in", () => listTools("alice"), ["whoami"]],
 		]);
 		expect(yield* signsInOnWeb("alice")).toBe("signed in");
 		yield* outcomes([
 			["web session", () => browserSession("alice"), "signed in as alice"],
-			["MCP identity after web sign-in", () => call("alice", "whoami"), "answered alice"],
+			["MCP tools after web sign-in", () => listTools("alice"), ["whoami"]],
 		]);
 	},
 );
