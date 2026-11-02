@@ -70,9 +70,9 @@ export const mappedUserDirectory = directoryKit(mappedTables);
 export const pluginMappedUserDirectory = directoryKit(pluginMappedTables);
 
 export const directoryAccounts = userDirectory.trait("accounts", "alice assigns roles; bob and carol are members", function* (host) {
+	yield* host.mint("carol", "Carol", "member");
 	yield* host.mint("alice", "Alice", "assigner");
 	yield* host.mint("bob", "Bob", "member");
-	yield* host.mint("carol", "Carol", "member");
 });
 
 export const undeclaredAccount = userDirectory.trait("accounts", "bob has a role the application no longer declares", (host) =>
