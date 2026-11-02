@@ -37,20 +37,27 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` to those Layers.
 
-For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies `group`, `handlers`, `services` and `migrations: { loader, components? }`. Keep default adapters in its optional `ports` Layer, and put an optional `registerAdmin` result in `admin`.
+For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies a diagnostic `name`, `group`, `handlers`, `services` and `migrations: { loader, components? }`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
 
 ```ts
+import { Effect } from "effect";
 import { appHost } from "@shivaedev/server/appHost.ts";
+import { workerHost } from "@shivaedev/server/workerHost.ts";
 import { appModules } from "@shivaedev/server/appModules.ts";
 import { notes, tasks, sessions } from "./app.ts";
 
-const modules = appModules([notes, tasks]);
-const Server = appHost({ ...modules, sessions });
+const hosts = Effect.gen(function* () {
+	const modules = yield* appModules([notes, tasks]);
+	return {
+		server: appHost({ ...modules, sessions }),
+		worker: workerHost({ ...modules, migrations: { ...modules.migrations, mode: "wait" } }),
+	};
+});
 ```
 
-`appModules` combines the native RPC groups, handler Layers, migration loaders and schema components. It includes each admin registration's group and handlers and exposes their merged registry as `modules.admin`. Migration numbers belong to one application-wide sequence. Existing hosts can continue to supply their groups, handlers, services and migrations directly.
+`appModules` returns an Effect that rejects duplicate queue names before building any host. `DuplicateModuleQueue` from `@shivaedev/server/DuplicateModuleQueue.ts` identifies `queue`, `firstModule` and `secondModule`; repeating a name within one module also fails. It combines the native RPC groups, handler Layers, migration loaders and schema components. It includes each admin registration's group and handlers and exposes their merged registry as `modules.admin`. Migration numbers belong to one application-wide sequence. Existing hosts can continue to supply their groups, handlers, services and migrations directly.
 
-Pass `{ replacements: Layer.succeed(MyPort, implementation) }` as the second argument to `appModules`. Replacements take precedence over the combined default `ports` before module `services` acquire dependencies. Leave these ports unprovided in the module's service Layer; an adapter already captured by `Layer.provide` inside that Layer cannot be replaced from outside it. Missing ports and replacement Layer requirements remain in the host's requirement type.
+Pass `{ replacements: Layer.succeed(MyPort, implementation) }` as the second argument to `appModules`. Replacements take precedence over the combined default `ports` before module `services` acquire dependencies. Leave these ports unprovided in the module's service Layer; an adapter already captured by `Layer.provide` inside that Layer cannot be replaced from outside it. Missing ports and replacement Layer requirements remain in the host's requirement type. `workerHost` takes the same composition, provides its services to all module workers after database preparation, and scopes their lifetime to the returned Layer. Supply the shared `PgBoss` client through the service Layer in each process; the host and worker use the same module ports and replacements.
 
 ```ts
 import { NodeRuntime } from "@effect/platform-node";

@@ -9,7 +9,7 @@ import { queryHeadersEngine, records } from "./queryHeadersEngine.ts";
 export const queryHeadersStory = storyKit({
 	clock: "live",
 	*create() {
-		const engine = yield* queryHeadersEngine;
+		const engine = yield* queryHeadersEngine();
 		return { ...engine, views: [engine.api.hints.query()] };
 	},
 	inspect: ({ reads, subscriptions }) => ({ reads, subscriptions }),

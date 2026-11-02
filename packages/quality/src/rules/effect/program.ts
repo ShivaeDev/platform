@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import ts from "typescript";
-import { projectsFor } from "#imports/projects.ts";
+import { projectsFor } from "#adapters/imports/projects.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export function effectProgram(inputs: RuleInputs, externalTypes = true, roots: readonly string[] = []): ts.Program {

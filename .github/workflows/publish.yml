@@ -20,28 +20,24 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      pull-requests: read
+    outputs:
+      head: ${{ steps.release.outputs.head }}
+      base: ${{ steps.release.outputs.base }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version-file: .node-version
-          package-manager-cache: false
-      - name: Set up pnpm
-        uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
-        with:
-          install: false
-          node-version-file: false
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --trust-lockfile=false
-      - name: Validate collected release notes
-        run: pnpm changelog:check
+      - uses: ./.github/actions/setup
+      - name: Select and validate the frozen release head
+        id: release
+        run: node --conditions=source script/release/preparePublish.ts
         env:
+          GH_TOKEN: ${{ github.token }}
           CHANGELOG_BASE_REF: ${{ github.event.before }}
+      - uses: ./.github/actions/setup
       - name: Build packages
         run: pnpm build
       - name: Check packed consumers and bins
@@ -60,6 +56,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          ref: ${{ needs.verify-packages.outputs.head }}
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -80,17 +77,18 @@ jobs:
       - name: Validate collected release notes
         run: pnpm changelog:check
         env:
-          CHANGELOG_BASE_REF: ${{ github.event.before }}
+          CHANGELOG_BASE_REF: ${{ needs.verify-packages.outputs.base }}
       - name: Build packages
         run: pnpm build
 
       - name: Publish new package versions
         env:
-          CHANGELOG_BASE_REF: ${{ github.event.before }}
+          CHANGELOG_BASE_REF: ${{ needs.verify-packages.outputs.base }}
         run: node --conditions=source script/release/publishPackages.ts
 
       - name: Write GitHub release notes
         env:
+          RELEASE_HEAD_SHA: ${{ needs.verify-packages.outputs.head }}
           GH_TOKEN: ${{ github.token }}
-          CHANGELOG_BASE_REF: ${{ github.event.before }}
+          CHANGELOG_BASE_REF: ${{ needs.verify-packages.outputs.base }}
         run: node --conditions=source script/release/publishNotes.ts

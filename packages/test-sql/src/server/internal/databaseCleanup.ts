@@ -1,12 +1,16 @@
 import { Clock, Effect, type Exit, Fiber, Predicate, Schedule } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
+import type { PostgresOptions } from "@shivaedev/sql/postgresLayer.ts";
 import { abandonedDatabase } from "./databaseOwner.ts";
 import { administer } from "./databases.ts";
 
-export const databaseCleanup = Effect.fn("PostgresTest.databaseCleanup")(function* (url: Parameters<typeof administer>[0]) {
+export const databaseCleanup = Effect.fn("PostgresTest.databaseCleanup")(function* (
+	url: Parameters<typeof administer>[0],
+	options?: PostgresOptions,
+) {
 	const pending: Fiber.Fiber<Exit.Exit<unknown, SqlError>>[] = [];
 	function drop(name: string) {
-		return administer(url, (admin) => admin`drop database if exists ${admin(name)} with (force)`).pipe(
+		return administer(url, (admin) => admin`drop database if exists ${admin(name)} with (force)`, options).pipe(
 			Effect.retry({
 				schedule: Schedule.spaced("100 millis"),
 				times: 300,
@@ -22,7 +26,7 @@ export const databaseCleanup = Effect.fn("PostgresTest.databaseCleanup")(functio
 		}),
 	);
 	yield* Effect.addFinalizer(() => awaitCleanup);
-	const leftovers = yield* administer(url, (admin) => admin<{ datname: string }>`select datname from pg_database`);
+	const leftovers = yield* administer(url, (admin) => admin<{ datname: string }>`select datname from pg_database`, options);
 	for (const { datname } of leftovers) {
 		if (abandonedDatabase(datname)) {
 			yield* drop(datname);

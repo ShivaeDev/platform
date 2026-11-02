@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { form } from "#form.ts";
-import { FieldFailure, type Invalid } from "#shape.ts";
+import { FieldFailure, type Invalid, type Snapshot } from "#shape.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const Fields = Schema.Struct({ name: Schema.String });
@@ -111,3 +111,6 @@ const withoutRuntime = form(Fields, {
 });
 const typedSubmission: Atom.AtomResultFn<void, string, "Missing" | FieldFailure | Invalid> = withoutRuntime.submit;
 void typedSubmission;
+
+const typedValidation: Atom.AtomResultFn<void, Snapshot<typeof Fields.fields>, Invalid> = withoutRuntime.validate;
+void typedValidation;

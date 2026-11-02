@@ -1,4 +1,4 @@
-import { type DateTime, Duration, Effect, Redacted } from "effect";
+import { type DateTime, Duration, Effect, Redacted, type Tracer } from "effect";
 import type { PgBoss } from "pg-boss";
 import { testingDueNow } from "#adapters/testingDueNow.ts";
 import type { PgBossClientFactory } from "#client.ts";
@@ -33,6 +33,17 @@ export const testRetryPolicy = Object.freeze({ retryBackoff: false, retryDelay: 
 
 export interface PgBossTestingOptions {
 	readonly retryPolicy?: typeof testRetryPolicy;
+}
+
+export function linkedWorkerSpans(sender: Pick<Tracer.AnySpan, "spanId" | "traceId">, spans: readonly Tracer.Span[]) {
+	return Effect.sync(() =>
+		spans.filter(
+			(span) =>
+				span.kind === "consumer"
+				&& span.attributes.get("messaging.system") === "pg-boss"
+				&& span.links.some((link) => link.span.spanId === sender.spanId && link.span.traceId === sender.traceId),
+		),
+	);
 }
 
 export function makePgBossTesting(options: PgBossTestingOptions = {}) {

@@ -1,8 +1,9 @@
 import { type Effect, Equal, Option, type Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { useCallback, useState } from "react";
-import { type BrowserDraftConfig, usePersistedDraft } from "@shivaedev/form/client/react.ts";
+import { usePersistedDraft } from "@shivaedev/form/adapters/react.ts";
 import type { FieldRejectionMapping } from "@shivaedev/form/fieldRejection.ts";
+import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
 import type { AtomServices } from "#AtomServices.ts";
 import { useSubmissionCallbacks } from "#internal/useSubmissionCallbacks.ts";
@@ -10,7 +11,7 @@ import type { NoticeFeedback } from "#notices.ts";
 import { submission } from "#submission.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";
 export type CreateConfig<TFields extends Fields, TCreated, TSaveError, R, TRuntimeError> = {
-	readonly persistedDraft?: BrowserDraftConfig | undefined;
+	readonly persistedDraft?: PersistedDraftConfig | undefined;
 	readonly fields: Schema.Struct<TFields>;
 	readonly initialValues: Encoded<TFields>;
 	readonly create: (values: Decoded<TFields>) => Effect.Effect<TCreated, TSaveError, AtomServices<R>>;

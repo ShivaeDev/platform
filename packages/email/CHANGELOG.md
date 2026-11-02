@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 - 2026-11-02
+
+### Changed
+
+- Update `@shivaedev/jobs` from 0.29.2 to 0.30.0.
+- Update `@shivaedev/test-story` from 0.33.0 to 0.34.0.
+
 ## 0.1.1 - 2026-11-02
 
 ### Changed

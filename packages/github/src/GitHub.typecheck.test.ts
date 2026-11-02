@@ -1,5 +1,6 @@
-import { Context, Effect, Schema, SchemaGetter, type Stream } from "effect";
+import { Context, Effect, Schema, SchemaGetter, Stream } from "effect";
 import { expectTypeOf } from "vitest";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { CreateCheckRun } from "#checkRuns.ts";
 import { GitHub, list, listBounded, listPages, write } from "#GitHub.ts";
 
@@ -34,3 +35,21 @@ expectTypeOf<Stream.Services<typeof streamed>>().toEqualTypeOf<Context.Service.I
 expectTypeOf<Stream.Services<typeof paged>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 expectTypeOf<Effect.Services<typeof bounded>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
 expectTypeOf<Effect.Success<typeof bounded>>().toEqualTypeOf<{ items: string[]; skipped: number; truncated: boolean }>();
+
+const refusal = { _tag: "PacingRefusal", retryAt: 120_000 } as const;
+const pacing = { beforeRequest: () => Effect.fail(refusal) };
+const pacedItems = list("/items", Schema.String, pacing);
+const pacedPages = listPages("/items", Schema.String, pacing);
+const pacedBounded = listBounded("/items", Schema.String, 2, pacing);
+const rawPages = Effect.flatMap(GitHub, (github) => github.list("/items", pacing.beforeRequest)).pipe(Effect.flatMap(Stream.runCollect));
+const repositoryPages = Effect.flatMap(GitHub, (github) => github.listCommits("acme", "widgets", pacing)).pipe(Effect.flatMap(Stream.runCollect));
+expectTypeOf<Extract<Stream.Error<typeof pacedItems>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
+expectTypeOf<Extract<Stream.Error<typeof pacedPages>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
+expectTypeOf<Extract<Effect.Error<typeof pacedBounded>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
+expectTypeOf<Extract<Effect.Error<typeof rawPages>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
+expectTypeOf<Extract<Effect.Error<typeof repositoryPages>, typeof refusal>>().toEqualTypeOf<typeof refusal>();
+
+const explicitSchema = list<typeof Schema.String>("/items", Schema.String, {
+	beforeRequest: () => Effect.fail(new ServiceUnavailable({ message: "budget spent" })),
+});
+expectTypeOf<Extract<Stream.Error<typeof explicitSchema>, ServiceUnavailable>>().toEqualTypeOf<ServiceUnavailable>();

@@ -1,6 +1,6 @@
 import { Context, Data, Effect, Layer } from "effect";
 import { it } from "vitest";
-import { makeEffectIt } from "#makeEffectIt.ts";
+import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { note, releasedOnClose } from "./lifecycleLog.ts";
 
 class StartupFailure extends Data.TaggedError("StartupFailure")<{ readonly message: string }> {}
@@ -21,6 +21,11 @@ const { effectApp } = makeEffectIt({
 effectApp("a test of a worker whose Layer fails to start", function* () {
 	yield* Connection;
 	yield* note("the test body ran");
+});
+
+effectApp.each(["worker"])("a table test of a %s whose Layer fails to start", function* () {
+	yield* Connection;
+	yield* note("the table body ran");
 });
 
 it("the test after the failed worker startup", () => Effect.runSync(note("the next test ran")));

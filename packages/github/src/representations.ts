@@ -20,9 +20,9 @@ export function representations(
 	function readRepresentation(path: string, byteLimit = responseByteLimit) {
 		return Effect.map(request(get(path), byteLimit), jsonResponse);
 	}
-	function listRepresentations(
+	function listRepresentations<E = ServiceUnavailable>(
 		path: string,
-		beforeRequest?: (resource: string) => Effect.Effect<void, ServiceUnavailable>,
+		beforeRequest?: (resource: string) => Effect.Effect<void, E>,
 		byteLimit = responseByteLimit,
 	) {
 		const entries = new WeakMap<HttpClientResponse.HttpClientResponse, CachedResponse>();

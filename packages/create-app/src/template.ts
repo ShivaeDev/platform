@@ -19,6 +19,7 @@ export function appTemplate(template: Template, minimal = false): Template {
 			if (entry.path === "package.json" && minimalManifest !== undefined) {
 				return { ...entry, content: minimalManifest.content };
 			}
+			// Updates must reconstruct historical minimal files exactly to recognize unmodified deletions.
 			if (!["src/admin/modules.ts", "src/server/modules.ts", "src/server/workerModules.ts", "src/client/modules.ts"].includes(entry.path)) {
 				return entry;
 			}

@@ -9,6 +9,7 @@ import { collection } from "@shivaedev/changes/keys.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { makeClient } from "#bind.ts";
+import type { ClientOptions } from "#clientOptions.ts";
 import { contract } from "#contract.ts";
 import { LiveServer } from "#LiveServer.ts";
 import { query } from "#operation.ts";
@@ -20,7 +21,7 @@ const Records = contract("header-records", {
 	queries: [query("hints", definition), query("pushed", { ...definition, live: "rerun-and-compare" })],
 }).middleware(Incoming);
 
-export const queryHeadersEngine = Effect.gen(function* () {
+export const queryHeadersEngine = Effect.fnUntraced(function* (options: Pick<ClientOptions, "resume" | "resumeWindow"> = {}) {
 	const stored = { value: "First" };
 	const subscriptions: string[] = [];
 	const reads: { readonly reader: string; readonly value: string }[] = [];
@@ -53,7 +54,11 @@ export const queryHeadersEngine = Effect.gen(function* () {
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP listener");
 	}
-	const client = makeClient(Records, { url: `http://127.0.0.1:${server.address.port}/rpc`, webSocketConstructor: layerWebSocketConstructor });
+	const client = makeClient(Records, {
+		...options,
+		url: `http://127.0.0.1:${server.address.port}/rpc`,
+		webSocketConstructor: layerWebSocketConstructor,
+	});
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),

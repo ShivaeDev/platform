@@ -8,6 +8,8 @@ function fixture(name: string) {
 
 export const STORIES = fixture("failingStories");
 
+export const BLOCKED_SNAPSHOT_STORIES = fixture("blockedSnapshotStories");
+
 export const LIFECYCLE_STORIES = fixture("lifecycleFailureStories");
 
 export const OUTCOME_STORIES = fixture("outcomeStories");
@@ -32,6 +34,6 @@ export function report(...lines: string[]): string {
 }
 
 export function rerun(test: string, file = STORIES): string {
-	const command = `Rerun: vitest run ${file} -t "${test}"`;
-	return command.length > 120 ? `Rerun: vitest run ${file} \\\n  -t "${test}"` : command;
+	const command = `Rerun: vitest run '${file}' -t '${test}'`;
+	return command.length > 120 ? `Rerun: vitest run '${file}' \\\n  -t '${test}'` : command;
 }

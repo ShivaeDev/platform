@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-11-02
+
+### Breaking
+
+- Import `assertLocalDatabase` from `@shivaedev/local-postgres/server/assertLocalDatabase.ts` instead of `@shivaedev/local-postgres/server/localPostgres.ts`. The validator has its own module so validation stays independent of process execution; its validation behavior is unchanged.
+
 ## 0.9.0 - 2026-11-02
 
 ### Fixed
