@@ -1,11 +1,12 @@
 import { useAtomValue } from "@effect/atom-react";
-import { Deferred, Effect } from "effect";
+import { Clock, Deferred, Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement, type ReactNode } from "react";
 import { vi } from "vitest";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { reactAssertion } from "./reactAssertion.ts";
 
 interface State {
 	acquired: number;
@@ -44,6 +45,11 @@ function ResultProbe({ value }: { readonly value: Atom.Atom<AsyncResult.AsyncRes
 	);
 }
 
+const originalError = console.error;
+export function warningRestoration() {
+	return console.error === originalError && !vi.isMockFunction(console.error) ? "restored" : "still captured";
+}
+
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
@@ -60,20 +66,33 @@ export const testing = storyKit({
 				await act(action);
 			});
 		}
+		const assertion = reactAssertion(() => first(state).container.querySelector("output")?.textContent ?? "");
 		return {
 			answer: (value: string) => run(`the atom receives ${value}`, () => Effect.runPromise(Deferred.succeed(state.gate, value).pipe(Effect.asVoid))),
+			attachment: (mount: "first" | "second") =>
+				Effect.sync(() => ((mount === "first" ? first(state) : second(state)).container.isConnected ? "attached" : "detached")),
 			closeFirst: () => run("unmount the first screen", () => first(state).unmount()),
 			closeSecond: () => run("unmount the second screen", () => second(state).unmount()),
-			first: () => first(state),
-			relabel: () =>
+			registrySharing: () => Effect.sync(() => (first(state).registry === second(state).registry ? "shared" : "isolated")),
+			relabel: (label: string) =>
 				run("rerender the first mount", () => {
 					if (!state.value) {
 						throw new Error("No tracked atom");
 					}
-					return first(state).render(createElement(Probe, { label: "updated:", value: state.value }));
+					return first(state).render(createElement(Probe, { label, value: state.value }));
 				}),
-			resources: () => ({ acquired: state.acquired, released: state.released }),
-			second: () => second(state),
+			resources: () => Effect.sync(() => ({ acquired: state.acquired, released: state.released })),
+			retriesUnreadyScreen: () => {
+				story.tell("retry an assertion on the unready screen until the live deadline");
+				return assertion.retriesUnreadyScreen();
+			},
+			shown: (mount: "first" | "second" = "first") => Effect.sync(() => (mount === "first" ? first(state) : second(state)).container.textContent),
+			storyTime: () => Clock.currentTimeMillis,
+			waitReport: () => Effect.sync(assertion.waitReport),
+			waitsForText: (expected: string) => {
+				story.tell(`wait for the screen to read ${JSON.stringify(expected)}`);
+				return assertion.waitsForText(expected);
+			},
 			warn: () => run("React logs a warning", () => vi.mocked(console.error)("Expected warning for the helper regression")),
 		};
 	},
