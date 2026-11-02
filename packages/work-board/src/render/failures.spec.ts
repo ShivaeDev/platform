@@ -26,6 +26,7 @@ renderFailureStory.it(
 	[markdownPluginFails(new BadRequest({ message: "Invalid Markdown" }))],
 	function* ({ hostStartsHighlighter, rendererRenders }) {
 		yield* hostStartsHighlighter();
+
 		expect(yield* rendererRenders("note.md")).toEqual({
 			carriesCause: true,
 			failure: "render failed",
@@ -39,25 +40,32 @@ renderFailureStory.it(
 	[codeLoadingFails(new Error("Language unavailable"))],
 	function* ({ hostStartsHighlighter, rendererRenders, rendererStops, releasedRenderers }) {
 		yield* hostStartsHighlighter();
+
 		expect(yield* rendererRenders("note.md")).toEqual({
 			carriesCause: true,
 			failure: "render failed",
 			message: expect.stringContaining("Check the Markdown source"),
 		});
+
 		yield* rendererStops();
+
 		expect(yield* releasedRenderers()).toEqual(["Markdown highlighter"]);
 	},
 );
+
 renderFailureStory.it(
 	"a renderer remains alive while in use and is disposed when its scope closes",
 	[rendererDisposalObserved],
 	function* ({ hostStartsHighlighter, rendererRenders, rendererStops, releasedRenderers }) {
 		yield* hostStartsHighlighter();
+
 		yield* outcomes([
 			["rendered content", () => rendererRenders("note.md"), { content: expect.stringContaining('class="shiki'), failure: "none" }],
 			["disposal before closing the scope", () => releasedRenderers(), []],
 		]);
+
 		yield* rendererStops();
+
 		expect(yield* releasedRenderers()).toEqual(["Markdown highlighter"]);
 	},
 );

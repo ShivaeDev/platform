@@ -9,6 +9,7 @@ for (const embedded of [false, true]) {
 		[],
 		function* ({ serverStarts, homeResponse, rendererConstructions }) {
 			yield* serverStarts(embedded);
+
 			yield* outcomes([
 				[
 					"home page",
