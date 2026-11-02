@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Redacted } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
@@ -27,10 +27,10 @@ for (const [kind, path] of [
 				...(change ? { newEmail: "alice-new@example.test" } : {}),
 				user: { email: kind === "ConfirmNewAddress" ? "alice-new@example.test" : "alice@example.test", name: "alice" },
 			});
-			const link = new URL(message?.url ?? "");
+			const link = new URL(message === undefined ? "" : Redacted.value(message.url));
 			if (message !== undefined && "token" in message) {
-				expect(message.token.length).toBeGreaterThan(0);
-				expect(link.searchParams.get("token")).toBe(message.token);
+				expect(Redacted.value(message.token).length).toBeGreaterThan(0);
+				expect(link.searchParams.get("token")).toBe(Redacted.value(message.token));
 				link.searchParams.delete("token");
 			}
 			expect(link.href).toBe(`https://app.example.test${path}`);
