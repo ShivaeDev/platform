@@ -11,13 +11,10 @@ export const answerCompletionFailure = Effect.fn("AnswerFixture.answerCompletion
 	const table = `${host.namespace}_answers`;
 	yield* sql`create function ${sql(check)}() returns trigger language plpgsql as $$
 		begin
-			if TG_OP = 'DELETE' or NEW.error is not null then
-				raise exception 'Answer completion unavailable';
-			end if;
-			return NEW;
+			raise exception 'Answer completion unavailable';
 		end
 	$$`;
-	yield* sql`create trigger reject_finish before delete or update on ${sql(table)} for each row execute function ${sql(check)}()`;
-	const attempted = signals.wait((event) => event._tag === "CompletionFailed", 2).pipe(Effect.asVoid);
+	yield* sql`create trigger reject_finish before delete on ${sql(table)} for each row execute function ${sql(check)}()`;
+	const attempted = signals.wait((event) => event._tag === "CompletionFailed").pipe(Effect.asVoid);
 	return { attempted, release: sql`drop trigger reject_finish on ${sql(table)}` };
 });
