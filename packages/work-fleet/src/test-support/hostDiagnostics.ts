@@ -28,6 +28,7 @@ export function hostDiagnosticsVerbs(engine: HostStoryEngine) {
 		return value;
 	}
 	return {
+		briefDiagnostics: (workId: string, sourcePath: string) => engine.running.client("daemon.briefProblems", { briefs: [{ sourcePath, workId }] }),
 		diagnosticReads: () => ({ codex: observed().reads, github: observed().github.requests.map(({ endpoint }) => endpoint) }),
 		observeGithubBudget: () =>
 			Context.get(engine.running.context, GithubApi)

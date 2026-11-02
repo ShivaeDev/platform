@@ -13,7 +13,11 @@ export function briefDiagnostic(parsed: ParsedMetadata, sourcePath: string, flee
 		return Effect.succeed([]);
 	}
 	return readDaemon(fleetPort, (client) => client("daemon.briefProblems", { briefs: [{ sourcePath, workId }] })).pipe(
-		Effect.map((refusals) => refusals.map(({ message }) => ({ field: "id", line: parsed.lines.id ?? 2, message }))),
-		Effect.catch(() => Effect.succeed([])),
+		Effect.result,
+		Effect.map((result) =>
+			result._tag === "Success"
+				? result.success.map(({ message }) => ({ field: "id", line: parsed.lines.id ?? 2, message }))
+				: [{ field: "id", line: parsed.lines.id ?? 2, message: "Fleet brief validation is unavailable; this brief has not been checked." }],
+		),
 	);
 }

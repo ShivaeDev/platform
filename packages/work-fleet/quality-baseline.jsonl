@@ -135,7 +135,6 @@
 {"path":"packages/work-fleet/src/host/continueReport.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/daemonCommands.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/daemonContract.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-fleet/src/host/daemonDiagnostics.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/daemonHandlers.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-fleet/src/host/dispatchRequests.ts","rule":"effect/failure-honesty","count":1}
 {"path":"packages/work-fleet/src/host/fleetStatus.ts","rule":"effect/boundary","count":1}
