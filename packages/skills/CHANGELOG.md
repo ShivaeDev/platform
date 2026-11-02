@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.3 - 2026-11-02
+
+### Changed
+
+- Clarify story completion, PostgreSQL catalog waits, named fake preconditions, owned sign-in policies and persistence, refusal and visual evidence, harness composition, domain translation, edge-case scoring and release evidence.
+
 ## 0.6.2 - 2026-11-02
 
 ### Fixed
