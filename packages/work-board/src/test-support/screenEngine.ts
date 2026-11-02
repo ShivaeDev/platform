@@ -3,7 +3,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/test-story/client/react.ts";
-import { loadLazyChunks } from "#client/react/lazyChunks.ts";
+import { createLazyChunks } from "#client/react/adapters/createLazyChunks.ts";
 import type { FileSystemWrapper } from "#test/board.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import type { chrome } from "#test/chrome.ts";
@@ -19,6 +19,8 @@ import type { SessionTransport } from "#test/sessionTransport.ts";
 export interface ScreenEngine {
 	api?: BoardTestApi;
 	boardScreen?: Awaited<ReturnType<typeof renderBoard>>;
+	chunkResponse?: { started: boolean; held: boolean; pending: boolean; release: () => Promise<void>; fail: () => void };
+	chunks: ReturnType<typeof createLazyChunks>;
 	readonly cleanups: Array<() => Promise<void>>;
 	container?: HTMLElement | undefined;
 	documentFailed?: boolean;
@@ -71,10 +73,10 @@ export function* createScreen() {
 	browserStorage();
 	window.sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
-	// Screens render inside synchronous act(), which rejects a suspending first load; the served-bundle stories cover the lazy load itself.
-	yield* Effect.promise(loadLazyChunks);
+	const chunks = createLazyChunks();
+	yield* Effect.promise(() => Promise.all(Object.values(chunks).map((chunk) => chunk.load())));
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
-	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, indexReads: 0, path: "/" };
+	const engine: ScreenEngine = { chunks, cleanups: [], documentReads: [], files: {}, indexReads: 0, path: "/" };
 	yield* Effect.addFinalizer(() =>
 		Effect.promise(async () => {
 			for (const close of engine.cleanups.reverse()) {

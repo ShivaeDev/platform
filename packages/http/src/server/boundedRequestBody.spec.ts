@@ -1,5 +1,4 @@
 import { expect } from "vitest";
-import { RequestBodyTooLarge } from "#server/boundedBody.ts";
 import { refusedChunkedBodyLeavesUnreadTail, requestBody, routeEchoesUpTo } from "#test/request-body/story.ts";
 
 requestBody.it("a route outside appHost with no body limit refuses a chunked body with 413", [], function* ({ client }) {
@@ -12,16 +11,14 @@ requestBody.it("a route with no body limit refuses before the client sends any b
 
 for (const limit of [undefined, 8]) {
 	requestBody.it(
-		`a refused body with limit ${limit ?? "unconfigured"} records a tagged error with a numeric limit and no request or credentials`,
+		`a refused body with limit ${limit ?? "unconfigured"} records a body-too-large failure with a numeric limit and no request or credentials`,
 		limit === undefined ? [] : [routeEchoesUpTo(limit)],
 		function* ({ client, route }) {
 			yield* client.postsWithCredentials(Buffer.alloc(9));
 
 			const failures = yield* route.recordedFailures();
-			expect(failures).toEqual([expect.any(RequestBodyTooLarge)]);
-			expect(failures[0]).toMatchObject({ _tag: "RequestBodyTooLarge", limit: limit ?? 0 });
-			expect(failures[0]).not.toHaveProperty("request");
-			expect(JSON.stringify(failures[0])).not.toMatch(/private-token|private-session/u);
+			expect(failures).toEqual([{ hasRequest: false, kind: "request body too large", limit: limit ?? 0, serialized: expect.any(String) }]);
+			expect(failures[0]?.serialized).not.toMatch(/private-token|private-session/u);
 		},
 	);
 }

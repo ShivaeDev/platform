@@ -1,8 +1,7 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { failingSectionRender } from "#test/failingSectionRender.ts";
-import { heldDocumentBody } from "#test/heldDocumentBody.ts";
+import { chunkResponse } from "#test/chunkResponse.ts";
 import { LATE_HEADING, LONG_REPORT, LONG_REPORT_TITLE, REWRITTEN_REPORT, REWRITTEN_SUMMARY } from "#test/longReportFixture.ts";
 import { observedOutline } from "#test/observedOutline.ts";
 import { readingPage } from "#test/readingScreenTraits.tsx";
@@ -12,34 +11,37 @@ import { screenStory } from "#test/screenStory.ts";
 expectNoReactWarnings();
 
 const files = { "home.md": "# Home", "report.md": LONG_REPORT };
-const OPENING = "Opening summary of the research.";
 
 screenStory.it(
-	"a long report shows its title and opening while the rest of its body waits, and its last section follows once the browser is free",
-	[heldDocumentBody(), readingPage(files, "/report.md")],
-	function* ({ documentBody, documentBodyFinishes, headerTitle, lastHeading }) {
+	"a long report keeps its shell while the Markdown chunk waits, and shows its title and last section after the chunk arrives",
+	[chunkResponse("markdown", "held"), readingPage(files, "/report.md")],
+	function* ({ documentBody, chunkArrives, documentShell, headerTitle, lastHeading }) {
 		yield* outcomes([
-			["body", () => documentBody(), OPENING],
+			["body", () => documentBody(), ""],
 			["last heading", () => lastHeading(), "none"],
-			["title", () => headerTitle(), LONG_REPORT_TITLE],
+			["shell", () => documentShell(), "the shell the page opened in"],
 		]);
 
-		yield* documentBodyFinishes();
+		yield* chunkArrives();
 
-		expect(yield* lastHeading()).toBe("Late follow-up");
+		yield* outcomes([
+			["shell", () => documentShell(), "the shell the page opened in"],
+			["title", () => headerTitle(), LONG_REPORT_TITLE],
+			["last heading", () => lastHeading(), "Late follow-up"],
+		]);
 	},
 );
 
 screenStory.it(
 	"a deep link to a heading in the last section of a long report lands focus there once that section renders, without a missing-section notice",
-	[heldDocumentBody(), readingPage(files, `/report.md#${LATE_HEADING}`)],
-	function* ({ documentBodyFinishes, lastHeading, navigationStatus, readerFocus }) {
+	[chunkResponse("markdown", "held"), readingPage(files, `/report.md#${LATE_HEADING}`)],
+	function* ({ chunkArrives, lastHeading, navigationStatus, readerFocus }) {
 		yield* outcomes([
 			["last heading", () => lastHeading(), "none"],
 			["status", () => navigationStatus(), { state: "normal", text: "" }],
 		]);
 
-		yield* documentBodyFinishes();
+		yield* chunkArrives();
 
 		yield* outcomes([
 			["focus", () => readerFocus(), "heading Late follow-up Link to Late follow-up"],
@@ -75,30 +77,14 @@ screenStory.it(
 );
 
 screenStory.it(
-	"when a long report changes while its old version is still rendering, the old render finishing leaves the new version in place",
-	[heldDocumentBody(), readingPage(files, "/report.md")],
-	function* ({ documentBody, documentBodyFinishes, rewriteDocument }) {
+	"when a report changes while the Markdown chunk waits, the arriving chunk renders the new version",
+	[chunkResponse("markdown", "held"), readingPage(files, "/report.md")],
+	function* ({ documentBody, chunkArrives, rewriteDocument }) {
 		yield* rewriteDocument("report.md", REWRITTEN_REPORT);
+		expect(yield* documentBody()).toBe("");
+
+		yield* chunkArrives();
+
 		expect(yield* documentBody()).toBe(REWRITTEN_SUMMARY);
-
-		yield* documentBodyFinishes();
-
-		expect(yield* documentBody()).toBe(REWRITTEN_SUMMARY);
-	},
-);
-
-screenStory.it(
-	"when a long report changes while its old version is still rendering, a render failure in the old version shows no error",
-	[heldDocumentBody(), failingSectionRender("Finding 1"), readingPage(files, "/report.md")],
-	function* ({ documentBody, documentBodyFinishes, renderingError, rewriteDocument }) {
-		yield* rewriteDocument("report.md", REWRITTEN_REPORT);
-		expect(yield* documentBody()).toBe(REWRITTEN_SUMMARY);
-
-		yield* documentBodyFinishes();
-
-		yield* outcomes([
-			["body", () => documentBody(), REWRITTEN_SUMMARY],
-			["error", () => renderingError(), "none"],
-		]);
 	},
 );

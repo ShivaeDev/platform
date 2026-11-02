@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 - 2026-11-02
+
+### Fixed
+
+- Accept native `Context.Reference` keys in `defineService` requirements without treating their `never` identifier as caller-owned `Scope.Scope`.
+
 ## 0.6.0 - 2026-10-30
 
 ### Added

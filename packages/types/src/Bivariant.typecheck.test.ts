@@ -6,6 +6,12 @@ function handleName(name: string): number {
 
 export const bivariant: { readonly handle: Bivariant<(value: unknown) => number> } = { handle: handleName };
 
+export const result = bivariant.handle("Ada");
+export const checkedResult: number = result;
+
+// @ts-expect-error Bivariant keeps the called result typed as number.
+export const incompatibleResult: string = result;
+
 export const strict: { readonly handle: (value: unknown) => number } = {
 	// @ts-expect-error A function property checks its parameter strictly.
 	handle: handleName,
@@ -13,5 +19,5 @@ export const strict: { readonly handle: (value: unknown) => number } = {
 
 export const returnChecked: { readonly handle: Bivariant<(value: unknown) => string> } = {
 	// @ts-expect-error Bivariant keeps the return type covariant.
-	handle: handleName,
+	handle: bivariant.handle,
 };

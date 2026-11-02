@@ -1,6 +1,7 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { clockReadsTenSeconds, httpClient, remoteAnswers } from "#test/http-client/story.ts";
+import { clockReadsTenSeconds, remoteAnswers } from "#test/http-client/answers.ts";
+import { httpClient } from "#test/http-client/story.ts";
 
 httpClient.it(
 	"a remote 503 names the status, method, host and path without the query, headers or body in its failure message",

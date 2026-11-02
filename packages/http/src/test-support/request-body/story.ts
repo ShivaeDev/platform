@@ -71,7 +71,15 @@ export const requestBody = storyKit({
 		},
 		route: {
 			failures: () => Effect.sync(() => state.failures.map(failureOf)),
-			recordedFailures: () => Effect.sync(() => [...state.failures]),
+			recordedFailures: () =>
+				Effect.sync(() =>
+					state.failures.map((error) => ({
+						hasRequest: "request" in error,
+						kind: error instanceof RequestBodyTooLarge ? "request body too large" : "unexpected failure",
+						limit: error instanceof RequestBodyTooLarge ? error.limit : undefined,
+						serialized: JSON.stringify(error),
+					})),
+				),
 		},
 	}),
 });

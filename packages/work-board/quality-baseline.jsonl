@@ -123,8 +123,6 @@
 {"path":"packages/work-board/src/client/react/documentRoute.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/goalChartLabels.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/handoffPreview.dom.spec.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-board/src/client/react/lazyChunks.ts","rule":"code/unused","count":1}
-{"path":"packages/work-board/src/client/react/lazyChunks.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/client/react/libraryPaging.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/react/markdownRenderers.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/client/react/navigationTarget.ts","rule":"biome/plugin","count":1}

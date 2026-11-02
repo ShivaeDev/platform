@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.0 - 2026-11-02
+
+### Added
+
+- Add `redactBrowserText` to mask quoted browser literals, including escaped quotes and multiline content, while preserving diagnostic shape and the existing server text policy.
+- Add opt-in `browserErrors` settings for an Error log per report, signed-in `user.id` attribution and session enforcement. The starter enables all three.
+- `@shivaedev/errors`' shared `TooManyRequests` accepts optional `key` and `retryAt` fields, preserving rate-limit details across RPC while still accepting message-only failures.
+
+### Fixed
+
+- Mask browser report messages and stacks before they reach diagnostic sinks and record reports at Error severity.
+- Reject sensitivity conflicts through public encoded field names when registering an RPC's diagnostic policy.
+- Map throws during RPC handler construction through the group boundary for unary and streaming handlers, including native RPC wrappers.
+- Redact complete single- and double-quoted credential assignments, including spaces, escaped quotes and multiline values, while preserving surrounding public text.
+
+### Breaking
+
+- `@shivaedev/rate-limit` now fails with the shared `TooManyRequests`. Replace imports from `@shivaedev/rate-limit/TooManyRequests.ts` with `@shivaedev/errors/taxonomy.ts` and add `@shivaedev/errors` as a dependency. Use that shared schema in contract rejections and custom stores. Its `key` and `retryAt` fields are optional because other callers can create message-only failures; check for their presence before using them. The limiter continues to supply both fields. The old module is removed without an alias.
+
 ## 0.4.1 - 2026-11-01
 
 ### Fixed
