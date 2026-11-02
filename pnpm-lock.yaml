@@ -1267,6 +1267,9 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.6.3
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@shivaedev/heavy-lock':
         specifier: workspace:*
         version: link:../heavy-lock

@@ -52,6 +52,10 @@ Both rules refuse config exceptions and inline suppressions. Record existing deb
 
 When an upgrade expands these checks, inspect the new findings, repair the small ones and record retained debt with `quality baseline write --first-adoption --rule effect/boundary` (or `--rule effect/service-parameters`). This explicit first-adoption mode requires named rules that refuse config exceptions and may record unchanged files. Review each raised count and explain its reason in the pull request. Ordinary writes still require changed `--file` selections. Run `quality baseline tighten` after repairs to lower the touched files' counts.
 
+### Shared error classes
+
+`effect/shared-error-classes` reports a tagged error class that reuses a tag exported by `@shivaedev/errors`. Import the shared class from the module named in the finding instead. The rule reads exported class types, including source and declaration exports, and compares literal `_tag` values rather than class names. It uses the repository's installed errors package, or Quality's dependency when the repository does not yet depend on errors. It checks adapters and tests too. Subclasses retaining a shared tag are separate classes and are reported; shared declarations and imports, distinct tags and non-error classes are accepted.
+
 ### Failure honesty
 
 `effect/failure-honesty` checks TypeScript and JavaScript throughout the inventory, including adapters and tests. It reports four failure-hiding shapes:

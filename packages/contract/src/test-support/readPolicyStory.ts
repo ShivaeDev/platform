@@ -4,6 +4,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
 import { SqlClient } from "effect/sql";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -18,14 +19,13 @@ import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { answered } from "#test/answers.ts";
 import { watchHints } from "#testing.ts";
 
-class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", {}) {}
 class Guard extends RpcMiddleware.Service<Guard>()("test/ReadPolicyGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
 const Read = query("read", {
 	readPolicy: () =>
 		Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const rows = yield* sql<{ allowed: boolean }>`select policy_access() as allowed`.pipe(
-				Effect.catchTag("SqlError", () => Effect.fail(new ServiceUnavailable())),
+				Effect.catchTag("SqlError", () => Effect.fail(new ServiceUnavailable({ message: "Database unavailable" }))),
 			);
 			return rows[0]?.allowed === true;
 		}),
