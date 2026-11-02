@@ -3,3 +3,5 @@
 {"path":"packages/github/src/markdownRows.unit.test.ts","rule":"effect/boundary","count":8}
 {"path":"packages/github/src/renderedReports.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/github/src/requests.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/github/src/appJwt.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/github/src/verifyWebhook.ts","rule":"effect/adapter-imports","count":1}

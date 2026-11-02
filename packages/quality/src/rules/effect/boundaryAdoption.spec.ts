@@ -12,12 +12,16 @@ repositoryStory.it(
 				'import { readFileSync } from "node:fs";\n\nfunction guard(value: unknown) { if (!value) { throw new Error("missing"); } }\nexport const work = readFileSync("file", "utf8");\nguard(work);\nguard(work);',
 			path: "src/work.ts",
 		}),
-		repositoryHas({ content: '{"path":"src/work.ts","rule":"effect/boundary","count":1}\n', path: "quality-baseline.jsonl" }),
+		repositoryHas({
+			content: '{"path":"src/work.ts","rule":"effect/adapter-imports","count":1}\n{"path":"src/work.ts","rule":"effect/boundary","count":1}\n',
+			path: "quality-baseline.jsonl",
+		}),
 		biomeFormatted(),
 		committed(),
 	],
 	function* ({ outcome, reads, runs, stdout }) {
 		yield* runs("lint");
+
 		yield* outcomes([
 			["finding", () => stdout(), expect.stringContaining("Uses synchronous IO (node:fs.readFileSync)")],
 			["gate", () => outcome(), "rejected"],
@@ -27,9 +31,15 @@ repositoryStory.it(
 
 		yield* outcomes([
 			["adoption", () => outcome(), "passed"],
-			["recorded debt", () => reads("quality-baseline.jsonl"), '{"path":"src/work.ts","rule":"effect/boundary","count":4}\n'],
+			[
+				"recorded debt",
+				() => reads("quality-baseline.jsonl"),
+				'{"path":"src/work.ts","rule":"effect/adapter-imports","count":1}\n{"path":"src/work.ts","rule":"effect/boundary","count":4}\n',
+			],
 		]);
+
 		yield* runs("lint");
+
 		expect(yield* outcome()).toBe("passed");
 	},
 	CLI_TIMEOUT,

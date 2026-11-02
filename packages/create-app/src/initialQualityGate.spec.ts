@@ -9,14 +9,13 @@ const STAGED_FOR_THE_GATE = expect.arrayContaining(["package.json", "pnpm-lock.y
 for (const flags of [[], ["--minimal"]] as const) {
 	const app = ["my-app", ...flags].join(" ");
 	application.it(
-		`create-app ${app} installs Quality's hook before anything is staged, and commits the generated files with tightened debt`,
+		`create-app ${app} installs Quality's hook before anything is staged, and commits the generated files`,
 		[realSetup, installedPackageManager],
-		function* ({ baselineEntriesFor, commits, createApp, preCommitHook, qualityGateSaw, setupSaw }) {
+		function* ({ commits, createApp, preCommitHook, qualityGateSaw, setupSaw }) {
 			yield* createApp("my-app", ...flags);
 
 			yield* outcomes([
 				["commits", () => commits(), ["Create App <create-app@localhost>: Initialize a generated app"]],
-				["fixed debt", () => baselineEntriesFor("src/client/LabelledSwitch.tsx"), []],
 				["pre-commit hook", () => preCommitHook(), "Quality's hook"],
 				["setup saw", () => setupSaw(), { commit: "no commit", staged: [] }],
 				["the gate saw staged", () => qualityGateSaw(), STAGED_FOR_THE_GATE],

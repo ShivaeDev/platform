@@ -1,0 +1,6 @@
+{"path":"packages/releases/src/applyRelease.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/releases/src/checkPackageFiles.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/releases/src/checkReleaseCoverage.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/releases/src/cli.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/releases/src/readHistory.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/releases/src/workspace.ts","rule":"effect/adapter-imports","count":2}

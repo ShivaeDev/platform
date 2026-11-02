@@ -52,6 +52,14 @@ Both rules refuse config exceptions and inline suppressions. Record existing deb
 
 When an upgrade expands these checks, inspect the new findings, repair the small ones and record retained debt with `quality baseline write --first-adoption --rule effect/boundary` (or `--rule effect/service-parameters`). This explicit first-adoption mode requires named rules that refuse config exceptions and may record unchanged files. Review each raised count and explain its reason in the pull request. Ordinary writes still require changed `--file` selections. Run `quality baseline tighten` after repairs to lower the touched files' counts.
 
+### Outside library imports
+
+`effect/adapter-imports` reports value imports of non-Effect dependencies, peers and optional dependencies, and Node builtins, at the import site. It includes side-effect imports, value re-exports, literal dynamic imports and `require` calls. Each package is checked against its own manifest; dev-only tools and workspace modules are accepted. Type-only imports and re-exports are accepted, including inline `type` specifiers when every binding is a type.
+
+Move the integration into an `adapters/` folder and expose Effect values to the rest of the application. Use `import type` when only a type is needed. Folders named `adapters/` and `test-support/`, Effect packages (`effect` and `@effect/*`, including `@effect/platform-node`), native `@shivaedev/*` framework packages, and React (`react` and `react-dom`) in `client/` folders are exempt. Other outside libraries in client folders still need adapters; test filenames and entry points do not exempt imports.
+
+The rule refuses config exceptions and inline suppressions. For existing debt, run `quality baseline write --first-adoption --rule effect/adapter-imports`; baseline shards keep one entry per file with its finding count. Run `quality baseline tighten` after moving integrations.
+
 ### Failure honesty
 
 `effect/failure-honesty` checks TypeScript and JavaScript throughout the inventory, including adapters and tests. It reports four failure-hiding shapes:
