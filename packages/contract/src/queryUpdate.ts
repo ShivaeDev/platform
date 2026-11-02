@@ -7,5 +7,9 @@ export interface QueryResult {
 	readonly queryIndex: number;
 	readonly value: unknown;
 }
+export interface QueryUnchanged {
+	readonly _tag: "Unchanged";
+	readonly queryIndex: number;
+}
 export type SubscriptionHint = LiveHint | QueryReadDenied;
-export type QueryUpdate = SubscriptionHint | QueryResult;
+export type QueryUpdate = SubscriptionHint | QueryResult | QueryUnchanged;

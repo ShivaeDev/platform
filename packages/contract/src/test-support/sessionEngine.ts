@@ -112,7 +112,7 @@ export const sessionEngine = Effect.gen(function* () {
 		announce: (person: Person) => reactivity.invalidate(invalidationKeys([preferences.item(0)], { scope: person })),
 		clients,
 		kept,
-		marked: new Map<string, Mark<string | readonly string[], unknown>>(),
+		marked: new Map<string, Mark>(),
 		mounted: new Map<string, { readonly person: Person; readonly release: () => void; readonly view: PreferenceView }>(),
 		reads,
 		server,

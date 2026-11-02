@@ -3,7 +3,7 @@ import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { type HintViewer, heard, watchHints } from "#testing.ts";
-import { answered, hintWords } from "./answers.ts";
+import { answered, updateWords } from "./answers.ts";
 import { documents } from "./policyServicesContract.ts";
 import { type Person, policyServicesEngine } from "./policyServicesEngine.ts";
 
@@ -29,7 +29,7 @@ export const policyServicesStory = storyKit({
 				(update) =>
 					Option.match(update, {
 						onNone: () => "ended without a result",
-						onSome: (value) => (value._tag === "Result" ? String(value.value) : hintWords(value)),
+						onSome: updateWords,
 					}),
 			);
 		},
@@ -42,7 +42,7 @@ export const policyServicesStory = storyKit({
 				(hint) =>
 					Option.match(hint, {
 						onNone: () => "ended without a hint",
-						onSome: (update) => (update._tag === "Result" ? String(update.value) : hintWords(update)),
+						onSome: updateWords,
 					}),
 			);
 		},
@@ -82,7 +82,7 @@ export const listening = policyServicesStory.trait("listeners", "alice has heard
 			"alice",
 			yield* watchHints(
 				client("documents.$changes", { queries: [{ payload: { account: "team" }, query: "get" }] }).pipe(
-					Stream.filter((update) => update._tag !== "Result"),
+					Stream.filter((update) => update._tag !== "Result" && update._tag !== "Unchanged"),
 				),
 			),
 		);
