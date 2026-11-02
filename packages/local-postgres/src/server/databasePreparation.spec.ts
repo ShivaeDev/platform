@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { appDatabaseMissing, appDatabaseWithRow, queryRole } from "#test/databaseTraits.ts";
-import { postgres } from "#test/postgres.ts";
 import { realPostgres } from "#test/postgresTraits.ts";
+import { sharedPostgres as postgres } from "#test/sharedPostgres.ts";
 
 postgres.it(
 	"preparing creates the app database when it does not exist yet",

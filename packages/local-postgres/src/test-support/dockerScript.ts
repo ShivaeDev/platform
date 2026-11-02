@@ -6,13 +6,9 @@ export function dockerScript(steps: readonly { readonly args: readonly string[];
 	const remaining = [...steps];
 	return {
 		run(args: readonly string[]) {
-			const index = remaining.findIndex((candidate) => isDeepStrictEqual(candidate.args, args));
-			const step = index < 0 ? undefined : remaining.splice(index, 1)[0];
-			if (!step) {
-				throw new Error(`Unexpected Docker call: ${JSON.stringify(args)}`);
-			}
-			if (step.result instanceof Error) {
-				throw step.result;
+			const step = remaining.shift();
+			if (!(step && isDeepStrictEqual(step.args, args))) {
+				throw new Error(`Unexpected Docker call: ${JSON.stringify(args)}; expected ${JSON.stringify(step?.args) ?? "no further command"}`);
 			}
 			return step.result;
 		},

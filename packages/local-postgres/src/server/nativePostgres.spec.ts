@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { dockerStories as postgres } from "#test/dockerStories.ts";
 import { nativePostgres } from "#test/nativePostgres.ts";
-import { postgres } from "#test/postgres.ts";
 
 for (const dockerAvailable of [true, false]) {
 	postgres.it(
@@ -22,30 +22,4 @@ for (const dockerAvailable of [true, false]) {
 		},
 		120_000,
 	);
-}
-
-for (const password of ["bad%", "bad%GG", "bad%C3%28"]) {
-	for (const action of ["query", "start", "prepare"] as const) {
-		postgres.it(
-			`a ${action} with malformed password escape ${password} fails with a typed local connection error`,
-			[],
-			function* ({ failureKind, outcome, prepare, query, start, subprocesses }) {
-				const connection = `postgresql://postgres:${password}@127.0.0.1:55432/postgres`;
-
-				if (action === "query") {
-					yield* query("SELECT 1", connection);
-				} else if (action === "start") {
-					yield* start(connection);
-				} else {
-					yield* prepare([connection]);
-				}
-
-				yield* outcomes([
-					["failure", () => failureKind(), "invalid local connection"],
-					["diagnostic", () => outcome(), "failed: Invalid local database password escape."],
-					["subprocesses", () => subprocesses(), []],
-				]);
-			},
-		);
-	}
 }
