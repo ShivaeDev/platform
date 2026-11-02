@@ -5,34 +5,40 @@ import type { AppCredentials } from "#appJwt.ts";
 import { appTokens } from "#appTokens.ts";
 import { GitHub } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
+import { viewerRepositoryAccess } from "#viewerRepositoryAccess.ts";
 
 export const GitHubAppCredentials = Context.Service<{ readonly credentials: AppCredentials }>("@shivaedev/github/AppCredentials");
 
 export const GitHubApp = defineService({
 	id: "@shivaedev/github/GitHubApp",
 	initialize: Effect.gen(function* () {
-		const { credentials } = yield* GitHubAppCredentials;
+		const { credentials: supplied } = yield* GitHubAppCredentials;
+		const credentials = { appId: supplied.appId, privateKey: supplied.privateKey };
 		const http = yield* HttpClient.HttpClient;
 		const config = yield* GitHubConfig;
-		return yield* Cache.make({
+		const environment = Layer.mergeAll(Layer.succeed(HttpClient.HttpClient)(http), Layer.succeed(GitHubConfig)(config));
+		const app = yield* Layer.build(GitHub.layer.pipe(Layer.provide(appTokens(credentials)), Layer.provide(environment))).pipe(
+			Effect.scoped,
+			Effect.map((context) => Context.get(context, GitHub)),
+		);
+		const clients = yield* Cache.make({
 			capacity: 100,
 			lookup: (installationId: number) =>
-				Layer.build(
-					GitHub.layer.pipe(
-						Layer.provide(appTokens({ ...credentials, installationId })),
-						Layer.provide(Layer.succeed(HttpClient.HttpClient)(http)),
-						Layer.provide(Layer.succeed(GitHubConfig)(config)),
-					),
-				).pipe(
+				Layer.build(GitHub.layer.pipe(Layer.provide(appTokens({ ...credentials, installationId })), Layer.provide(environment))).pipe(
 					Effect.scoped,
 					Effect.map((context) => Context.get(context, GitHub)),
 				),
 			timeToLive: "30 minutes",
 		});
+		function installation(id: number) {
+			return Cache.get(clients, id).pipe(Effect.tap((client) => Cache.set(clients, id, client)));
+		}
+		return { installation, viewers: yield* viewerRepositoryAccess(app, installation) };
 	}),
-	methods: (clients) => ({
-		installation: (installationId: number) =>
-			Cache.get(clients, installationId).pipe(Effect.tap((client) => Cache.set(clients, installationId, client))),
+	methods: ({ installation, viewers }) => ({
+		installation,
+		viewerRepositories: (account: number | string) =>
+			Cache.get(viewers, typeof account === "number" ? `id:${account}` : `login:${account.toLowerCase()}`),
 	}),
 	requires: [GitHubAppCredentials, HttpClient.HttpClient, GitHubConfig],
 });
