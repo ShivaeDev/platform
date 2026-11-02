@@ -2,12 +2,12 @@ import { Duration, Effect, Option, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { MigrationStartedAt } from "#internal/MigrationStartedAt.ts";
 import { migrationLock } from "#internal/migrationLock.ts";
-import { advisoryXactLock } from "./advisoryXactLock.ts";
-import { postgresRelease } from "./postgresRelease.ts";
-import { runSchemaComponent, type SchemaComponent } from "./SchemaComponent.ts";
-import { transact } from "./transact.ts";
+import { postgresRelease } from "#postgresRelease.ts";
+import { runSchemaComponent, type SchemaComponent } from "#SchemaComponent.ts";
+import { transact } from "#transact.ts";
 
 export interface PostgresMigrationOptions<R, E = never> {
 	readonly components?: readonly SchemaComponent<R, E>[];
@@ -52,12 +52,12 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
   created_at timestamp with time zone not null default now(),
   name text not null
 )`;
-		const applied = yield* sql`select migration_id as id from ${sql(table)}`.withoutTransform.pipe(
-			Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ id: Schema.Int })))),
+		const applied = yield* sql`select migration_id as id, name from ${sql(table)}`.withoutTransform.pipe(
+			Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ id: Schema.Int, name: Schema.String })))),
 		);
-		const appliedIds = new Set(applied.map(({ id }) => id));
+		const appliedNames = new Map(applied.map(({ id, name }) => [id, name]));
 		const latest = applied.reduce((max, { id }) => Math.max(max, id), 0);
-		const missing = current.filter(([id]) => id <= latest && !appliedIds.has(id));
+		const missing = current.filter(([id]) => id <= latest && !appliedNames.has(id));
 		if (missing.length > 0) {
 			return yield* Effect.fail(
 				new Migrator.MigrationError({
@@ -65,6 +65,17 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 					message: `Migrations missing from the ledger at or below latest applied id ${latest}: ${missing.map(([id]) => id).join(", ")}`,
 				}),
 			);
+		}
+		for (const [id, name] of current) {
+			const recorded = appliedNames.get(id);
+			if (recorded !== undefined && recorded !== name) {
+				return yield* Effect.fail(
+					new Migrator.MigrationError({
+						kind: "BadState",
+						message: `Migration ${id} is recorded as ${JSON.stringify(recorded)} but loaded as ${JSON.stringify(name)}`,
+					}),
+				);
+			}
 		}
 		return yield* migrate({ loader: Effect.succeed(current), table });
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.provideService(Reactivity.Reactivity, reactivity));

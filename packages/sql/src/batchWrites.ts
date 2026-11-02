@@ -19,7 +19,8 @@ export function makeInsertMany<TServices = never>(
 	sql: SqlClient.SqlClient,
 	options: { readonly tableName: string; readonly spanPrefix: string; readonly changes: RepositoryChanges },
 	operation: string,
-	prepare: (row: Readonly<Record<string, unknown>>) => Effect.Effect<Fragment, Schema.SchemaError, TServices> = () => Effect.succeed(sql``),
+	prepare: (row: Readonly<Record<string, unknown>>) => Effect.Effect<Fragment, SqlError | Schema.SchemaError, TServices> = () =>
+		Effect.succeed(sql``),
 	upsert = false,
 ) {
 	const encode = Schema.encodeEffect(model.insert);

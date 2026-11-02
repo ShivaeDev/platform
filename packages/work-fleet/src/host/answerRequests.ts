@@ -1,4 +1,4 @@
-import { Cause, Effect, PubSub, Schedule, Semaphore } from "effect";
+import { Cause, Data, Effect, Option, PubSub, Schedule, Semaphore } from "effect";
 import { SqlClient } from "effect/sql";
 import { BadRequest, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
@@ -12,6 +12,8 @@ import type { FleetRecord } from "#model.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";
 
 const RETRY = Schedule.min([Schedule.exponential("100 millis"), Schedule.spaced("5 seconds")]);
+
+class AnswerCompletionFailure extends Data.TaggedError("AnswerCompletionFailure")<{ readonly cause: unknown }> {}
 
 export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* <R>(
 	host: FleetHost,
@@ -27,14 +29,16 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 	const locks = new Map<string, { readonly lock: Semaphore.Semaphore; users: number }>();
 	const events = yield* fleet.answerEvents();
 	function finish(request: AnswerRequest, error?: string) {
-		return store
-			.finish(request, error)
-			.pipe(Effect.tapError(() => PubSub.publish(events, { _tag: "CompletionFailed", requestId: request.request_id, workId: request.work_id })));
+		return store.finish(request, error).pipe(
+			Effect.tapError(() => PubSub.publish(events, { _tag: "CompletionFailed", requestId: request.request_id, workId: request.work_id })),
+			Effect.mapError((cause) => new AnswerCompletionFailure({ cause })),
+		);
 	}
 	const process = yield* processAnswerRequest(host, apply, finish);
 
 	function failed(request: AnswerRequest, cause: Cause.Cause<unknown>) {
-		if (Cause.hasInterrupts(cause)) {
+		const error = Option.getOrUndefined(Cause.findErrorOption(cause));
+		if (Cause.hasInterrupts(cause) || error instanceof AnswerCompletionFailure) {
 			return Effect.failCause(cause);
 		}
 		return Effect.logError(`Failed to apply answer for ${request.work_id}`, cause).pipe(

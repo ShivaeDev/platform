@@ -20,11 +20,33 @@ for (const app of [buffered, protobuf]) {
 		]);
 	});
 
-	app.it("reads the operation, message and type of a reported failure once", [], function* ({ reports, flush, errors }) {
-		yield* reports("Document storage is unavailable");
+	app.it("reads each failure once with its reporting service, operation, message and type", [], function* ({ reports, flush, errors }) {
+		yield* reports("Document storage is unavailable", "story-readouts");
+		yield* flush();
+		yield* reports("Document indexing is unavailable", "document-worker");
 		yield* flush();
 
-		expect(yield* errors()).toEqual([{ message: "Document storage is unavailable", operation: "save document", type: "Error" }]);
+		expect(yield* errors()).toEqual([
+			{ message: "Document storage is unavailable", operation: "save document", service: "story-readouts", type: "Error" },
+			{ message: "Document indexing is unavailable", operation: "save document", service: "document-worker", type: "Error" },
+		]);
+	});
+
+	app.it("finds a URL-encoded secret in a query string without reporting an unrelated value", [], function* ({ tracesUrl, flush, exportsSecret }) {
+		yield* tracesUrl("https://app.example/?credential=leaked%20%22credential%22%2B%26%E9%9B%AA");
+		yield* flush();
+
+		yield* outcomes([
+			["encoded credential exported", () => exportsSecret('leaked "credential"+&雪'), true],
+			["unrelated credential exported", () => exportsSecret("unrelated credential"), false],
+		]);
+	});
+
+	app.it("finds a form-encoded secret in a request body", [], function* ({ tracesForm, flush, exportsSecret }) {
+		yield* tracesForm("credential=form+%27credential%27%7E%26%E9%9B%AA");
+		yield* flush();
+
+		expect(yield* exportsSecret("form 'credential'~&雪")).toBe(true);
 	});
 
 	app.it("finds a secret outside span attributes", [], function* ({ tracesSecretEvent, flush, exportsSecret }) {
@@ -43,15 +65,19 @@ buffered.it("keeps repeated queries from older exporters in received order", [],
 	expect(yield* queries()).toEqual(["SELECT title FROM documents", "SELECT title FROM documents"]);
 });
 
-buffered.it("reads status-only failures and uses the operation when no message is supplied", [], function* ({ reportsStatus, errors }) {
-	yield* reportsStatus("send email", "Mailbox is unavailable");
-	yield* reportsStatus("sync documents");
+buffered.it(
+	"reads status-only failures with optional services and falls back to the operation for missing messages",
+	[],
+	function* ({ reportsStatus, errors }) {
+		yield* reportsStatus("send email", "Mailbox is unavailable", "email-worker");
+		yield* reportsStatus("sync documents");
 
-	expect(yield* errors()).toEqual([
-		{ message: "Mailbox is unavailable", operation: "send email", type: undefined },
-		{ message: "sync documents", operation: "sync documents", type: undefined },
-	]);
-});
+		expect(yield* errors()).toEqual([
+			{ message: "Mailbox is unavailable", operation: "send email", service: "email-worker", type: undefined },
+			{ message: "sync documents", operation: "sync documents", service: undefined, type: undefined },
+		]);
+	},
+);
 
 buffered.it("finds escaped keys and values outside the decoded spans", [], function* ({ exportsMetadata, exportsSecret }) {
 	yield* exportsMetadata({ 'provider "key"': 'metadata "secret"\n雪' });
@@ -79,14 +105,14 @@ for (const [app, delivery] of [
 		yield* reports("first failure");
 		yield* flush();
 
-		expect(yield* errors()).toEqual([{ message: "first failure", operation: "save document", type: "Error" }]);
+		expect(yield* errors()).toEqual([{ message: "first failure", operation: "save document", service: "story-readouts", type: "Error" }]);
 
 		yield* reports("second failure");
 		yield* flush();
 
 		expect(yield* errors()).toEqual([
-			{ message: "first failure", operation: "save document", type: "Error" },
-			{ message: "second failure", operation: "save document", type: "Error" },
+			{ message: "first failure", operation: "save document", service: "story-readouts", type: "Error" },
+			{ message: "second failure", operation: "save document", service: "story-readouts", type: "Error" },
 		]);
 	});
 }

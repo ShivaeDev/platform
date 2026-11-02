@@ -1,15 +1,14 @@
 import { createElement, Fragment, type ReactElement, startTransition, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { type Components, MarkdownAsync } from "react-markdown";
 import rehypeRaw from "rehype-raw";
-import type { PluggableList } from "unified";
+import { markdownElement } from "#adapters/markdownElement.ts";
 import type { Document } from "#browser/document/schema.ts";
+import { highlightDocument } from "#client/document/adapters/highlight.ts";
 import { documentHeadings } from "#render/documentHeadings.ts";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
 import { footnoteIds } from "#render/footnoteIds.ts";
 import { tableColumns } from "#render/tableColumns.ts";
 import { boardLayout } from "./boardLayout.ts";
-import { highlightDocument } from "./highlight.ts";
 import { documentLayout, documentSourceId } from "./layout.ts";
 import { nextSection } from "./nextSection.ts";
 import { documentSections } from "./sections.ts";
@@ -54,8 +53,7 @@ function sectionPlugins({ board, document, idPrefix, layout }: Rendering, index:
 }
 
 async function renderSection(rendering: Rendering, source: string, index: number, used: Set<string>) {
-	const element = await MarkdownAsync({
-		children: source,
+	const element = await markdownElement(source, {
 		components: rendering.components,
 		rehypePlugins: sectionPlugins(rendering, index, used),
 		remarkPlugins: documentPlugins(new Map(Object.entries(rendering.document.questionActions))),
@@ -126,3 +124,7 @@ export function useSections(rendering: Rendering) {
 	}
 	return view ?? { complete: false, key, sections: [] };
 }
+
+type Components = NonNullable<Parameters<typeof markdownElement>[1]["components"]>;
+
+type PluggableList = NonNullable<Parameters<typeof markdownElement>[1]["rehypePlugins"]>;

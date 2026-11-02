@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const entry = process.argv[1] ?? "";
+const script = entry.endsWith("/typescript/bin/tsc")
+	? "typecheck"
+	: entry.includes("/@shivaedev/quality/") && process.argv.includes("lint")
+		? "lint"
+		: undefined;
+if (script !== undefined) {
+	assert.ok(process.env.HEAVY_PROCESS_LOCK_ID, `${script} must hold the heavy lock`);
+	const held = JSON.parse(readFileSync(process.env.HEAVY_PROCESS_LOCK, "utf8"));
+	assert.equal(held.id, process.env.HEAVY_PROCESS_LOCK_ID);
+	writeFileSync(join(process.env.TOOLING_PROBE_DIR, `${script}.json`), JSON.stringify(held));
+}

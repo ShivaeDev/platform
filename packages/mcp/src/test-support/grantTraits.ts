@@ -1,6 +1,7 @@
 import { DateTime, Effect } from "effect";
 import { connects } from "./client.ts";
-import { hashGrantToken, person } from "./host.ts";
+import { hashGrantToken } from "./hashGrantToken.ts";
+import { person } from "./host.ts";
 import { mcp } from "./mcp.ts";
 import { oauthVerbs } from "./oauthVerbs.ts";
 import { holdsToken } from "./traits.ts";

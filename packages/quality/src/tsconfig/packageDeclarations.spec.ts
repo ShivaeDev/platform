@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { packageBuild, packageExtendsQualityConfig, packageHas } from "#test/packageBuild.ts";
 
 packageBuild.it(
-	"a package build emits a declaration whose inferred type imports a relative module with its extension through a # alias, without diagnostics",
+	"the supported TypeScript 7 CLI emits a package declaration whose inferred type imports a relative module with its extension through a # alias, without diagnostics",
 	[
 		packageExtendsQualityConfig(),
 		packageHas(

@@ -6,7 +6,7 @@ import { outcomes } from "#outcomes.ts";
 class Sessions extends Context.Service<Sessions, number>()("@types/Sessions") {}
 class Requests extends Context.Service<Requests, string>()("@types/Requests") {}
 class Unavailable extends Data.TaggedError("Unavailable") {}
-class Unauthorized extends Data.TaggedError("Unauthorized") {}
+class RequestDenied extends Data.TaggedError("RequestDenied") {}
 
 it("checks each expected value against its own readout", () => {
 	outcomes([
@@ -50,10 +50,10 @@ it("preserves every readout's error and requirement types", () => {
 	const result = outcomes([
 		[
 			"alice's next request",
-			() => Requests.pipe(Effect.flatMap((status) => (status === "denied" ? Effect.fail(new Unauthorized()) : Effect.succeed(status)))),
+			() => Requests.pipe(Effect.flatMap((status) => (status === "denied" ? Effect.fail(new RequestDenied()) : Effect.succeed(status)))),
 			"ok",
 		],
 		["bob's sessions", () => Sessions.pipe(Effect.flatMap((count) => (count < 0 ? Effect.fail(new Unavailable()) : Effect.succeed(count)))), 0],
 	]);
-	expectTypeOf(result).toEqualTypeOf<Effect.Effect<void, Unavailable | Unauthorized, Sessions | Requests>>();
+	expectTypeOf(result).toEqualTypeOf<Effect.Effect<void, Unavailable | RequestDenied, Sessions | Requests>>();
 });

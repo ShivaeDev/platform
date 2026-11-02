@@ -3,6 +3,7 @@ import { Deferred, Effect, Layer } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Options } from "@shivaedev/pr-watch/model.ts";
 import { watch } from "@shivaedev/pr-watch/program.ts";
+import { requestFailure } from "@shivaedev/pr-watch/requestFailure.ts";
 import { watchPrLayer } from "#host/watchPrLayer.ts";
 import type { WatchState } from "#host/watchState.ts";
 import type { WatchStreamOptions } from "#host/watchStream.ts";
@@ -15,6 +16,7 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 	const failed = yield* Deferred.make<never, Effect.Error<ReturnType<typeof watch>> | Layer.Error<ReturnType<typeof watchPrLayer>>>();
 	const repositories = new Map<string, Map<number, string>>();
 	const start = Effect.fnUntraced(function* (repository: string, work: Map<number, string>) {
+		const transient = new Set<string>();
 		const settings: Options = {
 			apiUrl: options.apiUrl ?? "https://api.github.com",
 			events: ["dequeued", "stuck", "conflict", "auto-merge-off", "merged", "closed"],
@@ -32,17 +34,29 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 				...fields,
 				kind: `pr-${event}`,
 				repository,
+				...(event === "error" ? { retryable: transient.has(fields.message) } : {}),
 				...(prNumber === undefined ? {} : { number: prNumber, pr: `https://github.com/${repository}/pull/${prNumber}`, workId: work.get(prNumber) }),
 			});
 		}
+		function report(number: number, message: string, retryable: boolean) {
+			return emit({
+				kind: "pr-error",
+				message,
+				number,
+				pr: `https://github.com/${repository}/pull/${number}`,
+				repository,
+				retryable,
+				workId: work.get(number),
+			});
+		}
+		function recordFailure(error: unknown) {
+			const failure = requestFailure(error);
+			if (failure.retryable || failure.retryAt !== undefined) {
+				transient.add(failure.message);
+			}
+		}
 		yield* watch(settings, { heartbeat: 0, once: false }, write, () => Effect.void).pipe(
-			Effect.provide(
-				Layer.fresh(
-					watchPrLayer((number, message) =>
-						emit({ kind: "pr-error", message, number, pr: `https://github.com/${repository}/pull/${number}`, repository, workId: work.get(number) }),
-					),
-				),
-			),
+			Effect.provide(Layer.fresh(watchPrLayer(report, { failure: recordFailure }))),
 			Effect.tapError((error) =>
 				error instanceof ServiceUnavailable ? emit({ kind: "pr-error", message: error.message, repository }) : Effect.void,
 			),

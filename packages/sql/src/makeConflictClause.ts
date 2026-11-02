@@ -1,4 +1,4 @@
-import { Effect, Schema, SchemaAST, SchemaIssue } from "effect";
+import { Array as Arr, Effect, Schema, SchemaAST, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import { makeFilter } from "#repositoryFilter.ts";
@@ -44,6 +44,35 @@ export function makeConflictClause(
 		}
 		return sql`${sql(column)} = ${value}`;
 	}
+	function encodePredicate([key, value]: readonly [string, unknown]) {
+		return Effect.gen(function* () {
+			const field = yield* filter.fieldAt(key);
+			const encoded = yield* Schema.encodeEffect(field)(value);
+			return { encoded, key, nullish: value === null || encoded === null };
+		});
+	}
+	function postgresPredicate(input: Readonly<Record<string, unknown>>) {
+		return Effect.gen(function* () {
+			const entries = yield* Effect.forEach(
+				Object.entries(input).filter(([, value]) => value !== undefined),
+				encodePredicate,
+			);
+			if (entries.length === 0) {
+				return sql.and([]);
+			}
+			// PostgreSQL must see constants to infer a partial index under generic plans.
+			const [quoted] = yield* sql`select ${sql.csv(entries.map(({ encoded }) => sql`quote_nullable(${encoded}::text)`))}`.values;
+			const literals = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.String))(quoted);
+			return sql.and(
+				Arr.zip(entries, literals).map(([{ key, nullish }, literal]) =>
+					nullish ? sql`${sql(key)} is null` : sql`${sql(key)} = ${sql.literal(literal)}`,
+				),
+			);
+		});
+	}
+	function conflictPredicate(input: Readonly<Record<string, unknown>>) {
+		return sql.onDialectOrElse({ orElse: () => filter.where(input), pg: () => postgresPredicate(input) });
+	}
 	function clause(
 		encoded: Readonly<Record<string, unknown>>,
 		updateColumns?: readonly UpsertAssignment[],
@@ -59,7 +88,7 @@ export function makeConflictClause(
 				);
 			}
 			const conflict = sql.csv(conflictColumns.map((column) => sql`${sql(column)}`));
-			const where = options.conflictWhere === undefined ? sql`` : sql`where ${yield* filter.where(options.conflictWhere)}`;
+			const where = options.conflictWhere === undefined ? sql`` : sql`where ${yield* conflictPredicate(options.conflictWhere)}`;
 			const action = updateColumns === undefined ? sql`do nothing` : sql`do update set ${sql.csv(updateColumns.map(assignment))}`;
 			const condition = updateWhere === undefined ? sql`` : sql`where ${yield* updateFilter.where(updateWhere, true, true)}`;
 			return sql`on conflict (${conflict}) ${where} ${action} ${condition}`;

@@ -29,7 +29,14 @@ pausingPurges.it(
 		yield* outcomes([
 			["rows removed by the capped run", () => finishPurge(), cappedRun.maxRows],
 			["remaining rows", () => remaining(), BACKLOG_ROWS - cappedRun.maxRows],
-			["published hints", () => hints(), [["the table"], ["the table"]]],
+			[
+				"published hints",
+				() => hints(),
+				[
+					["the table", "all item and bucket readers"],
+					["the table", "all item and bucket readers"],
+				],
+			],
 		]);
 
 		const removed = yield* purge({ batchSize: 10, maxRows: 10, pause: 0, where: {} });
@@ -53,7 +60,14 @@ pausingPurges.it(
 		yield* outcomes([
 			["rows removed by the next run", () => Effect.succeed(removed), INTERRUPTED_ROWS - interruptedRun.batchSize],
 			["remaining rows", () => remaining(), 0],
-			["published hints", () => hints(), [["the table"], ["the table"]]],
+			[
+				"published hints",
+				() => hints(),
+				[
+					["the table", "all item and bucket readers"],
+					["the table", "all item and bucket readers"],
+				],
+			],
 		]);
 	},
 );

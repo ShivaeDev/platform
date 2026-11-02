@@ -1,9 +1,8 @@
 import { Effect } from "effect";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { parseDocument } from "yaml";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { transformMarkdown } from "#adapters/markdownProcessor.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { questionTemplate } from "#server/responses/template.ts";
@@ -42,10 +41,7 @@ export const documentedSourceStory = storyKit({
 			story.tell("the Board renders the example's Markdown components");
 			return Effect.sync(() => {
 				const source = metadataParse(engine.source).body;
-				const processor = unified().use(remarkParse);
-				processor.use(documentPlugins());
-				const tree = processor.parse(source);
-				processor.runSync(tree, { value: source });
+				const tree = transformMarkdown(source, documentPlugins());
 				const diagnostics: string[] = [];
 				const visuals: string[] = [];
 				visit(tree, "paragraph", (node) => {

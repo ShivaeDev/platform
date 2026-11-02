@@ -40,6 +40,10 @@ export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string
 			tell(`hold Fleet's Board reads once ${workId} shows "${blocker}"`);
 			return engine.resolution.arm(engine.host.host, workId, blocker);
 		},
+		holdSubmission: () => {
+			tell("the provider holds its answer turn acknowledgement");
+			return engine.submission.hold;
+		},
 		pauseCompletion: (workId = "one") => {
 			tell(`pause answer completion for ${workId}`);
 			return pauseAnswerCompletion(engine.host.host, workId);

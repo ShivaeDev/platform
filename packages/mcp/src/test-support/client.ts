@@ -49,12 +49,12 @@ function connection(engine: Engine, name: string) {
 	return client;
 }
 
-function connect(engine: Engine, token: string | undefined, scheme = "Bearer") {
+export function connect(engine: Engine, token: string | undefined, scheme = "Bearer", headers: Readonly<Record<string, string>> = {}) {
 	return McpClient.make({ name: "Story client", version: "1" }).pipe(
 		Effect.provideServiceEffect(
 			McpClient.Transport,
 			McpClient.http({
-				headers: token === undefined ? {} : { authorization: `${scheme} ${token}` },
+				headers: { ...headers, ...(token === undefined ? {} : { authorization: `${scheme} ${token}` }) },
 				protocol: McpProtocol.v2026_07_28,
 				url: `${engine.baseUrl}/mcp`,
 			}),

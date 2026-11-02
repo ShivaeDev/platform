@@ -22,6 +22,7 @@ export interface Follower {
 }
 
 export interface FollowOptions {
+	readonly all?: boolean;
 	readonly apiUrl?: string;
 	readonly cwd?: string;
 	readonly events?: string;
@@ -29,6 +30,7 @@ export interface FollowOptions {
 	readonly heartbeat?: number;
 	readonly interval?: number;
 	readonly json?: boolean;
+	readonly pnpm?: boolean;
 	readonly port?: number;
 	readonly prEvents?: boolean;
 	readonly prInterval?: number;
@@ -48,18 +50,21 @@ export function followerProcess(
 			const path = yield* Config.String("PATH");
 			const cli = fileURLToPath(new URL("../cli.ts", import.meta.url));
 			const child = spawn(
-				process.execPath,
+				options.pnpm ? "pnpm" : process.execPath,
 				[
-					"--conditions=source",
-					"--import",
-					fileURLToPath(new URL("./clientDatabaseGuard.ts", import.meta.url)),
-					cli,
+					...(options.pnpm
+						? ["-s", "fleet"]
+						: ["--conditions=source", "--import", fileURLToPath(new URL("./clientDatabaseGuard.ts", import.meta.url)), cli]),
 					command,
 					...ids,
 					...(options.cwd === undefined ? ["--board", dirname(configFile)] : []),
 					...followArguments(options),
 				],
-				{ cwd: options.cwd, env: { "GH_TOKEN": "fleet-watch-test-token", "PATH": path }, stdio: ["ignore", "pipe", "pipe"] },
+				{
+					cwd: options.cwd ?? (options.pnpm ? fileURLToPath(new URL("../../../../", import.meta.url)) : undefined),
+					env: options.pnpm ? undefined : { "GH_TOKEN": "fleet-watch-test-token", "PATH": path },
+					stdio: ["ignore", "pipe", "pipe"],
+				},
 			);
 			let stdout = "";
 			let stderr = "";
@@ -124,6 +129,7 @@ function followArguments(options: FollowOptions) {
 		timeout: options.follow && options.timeout === undefined ? undefined : (options.timeout ?? 20),
 	};
 	return [
+		...(options.all ? ["--all"] : []),
 		...(options.json ? ["--json"] : []),
 		...(options.follow ? ["--follow"] : []),
 		...(options.prEvents === undefined ? [] : ["--pr-events", String(options.prEvents)]),

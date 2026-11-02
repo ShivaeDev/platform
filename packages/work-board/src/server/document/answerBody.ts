@@ -1,6 +1,4 @@
-import remarkDirective from "remark-directive";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
+import { parseMarkdown } from "#adapters/markdownProcessor.ts";
 import type { DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
 import type { MetadataDocument } from "#integration/metadata.ts";
@@ -15,7 +13,7 @@ export function answerBody(document: MetadataDocument, requests: readonly Docume
 	if (cards.length === 0 && !title && !managed) {
 		return source;
 	}
-	const tree = unified().use(remarkParse).use(remarkDirective).parse(source);
+	const tree = parseMarkdown(source, { directives: true });
 	const removed = repeatedReason(tree.children, source, cards);
 	return tree.children
 		.flatMap((node, index): [Node, string][] => {

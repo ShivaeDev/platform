@@ -9,7 +9,6 @@ import { boardRuntime } from "#server/boardRuntime.ts";
 import { boardSocket } from "#server/boardSocket.ts";
 import { boardRoutes } from "#server/http/boardRoutes.ts";
 import { MAX_BYTES, RPC_PATH, rpcPolicy } from "#server/http/rpcPolicy.ts";
-import { Highlighter } from "#server/render/Highlighter.ts";
 
 export const HOST = "127.0.0.1";
 
@@ -54,5 +53,5 @@ export function serveBoard(options: ServeOptions) {
 			yield* Deferred.succeed(info, { directory, url: `http://${HOST}:${address.port}/` });
 			return Layer.succeedContext(host);
 		}),
-	).pipe(Layer.provide(Highlighter.layer));
+	);
 }

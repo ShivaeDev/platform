@@ -49,9 +49,11 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 		...(options.roles === undefined ? {} : { roles: options.roles }),
 		provider: {
 			get: (headers) =>
-				authenticate(headers.authorization?.match(/^Bearer (?<token>.+)$/iu)?.groups?.token).pipe(
-					Effect.catchTag("InvalidTokenClaim", () => Effect.succeed(Option.none())),
-				),
+				headers.cookie === undefined
+					? authenticate(headers.authorization?.match(/^Bearer (?<token>.+)$/iu)?.groups?.token).pipe(
+							Effect.catchTag("InvalidTokenClaim", () => Effect.succeed(Option.none())),
+						)
+					: Effect.succeed(Option.none()),
 		},
 	});
 	const authorizationMetadata = Effect.fn("Mcp.authorizationMetadata")(function* (request: HttpServerRequest.HttpServerRequest) {

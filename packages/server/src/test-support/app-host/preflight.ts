@@ -8,9 +8,22 @@ import { Ping } from "./ping.ts";
 import { host } from "./story.ts";
 
 export class AppId extends Context.Service<AppId, string>()("@test/PreflightAppId") {}
-class PreflightFailure extends Schema.TaggedError<PreflightFailure>()("PreflightFailure", {}) {}
+class PreflightFailure extends Schema.TaggedError<PreflightFailure>()("PreflightFailure", { message: Schema.optional(Schema.String) }) {}
 
-export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred = false) {
+function preflightDiagnostic(diagnostics: "failure" | "success" | undefined) {
+	if (diagnostics === "failure") {
+		return Effect.fail(new PreflightFailure({ message: "Cannot connect to postgres://app:hidden-startup-password@localhost/db" })).pipe(
+			Effect.tapCause((cause) =>
+				Effect.logError("Preflight failed token=hidden-log-token", cause).pipe(
+					Effect.annotateLogs({ password: "hidden-annotation", workspace: "private-workspace" }),
+				),
+			),
+		);
+	}
+	return diagnostics === "success" ? Effect.logInfo("Preflight ready").pipe(Effect.annotateLogs({ app: "board" })) : Effect.void;
+}
+
+export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred = false, diagnostics?: "failure" | "success") {
 	return host.trait(
 		"configured",
 		`${mode} host validates its app ID before startup${deferred ? " with deferred construction" : ""}`,
@@ -19,6 +32,7 @@ export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred 
 				AppId,
 				Effect.gen(function* () {
 					state.lifecycle.push("preflight");
+					yield* preflightDiagnostic(diagnostics);
 					const id = yield* Config.String("APP_ID");
 					const validated = yield* Schema.decodeUnknownEffect(Schema.NonEmptyString)(id).pipe(Effect.mapError(() => new PreflightFailure()));
 					return yield* Effect.acquireRelease(Effect.succeed(validated), () => Effect.sync(() => state.lifecycle.push("released")));

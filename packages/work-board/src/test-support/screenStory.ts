@@ -7,7 +7,6 @@ import { answersScreenVerbs } from "./answersScreenVerbs.ts";
 import { appearanceActions } from "./appearanceActions.ts";
 import { chrome } from "./chrome.ts";
 import { chunkResponseVerbs } from "./chunkResponseVerbs.ts";
-import { diagramActions } from "./diagramActions.ts";
 import { distinctVerbs } from "./distinctVerbs.ts";
 import { itemContextVerbs } from "./itemContextVerbs.ts";
 import { liveScreenVerbs } from "./liveScreenVerbs.ts";
@@ -139,7 +138,6 @@ export const screenStory = storyKit({
 			itemContextVerbs(engine, story.tell),
 			loaderObservations(engine, story.tell),
 			settlingVerbs(engine, screenData(engine, story.tell), ["deleteFile", "editFile", "failDocument", "recoverDocument", "startNavigation"]),
-			settlingVerbs(engine, diagramActions(engine, story.tell), ["diagramPalette", "drawings"]),
 			settlingVerbs(engine, interactions, ["readDraftRecoveries", "readDraftRecovery", "readInnerScrollers", "stored"]),
 			settlingVerbs(engine, sessionActions(engine, story.tell), ["readSessionFiles"]),
 			settlingVerbs(engine, sessionTransportActions(engine, story.tell), ["pauseCommand"]),

@@ -11,6 +11,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { postgresMigration } from "#adapters/postgresMigration.ts";
 import { postgresStore } from "#adapters/postgresStore.ts";
+import { postgresTestDatabase } from "#postgresTestDatabase.ts";
 import { rateLimit } from "#rateLimit.ts";
 import { Store } from "#Store.ts";
 import { limit, makeLimiter } from "./makeLimiter.ts";
@@ -35,15 +36,16 @@ export const postgres = storyKit({
 		const clone = yield* PostgresTestDatabase;
 		const remote = yield* Layer.build(postgresStore.pipe(Layer.provide(postgresLayer(clone.url, clientOptions({ maxConnections: 2 })))));
 		const limiter = yield* makeLimiter.pipe(Effect.provideContext(local));
-		return { limiter, local, remote, sql: yield* SqlClient.SqlClient };
+		return { limiter, local, remote, sql: yield* SqlClient.SqlClient, storage: yield* postgresTestDatabase };
 	},
 	layer: database,
 	name: "PostgreSQL rate limits",
 	runIf: url !== undefined,
 	stages: [],
-	verbs: ({ limiter, local, remote, sql }) => ({
+	verbs: ({ limiter, local, remote, sql, storage }) => ({
 		attempt: limiter.attempt,
 		burst: limiter.burst,
+		expireWindows: () => storage.expireWindows,
 		race: () =>
 			Effect.gen(function* () {
 				const options = { ...limit, per: 1 };

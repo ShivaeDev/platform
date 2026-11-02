@@ -53,7 +53,7 @@ export function appHostHttp<
 					const assets = options.assets === undefined ? Layer.empty : hostAssets(options.assets);
 					const application = Layer.mergeAll(options.services ?? Layer.empty);
 					const sessions = Layer.mergeAll(Layer.empty, ...(options.sessions === undefined ? [] : [options.sessions]));
-					const server = nodeHttpServer(host, options.config);
+					const server = nodeHttpServer(host, { ...options.config, maxBodySize: bodySize });
 					const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
 					const httpRoutes = Layer.mergeAll(
 						routes,

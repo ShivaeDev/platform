@@ -75,6 +75,7 @@ const Pushed = contract("pushed", {
 type PushedChanges = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Pushed>, "pushed.$changes">;
 expectTypeOf<Rpc.SuccessChunk<PushedChanges>>().toEqualTypeOf<
 	| SubscriptionHint
+	| { readonly _tag: "Unchanged"; readonly queryIndex: number }
 	| {
 			readonly _tag: "Result";
 			readonly query: "read";

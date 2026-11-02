@@ -88,6 +88,8 @@ function updateWords(update: QueryUpdate) {
 	switch (update._tag) {
 		case "Result":
 			return String(update.value);
+		case "Unchanged":
+			return "unchanged";
 		case "QueryReadDenied":
 			return "read denied";
 		case "Resync":

@@ -279,6 +279,20 @@ Client invalidation follows RPC success. Database hosts from `@shivaedev/server`
 
 `clientActivity(client)` from `@shivaedev/contract/clientActivity.ts` returns a native Effect `Stream` with a `current` Effect for a client made by `makeClient`. Its state reports `rpcCalls` for finite calls, `liveInvalidations` for queued live refreshes, `refreshingAtoms` for mounted query atoms awaiting values, and a `liveHints` sequence for received subscription updates. Long-lived streams do not count as finite calls. `isClientIdle(state)` is true when all three work counts are zero. Observe its stream or pass it to a test-story screen driver's `pending` option and call `settle()` before screen assertions. Coalesced work stays pending until its refresh completes.
 
+### Query completion
+
+`querySignals(query)` from `@shivaedev/contract/querySignals.ts` returns a native atom scoped to the query's registry. Its `completed` counter advances when the initial query or a refresh finishes, including typed failures and equal results. `pending` describes the query result awaiting completion. `subscription` is `disabled` for an ordinary query, `opening` while connecting, `open` once accepted, or `refused` after a terminal refusal. Read the query's `AsyncResult` for its value or typed failure.
+
+```ts
+import { querySignals } from "@shivaedev/contract/querySignals.ts";
+
+const signals = querySignals(one);
+const before = registry.get(signals).completed;
+const completions = AtomRegistry.toStream(registry, signals);
+```
+
+Mount the query to start it. Wait on `completions` for `completed > before` after an action that refreshes it; compare the counter rather than the result's identity. A server-pushed equal result completes without changing the visible value. Raw rerun-and-compare `$changes` consumers receive an `Unchanged` update with `queryIndex` for these completed reads. Clients and servers must understand the same stream schema.
+
 ### Session-owned keys
 
 A self-only feature, such as a user's preferences, reads and changes only the signed-in account's records. Declare its contract with `keyScope: "session"`. The server chooses the account from request-local identity, so payloads carry no owner field, and reads and invalidations name a logical item key for the record:
@@ -681,6 +695,7 @@ Import the module that defines the name; the package has no root entry.
 | `queryKeys.ts`            | `queryKeys(queries, references, viewer?)` authorizes references and resolves payload and server-derived keys using the provided services.                                                                                                                                                                                                                                                                                                      |
 | `QueryServerReads.ts`     | `QueryServerReads<Payload, E, R>`, the server-only resolver type.                                                                                                                                                                                                                                                                                                                                                                              |
 | `resume.ts`               | `resumeSignal({ window?, native? })`, returning a native numeric signal atom.                                                                                                                                                                                                                                                                                                                                                                  |
+| `querySignals.ts`         | `querySignals(query)` exposes completion counts and subscription status as a native atom.                                                                                                                                                                                                                                                                                                                                                      |
 | `clientActivity.ts`       | `clientActivity(client)` exposes a native activity Stream with a `current` Effect; `isClientIdle(state)` checks finite work.                                                                                                                                                                                                                                                                                                                   |
 | `testing.ts`              | `layerMemoryProtocol(group)` supplies an in-memory native RPC protocol backed by the group’s handlers and middleware; `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                                           |
 

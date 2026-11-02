@@ -22,6 +22,16 @@ export function purgeVerbs(engine: PurgeEngine, tell: (line: string) => void) {
 	function active() {
 		return engine.fiber === undefined ? Effect.die(new Error("Start a purge first")) : Effect.succeed(engine.fiber);
 	}
+	function hintName(key: unknown) {
+		switch (key) {
+			case table:
+				return "the table";
+			case `${table}:*`:
+				return "all item and bucket readers";
+			default:
+				return String(key);
+		}
+	}
 	return {
 		batchTransactions: () =>
 			Effect.map(
@@ -38,7 +48,7 @@ export function purgeVerbs(engine: PurgeEngine, tell: (line: string) => void) {
 				records.map((row) => row.removed),
 			),
 		finishPurge: () => Effect.flatMap(active(), Fiber.join),
-		hints: () => Effect.sync(() => engine.hints.map((keys) => keys.map((key) => (key === table ? "the table" : String(key))))),
+		hints: () => Effect.sync(() => engine.hints.map((keys) => keys.map(hintName))),
 		interruptPurge: () =>
 			Effect.gen(function* () {
 				tell("the running purge is interrupted between batches");

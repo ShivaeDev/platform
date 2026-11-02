@@ -2,15 +2,18 @@ import { useAtomValue } from "@effect/atom-react";
 import { Deferred, Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode } from "react";
 import { vi } from "vitest";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 interface State {
 	acquired: number;
 	first?: Rendered;
 	gate: Deferred.Deferred<string>;
+	pending?: Atom.Atom<boolean>;
 	released: number;
 	second?: Rendered;
 	value?: Atom.Atom<number>;
@@ -74,13 +77,22 @@ export const testing = storyKit({
 				}),
 			resources: () => ({ acquired: state.acquired, released: state.released }),
 			second: () => second(state),
+			settle: () => {
+				const view = first(state);
+				if (!state.pending) {
+					throw new Error("No pending result screen");
+				}
+				return screenDriver({ act, pending: AtomRegistry.toStream(view.registry, state.pending), root: view.container, tell: story.tell }).settle();
+			},
+			shown: () => screenDriver({ root: first(state).container, tell: story.tell }).text("output"),
 			warn: () => run("React logs a warning", () => vi.mocked(console.error)("Expected warning for the helper regression")),
 		};
 	},
 });
 export function pendingResultScreen() {
 	return testing.trait("screen", "a native atom awaiting a result", function* (state) {
-		const value = Atom.make(Deferred.await(state.gate).pipe(Effect.flatMap((result) => Effect.succeed(result).pipe(Effect.delay("20 millis")))));
+		const value = Atom.make(Deferred.await(state.gate));
+		state.pending = Atom.map(value, (result) => result.waiting);
 		state.first = yield* open(createElement(ResultProbe, { value }));
 	});
 }

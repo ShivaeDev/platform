@@ -1,7 +1,9 @@
 import type { BetterAuthOptions } from "better-auth";
-import { Effect, Schema } from "effect";
+import { Effect, Redacted, Schema } from "effect";
+import { postgresStore } from "@shivaedev/rate-limit/adapters/postgresStore.ts";
+import { rateLimit } from "@shivaedev/rate-limit/rateLimit.ts";
+import { Store } from "@shivaedev/rate-limit/Store.ts";
 import type { AuthEmail, BetterAuthEmails } from "#server/better-auth/emails.ts";
-import { emailWindow } from "#server/better-auth/emailWindow.ts";
 import type { hookRuntime } from "./hookRuntime.ts";
 
 type Outgoing = { [TKind in AuthEmail["_tag"]]: Omit<Extract<AuthEmail, { readonly _tag: TKind }>, "url"> }[AuthEmail["_tag"]];
@@ -16,15 +18,22 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 	if (emails === undefined) {
 		return options;
 	}
-	const { routes, deliver } = emails;
-	const claim = yield* emailWindow(emails.window);
+	const { routes, deliver, window = "1 minute" } = emails;
+	const store = yield* Store.pipe(Effect.provide(postgresStore));
 	function send(message: Outgoing, request?: Request) {
 		const url = new URL(routes[message._tag]);
 		if ("token" in message) {
-			url.searchParams.set("token", message.token);
+			url.searchParams.set("token", Redacted.value(message.token));
 		}
 		return runtime.runHook(
-			() => claim(message.user.id, message._tag).pipe(Effect.flatMap((allowed) => (allowed ? deliver({ ...message, url: url.href }) : Effect.void))),
+			() =>
+				rateLimit({ key: `identity:email:${JSON.stringify([message.user.id, message._tag])}`, per: 1, window }).pipe(
+					Effect.provideService(Store, store),
+					Effect.as(true),
+					Effect.catchTag("TooManyRequests", () => Effect.succeed(false)),
+					Effect.orDie,
+					Effect.flatMap((allowed) => (allowed ? deliver({ ...message, url: Redacted.make(url.href) }) : Effect.void)),
+				),
 			request?.signal,
 		);
 	}
@@ -34,7 +43,7 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 			...options.emailAndPassword,
 			enabled: options.emailAndPassword?.enabled ?? false,
 			onExistingUserSignUp: ({ user }, request) => send({ _tag: "AccountAlreadyExists", user }, request),
-			sendResetPassword: ({ user, token }, request) => send({ _tag: "ResetPassword", token, user }, request),
+			sendResetPassword: ({ user, token }, request) => send({ _tag: "ResetPassword", token: Redacted.make(token), user }, request),
 		},
 		emailVerification: {
 			...options.emailVerification,
@@ -42,7 +51,9 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 				const payload = token.split(".")[1] ?? "";
 				const { updateTo } = Schema.decodeUnknownSync(Schema.fromJsonString(Verification))(Buffer.from(payload, "base64url").toString("utf8"));
 				return send(
-					updateTo === undefined ? { _tag: "ConfirmAccount", token, user } : { _tag: "ConfirmNewAddress", newEmail: updateTo, token, user },
+					updateTo === undefined
+						? { _tag: "ConfirmAccount", token: Redacted.make(token), user }
+						: { _tag: "ConfirmNewAddress", newEmail: updateTo, token: Redacted.make(token), user },
 					request,
 				);
 			},
@@ -52,7 +63,8 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 			changeEmail: {
 				...options.user?.changeEmail,
 				enabled: options.user?.changeEmail?.enabled ?? false,
-				sendChangeEmailConfirmation: ({ user, newEmail, token }, request) => send({ _tag: "ApproveEmailChange", newEmail, token, user }, request),
+				sendChangeEmailConfirmation: ({ user, newEmail, token }, request) =>
+					send({ _tag: "ApproveEmailChange", newEmail, token: Redacted.make(token), user }, request),
 			},
 		},
 	} satisfies BetterAuthOptions;

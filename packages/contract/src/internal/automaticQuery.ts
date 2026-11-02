@@ -4,8 +4,10 @@ import * as Atom from "effect/reactivity/Atom";
 import type { LiveBound, LiveConnection } from "#automaticLive.ts";
 import { queryFailure } from "#internal/queryFailure.ts";
 import { queryResult } from "#internal/queryResult.ts";
+import { recordCompletion, recordSubscription } from "#internal/querySignals.ts";
 import type { LiveStatus } from "#live.ts";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
+import type { QuerySignals } from "#querySignals.ts";
 
 interface GateOptions<A, E> {
 	readonly assertOwner: (get: Atom.AtomContext) => void;
@@ -16,6 +18,7 @@ interface GateOptions<A, E> {
 	readonly pushed: boolean;
 	readonly ready: Atom.Writable<boolean>;
 	readonly signal: Atom.Atom<unknown>;
+	readonly signals: Atom.Writable<QuerySignals>;
 	readonly source: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
 	readonly statuses: Atom.Writable<ReadonlyMap<object, LiveStatus<unknown>>>;
 	readonly subscription: LiveBound[typeof LiveConnection];
@@ -29,6 +32,7 @@ export function automaticQuery<A, E>({
 	pushed,
 	ready,
 	signal,
+	signals,
 	source,
 	statuses,
 	subscription,
@@ -36,17 +40,20 @@ export function automaticQuery<A, E>({
 	const gated = Atom.readable(
 		(get) => {
 			assertOwner(get);
+			get.mount(signals);
 			const registry = get.registry;
 			const dispatcher = registry.schedulerAsync.makeDispatcher();
 			let denied = false;
 			let stopSource: (() => void) | undefined;
 			get.addFinalizer(() => stopSource?.());
 			get.set(ready, false);
+			get.set(signals, { ...get.once(signals), pending: true, subscription: "opening" });
 			get.once(queryCoalesceWindow(gated));
 			get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(atom), value), { immediate: true });
 			const token = {};
 			let active = true;
 			function observe(value: LiveStatus<unknown>) {
+				get.set(signals, recordSubscription(get.once(signals), value));
 				dispatcher.scheduleTask(() => {
 					if (active) {
 						registry.update(statuses, (current) => new Map([...current, [token, value]]));
@@ -81,6 +88,7 @@ export function automaticQuery<A, E>({
 				const publish = queryResult<A, E>(equivalent, (value) => {
 					if (!denied) {
 						get.setSelf(value);
+						get.set(signals, recordCompletion(get.once(signals), value));
 					}
 				});
 				stopSource = registry.subscribe(source, publish);
@@ -101,7 +109,9 @@ export function automaticQuery<A, E>({
 						stopSource?.();
 						stopSource = undefined;
 					}
-					get.setSelf(AsyncResult.failure(cause));
+					const result = AsyncResult.failure(cause);
+					get.setSelf(result);
+					get.set(signals, recordCompletion(get.once(signals), result));
 				},
 			);
 			get.subscribe(subscription.status, failed);
