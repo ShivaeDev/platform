@@ -1,8 +1,9 @@
+import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { webhooks } from "#test-support/webhooks.ts";
 
 webhooks.it("a signed delivery indexes issue 42 once even when github retries it", [], function* ({ deliver, answer, indexedIssues }) {
-	yield* outcomes([["indexed issues before delivery", () => indexedIssues(), []]]);
+	expect(yield* indexedIssues()).toEqual([]);
 
 	yield* deliver();
 

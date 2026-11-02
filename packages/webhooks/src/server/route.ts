@@ -39,7 +39,7 @@ function receiptFailure(error: unknown) {
 	);
 }
 
-export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<TJobs, R, E>): RouteLayer<TJobs, R>;
+export function webhookRoute<TJobs, R = never, E = never>(options: WebhookRouteOptions<TJobs, R, E>): RouteLayer<TJobs, R>;
 export function webhookRoute<TJobs, const TSources extends Readonly<Record<string, WebhookSource<unknown, unknown>>>>(
 	options: Pick<WebhookRouteOptions<TJobs, never>, "basePath" | "jobs"> & { readonly sources: TSources },
 ): RouteLayer<TJobs, SourceServices<TSources[keyof TSources]>>;
