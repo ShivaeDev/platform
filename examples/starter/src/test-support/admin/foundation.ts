@@ -1,6 +1,7 @@
 import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { makeClient } from "@shivaedev/contract/bind.ts";
+import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Admin, foundation } from "#admin/modules.ts";
@@ -14,13 +15,13 @@ export const foundationAdmin = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const host = yield* startHost();
-		return { cookies: new Map<string, string>(), host };
+		const host = yield* startHost({ jobsTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) });
+		return { cookies: new Map<string, string>(), host, workerTesting: makePgBossTesting({ retryPolicy: testRetryPolicy }) };
 	},
 	inspect: ({ host }) => ({ baseUrl: host.baseUrl }),
 	layer: postgres,
 	name: "foundation admin",
-	stages: ["accounts"],
+	stages: ["accounts", "worker"],
 	verbs: (engine, story) => {
 		const adminOf = Effect.fn("FoundationAdmin.adminOf")(function* (name: string) {
 			return yield* makeClient(foundation.UsersPage.contract, {
@@ -31,6 +32,16 @@ export const foundationAdmin = storyKit({
 			}).client;
 		});
 		return {
+			failedJobs: Effect.fn("FoundationAdmin.failedJobs")(function* (name: string, queue: string) {
+				story.tell(`${name} reads failed jobs in ${queue}`);
+				const admin = yield* adminOf(name);
+				return yield* answer(Effect.map(admin["admin.jobs.failed"]({ limit: 20, queue }), ({ jobs }) => jobs));
+			}),
+			jobDetail: Effect.fn("FoundationAdmin.jobDetail")(function* (name: string, queue: string, id: string) {
+				story.tell(`${name} inspects ${id} in ${queue}`);
+				const admin = yield* adminOf(name);
+				return yield* answer(Effect.map(admin["admin.jobs.job"]({ id, queue }), Option.getOrNull));
+			}),
 			jobHealth: Effect.fn("FoundationAdmin.jobHealth")(function* (name: string) {
 				story.tell(`${name} reads the job health page`);
 				const admin = yield* adminOf(name);
@@ -38,15 +49,32 @@ export const foundationAdmin = storyKit({
 					Effect.map(admin["admin.jobs.health"](), ({ activeTotal, failedTotal }) => ({ active: activeTotal, failed: failedTotal })),
 				);
 			}),
+			jobQueues: Effect.fn("FoundationAdmin.jobQueues")(function* (name: string) {
+				story.tell(`${name} reads the Jobs inventory`);
+				const admin = yield* adminOf(name);
+				return yield* answer(Effect.map(admin["admin.jobs.health"](), ({ jobs }) => jobs.map(({ name: queue }) => queue)));
+			}),
 			permissions: Effect.fn("FoundationAdmin.permissions")(function* (name: string) {
 				story.tell(`${name} reads her session's permissions`);
 				return yield* sessionPermissions(engine.host.baseUrl, engine.cookies.get(name) ?? "");
 			}),
+			requestsPasswordReset: (name: string) =>
+				Effect.promise(async () => {
+					story.tell(`${name} requests a password reset email`);
+					const response = await fetch(`${engine.host.baseUrl}/api/auth/request-password-reset`, {
+						body: JSON.stringify({ email: `${name}@app.test` }),
+						headers: { "content-type": "application/json", origin: engine.host.origin },
+						method: "POST",
+					});
+					await response.text();
+					return response.status;
+				}),
 			users: Effect.fn("FoundationAdmin.users")(function* (name: string) {
 				story.tell(`${name} reads the users page`);
 				const admin = yield* adminOf(name);
 				return yield* answer(Effect.map(admin["admin.users.list"]({ limit: 20 }), ({ users }) => users.map(({ email }) => email)));
 			}),
+			workersFinish: () => engine.workerTesting.waitForIdle,
 		};
 	},
 });
