@@ -10,12 +10,12 @@ import { migrateBetterAuth } from "@shivaedev/identity/server/better-auth/adapte
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/adapters/tables.ts";
 import { betterAuthUserDirectory } from "@shivaedev/identity/server/better-auth/adapters/userDirectory.ts";
-import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { DirectoryUser } from "@shivaedev/identity/users.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
-import { UsersPermission } from "#permissions.ts";
+import { adminRegistry } from "#registry.ts";
+import { registerAdmin } from "#server/registerAdmin.ts";
 import { usersHandlers } from "#server/usersHandlers.ts";
 import { usersPage } from "#users/page.ts";
 import { Access } from "./Access.ts";
@@ -57,7 +57,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 		["bob", "user"],
 		["carol", "auditor"],
 	] as const) {
-		yield* register(id, role);
+		yield* register(id, role, new Date("2026-10-20T12:34:56Z"));
 	}
 	const logs: LogRecord[] = [];
 	const spans: Tracer.NativeSpan[] = [];
@@ -75,7 +75,8 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 	]);
 	const reactivity = Layer.succeed(Reactivity.Reactivity, yield* Reactivity.make);
 	const live = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(reactivity))));
-	const handlers = Layer.merge(usersHandlers(Page), hostChanges(Page.contract)).pipe(
+	const registration = registerAdmin(adminRegistry(Page), { users: usersHandlers(Page) });
+	const handlers = Layer.merge(registration.handlers, hostChanges(registration.group)).pipe(
 		Layer.provide(Layer.succeed(LiveServer, live)),
 		Layer.provide(betterAuthUserDirectory(Access, authOptions)),
 		Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
@@ -90,11 +91,10 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 		);
 	}
 	function protocolAs(id: string) {
-		const authLayer = permissionLayer(UsersPermission);
 		return Effect.gen(function* () {
 			const app = HttpRouter.toWebHandler(
-				RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(
-					Layer.provide([handlers, authLayer, RpcSerialization.layerNdjson, Layer.succeed(Tracer.Tracer, tracer)]),
+				RpcServer.layerHttp({ group: registration.group, path: "/rpc", protocol: "http" }).pipe(
+					Layer.provide([handlers, RpcSerialization.layerNdjson, Layer.succeed(Tracer.Tracer, tracer)]),
 					Layer.provide(Layer.succeed(SessionPolicy, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access })),
 				),
 				{ disableLogger: true },
