@@ -1,12 +1,9 @@
 import { deserialize, serialize } from "node:v8";
 import { Effect, FileSystem, Schema } from "effect";
-import type { Vitest } from "vitest/node";
+import type { Task } from "#adapters/tasks.ts";
 import { failWith } from "#error.ts";
 import { FlakyTest } from "#flakyTests.ts";
 import { SnapshotFiles } from "./SnapshotFiles.ts";
-
-export type Files = ReturnType<Vitest["state"]["getFiles"]>;
-export type Task = Files[number]["tasks"][number];
 
 export interface FailureHistory {
 	readonly attempts: number;

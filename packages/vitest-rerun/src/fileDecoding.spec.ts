@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { filesStory, reportFile, snapshotFile } from "#test/fileKit.ts";
 
 for (const format of ["truncated", "older", "invalid task", "invalid history", "invalid flaky test"] as const) {

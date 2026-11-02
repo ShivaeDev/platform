@@ -59,12 +59,6 @@ export function stoppedPinnedContainer() {
 	});
 }
 
-export function noContainer() {
-	return postgres.trait("machine", "no managed container exists", (engine) => {
-		engine.plan.push(...containerPlan("missing"));
-	});
-}
-
 export function outdatedContainer() {
 	return postgres.trait("machine", "the managed container exists with the older image postgres:17-alpine", (engine) => {
 		engine.plan.push(...containerPlan("outdated"));
