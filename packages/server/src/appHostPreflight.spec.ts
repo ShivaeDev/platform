@@ -1,9 +1,16 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { AppId, preflight } from "#test/app-host/preflight.ts";
-import { environment, host, startupFails } from "#test/app-host/story.ts";
+import { environment, host, postgresHost, startupFails } from "#test/app-host/story.ts";
 
-for (const mode of ["http", "migrate", "check", "wait"] as const) {
+const hosts: readonly [Pick<typeof host, "it">, Parameters<typeof preflight>[0]][] = [
+	[host, "http"],
+	[postgresHost, "migrate"],
+	[postgresHost, "check"],
+	[postgresHost, "wait"],
+];
+
+for (const [kit, mode] of hosts) {
 	for (const deferred of mode === "http" ? [false] : [false, true]) {
 		const label = `a ${mode} host${deferred ? " with deferred construction" : ""}`;
 		const started = [
@@ -14,7 +21,7 @@ for (const mode of ["http", "migrate", "check", "wait"] as const) {
 			"started",
 		];
 
-		host.it(
+		kit.it(
 			`an empty APP_ID fails ${label} at preflight before migrations or application startup`,
 			[preflight(mode, deferred), environment({ "APP_ID": "" }), startupFails],
 			function* ({ serviceLifecycle, startup }) {
@@ -25,7 +32,7 @@ for (const mode of ["http", "migrate", "check", "wait"] as const) {
 			},
 		);
 
-		host.it(
+		kit.it(
 			`${label} records ${started.join(", ")} in that order during startup`,
 			[preflight(mode, deferred), environment({ "APP_ID": "valid-app" })],
 			function* ({ serviceLifecycle }) {
@@ -33,7 +40,7 @@ for (const mode of ["http", "migrate", "check", "wait"] as const) {
 			},
 		);
 
-		host.it(
+		kit.it(
 			`${label} shares the preflight's app ID with the host and its handlers`,
 			[preflight(mode, deferred), environment({ "APP_ID": "valid-app" })],
 			function* ({ ping, provided }) {
@@ -44,7 +51,7 @@ for (const mode of ["http", "migrate", "check", "wait"] as const) {
 			},
 		);
 
-		host.it(
+		kit.it(
 			`closing ${label} releases the preflight's services`,
 			[preflight(mode, deferred), environment({ "APP_ID": "valid-app" })],
 			function* ({ close, serviceLifecycle }) {

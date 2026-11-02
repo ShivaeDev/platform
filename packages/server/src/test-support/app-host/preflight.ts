@@ -1,10 +1,10 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Context, Effect, Layer, Schema } from "effect";
-import { Migrator, SqlClient } from "effect/sql";
+import { Migrator } from "effect/sql";
 import { appDatabase } from "#appDatabase.ts";
 import { appHost } from "#appHost.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { Ping } from "./ping.ts";
+import { databaseOf } from "./state.ts";
 import { host } from "./story.ts";
 
 export class AppId extends Context.Service<AppId, string>()("@test/PreflightAppId") {}
@@ -49,8 +49,8 @@ export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred 
 				state.build = () => appHost({ ...options, preflight: validation });
 				return;
 			}
-			const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
-			const table = `preflight_${crypto.randomUUID().replaceAll("-", "")}`;
+			const databaseUrl = databaseOf(state).url;
+			const table = "preflight_migrations";
 			const loader = Migrator.fromRecord({ "001_prepare": Effect.sync(() => state.lifecycle.push("migrated")) });
 			const migrations: MigrationOptions<AppId> = {
 				loader: Effect.gen(function* () {
@@ -62,14 +62,6 @@ export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred 
 				table,
 			};
 			const config = { databaseUrl };
-			state.cleanup.push(() =>
-				Effect.runPromise(
-					SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}`).pipe(
-						Effect.provide(PgClient.layer({ url: databaseUrl })),
-						Effect.asVoid,
-					),
-				),
-			);
 			if (mode === "check" || mode === "wait") {
 				yield* Layer.build(appDatabase({ config, migrations: { loader, table } })).pipe(Effect.scoped);
 				state.lifecycle.length = 0;

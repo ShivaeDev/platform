@@ -1,23 +1,26 @@
-import { Effect, Exit, Result, Scope } from "effect";
-import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
+import { Effect, Exit, Redacted, Result, Scope } from "effect";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { hostProcess } from "#testing/hostProcess.ts";
 
 const options = { execArgv: ["--conditions=source"], module: new URL("./process.ts", import.meta.url) };
 
 interface ProcessHostState {
+	databaseUrl?: Redacted.Redacted<string>;
 	host?: Effect.Success<ReturnType<typeof hostProcess>>;
 	readonly scope: Scope.Closeable;
 }
 
-export const processHost = storyKit({
-	clock: "live",
+const processOptions = {
+	clock: "live" as const,
 	*create(): Effect.fn.Return<ProcessHostState> {
 		return { scope: yield* Scope.make() };
 	},
 	name: "host child process",
 	stages: [],
-	verbs: (state, story) => {
+	verbs: (state: ProcessHostState, story: { tell: (line: string) => void }) => {
 		function running() {
 			if (state.host === undefined) {
 				throw new Error("Launch the host before reading it");
@@ -37,7 +40,10 @@ export const processHost = storyKit({
 				story.tell(`the ${mode} host launches and reports readiness over IPC`);
 				return Effect.gen(function* () {
 					yield* Effect.addFinalizer(() => Scope.close(state.scope, Exit.void));
-					state.host = yield* hostProcess({ ...options, args: [mode] }).pipe(Effect.provideService(Scope.Scope, state.scope));
+					state.host = yield* hostProcess({
+						...options,
+						args: [mode, ...(state.databaseUrl === undefined ? [] : [Redacted.value(state.databaseUrl)])],
+					}).pipe(Effect.provideService(Scope.Scope, state.scope));
 				});
 			},
 			launchFailure: () => {
@@ -57,6 +63,17 @@ export const processHost = storyKit({
 				),
 		};
 	},
-});
+};
 
-export const postgresConfigured = postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured;
+export const processHost = storyKit(processOptions);
+export const postgresProcessHost = storyKit({
+	...processOptions,
+	around: withIsolatedDatabase,
+	*create() {
+		const state = yield* processOptions.create();
+		state.databaseUrl = (yield* PostgresTestDatabase).url;
+		return state;
+	},
+	layer: postgres,
+	runIf: databaseUrl !== undefined,
+});

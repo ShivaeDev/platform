@@ -4,17 +4,17 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failedMigration, migratedSql, postgresFeature } from "#test/app-host/database.ts";
 import { assets } from "#test/app-host/options.ts";
-import { host, sessionPolicy, startupFails } from "#test/app-host/story.ts";
+import { host, postgresHost, sessionPolicy, startupFails } from "#test/app-host/story.ts";
 
-host.it("an RPC handler queries the migrated database when the host declares no services", [migratedSql], function* ({ ping }) {
+postgresHost.it("an RPC handler queries the migrated database when the host declares no services", [migratedSql], function* ({ ping }) {
 	expect(yield* ping()).toBe("pong");
 });
 
-host.it("application services start after migrations and read the table they created", [postgresFeature], function* ({ greet }) {
+postgresHost.it("application services start after migrations and read the table they created", [postgresFeature], function* ({ greet }) {
 	expect(yield* greet("alice")).toBe("Hello, alice");
 });
 
-host.it(
+postgresHost.it(
 	"a failed migration fails startup before application services start",
 	[failedMigration, startupFails],
 	function* ({ serviceLifecycle, startup }) {
@@ -25,19 +25,19 @@ host.it(
 	},
 );
 
-host.it("concurrent RPC calls each answer with their own session", [postgresFeature], function* ({ greet }) {
+postgresHost.it("concurrent RPC calls each answer with their own session", [postgresFeature], function* ({ greet }) {
 	expect(yield* Effect.all([greet("alice"), greet("bob")], { concurrency: "unbounded" })).toEqual(["Hello, alice", "Hello, bob"]);
 });
 
-host.it("a signed-out RPC call reaches the native client as unauthorized", [postgresFeature], function* ({ greetSignedOut }) {
+postgresHost.it("a signed-out RPC call reaches the native client as unauthorized", [postgresFeature], function* ({ greetSignedOut }) {
 	expect(yield* greetSignedOut()).toBe("failed with unauthorized");
 });
 
-host.it("a handler's typed conflict reaches the native client as conflict", [postgresFeature], function* ({ greetWithTakenName }) {
+postgresHost.it("a handler's typed conflict reaches the native client as conflict", [postgresFeature], function* ({ greetWithTakenName }) {
 	expect(yield* greetWithTakenName("alice")).toBe("failed with conflict");
 });
 
-host.it("a session store outage reaches the native client as auth unavailable", [postgresFeature], function* ({ greetDuringSessionOutage }) {
+postgresHost.it("a session store outage reaches the native client as auth unavailable", [postgresFeature], function* ({ greetDuringSessionOutage }) {
 	expect(yield* greetDuringSessionOutage()).toBe("failed with auth unavailable");
 });
 

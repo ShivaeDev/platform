@@ -1,14 +1,11 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { databaseAddress } from "#test/app-host/databaseAddress.ts";
 import { nativeTracing } from "#test/app-host/nativeTracing.ts";
-import { hostOptions } from "#test/app-host/story.ts";
-
-const host = storyKit(hostOptions({ database: true }));
+import { postgresHost } from "#test/app-host/story.ts";
 
 for (const source of ["authority", "parameters"] as const) {
-	host.it(
+	postgresHost.it(
 		`the host reaches the server named by the DATABASE_URL ${source} and keeps the URL redacted`,
 		[databaseAddress(source), nativeTracing],
 		function* ({ queryThroughHost, referenceConnection }) {
@@ -18,7 +15,7 @@ for (const source of ["authority", "parameters"] as const) {
 		},
 	);
 
-	host.it(
+	postgresHost.it(
 		`SQL spans name the DATABASE_URL ${source} host and port`,
 		[databaseAddress(source), nativeTracing],
 		function* ({ databasePort, queryThroughHost, sqlSpanDestination }) {
@@ -30,7 +27,7 @@ for (const source of ["authority", "parameters"] as const) {
 		},
 	);
 
-	host.it(
+	postgresHost.it(
 		`SQL spans carry neither the DATABASE_URL ${source} nor its credentials`,
 		[databaseAddress(source), nativeTracing],
 		function* ({ queryThroughHost, sqlSpanDestination, sqlSpanSecrets }) {

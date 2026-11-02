@@ -1,7 +1,7 @@
 import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer } from "effect";
+import { Effect, Layer, Redacted } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { appHost } from "#appHost.ts";
 import { acknowledgeHostSignal, reportHostReady } from "#testing/hostProcessChild.ts";
@@ -20,7 +20,10 @@ NodeRuntime.runMain(
 				Effect.sync(() => HttpServerResponse.text(greeting, { headers: { "x-greeting": greeting } })),
 			),
 		);
-		const services = process.argv[2] === "database" ? PgClient.layer({ url: yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL") }) : Layer.empty;
+		const services =
+			process.argv[2] === "database"
+				? PgClient.layer({ url: Redacted.make(process.argv[3] ?? "postgresql://integration-tests-disabled") })
+				: Layer.empty;
 		const context = yield* Layer.build(appHost({ config: { port: 0 }, group: Ping, handlers: pingHandlers, policy: "loopback", routes, services }));
 		function handle() {
 			greeting = "goodbye";

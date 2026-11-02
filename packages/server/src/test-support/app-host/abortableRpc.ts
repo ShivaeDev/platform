@@ -1,16 +1,17 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { appHost } from "#appHost.ts";
 import { AbortApi, abortHandlers, CHANGED_KEY, type ClientAbortState, changed } from "./clientAbortFixture.ts";
-import { host } from "./story.ts";
+import { databaseOf } from "./state.ts";
+import { postgresHost } from "./story.ts";
 
 export function abortableRpc(mode: "transaction" | "subscription") {
-	return host.trait("configured", `a PostgreSQL host serves an abortable ${mode}`, function* (state) {
-		const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
-		const table = `abort_${crypto.randomUUID().replaceAll("-", "")}`;
+	return postgresHost.trait("configured", `a PostgreSQL host serves an abortable ${mode}`, function* (state) {
+		const databaseUrl = databaseOf(state).url;
+		const table = "abort_items";
 		const ledger = `${table}_migrations`;
 		const probe: ClientAbortState = {
 			applicationName: table,
@@ -26,14 +27,6 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 		};
 		state.clientAbort = probe;
 		state.minimumLogLevel = "Debug";
-		state.cleanup.push(() =>
-			Effect.runPromise(
-				SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}, ${sql(ledger)}`).pipe(
-					Effect.provide(PgClient.layer({ url: databaseUrl })),
-					Effect.asVoid,
-				),
-			),
-		);
 		const application = Effect.gen(function* () {
 			const reactivity = yield* Reactivity.Reactivity;
 			const register = reactivity.registerUnsafe;

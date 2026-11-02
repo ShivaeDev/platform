@@ -1,8 +1,10 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import * as PgPool from "@effect/sql-pg/PgPool";
-import { Config, Context, Deferred, Effect, Fiber, Layer, Predicate } from "effect";
+import { Context, Deferred, Effect, Fiber, Layer, Predicate } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { postgres, databaseUrl as testDatabaseUrl } from "@shivaedev/test-sql/server/emptyPostgres.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#appDatabase.ts";
@@ -34,7 +36,7 @@ function heldTransaction(sql: SqlClient.SqlClient, state: PoolState, release: De
 export const pool = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: PoolState) {
-			const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
+			const databaseUrl = (yield* PostgresTestDatabase).url;
 			const config = { databaseUrl, host: "127.0.0.1", maxConnections: state.limit, port: 0 };
 			const migrations = { loader: Migrator.fromRecord({}) };
 			const database = appDatabase({ config, migrations });
@@ -44,11 +46,13 @@ export const pool = storyKit({
 			state.pool = Context.get(context, PgPool.PgPool);
 		}),
 	},
+	around: withIsolatedDatabase,
 	clock: "live",
 	create: () => Effect.sync((): PoolState => ({ limit: 3, mode: "database", releases: new Map() })),
 	inspect: (state) => ({ heldBackends: [...state.releases.keys()], limit: state.limit, mode: state.mode }),
+	layer: postgres,
 	name: "host pool",
-	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
+	runIf: testDatabaseUrl !== undefined,
 	stages: ["configured"],
 	verbs: (state, story) => {
 		function client() {
@@ -110,7 +114,7 @@ export const pool = storyKit({
 				story.tell(`an administrator terminates idle application backend ${pid}`);
 				return Effect.scoped(
 					Effect.gen(function* () {
-						const url = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
+						const url = (yield* PostgresTestDatabase).url;
 						yield* Effect.gen(function* () {
 							const admin = yield* SqlClient.SqlClient;
 							yield* admin`select pg_terminate_backend(${pid}, 5000)`;

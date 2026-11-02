@@ -1,9 +1,9 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Predicate } from "effect";
+import { Effect, Predicate } from "effect";
 import { SqlClient } from "effect/sql";
 import { words } from "@shivaedev/test-story/server/answers.ts";
 import { type ClientAbortState, observed } from "./clientAbortFixture.ts";
-import { type HostState, io } from "./state.ts";
+import { databaseOf, type HostState, io } from "./state.ts";
 import { attributesOf } from "./traceVerbs.ts";
 import { wireAnswers } from "./wireAnswers.ts";
 
@@ -72,9 +72,12 @@ export function clientAbortVerbs(state: HostState, tell: (line: string) => void)
 		},
 		connectionStates: () =>
 			Effect.gen(function* () {
-				const url = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
+				const url = databaseOf(state).url;
 				const rows = yield* SqlClient.SqlClient.use(
-					(sql) => sql<{ state: string }>`select state from pg_stat_activity where application_name = ${probeOf(state).applicationName}`,
+					(sql) =>
+						sql<{
+							state: string;
+						}>`select state from pg_stat_activity where datname = current_database() and application_name = ${probeOf(state).applicationName}`,
 				).pipe(Effect.provide(PgClient.layer({ url })));
 				return rows.map((row) => row.state);
 			}),

@@ -1,13 +1,14 @@
-import { Config, Effect } from "effect";
+import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
 import { appHost } from "#appHost.ts";
 import { databaseIdentity } from "./databaseVerbs.ts";
 import { Ping } from "./ping.ts";
-import { host } from "./story.ts";
+import { databaseOf } from "./state.ts";
+import { postgresHost } from "./story.ts";
 
 export function databaseAddress(source: "authority" | "parameters") {
-	return host.trait("configured", `PostgreSQL uses the DATABASE_URL ${source} address`, function* (state) {
-		const url = new URL(yield* Config.String("PLATFORM_SQL_TEST_DATABASE_URL"));
+	return postgresHost.trait("configured", `PostgreSQL uses the DATABASE_URL ${source} address`, function* (state) {
+		const url = new URL(Redacted.value(databaseOf(state).url));
 		url.hostname = "127.0.0.1";
 		if (source === "parameters") {
 			url.searchParams.set("host", url.hostname);
