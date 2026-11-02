@@ -1,8 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import process from "node:process";
 import { Effect } from "effect";
-import ts from "typescript";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { linkPackage, type SeedFile } from "./tree.ts";
 
@@ -19,19 +21,18 @@ function writeAll(root: string, files: readonly SeedFile[]): void {
 }
 
 function emit(root: string): NonNullable<BuildEngine["built"]> {
-	const parsed = ts.getParsedCommandLineOfConfigFile(
-		join(root, "tsconfig.build.json"),
-		{},
-		{ ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined },
-	);
-	if (parsed === undefined) {
-		throw new Error("the build config did not parse");
+	const compiler = join(dirname(createRequire(import.meta.url).resolve("@typescript/native/package.json")), "bin", "tsc");
+	const result = spawnSync(process.execPath, [compiler, "--project", "tsconfig.build.json"], { cwd: root, encoding: "utf8" });
+	if (result.error !== undefined) {
+		throw result.error;
 	}
-	const declarations = new Map<string, string>();
-	const program = ts.createProgram({ options: parsed.options, rootNames: parsed.fileNames });
-	const result = program.emit(undefined, (name, text) => declarations.set(name.slice(join(root, "dist").length + 1), text), undefined, true);
-	const diagnostics = [...program.getOptionsDiagnostics(), ...result.diagnostics];
-	return { declarations, diagnostics: diagnostics.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")) };
+	const dist = join(root, "dist");
+	const declarations = new Map(
+		readdirSync(dist, { encoding: "utf8", recursive: true })
+			.filter((name) => name.endsWith(".d.ts"))
+			.map((name) => [name, readFileSync(join(dist, name), "utf8")]),
+	);
+	return { declarations, diagnostics: result.status === 0 ? [] : [result.stdout, result.stderr, `tsc exited ${result.status}`] };
 }
 
 function built(engine: BuildEngine): NonNullable<BuildEngine["built"]> {
@@ -56,7 +57,7 @@ export const packageBuild = storyKit({
 	verbs: (engine, story) => ({
 		builds: () =>
 			Effect.sync(() => {
-				story.tell("TypeScript emits the package's declarations with tsconfig.build.json");
+				story.tell("the supported TypeScript 7 CLI builds the package and emits its declarations with tsconfig.build.json");
 				engine.built = emit(engine.root);
 			}),
 		declaration: (path: string) => Effect.sync(() => built(engine).declarations.get(path)),
