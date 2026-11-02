@@ -101,7 +101,7 @@ application.it("the generated CI workflow runs the tests with coverage and uploa
 	]);
 });
 
-application.it("the generated app's Git ignores the coverage reports CI writes", [], function* ({ createApp, gitState }) {
+application.it("the generated app's Git ignores coverage and test rerun reports", [], function* ({ createApp, gitState }) {
 	yield* createApp("demo");
 
 	yield* outcomes([
@@ -109,6 +109,8 @@ application.it("the generated app's Git ignores the coverage reports CI writes",
 		["coverage/junit.xml", () => gitState("coverage/junit.xml"), "ignored"],
 		["coverage/lcov.info", () => gitState("coverage/lcov.info"), "ignored"],
 		["coverage/measured-commits.txt", () => gitState("coverage/measured-commits.txt"), "ignored"],
+		["test-results/tests.junit.xml", () => gitState("test-results/tests.junit.xml"), "ignored"],
+		["test-results/flaky-tests.json", () => gitState("test-results/flaky-tests.json"), "ignored"],
 	]);
 });
 

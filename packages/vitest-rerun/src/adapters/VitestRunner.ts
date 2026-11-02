@@ -83,7 +83,13 @@ const open = Effect.fn("VitestRerun.open")(function* (input: RunOptions) {
 				}
 				yield* promise("Vitest could not rerun the failed tests", () => vitest.runTestSpecifications(failed));
 			}),
-		start: () => promise("Vitest could not run the tests", () => vitest.start(filter)).pipe(Effect.asVoid),
+		start: () =>
+			promise("Vitest could not run the tests", () => vitest.start(filter)).pipe(
+				Effect.catchTag("VitestRerunError", (error) =>
+					vitest.config.passWithNoTests && error.cause instanceof VitestNode.TestsNotFoundError ? Effect.void : Effect.fail(error),
+				),
+				Effect.asVoid,
+			),
 	};
 });
 

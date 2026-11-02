@@ -6,5 +6,5 @@
 		}
 	},
 	"extends": "@shivaedev/quality/tsconfig/app.json",
-	"include": ["src", ".railway", "vite.config.ts", "vitest.config.ts"]
+	"include": ["src", "tooling", ".railway", "vite.config.ts", "vitest.config.ts"]
 }

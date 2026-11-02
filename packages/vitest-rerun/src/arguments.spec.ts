@@ -3,6 +3,21 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { argumentStory } from "#test/argumentStory.ts";
 import { rerunStory } from "#test/kit.ts";
 
+rerunStory.it("an empty run succeeds with --passWithNoTests", [], function* ({ runExecutable, exitCode }) {
+	yield* runExecutable("--passWithNoTests");
+
+	expect(yield* exitCode()).toBe(0);
+});
+
+rerunStory.it("an empty run fails without --passWithNoTests", [], function* ({ runExecutable, printedError, exitCode }) {
+	yield* runExecutable();
+
+	yield* outcomes([
+		["exit code", () => exitCode(), 1],
+		["diagnostic", () => printedError(), expect.stringContaining("No test files found")],
+	]);
+});
+
 argumentStory.it("an invalid Vitest argument fails the attempt with a typed error naming the argument", [], function* ({ attempt }) {
 	expect(yield* attempt("--silent=invalid")).toContain('VitestRerunError: Could not parse Vitest arguments: Unexpected value "--silent=invalid"');
 });
