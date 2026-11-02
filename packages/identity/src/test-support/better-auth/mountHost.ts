@@ -4,9 +4,9 @@ import type { BetterAuthOptions, BetterAuthRateLimitOptions } from "better-auth"
 import { ConfigProvider, Context, Effect, Layer, Logger, type LogLevel, Tracer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import type { BearerSessionsOptions } from "#server/better-auth/bearerSessions.ts";
-import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import type { BearerSessionsOptions } from "#server/better-auth/adapters/bearerSessions.ts";
+import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIp.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 
 export const FORWARDED_HEADERS = ["x-forwarded-for", "x-real-ip"] as const;
 

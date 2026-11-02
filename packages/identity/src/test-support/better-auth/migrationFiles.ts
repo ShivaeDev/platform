@@ -4,8 +4,8 @@ import type { BetterAuthOptions } from "better-auth";
 import { Effect, FileSystem, type Scope } from "effect";
 import { Migrator, type SqlClient } from "effect/sql";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
+import { generateBetterAuthMigration } from "#server/better-auth/adapters/migrations/generate.ts";
 import type { StoredRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
-import { generateBetterAuthMigration } from "#server/better-auth/migrations/generate.ts";
 
 export const authMigrationFiles = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem.pipe(Effect.provide(NodeServices.layer));

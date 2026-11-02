@@ -5,7 +5,7 @@ import { HttpRouter, HttpServer, HttpServerRequest } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "#appHost.ts";

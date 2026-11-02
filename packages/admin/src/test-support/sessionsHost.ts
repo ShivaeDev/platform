@@ -11,7 +11,7 @@ import { clientActivity } from "@shivaedev/contract/clientActivity.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { sessionsHandlers } from "@shivaedev/identity/server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";

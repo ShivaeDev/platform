@@ -1,8 +1,8 @@
 import { getIP } from "better-auth/api";
-import { Option } from "effect";
-import type { HttpServerRequest } from "effect/http";
-import { trustedProxyPeer } from "#server/local.ts";
-import { trustedProxyRanges } from "#server/trustedProxyRanges.ts";
+import { Effect, Option } from "effect";
+import { HttpServerRequest } from "effect/http";
+import { trustedProxyPeer } from "#server/adapters/local.ts";
+import { trustedProxyRanges } from "#server/adapters/trustedProxyRanges.ts";
 
 export const PEER_IP_HEADER = "x-platform-client-ip";
 
@@ -22,7 +22,8 @@ export function clientIpHeaders(options: {
 	const resolved = {
 		advanced: { ipAddress: { ...advanced.ipAddress, ipAddressHeaders: [PEER_IP_HEADER], trustedProxies: [] } },
 	};
-	return (request: HttpServerRequest.HttpServerRequest, web: Request) => {
+	return Effect.fnUntraced(function* (web: Request) {
+		const request = yield* HttpServerRequest.HttpServerRequest;
 		web.headers.delete(PEER_IP_HEADER);
 		const trusted = Option.exists(request.remoteAddress, trustedPeer);
 		const forwardedIp = trusted && web.headers.has(options.clientIpHeader) ? getIP(web, { advanced }) : null;
@@ -35,5 +36,5 @@ export function clientIpHeaders(options: {
 			web.headers.set(PEER_IP_HEADER, address);
 		}
 		return { address: getIP(web, resolved), source: forwardedIp === null ? "peer" : "forwarded" };
-	};
+	});
 }
