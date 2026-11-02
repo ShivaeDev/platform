@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Redacted } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { aliceAccount, approvalRequested, bobAccount, deliveryHeld, emails, twoMinuteWindow } from "#test/better-auth/emails.ts";
@@ -26,13 +26,39 @@ for (const [kind, path] of [
 				...(change ? { newEmail: "alice-new@example.test" } : {}),
 				user: { email: kind === "ConfirmNewAddress" ? "alice-new@example.test" : "alice@example.test", name: "alice" },
 			});
-			const link = new URL(message?.url ?? "");
+			const link = new URL(message === undefined ? "" : Redacted.value(message.url));
 			if (message !== undefined && "token" in message) {
-				expect(message.token.length).toBeGreaterThan(0);
-				expect(link.searchParams.get("token")).toBe(message.token);
+				expect(Redacted.value(message.token).length).toBeGreaterThan(0);
+				expect(link.searchParams.get("token")).toBe(Redacted.value(message.token));
 				link.searchParams.delete("token");
 			}
 			expect(link.href).toBe(`https://app.example.test${path}`);
+		},
+	);
+
+	emails.it(
+		`${kind} keeps its delivered link and token redacted in logs and traces`,
+		traits,
+		function* ({ request, messages, deliveryLogs, deliveryTraces }) {
+			yield* request(kind);
+
+			const delivered = yield* messages(kind);
+			expect(delivered).toMatchObject([{ _tag: kind }]);
+			for (const message of delivered) {
+				expect(Redacted.isRedacted(message.url)).toBe(true);
+				const secrets = [Redacted.value(message.url)];
+				if ("token" in message) {
+					expect(Redacted.isRedacted(message.token)).toBe(true);
+					secrets.push(Redacted.value(message.token));
+				}
+				for (const readout of [yield* deliveryLogs(), yield* deliveryTraces()]) {
+					expect(readout).toContain(kind);
+					expect(readout).toContain("<redacted>");
+					for (const secret of secrets) {
+						expect(readout).not.toContain(secret);
+					}
+				}
+			}
 		},
 	);
 

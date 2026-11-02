@@ -4,9 +4,11 @@ import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { AuthEmail } from "#server/better-auth/emails.ts";
+import { recorder } from "#test/rpc/harness.ts";
 
 export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input) {
 	const messages: AuthEmail[] = [];
+	const recorded = recorder();
 	const delivery = { available: true, held: false };
 	const started = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
@@ -18,8 +20,10 @@ export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input) {
 		if (!delivery.available) {
 			return yield* Effect.fail({ code: "MAIL_UNAVAILABLE", message: "Mail is unavailable" });
 		}
+		yield* Effect.log(message);
+		yield* Effect.annotateCurrentSpan("auth.email", message);
 		messages.push(message);
-	});
+	}, Effect.withSpan("AuthEmail.deliver"));
 	const mounted = yield* betterAuthMount(
 		{
 			"baseURL": "https://auth.example.test",
@@ -45,9 +49,9 @@ export const emailHost = Effect.fnUntraced(function* (window?: Duration.Input) {
 			hardening: { requirePasswordForEmailChange: false },
 		},
 	)
-		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(recorded.layer), Effect.provide(memoryStore))
 		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 	const context = yield* Effect.promise(() => mounted.auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
-	return { auth: mounted.auth, delivery, messages, release, started };
+	return { auth: mounted.auth, delivery, messages, recorded, release, started };
 });

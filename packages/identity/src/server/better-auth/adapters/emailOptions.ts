@@ -1,5 +1,5 @@
 import type { BetterAuthOptions } from "better-auth";
-import { Effect, Schema } from "effect";
+import { Effect, Redacted, Schema } from "effect";
 import type { AuthEmail, BetterAuthEmails } from "#server/better-auth/emails.ts";
 import { emailWindow } from "#server/better-auth/emailWindow.ts";
 import type { hookRuntime } from "./hookRuntime.ts";
@@ -21,10 +21,13 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 	function send(message: Outgoing, request?: Request) {
 		const url = new URL(routes[message._tag]);
 		if ("token" in message) {
-			url.searchParams.set("token", message.token);
+			url.searchParams.set("token", Redacted.value(message.token));
 		}
 		return runtime.runHook(
-			() => claim(message.user.id, message._tag).pipe(Effect.flatMap((allowed) => (allowed ? deliver({ ...message, url: url.href }) : Effect.void))),
+			() =>
+				claim(message.user.id, message._tag).pipe(
+					Effect.flatMap((allowed) => (allowed ? deliver({ ...message, url: Redacted.make(url.href) }) : Effect.void)),
+				),
 			request?.signal,
 		);
 	}
@@ -34,7 +37,7 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 			...options.emailAndPassword,
 			enabled: options.emailAndPassword?.enabled ?? false,
 			onExistingUserSignUp: ({ user }, request) => send({ _tag: "AccountAlreadyExists", user }, request),
-			sendResetPassword: ({ user, token }, request) => send({ _tag: "ResetPassword", token, user }, request),
+			sendResetPassword: ({ user, token }, request) => send({ _tag: "ResetPassword", token: Redacted.make(token), user }, request),
 		},
 		emailVerification: {
 			...options.emailVerification,
@@ -42,7 +45,9 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 				const payload = token.split(".")[1] ?? "";
 				const { updateTo } = Schema.decodeUnknownSync(Schema.fromJsonString(Verification))(Buffer.from(payload, "base64url").toString("utf8"));
 				return send(
-					updateTo === undefined ? { _tag: "ConfirmAccount", token, user } : { _tag: "ConfirmNewAddress", newEmail: updateTo, token, user },
+					updateTo === undefined
+						? { _tag: "ConfirmAccount", token: Redacted.make(token), user }
+						: { _tag: "ConfirmNewAddress", newEmail: updateTo, token: Redacted.make(token), user },
 					request,
 				);
 			},
@@ -52,7 +57,8 @@ export const emailOptions = Effect.fnUntraced(function* <TOptions extends Better
 			changeEmail: {
 				...options.user?.changeEmail,
 				enabled: options.user?.changeEmail?.enabled ?? false,
-				sendChangeEmailConfirmation: ({ user, newEmail, token }, request) => send({ _tag: "ApproveEmailChange", newEmail, token, user }, request),
+				sendChangeEmailConfirmation: ({ user, newEmail, token }, request) =>
+					send({ _tag: "ApproveEmailChange", newEmail, token: Redacted.make(token), user }, request),
 			},
 		},
 	} satisfies BetterAuthOptions;

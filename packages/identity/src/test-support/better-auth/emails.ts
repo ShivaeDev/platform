@@ -1,4 +1,4 @@
-import { DateTime, Deferred, type Duration, Effect, Fiber } from "effect";
+import { DateTime, Deferred, type Duration, Effect, Fiber, Redacted } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -35,7 +35,7 @@ function request(engine: Engine, kind: AuthEmail["_tag"], person = "alice"): Pro
 			if (approval?._tag !== "ApproveEmailChange") {
 				throw new Error("Alice has no email change to approve");
 			}
-			return auth.api.verifyEmail({ query: { token: approval.token } });
+			return auth.api.verifyEmail({ query: { token: Redacted.value(approval.token) } });
 		}
 		case "AccountAlreadyExists":
 			return auth.api.signUpEmail({ body: { email, name: person, password: "unused-signup-password" } });
@@ -73,6 +73,8 @@ export const emails = storyKit({
 				Effect.sync(() => {
 					host(engine).delivery.available = available;
 				}),
+			deliveryLogs: () => Effect.sync(() => JSON.stringify(host(engine).recorded.logs)),
+			deliveryTraces: () => Effect.sync(() => JSON.stringify(host(engine).recorded.spans.map((span) => [...span.attributes]))),
 			finishDelivery: () =>
 				Effect.gen(function* () {
 					story.tell("the mail transport finishes the held delivery");
