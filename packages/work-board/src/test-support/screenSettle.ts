@@ -28,7 +28,7 @@ function startedLaterRead(engine: ScreenEngine): readonly Hold[] {
 function holds(engine: ScreenEngine): readonly Hold[] {
 	return [
 		...(engine.heldRead ? [{ held: open(engine.heldRead.gate), started: engine.heldRead.started }] : []),
-		...(engine.heldRefresh ? [{ held: open(engine.heldRefresh.gate), started: engine.heldRefresh.started }] : []),
+		...(engine.heldRefresh ? [{ held: open(engine.heldRefresh.gate) && !engine.heldRefresh.finished, started: engine.heldRefresh.started }] : []),
 		...(engine.heldAnswerRefresh ? [{ held: open(engine.heldAnswerRefresh.gate), started: engine.heldAnswerRefresh.started }] : []),
 		...(engine.indexGate ? [{ held: open(engine.indexGate), started: engine.indexWaiting === true }] : []),
 		...(engine.startupGate ? [{ held: open(engine.startupGate), started: true }] : []),

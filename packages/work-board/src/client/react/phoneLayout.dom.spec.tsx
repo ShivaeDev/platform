@@ -119,9 +119,15 @@ screenStory.it(
 
 screenStory.it(
 	"tells a phone reader with an icon that the connection is reconnecting",
-	[phone, hostedHealthSettled()],
+	[phone, hostedHealthSettled("reconnecting")],
 	function* ({ liveIndicator }) {
-		expect(yield* liveIndicator()).toEqual({ announced: "Reconnecting…", icon: "shown", role: "status", shown: "Reconnecting…", state: "down" });
+		expect(yield* liveIndicator()).toEqual({
+			announced: "Can't reach the Board server",
+			icon: "shown",
+			role: "status",
+			shown: "Reconnecting…",
+			state: "down",
+		});
 	},
 );
 
@@ -129,7 +135,7 @@ screenStory.it(
 	"tells a phone reader that the page couldn't update once the host's page fails to refresh",
 	[phone, hostedHealthSettled()],
 	function* ({ hostShowsUnreadableDocument, liveIndicator }) {
-		expect((yield* liveIndicator()).announced).toBe("Reconnecting…");
+		expect((yield* liveIndicator()).announced).toBe("");
 
 		yield* hostShowsUnreadableDocument();
 

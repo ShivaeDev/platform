@@ -6,7 +6,7 @@ import { trackScreen } from "./screenEngine.ts";
 import { screenClient } from "./screenFeatures.tsx";
 import { screenOptions } from "./screenReads.ts";
 import { screenStory } from "./screenStory.ts";
-export function hostedHealthScreen(connection: "connecting" | "live" = "live", updates: "running" | "paused" = "running") {
+export function hostedHealthScreen(connection: "connecting" | "live" | "reconnecting" = "live", updates: "running" | "paused" = "running") {
 	return screenStory.trait(
 		"screen",
 		`a host supplies its displayed location without a document element while ${connection} with updates ${updates}`,

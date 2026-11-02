@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
+import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
 import { renderBoard } from "./react.tsx";
 import { SearchHarness } from "./SearchHarness.tsx";
 import { trackScreen } from "./screenEngine.ts";

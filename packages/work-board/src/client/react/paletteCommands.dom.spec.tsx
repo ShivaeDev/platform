@@ -127,7 +127,7 @@ for (const { command, from, preference, query, to } of [
 
 screenStory.it(
 	"the shell's empty palette lists what needs you first, above Go to",
-	[chromeScreen(attentionFixture())],
+	[chromeScreen(attentionFixture(), "/")],
 	function* ({ openSearchWithShortcut, resultGroups }) {
 		yield* openSearchWithShortcut();
 
@@ -139,8 +139,8 @@ screenStory.it(
 );
 
 screenStory.it(
-	"Enter in the shell's empty palette opens the first item that needs you and closes Search",
-	[chromeScreen(attentionFixture())],
+	"Enter in Today's empty palette opens the first item that needs you and closes Search",
+	[chromeScreen(attentionFixture(), "/")],
 	function* ({ currentPage, openSearchWithShortcut, pressInSearch, searchDialog, selectedResult }) {
 		yield* openSearchWithShortcut();
 		expect((yield* selectedResult()).selected).toBe("Deterministic search");

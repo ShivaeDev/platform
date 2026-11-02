@@ -1,4 +1,4 @@
-import type { BoardFixtureOptions } from "#test/inMemoryBoard.ts";
+import type { BoardFixtureOptions } from "#test/BoardFixtureOptions.ts";
 
 export type CurrentFleet = Extract<NonNullable<BoardFixtureOptions["fleet"]>, { state: "ready" }>;
 

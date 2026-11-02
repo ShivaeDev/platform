@@ -2,7 +2,6 @@ import { Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcTest } from "effect/rpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { render } from "@shivaedev/test-story/client/react.ts";
@@ -12,13 +11,15 @@ import { workContract, workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 import { BoardFixture } from "#test/BoardFixture.tsx";
-import { type BoardFixtureOptions, inMemoryBoard } from "#test/inMemoryBoard.ts";
+import type { BoardFixtureOptions } from "#test/BoardFixtureOptions.ts";
+import { screenTransport } from "#test/screenTransport.ts";
+import { workspaceBoard } from "#test/workspaceBoard.ts";
 
 function boardClient(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions, runtime?: Atom.RuntimeFactory) {
 	class Client extends AtomRpc.Service<Reader>()("WorkBoard/RenderTest", {
 		group: workRpcs,
-		makeEffect: RpcTest.makeClient(workRpcs, { flatten: true }),
-		protocol: inMemoryBoard(files, options),
+		makeEffect: screenTransport(options),
+		protocol: workspaceBoard(files, options),
 		runtime,
 	}) {}
 	const live: Atom.Type<BrowserClient["updates"]["status"]> = { connection: "live", failure: Option.none(), needsResync: false, pending: 0 };
