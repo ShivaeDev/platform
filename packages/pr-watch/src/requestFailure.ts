@@ -1,14 +1,7 @@
 import { Cause, DateTime } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited, GitHubTransportError } from "@shivaedev/github/errors.ts";
-import {
-	RemoteGone,
-	RemoteHttpError,
-	RemoteNotFound,
-	RemoteRateLimited,
-	type RemoteStatusError,
-	RemoteUnauthorized,
-} from "@shivaedev/http/errors.ts";
+import { isRemoteStatusError, RemoteRateLimited } from "@shivaedev/http/errors.ts";
 import { WatchError } from "#model.ts";
 
 export function requestFailure(error: unknown): { readonly message: string; readonly retryable: boolean; readonly retryAt?: number } {
@@ -27,7 +20,7 @@ export function requestFailure(error: unknown): { readonly message: string; read
 	if (error instanceof GitHubPermissionDenied || error instanceof GitHubConversationLocked) {
 		return { message: `${error._tag} at ${error.path}`, retryable: false };
 	}
-	if (isHttpFailure(error)) {
+	if (isRemoteStatusError(error)) {
 		return {
 			message: `GitHub HTTP ${error.status} (${error.method} ${new URL(error.url).pathname})`,
 			retryable: error.status >= HttpStatus.fromLiteral("InternalServerError") && error.status < 600,
@@ -35,14 +28,4 @@ export function requestFailure(error: unknown): { readonly message: string; read
 		};
 	}
 	return { message: `GitHub request failed: ${error instanceof Error ? error.message || error.name : String(error)}`, retryable: false };
-}
-
-function isHttpFailure(error: unknown): error is RemoteStatusError {
-	return (
-		error instanceof RemoteHttpError
-		|| error instanceof RemoteUnauthorized
-		|| error instanceof RemoteNotFound
-		|| error instanceof RemoteGone
-		|| error instanceof RemoteRateLimited
-	);
 }
