@@ -382,6 +382,33 @@ const changes = Stream.unwrap(
 
 The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers call `querySubscription(rpc, references, viewer)` with the native changes RPC definition and pass its authorized result to `makeLiveServer.subscribe(subscription, context)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
 
+Custom subscription handlers use `changesHandlerLayer` to derive the reserved handler Layer from the contract:
+
+```ts
+import { Effect, Stream } from "effect";
+import { changesHandlerLayer } from "@shivaedev/contract/changesHandlerLayer.ts";
+import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { Notes } from "./notes.ts";
+
+const changes = changesHandlerLayer(
+	Notes,
+	(rpc) =>
+		({ queries }) =>
+			Stream.unwrap(
+				Effect.gen(function* () {
+					const viewer = yield* CurrentViewer;
+					const subscription = yield* querySubscription(rpc, queries, viewer);
+					const live = yield* LiveServer;
+					return yield* live.subscribe(subscription);
+				}),
+			),
+);
+```
+
+Merge this Layer with `Notes.application.toLayer(...)`. It retains the query read-policy and custom stream services as requirements, excluding services supplied by RPC middleware. The builder can also return an Effect to acquire services or fail during Layer construction. Declared stream failures remain in the contract's error channel. Pushed results are validated against the contract's decoded success types; custom handlers do not decode `changesSuccess` themselves. Supply request-local scope when using session-scoped keys.
+
 For a custom transport or explicit pause and status controls, use the native live APIs.
 
 Declare subscriptions with `stream` in the same contract. Its `success` schema describes each element, and its `rejections` become the native stream error schema. `bind` exposes `run(payload)` as a native `Stream`, preserving declared rejections, middleware errors and RPC client errors. Completion and client interruption release the server subscription. The compiler rejects a unary client for a streaming operation.
