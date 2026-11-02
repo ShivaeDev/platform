@@ -287,13 +287,17 @@ jobs:
           retention-days: 14
 
   published-starter:
-    name: Packed starter
+    name: Packed starter (${{ matrix.variant }})
     needs: build
     permissions:
       contents: read
       actions: read
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [ full, minimal ]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -309,7 +313,7 @@ jobs:
           path: .ci/packages
       - run: pnpm db:setup
       - name: Generate an app from the packed command and test packed workspace dependencies
-        run: pnpm --filter @shivaedev/starter check:published --archives .ci/packages
+        run: pnpm --filter @shivaedev/starter check:published --archives .ci/packages --variant ${{ matrix.variant }}
 
   verify:
     if: always()
