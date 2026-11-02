@@ -1,10 +1,13 @@
-import type { Crypto, Effect, Layer, Scope } from "effect";
+import type { Context, Crypto, Layer, Scope } from "effect";
 import type { AnyEffect, HookEffects, HookValue, ServicesOf } from "#internal/hooked.ts";
 import type { StoryKitDefinition } from "#storyKit.ts";
 
 export type AfterResults<TStage extends string> = {
-	readonly [TKey in TStage]?: Generator<AnyEffect, void, never> | Effect.Effect<void, unknown, unknown> | void;
+	readonly [TKey in TStage]?: unknown;
 };
+
+type ContextServices<T> = T extends Context.Context<infer R> ? R : never;
+export type AfterServices<TAfter> = { [TKey in keyof TAfter]: ContextServices<HookValue<TAfter[TKey]>> }[keyof TAfter];
 
 type LayerFor<THooks, TProvided> = [Exclude<ServicesOf<THooks>, Scope.Scope | Crypto.Crypto>] extends [TProvided]
 	? unknown
@@ -27,4 +30,5 @@ export type InferredDefinition<
 	readonly create: TCreate;
 	readonly inspect?: TInspect;
 	readonly after?: { readonly [TKey in keyof TAfter]: (engine: HookValue<ReturnType<TCreate>>) => TAfter[TKey] };
-} & LayerFor<HookEffects<ReturnType<TCreate> | TAfter[keyof TAfter]> | TStep | TFailed | TDiagnose | HookEffects<ReturnType<TInspect>>, TProvided>;
+} & LayerFor<HookEffects<ReturnType<TCreate>>, TProvided> &
+	LayerFor<HookEffects<TAfter[keyof TAfter]> | TStep | TFailed | TDiagnose | HookEffects<ReturnType<TInspect>>, TProvided | AfterServices<TAfter>>;
