@@ -1,4 +1,4 @@
-import { Effect, Fiber, Queue, Stream } from "effect";
+import { Effect, Fiber, Queue, Stream, SubscriptionRef } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -12,6 +12,7 @@ export type HintServer = "the first server" | "the second server";
 interface Watcher {
 	readonly fiber: Fiber.Fiber<void>;
 	readonly hints: Queue.Queue<LiveHint>;
+	readonly resyncs: SubscriptionRef.SubscriptionRef<number>;
 	readonly server: HintServer;
 }
 
@@ -47,9 +48,19 @@ function watcherOf(engine: HintsEngine, name: string) {
 	return found;
 }
 
-function resyncOf(engine: HintsEngine, server: HintServer) {
-	return Effect.map(engine.servers[server].resync, (open) => streams(open, "open"));
-}
+const resyncOf = Effect.fnUntraced(function* (engine: HintsEngine, server: HintServer) {
+	const waiting: Array<{ readonly count: number; readonly listening: Watcher }> = [];
+	for (const listening of engine.watchers.values()) {
+		if (listening.server === server) {
+			waiting.push({ count: yield* SubscriptionRef.get(listening.resyncs), listening });
+		}
+	}
+	const open = yield* engine.servers[server].resync;
+	for (const { count, listening } of waiting) {
+		yield* until(SubscriptionRef.changes(listening.resyncs), (received) => received > count, { name: "delivered resync" });
+	}
+	return streams(open, "open");
+});
 
 export const liveHints = storyKit({
 	clock: "live",
@@ -61,13 +72,11 @@ export const liveHints = storyKit({
 	verbs: (engine, story) => ({
 		close: (name: string) => {
 			story.tell(`${name} closes its stream`);
-			return Fiber.interrupt(watcherOf(engine, name).fiber);
+			return Effect.tap(Fiber.interrupt(watcherOf(engine, name).fiber), () => Effect.sync(() => engine.watchers.delete(name)));
 		},
 		heard: (name: string) =>
 			Effect.gen(function* () {
 				const listening = watcherOf(engine, name);
-				// The server flushes in a microtask and a pending resync absorbs changes, so one passes before the barrier change.
-				yield* Effect.promise(() => Promise.resolve());
 				yield* engine.reactivity.invalidate(invalidationKeys([barrierOf(name)]));
 				const heard: string[] = [];
 				const hints = yield* collectUntil(
@@ -105,12 +114,17 @@ export function watcher(name: string, keys: readonly Key[], server: HintServer =
 	return liveHints.trait("watchers", `${name} streams hints for ${keys.length} keys from ${server} and has heard its first resync`, (engine) =>
 		Effect.gen(function* () {
 			const hints = yield* Queue.unbounded<LiveHint>();
+			const resyncs = yield* SubscriptionRef.make(0);
 			const fiber = yield* engine.servers[server].stream([...keys, barrierOf(name)]).pipe(
-				Stream.runForEach((hint) => Queue.offer(hints, hint)),
+				Stream.runForEach((hint) =>
+					(hint._tag === "Resync" ? SubscriptionRef.update(resyncs, (count) => count + 1) : Effect.void).pipe(
+						Effect.andThen(Queue.offer(hints, hint)),
+					),
+				),
 				Effect.forkScoped,
 			);
 			yield* Queue.take(hints);
-			engine.watchers.set(name, { fiber, hints, server });
+			engine.watchers.set(name, { fiber, hints, resyncs, server });
 		}),
 	);
 }

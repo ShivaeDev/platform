@@ -9,7 +9,7 @@ import type { notesServer } from "./notesServer.ts";
 export function automaticResumeClient(server: Effect.Success<typeof notesServer>, resume?: ResumeSource) {
 	const opened = Effect.runSync(SubscriptionRef.make(0));
 	const active = Effect.runSync(SubscriptionRef.make(0));
-	const ended = Effect.runSync(Ref.make(Effect.runSync(Deferred.make<void>())));
+	const ended = Effect.runSync(Effect.flatMap(Deferred.make<void>(), Ref.make));
 	const handlers = Notes.toLayer({
 		...server.implementation,
 		"notes.$changes": () =>

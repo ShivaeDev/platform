@@ -1,4 +1,4 @@
-import { Effect, Queue, Random, Stream } from "effect";
+import { Effect, Queue, Random, Scheduler, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
 import { compareQueries } from "#internal/compareQueries.ts";
@@ -10,6 +10,7 @@ import { QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
+	const dispatcher = (yield* Scheduler.Scheduler).makeDispatcher();
 	let openStreams = 0;
 	const resyncKey = `@shivaedev/contract/resync/${yield* Random.nextInt}`;
 	function open(keys: readonly Key[], context?: KeyContext, globalKeys: readonly Key[] = []): Stream.Stream<LiveHint> {
@@ -26,14 +27,14 @@ export const makeLiveServer = Effect.gen(function* () {
 						return;
 					}
 					scheduled = true;
-					queueMicrotask(() => {
+					dispatcher.scheduleTask(() => {
 						scheduled = false;
 						if (active) {
 							offer(resync ? { _tag: "Resync" } : { _tag: "Changed", keys: [...pending.values()] });
 						}
 						pending.clear();
 						resync = false;
-					});
+					}, 0);
 				}
 				const cancel = keys.map((key) => {
 					const bare = readKeys([key]);

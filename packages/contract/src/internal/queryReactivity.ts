@@ -5,6 +5,7 @@ import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { liveBatches, liveKeys } from "./liveInvalidation.ts";
+import { wrapAtom } from "./wrapAtom.ts";
 
 export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: () => () => void) {
 	const service = runtime.atom(Effect.service(Reactivity.Reactivity));
@@ -19,8 +20,8 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 			Atom.readable((get) => atom.read(get), atom.refresh),
 			0,
 		);
-		let wrapped = Atom.transform(
-			source,
+		const wrapped = wrapAtom(
+			atom,
 			(get) => {
 				if (owner !== undefined && owner !== get.registry) {
 					throw new Error("A session-scoped query belongs to its binding registry");
@@ -116,16 +117,8 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>, queue?: (
 				});
 				return get.once(source);
 			},
-			{ initialValueTarget: source },
+			source,
 		);
-		if (atom.keepAlive) {
-			wrapped = Atom.keepAlive(wrapped);
-		} else if (atom.idleTTL !== undefined) {
-			wrapped = Atom.setIdleTTL(wrapped, atom.idleTTL);
-		}
-		if (Atom.isSerializable(atom)) {
-			Object.assign(wrapped, { [Atom.SerializableTypeId]: atom[Atom.SerializableTypeId] });
-		}
 		cached.set(atom, wrapped);
 		return wrapped;
 	};

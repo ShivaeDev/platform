@@ -1,4 +1,5 @@
 import process from "node:process";
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Effect, Layer, ManagedRuntime, Redacted, Schema } from "effect";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
@@ -34,7 +35,8 @@ const runtime = ManagedRuntime.make(
 					migrations: { ...migrations, mode: "check" },
 				}),
 			),
-		),
+		)
+		.pipe(Layer.provide(NodeCrypto.layer)),
 );
 await runtime.runPromise(Jobs);
 process.on("message", (message) => {
