@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.0 - 2026-11-02
+
+### Added
+
+- Add `redactBrowserText` to mask quoted browser literals, including escaped quotes and multiline content, while preserving diagnostic shape and the existing server text policy.
+- Add opt-in `browserErrors` settings for an Error log per report, signed-in `user.id` attribution and session enforcement. The starter enables all three.
+
+### Fixed
+
+- Mask browser report messages and stacks before they reach diagnostic sinks and record reports at Error severity.
+- Install PostgreSQL change hooks before preparing hosted migrations so committed repository writes refresh subscribers in other processes exactly once.
+- Limit OTLP collector response bodies to 64 KiB, cancelling oversized responses with a typed HTTP decode error while preserving bounded, redacted failure diagnostics.
+- Fail host startup with a typed configuration error for malformed or non-HTTP(S) OTLP endpoints instead of disabling export or falling back from an invalid traces endpoint.
+- Fail the scope coordinating a worker release with the original cause when heartbeat or ownership polling retries are exhausted, and stop registered jobs workers before removing the release lease. Application-host workers can no longer keep fetching after their release coordinator fails.
+
 ## 0.17.0 - 2026-11-01
 
 ### Added

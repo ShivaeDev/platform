@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.3 - 2026-11-02
+
+### Fixed
+
+- Launch the cached Chromium executable checked for readiness, including when the separate headless shell is absent.
+- Clear previous screenshots before each check so shorter and failed runs leave only their own captures.
+- Skip hidden text matches when checking for visible text, while still failing when all matches are hidden.
+- Reject invalid base and page URLs with a browser-check diagnostic before installing or opening Chromium.
+- Failed or interrupted live-notes checks handle pending WebSocket waits without unhandled rejections. Live verification requires RPC hint chunks and a `notes.list` request instead of matching words in unrelated frames.
+
 ## 0.2.2 - 2026-11-01
 
 ### Fixed
