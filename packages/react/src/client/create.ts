@@ -6,7 +6,7 @@ import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@sh
 import type { AtomServices, FieldRejectionMapping } from "#fieldRejection.ts";
 import { useSubmissionCallbacks } from "#internal/useSubmissionCallbacks.ts";
 import type { NoticeFeedback } from "#notices.ts";
-import { submission } from "#submission.ts";
+import { type SubmissionConfig, submission } from "#submission.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";
 export type CreateConfig<TFields extends Fields, TCreated, TSaveError, R, TRuntimeError> = {
 	readonly persistedDraft?: BrowserDraftConfig | undefined;
@@ -15,7 +15,8 @@ export type CreateConfig<TFields extends Fields, TCreated, TSaveError, R, TRunti
 	readonly create: (values: Decoded<TFields>) => Effect.Effect<TCreated, TSaveError, AtomServices<R>>;
 	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
 	readonly notices?: NoticeFeedback<Decoded<TFields>, TCreated, TSaveError, Services<TFields, R>>;
-} & FieldRejectionMapping<TFields, TSaveError>;
+} & FieldRejectionMapping<TFields, TSaveError> &
+	Pick<SubmissionConfig<TFields, TCreated, TSaveError, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys">;
 export interface Create<TFields extends Fields, TCreated, TSaveError, TRuntimeError> extends SaveState<TSaveError | TRuntimeError> {
 	readonly created: Option.Option<TCreated>;
 	readonly form: Form<TFields, TCreated, TSaveError | FieldFailure, TRuntimeError>;
@@ -38,7 +39,7 @@ export function useCreate<TFields extends Fields, TCreated, TSaveError, R, TRunt
 	function initialize() {
 		const { fields, initialValues, runtime } = config;
 		function makeSubmission() {
-			return submission({ ...callbacks, fields, initialValues, persistedDraft, runtime });
+			return submission({ ...config, ...callbacks, fields, initialValues, persistedDraft, runtime });
 		}
 		return { baseline: initialValues, created: Option.none<TCreated>(), current: makeSubmission(), fields, fresh: makeSubmission, runtime };
 	}
