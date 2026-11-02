@@ -51,7 +51,7 @@ const create = Effect.fn("ReleaseRepository.create")(function* () {
 	yield* write(
 		root,
 		".changeset/pending.md",
-		'---\n"@shivaedev/platform": patch\n"@shivaedev/create-app": patch\n"@shivaedev/work-board": patch\n---\n\n### Fixed\n\n- Pending behavior.\n',
+		'---\n"@shivaedev/platform": patch\n"@shivaedev/create-app": patch\n"@shivaedev/work-board": patch\n---\n\n### Fixed\n\n- `@shivaedev/platform`: Pending behavior.\n- `@shivaedev/create-app`: Pending behavior.\n- `@shivaedev/work-board`: Pending behavior.\n',
 	);
 	yield* write(root, "AGENTS.md", "Repository instructions.\n");
 	yield* write(root, ".agents/skills/package-docs/SKILL.md", "Package documentation.\n");
