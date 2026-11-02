@@ -8,10 +8,12 @@ interface AdoptionFault {
 	readonly after?: Readonly<Record<string, unknown>>;
 	readonly before?: Readonly<Record<string, unknown>>;
 	readonly code: RecoveryCase["code"];
+	readonly comparison?: unknown;
 	readonly files?: unknown;
 	readonly invalidJson?: boolean;
 	readonly output?: string;
 	readonly reason: string;
+	readonly verified?: Readonly<Record<string, unknown>>;
 }
 const faults: readonly AdoptionFault[] = [
 	{
@@ -30,8 +32,13 @@ const faults: readonly AdoptionFault[] = [
 		code: "worker-report-merged-head-mismatch" as const,
 		reason: "Merged PR head differs from the reported head; inspect delivery before accepting this work",
 	},
-	{ before: { "changed_files": 2 }, code: "fleet-stale" as const, reason: "PR changed paths moved during observation" },
-	{ code: "fleet-integration" as const, files: [[]], reason: "GitHub returned an incomplete changed-path observation" },
+	{
+		before: { "changed_files": 2 },
+		code: "fleet-stale" as const,
+		reason: "PR base moved during changed-path comparison",
+		verified: { base: { ref: "main", sha: MOVED } },
+	},
+	{ code: "fleet-integration" as const, comparison: {}, files: [[]], reason: "GitHub returned an incomplete changed-path observation" },
 	{ code: "fleet-integration" as const, invalidJson: true, reason: "GitHub observation failed or returned invalid data" },
 	{ code: "fleet-invalid" as const, files: [[{ filename: "src/outside.ts" }]], reason: "Result needs evidence and known reserved scope" },
 ];
@@ -43,7 +50,15 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 			...healthy,
 			...(["worker-report-head-moved", "worker-report-merged-head-mismatch"].includes(fault.code) ? fault.before : fault.after),
 		};
-		const options = { after, before, files: fault.files ?? [[{ filename: "src/one.ts" }]], invalidJson: fault.invalidJson ?? false };
+		const verified = { ...after, ...fault.verified };
+		const options = {
+			after,
+			before,
+			comparison: fault.comparison,
+			files: fault.files ?? [[{ filename: "src/one.ts" }]],
+			invalidJson: fault.invalidJson ?? false,
+			verified,
+		};
 		const reader = resultFixture(options);
 		const staleReport = ["worker-report-head-moved", "worker-report-merged-head-mismatch"].includes(fault.code);
 		return {
@@ -64,6 +79,7 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 				Effect.sync(() => {
 					Object.assign(before, healthy);
 					Object.assign(after, healthy);
+					Object.assign(verified, healthy);
 					options.files = [[{ filename: "src/one.ts" }]];
 					options.invalidJson = false;
 				}),

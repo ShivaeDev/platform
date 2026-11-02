@@ -29,10 +29,12 @@ export function completed(output = REPORT): SessionObservation {
 interface ResultOptions {
 	readonly after?: Readonly<Record<string, unknown>>;
 	readonly before?: Readonly<Record<string, unknown>>;
+	readonly comparison?: unknown;
 	readonly files?: unknown;
 	readonly invalidJson?: boolean;
 	readonly mainHead?: string;
 	readonly unavailable?: boolean;
+	readonly verified?: Readonly<Record<string, unknown>>;
 }
 export function resultFixture(options: ResultOptions = {}) {
 	const requests: string[] = [];
@@ -54,8 +56,9 @@ export function resultFixture(options: ResultOptions = {}) {
 }
 
 function scriptedGithubRead(options: ResultOptions, requests: string[]): GithubRead {
-	let next = options.before;
+	let observations = 0;
 	const pr = { base: { ref: "main", sha: BASE }, "changed_files": 2, head: { sha: HEAD }, "html_url": PR, merged: false, number: 7, state: "open" };
+	const snapshots = [options.before, options.after, options.verified ?? options.after];
 	function read(endpoint: string) {
 		return Effect.suspend(() => {
 			requests.push(endpoint);
@@ -65,11 +68,15 @@ function scriptedGithubRead(options: ResultOptions, requests: string[]): GithubR
 			if (options.invalidJson) {
 				return Effect.succeed("not json");
 			}
+			if (endpoint.includes("/compare/")) {
+				return Effect.succeed(JSON.stringify(options.comparison ?? { files: [{ filename: "src/one.ts" }, { filename: "src/two.ts" }] }));
+			}
 			if (endpoint.includes("/files?")) {
 				return Effect.succeed(JSON.stringify(options.files ?? [[{ filename: "src/one.ts" }], [{ filename: "src/two.ts" }]]));
 			}
-			const value = { ...pr, ...next };
-			next = options.after;
+			const overrides = snapshots[Math.min(observations, snapshots.length - 1)];
+			const value = { ...pr, ...overrides };
+			observations += 1;
 			return Effect.succeed(JSON.stringify(value));
 		});
 	}
