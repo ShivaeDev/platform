@@ -9,7 +9,6 @@ import type { boardRuntime } from "#server/boardRuntime.ts";
 import type { HandoffsService } from "#server/handoffs/Service.ts";
 import { shell } from "#server/page/shell.ts";
 import { Responses } from "#server/Responses.ts";
-import type { Highlighter } from "#server/render/Highlighter.ts";
 import { ASSET_HANDLERS, MERMAID_ROUTE, mermaidFile } from "./assets.ts";
 import { attachment } from "./attachment.ts";
 import { encodedBodies, encodeResponse } from "./encoding.ts";
@@ -20,7 +19,7 @@ import { respond } from "./respond.ts";
 // ETags hash the uncompressed bytes, so every board in the process can share one compressed copy of each asset.
 const encoded = encodedBodies();
 
-type Services = Highlighter | Responses | HandoffsService | Diagnostics | FileSystem.FileSystem | Path.Path;
+type Services = Responses | HandoffsService | Diagnostics | FileSystem.FileSystem | Path.Path;
 type Handler<E> = (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, Services | Scope.Scope>;
 
 export function boardRoutes(options: BoardOptions, runtime: Effect.Success<ReturnType<typeof boardRuntime>>) {

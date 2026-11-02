@@ -1,6 +1,5 @@
 {"path":"packages/work-board/src/client/document/Mermaid.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/client/document/View.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/client/document/highlight.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/client/document/nextSection.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/document/useSections.ts","rule":"biome/plugin","count":3}
 {"path":"packages/work-board/src/client/document/useSections.ts","rule":"effect/boundary","count":6}
@@ -153,7 +152,6 @@
 {"path":"packages/work-board/src/client/responses/retainContext.ts","rule":"biome/plugin","count":1}
 {"path":"packages/work-board/src/diagnostics/source.test.ts","rule":"tests/named-values","count":2,"reason":"First story-syntax coverage for .test files: cache-hit and cache-expiry stories still assert source-read counters; the diagnostics kit needs a request trace before these can assert the actual reads."}
 {"path":"packages/work-board/src/diagnostics/source.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/work-board/src/render/code.ts","rule":"effect/boundary","count":7}
 {"path":"packages/work-board/src/render/visual.ts","rule":"effect/boundary","count":13}
 {"path":"packages/work-board/src/render/visualDocuments.ts","rule":"effect/boundary","count":7}
 {"path":"packages/work-board/src/render/visualFailures.unit.spec.ts","rule":"effect/boundary","count":3}
@@ -195,7 +193,6 @@
 {"path":"packages/work-board/src/server/processInstance.ts","rule":"biome/plugin","count":2}
 {"path":"packages/work-board/src/server/processInstance.ts","rule":"effect/boundary","count":29}
 {"path":"packages/work-board/src/server/processOwnership.ts","rule":"effect/boundary","count":3}
-{"path":"packages/work-board/src/server/render/markdown.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/server/responses/agent-cli.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/server/responses/agentArguments.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/server/responses/flags.ts","rule":"effect/boundary","count":4}

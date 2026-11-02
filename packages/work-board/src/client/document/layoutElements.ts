@@ -1,5 +1,6 @@
+import type { Element } from "hast";
 import { Children, type ComponentProps, createContext, createElement, Fragment, isValidElement, type ReactNode, useContext } from "react";
-import type { Components, ExtraProps } from "react-markdown";
+import type { markdownElement } from "#adapters/markdownElement.ts";
 import { PageHeader } from "#client/react/PageHeader.tsx";
 import { useCompactHeader } from "./useCompactHeader.ts";
 
@@ -69,4 +70,10 @@ function LayoutHeader({ node: _node, children, ...props }: ComponentProps<"heade
 		lead,
 		answer,
 	);
+}
+
+type Components = NonNullable<Parameters<typeof markdownElement>[1]["components"]>;
+
+interface ExtraProps {
+	readonly node?: Element | undefined;
 }

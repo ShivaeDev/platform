@@ -1,8 +1,6 @@
-import remarkDirective from "remark-directive";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
 import { expect, it } from "vitest";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import { parseMarkdown } from "#adapters/markdownProcessor.ts";
 import { renderVisual } from "./visual.ts";
 
 it.each([
@@ -14,7 +12,7 @@ it.each([
 	{ message: "Each timeline entry needs text and a source link", source: ":::timeline\nLabel\n\n1. Entry without source.\n:::" },
 	{ message: "Start with a Markdown label", source: ':::metric{value="1" unit="files"}\nSource: [Checks](checks.md)\n:::' },
 ])("returns a typed visual validation failure for $message", ({ source, message }) => {
-	const node = unified().use(remarkParse).use(remarkDirective).parse(source).children.at(0);
+	const node = parseMarkdown(source, { directives: true }).children.at(0);
 	if (node?.type !== "containerDirective") {
 		throw new Error("The visual source did not parse as a container directive");
 	}

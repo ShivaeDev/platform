@@ -1,10 +1,10 @@
 import type { Components } from "react-markdown";
 import Markdown from "react-markdown";
 import { Mermaid } from "#client/document/Mermaid.ts";
+import { documentElements } from "#client/react/documentElements.tsx";
 import { documentLinks } from "#render/documentLinks.ts";
 import { documentPlugins } from "#render/documentPlugins.ts";
 import { tableColumns } from "#render/tableColumns.ts";
-import { documentElements } from "./documentElements.tsx";
 
 export function ResponseMarkdown({ source, file }: { readonly source: string; readonly file: string }) {
 	return (
