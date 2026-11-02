@@ -33,7 +33,7 @@
 			"run": ["local-guard.ts"]
 		}
 	],
-	"mcp": [{ "entries": ["./routes.ts"], "fixtures": [], "omitOptionalPeers": true, "run": [] }],
+	"mcp": [{ "entries": ["./routes.ts"], "fixtures": ["core.ts.txt"], "omitOptionalPeers": true, "run": ["core.ts"] }],
 	"platform": [
 		{
 			"entries": [],
