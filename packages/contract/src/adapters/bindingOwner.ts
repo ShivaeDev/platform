@@ -1,5 +1,5 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { KeyContext } from "@shivaedev/changes/keys.ts";
+import type { KeyContext } from "#clientKeys.ts";
 import { clientId } from "./clientId.ts";
 
 export interface BindingOwner {

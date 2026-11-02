@@ -35,7 +35,7 @@ export const deniedEngine = Effect.gen(function* () {
 							attempts.push(clock.currentTimeMillisUnsafe());
 							const viewer = yield* CurrentViewer;
 							const subscription = yield* querySubscription(rpc, queries, viewer);
-							return live.subscribe(subscription, undefined, () => Effect.succeed("Alice's record"));
+							return live.subscribe(subscription, () => Effect.succeed("Alice's record"));
 						}),
 					),
 		),

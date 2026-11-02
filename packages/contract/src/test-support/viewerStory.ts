@@ -72,7 +72,7 @@ export const viewerStory = storyKit({
 			Effect.gen(function* () {
 				story.tell(`the server announces a change to note ${id} in ${viewer}'s session and rechecks the read policy before delivering it`);
 				const before = yield* SubscriptionRef.get(engine.checks);
-				yield* engine.reactivity.invalidate(invalidationKeys([notes.item(id)], { scope: viewer }));
+				yield* engine.reactivity.invalidate(invalidationKeys([notes.item(id)]));
 				yield* until(SubscriptionRef.changes(engine.checks), (count) => count > before, { name: "policy check" });
 			}),
 		changesHeard: (viewer: Viewer) =>

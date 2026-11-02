@@ -7,7 +7,6 @@ import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
 import { CommandInvalidation } from "@shivaedev/contract/serverMetadata.ts";
 import { CommandRecovery } from "@shivaedev/sql/internal/CommandRecovery.ts";
 import { ChangeObserver, invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { sessionKeyContext } from "#server/sessionKeys.ts";
 
 export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc.AnyWithProps, payload: unknown) {
 	const invalidates = Context.getOption(rpc.annotations, CommandInvalidation);
@@ -17,7 +16,6 @@ export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc
 	const declared = invalidates.value.invalidates;
 	return Effect.uninterruptibleMask((restore) =>
 		Effect.gen(function* () {
-			const context = yield* sessionKeyContext(rpc);
 			const sql = yield* Effect.serviceOption(SqlClient.SqlClient);
 			const reactivity = yield* Effect.serviceOption(Reactivity.Reactivity);
 			if (Option.isNone(reactivity)) {
@@ -36,7 +34,7 @@ export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc
 				}),
 			);
 			const viewer = yield* CurrentViewer;
-			const keys = invalidationKeys(declared(payload, result, viewer), context).filter((key) => !published.has(key));
+			const keys = invalidationKeys(declared(payload, result, viewer)).filter((key) => !published.has(key));
 			if (keys.length > 0) {
 				const announce = Option.isNone(sql)
 					? reactivity.value.invalidate(keys)

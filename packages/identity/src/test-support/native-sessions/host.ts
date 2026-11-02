@@ -78,8 +78,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 			),
 			services: Layer.succeed(LiveServer, {
 				...changes,
-				subscribe: (subscription, requestContext, read) =>
-					changes.subscribe(subscription, requestContext, read).pipe(Effect.map(Stream.ensuring(Effect.sync(streamReleased)))),
+				subscribe: (subscription, read) => changes.subscribe(subscription, read).pipe(Effect.map(Stream.ensuring(Effect.sync(streamReleased)))),
 			}),
 			sessions: Layer.succeed(SessionPolicy, sessions),
 		}).pipe(

@@ -61,7 +61,7 @@ export const collectionEngine = Effect.gen(function* () {
 						Effect.gen(function* () {
 							const viewer = yield* CurrentViewer;
 							const subscription = yield* querySubscription(rpc, queries, viewer);
-							return yield* live.subscribe(subscription, Option.isSome(viewer) ? { scope: viewer.value.id } : undefined);
+							return yield* live.subscribe(subscription);
 						}),
 					),
 		),

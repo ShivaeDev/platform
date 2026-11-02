@@ -7,9 +7,9 @@ import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { currentSessionContext } from "@shivaedev/identity/server/currentSessionContext.ts";
 import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
+import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 import { revalidateStream } from "@shivaedev/identity/server/revalidateStream.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import { rerunQuery } from "#rerunQuery.ts";
 
 export function hostChanges<R extends Rpc.Any>(
@@ -58,15 +58,13 @@ function subscribe(
 ) {
 	return Stream.unwrap(
 		Effect.gen(function* () {
-			const { subscription, context } = yield* resolveChanges(rpc, queries);
+			const subscription = yield* resolveChanges(rpc, queries);
 			const viewer = yield* CurrentViewer;
 			const refresh = refreshSession(sessions, viewer, rpc._tag);
 			const read = rerunQuery(group, options);
 			type Failure = Effect.Error<typeof subscription.authorized | typeof refresh | ReturnType<typeof read>>;
 			const stream = Option.isSome(changes)
-				? Stream.unwrap(
-						changes.value.subscribe<Failure, Effect.Services<ReturnType<typeof read>>, typeof read>({ ...subscription, refresh }, context, read),
-					)
+				? Stream.unwrap(changes.value.subscribe<Failure, Effect.Services<ReturnType<typeof read>>, typeof read>({ ...subscription, refresh }, read))
 				: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
 			if (Option.isNone(sessions) || Option.isNone(viewer)) {
 				return stream;
