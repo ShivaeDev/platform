@@ -1,6 +1,8 @@
 import { Schema } from "effect";
+import { IdentityAuthFailureCode } from "#authRefusal.ts";
 
 export const AuthFailureCode = Schema.Literals([
+	...IdentityAuthFailureCode.literals,
 	"USER_NOT_FOUND",
 	"FAILED_TO_CREATE_USER",
 	"FAILED_TO_CREATE_SESSION",
