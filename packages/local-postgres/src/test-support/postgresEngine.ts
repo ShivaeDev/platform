@@ -1,6 +1,6 @@
 import { Effect, PlatformError } from "effect";
 import { type ChildProcess, ChildProcessSpawner } from "effect/process";
-import { LOCAL_SERVER, localPostgres } from "#localPostgres.ts";
+import { LOCAL_SERVER, localPostgres, type ReadinessOptions } from "#localPostgres.ts";
 import { dockerScript } from "#test/dockerScript.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";
 
@@ -84,6 +84,6 @@ export function connectCli(engine: PostgresEngine) {
 	);
 }
 
-export function configureReadiness(engine: PostgresEngine, attempts: number) {
-	engine.manager = localPostgres(engine.environment, { attempts, delayMillis: 0 });
+export function configureReadiness(engine: PostgresEngine, options: ReadinessOptions) {
+	engine.manager = localPostgres(engine.environment, options);
 }

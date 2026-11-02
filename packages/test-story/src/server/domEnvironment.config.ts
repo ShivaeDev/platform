@@ -9,7 +9,7 @@ const domEnvironment: Environment = {
 		// Vitest loads environments outside the project's source resolution conditions.
 		const load = createRequire(import.meta.url);
 		const { documentTransport }: typeof import("#internal/documentTransport.ts") = load("#internal/documentTransport.ts");
-		const { installOutbound }: typeof import("#internal/installOutbound.ts") = load("#internal/installOutbound.ts");
+		const { installOutbound }: typeof import("#adapters/installOutbound.ts") = load("#adapters/installOutbound.ts");
 		const { installDomTimers }: typeof import("#internal/installDomTimers.ts") = load("#internal/installDomTimers.ts");
 		const native = Object.fromEntries(
 			["fetch", "AbortController", "AbortSignal", "Headers", "Request", "Response"].map((name) => [name, Reflect.get(global, name)]),

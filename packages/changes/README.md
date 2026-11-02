@@ -161,28 +161,21 @@ Set `onPublishFailure: "die"` when that same delivery failure should raise a def
 ### Capture notifications in tests
 
 ```ts
-import type { Observation } from "@shivaedev/changes/observe.ts";
-import { Layer } from "effect";
+import { makeCapture } from "@shivaedev/changes/capture.ts";
 
-const captured: Array<MembershipChange> = [];
-const observations: Array<Observation<MembershipChange>> = [];
+const capture = yield* makeCapture<MembershipChange>();
+yield* grant("ada", "bob").pipe(Effect.provide(capture.layer(membershipChanges.Observer)));
 
-const captureSink = Layer.succeed(membershipChanges.Sink, (changes: readonly MembershipChange[]) =>
-	Effect.sync(() => {
-		captured.push(...changes);
-	}),
-);
-
-const observe = Layer.succeed(membershipChanges.Observer, (observation: Observation<MembershipChange>) =>
-	Effect.sync(() => {
-		observations.push(observation);
-	}),
-);
-
-const capturedGrant = grant("ada", "bob").pipe(Effect.provide(Layer.merge(captureSink, observe)));
+const recorded = yield* capture.recorded;
+const attempted = yield* capture.attempted;
+const discarded = yield* capture.discarded;
 ```
 
-`Sink` and `Observer` are channel-specific `Context.Reference`s. Within the provided scope, the sink receives the changes instead of the configured publish function; the configured sink resumes outside it. The observer receives `Recorded` for the distinct changes in a record call, `Published` for the buffer passed to publication and `Discarded` for a rolled-back frame's changes. `Published` is emitted before the sink runs; it does not prove successful delivery. Discarded parent changes include changes merged from children that committed earlier. A rollback therefore remains visible to a coverage check through its earlier `Recorded` observation. A synchronous throw or Effect defect from the observer is logged without blocking sink delivery or changing the transaction's outcome.
+Create a capture for each test, then provide its `layer(observer)` around the complete operation, including the transaction boundary. Each readout returns a snapshot of change batches in observation order. `recorded` contains the distinct changes from each record call; `attempted` contains the deduplicated changes passed to publication; `discarded` contains rolled-back changes, including rolled-back savepoints. Repeated record calls remain separate in `recorded` even when the transaction publishes their shared key once.
+
+An attempt is observed before the sink runs, so `attempted` does not prove delivery. The Layer leaves the sink in place and forwards observations to the enclosing observer. Writes outside the Layer do not enter its readouts. Capture does not infer inserts from refresh keys: retain the write's returned ids when a story needs to identify created rows.
+
+`Sink` and `Observer` are channel-specific `Context.Reference`s. Provide `Sink` to replace delivery in a scope. The observer receives `Recorded`, `Published` and `Discarded` observations; `Published` names a publication attempt. A synchronous throw or Effect defect from the observer is logged without blocking sink delivery or changing the transaction's outcome.
 
 ### Work inside the committing transaction
 
@@ -198,6 +191,7 @@ Import from the module that defines the name; the package has no root entry.
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@shivaedev/changes/channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                 |
 | `@shivaedev/changes/frame.ts`   | `Frame`, `CommitFrame`, `Outcome`                                                                                                                          |
+| `@shivaedev/changes/capture.ts` | `makeCapture`, `Capture`                                                                                                                                   |
 | `@shivaedev/changes/observe.ts` | `Observation`, `Observer`                                                                                                                                  |
 | `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure`                                                                                                                                |
 | `@shivaedev/changes/keys.ts`    | `collection`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity`, `KeyContext` |

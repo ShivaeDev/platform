@@ -12,6 +12,8 @@ A story proves what the code does for someone outside it. Start with the behavio
 
 Use `storyKit` from `@shivaedev/test-story/server/storyKit.ts`. Keep kits, traits, verbs and readouts in `src/test-support/`; a spec names traits with the kit's `it`, calls verbs, reads results and states expectations. Extend the kit when a feature needs another action or setup.
 
+Compose cross-package harnesses through a local facade in test-support. It owns their wiring, scope and domain names; specs use that facade instead of assembling several packages' harnesses themselves. Reuse the supported harnesses rather than copying their infrastructure.
+
 ## Prove one behaviour under a true title
 
 A story proves one behaviour. Another claim gets its own story, often a `for` over its cases, so a failure names what broke.
@@ -26,9 +28,11 @@ Read stored rows or logs only when nothing outside shows the behaviour yet. Name
 
 Good: check the posted PR comment's text. Bad: check a comment row and assume the PR received it.
 
+DOM classes or a fake renderer are not visual proof. React render tests prove UI behaviour through the repository's happy-dom pattern; claims about browser appearance need a headless browser check of the real UI and a description of what was seen. For example, a Board code block having a highlighting class or receiving coloured markup from a fake renderer does not prove readable syntax colours in the Board's actual theme.
+
 ## Set up through the boundary and explain each step
 
-Traits drive the engine through events or requests, then settle until the resulting observable work completes. Never call module internals to seed state: doing so skips the wiring and rules the story needs to exercise. A shortcut is rare and named as a shortcut, with its reason visible at its definition.
+Traits drive the engine through events or requests, then settle until the resulting observable work completes. Never call module internals to seed state: doing so skips the wiring and rules the story needs to exercise. The named fake preconditions below apply only outside the behaviour being proved; a trait's name does not make internal seeding acceptable.
 
 Every setup step shows why it is there, with no unexplained repeats or magic values. Plumbing such as Deferreds, forks and `Effect.never` lives in the kit's traits and verbs under a domain name, such as a `saveInFlight()` trait for a save the server has not answered yet.
 
@@ -44,7 +48,7 @@ A verb performs an action, not a whole scenario that returns the numbers the spe
 
 An action names the change it makes, not the state that results: `remove("bob")`, not `setAllowed(["alice"])`. A replacement list makes the reader diff two states to find what changed.
 
-Verbs and readouts return outcomes in the domain's words, such as `"unauthorized"` or `"auth unavailable"`, never Exit, Cause or Result shapes or `_tag` reads. Nested tags bury the meaning and repeat on every line; the kit translates them once.
+Verbs and readouts return outcomes in the domain's words, such as `"unauthorized"` or `"auth unavailable"`, never Exit, Cause or Result shapes or `_tag` reads. Nested tags bury the meaning and repeat on every line; the kit translates them once. This required domain translation uses typed results from supported APIs; it is not hand-made infrastructure decoding of HTTP, RPC or database wire formats.
 
 Good: a verb submits a title, a readout returns the displayed title, and the spec compares it with the requested title. Bad: a “save succeeds” helper runs setup, saves and asserts internally.
 
@@ -83,6 +87,10 @@ A nested partial expectation can be `{ account: { sessions: atMost(0) } }`, and 
 
 A story waits on the engine's own signals: a queue the engine offers to, a Deferred it completes, `story.runUntil`, or a screen driver's `settle()`. Never sleep, poll, use `eventually` or install fake timers: each guesses when the work is done, and the story slows down or flakes when the guess is wrong.
 
+A deadline bounds a failure but never proves completion. Put it around a wait for a real completion signal; reaching the deadline must fail the story, never count as a settled engine or proof that nothing happened.
+
+PostgreSQL catalog waits are the one sanctioned polling exception: catalog views such as `pg_stat_activity` send no completion signal. Use `observeUntil` from `@shivaedev/test-sql/server/observeUntil.ts` for these waits, with a predicate for the required state. Do not write a local polling loop or use this exception to poll application rows, job storage or UI state.
+
 When time passing is the behaviour, a kit verb advances the clock, names the interval and waits for the work it triggers:
 
 ```ts
@@ -103,7 +111,11 @@ Good: read the updated word count in the HTTP answer. Bad: count queue rows afte
 
 Do not test behaviour a framework or library owns. Those tests belong to the package that owns it; repeating them adds cost and can hide missing coverage of your own policy and wiring.
 
+An owned persistence port is not an outside service just because it is supplied as a Layer. Exercise the owned implementation through the real engine and database when its persistence or wiring is part of the claim; substituting a fake would remove the behaviour the story needs to prove.
+
 Good: check which repository receives the app's PR comment. Bad: reproduce the queue library's retry contract in an app story, or time a form's debounce when Effect's `Atom.debounce` provides it.
+
+Score edge cases as likelihood (1–10) × severity (1–10). Leave cases below about 5 alone and list the skipped cases with their scores in the PR, so the coverage boundary is reviewable.
 
 ## Make every story and assertion capable of failing
 
@@ -111,21 +123,23 @@ A story exists only when a plausible change to this code would break the behavio
 
 For each assertion, identify a plausible broken implementation that would make it fail. Avoid assertions on constants, values fabricated by the helper, or empty collections whose universal predicate passes without observing anything. Prefer content over lengths: a count can be right while every result is wrong.
 
+A rejection story must fail on an unrelated error. Assert the expected refusal's domain reason or public response, and preserve unexpected failures; a catch-all that maps every error to `"rejected"`, or an assertion that merely checks for any failure, cannot prove the policy refused the action.
+
 Good: compare the received request's destination and body with the intended message. Bad: check only that one request exists, or that every request has a token when no requests were received.
 
 ## Report framework gaps
 
-Hand-made decoders, settle heuristics and schema SQL in a test kit are framework gaps. Report the missing capability to the framework owner rather than building a workaround in the kit. Duplicated infrastructure drifts from the framework and makes every application carry the same defect. Use existing supported APIs; do not hide a missing one behind a helper.
+Hand-made infrastructure decoders, settle heuristics and schema SQL in a test kit are framework gaps. Report the missing capability to the framework owner rather than building a workaround in the kit. Duplicated infrastructure drifts from the framework and makes every application carry the same defect. Use existing supported APIs; do not hide a missing one behind a helper. Translating a supported typed result into a domain readout remains the kit's responsibility.
 
 Good: report that the framework cannot wait for the required observable completion. Bad: poll queue tables or add arbitrary sleeps to guess when the app is settled.
 
 ## Fake preconditions, exercise the behaviour
 
-A setup may start from a faked precondition: John is already signed in and admin of this repo, a session is minted for the story, or the fake service has the needed permissions and tokens. Only the behaviour under test must be driven and asserted from outside. Name the precondition so it is clear where the story starts.
+A setup may start from a faked precondition: John is already signed in and admin of this repo, a session is minted for the story, or the fake service has the needed permissions and tokens. Only the behaviour under test must be driven and asserted from outside. Name the precondition and its boundary so it is clear where the story starts and which behaviour it bypasses. Configure a fake outside service or use a supported test fixture; never reach into owned module internals to seed the result being proved.
 
-Never spend slow work such as an OAuth round trip or password hashing on a precondition. Keep exactly one story per real sign-in flow; other stories start signed in. This keeps feature stories fast and makes a sign-in failure belong to the story that owns it.
+Never spend slow work such as an OAuth round trip or password hashing on a precondition. Keep one baseline story per real sign-in flow, plus one story per owned admission, origin, hook or failure policy. Drive those policies through the real sign-in boundary; other feature stories start signed in. This keeps feature stories fast without discarding the application's sign-in responsibilities.
 
-Good: a note-editing story starts with a minted session; the one OAuth story drives the real callback through a fake provider. Bad: every note story completes OAuth or hashes a password before editing.
+Good: a note-editing story starts with a minted session; baseline OAuth and owned admission-policy stories drive the real callback through a fake provider. Bad: every note story completes OAuth or hashes a password before editing.
 
 ## Isolate full apps by database
 
@@ -144,3 +158,5 @@ pnpm run test <file> --maxWorkers=2
 ```
 
 Replace `<file>` with the spec's path. Do not insert `--`: pnpm forwards these arguments to the test script directly, so the file filter and worker limit reach Vitest as intended. A focused run shortens feedback while you write the story; run the project's full checks before handing it off.
+
+Changesets name every published package whose public behaviour changes, including packages affected by a cross-package change. A private package needs no changeset. Before handing off, confirm all required CI checks pass and PostgreSQL tests ran against real PostgreSQL without skipping. End the final report with the PR URL.

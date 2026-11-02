@@ -27,8 +27,9 @@ processes.it("Alice's private commit never reaches Bob", [privateSaveCommitted()
 processes.it(
 	"a rolled-back private write sends no hint to either host",
 	[privateSessionsAcrossHosts()],
-	function* ({ privateDeliveries, privateSaves, rejectedPrivateSave }) {
+	function* ({ privateDeliveries, privateSave, privateSaves, rejectedPrivateSave }) {
 		yield* rejectedPrivateSave("Rolled back");
+		yield* privateSave("After rollback");
 
 		yield* outcomes([
 			["reader", () => privateDeliveries("reader"), ["changed: After rollback / After rollback"]],

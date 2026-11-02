@@ -28,7 +28,13 @@ export const registerWorker = Effect.fnUntraced(function* <R>(
 	}
 	const handle = yield* Effect.try({
 		catch: (error) => toPgBossError("register", error, name),
-		try: () => batchHandler(client, name, schema, runJob, afterRetry),
+		try: () => {
+			const unsupported = (["perJobResults", "transactional"] as const).filter((mode) => options[mode] === true);
+			if (unsupported.length > 0) {
+				throw new TypeError(`Unsupported worker callback modes: ${unsupported.join(", ")}. Omit these options or set them to false.`);
+			}
+			return batchHandler(client, name, schema, runJob, afterRetry);
+		},
 	});
 	const registration: Promise<string> = yield* Effect.try({
 		catch: (error) => toPgBossError("register", error, name),

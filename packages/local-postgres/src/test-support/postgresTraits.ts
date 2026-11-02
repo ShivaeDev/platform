@@ -113,7 +113,13 @@ export function serviceNeverAnswers(attempts = 30) {
 
 export function readinessAttempts(attempts: number) {
 	return postgres.trait("machine", `setup allows ${attempts} readiness attempts`, (engine) => {
-		configureReadiness(engine, attempts);
+		configureReadiness(engine, { attempts, delayMillis: 0 });
+	});
+}
+
+export function readinessDelay(delayMillis?: number) {
+	return postgres.trait("machine", `setup uses ${delayMillis === undefined ? "the default" : `${delayMillis} ms`} readiness delay`, (engine) => {
+		configureReadiness(engine, delayMillis === undefined ? {} : { delayMillis });
 	});
 }
 

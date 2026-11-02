@@ -2,11 +2,12 @@ import { expect } from "vitest";
 import { composedNetwork, networkEnabled } from "#test/outboundNetwork.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
-storyRunner.it(
-	"fails a Node story for an unrouted provider even when the application handles the fetch error",
-	[],
-	function* ({ message, runStory }) {
-		yield* runStory("unroutedNodeStories", "Contained Node Story: handles an unrouted provider request");
+for (const [title, how] of [
+	["handles an unrouted provider request", "even when the application handles the fetch error"],
+	["handles an unrouted provider after a passthrough registration", "even after a later registration allows passthrough"],
+]) {
+	storyRunner.it(`fails a Node story for an unrouted provider ${how}`, [], function* ({ message, runStory }) {
+		yield* runStory("unroutedNodeStories", `Contained Node Story: ${title}`);
 
 		expect(yield* message()).toBe(
 			[
@@ -15,8 +16,8 @@ storyRunner.it(
 				"      without a route.",
 			].join("\n"),
 		);
-	},
-);
+	});
+}
 
 for (const [kit, how] of [
 	[networkEnabled, "after its kit opts into network access"],

@@ -6,6 +6,7 @@ import type { McpClient } from "effect/ai";
 import { HttpRouter } from "effect/http";
 import { RpcGroup } from "effect/rpc";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthOauthGrants } from "@shivaedev/identity/server/better-auth/adapters/oauthGrants.ts";
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
@@ -67,14 +68,14 @@ const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issue
 		roles: Roles,
 		...(withAdmission ? { signIn: admission.policy } : {}),
 	}).pipe(Effect.provide(memoryStore));
+	const grants = betterAuthOauthGrants({ admitsUser: mounted.admitsUser, auth: mounted.auth });
 	const oauth = yield* betterAuthMcp({
-		admitsUser: mounted.admitsUser,
 		auth: mounted.auth,
 		...(inProcess ? { jwks: () => mounted.auth.api.getJwks() } : {}),
 		origin: trustedOrigins({ allow: [baseUrl], missing: "allow" }),
 		resource,
 		roles: Roles,
-	});
+	}).pipe(Effect.provide(grants));
 	const group = RpcGroup.make();
 	const jwks = jwksEndpoint(mounted.auth);
 	yield* Layer.build(
@@ -97,7 +98,16 @@ const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issue
 			sessions: Layer.succeed(SessionPolicy, { ...mounted.sessions, origin: () => true }),
 		}).pipe(Layer.provide(jwks.logger)),
 	);
-	return { admission: admission.state, auth: mounted.auth, baseUrl, issuer: `${publicUrl}${issuerPath ?? "/api/auth"}`, jwks, oauth, resource };
+	return {
+		admission: admission.state,
+		auth: mounted.auth,
+		baseUrl,
+		grants,
+		issuer: `${publicUrl}${issuerPath ?? "/api/auth"}`,
+		jwks,
+		oauth,
+		resource,
+	};
 });
 type Host = Effect.Success<ReturnType<typeof startHost>>;
 

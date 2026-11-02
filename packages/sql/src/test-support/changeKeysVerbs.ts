@@ -67,18 +67,7 @@ export function changeKeysVerbs(engine: ChangeKeysEngine, tell: (line: string) =
 			return effect;
 		}
 		engine.observing = true;
-		return Effect.flatMap(Effect.service(ChangeObserver), (observer) =>
-			effect.pipe(
-				Effect.provideService(ChangeObserver, (event) => {
-					if (event._tag === "Published") {
-						for (const key of event.changes) {
-							engine.published.add(String(key));
-						}
-					}
-					return observer(event);
-				}),
-			),
-		).pipe(
+		return effect.pipe(Effect.provide(engine.capture.layer(ChangeObserver))).pipe(
 			Effect.ensuring(
 				Effect.sync(() => {
 					engine.observing = false;
@@ -153,11 +142,13 @@ export function changeKeysVerbs(engine: ChangeKeysEngine, tell: (line: string) =
 				tell(`${operation} copies the source record for list 2 and bob into the buckets table`);
 				return observed(buckets.rows[operation](buckets.source.select(), { listId: "listId", owner: "owner", slug: "slug" }));
 			}),
+		createdIds: () => Effect.sync(() => [...engine.createdIds]),
 		deleteRecordThrough: (operation: BucketDelete) =>
 			Effect.suspend(() => {
 				tell(`${operation} deletes record 1`);
 				return observed(deletes[operation]());
 			}),
+		discardedKeys: () => Effect.map(engine.capture.discarded, (batches) => batches.map((keys) => keys.map((key) => keyWords(engine, String(key))))),
 		endings: () => Effect.sync(() => [...engine.endings]),
 		expectingPublished: <TStep extends Step, A>(words: readonly string[], body: Body<TStep, A>) =>
 			Effect.suspend(() => {
@@ -167,7 +158,9 @@ export function changeKeysVerbs(engine: ChangeKeysEngine, tell: (line: string) =
 		insertRecord: (listId: number, owner: string) =>
 			Effect.suspend(() => {
 				tell(`a record for list ${listId} and ${owner} is inserted`);
-				return observed(buckets.rows.insert({ listId, owner, slug: `note-${engine.endings.length}-${owner}` }));
+				return observed(buckets.rows.insert({ listId, owner, slug: `note-${engine.endings.length}-${owner}` })).pipe(
+					Effect.tap((row) => Effect.sync(() => engine.createdIds.push(row.id))),
+				);
 			}),
 		insertRecords: (count: number) =>
 			Effect.suspend(() => {
@@ -197,12 +190,16 @@ export function changeKeysVerbs(engine: ChangeKeysEngine, tell: (line: string) =
 			Effect.flatMap(owned(), ({ rows }) =>
 				Effect.map(rows.findMany(), (found) => found.map((row) => `${row.id}/${row.ownerId} ${row.name} at version ${row.lockVersion}`)),
 			).pipe(Effect.orDie),
-		publishedKeys: () => Effect.sync(() => [...engine.published].map((key) => keyWords(engine, key)).toSorted(Order.String)),
+		publishedKeys: () =>
+			Effect.map(engine.capture.attempted, (batches) =>
+				[...new Set(batches.flat().map(String))].map((key) => keyWords(engine, key)).toSorted(Order.String),
+			),
 		record: (words: readonly string[]) =>
 			Effect.suspend(() => {
 				tell(`the body records ${words.join(", ")}`);
 				return invalidateOnCommit(keysOf(words));
 			}),
+		recordedKeys: () => Effect.map(engine.capture.recorded, (batches) => batches.map((keys) => keys.map((key) => keyWords(engine, String(key))))),
 		rejects: () =>
 			Effect.suspend(() => {
 				tell("the body rejects its work");

@@ -1,4 +1,6 @@
 import type { Effect } from "effect";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
@@ -6,9 +8,11 @@ import type { RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import { type Bound, bind, makeClient } from "#bind.ts";
+import type { MissingReadPolicy } from "#readPolicyErrors.ts";
 import type { ResumeSource } from "#resume.ts";
-import { type Note, Notes } from "#test/notes.ts";
+import { type Note, type NoteMissing, Notes } from "#test/notes.ts";
 import { Preferences } from "#test/sessionContract.ts";
+import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
 type Self = "test/Self";
@@ -23,8 +27,11 @@ type Used<TTag extends Rpcs["_tag"]> = ReturnType<
 >;
 type Called<TTag extends Rpcs["_tag"]> = ReturnType<typeof flat<TTag>>;
 
-expectTypeOf(api.get.query).returns.toEqualTypeOf<ReturnType<typeof client.query<"notes.get">>>();
-expectTypeOf(api.list.query).returns.toEqualTypeOf<ReturnType<typeof client.query<"notes.list">>>();
+type WithSubscription<T extends Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>> = Atom.Atom<
+	AsyncResult.AsyncResult<Atom.Success<T>, Atom.Failure<T> | NoteMissing | MissingReadPolicy | WebSocketRequired>
+>;
+expectTypeOf(api.get.query).returns.toEqualTypeOf<WithSubscription<ReturnType<typeof client.query<"notes.get">>>>();
+expectTypeOf(api.list.query).returns.toEqualTypeOf<WithSubscription<ReturnType<typeof client.query<"notes.list">>>>();
 expectTypeOf(api.get.run).returns.toEqualTypeOf<Used<"notes.get">>();
 expectTypeOf(api.rename.run).returns.toEqualTypeOf<
 	Effect.Effect<
@@ -53,7 +60,7 @@ const httpClient = makeClient(Notes, {
 });
 expectTypeOf(httpClient.api.get.run).parameter(0).toEqualTypeOf<{ readonly id: number }>();
 expectTypeOf<Effect.Success<ReturnType<typeof httpClient.api.get.run>>>().toEqualTypeOf<Note>();
-expectTypeOf(httpClient.api.get.query).returns.toEqualTypeOf<ReturnType<typeof httpClient.Client.query<"notes.get">>>();
+expectTypeOf(httpClient.api.get.query).returns.toEqualTypeOf<WithSubscription<ReturnType<typeof httpClient.Client.query<"notes.get">>>>();
 httpClient.runtime.atom(httpClient.api.get.run({ id: 1 }));
 httpClient.runtime.fn(httpClient.api.rename.run);
 makeClient(Notes, {

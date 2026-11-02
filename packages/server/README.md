@@ -37,6 +37,21 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` to those Layers.
 
+For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies `group`, `handlers`, `services` and `migrations: { loader, components? }`. Keep default adapters in its optional `ports` Layer, and put an optional `registerAdmin` result in `admin`.
+
+```ts
+import { appHost } from "@shivaedev/server/appHost.ts";
+import { appModules } from "@shivaedev/server/appModules.ts";
+import { notes, tasks, sessions } from "./app.ts";
+
+const modules = appModules([notes, tasks]);
+const Server = appHost({ ...modules, sessions });
+```
+
+`appModules` combines the native RPC groups, handler Layers, migration loaders and schema components. It includes each admin registration's group and handlers and exposes their merged registry as `modules.admin`. Migration numbers belong to one application-wide sequence. Existing hosts can continue to supply their groups, handlers, services and migrations directly.
+
+Pass `{ replacements: Layer.succeed(MyPort, implementation) }` as the second argument to `appModules`. Replacements take precedence over the combined default `ports` before module `services` acquire dependencies. Leave these ports unprovided in the module's service Layer; an adapter already captured by `Layer.provide` inside that Layer cannot be replaced from outside it. Missing ports and replacement Layer requirements remain in the host's requirement type.
+
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
@@ -351,6 +366,38 @@ export async function consumeSubscription(
 ```
 
 The signal aborts on an additional signal, socket close, incomplete request close or an already destroyed connection. Normal completion of a request does not abort a continuing response. Without an explicit `nodeRequest`, the helper can read one from an srvx Web request's `runtime.node.req`. `dispose()` removes Node listeners and can be called repeatedly.
+
+### Stories against a child host
+
+`hostProcess(options)` from `@shivaedev/server/testing/hostProcess.ts` is a scoped kit for an application's real Node host process. It forks `options.module` with `args`, `cwd`, an explicit child environment in `env` and Node flags in `execArgv`. It waits for an IPC readiness message; stdout is ignored and stderr is inherited. Closing the owning Effect scope kills the child and waits for its exit. `stop()` does the same when a story needs to restart the host sooner.
+
+In the child entry point, build the app host Layer, then run `reportHostReady` from `@shivaedev/server/testing/hostProcessChild.ts` with that Layer's context. It reads `HttpServer`, reports the listening URL and process ID over IPC, and fails if there is no parent IPC channel. The child must install its signal handlers before reporting readiness. After a handler finishes its work, run `acknowledgeHostSignal(signal)` from the same module. `signal(signal)` in the parent sends the OS signal and waits for that signal's IPC acknowledgement. Deliver signals sequentially, using signals the child handles; signals that kill or suspend a process cannot be acknowledged.
+
+Wrap the kit in the application's story vocabulary:
+
+```ts
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { hostProcess } from "@shivaedev/server/testing/hostProcess.ts";
+
+const host = storyKit({
+	name: "application host",
+	clock: "live",
+	stages: [],
+	create: () => hostProcess({ module: new URL("./host.ts", import.meta.url) }),
+	verbs: (process) => ({
+		health: process.health,
+		headers: process.headers,
+		reload: () => process.signal("SIGUSR2"),
+	}),
+});
+
+host.it("the running application answers health checks", [], function* ({ health }) {
+	expect(yield* health()).toMatchObject({ status: 200, body: "" });
+});
+```
+
+`health()` requests `/health` and returns `{ status, body, headers }`. `headers(path)` returns the named path's response headers as a lowercase-keyed record. Both use real HTTP and leave redirects visible. The host's normal health semantics apply: reachable PostgreSQL produces 200; a host without a database produces 503. `url` and `pid` identify the ready child. Launch, signal and HTTP failures use the typed `HostProcessError` from `@shivaedev/server/testing/HostProcessError.ts`, with `operation` and the original `cause`. A child exit before readiness or signal acknowledgement fails the waiting action. A live child that never reports the expected message stays pending until its owning story is interrupted or times out.
 
 ### Low-memory PostgreSQL hosts
 

@@ -7,17 +7,9 @@ import type { PartialWriteEngine } from "./partialWrites.ts";
 import { kept, readEndings, readReturned, recording, statementKinds } from "./writeTables.ts";
 
 export function partialWriteVerbs(engine: PartialWriteEngine, tell: (line: string) => void) {
-	const { byOwner, profiles, records, log, publications, sql, tableName } = engine;
+	const { byOwner, profiles, records, log, capture, sql, tableName } = engine;
 	function observed<A, E, R>(effect: Effect.Effect<A, E, R>) {
-		return recording(log, effect).pipe(
-			Effect.provideService(ChangeObserver, (event) =>
-				Effect.sync(() => {
-					if (event._tag === "Published") {
-						publications.push([...event.changes].map((key) => String(key).replaceAll(tableName, "profiles")));
-					}
-				}),
-			),
-		);
+		return recording(log, effect).pipe(Effect.provide(capture.layer(ChangeObserver)));
 	}
 	function write<A, E, R>(effect: Effect.Effect<A, E, R>, print: (row: A) => unknown = (row) => row) {
 		return kept(records, observed(effect), print);
@@ -37,7 +29,8 @@ export function partialWriteVerbs(engine: PartialWriteEngine, tell: (line: strin
 		profile: () => Effect.map(profiles.findById(1), printed),
 		profileDetails: () =>
 			Effect.map(attempt(profiles.findMany({ select: ["details"] })), (rows) => (typeof rows === "string" ? rows : rows.map((row) => row.details))),
-		publications: () => Effect.sync(() => [...publications]),
+		publications: () =>
+			Effect.map(capture.attempted, (batches) => batches.map((keys) => keys.map((key) => String(key).replaceAll(tableName, "profiles")))),
 		readProfile: () =>
 			Effect.suspend(() => {
 				tell("the repository reads profile 1");
