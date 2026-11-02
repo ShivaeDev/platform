@@ -787,3 +787,25 @@ Install `@shivaedev/identity` with `effect` as its peer. Everything outside `ser
 - When composing a native RPC server directly, add `RequestTracing` last on the group so it wraps authentication too; see the [native-server example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md#request-id-identity-and-logging). Middleware outside that tracing boundary is responsible for its own diagnostics.
 
 The [framework request-context guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md) explains the browser and native-client Origin choices.
+
+### OAuth grants
+
+`OauthGrants` from `@shivaedev/identity/server/oauthGrants.ts` is the environment service for a user's OAuth client consents. The Better Auth adapter supplies its Layer:
+
+```ts
+import { Effect } from "effect";
+import { betterAuthOauthGrants } from "@shivaedev/identity/server/better-auth/adapters/oauthGrants.ts";
+import { OauthGrants } from "@shivaedev/identity/server/oauthGrants.ts";
+
+const grants = betterAuthOauthGrants({ auth: mounted.auth, admitsUser: mounted.admitsUser });
+const disconnect = Effect.gen(function* () {
+	const grants = yield* OauthGrants;
+	yield* grants.revokeClient(userId, clientId);
+}).pipe(Effect.provide(grants));
+```
+
+`list(userId, { limit, offset })` returns a page of client IDs and consented scopes, ordered by consent ID. `revokeClient(userId, clientId)` and `revokeAllClients(userId)` delete matching consents, stored access tokens and refresh tokens together through Better Auth's transaction adapter. Applications authorize these operations. Storage failures fail with `AuthUnavailable`.
+
+After a transport verifies a token, `resolveSubject(userId, clientId)` returns the current session user only when the user exists, is not banned, has consent for that client and passes the mount's current admission policy. It returns `Option.none()` for a refused subject. Grant revocation refuses subsequent resolution; it does not revoke browser sessions. MCP uses this service after checking token signatures, issuer, audience and scope.
+
+The optional `@better-auth/oauth-provider` peer is exposed through `server/better-auth/adapters/oauthProvider.ts` for provider configuration and discovery. Core identity modules require neither Better Auth nor its OAuth provider.

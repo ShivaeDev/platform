@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { OauthGrants } from "@shivaedev/identity/server/oauthGrants.ts";
 import { type Engine, person } from "./host.ts";
 
 function clientId(engine: Engine, client: string) {
@@ -51,21 +52,14 @@ export function grantVerbs(engine: Engine, tell: (line: string) => void) {
 		revokesAllClients: (name: string) =>
 			Effect.suspend(() => {
 				tell(`${name} revokes every client`);
-				return engine.oauth.revokeAllClients(person(engine, name).id);
+				return Effect.flatMap(OauthGrants, (grants) => grants.revokeAllClients(person(engine, name).id)).pipe(Effect.provide(engine.grants));
 			}),
 		revokesClient: (name: string, client = name) =>
 			Effect.suspend(() => {
 				tell(`${name} revokes ${client}'s client`);
-				return engine.oauth.revokeClient(person(engine, name).id, clientId(engine, client));
-			}),
-		storedTokenCounts: (client: string) =>
-			Effect.promise(async () => {
-				const { adapter } = await engine.auth.$context;
-				const where = [{ field: "clientId", value: clientId(engine, client) }];
-				return {
-					access: await adapter.count({ model: "oauthAccessToken", where }),
-					refresh: await adapter.count({ model: "oauthRefreshToken", where }),
-				};
+				return Effect.flatMap(OauthGrants, (grants) => grants.revokeClient(person(engine, name).id, clientId(engine, client))).pipe(
+					Effect.provide(engine.grants),
+				);
 			}),
 	};
 }

@@ -8,11 +8,11 @@ expectNoReactWarnings();
 driverScreen.it(
 	"settling waits for a response that arrives after the click and renders it without an act warning",
 	[],
-	function* ({ click, responseArrivesLater, settle, text }) {
+	function* ({ click, respond, settle, text }) {
 		yield* click("button");
-		yield* responseArrivesLater("News arrived");
 		expect(text("h1")).toBe("Ready");
 
+		yield* respond("News arrived");
 		yield* settle();
 
 		expect(text("h1")).toBe("News arrived");

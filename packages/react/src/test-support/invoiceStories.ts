@@ -50,10 +50,11 @@ interface Engine {
 
 function* openEditor({ screen, state }: Engine) {
 	state.root = yield* screen.open();
-	state.editor = editing(state.root);
-	state.server = state.editor.server;
+	const editor = editing(state.root);
+	state.editor = editor;
+	state.server = editor.server;
 	state.held = state.server.hold();
-	yield* screen.act("open the invoice editor on line 1", () => state.editor?.show(1));
+	yield* screen.act("open the invoice editor on line 1", () => editor.show(1));
 }
 
 function* loaded(engine: Engine) {
