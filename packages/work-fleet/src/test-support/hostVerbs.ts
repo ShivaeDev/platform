@@ -17,10 +17,10 @@ import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#t
 import { daemonResourceVerbs } from "#test/daemonResourceVerbs.ts";
 import { daemonResync } from "#test/daemonResync.ts";
 import { fanoutCloudVerbs } from "#test/fanoutCloud.ts";
-import { cliProcess } from "#test/fleetCli.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { hostAcknowledgementVerbs } from "#test/hostAcknowledgementVerbs.ts";
 import { hostBoardVerbs } from "#test/hostBoardVerbs.ts";
+import { type HostCliOptions, hostCli } from "#test/hostCli.ts";
 import { hostDelayVerbs } from "#test/hostCommandDelays.ts";
 import { hostCommandVerbs } from "#test/hostCommandVerbs.ts";
 import { hostConfigVerbs } from "#test/hostConfigVerbs.ts";
@@ -91,9 +91,9 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		},
 		answer: (workId: string, text?: string, release = false) => {
 			tell(`answer ${workId} through the daemon`);
-			return answerAndWait(engine.running.client, { release, ...(text === undefined ? {} : { text }), workId });
+			return answerAndWait(engine.running.client, { release, ...(text === undefined ? {} : { text }), workId }, engine.fleet);
 		},
-		appliedAnswer: (workId: string) => appliedAnswer(engine.running.client, workId),
+		appliedAnswer: (workId: string) => appliedAnswer(engine.running.client, workId, engine.answers),
 		approve: (workId: string) => {
 			tell(`explicitly dispatch the approved brief for ${workId}`);
 			return dispatchApproved(engine.fixture.host, workId).pipe(Effect.provideContext(engine.running.context));
@@ -104,23 +104,9 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			}
 			return engine.briefParseCount();
 		},
-		cli: (
-			args: readonly string[],
-			options: { readonly stdin?: string; readonly holdStdin?: boolean; readonly selection?: "board" | "port" } = {},
-		) => {
+		cli: (args: readonly string[], options: HostCliOptions = {}) => {
 			tell(`run work-fleet ${args.join(" ")}`);
-			return Effect.promise(async () => {
-				let stderr = "";
-				const selection = options.selection === "port" ? ["--port", String(engine.running.port)] : ["--board", engine.fixture.host.boardDir];
-				const result = await cliProcess([...args, ...selection], {
-					onError: (text) => {
-						stderr += text;
-					},
-					...(options.stdin === undefined ? {} : { stdin: options.stdin }),
-					...(options.holdStdin === undefined ? {} : { holdStdin: options.holdStdin }),
-				});
-				return { ...result, stderr: stderr.trim() };
-			});
+			return hostCli(engine, args, options);
 		},
 		dispatch: (workId: string) => {
 			tell(`dispatch ${workId} through the daemon`);

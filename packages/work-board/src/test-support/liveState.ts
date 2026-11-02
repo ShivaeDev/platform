@@ -38,7 +38,6 @@ export interface LiveState {
 	crashing?: CrashingStorage;
 	directories?: DirectoryReports;
 	owned?: OwnedBoard;
-	parsed?: { readonly questions: string[]; readonly responses: string[] };
 	staging?: { path: string };
 	startupReads?: StartupReads;
 	readonly subscriptions: Map<string, ChangeSubscription>;

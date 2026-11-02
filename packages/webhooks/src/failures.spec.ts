@@ -32,7 +32,7 @@ for (const [delivery, tag] of mappingFailures) {
 				],
 				["handled jobs", () => handledJobs(), []],
 				["request spans", () => requestOutcomes(), [{ failure: expect.stringContaining(tag), outcome: "failed", response: 503 }]],
-				["secrets seen in", () => secretsSeenIn(), {}],
+				["secrets seen in", () => secretsSeenIn(), []],
 				["stored receipts", () => storedReceipts(), []],
 			]);
 		},
@@ -60,7 +60,7 @@ inbox.it(
 			],
 			["handled jobs", () => handledJobs(), []],
 			["request spans", () => requestOutcomes(), [{ failure: expect.stringContaining("SqlError"), outcome: "failed", response: 503 }]],
-			["secrets seen in", () => secretsSeenIn(), {}],
+			["secrets seen in", () => secretsSeenIn(), []],
 		]);
 	},
 );
@@ -86,7 +86,7 @@ inbox.it(
 			],
 			["handled jobs", () => handledJobs(), []],
 			["request spans", () => requestOutcomes(), [{ failure: expect.stringContaining("PgBossError"), outcome: "failed", response: 503 }]],
-			["secrets seen in", () => secretsSeenIn(), {}],
+			["secrets seen in", () => secretsSeenIn(), []],
 			["stored receipts", () => storedReceipts(), []],
 		]);
 	},

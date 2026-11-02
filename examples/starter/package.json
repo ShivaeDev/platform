@@ -16,12 +16,14 @@
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local src/server/setup-database.ts",
 		"dev": "pnpm db:setup && pnpm migrate && node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
 		"format": "quality fix",
-		"lint": "quality lint",
+		"lint": "pnpm lint:skills && quality lint",
+		"lint:skills": "shivaedev-skills check",
 		"migrate": "node --conditions=source --env-file-if-exists=.env.local src/server/migrate.ts",
 		"postgres:low-memory": "node --conditions=source --env-file-if-exists=.env.local src/server/low-memory-postgres.ts",
 		"postgres:trim-cache": "node --conditions=source --env-file-if-exists=.env.local src/server/trim-postgres-page-cache.ts",
 		"ready": "pnpm run ci",
-		"setup": "pnpm install && quality setup",
+		"setup": "pnpm install && pnpm skills:sync && quality setup",
+		"skills:sync": "shivaedev-skills sync",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run",
 		"typecheck": "tsc --noEmit",
@@ -47,6 +49,7 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/browser-check": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/skills": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@tailwindcss/vite": "catalog:",
 		"@types/node": "catalog:",
@@ -63,5 +66,8 @@
 	"packageManager": "pnpm@12.15.0",
 	"engines": {
 		"node": ">=24"
-	}
+	},
+	"shivaedevSkills": [
+		"story-testing"
+	]
 }

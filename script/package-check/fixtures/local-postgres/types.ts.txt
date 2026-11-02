@@ -1,6 +1,7 @@
 import { Effect } from "effect"
 import { ChildProcessSpawner } from "effect/process"
-import { assertLocalDatabase, LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts"
+import { assertLocalDatabase } from "@shivaedev/local-postgres/server/assertLocalDatabase.ts"
+import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts"
 import { LocalPostgresError } from "@shivaedev/local-postgres/server/LocalPostgresError.ts"
 import { PostgresCommandError } from "@shivaedev/local-postgres/server/PostgresCommandError.ts"
 import { PostgresSettingError } from "@shivaedev/local-postgres/server/localConnections.ts"

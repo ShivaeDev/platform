@@ -232,6 +232,25 @@ For a nested value held in one top-level field, `errorAt(["answers", index, "tex
 
 Whole-form Schema refinements are available through `errorAt([])` after submission. This root path selects only a whole-form message; field errors stay on their field paths. In React, render it with `useAtomValue(form.errorAt([]))`. A failed submission also keeps that message in `Invalid.formMessage`. Matching the refinement clears the feedback. Schema feedback is hidden while a new asynchronous decode is pending.
 
+### Map save rejections to fields
+
+`rejecting` from `@shivaedev/form/fieldRejection.ts` wraps a save with field feedback. It takes the form schema, the save function and a `rejectField` callback or `undefined`. With `undefined`, `fieldRejectionOf(schema)` uses `@shivaedev/errors` to recognize tagged string-field rejections and selects names in that schema. Other failures keep their original error.
+
+For a service whose rejection names a nested value, return a path tuple from the callback:
+
+```ts
+import { rejecting } from "@shivaedev/form/fieldRejection.ts";
+
+const profile = form(Profile, {
+	initialValues: { profile: { email: "alice@example.com", name: "Taken" } },
+	onSubmit: rejecting(Profile, saveProfile, (error) =>
+		error.field === "name" ? { field: ["profile", "name"] as const, message: error.message } : undefined,
+	),
+});
+```
+
+`Profile` is the application's struct with a nested `profile` value, and `saveProfile` is its Effect save function. The mapped message appears at `errorAt(["profile", "name"])`; the email sibling stays clear. Returning `undefined` leaves the save failure unchanged.
+
 ### Errors on array elements
 
 Pass a path tuple to `submitter.fail` to reject one element or a property inside it. Paths use indices in the submitted encoded snapshot. Optional `arrayKeys` selectors receive encoded elements of top-level array fields and return their stable, unique keys:
@@ -273,13 +292,14 @@ For a form made with these fields, `order.choices("visibility")` returns the enc
 
 Import the module that defines a name; there is no root entry.
 
-| Module                            | Application-facing exports                                                      |
-| --------------------------------- | ------------------------------------------------------------------------------- |
-| `@shivaedev/form/form.ts`         | `form(schema, config)`                                                          |
-| `@shivaedev/form/shape.ts`        | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use     |
-| `@shivaedev/form/client/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext` |
-| `@shivaedev/form/draftSession.ts` | `draftSession(id)`                                                              |
-| `@shivaedev/form/emptyAsNull.ts`  | `emptyAsNull`                                                                   |
+| Module                              | Application-facing exports                                                                |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| `@shivaedev/form/form.ts`           | `form(schema, config)`                                                                    |
+| `@shivaedev/form/shape.ts`          | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use               |
+| `@shivaedev/form/fieldRejection.ts` | `rejecting`, `fieldRejectionOf`, `FieldRejection`, `RejectField`, `FieldRejectionMapping` |
+| `@shivaedev/form/client/react.ts`   | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext`           |
+| `@shivaedev/form/draftSession.ts`   | `draftSession(id)`                                                                        |
+| `@shivaedev/form/emptyAsNull.ts`    | `emptyAsNull`                                                                             |
 
 `form` takes a `Schema.Struct` and this configuration:
 

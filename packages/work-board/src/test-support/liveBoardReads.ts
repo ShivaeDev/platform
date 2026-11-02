@@ -39,9 +39,6 @@ export function liveBoardReads(engine: BoardEngine) {
 	function subscription(client: string) {
 		return present(state.subscriptions.get(client), `${client} has not subscribed to changes; add liveClientSubscribed or call clientSubscribes`);
 	}
-	function parsing() {
-		return present(state.parsed, "The story does not observe record parsing; add recordParsingObserved");
-	}
 	function agent() {
 		state.agent ??= { root: engine.notes.root };
 		return state.agent;
@@ -56,5 +53,5 @@ export function liveBoardReads(engine: BoardEngine) {
 	function failingWatcher() {
 		return present(state.watcher, "The story's watcher cannot fail; add watcherCanFail");
 	}
-	return { agent, failingWatcher, goals, owned, parsing, state, subscription };
+	return { agent, failingWatcher, goals, owned, state, subscription };
 }

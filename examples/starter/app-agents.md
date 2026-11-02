@@ -71,7 +71,7 @@ Quality accepts colocated `<file>.test.ts` for a source file and `<behaviour>.sp
 
 See [Quality's test rules](https://github.com/ShivaeDev/platform/blob/main/packages/quality/README.md#story-tests) for naming, stories and isolation.
 
-Write and review stories using the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md), shipped by `@shivaedev/skills`. It is the source of the rules for observable evidence, boundary-driven setup, verbs and readouts, assertions, jobs, framework gaps, faked preconditions, database isolation and running one spec. Extend the kits in `src/test-support` with domain traits, actions and readouts.
+Write and review stories using the [story-testing skill](.agents/skills/story-testing/SKILL.md), shipped by `@shivaedev/skills`. It is the source of the rules for observable evidence, boundary-driven setup, verbs and readouts, assertions, jobs, framework gaps, faked preconditions, database isolation and running one spec. Run `pnpm skills:sync` after changing the skills dependency and commit the managed copies; `pnpm lint` checks them for edits. Extend the kits in `src/test-support` with domain traits, actions and readouts.
 
 The Quality baseline only goes down. Use `pnpm baseline write --rule <id> --file <path>` only to record findings for a new rule added by a Quality upgrade. Select only files changed since `HEAD`, staging new files first. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app.
 

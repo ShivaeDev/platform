@@ -33,6 +33,7 @@ export class MissingClientActivity extends Data.TaggedError("MissingClientActivi
 export type ScreenDriver<E = never, THintError = MissingClientActivity> = Omit<ReturnType<typeof makeScreenActions>, "settle" | "nextLiveHint"> & {
 	nextLiveHint: () => Effect.Effect<void, THintError>;
 	settle: (options?: { readonly timeoutMs?: number }) => Effect.Effect<void, E>;
+	dialog: (target: ScreenTarget) => ScreenDriver<E, THintError>;
 	within: (container: ScreenTarget | HTMLElement) => ScreenDriver<E, THintError>;
 };
 
@@ -43,18 +44,27 @@ export function screenDriver(options: ScreenDriverOptions): ScreenDriver<Missing
 	return makeDriver(options, true);
 }
 
-function makeDriver(options: ScreenDriverOptions, dialogs: boolean): ScreenDriver<MissingScreenPending> {
+function makeDriver(options: ScreenDriverOptions, dialogs: boolean, dialogOwner?: () => HTMLElement): ScreenDriver<MissingScreenPending> {
 	const suppliedRoot = options.root;
 	const root = typeof suppliedRoot === "function" ? suppliedRoot : () => suppliedRoot;
 	const elements = screenElements(root, dialogs);
+	const owner = dialogOwner ?? root;
+	const dialogElements = screenElements(owner);
 	return {
 		...makeScreenActions(options, dialogs),
+		dialog: (target) => {
+			function dialogRoot() {
+				return dialogElements.dialog(target);
+			}
+			dialogRoot();
+			return makeDriver({ ...options, root: dialogRoot }, false, owner);
+		},
 		within: (container) => {
 			function scopedRoot() {
 				return container instanceof HTMLElement ? elements.rendered(container, container.tagName.toLowerCase()) : elements.element(container);
 			}
 			scopedRoot();
-			return makeDriver({ ...options, root: scopedRoot }, false);
+			return makeDriver({ ...options, root: scopedRoot }, false, owner);
 		},
 	};
 }

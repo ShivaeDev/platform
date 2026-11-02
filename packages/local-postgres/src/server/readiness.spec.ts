@@ -34,7 +34,7 @@ postgres.it(
 
 postgres.it(
 	`with ${ATTEMPTS} readiness attempts, setup gives up on a service that never answers after ${ATTEMPTS} checks, with the final readiness command failure`,
-	[serviceNeverAnswers(), readinessAttempts(ATTEMPTS)],
+	[serviceNeverAnswers(ATTEMPTS), readinessAttempts(ATTEMPTS)],
 	function* ({ failureKind, outcome, readinessChecks, start }) {
 		yield* start();
 

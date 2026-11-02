@@ -4,7 +4,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { enqueueWebhookJobs, type WebhookSource } from "#server/registration.ts";
-import { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
+import { privateFailures } from "./diagnostics.ts";
 
 export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 	name: string,
@@ -39,12 +39,13 @@ export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 				return HttpServerResponse.text(requests.length === 0 ? "ignored" : "queued", {
 					status: requests.length === 0 ? HttpStatus.fromLiteral("OK") : HttpStatus.fromLiteral("Accepted"),
 				});
-			}),
+			}).pipe(privateFailures),
 		)
 		.pipe(
 			Effect.catchIf(
-				(error) => error instanceof WebhookPayloadError,
+				(error) => error._tag === "WebhookPayloadError",
 				() => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("BadRequest") })),
 			),
+			privateFailures,
 		);
 });
