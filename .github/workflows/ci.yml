@@ -310,6 +310,10 @@ jobs:
       - run: pnpm db:setup
       - name: Generate an app from the packed command and test packed workspace dependencies
         run: pnpm --filter @shivaedev/starter check:published --archives .ci/packages
+      - name: Receive a signed webhook and process a retry once in a generated app
+        env:
+          PLATFORM_JOBS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/platform_test_jobs
+        run: pnpm --filter @shivaedev/webhooks check:adoption --archives .ci/packages
 
   verify:
     if: always()
