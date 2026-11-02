@@ -20,7 +20,7 @@ for (const type of ["clarify", "not_now"] as const) {
 				stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}`,
 			});
 			yield* host.applied();
-			const applied = yield* host.acknowledged();
+			const applied = yield* host.awaitWorkerReceipt();
 			expect(applied.step).toBe(release ? "released" : "working");
 			expect(applied.responses).toMatchObject([
 				{ decisionId: decision.id, responseId: deferred.id, type },

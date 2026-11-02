@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 - 2026-11-02
+
+### Fixed
+
+- Keep payload content out of receipt failure logs and exported transaction and receive spans by retaining only error tags. Original error messages, properties, stacks and nested causes are no longer included. Document receipt metadata, explicitly mapped job payloads and application-owned diagnostics as the privacy boundary.
+
 ## 0.4.0 - 2026-11-02
 
 ### Added

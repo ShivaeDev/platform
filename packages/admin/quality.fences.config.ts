@@ -8,6 +8,8 @@ const identityDeclarations = files(
 	"packages/identity/src/identity.ts",
 	"packages/identity/src/middleware.ts",
 	"packages/identity/src/permission.ts",
+	"packages/identity/src/roles.ts",
+	"packages/identity/src/users.ts",
 	"packages/identity/src/sessions.ts",
 	"packages/identity/src/sessionPermissions.ts",
 );

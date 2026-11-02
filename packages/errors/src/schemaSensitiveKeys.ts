@@ -2,21 +2,30 @@ import { Effect } from "effect";
 import { Rpc, type RpcGroup } from "effect/rpc";
 import { schemaFieldKeys, validateFieldScope } from "#schemaFieldScope.ts";
 import { maskedValue } from "#schemaSensitiveAst.ts";
-import { isSensitiveKey } from "#sensitive.ts";
+import { isSensitiveKey, REDACTED } from "#sensitive.ts";
+import { wireRedactor } from "#wireRedactor.ts";
 
 const rpcSensitiveKeys = Effect.fnUntraced(function* (rpc: Rpc.AnyWithProps, extra: readonly string[]) {
+	const Errors = Rpc.exitSchema(rpc).error;
 	const schemas = [
 		{ ast: rpc.payloadSchema.ast, name: `${rpc._tag}.payload` },
 		{ ast: rpc.successSchema.ast, name: `${rpc._tag}.success` },
 		{ ast: rpc.errorSchema.ast, name: `${rpc._tag}.error` },
 		{ ast: rpc.defectSchema.ast, name: `${rpc._tag}.defect` },
 		...[...rpc.middlewares].map((middleware, index) => ({ ast: middleware.error.ast, name: `${rpc._tag}.middleware[${index}].error` })),
+		{ ast: Errors.ast, name: `${rpc._tag}.exit.error` },
 	];
 	yield* validateFieldScope(schemas, extra);
 	const keys = new Set(schemas.flatMap(({ ast }) => [...schemaFieldKeys(ast, extra)]));
-	return Object.assign((key: string) => keys.has(key) || isSensitiveKey(key), {
+	function sensitive(key: string) {
+		return keys.has(key) || isSensitiveKey(key);
+	}
+	const fail = yield* wireRedactor(Errors.ast, `${rpc._tag}.error`, sensitive, keys);
+	const die = yield* wireRedactor(rpc.defectSchema.ast, `${rpc._tag}.defect`, sensitive, keys);
+	return Object.assign(sensitive, {
 		die: maskedValue(rpc.defectSchema.ast, keys),
-		fail: [rpc.errorSchema, ...[...rpc.middlewares].map((m) => m.error)].some((schema) => maskedValue(schema.ast, keys)),
+		fail: maskedValue(Errors.ast, keys),
+		redactFailure: (reason: "Fail" | "Die", value: unknown) => (reason === "Fail" ? fail(value) : die(value)),
 	});
 });
 export const schemaSensitiveKeys = Effect.fnUntraced(function* <R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, extra: readonly string[] = []) {
@@ -33,5 +42,9 @@ export const schemaSensitiveKeys = Effect.fnUntraced(function* <R extends Rpc.An
 		forRpc: (tag: string | undefined) => (tag === undefined ? sensitive : (policies.get(tag) ?? sensitive)),
 		maskFailure: (tag: string | undefined, reason: "Fail" | "Die") =>
 			[...policies].some(([method, policy]) => (tag === undefined || tag === method) && (reason === "Fail" ? policy.fail : policy.die)),
+		redactFailure: (tag: string | undefined, reason: "Fail" | "Die", value: unknown) => {
+			const policy = policies.get(tag ?? "");
+			return policy === undefined ? REDACTED : policy.redactFailure(reason, value);
+		},
 	});
 });

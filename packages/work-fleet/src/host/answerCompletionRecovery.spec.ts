@@ -16,7 +16,7 @@ answers.it("a pending answer resumes after completion writes recover without res
 	expect(applied.responses?.map((response) => response.decisionId)).toEqual([decision.id]);
 	expect(applied.pendingAnswers).toBeUndefined();
 	yield* submission.release;
-	const acknowledged = yield* host.acknowledged();
+	const acknowledged = yield* host.awaitWorkerReceipt();
 	expect(host.providerReceipts()).toEqual(acknowledged.attempts.map((attempt) => attempt.receipt));
 	expect(yield* host.storedRequests()).toEqual([]);
 });
@@ -33,7 +33,7 @@ answers.it("a completion retry leaves an answer that Fleet is still resolving to
 	yield* host.requestsFinished();
 	yield* resolution.release;
 	yield* host.applied();
-	const applied = yield* host.acknowledged();
+	const applied = yield* host.awaitWorkerReceipt();
 	expect(applied.responses?.map((response) => response.decisionId)).toEqual([decision.id]);
 	expect(applied.pendingAnswers).toBeUndefined();
 	expect(host.providerReceipts()).toEqual(applied.attempts.map((attempt) => attempt.receipt));

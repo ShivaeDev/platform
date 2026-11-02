@@ -4,7 +4,7 @@ import { encodedFailures } from "#test/app-host/encodedFailures.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-const renamed = { wireTag: "<redacted>", wireValue: "<redacted>", wireVisible: "<redacted>" };
+const renamed = { wireTag: "Rejected", wireValue: "<redacted>", wireVisible: "<redacted>" };
 const diagnostic = { control: "public control", sealed: "<redacted>", visible: "public detail", wireValue: "<redacted>" };
 
 host.it(

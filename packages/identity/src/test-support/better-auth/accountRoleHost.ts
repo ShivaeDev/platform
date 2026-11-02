@@ -9,8 +9,9 @@ import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { AssignRoles } from "@shivaedev/access/roles.ts";
+import { readKeys } from "@shivaedev/changes/keys.ts";
 import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
+import { AssignRoles } from "#roles.ts";
 import { accountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
 import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
@@ -21,6 +22,7 @@ import { ProviderAccounts } from "#server/better-auth/allowedAccounts.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { gitHubSignIn } from "#test/sign-in-policy/flows.ts";
+import { userKeys } from "#users.ts";
 
 const Access = roleSet(role("user", []), role("operator", []), role("admin", [AssignRoles]));
 const Session = Schema.Struct({ user: Schema.Struct({ role: Schema.String }) });
@@ -95,7 +97,7 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 			Effect.gen(function* () {
 				reactivity = yield* Reactivity.make;
 				const storage = yield* authTestDatabase;
-				observed = yield* reactivity.query(["admin.users"], storage.userRoles);
+				observed = yield* reactivity.query(readKeys([userKeys.list]), storage.userRoles);
 			}),
 		sessionRole: (person: Person) =>
 			Effect.promise(async () => {

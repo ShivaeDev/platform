@@ -1,6 +1,6 @@
 import { Effect, Redacted, Schema, Scope } from "effect"
 import { Migrator, SqlClient } from "effect/sql"
-import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts"
+import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts"
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts"
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts"
 import { withTestTransaction } from "@shivaedev/test-sql/server/withTestTransaction.ts"

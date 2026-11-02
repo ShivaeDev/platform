@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0 - 2026-11-02
+
+### Added
+
+- Share nested Vitest runs through `adapters/runVitest.ts`, including test outcomes, metadata, module errors and unhandled errors, with runner cleanup after collection.
+
 ## 0.12.1 - 2026-11-02
 
 ### Changed

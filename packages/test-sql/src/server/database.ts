@@ -1,10 +1,11 @@
 import type * as PgClient from "@effect/sql-pg/PgClient";
+import type * as PgPool from "@effect/sql-pg/PgPool";
 import { Context, type Effect, type Redacted, type Scope } from "effect";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 
-export type PostgresTestServices = PgClient.PgClient | SqlClient.SqlClient | Reactivity.Reactivity;
+export type PostgresTestServices = PgPool.PgPool | PgClient.PgClient | SqlClient.SqlClient | Reactivity.Reactivity;
 export type PostgresTestTemplate = "empty" | "migrated";
 
 export interface PostgresTestDatabaseService {

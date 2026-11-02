@@ -19,6 +19,19 @@ function reportUnexpected(cause: Cause.Cause<unknown>): Effect.Effect<void> {
 		),
 	);
 }
+function declaredCause<E>(cause: Cause.Cause<unknown>, declared: (value: unknown) => value is E): Cause.Cause<E> | undefined {
+	const reasons: Cause.Reason<E>[] = [];
+	for (const reason of cause.reasons) {
+		if (Cause.isInterruptReason(reason)) {
+			reasons.push(reason);
+		} else if (Cause.isFailReason(reason) && declared(reason.error)) {
+			reasons.push(Cause.makeFailReason(reason.error).annotate(Context.makeUnsafe(reason.annotations)));
+		} else {
+			return undefined;
+		}
+	}
+	return Cause.fromReasons(reasons);
+}
 export interface RpcBoundaryOptions<E> {
 	readonly message?: string;
 	readonly unexpected: (message: string) => E;
@@ -34,9 +47,9 @@ export function rpcBoundary<
 			if (Cause.hasInterruptsOnly(cause)) {
 				return Effect.failCause(Cause.fromReasons(cause.reasons.filter(Cause.isInterruptReason)));
 			}
-			const reason = cause.reasons[0];
-			if (cause.reasons.length === 1 && reason && Cause.isFailReason(reason) && declared(reason.error)) {
-				return Effect.fail(reason.error);
+			const expected = declaredCause(cause, declared);
+			if (expected !== undefined) {
+				return Effect.failCause(expected);
 			}
 			const rejection = options.unexpected(redactText(options.message ?? "Internal server error", isSensitiveKey));
 			Object.defineProperties(rejection, {

@@ -1,12 +1,7 @@
 import { expect } from "vitest";
 import { github } from "#test/github.ts";
+import { LONG_REPORT, REPORT } from "#test/renderedReports.ts";
 import { HEAD } from "#test/writeTraits.ts";
-import { codeSpan, plainText, tableCell } from "./markdown.ts";
-import { renderRows } from "./markdownRows.ts";
-
-const HOSTILE = "`bad`` |\r\n<script>@org/team #123 [click](https://evil.test) 😀";
-const REPORT = `${plainText("<b>@team #123 [link](url)</b>")}\n\n${codeSpan(HOSTILE)}\n\n${renderRows([`| ${tableCell(HOSTILE)} | ${tableCell(HOSTILE, "code")} |`], { header: "| Name | Error |\n| --- | --- |" })}`;
-const LONG_REPORT = renderRows(Array.from({ length: 20_000 }, (_, index) => `| test ${index} | failed |`));
 
 github.it("a report rendered from hostile text reaches the pull request comment unchanged", [], function* ({ commentsOnPullRequest, postReport }) {
 	yield* postReport({ body: REPORT, marker: "report" });

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.19.0 - 2026-11-02
+
+### Added
+
+- Identity provides the `OauthGrants` environment service and the `betterAuthOauthGrants` Layer from `@shivaedev/identity/server/better-auth/adapters/oauthGrants.ts`. List client grants, revoke one client or all clients, and resolve admitted subjects with live consent through this service.
+- Identity exposes `currentSessionContext` to recheck an authenticated stream's session and refresh its existing `SessionUser` and `SessionUserWithProviderAccounts` services.
+
+### Breaking
+
+- The optional `@better-auth/oauth-provider` peer belongs to identity. MCP's Better Auth adapter uses identity's provider edge exports for resource configuration and discovery; core modules still require no optional peers.
+- Import Better Auth integration modules from `@shivaedev/identity/server/better-auth/adapters/` instead of `server/better-auth/`: `mount.ts` (`betterAuthMount`, `BetterAuthMountOptions`), `bearerSessions.ts` (`BearerSessionsOptions`, `withBearerSessions`, `hasSessionCookie`, `sessionHeaders`, `cookieSessionResponse`), `clientIp.ts` (`PEER_IP_HEADER`, `clientIpHeaders`), `columnDrift.ts` (`authColumnDrift`), `closeRoleEndpoints.ts` (`closeRoleEndpoints`), `migrationPlan.ts` (`betterAuthMigrationPlan`, `authMigrationSql`), `tables.ts` (`AuthTableOptions`, `tables`), `migrate.ts` (`migrateBetterAuth`), `assertSchema.ts` (`assertBetterAuthSchema`, `BetterAuthSchemaDrift`) and `mountedSessions.ts` (`mountedSessions`). Their names and arguments stay the same; the old paths are removed.
+- Import `generateBetterAuthMigration` from `@shivaedev/identity/server/better-auth/adapters/migrations/generate.ts` instead of `server/better-auth/migrations/generate.ts`.
+- Import `localRpcGuard`, `localTransport`, `loopbackOnly`, `sameOrigin` and `trustedProxyPeer` from `@shivaedev/identity/server/adapters/local.ts`; `proxyRanges` and `addProxyAddress` from `server/adapters/proxyRanges.ts`; `TrustedProxy`, `proxyAddresses` and `proxyMatches` from `server/adapters/trustedProxy.ts`; and `trustedProxyRanges` from `server/adapters/trustedProxyRanges.ts`. The corresponding paths directly under `server/` are removed.
+- Import `trustedOrigins` from `@shivaedev/identity/server/adapters/trustedOrigins.ts`. Keep `OriginPolicy`, `OriginRequest`, `TrustedOriginsOptions`, `originRequest` and `transportOriginRequest` imports at `server/origin.ts`.
+- `mountRoutes` in `server/better-auth/mountRoutes.ts` is now a Layer that reads `AuthRouteHandler`. Use `betterAuthMount(...).routes` for Better Auth hosting. Custom integrations provide `AuthRouteHandler` with a `handle` Effect requiring `HttpServerRequest` and compose the `mountRoutes` Layer instead of calling `mountRoutes(auth, options)`.
+- `clientIpHeaders(options)` now returns an Effect function taking only the web `Request`; provide the native `HttpServerRequest` service instead of passing it as the first argument. `loopbackOnly(effect)` now accepts and returns an Effect; replace `loopbackOnly(request => handler(request))(request)` with `loopbackOnly(handlerEffect)` and provide `HttpServerRequest` around it.
+- Sign-in rate limits use the host's `@shivaedev/rate-limit` Store. Provide `memoryStore` once around the host, or migrate `rate_limit_windows` with `postgresMigration` and provide `postgresStore` to share budgets across processes. Better Auth still chooses rules and client-IP keys, but its `storage` and `customStorage` options are overridden; migrate custom storage to a Store implementation. Windows now expire from the first admitted attempt, and all mounts using the same store share their budget.
+- Remove `server/better-auth/memoryRateLimit.ts`. Consumers importing it must provide a shared Store to `betterAuthMount` instead.
+
 ## 0.18.0 - 2026-11-02
 
 ### Added
