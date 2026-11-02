@@ -6,7 +6,7 @@ import { installPgBossSchema, pgBossSchema } from "@shivaedev/jobs/server/schema
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { migrationHost } from "./migrationStory.ts";
 
-export function withJobsSchema(version: "missing" | "older" | "current") {
+export function withJobsSchema(version: "missing" | "older" | "current" | "without deferrals") {
 	return migrationHost.trait("schema", `a current ledger and ${version} pg-boss schema`, function* (state) {
 		const schema = `${state.table}_jobs`;
 		const sql = yield* SqlClient.SqlClient;
@@ -17,6 +17,9 @@ export function withJobsSchema(version: "missing" | "older" | "current") {
 			return;
 		}
 		yield* installPgBossSchema({ schema });
+		if (version === "without deferrals") {
+			yield* sql`DROP TABLE ${sql(schema)}.effect_job_deferral`;
+		}
 		if (version === "older") {
 			const boss = new PgBoss({ connectionString: Redacted.value(state.url), migrate: false, schedule: false, schema, supervise: false });
 			yield* Effect.tryPromise(() => boss.start());
