@@ -50,6 +50,7 @@ const StatusRecord = Schema.Struct({
 		"completedAt",
 		"outcome",
 		"predictedConflictHold",
+		"releaseWindow",
 		"result",
 		"step",
 		"sweepHold",
