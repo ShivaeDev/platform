@@ -19,7 +19,7 @@ readPolicy: ({ id }, viewer) =>
 
 `NotFound` is declared in the query’s `rejections`, so this private-item answer also applies to live reads and subscriptions. Returning `false` instead would disclose denial as `QueryReadDenied`; use that case only when the viewer may know the item exists.
 
-To remove the example, delete `src/modules/notes` and its imports and entries in `src/admin/modules.ts`, `src/server/modules.ts`, `src/server/workerModules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server, worker and client pieces in those same registries.
+To remove the example, delete `src/modules/notes` and its imports and entries in `src/admin/modules.ts`, `src/server/modules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its own queues and workers; both application processes compose the same module list.
 
 ## Create or run it
 

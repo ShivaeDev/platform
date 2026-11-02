@@ -35,6 +35,19 @@ Use a distinct literal identifier for each jobs service. The service and its Lay
 
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
 
+### Contribute workers to application modules
+
+`jobModule` from `@shivaedev/jobs/server/jobModule.ts` returns `queues` and `workers` fields for an `AppModule` in `@shivaedev/server`. Its queue declarations come from the same registrations its worker Layer runs:
+
+```ts
+import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
+import { Jobs, SendEmail, Mail } from "./app.ts";
+
+const jobs = jobModule(Jobs.layer, { jobs: [SendEmail.handle(({ userId }) => Mail.send(userId))] });
+```
+
+Spread these fields into the owning module. Keep the producer's jobs Layer in its services or ports. The application builds `appModules` once and passes its result to `appHost` or `workerHost`; both hosts provide the module's services and ports to their work. Queue definitions without handlers and scheduled workers can also appear in the registration list.
+
 ### Share queue names with the browser
 
 Keep names and payload Schemas in a browser-safe module such as `queues.ts`:

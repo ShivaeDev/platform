@@ -70,7 +70,7 @@ export const adminSetup = storyKit({
 });
 
 export const authTablesReady = adminSetup.trait("database", "the app's authentication tables exist", function* () {
-	const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
+	const steps = yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
 	yield* steps.migrateTo("0004_stored_roles");
 });
 
