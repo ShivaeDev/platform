@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { AuthFailure } from "#client/AuthFailure.ts";
+import { identityAuthFailureCode } from "#authRefusal.ts";
+import { AuthFailure, type AuthFailureWithCodes } from "#client/AuthFailure.ts";
 import { AuthFailureCode } from "#client/AuthFailureCode.ts";
 
 export interface AuthActionResult<A, E> {
@@ -10,10 +11,17 @@ export interface AuthActionResult<A, E> {
 
 const supportedCode = Schema.is(AuthFailureCode);
 
-export function authCall<TInput, A, E extends object = never>(
+function fallbackCode(error: object) {
+	return "status" in error && error.status === HttpStatus.fromLiteral("TooManyRequests") ? "RATE_LIMITED" : "UNKNOWN";
+}
+
+export function authCall<TInput, A, E extends object = never, TCode extends string = never>(
 	run: (input: TInput, signal: AbortSignal) => Promise<AuthActionResult<A, E>>,
-): (input: TInput) => Effect.Effect<A, AuthFailure> {
-	return (input) =>
+	codes: readonly TCode[] = [],
+): (input: TInput) => Effect.Effect<A, AuthFailure | AuthFailureWithCodes<TCode>> {
+	const ApplicationFailure = AuthFailure.withCodes(codes);
+	const applicationCode = Schema.is(Schema.Literals(codes));
+	return (input: TInput) =>
 		Effect.tryPromise({
 			catch: (cause) => new AuthFailure({ cause, code: "UNKNOWN" }),
 			try: (signal) => run(input, signal),
@@ -22,11 +30,15 @@ export function authCall<TInput, A, E extends object = never>(
 				if (error === null) {
 					return Effect.succeed(data);
 				}
-				if ("code" in error && supportedCode(error.code)) {
-					return Effect.fail(new AuthFailure({ cause: error, code: error.code }));
+				const wire = "code" in error ? error.code : undefined;
+				const code = identityAuthFailureCode(wire) ?? wire;
+				if (supportedCode(code)) {
+					return Effect.fail(new AuthFailure({ cause: error, code }));
 				}
-				const code = "status" in error && error.status === HttpStatus.fromLiteral("TooManyRequests") ? "RATE_LIMITED" : "UNKNOWN";
-				return Effect.fail(new AuthFailure({ cause: error, code }));
+				if (applicationCode(wire)) {
+					return Effect.fail(new ApplicationFailure({ cause: error, code: wire }));
+				}
+				return Effect.fail(new AuthFailure({ cause: error, code: fallbackCode(error) }));
 			}),
 		);
 }

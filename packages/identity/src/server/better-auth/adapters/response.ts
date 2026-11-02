@@ -1,6 +1,8 @@
 import { type Cause, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/adapters/bearerSessions.ts";
+import type { HookRefusal } from "#server/better-auth/adapters/hookRuntime.ts";
 import { sessionPermissions } from "#server/better-auth/sessionPermissions.ts";
 
 export interface MountedAuth {
@@ -13,7 +15,7 @@ export interface MountRouteOptions {
 	readonly clientIpHeader: string;
 	readonly ipv6Subnet?: number | undefined;
 	readonly roles?: RoleSet | undefined;
-	readonly runRequest?: (<A>(request: (signal: AbortSignal) => Promise<A>) => Effect.Effect<A, Cause.UnknownError>) | undefined;
+	readonly runRequest?: (<A>(request: (signal: AbortSignal) => Promise<A>) => Effect.Effect<A, Cause.UnknownError | HookRefusal>) | undefined;
 	readonly trustedProxy?: string | undefined;
 }
 function replacesSession(request: Request, reply: Response, native: boolean, basePath: string) {
@@ -53,6 +55,10 @@ export const response = Effect.fnUntraced(function* (auth: MountedAuth, web: Req
 	}
 	const request = sessionRequest ? new Request(url, web) : web;
 	const runRequest = options.runRequest ?? Effect.tryPromise;
-	const reply = yield* runRequest((signal) => providerResponse(auth, new Request(request, { signal }), options));
+	const reply = yield* runRequest((signal) => providerResponse(auth, new Request(request, { signal }), options)).pipe(
+		Effect.catchTag("HookRefusal", ({ code, message }) =>
+			Effect.succeed<Response>(Response.json({ code, message }, { status: HttpStatus.fromLiteral("Forbidden") })),
+		),
+	);
 	return sessionRequest && reply.ok && options.roles !== undefined ? yield* sessionPermissions(reply, options.roles) : reply;
 });
