@@ -50,7 +50,7 @@ export function installDatabaseProbe(app: string) {
 	writeFileSync(join(app, "src/environment.test.ts"), databaseProbe());
 }
 
-export function readyAgainstWorkspace(app: string, starter: string) {
+export function workspaceConditions(app: string, starter: string) {
 	for (const path of [
 		"tsconfig.json",
 		"vite.config.ts",
@@ -62,5 +62,9 @@ export function readyAgainstWorkspace(app: string, starter: string) {
 	]) {
 		writeFileSync(join(app, path), readFileSync(join(starter, path)));
 	}
+}
+
+export function readyAgainstWorkspace(app: string, starter: string) {
+	workspaceConditions(app, starter);
 	return appScript(app, "ready", [], ["NODE_OPTIONS=--conditions=source"]);
 }

@@ -13,6 +13,7 @@ import { createEngine } from "./createEngine.ts";
 import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "./environment.ts";
 import { createAppIn } from "./generate.ts";
 import { generatedReadouts } from "./generatedReadouts.ts";
+import { moduleChecks } from "./moduleChecks.ts";
 import { runAdminStories } from "./runAdminStories.ts";
 import { templateReadouts } from "./templateReadouts.ts";
 
@@ -47,6 +48,7 @@ export const application = storyKit({
 		}
 		return {
 			...appReadouts(target),
+			...moduleChecks(target, engine.source.starter, story),
 			...generatedReadouts(engine, target),
 			...templateReadouts(engine),
 			...skillActions(target, story),

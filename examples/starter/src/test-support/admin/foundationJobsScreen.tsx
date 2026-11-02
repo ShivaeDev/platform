@@ -3,7 +3,7 @@ import { Effect } from "effect";
 import { JobsView } from "@shivaedev/admin/client/JobsView.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { foundation } from "#admin/modules.ts";
+import { foundation } from "#admin/foundation.ts";
 import { makeFoundationClient } from "#client/admin/foundation.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
