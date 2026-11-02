@@ -10,6 +10,7 @@ import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";
 import { listingVerbs } from "#test/postgres/listingVerbs.ts";
 import { readouts } from "#test/postgres/readouts.ts";
 import { answer, runtimeVerbs, waitingVerbs } from "#test/postgres/verbs.ts";
+import { deferralVerbs } from "./deferralVerbs.ts";
 
 export interface SchemaState {
 	engine: DatabaseEngine;
@@ -98,5 +99,6 @@ export const schemaKit = storyKit({
 		...readouts(state.engine),
 		...listingVerbs(state.engine, story.tell),
 		...schemaVerbs(state, story.tell),
+		...deferralVerbs(state, story.tell),
 	}),
 });
