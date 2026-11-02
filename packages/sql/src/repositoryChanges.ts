@@ -2,7 +2,7 @@ import { Effect, Option, type Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { declaredBuckets } from "@shivaedev/changes/buckets.ts";
-import { compositeId, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
+import { collectionInvalidationKeys, compositeId, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
 import { ChangeDeclarations } from "#ChangeDeclarations.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
@@ -71,8 +71,9 @@ export const repositoryChanges = Effect.fnUntraced(function* (
 			return;
 		}
 		const declarations = yield* ChangeDeclarations;
-		yield* declarations.declare(table, [table], rows);
-		yield* provide(invalidateOnCommit([table]));
+		const keys = collectionInvalidationKeys(table);
+		yield* declarations.declare(table, keys, rows);
+		yield* provide(invalidateOnCommit(keys));
 	});
 	return { record, recordTable, returning, write };
 });

@@ -111,7 +111,7 @@ const keys = [notes.item(1), notes.bucket.userId("alice"), notes.bucket.listId(4
 const invalidations = invalidationKeys(keys);
 ```
 
-Use `readKeys(keys)` to register dependencies with native Reactivity and `invalidationKeys(keys)` when announcing committed writes. A bucket changes when the writer names it; SQL repositories derive those names from model fields marked with `bucket`. Its value is typed by the declared field schema. A filtered list query still reads its entire bucket and reruns when any row there changes. Record changes also invalidate the collection list, while buckets remain explicit. The channel can buffer these keys until commit just like any other change vocabulary.
+Use `readKeys(keys)` to register dependencies with native Reactivity and `invalidationKeys(keys)` when announcing committed writes. A bucket changes when the writer names it; SQL repositories derive those names from model fields marked with `bucket`. Its value is typed by the declared field schema. A filtered list query still reads its entire bucket and reruns when any row there changes. Record changes also invalidate the collection list, while buckets remain explicit. Use `collectionInvalidationKeys(name, context?)` to refresh all list, item and bucket readers of a collection when a bulk operation cannot name individual rows. Item and bucket dependencies include a collection wildcard for these refreshes; ordinary item and bucket invalidations remain precise. The optional context scopes the refresh to that session. The channel can buffer these keys until commit just like any other change vocabulary.
 
 For composite SQL identities, use `compositeId(values)` with stored key values in the repository's `idColumn` order, then pass the resulting string to `collection(name, Schema.String).item(id)`. It encodes the values as a JSON array, with bigint components represented as decimal strings. Repository writes use the same encoder, so the subscriber and writer identify the same record. `recordKey(collection, id)` builds a raw record dependency for native Reactivity; typed item keys use it too.
 
@@ -187,15 +187,15 @@ A direct driver binding using `open` must run `frame.beforeCommit` inside its tr
 
 Import from the module that defines the name; the package has no root entry.
 
-| Module                          | Names                                                                                                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shivaedev/changes/channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                 |
-| `@shivaedev/changes/frame.ts`   | `Frame`, `CommitFrame`, `Outcome`                                                                                                                          |
-| `@shivaedev/changes/capture.ts` | `makeCapture`, `Capture`                                                                                                                                   |
-| `@shivaedev/changes/observe.ts` | `Observation`, `Observer`                                                                                                                                  |
-| `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure`                                                                                                                                |
-| `@shivaedev/changes/keys.ts`    | `collection`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity`, `KeyContext` |
-| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets`                                                                                                                                |
+| Module                          | Names                                                                                                                                                                                    |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/changes/channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                                                                               |
+| `@shivaedev/changes/frame.ts`   | `Frame`, `CommitFrame`, `Outcome`                                                                                                                                                        |
+| `@shivaedev/changes/capture.ts` | `makeCapture`, `Capture`                                                                                                                                                                 |
+| `@shivaedev/changes/observe.ts` | `Observation`, `Observer`                                                                                                                                                                |
+| `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure`                                                                                                                                                              |
+| `@shivaedev/changes/keys.ts`    | `collection`, `collectionInvalidationKeys`, `compositeId`, `recordKey`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity`, `KeyContext` |
+| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets`                                                                                                                                                              |
 
 A `Channel` exposes `record`, `within`, `batch` and `open`, and the scoped references `Sink`, `CommittedSink`, `Observer` and `BeforeCommit`.
 
