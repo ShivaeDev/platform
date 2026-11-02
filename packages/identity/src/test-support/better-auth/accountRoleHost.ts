@@ -10,6 +10,7 @@ import type { SqlError } from "effect/sql/SqlError";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { AssignRoles } from "@shivaedev/access/roles.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { accountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
 import { ProviderAccounts } from "#server/better-auth/allowedAccounts.ts";
@@ -39,7 +40,7 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 	};
 	yield* migrateBetterAuth(options, { defaultRole: "user" });
-	const base = yield* betterAuthMount(options, { defaultRole: "user", roles: Access }).pipe(Effect.provide(config));
+	const base = yield* betterAuthMount(options, { defaultRole: "user", roles: Access }).pipe(Effect.provide(memoryStore)).pipe(Effect.provide(config));
 	const baseApp = HttpRouter.toWebHandler(base.routes, { disableLogger: true });
 	yield* Effect.addFinalizer(() => Effect.promise(() => baseApp.dispose()));
 	const cookies = new Map<Person, string>();
@@ -52,7 +53,9 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 			defaultRole: "user",
 			roleSeed: accountRoleSeed(Access, seededRole, Config.schema(ProviderAccounts, "AUTH_OPERATOR_ACCOUNTS").pipe(Config.withDefault([])), options),
 			roles: Access,
-		}).pipe(Effect.provide(config));
+		})
+			.pipe(Effect.provide(memoryStore))
+			.pipe(Effect.provide(config));
 		// Server-only stories must not inherit the PostgreSQL kit's Reactivity service.
 		const mounted = yield* reactivity === undefined
 			? mount.pipe(

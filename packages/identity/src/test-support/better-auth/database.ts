@@ -7,6 +7,7 @@ import { ConfigProvider, Effect, Layer, Option, Schema } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as NetAddress from "effect/net/NetAddress";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -40,9 +41,9 @@ export const authStorage = storyKit({
 			if (!engine.hosting) {
 				return;
 			}
-			const mounted = yield* betterAuthMount(engine.options).pipe(
-				Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
-			);
+			const mounted = yield* betterAuthMount(engine.options)
+				.pipe(Effect.provide(memoryStore))
+				.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 			const context = yield* Layer.build(
 				HttpRouter.serve(mounted.routes, { disableLogger: true }).pipe(
 					Layer.provideMerge(NodeHttpServer.layer(createServer, { host: "127.0.0.1", port: 0 })),

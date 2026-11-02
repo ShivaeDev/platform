@@ -9,6 +9,7 @@ import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapt
 import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
@@ -65,7 +66,7 @@ const startHost = Effect.fnUntraced(function* ({ inProcess, withAdmission, issue
 		defaultRole: "user",
 		roles: Roles,
 		...(withAdmission ? { signIn: admission.policy } : {}),
-	});
+	}).pipe(Effect.provide(memoryStore));
 	const oauth = yield* betterAuthMcp({
 		admitsUser: mounted.admitsUser,
 		auth: mounted.auth,

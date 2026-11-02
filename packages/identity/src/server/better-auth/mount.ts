@@ -6,12 +6,12 @@ import { emailOptions } from "#server/better-auth/adapters/emailOptions.ts";
 import { type BetterAuthHardeningOptions, withHardening } from "#server/better-auth/adapters/hardening.ts";
 import { hookRuntime } from "#server/better-auth/adapters/hookRuntime.ts";
 import { passwordResetOptions } from "#server/better-auth/adapters/passwordResetOptions.ts";
+import { rateLimitStorage } from "#server/better-auth/adapters/rateLimitStorage.ts";
 import { roleSeedOptions } from "#server/better-auth/adapters/roleSeedOptions.ts";
 import { signInPolicyOptions } from "#server/better-auth/adapters/signInPolicyOptions.ts";
 import { type StoredRoleOptions, storedRoleOptions } from "#server/better-auth/adapters/storedRoleOptions.ts";
 import { type BearerSessionsOptions, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
 import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
-import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
 import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
 import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { fromStorage, type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
@@ -59,8 +59,7 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 	const seed = mount.roleSeed === undefined ? undefined : yield* mount.roleSeed;
 	const seeded = roleSeedOptions(gate.active ? { ...configured, ...gated } : configured, seed);
 	const rateLimit = options.rateLimit;
-	const customStorage =
-		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);
+	const customStorage = yield* rateLimitStorage;
 	const auth = betterAuth({
 		...withHardening(withBearerSessions(configured, mount.bearerSessions !== undefined), mount.hardening),
 		advanced: {
@@ -81,7 +80,7 @@ export const betterAuthMount = Effect.fn("Identity.betterAuthMount")(function* <
 		databaseHooks: seeded.databaseHooks,
 		rateLimit: {
 			...rateLimit,
-			...(customStorage === undefined ? {} : { customStorage }),
+			customStorage,
 			enabled: rateLimitEnabled,
 		},
 		secret,

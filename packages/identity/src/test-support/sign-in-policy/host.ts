@@ -7,6 +7,7 @@ import { type Cause, ConfigProvider, Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, Headers, HttpClient, HttpClientRequest, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { Identity } from "#identity.ts";
 import { Authenticated, RequestTracing } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
@@ -44,7 +45,9 @@ export const policyHost = Effect.fnUntraced(function* (
 	yield* Effect.promise(async () => {
 		await (await getMigrations(options)).runMigrations();
 	});
-	const mounted = yield* betterAuthMount(options, { signIn }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
+	const mounted = yield* betterAuthMount(options, { signIn })
+		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
 	let accountLookups = 0;
 	const accounts = app.providerAccounts
 		? mounted.admittedSessions(

@@ -1,5 +1,6 @@
 import { request } from "node:http";
 import { Effect } from "effect";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -14,7 +15,7 @@ interface Engine {
 export const clientIp = storyKit({
 	after: {
 		*configured(engine) {
-			engine.host = yield* clientIpHost(engine.env);
+			engine.host = yield* clientIpHost(engine.env).pipe(Effect.provide(memoryStore));
 		},
 	},
 	around: withIsolatedDatabase,

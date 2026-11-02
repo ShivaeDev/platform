@@ -6,6 +6,7 @@ import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
@@ -33,7 +34,9 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		trustedOrigins: [NATIVE_ORIGIN, ANDROID_ORIGIN, "http://127.0.0.1:*"],
 	} satisfies BetterAuthOptions;
 	yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
-	const mounted = yield* betterAuthMount(options, enabled ? { bearerSessions: { origins: [NATIVE_ORIGIN, ANDROID_ORIGIN] } } : {});
+	const mounted = yield* betterAuthMount(options, enabled ? { bearerSessions: { origins: [NATIVE_ORIGIN, ANDROID_ORIGIN] } } : {}).pipe(
+		Effect.provide(memoryStore),
+	);
 	const activity = { available: true, lookups: 0 };
 	const sessions = {
 		origin: () => true,

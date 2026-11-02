@@ -9,6 +9,7 @@ import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
@@ -40,7 +41,9 @@ export const sessionAdminHost = Effect.fnUntraced(function* () {
 			session: { cookieCache: { enabled: false }, disableSessionRefresh: true },
 		},
 		{ defaultRole: "viewer", roles: Access },
-	).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
+	)
+		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	const context = yield* Effect.promise(() => mounted.auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
 	const sessions = { ...mounted.sessions, origin: () => true, streamRevalidationInterval: "50 millis" as const };

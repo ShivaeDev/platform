@@ -8,6 +8,7 @@ import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
@@ -88,7 +89,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 						sessions: Layer.succeed(SessionPolicy, sessions),
 					};
 				}),
-			});
+			}).pipe(Layer.provide(memoryStore));
 		}),
 	);
 }
