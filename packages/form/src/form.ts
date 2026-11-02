@@ -2,11 +2,11 @@ import { Effect, Layer, Result, Schema, type SchemaIssue, SchemaParser } from "e
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
+import { persistence } from "#adapters/persistence.ts";
 import { checkFeedback } from "./checkFeedback.ts";
 import { draft } from "./draft.ts";
 import { literalChoices, messageAt, messageAtPath, messagesByField, schemaFeedback } from "./messages.ts";
 import { pathMessageAt } from "./paths.ts";
-import { persistence } from "./persistence.ts";
 import { fromRef, propertyRef } from "./refs.ts";
 import {
 	type Config,

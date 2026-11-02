@@ -2,20 +2,14 @@ import { useAtomRef, useAtomSet, useAtomValue } from "@effect/atom-react";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import type { DraftSession } from "#draftSession.ts";
-import type { DraftStorage, PersistedDraftConfig } from "#persistence.ts";
+import type { PersistedDraftConfig } from "#persistence.ts";
 import type { Encoded, FieldFailure, Fields, Form, Invalid, Name } from "#shape.ts";
 export const DraftSessionContext = createContext<DraftSession | undefined>(undefined);
-export interface BrowserDraftConfig extends Omit<PersistedDraftConfig, "storage"> {
-	readonly storage?: () => DraftStorage;
-}
-function browserStorage(): DraftStorage {
-	return globalThis.localStorage;
-}
-export function usePersistedDraft(config: BrowserDraftConfig): PersistedDraftConfig;
-export function usePersistedDraft(config: BrowserDraftConfig | undefined): PersistedDraftConfig | undefined;
-export function usePersistedDraft(config: BrowserDraftConfig | undefined): PersistedDraftConfig | undefined {
+export function usePersistedDraft(config: PersistedDraftConfig): PersistedDraftConfig;
+export function usePersistedDraft(config: PersistedDraftConfig | undefined): PersistedDraftConfig | undefined;
+export function usePersistedDraft(config: PersistedDraftConfig | undefined): PersistedDraftConfig | undefined {
 	const session = useContext(DraftSessionContext);
-	return config ? { ...config, session: session ?? config.session, storage: config.storage ?? browserStorage } : undefined;
+	return config ? { ...config, session: session ?? config.session } : undefined;
 }
 export interface Field<TFields extends Fields, TKey extends Name<TFields>> {
 	readonly choices: readonly Encoded<TFields>[TKey][] | undefined;

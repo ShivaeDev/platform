@@ -1,4 +1,7 @@
+import { Effect } from "effect";
 import { beforeEach, vi } from "vitest";
+import { browserDraftStorage } from "@shivaedev/form/adapters/browserDraftStorage.ts";
+import { draftPersistence } from "@shivaedev/form/adapters/draftPersistence.ts";
 
 export function draftStorage() {
 	beforeEach(({ onTestFinished }) => {
@@ -13,3 +16,5 @@ export function draftStorage() {
 		});
 	});
 }
+
+export const browserPersistence = draftPersistence.pipe(Effect.provide(browserDraftStorage));

@@ -12,8 +12,8 @@ export const drafts = storyKit({
 	...screenKit(
 		"persisted draft screen",
 		(): State => ({ complete: Deferred.makeUnsafe<void>(), config: { key: "order-draft" }, holding: false, save: "immediate" }),
-		(state, screen, now) => ({
-			...draftVerbs(state, screen, now),
+		(state, screen) => ({
+			...draftVerbs(state, screen),
 			fields: () => Effect.sync(() => fields(state)),
 			form: () => Effect.sync(() => (current(state).editor().form === state.firstForm ? "first form" : "replaced form")),
 			nameLength: () => Effect.sync(() => fields(state).name.length),
@@ -26,19 +26,19 @@ export const drafts = storyKit({
 					const raw = window.localStorage.getItem(state.config.key);
 					return raw === null ? "none" : JSON.parse(raw).values;
 				}),
+			updatedAt: () => Effect.sync(() => JSON.parse(window.localStorage.getItem(state.config.key) ?? "null")?.updatedAt),
 		}),
 	),
 	clock: "test",
 });
 
 interface Engine {
-	readonly now: () => number;
 	readonly screen: Screen;
 	readonly state: State;
 }
 
-function verbs({ now, screen, state }: Engine) {
-	return draftVerbs(state, screen, now);
+function verbs({ screen, state }: Engine) {
+	return draftVerbs(state, screen);
 }
 
 function* openWith(engine: Engine, config: Config, save: SaveMode = "immediate") {
