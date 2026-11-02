@@ -18,13 +18,10 @@ import type { ResumeSource, ResumeWindow } from "#resume.ts";
 
 export type Failure<R extends Rpc.Any> =
 	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer TMiddleware, infer _Requires>
-		? Rpc.ErrorExit<R> | TMiddleware["error"]["Type"] | RpcClientError
+		? Rpc.ErrorExit<R> | TMiddleware["error"]["Type"] | TMiddleware["~ClientError"] | RpcClientError
 		: never;
 
-export type RunFailure<R extends Rpc.Any> =
-	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer TMiddleware, infer _Requires>
-		? Failure<R> | TMiddleware["~ClientError"]
-		: never;
+export type RunFailure<R extends Rpc.Any> = Failure<R>;
 
 export interface QueryOptions {
 	readonly headers?: Headers.Input;
@@ -32,8 +29,8 @@ export interface QueryOptions {
 	readonly timeToLive?: Duration.Input;
 }
 
-export interface BoundQuery<R extends Rpc.Any, TSelf> {
-	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R>>>;
+export interface BoundQuery<R extends Rpc.Any, TSelf, TSubscription extends Rpc.Any = never> {
+	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R | TSubscription>>>;
 	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>;
 }
 
@@ -53,7 +50,11 @@ export type Bound<
 	TSelf,
 	TStreams extends readonly StreamShape[] = readonly [],
 > = {
-	readonly [TQuery in TQueries[number] as TQuery["name"]]: BoundQuery<Rpc.ExtractTag<TRpcs, Tag<TName, TQuery["name"]>>, TSelf>;
+	readonly [TQuery in TQueries[number] as TQuery["name"]]: BoundQuery<
+		Rpc.ExtractTag<TRpcs, Tag<TName, TQuery["name"]>>,
+		TSelf,
+		Rpc.ExtractTag<TRpcs, Tag<TName, "$changes">>
+	>;
 } & {
 	readonly [TCommand in TCommands[number] as TCommand["name"]]: BoundCommand<Rpc.ExtractTag<TRpcs, Tag<TName, TCommand["name"]>>, TSelf>;
 } & {
