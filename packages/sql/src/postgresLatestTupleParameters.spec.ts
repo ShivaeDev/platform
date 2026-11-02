@@ -1,5 +1,5 @@
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { indexedRuns, queries } from "#test/queries.ts";
+import { indexedRuns, queries, queryTables } from "#test/queries.ts";
 import { LatestRun } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
@@ -7,7 +7,7 @@ const tuples = Array.from({ length: 50_000 }, (_, index): readonly [string | nul
 
 queries.it(
 	"50,000 tuple pins bind two arrays and one limit while duplicates and a null pin keep one latest row per group",
-	[indexedRuns()],
+	[queryTables("runs"), indexedRuns()],
 	function* ({ boundParameterCounts, boundParameters, lastResult, latestRuns }) {
 		yield* latestRuns({
 			limit: 1,

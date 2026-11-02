@@ -1,8 +1,6 @@
 import { BigDecimal, DateTime } from "effect";
 import { expect } from "vitest";
-import type { FindManyFilter } from "#repositoryFilter.ts";
-import { queries, sourceRows } from "#test/queries.ts";
-import type { Payment, Sample } from "#test/queryModels.ts";
+import { queries, queryTables, sourceRows } from "#test/queries.ts";
 
 const bounds = [
 	{ expected: [{ id: 2 }, { id: 3 }], name: "gt 1 and lt 4 exclude both ends", where: { id: { gt: 1, lt: 4 } } },
@@ -12,7 +10,7 @@ const bounds = [
 ] as const;
 
 for (const { expected, name, where } of bounds) {
-	queries.it(`numeric bounds ${name} of samples 1 to 4`, [], function* ({ findSamples, saveSamples }) {
+	queries.it(`numeric bounds ${name} of samples 1 to 4`, [queryTables("samples")], function* ({ findSamples, saveSamples }) {
 		yield* saveSamples([1, 2, 3, 4].map((id) => ({ id, values: [id] })));
 
 		const found = yield* findSamples({ orderBy: { direction: "asc", field: "id" }, select: ["id"], where });
@@ -25,7 +23,7 @@ const settled = ["2026-10-25T00:00:00.000Z", "2026-10-25T12:00:00.000Z", "2026-1
 
 queries.it(
 	"Date bounds given with a -10:00 offset compare as UTC instants and read the payments of October 25 UTC",
-	[],
+	[queryTables("payments")],
 	function* ({ findPayments, savePayments }) {
 		yield* savePayments(settled.map((settledAt) => ({ "settled_at": settledAt })));
 
@@ -41,7 +39,7 @@ queries.it(
 
 queries.it(
 	"a DateTime.Utc bound encodes through a DateTime.Utc model field and reads the later payment",
-	[],
+	[queryTables("payments")],
 	function* ({ findUtcPayments, savePayments }) {
 		yield* savePayments(settled.map((settledAt) => ({ "settled_at": settledAt })));
 
@@ -51,29 +49,33 @@ queries.it(
 	},
 );
 
-queries.it("bigint and decimal bounds beyond Number precision select the payments between them", [], function* ({ findPayments, savePayments }) {
-	const amount = BigDecimal.fromStringUnsafe;
-	yield* savePayments([
-		{ amount: amount("9007199254740993.1"), sequence: 9007199254740993n },
-		{ amount: amount("9007199254740993.2"), sequence: 9007199254740994n },
-		{ amount: amount("9007199254740993.3"), sequence: 9007199254740995n },
-	]);
+queries.it(
+	"bigint and decimal bounds beyond Number precision select the payments between them",
+	[queryTables("payments")],
+	function* ({ findPayments, savePayments }) {
+		const amount = BigDecimal.fromStringUnsafe;
+		yield* savePayments([
+			{ amount: amount("9007199254740993.1"), sequence: 9007199254740993n },
+			{ amount: amount("9007199254740993.2"), sequence: 9007199254740994n },
+			{ amount: amount("9007199254740993.3"), sequence: 9007199254740995n },
+		]);
 
-	const found = yield* findPayments({
-		orderBy: { direction: "asc", field: "sequence" },
-		select: ["sequence"],
-		where: {
-			amount: { gte: amount("9007199254740993.1"), lt: amount("9007199254740993.3") },
-			sequence: { gt: 9007199254740992n, lte: 9007199254740994n },
-		},
-	});
+		const found = yield* findPayments({
+			orderBy: { direction: "asc", field: "sequence" },
+			select: ["sequence"],
+			where: {
+				amount: { gte: amount("9007199254740993.1"), lt: amount("9007199254740993.3") },
+				sequence: { gt: 9007199254740992n, lte: 9007199254740994n },
+			},
+		});
 
-	expect(found).toEqual([{ sequence: 9007199254740993n }, { sequence: 9007199254740994n }]);
-});
+		expect(found).toEqual([{ sequence: 9007199254740993n }, { sequence: 9007199254740994n }]);
+	},
+);
 
 queries.it(
 	"a like pattern combines with text bounds, an in list and equality, so only the note matching all of them is read",
-	[],
+	[queryTables("payments")],
 	function* ({ findPayments, savePayments }) {
 		yield* savePayments([{ note: "Run_a" }, { note: "Run_ab" }, { note: "run_a" }, { note: "Other" }, { note: "Run_b", sequence: 1n }]);
 
@@ -88,7 +90,7 @@ queries.it(
 
 queries.it(
 	"a pattern holding a quote and a SQL comment is bound as a parameter and matches only its literal note",
-	[],
+	[queryTables("payments")],
 	function* ({ findPayments, savePayments }) {
 		yield* savePayments([{ note: "Run_a" }, { note: "Run_' OR true --" }]);
 
@@ -98,44 +100,46 @@ queries.it(
 	},
 );
 
-queries.it("select applies a range and a pattern through their field codecs when copying sources", [sourceRows()], function* ({ copySelected }) {
-	const copied = yield* copySelected({
-		select: ["sourceKey", "displayName", "amount"],
-		where: { amount: { gte: 20, lt: 40 }, displayName: { like: "sec%" } },
-	});
+queries.it(
+	"select applies a range and a pattern through their field codecs when copying sources",
+	[queryTables("copies", "sources"), sourceRows()],
+	function* ({ copySelected }) {
+		const copied = yield* copySelected({
+			select: ["sourceKey", "displayName", "amount"],
+			where: { amount: { gte: 20, lt: 40 }, displayName: { like: "sec%" } },
+		});
 
-	expect(copied).toEqual([expect.objectContaining({ amount: 20, copiedKey: 2, name: "second" })]);
-});
+		expect(copied).toEqual([expect.objectContaining({ amount: 20, copiedKey: 2, name: "second" })]);
+	},
+);
 
 const invalidOperands = [
-	{ json: '{"sequence":{"gt":"9007199254740993"}}', name: "a text bound on a bigint field" },
-	{ json: '{"settled_at":{"gte":"2026-10-25T00:00:00Z"}}', name: "a text bound on a Date field" },
-	{ json: '{"note":{"like":42}}', name: "a numeric pattern" },
-	{ json: '{"sequence":{"like":"9%"}}', name: "a pattern on a bigint field" },
-	{ json: '{"note":{"lt":null}}', name: "a null bound" },
-	{ json: '{"missing":{"gt":1}}', name: "a bound on an unknown field" },
+	{ name: "a text bound on a bigint field", where: { "sequence": { "gt": "9007199254740993" } } },
+	{ name: "a text bound on a Date field", where: { "settled_at": { "gte": "2026-10-25T00:00:00Z" } } },
+	{ name: "a numeric pattern", where: { "note": { "like": 42 } } },
+	{ name: "a pattern on a bigint field", where: { "sequence": { "like": "9%" } } },
+	{ name: "a null bound", where: { "note": { "lt": null } } },
+	{ name: "a bound on an unknown field", where: { "missing": { "gt": 1 } } },
 ];
 
-for (const { json, name } of invalidOperands) {
-	const where: FindManyFilter<typeof Payment> = JSON.parse(json);
-
-	queries.it(`findMany rejects ${name} with a schema error`, [], function* ({ findPayments }) {
-		const found = yield* findPayments({ where });
+for (const { where, name } of invalidOperands) {
+	queries.it(`findMany rejects ${name} with a schema error`, [], function* ({ findUnknownPayments }) {
+		const found = yield* findUnknownPayments({ where });
 
 		expect(found).toBe("failed with a schema error");
 	});
 
-	queries.it(`select rejects ${name} with a schema error`, [], function* ({ selectPayments }) {
-		const prepared = yield* selectPayments(where);
+	queries.it(`select rejects ${name} with a schema error`, [], function* ({ selectUnknownPayments }) {
+		const prepared = yield* selectUnknownPayments(where);
 
 		expect(prepared).toBe("failed with a schema error");
 	});
 }
 
-queries.it("findMany rejects a bound on an array field with a schema error", [], function* ({ findSamples }) {
-	const where: FindManyFilter<typeof Sample> = JSON.parse('{"values":{"gt":[1]}}');
+queries.it("findMany rejects a bound on an array field with a schema error", [], function* ({ findUnknownSamples }) {
+	const where: unknown = { values: { gt: [1] } };
 
-	const found = yield* findSamples({ where });
+	const found = yield* findUnknownSamples({ where });
 
 	expect(found).toBe("failed with a schema error");
 });

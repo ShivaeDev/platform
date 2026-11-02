@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { queries, testResults } from "#test/queries.ts";
+import { queries, queryTables, testResults } from "#test/queries.ts";
 import { TestResult } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
@@ -29,20 +29,24 @@ const groupings = [
 ] as const;
 
 for (const { expected, groupBy, name } of groupings) {
-	queries.it(`aggregate counts the results and sums their durations per ${name}`, [testResults()], function* ({ aggregateResults }) {
-		const groups = yield* aggregateResults({
-			aggregates: testsAndTotal,
-			groupBy,
-			orderBy: groupBy.map((field) => ({ direction: "asc", field })),
-		});
+	queries.it(
+		`aggregate counts the results and sums their durations per ${name}`,
+		[queryTables("results"), testResults()],
+		function* ({ aggregateResults }) {
+			const groups = yield* aggregateResults({
+				aggregates: testsAndTotal,
+				groupBy,
+				orderBy: groupBy.map((field) => ({ direction: "asc", field })),
+			});
 
-		expect(groups).toEqual(expected);
-	});
+			expect(groups).toEqual(expected);
+		},
+	);
 }
 
 queries.it(
 	"aggregate counts every row for count of * but only the non-null values for count of a field",
-	[testResults()],
+	[queryTables("results"), testResults()],
 	function* ({ aggregateResults }) {
 		const groups = yield* aggregateResults({
 			aggregates: { tests: { count: "*" }, weighted: { count: "weight" } },
@@ -60,7 +64,7 @@ queries.it(
 
 queries.it(
 	"boolOr and boolAnd combine a group's outcomes, and a group with only null outcomes combines to null",
-	[testResults()],
+	[queryTables("results"), testResults()],
 	function* ({ aggregateResults }) {
 		const groups = yield* aggregateResults({
 			aggregates: { allFailed: { boolAnd: "failed" }, anyFailed: { boolOr: "failed" } },
@@ -76,21 +80,25 @@ queries.it(
 	},
 );
 
-queries.it("aggregate orders the groups by their summed duration before keeping the two slowest", [testResults()], function* ({ aggregateResults }) {
-	const slowest = yield* aggregateResults({
-		aggregates: { total: { sum: "durationMs" } },
-		groupBy: ["file"],
-		limit: 2,
-		orderBy: [{ direction: "desc", field: "total" }],
-	});
+queries.it(
+	"aggregate orders the groups by their summed duration before keeping the two slowest",
+	[queryTables("results"), testResults()],
+	function* ({ aggregateResults }) {
+		const slowest = yield* aggregateResults({
+			aggregates: { total: { sum: "durationMs" } },
+			groupBy: ["file"],
+			limit: 2,
+			orderBy: [{ direction: "desc", field: "total" }],
+		});
 
-	expect(slowest).toEqual([
-		{ file: "a.test.ts", total: 25 },
-		{ file: "b.test.ts", total: 9 },
-	]);
-});
+		expect(slowest).toEqual([
+			{ file: "a.test.ts", total: 25 },
+			{ file: "b.test.ts", total: 9 },
+		]);
+	},
+);
 
-queries.it("aggregate with a zero limit returns no groups", [testResults()], function* ({ aggregateResults }) {
+queries.it("aggregate with a zero limit returns no groups", [queryTables("results"), testResults()], function* ({ aggregateResults }) {
 	const groups = yield* aggregateResults({ aggregates: testsAndTotal, groupBy: ["file"], limit: 0 });
 
 	expect(groups).toEqual([]);
@@ -98,7 +106,7 @@ queries.it("aggregate with a zero limit returns no groups", [testResults()], fun
 
 queries.it(
 	"aggregate applies equality, in, comparison, like and tupleIn filters to the results before grouping them",
-	[testResults()],
+	[queryTables("results"), testResults()],
 	function* ({ aggregateResults }) {
 		const groups = yield* aggregateResults({
 			aggregates: testsAndTotal,
@@ -126,7 +134,7 @@ queries.it(
 
 queries.it(
 	"aggregate sends its filter values as bound parameters, not as SQL text",
-	[testResults()],
+	[queryTables("results"), testResults()],
 	function* ({ aggregateResults, boundParameters, sqlTextContains }) {
 		yield* aggregateResults({ aggregates: testsAndTotal, groupBy: ["file"], where: { durationMs: { lte: 9 }, file: { like: "a%" } } });
 

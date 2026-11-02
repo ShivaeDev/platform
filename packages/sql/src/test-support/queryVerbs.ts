@@ -1,13 +1,13 @@
 import * as PgTypes from "@effect/sql-pg/PgTypes";
 import { BigDecimal, DateTime, Effect, Exit, Option, Predicate } from "effect";
 import * as Statement from "effect/sql/Statement";
-import type { FindManyFilter } from "#repositoryFilter.ts";
 import { transact } from "#transact.ts";
 import type { Body, Step } from "./body.ts";
 import { attempt, outcomeOf } from "./outcome.ts";
-import { type QueryEngine, TABLES } from "./queryEngine.ts";
-import { copyColumns, type Payment, payment } from "./queryModels.ts";
+import type { QueryEngine } from "./queryEngine.ts";
+import { copyColumns, payment } from "./queryModels.ts";
 import { queryPlan } from "./queryPlan.ts";
+import { TABLES } from "./queryTables.ts";
 import { onSqlError, Rejected } from "./transactionEngine.ts";
 
 type Engine = QueryEngine;
@@ -80,6 +80,10 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 	return {
 		aggregateResults: (query: Query<Engine["results"]["aggregate"]>) =>
 			read(`the test results are aggregated ${described(query)}`, engine.results.aggregate(query)),
+		aggregateUnknownResults: (query: unknown) => {
+			const result: ReturnType<Engine["results"]["aggregate"]> = Reflect.apply(engine.results.aggregate, engine.results, [query]);
+			return read(`aggregate receives unknown input ${described(query)}`, result);
+		},
 		announced: () => Effect.sync(() => engine.announced.map(domainKey)),
 		boundParameterCounts: () => Effect.sync(() => engine.statements.map(([, parameters]) => parameters.length)),
 		boundParameters: () => Effect.sync(() => engine.statements.map(([, parameters]) => shown(parameters))),
@@ -118,6 +122,18 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 			),
 		findSamples: (query: Query<Engine["samples"]["findMany"]>) => read(`the samples are read ${described(query)}`, engine.samples.findMany(query)),
 		findSources: (query: Query<Engine["sources"]["findMany"]>) => read(`the sources are read ${described(query)}`, engine.sources.findMany(query)),
+		findUnknownLines: (query: unknown) => {
+			const result: ReturnType<Engine["lines"]["findMany"]> = Reflect.apply(engine.lines.findMany, engine.lines, [query]);
+			return read(`findMany receives unknown input ${described(query)}`, result);
+		},
+		findUnknownPayments: (query: unknown) => {
+			const result: ReturnType<Engine["payments"]["findMany"]> = Reflect.apply(engine.payments.findMany, engine.payments, [query]);
+			return read(`findMany receives unknown input ${described(query)}`, result);
+		},
+		findUnknownSamples: (query: unknown) => {
+			const result: ReturnType<Engine["samples"]["findMany"]> = Reflect.apply(engine.samples.findMany, engine.samples, [query]);
+			return read(`findMany receives unknown input ${described(query)}`, result);
+		},
 		findUtcPayments: (query: Query<Engine["utcPayments"]["findMany"]>) =>
 			read(`the payments are read through a DateTime.Utc model ${described(query)}`, engine.utcPayments.findMany(query)),
 		inTransaction: <TStep extends Step, A>(body: Body<TStep, A>) =>
@@ -185,8 +201,10 @@ export function queryVerbs(engine: Engine, tell: (line: string) => void) {
 				`the partial rows selected ${described(query)} are read through the prepared select`,
 				Effect.flatMap(engine.partialRows.select(query).statement, (statement) => sql`${statement}`),
 			),
-		selectPayments: (where: FindManyFilter<typeof Payment>) =>
-			read(`a select of the payments ${described(where)} is prepared`, Effect.as(engine.payments.select({ where }).statement, "prepared")),
+		selectUnknownPayments: (where: unknown) => {
+			const selected: ReturnType<Engine["payments"]["select"]> = Reflect.apply(engine.payments.select, engine.payments, [{ where }]);
+			return read(`select receives unknown payment filters ${described(where)}`, Effect.as(selected.statement, "prepared"));
+		},
 		sources: () => stored(engine.sources.findMany({ orderBy: { direction: "asc", field: "sourceKey" } })),
 		sqlTextContains: (text: string) => Effect.sync(() => engine.statements.some(([query]) => query.includes(text))),
 		statementsSent: () => Effect.sync(() => engine.statements.length),

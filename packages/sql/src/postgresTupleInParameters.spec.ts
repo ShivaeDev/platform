@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { indexedTupleRows, queries } from "#test/queries.ts";
+import { indexedTupleRows, queries, queryTables } from "#test/queries.ts";
 import { PartialRow } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
@@ -16,7 +16,7 @@ const savedRows = [
 
 queries.it(
 	`findMany sends a ${LIST_SIZE}-tuple list, whose last tuple holds a quote and a SQL comment, as bound parameters and reads only that row`,
-	[],
+	[queryTables("partialRows")],
 	function* ({ boundParameterCounts, boundParameters, findPartialRows, lastResult, savePartialRows, sqlTextContains }) {
 		yield* savePartialRows(savedRows);
 
@@ -33,7 +33,7 @@ queries.it(
 
 queries.it(
 	`a select copies the ${LIST_SIZE}-tuple list into its statement as bound parameters`,
-	[],
+	[queryTables("partialRows")],
 	function* ({ boundParameterCounts, boundParameters, selectPartialRows, lastResult, savePartialRows, sqlTextContains }) {
 		yield* savePartialRows(savedRows);
 
@@ -50,7 +50,7 @@ queries.it(
 
 queries.it(
 	`delete sends the ${LIST_SIZE}-tuple list as bound parameters and removes only the matching row`,
-	[],
+	[queryTables("partialRows")],
 	function* ({ boundParameterCounts, boundParameters, deletePartialRows, partialRows, savePartialRows, sqlTextContains }) {
 		yield* savePartialRows(savedRows);
 
@@ -65,26 +65,30 @@ queries.it(
 	},
 );
 
-queries.it("tuple lookups use both columns of the composite index", [indexedTupleRows()], function* ({ findPartialRows, tupleIndexPlan }) {
-	yield* findPartialRows({
-		select: ["a", "b"],
-		where: tupleIn(
-			PartialRow,
-			["a", "b"],
-			[
-				["stored-1", 1],
-				["stored-27", 27],
-			],
-			{ a: "text", b: "text" },
-		),
-	});
+queries.it(
+	"tuple lookups use both columns of the composite index",
+	[queryTables("partialRows"), indexedTupleRows()],
+	function* ({ findPartialRows, tupleIndexPlan }) {
+		yield* findPartialRows({
+			select: ["a", "b"],
+			where: tupleIn(
+				PartialRow,
+				["a", "b"],
+				[
+					["stored-1", 1],
+					["stored-27", 27],
+				],
+				{ a: "text", b: "text" },
+			),
+		});
 
-	expect(yield* tupleIndexPlan()).toEqual([{ condition: expect.stringMatching(/a = .* AND .*b = /u), index: "tuple_idx" }]);
-});
+		expect(yield* tupleIndexPlan()).toEqual([{ condition: expect.stringMatching(/a = .* AND .*b = /u), index: "tuple_idx" }]);
+	},
+);
 
 queries.it(
 	"a 50,000-tuple lookup can use the covering composite index with two bound parameters",
-	[indexedTupleRows()],
+	[queryTables("partialRows"), indexedTupleRows()],
 	function* ({ boundParameterCounts, findPartialRows, tupleIndexPlan }) {
 		yield* findPartialRows({ select: ["a", "b"], where });
 

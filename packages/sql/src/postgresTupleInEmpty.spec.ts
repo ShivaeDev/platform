@@ -1,27 +1,31 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { queries, sourceRows } from "#test/queries.ts";
+import { queries, queryTables, sourceRows } from "#test/queries.ts";
 import { SourceRow } from "#test/queryModels.ts";
 import { tupleIn } from "#tupleIn.ts";
 
 const noTuples = tupleIn(SourceRow, ["sourceKey", "amount"], [], { "amount": "text", "sourceKey": "int4" });
 
-queries.it("findMany with an empty tuple list reads no sources", [sourceRows()], function* ({ findSources }) {
+queries.it("findMany with an empty tuple list reads no sources", [queryTables("sources"), sourceRows()], function* ({ findSources }) {
 	const found = yield* findSources({ where: noTuples });
 
 	expect(found).toEqual([]);
 });
 
-queries.it("a select with an empty tuple list copies no sources", [sourceRows()], function* ({ copies, copySelected, lastResult }) {
-	yield* copySelected({ where: noTuples });
+queries.it(
+	"a select with an empty tuple list copies no sources",
+	[queryTables("copies", "sources"), sourceRows()],
+	function* ({ copies, copySelected, lastResult }) {
+		yield* copySelected({ where: noTuples });
 
-	yield* outcomes([
-		["copied rows returned", () => lastResult(), []],
-		["stored copies", () => copies(), []],
-	]);
-});
+		yield* outcomes([
+			["copied rows returned", () => lastResult(), []],
+			["stored copies", () => copies(), []],
+		]);
+	},
+);
 
-queries.it("delete with an empty tuple list keeps every source", [sourceRows()], function* ({ deleteSources, sources }) {
+queries.it("delete with an empty tuple list keeps every source", [queryTables("sources"), sourceRows()], function* ({ deleteSources, sources }) {
 	yield* deleteSources(noTuples);
 
 	expect(yield* sources()).toEqual([
