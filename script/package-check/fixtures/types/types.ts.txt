@@ -4,7 +4,13 @@ const handleName = (name: string): number => name.length
 
 export const bivariant: { readonly handle: Bivariant<(value: unknown) => number> } = { handle: handleName }
 
+export const result = bivariant.handle("Ada")
+export const checkedResult: number = result
+
+// @ts-expect-error Bivariant keeps the called result typed as number through the packed declarations.
+export const incompatibleResult: string = result
+
 export const returnChecked: { readonly handle: Bivariant<(value: unknown) => string> } = {
   // @ts-expect-error Bivariant keeps the return type covariant through the packed declarations.
-  handle: handleName,
+  handle: bivariant.handle,
 }
