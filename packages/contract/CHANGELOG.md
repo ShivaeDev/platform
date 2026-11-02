@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.31.0 - 2026-11-02
+
+### Added
+
+- Identity exposes `currentSessionContext` to recheck an authenticated stream's session and refresh its existing `SessionUser` and `SessionUserWithProviderAccounts` services.
+- Query subscriptions accept an optional `refresh` Effect supplying the context for each policy check and query rerun.
+
+### Fixed
+
+- Session-backed application hosts evaluate each live hint's read policy and pushed query against the current session, including changed roles and grants. Signing out, revocation and expiry still end subscriptions with `Unauthorized`.
+
+### Breaking
+
+- Contract change streams emit `QueryReadDenied` as a delivery when an established subscription loses read access, keeping the subscription open so a later hint can resume delivery after access returns. Custom consumers must handle this delivery alongside `Changed`, `Resync` and `Result`; use `SubscriptionHint` for hint consumers. Initial subscription refusals remain typed stream failures. Bound query atoms display the denial and recover on a later authorized hint.
+- Query atom failure types include client-middleware errors and the contract's change-subscription errors. Consumers with exhaustive error handlers must handle the additional subscription failures, including `MissingReadPolicy`, `WebSocketRequired`, and rejections declared by other queries in the contract. Explicit `BoundQuery` annotations can pass the subscription RPC as the third type parameter or be replaced with inference from the bound API. Direct `run` failure types stay specific to their RPC.
+
 ## 0.30.2 - 2026-11-02
 
 ### Fixed

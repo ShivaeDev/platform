@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.37.0 - 2026-11-02
+
+### Added
+
+- Generated apps select and sync the story-testing skill from `@shivaedev/skills`, link their agent guide to the local copy and check managed skills during lint.
+
+### Fixed
+
+- Preserve `shivaedevSkills` when preparing full and minimal app manifests.
+- Leave starter deletions of customized app files as Git modify/delete conflicts, preserving app contents and applying the rest of the starter delta. Record the applied generator version and explain how to keep or delete each conflicted file.
+- Generated apps apply the host's replacement Layer to module ports before binding services, including the notes source, rate-limit store and job queue.
+- Note creation, import and edits commit with their word-count enqueue. An enqueue failure rejects the request and rolls back the note write.
+
 ## 0.36.0 - 2026-11-02
 
 ### Added

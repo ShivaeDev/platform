@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 - 2026-11-02
+
+### Fixed
+
+- Validate root-package release configurations against their committed manifest and changelog history, before and after applying a release.
+
 ## 0.7.0 - 2026-11-02
 
 ### Fixed

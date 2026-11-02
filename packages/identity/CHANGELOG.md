@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.19.0 - 2026-11-02
+
+### Added
+
+- Identity exposes `currentSessionContext` to recheck an authenticated stream's session and refresh its existing `SessionUser` and `SessionUserWithProviderAccounts` services.
+- Query subscriptions accept an optional `refresh` Effect supplying the context for each policy check and query rerun.
+
+### Fixed
+
+- Session-backed application hosts evaluate each live hint's read policy and pushed query against the current session, including changed roles and grants. Signing out, revocation and expiry still end subscriptions with `Unauthorized`.
+
+### Breaking
+
+- Contract change streams emit `QueryReadDenied` as a delivery when an established subscription loses read access, keeping the subscription open so a later hint can resume delivery after access returns. Custom consumers must handle this delivery alongside `Changed`, `Resync` and `Result`; use `SubscriptionHint` for hint consumers. Initial subscription refusals remain typed stream failures. Bound query atoms display the denial and recover on a later authorized hint.
+- Sign-in rate limits use the host's `@shivaedev/rate-limit` Store. Provide `memoryStore` once around the host, or migrate `rate_limit_windows` with `postgresMigration` and provide `postgresStore` to share budgets across processes. Better Auth still chooses rules and client-IP keys, but its `storage` and `customStorage` options are overridden; migrate custom storage to a Store implementation. Windows now expire from the first admitted attempt, and all mounts using the same store share their budget.
+- Remove `server/better-auth/memoryRateLimit.ts`. Consumers importing it must provide a shared Store to `betterAuthMount` instead.
+
 ## 0.18.0 - 2026-11-02
 
 ### Added

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.10.0 - 2026-11-02
+
+### Added
+
+- Add typed, byte-capped issue, user, collaborator-permission, commit, comparison and tree reads, plus paged issue, pull-request-file and commit lists on the GitHub service.
+- Let Schema-aware lists select arrays inside envelopes, pace each request and opt into skipping undecodable items. `listPages` reports decoded items and skipped counts for each page; `listBounded` includes the total `skipped` count alongside `items` and `truncated`. Existing numeric byte-limit arguments remain supported, and decoding still fails by default.
+- `GitHubApp.viewerRepositories(account)` accepts a GitHub account ID or login and returns readable and administrable installed repositories, with access results cached for 60 seconds across at most 100 accounts.
+
+### Fixed
+
+- Keep shared App clients independent of a single-installation Layer's repository and permission scope.
+
+### Breaking
+
+- `downloadArtifactArchive` now returns an array of `{ path, bytes }` files instead of raw ZIP bytes. Install the optional `@zip.js/zip.js` peer and consume these validated files instead of passing the result to an application ZIP reader. Extraction refuses unsafe paths, symlinks, duplicate paths and file/directory conflicts, with distinct typed errors. The default caps are 100 MiB of extracted contents and a per-entry compression ratio of 100:1; set `totalSizeLimit` and `compressionRatioLimit` to change them. The existing `byteLimit` still caps the downloaded ZIP.
+- The low-level `artifacts` constructor now takes `(apiUrl, rates)` and returns an Effect. Yield it with `HttpClient`, `GitHubToken` and `TokenRefresh` provided instead of passing those services as arguments.
+
 ## 0.9.0 - 2026-11-02
 
 ### Added

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.34.0 - 2026-11-02
+
+### Added
+
+- Add scoped HTTP visitors with separate cookie jars and forwarding proxies. Stories can model a public HTTPS origin, retain app cookies, and present foreign Origin and forged forwarding headers over real HTTP.
+- Read labelled element text with `labelledText(label)` and native table rows with `table(label)` in screen drivers.
+- Scope a screen driver to a portal with `dialog(target)`. Member screens find body portals linked by their triggers' `aria-controls` while keeping other members' dialogs out of reach.
+
+### Fixed
+
+- Keep member screen dialog queries inside the member's root, including when the driver uses a child mount. Mount member portals inside `member.root` so their controls remain accessible to that member. Standalone screen drivers continue to find document portals.
+- Compose outbound routes acquired in separate scopes. Each scope removes only its own registrations; the newest active route for a shared hostname wins, and closing it restores the earlier route.
+
 ## 0.33.0 - 2026-11-02
 
 ### Added
