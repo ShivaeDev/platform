@@ -1,49 +1,70 @@
-import { Clock } from "effect";
-import { afterAll, expect, vi } from "vitest";
-import { isolatedMounts, pendingResultScreen, testing } from "#test/reactRendering.ts";
+import { afterAll, expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
+import { isolatedMounts, pendingResultScreen, testing, warningRestoration } from "#test/reactRendering.ts";
 
-const originalError = console.error;
 afterAll(() => {
-	expect(console.error).toBe(originalError);
-	expect(vi.isMockFunction(console.error)).toBe(false);
+	expect(warningRestoration()).toBe("restored");
 });
+
 testing.it(
 	"screen settlement renders native atom results without advancing the story clock",
 	[pendingResultScreen()],
-	function* ({ shown, answer, settle }) {
-		expect(shown()).toBe("");
+	function* ({ answer, settle, shown, storyTime }) {
+		expect(yield* shown()).toBe("");
 
 		yield* answer("Morning walk");
 		yield* settle();
 
-		expect(shown()).toBe("Morning walk");
-		expect(yield* Clock.currentTimeMillis).toBe(0);
+		expect(yield* shown()).toBe("Morning walk");
+		expect(yield* storyTime()).toBe(0);
 	},
 	{ clock: "test" },
 );
+testing.it("mounts isolate native atom registries", [isolatedMounts()], function* ({ shown, registrySharing, resources }) {
+	yield* outcomes([
+		["registry sharing", () => registrySharing(), "isolated"],
+		["first screen", () => shown("first"), "first:1"],
+		["second screen", () => shown("second"), "second:2"],
+		["native resources", () => resources(), { acquired: 2, released: 0 }],
+	]);
+});
+
+testing.it("rerender preserves the mount's native resources", [isolatedMounts()], function* ({ shown, resources, relabel }) {
+	expect(yield* shown("first")).toBe("first:1");
+
+	yield* relabel("updated:");
+
+	yield* outcomes([
+		["rerendered screen", () => shown("first"), "updated:1"],
+		["native resources", () => resources(), { acquired: 2, released: 0 }],
+	]);
+});
+
 testing.it(
-	"rerender shares a registry; mounts isolate and unmount disposes native resources",
+	"unmount disposes each mount's native resources only once",
 	[isolatedMounts()],
-	function* ({ first: firstMount, second: secondMount, resources, relabel, closeFirst, closeSecond }) {
-		const first = firstMount();
-		const second = secondMount();
-		expect(first.registry).not.toBe(second.registry);
-		expect(first.container.textContent).toBe("first:1");
-		expect(second.container.textContent).toBe("second:2");
-		yield* relabel();
-		expect(first.container.textContent).toBe("updated:1");
-		expect(resources().acquired).toBe(2);
+	function* ({ shown, attachment, resources, closeFirst, closeSecond }) {
+		expect((yield* resources()).released).toBe(0);
+
 		yield* closeFirst();
-		expect(first.container.isConnected).toBe(false);
-		expect(first.container.childNodes).toHaveLength(0);
-		expect(resources().released).toBe(1);
+
+		yield* outcomes([
+			["first mount", () => attachment("first"), "detached"],
+			["first screen", () => shown("first"), ""],
+			["released resources", () => resources(), { released: 1 }],
+			["second screen", () => shown("second"), "second:2"],
+		]);
+
 		yield* closeFirst();
-		expect(resources().released).toBe(1);
-		expect(second.container.textContent).toBe("second:2");
+
+		expect((yield* resources()).released).toBe(1);
+
 		yield* closeSecond();
-		expect(resources().released).toBe(2);
+
+		expect((yield* resources()).released).toBe(2);
 	},
 );
-testing.it.fails("console.error fails a story and the spy is restored afterwards", [], function* ({ warn }) {
+
+testing.it.fails("console.error fails a story", [], function* ({ warn }) {
 	yield* warn();
 });

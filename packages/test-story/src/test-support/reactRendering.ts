@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { Deferred, Effect } from "effect";
+import { Clock, Deferred, Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -47,6 +47,11 @@ function ResultProbe({ value }: { readonly value: Atom.Atom<AsyncResult.AsyncRes
 	);
 }
 
+const originalError = console.error;
+export function warningRestoration() {
+	return console.error === originalError && !vi.isMockFunction(console.error) ? "restored" : "still captured";
+}
+
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
 
@@ -65,18 +70,19 @@ export const testing = storyKit({
 		}
 		return {
 			answer: (value: string) => run(`the atom receives ${value}`, () => Effect.runPromise(Deferred.succeed(state.gate, value).pipe(Effect.asVoid))),
+			attachment: (mount: "first" | "second") =>
+				Effect.sync(() => ((mount === "first" ? first(state) : second(state)).container.isConnected ? "attached" : "detached")),
 			closeFirst: () => run("unmount the first screen", () => first(state).unmount()),
 			closeSecond: () => run("unmount the second screen", () => second(state).unmount()),
-			first: () => first(state),
-			relabel: () =>
+			registrySharing: () => Effect.sync(() => (first(state).registry === second(state).registry ? "shared" : "isolated")),
+			relabel: (label: string) =>
 				run("rerender the first mount", () => {
 					if (!state.value) {
 						throw new Error("No tracked atom");
 					}
-					return first(state).render(createElement(Probe, { label: "updated:", value: state.value }));
+					return first(state).render(createElement(Probe, { label, value: state.value }));
 				}),
-			resources: () => ({ acquired: state.acquired, released: state.released }),
-			second: () => second(state),
+			resources: () => Effect.sync(() => ({ acquired: state.acquired, released: state.released })),
 			settle: () => {
 				const view = first(state);
 				if (!state.pending) {
@@ -84,7 +90,9 @@ export const testing = storyKit({
 				}
 				return screenDriver({ act, pending: AtomRegistry.toStream(view.registry, state.pending), root: view.container, tell: story.tell }).settle();
 			},
-			shown: () => screenDriver({ root: first(state).container, tell: story.tell }).text("output"),
+			shown: (mount: "first" | "second" = "first") => Effect.sync(() => (mount === "first" ? first(state) : second(state)).container.textContent),
+			storyTime: () => Clock.currentTimeMillis,
+
 			warn: () => run("React logs a warning", () => vi.mocked(console.error)("Expected warning for the helper regression")),
 		};
 	},
