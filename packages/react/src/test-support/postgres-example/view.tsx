@@ -4,7 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import type { AtomServices } from "#fieldRejection.ts";
+import type { AtomServices } from "#AtomServices.ts";
 import { makeClient } from "./makeClient.ts";
 import { OrderEditor } from "./OrderEditor.tsx";
 

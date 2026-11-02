@@ -1,10 +1,11 @@
 import type { Effect, Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
+import { type RejectField, rejecting } from "@shivaedev/form/fieldRejection.ts";
 import { form } from "@shivaedev/form/form.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
+import type { AtomServices } from "#AtomServices.ts";
 import { actionTrace } from "#actionTrace.ts";
-import { type AtomServices, type RejectField, rejecting } from "./fieldRejection.ts";
 
 export interface SubmissionConfig<TFields extends Fields, A, E, R, TRuntimeError> {
 	readonly fields: Schema.Struct<TFields>;

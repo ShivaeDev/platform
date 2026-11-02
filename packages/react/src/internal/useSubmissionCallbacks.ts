@@ -1,8 +1,9 @@
 import { Effect, type Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { useInsertionEffect, useMemo, useRef } from "react";
+import { fieldRejectionOf, type RejectField } from "@shivaedev/form/fieldRejection.ts";
 import type { Decoded, Fields } from "@shivaedev/form/shape.ts";
-import { type AtomServices, fieldRejectionOf, type RejectField } from "#fieldRejection.ts";
+import type { AtomServices } from "#AtomServices.ts";
 import type { NoticeFeedback } from "#notices.ts";
 import { useNoticePublisher } from "./useNoticePublisher.ts";
 
