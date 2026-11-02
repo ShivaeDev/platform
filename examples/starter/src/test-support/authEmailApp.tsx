@@ -71,6 +71,7 @@ export const authEmailApp = storyKit({
 					method: "POST",
 				});
 				await response.text();
+				return response.status;
 			});
 		}
 		return {
