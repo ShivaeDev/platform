@@ -1,15 +1,13 @@
-import { join } from "node:path";
-import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Config, Console, Effect, FileSystem, Schema } from "effect";
+import { Config, Console, Effect, FileSystem, Path, Schema } from "effect";
 import { read } from "@shivaedev/github/GitHub.ts";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { git } from "@shivaedev/releases/git.ts";
 import { readWorkspace } from "@shivaedev/releases/workspace.ts";
 import { githubLayer } from "#lib/githubLayer.ts";
+import { checkPlatform } from "#release/check.ts";
 import config from "#release-config";
-import { checkPlatform } from "./check.ts";
 
 const Repository = Schema.Struct({ fullName: Schema.String }).pipe(Schema.encodeKeys({ fullName: "full_name" }));
 const Pull = Schema.Struct({
@@ -55,7 +53,8 @@ export const preparePublish = Effect.fn("Release.preparePublish")(function* (roo
 		}
 	}
 	const fs = yield* FileSystem.FileSystem;
-	const base = (yield* fs.readFileString(join(root, ".changeset/release-base"))).trim();
+	const path = yield* Path.Path;
+	const base = (yield* fs.readFileString(path.join(root, ".changeset/release-base"))).trim();
 	yield* checkPlatform(root, base);
 	return { base, head };
 });
@@ -63,8 +62,9 @@ export const preparePublish = Effect.fn("Release.preparePublish")(function* (roo
 if (import.meta.main) {
 	NodeRuntime.runMain(
 		Effect.gen(function* () {
+			const path = yield* Path.Path;
 			const release = yield* preparePublish(
-				process.cwd(),
+				path.resolve("."),
 				yield* Config.String("GITHUB_REPOSITORY"),
 				yield* Config.String("GITHUB_SHA"),
 				yield* Config.String("CHANGELOG_BASE_REF"),

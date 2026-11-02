@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { hintScreen } from "#test/hintScreen.ts";
 
 for (const source of ["empty", "idle"] as const) {

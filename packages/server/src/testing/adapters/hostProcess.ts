@@ -84,6 +84,10 @@ export function sendHostMessage(message: unknown) {
 	});
 }
 
+export function sendHostReady(url: string) {
+	return sendHostMessage({ pid: process.pid, type: "host-ready", url });
+}
+
 export async function hostResponse(url: string, path: string, signal: AbortSignal) {
 	const response = await fetch(new URL(path, url), { redirect: "manual", signal });
 	return { body: await response.text(), headers: Object.fromEntries(response.headers), status: response.status };

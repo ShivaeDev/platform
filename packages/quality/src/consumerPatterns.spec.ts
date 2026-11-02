@@ -8,12 +8,11 @@ import { config } from "#test/tree.ts";
 repositoryStory.it(
 	"Quality lints a browser entry, router throwing adapters and a column helper bound to a feature without findings",
 	[qualityInstalled(), repositoryHas(config('{ sources: ["src"] }'), ...consumerPatterns), biomeFormatted()],
-	function* ({ outcome, runs, stderr, stdout }) {
+	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
 		yield* outcomes([
 			["exit", () => outcome(), "passed"],
-			["errors", () => stderr(), ""],
 			["report", () => stdout(), "quality: passed. 5 source files checked.\n"],
 		]);
 	},

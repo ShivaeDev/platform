@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { refusal, refusalOf } from "#test/attempt.ts";
 import { interactionScreen } from "#test/interactionScreen.tsx";
 

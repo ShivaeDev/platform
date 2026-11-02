@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { CLI_TIMEOUT } from "#test/cli.ts";
 import { qualitySignal } from "#test/qualitySignal.ts";

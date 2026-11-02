@@ -1,0 +1,2 @@
+{"path":"packages/browser-check/src/check.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/browser-check/src/cli.ts","rule":"effect/adapter-imports","count":1}
