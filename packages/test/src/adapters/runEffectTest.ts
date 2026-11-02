@@ -2,8 +2,8 @@ import type { TestContext } from "@effect/vitest";
 import * as Data from "effect/Data";
 import * as Effect from "effect/Effect";
 import type * as Scope from "effect/Scope";
+import { environmentFor } from "#internal/environmentFor.ts";
 import type { EffectClock } from "#types.ts";
-import { environmentFor } from "./environmentFor.ts";
 
 class TestScopeCloseTimeout extends Data.TaggedError("TestScopeCloseTimeout")<{ readonly message: string }> {}
 

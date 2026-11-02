@@ -1,7 +1,8 @@
 import type { TestContext, TestOptions } from "@effect/vitest";
 import type { DateTime, Effect, Layer, Scope } from "effect";
 import type { TestAPI } from "vitest";
-import type { AnyTestLayer } from "./anyTestLayer.ts";
+
+export type AnyTestLayer = Layer.Layer<any, any, never> | Layer.Layer<never, any, never>;
 
 export type EffectClock = "test" | "live" | DateTime.Utc;
 

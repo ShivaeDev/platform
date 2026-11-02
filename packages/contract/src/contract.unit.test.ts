@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/test/it.ts";
+import { it } from "@shivaedev/test/adapters/it.ts";
 import { contract } from "#contract.ts";
 import { type CommandShape, command, type QueryShape, type StreamShape, stream } from "#operation.ts";
 import { Create, Get, List, NoteMissing, Rename } from "#test/notes.ts";

@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
-import { it } from "#it.ts";
-import { makeEffectIt } from "#makeEffectIt.ts";
+import { it } from "#adapters/it.ts";
+import { makeEffectIt } from "#adapters/makeEffectIt.ts";
 import { note } from "./lifecycleLog.ts";
 
 const { effectApp } = makeEffectIt({ layer: Layer.empty, makeHarness: () => Effect.void });

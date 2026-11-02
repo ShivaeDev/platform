@@ -59,9 +59,9 @@ for (const [imports, registration] of [
 	['import * as runner from "vitest";', 'runner.test("works", { retry: 1 }, () => {});'],
 	['import { it } from "@effect/vitest";', 'it.effect("works", () => Effect.void, { retry: 1 });'],
 	['import { it } from "@effect/vitest";', 'it.layer(layer)("orders", { retry: 1 }, (it) => {});'],
-	['import { it } from "@shivaedev/test/it.ts";', 'it.effect("works", function* () {}, { retry: 1 });'],
+	['import { it } from "@shivaedev/test/adapters/it.ts";', 'it.effect("works", function* () {}, { retry: 1 });'],
 	[
-		'import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";',
+		'import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";',
 		'const { effectApp } = makeEffectIt({}); effectApp("works", function* () {}, { retry: 1 });',
 	],
 ]) {

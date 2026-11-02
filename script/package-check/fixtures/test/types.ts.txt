@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect"
 import { eventually } from "@shivaedev/test/eventually.ts"
-import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts"
+import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts"
 
 class Token extends Context.Service<Token, string>()("@consumer/Token") {}
 

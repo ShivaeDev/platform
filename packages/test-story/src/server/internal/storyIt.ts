@@ -3,7 +3,7 @@ import type { TestContext } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as TestCrypto from "effect/testing/TestCrypto";
-import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
+import { makeEffectIt } from "@shivaedev/test/adapters/makeEffectIt.ts";
 import type { EffectTest, EffectTestOptions } from "@shivaedev/test/types.ts";
 import { freshDocument, inDom } from "#internal/domDocument.ts";
 import { type Genre, genreOf } from "#internal/genre.ts";
