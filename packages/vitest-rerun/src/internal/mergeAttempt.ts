@@ -57,13 +57,14 @@ function recordAttempts(file: File, retried: Task[], outcome: Outcome) {
 	const classname = junitClassname(path, file.projectName ?? "");
 	for (const { name, task } of testcases(file.tasks).filter((testcase) => testcase.task.result?.state === "fail")) {
 		const again = retried.find((item) => item.id === task.id);
-		const prior = outcome.failures[task.id] ?? { attempts: 1, messages: [failureMessage(task)] };
+		const prior = outcome.failures[task.id] ?? { attempts: 1, durations: [task.result?.duration ?? 0], messages: [failureMessage(task)] };
+		const durations = [...prior.durations, again?.result?.duration ?? 0];
 		if (again?.result?.state === "pass") {
 			delete outcome.failures[task.id];
-			outcome.flaky.push({ attempts: prior.attempts + 1, classname, file: path, messages: prior.messages, name });
+			outcome.flaky.push({ attempts: prior.attempts + 1, classname, durations, file: path, messages: prior.messages, name });
 			outcome.summary(`- Flaky: ${classname} — ${name}`);
 		} else if (again?.result?.state === "fail") {
-			outcome.failures[task.id] = { attempts: prior.attempts + 1, messages: [...prior.messages, failureMessage(again)] };
+			outcome.failures[task.id] = { attempts: prior.attempts + 1, durations, messages: [...prior.messages, failureMessage(again)] };
 		}
 	}
 }

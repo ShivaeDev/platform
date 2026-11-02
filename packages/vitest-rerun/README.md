@@ -19,6 +19,7 @@ When a test fails once and then passes, the run succeeds and `test-results/flaky
 		"name": "checkout > charges the card once",
 		"file": "src/checkout.test.ts",
 		"attempts": 2,
+		"durations": [5001.2, 3.4],
 		"messages": ["expected 2 to be 1"]
 	}
 ]
@@ -69,6 +70,7 @@ The file holds one entry per test that passed only on a rerun:
 | `name`      | The JUnit `name` of the test's `testcase`: its describe blocks and title joined by `>`.   |
 | `file`      | The test file's path relative to the Vitest root, the same as the JUnit `file` attribute. |
 | `attempts`  | How many attempts the test took, counting the one that passed.                            |
+| `durations` | Each attempt's duration in milliseconds, in order, including the final passing attempt.   |
 | `messages`  | The error message of each failed attempt, in order.                                       |
 
 The JUnit `classname` is the file's path relative to the Vitest root. When the test runs in a named Vitest project, the project comes first, as in `|unit| src/checkout.test.ts`, so a file that runs in two projects has a distinct `classname` in each. A file that failed to load has no test to name, so it appears only in the job summary.
