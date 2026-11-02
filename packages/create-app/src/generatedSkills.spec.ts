@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
-import { realSetup } from "#test/traits.ts";
+import { generated, realSetup } from "#test/traits.ts";
 
 const SKILL = ".agents/skills/story-testing/SKILL.md";
 
@@ -29,3 +29,21 @@ for (const flags of [[], ["--minimal"]] as const) {
 		120_000,
 	);
 }
+
+application.it(
+	"app lint accepts synced instructions and rejects an edited managed skill with a sync recovery command",
+	[realSetup, generated("my-app", "--no-git")],
+	function* ({ editSkill, pnpm, scriptResult }) {
+		yield* pnpm("run", "lint");
+		expect(yield* scriptResult()).toBe("passed");
+
+		yield* editSkill("story-testing");
+
+		yield* pnpm("run", "lint");
+		const result = yield* scriptResult();
+		expect(result).toContain("failed with exit 1:");
+		expect(result).toContain(".agents/skills/story-testing differs");
+		expect(result).toContain("shivaedev-skills sync");
+	},
+	120_000,
+);
