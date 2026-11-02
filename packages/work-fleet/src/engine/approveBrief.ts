@@ -78,8 +78,11 @@ function resumedStage(record: FleetRecord): FleetRecord["step"] {
 
 export function approveDispatchedBrief(state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork, prompt?: string) {
 	const record = stored.value;
+	const latest = record.attempts.at(-1);
+	const rejectedLaunch =
+		record.decision?.code === "session-rejected" && latest?.role === "worker" && latest.status === "failed" && latest.receipt === undefined;
 	return !["done", "released"].includes(record.step)
-		&& briefChanged(record, work)
+		&& (briefChanged(record, work) || rejectedLaunch)
 		&& (prompt !== undefined || (record.step !== "queued" && record.attempts.length > 0))
 		? approveBrief(state)(stored, work, prompt)
 		: Effect.succeed(stored);
