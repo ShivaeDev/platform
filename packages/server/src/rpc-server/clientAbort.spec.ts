@@ -1,11 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { abortableRpc } from "#test/app-host/abortableRpc.ts";
-import { hostOptions } from "#test/app-host/story.ts";
+import { postgresHost as cancellation } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
-
-const cancellation = storyKit(hostOptions({ database: true }));
 
 cancellation.it(
 	"the browser aborting a held transaction interrupts its handler, rolls back its row and frees the only pool connection",

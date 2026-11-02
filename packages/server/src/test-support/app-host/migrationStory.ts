@@ -1,14 +1,15 @@
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Cause, Config, Duration, Effect, Exit, Fiber, Layer, Option, Predicate, Redacted } from "effect";
+import { Cause, Duration, Effect, Exit, Fiber, Option, Predicate, Redacted } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
-import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { answered, causeWords, countWords, errorWords } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type BootedHost, bootMigrations } from "#test/app-host/bootMigrations.ts";
@@ -27,11 +28,9 @@ export interface MigrationState {
 }
 
 const create = Effect.fnUntraced(function* () {
-	const url = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
-	const table = `waiting_${crypto.randomUUID().replaceAll("-", "")}`;
+	const url = (yield* PostgresTestDatabase).url;
+	const table = "waiting";
 	const ledger = `${table}_migrations`;
-	const sql = yield* SqlClient.SqlClient;
-	yield* Effect.addFinalizer(() => sql`drop table if exists ${sql(table)}, ${sql(ledger)}`.pipe(Effect.orDie));
 	const lifecycle: string[] = [];
 	const components: SchemaComponent[] = [];
 	const state: MigrationState = {
@@ -92,11 +91,12 @@ const startupFailure = Effect.fnUntraced(function* (booted: BootedHost) {
 });
 
 export const migrationHost = storyKit({
+	around: withIsolatedDatabase,
 	clock: "test",
 	create,
-	layer: Layer.unwrap(Effect.map(Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL"), (url) => PgClient.layer({ url }))),
+	layer: postgres,
 	name: "migration wait",
-	runIf: postgresTestUrl("PLATFORM_SQL_TEST_DATABASE_URL").configured,
+	runIf: databaseUrl !== undefined,
 	stages: ["schema"],
 	verbs: (state, story) => ({
 		anotherProcessMigrates: () => {

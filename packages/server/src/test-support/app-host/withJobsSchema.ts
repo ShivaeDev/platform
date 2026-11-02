@@ -10,7 +10,6 @@ export function withJobsSchema(version: "missing" | "older" | "current" | "witho
 	return migrationHost.trait("schema", `a current ledger and ${version} pg-boss schema`, function* (state) {
 		const schema = `${state.table}_jobs`;
 		const sql = yield* SqlClient.SqlClient;
-		yield* Effect.addFinalizer(() => sql`drop schema if exists ${sql(schema)} cascade`.pipe(Effect.orDie));
 		yield* migratePostgres({ ...state.migrations, lockTimeout: "5 seconds" });
 		state.migrations.components.push(pgBossSchema({ schema }));
 		if (version === "missing") {
@@ -30,9 +29,7 @@ export function withJobsSchema(version: "missing" | "older" | "current" | "witho
 	});
 }
 
-export const pendingJobsSchema = migrationHost.trait("schema", "pending ledger migrations and a missing pg-boss schema", function* (state) {
+export const pendingJobsSchema = migrationHost.trait("schema", "pending ledger migrations and a missing pg-boss schema", (state) => {
 	const schema = `${state.table}_jobs`;
-	const sql = yield* SqlClient.SqlClient;
-	yield* Effect.addFinalizer(() => sql`drop schema if exists ${sql(schema)} cascade`.pipe(Effect.orDie));
 	state.migrations.components.push(pgBossSchema({ schema }));
 });

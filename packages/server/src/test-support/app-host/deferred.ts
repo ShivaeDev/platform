@@ -1,29 +1,20 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { appDatabase } from "#appDatabase.ts";
 import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "./ping.ts";
-import type { HostState } from "./state.ts";
-import { host } from "./story.ts";
+import { databaseOf, type HostState } from "./state.ts";
+import { postgresHost } from "./story.ts";
 
 export function deferred(mode: "migrate" | "check", fails = false) {
-	return host.trait("configured", `deferred construction follows ${fails ? "failed " : ""}${mode}`, function* (state) {
-		const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
-		const table = `deferred_${crypto.randomUUID().replaceAll("-", "")}`;
+	return postgresHost.trait("configured", `deferred construction follows ${fails ? "failed " : ""}${mode}`, function* (state) {
+		const databaseUrl = databaseOf(state).url;
+		const table = "deferred_migrations";
 		const migrations = {
 			loader: migrationLoader(state, fails),
 			table,
 		};
 		const config = { databaseUrl };
-		state.cleanup.push(() =>
-			Effect.runPromise(
-				SqlClient.SqlClient.use((sql) => sql`drop table if exists ${sql(table)}`).pipe(
-					Effect.provide(PgClient.layer({ url: databaseUrl })),
-					Effect.asVoid,
-				),
-			),
-		);
 		if (mode === "check" && !fails) {
 			yield* Layer.build(appDatabase({ config, migrations })).pipe(Effect.scoped);
 		}

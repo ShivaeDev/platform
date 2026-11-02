@@ -32,7 +32,7 @@ export function hostVerbs(state: HostState, story: { tell: (line: string) => voi
 		...adminVerbs(state, story.tell),
 		...browserErrorReadouts(state),
 		connectionSecurity: () => connectionSecurity(state),
-		serverOffersTls,
+		serverOffersTls: () => serverOffersTls(state),
 		...requests(state, story.tell),
 		receiveMaskedFailure: (interrupt: boolean) => {
 			story.tell("the native RPC client requests a declared failure with sensitive fields");

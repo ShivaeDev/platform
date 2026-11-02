@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { postgresConfigured, processHost } from "#test/app-host/processStory.ts";
+import { postgresProcessHost, processHost } from "#test/app-host/processStory.ts";
 
 processHost.it("after IPC readiness the child host serves uncacheable health headers", [], function* ({ headers, launch }) {
 	yield* launch();
@@ -16,7 +16,7 @@ processHost.it("the acknowledged signal changes the greeting served by the host"
 	expect(yield* headers("/greeting")).toMatchObject({ "x-greeting": "goodbye" });
 });
 
-processHost.it.runIf(postgresConfigured)("the child host's health answer is healthy with PostgreSQL", [], function* ({ health, launch }) {
+postgresProcessHost.it("the child host's health answer is healthy with PostgreSQL", [], function* ({ health, launch }) {
 	yield* launch("database");
 
 	expect(yield* health()).toMatchObject({ body: "", headers: { "cache-control": "no-store" }, status: 200 });
