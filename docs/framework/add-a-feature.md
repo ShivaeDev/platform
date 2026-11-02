@@ -2,17 +2,17 @@
 
 Start with a running app from the [quickstart](./quickstart.md). Add a bookmarks resource with a generated numeric `id`, a nonempty `title` and an account owner. Follow the notes module below in order, replacing its names with bookmarks. Links point to the starter files copied into your generated app; keep using that app's pinned dependencies.
 
-A feature is a module under `src/modules`. Put the bookmarks module in `src/modules/bookmarks`: the shared declaration in `bookmarks.ts`, persistence and services in `server/`, React components in `client/` and its story kits in `test-support/`. Keep SQL, session lookup and services out of the browser import graph. The app's registries in `src/admin/modules.ts`, `src/server/modules.ts`, `src/client/modules.ts` are the only foundation files a module touches. This walkthrough adds a query and a create command; the notes module's background word-count job is an optional extension described in [Add a job](./quickstart.md#add-a-job).
+A feature is a module under `src/modules`. Put the bookmarks module in `src/modules/bookmarks`: the shared declaration in `bookmarks.ts`, persistence and services in `server/`, React components in `client/` and its story kits in `test-support/`. Keep SQL, session lookup and services out of the browser import graph. Register the server feature once in `src/server/modules.ts`; the host, worker and admin handlers use that list. Register browser routes and bindings separately in `src/client/modules.ts`. Browser-only queue schemas belong in `src/admin/foundation.ts` when the Jobs view needs to decode their payloads. This walkthrough adds a query and a create command; the notes module's background word-count job is an optional extension described in [Add a job](./quickstart.md#add-a-job).
 
 An `admin/` segment marks admin-only code. Put a wholly admin-only feature under `src/modules/admin/<name>`, with its shared declarations, `server/` and `client/` inside that module. For admin tools belonging to a member feature, keep the module's ownership: put browser-safe declarations in `src/modules/bookmarks/admin/`, reads and handlers in `src/modules/bookmarks/server/admin/`, and views and client bindings in `src/modules/bookmarks/client/admin/`. Each module reads only its own tables; an admin page needing another module's data composes that module's exposed operations. A path makes intent visible; the page's permission enforces access.
 
-The starter's [statistics page](../../examples/starter/src/modules/notes/admin/pages.ts), [read](../../examples/starter/src/modules/notes/server/admin/readStatistics.ts), [server registration](../../examples/starter/src/modules/notes/server/admin/registration.ts) and [client registration](../../examples/starter/src/modules/notes/client/admin/registration.tsx) show this layout. The all-user read stays beside notes persistence in `server/admin/`, rather than moving into an unrelated admin module. Declare the page with `adminPage`, register its handlers with `registerAdmin`, and include its registry in `src/admin/modules.ts`; the [admin guide](../../packages/admin/README.md#keep-admin-code-in-admin-paths) explains the composition.
+The starter's [statistics page](../../examples/starter/src/modules/notes/admin/pages.ts), [read](../../examples/starter/src/modules/notes/server/admin/readStatistics.ts), [server registration](../../examples/starter/src/modules/notes/server/admin/registration.ts) and [client registration](../../examples/starter/src/modules/notes/client/admin/registration.tsx) show this layout. The all-user read stays beside notes persistence in `server/admin/`, rather than moving into an unrelated admin module. Declare the page with `adminPage`, register its handlers with `registerAdmin`, and attach that registration as the server module's `admin` field; the [admin guide](../../packages/admin/README.md#keep-admin-code-in-admin-paths) explains the composition.
 
 ## 1. Add the migration
 
-Create `src/modules/bookmarks/server/migrations/` and add the next numbered file across every registered migration folder, such as `0004_bookmarks.ts`, default-exporting its migration Effect as [`0002_notes.ts`](../../examples/starter/src/modules/notes/server/migrations/0002_notes.ts) does. Create `bookmarks` with `id serial primary key`, `title text not null` and `user_id text not null`. Import `userReference` from `@shivaedev/identity/server/better-auth/userReference.ts` and reference its table and column with `ON DELETE CASCADE`, following [`0003_user_foreign_key.ts`](../../examples/starter/src/modules/notes/server/migrations/0003_user_foreign_key.ts) and [identity’s foreign-key guide](../../packages/identity/README.md#reference-users-from-app-tables). All folders share the `app_migrations` ledger, so an existing app upgrades by running a new, higher-numbered migration rather than by editing one it has already run.
+Create `src/modules/bookmarks/server/migrations/` and add the next numbered file across every registered migration folder, such as `0005_bookmarks.ts`, default-exporting its migration Effect as [`0002_notes.ts`](../../examples/starter/src/modules/notes/server/migrations/0002_notes.ts) does. Create `bookmarks` with `id serial primary key`, `title text not null` and `user_id text not null`. Import `userReference` from `@shivaedev/identity/server/better-auth/userReference.ts` and reference its table and column with `ON DELETE CASCADE`, following [`0003_user_foreign_key.ts`](../../examples/starter/src/modules/notes/server/migrations/0003_user_foreign_key.ts) and [identity’s foreign-key guide](../../packages/identity/README.md#reference-users-from-app-tables). All folders share the `app_migrations` ledger, so an existing app upgrades by running a new, higher-numbered migration rather than by editing one it has already run.
 
-Declare the migration directory on the server registration as `migrations: resolve(import.meta.dirname, "migrations")`, importing `resolve` from `node:path`. [`src/server/migrations.ts`](../../examples/starter/src/server/migrations.ts) loads the directories from the registered modules. [`databaseOptions.ts`](../../examples/starter/src/server/databaseOptions.ts) passes the combined loader to the host with `mode: "check"`, so startup asserts that its migrations are recorded in the ledger. Run `pnpm migrate` to apply the new migration before starting the host, as in the [quickstart](./quickstart.md). The [migration guide](./postgres-migrations.md) explains runner ownership and locks.
+Declare a native migration loader on the server registration, as shown in step 6. [`src/server/migrations.ts`](../../examples/starter/src/server/migrations.ts) loads the directories from the registered modules. [`databaseOptions.ts`](../../examples/starter/src/server/databaseOptions.ts) passes the combined loader to the host with `mode: "check"`, so startup asserts that its migrations are recorded in the ledger. Run `pnpm migrate` to apply the new migration before starting the host, as in the [quickstart](./quickstart.md). The [migration guide](./postgres-migrations.md) explains runner ownership and locks.
 
 ## 2. Define the Model
 
@@ -30,21 +30,58 @@ Use `insert({ userId, title })` for creation. For the list, use `findMany` with 
 
 Create `src/modules/bookmarks/server/Service.ts` with `defineService` from `@shivaedev/service/defineService.ts`. Follow [the notes service](../../examples/starter/src/modules/notes/server/Service.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` in `requires`, and expose `list(userId)` and `create(input, userId)`.
 
-Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. Wrap the write in `transact` from `@shivaedev/sql/transact.ts`. Keep ownership explicit in both methods. The notes service also enqueues a job after its write transaction and logs queue failures; omit that part for bookmarks. This service refers to the command declaration you add next, so complete both steps before typechecking.
+Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. Wrap the write in `transact` from `@shivaedev/sql/transact.ts`. Keep ownership explicit in both methods. The notes service also enqueues a word-count job within its write transaction; omit that part for bookmarks. This service refers to the command declaration you add next, so complete both steps before typechecking.
 
 ## 5. Declare the contract
 
 Finish `bookmarks.ts` by following [`notes.ts`](../../examples/starter/src/modules/notes/notes.ts). Use `collection` from `@shivaedev/changes/keys.ts` for bookmark keys, `query` and `command` from `@shivaedev/contract/operation.ts`, and `contract` from `@shivaedev/contract/contract.ts` for the group.
 
-Declare a `userId` bucket on the collection with `collection("bookmarks", Schema.Number, { userId: Schema.String })`. The list query declares a read policy requiring a session viewer and reads `bookmarks.bucket.userId(viewer.value.id)` from that viewer, returns `Schema.Array(Bookmark.json)` and declares `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and invalidates the created record key and the viewer's `userId` bucket. Import `fieldRejection` from `@shivaedev/contract/rejection.ts` and the error from `@shivaedev/errors/taxonomy.ts`. Give this resource its own collection and contract names.
+Declare a `userId` bucket on the collection with `collection("bookmarks", Schema.Number, { userId: Schema.String })`. The list query declares a read policy requiring a session viewer and reads `bookmarks.bucket.userId(viewer.value.id)` from that viewer, returns `Schema.Array(Bookmark.json)` and declares `InternalServerError` and `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `InternalServerError`, `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and invalidates the created record key and the viewer's `userId` bucket. Import `fieldRejection` from `@shivaedev/contract/rejection.ts` and the errors from `@shivaedev/errors/taxonomy.ts`. Give this resource its own collection and contract names.
 
-Apply `AuthenticatedUser` from `@shivaedev/identity/middleware.ts` to the group, as `Notes` does. The contract is browser safe and describes typed results and rejections; its query policy decides who may read, while server services implement SQL.
+Export the operation declarations as `List` and `Create` for the server boundary. Apply `AuthenticatedUser` from `@shivaedev/identity/middleware.ts` to the group, as `Notes` does. The contract is browser safe and describes typed results and rejections; its query policy decides who may read, while server services implement SQL.
 
 ## 6. Register the server module
 
 Create `src/modules/bookmarks/server/registration.ts` following [the notes registration](../../examples/starter/src/modules/notes/server/registration.ts). Build handlers with `Bookmarks.application.toLayer` that obtain the bookmarks service and pass the current `SessionUser` id to each method. Import `SessionUser` from `@shivaedev/identity/identity.ts`; never accept an owner id from the form or capture a user in a shared Layer.
 
-Export `{ migrations: resolve(import.meta.dirname, "migrations"), group: Bookmarks, handlers, services }`, where `services` returns the service's Layer, and add it to the `modules` list in [`src/server/modules.ts`](../../examples/starter/src/server/modules.ts). The host merges every module's group, handlers, services and migration directories, so the new handlers share the existing session provider, migration loader and authenticated HTTP/NDJSON host.
+Export an object satisfying `AppModule`. Its required fields are `name`, `group`, `handlers`, `services` and `migrations`. Services and handlers are native Layers; migrations contains a native loader and optional schema `components`.
+
+```ts
+import { resolve } from "node:path";
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import { Effect } from "effect";
+import { Migrator } from "effect/sql";
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { Bookmarks, Create, List } from "#modules/bookmarks/bookmarks.ts";
+import { BookmarksService } from "./Service.ts";
+
+const boundaryOptions = { unexpected: (message: string) => new InternalServerError({ message }) };
+const handlers = Bookmarks.application.toLayer(
+	Effect.gen(function* () {
+		const service = yield* BookmarksService;
+		return Bookmarks.application.of({
+			"bookmarks.create": (input) =>
+				Effect.flatMap(SessionUser, ({ id }) => service.create(input, id).pipe(rpcBoundary(Create.error, boundaryOptions))),
+			"bookmarks.list": () => Effect.flatMap(SessionUser, ({ id }) => service.list(id).pipe(rpcBoundary(List.error, boundaryOptions))),
+		});
+	}),
+);
+
+export const bookmarksRegistration = {
+	name: "bookmarks",
+	group: Bookmarks,
+	handlers,
+	services: BookmarksService.layer,
+	migrations: {
+		loader: Migrator.fromFileSystem(resolve(import.meta.dirname, "migrations")).pipe(Effect.provide(NodeServices.layer)),
+	},
+} satisfies AppModule;
+```
+
+Add `bookmarksRegistration` to the `modules` list in [`src/server/modules.ts`](../../examples/starter/src/server/modules.ts). That list feeds `appModules`, which combines the contracts, handlers, services, migration loaders and optional `admin`, `ports`, `queues` and `workers`. `admin` is the result of `registerAdmin`; `ports` is a Layer of default adapters, overridden by the composition's `replacements` Layer. For jobs, spread the `queues` and `workers` returned by `jobModule` onto the same registration. Both application processes use this composition, and the foundation's server Jobs handlers receive the queues collected from these entries. The browser keeps its own payload schemas and bindings without importing server registrations.
 
 ## 7. Register the client module and route
 

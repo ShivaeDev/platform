@@ -5,10 +5,11 @@ import { JobsPermission, UsersPermission } from "@shivaedev/admin/permissions.ts
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { SessionsPermission } from "@shivaedev/identity/sessionPermissions.ts";
-import { Admin, foundation } from "#admin/modules.ts";
+import { foundation } from "#admin/foundation.ts";
 import { StatisticsPage } from "#modules/notes/admin/pages.ts";
 import { StatisticsPermission } from "#modules/notes/admin/StatisticsPermission.ts";
 import { adminBackend } from "./backend.ts";
+import { adminGroup } from "./group.ts";
 
 const { JobsPage, UsersPage, SessionsPage } = foundation;
 
@@ -28,9 +29,9 @@ const authenticated = Layer.mergeAll(
 export function adminClient() {
 	const backend = adminBackend();
 	class Client extends AtomRpc.Service<Client>()("admin.users/Client", {
-		group: Admin.group,
-		makeEffect: RpcTest.makeClient(Admin.group, { flatten: true }),
-		protocol: Admin.group.toLayer(backend.handlers).pipe(Layer.provideMerge(authenticated)),
+		group: adminGroup,
+		makeEffect: RpcTest.makeClient(adminGroup, { flatten: true }),
+		protocol: adminGroup.toLayer(backend.handlers).pipe(Layer.provideMerge(authenticated)),
 	}) {}
 	const users = bind(UsersPage.contract, Client);
 	return {

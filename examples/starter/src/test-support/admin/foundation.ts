@@ -4,7 +4,7 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Admin, foundation } from "#admin/modules.ts";
+import { foundation } from "#admin/foundation.ts";
 import { answer } from "#test-support/answers.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
@@ -25,7 +25,7 @@ export const foundationAdmin = storyKit({
 	verbs: (engine, story) => {
 		const adminOf = Effect.fn("FoundationAdmin.adminOf")(function* (name: string) {
 			return yield* makeClient(foundation.UsersPage.contract, {
-				group: Admin.group,
+				group: foundation.admin.group,
 				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.host.origin },
 				url: `${engine.host.baseUrl}/rpc`,
 				webSocketConstructor: layerWebSocketConstructorWS,

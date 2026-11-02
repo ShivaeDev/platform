@@ -7,6 +7,7 @@ import { cliAnswer } from "./answers.ts";
 import { appReadouts, gitIn } from "./appReadouts.ts";
 import { appFolder, runCli } from "./cli.ts";
 import { createEngine } from "./createEngine.ts";
+import { moduleChecks } from "./moduleChecks.ts";
 import { releases } from "./releases.ts";
 import { templateSource } from "./templateSource.ts";
 import { updateProcesses, updateTypecheck } from "./updateProcesses.ts";
@@ -63,6 +64,7 @@ export const updates = storyKit({
 	stages: ["previous", "created", "customized", "current"],
 	verbs: (engine, story) => ({
 		...appReadouts(() => engine.target),
+		...moduleChecks(() => engine.target, engine.source.starter, story),
 		answer: () => Effect.sync(() => engine.answers.at(-1) ?? "create-app has not run"),
 		exitCode: () => Effect.sync(() => engine.processes.result.status),
 		printedMentions: (text: string) => Effect.sync(() => engine.processes.result.stdout.includes(text)),

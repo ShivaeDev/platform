@@ -4,7 +4,7 @@ import { act } from "react";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
-import { foundation } from "#admin/modules.ts";
+import { foundation } from "#admin/foundation.ts";
 import { foundationRegistration } from "#client/admin/foundationRegistration.tsx";
 import { connectModules } from "#client/Module.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
