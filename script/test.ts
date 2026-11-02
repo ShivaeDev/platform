@@ -6,8 +6,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 
 const program = Effect.gen(function* () {
-	const databases = yield* postgresTestEnvironment;
-	const env = { ...databases, "TEST_DATABASE_URL": databases.PLATFORM_SQL_TEST_DATABASE_URL };
+	const env = yield* postgresTestEnvironment;
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const args = process.argv.slice(2);
 	const workspace = args.includes("--workspace");
