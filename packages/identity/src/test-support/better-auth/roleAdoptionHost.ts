@@ -29,11 +29,14 @@ export const roleAdoptionHost = Effect.fnUntraced(function* () {
 	};
 	const storage = yield* authTestDatabase;
 	const legacy = yield* Effect.cached(Effect.sync(() => betterAuth(options)));
+	function start(defaultRole: string) {
+		return betterAuthMount(options, { defaultRole, roles: Access })
+			.pipe(Effect.provide(memoryStore))
+			.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
+	}
 	const application = yield* Effect.cached(
 		Effect.gen(function* () {
-			const mounted = yield* betterAuthMount(options, { defaultRole: "member", roles: Access })
-				.pipe(Effect.provide(memoryStore))
-				.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
+			const mounted = yield* start("member");
 			const app = HttpRouter.toWebHandler(mounted.routes, { disableLogger: true });
 			yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 			return app;
@@ -93,6 +96,7 @@ export const roleAdoptionHost = Effect.fnUntraced(function* () {
 					return { role: Schema.decodeUnknownSync(Session)(await response.json()).user.role, status: response.status };
 				}),
 			),
+		start,
 		storedRoles: () => storage.userRoles,
 	};
 });

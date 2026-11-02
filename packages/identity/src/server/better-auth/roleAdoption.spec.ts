@@ -2,6 +2,14 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { beforeRoles, existingUsers, freshRoles, roleAdoption } from "#test/better-auth/roleAdoption.ts";
 
+for (const defaultRole of ["retired", "Member"]) {
+	roleAdoption.it(`an undeclared default role ${defaultRole} stops startup with a configuration error naming it`, [], function* ({ start }) {
+		const result = yield* start(defaultRole);
+
+		expect(result).toBe(`Default user role is not declared by the application: ${JSON.stringify(defaultRole)}`);
+	});
+}
+
 roleAdoption.it(
 	"existing alice and bob adopt the default member role without a backfill",
 	[beforeRoles, existingUsers],

@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -34,6 +35,13 @@ export const roleAdoption = storyKit({
 		signUp: (name: Person) => {
 			story.tell(`${name} signs up while requesting the admin role`);
 			return host.signUp(name);
+		},
+		start: (defaultRole: string) => {
+			story.tell(`start the auth host with ${defaultRole} as its default role`);
+			return host.start(defaultRole).pipe(
+				Effect.as("started"),
+				Effect.catchTag("UndeclaredDefaultRole", (error) => Effect.succeed(error.message)),
+			);
 		},
 		storedRoles: host.storedRoles,
 	}),
