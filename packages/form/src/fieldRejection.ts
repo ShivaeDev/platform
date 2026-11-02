@@ -1,14 +1,11 @@
-import { Effect, Predicate, type Schema, type Scope } from "effect";
-import type { AtomRegistry } from "effect/reactivity/AtomRegistry";
-import type { Reactivity } from "effect/reactivity/Reactivity";
-import type { FieldFailure, Fields, Name, Submitter } from "@shivaedev/form/shape.ts";
+import { Effect, Option, type Schema } from "effect";
+import { rejectedField } from "@shivaedev/errors/rejectedField.ts";
+import type { FieldFailure, Fields, Name, Path, Submitter } from "#shape.ts";
 
 export interface FieldRejection<TName extends string> {
-	readonly field: TName;
+	readonly field: TName | Path<TName>;
 	readonly message: string;
 }
-
-export type AtomServices<TRequirements> = TRequirements | Scope.Scope | AtomRegistry | Reactivity;
 
 export type RejectField<TFields extends Fields, TError> = (error: TError) => FieldRejection<Name<TFields>> | undefined;
 
@@ -26,14 +23,13 @@ export type FieldRejectionMapping<TFields extends Fields, TError> = { readonly r
 
 export function fieldRejectionOf<TFields extends Fields>(schema: Schema.Struct<TFields>) {
 	return (error: unknown): FieldRejection<Name<TFields>> | undefined => {
-		function isName(name: unknown): name is Name<TFields> {
-			return typeof name === "string" && Object.hasOwn(schema.fields, name);
+		function isName(name: string): name is Name<TFields> {
+			return Object.hasOwn(schema.fields, name);
 		}
-		if (!(Predicate.hasProperty(error, "_tag") && Predicate.hasProperty(error, "field") && Predicate.hasProperty(error, "message"))) {
-			return undefined;
-		}
-		const { _tag, field, message } = error;
-		return typeof _tag === "string" && isName(field) && typeof message === "string" ? { field, message } : undefined;
+		return Option.match(rejectedField(error), {
+			onNone: () => undefined,
+			onSome: ({ field, message }) => (isName(field) ? { field, message } : undefined),
+		});
 	};
 }
 
