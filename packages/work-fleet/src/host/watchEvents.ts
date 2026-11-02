@@ -50,8 +50,8 @@ export function watchTransitions(stuckMs: number, current = false) {
 	const seen = new Set<string>();
 	let initial = true;
 	function unseen(state: WatchState, event: WatchEvent, progress: number) {
-		const identity = current ? [] : [state.decision?.id, state.answerFailure?.id, state.dispatch?.id, event.kind === "stuck" ? progress : undefined];
-		const key = JSON.stringify([event, ...identity]);
+		const identity = current ? [] : [state.decision?.id, state.answerFailure?.id, state.dispatch?.id];
+		const key = JSON.stringify([event, ...identity, event.kind === "stuck" ? progress : undefined]);
 		const duplicate = seen.has(key);
 		seen.add(key);
 		const visible =
