@@ -21,7 +21,7 @@ export function hostCommandVerbs(engine: HostStoryEngine, tell: (line: string) =
 			return engine.running.client("fleet.continue", { message, workId });
 		},
 		deferWorker: (decision: Parameters<typeof answerWorker>[1]) => answerWorker(engine.fixture.host.boardDir, decision, "response.defer", "not_now"),
-		dispatchOutcome: (workId: string) => waitForDispatch(engine.running.client, workId),
+		dispatchOutcome: (workId: string) => waitForDispatch(engine.running.client, workId, engine.running.context),
 		initializeRepository: () => execFileSync("git", ["init", "--quiet", "--initial-branch=main", engine.fixture.host.boardDir]),
 		list: () => engine.fleet.list(),
 		logs: () => engine.logs.entries,

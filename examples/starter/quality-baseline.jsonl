@@ -15,4 +15,3 @@
 {"path":"src/modules/notes/client/admin/registration.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"src/modules/notes/client/registration.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"src/modules/notes/server/registration.ts","rule":"effect/adapter-imports","count":1}
-{"path":"src/server/admin/foundationRegistration.ts","rule":"effect/adapter-imports","count":1}

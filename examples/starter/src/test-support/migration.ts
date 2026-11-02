@@ -19,7 +19,7 @@ export const migration = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
 	*create() {
-		const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
+		const steps = yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
 		return { steps, storage: yield* authTestDatabase };
 	},
 	layer: postgres,

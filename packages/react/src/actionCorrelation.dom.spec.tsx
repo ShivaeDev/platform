@@ -32,33 +32,19 @@ for (const mode of ["action", "create", "editor"] as const) {
 	);
 
 	actions.it(
-		`each job a click on the ${mode} screen stores carries the span of the enqueue that created it`,
-		[writeScreen(mode)],
-		function* ({ click, storedJobs }) {
-			yield* click();
-
-			expect(yield* storedJobs()).toEqual([
-				{ id: 1, span: "its enqueue span", trace: "trace 1" },
-				{ id: 2, span: "its enqueue span", trace: "trace 1" },
-			]);
-		},
-		20_000,
-	);
-
-	actions.it(
 		`a worker attempt for a job from the ${mode} screen runs in its own trace linked to the enqueue span`,
 		[writeClicked(mode)],
 		function* ({ workerAttempts, workerRuns }) {
 			expect(yield* workerAttempts()).toEqual([
-				{ id: 1, trace: "no attempt" },
-				{ id: 2, trace: "no attempt" },
+				{ enqueue: 1, trace: "trace 1", workers: [] },
+				{ enqueue: 2, trace: "trace 1", workers: [] },
 			]);
 
 			yield* workerRuns();
 
 			expect(yield* workerAttempts()).toEqual([
-				{ id: 1, trace: "another trace" },
-				{ id: 2, trace: "another trace" },
+				{ enqueue: 1, trace: "trace 1", workers: ["another trace"] },
+				{ enqueue: 2, trace: "trace 1", workers: ["another trace"] },
 			]);
 		},
 		20_000,

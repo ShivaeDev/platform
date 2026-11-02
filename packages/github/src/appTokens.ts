@@ -1,6 +1,7 @@
 import { Cache, Clock, Context, Effect, Exit, Layer, Option, type Redacted, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { readBoundedJson } from "@shivaedev/http/body.ts";
+import { resolveApiUrl } from "#adapters/resolveApiUrl.ts";
 import { appJwt } from "#appJwt.ts";
 import { authenticatedRequest } from "#authenticatedRequest.ts";
 import { GitHubAppError } from "#errors.ts";
@@ -65,7 +66,7 @@ function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
 		schema: TSchema,
 		body?: unknown,
 	) {
-		let input = HttpClientRequest.make(method)(new URL(path, apiUrl).href, {
+		let input = HttpClientRequest.make(method)(resolveApiUrl(apiUrl, path), {
 			headers: { Accept: "application/vnd.github+json" },
 		});
 		if (body !== undefined) {

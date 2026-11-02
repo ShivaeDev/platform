@@ -68,7 +68,7 @@ fleetDaemon.it(
 
 		yield* daemon.stop();
 
-		yield* daemon.connectionsClosed();
+		expect(yield* daemon.connections()).toBe(0);
 		expect(daemon.providerResources()).toEqual({ providers: 1, releases: 1 });
 	},
 	30_000,

@@ -75,7 +75,6 @@
 {"path":"examples/starter/src/modules/notes/client/admin/registration.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"examples/starter/src/modules/notes/client/registration.tsx","rule":"effect/adapter-imports","count":1}
 {"path":"examples/starter/src/modules/notes/server/registration.ts","rule":"effect/adapter-imports","count":1}
-{"path":"examples/starter/src/server/admin/foundationRegistration.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/ci/TestSequencer.ts","rule":"effect/adapter-imports","count":2}
 {"path":"script/ci/focused-tests.ts","rule":"effect/adapter-imports","count":1}
 {"path":"script/ci/mainShardPlan.ts","rule":"effect/adapter-imports","count":3}

@@ -1,17 +1,31 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
-import { until } from "#test/cloudRestart.ts";
+import { changeSignal } from "#test/changeSignal.ts";
 
 export const watchPrApi = Effect.gen(function* () {
+	const changed = changeSignal();
 	const replies = new Map<string, FakeHttpReply>();
 	const github = {
 		reply: (path: string, body: unknown, response: { status?: number } = {}) => replies.set(`/${path.replace(/^\//u, "")}`, { body, ...response }),
 	};
 	const server = yield* fakeHttpService({
 		routes: {
-			graphql: { method: "POST", path: "/graphql", reply: () => replies.get("/graphql") ?? { status: HttpStatus.fromLiteral("NotFound") } },
-			rest: { path: "/:path*", reply: (request) => replies.get(request.path) ?? { status: HttpStatus.fromLiteral("NotFound") } },
+			graphql: {
+				method: "POST",
+				path: "/graphql",
+				reply: () => {
+					changed.notify();
+					return replies.get("/graphql") ?? { status: HttpStatus.fromLiteral("NotFound") };
+				},
+			},
+			rest: {
+				path: "/:path*",
+				reply: (request) => {
+					changed.notify();
+					return replies.get(request.path) ?? { status: HttpStatus.fromLiteral("NotFound") };
+				},
+			},
 		},
 	});
 	const repository = "example/repository";
@@ -73,7 +87,7 @@ export const watchPrApi = Effect.gen(function* () {
 	github.reply(`${base}/commits/${pr.head.sha}/status`, { state: "success", statuses: [] });
 	return {
 		awaitPoll: () =>
-			until(() =>
+			changed.wait(
 				Effect.sync(() => {
 					const count = server.requests.filter((request) => request.path.endsWith("/status")).length;
 					if (count <= observations) {
@@ -82,9 +96,15 @@ export const watchPrApi = Effect.gen(function* () {
 					observations = count;
 					return true;
 				}),
+				Boolean,
 			),
 		awaitRequests: (path: string, count: number) =>
-			until(() => Effect.sync(() => server.requests.filter((request) => request.path === path).length >= count)),
+			changed
+				.wait(
+					Effect.sync(() => server.requests.filter((request) => request.path === path).length),
+					(observed) => observed >= count,
+				)
+				.pipe(Effect.asVoid),
 		fail: (status: number, number = 7) =>
 			github.reply(
 				`${base}/pulls/${number}`,

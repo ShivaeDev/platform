@@ -1,15 +1,14 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Clock, Effect, Layer, Redacted, Result } from "effect";
-import { eventually } from "@shivaedev/test/eventually.ts";
+import { Clock, type Context, Effect, Layer, Redacted } from "effect";
+import type { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
-import { isFleetError } from "#errors.ts";
 import { resolveHost } from "#host/config.ts";
-import type { FleetRecord } from "#model.ts";
 import { FleetIntegrations } from "#policy.ts";
+import { waitForRecord } from "#test/daemonActions.ts";
 import type { daemonClient } from "#test/daemonClient.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
@@ -20,29 +19,21 @@ import { answerReport } from "#test/report.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 import { serveRecovery } from "#test/serveRecovery.ts";
 
-const acknowledgedResponse = Effect.fn("Test.acknowledgedResponse")(function* (
+function acknowledgedResponse(
 	client: Effect.Success<ReturnType<typeof daemonClient>>,
 	responseId: string,
 	action: "retry" | "release",
+	context: Context.Context<typeof LiveServer.Identifier>,
 ) {
-	const receipt = yield* eventually(
-		Effect.result(client("fleet.get", { workId: "one" })).pipe(
-			Effect.flatMap((observed): Effect.Effect<Result.Result<FleetRecord, unknown>, string> => {
-				if (Result.isFailure(observed)) {
-					return isFleetError(observed.failure) && observed.failure._tag === "Conflict"
-						? Effect.fail("Reload stale Fleet observation")
-						: Effect.succeed(observed);
-				}
-				return observed.success.responses?.some((response) => response.responseId === responseId && response.boardAcknowledged === true)
-					&& (action === "release" || (observed.success.step === "working" && observed.success.attempts.at(-1)?.receipt !== undefined))
-					? Effect.succeed(observed)
-					: Effect.fail("Wait for the exact acknowledged response");
-			}),
-		),
-		{ interval: "20 millis", times: 1000 },
+	return waitForRecord(
+		client,
+		"one",
+		(record) =>
+			record.responses?.some((response) => response.responseId === responseId && response.boardAcknowledged === true) === true
+			&& (action === "release" || (record.step === "working" && record.attempts.at(-1)?.receipt !== undefined)),
+		context,
 	);
-	return yield* Effect.fromResult(receipt);
-});
+}
 export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (state: EngineStory) {
 	const github = yield* mergedReviewGithub();
 	const database = yield* PostgresTestDatabase;
@@ -108,9 +99,9 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (state:
 		...initial,
 		answerOffline: (action: "retry" | "release") => answerReport(state.root, published, action),
 		restart: (action: "retry" | "release", responseId: string) =>
-			serveRecovery(host, parts, (client) =>
+			serveRecovery(host, parts, (client, context) =>
 				Effect.gen(function* () {
-					const resolved = yield* acknowledgedResponse(client, responseId, action);
+					const resolved = yield* acknowledgedResponse(client, responseId, action, context);
 					return { fresh: resolved, resolved };
 				}),
 			),

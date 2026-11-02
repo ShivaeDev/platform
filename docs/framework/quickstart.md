@@ -49,7 +49,7 @@ Each module owns its page registry and handler registration. Notes declares its 
 
 ## Add a job
 
-Give the queue's name and payload Schema a browser-safe module, as `src/modules/notes/queue.ts` does, and pass it to `defineQueue` in the module's `server/jobs.ts`. The module's server registration supplies a producer Layer that registers the queue definitions without starting a consumer, as `server/producer.ts` does. Register the handler in the module's `server/worker.ts` and add that worker to `src/server/workerModules.ts`; the worker process runs on the host's `appDatabase` Layer.
+Give the queue's name and payload Schema a browser-safe module, as `src/modules/notes/queue.ts` does, and pass it to `defineQueue` in the module's `server/jobs.ts`. The module's server registration supplies a producer Layer that registers the queue definitions without starting a consumer, as `server/producer.ts` does. Use `jobModule` from `@shivaedev/jobs/server/jobModule.ts` in the module's `server/worker.ts` to contribute `queues` and `workers` fields to its server registration. Register the module once in `src/server/modules.ts`; both application processes use that module list, and `workerHost` supplies its services and ports after database preparation.
 
 Call `jobs.enqueue(queue, payload)` after the command's database transaction completes. Keep enqueueing independent of application SQL transactions and handle queue failures so a queue error cannot fail a note write. The starter logs failures and returns the saved note, leaving its word count pending when enqueueing fails.
 

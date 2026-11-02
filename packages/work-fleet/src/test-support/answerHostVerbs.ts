@@ -64,7 +64,7 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 		cliStatus: () => cli(["status"]),
 		dispatch: (workId = "one") => {
 			tell(`dispatch ${workId}`);
-			return dispatchAndWait(engine.running.client, workId);
+			return dispatchAndWait(engine.running.client, workId, engine.running.context);
 		},
 		follow: (workIds: readonly string[]) => engine.running.client("daemon.follow", { workIds }),
 		get: (workId = "one") => engine.running.client("fleet.get", { workId }),
@@ -89,6 +89,7 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 			tell("stop the daemon");
 			return engine.stop();
 		},
-		waitForRecord: (workId: string, ready: (record: FleetRecord) => boolean) => waitForRecord(engine.running.client, workId, ready),
+		waitForRecord: (workId: string, ready: (record: FleetRecord) => boolean) =>
+			waitForRecord(engine.running.client, workId, ready, engine.running.context),
 	};
 }
