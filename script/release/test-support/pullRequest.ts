@@ -1,21 +1,24 @@
 import { NodeServices } from "@effect/platform-node";
-import { Clock, Effect, Layer, Option } from "effect";
+import { Clock, Effect, Exit, Fiber, Layer, Option } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
+import { compareRelease } from "#release/compare.ts";
 import { releaseGitHub } from "#release/gitHub.ts";
 import { maintainPullRequest } from "#release/maintainPullRequest.ts";
 import { publishNotes } from "#release/publishNotes.ts";
 import { publishPackages } from "#release/publishPackages.ts";
+import { commitHook } from "./commitHook.ts";
 import { releasePrApi } from "./prApi.ts";
 import { releasePrRepository } from "./prRepository.ts";
 import { releaseRegistry } from "./registry.ts";
 
 const create = Effect.fn("ReleasePullRequest.create")(function* () {
 	const repository = yield* releasePrRepository();
+	const hook = yield* commitHook(repository.root);
 	const registry = yield* releaseRegistry(repository.root);
 	const api = releasePrApi(() => repository.git("ls-remote", "origin", "refs/heads/release/next").split("\t")[0] ?? "");
 	const server = yield* api.serve;
@@ -26,7 +29,7 @@ const create = Effect.fn("ReleasePullRequest.create")(function* () {
 			),
 		),
 	);
-	return { ...repository, api, context, github: releaseGitHub("example/workspace"), registry, server };
+	return { ...repository, api, context, github: releaseGitHub("example/workspace"), hook, registry, server };
 });
 
 export const releasePullRequest = storyKit({
@@ -35,7 +38,7 @@ export const releasePullRequest = storyKit({
 	layer: NodeServices.layer,
 	name: "Release pull request automation",
 	stages: ["main"],
-	verbs: ({ api, context, git, github, root, pushMain, registry, server }) => {
+	verbs: ({ api, context, git, github, hook, root, pushMain, registry, server }) => {
 		const run = Effect.fn("ReleasePullRequest.run")(function* (date?: string) {
 			const clock = yield* Clock.Clock;
 			return yield* maintainPullRequest(root, github).pipe(
@@ -52,8 +55,14 @@ export const releasePullRequest = storyKit({
 			);
 		});
 		return {
+			blockCommit: hook.blockCommit,
 			check: (base = "origin/main") => checkPlatform(root, base),
 			close: () => github.close(1).pipe(Effect.provide(context)),
+			failedComparison: (head: string) =>
+				compareRelease(root, head).pipe(
+					Effect.flip,
+					Effect.map((failure) => failure._tag),
+				),
 			failedRun: () =>
 				run().pipe(
 					Effect.flip,
@@ -75,6 +84,15 @@ export const releasePullRequest = storyKit({
 				Effect.sync(() => {
 					api.state.run = { conclusion, headSha: git("rev-parse", "origin/release/next"), status };
 				}),
+			startRun: () =>
+				run().pipe(
+					Effect.forkScoped,
+					Effect.map((fiber) => ({
+						interrupt: () => Fiber.interrupt(fiber),
+						result: () => Fiber.await(fiber).pipe(Effect.map((exit) => (Exit.hasInterrupts(exit) ? "interrupted" : "completed"))),
+					})),
+				),
+			waitForCommit: hook.waiting,
 		};
 	},
 });
