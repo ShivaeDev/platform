@@ -3,8 +3,17 @@ import { createPortal } from "react-dom";
 import type { MemberScreen } from "#memberScreens.ts";
 
 export type DialogKind = "native" | "dialog" | "alertdialog";
+export type PortalTarget = "member" | "body";
 
-export function MemberPreferences({ member, kind }: { readonly member: MemberScreen; readonly kind: DialogKind }) {
+export function MemberPreferences({
+	member,
+	kind,
+	portalTarget,
+}: {
+	readonly member: MemberScreen;
+	readonly kind: DialogKind;
+	readonly portalTarget: PortalTarget;
+}) {
 	const [open, setOpen] = useState(false);
 	const [saved, setSaved] = useState(false);
 	const contents = (
@@ -18,10 +27,11 @@ export function MemberPreferences({ member, kind }: { readonly member: MemberScr
 			</button>
 		</>
 	);
-	const attributes = { "aria-label": `${member.name}'s preferences`, "data-owner": member.name };
+	const id = `${member.name}-preferences`;
+	const attributes = { "aria-label": portalTarget === "body" ? "Preferences" : `${member.name}'s preferences`, "data-owner": member.name, id };
 	const dialog =
 		kind === "native" ? (
-			<dialog {...attributes} open>
+			<dialog {...attributes} open={open}>
 				{contents}
 			</dialog>
 		) : (
@@ -29,10 +39,10 @@ export function MemberPreferences({ member, kind }: { readonly member: MemberScr
 				{contents}
 			</section>
 		);
-	const portal = open ? createPortal(dialog, member.root) : null;
+	const portal = open || kind === "native" ? createPortal(dialog, portalTarget === "body" ? document.body : member.root) : null;
 	return (
 		<main>
-			<button onClick={() => setOpen(true)} type="button">
+			<button aria-controls={id} onClick={() => setOpen(true)} type="button">
 				Preferences
 			</button>
 			<output>{saved ? "Saved" : "Unsaved"}</output>
