@@ -28,7 +28,7 @@ for (const [description, id, title] of [
 	["a filtered-out change", 2, "Hidden changed"],
 ] as const) {
 	comparedPostgres.it(
-		`${description} reruns PostgreSQL without a delivery before a changed result reaches React`,
+		`${description} reruns PostgreSQL and acknowledges completion before a changed result reaches React`,
 		[],
 		function* ({ clientRequests, commit, displayed, reads, results, shown, untilReads }) {
 			expect(yield* shown()).toBe("Visible first");
@@ -47,6 +47,7 @@ for (const [description, id, title] of [
 					() => results(),
 					[
 						{ _tag: "Result", value: [{ title: "Visible first" }] },
+						{ _tag: "Unchanged", queryIndex: 0 },
 						{ _tag: "Result", value: [{ title: "Visible changed" }] },
 					],
 				],

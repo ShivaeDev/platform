@@ -3,6 +3,7 @@ import type { DraftInput } from "@shivaedev/work-board/server/integration/respon
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { migrate } from "@shivaedev/work-board/server/migration/migrate.ts";
 import { questionFrom } from "@shivaedev/work-board/server/responses/records.ts";
+import type { CloseFinishedOptions } from "#board/closeFinishedDecisions.ts";
 import type { BoardDecision, BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { BoardGateway, BoardWork } from "#policy.ts";
 import { boardAskFiles, boardHttp, type boardHttpFiles } from "./boardHttp.ts";
@@ -58,10 +59,10 @@ export function boardDecisionVerbs(
 			current()
 				.readDecision(decision)
 				.pipe(Effect.map((reading) => (reading._tag === "Response" ? reading.response.body : undefined))),
-		closeFinishedDecisions: () => {
+		closeFinishedDecisions: (options?: CloseFinishedOptions) => {
 			tell("Fleet closes its finished decisions on Board");
 			const close = current().closeFinishedDecisions;
-			return close === undefined ? Effect.die("Board has no decision close path") : close();
+			return close === undefined ? Effect.die("Board has no decision close path") : close(options);
 		},
 		decisionState: (decision: BoardDecision) => current().readDecision(decision).pipe(Effect.map(decisionState)),
 		inbox: (decision: BoardDecision) =>

@@ -1,9 +1,6 @@
-import { Console, Deferred, Effect } from "effect";
+import { Deferred, Effect } from "effect";
 import { type ChildProcess, ChildProcessSpawner } from "effect/process";
-import { program } from "#cli/program.ts";
-import { explained } from "#cli/runMain.ts";
-import { capturing } from "./cli.ts";
-import { qualityLifecycle } from "./qualityLifecycle.ts";
+import { qualityLifecycle, startQuality } from "./qualityLifecycle.ts";
 
 function biomeCheckArgs(command: ChildProcess.Command): readonly string[] | undefined {
 	return command._tag === "StandardCommand" && command.args.includes("check") && command.args.some((arg) => arg.endsWith("/biome/bin/biome"))
@@ -33,12 +30,7 @@ export const biomeRunning = qualityLifecycle.trait(
 					return yield* Effect.never;
 				}),
 		});
-		engine.fiber = yield* program(["lint"], { cwd: engine.root, launch: { options: [], script: "quality" } }).pipe(
-			explained,
-			Effect.provideService(Console.Console, capturing(engine.output)),
-			Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, held),
-			Effect.forkScoped,
-		);
+		engine.fiber = yield* startQuality(engine, held);
 		yield* Deferred.await(engine.started);
 	},
 );

@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { type HintViewer, heard, watchHints } from "#testing.ts";
 import { answered, hintWords, shown, times } from "./answers.ts";
-import { type Mark, reRead } from "./reRead.ts";
+import { type Mark, markQuery, reRead } from "./reRead.ts";
 import { settled } from "./settled.ts";
 import { type Notes, notes, Row, viewerEngine } from "./viewerEngine.ts";
 import { type ViewerPage, viewerPage } from "./viewerPage.ts";
@@ -27,7 +27,7 @@ type ViewerQuery = keyof typeof QUERIES;
 const viewerStoryEngine = Effect.map(viewerEngine, (fixture) => ({
 	...fixture,
 	listeners: new Map<Viewer, HintViewer<unknown>>(),
-	marked: new Map<Viewer, Mark<readonly Row[], unknown>>(),
+	marked: new Map<Viewer, Mark>(),
 	pages: new Map<Viewer, ViewerPage>(),
 }));
 type ViewerEngine = Effect.Success<typeof viewerStoryEngine>;
@@ -103,9 +103,8 @@ export const viewerStory = storyKit({
 			),
 		rename: (viewer: Viewer, id: number, title: string) => {
 			story.tell(`${viewer} renames note ${id} to ${title}`);
-			const reads = Effect.runSync(SubscriptionRef.get(engine.reads));
 			for (const [owner, page] of engine.pages) {
-				engine.marked.set(owner, { reads: readsBy(reads, owner), shown: page.registry.get(page.query) });
+				engine.marked.set(owner, markQuery(page.registry, page.query));
 			}
 			return answered(engine.client("notes.rename", { id, title }, { headers: { viewer } }), () => "renamed");
 		},
@@ -139,12 +138,7 @@ export const viewerStory = storyKit({
 			Effect.gen(function* () {
 				story.tell(`${viewer}'s page re-reads its notes and shows the new value`);
 				const { query, registry } = pageOf(engine, viewer);
-				yield* reRead(
-					registry,
-					query,
-					Stream.map(SubscriptionRef.changes(engine.reads), (reads) => readsBy(reads, viewer)),
-					engine.marked.get(viewer),
-				);
+				yield* reRead(registry, query, engine.marked.get(viewer));
 			}),
 	}),
 });

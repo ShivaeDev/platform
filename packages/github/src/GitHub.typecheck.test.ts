@@ -2,7 +2,7 @@ import { Context, Effect, Schema, SchemaGetter, Stream } from "effect";
 import { expectTypeOf } from "vitest";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { CreateCheckRun } from "#checkRuns.ts";
-import { GitHub, list, listBounded, listPages, write } from "#GitHub.ts";
+import { GitHub, list, listBounded, listPages, read, write } from "#GitHub.ts";
 
 const deleted = write("DELETE", "/repos/acme/widgets/issues/comments/7");
 const changed = write("PUT", "/repos/acme/widgets/issues/1/labels", { labels: ["ready"] }, Schema.Array(Schema.Struct({ name: Schema.String })));
@@ -28,6 +28,11 @@ const WithService = Schema.String.pipe(
 		encode: SchemaGetter.passthrough(),
 	}),
 );
+const readWithService = read("/item", WithService);
+const writeWithService = write("POST", "/items", { title: "New" }, WithService);
+expectTypeOf<Effect.Services<typeof readWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
+expectTypeOf<Effect.Services<typeof writeWithService>>().toEqualTypeOf<Context.Service.Identifier<typeof GitHub> | DecoderPrefix>();
+
 const streamed = list("/items", WithService, { arrayKey: "items", onDecodeError: "skip" });
 const paged = listPages("/items", WithService, { arrayKey: "items" });
 const bounded = listBounded("/items", WithService, 2, { onDecodeError: "skip" });

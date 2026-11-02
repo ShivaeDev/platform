@@ -33,7 +33,6 @@
 {"path":"packages/react/src/test-support/invoice-line-editor/OneShot.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/notices/view.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/permission-routes/app.tsx","rule":"react/jsx-conditionals","count":2}
-{"path":"packages/react/src/test-support/routerScreens.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/settings-example/Editor.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/react/src/test-support/submitViews.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/vitest.config.ts","rule":"effect/adapter-imports","count":1}

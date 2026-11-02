@@ -12,7 +12,7 @@ import { type HintViewer, layerMemoryProtocol, watchHints } from "#testing.ts";
 import { answered, hintWords, shown, streams } from "./answers.ts";
 import { Note, Notes, notes } from "./notes.ts";
 import { notesServer } from "./notesServer.ts";
-import { type Mark, reRead } from "./reRead.ts";
+import { type Mark, markQuery, reRead } from "./reRead.ts";
 import { settled } from "./settled.ts";
 
 const memoryEngine = Effect.gen(function* () {
@@ -47,7 +47,7 @@ const memoryEngine = Effect.gen(function* () {
 		(current) => Effect.sync(() => current.dispose()),
 	);
 	const query = connection.api.get.query({ id: 1 });
-	const marked = new Map<string, Mark<Note, unknown>>();
+	const marked = new Map<string, Mark>();
 	return { active, client, connection, listeners, marked, other, query, registry, server };
 });
 
@@ -96,13 +96,7 @@ export const memoryStory = storyKit({
 				Effect.map((rows) => rows.map((row) => row.title)),
 			);
 		},
-		refreshed: () =>
-			reRead(
-				engine.registry,
-				engine.query,
-				SubscriptionRef.changes(engine.server.reads).pipe(Stream.map((reads) => reads.length)),
-				engine.marked.get("note"),
-			),
+		refreshed: () => reRead(engine.registry, engine.query, engine.marked.get("note")),
 		rename: (id: number, title: string) => {
 			story.tell(`the client renames note ${id} to ${title} through makeClient`);
 			return answered(engine.client["notes.rename"]({ id, title }), (note) => `renamed note ${note.id} to ${note.title}`);
@@ -125,6 +119,6 @@ export function memoryListening(id: number) {
 export const memoryViewing = memoryStory.trait("screen", "the client watches note 1 through its bound query", function* (engine) {
 	engine.registry.set(engine.connection.api[LiveConnection].coalesceWindow, 0);
 	engine.registry.mount(engine.query);
-	const result = yield* settled(engine.registry, engine.query);
-	engine.marked.set("note", { reads: (yield* SubscriptionRef.get(engine.server.reads)).length, shown: result });
+	yield* settled(engine.registry, engine.query);
+	engine.marked.set("note", markQuery(engine.registry, engine.query));
 });

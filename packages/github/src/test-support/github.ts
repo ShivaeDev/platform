@@ -9,6 +9,7 @@ import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
 import { artifactVerbs } from "./artifactVerbs.ts";
 import { budgetHeaders } from "./budgetHeaders.ts";
+import { decodingVerbs } from "./decodingVerbs.ts";
 import { type FakeRepository, fakeRepository, SECONDARY_LIMIT } from "./fakeRepository.ts";
 import { FIXTURE_TOKEN, PRIVATE_QUERY, PullRequest } from "./fixtures.ts";
 import { answered, clockTime } from "./outcome.ts";
@@ -78,6 +79,7 @@ export const github = storyKit({
 			return server.requests.filter(({ path }) => route(path.split("?")[0] ?? path));
 		}
 		return {
+			...decodingVerbs(context, story.tell),
 			...artifactVerbs(client, engine.archive, story.tell),
 			...paginationVerbs(engine, story.tell),
 			...repositoryReadVerbs(client, story.tell),

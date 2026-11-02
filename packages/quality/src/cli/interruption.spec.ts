@@ -2,25 +2,26 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRunning } from "#test/biomeRunning.ts";
 import { CLI_TIMEOUT } from "#test/cli.ts";
+import { knipRunning } from "#test/knipRunning.ts";
 import { promiseRunning } from "#test/promiseRunning.ts";
 import { crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
 
 qualityLifecycle.it(
 	"interrupting quality while Biome checks ends the run as interrupted without an error, stops Biome and removes quality's temporary Biome config",
 	[biomeRunning],
-	function* ({ biomeIsRunning, interrupts, outcome, stderr, temporaryBiomeConfigExists }) {
+	function* ({ toolIsRunning, interrupts, outcome, stderr, temporaryToolConfigExists }) {
 		yield* outcomes([
-			["Biome running", () => biomeIsRunning(), true],
-			["temporary Biome config", () => temporaryBiomeConfigExists(), true],
+			["Biome running", () => toolIsRunning(), true],
+			["temporary Biome config", () => temporaryToolConfigExists(), true],
 		]);
 
 		yield* interrupts();
 
 		yield* outcomes([
-			["Biome running", () => biomeIsRunning(), false],
+			["Biome running", () => toolIsRunning(), false],
 			["error output", () => stderr(), ""],
 			["exit", () => outcome(), "interrupted"],
-			["temporary Biome config", () => temporaryBiomeConfigExists(), false],
+			["temporary Biome config", () => temporaryToolConfigExists(), false],
 		]);
 	},
 	CLI_TIMEOUT,
@@ -51,6 +52,29 @@ qualityLifecycle.it(
 		yield* interrupts();
 
 		expect(yield* promiseSignalAborted()).toBe(true);
+	},
+	CLI_TIMEOUT,
+);
+
+qualityLifecycle.it(
+	"interrupting quality stops knip, removes both generated configs and ends the run as interrupted without an error",
+	[knipRunning],
+	function* ({ interrupts, outcome, stderr, temporaryKnipSourceConfigExists, temporaryToolConfigExists, toolIsRunning }) {
+		yield* outcomes([
+			["knip running", () => toolIsRunning(), true],
+			["temporary knip config", () => temporaryToolConfigExists(), true],
+			["temporary source config", () => temporaryKnipSourceConfigExists(), true],
+		]);
+
+		yield* interrupts();
+
+		yield* outcomes([
+			["knip running", () => toolIsRunning(), false],
+			["temporary knip config", () => temporaryToolConfigExists(), false],
+			["temporary source config", () => temporaryKnipSourceConfigExists(), false],
+			["exit", () => outcome(), "interrupted"],
+			["error output", () => stderr(), ""],
+		]);
 	},
 	CLI_TIMEOUT,
 );

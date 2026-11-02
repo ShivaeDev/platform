@@ -10,8 +10,10 @@ import { automaticQuery } from "#internal/automaticQuery.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
 import { queryDelivery } from "#internal/queryDelivery.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
+import { queryProgress } from "#internal/querySignals.ts";
 import { socketIdentity } from "#internal/rpcClient.ts";
 import { type LiveStatus, live } from "#live.ts";
+import { querySignals, shareQuerySignals } from "#querySignals.ts";
 import type { QueryUpdate } from "#queryUpdate.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
 import type { QueryReference } from "#serverMetadata.ts";
@@ -75,10 +77,11 @@ export function automaticLive(
 		headers?: Headers.Input,
 	) {
 		if (!enabled) {
-			return atom;
+			return queryProgress(atom);
 		}
 		const ready = Atom.make(false);
-		const delivery = queryDelivery(atom, decode, paused);
+		const signals = querySignals(atom);
+		const delivery = queryDelivery(atom, decode, paused, signals);
 		const source = decode === undefined ? delivery.atom.pipe(Atom.setIdleTTL(0)) : delivery.atom;
 		const subscription = live(service.runtime, {
 			initialResync: false,
@@ -100,10 +103,12 @@ export function automaticLive(
 			pushed: decode !== undefined,
 			ready,
 			signal,
+			signals,
 			source,
 			statuses,
 			subscription,
 		});
+		shareQuerySignals(gated, atom);
 		Object.assign(gated, { initialValueTarget: atom });
 		if (Atom.isSerializable(atom)) {
 			Object.assign(gated, { [Atom.SerializableTypeId]: atom[Atom.SerializableTypeId] });

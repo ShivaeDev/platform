@@ -71,7 +71,7 @@ for (const release of [false, true]) {
 		yield* host.dispatch();
 		const { decision } = yield* host.question();
 		const completion = yield* host.pauseCompletion();
-		expect(yield* refusal(host.answer(TEXT, release))).toMatch(
+		expect(yield* refusal(host.answerWithClientTimeout(TEXT, release))).toMatch(
 			/^unavailable: Fleet daemon answer one timed out at .+; answer recording is unconfirmed; check status or watch before retrying$/u,
 		);
 		yield* completion.blocked;

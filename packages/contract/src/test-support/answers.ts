@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import type { SubscriptionHint } from "#queryUpdate.ts";
+import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
 
 function field(error: object, name: string): string {
 	return Predicate.hasProperty(error, name) ? String(error[name]) : "";
@@ -30,6 +30,8 @@ export function refusal(error: unknown): string {
 			return tagged(error, "denied");
 		case "ServiceUnavailable":
 			return tagged(error, "service unavailable");
+		case "ReadFailed":
+			return tagged(error, "read failed");
 		case "Unavailable":
 			return tagged(error, "unavailable");
 		case "QueryReadDenied":
@@ -117,4 +119,15 @@ export function hintWords(hint: SubscriptionHint): string {
 		return "read denied";
 	}
 	return hint._tag === "Resync" ? "resync" : `changed ${hint.keys.map(keyWords).join(", ")}`;
+}
+
+export function updateWords(update: QueryUpdate): string {
+	switch (update._tag) {
+		case "Result":
+			return String(update.value);
+		case "Unchanged":
+			return "unchanged";
+		default:
+			return hintWords(update);
+	}
 }

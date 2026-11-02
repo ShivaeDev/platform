@@ -13,7 +13,7 @@ import { query } from "#operation.ts";
 import { queryKeys } from "#queryKeys.ts";
 import type { QueryReference } from "#serverMetadata.ts";
 import { shown, times } from "./answers.ts";
-import { type Mark, reRead } from "./reRead.ts";
+import { type Mark, markQuery, reRead } from "./reRead.ts";
 import { settled } from "./settled.ts";
 
 const records = collection("bigint-records", Schema.String);
@@ -63,7 +63,7 @@ const bigintEngine = Effect.gen(function* () {
 	);
 	const api = bind(Records, Client);
 	registry.set(api[LiveConnection].coalesceWindow, 0);
-	return { api, marked: new Map<bigint, Mark<string, unknown>>(), reactivity, reads, registry, stored, subscriptions, watched: new Set<bigint>() };
+	return { api, marked: new Map<bigint, Mark>(), reactivity, reads, registry, stored, subscriptions, watched: new Set<bigint>() };
 });
 type BigintEngine = Effect.Success<typeof bigintEngine>;
 
@@ -92,9 +92,8 @@ export const bigintStory = storyKit({
 	verbs: (engine, story) => ({
 		announce: (id: bigint) => {
 			story.tell(`the server announces a change to record ${id}`);
-			const reads = Effect.runSync(SubscriptionRef.get(engine.reads));
 			for (const watched of engine.watched) {
-				engine.marked.set(watched, { reads: readsOf(reads, watched), shown: engine.registry.get(engine.api.get.query({ id: watched })) });
+				engine.marked.set(watched, markQuery(engine.registry, engine.api.get.query({ id: watched })));
 			}
 			return engine.reactivity.invalidate(invalidationKeys([records.item(String(id))]));
 		},
@@ -111,12 +110,7 @@ export const bigintStory = storyKit({
 			),
 		untilReRead: (id: bigint) => {
 			story.tell(`record ${id} is re-read and the new value reaches its view`);
-			return reRead(
-				engine.registry,
-				engine.api.get.query({ id }),
-				Stream.map(SubscriptionRef.changes(engine.reads), (reads) => readsOf(reads, id)),
-				engine.marked.get(id),
-			);
+			return reRead(engine.registry, engine.api.get.query({ id }), engine.marked.get(id));
 		},
 	}),
 });
