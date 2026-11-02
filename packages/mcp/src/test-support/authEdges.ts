@@ -1,9 +1,9 @@
-import { Effect } from "effect";
+import { Effect, Layer, Option } from "effect";
 import { HttpRouter, HttpServerRequest } from "effect/http";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { OauthGrants } from "@shivaedev/identity/server/oauthGrants.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthMcp } from "#adapters/betterAuth.ts";
-import { grantedUser, type OauthAuth, oauthGrants } from "#adapters/oauthGrants.ts";
 
 function observe<A, E, R>(effect: Effect.Effect<A, E, R>) {
 	return Effect.match(effect, {
@@ -18,10 +18,7 @@ function observe<A, E, R>(effect: Effect.Effect<A, E, R>) {
 const create = Effect.fnUntraced(function* () {
 	const failure = new Error("OAuth provider unavailable");
 	const state = { rejectConfiguration: false, rejectMetadata: false };
-	const auth: OauthAuth = {
-		get $context() {
-			return Promise.reject(failure);
-		},
+	const auth = {
 		api: {
 			"getOAuthServerConfig": () => {
 				if (state.rejectConfiguration || state.rejectMetadata) {
@@ -33,7 +30,16 @@ const create = Effect.fnUntraced(function* () {
 		options: {},
 	};
 	function initialize() {
-		return betterAuthMcp({ admitsUser: () => Effect.succeed(true), auth, origin: () => true, resource: "https://auth.test/mcp" });
+		return betterAuthMcp({ auth, origin: () => true, resource: "https://auth.test/mcp" }).pipe(
+			Effect.provide(
+				Layer.succeed(OauthGrants, {
+					list: () => Effect.succeed([]),
+					resolveSubject: () => Effect.succeed(Option.none()),
+					revokeAllClients: () => Effect.void,
+					revokeClient: () => Effect.void,
+				}),
+			),
+		);
 	}
 	const oauth = yield* initialize();
 	const handler = yield* HttpRouter.toHttpEffect(oauth.routes);
@@ -63,22 +69,7 @@ export const authEdges = storyKit({
 					),
 				);
 			}),
-		lookupGrant: () =>
-			Effect.suspend(() => {
-				story.tell("MCP looks up alice's client grant");
-				return observe(grantedUser(engine.auth, "alice", "alice-client"));
-			}),
 		providerFailure: () => Effect.succeed(engine.failure),
-		revokeAllClients: () =>
-			Effect.suspend(() => {
-				story.tell("alice revokes every client");
-				return observe(oauthGrants(engine.auth).revokeAllClients("alice"));
-			}),
-		revokeClient: () =>
-			Effect.suspend(() => {
-				story.tell("alice revokes her client");
-				return observe(oauthGrants(engine.auth).revokeClient("alice", "alice-client"));
-			}),
 	}),
 });
 

@@ -1,7 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { mcp } from "#test/mcp.ts";
-import { storedTokensFor } from "#test/storedTokensFor.ts";
 import { connectedAs, holdsToken, signedIn } from "#test/traits.ts";
 
 mcp.it(
@@ -103,23 +102,3 @@ mcp.it(
 		}
 	},
 );
-
-for (const [title, method] of [
-	["revoking one client", "revokesClient"],
-	["revoking every client", "revokesAllClients"],
-] as const) {
-	mcp.it(
-		`${title} deletes every stored access and refresh token for alice and preserves bob's tokens`,
-		[signedIn("alice", "user"), holdsToken("alice"), storedTokensFor("alice"), signedIn("bob", "user"), holdsToken("bob"), storedTokensFor("bob")],
-		function* (verbs) {
-			expect(yield* verbs.storedTokenCounts("alice")).toEqual({ access: 2, refresh: 2 });
-
-			yield* verbs[method]("alice");
-
-			yield* outcomes([
-				["revoked stored tokens", () => verbs.storedTokenCounts("alice"), { access: 0, refresh: 0 }],
-				["another user's stored tokens", () => verbs.storedTokenCounts("bob"), { access: 2, refresh: 2 }],
-			]);
-		},
-	);
-}
