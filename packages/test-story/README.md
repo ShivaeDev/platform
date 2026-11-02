@@ -38,7 +38,7 @@ The bakery when the test failed:
 {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":1,"minute":1,"orders":[],"ovenLit":true,"overfired":false,
 "smoking":false,"starter":false}
 
-Rerun: vitest run src/test-support/failingStories.ts -t "Bakery Story: marks where an assertion stopped the story"
+Rerun: vitest run 'src/test-support/failingStories.ts' -t 'Bakery Story: marks where an assertion stopped the story'
 ```
 
 The first line is the assertion's own message. The box under it tells a reader who has never seen the package how to read what follows. Then comes the story: the two traits the test named, the line the bakery told as it baked, and a `✗` where the test stopped, with the spec line it stopped at. Last come the bakery's whole state at that moment and the command that reruns the test, so the failure alone is enough to find the cause.
@@ -527,7 +527,7 @@ The bakery when the test failed:
 {"bowls":1,"capacity":3,"dough":0,"flour":0,"loaves":0,"minute":0,"orders":[],"ovenLit":true,"overfired":false,
 "smoking":false,"starter":false}
 
-Rerun: vitest run src/test-support/failingStories.ts -t "Bakery Story: marks the trait that refused"
+Rerun: vitest run 'src/test-support/failingStories.ts' -t 'Bakery Story: marks the trait that refused'
 ```
 
 The first line names the trait and what it threw, which the error also keeps as its `cause`, and the `help:` line says what to change. The `✗` marks the trait that refused, and the line under it points at the spec line that named it. A trait that fails with a string, a plain object or a tagged error prints by its content, never as `[object Object]`, and an interrupted trait stays interrupted.
@@ -786,7 +786,7 @@ After the engine has been created, a failing story test adds the story to its fi
 - a short guide to reading the story, in a box;
 - every line in order, traits marked `given`;
 - `✗` after the last line, on the trait that refused, or alone when the test failed before the story told a line, and under it the spec line where the test stopped or that named the refusing trait;
-- the engine's state from `inspect` as JSON, broken between its fields to fit 120 columns. State longer than 2,000 characters is written to `node_modules/.cache/test-story/` under the working directory, and the failure names the file;
+- the engine's state from `inspect` as JSON, broken between its fields to fit 120 columns. State longer than 2,000 characters is written to `node_modules/.cache/test-story/` under the working directory, and the failure names the file. If writing fails, the report keeps the story and shows the filesystem error;
 - the command that reruns the test, with `-t` on a second line when one line would pass 120 columns.
 
 The package wraps between words or JSON fields toward 120 columns and prints the story's own lines whole. An indivisible word, field or rerun command component can exceed that width. A passing test adds nothing. A typed failure with no message, such as an `after` hook's `NoBowls`, prints by its tag.

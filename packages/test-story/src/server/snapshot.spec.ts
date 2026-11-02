@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "#outcomes.ts";
-import { blockedSnapshotFile, inspectThatThrows, nativeBakeryState, snapshotPrinter } from "#test/snapshotDiagnostics.ts";
+import { inspectThatThrows, nativeBakeryState, snapshotPrinter } from "#test/snapshotDiagnostics.ts";
 
 const LONG_ORDER = "rye".repeat(50);
 
@@ -57,20 +57,3 @@ for (const [shape, value] of [
 		expect(yield* printedLines()).toEqual(["The bakery when the test failed:", JSON.stringify(value)]);
 	});
 }
-
-snapshotPrinter.it(
-	"reports the filesystem error when a large snapshot cannot be written",
-	[],
-	function* ({ reportDetails, reportMessage, reportsWithItsSnapshotFileBlocked }) {
-		yield* reportsWithItsSnapshotFileBlocked(() => ({ orders: "rye".repeat(1000) }));
-
-		yield* outcomes([
-			["details", () => reportDetails(), { code: "EISDIR", errno: -21, path: blockedSnapshotFile, syscall: "open" }],
-			[
-				"message",
-				() => reportMessage(),
-				`test-story could not print the story of this bakery: EISDIR: illegal operation on a directory, open '${blockedSnapshotFile}'`,
-			],
-		]);
-	},
-);

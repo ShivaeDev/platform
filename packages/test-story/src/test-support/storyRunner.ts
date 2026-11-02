@@ -1,13 +1,16 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "#storyKit.ts";
 import { LARGE_BAKERY } from "./failureReport.ts";
 import { LIFETIME_LOG } from "./lifetimeLog.ts";
+import { quotedStoryFile } from "./quotedStoryFile.ts";
+import { rerunStory } from "./rerunStory.ts";
 import { runStories, type StoriesOutcome, type StoriesRun, type StoryResult } from "./runStories.ts";
 
 export type Fixture =
+	| "blockedSnapshotStories"
 	| "brokenHttpStories"
 	| "carriedDocumentStories"
 	| "composedDisabledStories"
@@ -25,6 +28,7 @@ export type Fixture =
 	| "optionalImportStories"
 	| "outboundStories"
 	| "outcomeStories"
+	| "quotedStories"
 	| "refusingStories"
 	| "scopedStories"
 	| "screenWaitStories"
@@ -87,7 +91,11 @@ export const storyRunner = storyKit({
 			return Effect.promise(async () => {
 				runner.story = name;
 				rmSync(runner.log, { force: true });
-				runner.last = await runStories({ ...options, env: { [LIFETIME_LOG]: runner.log }, include: `src/test-support/${fixture}.ts` });
+				runner.last = await runStories({
+					...options,
+					env: { [LIFETIME_LOG]: runner.log },
+					...(fixture === "quotedStories" ? quotedStoryFile(dirname(runner.log)) : { include: `src/test-support/${fixture}.ts` }),
+				});
 			});
 		}
 		return {
@@ -109,6 +117,11 @@ export const storyRunner = storyKit({
 			lifetime: () => Effect.sync(() => (existsSync(runner.log) ? readFileSync(runner.log, "utf8").trimEnd().split("\n") : [])),
 			message: () => Effect.sync(() => outcomeOf(ran(runner)).split("\n\n")[0]),
 			outcome: (name?: string) => Effect.sync(() => outcomeOf(name === undefined ? ran(runner) : named(runner, name))),
+			rerun: () =>
+				Effect.promise(async () => {
+					story.tell("paste the reported rerun command into the shell");
+					runner.last = await rerunStory(outcomeOf(ran(runner)));
+				}),
 			results: () =>
 				Effect.sync(() => [
 					...(runner.last?.moduleErrors ?? []).map((error) => `module error: ${error}`),

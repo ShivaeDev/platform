@@ -94,7 +94,7 @@ storyRunner.it("a failure prints the engine state read by an Effect-based inspec
 			"",
 			'The mill when the test failed: {"sacks":2,"sails":"turning"}',
 			"",
-			rerun("Mill Story: prints what the kit's inspect shows"),
+			rerun("Mill Story: prints what the kit'\\''s inspect shows"),
 		),
 	);
 });
