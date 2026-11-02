@@ -10,6 +10,7 @@ import { clientVerbs } from "./client.ts";
 import { discoveryReadouts } from "./discoveryReadouts.ts";
 import { grantVerbs } from "./grantVerbs.ts";
 import { type Engine, startEngine } from "./host.ts";
+import { mixedAuthVerbs } from "./mixedAuthVerbs.ts";
 import { oauthVerbs } from "./oauthVerbs.ts";
 import { tokenVerbs } from "./tokenVerbs.ts";
 
@@ -33,6 +34,7 @@ const definition = {
 		...clientVerbs(engine, story.tell),
 		...discoveryReadouts(engine),
 		...grantVerbs(engine, story.tell),
+		...mixedAuthVerbs(engine, story.tell),
 		...oauthVerbs(engine, story.tell),
 		...tokenVerbs(engine, story.tell),
 	}),
