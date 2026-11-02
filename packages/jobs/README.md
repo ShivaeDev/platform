@@ -500,6 +500,8 @@ Include every target queue in `jobs`, as either a worker or a producer-only defi
 
 ### Test through the queue contract
 
+`linkedWorkerSpans(sender, spans)` from `@shivaedev/jobs/server/testing.ts` reads native recorded Effect spans and returns the pg-boss consumer spans whose links match both the sender's `traceId` and `spanId`. It returns every matching attempt, including retries, and no matches before a worker runs. An untraced job has no sender link. Settle the workers before reading their completed attempts; this readout does not wait or read queue storage.
+
 `testing.ts` gives story kits a controller for one real pg-boss client. Create a fresh controller per runtime, pass its `clientFactory` to `pgBossLayer`, and keep that Layer scoped as usual. `jobs(queue, options?)` returns native job metadata with `data` decoded through the queue's Schema, including traced payloads. Invalid durable data fails with `PgBossPayloadError`; decoding services remain in the Effect's requirements.
 
 This producer story uses the `SendEmail` definition and `Jobs` service from above. `databaseUrl` points to the story's PostgreSQL database:
