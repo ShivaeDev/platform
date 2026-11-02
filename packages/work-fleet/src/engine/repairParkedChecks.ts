@@ -19,7 +19,7 @@ export const repairParkedChecks = Effect.fn("Fleet.repairParkedChecks")(function
 	}
 	const work = yield* state.board.get(record.workId);
 	const status = yield* state.integrations
-		.queue?.(work, result, true, record.mergeReadyAt)
+		.queue?.(work, result, true, record.mergeReadyAt, record.ciApprovedHead)
 		.pipe(Effect.catch((error) => observeDeliveryFailure(state, stored, result, error))) ?? Effect.succeed("pending");
 	if (typeof status === "string" || (!("value" in status) && status.status === "held")) {
 		return stored;

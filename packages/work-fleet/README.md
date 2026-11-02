@@ -307,6 +307,14 @@ Fleet gives available areas to eligible queued tasks and code repairs by `fleet-
 
 The GitHub host enables squash auto-merge when a Fleet PR has an approved review and passing required checks for its exact head and GitHub reports it mergeable. The mutation pins `expectedHeadOid` to that reviewed commit. Fleet waits on automation for GitHub to land it and observes the merge before completing the task; no orchestrator answer is needed. Main advancing alone does not require another review. A restart reconciles the existing auto-merge request before submitting anything else.
 
+Fleet holds any adopted PR whose current diff against its base touches `.github/`, including deletions and renames. It names the changed CI files in the orchestrator wait and removes existing queue entries and auto-merge requests. After the maintainer reviews the CI changes, the orchestrator releases that exact PR head:
+
+```sh
+work-fleet release-ci sample-one <head> --board ./notes
+```
+
+Use the head shown in the hold reason. The release survives restart and keeps the usual review and required-check gates. A later push whose diff still touches `.github/` needs another release.
+
 Automatic queuing applies to PRs on the configured worker branch for that task in the same repository, targeting the configured base branch. Foreign PRs, release branches, PRs titled Release or labelled `release`, and hosts without a queue integration retain the human merge path. A PR with unknown mergeability waits for GitHub. If GitHub removes auto-merge from a queued PR without merging it, Fleet sends a fix turn to the existing worker for fresh review and checks.
 
 #### Hold work behind predicted conflicts

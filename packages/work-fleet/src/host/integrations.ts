@@ -6,6 +6,7 @@ import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { githubChecks } from "#host/githubChecks.ts";
+import { githubCiHold } from "#host/githubCiHold.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
 import { githubMergeQueue } from "#host/githubMergeQueue.ts";
 import { githubPublication } from "#host/githubPublication.ts";
@@ -34,11 +35,13 @@ export function hostIntegrations(host: FleetHost) {
 			const queue: typeof FleetIntegrations.Service.queue =
 				host.worker === undefined
 					? undefined
-					: (work, result, queued, queuedAt) => githubMergeQueue(host)(work, result, queued, queuedAt).pipe(Effect.provideService(GithubApi, github));
+					: (work, result, queued, queuedAt, approvedHead) =>
+							githubMergeQueue(host)(work, result, queued, queuedAt, approvedHead).pipe(Effect.provideService(GithubApi, github));
 			return FleetIntegrations.of({
 				...prediction,
 				checks: (_work, result) =>
 					result.kind === "no-change" ? noChangeChecks(main.latest, isAncestor)(result) : githubChecks(github, host.repository.branch)(result),
+				ciHold: (result, approvedHead) => githubCiHold(result, approvedHead).pipe(Effect.provideService(GithubApi, github)),
 				...(queue === undefined ? {} : { queue }),
 				delivery: githubDelivery(readPullRequest(github.get)),
 				isAncestor,

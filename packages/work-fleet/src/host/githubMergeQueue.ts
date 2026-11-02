@@ -4,6 +4,7 @@ import { conflictingPr, movedPrHead } from "#engine/deliveryFailure.ts";
 import type { FleetHost } from "#host/config.ts";
 import { githubJson } from "#host/github.ts";
 import { GithubApi } from "#host/githubApi.ts";
+import { requireCiApproval } from "#host/githubCiHold.ts";
 import { githubQueueStatus } from "#host/githubQueueStatus.ts";
 import { githubReleaseWindow } from "#host/githubReleaseWindow.ts";
 import type { BoardWork, ChangeResult } from "#policy.ts";
@@ -31,11 +32,18 @@ const Response = Schema.Struct({
 });
 
 export function githubMergeQueue(host: FleetHost) {
-	return Effect.fn("FleetHost.githubMergeQueue")(function* (work: BoardWork, result: typeof ChangeResult.Type, queued: boolean, queuedAt?: number) {
+	return Effect.fn("FleetHost.githubMergeQueue")(function* (
+		work: BoardWork,
+		result: typeof ChangeResult.Type,
+		queued: boolean,
+		queuedAt?: number,
+		approvedHead?: string,
+	) {
 		const target = /^https:\/\/github\.com\/(?<repository>[^/]+\/[^/]+)\/pull\/(?<number>[1-9]\d*)$/u.exec(result.pr)?.groups;
 		if (host.worker === undefined || target === undefined) {
 			return "manual" as const;
 		}
+		yield* requireCiApproval(result, approvedHead);
 		const github = yield* GithubApi;
 		const pr = yield* githubJson(PullRequest, github.get(`repos/${target.repository}/pulls/${target.number}`));
 		if (humanMerge(pr, host, work.workId, target.repository ?? "")) {

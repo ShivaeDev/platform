@@ -30,6 +30,7 @@ export interface EngineOptions {
 	readonly checksFailure?: boolean;
 	readonly checksGate?: Effect.Effect<void>;
 	readonly checksQuery?: (result: WorkResult) => Effect.Effect<Checks, FleetError>;
+	readonly ciHold?: typeof FleetIntegrations.Service.ciHold;
 	readonly concurrency?: number;
 	readonly continuationGate?: Effect.Effect<void>;
 	readonly decorateBoard?: (board: typeof BoardGateway.Service) => typeof BoardGateway.Service;

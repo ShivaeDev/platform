@@ -3,6 +3,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resolveHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
+import { githubCiHold } from "#host/githubCiHold.ts";
 import { githubMergeQueue } from "#host/githubMergeQueue.ts";
 import { type EngineStory, newEngineState } from "#test/engineState.ts";
 import { engineDefinition } from "#test/engineStory.ts";
@@ -31,6 +32,14 @@ export const mergeLoop = storyKit({
 	verbs: (state, story) => ({
 		...engineVerbs(state, story),
 		...releaseWindowVerbs(state, story.tell),
+		advanceMainDuringFiles: () => {
+			if (state.queueApi === undefined) {
+				throw new Error("No GitHub queue API is configured");
+			}
+			state.queueApi.advanceMainDuringFiles();
+			story.tell("GitHub advances main during the next PR changed-files read");
+		},
+		autoMergePullRequests: () => state.queueApi?.autoMerges(),
 		dequeue: (number: string, reason: string, commit?: string, at = state.now) => {
 			state.queueApi?.dequeue(number, reason, commit, at);
 			story.tell(`GitHub removes PR ${number} from its queue: ${reason}`);
@@ -46,6 +55,14 @@ export const mergeLoop = storyKit({
 		mergeGroupCheck: (commit: string, check: { name: string; conclusion: string | null; url: string }) => {
 			state.queueApi?.mergeGroupCheck(commit, check);
 			story.tell(`GitHub reports ${check.name} as ${check.conclusion ?? "pending"} for merge group ${commit}`);
+		},
+		moveWorkerPath: (id: string, from: string, to: string) => {
+			if (state.predictionRepository === undefined || state.queueApi === undefined) {
+				throw new Error("Moving a queued worker file requires watched branches and automatic merges");
+			}
+			state.predictionRepository.move(id, from, to);
+			state.queueApi.renameFile(from, to);
+			story.tell(`worker ${id} moves ${from} to ${to} and pushes`);
 		},
 		passRequiredChecks: (number: string) => {
 			state.failedChecks.delete(number);
@@ -87,9 +104,16 @@ export const automaticMerges = mergeLoop.trait("configuration", "Fleet queues it
 					repairPrompt: failure?.output,
 				};
 			}),
-		queue: (work, result, queued, queuedAt) => {
-			api.observe(work, result);
-			return queue(work, result, queued, queuedAt).pipe(Effect.provideService(GithubApi, api.client));
+		ciHold: (result, approvedHead) => {
+			const current = state.predictionRepository?.resultForPr(result.pr);
+			if (current !== undefined) {
+				api.observe({ workId: current[0] }, current[1]);
+			}
+			return githubCiHold(result, approvedHead).pipe(Effect.provideService(GithubApi, api.client));
+		},
+		queue: (work, result, queued, queuedAt, approvedHead) => {
+			api.observe(work, state.predictionRepository?.resultForPr(result.pr)?.[1] ?? result);
+			return queue(work, result, queued, queuedAt, approvedHead).pipe(Effect.provideService(GithubApi, api.client));
 		},
 	};
 });

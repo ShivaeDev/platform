@@ -2,6 +2,7 @@ import { Context, type Effect, Schema } from "effect";
 import { AttentionOwner } from "#attention.ts";
 import type { BoardGatewayService } from "#board/GatewayService.ts";
 import { BoardDecision, BoardReport } from "#board/schema.ts";
+import type { CiHold } from "#CiHold.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import type { FleetError } from "#errors.ts";
 import type { MergePrediction } from "#MergePrediction.ts";
@@ -130,6 +131,7 @@ export interface WorkPublication {
 export class FleetIntegrations extends Context.Service<
 	FleetIntegrations,
 	{
+		readonly ciHold?: (result: typeof ChangeResult.Type, approvedHead?: string) => Effect.Effect<CiHold | undefined, FleetError>;
 		readonly predict?: (pr: string, watchedPrs: readonly string[]) => Effect.Effect<MergePrediction, FleetError>;
 		readonly publication?: (work: BoardWork) => Effect.Effect<WorkPublication, FleetError>;
 		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
@@ -141,6 +143,7 @@ export class FleetIntegrations extends Context.Service<
 			result: typeof ChangeResult.Type,
 			queued: boolean,
 			queuedAt?: number,
+			ciApprovedHead?: string,
 		) => Effect.Effect<MergeQueueResult, FleetError>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;
 	}

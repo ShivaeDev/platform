@@ -37,6 +37,7 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 		result,
 		current.value.mergeQueue?.status === "queued",
 		current.value.mergeReadyAt,
+		current.value.ciApprovedHead,
 	).pipe(Effect.catch((error) => observeDeliveryFailure(state, current, result, error)));
 	if (typeof status !== "string" && ("value" in status || status.status === "failed")) {
 		return "value" in status
@@ -51,6 +52,7 @@ export const queueReviewedPr = Effect.fn("Fleet.queueReviewedPr")(function* (sto
 			...current.value,
 			attentionOwner: "automation",
 			blocker: queueBlocker(status),
+			ciHold: undefined,
 			decision: undefined,
 			decisionAcknowledged: undefined,
 			decisionPublished: undefined,

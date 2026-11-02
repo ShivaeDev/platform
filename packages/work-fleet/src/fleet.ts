@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { admissionOrder } from "#engine/admissionOrder.ts";
 import { areaLanes } from "#engine/areaLanes.ts";
+import { releaseCi } from "#engine/ciHold.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueCommand } from "#engine/continueCommand.ts";
 import { deliveredIdProblem } from "#engine/deliveredId.ts";
@@ -9,7 +10,7 @@ import { dispatchCommand } from "#engine/dispatchCommand.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import { makeAdvance } from "#engine/makeAdvance.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";
-import { makeState } from "#engine/makeState.ts";
+import { EngineContext, makeState } from "#engine/makeState.ts";
 import { prepareCommand } from "#engine/prepareCommand.ts";
 import { queueAnswerCommand } from "#engine/queueAnswerCommand.ts";
 import { reassignCommand } from "#engine/reassignCommand.ts";
@@ -58,6 +59,7 @@ export const Fleet = defineService({
 		reassign: reassignCommand(state),
 		reconcile: (workId: string) => reconcileCommand(state, state.advance)(workId).pipe(Effect.flatMap(cleanupSessions(state))),
 		recordResponse: recordResponseCommand(state),
+		releaseCi: (workId: string, head: string) => releaseCi(workId, head).pipe(Effect.provideService(EngineContext, state)),
 		releaseClosed: (workId: string, decisionId: string) =>
 			releaseClosedCommand(state)(workId, decisionId).pipe(
 				Effect.flatMap((released) => (released === undefined ? Effect.succeed(undefined) : cleanupSessions(state)(released))),

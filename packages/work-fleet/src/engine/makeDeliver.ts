@@ -1,6 +1,7 @@
 import { Effect, Result } from "effect";
 import { reviewSatisfied, validateChecks, validateReviewRequirement } from "#completion.ts";
 import { authorizeBriefContext, briefChanged, isChangedBriefDecision, stopChangedBrief } from "#engine/boardBrief.ts";
+import { holdCiChanges } from "#engine/ciHold.ts";
 import { canObserveDeliveryFailure, deliveryPending } from "#engine/deliveryObservationPolicy.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
@@ -22,6 +23,10 @@ export function makeDeliver(state: EngineState) {
 		const result = record.result;
 		if (["done", "released", "queued"].includes(record.step) || result === undefined) {
 			return stored;
+		}
+		const ciHeld = yield* holdCiChanges(stored).pipe(Effect.provideService(EngineContext, state));
+		if (ciHeld !== undefined) {
+			return ciHeld;
 		}
 		if (executing(record)) {
 			return result.kind === "change" ? yield* observeDelivery(state, stored, result) : stored;

@@ -35,7 +35,7 @@ export const predictionRepository = Effect.acquireRelease(
 			}
 			git("add", ".");
 		}
-		write({ [MIGRATION_PATH]: 'export const migrations = {\n  "16_previous": previous,\n};\n' });
+		write({ ".github/workflows/base.yml": "name: Base checks", [MIGRATION_PATH]: 'export const migrations = {\n  "16_previous": previous,\n};\n' });
 		git("commit", "-m", "Initial migrations");
 		git("push", "origin", "main");
 		const results = new Map<string, typeof ChangeResult.Type>();
@@ -48,7 +48,8 @@ export const predictionRepository = Effect.acquireRelease(
 			}
 			return value;
 		}
-		function record(id: string, paths: readonly string[]) {
+		function record(id: string) {
+			const paths = git("diff", "--name-only", "--no-renames", "origin/main...HEAD").split("\n").filter(Boolean);
 			const prior = results.get(id);
 			const number = prior?.prNumber ?? prs.size + 1;
 			const pr = prior?.pr ?? `https://github.com/example/project/pull/${number}`;
@@ -106,21 +107,40 @@ export const predictionRepository = Effect.acquireRelease(
 				write(resolution);
 				git("commit", "-m", "Resolve migration after main merge");
 				git("push", "origin", `worker-${id}`);
-				record(id, Object.keys(resolution));
+				record(id);
+			},
+			move: (id: string, from: string, to: string) => {
+				git("switch", `worker-${id}`);
+				git("mv", from, to);
+				git("commit", "-m", "Move workflow");
+				git("push", "origin", `worker-${id}`);
+				record(id);
 			},
 			publication: (id: string) =>
 				unreadable.has(id)
 					? Effect.fail(new ServiceUnavailable({ message: `Several open or merged PRs use worker-${id}; cannot select published work` }))
 					: Effect.succeed({ branch: `worker-${id}`, pullRequest: results.get(id)?.pr, remoteBranch: results.has(id) }),
 			push: (id: string, files: Readonly<Record<string, string>>) => {
-				git("switch", "-c", `worker-${id}`, "origin/main");
+				if (results.has(id)) {
+					git("switch", `worker-${id}`);
+				} else {
+					git("switch", "-c", `worker-${id}`, "origin/main");
+				}
 				write(files);
 				git("commit", "-m", `Work on ${id}`);
 				git("push", "origin", `worker-${id}`);
-				record(id, Object.keys(files));
+				record(id);
 			},
 			read: (path: string) => readFileSync(join(cwd, path), "utf8"),
+			remove: (id: string, path: string) => {
+				git("switch", `worker-${id}`);
+				git("rm", path);
+				git("commit", "-m", "Remove workflow");
+				git("push", "origin", `worker-${id}`);
+				record(id);
+			},
 			result,
+			resultForPr: (pr: string) => [...results.entries()].find(([, value]) => value.pr === pr),
 			root,
 		};
 	}),
