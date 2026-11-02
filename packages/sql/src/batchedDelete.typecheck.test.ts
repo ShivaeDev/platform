@@ -1,8 +1,11 @@
 import { Context, Effect, Schema, SchemaGetter } from "effect";
+import type * as Reactivity from "effect/reactivity/Reactivity";
 import { Model } from "effect/schema";
+import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import type { BatchedDeleteUnavailable } from "#batchedDelete.ts";
+import { deleteGroupsBatched } from "#deleteGroupsBatched.ts";
 import { makeRepository } from "#repository.ts";
 
 class RetentionPrefix extends Context.Service<RetentionPrefix, string>()("RetentionPrefix") {}
@@ -37,10 +40,31 @@ const program = Effect.gen(function* () {
 		versionColumn: "version",
 	});
 	expectTypeOf(versioned.deleteBatched).toEqualTypeOf(rows.deleteBatched);
+	const grouped = deleteGroupsBatched({
+		batchSize: 10,
+		delete: (value) => {
+			expectTypeOf(value).toEqualTypeOf<string>();
+			return Effect.fail("deletion" as const);
+		},
+		maxRows: 20,
+		pause: 0,
+		select: () =>
+			Effect.gen(function* () {
+				const value = yield* RetentionPrefix;
+				if (value === "") {
+					return yield* Effect.fail("selection" as const);
+				}
+				return [{ rowCount: 2, value }];
+			}),
+		tableName: "retention",
+	});
+	expectTypeOf<Effect.Success<typeof grouped>>().toEqualTypeOf<number>();
+	expectTypeOf<Effect.Error<typeof grouped>>().toEqualTypeOf<SqlError | Schema.SchemaError | BatchedDeleteUnavailable | "selection" | "deletion">();
+	expectTypeOf<Effect.Services<typeof grouped>>().toEqualTypeOf<RetentionPrefix | SqlClient.SqlClient | Reactivity.Reactivity>();
 	const composite = yield* makeRepository(RetentionRow, { idColumn: ["id", "label"], spanPrefix: "Retention", tableName: "retention" });
 	expectTypeOf(composite.deleteBatched).toEqualTypeOf(rows.deleteBatched);
 });
 
-it("retention purges retain model filter types, codec services and typed failures for every repository", () => {
+it("retention purges retain model filters and grouped callback values, services and failures", () => {
 	expectTypeOf(program).toBeObject();
 });
