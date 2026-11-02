@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/webhooks",
-	"version": "0.3.11",
+	"version": "0.4.0",
 	"description": "Verified webhook receipts and transactional job delivery over Effect HTTP",
 	"keywords": [
 		"effect"
@@ -51,7 +51,6 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/github": "workspace:*",
 		"@shivaedev/http": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",

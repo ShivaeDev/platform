@@ -1,5 +1,5 @@
 import { Effect, Fiber, Predicate, Queue, Stream } from "effect";
-import type { LiveHint } from "@shivaedev/contract/live.ts";
+import type { SubscriptionHint } from "@shivaedev/contract/queryUpdate.ts";
 import { answered, words } from "@shivaedev/test/answers.ts";
 
 function keyWords(key: unknown) {
@@ -9,12 +9,12 @@ function keyWords(key: unknown) {
 	return Predicate.hasProperty(key, "id") ? String(key.id) : JSON.stringify(key);
 }
 
-export function hintWords(hint: LiveHint) {
+export function hintWords(hint: SubscriptionHint) {
 	const name = words(hint._tag);
 	return "keys" in hint ? `${name} ${hint.keys.map(keyWords).join(" and ")}` : name;
 }
 
-export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Stream<LiveHint, E, R>) {
+export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Stream<SubscriptionHint, E, R>) {
 	const hints: string[] = [];
 	const queue = yield* Queue.unbounded<string>();
 	const fiber = yield* stream.pipe(

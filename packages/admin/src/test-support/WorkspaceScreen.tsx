@@ -1,5 +1,5 @@
 import type { Permission } from "@shivaedev/access/permission.ts";
-import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
+import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
 import { adminPermissionGuard } from "#client/adapters/adminPermissionGuard.ts";
 import { workspaceRegistration } from "./workspaces.ts";
 

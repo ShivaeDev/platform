@@ -1,10 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
-import { Clock, ConfigProvider, Duration, Effect, FileSystem, Layer } from "effect";
-import { TestClock } from "effect/testing";
+import { Clock, ConfigProvider, Effect, FileSystem, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { eventKinds } from "#host/watchEvents.ts";
 import { watchPullRequests } from "#host/watchPullRequests.ts";
-import { until } from "#test/cloudRestart.ts";
+import { retryClock } from "#test/retryClock.ts";
 import { watchPrApi } from "#test/watchPrApi.ts";
 
 export const prWatchClock = storyKit({
@@ -12,7 +11,7 @@ export const prWatchClock = storyKit({
 	*create() {
 		const api = yield* watchPrApi;
 		const interval = 60_000;
-		const clock = pollClock(yield* TestClock.make(), interval);
+		const clock = retryClock(yield* Clock.Clock, interval);
 		const lines: { readonly kind: string }[] = [];
 		const watcher = yield* watchPullRequests(
 			{
@@ -39,50 +38,17 @@ export const prWatchClock = storyKit({
 	verbs: (engine, story) => ({
 		advance: (milliseconds: number) => {
 			story.tell(`advance ${milliseconds} milliseconds`);
-			return engine.clock.advance(milliseconds);
+			return engine.clock.adjust(milliseconds);
 		},
 		awaitPoll: () => {
 			story.tell("await the next GitHub poll");
-			return Effect.raceFirst(
-				until(() => Effect.sync(engine.clock.sleeping)),
-				engine.watcher.failed,
-			);
+			return Effect.raceFirst(engine.clock.awaitSleep, engine.watcher.failed);
 		},
 		conflict: () => engine.api.pull({ mergeable: false, "mergeable_state": "dirty" }),
 		lines: () => engine.lines,
 		start: () =>
 			engine.watcher
 				.update([{ result: { head: "a".repeat(40), pr: engine.api.pr }, stage: "working", workId: "one" }])
-				.pipe(Effect.provideService(Clock.Clock, engine.clock.service)),
+				.pipe(Effect.provideService(Clock.Clock, engine.clock.clock)),
 	}),
 });
-
-function pollClock(clock: TestClock.TestClock, interval: number) {
-	let waiting = false;
-	const service: Clock.Clock = {
-		...clock,
-		sleep(duration) {
-			const pollWait = Duration.toMillis(duration) === interval;
-			if (pollWait) {
-				waiting = true;
-			}
-			return clock.sleep(duration).pipe(
-				Effect.ensuring(
-					Effect.sync(() => {
-						if (pollWait) {
-							waiting = false;
-						}
-					}),
-				),
-			);
-		},
-	};
-	return {
-		advance: (milliseconds: number) =>
-			Effect.sync(() => {
-				waiting = false;
-			}).pipe(Effect.andThen(clock.adjust(milliseconds))),
-		service,
-		sleeping: () => waiting,
-	};
-}

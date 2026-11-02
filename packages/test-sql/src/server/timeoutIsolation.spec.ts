@@ -8,7 +8,11 @@ vitestRunner.it(
 		yield* runTimeoutStories();
 
 		yield* outcomes([
-			["closed before the next story set up", () => closedBeforeNextSetup(), ["the hanging story's database"]],
+			[
+				"closed before the next story set up",
+				() => closedBeforeNextSetup(),
+				{ database: "the hanging story's database", sessions: 0, state: "dropped" },
+			],
 			["the hanging story", () => timeoutStoryOutcome("the hanging story"), "timed out"],
 			["the hanging story's worker wrote", () => workerWrote("the hanging story"), ["seed", "before timeout"]],
 			["the next story", () => timeoutStoryOutcome("the next story"), "passed"],

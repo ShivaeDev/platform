@@ -3,8 +3,8 @@ import type { Rpc, RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import { contract } from "#contract.ts";
-import type { LiveHint } from "#live.ts";
 import { command, query, stream } from "#operation.ts";
+import type { SubscriptionHint } from "#queryUpdate.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { Denied, type Guard, type NoteMissing, Notes } from "#test/notes.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
@@ -15,7 +15,7 @@ declare const client: RpcClient.RpcClient.Flat<Rpcs, RpcClientError>;
 
 const changes = client("notes.$changes", { queries: [{ payload: { id: 1 }, query: "get" }] });
 expectTypeOf(changes).toEqualTypeOf<
-	Stream.Stream<LiveHint, Denied | NoteMissing | MissingReadPolicy | QueryReadDenied | WebSocketRequired | RpcClientError>
+	Stream.Stream<SubscriptionHint, Denied | NoteMissing | MissingReadPolicy | QueryReadDenied | WebSocketRequired | RpcClientError>
 >();
 expectTypeOf<Rpc.Payload<Changes>>().toEqualTypeOf<{
 	readonly queries: readonly (
@@ -74,7 +74,7 @@ const Pushed = contract("pushed", {
 });
 type PushedChanges = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Pushed>, "pushed.$changes">;
 expectTypeOf<Rpc.SuccessChunk<PushedChanges>>().toEqualTypeOf<
-	| LiveHint
+	| SubscriptionHint
 	| {
 			readonly _tag: "Result";
 			readonly query: "read";

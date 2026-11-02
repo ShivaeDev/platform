@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { useEffect, useState } from "react";
 import { isConflict } from "@shivaedev/errors/taxonomy.ts";
+import { fieldRejectionOf } from "@shivaedev/form/fieldRejection.ts";
 import { useCreate } from "#client/create.ts";
-import { fieldRejectionOf } from "#fieldRejection.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
 import { InvoiceLineDraft, InvoiceLineForm, values } from "./Screen.ts";
 

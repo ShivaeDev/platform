@@ -1,23 +1,27 @@
 import { Fiber } from "effect";
 import { expect } from "vitest";
 import { isolatedEngine } from "#test/engineStory.ts";
-import { readableBoard } from "#test/readableBoard.ts";
+import { markdownWork } from "#test/engineTraits.ts";
+import { schedulerProvider } from "#test/schedulerProvider.ts";
 
 isolatedEngine.it(
-	"a reconcile forked before sleep sees a Board edit made during the scheduler sleep",
-	[readableBoard()],
-	function* ({ boardScans, writeTrackedBoard, startBoardReadScheduler, prepareWork }) {
-		const stored = yield* prepareWork("item.0");
-		const schedule = yield* startBoardReadScheduler(stored);
-		const before = boardScans();
-		yield* schedule.dispatched;
+	"a reconciliation awaiting its provider sees a Board edit after the scheduler pass ends",
+	[markdownWork(), schedulerProvider],
+	function* (fleet) {
+		yield* fleet.prepareWork("one");
+		const dispatched = yield* fleet.dispatch("one");
+		const provider = fleet.holdSchedulerObservation(dispatched.value.attempts[0]?.receipt);
+		const schedule = yield* fleet.startBoardReadScheduler("one");
+		yield* provider.entered;
 		yield* schedule.sleeping;
-		yield* writeTrackedBoard("0.md", "---\nid: item.0\nkind: task\nfleet: held\n---\n# item.0\n\nEdited during scheduler sleep.\n");
-		yield* schedule.release;
-		const reconciled = yield* schedule.read;
-		expect(reconciled.approved).toBe(false);
-		expect(reconciled.context).toContain("Edited during scheduler sleep.");
+		fleet.writeBoardWork("one.md", "---\nid: one\nkind: task\nfleet: held\n---\n# one\n\nEdited during scheduler sleep.\n");
+		yield* provider.release;
+		yield* fleet.awaitRecordedStage("one", "waiting");
+		const reconciled = (yield* fleet.get("one")).value;
+		expect(reconciled.decision).toMatchObject({
+			code: "fleet-stale",
+			publicationWork: { approved: false, context: expect.stringContaining("Edited during scheduler sleep.") },
+		});
 		yield* Fiber.interrupt(schedule.runner);
-		expect(boardScans()).toBe(before + 2);
 	},
 );

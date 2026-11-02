@@ -1,13 +1,13 @@
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { PermissionBoundaryError, useCan } from "#adapters/permissionBoundary.ts";
+import { permissionGuard } from "#adapters/permissionGuard.ts";
+import { queryRoute } from "#adapters/queryRoute.ts";
 import { authAction } from "#client/authAction.ts";
-import { PermissionBoundaryError, useCan } from "#client/permissionBoundary.ts";
 import { useQuery } from "#client/resultState.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
-import { permissionGuard } from "#permissionGuard.ts";
 import type { PermissionSession } from "#permissions.ts";
-import { queryRoute } from "#queryRoute.ts";
 import { ReadNotes } from "./feature.ts";
 import type { Host } from "./host.ts";
 import { Login, PermissionRoutes, SignOutButton } from "./view.tsx";

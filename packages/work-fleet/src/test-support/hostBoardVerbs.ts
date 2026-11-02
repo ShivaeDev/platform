@@ -8,7 +8,7 @@ import { withDecisionResponses } from "#host/releaseWork.ts";
 import type { Decision } from "#policy.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
-import { until } from "#test/cloudRestart.ts";
+import { fileCondition } from "#test/fileCondition.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { indexedBoard } from "#test/indexedBoard.ts";
 import { questionPublicationVerbs } from "#test/questionPublicationVerbs.ts";
@@ -29,12 +29,16 @@ export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => 
 					.map((file) => storedBoardSource(engine.fixture.host.boardDir, `responses/${file}`))
 					.find(ready);
 			}
-			return until(() => Effect.sync(() => read() !== undefined)).pipe(Effect.map(read));
+			return fileCondition(engine.fixture.host.boardDir, Effect.sync(read), (value) => value !== undefined);
 		},
 		awaitBoardSource: (file: string, ready: (source: string) => boolean) => {
 			tell(`wait for the generated Board source ${file}`);
 			const path = storedBoardPath(engine.fixture.host.boardDir, file);
-			return until(() => Effect.sync(() => existsSync(path) && ready(readFileSync(path, "utf8")))).pipe(Effect.map(() => readFileSync(path, "utf8")));
+			return fileCondition(
+				engine.fixture.host.boardDir,
+				Effect.sync(() => existsSync(path) && ready(readFileSync(path, "utf8"))),
+				Boolean,
+			).pipe(Effect.map(() => readFileSync(path, "utf8")));
 		},
 		awaitIndexedSource: (file: string, source: string) => {
 			tell(`wait for the Board index to observe ${file}`);

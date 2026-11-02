@@ -1,15 +1,6 @@
-import { Effect, Exit, Fiber, Layer, Scope } from "effect";
-import {
-	answerOf,
-	buildOutcomeOf,
-	builtCounter,
-	builtWrapper,
-	CallerNumber,
-	type CountingMethod,
-	Greeting,
-	type ServiceEngine,
-	serviceLayer,
-} from "./serviceEngine.ts";
+import { Effect, Exit, Fiber, Layer, Scope, Stream } from "effect";
+import { answerOf, buildOutcomeOf, builtCounter, builtWrapper, type ServiceEngine, serviceLayer } from "./serviceEngine.ts";
+import { CallerFailure, CallerNumber, type CountingMethod, Greeting } from "./serviceFixtures.ts";
 
 function present<TValue>(value: TValue | undefined, missing: string) {
 	return value === undefined ? Effect.die(new Error(missing)) : Effect.succeed(value);
@@ -44,6 +35,12 @@ export function serviceVerbs(engine: ServiceEngine, tell: (line: string) => void
 			tell("the owner closes the Layer's scope");
 			return closeScope(engine.layerScope);
 		},
+		collectGreetings: (greeting: string) =>
+			Effect.gen(function* () {
+				tell(`the caller collects the returned Stream while providing the greeting "${greeting}"`);
+				const stream = yield* present(engine.greetingStream, "Request a greeting Stream before collecting it");
+				return yield* Stream.runCollect(stream).pipe(Effect.provideService(Greeting, greeting));
+			}),
 		greet: ({ callerProvides }: { readonly callerProvides?: string } = {}) =>
 			Effect.gen(function* () {
 				tell(
@@ -75,6 +72,19 @@ export function serviceVerbs(engine: ServiceEngine, tell: (line: string) => void
 			}),
 		methodBuilds: () => Effect.sync(() => engine.methodBuilds),
 		released: () => Effect.sync(() => [...engine.released]),
+		requestGreetingStream: () =>
+			Effect.gen(function* () {
+				tell("the caller requests a greeting Stream from the service");
+				const service = yield* builtCounter(engine);
+				engine.greetingStream = yield* service.greetings();
+			}),
+		wrapCallersFailure: (number: number) =>
+			Effect.gen(function* () {
+				tell(`the caller provides the number ${number} and asks the generic method to wrap an effect that fails with it`);
+				const service = yield* builtWrapper(engine);
+				const failing = Effect.flatMap(CallerNumber, (value) => Effect.fail(new CallerFailure({ number: value })));
+				return yield* service.wrap(failing).pipe(Effect.provideService(CallerNumber, number), Effect.flip);
+			}),
 		wrapCallersNumber: (number: number) =>
 			Effect.gen(function* () {
 				tell(`the caller provides the number ${number} and asks the generic method to wrap an effect that reads it`);

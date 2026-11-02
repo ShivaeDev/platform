@@ -2,8 +2,9 @@ import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Effect, Redacted } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -69,7 +70,7 @@ export const adminSetup = storyKit({
 });
 
 export const authTablesReady = adminSetup.trait("database", "the app's authentication tables exist", function* () {
-	const steps = yield* migrationSteps({ ...migrations(), lockTimeout: "5 seconds" });
+	const steps = yield* migrationSteps({ ...(yield* migrations()), lockTimeout: "5 seconds" });
 	yield* steps.migrateTo("0004_stored_roles");
 });
 
@@ -80,7 +81,9 @@ export const aliceSignedInWithGitHub = adminSetup.trait(
 		const { auth } = yield* betterAuthMount(
 			{ ...authOptions(), database: yield* betterAuthDatabase(), plugins: [testUtils()], secret: Redacted.value(secret) },
 			{ defaultRole: User.name, roles: AppAccess },
-		).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
+		)
+			.pipe(Effect.provide(memoryStore))
+			.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 		const session = yield* signedInUser(auth, {
 			email: "alice@github.test",
 			name: "alice",

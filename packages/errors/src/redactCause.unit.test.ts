@@ -1,7 +1,7 @@
 import { inspect } from "node:util";
-import { Cause, Context, Effect, ErrorReporter } from "effect";
+import { Cause, Context } from "effect";
 import { expect, it } from "vitest";
-import { redactCause, redactDefect, redactDiagnosticCause, redactingErrorReporter } from "#redactCause.ts";
+import { redactCause, redactDefect, redactDiagnosticCause } from "#redactCause.ts";
 
 class Request extends Context.Service<Request, { readonly password: string }>()("errors/test/Request") {}
 
@@ -57,26 +57,4 @@ it("redactDiagnosticCause masks failures, defects and annotations and keeps inte
 	const annotations = cause.reasons.map((reason) => Context.getOrUndefined(Cause.reasonAnnotations(reason), Request));
 	expect(annotations).toEqual([{ password: "<redacted>" }, { password: "<redacted>" }, { password: "<redacted>" }]);
 	expect(inspect(cause.reasons, { depth: 20 })).not.toMatch(/plaintext/u);
-});
-
-it("redactingErrorReporter hands the wrapped reporter only masked causes", () => {
-	const received: Cause.Cause<unknown>[] = [];
-	const inner: ErrorReporter.ErrorReporter = {
-		[ErrorReporter.TypeId]: ErrorReporter.TypeId,
-		report: ({ cause }) => {
-			received.push(cause);
-		},
-	};
-	const fiber = Effect.runSync(Effect.withFiber((current) => Effect.succeed(current)));
-	redactingErrorReporter(inner).report({
-		cause: Cause.combine(Cause.fail({ password: "typed-plaintext" }), Cause.die(leakingError())),
-		fiber,
-		timestamp: 0n,
-	});
-	expect(received).toHaveLength(1);
-	expect(received[0]?.reasons).toMatchObject([
-		{ _tag: "Fail", error: { password: "<redacted>" } },
-		{ _tag: "Die", defect: { apiKey: "<redacted>" } },
-	]);
-	expect(inspect(received, { depth: 20 })).not.toMatch(/plaintext/u);
 });

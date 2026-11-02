@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.1 - 2026-11-02
+
+### Fixed
+
+- Keep `migrationSteps().migrateTo` and the starting phase of `migrationUpgrade` at the requested numbered migration without running current-schema components or publishing a release. Full migration runs still apply components and record the configured release through `migratePostgres`.
+- Route PostgreSQL URLs with `host` or `port` query parameters through the disconnect proxy, so `setReachable(false)` cuts existing connections and refuses new ones.
+- Allow rollback tests to be interrupted while waiting for a pooled connection without turning interruption into a failure.
+- Include the lock holder's connection acquisition in a race's lock-taking timeout.
+
 ## 0.16.0 - 2026-11-01
 
 ### Added

@@ -4,6 +4,27 @@ import { deniedStory, readable, rejected, watching } from "#test/deniedStory.ts"
 
 for (const delivery of ["hints", "pushed"] as const) {
 	deniedStory.it(
+		`${delivery}: restoring access after a live denial recovers on the next server hint`,
+		[readable(), watching(delivery)],
+		function* ({ allow, announceOnServer, attempts, revoke, shown, untilFailed, untilLive }) {
+			expect(yield* shown()).toBe("Alice's record");
+			revoke();
+			yield* announceOnServer();
+			yield* untilFailed();
+			expect(yield* shown()).toBe("failed with read denied");
+
+			allow();
+			yield* announceOnServer();
+			yield* untilLive();
+
+			yield* outcomes([
+				["query", () => shown(), "Alice's record"],
+				["subscriptions", () => attempts(), 1],
+			]);
+		},
+	);
+
+	deniedStory.it(
 		`${delivery}: an explicit refresh recovers a denied query after access is restored`,
 		[watching(delivery)],
 		function* ({ allow, attempts, refresh, shown, untilLive }) {

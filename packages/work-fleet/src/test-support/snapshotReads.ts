@@ -1,14 +1,22 @@
 import { Effect, Exit, Tracer } from "effect";
 import { SqlClient } from "effect/sql";
 import type { FleetHost } from "#host/config.ts";
+import { changeSignal } from "#test/changeSignal.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 
 // Effect SQL records every executed statement as a span with its query text and exit, so the daemon's reads are counted where they run.
 export function snapshotReads(host: FleetHost) {
 	const spans: Tracer.NativeSpan[] = [];
+	const changed = changeSignal();
+	class ReadSpan extends Tracer.NativeSpan {
+		override end(at: bigint, exit: Exit.Exit<unknown, unknown>) {
+			super.end(at, exit);
+			changed.notify();
+		}
+	}
 	const tracer = Tracer.make({
 		span: (options) => {
-			const span = new Tracer.NativeSpan(options);
+			const span = new ReadSpan(options);
 			spans.push(span);
 			return span;
 		},
@@ -53,17 +61,14 @@ export function snapshotReads(host: FleetHost) {
 		restoreIfBroken: Effect.suspend(() => (broken ? restoreReads : Effect.void)),
 		restoreReads,
 		statements,
+		waitFor: (count: number) =>
+			changed
+				.wait(
+					Effect.sync(() => snapshots().length),
+					(observed) => observed >= count,
+				)
+				.pipe(Effect.asVoid),
 	};
 }
 
 export type SnapshotReads = ReturnType<typeof snapshotReads>;
-
-export const untilReads = Effect.fn("SnapshotTest.untilReads")(function* (reads: { readonly count: () => number }, count: number) {
-	for (let attempt = 0; attempt < 1000; attempt += 1) {
-		if (reads.count() >= count) {
-			return;
-		}
-		yield* Effect.sleep("10 millis");
-	}
-	return yield* Effect.die(new Error(`Expected ${count} snapshot reads, got ${reads.count()}`));
-});

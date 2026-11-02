@@ -1,10 +1,10 @@
-import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import type { TaskMeta } from "vitest";
-import * as VitestNode from "vitest/node";
+import { runVitest } from "@shivaedev/test/adapters/runVitest.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { configured } from "./postgres.ts";
+import type { CloneObservation } from "./timeoutApp.ts";
 
 export type ConsumerStory = "the first story" | "the next story" | "the isolated story";
 export type TimeoutStory = "the hanging story" | "the next story";
@@ -17,7 +17,7 @@ declare module "vitest" {
 			body?: readonly string[];
 			isolated?: { transaction: "open" | "none"; items: readonly string[]; otherConnection: readonly string[] };
 		};
-		timeout?: { role: TimeoutStory; database: string; wrote: readonly string[]; closedBeforeSetup?: readonly string[] };
+		timeout?: { role: TimeoutStory; database: string; wrote: readonly string[]; closedBeforeSetup?: CloneObservation | undefined };
 	}
 }
 
@@ -31,42 +31,24 @@ interface InnerRun {
 	readonly uncaught: readonly string[];
 }
 
-function storyOutcome(state: string, errors: readonly { message: string }[]) {
-	return errors.some(({ message }) => message.startsWith("Test timed out")) ? "timed out" : state;
+function storyOutcome(state: string, errors: readonly string[]) {
+	return errors.some((message) => message.startsWith("Test timed out")) ? "timed out" : state;
 }
 
-function runVitest(file: string, hookTimeout?: number) {
-	return Effect.acquireUseRelease(
-		Effect.promise(() =>
-			VitestNode.createVitest(
-				{
-					config: false,
-					...(hookTimeout === undefined ? {} : { hookTimeout }),
-					include: [`src/test-support/${file}`],
-					reporters: [],
-					root: fileURLToPath(new URL("../..", import.meta.url)),
-					watch: false,
-				},
-				{ resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } } },
-				{ stderr: new PassThrough(), stdout: new PassThrough() },
-			),
-		),
-		(vitest) =>
-			Effect.promise(async (): Promise<InnerRun> => {
-				const { testModules } = await vitest.start();
-				return {
-					stories: testModules.flatMap((module) =>
-						[...module.children.allTests()].map((test) => ({
-							meta: test.meta(),
-							outcome: storyOutcome(test.result().state, test.result().errors ?? []),
-						})),
-					),
-					uncaught: [...testModules.flatMap((module) => module.errors()), ...vitest.state.getUnhandledErrors()].map(String),
-				};
-			}),
-		(vitest) => Effect.promise(() => vitest.close()),
-	);
-}
+const runFixture = Effect.fnUntraced(function* (file: string, hookTimeout?: number) {
+	const result = yield* runVitest({
+		...(hookTimeout === undefined ? {} : { hookTimeout }),
+		include: `src/test-support/${file}`,
+		root: fileURLToPath(new URL("../..", import.meta.url)),
+	});
+	return {
+		stories: result.tests.map((test) => ({
+			meta: test.meta,
+			outcome: storyOutcome(test.state, test.errors),
+		})),
+		uncaught: [...result.moduleErrors, ...result.unhandledErrors].map(String),
+	};
+});
 
 export const vitestRunner = storyKit({
 	clock: "live",
@@ -83,37 +65,58 @@ export const vitestRunner = storyKit({
 			return Effect.sync(() => engine.run.stories.find(({ meta }) => meta.timeout?.role === role));
 		}
 		return {
-			closedBeforeNextSetup: () =>
-				Effect.gen(function* () {
+			closedBeforeNextSetup: () => {
+				story.tell("the story reads the previous clone’s PostgreSQL state before the next setup");
+				return Effect.gen(function* () {
 					const hanging = (yield* timeout("the hanging story"))?.meta.timeout?.database;
-					const next = (yield* timeout("the next story"))?.meta.timeout?.closedBeforeSetup ?? [];
-					return next.map((name) => (name === hanging ? "the hanging story's database" : "another database"));
-				}),
-			consumerOutcomes: () => Effect.sync(() => engine.run.stories.map(({ outcome }) => outcome)),
-			isolatedBlockSaw: (what: "a transaction" | "its starting items" | "another connection") =>
-				Effect.map(consumer("the isolated story"), (meta) => {
+					const next = (yield* timeout("the next story"))?.meta.timeout?.closedBeforeSetup;
+					return next === undefined
+						? "not observed"
+						: { ...next, database: next.database === hanging ? "the hanging story's database" : "another database" };
+				});
+			},
+			consumerOutcomes: () => {
+				story.tell("the story reads the consumer stories’ outcomes");
+				return Effect.sync(() => engine.run.stories.map(({ outcome }) => outcome));
+			},
+			isolatedBlockSaw: (what: "a transaction" | "its starting items" | "another connection") => {
+				story.tell(`the story reads what the isolated block saw: ${what}`);
+				return Effect.map(consumer("the isolated story"), (meta) => {
 					const isolated = meta?.isolated;
 					if (what === "a transaction") {
 						return isolated?.transaction;
 					}
 					return what === "its starting items" ? isolated?.items : isolated?.otherConnection;
-				}),
-			itemsSeen: (role: ConsumerStory, when: "harness" | "body") => Effect.map(consumer(role), (meta) => meta?.[when]),
+				});
+			},
+			itemsSeen: (role: ConsumerStory, when: "harness" | "body") => {
+				story.tell(`the story reads the items ${role} saw in its ${when}`);
+				return Effect.map(consumer(role), (meta) => meta?.[when]);
+			},
 			runConsumerStories: () => {
 				story.tell("Vitest runs a rollback consumer's stories in one file");
-				return Effect.map(runVitest("vitestConsumer.ts"), (run) => {
+				return Effect.map(runFixture("vitestConsumer.ts"), (run) => {
 					engine.run = run;
 				});
 			},
 			runTimeoutStories: () => {
 				story.tell("Vitest runs a story that hangs past its timeout with a job worker running, then the next story");
-				return Effect.map(runVitest("timeoutStories.ts", 50), (run) => {
+				return Effect.map(runFixture("timeoutStories.ts", 50), (run) => {
 					engine.run = run;
 				});
 			},
-			timeoutStoryOutcome: (role: TimeoutStory) => Effect.map(timeout(role), (inner) => inner?.outcome),
-			uncaughtErrors: () => Effect.sync(() => engine.run.uncaught),
-			workerWrote: (role: TimeoutStory) => Effect.map(timeout(role), (inner) => inner?.meta.timeout?.wrote),
+			timeoutStoryOutcome: (role: TimeoutStory) => {
+				story.tell(`the story reads how ${role} ended`);
+				return Effect.map(timeout(role), (inner) => inner?.outcome);
+			},
+			uncaughtErrors: () => {
+				story.tell("the story reads the inner Vitest run’s uncaught errors");
+				return Effect.sync(() => engine.run.uncaught);
+			},
+			workerWrote: (role: TimeoutStory) => {
+				story.tell(`the story reads the items written by ${role}’s worker`);
+				return Effect.map(timeout(role), (inner) => inner?.meta.timeout?.wrote);
+			},
 		};
 	},
 });

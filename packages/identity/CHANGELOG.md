@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.18.0 - 2026-11-02
+
+### Added
+
+- Accept the application's Better Auth options in role assignment, provider-account role seeds and admin Users handlers to follow custom table and column mappings. Existing calls retain the default mapping.
+- Identity mounts expose `admitsUser(userId)` to check the current sign-in policy for authenticated users on other transports, without caching rule verdicts.
+
+### Fixed
+
+- Interrupting a session lookup, provider-account lookup or mounted Better Auth request cancels its pending PostgreSQL query. Transaction commit, rollback and connection cleanup still finish after cancellation.
+- Present SQL interruption to Better Auth as a cancelled request so an interrupted session lookup does not log an internal server error.
+- Compute command invalidation once with the resolved viewer and publish declared changes for optional-auth commands, including anonymous callers.
+- Preserve the configured role column when mounting stored roles, generating role-aware migrations and checking the auth schema.
+- Identity checks with a zero recheck interval start an independent rule lookup even while another check for the same account is pending.
+
+### Breaking
+
+- MCP's `betterAuthMcp` requires `admitsUser`. Pass `admitsUser: mounted.admitsUser` from `betterAuthMount` alongside `auth: mounted.auth`. Each MCP request refuses users denied by the identity sign-in policy; existing tokens follow admission changes on the next request.
+
 ## 0.17.0 - 2026-11-01
 
 ### Added

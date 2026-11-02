@@ -19,7 +19,7 @@ import { healthLayer } from "#host/healthLayer.ts";
 import type { BoardWork } from "#policy.ts";
 import { BoardGateway } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
-import { completionFolder, editWhileReplacing } from "#test/completionFolder.ts";
+import { completionFolder } from "#test/completionFolder.ts";
 import { healthFolder } from "#test/health.ts";
 import { linkedReportBoundary } from "#test/linkedReportBoundary.ts";
 import { linkedReportPayload } from "#test/linkedReportPayload.ts";
@@ -56,10 +56,6 @@ export const boardFileStory = storyKit({
 					story.tell(`complete Board work ${id} from ${file.replace(state.completion.root, "")}`);
 					return refusal(completeWork(state.completion.root, id, file, summary));
 				},
-				editTaskWhileReplacing: (changed: string) => {
-					story.tell("a person edits the task after Fleet prepares its replacement");
-					return editWhileReplacing(state.completion.root, changed);
-				},
 				linkOutside: (location: "root" | "directory" | "file") => {
 					story.tell(`the completion ${location} is a symlink to a folder outside the Board`);
 					const { outside, root } = state.completion;
@@ -71,7 +67,6 @@ export const boardFileStory = storyKit({
 					story.tell(`publish completion at ${file}`);
 					return refusal(writeCompletion(state.completion.root, originalRoot, file, source, content));
 				},
-				taskFiles: () => fs.readDirectory(`${state.completion.root}/tasks`),
 				taskSource: () => fs.readFileString(`${state.completion.root}/tasks/one.md`),
 				writeTask: (content: string) => {
 					story.tell("a person rewrites tasks/one.md");

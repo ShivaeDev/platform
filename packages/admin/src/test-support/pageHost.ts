@@ -4,7 +4,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
-import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
+import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { adminPermissionGuard } from "#client/adapters/adminPermissionGuard.ts";

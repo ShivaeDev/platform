@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.55.0 - 2026-11-02
+
+### Added
+
+- Report test, suite and story registrations that declare a `retry` option with `tests/global-retries`. Remove local retries so vitest-rerun's global reruns record flakes.
+
+### Changed
+
+- Story kits and the Effect test adapter import native Effect submodules instead of whole barrels. Cookie windows, member windows, React mounting and OTLP decoding load when used; browser RPC imports use dedicated modules.
+- App test workers reuse Node's on-disk compilation cache while keeping Vitest's file isolation.
+
+### Fixed
+
+- Interrupting a scan stops its pending manifest reads.
+- Report expected filesystem failures from rules as findings. Report unreadable manifests and manifests removed after discovery under `manifests/valid`; keep optional missing-file lookups unchanged.
+- Report tsconfig diagnostics as import findings and honor configured module resolution, path aliases and package export conditions, including NodeNext import and require branches.
+- Accept local rules that require custom Effect services in `defineConfig`, while preserving their rule IDs and schema input types.
+- Refuse empty Biome selections with a Quality repair message for both `quality lint` and `quality fix` on Biome 2.6.3.
+- Reject stale Biome lint and assist exceptions during `quality lint`, naming the file/rule pair to remove from the selected Quality config.
+
+### Breaking
+
+- `manifestReader` requires an Effect scope so its reads stop when the owning operation ends. Consumers must create and use the reader within `Effect.scoped`.
+- `ImportGraph` includes required `configFindings` metadata. Consumers constructing graphs themselves must supply this array (`configFindings: []` when there are no diagnostics); graphs returned by `importGraph` already include it.
+
 ## 0.54.0 - 2026-11-01
 
 ### Added

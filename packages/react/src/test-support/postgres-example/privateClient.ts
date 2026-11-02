@@ -26,6 +26,9 @@ export async function privateClient(url: string, account: "alice" | "bob") {
 		}).pipe(
 			Stream.runForEach((hint) =>
 				Effect.gen(function* () {
+					if (hint._tag === "QueryReadDenied") {
+						return yield* hint;
+					}
 					const title = yield* client("preferences.self", undefined);
 					const list = yield* client("preferences.list", undefined);
 					delivered.push({ hint, list, title });

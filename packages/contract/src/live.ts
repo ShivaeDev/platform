@@ -1,12 +1,15 @@
-import { type Cause, Duration, Effect, Option, Schema, Stream } from "effect";
+import { Cause, Duration, Effect, Option, Schema, type Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys, Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
+import { liveAttempt } from "#internal/liveAttempt.ts";
 import { invalidateLive } from "#internal/liveInvalidation.ts";
 import { livePending } from "#internal/livePending.ts";
 import { liveRetry } from "#internal/liveRetry.ts";
 import { retryOnChange } from "#internal/retryOnChange.ts";
+import type { SubscriptionHint } from "#queryUpdate.ts";
+import type { QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const LiveHint = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Changed"), keys: Schema.Array(Key), queryIndexes: Schema.optional(Schema.Array(Schema.Number)) }),
@@ -15,7 +18,7 @@ export const LiveHint = Schema.Union([
 export type LiveHint = typeof LiveHint.Type;
 export interface LiveStatus<E> {
 	readonly connection: "connecting" | "live" | "reconnecting" | "failed";
-	readonly failure: Option.Option<Cause.Cause<E>>;
+	readonly failure: Option.Option<Cause.Cause<E | QueryReadDenied>>;
 	readonly needsResync: boolean;
 	readonly pending: number;
 }
@@ -27,7 +30,7 @@ export interface LiveOptions<E, R> {
 	readonly resyncKeys: readonly Key[] | ((registry: AtomRegistry.AtomRegistry) => readonly Key[]);
 	readonly retryDelay?: Duration.Input;
 	readonly retryKeys?: readonly Key[];
-	readonly stream: Stream.Stream<LiveHint, E, R>;
+	readonly stream: Stream.Stream<SubscriptionHint, E, R>;
 }
 
 const MAX_PENDING = 256;
@@ -102,32 +105,22 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 					get.once(options.resume);
 					get.subscribe(options.resume, resync);
 				}
-				let connected = false;
-				function reconcile() {
-					if (connected || options.initialResync !== false) {
-						resync();
-					} else {
-						update({ needsResync: false });
-					}
-				}
-				const attempt = Effect.suspend(() => {
-					let isFirst = true;
-					function observe(hint: LiveHint) {
-						update({ connection: "live", failure: Option.none() });
-						if (get.once(paused)) {
-							update({ needsResync: true, pending: Math.min(MAX_PENDING, get.once(status).pending + 1) });
-						} else if (isFirst || hint._tag === "Resync") {
-							reconcile();
+				const attempt = liveAttempt(options.stream, {
+					changed,
+					denied: (denial) => {
+						pending.clear();
+						update({ connection: "failed", failure: Option.some(Cause.fail(denial)), needsResync: true, pending: 0 });
+					},
+					live: () => update({ connection: "live", failure: Option.none() }),
+					paused: () => get.once(paused),
+					queued: () => update({ needsResync: true, pending: Math.min(MAX_PENDING, get.once(status).pending + 1) }),
+					reconcile: (connected) => {
+						if (connected || options.initialResync !== false) {
+							resync();
 						} else {
-							changed(hint.keys);
+							update({ needsResync: false });
 						}
-						connected = true;
-						isFirst = false;
-					}
-					return options.stream.pipe(
-						Stream.runForEach((hint) => Effect.sync(() => observe(hint))),
-						Effect.scoped,
-					);
+					},
 				});
 				yield* liveRetry(
 					attempt,

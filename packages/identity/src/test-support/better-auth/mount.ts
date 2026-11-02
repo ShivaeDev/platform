@@ -3,8 +3,9 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { inspect, promisify } from "node:util";
 import type { BetterAuthOptions } from "better-auth";
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { emptyMount, type MountEngine, PROVIDER_SECRETS, type ProviderView, startMountHost } from "./mountHost.ts";
@@ -43,8 +44,7 @@ function visit(engine: MountEngine, host: number, headers: Record<string, string
 	return Effect.promise(async () => {
 		const response = await fetch(`${engine.urls[host]}/api/auth/visitor`, { headers });
 		await response.text();
-		engine.lastAnswer = answerOf(response.status);
-		return engine.lastAnswer;
+		return answerOf(response.status);
 	});
 }
 
@@ -87,9 +87,11 @@ const signUpThroughProxy = Effect.fnUntraced(function* (engine: MountEngine, ori
 });
 
 export const mount = storyKit({
-	after: { configured: startMountHost },
+	after: { configured: (engine) => startMountHost(engine).pipe(Effect.provideContext(engine.store)) },
 	clock: "live",
-	create: emptyMount,
+	*create() {
+		return { ...emptyMount(), store: yield* Layer.build(memoryStore) };
+	},
 	inspect: (engine) => ({ authDown: engine.authDown, urls: engine.urls }),
 	name: "Better Auth mount",
 	stages: ["configured"],
@@ -98,7 +100,6 @@ export const mount = storyKit({
 		errorLogs: () =>
 			Effect.sync(() => errorLogs(engine).map(({ message, traceId }) => ({ message: Array.isArray(message) ? message[0] : message, traceId }))),
 		forwardedHeadersAuthSaw: () => Effect.sync(() => seen(engine).forwardedHeaders),
-		lastAnswer: () => Effect.sync(() => engine.lastAnswer),
 		loggedFailure: () =>
 			Effect.sync(() => {
 				const [log] = errorLogs(engine);
@@ -150,13 +151,11 @@ export const mount = storyKit({
 		},
 		startSecondHost: () => {
 			story.tell("a second auth host starts in the same process");
-			return startMountHost(engine);
+			return startMountHost(engine).pipe(Effect.provide(memoryStore));
 		},
-		storageCalls: () =>
-			Effect.sync(() => ({ clients: new Set(engine.consumed.map(({ key }) => key)).size, rules: engine.consumed.map(({ rule }) => rule) })),
-		useAllowance: (client?: Client) => {
-			story.tell(`${client ?? "a visitor"} uses up the allowance of two auth requests a minute`);
-			return Effect.all([visit(engine, 0, clientHeaders(engine, client)), visit(engine, 0, clientHeaders(engine, client))]);
+		startSecondMount: () => {
+			story.tell("a second auth mount starts with the same host store");
+			return startMountHost(engine).pipe(Effect.provideContext(engine.store));
 		},
 	}),
 });
@@ -178,15 +177,6 @@ export function applicationRateLimit(enabled: boolean) {
 		engine.rateLimit.enabled = enabled;
 	});
 }
-
-export const applicationStorage = mount.trait("configured", "the app supplies rate-limit storage that allows every request", (engine) => {
-	engine.rateLimit.customStorage = {
-		consume: (key, rule) => {
-			engine.consumed.push({ key, rule });
-			return Promise.resolve({ allowed: true, retryAfter: null });
-		},
-	};
-});
 
 export const memoryStorage = mount.trait("configured", "the app explicitly selects memory rate-limit storage", (engine) => {
 	engine.rateLimit.storage = "memory";

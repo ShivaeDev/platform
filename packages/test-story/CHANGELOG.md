@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.33.0 - 2026-11-02
+
+### Added
+
+- Read exported secrets, traced SQL queries and reported errors from the fake OTLP receiver in stories.
+- Build a scoped tracing layer with the tracer logger included, and flush buffered and in-flight spans to the receiver without stopping tracing.
+
+### Changed
+
+- Story kits and the Effect test adapter import native Effect submodules instead of whole barrels. Cookie windows, member windows, React mounting and OTLP decoding load when used; browser RPC imports use dedicated modules.
+- App test workers reuse Node's on-disk compilation cache while keeping Vitest's file isolation.
+
+### Fixed
+
+- A timed-out DOM screen lookup closes its interrupted React `act()` scope before the story finishes, so later stories in the same file render and respond normally.
+- Creation failures keep their original cause and name the story kit, the create phase and the rerun command. Cleanup failures evaluate asynchronous inspect hooks with the kit's services and print their state instead of serializing an Effect.
+
 ## 0.32.0 - 2026-11-01
 
 ### Added

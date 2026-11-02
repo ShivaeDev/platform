@@ -1,6 +1,5 @@
 import { Effect, Layer, Schema } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import type { Path } from "#shape.ts";
 import { formStories } from "./formStories.ts";
 
 const runtime = Atom.runtime(Layer.empty);
@@ -13,15 +12,6 @@ const Answers = Schema.Struct({ answers: Schema.Array(Schema.Struct({ selected: 
 	),
 );
 const unanswered = { selected: [], text: "" };
-
-export const answerPaths = formStories(() => Answers, {
-	config: () => ({ initialValues: { answers: [unanswered] }, onSubmit: Effect.succeed, runtime }),
-	support: () => undefined,
-	verbs: (driver) => ({
-		sameErrorAtom: (path: Path<"answers">, other: Path<"answers">) =>
-			Effect.sync(() => driver.current().errorAt(path) === driver.current().errorAt(other)),
-	}),
-});
 
 export const twoUnanswered = formStories(() => Answers, {
 	config: () => ({ initialValues: { answers: [unanswered, unanswered] }, onSubmit: Effect.succeed, runtime }),

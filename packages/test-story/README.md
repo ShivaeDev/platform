@@ -208,7 +208,9 @@ const app = storyKit({
 
 `routeOutbound(routes)` from `@shivaedev/test-story/server/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story. Pass `{ passthrough: true }` as its second argument to allow unrouted Node fetch requests.
 
-Routing uses the global dispatcher that Node's built-in `fetch` already uses. The kit's `outbound` option installs routing before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
+Separate registrations compose: every active registration's hosts remain reachable. If registrations name the same host, the newest active registration wins. Closing a scope removes only its registrations, revealing any earlier route for that host. Unrouted external hosts remain refused while any active registration requires strict routing.
+
+Routing uses the global dispatcher that Node's built-in `fetch` already uses. The kit's `outbound` option installs routing before `around`, creation, traits and the body, stays active during scoped cleanup, and removes its registrations after each story, including a failing story. The original dispatcher is restored when the last registration closes. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
 
 #### Asserting on application traces
 
@@ -277,7 +279,48 @@ app.it("continues the trace context a request's headers carry", [], function* ({
 
 `describeSpan` turns each span into words once in the kit, so the specs compare sentences instead of reading span fields and tags. Detachment only removes the incoming parent: spans that application startup explicitly creates still follow native Effect semantics.
 
-#### Forwarding requests to a host
+#### Visiting an app over HTTP
+
+Use `httpVisitor` from `@shivaedev/test-story/server/httpVisitor.ts` in the kit's scoped `create` or `after` hook after starting the real app. Each call acquires a separate cookie jar and a separate edge proxy, which closes with the calling Scope:
+
+```ts
+import { httpVisitor } from "@shivaedev/test-story/server/httpVisitor.ts";
+
+const ada = yield* httpVisitor(upstream, {
+  baseUrl: "https://app.example",
+  headers: {
+    origin: "https://foreign.example",
+    "x-forwarded-for": "198.51.100.7",
+    "x-real-ip": "192.0.2.4",
+  },
+  edge: { forwardedHops: ["203.0.113.9"] },
+});
+
+const bob = yield* httpVisitor(upstream, { baseUrl: "https://app.example" });
+```
+
+`upstream` is the app's local HTTP listener. `baseUrl` is the public URL the visitor sees; it defaults to `upstream`. HTTPS here models TLS termination at the edge: transport to the local app remains HTTP. Requests present that public URL through `X-Forwarded-Host` and `X-Forwarded-Proto`. Secure cookies are accepted and sent only for HTTPS public URLs, including when the hostname is localhost. Ordinary and HttpOnly cookies are kept automatically, scoped by host/domain and path, and updated or removed by the app's Set-Cookie headers. Cookie expiry uses the story's Effect Clock. The visitors never share cookies.
+
+`headers` supplies visitor request defaults; a request's own headers override them without case sensitivity. In this example the app receives Origin `https://foreign.example`, X-Forwarded-For `198.51.100.7, 203.0.113.9`, and X-Real-IP `192.0.2.4`. `edge` accepts `ForwardingProxyOptions`: its headers override the visitor's headers, and `forwardedHops` chooses which addresses the edge appends. Give each visitor its own edge policy to test trusted proxy boundaries.
+
+`yield* ada.request("/session")` returns a native Response in an Effect. It accepts a path or an absolute public URL and optional fetch request options for method, headers, body and signal. Every request goes through this visitor's edge to the same upstream app; an absolute URL changes the public host/scheme used for headers and cookie selection. Redirects are returned without following them, and their cookies are retained, so the next story action can explicitly visit the Location. There is no credentials or redirect option. This HTTP client does not enforce browser CORS or SameSite policy.
+
+Keep requests and response decoding inside the application's verbs and readouts. A verb performs one action, and a readout translates the HTTP answer into domain words such as `"signed in as ada"` or `"signed out"`; specs never inspect Exit, Cause or `_tag` shapes. For example, an application's kit exposes `as(name).signsIn()` and `as(name).session()` over its visitor:
+
+```ts
+app.it("keeps ada's session separate from bob's", [visiting("ada"), visiting("bob")], function* ({ as }) {
+	yield* as("ada").signsIn();
+
+	yield* outcomes([
+		["ada's session", () => as("ada").session(), "signed in as ada"],
+		["bob's session", () => as("bob").session(), "signed out"],
+	]);
+});
+```
+
+The kit awaits the HTTP answer directly; it needs no sleeps, polling or manual Cookie header copying. For DOM rendering and browser sign-in flows, use the document and member-screen transports below.
+
+#### Controlling a forwarding proxy directly
 
 Use `forwardingProxy` from `@shivaedev/test-story/server/forwardingProxy.ts` in the kit's scoped `create` or `after` hook after starting the host under test:
 
@@ -373,7 +416,7 @@ yield* paused.release;
 const user = yield* Fiber.join(pending);
 ```
 
-`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
+`application.loadUser` is the application's real client call. `scriptFault` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses delivery until `release`; the route's reply handler runs when the request arrives, so a held reply sees the request and state at arrival. `waiting` completes when the first request reaches the hold. For several arrivals, observe `received` as described under [waiting for a signal](#waiting-for-a-signal). Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
 
 Use the controls through kit verbs after acquiring the service. `scriptFault(route, { kind: "status", reply })` scripts the next authorized reply, including raw bytes or `chunks`, a synchronous or asynchronous iterable of strings and byte arrays. Set `headers["content-type"]` to the story's media type; the default is JSON. Chunks are written in iteration order as they become available, so an async iterable can wait between pieces.
 
@@ -400,7 +443,7 @@ const bytes = yield* Fiber.join(pending);
 
 Use `scriptFault(route, fault, options)` to install a fault for future authorized matching requests. It returns a control with a narrated `lift` effect. The default strikes once before the route's reply runs; `{ repeat: true }` keeps it installed until lifted. Status faults can repeat too.
 
-A status fault’s `reply` can be a fixed `FakeHttpReply` or a function `(request, now) => FakeHttpReply`. The fake evaluates the function when it answers, using the request being answered (including a held request for `fault`) and milliseconds from the Effect `Clock` captured when the service was created. A repeating fault rebuilds its reply for every request. TestClock stories therefore get deterministic refusal times:
+A status fault’s `reply` can be a fixed `FakeHttpReply` or a function `(request, now) => FakeHttpReply`. A scripted function runs at arrival, before any hold, using the arriving request and milliseconds from the Effect `Clock` captured when the service was created. A repeating fault rebuilds its reply for every request. An immediate `fault` evaluates its function when injected, using the waiting request and the clock at injection. TestClock stories therefore get deterministic refusal times:
 
 ```ts
 yield* api.scriptFault("user", {
@@ -699,7 +742,34 @@ const completed = yield* receiver.untilSpan(
 );
 ```
 
-`fakeHttpService` offers `untilAbandoned(matches, options)`. It returns the request record when the connection closes before its response finishes, including a held request or a stalled response body. Completed responses do not emit this signal. An unfinished connection closed by a scripted fault also qualifies; the signal observes the connection, not who closed it.
+`fakeHttpService` exposes two Effect streams of `FakeHttpRequestRecord`: `received` emits once the request body is read and path parameters are decoded, before guards and holds; `completed` emits when the server finishes writing the response, including its body. Receipt includes guard rejections, unmatched routes and malformed path parameters. A held request has arrived without completing; a stalled body has sent headers without completing. Each record's `status` reflects its current state, just like `requests`.
+
+```ts
+const arrived = yield* until(
+	service.received,
+	(request) => request.path === "/orders/42",
+	{ name: "order request received" },
+);
+const completed = yield* until(
+	service.completed,
+	(request) => request.path === "/orders/42",
+	{ name: "order response completed" },
+);
+```
+
+Import `until` and `collectUntil` from `@shivaedev/test-story/server/until.ts`. To wait for several new arrivals to the same path, drop the already recorded requests before filtering and collecting. Capture this stream before starting the requests:
+
+```ts
+const arrivals = service.received.pipe(
+	Stream.drop(service.requests.length),
+	Stream.filter((request) => request.path === "/orders/42"),
+);
+yield* collectUntil(arrivals, (requests) => requests.length === 3, { name: "three order requests received" });
+```
+
+Both streams replay observations from acquisition to each subscriber independently. A wait can therefore start before or after arrival or completion; observing one request does not consume another observer's signal. Use different predicates to wait for individual requests, or drop earlier observations as above when requests share a path. These waits use `until`'s live-time deadline and `SignalNotReceived` diagnostics.
+
+`untilAbandoned(matches, options)` returns the request record when the connection closes before its response finishes, including a held request or a stalled response body. Completed responses do not emit this signal, and abandoned responses do not emit `completed`. An unfinished connection closed by a scripted fault also qualifies; the signal observes the connection, not who closed it.
 
 ```ts
 const abandoned = yield* service.untilAbandoned(
@@ -826,7 +896,7 @@ socialApp.it("a social sign-in returns with a cookie session", [], function* ({ 
 
 #### Several members on one host
 
-Use `memberScreens` from `@shivaedev/test-story/server/memberScreens.ts` inside a DOM kit's `create` hook. Supply `baseUrl`, `mount(member)` returning an Effect, and `verbs(member, tell)` returning that member's verbs and readouts. Each `MemberScreen` carries its `name`, `fetch`, `registry` and `root`. Mount the application into that root with that registry, and give its auth and HTTP clients the member's fetch. Cookie contexts are independent even when every member uses the same host.
+Use `memberScreens` from `@shivaedev/test-story/server/memberScreens.ts` inside a DOM kit's `create` hook. Supply `baseUrl`, `mount(member)` returning an Effect, and `verbs(member, tell)` returning that member's verbs and readouts. Each `MemberScreen` carries its `name`, `fetch`, `registry` and `root`. Mount the application into that root with that registry, and give its auth and HTTP clients the member's fetch. Cookie contexts are independent even when every member uses the same host. Each member's screen driver finds dialogs inside that member's root and body portals linked by an element in that root through `aria-controls`. Give body portals unique IDs and point each member's trigger at its own dialog. Unlinked body dialogs remain outside member screens; standalone drivers can find document-wide portals.
 
 A trait calls `yield* members.open("ada", cookies)` with a minted session's cookies. The kit's verbs hook returns `members.verbs(story.tell)`, exposing `as("ada")` to the spec. Member narration includes the name. The calling Scope closes every cookie context, disposes every registry and removes every root. Register renderer unmounting in the mount hook with `Effect.acquireRelease` so it runs before the registry and root are released.
 
@@ -893,13 +963,19 @@ yield* screen.settle();
 expect(screen.text("output")).toBe("Saved title");
 ```
 
-This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
+This form of `settle()` observes client activity changes and flushes the renderer before returning. Finite RPC calls, coalesced invalidations and refreshing query atoms all keep it waiting; subscription streams themselves do not. `find()` waits for idle client activity and a matching target, including a target rendered by a later DOM mutation. Keep live coalescing enabled. `nextLiveHint()` waits for the next subscription update received after the verb starts, including initial or resync updates; it does not wait for a refresh. Start the wait before another viewer writes, then settle before reading the resulting screen. If the client activity stream ends without a new hint, the wait fails with `SignalNotReceived` from `server/until.ts`. It needs client activity; a callback-only driver fails with `MissingClientActivity`.
 
-`click(selector)`, `enter(selector, value)`, `select(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root or a dialog portalled into its document; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Select focuses a native `<select>`, sets an available option value and dispatches change inside `act`. Disabled controls refuse clicks, entry and selection, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
+`click(selector)`, `enter(selector, value)`, `select(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root or a dialog portalled into its document (owned by that member for `memberScreens`); missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Select focuses a native `<select>`, sets an available option value and dispatches change inside `act`. Disabled controls refuse clicks, entry and selection, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
 `within(container)` returns the same driver scoped to that container, including nested `within` calls. Pass a selector, a role/name target or an `HTMLElement`. Selector and role containers must resolve to one rendered descendant and use the usual missing or ambiguous target diagnostics. For example, `within({ role: "region", name: "Billing" }).click({ role: "button", name: "Save" })` can address a Save button when Delivery has an identical button. A scoped driver searches only that container, including when the container is a portalled dialog. Settlement keeps the original pending signal and error type.
 
+`dialog(target)` searches under `body` for exactly one visible native dialog, `role="dialog"` or `role="alertdialog"` matching a selector or role/name target, then returns a driver scoped to it. It keeps the original driver’s member ownership, renderer and pending signal, including through nested scopes. For example, `screen.dialog({ role: "dialog", name: "Preferences" }).click({ role: "button", name: "Confirm" })` acts only inside that screen's Preferences dialog, even when another member has an identically named body portal. The member's trigger must link a body portal through `aria-controls`.
+
 `text(selector?)` reads visible HTML text from the selected element or the whole root. Block boundaries (using CSS display) and `<br>` separate adjacent text with a newline when there is no existing whitespace; inline text, including emphasis, stays joined. A card's title, message and action read as separate parts. Text transforms and layout wrapping are not applied. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
+
+`labelledText(label)` reads visible text from one element named by `aria-label`, `aria-labelledby` or a native form label. It accepts an exact string or a regular expression and fails for missing, hidden or ambiguous readouts. For example, `labelledText("Summary")` reads a labelled region without needing its role or CSS selector.
+
+`table(label)` finds a native HTML table by its accessible name, including a heading referenced through `aria-labelledby`, and returns an array of rows, each an array of visible cell text. Header and body rows retain DOM order; hidden rows, cells and nested hidden text are excluded. For example, `table("Ready deliveries")` returns `[["City", "Status"], ["London", "Ready"], ["Paris", "In transit"]]`. Strings match exactly and regular expressions match the table's name. These readouts narrate their results through `tell` and leave assertions to the spec.
 
 `click`, `enter`, `select`, `submit`, `text` and `value` also accept a `ScreenTarget` object such as `{ role: "button", name: "Save" }` or `{ role: "textbox", name: /email/i }`. The role and computed accessible name must match exactly when strings are used; regular expressions match the name. An alert without an accessible name can instead match its visible text. Like Testing Library's role queries, these targets exclude hidden elements, including `aria-hidden` ancestors. Missing or ambiguous targets fail with the requested role, name and the visible candidates on screen. Narration names the role and name instead of a selector.
 
@@ -930,7 +1006,7 @@ const client = makeClient(Notes, { protocol: observed.protocol, url });
 
 Expose `observed.readCount`, `observed.reads`, `observed.hints` and `observed.watchHints` through the kit's verbs. `readCount()` counts query requests and `$changes` subscription openings; `readCount("notes.list")` selects one tag. `reads()` returns their `tag`, encoded `payload` and `kind` (`"query"` or `"subscription"`), in send order. Commands and protocol acknowledgements do not count. `hints()` returns the `LiveHint` values received for those subscriptions, including `Resync`.
 
-`observed.subscriptions()` returns each opening's `tag`, encoded `payload` and `state`: `"open"`, `"answered"` after its first streamed value, or `"refused"` with `refusalTag` from its failure Exit. A refusal is not a hint. Expose `observed.waitForSubscriptions` through the kit and `yield* waitForSubscriptions` after the page has opened its subscriptions. It waits on response signals until every opening has answered or been refused. It has no polling budget and resolves immediately when no opening is pending. It does not wait for future navigation to open subscriptions or for React to render.
+`observed.subscriptions()` returns each opening's `tag`, encoded `payload` and `state`: `"open"`, `"answered"` after its first streamed value, `"refused"` with `refusalTag` from a tagged failure Exit, or `"closed"` when the stream completes empty, dies or disconnects before answering. A refusal or closure is not a hint. Expose `observed.waitForSubscriptions` through the kit and `yield* waitForSubscriptions` after the page has opened its subscriptions. It waits on response signals until every opening has answered, been refused or closed. Closing a client also closes its unanswered openings and leaves other clients' openings pending. It has no polling budget and resolves immediately when no opening is pending. It does not wait for future navigation to open subscriptions or for React to render.
 
 A story calls `const hints = yield* watchHints()` before the write, then `yield* hints.next` to await its browser delivery. Each watcher buffers its own future deliveries until the calling Scope closes. The wait uses the transport's signal with no polling budget. A hint means the browser received it; wait on the application's query or screen signal separately before asserting its rendered result or refetch count. Give another page its own readout to keep its traffic separate.
 
@@ -957,6 +1033,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/genreTags.ts`                | `genreTags(...kitNames)`, `GenreTag`                                                                                                                                                                                                                                                                                                                                                |
 | `server/domEnvironment.config.ts`    | Default Vitest environment preserving Node host globals and happy-dom document transport                                                                                                                                                                                                                                                                                            |
 | `server/fakeHttpService.ts`          | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
+| `server/httpVisitor.ts`              | `httpVisitor(upstream, options?)`, `HttpVisitorOptions`, `VisitorRequest`                                                                                                                                                                                                                                                                                                           |
 | `server/forwardingProxy.ts`          | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
 | `server/otlpReceiver.ts`             | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`, `OtlpTracerOptions`                                                                                                                                                                                                                                                                                      |
 

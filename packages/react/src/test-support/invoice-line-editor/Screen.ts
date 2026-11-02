@@ -1,11 +1,11 @@
 import { Option, Schema } from "effect";
 import { createElement, Fragment, type ReactNode } from "react";
 import { useField } from "@shivaedev/form/client/react.ts";
+import { fieldRejectionOf } from "@shivaedev/form/fieldRejection.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import { QueryView } from "#client/QueryView.ts";
-import { fieldRejectionOf } from "#fieldRejection.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
 
 export const InvoiceLineDraft = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });

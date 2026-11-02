@@ -1,7 +1,9 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { containerReady } from "#test/containerReady.ts";
 import { type ConnectionEngine, createConnectionEngine } from "#test/createConnectionEngine.ts";
+import { environmentGate } from "#test/environmentGate.ts";
 import { attempt, recorded } from "#test/setupOutcome.ts";
 
 const containerChange = Effect.fn("Connections.containerChange")(function* ({ before, state }: ConnectionEngine) {
@@ -29,11 +31,29 @@ export const connections = storyKit({
 	inspect: ({ before, name, outcome }) => ({ before, name, outcome }),
 	layer: NodeServices.layer,
 	name: "shared PostgreSQL connections",
+	runIf: environmentGate("a local Docker daemon", "docker", ["--host=unix:///var/run/docker.sock", "info"]),
 	stages: ["container"],
 	verbs: (engine, story) => ({
 		container: () => containerChange(engine),
+		dataMount: () =>
+			Effect.map(
+				engine.docker([
+					"inspect",
+					"--format",
+					"{{range .Mounts}}{{.Type}} {{.Name}} -> {{.Destination}} (writable: {{.RW}}){{println}}{{end}}",
+					engine.name,
+				]),
+				(mounts) => mounts.replaceAll(engine.name, "development-postgres"),
+			),
 		maxConnections: () => Effect.map(engine.sql("SHOW max_connections"), Number),
 		outcome: () => recorded(engine.outcome),
+		publishedPort: () =>
+			engine.docker([
+				"inspect",
+				"--format",
+				"{{range $port, $bindings := .NetworkSettings.Ports}}{{range $bindings}}{{.HostIp}}:{{.HostPort}} -> {{$port}}{{println}}{{end}}{{end}}",
+				engine.name,
+			]),
 		rows: () => Effect.map(engine.sql("SELECT value FROM kept ORDER BY value"), (value) => value.split("\n")),
 		start: Effect.fn("Connections.start")(function* () {
 			story.tell("setup starts the shared PostgreSQL service");
@@ -53,7 +73,7 @@ export function stockContainer({ allowing }: { readonly allowing?: number } = {}
 			if (allowing !== undefined) {
 				yield* engine.sql(`ALTER SYSTEM SET max_connections = ${allowing}`);
 				yield* engine.docker(["restart", engine.name]);
-				yield* engine.wait();
+				yield* containerReady(engine.name);
 			}
 		},
 	);
@@ -77,5 +97,17 @@ export function setupConnectsAsUnprivilegedRole() {
 	return connections.trait("container", "setup connects as a role that may not change server settings", function* (engine) {
 		yield* engine.sql("CREATE ROLE unprivileged LOGIN PASSWORD 'local-test'");
 		engine.connection = "postgresql://unprivileged:local-test@127.0.0.1:55432/postgres";
+	});
+}
+
+export function restartFails() {
+	return connections.trait("container", "Docker refuses the restart command", (engine) => {
+		engine.faults.at = "restart";
+	});
+}
+
+export function confirmationFails() {
+	return connections.trait("container", "PostgreSQL refuses the connection-limit query after restart", (engine) => {
+		engine.faults.at = "confirmation";
 	});
 }

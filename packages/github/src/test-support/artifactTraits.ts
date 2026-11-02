@@ -37,7 +37,7 @@ export const storageHoldsTail = github.trait(
 		yield* Effect.addFinalizer(() => Effect.sync(() => tail.resolve()));
 		archive.archive = {
 			chunks: (async function* () {
-				yield ARCHIVE;
+				yield ARCHIVE.subarray(0, 8);
 				await tail.promise;
 				yield new Uint8Array(1024);
 			})(),

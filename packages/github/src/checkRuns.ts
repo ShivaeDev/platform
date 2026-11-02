@@ -1,4 +1,5 @@
 import { Effect, Option, Schema, Stream } from "effect";
+import { decodedPages } from "#pagedLists.ts";
 import type { Representations } from "#representations.ts";
 
 export const CheckRunOutput = Schema.Struct({
@@ -50,8 +51,6 @@ export const CheckRun = Schema.Struct({
 	status: CheckRunStatus,
 }).pipe(Schema.encodeKeys({ detailsUrl: "details_url", headSha: "head_sha" }));
 
-const CheckRunPage = Schema.Struct({ checkRuns: Schema.Array(CheckRun) }).pipe(Schema.encodeKeys({ checkRuns: "check_runs" }));
-
 export const FindCheckRun = Schema.Union([
 	Schema.Struct({ appId: Schema.optional(Schema.Number), headSha: Schema.String, name: Schema.String }),
 	Schema.Struct({ appId: Schema.Number, headSha: Schema.String, name: Schema.optional(Schema.String) }),
@@ -74,10 +73,11 @@ export function checkRuns(client: Representations) {
 		if (name !== undefined) {
 			query.set("check_name", name);
 		}
-		const pages = yield* client.list(`/repos/${owner}/${repo}/commits/${encodeURIComponent(headSha)}/check-runs?${query}`);
+		const pages = decodedPages(client, `/repos/${owner}/${repo}/commits/${encodeURIComponent(headSha)}/check-runs?${query}`, CheckRun, {
+			arrayKey: "check_runs",
+		});
 		return yield* pages.pipe(
-			Stream.mapEffect((page) => page.decode(CheckRunPage)),
-			Stream.flatMap((page) => Stream.fromIterable(page.checkRuns)),
+			Stream.flatMap((page) => Stream.fromIterable(page.items)),
 			Stream.filter((run) => (name === undefined || run.name === name) && (appId === undefined || run.app?.id === appId)),
 			Stream.runFold(
 				() => Option.none<typeof CheckRun.Type>(),

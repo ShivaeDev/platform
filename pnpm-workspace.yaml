@@ -18,6 +18,7 @@ overrides:
   "@effect/platform-node-shared": "catalog:"
 
 catalog:
+  "@zip.js/zip.js": 2.24.0
   resend: 6.34.1
   playwright: 1.64.1
   "cn": 0.5.0

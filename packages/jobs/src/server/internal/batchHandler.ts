@@ -52,7 +52,7 @@ export function batchHandler<R>(
 	name: string,
 	schema: string,
 	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown, R>,
-	afterFailure: (job: Job<unknown>) => Effect.Effect<void, unknown> = () => Effect.void,
+	afterRetry: (job: Job<unknown>) => Effect.Effect<void, unknown> = () => Effect.void,
 ) {
 	const complete = client.complete?.bind(client);
 	const fail = client.fail?.bind(client);
@@ -73,8 +73,8 @@ export function batchHandler<R>(
 			return "interrupted";
 		}
 		yield* settleAttempt(complete, fail, name, job, exit);
-		if (Exit.isFailure(exit)) {
-			yield* afterFailure(job);
+		if (Exit.isFailure(exit) || exit.value === deferredAttempt) {
+			yield* afterRetry(job);
 		}
 		return "settled";
 	});

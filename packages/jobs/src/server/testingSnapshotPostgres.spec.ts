@@ -27,11 +27,10 @@ const mixed = [
 database.it(
 	"a snapshot of two queues reads their unfinished jobs in send order and leaves completed jobs out",
 	mixed,
-	function* ({ enqueue, snapshot, untilIdle }) {
+	function* ({ enqueue, snapshot }) {
 		expect(yield* snapshot("app", [Reports, FollowUps])).not.toContainEqual(expect.objectContaining({ job: "later report" }));
 
 		yield* enqueue("app", Reports, { id: 3 }, { as: "later report", startAfter: 3600 });
-		yield* untilIdle("app");
 
 		expect(yield* snapshot("app", [Reports, FollowUps])).toEqual([
 			{ data: { id: 1 }, job: "failed report", queue: "reports", starts: "by now", state: "failed" },

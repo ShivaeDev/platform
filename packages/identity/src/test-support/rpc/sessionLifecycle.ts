@@ -1,8 +1,9 @@
+import type { AuthContext } from "better-auth";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { ORIGIN, type Provider } from "./harness.ts";
 
-export function expireSession(provider: Provider, token: string) {
+export function expireSession(provider: { readonly auth: { readonly $context: Promise<Pick<AuthContext, "internalAdapter">> } }, token: string) {
 	return Effect.promise(async () => {
 		const { internalAdapter } = await provider.auth.$context;
 		const session = await internalAdapter.updateSession(token, { expiresAt: new Date(Date.UTC(2000, 0, 1)) });
@@ -12,7 +13,7 @@ export function expireSession(provider: Provider, token: string) {
 	});
 }
 
-export function signOut(provider: Provider, headers: Record<string, string>) {
+export function signOut(provider: { readonly auth: Pick<Provider["auth"], "handler"> }, headers: Record<string, string>) {
 	return Effect.promise(async () => {
 		const response = await provider.auth.handler(
 			new Request(`${ORIGIN}/api/auth/sign-out`, {

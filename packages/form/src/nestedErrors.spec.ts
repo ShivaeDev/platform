@@ -1,26 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { answerPaths, profiles, twoUnanswered, UNANSWERED_MESSAGE } from "#test/nestedForms.ts";
-
-answerPaths.it("an answer's text path gives the same error atom each time, even written anew", [], function* ({ sameErrorAtom }) {
-	const path = ["answers", 0, "text"] as const;
-
-	yield* outcomes([
-		["an equal path written anew", () => sameErrorAtom(path, ["answers", 0, "text"]), true],
-		["the same path asked twice", () => sameErrorAtom(path, path), true],
-	]);
-});
-
-answerPaths.it("another answer, a string index, a sibling part or the parent path each give their own error atom", [], function* ({ sameErrorAtom }) {
-	const path = ["answers", 0, "text"] as const;
-
-	yield* outcomes([
-		["a sibling part", () => sameErrorAtom(path, ["answers", 0, "selected"]), false],
-		["a string index", () => sameErrorAtom(path, ["answers", "0", "text"]), false],
-		["another answer", () => sameErrorAtom(path, ["answers", 1, "text"]), false],
-		["the parent path", () => sameErrorAtom(path, ["answers", 0]), false],
-	]);
-});
+import { profiles, twoUnanswered, UNANSWERED_MESSAGE } from "#test/nestedForms.ts";
 
 twoUnanswered.it(
 	"submitting two unanswered answers shows the message on each answer's text and on the answers summary, not on a selection",

@@ -23,12 +23,18 @@ export const registerWorker = Effect.fnUntraced(function* <R>(
 	function runJob(job: Job<unknown>, deadline: number) {
 		return traceJob(deferrableAttempt(run(job, deadline), client, schema, job, maxDeferrals), job, name);
 	}
-	function afterFailure(attempt: Job<unknown>) {
-		return retryWake(client, name, attempt.id, registration).pipe(Effect.forkIn(fibers), Effect.asVoid);
+	function afterRetry(attempt: Job<unknown>) {
+		return retryWake(client, schema, name, attempt.id, registration).pipe(Effect.forkIn(fibers), Effect.asVoid);
 	}
 	const handle = yield* Effect.try({
 		catch: (error) => toPgBossError("register", error, name),
-		try: () => batchHandler(client, name, schema, runJob, afterFailure),
+		try: () => {
+			const unsupported = (["perJobResults", "transactional"] as const).filter((mode) => options[mode] === true);
+			if (unsupported.length > 0) {
+				throw new TypeError(`Unsupported worker callback modes: ${unsupported.join(", ")}. Omit these options or set them to false.`);
+			}
+			return batchHandler(client, name, schema, runJob, afterRetry);
+		},
 	});
 	const registration: Promise<string> = yield* Effect.try({
 		catch: (error) => toPgBossError("register", error, name),

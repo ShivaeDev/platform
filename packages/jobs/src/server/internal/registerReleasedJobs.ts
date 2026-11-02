@@ -9,7 +9,7 @@ import { registerJobs, registrationName } from "./register.ts";
 
 export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,
-	jobs: readonly JobRegistration[],
+	jobs: readonly JobRegistration<R>[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
 	schema: string | undefined,

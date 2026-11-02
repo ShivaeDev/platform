@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/form",
-	"version": "0.10.0",
+	"version": "0.11.0",
 	"description": "Schema-derived Effect atom forms with optional React hooks",
 	"keywords": [
 		"effect"
@@ -47,6 +47,9 @@
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/errors": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",

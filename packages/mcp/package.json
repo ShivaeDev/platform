@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/mcp",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"description": "Identity-aware Effect MCP tools mounted on the application host",
 	"keywords": [
 		"effect"
@@ -54,10 +54,10 @@
 		"@shivaedev/identity": "workspace:*"
 	},
 	"devDependencies": {
-		"@better-auth/oauth-provider": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
@@ -68,14 +68,10 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
-		"@better-auth/oauth-provider": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:"
 	},
 	"peerDependenciesMeta": {
-		"@better-auth/oauth-provider": {
-			"optional": true
-		},
 		"better-auth": {
 			"optional": true
 		}

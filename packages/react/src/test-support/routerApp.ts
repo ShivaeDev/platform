@@ -1,8 +1,8 @@
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter, redirect } from "@tanstack/react-router";
 import { Effect, Option, Schema } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { queryRoute } from "#adapters/queryRoute.ts";
 import type { QueryRouteRedirect } from "#adapters/queryRouteFailure.ts";
-import { queryRoute } from "#queryRoute.ts";
 import { signInSearch } from "#signInSearch.ts";
 import { noteQuery } from "./noteQuery.ts";
 import type { routerClient } from "./routerClient.ts";

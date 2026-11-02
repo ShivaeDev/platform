@@ -103,6 +103,7 @@ export const parkedMergeDaemon = storyKit({
 			story.tell("run a scheduler sweep with no PR event");
 			return cycle.pipe(Effect.provideContext(state.daemon.context), Effect.provide(NodeServices.layer));
 		},
-		waitForQueued: (workId: string) => waitForRecord(state.daemon.client, workId, (record) => record.mergeQueue?.status === "queued"),
+		waitForQueued: (workId: string) =>
+			waitForRecord(state.daemon.client, workId, (record) => record.mergeQueue?.status === "queued", state.daemon.context),
 	}),
 });

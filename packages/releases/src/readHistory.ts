@@ -11,14 +11,13 @@ export const readHistory = Effect.fn("Changesets.readHistory")(function* (root: 
 	const paths = (yield* git(root, ["ls-tree", "-r", "--name-only", base])).trim().split("\n");
 	const packages = yield* Effect.forEach(
 		paths.filter(
-			(path) => path.endsWith("/package.json") && packagePatterns(config).some((pattern) => posix.matchesGlob(posix.dirname(path), pattern)),
+			(path) => posix.basename(path) === "package.json" && packagePatterns(config).some((pattern) => posix.matchesGlob(posix.dirname(path), pattern)),
 		),
 		Effect.fn("Changesets.historyPackage")(function* (path) {
 			const directory = posix.dirname(path);
 			const text = yield* git(root, ["show", `${base}:${path}`]);
-			const changelog = paths.includes(`${directory}/CHANGELOG.md`)
-				? yield* git(root, ["show", `${base}:${directory}/CHANGELOG.md`])
-				: "# Changelog\n";
+			const changelogPath = posix.join(directory, "CHANGELOG.md");
+			const changelog = paths.includes(changelogPath) ? yield* git(root, ["show", `${base}:${changelogPath}`]) : "# Changelog\n";
 			return yield* decodePackage(directory, text, changelog);
 		}),
 	);

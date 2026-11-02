@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 - 2026-11-02
+
+### Fixed
+
+- Fleet reconciles tracked PRs that merged or closed while its watcher was stopped and continues watching open PRs after restart.
+- Failed Fleet queue confirmations preserve the previous snapshot and defer transitions until GitHub confirms the observation.
+- Keep observations pending when required-check metadata omits a failed check or status, or lacks a cursor for remaining pages, instead of saving a snapshot with no failing required checks. Preserve known required failures and resume observations when metadata is complete.
+- Allow shutdown to interrupt pending transition output callbacks without saving the undelivered snapshot, so the transition remains available on restart.
+- Preserve stop emission errors as typed failures, including when polling fails.
+
+### Breaking
+
+- The PR watcher `GitHub` service’s `confirmQueue` method now returns `Snapshot | undefined`. Direct callers must treat `undefined` as an unconfirmed observation and retain the last successful snapshot without emitting transitions. Custom adapters can return `undefined` to defer confirmation.
+- `checkFailures` can return `undefined` when required-check metadata is incomplete. Direct callers must treat `undefined` as pending and retain their last observation until metadata is complete; `true` still means a required failure and `false` means no required failures were observed with sufficient metadata.
+
 ## 0.6.6 - 2026-11-01
 
 ### Fixed

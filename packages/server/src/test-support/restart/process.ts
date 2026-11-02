@@ -1,11 +1,10 @@
 import process from "node:process";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
-import { Clock, Context, Effect, Layer } from "effect";
-import { HttpServer } from "effect/http";
-import * as NetAddress from "effect/net/NetAddress";
+import { Clock, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { appHost } from "#appHost.ts";
+import { reportHostReady } from "#testing/hostProcessChild.ts";
 import { RestartNotes } from "./Notes.ts";
 
 NodeRuntime.runMain(
@@ -21,11 +20,7 @@ NodeRuntime.runMain(
 				services: LiveServer.layer.pipe(Layer.provideMerge(Reactivity.layer)),
 			}),
 		);
-		const { address } = Context.get(context, HttpServer.HttpServer);
-		if (!NetAddress.isInetAddress(address)) {
-			return yield* Effect.die("Expected a TCP host");
-		}
-		process.send?.({ pid: process.pid, port: address.port });
+		yield* reportHostReady.pipe(Effect.provideContext(context));
 		yield* Effect.never;
 	}).pipe(Effect.scoped),
 );

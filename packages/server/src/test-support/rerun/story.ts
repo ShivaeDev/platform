@@ -4,6 +4,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { answered } from "@shivaedev/test/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { close, context, start } from "#test/app-host/lifecycle.ts";
@@ -92,18 +93,11 @@ export const rerunStory = storyKit({
 		},
 		resync: () => Effect.flatMap(context(engine.state), (services) => Context.getUnsafe(services, LiveServer).resync()),
 		shown: () => AtomRegistry.getResult(engine.registry, engine.client.api.compare.query({ title: "One" })),
-		subscriptionEnd: () =>
-			Fiber.join(engine.finished).pipe(
-				Effect.match({
-					onFailure: (error) => {
-						if (error._tag === "QueryReadDenied") {
-							return "read denied";
-						}
-						return error._tag === "PolicyUnavailable" ? "policy unavailable" : String(error);
-					},
-					onSuccess: () => "completed",
-				}),
-			),
+		subscriptionDenial: () =>
+			until(SubscriptionRef.changes(engine.updates), (all) => all.some((update) => update._tag === "QueryReadDenied"), {
+				name: "policy denial",
+			}).pipe(Effect.as("read denied")),
+		subscriptionEnd: () => answered(Fiber.join(engine.finished)),
 		untilChanged: () =>
 			until(
 				SubscriptionRef.changes(engine.updates),

@@ -5,6 +5,7 @@ import { captureReading, restoreReading } from "#client/react/readingState.ts";
 import { answersScreenVerbs } from "./answersScreenVerbs.ts";
 import { appearanceActions } from "./appearanceActions.ts";
 import { chrome } from "./chrome.ts";
+import { chunkResponseVerbs } from "./chunkResponseVerbs.ts";
 import { diagramActions } from "./diagramActions.ts";
 import { distinctVerbs } from "./distinctVerbs.ts";
 import { itemContextVerbs } from "./itemContextVerbs.ts";
@@ -148,13 +149,14 @@ export const screenStory = storyKit({
 				"failWorkspace",
 				"holdRefreshAfterAnswer",
 				"holdWorkspace",
-				"readIndexReads",
+				"readWorkspaceRequests",
 				"recoverWorkspace",
 			]),
-			settlingVerbs(engine, screenReadVerbs(engine, story.tell), ["pauseRead", "readDocumentReads"]),
+			settlingVerbs(engine, screenReadVerbs(engine, story.tell), ["pauseRead", "readPageRequests"]),
 			answersScreenVerbs(engine, story.tell),
 			pagesScreenVerbs(engine, story.tell),
 			readingScreenVerbs(engine, story.tell),
+			chunkResponseVerbs(engine, story.tell),
 			readingPageVerbs(engine, story.tell),
 			shellScreenVerbs(engine, story.tell),
 			responsesScreenVerbs(engine, story.tell),

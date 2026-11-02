@@ -26,7 +26,7 @@ database.it(
 		yield* raceWhileAnotherSessionWaits();
 
 		yield* outcomes([
-			["race tally", () => raceTally(), { claimed: 1, full: 2 }],
+			["race tally", () => raceTally(), { claimed: 1, failed: 0, full: 2 }],
 			["sessions waiting at release", () => waitingAtRelease(), ["the advisory lock", "the advisory lock", "the advisory lock", "the advisory lock"]],
 		]);
 	},
@@ -48,7 +48,7 @@ database.it(
 	function* ({ race, raceTally }) {
 		yield* race({ lock: "table", writes: "guarded" });
 
-		expect(yield* raceTally()).toEqual({ claimed: 1, full: 2 });
+		expect(yield* raceTally()).toEqual({ claimed: 1, failed: 0, full: 2 });
 	},
 );
 
@@ -58,7 +58,20 @@ database.it(
 	function* ({ race, raceResults }) {
 		yield* race({ lock: "table", writes: "unguarded" });
 
-		expect(yield* raceResults()).toEqual(["alice", "bob", "charlie"]);
+		expect(yield* raceResults()).toEqual({ claims: ["alice", "bob", "charlie"], failures: [] });
+	},
+);
+
+database.it(
+	"a racer whose SQL fails is reported as a failure while the other two claim the place",
+	[poolLimit(4)],
+	function* ({ raceWhereBobFails, raceResults, raceTally }) {
+		yield* raceWhereBobFails();
+
+		yield* outcomes([
+			["race results", () => raceResults(), { claims: ["alice", "charlie"], failures: ["SQLSTATE 22012: division by zero"] }],
+			["race tally", () => raceTally(), { claimed: 2, failed: 1, full: 0 }],
+		]);
 	},
 );
 

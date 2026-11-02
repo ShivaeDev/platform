@@ -80,6 +80,11 @@ export const liveSessionStory = storyKit({
 			);
 		}
 		return {
+			allowRead: () =>
+				Effect.sync(() => {
+					story.tell("the server grants alice read access to the note");
+					host.state.allowed = true;
+				}),
 			denyRead: () =>
 				Effect.sync(() => {
 					story.tell("the server stops letting alice read the note");

@@ -2,6 +2,7 @@ import { Context, Effect } from "effect";
 import type { SqlClient } from "effect/sql";
 import { Fleet } from "#fleet.ts";
 import type { HostSettings } from "#host/config.ts";
+import { type AnswerSignals, answerSignals } from "#test/answerSignals.ts";
 import { type ApprovedPrFixture, approvedPrFixture } from "#test/approvedPrDaemon.ts";
 import { type HostFixture, hostFixture, task } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
@@ -18,6 +19,8 @@ export class AnswerHostEngine {
 	beforeStart: Effect.Effect<void, unknown, SqlClient.SqlClient> = Effect.void;
 	readonly resolution = resolutionHold();
 	readonly spans = spanCounts();
+	signals: AnswerSignals | undefined;
+	readonly answerWaits = new Map<string, AnswerSignals>();
 	#fixture: HostFixture | undefined;
 	#pr: ApprovedPrFixture | undefined;
 	#runtime: HostDaemon | undefined;
@@ -63,9 +66,24 @@ export class AnswerHostEngine {
 					return yield* Effect.die("The daemon is already running");
 				}
 				const { host } = engine.host;
-				const layer = readDaemonLayer(host, { parts: engine.#parts() });
+				const layer = readDaemonLayer(host, {
+					observeAnswers: (fleet) => engine.#observeAnswers(fleet),
+					parts: engine.#parts(),
+				});
 				engine.#runtime = yield* startHostDaemon(layer);
 			}),
+		);
+	}
+
+	#observeAnswers(fleet: typeof Fleet.Service) {
+		return answerSignals(fleet).pipe(
+			Effect.tap((signals) =>
+				Effect.sync(() => {
+					this.signals = signals;
+					this.answerWaits.clear();
+				}),
+			),
+			Effect.asVoid,
 		);
 	}
 
@@ -84,6 +102,13 @@ export class AnswerHostEngine {
 			yield* engine.running.stop;
 			engine.#runtime = undefined;
 		});
+	}
+
+	get answers() {
+		if (this.signals === undefined) {
+			throw new Error("The answer observer has not started");
+		}
+		return this.signals;
 	}
 
 	get fleet() {

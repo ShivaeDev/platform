@@ -3,9 +3,9 @@ import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { localRpcGuard, loopbackOnly, sameOrigin } from "#server/local.ts";
+import { localRpcGuard, loopbackOnly, sameOrigin } from "#server/adapters/local.ts";
+import { trustedProxyRanges } from "#server/adapters/trustedProxyRanges.ts";
 import { transportHeaders } from "#server/transportHeaders.ts";
-import { trustedProxyRanges } from "#server/trustedProxyRanges.ts";
 
 const forwarded = {
 	"content-type": "application/ndjson",
@@ -67,7 +67,9 @@ export const transport = storyKit({
 		loopbackPageWithoutAddress: () =>
 			Effect.gen(function* () {
 				story.tell("a Fetch page request to localhost without a transport address reaches the loopback-only handler");
-				const response = yield* loopbackOnly(() => Effect.succeed(HttpServerResponse.empty()))(pageRequest({}));
+				const response = yield* loopbackOnly(Effect.succeed(HttpServerResponse.empty())).pipe(
+					Effect.provideService(HttpServerRequest.HttpServerRequest, pageRequest({})),
+				);
 				return response.status === HttpStatus.fromLiteral("NoContent") ? "served" : "forbidden";
 			}),
 		normalizedTrust: () =>

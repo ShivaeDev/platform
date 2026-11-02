@@ -5,13 +5,14 @@ import { Headers as HttpHeaders } from "effect/http";
 import * as TestClock from "effect/testing/TestClock";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { answered } from "@shivaedev/test/answers.ts";
 import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUser } from "#identity.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { listSessions } from "#server/better-auth/sessionAdministration.ts";
 import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
@@ -36,9 +37,9 @@ export const sessionClock = storyKit({
 			secret: "session-clock-story-secret-with-at-least-32-characters",
 			session: { cookieCache: { enabled: false }, disableSessionRefresh: true, expiresIn: 3600 },
 		};
-		const mounted = yield* betterAuthMount(options, { defaultRole: "admin", roles: Roles }).pipe(
-			Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
-		);
+		const mounted = yield* betterAuthMount(options, { defaultRole: "admin", roles: Roles })
+			.pipe(Effect.provide(memoryStore))
+			.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))));
 		const context = yield* Effect.promise(() => mounted.auth.$context);
 		yield* Effect.promise(() => context.runMigrations());
 		const alice = yield* signedInUser(mounted.auth, { email: "alice@clock.test", name: "alice" });

@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { fixtureClock } from "#test/fixtureClock.ts";
 import { greetingApp, liveGreetingApp } from "#test/greetingFixture.ts";
 
 greetingApp("a fixture without a clock option runs its tests on the test clock from 0 ms", function* ({ clock }) {
@@ -38,3 +39,23 @@ greetingApp("the file's Layer is acquired on the live clock while the harness is
 		["Layer's clock", () => layerClock(), "the live clock"],
 	]);
 });
+
+fixtureClock.it(
+	"a fixture-provided Clock governs sleeps and wakes the body when advanced",
+	[],
+	function* ({ clock, startsSleeping, aSecondPasses, wokeAt }) {
+		yield* startsSleeping();
+		yield* outcomes([
+			["fixture time before waking", () => clock(), 1000],
+			["sleep has not finished", () => wokeAt(), undefined],
+		]);
+
+		yield* aSecondPasses();
+
+		yield* outcomes([
+			["fixture time after waking", () => clock(), 2000],
+			["time the sleep finished", () => wokeAt(), 2000],
+		]);
+	},
+	1000,
+);

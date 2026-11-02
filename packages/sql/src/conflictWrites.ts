@@ -6,15 +6,16 @@ import { type InsertMany, makeInsertMany } from "#batchWrites.ts";
 import { type ConditionalUpsert, type ConditionalUpsertMany, makeConditionalUpsert } from "#conditionalUpsert.ts";
 import { type InsertFromSelect, makeInsertFromSelect } from "#insertFromSelect.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
-import type { RepositoryChanges } from "./repositoryChanges.ts";
-import { makeUpsertDecoder, upsertReturning } from "./upsertResult.ts";
+import type { RepositoryChanges } from "#repositoryChanges.ts";
+import type { UpsertAssignment, UpsertColumn } from "#upsertColumns.ts";
+import { makeUpsertDecoder, upsertReturning } from "#upsertResult.ts";
 
 export type InsertColumn<TModel extends Model.Any> = Extract<keyof TModel["insert"]["Type"] & keyof TModel["fields"], string>;
 export type ConflictColumns<TModel extends Model.Any> = readonly [InsertColumn<TModel>, ...InsertColumn<TModel>[]];
 interface UpdateOptions<TModel extends Model.Any, TExcluded extends PropertyKey> {
 	readonly updateColumns: readonly [
-		Exclude<InsertColumn<TModel> & keyof TModel["update"]["Type"], TExcluded>,
-		...Exclude<InsertColumn<TModel> & keyof TModel["update"]["Type"], TExcluded>[],
+		UpsertColumn<TModel, Exclude<InsertColumn<TModel> & keyof TModel["update"]["Type"], TExcluded>>,
+		...UpsertColumn<TModel, Exclude<InsertColumn<TModel> & keyof TModel["update"]["Type"], TExcluded>>[],
 	];
 }
 export interface ConflictWrites<TModel extends Model.Any, TExcluded extends PropertyKey, TFilterServices = never> {
@@ -58,7 +59,7 @@ export function makeConflictWrites(
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const conditional = makeConditionalUpsert(model, sql, options);
 	const clause = makeConflictClause(model, sql, options);
-	function statement(input: unknown, updateColumns?: readonly string[]) {
+	function statement(input: unknown, updateColumns?: readonly UpsertAssignment[]) {
 		return Effect.gen(function* () {
 			const encoded = yield* record(yield* encode(input));
 			const suffix = yield* clause(encoded, updateColumns);
@@ -76,7 +77,10 @@ export function makeConflictWrites(
 				yield* options.changes.record(rows);
 				return rows.length === 0 ? Option.none() : Option.some(yield* decode(rows[0]));
 			}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.insertOrIgnore`)),
-		upsert: (input: unknown, settings: { readonly updateColumns: readonly string[]; readonly updateWhere?: Readonly<Record<string, unknown>> }) =>
+		upsert: (
+			input: unknown,
+			settings: { readonly updateColumns: readonly UpsertAssignment[]; readonly updateWhere?: Readonly<Record<string, unknown>> },
+		) =>
 			settings.updateWhere === undefined
 				? Effect.gen(function* () {
 						const rows = yield* yield* statement(input, settings.updateColumns);
@@ -86,7 +90,7 @@ export function makeConflictWrites(
 				: conditional([input], { ...settings, updateWhere: settings.updateWhere }).pipe(Effect.map((results) => results[0])),
 		upsertMany: (
 			inputs: readonly unknown[],
-			settings: { readonly updateColumns: readonly string[]; readonly updateWhere?: Readonly<Record<string, unknown>> },
+			settings: { readonly updateColumns: readonly UpsertAssignment[]; readonly updateWhere?: Readonly<Record<string, unknown>> },
 		) =>
 			settings.updateWhere === undefined
 				? makeInsertMany(model, sql, options, "upsertMany", (row) => clause(row, settings.updateColumns), true)(inputs)

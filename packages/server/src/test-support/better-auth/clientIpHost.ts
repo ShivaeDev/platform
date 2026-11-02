@@ -5,8 +5,9 @@ import { HttpRouter, HttpServer, HttpServerRequest } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "#appHost.ts";
 import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 
@@ -23,7 +24,7 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (e
 		await (await getMigrations(options)).runMigrations();
 	});
 	const context = yield* Effect.gen(function* () {
-		const mounted = yield* betterAuthMount(options);
+		const mounted = yield* betterAuthMount(options).pipe(Effect.provide(memoryStore));
 		return yield* Layer.build(
 			appHost({
 				config: { port: 0 },

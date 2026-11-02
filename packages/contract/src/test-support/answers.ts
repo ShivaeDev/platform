@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import type { LiveHint } from "#live.ts";
+import type { SubscriptionHint } from "#queryUpdate.ts";
 
 function field(error: object, name: string): string {
 	return Predicate.hasProperty(error, name) ? String(error[name]) : "";
@@ -112,6 +112,9 @@ function keyWords(key: Key): string {
 	}
 }
 
-export function hintWords(hint: LiveHint): string {
+export function hintWords(hint: SubscriptionHint): string {
+	if (hint._tag === "QueryReadDenied") {
+		return "read denied";
+	}
 	return hint._tag === "Resync" ? "resync" : `changed ${hint.keys.map(keyWords).join(", ")}`;
 }

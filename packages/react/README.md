@@ -571,7 +571,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/adapters/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -583,7 +583,7 @@ import { Effect, Option, Predicate, Schema } from "effect";
 import type { ReactNode } from "react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
-import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { api } from "./notes-client.ts";
 
@@ -668,7 +668,7 @@ For redirects, supply `redirects.signedOut` and `redirects.refused` in the optio
 
 ```ts
 import { redirect } from "@tanstack/react-router";
-import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import { signInSearch } from "@shivaedev/react/signInSearch.ts";
 
 const noteQuery = queryRoute(buildQuery, {
@@ -705,12 +705,12 @@ import { createRootRouteWithContext, createRoute, createRouter, Link, RouterProv
 import type { ReactNode } from "react";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { permission } from "@shivaedev/access/permission.ts";
-import { Forbidden } from "@shivaedev/react/client/Forbidden.ts";
-import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/client/permissionBoundary.ts";
+import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
+import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
-import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
+import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
 import { can, type PermissionSession } from "@shivaedev/react/permissions.ts";
-import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
 
@@ -794,7 +794,7 @@ const showNotes = can(auth.session, ReadNotes);
 
 `InnerWrap` puts `PermissionBoundary` inside the router. Its fallback can render `Link` and read route context. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
 
-`Forbidden` from `@shivaedev/react/client/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
+`Forbidden` from `@shivaedev/react/adapters/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
 
 `PermissionBoundary` also catches component query failures containing the shared `Forbidden` class. Without a boundary, query failures keep their normal typed state. TanStack resets route failures when the viewer navigates away; remount a boundary to clear a failure it catches outside the route error path.
 
@@ -863,7 +863,7 @@ The example uses `Option` from `effect` and the application's Better Auth client
 
 For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family. Call `authQuery((input, signal) => authClient.getSession({ query: input, fetchOptions: { signal } }))` with an explicitly typed input, then render its atom with `useQuery`. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
-For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
+For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/adapters/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
 ### 3. Every day
 
@@ -928,80 +928,111 @@ pnpm add @shivaedev/changes @shivaedev/contract
 pnpm add -D @shivaedev/test-story @effect/platform-node @effect/vitest vitest happy-dom react-dom @types/react-dom
 ```
 
-Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
+Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. Keep the engine, rendering and verbs in a story kit under `src/test-support/notesScreen.tsx`. This kit runs the declared query and command against native RPC test handlers and gives the screen driver the registry's pending signal:
 
 ```tsx
 import { Effect, Layer, Option, Ref, Schema, Stream } from "effect";
 import { act, createElement } from "react";
-import { expect } from "vitest";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
+import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
-import { eventually, expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { it } from "@shivaedev/test/it.ts";
-
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-expectNoReactWarnings();
+import { render } from "@shivaedev/test-story/client/react.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 
 const notes = collection("notes", Schema.Number);
 const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
 const Add = command("add", { invalidates: () => [notes.list], payload: { title: Schema.String } });
 const Notes = contract("notes", { commands: [Add], queries: [List] });
 
-const handlers = Notes.toLayer(
-	Effect.gen(function* () {
-		const stored = yield* Ref.make<readonly string[]>([]);
-		return Notes.of({
-			"notes.$changes": () => Stream.never,
-			"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
-			"notes.list": () => Ref.get(stored).pipe(Effect.delay("20 millis")),
+export const notesScreen = storyKit({
+	clock: "live",
+	*create() {
+		const handlers = Notes.toLayer(
+			Effect.gen(function* () {
+				const stored = yield* Ref.make<readonly string[]>([]);
+				return Notes.of({
+					"notes.$changes": () => Stream.never,
+					"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
+					"notes.list": () => Ref.get(stored),
+				});
+			}),
+		);
+		const { api, Client } = makeClient(Notes, {
+			live: false,
+			protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+			url: "memory://notes",
 		});
-	}),
-);
-const { api, Client } = makeClient(Notes, {
-	live: false,
-	protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
-	url: "memory://notes",
-});
-const add = Client.runtime.fn(api.add.run);
-function NotesView() {
-	const list = useQuery(api.list.query());
-	const action = useAction(add);
-	return createElement(
-		"section",
-		null,
-		createElement("output", null, Option.getOrElse(list.data, () => []).join(", ")),
-		createElement(
-			"button",
-			{
-				disabled: list.pending || action.pending,
-				onClick: () => action.dispatch({ title: "Morning walk" }),
-				type: "button",
+		const add = Client.runtime.fn(api.add.run);
+		function NotesView() {
+			const list = useQuery(api.list.query());
+			const action = useAction(add);
+			return createElement(
+				"section",
+				null,
+				createElement("output", null, Option.getOrElse(list.data, () => []).join(", ")),
+				createElement(
+					"button",
+					{
+						disabled: list.pending || action.pending,
+						onClick: () => action.dispatch({ title: "Morning walk" }),
+						type: "button",
+					},
+					"Add",
+				),
+			);
+		}
+		const view = yield* Effect.acquireRelease(
+			Effect.promise(() => render(createElement(NotesView))),
+			(mounted) => Effect.promise(mounted.unmount),
+		);
+		const pending = yield* screenPending().pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
+		return { pending, view };
+	},
+	inspect: ({ view }) => ({ screen: view.container.textContent }),
+	name: "notes screen",
+	stages: ["screen"],
+	verbs: ({ pending, view }, story) =>
+		screenDriver({
+			act: async (action) => {
+				await act(action);
 			},
-			"Add",
-		),
-	);
-}
-
-it.live("renders a query and refetches it after a command through a test RPC layer", function* () {
-	const view = yield* Effect.acquireRelease(
-		Effect.promise(() => render(createElement(NotesView))),
-		(view) => Effect.promise(view.unmount),
-	);
-	yield* eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
-	expect(view.container.querySelector("output")?.textContent).toBe("");
-	yield* Effect.promise(() => act(async () => view.container.querySelector("button")?.click()));
-	yield* eventually(() => {
-		expect(view.container.querySelector("output")?.textContent).toBe("Morning walk");
-		expect(view.container.querySelector("button")?.disabled).toBe(false);
-	});
+			pending,
+			root: view.container,
+			tell: story.tell,
+		}),
 });
 ```
 
-`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. In Effect tests, acquire the view with `Effect.acquireRelease` so its scope releases it on success, failure or interruption. In async tests, unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` returns an Effect: yield it directly in a story or Effect test, keeping the expectation in the spec. It retries for up to three seconds in live time, allowing pending responses to settle inside `act` between attempts without advancing the story’s TestClock. A timeout fails with an Error whose message includes the elapsed milliseconds and last assertion message, and whose `cause` is that assertion error. In an async test, use `await Effect.runPromise(eventually(assert))`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+The spec drives one action and states what the screen shows. With `#test/*` mapped to `src/test-support/*` in your package's imports, `notesScreen.dom.spec.tsx` is:
+
+```tsx
+import { expect } from "vitest";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { notesScreen } from "#test/notesScreen.tsx";
+
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
+
+notesScreen.it("a command refetches the rendered notes through native RPC", [], function* ({ click, settle, text }) {
+	yield* settle();
+	expect(text("output")).toBe("");
+
+	yield* click({ name: "Add", role: "button" });
+	yield* settle();
+
+	expect(text("output")).toBe("Morning walk");
+});
+```
+
+`settle()` waits for the engine's pending work and flushes the resulting React render. Release held server responses with a Deferred or another engine completion signal, then settle the screen before reading it. Keep each verb to one action and let a missing target fail; the driver's `click` and `enter` require a rendered control. Keep expectations in the spec.
+
+`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Acquire the view with `Effect.acquireRelease` so its scope releases it on success, failure or interruption. The screen driver's `act` adapter keeps component interactions and settling inside React's `act`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
 The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
 
@@ -1023,7 +1054,7 @@ screenStories.it("shows the route failure", [], async () => {
 
 Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
 
-A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/client/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
+A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/adapters/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
 
 ```ts
 const pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
@@ -1046,7 +1077,7 @@ const screen = screenDriver({ act, pending, root: view.container, tell: story.te
 
 Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
 
-Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback.
+Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `@shivaedev/form/fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback. Field-rejection mapping types and `fieldRejectionOf` also belong to `@shivaedev/form/fieldRejection.ts`; `AtomServices` belongs to `AtomServices.ts`.
 
 ### Install, setup and limits
 

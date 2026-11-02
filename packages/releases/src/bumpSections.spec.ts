@@ -39,10 +39,24 @@ for (const { body, bump } of [
 
 workspace.it(
 	`check refuses shared.md's patch for @test/api with Added notes, though it asks minor for ${CORE}`,
-	[changeset("shared", { [CORE]: "minor", "@test/api": "patch" })],
+	[changeset("shared", { [CORE]: "minor", "@test/api": "patch" }, "### Added\n\n- `@test/api`: Add API behavior.\n")],
 	function* ({ check }) {
 		expect(yield* check()).toBe(
 			"refused: shared.md: @test/api has a patch bump but its sections require at least minor; use minor for Added or Breaking before 1.0.",
 		);
+	},
+);
+
+workspace.it(
+	"check accepts a shared changeset whose core Added entry needs minor and whose API Fixed entry needs only patch",
+	[
+		changeset(
+			"shared",
+			{ [CORE]: "minor", "@test/api": "patch" },
+			"### Added\n\n- `@test/core`: Add core behavior.\n\n### Fixed\n\n- `@test/api`: Fix API behavior.\n",
+		),
+	],
+	function* ({ check }) {
+		expect(yield* check()).toBe("valid");
 	},
 );

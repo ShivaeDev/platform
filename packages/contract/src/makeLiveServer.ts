@@ -5,7 +5,7 @@ import { compareQueries } from "#internal/compareQueries.ts";
 import { liveHintQueue } from "#internal/liveHintQueue.ts";
 import type { LiveHint } from "#live.ts";
 import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
-import type { QueryUpdate } from "#queryUpdate.ts";
+import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const makeLiveServer = Effect.gen(function* () {
@@ -68,7 +68,7 @@ export const makeLiveServer = Effect.gen(function* () {
 		reactivity.invalidateUnsafe([resyncKey]);
 		return openStreams;
 	});
-	function subscribe<E, R>(subscription: QuerySubscription<E, R>, context?: KeyContext): Stream.Stream<LiveHint, E | QueryReadDenied, R>;
+	function subscribe<E, R>(subscription: QuerySubscription<E, R>, context?: KeyContext): Stream.Stream<SubscriptionHint, E | QueryReadDenied, R>;
 	function subscribe<E, R>(
 		subscription: QuerySubscription<E, R>,
 		context: KeyContext | undefined,
@@ -77,14 +77,20 @@ export const makeLiveServer = Effect.gen(function* () {
 	function subscribe<E, R>(subscription: QuerySubscription<E, R>, context?: KeyContext, read?: QueryRerun<E, R>) {
 		return Stream.unwrap(
 			Effect.sync(() => {
-				const compare = compareQueries(subscription, read);
+				let compare = compareQueries(subscription, read);
 				const next = Effect.fnUntraced(function* (hint: LiveHint) {
 					if (!(yield* subscription.authorized)) {
-						return yield* new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" });
+						compare = compareQueries(subscription, read);
+						return [new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })];
 					}
 					return yield* compare(hint);
 				});
-				return open(subscription.keys, context, subscription.globalKeys).pipe(Stream.mapEffect(next), Stream.flatMap(Stream.fromIterable));
+				return open(subscription.keys, context, subscription.globalKeys).pipe(
+					Stream.mapEffect((hint) =>
+						Effect.flatMap(subscription.refresh ?? Effect.context<never>(), (current) => Effect.provideContext(next(hint), current)),
+					),
+					Stream.flatMap(Stream.fromIterable),
+				);
 			}),
 		);
 	}

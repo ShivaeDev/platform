@@ -5,41 +5,18 @@ const DISCOVER = ["ps", "--filter", "publish=55432", "--format", "{{.ID}}"];
 
 export const daemonAnswers = { args: ["info"], result: "Docker is available" };
 
-export function containerPlan(state: "existing" | "missing" | "outdated") {
+export function containerPlan(state: "existing" | "outdated") {
 	return [
 		daemonAnswers,
 		{
 			args: ["container", "ls", "--all", "--filter", "name=^/development-postgres$", "--format", "{{.ID}}"],
-			result: state === "missing" ? "" : "container-id",
+			result: "container-id",
 		},
-		...(state === "missing"
-			? [
-					{
-						args: [
-							"run",
-							"--detach",
-							"--name",
-							"development-postgres",
-							"--publish",
-							"127.0.0.1:55432:5432",
-							"--env",
-							"POSTGRES_USER=postgres",
-							"--env",
-							"POSTGRES_PASSWORD=postgres",
-							"--mount",
-							"type=volume,src=development-postgres,dst=/var/lib/postgresql",
-							PINNED_IMAGE,
-						],
-						result: "new-container-id\n",
-					},
-				]
-			: [
-					{
-						args: ["inspect", "--format", "{{.Config.Image}}", "development-postgres"],
-						result: state === "outdated" ? "postgres:17-alpine" : PINNED_IMAGE,
-					},
-					...(state === "existing" ? [{ args: ["start", "development-postgres"], result: "development-postgres\n" }] : []),
-				]),
+		{
+			args: ["inspect", "--format", "{{.Config.Image}}", "development-postgres"],
+			result: state === "outdated" ? "postgres:17-alpine" : PINNED_IMAGE,
+		},
+		...(state === "existing" ? [{ args: ["start", "development-postgres"], result: "development-postgres\n" }] : []),
 	];
 }
 

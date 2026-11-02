@@ -4,6 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { CreateAppError } from "#CreateAppError.ts";
+import { skillActions } from "#test/skillActions.ts";
 import { scriptOutcome } from "./answers.ts";
 import { appReadouts } from "./appReadouts.ts";
 import { appFolder } from "./cli.ts";
@@ -48,6 +49,7 @@ export const application = storyKit({
 			...appReadouts(target),
 			...generatedReadouts(engine, target),
 			...templateReadouts(engine),
+			...skillActions(target, story),
 			answer: () => Effect.sync(() => engine.answers.at(-1) ?? "create-app has not run"),
 			createApp: (folder: string, ...flags: readonly Flag[]) => {
 				story.tell(`create-app ${[folder, ...flags].join(" ")}`);

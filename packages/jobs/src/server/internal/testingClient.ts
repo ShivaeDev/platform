@@ -5,6 +5,7 @@ import { deferralObservers } from "#internal/deferral.ts";
 import { expireAttempt } from "#internal/expireAttempt.ts";
 import { observeTestingSettlements } from "#internal/observeTestingSettlements.ts";
 import type { TestingBatch, TestingWork } from "#internal/testingIdle.ts";
+import { testingRegistration } from "#internal/testingRegistrations.ts";
 
 export interface TestingControls {
 	readonly changed: () => void;
@@ -94,7 +95,6 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 			}),
 		work: (name, options, handler) => {
 			settlements.watch(name);
-			controls.work.queues.add(name);
 			return client.work(name, options, async (jobs: Job<unknown>[]) => {
 				const batch: TestingBatch = { name, settled: false };
 				controls.work.batches.add(batch);
@@ -121,6 +121,9 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 	};
 	const wrapped = new Proxy(client, {
 		get(target, property) {
+			if (property === testingRegistration) {
+				return (name: string) => controls.work.queues.add(name);
+			}
 			if (Object.hasOwn(overrides, property)) {
 				const override: unknown = Reflect.get(overrides, property);
 				return override;

@@ -5,7 +5,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
-import type { LiveHint } from "@shivaedev/contract/live.ts";
+import type { SubscriptionHint } from "@shivaedev/contract/queryUpdate.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { Notes } from "#modules/notes/notes.ts";
 import { answerWithReason, refusal } from "#test-support/answers.ts";
@@ -79,13 +79,19 @@ export const noteChangesSubscription = Effect.fn("AppStory.noteChangesSubscripti
 
 export const changeHints = Effect.fn("AppStory.changeHints")(function* (address: RpcAddress, cookie: string, describe: (key: Key) => string) {
 	const client = yield* changesClient(address, cookie);
-	const hints = yield* Queue.unbounded<LiveHint>();
+	const hints = yield* Queue.unbounded<SubscriptionHint>();
 	yield* client["notes.$changes"]({ queries: [{ payload: undefined, query: "list" }] }).pipe(
 		Stream.runForEach((hint) => Queue.offer(hints, hint)),
 		Effect.forkScoped,
 	);
 	yield* Queue.take(hints);
 	return {
-		nextHint: () => Effect.map(Queue.take(hints), (hint) => (hint._tag === "Resync" ? "resync" : `changed ${hint.keys.map(describe).join(", ")}`)),
+		nextHint: () =>
+			Effect.map(Queue.take(hints), (hint) => {
+				if (hint._tag === "QueryReadDenied") {
+					return "read denied";
+				}
+				return hint._tag === "Resync" ? "resync" : `changed ${hint.keys.map(describe).join(", ")}`;
+			}),
 	};
 });

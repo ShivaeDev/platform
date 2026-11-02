@@ -1,14 +1,14 @@
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, PubSub } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/test-story/client/react.ts";
-import { loadLazyChunks } from "#client/react/lazyChunks.ts";
+import { createLazyChunks } from "#client/react/adapters/createLazyChunks.ts";
+import type { BoardFixtureOptions } from "#test/BoardFixtureOptions.ts";
 import type { FileSystemWrapper } from "#test/board.ts";
 import { browserStorage } from "#test/browserStorage.ts";
 import type { chrome } from "#test/chrome.ts";
 import type { mountDocument } from "#test/documentRendering.ts";
-import type { BoardFixtureOptions } from "#test/inMemoryBoard.ts";
 import type { mountSession } from "#test/mountSession.ts";
 import type { CurrentFleet } from "#test/pullRequestsFixture.ts";
 import type { BoardTestApi, renderBoard } from "#test/react.tsx";
@@ -19,10 +19,11 @@ import type { SessionTransport } from "#test/sessionTransport.ts";
 export interface ScreenEngine {
 	api?: BoardTestApi;
 	boardScreen?: Awaited<ReturnType<typeof renderBoard>>;
+	chunkResponse?: { started: boolean; held: boolean; pending: boolean; release: () => Promise<void>; fail: () => void };
+	chunks: ReturnType<typeof createLazyChunks>;
 	readonly cleanups: Array<() => Promise<void>>;
 	container?: HTMLElement | undefined;
 	documentFailed?: boolean;
-	documentReads: string[];
 	documentView?: Awaited<ReturnType<typeof mountDocument>>;
 	drawings?: DiagramDrawing[];
 	files: Readonly<Record<string, string>>;
@@ -30,11 +31,10 @@ export interface ScreenEngine {
 	headerFootprints?: number[];
 	health?: boolean;
 	heldAnswerRefresh?: { readonly gate: Deferred.Deferred<void>; started: boolean } | undefined;
-	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; started: boolean };
-	heldRefresh?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly failed: boolean; started: boolean };
+	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly startedSignal: Deferred.Deferred<void>; started: boolean };
+	heldRefresh?: { readonly url: string; readonly gate: Deferred.Deferred<void>; readonly failed: boolean; finished: boolean; started: boolean };
 	indexFailed?: boolean;
 	indexGate?: Deferred.Deferred<void> | undefined;
-	indexReads: number;
 	indexWaiting?: boolean;
 	lastView?: ReturnType<typeof screenView>;
 	media?: Map<string, MediaQueryList>;
@@ -45,6 +45,7 @@ export interface ScreenEngine {
 	};
 	options?: BoardFixtureOptions | undefined;
 	outline?: { offset: number };
+	pageRequests: string[];
 	path: string;
 	pendingNavigation?: Promise<void> | undefined;
 	readingStatus?: string[];
@@ -62,8 +63,10 @@ export interface ScreenEngine {
 	startupGate?: Deferred.Deferred<void>;
 	tell?: (line: string) => void;
 	time?: { readonly at: number; readonly view: (at: number) => ReactNode };
+	readonly transportEvents: PubSub.PubSub<void>;
 	updatesPaused?: Atom.Writable<boolean>;
 	view?: Awaited<ReturnType<typeof render>>;
+	workspaceRequests: number;
 }
 
 export function* createScreen() {
@@ -71,10 +74,11 @@ export function* createScreen() {
 	browserStorage();
 	window.sessionStorage.clear();
 	window.history.replaceState({}, "", "/");
-	// Screens render inside synchronous act(), which rejects a suspending first load; the served-bundle stories cover the lazy load itself.
-	yield* Effect.promise(loadLazyChunks);
+	const chunks = createLazyChunks();
+	yield* Effect.promise(() => Promise.all(Object.values(chunks).map((chunk) => chunk.load())));
 	const attributes = [...document.documentElement.attributes].map(({ name, value }) => [name, value] as const);
-	const engine: ScreenEngine = { cleanups: [], documentReads: [], files: {}, indexReads: 0, path: "/" };
+	const transportEvents = yield* Effect.acquireRelease(PubSub.unbounded<void>(), PubSub.shutdown);
+	const engine: ScreenEngine = { chunks, cleanups: [], files: {}, pageRequests: [], path: "/", transportEvents, workspaceRequests: 0 };
 	yield* Effect.addFinalizer(() =>
 		Effect.promise(async () => {
 			for (const close of engine.cleanups.reverse()) {

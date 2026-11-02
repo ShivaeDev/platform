@@ -129,27 +129,24 @@ const createdAt = Model.Field({
 
 This field is absent from insert and update. A PostgreSQL `timestamptz` default supplies a `Date` on the database boundary, while the JSON codec encodes a string. Choose each field's schema for the values its driver or transport actually returns.
 
-For a PostgreSQL `int4[]` column, give the native driver an explicit element OID so an empty array has a type too:
+For PostgreSQL `int8` and one-dimensional `int4[]` columns, wrap the field's value schema with a storage codec:
 
 ```ts
-import * as PgTypes from "@effect/sql-pg/PgTypes";
-import { Result, SchemaGetter, SchemaParser } from "effect";
+import { int8 } from "@shivaedev/sql/int8.ts";
+import { int4Array } from "@shivaedev/sql/int4Array.ts";
 
 const Integers = Schema.Array(Schema.Int);
-const StoredIntegers = Schema.Unknown.pipe(
-	Schema.decodeTo(Integers, {
-		decode: SchemaGetter.transformEffect((value) => SchemaParser.decodeUnknownEffect(Integers)(PgTypes.isParameter(value) ? value.value : value)),
-		encode: SchemaGetter.transform((values) => Result.getOrThrow(PgTypes.array(values, PgTypes.OID.int4))),
-	}),
-);
+const StoredIntegers = int4Array(Integers);
 
 class Sample extends Model.Class<Sample>("Sample")({
-	id: Schema.Int,
+	id: int8(Schema.BigInt),
 	values: Model.Field({ insert: StoredIntegers, select: StoredIntegers, update: StoredIntegers, json: Integers }),
 }) {}
 ```
 
-The decoded value is an integer array in every variant. The database variants encode a native typed `int4[]` parameter; JSON retains the ordinary array. The same storage codec on `select` lets equality filters encode empty arrays too. `PgTypes.array` resolves the built-in `int4` array OID; `getOrThrow` unwraps that known constructor result. PostgreSQL still enforces its integer range on writes.
+`int8(field)` keeps bigint values exact beyond `Number.MAX_SAFE_INTEGER` and encodes native `PgTypes.int8` parameters. The native driver returns `bigint`; no conversion through a JS number occurs. `int4Array(field)` encodes a native array parameter with the `int4` element OID, including for an empty array. Both take the field schema, preserve its validation, and unwrap their native parameters when repository writes decode returned rows. PostgreSQL still enforces its integer ranges.
+
+Use the array storage codec on select, insert and update so equality filters encode empty arrays too. Keep an ordinary array schema for JSON. A bigint field transported as JSON likewise needs an explicit transport codec in its JSON variant; these helpers describe database storage.
 
 For a PostgreSQL `jsonb` column, wrap the value schema with `jsonb`:
 
@@ -240,7 +237,9 @@ Use `{ in: values }` to match any value in a list, alongside equality entries:
 yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 ```
 
-Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field; only the explicit `{ in: [...] }` entry requests SQL `IN`.
+Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field.
+
+A value accepted by the field's decoded schema uses equality through its codec before filter operators are considered. For a JSONB field whose schema accepts `{ gt: 7 }` or `{ in: [7] }`, those objects compare as JSON values. An object is an operator filter only when the field's decoded schema does not accept it. A nullable field's `null` equality matches SQL NULL, including on JSONB columns; it does not match JSON null. This rule applies to reads, counts and deletes.
 
 Use `count` with the same `where` shape as `findMany` to return the matching row count decoded as a number:
 
@@ -344,6 +343,29 @@ Here `archive` is another unversioned `InvoiceLine` repository with its own tabl
 
 A repository configured with `conflictColumns` also exposes `insertFromSelectOrIgnore(source, columns)`. It uses the same conflict columns and optional `conflictWhere` predicate as `insertOrIgnore`, skips existing keys, and returns only inserted rows. An empty source returns `[]`. Both writes join `transact` and roll back with it. Source filter encoding services and target result decoding services remain in the write's Effect environment.
 
+### Native SQL list predicates
+
+`inValues(column, values)` from `@shivaedev/sql/inValues.ts` returns an Effect requiring the native `SqlClient`. It builds a native SQL fragment: an empty list matches nothing, and a non-empty list binds each value as a parameter. Pass a column name or a native fragment for a qualified column. Keep request encoding, result decoding and the SQL itself in native `SqlSchema`:
+
+```ts
+import { SqlClient, SqlSchema } from "effect/sql";
+import { inValues } from "@shivaedev/sql/inValues.ts";
+
+const sql = yield* SqlClient.SqlClient;
+const paymentsBySequence = SqlSchema.findAll({
+	Request: Schema.Array(Payment.fields.sequence),
+	Result: Schema.Struct({ sequence: Payment.fields.sequence }),
+	execute: (sequences) => Effect.gen(function* () {
+		const predicate = yield* inValues(sql`p.${sql("sequence")}`, sequences);
+		return yield* sql`select p.sequence from payments p where ${predicate}`;
+	}),
+});
+
+const rows = yield* paymentsBySequence([]);
+```
+
+`rows` is empty even when the table contains payments. The helper takes its column explicitly and leaves native `SqlSchema` visible. Use native SQL with composed schemas for joins; this helper adds no query layer or typed join.
+
 ### Composite keys and idempotent writes
 
 A generated app can ingest the same reading more than once. Declare the table's primary key with an `idColumn` tuple and its unique conflict key with `conflictColumns`:
@@ -382,7 +404,7 @@ The application creates `readings` with `PRIMARY KEY (source, sequence)`; `seque
 | `insertManyOrIgnore` | Readonly array of model insert inputs                                | Decoded inserted models; conflicting rows are omitted.                                         |
 | `upsertMany`         | Readonly array of model insert inputs and `{ updateColumns: [...] }` | An array of `{ row, inserted }` results.                                                       |
 
-All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
+All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. String entries replace those columns with their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
 
 For a partial unique index such as `CREATE UNIQUE INDEX ON entries (a, b) WHERE kind = 'x'`, add `conflictWhere` beside `conflictColumns`:
 
@@ -398,6 +420,20 @@ const inserted = yield* entries.insertManyOrIgnore(inputs);
 ```
 
 All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = $n` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses typed equality entries like `findMany.where`: decoded field values pass through their field codecs and remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
+
+Declare conflict behavior per field in the same `updateColumns` list:
+
+```ts
+const saved = yield* counters.upsert(incoming, {
+	updateColumns: [
+		{ column: "count", mode: "add" },
+		{ column: "label", mode: "keepOnNull" },
+		"note",
+	],
+});
+```
+
+`add` computes the stored column plus its incoming encoded value inside the conflict update, so concurrent increments from separate PostgreSQL connections all count. Its model field must decode to a number, bigint or `BigDecimal`; choose a storage codec and SQL column that support native addition. `keepOnNull` uses the incoming value when it is non-null and keeps the stored value when it is SQL `NULL`. A string entry still replaces the field. Inserts use the incoming values directly. These entries also work in `upsertMany` and with `updateWhere`, and publish the same record and old/new bucket keys as other repository writes.
 
 On PostgreSQL, pass `updateWhere` to conditionally apply the update branch:
 
@@ -674,6 +710,9 @@ NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only
 
 Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
+- `@shivaedev/sql/inValues.ts`: `inValues(column, values)` — Native list predicate with match-nothing semantics for an empty list; requires `SqlClient`.
+- `@shivaedev/sql/int8.ts`: `int8(field)` — PostgreSQL bigint storage codec using the supplied field schema.
+- `@shivaedev/sql/int4Array.ts`: `int4Array(field)` — PostgreSQL integer-array storage codec, including typed empty arrays.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
@@ -745,7 +784,7 @@ The mapper handles named unique violations and PostgreSQL foreign-key and check 
 
 Recover outside `transact` so earlier writes roll back before handling a mapped domain error. A losing unique-key insert can then catch `NameTaken` and read the winner's row without a private transaction error. See the [constraint-failures guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/constraint-errors.md).
 
-For the native PostgreSQL driver's default representations, use precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `Schema.BigInt`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
+For the native PostgreSQL driver's default representations, use precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `int8(Schema.BigInt)`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
 
 JSON and JSONB columns are not supported. A repository write of a plain object to one fails with `SqlError` and writes nothing. Give structured data its own columns, or its own table when it repeats, so PostgreSQL constraints and the model both describe it.
 

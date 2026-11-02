@@ -6,7 +6,7 @@ import { act } from "react";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
-import { screenPending } from "#client/screenPending.ts";
+import { screenPending } from "#adapters/screenPending.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { loaderHost } from "./loaderHost.ts";
@@ -150,15 +150,7 @@ export const loaderScreen = storyKit({
 			return sessionRegistry(engine).getNodes().has(atom) ? "held" : "released";
 		}
 		return {
-			clickLink: (target: "Home" | "Note") =>
-				Effect.promise(async () => {
-					story.tell(`click the ${target} link`);
-					const link = [...opened(engine).view.container.querySelectorAll("a")].find((candidate) => candidate.textContent === target);
-					if (link === undefined) {
-						throw new Error(`Missing ${target} link`);
-					}
-					await act(async () => link.click());
-				}).pipe(Effect.andThen(settle(engine, story.tell))),
+			clickLink: (target: "Home" | "Note") => clickLink(engine, target, story.tell),
 			firstRenders: () => Effect.sync(() => [...engine.renders]),
 			idleWindowPasses: () =>
 				Effect.promise(async () => {
@@ -174,6 +166,12 @@ export const loaderScreen = storyKit({
 				}),
 			loaderSource: () => Effect.sync(() => presence(host.source)),
 			refresh: () => refresh(engine, story.tell),
+			removeLink: (target: "Home" | "Note") =>
+				Effect.gen(function* () {
+					story.tell(`remove the ${target} link`);
+					const link = yield* findLink(engine, target);
+					link.remove();
+				}),
 			rename: (title: string) =>
 				Effect.promise(async () => {
 					story.tell(`rename the note to ${title}, which invalidates it`);
@@ -192,6 +190,20 @@ export const loaderScreen = storyKit({
 			shownTitle: () => Effect.sync(() => opened(engine).view.container.querySelector("h1")?.textContent),
 		};
 	},
+});
+
+function findLink(engine: Engine, target: "Home" | "Note") {
+	return Effect.suspend(() => {
+		const link = [...opened(engine).view.container.querySelectorAll("a")].find((candidate) => candidate.textContent === target);
+		return link === undefined ? Effect.fail(`missing ${target} link` as const) : Effect.succeed(link);
+	});
+}
+
+const clickLink = Effect.fnUntraced(function* (engine: Engine, target: "Home" | "Note", tell: (line: string) => void) {
+	tell(`click the ${target} link`);
+	const link = yield* findLink(engine, target);
+	yield* Effect.promise(() => act(async () => link.click()));
+	yield* settle(engine, tell);
 });
 
 function refresh(engine: Engine, tell: (line: string) => void) {
@@ -217,6 +229,13 @@ export function noteShown(title: string) {
 	return loaderScreen.trait("screen", `the note route loaded and shows ${title}`, function* (engine) {
 		yield* openNote(engine);
 		yield* respond(engine, title, () => undefined);
+	});
+}
+
+export function noteLoadWaiting() {
+	return loaderScreen.trait("screen", "the note's loader waits for its server response", function* (engine) {
+		yield* openNote(engine);
+		yield* engine.host.started;
 	});
 }
 
@@ -250,12 +269,11 @@ export function noteLeftAfterShowing(title: string) {
 		function* (engine) {
 			yield* openNote(engine);
 			yield* respond(engine, title, () => undefined);
-			const { view } = opened(engine);
-			const home = [...view.container.querySelectorAll("a")].find((candidate) => candidate.textContent === "Home");
+			const home = yield* findLink(engine, "Home");
 			const registry = sessionRegistry(engine);
 			const swept = removed(registry, engine.host.atom);
 			yield* Effect.promise(async () => {
-				await act(async () => home?.click());
+				await act(async () => home.click());
 				await act(() => swept);
 			});
 			yield* settle(engine, () => undefined);

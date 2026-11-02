@@ -1,5 +1,23 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
-import { httpClient, pageOneLinksToAnotherOrigin, threeLinkedPages } from "#test/http-client/story.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { pageOneLinksToAnotherOrigin, redirectedPages, threeLinkedPages } from "#test/http-client/pages.ts";
+import { httpClient, usingClient } from "#test/http-client/story.ts";
+
+for (const transport of ["fetch", "node"] as const) {
+	httpClient.it(
+		`${transport} pagination resolves a relative next link against the redirected response URL`,
+		[usingClient(transport), redirectedPages],
+		function* ({ readEveryPage, requests }) {
+			const items = yield* readEveryPage();
+
+			yield* outcomes([
+				["page items", () => Effect.succeed(items), ["paper", "ink"]],
+				["requests", requests, ["GET /pages/1?token=private", "GET /archive/pages/1", "GET /archive/pages/2"]],
+			]);
+		},
+	);
+}
 
 httpClient.it("reading every page returns paper, ink and pens", [threeLinkedPages], function* ({ readEveryPage }) {
 	expect(yield* readEveryPage()).toEqual(["paper", "ink", "pens"]);

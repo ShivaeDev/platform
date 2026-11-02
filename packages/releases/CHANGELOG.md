@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0 - 2026-11-02
+
+### Fixed
+
+- Accept pending changesets added later on main when a release records its base in `.changeset/release-base`, including after squash merging. Keep rejecting dropped or rewritten release inputs and notes. Pass the checked main revision as the optional fourth argument to `checkReleaseCoverage` when composing repository validation.
+- Reject generated dependency ranges that differ from the planned dependency version, naming the dependent package and range to regenerate.
+- Preserve blank lines between indented release-note paragraphs in collected changelogs and migration checklists.
+- Reject planning, applying and checking releases with published dependencies on removed packages, including registry version ranges, and name the dependent and removed package. Snapshot plans also reject missing `workspace:` targets without base manifests. Development-only dependencies and private dependents do not block removal.
+
+### Breaking
+
+- `checkReleaseCoverage` now requires `FileSystem.FileSystem` to read the recorded release base. Provide `NodeServices.layer` from `@effect/platform-node`, or add a filesystem layer alongside the existing child-process spawner.
+- `planRelease`, `applyRelease`, and the `plan` and `apply` CLI commands now read the Git base to reject removed dependencies even with registry version ranges. Run them in a Git repository with a resolvable `origin/main` or `main` and common history. Effect API callers must provide `ChildProcessSpawner.ChildProcessSpawner` alongside `FileSystem.FileSystem` (for example with `NodeServices.layer`) and handle `GitError` failures from history reads. For Git-free snapshot planning, call `computePlan(packages, sources, previousPackages)` with the base packages explicitly.
+
 ## 0.6.3 - 2026-11-01
 
 ### Fixed

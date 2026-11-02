@@ -22,6 +22,7 @@ export type StartOptions = PgBossOptions & {
 	readonly reportsErrors?: true;
 	readonly jobLookupsFailWith?: string;
 	readonly startsUnderLogAnnotations?: Readonly<Record<string, string>>;
+	readonly wrapsClient?: true;
 };
 
 function logMessage(message: unknown, cause: Cause.Cause<unknown>): unknown {
@@ -80,6 +81,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 		reportsErrors,
 		jobLookupsFailWith,
 		startsUnderLogAnnotations,
+		wrapsClient,
 		...layerOptions
 	} = options;
 	const story = yield* Scope.Scope;
@@ -103,7 +105,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 			if (layerOptions.clientCacheKey !== undefined) {
 				engine.sharedClients.set(layerOptions.clientCacheKey, client);
 			}
-			return client;
+			return wrapsClient === true ? new Proxy(client, {}) : client;
 		},
 	});
 	const service = queueNames === undefined ? Jobs : makePgBoss(Jobs.key, queueNames);

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.36.0 - 2026-11-02
+
+### Added
+
+- Add `redactBrowserText` to mask quoted browser literals, including escaped quotes and multiline content, while preserving diagnostic shape and the existing server text policy.
+- Add opt-in `browserErrors` settings for an Error log per report, signed-in `user.id` attribution and session enforcement. The starter enables all three.
+
+### Fixed
+
+- Mask browser report messages and stacks before they reach diagnostic sinks and record reports at Error severity.
+- Apply starter updates to apps inside enclosing Git repositories while preserving sibling files and unrelated staged changes. Keep the generation record unchanged when a nonempty starter delta applies no changes.
+- Generated notes apps show an alert when adding or saving a note defects, keep the draft, and handle delete completion in the note's own action.
+- Generated Railway workers receive shared `RESEND_API_KEY`, `EMAIL_FROM` and `PUBLIC_URL` settings. Production workers require an explicit email sender at startup; deployment instructions describe queued auth email delivery and the worker's production settings.
+- Generated starter stories settle through screen pending signals and completed HTTP/live results instead of status markup or timed connection sampling. Remove the redundant third-party session lifecycle fixture and its teardown delays.
+
 ## 0.35.0 - 2026-11-01
 
 ### Added

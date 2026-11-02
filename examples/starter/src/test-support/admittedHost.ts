@@ -6,10 +6,11 @@ import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { allowedAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { AppAccess } from "#AppAccess.ts";
@@ -39,7 +40,9 @@ export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (e
 			socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 		},
 		{ defaultRole: User.name, roles: AppAccess, signIn: { accounts: allowedAccounts } },
-	).pipe(Effect.tap(({ auth }) => readyAuth(auth)));
+	)
+		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.tap(({ auth }) => readyAuth(auth)));
 	const sessions = {
 		...mounted.sessions,
 		origin: () => true,

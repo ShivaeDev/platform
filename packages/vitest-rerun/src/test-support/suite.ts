@@ -3,8 +3,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { vi } from "@effect/vitest";
 import { Console, Deferred, Effect, type Fiber, FileSystem } from "effect";
-import { vi } from "vitest";
 import { main } from "#internal/main.ts";
 import { type SuiteConfig, vitestConfig } from "./specFiles.ts";
 

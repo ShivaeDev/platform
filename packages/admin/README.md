@@ -79,7 +79,7 @@ Provide the application's session policy through `SessionPolicy` once. Registrat
 
 A page can declare `route: { path: "/admin/workspaces", detail: "/admin/workspaces/$id", title: "Workspaces" }`. The detail must be a descendant of the page's path; composition rejects a detail elsewhere or equal to the page path. Mount `adminDocuments(registration, handler)` from `@shivaedev/admin/server/adminDocuments.ts` beside the application's public document routes and provide the same `SessionPolicy` layer. The handler serves the application's document; the guard checks the matched page's permission first. Unregistered admin paths return 404. `/admin` and `/admin/` use the first registered page's permission.
 
-Use `adminPermissionGuard(registration.pages, permissionGuard({ session, signIn: "/sign-in" }))` from `@shivaedev/admin/client/adapters/adminPermissionGuard.ts` as the client root route's `beforeLoad`, using the native `permissionGuard` from `@shivaedev/react/permissionGuard.ts`. It applies the matched list or detail page's permission together with other route permissions. Like the document guard, `/admin` and `/admin/` use the first registered page's permission. The application still declares the detail component in its router.
+Use `adminPermissionGuard(registration.pages, permissionGuard({ session, signIn: "/sign-in" }))` from `@shivaedev/admin/client/adapters/adminPermissionGuard.ts` as the client root route's `beforeLoad`, using the native `permissionGuard` from `@shivaedev/react/adapters/permissionGuard.ts`. It applies the matched list or detail page's permission together with other route permissions. Like the document guard, `/admin` and `/admin/` use the first registered page's permission. The application still declares the detail component in its router.
 
 ### Pages owned by modules
 
@@ -255,7 +255,7 @@ The view lists signed-in sessions with the user's name and email, started, last 
 
 ### Client permission routes
 
-`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract, installs a read policy checking the page grant on every query, and exposes its permission as `page.route.permission`. Queries need no repeated page-grant policy. An additional query policy can restrict access further. Bound live queries use the same page grant as one-off reads. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback.
+`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract, installs a read policy checking the page grant on every query, and exposes its permission as `page.route.permission`. Queries need no repeated page-grant policy. An additional query policy can restrict access further. Bound live queries use the same page grant as one-off reads. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/adapters/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/adapters/permissionBoundary.ts` with the session and one application fallback.
 
 ### Install and limits
 

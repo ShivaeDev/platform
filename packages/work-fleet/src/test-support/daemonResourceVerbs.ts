@@ -3,7 +3,6 @@ import { Cause, Effect, Exit, Layer } from "effect";
 import { HttpClient } from "effect/http";
 import { daemonLayer } from "#host/daemon.ts";
 import { RPC_PATH } from "#host/daemonContract.ts";
-import { until } from "#test/cloudRestart.ts";
 import { daemonClient } from "#test/daemonClient.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { described } from "#test/refusal.ts";
@@ -18,7 +17,6 @@ export function daemonResourceVerbs(engine: HostStoryEngine) {
 	return {
 		address: () => `http://127.0.0.1:${engine.running.port}`,
 		connections: () => resources().connections,
-		connectionsClosed: () => until(() => resources().connections.pipe(Effect.map((count) => count === 0))),
 		peerReadsTogether: (peers: number) =>
 			resources().peakConnections(
 				Effect.forEach(

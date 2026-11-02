@@ -14,6 +14,7 @@ const IssueTitle = Schema.fromJsonString(Schema.Struct({ title: Schema.String })
 export const fakeRepository = Effect.gen(function* () {
 	const clock = yield* Clock.Clock;
 	const writes = pullRequestWrites();
+	const readReplies = new Map<string, FakeHttpReply>();
 	const state: { budgets: { core: Budget; search: Budget }; pageReplies: Map<number, FakeHttpReply>; pullRequests: number } = {
 		budgets: { core: { limit: 5000, remaining: 4990, reset: 3600 }, search: { limit: 30, remaining: 30, reset: 60 } },
 		pageReplies: new Map(),
@@ -97,9 +98,10 @@ export const fakeRepository = Effect.gen(function* () {
 			pull: { path: "/repos/acme/widgets/pulls/:number", reply: pull },
 			pulls: { path: "/repos/acme/widgets/pulls", reply: pulls },
 			search: { path: "/search/issues", reply: search },
+			typedReads: { path: "/:read*", reply: (request) => core(readReplies.get(request.path) ?? { status: 404 }) },
 		},
 	});
-	return { archive: archive.state, server, state, writes: writes.state };
+	return { archive: archive.state, readReplies, server, state, writes: writes.state };
 });
 
 export type FakeRepository = Effect.Success<typeof fakeRepository>;

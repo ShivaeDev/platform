@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/identity",
-	"version": "0.17.0",
+	"version": "0.18.0",
 	"description": "Request identity, sessions, transport trust and permission enforcement for Effect RPC servers",
 	"keywords": [
 		"effect"
@@ -55,9 +55,11 @@
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {
+		"@better-auth/oauth-provider": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@shivaedev/admin": "workspace:*",
@@ -73,10 +75,14 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@better-auth/oauth-provider": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:"
 	},
 	"peerDependenciesMeta": {
+		"@better-auth/oauth-provider": {
+			"optional": true
+		},
 		"better-auth": {
 			"optional": true
 		}

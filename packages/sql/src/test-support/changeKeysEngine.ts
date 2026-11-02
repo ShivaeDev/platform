@@ -1,17 +1,19 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
+import { type Capture, makeCapture } from "@shivaedev/changes/capture.ts";
 import { bucketRows } from "./bucketRows.ts";
 import type { compositeLedger } from "./compositeLedger.ts";
 import type { setupOwnedRows } from "./postgresOwnedRows.ts";
 
 export interface ChangeKeysEngine {
 	readonly buckets: Effect.Success<typeof bucketRows>;
+	readonly capture: Capture<unknown>;
+	readonly createdIds: number[];
 	readonly endings: string[];
 	ledger: Effect.Success<typeof compositeLedger> | undefined;
 	observing: boolean;
 	owned: Effect.Success<typeof setupOwnedRows> | undefined;
-	readonly published: Set<string>;
 	readonly reactivity: Reactivity.Reactivity;
 	readonly sql: SqlClient.SqlClient;
 	readonly woken: string[];
@@ -20,11 +22,12 @@ export interface ChangeKeysEngine {
 export const changeKeysEngine = Effect.fnUntraced(function* () {
 	const engine: ChangeKeysEngine = {
 		buckets: yield* bucketRows,
+		capture: yield* makeCapture<unknown>(),
+		createdIds: [],
 		endings: [],
 		ledger: undefined,
 		observing: false,
 		owned: undefined,
-		published: new Set(),
 		reactivity: yield* Reactivity.Reactivity,
 		sql: yield* SqlClient.SqlClient,
 		woken: [],

@@ -16,28 +16,36 @@ export const browserSubscriptions = Effect.sync(() => {
 	const waitForSubscriptions: Effect.Effect<void> = Effect.suspend(() =>
 		openings.every(({ state }) => state !== "open") ? Effect.void : Deferred.await(changed).pipe(Effect.andThen(waitForSubscriptions)),
 	);
+	function close(index: number) {
+		const opening = openings[index];
+		return opening?.state === "open" ? settle(index, { ...opening, state: "closed" }) : Effect.void;
+	}
 	return {
+		close,
 		open: (payload: unknown, tag: string) => {
 			openings.push({ payload, state: "open", tag });
 			return openings.length - 1;
 		},
 		receive: (index: number, message: RpcMessage.FromServerEncoded) => {
 			const opening = openings[index];
-			if (opening === undefined || opening.state !== "open") {
+			if (opening?.state !== "open") {
 				return Effect.void;
 			}
 			if (message._tag === "Chunk" && message.values.length > 0) {
 				return settle(index, { ...opening, state: "answered" });
 			}
-			if (message._tag !== "Exit" || message.exit._tag !== "Failure") {
+			if (message._tag !== "Exit") {
 				return Effect.void;
+			}
+			if (message.exit._tag === "Success") {
+				return close(index);
 			}
 			for (const cause of message.exit.cause) {
 				if (cause._tag === "Fail" && Predicate.hasProperty(cause.error, "_tag") && typeof cause.error._tag === "string") {
 					return settle(index, { ...opening, refusalTag: cause.error._tag, state: "refused" });
 				}
 			}
-			return Effect.void;
+			return close(index);
 		},
 		subscriptions: () => openings.map((opening) => ({ ...opening })),
 		waitForSubscriptions,

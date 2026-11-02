@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/vitest-rerun",
-	"version": "0.2.1",
+	"version": "0.3.0",
 	"description": "Reruns failed Vitest tests in a fresh process and reports which tests were flaky",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/vitest-rerun#readme",
 	"bugs": {
@@ -47,6 +47,9 @@
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/service": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",

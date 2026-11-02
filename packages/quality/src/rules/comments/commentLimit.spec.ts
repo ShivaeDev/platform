@@ -93,6 +93,6 @@ const refused = [
 
 for (const [options, given, named] of refused) {
 	ruleStory.it(`comments/max-per-file refuses ${options} and names it`, [], function* ({ optionIssues }) {
-		expect(yield* optionIssues<unknown>(maxPerFile, given)).toEqual([expect.stringContaining(named)]);
+		expect(yield* optionIssues(maxPerFile, given)).toEqual([expect.stringContaining(named)]);
 	});
 }

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.0 - 2026-11-02
+
+### Changed
+
+- Generate lock IDs through Effect's Crypto service and read process metadata and signals through runtime adapters.
+
+### Fixed
+
+- Pass the selected lock path in the held environment so child processes join the same lock when an explicit `lockPath` overrides their environment.
+- Remove draft lock files after partial writes, acquisition failures and interruption.
+- Report draft and reclamation-gate cleanup failures as acquisition failures, rolling back any newly acquired hold. Scoped release failures surface as defects containing a `HeavyLockError` and preserve a work failure alongside the cleanup failure.
+
+### Breaking
+
+- Reclamation uses a shared `<lock>.reclaim` directory and checks ownership before removing a stale file, so competing reclaimers never displace a live holder. Stop participants and upgrade every implementation sharing a lock path to the documented gate protocol before restarting them; implementations that rename the lock during reclamation cannot safely participate.
+- Acquisition now requires `Crypto.Crypto` alongside the filesystem, path and process-spawning services. Provide `NodeServices.layer`, or add `NodeCrypto.layer` to a custom platform layer.
+- Import signal helpers from `@shivaedev/heavy-lock/adapters/signals.ts` instead of `@shivaedev/heavy-lock/cli/signals.ts`.
+
 ## 0.7.1 - 2026-11-01
 
 ### Fixed

@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Effect, Layer, Schema, Stream } from "effect";
+import { Deferred, Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
@@ -15,13 +15,14 @@ const Notes = contract("loaderNotes", { commands: [Rename], queries: [Get] });
 
 export const loaderHost = Effect.fnUntraced(function* () {
 	const calls: string[] = [];
+	const started = yield* Deferred.make<void>();
 	let response = Promise.withResolvers<{ readonly title: string }>();
 	const handlers = Notes.toLayer({
 		"loaderNotes.$changes": () => Stream.never,
 		"loaderNotes.get": () =>
 			Effect.suspend(() => {
 				calls.push("get");
-				return Effect.promise(() => response.promise);
+				return Deferred.succeed(started, undefined).pipe(Effect.andThen(Effect.promise(() => response.promise)));
 			}),
 		"loaderNotes.rename": ({ title }) =>
 			Effect.sync(() => {
@@ -56,5 +57,6 @@ export const loaderHost = Effect.fnUntraced(function* () {
 		rename: (title: string) => Client.runtime.atom(api.rename.run({ title })),
 		respond: (title: string) => response.resolve({ title }),
 		source: atom.initialValueTarget,
+		started: Deferred.await(started),
 	};
 });

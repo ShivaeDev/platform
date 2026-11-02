@@ -1,4 +1,4 @@
-import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/tables.ts";
+import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/adapters/tables.ts";
 
 export const mappedTables = {
 	user: {

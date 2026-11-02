@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.32.0 - 2026-11-02
+
+### Added
+
+- `@shivaedev/changes/keys.ts` exports `isBucketSchema` to check whether a schema decodes to string or number keys, including nullable and optional model fields. `declaredBuckets` includes this check as `supported`.
+
+### Fixed
+
+- Exceptions in change observers are logged without stopping sink delivery or changing transaction outcomes, including SQL change observations.
+- Match SQL NULL for null equality filters on JSONB fields in reads, counts and deletes. Values accepted by the column schema compare through its codec before filter operators are considered, including JSON objects with `gt` or `in` keys.
+- Fail the scope coordinating a worker release with the original cause when heartbeat or ownership polling retries are exhausted, and stop registered jobs workers before removing the release lease. Application-host workers can no longer keep fetching after their release coordinator fails.
+- Publish a release only after every component succeeds, and reject marker writes from invocations older than the recorded one. `recordedAt` identifies the invocation's PostgreSQL start time; a new invocation can still deploy an earlier release label.
+- Allow interrupted transactions to stop waiting for a pooled connection while preserving announcements for commits that land during interruption.
+
+### Breaking
+
+- Transactions inside `batch` now publish at their outermost transaction's commit, honoring the scoped `CommittedSink`, instead of waiting for the batch to end. Use an enclosing transaction when writes and their changes must commit together, or coalesce in the sink when independent transactions need grouped delivery. Nontransactional batch changes still wait for the batch to end, and rolled-back transactions publish nothing.
+- SQL repository registration rejects annotated bucket fields whose decoded schemas cannot be represented by change keys, with `BucketRegistrationError.invalidFields` naming the rejected fields. Use string or number schemas, optionally nullable or optional, for bucket values. Codecs such as `Schema.NumberFromString` remain supported. Replace opaque declarations with an explicit string or number schema and refinements. When constructing `BucketRegistrationError` directly, supply `invalidFields` (an empty array for field-name mismatches).
+- Migration runners with schema components or a release now hold a session advisory lock through components and release publication. Allocate at least two pool connections for an active runner plus capacity for waiting runners and other work, and migrate transaction-pooled connections to direct connections or session pooling. Components continue to run outside the ledger transaction. Runs with only numbered migrations retain their transaction lock and one-connection pool support.
+- Direct callers of `postgresRelease(...).apply` must handle `SchemaError` alongside `SqlError` because the component now decodes its PostgreSQL clock row.
+
 ## 0.31.0 - 2026-11-01
 
 ### Added

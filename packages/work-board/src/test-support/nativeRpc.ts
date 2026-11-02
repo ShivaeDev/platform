@@ -4,6 +4,7 @@ import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import * as Socket from "effect/socket/Socket";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
+import type { SubscriptionHint } from "@shivaedev/contract/queryUpdate.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { documents } from "#rpc/keys.ts";
 import type { RunningBoard } from "#test/board.ts";
@@ -82,7 +83,7 @@ export const subscribe = Effect.fn("Test.subscribe")(function* (board: Pick<Runn
 			}),
 		);
 	}).pipe(Effect.provideContext(context), Effect.provideService(Scope.Scope, scope));
-	const pending: LiveHint[] = [];
+	const pending: SubscriptionHint[] = [];
 	return {
 		close: () => Scope.close(scope, Exit.void),
 		next: () =>
@@ -93,6 +94,9 @@ export const subscribe = Effect.fn("Test.subscribe")(function* (board: Pick<Runn
 				const hint = pending.shift();
 				if (hint === undefined) {
 					return yield* Effect.die(new Error("The native subscription returned no hint"));
+				}
+				if (hint._tag === "QueryReadDenied") {
+					return yield* Effect.fail(hint);
 				}
 				return hint;
 			}),

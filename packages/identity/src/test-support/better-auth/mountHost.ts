@@ -4,9 +4,9 @@ import type { BetterAuthOptions, BetterAuthRateLimitOptions } from "better-auth"
 import { ConfigProvider, Context, Effect, Layer, Logger, type LogLevel, Tracer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import type { BearerSessionsOptions } from "#server/better-auth/bearerSessions.ts";
-import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import type { BearerSessionsOptions } from "#server/better-auth/adapters/bearerSessions.ts";
+import { PEER_IP_HEADER } from "#server/better-auth/adapters/clientIp.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 
 export const FORWARDED_HEADERS = ["x-forwarded-for", "x-real-ip"] as const;
 
@@ -21,9 +21,7 @@ export interface MountEngine {
 	authDown: boolean;
 	readonly authOptions: Pick<BetterAuthOptions, "baseURL" | "trustedOrigins">;
 	bearerSessions?: BearerSessionsOptions;
-	readonly consumed: Array<{ readonly key: string; readonly rule: { readonly max: number; readonly window: number } }>;
 	readonly env: Record<string, string>;
-	lastAnswer?: string;
 	readonly logs: Array<{ readonly level: LogLevel.LogLevel; readonly message: unknown; readonly traceId: string | undefined }>;
 	readonly providerLogs: Array<{ level: string; message: string }>;
 	providerView?: ProviderView;
@@ -36,7 +34,6 @@ export function emptyMount(): MountEngine {
 	return {
 		authDown: false,
 		authOptions: {},
-		consumed: [],
 		env: {},
 		logs: [],
 		providerLogs: [],

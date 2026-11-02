@@ -26,7 +26,7 @@ it.effect("rejects an unmet requirement", function* () {
 });
 
 // @ts-expect-error The live tester supplies no Missing service either.
-it.live("rejects an unmet requirement in an effect body", () => Missing.asEffect());
+it.live("rejects an unmet requirement in an effect body", () => Effect.service(Missing));
 
 it.effect.each([{ id: 1 as const }])("keeps the table case type", function* (item) {
 	expectTypeOf(item.id).toEqualTypeOf<1>();

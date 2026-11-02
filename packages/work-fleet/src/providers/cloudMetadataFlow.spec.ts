@@ -2,7 +2,7 @@ import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { SYNTHETIC_WORKSPACE } from "#test/codexCloud.ts";
 import { cloudMetadata, providerSessions } from "#test/providerSessionStory.ts";
-import { receipt } from "#test/session.ts";
+import { receipt } from "#test/sessionPersistence.ts";
 
 const input = { cwd: SYNTHETIC_WORKSPACE, operationId: "synthetic-operation", prompt: "Synthetic work" };
 
@@ -10,7 +10,7 @@ for (const threadNamePrefix of [undefined, "Automation: "]) {
 	providerSessions.it(
 		`a Cloud session is named with the ${threadNamePrefix === undefined ? "default" : "configured"} prefix after it is journaled and before its turn starts`,
 		[cloudMetadata(threadNamePrefix === undefined ? {} : { threadNamePrefix })],
-		function* ({ journal, methods, sent, sessions }) {
+		function* ({ mutations, methods, sent, sessions }) {
 			yield* sessions.start(input);
 
 			yield* outcomes([
@@ -19,7 +19,20 @@ for (const threadNamePrefix of [undefined, "Automation: "]) {
 					() => sent("thread/name/set"),
 					[{ name: `${threadNamePrefix ?? "Fleet: "}synthetic-work: Synthetic work`, threadId: receipt.sessionId }],
 				],
-				["journal", () => journal(), [receipt.sessionId, "name requested"]],
+				[
+					"committed before naming",
+					() => mutations(),
+					[
+						expect.objectContaining({
+							attempts: expect.arrayContaining([expect.objectContaining({ sessionId: receipt.sessionId })]),
+							method: "thread/name/set",
+						}),
+						expect.objectContaining({
+							attempts: expect.arrayContaining([expect.objectContaining({ sessionId: receipt.sessionId })]),
+							method: "turn/start",
+						}),
+					],
+				],
 				["call order", () => methods("thread/name/set", "turn/start"), ["thread/name/set", "turn/start"]],
 			]);
 		},

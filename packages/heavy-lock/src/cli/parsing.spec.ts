@@ -1,6 +1,22 @@
 import { expect } from "vitest";
+import manifest from "@shivaedev/heavy-lock/package.json" with { type: "json" };
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { liveCli, lockStory } from "#test/kit.ts";
+import { heldBy, liveCli, lockStory } from "#test/kit.ts";
+
+lockStory.it(
+	"version prints the package version and exits successfully while build keeps the lock",
+	[heldBy("build")],
+	function* ({ cli, lock }) {
+		yield* cli.invokedWith("check", ["--version"]);
+
+		yield* outcomes([
+			["output", () => cli.standardOutputOf("check"), `heavy-lock v${manifest.version}\n`],
+			["exit code", () => cli.exitCodeOf("check"), 0],
+			["lock holder", () => lock.holder(), "build"],
+		]);
+	},
+	liveCli,
+);
 
 lockStory.it(
 	"a command without flags can run without the -- separator",

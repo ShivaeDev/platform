@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.30.2 - 2026-11-02
+
+### Fixed
+
+- Keep per-query headers on automatic live subscriptions and rerun-and-compare reads.
+- Reopen a denied hinted query's subscription on explicit refresh so it can return data after access is granted.
+- Reject authored queries, commands and streams named `$changes` with a declaration error instead of silently replacing them with the built-in changes stream.
+- Run session-owned streams through their owning registry's client, preserving its transport and headers and ending the streams when the session closes. Streams without a session owner continue to use the caller's client.
+
 ## 0.30.1 - 2026-11-01
 
 ### Fixed

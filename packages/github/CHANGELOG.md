@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.9.0 - 2026-11-02
+
+### Added
+
+- Send PUT and DELETE through the shared authenticated mutation path, omit absent request bodies, and decode bodyless 204 results as `void` by omitting the response schema or using `Schema.Void`.
+- Find the latest commit check run by name, app ID, or both with `findLatestCheckRun`, and create or update it with `upsertCheckRun`. Check-run responses expose the app ID when present and recognize GitHub Actions-only read statuses.
+- One `githubApp` Layer now provides `GitHubApp` and `withInstallation` to share clients across installations, with separate token refresh, conditional caches and rate-limit state. The cache holds at most 100 clients, evicts the least recently used client when full and replaces clients after 30 minutes idle.
+
+### Fixed
+
+- Installation lookups and token exchanges use the same rate-limit detection and retry deadlines as App and resource requests. Quota exhaustion returns typed `GitHubRateLimited`, and requests fail locally until its deadline instead of repeating authentication requests.
+- Read HEAD responses and statuses 204, 205 and 304 as empty bytes or text; JSON decoding still rejects empty input.
+- Limit encoded responses by bytes exposed by the native client stream, without comparing compressed Content-Length to decoded bytes. Fetch exposes decompressed bytes; Node's native HTTP transport exposes encoded bytes.
+- Keep conditional response caches separate for requests with different query parameters. Refresh pagination Link metadata on 304 responses while reusing cached bodies and decoded values, so lists follow the current next page and stop when its Link disappears.
+- Remove userinfo, query strings and fragments from status-error URLs.
+- Keep pagination links on the request's origin.
+- Release response bodies before returning status or body-size failures, and keep schema failures from holding HTTP connections.
+- Release GitHub response bodies on rejection and before refreshing a rejected installation token, so repeated failures do not exhaust the connection pool.
+
+### Breaking
+
+- Effectful `GitHubToken` providers can now fail with `GitHubRateLimited` alongside `GitHubAppError`. Consumers handling authentication failures must also handle `GitHubRateLimited` and use its `retryAt` when scheduling another attempt.
+- Bounded response readers reject NaN, infinite and negative limits with the typed `InvalidBodyLimit` error from `errors.ts`. Pass a finite nonnegative byte limit and handle the new failure in the error channel.
+- GitHub methods using the bounded response reader also expose `InvalidBodyLimit` from `@shivaedev/http/errors.ts` for invalid byte limits. Supply finite nonnegative limits and handle that failure alongside existing response failures.
+- `CreateCheckRun` requires a conclusion when `status` is `completed`, with validation before any request. Consumers creating completed runs must supply `conclusion`; use `queued` or `in_progress` when no conclusion is available.
+- `CheckRunStatus` includes `waiting`, `requested` and `pending` from GitHub Actions responses. Consumers with exhaustive status handling must add these cases. GitHub App create and update inputs remain restricted to `queued`, `in_progress` and `completed`.
+- Pagination rejects automatic fetch redirects so custom headers cannot reach another origin. Pass a direct same-origin page URL instead of a redirecting URL; links to later pages must also use direct URLs. Other fetch options in the current Effect context are preserved. Use a client without redirect-following middleware.
+- GitHub listing methods inherit the redirect restriction. List the repository's current API path instead of an endpoint that redirects after a rename or transfer.
+
 ## 0.8.6 - 2026-11-01
 
 ### Fixed

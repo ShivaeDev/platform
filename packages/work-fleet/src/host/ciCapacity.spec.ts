@@ -15,10 +15,10 @@ ciCapacity.it(
 		yield* daemon.dispatch("two");
 
 		yield* outcomes([
-			["worker launches", () => Effect.sync(daemon.launches), ["fast", "default"]],
+			["worker launches", () => Effect.sync(daemon.launches), ["fast", undefined]],
 			["recorded fast launch", () => daemon.recordedTier("one"), "fast"],
-			["recorded default launch", () => daemon.recordedTier("two"), "default"],
-			["status", () => daemon.status(), { config: { settings: { concurrency: 100 } }, launchTier: { queuedRuns: 5, serviceTier: "default" } }],
+			["recorded provider default launch", () => daemon.recordedTier("two"), undefined],
+			["status", () => daemon.status(), { config: { settings: { concurrency: 100 } }, launchTier: { queuedRuns: 5, serviceTier: undefined } }],
 		]);
 
 		daemon.queuedRuns(2);
@@ -26,12 +26,12 @@ ciCapacity.it(
 		yield* daemon.dispatch("three");
 
 		yield* outcomes([
-			["worker launches", () => Effect.sync(daemon.launches), ["fast", "default", "fast"]],
+			["worker launches", () => Effect.sync(daemon.launches), ["fast", undefined, "fast"]],
 			["recorded recovered launch", () => daemon.recordedTier("three"), "fast"],
 			[
 				"CLI status",
 				() => daemon.cliStatus(),
-				{ code: 0, stdout: expect.stringContaining("Service tier fast: 2 queued CI runs; default at >= 5, fast at <= 2") },
+				{ code: 0, stdout: expect.stringContaining("Service tier fast: 2 queued CI runs; provider default at >= 5, fast at <= 2") },
 			],
 		]);
 	},
@@ -46,13 +46,13 @@ ciCapacity.it("CI counts between thresholds retain the tier on both sides of the
 	daemon.queuedRuns(6);
 	yield* daemon.intervalPasses();
 	yield* daemon.dispatch("two");
-	expect(daemon.launches()).toEqual(["fast", "default"]);
+	expect(daemon.launches()).toEqual(["fast", undefined]);
 
 	daemon.queuedRuns(3);
 	yield* daemon.intervalPasses();
 	yield* daemon.dispatch("three");
 
-	expect(daemon.launches()).toEqual(["fast", "default", "default"]);
+	expect(daemon.launches()).toEqual(["fast", undefined, undefined]);
 });
 
 ciCapacity.it("launches and status share one queued-run read per daemon interval", [], function* (daemon) {
@@ -73,7 +73,7 @@ ciCapacity.it("launches and status share one queued-run read per daemon interval
 		"repos/example/project/actions/runs?status=queued&per_page=1",
 		"repos/example/project/actions/runs?status=queued&per_page=1",
 	]);
-	expect(daemon.launches()).toEqual(["fast", "fast", "default"]);
+	expect(daemon.launches()).toEqual(["fast", "fast", undefined]);
 });
 
 for (const queued of [0, 6]) {
@@ -81,7 +81,7 @@ for (const queued of [0, 6]) {
 		daemon.queuedRuns(queued);
 		yield* daemon.intervalPasses();
 		yield* daemon.dispatch("one");
-		const tier = queued === 0 ? "fast" : "default";
+		const tier = queued === 0 ? "fast" : undefined;
 		expect(daemon.launches()).toEqual([tier]);
 
 		daemon.failRead();
@@ -100,7 +100,7 @@ ciCapacity.it("queued-run reads respect Fleet's GitHub reserve and keep launchin
 	daemon.reserveBudget();
 	yield* daemon.intervalPasses();
 	yield* daemon.dispatch("one");
-	expect(daemon.launches()).toEqual(["default"]);
+	expect(daemon.launches()).toEqual([undefined]);
 	const requests = daemon.requests();
 
 	daemon.queuedRuns(0);
@@ -109,7 +109,7 @@ ciCapacity.it("queued-run reads respect Fleet's GitHub reserve and keep launchin
 
 	yield* outcomes([
 		["GitHub requests", () => Effect.sync(daemon.requests), requests],
-		["worker launches", () => Effect.sync(daemon.launches), ["default", "default"]],
-		["status", () => daemon.status(), { launchTier: { queuedRuns: 5, readFailed: true, serviceTier: "default" } }],
+		["worker launches", () => Effect.sync(daemon.launches), [undefined, undefined]],
+		["status", () => daemon.status(), { launchTier: { queuedRuns: 5, readFailed: true, serviceTier: undefined } }],
 	]);
 });

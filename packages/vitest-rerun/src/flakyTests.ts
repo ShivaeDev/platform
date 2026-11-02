@@ -1,5 +1,5 @@
 import { Effect, FileSystem, Schema } from "effect";
-import type { Task } from "#internal/snapshot.ts";
+import type { Task } from "#adapters/tasks.ts";
 
 export const FlakyTest = Schema.Struct({
 	attempts: Schema.Number,

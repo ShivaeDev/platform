@@ -1,5 +1,6 @@
-import { Clock, Context, Effect, Fiber, Layer, Stream } from "effect";
+import { Clock, Context, Effect, Fiber, Layer, Stream, SubscriptionRef } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { SchedulerPasses } from "#engine/health.ts";
 import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { schedulerPause } from "#host/commands.ts";
@@ -59,12 +60,13 @@ export function engineBudgetVerbs(state: EngineStory, tell: (line: string) => vo
 		github.reply(PR_ENDPOINT, budgetPullRequest(false));
 		const api = Context.get(yield* Layer.build(github.layer), GithubApi);
 		yield* api.get(PR_ENDPOINT);
-		const passes = { count: 0 };
-		const admit = Effect.sync(() => {
-			passes.count += 1;
-		});
+		const passes = yield* SubscriptionRef.make(0);
 		const pause = schedulerPause.pipe(Effect.provideService(GithubApi, api), Effect.provide(liveInterval(0.005)));
-		const scheduler = yield* Effect.scoped(run(pause, admit)).pipe(Effect.provideService(Fleet, running(state).fleet), Effect.forkChild);
+		const scheduler = yield* Effect.scoped(run(pause)).pipe(
+			Effect.provideService(SchedulerPasses, passes),
+			Effect.provideService(Fleet, running(state).fleet),
+			Effect.forkChild,
+		);
 		return { passes, scheduler };
 	});
 	function budget() {
@@ -90,10 +92,14 @@ export function engineBudgetVerbs(state: EngineStory, tell: (line: string) => vo
 				tell(`run schedulers with ${FULL_BUDGET} and ${remaining} GitHub requests left until the full one passes ${fullPasses} times`);
 				const full = yield* budgetScheduler(FULL_BUDGET);
 				const stretched = yield* budgetScheduler(remaining);
-				yield* Effect.sleep("5 millis").pipe(Effect.repeat({ until: () => full.passes.count > fullPasses }), Effect.timeout("10 seconds"));
+				yield* SubscriptionRef.changes(full.passes).pipe(
+					Stream.takeUntil((count) => count >= fullPasses),
+					Stream.runDrain,
+				);
 				yield* Fiber.interrupt(full.scheduler);
 				yield* Fiber.interrupt(stretched.scheduler);
-				return stretched.passes.count === 1 ? "one pass" : `${stretched.passes.count} passes`;
+				const completed = yield* SubscriptionRef.get(stretched.passes);
+				return completed === 1 ? "one pass" : `${completed} passes`;
 			}),
 	};
 }

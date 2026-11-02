@@ -1,12 +1,11 @@
-import { Clock, Effect, Schedule } from "effect";
-import { ANSWER_RECORDED } from "#attention.ts";
+import { Clock, Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { answerRecords } from "#host/answerRecords.ts";
 import { answerRequests } from "#host/answerRequests.ts";
 import { answerWork } from "#host/answerWork.ts";
 import { resolveHost } from "#host/config.ts";
 import { decisionResponses } from "#host/releaseWork.ts";
 import { BoardGateway } from "#policy.ts";
+import { answerSignals } from "#test/answerSignals.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
 import { syntheticDatabase } from "#test/syntheticDatabase.ts";
@@ -22,6 +21,7 @@ export function engineHostAnswers(state: EngineStory, tell: (line: string) => vo
 				}
 				const host = resolveHost(state.root, { database: syntheticDatabase, namespace: STORAGE_NAMESPACE, provider: "local" });
 				const board = yield* openFleetBoard(state.root);
+				const signals = yield* answerSignals(running(state).fleet);
 				const accept = yield* answerRequests(host, (id, options) =>
 					answerWork(host, id, { ...options, background: true }).pipe(
 						Effect.provide(decisionResponses(host)),
@@ -29,11 +29,8 @@ export function engineHostAnswers(state: EngineStory, tell: (line: string) => vo
 					),
 				);
 				yield* accept(workId, text, release);
-				return yield* answerRecords(STORAGE_NAMESPACE, workId).pipe(
-					Effect.map((records) => records[0]),
-					Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (record) => record?.blocker !== ANSWER_RECORDED }),
-					Effect.timeout("5 seconds"),
-				);
+				const outcome = yield* signals.wait((event) => event.workId === workId && (event._tag === "Applied" || event._tag === "Refused"));
+				return outcome._tag === "Refused" ? outcome.reason.replace(/^Answer failed: /u, "") : (yield* running(state).fleet.get(workId)).value;
 			}).pipe(
 				Effect.provideService(Fleet, running(state).fleet),
 				Effect.provide(state.logs.layer),

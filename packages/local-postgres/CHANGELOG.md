@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0 - 2026-11-02
+
+### Fixed
+
+- Pin Docker operations to the validated local endpoint and refuse conflicting Docker host or context settings in the command environment before invoking Docker.
+- Accept PostgreSQL 18.6 distribution version suffixes and leave native server connection limits unchanged when the managed container is unavailable.
+- Return a typed `LocalPostgresError` for malformed URL password escapes instead of a defect.
+
+### Breaking
+
+- `clientConnection` now returns an Effect. Replace direct calls with `yield* clientConnection(url, options)` inside an Effect program so password decoding failures stay in the typed error channel.
+
 ## 0.8.0 - 2026-10-31
 
 ### Fixed

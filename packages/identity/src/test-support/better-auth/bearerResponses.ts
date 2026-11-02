@@ -1,9 +1,10 @@
 import { Effect } from "effect";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { emptyMount, startMountHost } from "./mountHost.ts";
 
 export const bearerResponses = storyKit({
-	after: { configured: startMountHost },
+	after: { configured: (engine) => startMountHost(engine).pipe(Effect.provide(memoryStore)) },
 	clock: "live",
 	create: () => ({ ...emptyMount(), bearerSessions: { origins: ["capacitor://localhost"] } }),
 	name: "browser responses behind bearer sessions",

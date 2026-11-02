@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { aliceSessionRevoked, liveSessionStory } from "#test/live-session/story.tsx";
 
 liveSessionStory.it(
-	"after alice loses read access, the next change hint shows Read denied and ends her subscription",
+	"after alice loses read access, the next hint shows Read denied and keeps her subscription open",
 	[],
 	function* ({ denyRead, rename, shown, subscribers }) {
 		expect(yield* subscribers()).toEqual(["alice"]);
@@ -13,7 +13,25 @@ liveSessionStory.it(
 
 		yield* outcomes([
 			["shown", () => shown(), "Read denied"],
-			["subscribers", () => subscribers(), []],
+			["subscribers", () => subscribers(), ["alice"]],
+		]);
+	},
+);
+
+liveSessionStory.it(
+	"restoring alice's read access shows the next changed note through her open subscription",
+	[],
+	function* ({ allowRead, denyRead, rename, shown, subscribers }) {
+		yield* denyRead();
+		yield* rename("Private after denial");
+		expect(yield* shown()).toBe("Read denied");
+
+		yield* allowRead();
+		yield* rename("Visible after grant");
+
+		yield* outcomes([
+			["shown", () => shown(), "Visible after grant"],
+			["subscribers", () => subscribers(), ["alice"]],
 		]);
 	},
 );

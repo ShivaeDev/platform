@@ -31,3 +31,22 @@ serviceStory.it(
 		]);
 	},
 );
+
+serviceStory.it(
+	"after interrupting a call, the same service's count continues from 1 to 2 without rebuilding its initializer or methods",
+	[serviceBuilt(), callHoldsResource()],
+	function* ({ call, interruptCall, answers, initializerRuns, methodBuilds }) {
+		yield* call("count");
+
+		expect(yield* answers()).toEqual([1]);
+
+		yield* interruptCall();
+		yield* call("count");
+
+		yield* outcomes([
+			["the calls", () => answers(), [1, "interrupted", 2]],
+			["initializer runs", () => initializerRuns(), 1],
+			["method builds", () => methodBuilds(), 1],
+		]);
+	},
+);

@@ -1,15 +1,15 @@
 import { Deferred, type Duration, Effect, Fiber, Layer, Queue, Stream, SubscriptionRef } from "effect";
 import { type Rpc, RpcClient, type RpcGroup, type RpcMessage, RpcSerialization, RpcServer } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import type { LiveHint } from "#live.ts";
+import type { SubscriptionHint } from "#queryUpdate.ts";
 
 export interface HintViewer<E> {
 	readonly finished: Effect.Effect<void, E>;
-	readonly hints: SubscriptionRef.SubscriptionRef<readonly LiveHint[]>;
+	readonly hints: SubscriptionRef.SubscriptionRef<readonly SubscriptionHint[]>;
 }
 
-export const watchHints = Effect.fn("Live.watchHints")(function* <E, R>(stream: Stream.Stream<LiveHint, E, R>) {
-	const hints = yield* SubscriptionRef.make<readonly LiveHint[]>([]);
+export const watchHints = Effect.fn("Live.watchHints")(function* <E, R>(stream: Stream.Stream<SubscriptionHint, E, R>) {
+	const hints = yield* SubscriptionRef.make<readonly SubscriptionHint[]>([]);
 	const ready = yield* Deferred.make<void>();
 	const fiber = yield* stream.pipe(
 		Stream.runForEach((hint) =>
@@ -37,7 +37,7 @@ export const heard = Effect.fn("Live.heard")(function* <E>(
 	);
 });
 
-function namesKeys(hint: LiveHint, keys: readonly Key[]): boolean {
+function namesKeys(hint: SubscriptionHint, keys: readonly Key[]): boolean {
 	return hint._tag === "Changed" && keys.every((key) => hint.keys.some((actual) => JSON.stringify(actual) === JSON.stringify(key)));
 }
 

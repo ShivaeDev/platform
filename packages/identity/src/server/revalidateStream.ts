@@ -1,6 +1,7 @@
-import { Effect, Option } from "effect";
+import { Effect, type Option } from "effect";
 import { type Rpc, RpcSchema } from "effect/rpc";
-import { type AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import type { AuthUnavailable, Forbidden } from "@shivaedev/errors/taxonomy.ts";
+import { currentSessionContext } from "./currentSessionContext.ts";
 import { SessionPolicy } from "./SessionPolicy.ts";
 import type { SessionShape } from "./session.ts";
 import { revalidateSession } from "./socketSession.ts";
@@ -14,12 +15,7 @@ export function revalidateStream<TSession extends SessionShape, TLookupRequireme
 		if (!RpcSchema.isStreamSchema(rpc.successSchema)) {
 			return effect;
 		}
-		const check = Effect.gen(function* () {
-			const session = yield* lookup;
-			if (Option.isNone(session) || session.value.user.id !== id) {
-				return yield* new Unauthorized({ message: "Authentication required" });
-			}
-		});
+		const check = Effect.asVoid(currentSessionContext(id, lookup));
 		return Effect.flatMap(SessionPolicy, (policy) =>
 			Effect.raceFirst(effect, revalidateSession(check, policy.streamRevalidationInterval ?? "30 seconds")),
 		);

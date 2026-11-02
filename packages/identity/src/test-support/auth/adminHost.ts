@@ -6,11 +6,12 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Migrator, SqlClient } from "effect/sql";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
+import { trustedOrigins } from "#server/adapters/trustedOrigins.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
-import { trustedOrigins } from "#server/origin.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { permissionLayer } from "#server/permissions.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "#server/session.ts";
@@ -42,7 +43,11 @@ export const startAdminHost = Effect.gen(function* () {
 		lockTimeout: "5 seconds",
 		table: "auth_migrations",
 	});
-	const { auth, sessions: authSessions, routes } = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles });
+	const {
+		auth,
+		sessions: authSessions,
+		routes,
+	} = yield* betterAuthMount(options, { defaultRole: "user", roles: TestRoles }).pipe(Effect.provide(memoryStore));
 	yield* Effect.promise(async () => {
 		const context = await auth.$context;
 		await context.checkSchema?.();

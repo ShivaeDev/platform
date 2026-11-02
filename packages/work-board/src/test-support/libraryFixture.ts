@@ -9,7 +9,8 @@ const files = {
 	"results/second.md": "---\nid: fleet.second-result\nkind: report\nstatus: done\n---\n# Second result\n",
 	"results/upload.md": "---\nid: board.upload-result\nkind: report\nstatus: done\n---\n# Upload result\n",
 };
-const modified = new Map([
+const modified = new Map<string, number>([
+	...Object.keys(files).map((file): [string, number] => [file, now - 5 * 60 * 60 * 1000]),
 	["goal.md", now - 4 * 60 * 60 * 1000],
 	["notes/note.md", now - 60 * 1000],
 	["results/second.md", now - 3 * 60 * 60 * 1000],

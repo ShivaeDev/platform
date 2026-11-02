@@ -1,5 +1,6 @@
 import { expect } from "vitest";
-import { httpClient, remoteDeclaresOversizedBody, remoteSends, remoteSendsJson, remoteStreamsSixteenBytes } from "#test/http-client/story.ts";
+import { remoteDeclaresOversizedBody, remoteSends, remoteSendsJson, remoteStreamsSixteenBytes } from "#test/http-client/bodies.ts";
+import { httpClient } from "#test/http-client/story.ts";
 
 httpClient.it(
 	"a body declaring Content-Length: 1000 fails as over a 10-byte limit while the remote still holds the rest",

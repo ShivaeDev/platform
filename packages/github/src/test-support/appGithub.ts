@@ -1,7 +1,8 @@
-import { Deferred, type Duration, Effect, Fiber, Layer, Redacted, Schema, Stream } from "effect";
+import { type Duration, Effect, Fiber, Layer, Redacted, Schema, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { collectUntil } from "@shivaedev/test-story/server/until.ts";
 import { GitHub, list, read } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { githubApp, type InstallationScope } from "#githubApp.ts";
@@ -154,9 +155,9 @@ export const appGithub = storyKit({
 			downloadArchive: () =>
 				attempt(
 					"the background client downloads artifact 7",
-					Effect.flatMap(GitHub, (service) => service.downloadArtifactArchive({ artifactId: 7, byteLimit: 8, owner: "acme", repo: "widgets" })).pipe(
-						Effect.provide(contexts.background),
-					),
+					Effect.flatMap(GitHub, (service) =>
+						service.downloadArtifactArchive({ artifactId: 7, byteLimit: 1024, owner: "acme", repo: "widgets" }),
+					).pipe(Effect.provide(contexts.background)),
 				),
 			exchangeRequested: () =>
 				Effect.sync(() => server.requests.filter(({ path }) => path === EXCHANGE).map(({ body }) => JSON.parse(body.toString() || "{}"))),
@@ -195,8 +196,10 @@ export const appGithub = storyKit({
 							reply: { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") },
 						});
 					}
-					const reached = yield* Deferred.make<void>();
-					state.arrivals = { expected: readers, reached, seen: 0 };
+					const arrivals = server.received.pipe(
+						Stream.drop(server.requests.length),
+						Stream.filter((request) => request.path === PULL),
+					);
 					const pulls = yield* server.hold("pull", { once: false });
 					const exchange = yield* server.hold("token");
 					const reads = yield* Effect.forkChild(
@@ -205,8 +208,7 @@ export const appGithub = storyKit({
 							{ concurrency: "unbounded" },
 						),
 					);
-					yield* Deferred.await(reached);
-					state.arrivals = undefined;
+					yield* collectUntil(arrivals, (requests) => requests.length === readers, { name: "concurrent pull reads" });
 					yield* pulls.release;
 					yield* exchange.waiting;
 					yield* exchange.release;

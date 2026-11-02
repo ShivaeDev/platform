@@ -5,7 +5,7 @@ import type * as Socket from "effect/socket/Socket";
 export type BrowserSubscription = {
 	readonly payload: unknown;
 	readonly tag: string;
-} & ({ readonly state: "open" | "answered" } | { readonly state: "refused"; readonly refusalTag: string });
+} & ({ readonly state: "open" | "answered" | "closed" } | { readonly state: "refused"; readonly refusalTag: string });
 
 export interface BrowserRead {
 	readonly kind: "query" | "subscription";

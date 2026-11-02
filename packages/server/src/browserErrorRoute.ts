@@ -4,7 +4,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { RateLimiter } from "effect/persistence";
 import { redactBrowserText } from "@shivaedev/errors/redactBrowserText.ts";
 import { isAuthUnavailable, isForbidden } from "@shivaedev/errors/taxonomy.ts";
-import { localTransport, trustedProxyPeer } from "@shivaedev/identity/server/local.ts";
+import { localTransport, trustedProxyPeer } from "@shivaedev/identity/server/adapters/local.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { resolveSession } from "@shivaedev/identity/server/session.ts";
 

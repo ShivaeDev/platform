@@ -35,6 +35,19 @@ Use a distinct literal identifier for each jobs service. The service and its Lay
 
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
 
+### Contribute workers to application modules
+
+`jobModule` from `@shivaedev/jobs/server/jobModule.ts` returns `queues` and `workers` fields for an `AppModule` in `@shivaedev/server`. Its queue declarations come from the same registrations its worker Layer runs:
+
+```ts
+import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
+import { Jobs, SendEmail, Mail } from "./app.ts";
+
+const jobs = jobModule(Jobs.layer, { jobs: [SendEmail.handle(({ userId }) => Mail.send(userId))] });
+```
+
+Spread these fields into the owning module. Keep the producer's jobs Layer in its services or ports. The application builds `appModules` once and passes its result to `appHost` or `workerHost`; both hosts provide the module's services and ports to their work. Queue definitions without handlers and scheduled workers can also appear in the registration list.
+
 ### Share queue names with the browser
 
 Keep names and payload Schemas in a browser-safe module such as `queues.ts`:
@@ -127,6 +140,8 @@ export const MailLive = Mail.layer;
 
 `Jobs` is the service that callers yield. `Mail` is a separate domain service that workers use. The example implementation logs calls so the wiring is complete; an application supplies its own implementation of those methods. The jobs package does not need a provider-specific interface.
 
+Registration collections retain their workers' handler, payload-decoding and scheduled-effect service requirements in `Jobs.layer`. Use `satisfies readonly JobRegistration[]` to check a reusable collection while preserving its inferred requirements, or annotate it as `readonly JobRegistration<Services>[]` with the union of services it needs. A plain `JobRegistration[]` leaves requirements `unknown`. Queue workers require both their queue and handler; scheduled workers require both their schedule and effect. Incomplete registrations are TypeScript errors. Producer-only queue definitions need no handler or decoding services at startup.
+
 ### Once per feature: the payload and handler
 
 Define the feature's registrations in `jobs.ts`:
@@ -194,7 +209,7 @@ const Compare = defineQueue({
 
 This worker runs up to five handlers at once. `worker` accepts pg-boss 12's `WorkOptions`, including `batchSize`, `localConcurrency`, `pollingIntervalSeconds`, `notifyPollingIntervalSeconds` and the burst options. Explicit options override the adapter defaults. pg-boss ignores `burstWhenBatchFull` at `batchSize: 1`; keep a batch size of at least two for immediate backlog draining. Each job is settled separately through pg-boss: success completes that job, and a typed failure, payload decoding failure or defect fails only that job with its own error. A failed job does not spend the retries of other jobs in its batch or rerun their successful handlers. Interruption stops the batch and leaves the interrupted and remaining jobs to pg-boss expiry; handlers must still tolerate repeated side effects across retries and interrupted attempts.
 
-Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. After an adapter worker fails a job, it reads pg-boss's stored retry time and schedules a wake for every native worker in its registration at that time, so an idle sibling can retry while another worker is busy. The wake, including its retry-time read, belongs to the worker Layer's scope and is canceled when that scope closes. Wake failures are logged with redacted diagnostics and do not fail the batch. Override the backstop when the application needs a different bound for other work that becomes runnable without a notification, such as delayed jobs or retries initiated outside the adapter worker.
+Apps do not need to shorten the polling backstop to drain a backlog. With `notify: true` and an active LISTEN/NOTIFY listener, pg-boss wakes workers on notifications and defaults to a 30-second backstop (`notifyPollingIntervalSeconds`). Without active notifications its base poll defaults to two seconds (`pollingIntervalSeconds`). Bursting takes precedence over both intervals. After an adapter worker fails or defers a job, it reads pg-boss's stored retry time and schedules a wake for every native worker in its registration at that time, so an idle sibling can retry while another worker is busy. The wake accounts for differences between the runtime and PostgreSQL clocks. The wake, including its retry-time read, belongs to the worker Layer's scope and is canceled when that scope closes. Wake failures are logged with redacted diagnostics and do not fail the batch. Override the backstop when the application needs a different bound for other work that becomes runnable without a notification, such as delayed jobs or retries initiated outside the adapter worker.
 
 ### Defer until a provider is ready
 
@@ -212,7 +227,7 @@ const waitForQuota = Effect.fail(
 );
 ```
 
-The same job returns to waiting with `startAfter` set to `at`; its ID, singleton key, payload and retry count stay unchanged. A past or current `at` is eligible on the next fetch. Deferral does not dead-letter the job or call `onError`. Its job span ends OK with a `job.deferred` event whose `at` is an ISO UTC string and whose `reason` is the supplied string. Deferred jobs rely on polling, including queues using `notify: true`. Stately jobs sharing a singleton key can defer together and still run one at a time. While waiting, their native job metadata reports the adapter's `effect-stately-deferred` policy; a database trigger restores `stately` when pg-boss claims them, preserving its active-job exclusion.
+The same job returns to waiting with `startAfter` set to `at`; its ID, singleton key, payload and retry count stay unchanged. A past or current `at` is eligible on the next fetch. Deferral does not dead-letter the job or call `onError`. Its job span ends OK with a `job.deferred` event whose `at` is an ISO UTC string and whose `reason` is the supplied string. The adapter wakes workers in the same registration when the deferral becomes due, including queues using `notify: true`, so they can resume the job without waiting for the polling backstop. Stately jobs sharing a singleton key can defer together and still run one at a time. While waiting, their native job metadata reports the adapter's `effect-stately-deferred` policy; a database trigger restores `stately` when pg-boss claims them, preserving its active-job exclusion.
 
 Set `queue: { maxDeferrals: 20 }` on a queue or schedule to change the default limit of ten deferrals per job. The limit must be a nonnegative safe integer; zero disables deferral. Once the limit is reached, `RetryAt` follows the normal failure and retry path. The adapter stores the count in its own table in the pg-boss schema, preserving it across worker restarts, ordinary failures, expiry and heartbeat timeouts. Queue handlers read this table before every attempt, including handlers that never defer. Automatic migrations and `installPgBossSchema` create this table and the stately claim trigger; use `installPgBossSchema` or the `pgBossSchema` migration component before starting workers with `migrate: false`.
 
@@ -485,6 +500,8 @@ Include every target queue in `jobs`, as either a worker or a producer-only defi
 
 ### Test through the queue contract
 
+`linkedWorkerSpans(sender, spans)` from `@shivaedev/jobs/server/testing.ts` reads native recorded Effect spans and returns the pg-boss consumer spans whose links match both the sender's `traceId` and `spanId`. It returns every matching attempt, including retries, and no matches before a worker runs. An untraced job has no sender link. Settle the workers before reading their completed attempts; this readout does not wait or read queue storage.
+
 `testing.ts` gives story kits a controller for one real pg-boss client. Create a fresh controller per runtime, pass its `clientFactory` to `pgBossLayer`, and keep that Layer scoped as usual. `jobs(queue, options?)` returns native job metadata with `data` decoded through the queue's Schema, including traced payloads. Invalid durable data fails with `PgBossPayloadError`; decoding services remain in the Effect's requirements.
 
 This producer story uses the `SendEmail` definition and `Jobs` service from above. `databaseUrl` points to the story's PostgreSQL database:
@@ -535,9 +552,9 @@ Set `retryPolicy: testRetryPolicy` through the controller to override queue and 
 
 `checkBatchWindow(queue, millisecondsPerJob)` checks that the declared sequential batch fits strictly inside the stored queue expiry window. `schemaVersion` reads the installed version, and `checkSchemaVersion(expected)` fails when it differs. Test control, read and check failures use `PgBossTestingError` with `operation`, optional `queue` and a redacted `original`.
 
-`snapshot(queues)` reads the unfinished jobs of several queues in one query, so the result is one consistent PostgreSQL snapshot. It returns jobs in the `created`, `retry`, `active` and `failed` states, never completed ones, oldest first by creation. Each entry has the job's `id`, `queue` (the definition's name), `state`, `startAfter` as a UTC `DateTime` and `data` decoded by that queue's Schema. Only unfinished rows are decoded, so a completed job whose stored data the Schema no longer accepts does not fail the read; invalid unfinished data fails with `PgBossPayloadError`.
+`snapshot(queues)` reads the unfinished jobs of several queues in one query, so the result is one consistent PostgreSQL snapshot. It returns jobs in the `created`, `retry`, `active` and `failed` states, never completed ones, oldest first by creation. A waiting `RetryAt` job reads as `deferred` while its `startAfter` is in the future; once due, it reads as `retry` until claimed. A retry after a handler failure reads as `retry` even when its next attempt is in the future. Each entry has the job's `id`, `queue` (the definition's name), `state`, `startAfter` as a UTC `DateTime` and `data` decoded by that queue's Schema. Only unfinished rows are decoded, so a completed job whose stored data the Schema no longer accepts does not fail the read; invalid unfinished data fails with `PgBossPayloadError`.
 
-`waitForIdle` completes when the controller's local workers hold no job in flight and none of their queues has a job ready to fetch. A job is in flight while it is active in a local worker's queue. A terminal native worker timeout lets the wait complete after pg-boss fails the job. A job whose `startAfter` is in the future does not hold the wait open, and neither do queues without a local worker. While a fetched batch has no settlement yet, the wait reads nothing and waits for the next local change; otherwise it checks with one query per change. A kit settles by yielding `waitForIdle` and then reading jobs once.
+`waitForIdle` discovers queues from the jobs registered in the controller's Layer, including producer-only definitions and schedules; it takes no queue list. It completes when none of those queues has an active job or an unblocked job ready to fetch, including work claimed by another client. Ready jobs keep the wait open even when no local worker runs them. A terminal native worker timeout lets the wait complete after pg-boss fails the job. Jobs whose `startAfter` is in the future do not hold the wait open. While a local fetched batch has no settlement yet, the wait reads nothing and waits for the next local change; otherwise it checks PostgreSQL on local changes and at 50 ms intervals to observe other clients. These intervals use wall time even on a story's `TestClock`. A kit settles by yielding `waitForIdle` and then reading jobs once. As with any idle snapshot, a producer can enqueue more work after the wait returns.
 
 A kit can also capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement or worker fetch, and when a local worker returns to idle as `waitForIdle` defines it, including terminal native worker timeouts. It also resumes immediately if a change occurred between the read and the wait. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout.
 
@@ -566,6 +583,8 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/jobs/server/defaultClientFactory.ts` | `defaultClientFactory`                                                                                                                                                                                                                                                           |
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
+
+Queue and scheduled workers reject `perJobResults: true` and `transactional: true` during Layer acquisition with a registration `PgBossError`; its redacted `original` names the unsupported options. Omit these options or set them to `false`. The adapter settles each job itself and does not expose pg-boss's transaction client to handlers.
 
 `Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Workers also require `getDb()` to read the PostgreSQL clock when a batch arrives. Producer-only clients do not need these capabilities. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and listings, deferral and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
 

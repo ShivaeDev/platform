@@ -1,6 +1,6 @@
 import { Config, Effect, Option, Result, Schema } from "effect";
 import * as NetAddress from "effect/net/NetAddress";
-import { TrustedProxy } from "@shivaedev/identity/server/trustedProxy.ts";
+import { TrustedProxy } from "@shivaedev/identity/server/adapters/trustedProxy.ts";
 import { NativeOrigins } from "#nativeClientOrigins.ts";
 import { TrustedProxyRequired } from "#TrustedProxyRequired.ts";
 

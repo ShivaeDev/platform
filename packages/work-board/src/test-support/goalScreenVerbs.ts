@@ -1,6 +1,5 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { goalChartGate } from "./goalChartGate.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
 
@@ -139,17 +138,6 @@ export function goalScreenVerbs(engine: ScreenEngine, tell: (line: string) => vo
 			reads(`the reader reads the links on the card of goal ${id}`, () => all("a", goalCard(id)).map((link) => link.getAttribute("href"))),
 		goalCardProgress: (id: string) => reads(`the reader reads the progress bar on the card of goal ${id}`, () => progressBar(goalCard(id))),
 		goalChart: () => reads("the reader reads the goal page's chart", goalChart),
-		goalChartArrives: () =>
-			Effect.gen(function* () {
-				tell("the goal chart's chunk finishes loading");
-				yield* Effect.promise(() =>
-					act(async () => {
-						goalChartGate.resolve();
-						await goalChartGate.promise;
-					}),
-				);
-				yield* screenSettles(engine, tell);
-			}),
 		goalList: () =>
 			reads("the reader reads which goals the Goals page lists in each section", () => {
 				const sections = [...document.querySelectorAll<HTMLDetailsElement>("details")];

@@ -38,7 +38,7 @@ export const launchTierLayer = Layer.effect(LaunchTier)(
 		const lock = yield* Semaphore.make(1);
 		let status: LaunchTierStatus = { readFailed: false };
 		let nextRead = 0;
-		let tier: "fast" | "default" = "fast";
+		let tier: "fast" | undefined = "fast";
 		const refresh = Effect.fn("FleetHost.refresh")(function* (host: FleetHost, ciCapacity: typeof CiCapacity.Type) {
 			const observation = yield* Effect.gen(function* () {
 				const repository = yield* reportRepository(main.repositoryRoot, host.repository.remote);
@@ -53,7 +53,7 @@ export const launchTierLayer = Layer.effect(LaunchTier)(
 			}
 			const { queuedRuns } = observation.success;
 			if (queuedRuns >= ciCapacity.slowAt) {
-				tier = "default";
+				tier = undefined;
 			} else if (queuedRuns <= ciCapacity.fastAt) {
 				tier = "fast";
 			}
@@ -73,7 +73,7 @@ export const launchTierLayer = Layer.effect(LaunchTier)(
 				yield* refresh(host, ciCapacity);
 			}
 			status = { ...status, ciCapacity, serviceTier: tier };
-			return { ...settings, serviceTier: tier };
+			return tier === undefined ? settings : { ...settings, serviceTier: tier };
 		});
 		return LaunchTier.of({ resolve: (host) => resolve(host).pipe(lock.withPermit), status: Effect.sync(() => status) });
 	}),
@@ -85,5 +85,5 @@ export function renderLaunchTier(status: LaunchTierStatus): string {
 		return `${selected} (fixed)`;
 	}
 	const { fastAt, slowAt } = status.ciCapacity;
-	return `${selected}: ${status.queuedRuns ?? "unknown"} queued CI runs; default at >= ${slowAt}, fast at <= ${fastAt}${status.readFailed ? "; read failed, keeping last tier" : ""}`;
+	return `${selected}: ${status.queuedRuns ?? "unknown"} queued CI runs; provider default at >= ${slowAt}, fast at <= ${fastAt}${status.readFailed ? "; read failed, keeping last tier" : ""}`;
 }

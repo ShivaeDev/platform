@@ -10,13 +10,14 @@ import type { SqlError } from "effect/sql/SqlError";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
 import { AssignRoles } from "@shivaedev/access/roles.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { accountRoleSeed } from "#server/better-auth/accountRoleSeed.ts";
+import { assertBetterAuthSchema } from "#server/better-auth/adapters/assertSchema.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { migrateBetterAuth } from "#server/better-auth/adapters/migrate.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
+import type { AuthTableOptions } from "#server/better-auth/adapters/tables.ts";
 import { ProviderAccounts } from "#server/better-auth/allowedAccounts.ts";
-import { assertBetterAuthSchema } from "#server/better-auth/assertSchema.ts";
-import { migrateBetterAuth } from "#server/better-auth/migrate.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
-import type { AuthTableOptions } from "#server/better-auth/tables.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { gitHubSignIn } from "#test/sign-in-policy/flows.ts";
@@ -39,7 +40,7 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },
 	};
 	yield* migrateBetterAuth(options, { defaultRole: "user" });
-	const base = yield* betterAuthMount(options, { defaultRole: "user", roles: Access }).pipe(Effect.provide(config));
+	const base = yield* betterAuthMount(options, { defaultRole: "user", roles: Access }).pipe(Effect.provide(memoryStore)).pipe(Effect.provide(config));
 	const baseApp = HttpRouter.toWebHandler(base.routes, { disableLogger: true });
 	yield* Effect.addFinalizer(() => Effect.promise(() => baseApp.dispose()));
 	const cookies = new Map<Person, string>();
@@ -52,7 +53,9 @@ export const accountRoleHost = Effect.fnUntraced(function* (mapping: AuthTableOp
 			defaultRole: "user",
 			roleSeed: accountRoleSeed(Access, seededRole, Config.schema(ProviderAccounts, "AUTH_OPERATOR_ACCOUNTS").pipe(Config.withDefault([])), options),
 			roles: Access,
-		}).pipe(Effect.provide(config));
+		})
+			.pipe(Effect.provide(memoryStore))
+			.pipe(Effect.provide(config));
 		// Server-only stories must not inherit the PostgreSQL kit's Reactivity service.
 		const mounted = yield* reactivity === undefined
 			? mount.pipe(

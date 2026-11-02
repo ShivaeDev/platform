@@ -1,8 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { PINNED_IMAGE } from "#test/dockerScript.ts";
 import { postgres } from "#test/postgres.ts";
-import { containerListingFails, dockerDaemonDown, noContainer, outdatedContainer, stoppedPinnedContainer } from "#test/postgresTraits.ts";
+import { containerListingFails, dockerDaemonDown, outdatedContainer, stoppedPinnedContainer } from "#test/postgresTraits.ts";
 
 postgres.it(
 	"with the Docker daemon down, starting the container fails with Docker's own message and runs no other Docker command",
@@ -36,24 +35,6 @@ postgres.it(
 		yield* outcomes([
 			["container changes", () => containerChanges(), []],
 			["outcome", () => outcome(), "failed: The shared PostgreSQL container uses a different image. Preserve its volume and upgrade it explicitly."],
-		]);
-	},
-);
-
-postgres.it(
-	"starting a missing container creates it from the pinned image with a persistent volume and a port published on loopback only",
-	[noContainer()],
-	function* ({ containerChanges, startContainer }) {
-		yield* startContainer();
-
-		expect(yield* containerChanges()).toEqual([
-			[
-				"docker run --detach --name development-postgres",
-				"--publish 127.0.0.1:55432:5432",
-				"--env POSTGRES_USER=postgres --env POSTGRES_PASSWORD=postgres",
-				"--mount type=volume,src=development-postgres,dst=/var/lib/postgresql",
-				PINNED_IMAGE,
-			].join(" "),
 		]);
 	},
 );

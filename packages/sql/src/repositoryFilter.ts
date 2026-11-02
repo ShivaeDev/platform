@@ -70,11 +70,20 @@ export function makeFilter<TModel extends Model.Any>(model: TModel, sql: SqlClie
 	}
 	function predicate(key: string, value: unknown, allowIn: boolean, allowComparisons: boolean) {
 		return Effect.flatMap(fieldAt(key), (field) => {
+			const encode = Schema.encodeEffect(field);
+			function equality() {
+				return Effect.map(encode(value), (encoded) =>
+					value === null || encoded === null ? sql`${column(key)} is null` : sql`${column(key)} = ${encoded}`,
+				);
+			}
+			const acceptsValue: (input: unknown) => boolean = Schema.is(field);
+			if (acceptsValue(value)) {
+				return equality();
+			}
 			const incoming = reference(value);
 			if (incoming !== undefined) {
 				return Effect.as(fieldAt(incoming), sql`${column(key)} = excluded.${sql(incoming)}`);
 			}
-			const encode = Schema.encodeEffect(field);
 			if (allowComparisons && typeof value === "object" && value !== null && Object.keys(value).some(isOperator)) {
 				return Effect.map(
 					Effect.forEach(Object.entries(value), ([operator, operand]) => comparison(key, field, operator, operand)),
@@ -86,7 +95,7 @@ export function makeFilter<TModel extends Model.Any>(model: TModel, sql: SqlClie
 						Effect.forEach(value.in, (entry) => encode(entry)),
 						(encoded) => inPredicate(key, encoded),
 					)
-				: Effect.map(encode(value), (encoded) => (encoded === null ? sql`${column(key)} is null` : sql`${column(key)} = ${encoded}`));
+				: equality();
 		});
 	}
 	function where(input: Readonly<Record<string, unknown>> & Partial<TupleFilter<Model.Any>> = {}, allowIn = false, allowComparisons = false) {

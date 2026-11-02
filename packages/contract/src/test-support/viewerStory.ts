@@ -114,7 +114,13 @@ export const viewerStory = storyKit({
 			story.tell(`${viewer} subscribes to changes of ${queries.join(" and ")}`);
 			return answered(Stream.runHead(changes(engine, viewer, queries)), (first) => (Option.isSome(first) ? "subscribed" : "ended at once"));
 		},
-		subscriptionEnd: (viewer: Viewer) => answered(listenerOf(engine, viewer).finished, () => "completed"),
+		subscriptionDenial: (viewer: Viewer) =>
+			Effect.map(
+				until(SubscriptionRef.changes(listenerOf(engine, viewer).hints), (hints) => hints.some((hint) => hint._tag === "QueryReadDenied"), {
+					name: "policy denial",
+				}),
+				() => "read denied",
+			),
 		untilChangeArrives: (viewer: Viewer, id: number) => {
 			story.tell(`the change to note ${id} reaches ${viewer}`);
 			return until(

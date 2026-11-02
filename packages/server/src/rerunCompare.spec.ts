@@ -29,12 +29,12 @@ rerunStory.it(
 	},
 );
 
-rerunStory.it("a denied rerun ends alice's subscription with read denied", [], function* ({ denyAlice, rename, subscriptionEnd }) {
+rerunStory.it("a denied rerun delivers read denied to alice's subscription", [], function* ({ denyAlice, rename, subscriptionDenial }) {
 	yield* denyAlice();
 
 	yield* rename(3n, "One more");
 
-	expect(yield* subscriptionEnd()).toBe("read denied");
+	expect(yield* subscriptionDenial()).toBe("read denied");
 });
 
 rerunStory.it(
@@ -45,7 +45,7 @@ rerunStory.it(
 
 		yield* rename(3n, "One more");
 
-		expect(yield* subscriptionEnd()).toBe("policy unavailable");
+		expect(yield* subscriptionEnd()).toBe("failed with policy unavailable");
 	},
 );
 
@@ -71,11 +71,11 @@ rerunStory.it("a query without the option refetches after a matching change", []
 rerunStory.it(
 	"a denied pushed query exposes read denied instead of its retained result",
 	[pageOpen],
-	function* ({ denyAlice, rename, pageEnd, subscriptionEnd }) {
+	function* ({ denyAlice, rename, pageEnd, subscriptionDenial }) {
 		yield* denyAlice();
 
 		yield* rename(3n, "One more");
-		yield* subscriptionEnd();
+		yield* subscriptionDenial();
 
 		expect(yield* pageEnd()).toBe("read denied");
 	},

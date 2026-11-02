@@ -37,6 +37,28 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `LiveServer` from `@shivaedev/contract/LiveServer.ts` to those Layers.
 
+For feature modules, install the optional peer `@shivaedev/admin` and declare each registration with `satisfies AppModule` from `@shivaedev/server/AppModule.ts`. Each module supplies a diagnostic `name`, `group`, `handlers`, `services` and `migrations: { loader, components? }`. Keep default adapters in its optional `ports` Layer, put an optional `registerAdmin` result in `admin`, and declare owned `queues` and a `workers` Layer on the module. `jobModule` from `@shivaedev/jobs/server/jobModule.ts` supplies those two fields from a jobs registration list.
+
+```ts
+import { Effect } from "effect";
+import { appHost } from "@shivaedev/server/appHost.ts";
+import { workerHost } from "@shivaedev/server/workerHost.ts";
+import { appModules } from "@shivaedev/server/appModules.ts";
+import { notes, tasks, sessions } from "./app.ts";
+
+const hosts = Effect.gen(function* () {
+	const modules = yield* appModules([notes, tasks]);
+	return {
+		server: appHost({ ...modules, sessions }),
+		worker: workerHost({ ...modules, migrations: { ...modules.migrations, mode: "wait" } }),
+	};
+});
+```
+
+`appModules` returns an Effect that rejects duplicate queue names before building any host. `DuplicateModuleQueue` from `@shivaedev/server/DuplicateModuleQueue.ts` identifies `queue`, `firstModule` and `secondModule`; repeating a name within one module also fails. It combines the native RPC groups, handler Layers, migration loaders and schema components. It includes each admin registration's group and handlers and exposes their merged registry as `modules.admin`. Migration numbers belong to one application-wide sequence. Existing hosts can continue to supply their groups, handlers, services and migrations directly.
+
+Pass `{ replacements: Layer.succeed(MyPort, implementation) }` as the second argument to `appModules`. Replacements take precedence over the combined default `ports` before module `services` acquire dependencies. Leave these ports unprovided in the module's service Layer; an adapter already captured by `Layer.provide` inside that Layer cannot be replaced from outside it. Missing ports and replacement Layer requirements remain in the host's requirement type. `workerHost` takes the same composition, provides its services to all module workers after database preparation, and scopes their lifetime to the returned Layer. Supply the shared `PgBoss` client through the service Layer in each process; the host and worker use the same module ports and replacements.
+
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
@@ -106,7 +128,7 @@ RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byt
 
 For a native Node HTTP route outside RPC, read the request body with `readBoundedBody` from [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme), which rejects oversized bodies with a typed 413 failure.
 
-Ordinary POST RPC uses `localRpcGuard` from `@shivaedev/identity/server/local.ts`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. The WebSocket upgrade uses the same loopback, origin and trusted-proxy checks without an HTTP body content type. Session lookup uses the upgrade's transport headers; RPC message headers cannot replace its cookie or Origin. Session middleware revalidates authenticated streams at `streamRevalidationInterval` and ends revoked subscriptions with typed `Unauthorized`. Cookie-authenticated sockets remain open; later protected calls use the same session checks. Automatic live subscriptions also recheck the session and query policy before each hint. POST RPC refuses `$changes` subscriptions with the contract’s typed `WebSocketRequired` error and a message saying they need the WebSocket protocol. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer()` from `@shivaedev/identity/server/session.ts` beside the handlers. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+Ordinary POST RPC uses `localRpcGuard` from `@shivaedev/identity/server/adapters/local.ts`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. The WebSocket upgrade uses the same loopback, origin and trusted-proxy checks without an HTTP body content type. Session lookup uses the upgrade's transport headers; RPC message headers cannot replace its cookie or Origin. Session middleware revalidates authenticated streams at `streamRevalidationInterval` and ends revoked subscriptions with typed `Unauthorized`. Cookie-authenticated sockets remain open; later protected calls use the same session checks. Automatic live subscriptions reload the session before each hint and use its current roles and grants for the query policy and any pushed query result. A policy denial keeps an established subscription open; delivery resumes on the next authorized hint. POST RPC refuses `$changes` subscriptions with the contract’s typed `WebSocketRequired` error and a message saying they need the WebSocket protocol. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer()` from `@shivaedev/identity/server/session.ts` beside the handlers. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
 Native clients that cannot set upgrade headers use `makeClient`'s `bearerToken` option from `@shivaedev/contract/bind.ts`. On session hosts, `GET /rpc?auth=frame` requires a first text frame shaped as `{"_tag":"Authenticate","token":"<credential>"}` within five seconds, with at most 8192 characters. The host consumes that frame before starting native RPC and supplies its bearer as the socket's transport Authorization header. The existing session provider, identity middleware, Origin policy and query read policies apply to every call and live read. RPC message headers cannot replace the authenticated credential. Configure bearer admission on the session provider and the WebView Origin through `nativeOrigins`. A long-lived bearer is never placed in a URL.
 
@@ -351,6 +373,38 @@ export async function consumeSubscription(
 ```
 
 The signal aborts on an additional signal, socket close, incomplete request close or an already destroyed connection. Normal completion of a request does not abort a continuing response. Without an explicit `nodeRequest`, the helper can read one from an srvx Web request's `runtime.node.req`. `dispose()` removes Node listeners and can be called repeatedly.
+
+### Stories against a child host
+
+`hostProcess(options)` from `@shivaedev/server/testing/hostProcess.ts` is a scoped kit for an application's real Node host process. It forks `options.module` with `args`, `cwd`, an explicit child environment in `env` and Node flags in `execArgv`. It waits for an IPC readiness message; stdout is ignored and stderr is inherited. Closing the owning Effect scope kills the child and waits for its exit. `stop()` does the same when a story needs to restart the host sooner.
+
+In the child entry point, build the app host Layer, then run `reportHostReady` from `@shivaedev/server/testing/hostProcessChild.ts` with that Layer's context. It reads `HttpServer`, reports the listening URL and process ID over IPC, and fails if there is no parent IPC channel. The child must install its signal handlers before reporting readiness. After a handler finishes its work, run `acknowledgeHostSignal(signal)` from the same module. `signal(signal)` in the parent sends the OS signal and waits for that signal's IPC acknowledgement. Deliver signals sequentially, using signals the child handles; signals that kill or suspend a process cannot be acknowledged.
+
+Wrap the kit in the application's story vocabulary:
+
+```ts
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { hostProcess } from "@shivaedev/server/testing/hostProcess.ts";
+
+const host = storyKit({
+	name: "application host",
+	clock: "live",
+	stages: [],
+	create: () => hostProcess({ module: new URL("./host.ts", import.meta.url) }),
+	verbs: (process) => ({
+		health: process.health,
+		headers: process.headers,
+		reload: () => process.signal("SIGUSR2"),
+	}),
+});
+
+host.it("the running application answers health checks", [], function* ({ health }) {
+	expect(yield* health()).toMatchObject({ status: 200, body: "" });
+});
+```
+
+`health()` requests `/health` and returns `{ status, body, headers }`. `headers(path)` returns the named path's response headers as a lowercase-keyed record. Both use real HTTP and leave redirects visible. The host's normal health semantics apply: reachable PostgreSQL produces 200; a host without a database produces 503. `url` and `pid` identify the ready child. Launch, signal and HTTP failures use the typed `HostProcessError` from `@shivaedev/server/testing/HostProcessError.ts`, with `operation` and the original `cause`. A child exit before readiness or signal acknowledgement fails the waiting action. A live child that never reports the expected message stays pending until its owning story is interrupted or times out.
 
 ### Low-memory PostgreSQL hosts
 

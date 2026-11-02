@@ -40,9 +40,14 @@ export function appFolder(
 		const pnpm = spawnSync("which", ["pnpm"], { encoding: "utf8" }).stdout.trim();
 		const modules = starterModules();
 		const quality = fileURLToPath(new URL("../../../quality/src/cli.ts", import.meta.url));
-		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, hoistedPieces(), quality, { scriptsOnly: linkedPackageScripts, typecheckExit }), {
-			mode: 0o755,
-		});
+		const skills = fileURLToPath(new URL("../../../skills/src/cli.ts", import.meta.url));
+		writeFileSync(
+			join(bin, "pnpm"),
+			setupInstaller(pnpm, modules, hoistedPieces(), quality, skills, { scriptsOnly: linkedPackageScripts, typecheckExit }),
+			{
+				mode: 0o755,
+			},
+		);
 	}
 	if (installer !== undefined) {
 		rmSync(join(bin, "pnpm"));

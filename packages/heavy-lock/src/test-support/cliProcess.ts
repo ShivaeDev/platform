@@ -41,6 +41,12 @@ export const commands = {
 		"-c",
 		`trap 'kill $sleeper 2>/dev/null; exit ${code}' ${signal.slice(3)}; sleep ${COMMAND_LIFETIME_S} & sleeper=$!; echo running; wait $sleeper; exit 1`,
 	],
+	withSignalAcknowledgingDescendant: (signal: NodeJS.Signals): CommandLine => [
+		process.execPath,
+		fileURLToPath(new URL("./signalDescendant.ts", import.meta.url)),
+		signal,
+		String(TEST_TIMEOUT_MS / 2),
+	],
 };
 
 export interface CliRun {

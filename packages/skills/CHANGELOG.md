@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2 - 2026-11-02
+
+### Fixed
+
+- Allow a failed first sync or a failed sync of newly selected skills to be retried after the copy failure is resolved, while preserving repository-owned skills.
+- Refuse sync before changing files when `.agents/skills` and `.claude/skills` resolve to the same directory.
+
 ## 0.6.1 - 2026-11-01
 
 ### Fixed

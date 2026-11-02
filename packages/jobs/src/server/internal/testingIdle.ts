@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Clock, Effect, Schema } from "effect";
 import type { PgBoss } from "pg-boss";
 import type { PgBossTestingError } from "#error.ts";
 import { quotedSchema } from "#internal/storedRows.ts";
@@ -46,7 +46,12 @@ export function testingIdle(
 			if (work.queues.size === 0 || !(unsettled || (yield* busy))) {
 				return;
 			}
-			yield* signal.waitForChange(revision);
+			if (unsettled) {
+				yield* signal.waitForChange(revision);
+			} else {
+				// Other clients have no local callback; PostgreSQL remains the source of idle state.
+				yield* Effect.raceFirst(signal.waitForChange(revision), Effect.sleep("50 millis"));
+			}
 		}
-	});
+	}).pipe(Effect.provideService(Clock.Clock, Clock.Clock.defaultValue()));
 }

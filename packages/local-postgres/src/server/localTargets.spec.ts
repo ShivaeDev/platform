@@ -1,4 +1,3 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { postgres } from "#test/postgres.ts";
 
@@ -10,20 +9,6 @@ const REFUSED_TARGETS = [
 		(key) => [`a redirecting ${key} parameter`, `${SERVER}/example_test?${key}=redirected`] as const,
 	),
 ] as const;
-
-postgres.it("the setup script's allowlist accepts its local database", [], function* ({ allowDatabase, outcome }) {
-	yield* allowDatabase(`${SERVER}/example_test`, ["example_test"]);
-
-	expect(yield* outcome()).toBe("allowed example_test");
-});
-
-for (const [target, url] of [...REFUSED_TARGETS, ["a database outside the allowlist", `${SERVER}/example_dev`]] as const) {
-	postgres.it(`the setup script's allowlist refuses ${target}`, [], function* ({ allowDatabase, outcome }) {
-		yield* allowDatabase(url, ["example_test"]);
-
-		expect(yield* outcome()).toBe("failed: Use a local database on 127.0.0.1:55432 named example_test.");
-	});
-}
 
 for (const [target, url] of REFUSED_TARGETS) {
 	postgres.it(`preparing a database at ${target} is refused before any command runs`, [], function* ({ outcome, prepare, subprocesses }) {

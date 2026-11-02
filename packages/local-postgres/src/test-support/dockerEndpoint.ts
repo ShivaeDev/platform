@@ -4,6 +4,7 @@ import { ChildProcessSpawner } from "effect/process";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { docker } from "#localDocker.ts";
+import { environmentGate } from "#test/environmentGate.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";
 import { attempt, recorded } from "#test/setupOutcome.ts";
 
@@ -42,6 +43,7 @@ export const dockerEndpoint = storyKit({
 	inspect: ({ commands, daemon, outcome }) => ({ commands, outcome, requests: daemon.requests }),
 	layer: NodeServices.layer,
 	name: "validated Docker endpoint",
+	runIf: environmentGate("the Docker CLI", "docker", ["--version"]),
 	stages: ["environment"],
 	verbs: (engine, story) => ({
 		commands: () => Effect.sync(() => engine.commands),

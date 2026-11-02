@@ -15,13 +15,13 @@ for (const path of ["/_board/attachment/shots/review.png", "/_board/unsupported"
 	screenStory.it(
 		`leaves a link to ${path} to the browser without reading a page`,
 		[chromeScreen(files)],
-		function* ({ clickLinkTo, currentPage, linkClick, readDocumentReads }) {
-			const reads = yield* readDocumentReads();
+		function* ({ clickLinkTo, currentPage, linkClick, readPageRequests }) {
+			const reads = yield* readPageRequests();
 
 			yield* clickLinkTo(path);
 
 			yield* outcomes([
-				["the document reads", () => readDocumentReads(), reads],
+				["the document reads", () => readPageRequests(), reads],
 				["the link", () => linkClick(), "the browser follows it"],
 				["the page", () => currentPage(), "/notes/plan.md"],
 			]);

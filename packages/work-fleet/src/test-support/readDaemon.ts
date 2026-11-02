@@ -1,8 +1,9 @@
 import { NodeServices } from "@effect/platform-node";
-import { Clock, Context, Effect, Layer, Stream } from "effect";
+import { Clock, Context, Effect, Layer, type Scope, Stream } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { Fleet } from "#fleet.ts";
 import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonHostOptions, daemonHttpLayer, daemonLayer } from "#host/daemon.ts";
@@ -15,6 +16,7 @@ import { fixedMainSource } from "#test/mainSource.ts";
 export interface ReadDaemonOptions {
 	readonly beforeHandlers?: Effect.Effect<void>;
 	readonly handlerClock?: Clock.Clock;
+	readonly observeAnswers?: (fleet: typeof Fleet.Service) => Effect.Effect<void, never, Scope.Scope>;
 	readonly onCommitSubscriptionStop?: Effect.Effect<void>;
 	readonly onSnapshot?: () => void;
 	readonly parts?: HostParts;
@@ -23,7 +25,7 @@ export interface ReadDaemonOptions {
 
 export function readDaemonLayer(
 	host: FleetHost,
-	{ beforeHandlers, handlerClock, onSnapshot, onCommitSubscriptionStop, parts, port = 0 }: ReadDaemonOptions = {},
+	{ beforeHandlers, handlerClock, onSnapshot, onCommitSubscriptionStop, observeAnswers, parts, port = 0 }: ReadDaemonOptions = {},
 ) {
 	const options = daemonHostOptions(
 		host,
@@ -34,10 +36,14 @@ export function readDaemonLayer(
 		},
 		port,
 	);
+	const observedAnswers =
+		observeAnswers === undefined
+			? options.handlers
+			: options.handlers.pipe(Layer.provide(Layer.effectDiscard(Effect.flatMap(Fleet, observeAnswers))));
 	const subscriptions =
 		onCommitSubscriptionStop === undefined
-			? options.handlers
-			: options.handlers.pipe(
+			? observedAnswers
+			: observedAnswers.pipe(
 					Layer.updateService(LiveServer, (changes) => ({
 						...changes,
 						stream: (keys) => changes.stream(keys).pipe(Effect.map(Stream.ensuring(onCommitSubscriptionStop))),

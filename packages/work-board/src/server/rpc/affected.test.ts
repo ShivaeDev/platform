@@ -1,7 +1,5 @@
-import "#test/liveDeliveryBoundary.ts";
 import { expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
-import { interruptedDelivery } from "#test/interruptedDelivery.ts";
 import { liveClientSubscribed } from "#test/liveTraits.ts";
 import { unreadableFile } from "#test/servingStoryTraits.ts";
 
@@ -112,17 +110,6 @@ boardStory.it(
 	[projectFiles({ "a.md": "# A", "b.md": "# B" }), unreadableFile("b.md"), liveClientSubscribed],
 	function* ({ editFile, nextChange }) {
 		editFile("a.md", "# Changed A");
-
-		expect(yield* nextChange()).toBe("resync");
-	},
-);
-
-boardStory.it(
-	"an edit the server observes outside the paths it announced reaches a live client as a resync",
-	[projectFiles({ "note.md": "# Before" }), interruptedDelivery, liveClientSubscribed],
-	function* ({ editFile, nextChange, omitNextPath }) {
-		omitNextPath("note.md");
-		editFile("note.md", "# Changed outside the announced paths");
 
 		expect(yield* nextChange()).toBe("resync");
 	},

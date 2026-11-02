@@ -1,7 +1,6 @@
 import { Config, Context, Data, Effect, type Layer, Redacted, Schema } from "effect";
 import { expectTypeOf } from "vitest";
 import { githubSource } from "#server/github.ts";
-import { receive } from "#server/internal/receive.ts";
 import { webhookEvent, webhookJob } from "#server/registration.ts";
 import { webhookRoute } from "#server/route.ts";
 import type { WebhookPayloadError } from "#server/WebhookPayloadError.ts";
@@ -45,9 +44,6 @@ const missingCheck: Layer.Layer<
 	Exclude<Layer.Services<typeof route>, SenderPreferences>
 > = route;
 void missingCheck;
-
-const received = Jobs.use((jobs) => receive("github", source, Redacted.make("compile-only"), new Uint8Array(), {}, jobs));
-expectTypeOf<Extract<Effect.Error<typeof received>, SenderCheckFailed | OtherFailure>>().toEqualTypeOf<SenderCheckFailed | OtherFailure>();
 
 const refused = webhookEvent(Payload, () => Effect.fail(new SenderCheckFailed()));
 expectTypeOf<Effect.Error<ReturnType<typeof refused.decode>>>().toEqualTypeOf<WebhookPayloadError | SenderCheckFailed>();
