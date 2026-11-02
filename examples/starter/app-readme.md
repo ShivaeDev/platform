@@ -8,7 +8,7 @@ const query = useQuery(client.api.list.query());
 
 The shared contract lives in `src/modules/notes/notes.ts`, server code in `src/server`, and the browser entry point in `src/client/main.tsx`. The application owns its UI and session policy; Effect services, transactions and native RPC connect the layers.
 
-To remove the example, delete `src/modules/notes` and its imports and entries in `src/admin/modules.ts`, `src/server/modules.ts`, `src/server/workerModules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server, worker and client pieces in those same registries.
+To remove the example, delete `src/modules/notes` and its imports and entries in `src/admin/modules.ts`, `src/server/modules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server and client pieces in those registries. Each server module carries its queues and workers for both application processes.
 
 Server registrations carry `{ migrations, group, handlers, services }`. Set `migrations` to the module’s migration directory; the foundation derives its migration list from registered modules.
 

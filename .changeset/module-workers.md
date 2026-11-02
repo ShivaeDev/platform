@@ -1,6 +1,7 @@
 ---
 "@shivaedev/server": minor
 "@shivaedev/jobs": minor
+"@shivaedev/create-app": minor
 ---
 
 ### Added
@@ -11,3 +12,7 @@
 ### Breaking
 
 - Server modules now require a `name`, and `appModules` returns an Effect. Add a name to each module and use `yield* appModules(...)` inside an Effect before passing its result to either host. Duplicate queue names fail composition with `DuplicateModuleQueue`, identifying the queue and both owners.
+
+### Fixed
+
+- Generated minimal apps remove the notes module from the shared host and worker list without retaining a separate worker registry.

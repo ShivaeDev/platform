@@ -19,13 +19,13 @@ export function appTemplate(template: Template, minimal = false): Template {
 			if (entry.path === "package.json" && minimalManifest !== undefined) {
 				return { ...entry, content: minimalManifest.content };
 			}
-			if (!["src/admin/modules.ts", "src/server/modules.ts", "src/server/workerModules.ts", "src/client/modules.ts"].includes(entry.path)) {
+			if (!["src/admin/modules.ts", "src/server/modules.ts", "src/client/modules.ts"].includes(entry.path)) {
 				return entry;
 			}
 			const source = Buffer.from(entry.content, "base64")
 				.toString()
 				.replace(/^import .* from "#modules\/notes\/.*";\n/gmu, "")
-				.replace(/,?\s*\b(?:noteQueue|notesModule|notesRegistration|notesWorker)\b/gu, "");
+				.replace(/,?\s*\b(?:noteQueue|notesModule|notesRegistration)\b/gu, "");
 			return { ...entry, content: Buffer.from(source).toString("base64") };
 		});
 }
