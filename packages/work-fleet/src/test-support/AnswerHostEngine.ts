@@ -3,6 +3,7 @@ import type { SqlClient } from "effect/sql";
 import { Fleet } from "#fleet.ts";
 import type { HostSettings } from "#host/config.ts";
 import { type AnswerSignals, answerSignals } from "#test/answerSignals.ts";
+import { answerSubmission } from "#test/answerSubmission.ts";
 import { type ApprovedPrFixture, approvedPrFixture } from "#test/approvedPrDaemon.ts";
 import { type HostFixture, hostFixture, task } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
@@ -18,6 +19,7 @@ export class AnswerHostEngine {
 	boardOverride: HostFixture["parts"]["board"];
 	beforeStart: Effect.Effect<void, unknown, SqlClient.SqlClient> = Effect.void;
 	readonly resolution = resolutionHold();
+	readonly submission = answerSubmission();
 	readonly spans = spanCounts();
 	signals: AnswerSignals | undefined;
 	readonly answerWaits = new Map<string, AnswerSignals>();
@@ -89,11 +91,15 @@ export class AnswerHostEngine {
 
 	#parts() {
 		if (this.#pr !== undefined) {
-			return this.#pr.parts;
+			return { ...this.#pr.parts, provider: this.submission.provider(this.#pr.parts.provider) };
 		}
 		const original = this.host.parts;
 		const parts = this.boardOverride === undefined ? original : { ...original, board: this.boardOverride };
-		return parts.board === undefined ? parts : { ...parts, board: this.resolution.board(parts.board) };
+		return {
+			...parts,
+			...(parts.board === undefined ? {} : { board: this.resolution.board(parts.board) }),
+			provider: this.submission.provider(parts.provider),
+		};
 	}
 
 	stop() {

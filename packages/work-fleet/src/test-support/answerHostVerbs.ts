@@ -36,6 +36,15 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 		);
 	}
 	return {
+		acknowledged: (workId = "one") => {
+			tell(`wait for ${workId}'s provider submissions to be acknowledged`);
+			return waitForRecord(
+				engine.running.client,
+				workId,
+				(record) => record.attempts.every((attempt) => attempt.status !== "submitting"),
+				engine.running.context,
+			);
+		},
 		answer: (text: string, release = false, workId = "one") => {
 			tell(`record an answer for ${workId}`);
 			return answer(text, release, workId);
