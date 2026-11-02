@@ -7,7 +7,13 @@ import { storeState } from "#test/storeState.ts";
 
 export function daemonResync(engine: HostStoryEngine) {
 	return {
-		awaitSnapshots: (count: number) => Effect.promise(() => engine.observations.nextSnapshot(count - 1)),
+		awaitSnapshots: (count: number) =>
+			engine.snapshotChanges
+				.wait(
+					Effect.sync(() => engine.snapshots.length),
+					(received) => received >= count,
+				)
+				.pipe(Effect.asVoid),
 		commitWithoutHint: (record: FleetRecord) =>
 			Effect.gen(function* () {
 				const reactivity = yield* Reactivity.make;

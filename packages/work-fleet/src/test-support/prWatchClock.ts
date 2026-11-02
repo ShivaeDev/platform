@@ -11,7 +11,7 @@ export const prWatchClock = storyKit({
 	*create() {
 		const api = yield* watchPrApi;
 		const interval = 60_000;
-		const clock = retryClock(yield* Clock.Clock);
+		const clock = retryClock(yield* Clock.Clock, interval);
 		const lines: { readonly kind: string }[] = [];
 		const watcher = yield* watchPullRequests(
 			{

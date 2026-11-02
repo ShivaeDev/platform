@@ -24,7 +24,7 @@ export const daemonFollow = storyKit({
 		yield* storeState(fixture.host, "marker", { stage: "released", step: "released" });
 		const reads = snapshotReads(fixture.host);
 		yield* Effect.addFinalizer(() => reads.restoreIfBroken);
-		const clock = retryClock(yield* Clock.Clock);
+		const clock = retryClock(yield* Clock.Clock, 500);
 		const snapshots = changeSignal();
 		const stopped = yield* Deferred.make<void>();
 		let delivered = 0;

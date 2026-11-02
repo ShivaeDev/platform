@@ -1,28 +1,31 @@
 import { type Clock, Deferred, Duration, Effect } from "effect";
 import { changeSignal } from "#test/changeSignal.ts";
 
-export function retryClock(base: Clock.Clock) {
+export function retryClock(base: Clock.Clock, delayMs: number) {
 	let now = base.currentTimeMillisUnsafe();
 	const sleeps = new Map<Deferred.Deferred<void>, number>();
 	const changed = changeSignal();
+	const waitForAdvance = Effect.scoped(
+		Effect.gen(function* () {
+			const wake = yield* Deferred.make<void>();
+			yield* Effect.acquireRelease(
+				Effect.sync(() => {
+					sleeps.set(wake, now + delayMs);
+					changed.notify();
+				}),
+				() => Effect.sync(() => sleeps.delete(wake)),
+			);
+			yield* Deferred.await(wake);
+		}),
+	);
 	const clock: Clock.Clock = {
-		...base,
 		currentTimeMillis: Effect.sync(() => now),
 		currentTimeMillisUnsafe: () => now,
-		sleep: (duration) =>
-			Effect.scoped(
-				Effect.gen(function* () {
-					const wake = yield* Deferred.make<void>();
-					yield* Effect.acquireRelease(
-						Effect.sync(() => {
-							sleeps.set(wake, now + Duration.toMillis(duration));
-							changed.notify();
-						}),
-						() => Effect.sync(() => sleeps.delete(wake)),
-					);
-					yield* Deferred.await(wake);
-				}),
-			),
+		currentTimeNanos: base.currentTimeNanos,
+		currentTimeNanosUnsafe: () => base.currentTimeNanosUnsafe(),
+		monotonicTimeNanos: base.monotonicTimeNanos,
+		monotonicTimeNanosUnsafe: () => base.monotonicTimeNanosUnsafe(),
+		sleep: (duration) => (Duration.toMillis(duration) === delayMs ? waitForAdvance : base.sleep(duration)),
 	};
 	function adjust(milliseconds: number) {
 		return Effect.sync(() => {

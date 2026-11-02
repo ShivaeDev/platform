@@ -6,6 +6,7 @@ import type { MainSnapshot } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
 import { type AnswerSignals, answerSignals } from "#test/answerSignals.ts";
 import { captureLogs } from "#test/captureLogs.ts";
+import { changeSignal } from "#test/changeSignal.ts";
 import { daemonResources } from "#test/daemonResources.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import type { Follower } from "#test/followerProcess.ts";
@@ -42,6 +43,7 @@ export class HostStoryEngine extends HostStoryScenario {
 	signals: AnswerSignals | undefined;
 	readonly followers = new Map<string, Follower>();
 	readonly snapshots: unknown[] = [];
+	readonly snapshotChanges = changeSignal();
 	readonly logs = captureLogs();
 	reads: SnapshotReads | undefined;
 	resources: Effect.Success<ReturnType<typeof daemonResources>> | undefined;
