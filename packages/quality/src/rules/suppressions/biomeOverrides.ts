@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { biomeExceptionHint, missingBiomeFiles } from "#exceptions/biomeFindings.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { ConsumerDeclaration } from "#rules/suppressions/biome/ConsumerDeclaration.ts";
-import { biomeConfigs, type Chain } from "#rules/suppressions/biome/configs.ts";
+import { biomeConfigs, type Chain } from "#adapters/biome/configs.ts";
 import { matches, type Scoped, scoped, scopeText } from "#rules/suppressions/biome/declarations.ts";
 import { type Weakening, weakeningsOf } from "#rules/suppressions/biome/weakenings.ts";
 

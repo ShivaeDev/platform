@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Order, Schema } from "effect";
-import ignore, { type Ignore } from "ignore";
+import { ignorePatterns, type IgnoreMatcher } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { packageLayout } from "#naming/packageLayout.ts";
@@ -50,11 +50,11 @@ function groupMessage(name: string): string | undefined {
 }
 
 interface Context {
-	readonly content: Ignore;
+	readonly content: IgnoreMatcher;
 	readonly names: ReadonlyMap<string, string>;
 	readonly native: ReadonlySet<string>;
 	readonly stems: ReadonlySet<string>;
-	readonly toolOwned: Ignore;
+	readonly toolOwned: IgnoreMatcher;
 }
 
 function messageFor(folder: string, context: Context): string | undefined {
@@ -76,11 +76,11 @@ export const folderNames = defineRule({
 	check: async ({ files, options, readText }) => {
 		const layout = await packageLayout({ files, readText });
 		const context: Context = {
-			content: ignore().add([...globPatterns(options.content)]),
+			content: ignorePatterns([...globPatterns(options.content)]),
 			names: layout.names,
 			native: nativeNames(files).folders,
 			stems: stemsIn(files),
-			toolOwned: ignore().add([...globPatterns(options.toolOwned)]),
+			toolOwned: ignorePatterns([...globPatterns(options.toolOwned)]),
 		};
 		return foldersIn(files).flatMap((folder): readonly Finding[] => {
 			const message = messageFor(folder, context);

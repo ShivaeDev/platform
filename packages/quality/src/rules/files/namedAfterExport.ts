@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Schema } from "effect";
-import ignore from "ignore";
+import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { exportFits } from "#naming/exportFits.ts";
 import { mainExport } from "#naming/mainExport.ts";
@@ -91,7 +91,7 @@ function findingsOf(file: SourceFile, layout: PackageLayout): readonly Finding[]
 export const namedAfterExport = defineRule({
 	check: async ({ files, options, readText, sources }) => {
 		const layout = await packageLayout({ files, readText });
-		const toolOwned = ignore().add([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]);
+		const toolOwned = ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]);
 		return sources
 			.filter((file) => !(TEST.test(file.path) || isMigrationFile(file.path) || toolOwned.ignores(file.path)))
 			.flatMap((file) => findingsOf(file, layout));

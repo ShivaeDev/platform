@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import ignore from "ignore";
+import { matchesIgnorePattern } from "#adapters/ignore.ts";
 
 const GlobDeclaration = Schema.Struct({
 	glob: Schema.NonEmptyString,
@@ -12,11 +12,6 @@ type GlobOptions = Readonly<Record<string, readonly (typeof GlobDeclaration.Type
 
 export function globPatterns(declarations: readonly (typeof GlobDeclaration.Type)[]): readonly string[] {
 	return declarations.map(({ glob }) => glob);
-}
-
-function matchesIgnorePattern(file: string, glob: string): boolean {
-	const result = ignore().add(glob).test(file);
-	return result.ignored || result.unignored;
 }
 
 export function validateGlobs(

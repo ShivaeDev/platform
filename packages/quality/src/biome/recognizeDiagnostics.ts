@@ -1,8 +1,9 @@
 import { resolve } from "node:path";
 import ts from "typescript";
+import { syntaxOf } from "#adapters/biome/syntax.ts";
 import { nativeEffectCall } from "./nativeEffectCall.ts";
 import type { Diagnostic } from "./report.ts";
-import { nodeAt, offsetOf, type Syntax, syntaxOf } from "./syntax.ts";
+import { nodeAt, offsetOf, type Syntax } from "./syntax.ts";
 
 const RECOGNIZED: ReadonlySet<string> = new Set(["lint/correctness/noComponentHookFactories", "lint/style/noDoneCallback"]);
 

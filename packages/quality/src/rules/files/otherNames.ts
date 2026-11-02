@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Schema } from "effect";
-import ignore, { type Ignore } from "ignore";
+import { ignorePatterns, type IgnoreMatcher } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { CAMEL, KEBAB } from "#naming/words.ts";
@@ -54,10 +54,10 @@ function stylesheetMessage(path: string, stem: string, importedBy: readonly stri
 }
 
 interface Context {
-	readonly content: Ignore;
+	readonly content: IgnoreMatcher;
 	readonly native: ReturnType<typeof nativeNames>;
 	readonly stylesheets: ReadonlyMap<string, readonly string[]>;
-	readonly toolOwned: Ignore;
+	readonly toolOwned: IgnoreMatcher;
 }
 
 function messageFor(path: string, context: Context): string | undefined {
@@ -89,10 +89,10 @@ function messageFor(path: string, context: Context): string | undefined {
 export const otherNames = defineRule({
 	check: async ({ files, options, readText, sources }) => {
 		const context: Context = {
-			content: ignore().add([...globPatterns(options.content)]),
+			content: ignorePatterns([...globPatterns(options.content)]),
 			native: nativeNames(files),
 			stylesheets: await stylesheetImporters({ files, readText, sources }),
-			toolOwned: ignore().add([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]),
+			toolOwned: ignorePatterns([...DEFAULT_TOOL_OWNED, ...globPatterns(options.toolOwned)]),
 		};
 		return files.flatMap((path): readonly Finding[] => {
 			const message = messageFor(path, context);
