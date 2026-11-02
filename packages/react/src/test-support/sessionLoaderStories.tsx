@@ -3,7 +3,7 @@ import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { loaderSession, Unavailable } from "./loaderSession.ts";
-import { clickButton, type Screen, screenWarnings } from "./Screen.ts";
+import { type Screen, screenWarnings } from "./Screen.ts";
 import { SessionLoaderApp } from "./SessionLoaderApp.tsx";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
@@ -25,7 +25,8 @@ function current(state: State) {
 
 function click(state: State, screen: Screen, label: string) {
 	return screen
-		.act(`click ${label}`, () => clickButton(current(state).container, label))
+		.driver(current(state).container)
+		.click({ name: label, role: "button" })
 		.pipe(Effect.andThen(settleScreen(current(state).container, () => state.session.busy(), screen.tell)));
 }
 
@@ -57,7 +58,7 @@ function* openLoading({ screen, state }: { readonly screen: Screen; readonly sta
 			? { onCaughtError: screenWarnings.expectCaughtError((error) => error instanceof (failure === "Unauthorized" ? Unauthorized : Unavailable)) }
 			: undefined;
 	state.view = yield* screen.open(<SessionLoaderApp mode={mode} session={state.session} />, expected);
-	yield* screen.act("click Load private data", () => clickButton(current(state).container, "Load private data"));
+	yield* screen.driver(current(state).container).click({ name: "Load private data", role: "button" });
 }
 
 export function privateLoadWaiting(mode: Mode, failure: Failure) {

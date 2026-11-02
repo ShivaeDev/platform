@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, type Screen, typeInput } from "#test/Screen.ts";
+import type { Screen } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { model } from "./model.ts";
@@ -23,7 +23,7 @@ function shown(state: State): { readonly dirty: boolean; readonly values: { read
 }
 function verbs(state: State, screen: Screen) {
 	return {
-		click: (label: string) => screen.act(`click ${label}`, () => clickButton(current(state).container, label)),
+		click: (label: string) => screen.driver(current(state).container).click({ name: label, role: "button" }),
 		finish: () =>
 			screen
 				.act("the save responds", () => state.model.complete.resolve())
@@ -34,7 +34,7 @@ function verbs(state: State, screen: Screen) {
 						),
 					),
 				),
-		type: (name: string, value: string) => screen.act(`type ${name}: ${value}`, () => typeInput(current(state).container, name, value)),
+		type: (name: string, value: string) => screen.driver(current(state).container).enter(`input[name="${name}"]`, value),
 	};
 }
 export const lateSaves = storyKit(

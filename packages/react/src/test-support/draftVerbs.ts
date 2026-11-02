@@ -6,7 +6,7 @@ import { DraftStorageProvider, type PersistedDraftConfig } from "@shivaedev/form
 import type { Row, Save, ViewEditor } from "./draftFields.ts";
 import { browserPersistence } from "./draftStorage.ts";
 import { persistedDraftView } from "./persistedDraftView.tsx";
-import { clickButton, type Screen } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { settleScreen } from "./settleScreen.ts";
 
 export type Field = "name" | "quantity";
@@ -95,7 +95,7 @@ export function draftVerbs(state: State, screen: Screen) {
 				"first",
 				config,
 			),
-		revert: () => screen.act("revert the draft", () => clickButton(current(state).container, "Revert")),
+		revert: () => screen.driver(current(state).container).click({ name: "Revert", role: "button" }),
 		session: (session: string | undefined, visible = true) =>
 			screen.act(
 				session ? `${visible ? "show" : "replace the session with"} the ${session} session${visible ? "" : " while the form is hidden"}` : "sign out",

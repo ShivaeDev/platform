@@ -2,7 +2,6 @@ import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { sessionClient } from "./client.ts";
 import { type Frame, SessionView } from "./view.tsx";
@@ -26,7 +25,7 @@ export const sessions = storyKit(
 			answer: () => screen.act("the session read answers from stored user data", state.client.answer),
 			completedFrames: () => state.frames.filter((frame) => frame.completed),
 			malformPermissions: () => screen.act("the session answers with malformed permission grants", state.client.malformPermissions),
-			press: (label: "Rename" | "Verify" | "Refresh") => screen.act(`press ${label}`, () => clickButton(view(state).container, label)),
+			press: (label: "Rename" | "Verify" | "Refresh") => screen.driver(view(state).container).click({ name: label, role: "button" }),
 			refuse: () => screen.act("the session read is refused", state.client.refuse),
 			reject: () => screen.act("the session connection rejects", state.client.reject),
 			shown: () => ({

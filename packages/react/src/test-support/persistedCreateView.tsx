@@ -2,10 +2,10 @@ import { Effect } from "effect";
 import { act } from "react";
 import type { draftPersistence } from "@shivaedev/form/adapters/draftPersistence.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { CreateDraftProbe, DirectDraftProbe } from "./CreateDraftProbe.tsx";
 import type { CreateEffect, CreateHeld } from "./createDraftFields.ts";
-import { submitForm, typeInput } from "./Screen.ts";
 
 export async function persistedCreateView(
 	view: Rendered,
@@ -27,6 +27,7 @@ export async function persistedCreateView(
 			</SessionBoundary>
 		);
 	}
+	const driver = screenDriver({ root: view.container, tell: () => undefined });
 	await view.render(node());
 	function form() {
 		if (!held.form) {
@@ -37,13 +38,13 @@ export async function persistedCreateView(
 	return {
 		...view,
 		change: (value: string) =>
-			act(() => {
-				typeInput(view.container, "name", value);
+			act(async () => {
+				await Effect.runPromise(driver.enter('input[name="name"]', value));
 			}),
 		form,
 		save: () =>
-			act(() => {
-				submitForm(view.container);
+			act(async () => {
+				await Effect.runPromise(driver.submit());
 			}),
 		saving: () => held.created?.saving ?? false,
 		show: (session: string) => view.render(node(session)),

@@ -4,7 +4,7 @@ import { chrome } from "./chrome.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { trackScreen } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
-import { pressKey, shellActs, shellElement } from "./shellScreenAct.ts";
+import { shellActs, shellElement } from "./shellScreenAct.ts";
 
 function details(summary: string) {
 	const found = [...document.querySelectorAll<HTMLDetailsElement>("#doc details")].find(
@@ -21,12 +21,10 @@ function sectionLinks(name: string) {
 }
 
 export function shellReadingVerbs(engine: ScreenEngine, tell: (line: string) => void) {
-	const { acting, reading } = shellActs(engine, tell);
+	const { acting, controls, reading } = shellActs(engine, tell);
 	return {
 		closeReadingHistory: () =>
-			acting("the reader closes Reading history with Escape", () => {
-				pressKey(document.activeElement ?? document.body, "Escape");
-			}),
+			acting("the reader closes Reading history with Escape", () => Effect.runPromise(controls.pressKey(":focus", "Escape"))),
 		detailsBlock: (summary: string) => reading(`the reader checks the ${summary} details`, () => (details(summary).open ? "open" : "closed")),
 		historyNotice: () =>
 			reading("the reader reads the reading history notice", () => document.querySelector('#library-dialog [role="status"]')?.textContent),
@@ -46,12 +44,7 @@ export function shellReadingVerbs(engine: ScreenEngine, tell: (line: string) => 
 				}
 				link.click();
 			}),
-		openReadingHistory: () =>
-			acting("the reader opens Reading history from the sidebar", () => {
-				const button = shellElement("#library-open", "Reading history button");
-				button.focus();
-				button.click();
-			}),
+		openReadingHistory: () => acting("the reader opens Reading history from the sidebar", () => Effect.runPromise(controls.click("#library-open"))),
 		pinButton: () => reading("the reader reads the page's pin button", () => shellElement("#favorite-toggle", "pin button").textContent),
 		pinPage: () => acting("the reader clicks the page's pin button", () => shellElement("#favorite-toggle", "pin button").click()),
 		readingHistory: () =>

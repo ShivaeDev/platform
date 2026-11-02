@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { act } from "react";
 import { vi } from "vitest";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
 
@@ -23,14 +24,6 @@ function trigger() {
 	return button;
 }
 
-async function hover(button: HTMLElement) {
-	for (const type of ["pointerover", "pointerenter", "mouseover", "mouseenter", "pointermove", "mousemove"]) {
-		const init = { bubbles: !type.endsWith("enter"), pointerType: "mouse" };
-		button.dispatchEvent(type.startsWith("pointer") ? new PointerEvent(type, init) : new MouseEvent(type, init));
-	}
-	await vi.advanceTimersByTimeAsync(POPOVER_HOVER_DELAY_MS);
-}
-
 async function tap(button: HTMLElement) {
 	for (const type of ["pointerdown", "pointerup"]) {
 		button.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: "touch" }));
@@ -48,7 +41,7 @@ async function press(button: HTMLElement) {
 	await Promise.resolve();
 }
 
-const OPENINGS = { hover, keyboard: press, tap };
+const OPENINGS = { keyboard: press, tap };
 
 export function timeScreenVerbs(engine: ScreenEngine, tell: (line: string) => void) {
 	function acts(line: string, action: () => Promise<void>) {
@@ -67,7 +60,14 @@ export function timeScreenVerbs(engine: ScreenEngine, tell: (line: string) => vo
 		openExactTime: (how: "hover" | "keyboard" | "tap") =>
 			acts(
 				{ hover: "the reader points at the time", keyboard: "the reader tabs to the time and activates it", tap: "the reader taps the time" }[how],
-				() => OPENINGS[how](trigger()),
+				async () => {
+					if (how === "hover") {
+						await Effect.runPromise(screenDriver({ root: () => document.body, tell }).hover("button:has(time)"));
+						await vi.advanceTimersByTimeAsync(POPOVER_HOVER_DELAY_MS);
+					} else {
+						await OPENINGS[how](trigger());
+					}
+				},
 			),
 		timeShown: () =>
 			Effect.sync(() => {

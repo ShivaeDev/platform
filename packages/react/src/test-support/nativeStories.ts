@@ -5,7 +5,7 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { NativeNotesView } from "./NativeNotesView.ts";
 import { NotesClient } from "./NotesClient.ts";
-import { clickButton, type Screen } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
 
@@ -47,7 +47,10 @@ function settle(state: State, screen: Screen) {
 }
 
 function click(state: State, screen: Screen, label: string) {
-	return screen.act(`click ${label}`, () => clickButton(current(state).container, label)).pipe(Effect.andThen(settle(state, screen)));
+	return screen
+		.driver(current(state).container)
+		.click({ name: label, role: "button" })
+		.pipe(Effect.andThen(settle(state, screen)));
 }
 
 export const nativeStory = storyKit(

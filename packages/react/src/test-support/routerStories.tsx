@@ -6,7 +6,7 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { routerApp } from "./routerApp.ts";
 import { type NoteFailure, type NoteMissing, routerClient } from "./routerClient.ts";
-import { clickButton, type Screen, screenWarnings, typeInput } from "./Screen.ts";
+import { type Screen, screenWarnings } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
 
@@ -99,7 +99,10 @@ function routeVerbs(state: State, screen: Screen) {
 		requests: () => Effect.sync(() => state.client.calls.map(({ id, page }) => `${id} page ${page}`)),
 		retry: (page = 1) => {
 			state.client.next("first", page);
-			return screen.act("click Retry", () => clickButton(current(state).root.container, "Retry")).pipe(Effect.andThen(requestArrives(state, screen)));
+			return screen
+				.driver(current(state).root.container)
+				.click({ name: "Retry", role: "button" })
+				.pipe(Effect.andThen(requestArrives(state, screen)));
 		},
 		routeError: () => Effect.sync(() => current(state).router.state.matches.at(-1)?.error),
 		shell: () =>
@@ -108,7 +111,7 @@ function routeVerbs(state: State, screen: Screen) {
 				input: marked(state, "input", '[name="shell"]'),
 				shell: marked(state, "shell", "main"),
 			})),
-		typeShellDraft: (value: string) => screen.act(`type ${value} into the shell`, () => typeInput(current(state).root.container, "shell", value)),
+		typeShellDraft: (value: string) => screen.driver(current(state).root.container).enter('input[name="shell"]', value),
 	};
 }
 

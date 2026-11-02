@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, type Screen, typeInput } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
 import { CreateSubmitView, EditorSubmitView, type SubmitState } from "./submitViews.tsx";
@@ -38,8 +38,11 @@ function settle(state: State, screen: Screen) {
 function submitVerbs(state: State, screen: Screen) {
 	return {
 		submit: (control: Control) =>
-			screen.act(`submit with ${control}`, () => clickButton(current(state).container, control)).pipe(Effect.andThen(settle(state, screen))),
-		type: (value: string) => screen.act(`type the name ${JSON.stringify(value)}`, () => typeInput(current(state).container, "name", value)),
+			screen
+				.driver(current(state).container)
+				.click({ name: control, role: "button" })
+				.pipe(Effect.andThen(settle(state, screen))),
+		type: (value: string) => screen.driver(current(state).container).enter('input[name="name"]', value),
 	};
 }
 
@@ -106,7 +109,7 @@ export function slowDecodeWithNewerInput() {
 		yield* open(engine, "slow");
 		const { type } = submitVerbs(engine.state, engine.screen);
 		yield* type("Desk lamps");
-		yield* engine.screen.act("submit with Save", () => clickButton(current(engine.state).container, "Save"));
+		yield* engine.screen.driver(current(engine.state).container).click({ name: "Save", role: "button" });
 		yield* type("Desk lamps and chairs");
 	});
 }

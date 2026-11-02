@@ -2,7 +2,7 @@ import { Effect, Order } from "effect";
 import { loadQuery } from "@shivaedev/react/adapters/loadQuery.ts";
 import { navigationQuery } from "#client/react/routeQuery.ts";
 import type { ScreenEngine } from "./screenEngine.ts";
-import { accessibleOf, pressKey, shellActs, shellElement } from "./shellScreenAct.ts";
+import { accessibleOf, shellActs, shellElement } from "./shellScreenAct.ts";
 
 const PRIMARY = "#primary-navigation";
 
@@ -22,7 +22,7 @@ function destinationLink(label: string, within: string) {
 }
 
 export function shellSidebarVerbs(engine: ScreenEngine, tell: (line: string) => void) {
-	const { acting, reading } = shellActs(engine, tell);
+	const { acting, controls, reading } = shellActs(engine, tell);
 	return {
 		activeGoals: () =>
 			reading("the reader reads the sidebar's Active goals", () => {
@@ -48,9 +48,9 @@ export function shellSidebarVerbs(engine: ScreenEngine, tell: (line: string) => 
 				})),
 			),
 		dismissSidebar: (how: "Escape" | "the backdrop") =>
-			acting(`the reader dismisses the sidebar with ${how}`, () => {
+			acting(`the reader dismisses the sidebar with ${how}`, async () => {
 				if (how === "Escape") {
-					pressKey(document.activeElement ?? document.body, "Escape");
+					await Effect.runPromise(controls.pressKey(":focus", "Escape"));
 				} else {
 					shellElement("#sidebar-backdrop", "sidebar backdrop").click();
 				}

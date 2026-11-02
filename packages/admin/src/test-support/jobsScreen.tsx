@@ -41,21 +41,7 @@ export const jobsScreen = storyKit({
 		const driver = driverFor(engine, story.tell);
 		return {
 			alerts: () => Effect.sync(() => [...screenOf(engine).querySelectorAll('[role="alert"]')].map(({ textContent }) => textContent)),
-			chooseQueue: (name: string) =>
-				Effect.gen(function* () {
-					story.tell(`choose the ${name} queue`);
-					const select = screenOf(engine).querySelector("select");
-					if (select === null) {
-						throw new Error("The jobs queue picker is not rendered");
-					}
-					yield* Effect.sync(() =>
-						act(() => {
-							select.value = name;
-							select.dispatchEvent(new Event("change", { bubbles: true }));
-						}),
-					);
-					yield* driver.settle();
-				}),
+			chooseQueue: (name: string) => Effect.andThen(driver.select("select", name), driver.settle()),
 			openJob: (name: string) => Effect.andThen(driver.click({ name: engine.ids.get(name) ?? name, role: "button" }), driver.settle()),
 			retrySelected: () => Effect.andThen(driver.click({ name: "Retry job", role: "button" }), driver.settle()),
 			selectList: (name: "Failed" | "Dead-lettered") => Effect.andThen(driver.click({ name, role: "tab" }), driver.settle()),
@@ -66,7 +52,7 @@ export const jobsScreen = storyKit({
 						return { attempt: cells[2], failure: cells[3], job: nameOf(engine, cells[0] ?? ""), state: cells[1] };
 					}),
 				),
-			shownQueues: () => Effect.sync(() => [...screenOf(engine).querySelectorAll("select option")].map(({ textContent }) => textContent)),
+			shownQueues: () => Effect.sync(() => driver.selection("select").options.map(({ label }) => label)),
 			stateOf: (name: string) =>
 				engine.client["admin.jobs.job"]({ id: idOf(engine, name), queue: "mail" }).pipe(
 					Effect.map((job) => (Option.isSome(job) ? job.value.state : "no job")),

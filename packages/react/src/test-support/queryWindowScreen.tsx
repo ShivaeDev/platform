@@ -13,7 +13,6 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { QueryWindowPage } from "./QueryWindowPage.tsx";
-import { clickButton } from "./Screen.ts";
 import { SessionRegistry } from "./SessionRegistry.tsx";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
@@ -98,7 +97,8 @@ export const queryWindows = storyKit(
 			reads: () => Effect.sync(() => perQuery((name) => state.server.reads.get(name) ?? 0)),
 			slowDetail: () =>
 				screen
-					.act("slow the detail query's window to 300 millis", () => clickButton(root(state), "Slow detail"))
+					.driver(root(state))
+					.click({ name: "Slow detail", role: "button" })
 					.pipe(Effect.andThen(settleScreen(root(state), () => loading(state), screen.tell))),
 			subscriptions: () => Effect.sync(() => state.server.subscriptions()),
 			windows: () => Effect.sync(() => perQuery((name) => registry(state).get(queryCoalesceWindow(state.server.queries[name])))),
