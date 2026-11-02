@@ -1,4 +1,4 @@
-import { Effect, Schedule } from "effect";
+import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
@@ -18,7 +18,7 @@ export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string
 
 		boardReceipts: () => boardHttpFiles(engine.host.host.boardDir).receipts(),
 		defer: (decision: Decision, type: "clarify" | "not_now") => answerWorker(engine.host.host.boardDir, decision, `response.worker.${type}`, type),
-		failCompletion: () => answerCompletionFailure(engine.host.host),
+		failCompletion: () => answerCompletionFailure(engine.host.host, engine.fleet),
 		failQueue: () => answerQueueFailure(engine.host.host),
 		failRecordedRequest: (request: AnswerRequest, message: string) =>
 			answerStore(engine.host.host.namespace).pipe(Effect.flatMap((store) => store.finish(request, message))),
@@ -51,12 +51,19 @@ export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string
 		rejectNextTurn: (failure: SessionFailure) => engine.host.provider.rejectNextTurn(failure),
 		requestsFinished: (workId = "one") => {
 			tell(`wait until the answer requests for ${workId} finish`);
-			return answerStore(engine.host.host.namespace).pipe(
-				Effect.flatMap((store) => store.list(workId)),
-				Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (requests) => requests.length === 0 }),
-				Effect.asVoid,
-				Effect.timeout("10 seconds"),
-			);
+			return Effect.gen(function* () {
+				const pending = yield* answerStore(engine.host.host.namespace).pipe(Effect.flatMap((store) => store.list(workId)));
+				for (const request of pending) {
+					const outcome = yield* engine.answers.wait(
+						(event) =>
+							event.workId === workId && (event._tag === "Refused" || event._tag === "RequestFinished") && event.requestId === request.request_id,
+					);
+					if (outcome._tag === "Refused") {
+						return outcome.reason;
+					}
+				}
+				return "finished";
+			});
 		},
 		// Recovery starts after a durable commit and before the daemon notices it.
 		seedRecordedRequest: (decision: Decision, text: string, release: boolean, workId = "one") =>

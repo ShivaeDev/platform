@@ -3,6 +3,7 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
+import { type AnswerSignals, answerSignals } from "#test/answerSignals.ts";
 import type { HostFixture } from "#test/fleetHost.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
 
@@ -13,6 +14,7 @@ export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function
 	const close = Scope.close(scope, Exit.void);
 	yield* Effect.addFinalizer(() => close);
 	const subscribed = Promise.withResolvers<void>();
+	let answers: AnswerSignals | undefined;
 	let snapshots = 0;
 	const waiters = new Set<() => void>();
 	function onSnapshot() {
@@ -34,7 +36,26 @@ export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function
 			ready();
 		});
 	}
-	const context = yield* Layer.buildWithScope(readDaemonLayer(fixture.host, { onSnapshot, parts: fixture.parts, port }), scope);
+	const context = yield* Layer.buildWithScope(
+		readDaemonLayer(fixture.host, {
+			observeAnswers: (fleet) =>
+				answerSignals(fleet).pipe(
+					Effect.tap((signals) =>
+						Effect.sync(() => {
+							answers = signals;
+						}),
+					),
+					Effect.asVoid,
+				),
+			onSnapshot,
+			parts: fixture.parts,
+			port,
+		}),
+		scope,
+	);
+	if (answers === undefined) {
+		return yield* Effect.die("The answer observer did not start");
+	}
 	const address = Context.get(context, HttpServer.HttpServer).address;
 	if (!NetAddress.isInetAddress(address)) {
 		return yield* Effect.die("Expected a TCP Fleet daemon");
@@ -43,6 +64,7 @@ export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function
 		return yield* Effect.die("Discovery stories require a non-default daemon port");
 	}
 	return {
+		answers,
 		close,
 		nextSnapshot,
 		port: address.port,

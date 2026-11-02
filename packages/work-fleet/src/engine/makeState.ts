@@ -1,5 +1,6 @@
-import { Context, Effect } from "effect";
+import { Context, Effect, PubSub } from "effect";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
+import type { AnswerEvent } from "#AnswerEvent.ts";
 import { type AttentionOwner, waitingOwner } from "#attention.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
@@ -23,6 +24,8 @@ export interface LaunchAdmission {
 }
 export const makeState = Effect.gen(function* () {
 	const store = yield* FleetRepository;
+	const answerEvents = yield* PubSub.unbounded<AnswerEvent>();
+	yield* Effect.addFinalizer(() => PubSub.shutdown(answerEvents));
 	const board = yield* BoardGateway;
 	const policy = yield* FleetPolicy;
 	const integrations = yield* FleetIntegrations;
@@ -96,6 +99,7 @@ export const makeState = Effect.gen(function* () {
 		);
 	});
 	const state = {
+		answerEvents,
 		board,
 		completionWarnings,
 		current,
