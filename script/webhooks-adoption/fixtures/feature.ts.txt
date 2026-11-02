@@ -1,10 +1,12 @@
-import { Config, Layer, Schema } from "effect";
+import { Config, Effect, Layer, Schema } from "effect";
 import { RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import type { AppModule } from "@shivaedev/server/AppModule.ts";
+import { migratePostgres } from "@shivaedev/sql/migrations.ts";
+import { pendingPostgresMigrations } from "@shivaedev/sql/pendingPostgresMigrations.ts";
 import { githubSource } from "@shivaedev/webhooks/server/github.ts";
 import { webhookEvent, webhookJob } from "@shivaedev/webhooks/server/registration.ts";
 import { webhookReceipts } from "@shivaedev/webhooks/server/webhookReceipts.ts";
@@ -28,16 +30,28 @@ export const sources = {
 const worker = jobModule(WebhookJobs.layer, {
 	jobs: [IndexIssue.handle(({ number }) => SqlClient.SqlClient.use((sql) => sql`insert into indexed_issues (number) values (${number})`))],
 });
+const indexedIssuesMigrations = {
+	loader: Migrator.fromRecord({
+		"0001_indexed_issues": SqlClient.SqlClient.use((sql) => sql`create table indexed_issues (number integer not null)`),
+	}),
+	lockTimeout: "5 seconds",
+	table: "indexed_issues_migrations",
+} as const;
+const indexedIssues = {
+	name: "indexed-issues",
+	apply: migratePostgres(indexedIssuesMigrations),
+	pending: Effect.map(pendingPostgresMigrations(indexedIssuesMigrations), ({ migrations }) =>
+		migrations.length === 0 ? undefined : "indexed issue migrations are pending",
+	),
+};
 
 export const webhooksRegistration = {
 	name: "webhooks",
 	group: RpcGroup.make(),
 	handlers: Layer.empty,
 	migrations: {
-		components: [webhookReceipts],
-		loader: Migrator.fromRecord({
-			"0005_indexed_issues": SqlClient.SqlClient.use((sql) => sql`create table indexed_issues (number integer not null)`),
-		}),
+		components: [webhookReceipts, indexedIssues],
+		loader: Migrator.fromRecord({}),
 	},
 	queues: worker.queues,
 	services: WebhookJobs.layer({ jobs: [IndexIssue] }),
