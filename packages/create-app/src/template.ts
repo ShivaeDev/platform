@@ -39,6 +39,7 @@ const Manifest = Schema.Struct({
 	packageManager: Schema.String,
 	private: Schema.Boolean,
 	scripts: Versions,
+	shivaedevSkills: Schema.optional(Schema.Array(Schema.String)),
 	type: Schema.String,
 	version: Schema.String,
 });
@@ -55,6 +56,7 @@ const manifestOrder = [
 	"devDependencies",
 	"packageManager",
 	"engines",
+	"shivaedevSkills",
 ] as const satisfies ReadonlyArray<keyof typeof Manifest.Type>;
 
 export function manifestJson(manifest: typeof Manifest.Type) {

@@ -13,6 +13,7 @@ import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "./enviro
 import { createAppIn } from "./generate.ts";
 import { generatedReadouts } from "./generatedReadouts.ts";
 import { runAdminStories } from "./runAdminStories.ts";
+import { skillActions } from "./skillActions.ts";
 import { templateReadouts } from "./templateReadouts.ts";
 
 export type Flag = "--minimal" | "--no-git";
@@ -48,6 +49,7 @@ export const application = storyKit({
 			...appReadouts(target),
 			...generatedReadouts(engine, target),
 			...templateReadouts(engine),
+			...skillActions(target, story),
 			answer: () => Effect.sync(() => engine.answers.at(-1) ?? "create-app has not run"),
 			createApp: (folder: string, ...flags: readonly Flag[]) => {
 				story.tell(`create-app ${[folder, ...flags].join(" ")}`);

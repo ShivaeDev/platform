@@ -20,6 +20,7 @@
 	"@shivaedev/react": "0.32.0",
 	"@shivaedev/server": "0.17.0",
 	"@shivaedev/service": "0.6.0",
+	"@shivaedev/skills": "0.6.1",
 	"@shivaedev/sql": "0.31.0",
 	"@shivaedev/test": "0.12.0",
 	"@shivaedev/test-sql": "0.16.0",
