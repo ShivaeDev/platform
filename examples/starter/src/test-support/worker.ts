@@ -1,5 +1,4 @@
 import { Config, ConfigProvider, Effect, Layer } from "effect";
-import { createRailwayContext, project, type RailwayProgram } from "railway/iac";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -27,19 +26,6 @@ export const worker = storyKit({
 	name: "foundation worker",
 	stages: ["configuration", "sessions"],
 	verbs: (engine, story) => ({
-		railwayWorkerVariables: () =>
-			Effect.promise(async () => {
-				story.tell("Railway evaluates the application's deployment configuration");
-				const { default: configure }: { default: RailwayProgram } = await import(new URL("../../.railway/railway.ts", import.meta.url).href);
-				const configured = await configure(createRailwayContext(), project);
-				const service = configured.resources?.find(
-					(resource) => !Array.isArray(resource) && resource.type === "service" && resource.name === "worker",
-				);
-				if (service === undefined || Array.isArray(service) || service.type !== "service") {
-					throw new Error("The Railway configuration has no worker service");
-				}
-				return service.variables;
-			}),
 		schedules: () => engine.testing.schedules(),
 		sessionSweepRuns: Effect.fn("WorkerStory.sessionSweepRuns")(function* () {
 			story.tell("the worker's registered session sweep runs");

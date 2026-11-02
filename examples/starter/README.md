@@ -122,7 +122,7 @@ The auth migration stories call `assertBetterAuthSchema` after all numbered migr
 
 ## Deployment
 
-Railway needs no hand-written proxy setting. `.railway/railway.ts` uses `.railway/proxy.json` for proxy peer trust and client IP headers. `TRUSTED_PROXY` controls which peers may supply forwarded client IPs and the public HTTPS authority for RPC origin checks; `PUBLIC_URL` selects secure auth cookies. A session host listening on a non-loopback address refuses to boot without `TRUSTED_PROXY` or `config.trustedProxy`, with a typed `TrustedProxyRequired` error explaining how to set it. Local development on loopback keeps working without it.
+Railway needs no hand-written proxy setting. `.railway/railway.ts` composes `@shivaedev/deploy` for web migrations, proxy peer trust, client IP headers and worker draining. The app keeps its service names, commands, health check, tracing, database connections and limits. `TRUSTED_PROXY` controls which peers may supply forwarded client IPs and the public HTTPS authority for RPC origin checks; `PUBLIC_URL` selects secure auth cookies. A session host listening on a non-loopback address refuses to boot without `TRUSTED_PROXY` or `config.trustedProxy`, with a typed `TrustedProxyRequired` error explaining how to set it. Local development on loopback keeps working without it.
 
 The [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy) describes the Railway rollout, the worker drain and the timeouts this app configures.
 

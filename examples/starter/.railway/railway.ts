@@ -1,13 +1,13 @@
-import { defineRailway, postgres, project, service } from "railway/iac";
-import proxy from "./proxy.json" with { type: "json" };
+import { defineRailway, postgres, project } from "railway/iac";
+import { webService } from "@shivaedev/deploy/adapters/railway/webService.ts";
+import { workerService } from "@shivaedev/deploy/adapters/railway/workerService.ts";
 
 export default defineRailway((ctx) => {
 	const database = postgres("Postgres");
 	database.deploy = { ...database.deploy, limitOverride: { containers: { cpu: 2, memoryBytes: 1_073_741_824 } } };
-	const web = service("web", {
+	const web = webService("web", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
 		env: {
-			...proxy,
 			"BETTER_AUTH_SECRET": ctx.shared.BETTER_AUTH_SECRET,
 			"DATABASE_URL": database.env.DATABASE_URL,
 			"HOST": "0.0.0.0",
@@ -15,13 +15,11 @@ export default defineRailway((ctx) => {
 		},
 		healthcheck: "/health",
 		healthcheckTimeout: 120,
-		preDeploy: "pnpm migrate",
 		start: "pnpm start",
 		tracing: { autoInstrumentation: false, enabled: true },
 	});
-	const worker = service("worker", {
+	const worker = workerService("worker", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
-		deploy: { drainingSeconds: 75 },
 		env: {
 			"DATABASE_URL": database.env.DATABASE_URL,
 			"EMAIL_FROM": ctx.shared.EMAIL_FROM,
