@@ -12,6 +12,7 @@ export function runAdminStories(app: string, foundationOnly = false) {
 		"test",
 		[
 			"src/server/admin/foundation.spec.ts",
+			"src/client/admin/jobs.dom.spec.tsx",
 			...(foundationOnly
 				? []
 				: [
