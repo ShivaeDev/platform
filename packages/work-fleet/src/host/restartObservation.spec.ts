@@ -25,7 +25,7 @@ for (const launch of ["before", "after"] as const) {
 			}
 			const worker = yield* daemon.get("one");
 			expect(worker.stage).toBe("working");
-			yield* daemon.follow("handoff", "watch", ["one"], { follow: true });
+			yield* daemon.follow("handoff", "watch", ["one"], { follow: true, prEvents: false });
 			daemon.finishReviewedWorker(worker);
 			const reviewing = yield* daemon.waitForRecord(
 				"one",
@@ -34,7 +34,7 @@ for (const launch of ["before", "after"] as const) {
 			expect(reviewing.stage).toBe("reviewing");
 			daemon.finishTurn(reviewing);
 			const ready = yield* daemon.waitForRecord("one", (record) => record.decision?.code === "reviewed-pr-ready");
-			yield* daemon.awaitOutput("handoff", "one waiting (waiting on orchestrator): Reviewed PR is ready to merge\n");
+			yield* daemon.awaitOutput("handoff", 'reason="Reviewed PR is ready to merge"');
 			expect(ready).toMatchObject({
 				checks: { head: HEAD, passed: true },
 				result: { head: HEAD, pr: PR },

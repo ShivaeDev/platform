@@ -20,8 +20,7 @@ export const start = Effect.fnUntraced(function* (
 		Effect.tapCause(() => narrateCreation(definition.name, context)),
 	);
 	const { narration, captureFailure } = yield* narrate({ engine, inspect: definition.inspect, name: definition.name }, context);
-	return yield* Effect.gen(function* () {
-		yield* seed(definition, engine, narration, given);
+	const bodyEffect = Effect.suspend(() => {
 		const story: LooseStory = {
 			engine,
 			lines: narration.lines,
@@ -32,7 +31,7 @@ export const start = Effect.fnUntraced(function* (
 			},
 			tell: narration.tell,
 		};
-		return yield* body(
+		return body(
 			Object.defineProperties(
 				{},
 				{
@@ -41,5 +40,6 @@ export const start = Effect.fnUntraced(function* (
 				},
 			),
 		);
-	}).pipe(Effect.tapCause((cause) => captureFailure(Cause.prettyErrors(cause)[0]?.stack)));
+	});
+	return yield* seed(definition, engine, narration, given, bodyEffect, (cause) => captureFailure(Cause.prettyErrors(cause)[0]?.stack));
 });

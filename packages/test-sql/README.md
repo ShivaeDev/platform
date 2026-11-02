@@ -202,7 +202,33 @@ yield* withIsolatedDatabase(Effect.gen(function* () {
 }), { template: "empty" });
 ```
 
-For a `test-story` kit that chooses through traits, keep a `template: PostgresTestTemplate` field on its engine, initially `"migrated"`. Add a database stage before the stages that boot the app. A trait in that stage sets `engine.template = "empty"`; the stage's `after` hook acquires `yield* database.clone(engine.template)` from `PostgresTestDatabase`. Run app acquisition and verbs with `Effect.provideContext(services)` using that returned Context. The story's Scope owns the clone and its connections. Do not also use `around: withIsolatedDatabase` for this kit, since that would acquire a migrated clone before the traits run.
+For a `test-story` kit, acquire `storyDatabase()` in `create`. It returns a controller with `select(template)` and a scoped `acquire` Effect. A database stage applies the selection traits, then its `after` hook returns the clone's native service Context. Test-story provides that Context to later stages and the story body, so application Layers capture the selected database when they start:
+
+```ts
+import { Layer } from "effect";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { storyDatabase } from "@shivaedev/test-sql/server/storyDatabase.ts";
+
+const app = storyKit({
+	name: "application",
+	layer: databaseLayer,
+	create: () => storyDatabase(),
+	stages: ["database", "app", "data"],
+	after: {
+		database: (database) => database.acquire,
+		app: () => Layer.build(appLayer),
+	},
+	verbs: appVerbs,
+});
+
+const firstDeployment = app.trait("database", "the app starts before its first deployment", (database) => {
+	database.select("empty");
+});
+```
+
+`databaseLayer` is the Layer from `makePostgresTestLayer`, and `appLayer` and `appVerbs` belong to the application. A story with `firstDeployment` starts empty; stories without it keep the migrated default. Set `storyDatabase({ template: "empty" })` to change the kit's default, and use `select("migrated")` for a story that needs the prepared schema and fixtures. Apply selection traits in the database stage before its acquisition hook runs. Do not also set `around: withIsolatedDatabase`, which would create a clone before the selection traits run.
+
+The story's Scope closes application resources and clone connections before queuing the clone's drop, including after failure. The worker Layer waits for queued drops when its scope closes.
 
 Both selections copy a closed PostgreSQL template with `CREATE DATABASE ... TEMPLATE`; neither selection executes migrations or fixture loaders. The amount of preparation work does not add per-clone migration or loader work. PostgreSQL still has to copy the template's stored data.
 
@@ -286,6 +312,7 @@ Import each name from the module that defines it. The package has no root entry.
 | `@shivaedev/test-sql/server/postgres.ts`             | `makePostgresTestLayer({ url, migrations?, initialize?, fixtures?, applicationName?, connectionTTL?, idleTimeout?, maxConnections?, minConnections?, prepare?, transformQueryNames?, transformResultNames? })`, `PostgresTestOptions`, `PostgresTestLoader` |
 | `@shivaedev/test-sql/server/withTestTransaction.ts`  | `withTestTransaction(effect)`                                                                                                                                                                                                                               |
 | `@shivaedev/test-sql/server/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect, { template? }?)`                                                                                                                                                                                                              |
+| `@shivaedev/test-sql/server/storyDatabase.ts`        | `storyDatabase({ template? }?)` returning `{ select(template), acquire }`                                                                                                                                                                                   |
 | `@shivaedev/test-sql/server/database.ts`             | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate`                                                                                                                                                       |
 | `@shivaedev/test-sql/server/migrationSteps.ts`       | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }`                                                                                                                                                                            |
 | `@shivaedev/test-sql/server/migrationUpgrade.ts`     | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn`                                                                                                                                                                |

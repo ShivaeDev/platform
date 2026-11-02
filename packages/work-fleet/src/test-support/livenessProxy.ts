@@ -1,8 +1,10 @@
 import { type ClientRequest, createServer, request } from "node:http";
 import { Clock, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { changeSignal } from "#test/changeSignal.ts";
 
 export const livenessProxy = Effect.fn("DaemonTest.livenessProxy")(function* (port: number) {
+	const changed = changeSignal();
 	const clock = yield* Clock.Clock;
 	const probed = Promise.withResolvers<void>();
 	const answered = Promise.withResolvers<void>();
@@ -15,6 +17,7 @@ export const livenessProxy = Effect.fn("DaemonTest.livenessProxy")(function* (po
 		const live = incoming.url === "/live";
 		if (live) {
 			started.push(clock.currentTimeMillisUnsafe());
+			changed.notify();
 			if (active > 0) {
 				overlaps.push(clock.currentTimeMillisUnsafe());
 			}
@@ -60,6 +63,11 @@ export const livenessProxy = Effect.fn("DaemonTest.livenessProxy")(function* (po
 	}
 	return {
 		answered: Effect.promise(() => answered.promise),
+		awaitProbes: (count: number) =>
+			changed.wait(
+				Effect.sync(() => started.length),
+				(observed) => observed >= count,
+			),
 		port: address.port,
 		probed: Effect.promise(() => probed.promise),
 		probes: () => ({ overlaps: [...overlaps], started: [...started] }),

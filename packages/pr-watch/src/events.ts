@@ -18,7 +18,7 @@ function openEvents(before: Snapshot, after: Snapshot): readonly EventKind[] {
 	return transitions.flatMap(([changed, event]) => (changed ? [event] : []));
 }
 export function events(before: Snapshot | undefined, after: Snapshot, selected?: readonly EventKind[]): readonly string[] {
-	if (before === undefined && !stuck(after)) {
+	if (before === undefined && !stuck(after) && !after.dirty) {
 		return [];
 	}
 	const baseline = before ?? { ...after, autoMerge: false, dirty: false, failed: false };
@@ -30,7 +30,8 @@ export function events(before: Snapshot | undefined, after: Snapshot, selected?:
 		found.push("closed");
 	}
 	if (after.state === "open" && !after.merged) {
-		found.push(...openEvents(baseline, after));
+		const openBaseline = before?.head === after.head ? baseline : { ...baseline, dirty: false, failed: false };
+		found.push(...openEvents(openBaseline, after));
 	}
 	return found
 		.filter((event) => selected === undefined || selected.includes(event))
@@ -38,6 +39,7 @@ export function events(before: Snapshot | undefined, after: Snapshot, selected?:
 			JSON.stringify({
 				branch: after.branch,
 				event,
+				...(after.head === undefined ? {} : { head: after.head }),
 				number: after.number,
 				title: after.title,
 				...(event === "dequeued" ? { reason: after.dequeueReason ?? "Queue entry removed; GitHub supplied no reason" } : {}),

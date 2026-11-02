@@ -83,7 +83,7 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 			tell("watch Fleet with its default event selection and output");
 			return start(options);
 		},
-		watchEvents: (options: FollowOptions = {}) => start({ json: true, prEvents: false, ...options }),
+		watchEvents: (options: FollowOptions = {}) => start({ all: true, json: true, prEvents: false, ...options }),
 		watchRunning: () => follower().isRunning(),
 	};
 }

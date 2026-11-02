@@ -18,6 +18,7 @@ export const Snapshot = Schema.Struct({
 	dequeueReason: Schema.optionalKey(Schema.String),
 	dirty: Schema.Boolean,
 	failed: Schema.Boolean,
+	head: Schema.optionalKey(Schema.String),
 	merged: Schema.Boolean,
 	number: Schema.Int,
 	queued: Schema.Boolean,

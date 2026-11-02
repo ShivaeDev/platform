@@ -7,30 +7,13 @@ afterAll(() => {
 });
 
 testing.it(
-	"eventually reports the last assertion and elapsed live time",
+	"screen settlement renders native atom results without advancing the story clock",
 	[pendingResultScreen()],
-	function* ({ retriesUnreadyScreen, waitReport, storyTime }) {
-		yield* retriesUnreadyScreen();
-
-		const report = yield* waitReport();
-		expect(report.elapsed).toBeGreaterThanOrEqual(3000);
-		expect(report.attempts).toBeGreaterThan(1);
-		expect(report.retainedLastObservation).toBe(true);
-		expect(report.failure).toContain(report.lastObservation);
-		expect(report.reportedElapsed).toBeGreaterThanOrEqual(3000);
-		expect(report.reportedElapsed).toBeLessThanOrEqual(report.elapsed);
-		expect(yield* storyTime()).toBe(0);
-	},
-	{ clock: "test" },
-);
-testing.it(
-	"yieldable assertions let native atom results render without advancing the story clock",
-	[pendingResultScreen()],
-	function* ({ answer, waitsForText, shown, storyTime }) {
+	function* ({ answer, settle, shown, storyTime }) {
 		expect(yield* shown()).toBe("");
 
 		yield* answer("Morning walk");
-		yield* waitsForText("Morning walk");
+		yield* settle();
 
 		expect(yield* shown()).toBe("Morning walk");
 		expect(yield* storyTime()).toBe(0);

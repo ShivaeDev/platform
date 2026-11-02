@@ -2,6 +2,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Effect, Schedule, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { actionableWork } from "#host/actionableWatch.ts";
 import { daemonClient } from "#host/daemonClient.ts";
 import { readDaemonPort } from "#host/daemonPort.ts";
 import { type EventKind, type WatchEvent, watchTransitions } from "#host/watchEvents.ts";
@@ -9,6 +10,7 @@ import { watchOutput } from "#host/watchOutput.ts";
 import type { WatchSnapshot, WatchState } from "#host/watchState.ts";
 
 export interface WatchStreamOptions {
+	readonly all?: boolean;
 	readonly apiUrl?: string;
 	readonly board: string;
 	readonly events: readonly EventKind[];
@@ -26,7 +28,8 @@ export interface WatchStreamOptions {
 export const watchStream = Effect.fn("FleetWatch.watchStream")((options: WatchStreamOptions) => Effect.scoped(runWatchStream(options)));
 
 const runWatchStream = Effect.fnUntraced(function* (options: WatchStreamOptions) {
-	const transitions = watchTransitions(options.stuckMs);
+	yield* readDaemonPort(options.board, options.port).pipe(Effect.provide(NodeServices.layer));
+	const transitions = watchTransitions(options.stuckMs, !options.all);
 	const output = yield* watchOutput(options);
 	const { emit } = output;
 	const pullRequests = options.prEvents
@@ -41,10 +44,10 @@ const runWatchStream = Effect.fnUntraced(function* (options: WatchStreamOptions)
 	let states: readonly WatchState[] | undefined;
 	function print(event: WatchEvent) {
 		return Effect.gen(function* () {
-			if (!(options.events.some((kind) => kind === event.kind) || event.kind.startsWith("daemon-"))) {
+			if (!(options.all || actionableWork(event))) {
 				return;
 			}
-			if (event.kind === "stuck" && event.workId !== undefined) {
+			if (event.kind === "stuck" && event.workId !== undefined && options.events.includes("stuck")) {
 				const workId = event.workId;
 				const pickedUp = yield* Effect.scoped(
 					Effect.gen(function* () {
@@ -57,7 +60,7 @@ const runWatchStream = Effect.fnUntraced(function* (options: WatchStreamOptions)
 					return;
 				}
 			}
-			yield* emit(event);
+			yield* emit({ ...event });
 		});
 	}
 	const receive = Effect.fnUntraced(function* (snapshot: typeof WatchSnapshot.Type) {

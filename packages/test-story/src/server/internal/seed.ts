@@ -21,7 +21,7 @@ export interface LooseStory {
 }
 
 export interface LooseDefinition {
-	readonly after?: Readonly<Partial<Record<string, EffectHook<[engine: unknown], AnyEffect, void>>>>;
+	readonly after?: Readonly<Partial<Record<string, EffectHook<[engine: unknown], AnyEffect, unknown>>>>;
 	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | Scope.Scope>;
 	readonly clock?: EffectClock;
 	readonly create: EffectHook<[], AnyEffect, unknown>;
@@ -36,12 +36,19 @@ export interface LooseDefinition {
 	readonly verbs: (engine: unknown, story: LooseStory) => object;
 }
 
-export const seed = Effect.fnUntraced(function* (definition: LooseDefinition, engine: unknown, narration: Narration, given: readonly LooseTrait[]) {
+export const seed = Effect.fnUntraced(function* (
+	definition: LooseDefinition,
+	engine: unknown,
+	narration: Narration,
+	given: readonly LooseTrait[],
+	body: Effect.Effect<unknown, unknown, unknown>,
+	onFailure: (cause: Cause.Cause<unknown>) => Effect.Effect<unknown, never, unknown>,
+) {
 	const parts = given.flatMap((each) => each.parts);
 	tellGiven(narration, parts);
-	for (const stage of definition.stages) {
+	const stage = Effect.fnUntraced(function* (name: string) {
 		for (const [index, part] of parts.entries()) {
-			if (part.stage === stage) {
+			if (part.stage === name) {
 				yield* Effect.suspend(() => part.apply(engine)).pipe(
 					Effect.catchCause((cause) => {
 						if (Cause.hasInterruptsOnly(cause)) {
@@ -54,9 +61,21 @@ export const seed = Effect.fnUntraced(function* (definition: LooseDefinition, en
 				);
 			}
 		}
-		const after = definition.after?.[stage];
+		const after = definition.after?.[name];
 		if (after !== undefined) {
-			yield* hooked(() => after(engine)).pipe(Effect.updateContext(Context.omit(Tracer.ParentSpan)));
+			return yield* hooked(() => after(engine)).pipe(Effect.updateContext(Context.omit(Tracer.ParentSpan)));
 		}
+		return undefined;
+	});
+	function remaining(index: number): Effect.Effect<unknown, unknown, unknown> {
+		const name = definition.stages[index];
+		if (name === undefined) {
+			return body.pipe(Effect.tapCause(onFailure));
+		}
+		return stage(name).pipe(
+			Effect.tapCause(onFailure),
+			Effect.flatMap((services) => (Context.isContext(services) ? remaining(index + 1).pipe(Effect.provideContext(services)) : remaining(index + 1))),
+		);
 	}
+	return yield* remaining(0);
 });

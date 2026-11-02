@@ -14,7 +14,8 @@ export function message(text: string, id = "1") {
 	return `${JSON.stringify({ _tag: "Request", headers: [], id, payload: { text }, tag: "echo" })}\n`;
 }
 export function largestAcceptedMessage(limit: number) {
-	const text = "é".repeat(Math.floor((limit - Buffer.byteLength(message(""))) / 2));
+	const remaining = limit - Buffer.byteLength(message(""));
+	const text = "é".repeat(Math.floor(remaining / 2)) + "x".repeat(remaining % 2);
 	return { body: message(text), text };
 }
 export function oversizedBatch(limit: number) {
