@@ -17,10 +17,11 @@ for (const release of [false, true]) {
 				yield* host.resolve(decision.id, responseId);
 			}
 			expect(yield* host.storedRequests()).toMatchObject([{ "response_decision_id": decision.id, "response_id": responseId }]);
-			const previous = yield* host.get();
+			const previous = yield* host.awaitWorkerReceipt();
 			yield* host.stop();
 			yield* host.start();
-			const current = yield* host.applied();
+			yield* host.applied();
+			const current = yield* host.awaitWorkerReceipt();
 			expect(current.step).toBe(release ? "released" : "working");
 			expect(current.responses).toMatchObject([
 				{ responseId: deferred.id, type: "clarify" },

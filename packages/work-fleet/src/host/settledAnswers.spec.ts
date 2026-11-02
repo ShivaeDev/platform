@@ -1,8 +1,11 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
+import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
 
-host.it("consuming an answer settles the ask and the close command repairs previously consumed asks", [approvedWork(["one"])], function* (fleet) {
+host.it("consuming an answer settles the ask while work continues", [approvedWork(["one"])], function* (fleet) {
 	const started = yield* fleet.dispatch("one");
 	fleet.finishTurn(started, "FLEET_QUESTION: Which storage should I use?");
 	const waiting = yield* fleet.reconcile("one");
@@ -10,21 +13,10 @@ host.it("consuming an answer settles the ask and the close command repairs previ
 	if (published === undefined) {
 		throw new Error("Expected a published question");
 	}
-	const original = fleet.readBoard(published.sourcePath);
+
 	yield* fleet.answer("one", "Use PostgreSQL.");
-	expect(board.metadataParse(fleet.readBoard(published.sourcePath)).fields).toMatchObject({
-		attention: [{ state: "closed" }],
-		status: "done",
-	});
-	fleet.writeBoard(published.sourcePath, original);
-	yield* fleet.awaitIndexedSource(published.sourcePath, original);
-	const preview = yield* fleet.cli(["close-finished-decisions", "--dry-run"]);
-	expect(preview).toMatchObject({ code: 0 });
-	expect(preview.stdout).toContain("1 decision(s) would close.");
-	expect(fleet.readBoard(published.sourcePath)).toBe(original);
-	const closed = yield* fleet.cli(["close-finished-decisions"]);
-	expect(closed).toMatchObject({ code: 0 });
-	expect(closed.stdout).toContain("1 decision(s) closed.");
+	yield* fleet.refreshBoardIndex();
+
 	expect(board.metadataParse(fleet.readBoard(published.sourcePath)).fields).toMatchObject({
 		attention: [{ state: "closed" }],
 		status: "done",
@@ -33,6 +25,35 @@ host.it("consuming an answer settles the ask and the close command repairs previ
 	const cliResult = yield* fleet.cli(["close-finished-decisions"]);
 	expect(cliResult).toMatchObject({ code: 0, stdout: "0 decision(s) closed." });
 });
+
+boardFolderStory.it(
+	"closing finished decisions previews and repairs a consumed answer whose ask is still open",
+	[folderContains("withDependency")],
+	function* ({ acknowledge, answerDecision, closeFinishedDecisions, files, publishDecision, sourceOf }) {
+		const published = yield* publishDecision({ id: "task.one.1", links: [], reason: "Choose storage", recommendation: "Use PostgreSQL" });
+		const original = yield* sourceOf(published.sourcePath);
+		yield* answerDecision(published, "answer.consumed");
+		yield* acknowledge(published, "applied", "answer.consumed");
+		files.write(published.sourcePath, original);
+
+		const preview = yield* closeFinishedDecisions({ dryRun: true });
+
+		expect(preview).toMatchObject([{ sourcePath: published.sourcePath, workId: "task.one" }]);
+		expect(yield* sourceOf(published.sourcePath)).toBe(original);
+
+		const closed = yield* closeFinishedDecisions();
+
+		expect(closed).toEqual(preview);
+		yield* outcomes([
+			[
+				"decision source",
+				() => sourceOf(published.sourcePath).pipe(Effect.map((source) => board.metadataParse(source).fields)),
+				{ attention: [{ state: "closed" }], status: "done" },
+			],
+			["closing again", () => closeFinishedDecisions(), []],
+		]);
+	},
+);
 
 host.it("the close command leaves an unconsumed answer to an earlier revision open", [approvedWork(["one"])], function* (fleet) {
 	const published = yield* fleet.publishBoardDecision("one", {

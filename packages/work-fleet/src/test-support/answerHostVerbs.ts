@@ -27,11 +27,14 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 	function applied(workId: string) {
 		return appliedAnswer(engine.running.client, workId, engine.answerWaits.get(workId) ?? engine.answers);
 	}
-	function answer(text: string | undefined, release: boolean, workId: string) {
+	function answer(text: string | undefined, release: boolean, workId: string, timeoutMs?: number) {
 		return answerSignals(engine.fleet).pipe(
 			Effect.flatMap((signals) => {
 				engine.answerWaits.set(workId, signals);
-				return daemonRequest(engine.running.port, (client) => client("daemon.answer", { release, text, workId }), `answer ${workId}`, 500);
+				const payload = { release, text, workId };
+				return timeoutMs === undefined
+					? engine.running.client("daemon.answer", payload)
+					: daemonRequest(engine.running.port, (client) => client("daemon.answer", payload), `answer ${workId}`, timeoutMs);
 			}),
 		);
 	}
@@ -49,6 +52,10 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 						.pipe(Effect.andThen(applied(workId)));
 				}),
 			),
+		answerWithClientTimeout: (text: string, release = false, workId = "one") => {
+			tell(`record an answer for ${workId} with a caller timeout`);
+			return answer(text, release, workId, 500);
+		},
 		applied: (workId = "one") => applied(workId),
 		cliAnswer: (workId: string, text: string, release = false) =>
 			answerSignals(engine.fleet).pipe(
