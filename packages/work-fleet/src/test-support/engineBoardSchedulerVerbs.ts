@@ -34,13 +34,21 @@ export function engineBoardSchedulerVerbs(state: EngineStory, tell: (line: strin
 					return yield* Effect.die("No Markdown Board is configured");
 				}
 				const board = yield* openFleetBoard(state.root);
+				const fleet = running(state).fleet;
+				const reconciled = yield* Deferred.make<
+					Effect.Success<ReturnType<typeof fleet.reconcile>>,
+					Effect.Error<ReturnType<typeof fleet.reconcile>>
+				>();
 				const sleeping = yield* Deferred.make<void>();
 				const pause = Deferred.succeed(sleeping, undefined).pipe(Effect.andThen(Effect.never));
 				const runner = yield* Effect.scoped(run(pause, board.get(workId).pipe(Effect.asVoid, Effect.orDie))).pipe(
-					Effect.provideService(Fleet, running(state).fleet),
+					Effect.provideService(Fleet, {
+						...fleet,
+						reconcile: (id) => fleet.reconcile(id).pipe(Effect.onExit((exit) => Deferred.done(reconciled, exit))),
+					}),
 					Effect.forkChild,
 				);
-				return { runner, sleeping: Deferred.await(sleeping) };
+				return { reconciled: Deferred.await(reconciled), runner, sleeping: Deferred.await(sleeping) };
 			}),
 	};
 }

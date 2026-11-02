@@ -14,10 +14,11 @@ isolatedEngine.it(
 		const schedule = yield* fleet.startBoardReadScheduler("one");
 		yield* provider.entered;
 		yield* schedule.sleeping;
+
 		fleet.writeBoardWork("one.md", "---\nid: one\nkind: task\nfleet: held\n---\n# one\n\nEdited during scheduler sleep.\n");
 		yield* provider.release;
-		yield* fleet.awaitRecordedStage("one", "waiting");
-		const reconciled = (yield* fleet.get("one")).value;
+
+		const reconciled = (yield* schedule.reconciled).value;
 		expect(reconciled.decision).toMatchObject({
 			code: "fleet-stale",
 			publicationWork: { approved: false, context: expect.stringContaining("Edited during scheduler sleep.") },
