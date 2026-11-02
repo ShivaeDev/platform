@@ -1,25 +1,24 @@
-import { Predicate } from "effect";
+import { type Effect, Predicate } from "effect";
 import type { RpcSerialization } from "effect/rpc";
 import { redactWire } from "@shivaedev/errors/redact.ts";
-import { REDACTED, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
+import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
+import { REDACTED } from "@shivaedev/errors/sensitive.ts";
 
 function isRequestId(value: unknown): value is string | number {
 	return typeof value === "string" || typeof value === "number";
 }
 export function redactingRpcSerialization(
 	wire: RpcSerialization.RpcSerialization["Service"],
-	sensitive: SensitiveKey,
-	maskFailure: (tag: string | undefined, reason: "Fail" | "Die") => boolean = () => false,
-	sensitiveForRpc: (tag: string | undefined) => SensitiveKey = () => sensitive,
+	sensitive: Effect.Success<ReturnType<typeof schemaSensitiveKeys>>,
 ): typeof wire {
 	function reason(value: unknown, tag: string | undefined): unknown {
-		const redacted = redactWire(value, sensitiveForRpc(tag));
+		const redacted = redactWire(value, sensitive.forRpc(tag));
 		if (Predicate.isObjectOrArray(redacted)) {
-			if (Predicate.isTagged(value, "Fail") && maskFailure(tag, "Fail")) {
-				return { ...redacted, _tag: "Fail", error: REDACTED };
+			if (Predicate.isTagged(value, "Fail") && Predicate.hasProperty(value, "error")) {
+				return { ...redacted, _tag: "Fail", error: sensitive.redactFailure(tag, "Fail", value.error) };
 			}
-			if (Predicate.isTagged(value, "Die") && maskFailure(tag, "Die")) {
-				return { ...redacted, _tag: "Die", defect: REDACTED };
+			if (Predicate.isTagged(value, "Die") && Predicate.hasProperty(value, "defect")) {
+				return { ...redacted, _tag: "Die", defect: sensitive.redactFailure(tag, "Die", value.defect) };
 			}
 		}
 		if (
@@ -32,7 +31,7 @@ export function redactingRpcSerialization(
 	}
 	function exit(value: unknown, tag: string | undefined): unknown {
 		if (Predicate.isTagged(value, "Failure") && Predicate.hasProperty(value, "cause")) {
-			const cause = Array.isArray(value.cause) ? value.cause.map((item) => reason(item, tag)) : redactWire(value.cause, sensitiveForRpc(tag));
+			const cause = Array.isArray(value.cause) ? value.cause.map((item) => reason(item, tag)) : redactWire(value.cause, sensitive.forRpc(tag));
 			return { ...value, cause };
 		}
 		return value;
@@ -47,7 +46,7 @@ export function redactingRpcSerialization(
 					return value.map(response);
 				}
 				if (Predicate.isTagged(value, "Defect") && Predicate.hasProperty(value, "defect")) {
-					return { ...value, defect: maskFailure(undefined, "Die") ? REDACTED : redactWire(value.defect, sensitive) };
+					return { ...value, defect: sensitive.maskFailure(undefined, "Die") ? REDACTED : redactWire(value.defect, sensitive) };
 				}
 				if (
 					Predicate.isTagged(value, "Exit")

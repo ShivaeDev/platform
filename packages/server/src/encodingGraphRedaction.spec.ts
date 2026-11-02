@@ -11,13 +11,13 @@ for (const [key, value] of [
 	["alternateContact", "alternate private contact"],
 ] as const) {
 	host.it(
-		`the ${key} branch of an encoded union failure reaches the client masked`,
+		`the ${key} input of an encoded union failure receives a compatible constant mask`,
 		[unionEncoding],
 		function* ({ answerMentions, callRpc, wireAnswers }) {
 			yield* callRpc("unionFailure", { value });
 
 			yield* outcomes([
-				["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining({ [key]: "<redacted>" }) } }],
+				["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining({ wireContact: "<redacted>" }) } }],
 				["leaked into the answer", () => answerMentions(value), []],
 			]);
 		},

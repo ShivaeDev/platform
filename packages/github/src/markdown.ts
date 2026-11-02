@@ -23,3 +23,7 @@ export function tableCell(text: string, format: "text" | "code" = "text"): strin
 	const content = text.replace(/\r\n|[\r\n\u2028\u2029]/gu, " ");
 	return format === "code" ? codeSpan(content.replaceAll("|", "\\|")) : plainText(content);
 }
+
+export function details(summary: string, text: string): string {
+	return `<details>\n<summary>${plainText(summary)}</summary>\n\n${plainText(text)}\n\n</details>`;
+}

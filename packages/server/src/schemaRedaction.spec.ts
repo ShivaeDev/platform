@@ -31,10 +31,10 @@ host.it(
 					"1": {
 						failed: expect.objectContaining({
 							...masked,
-							internalReference: "<redacted>",
+							internalReference: 0,
 							notes: ["ordinary note", { mailingLine: "<redacted>" }],
-							privateLabels: "<redacted>",
-							recoveryCodes: "<redacted>",
+							privateLabels: {},
+							recoveryCodes: [],
 						}),
 					},
 				},

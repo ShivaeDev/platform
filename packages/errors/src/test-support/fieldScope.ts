@@ -28,7 +28,10 @@ export const fieldScope = storyKit({
 			const declaration: { error: Schema.Top; success: Schema.Top } = schemas[shape];
 			return schemaSensitiveKeys(RpcGroup.make(Rpc.make("Read", declaration))).pipe(
 				Effect.match({
-					onFailure: ({ field, publicSchema, sensitiveSchema }) => ({ field, publicSchema, sensitiveSchema }),
+					onFailure: (error) =>
+						error._tag === "SensitiveFieldConflict"
+							? { field: error.field, publicSchema: error.publicSchema, sensitiveSchema: error.sensitiveSchema }
+							: error,
 					onSuccess: () => "accepted" as const,
 				}),
 			);

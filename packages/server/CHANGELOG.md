@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.19.0 - 2026-11-02
+
+### Added
+
+- Compose feature modules with `AppModule` and `appModules`, combining native RPC groups, handlers, migrations, services and admin registrations for `appHost`. Supply default ports separately so replacement Layers reach module services before they bind dependencies.
+- The module entry point uses `@shivaedev/admin` as an optional peer; install it when composing modules.
+- A scoped child-process host testing kit with IPC readiness and signal acknowledgements, health answers and response-header readouts.
+
+### Fixed
+
+- Session-backed application hosts evaluate each live hint's read policy and pushed query against the current session, including changed roles and grants. Signing out, revocation and expiry still end subscriptions with `Unauthorized`.
+
 ## 0.18.0 - 2026-11-02
 
 ### Added

@@ -2,10 +2,12 @@ import { Effect, Option, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient, SqlSchema } from "effect/sql";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
-import { AssignRoles, LastRoleAssigner } from "@shivaedev/access/roles.ts";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
+import { AssignRoles, LastRoleAssigner } from "#roles.ts";
 import { type AuthTableOptions, tables } from "#server/better-auth/adapters/tables.ts";
+import { roleKeys, userKeys } from "#users.ts";
 
 function unavailable() {
 	return new AuthUnavailable({ message: "Could not access app users" });
@@ -48,7 +50,7 @@ export const assignRole = Effect.fn("Identity.assignRole")(function* <TRole exte
 			}
 		}
 		yield* sql`update ${sql(user.table)} set ${sql(user.role)} = ${role}, ${sql(user.updatedAt)} = now() where id = ${userId}`;
-		yield* invalidateOnCommit(["admin.users"]);
+		yield* invalidateOnCommit(invalidationKeys([userKeys.item(userId), roleKeys.item(userId)]));
 		return true;
 	}).pipe(transact({ onSqlError: unavailable }), Effect.provideService(Reactivity.Reactivity, reactivity));
 });

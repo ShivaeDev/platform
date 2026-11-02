@@ -2,18 +2,18 @@ import { Effect, Option, Schema, Stream } from "effect";
 import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Representations } from "#representations.ts";
 
-export interface ListOptions {
+export interface ListOptions<E = ServiceUnavailable> {
 	readonly arrayKey?: string | undefined;
-	readonly beforeRequest?: (resource: string) => Effect.Effect<void, ServiceUnavailable>;
+	readonly beforeRequest?: (resource: string) => Effect.Effect<void, E>;
 	readonly onDecodeError?: "fail" | "skip" | undefined;
 	readonly responseByteLimit?: number | undefined;
 }
 
-export function decodedPages<TSchema extends Schema.Constraint>(
+export function decodedPages<TSchema extends Schema.Constraint, E = ServiceUnavailable>(
 	client: Representations,
 	path: string,
 	schema: TSchema,
-	options: ListOptions | number = {},
+	options: ListOptions<E> | number = {},
 ) {
 	const settings = typeof options === "number" ? { responseByteLimit: options } : options;
 	const decode = Schema.decodeUnknownEffect(schema);

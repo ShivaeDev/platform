@@ -29,7 +29,7 @@ Both checks return `true`: the member owns the first record, and the operator ho
 A permission names the domain and action, such as `users.read`, `roles.assign` or `jobs.read`. `permission(name)` declares the default strength and exposes a separate override value as `.any`. Each role receives an explicit list of grants. There are no wildcard or prefix grants. An `any` grant covers an `own` check for the same name; an `own` grant never covers an `any` check. The resolved list still contains only the explicitly declared grants.
 
 ```ts
-import { AssignRoles } from "@shivaedev/access/roles.ts";
+import { AssignRoles } from "@shivaedev/identity/roles.ts";
 const ReadJobs = permission("jobs.read");
 const Operator = role("operator", [ReadUsers.any, AssignRoles, ReadJobs]);
 const Guest = role("guest", []);
@@ -38,7 +38,7 @@ const Access = roleSet(Member, Operator, Guest);
 
 Each role name is declared once in a role set, and `roleSet` refuses a repeated literal name with a compile error. A name typed only as `string` escapes that check; when it repeats a declared name, every check and `resolve` use the first declaration's grants. Library code that takes an application's role set as a parameter types it as `AccessPolicy<TName>` from `@shivaedev/access/roleSet.ts`.
 
-Keep these declarations in application code. The package provides no persistence or runtime role editor.
+Keep these declarations in application code. The package provides no persistence or runtime role editor. Add `@shivaedev/identity` for the shared `AssignRoles` permission and role-management services.
 
 ### Store and decode the role string
 
