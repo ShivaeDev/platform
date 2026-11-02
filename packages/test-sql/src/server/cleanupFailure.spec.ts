@@ -1,5 +1,7 @@
 import { expect } from "vitest";
-import { cleanup, cloneClosed, cloneOpen, dropDenied, limitedCleanupRole, runStarted } from "#test/cleanup.ts";
+import { cleanup } from "#test/cleanup.ts";
+import { cloneClosed, cloneOpen, dropDenied, runStarted } from "#test/cleanupActivity.ts";
+import { limitedCleanupRole } from "#test/cleanupOwnership.ts";
 
 cleanup.it(
 	"closing the run dies with the SQL error of a queued drop the run's role may not perform",
