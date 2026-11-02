@@ -1,5 +1,5 @@
 import { DateTime, Effect, Fiber, Option, Queue, Stream } from "effect";
-import { answered, decodedErrorWords } from "@shivaedev/test/answers.ts";
+import { answered, decodedErrorWords } from "@shivaedev/test-story/server/answers.ts";
 import type { SessionList, SessionListInput } from "#sessions.ts";
 import { type Accounts, type Actor, type Device, deviceOf, headersOf, personOf } from "./fixtures.ts";
 import type { SessionAdminHost } from "./host.ts";

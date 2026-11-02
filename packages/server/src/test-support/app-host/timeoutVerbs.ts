@@ -2,7 +2,7 @@ import { Effect, Exit, Fiber, ManagedRuntime } from "effect";
 import { HttpBody, HttpClient, HttpClientError } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { TestClock } from "effect/testing";
-import { causeWords, words } from "@shivaedev/test/answers.ts";
+import { causeWords, words } from "@shivaedev/test-story/server/answers.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { close } from "./lifecycle.ts";
 import { requests } from "./requests.ts";

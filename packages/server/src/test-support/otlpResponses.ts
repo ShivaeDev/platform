@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { HttpClient, HttpClientError } from "effect/http";
-import { answerOf, errorWords, words } from "@shivaedev/test/answers.ts";
+import { answerOf, errorWords, words } from "@shivaedev/test-story/server/answers.ts";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { otlpHttpClient } from "#otlpHttpClient.ts";

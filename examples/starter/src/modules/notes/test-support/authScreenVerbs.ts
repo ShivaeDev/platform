@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
-import { countWords } from "@shivaedev/test/answers.ts";
+import { countWords } from "@shivaedev/test-story/server/answers.ts";
 import { screenActions } from "./screenActions.ts";
 import type { Screen } from "./screenState.ts";
 

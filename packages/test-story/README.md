@@ -554,6 +554,10 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
+Use `captureOutcome` from `@shivaedev/test-story/server/captureOutcome.ts` to turn an Effect's outcome into your kit's domain words. Supply `onSuccess(value)`, `onFailure(error)`, `onDefect(defect, cause)` and `onInterrupt()` renderers. Return the value unchanged from `onSuccess` to keep it. `renderOutcome(exit, renderers)` applies the same renderers to an existing native Exit. Expected failures take precedence over defects in a combined Cause; defects take precedence over interruption. Pure interruption calls `onInterrupt`. Capture returns an Effect with no expected error channel and retains the original service requirements.
+
+The general `answered`, `answerOf`, `causeWords`, `resultOf`, `errorWords`, `decodedErrorWords`, `words` and `countWords` helpers live in `@shivaedev/test-story/server/answers.ts`. A kit with its own vocabulary supplies its renderers to `captureOutcome` instead.
+
 For several outcomes after one action, use `outcomes` from `@shivaedev/test-story/server/outcomes.ts`. Each row is `[label, () => readout(), expected]`. The list states the run order, independently of alphabetical key sorting:
 
 ```ts

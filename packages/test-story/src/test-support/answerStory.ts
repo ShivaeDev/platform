@@ -1,6 +1,6 @@
 import { Data, Effect } from "effect";
-import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { answered } from "#answers.ts";
+import { storyKit } from "#storyKit.ts";
 
 class QueryRejected extends Data.TaggedError("QueryRejected")<{ readonly code: string }> {}
 

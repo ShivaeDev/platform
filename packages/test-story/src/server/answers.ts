@@ -1,4 +1,5 @@
-import { Cause, Effect, Exit, Option, Predicate, Result } from "effect";
+import { type Cause, type Effect, Exit, Predicate, Result } from "effect";
+import { captureOutcome, renderOutcome } from "#captureOutcome.ts";
 
 export function words(name: string): string {
 	return name
@@ -21,16 +22,21 @@ export function decodedErrorWords(error: unknown): string {
 	return error instanceof Error ? errorWords(error) : `${errorWords(error)}, left as an undecoded object`;
 }
 
+function renderers<A>(explain: (error: unknown) => string) {
+	return {
+		onDefect: (defect: unknown) => `died with ${explain(defect)}`,
+		onFailure: (error: unknown) => `failed with ${explain(error)}`,
+		onInterrupt: () => "interrupted",
+		onSuccess: (value: A) => value,
+	};
+}
+
 export function causeWords(cause: Cause.Cause<unknown>, explain: (error: unknown) => string = errorWords): string {
-	if (Cause.hasInterruptsOnly(cause)) {
-		return "interrupted";
-	}
-	const failure = Cause.findErrorOption(cause);
-	return Option.isSome(failure) ? `failed with ${explain(failure.value)}` : `died with ${explain(Cause.squash(cause))}`;
+	return renderOutcome(Exit.failCause(cause), renderers<never>(explain));
 }
 
 export function answerOf<A>(exit: Exit.Exit<A, unknown>, explain: (error: unknown) => string = errorWords): A | string {
-	return Exit.isSuccess(exit) ? exit.value : causeWords(exit.cause, explain);
+	return renderOutcome(exit, renderers<A>(explain));
 }
 
 export function resultOf<A>(result: Result.Result<A, unknown>, explain: (error: unknown) => string = errorWords): A | string {
@@ -38,7 +44,7 @@ export function resultOf<A>(result: Result.Result<A, unknown>, explain: (error: 
 }
 
 export function answered<A, E, R>(effect: Effect.Effect<A, E, R>, explain: (error: unknown) => string = errorWords) {
-	return Effect.map(Effect.exit(effect), (exit) => answerOf(exit, explain));
+	return captureOutcome(effect, renderers<A>(explain));
 }
 
 export function countWords(count: number, thing: string): string {

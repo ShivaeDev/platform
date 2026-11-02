@@ -4,7 +4,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization } from "effect/rpc";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
-import { answered } from "@shivaedev/test/answers.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { close, context, start } from "#test/app-host/lifecycle.ts";

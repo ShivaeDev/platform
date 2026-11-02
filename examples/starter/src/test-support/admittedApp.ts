@@ -1,6 +1,6 @@
 import { ConfigProvider, Effect } from "effect";
-import { answered } from "@shivaedev/test/answers.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { admittedHost } from "./admittedHost.ts";

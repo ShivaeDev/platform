@@ -1,6 +1,7 @@
-import { Cause, Effect, Exit, Option, Predicate } from "effect";
+import { Cause, type Effect, Exit, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type { Key } from "@shivaedev/changes/keys.ts";
+import { captureOutcome, renderOutcome } from "@shivaedev/test-story/server/captureOutcome.ts";
 import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
 
 function field(error: object, name: string): string {
@@ -47,20 +48,28 @@ export function refusal(error: unknown): string {
 	}
 }
 
+function renderers<A>(success: (value: A) => string) {
+	return {
+		onDefect: (_defect: unknown, cause: Cause.Cause<unknown>) => `died: ${Cause.pretty(cause)}`,
+		onFailure: (error: unknown) => `failed with ${refusal(error)}`,
+		onInterrupt: () => "interrupted",
+		onSuccess: success,
+	};
+}
+
 export function failure(cause: Cause.Cause<unknown>): string {
-	const error = Cause.findErrorOption(cause);
-	if (Option.isSome(error)) {
-		return `failed with ${refusal(error.value)}`;
-	}
-	return Cause.hasInterruptsOnly(cause) ? "interrupted" : `died: ${Cause.pretty(cause)}`;
+	return renderOutcome(
+		Exit.failCause(cause),
+		renderers(() => "completed"),
+	);
 }
 
 export function ending<A>(exit: Exit.Exit<A, unknown>, success: (value: A) => string = () => "completed"): string {
-	return Exit.isSuccess(exit) ? success(exit.value) : failure(exit.cause);
+	return renderOutcome(exit, renderers(success));
 }
 
 export function answered<A, E, R>(effect: Effect.Effect<A, E, R>, success: (value: A) => string): Effect.Effect<string, never, R> {
-	return Effect.map(Effect.exit(effect), (exit) => ending(exit, success));
+	return captureOutcome(effect, renderers(success));
 }
 
 export function streams(count: number, state: "open" | "opened"): string {

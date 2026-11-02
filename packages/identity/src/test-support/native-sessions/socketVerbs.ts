@@ -1,6 +1,6 @@
 import { Effect, Option, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { answerOf } from "@shivaedev/test/answers.ts";
+import { answerOf } from "@shivaedev/test-story/server/answers.ts";
 import type { Host } from "./host.ts";
 import { type Account, authRequest } from "./requests.ts";
 import { openProfile, type ProfileSocket, rejectedFrame } from "./socketClient.ts";

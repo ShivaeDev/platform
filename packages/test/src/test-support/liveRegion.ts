@@ -1,6 +1,6 @@
 import { Data, Effect } from "effect";
+import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { answered } from "#answers.ts";
 import { withLive } from "#withLive.ts";
 import { clockReading } from "./clockReading.ts";
 

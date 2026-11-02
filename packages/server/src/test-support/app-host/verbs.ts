@@ -1,6 +1,6 @@
 import { Cause, Effect, Option } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { causeWords } from "@shivaedev/test/answers.ts";
+import { causeWords } from "@shivaedev/test-story/server/answers.ts";
 import { adminVerbs } from "./adminVerbs.ts";
 import { browserErrorReadouts } from "./browserErrorReadouts.ts";
 import { clientAbortVerbs } from "./clientAbortVerbs.ts";
