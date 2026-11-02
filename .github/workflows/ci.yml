@@ -36,6 +36,17 @@ jobs:
       - name: Load every package's focused-test config before builds
         run: pnpm test:focused-config
       - run: pnpm lint
+
+  orchestration:
+    name: CI orchestration
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
       - name: Test CI orchestration
         run: pnpm test:orchestration
 
@@ -315,7 +326,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke, browser-check ]
+    needs: [ shard-plan, lint, orchestration, build, typecheck, tests, consumers, published-starter, macos-smoke, browser-check ]
     permissions:
       contents: read
       actions: read
