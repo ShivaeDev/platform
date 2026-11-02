@@ -1,10 +1,10 @@
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { defaultTree } from "@shivaedev/quality/testing/adapters/tree.ts";
+import { writePackageExports } from "@shivaedev/quality/testing/adapters/writePackageExports.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runQuality } from "#quality-fixtures/cli.ts";
-import { defaultTree } from "#quality-fixtures/tree.ts";
-import { writePackageExports } from "#quality-fixtures/writePackageExports.ts";
 
 export const filePathExports = {
 	"./*.ts": { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" },

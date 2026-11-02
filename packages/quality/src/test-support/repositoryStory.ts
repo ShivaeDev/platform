@@ -3,10 +3,10 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { commitAll, git } from "#testing/adapters/git.ts";
+import { formatTree } from "#testing/adapters/qualityTree.ts";
+import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
-import { commitAll, git } from "./git.ts";
-import { formatTree } from "./qualityTree.ts";
-import { DEFAULT_FILES, linkPackage, type SeedFile } from "./tree.ts";
 
 interface RepositoryEngine {
 	answer: CliAnswer | undefined;

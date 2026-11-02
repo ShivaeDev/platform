@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { noLimitImports } from "@shivaedev/quality/rules/stories/noLimitImports.ts";
+import { inStory } from "@shivaedev/quality/testing/adapters/storySpecFiles.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { inStory } from "#quality-fixtures/storySpecFiles.ts";
 
 ruleKit.it(
 	"a spec cannot load implementation caps through literal dynamic limits imports",
@@ -19,8 +19,8 @@ ruleKit.it(
 			path: "src/orders.spec.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(noLimitImports);
+	function* ({ check }) {
+		const findings = yield* check(noLimitImports);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 3, 4]);
 	},
 );
@@ -39,7 +39,7 @@ ruleKit.it(
 			{ content: 'const { MAX_ITEMS } = await import("./limits.ts");', path: "src/orders.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(noLimitImports)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(noLimitImports)).toEqual([]);
 	},
 );

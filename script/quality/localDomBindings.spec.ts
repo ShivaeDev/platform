@@ -13,14 +13,14 @@ for (const binding of [
 	ruleKit.it(
 		`a locally bound document passes in a unit test and its fixture: ${binding}`,
 		[repositoryHas(ordersPackage, pureOrders, unitSpec(binding))],
-		function* ({ checks, writes }) {
-			expect(yield* checks(storySpecs)).toEqual([]);
-			expect(yield* checks(testsFollow)).toEqual([]);
+		function* ({ check, writes }) {
+			expect(yield* check(storySpecs)).toEqual([]);
+			expect(yield* check(testsFollow)).toEqual([]);
 			yield* writes(
 				{ content: binding, path: "src/test-support/document.ts" },
 				unitSpec('import { body } from "./test-support/document.ts"; export const value = body;'),
 			);
-			expect(yield* checks(storySpecs)).toEqual([]);
+			expect(yield* check(storySpecs)).toEqual([]);
 		},
 	);
 }
@@ -35,11 +35,11 @@ for (const access of ["document.body", "window.location"]) {
 				unitSpec(`function body(document: { body: string }) { return document.body; }\nexport const value = ${access};`),
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(storySpecs)).toEqual([
+		function* ({ check }) {
+			expect(yield* check(storySpecs)).toEqual([
 				{ file: "src/orders.unit.test.ts", line: 1, message: expect.stringContaining("Is a unit test but uses the DOM.") },
 			]);
-			expect(yield* checks(testsFollow)).toEqual([
+			expect(yield* check(testsFollow)).toEqual([
 				{ file: "src/orders.unit.test.ts", message: expect.stringContaining('"orders.unit.test.ts" uses the DOM') },
 			]);
 		},

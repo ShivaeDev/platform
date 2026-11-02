@@ -3,9 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runQuality } from "./cli.ts";
+import { runQuality } from "#testing/adapters/cli.ts";
+import { git, mergeBranch } from "#testing/adapters/git.ts";
 import { answerOf, type CliAnswer, cliVerbs } from "./cliAnswers.ts";
-import { git, mergeBranch } from "./git.ts";
 import { ROOT_SHARD, readOrUndefined, recordedDebt, sourceOf, writeAll } from "./recordedDebt.ts";
 
 export interface BaselineEngine {

@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { importsRuntime } from "@shivaedev/quality/rules/imports/runtime.ts";
+import { findingsIn } from "@shivaedev/quality/testing/adapters/imports.ts";
+import { removeSeededTrees, type SeedFile, seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { findingsIn } from "#quality-fixtures/imports.ts";
-import { removeSeededTrees, type SeedFile, seedTree } from "#quality-fixtures/tree.ts";
 
 export const runtimeModules = storyKit({
 	clock: "live",

@@ -5,8 +5,8 @@ import { ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { program } from "#cli/program.ts";
 import { exitCode, services } from "#cli/runMain.ts";
-import { capturing } from "./cli.ts";
-import { config, defaultTree, removeSeededTrees } from "./tree.ts";
+import { capturing } from "#testing/adapters/cli.ts";
+import { config, defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 
 interface Run {
 	biomeStarted: boolean;

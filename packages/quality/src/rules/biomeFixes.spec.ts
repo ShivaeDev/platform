@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const UNSORTED_DUPLICATES = { content: "export const b = { z: 1, a: 2 }\nexport const twice = { a: 1, a: 2 }\n", path: "src/b.ts" };
 

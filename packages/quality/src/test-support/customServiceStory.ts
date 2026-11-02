@@ -3,9 +3,9 @@ import { Console, Effect, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { lint } from "#cli/lint.ts";
 import { services } from "#cli/runMain.ts";
-import { capturing, type Output } from "./cli.ts";
+import { capturing, type Output } from "#testing/adapters/cli.ts";
+import { qualityTree } from "#testing/adapters/qualityTree.ts";
 import { LineAllowance } from "./customServiceRule.ts";
-import { qualityTree } from "./qualityTree.ts";
 
 const RULE_URL = new URL("./customServiceRule.ts", import.meta.url).href;
 

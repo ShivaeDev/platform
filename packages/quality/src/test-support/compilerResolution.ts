@@ -1,4 +1,4 @@
-import type { SeedFile } from "./tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export const conditionalWorkspace: readonly SeedFile[] = [
 	{ content: '{"compilerOptions":{"module":"NodeNext","moduleResolution":"NodeNext","paths":{"~/*":["./src/*"]}}}', path: "compiler.json" },

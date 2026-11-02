@@ -1,4 +1,4 @@
-import type { SeedFile } from "./tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 // Naming depends on the paths in @capacitor/cli 8.0.0's native templates, not their binary contents.
 const paths = [

@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { quality } from "./cli.ts";
+import { quality } from "#testing/adapters/cli.ts";
+import { git } from "#testing/adapters/git.ts";
+import { writes } from "#testing/adapters/hookRepository.ts";
+import { formatTree } from "#testing/adapters/qualityTree.ts";
+import { DEFAULT_FILES, linkPackage, type SeedFile } from "#testing/adapters/tree.ts";
 import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
-import { git } from "./git.ts";
-import { writes } from "./hookRepository.ts";
-import { formatTree } from "./qualityTree.ts";
-import { DEFAULT_FILES, linkPackage, type SeedFile } from "./tree.ts";
 
 interface ExceptionEngine {
 	answer: CliAnswer | undefined;

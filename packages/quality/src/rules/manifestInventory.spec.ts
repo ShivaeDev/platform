@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { manifestIsDirectory, manifestStory, repositoryHas } from "#test/manifestStory.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const BROKEN = "packages/broken/package.json";
 

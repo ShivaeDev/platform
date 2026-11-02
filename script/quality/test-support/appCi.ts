@@ -1,11 +1,11 @@
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
+import { seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { seedCiApplication } from "#quality/test-support/seedCiApplication.ts";
-import { runQuality } from "#quality-fixtures/cli.ts";
-import { writes } from "#quality-fixtures/hookRepository.ts";
-import { seedTree } from "#quality-fixtures/tree.ts";
 
 export const appCi = storyKit({
 	after: {

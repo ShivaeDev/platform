@@ -4,10 +4,10 @@ import { dirname, join } from "node:path";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
+import { git } from "#testing/adapters/git.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 import type { Fixture } from "./fixtureTree.ts";
-import { git } from "./git.ts";
 import { type ImportEngine, importVerbs, writeAll } from "./importVerbs.ts";
-import type { SeedFile } from "./tree.ts";
 
 export const importStory = storyKit({
 	create: () =>

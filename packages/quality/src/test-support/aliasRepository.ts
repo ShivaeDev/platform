@@ -1,5 +1,5 @@
+import type { SeedFile } from "#testing/adapters/tree.ts";
 import type { Fixture } from "./fixtureTree.ts";
-import type { SeedFile } from "./tree.ts";
 
 function json(path: string, value: unknown): SeedFile {
 	return { content: `${JSON.stringify(value, undefined, "\t")}\n`, path };

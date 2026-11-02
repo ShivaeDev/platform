@@ -13,8 +13,8 @@ ruleKit.it(
 			{ content: "export function loadItem() {}\n", path: "src/fetch.ts" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(namedAfterExport, { toolOwned: [{ glob: "src/generated/", reason: "The generator owns these file names." }] });
+	function* ({ check }) {
+		const findings = yield* check(namedAfterExport, { toolOwned: [{ glob: "src/generated/", reason: "The generator owns these file names." }] });
 		expect(findings.map((finding) => finding.file)).toEqual(["src/fetch.ts"]);
 	},
 );
@@ -29,8 +29,8 @@ ruleKit.it(
 			{ content: "{}\n", path: "assets/ToolData.json" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(otherNames, { toolOwned: [{ glob: "generated/", reason: "The generator owns these file names." }] });
+	function* ({ check }) {
+		const findings = yield* check(otherNames, { toolOwned: [{ glob: "generated/", reason: "The generator owns these file names." }] });
 		expect(findings.map((finding) => finding.file)).toEqual(["assets/ToolData.json"]);
 	},
 );
@@ -43,8 +43,8 @@ ruleKit.it(
 			{ content: "export function authoredModule() {}\n", path: "src/generated/manual.ts" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(namedAfterExport, {
+	function* ({ check }) {
+		const findings = yield* check(namedAfterExport, {
 			toolOwned: [
 				{ glob: "src/generated/*", reason: "The generator owns these names." },
 				{ glob: "!src/generated/manual.ts", reason: "Application authors maintain this module." },

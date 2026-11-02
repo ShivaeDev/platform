@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
-import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#test/packageExports.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#testing/adapters/packageExports.ts";
 
 const SERVER_WILDCARD = { "./server/*.ts": { default: "./dist/server/*.js", source: "./src/server/*.ts", types: "./dist/server/*.d.ts" } };
 

@@ -16,8 +16,8 @@ ruleKit.it(
 			},
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(authSql)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(authSql)).toEqual([]);
 	},
 );
 
@@ -29,8 +29,8 @@ ruleKit.it(
 			path: "src/migrations/0001_notes.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(authSql);
+	function* ({ check }) {
+		const findings = yield* check(authSql);
 		expect(findings.map(({ file }) => file)).toEqual(["src/migrations/0001_notes.ts"]);
 		expect(findings[0]?.message).toContain("Use platform's auth API");
 	},
@@ -49,8 +49,8 @@ for (const reference of [
 	ruleKit.it(
 		`app migrations cannot reference ${reference}`,
 		[repositoryHas({ content: `create table notes (user_id text references ${reference});`, path: "src/migrations/0001_notes.sql" })],
-		function* ({ checks }) {
-			expect((yield* checks(authSql)).map(({ file }) => file)).toEqual(["src/migrations/0001_notes.sql"]);
+		function* ({ check }) {
+			expect((yield* check(authSql)).map(({ file }) => file)).toEqual(["src/migrations/0001_notes.sql"]);
 		},
 	);
 }

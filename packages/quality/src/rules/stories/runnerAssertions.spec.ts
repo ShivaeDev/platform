@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { noExpect } from "#rules/stories/noExpect.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { kitFiles } from "#test/storySpecFiles.ts";
+import { kitFiles } from "#testing/adapters/storySpecFiles.ts";
 
 const FAILING_STORIES = {
 	content: 'import { expect } from "vitest"; import { orders } from "#test/orders.ts"; orders.it("fails", [], () => { expect(1).toBe(2); });',

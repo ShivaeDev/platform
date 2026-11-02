@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { storySpecs } from "@shivaedev/quality/rules/stories/specs.ts";
+import { factoryFiles, kitFiles, spec } from "@shivaedev/quality/testing/adapters/storySpecFiles.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { factoryFiles, kitFiles, spec } from "#quality-fixtures/storySpecFiles.ts";
 
 ruleKit.it(
 	"inline trait calls belong to the story registration",
@@ -17,8 +17,8 @@ ruleKit.it(
 			),
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(storySpecs)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(storySpecs)).toEqual([]);
 	},
 );
 
@@ -38,8 +38,8 @@ for (const name of ["it", "test"]) {
 				),
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(storySpecs)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 4 })]);
+		function* ({ check }) {
+			expect(yield* check(storySpecs)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 4 })]);
 		},
 	);
 }
@@ -52,8 +52,8 @@ ruleKit.it(
 			spec('import { orders } from "#test/factoryOrders.ts";\norders.it("places an order", [], () => {});'),
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(storySpecs)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(storySpecs)).toEqual([]);
 	},
 );
 
@@ -73,8 +73,8 @@ for (const name of ["it", "test"]) {
 				),
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(storySpecs)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 4 })]);
+		function* ({ check }) {
+			expect(yield* check(storySpecs)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 4 })]);
 		},
 	);
 }
@@ -87,8 +87,8 @@ ruleKit.it(
 			spec('import { orders } from "#test/factoryOrders.ts";\norders.it("plain registration", [], () => {});'),
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(storySpecs)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 2 })]);
+	function* ({ check }) {
+		expect(yield* check(storySpecs)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 2 })]);
 	},
 );
 
@@ -108,8 +108,8 @@ for (const factory of ["function buildOrderKit() { return storyKit({}); }", "con
 				),
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(storySpecs)).toEqual([]);
+		function* ({ check }) {
+			expect(yield* check(storySpecs)).toEqual([]);
 		},
 	);
 }

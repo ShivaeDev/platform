@@ -1,4 +1,4 @@
-import { repositoryHas } from "./ruleStory.ts";
+import { repositoryHas } from "#test/ruleStory.ts";
 
 export function unusedEntryPoint(abandoned = false) {
 	return repositoryHas(

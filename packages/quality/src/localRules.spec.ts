@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const NO_CONSOLE_LOG = {
 	content: [

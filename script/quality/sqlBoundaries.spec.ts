@@ -14,8 +14,8 @@ ruleKit.it(
 			{ content: "DELETE FROM PGBOSS.job;", path: "src/purge.sql" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(queueSql);
+	function* ({ check }) {
+		const findings = yield* check(queueSql);
 		expect(findings.map((finding) => finding.file)).toEqual(["src/jobs.spec.ts", "src/jobs.ts", "src/test-support/jobs.ts", "src/purge.sql"]);
 		expect(findings[0]?.message).toContain("no queue-purge API by design");
 	},
@@ -29,16 +29,16 @@ ruleKit.it(
 			{ content: 'sql`select * from app_jobs`; const source = "sql`delete from pgboss.job`";', path: "src/test-support/jobs.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(queueSql)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(queueSql)).toEqual([]);
 	},
 );
 
 ruleKit.it(
 	"queue SQL remains private through interpolation and multiline strings",
 	[repositoryHas({ content: sqlInputs.queueInterpolation, path: "src/jobs.ts" })],
-	function* ({ checks }) {
-		const findings = yield* checks(queueSql);
+	function* ({ check }) {
+		const findings = yield* check(queueSql);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 1, 2]);
 	},
 );
@@ -53,8 +53,8 @@ ruleKit.it(
 			{ content: 'ALTER TABLE "user" ADD COLUMN role text;', path: "src/auth.sql" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(authSql);
+	function* ({ check }) {
+		const findings = yield* check(authSql);
 		expect(findings.map((finding) => finding.file)).toEqual([
 			"src/test-support/users.ts",
 			"src/users.spec.ts",
@@ -75,9 +75,9 @@ ruleKit.it(
 			{ content: "yield* auth.findUser(userId); sql`select session, account from orders where title = 'user'`;", path: "src/users.ts" },
 		),
 	],
-	function* ({ checks }) {
+	function* ({ check }) {
 		expect(
-			yield* checks(authSql, {
+			yield* check(authSql, {
 				owners: [
 					{ glob: "platform/auth/**", reason: "The auth implementation and its migrations own auth storage." },
 					{ glob: "platform/migrations/**", reason: "The auth implementation and its migrations own auth storage." },
@@ -98,8 +98,8 @@ ruleKit.it(
 			},
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(authSql, { owners: [{ glob: "platform/auth/**", reason: "This adapter implements auth storage." }] });
+	function* ({ check }) {
+		const findings = yield* check(authSql, { owners: [{ glob: "platform/auth/**", reason: "This adapter implements auth storage." }] });
 		expect(findings.map((finding) => finding.line)).toEqual([1, 1]);
 	},
 );
@@ -113,8 +113,8 @@ ruleKit.it(
 			path: "src/notes.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(authSql);
+	function* ({ check }) {
+		const findings = yield* check(authSql);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 1, 1, 1, 1]);
 	},
 );

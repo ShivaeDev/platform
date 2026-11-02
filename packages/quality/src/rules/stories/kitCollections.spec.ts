@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { kitFiles, spec } from "#test/storySpecFiles.ts";
+import { kitFiles, spec } from "#testing/adapters/storySpecFiles.ts";
 
 for (const loop of [
 	"for (const kit of kits)",

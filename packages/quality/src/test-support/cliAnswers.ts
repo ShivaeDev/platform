@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { quality, type Run, runQuality } from "./cli.ts";
+import { quality, type Run, runQuality } from "#testing/adapters/cli.ts";
 
 export type CliOutcome = "passed" | "rejected" | "invalid" | `exited ${string}`;
 

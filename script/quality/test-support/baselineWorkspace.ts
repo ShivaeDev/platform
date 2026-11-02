@@ -1,12 +1,12 @@
 import { chmodSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { commitAll, git } from "@shivaedev/quality/testing/adapters/git.ts";
+import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
+import { qualityTree } from "@shivaedev/quality/testing/adapters/qualityTree.ts";
+import { packageRoot } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runQuality } from "#quality-fixtures/cli.ts";
-import { commitAll, git } from "#quality-fixtures/git.ts";
-import { writes } from "#quality-fixtures/hookRepository.ts";
-import { qualityTree } from "#quality-fixtures/qualityTree.ts";
-import { packageRoot } from "#quality-fixtures/tree.ts";
 
 function source(lines: number): string {
 	return Array.from({ length: lines }, (_, index) => `String(${index});\n`).join("");

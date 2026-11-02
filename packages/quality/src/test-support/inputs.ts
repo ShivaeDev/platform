@@ -1,7 +1,7 @@
 import { linesOf } from "#inventory/linesOf.ts";
 import type { Findings, RegisteredRule, Rule, RuleInputs } from "#rule.ts";
-import { run } from "#test/run.ts";
-import type { SeedFile } from "./tree.ts";
+import { run } from "#testing/adapters/run.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export interface Seed {
 	readonly files?: readonly string[];

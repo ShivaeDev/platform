@@ -5,8 +5,8 @@ import { Effect, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
+import { config, linkPackage, type SeedFile, seedTree } from "#testing/adapters/tree.ts";
 import { type CliAnswer, cliVerbs } from "./cliAnswers.ts";
-import { config, linkPackage, type SeedFile, seedTree } from "./tree.ts";
 
 interface ManifestEngine {
 	answer: CliAnswer | undefined;

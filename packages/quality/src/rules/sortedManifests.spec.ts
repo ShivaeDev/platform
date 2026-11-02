@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { manifestStory, repositoryHas } from "#test/manifestStory.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const UNSORTED = '{\n\t"version": "1.0.0",\n\t"name": "sample",\n\t"scripts": {\n\t\t"sample": "node src/limits.ts"\n\t}\n}\n';
 

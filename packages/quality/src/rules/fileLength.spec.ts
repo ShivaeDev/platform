@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { maxLines } from "#rules/maxLines.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
-import { lines } from "#test/tree.ts";
+import { lines } from "#testing/adapters/tree.ts";
 
 ruleStory.it(
 	"structure/max-lines reports a source file over 150 lines with the number of lines over the limit",

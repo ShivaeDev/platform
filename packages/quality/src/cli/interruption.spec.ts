@@ -1,10 +1,10 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeRunning } from "#test/biomeRunning.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { knipRunning } from "#test/knipRunning.ts";
 import { promiseRunning } from "#test/promiseRunning.ts";
 import { crashingRule, qualityLifecycle } from "#test/qualityLifecycle.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 qualityLifecycle.it(
 	"interrupting quality while Biome checks ends the run as interrupted without an error, stops Biome and removes quality's temporary Biome config",

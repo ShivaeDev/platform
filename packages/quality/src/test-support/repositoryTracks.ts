@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { git } from "./git.ts";
+import { git } from "#testing/adapters/git.ts";
 import { repositoryStory } from "./repositoryStory.ts";
 
 export function repositoryTracks(...paths: readonly string[]) {

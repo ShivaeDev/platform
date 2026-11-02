@@ -1,4 +1,4 @@
-import type { SeedFile } from "./tree.ts";
+import type { SeedFile } from "#testing/adapters/tree.ts";
 
 export function helperNamed(name: string): SeedFile {
 	return {

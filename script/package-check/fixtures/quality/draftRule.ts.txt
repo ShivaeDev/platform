@@ -1,0 +1,14 @@
+import { Schema } from "effect";
+import { defineRule } from "@shivaedev/quality/rule.ts";
+
+export const draftRule = defineRule({
+	check: ({ options, sources }) =>
+		sources.flatMap((source) =>
+			source.lines.flatMap((line, index) =>
+				line.includes(options.word) ? [{ file: source.path, line: index + 1, message: `Replace ${options.word} before merging.` }] : [],
+			),
+		),
+	description: "Keep draft text out of published sources.",
+	id: "local/no-draft",
+	options: Schema.toStandardSchemaV1(Schema.Struct({ word: Schema.String })),
+});

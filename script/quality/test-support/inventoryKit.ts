@@ -4,9 +4,9 @@ import { Effect } from "effect";
 import { vi } from "vitest";
 import { services } from "@shivaedev/quality/cli/runMain.ts";
 import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
+import { git } from "@shivaedev/quality/testing/adapters/git.ts";
+import { seedTree } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { git } from "#quality-fixtures/git.ts";
-import { seedTree } from "#quality-fixtures/tree.ts";
 
 export const inventoryKit = storyKit({
 	create: () =>

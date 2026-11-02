@@ -2,8 +2,8 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { boundaryDebt, THROW } from "#test/boundaryDebt.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { branchedFromMain, debtRecorded, shortened, staged } from "#test/debtRecorded.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
 	"pre-commit requires fixed debt to be tightened before a new finding can reuse its count",

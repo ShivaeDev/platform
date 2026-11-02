@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const TODO = { content: "// TODO\nexport function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };
 const CLEAN = { content: "export function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };

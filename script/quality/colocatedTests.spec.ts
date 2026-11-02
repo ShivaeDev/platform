@@ -11,8 +11,8 @@ for (const folder of ["test", "tests", "spec"]) {
 				{ content: "", path: `src/client/${folder}/testsScreen.spec.ts` },
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(testsColocated)).toEqual([]);
+		function* ({ check }) {
+			expect(yield* check(testsColocated)).toEqual([]);
 		},
 	);
 }
@@ -27,8 +27,8 @@ for (const folder of ["tests", "src/tests"]) {
 				{ content: "export const seed = 1;", path: `${folder}/test-support/seed.ts` },
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(testsColocated)).toEqual([expect.objectContaining({ file: `${folder}/cart.spec.ts` })]);
+		function* ({ check }) {
+			expect(yield* check(testsColocated)).toEqual([expect.objectContaining({ file: `${folder}/cart.spec.ts` })]);
 		},
 	);
 }
@@ -42,8 +42,8 @@ ruleKit.it(
 			{ content: "", path: "src/cart/__tests__/cart.spec.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(testsColocated)).toEqual([expect.objectContaining({ file: "src/cart/__tests__/cart.spec.ts" })]);
+	function* ({ check }) {
+		expect(yield* check(testsColocated)).toEqual([expect.objectContaining({ file: "src/cart/__tests__/cart.spec.ts" })]);
 	},
 );
 
@@ -57,7 +57,7 @@ ruleKit.it(
 			{ content: "export const seed = 1;", path: "src/cart/test-support/seed.ts" },
 		),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(testsColocated)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(testsColocated)).toEqual([]);
 	},
 );

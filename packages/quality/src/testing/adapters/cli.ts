@@ -1,18 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { format } from "node:util";
-import { Config, Console, Effect, Option, Schema } from "effect";
-import { vi } from "vitest";
+import { Config, Console, Effect, Option } from "effect";
 import { program } from "#cli/program.ts";
 import { exitCode, explained, services } from "#cli/runMain.ts";
-import rawTrees from "#test/fixtures/cli-trees.json" with { type: "json" };
-import { ISOLATED_ENV } from "#test/git.ts";
-import { packageRoot } from "#test/tree.ts";
-
-const SeedFile = Schema.Struct({ content: Schema.String, path: Schema.String });
-
-export const trees = Schema.decodeUnknownSync(Schema.Struct({ clean: Schema.Array(SeedFile), dirty: Schema.Array(SeedFile) }))(rawTrees);
+import { ISOLATED_ENV } from "#testing/adapters/git.ts";
 
 export interface Run {
 	readonly status: number | null;
@@ -20,13 +13,15 @@ export interface Run {
 	readonly stdout: string;
 }
 
-const CLI = join(packageRoot, "src", "cli.ts");
+const SOURCE = import.meta.url.endsWith(".ts");
+const CLI = fileURLToPath(new URL(SOURCE ? "../../cli.ts" : "../../cli.js", import.meta.url));
+const OPTIONS = SOURCE ? ["--conditions=source"] : [];
 
 export const CLI_TIMEOUT = 60_000;
 
 // The source condition resolves a seeded config's import of the package to its source, so tests need no build.
 export function qualityArgs(args: readonly string[]): string[] {
-	return ["--conditions=source", CLI, ...args];
+	return [...OPTIONS, CLI, ...args];
 }
 
 const ISOLATED: readonly (readonly [string, string | undefined])[] = [
@@ -34,7 +29,8 @@ const ISOLATED: readonly (readonly [string, string | undefined])[] = [
 	...Object.entries(ISOLATED_ENV),
 ];
 
-function isolateGit(): () => void {
+async function isolateGit(): Promise<() => void> {
+	const { vi } = await import("vitest");
 	const previous = ISOLATED.map(([name]) => [name, Option.getOrUndefined(Effect.runSync(Config.option(Config.String(name))))] as const);
 	for (const [name, value] of ISOLATED) {
 		vi.stubEnv(name, value);
@@ -91,8 +87,8 @@ export function capturing(output: Output): Console.Console {
 export async function runQuality(root: string, ...args: readonly string[]): Promise<Run> {
 	const output: Output = { stderr: "", stdout: "" };
 	const captured = capturing(output);
-	const command = program(args, { cwd: realpathSync(root), launch: { options: ["--conditions=source"], script: CLI } });
-	const restore = isolateGit();
+	const command = program(args, { cwd: realpathSync(root), launch: { options: OPTIONS, script: CLI } });
+	const restore = await isolateGit();
 	try {
 		const exit = await Effect.runPromiseExit(explained(command).pipe(Effect.provideService(Console.Console, captured), Effect.provide(services)));
 		return { status: exitCode(exit), ...output };

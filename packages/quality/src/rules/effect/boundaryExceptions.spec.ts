@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { qualityInstalled, repositoryHas as repositoryContains, repositoryStory } from "#test/repositoryStory.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const rule of ["effect/boundary", "effect/service-parameters", "effect/failure-honesty"]) {
 	repositoryStory.it(

@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { heavyLint } from "#test/heavyLint.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 heavyLint.it(
 	"a parallel lint waits until the lint running Biome releases the shared heavy-process lock",

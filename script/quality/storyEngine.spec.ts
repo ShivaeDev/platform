@@ -1,13 +1,13 @@
 import { expect } from "vitest";
 import { storyEngine } from "@shivaedev/quality/rules/stories/engine.ts";
+import { kitFiles, prerequisiteFiles, spec } from "@shivaedev/quality/testing/adapters/storySpecFiles.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { kitFiles, prerequisiteFiles, spec } from "#quality-fixtures/storySpecFiles.ts";
 
 ruleKit.it(
 	"a traitless story that ignores its kit reports its line and both repairs",
 	[repositoryHas(...kitFiles, spec('import { orders } from "#test/orders.ts";\norders.it("adds", [], () => { expect(add(1, 2)).toBe(3); });'))],
-	function* ({ checks }) {
-		const findings = yield* checks(storyEngine);
+	function* ({ check }) {
+		const findings = yield* check(storyEngine);
 		expect(findings).toEqual([
 			{
 				file: "src/orders.spec.ts",
@@ -35,8 +35,8 @@ for (const [name, registration] of [
 	ruleKit.it(
 		`a story that ${name} passes`,
 		[repositoryHas(...kitFiles, spec(`import { orders } from "#test/orders.ts";\n${registration}`))],
-		function* ({ checks }) {
-			expect(yield* checks(storyEngine)).toEqual([]);
+		function* ({ check }) {
+			expect(yield* check(storyEngine)).toEqual([]);
 		},
 	);
 }
@@ -49,8 +49,8 @@ for (const body of [
 	ruleKit.it(
 		`declaring or shadowing a verb does not reference the kit: ${body}`,
 		[repositoryHas(...kitFiles, spec(`import { orders } from "#test/orders.ts";\norders.it("adds", [], ${body});`))],
-		function* ({ checks }) {
-			expect(yield* checks(storyEngine)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 2 })]);
+		function* ({ check }) {
+			expect(yield* check(storyEngine)).toEqual([expect.objectContaining({ file: "src/orders.spec.ts", line: 2 })]);
 		},
 	);
 }
@@ -67,8 +67,8 @@ for (const directory of ["stories", "engine", "types"]) {
 				),
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(storyEngine)).toEqual([]);
+		function* ({ check }) {
+			expect(yield* check(storyEngine)).toEqual([]);
 		},
 	);
 }
@@ -82,8 +82,8 @@ for (const path of ["src/orders.unit.test.ts", "src/orders.typecheck.test.ts", "
 				spec('import { orders } from "#test/orders.ts";\norders.it("adds", [], () => { expect(add(1, 2)).toBe(3); });', path),
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(storyEngine)).toEqual([]);
+		function* ({ check }) {
+			expect(yield* check(storyEngine)).toEqual([]);
 		},
 	);
 }
@@ -100,8 +100,8 @@ for (const directory of ["quality", "optional"]) {
 				),
 			),
 		],
-		function* ({ checks }) {
-			expect(yield* checks(storyEngine)).toEqual([expect.objectContaining({ file: `modules/${directory}/src/orders.spec.ts`, line: 1 })]);
+		function* ({ check }) {
+			expect(yield* check(storyEngine)).toEqual([expect.objectContaining({ file: `modules/${directory}/src/orders.spec.ts`, line: 1 })]);
 		},
 	);
 }

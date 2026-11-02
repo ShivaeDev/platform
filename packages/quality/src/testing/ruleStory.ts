@@ -1,0 +1,133 @@
+import { join } from "node:path";
+import { Effect, FileSystem } from "effect";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { configureRegistered } from "#adapters/rule.ts";
+import { services } from "#cli/runMain.ts";
+import type { Finding, Findings, RegisteredRule, Rule } from "#rule.ts";
+import { type Run, runQuality } from "#testing/adapters/cli.ts";
+import { scanned } from "#testing/adapters/imports.ts";
+import { packageRoot, type SeedFile } from "#testing/adapters/tree.ts";
+
+interface RuleEngine {
+	answer: Run | undefined;
+	findings: Findings | undefined;
+	readonly root: string;
+}
+
+const writeAll = Effect.fn("RuleStory.writeAll")(function* (root: string, files: readonly SeedFile[]) {
+	const fs = yield* FileSystem.FileSystem;
+	for (const file of files) {
+		const path = join(root, file.path);
+		yield* fs.makeDirectory(join(path, ".."), { recursive: true });
+		yield* fs.writeFileString(path, file.content);
+	}
+});
+
+function pathsOf(files: readonly SeedFile[]): string {
+	return files.map((file) => file.path).join(", ");
+}
+
+export function locationOf(finding: Finding): string {
+	return finding.line === undefined ? finding.file : `${finding.file}:${finding.line}`;
+}
+
+function checked(engine: RuleEngine) {
+	if (engine.findings === undefined) {
+		return Effect.die(new Error("Check a rule before reading its findings"));
+	}
+	return Effect.succeed(engine.findings);
+}
+
+function answered(engine: RuleEngine) {
+	if (engine.answer === undefined) {
+		return Effect.die(new Error("Run the gate before reading its answer"));
+	}
+	return Effect.succeed(engine.answer);
+}
+
+function outcomeOf({ status }: Run): string {
+	if (status === 0) {
+		return "passed";
+	}
+	if (status === 1) {
+		return "rejected";
+	}
+	if (status === 2) {
+		return "invalid";
+	}
+	return `exited ${String(status)}`;
+}
+
+export function makeRuleStory() {
+	const ruleStory = storyKit({
+		clock: "live",
+		create: () =>
+			Effect.gen(function* () {
+				const fs = yield* FileSystem.FileSystem;
+				const root = yield* fs.makeTempDirectoryScoped({ prefix: "quality-rule-" });
+				yield* fs.makeDirectory(join(root, "node_modules", "@shivaedev"), { recursive: true });
+				yield* fs.symlink(packageRoot, join(root, "node_modules", "@shivaedev", "quality"));
+				const engine: RuleEngine = { answer: undefined, findings: undefined, root };
+				return engine;
+			}),
+		inspect: ({ findings }) => ({ findings }),
+		layer: services,
+		name: "Quality rule",
+		stages: ["repository"],
+		verbs: (engine, story) => ({
+			check: Effect.fn("RuleStory.check")(function* <TInput>(rule: Rule<string, TInput>, options?: TInput, directory = ".") {
+				story.tell(options === undefined ? `quality checks ${rule.id}` : `quality checks ${rule.id} with ${JSON.stringify(options)}`);
+				const configured = yield* Effect.promise(() => rule.configure(options));
+				if (configured._tag === "Invalid") {
+					return yield* Effect.die(new Error(`${rule.id} refused its options: ${configured.issues.join("; ")}`));
+				}
+				const inputs = yield* Effect.promise(() => scanned(join(engine.root, directory)));
+				engine.findings = yield* configured.check(inputs);
+				return engine.findings;
+			}),
+			findings: () => checked(engine),
+			gate: Effect.fn("RuleStory.gate")(function* () {
+				story.tell("quality runs the repository gate");
+				engine.answer = yield* Effect.promise(() => runQuality(engine.root, "lint"));
+			}),
+			gateOutcome: () => Effect.map(answered(engine), outcomeOf),
+			gateReport: () => Effect.map(answered(engine), (answer) => answer.stdout + answer.stderr),
+			locations: () => Effect.map(checked(engine), (findings) => findings.map(locationOf)),
+			messages: () => Effect.map(checked(engine), (findings) => findings.map((finding) => finding.message)),
+			optionIssues: Effect.fn("RuleStory.optionIssues")(function* (rule: RegisteredRule, options: unknown) {
+				story.tell(`quality configures ${rule.id} with ${JSON.stringify(options)}`);
+				const configured = yield* Effect.promise(() => configureRegistered(rule, options));
+				return configured._tag === "Invalid" ? configured.issues : [];
+			}),
+			removes: Effect.fn("RuleStory.removes")(function* (path: string) {
+				story.tell(`the author removes ${path}`);
+				const fs = yield* FileSystem.FileSystem;
+				yield* fs.remove(join(engine.root, path), { force: true, recursive: true });
+			}),
+			writes: (...files: readonly SeedFile[]) => {
+				story.tell(`the author writes ${pathsOf(files)}`);
+				return writeAll(engine.root, files);
+			},
+		}),
+	});
+
+	function repositoryHas(...files: readonly SeedFile[]) {
+		return ruleStory.trait("repository", `the repository contains ${pathsOf(files)}`, (engine) => writeAll(engine.root, files));
+	}
+
+	function repositoryLinks(path: string, target: string) {
+		return ruleStory.trait("repository", `the repository links ${path} to ${target}`, (engine) =>
+			Effect.gen(function* () {
+				const fs = yield* FileSystem.FileSystem;
+				yield* fs.makeDirectory(join(engine.root, path, ".."), { recursive: true });
+				yield* fs.symlink(target, join(engine.root, path));
+			}),
+		);
+	}
+
+	const harness: typeof ruleStory & {
+		readonly repositoryHas: typeof repositoryHas;
+		readonly repositoryLinks: typeof repositoryLinks;
+	} = { ...ruleStory, repositoryHas, repositoryLinks };
+	return harness;
+}

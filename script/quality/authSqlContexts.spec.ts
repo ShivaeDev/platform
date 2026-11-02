@@ -16,8 +16,8 @@ ruleKit.it(
 			path: "src/observations.sql",
 		}),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(authSql)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(authSql)).toEqual([]);
 	},
 );
 
@@ -36,8 +36,8 @@ ruleKit.it(
 			{ content: 'SELECT * FROM ONLY (public."verification");', path: "src/verification.sql" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(authSql);
+	function* ({ check }) {
+		const findings = yield* check(authSql);
 		expect(findings.map((finding) => finding.file)).toEqual(["src/users.ts", "src/users.ts", "src/users.ts", "src/verification.sql"]);
 	},
 );
@@ -56,8 +56,8 @@ ruleKit.it(
 			path: "src/users.ts",
 		}),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(authSql);
+	function* ({ check }) {
+		const findings = yield* check(authSql);
 		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 4, 5]);
 	},
 );

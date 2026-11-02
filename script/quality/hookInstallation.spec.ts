@@ -1,6 +1,6 @@
 import { afterEach, expect } from "vitest";
+import { removeSeededTrees } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { hookStory } from "#quality/test-support/hookStory.ts";
-import { removeSeededTrees } from "#quality-fixtures/tree.ts";
 
 afterEach(removeSeededTrees);
 

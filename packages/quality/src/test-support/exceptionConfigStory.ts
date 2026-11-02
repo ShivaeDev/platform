@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
 import { services } from "#cli/runMain.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
-import { linkPackage } from "./tree.ts";
+import { linkPackage } from "#testing/adapters/tree.ts";
 
 interface Seen {
 	readonly configPath: string | undefined;

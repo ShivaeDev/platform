@@ -1,8 +1,8 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { CLI_TIMEOUT } from "#test/cli.ts";
 import { exceptionStory, exceptionsMigrated, repositoryHas } from "#test/exceptionStory.ts";
-import { config } from "#test/tree.ts";
+import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
+import { config } from "#testing/adapters/tree.ts";
 
 const FILE = "src/parse.ts";
 const REASON = "This parser preserves the external format.";

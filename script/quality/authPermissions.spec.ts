@@ -17,8 +17,8 @@ ruleKit.it(
 			{ content: "GRANT SELECT ON notes, public.session TO app_role;", path: "src/grants.sql" },
 		),
 	],
-	function* ({ checks }) {
-		const findings = yield* checks(authSql);
+	function* ({ check }) {
+		const findings = yield* check(authSql);
 		expect(findings.map((finding) => finding.file)).toEqual([
 			"src/permissions.ts",
 			"src/permissions.ts",
@@ -45,7 +45,7 @@ ruleKit.it(
 			path: "src/permissions.sql",
 		}),
 	],
-	function* ({ checks }) {
-		expect(yield* checks(authSql)).toEqual([]);
+	function* ({ check }) {
+		expect(yield* check(authSql)).toEqual([]);
 	},
 );

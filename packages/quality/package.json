@@ -79,10 +79,14 @@
 	"peerDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
+		"@shivaedev/test-story": "workspace:*",
 		"effect": "catalog:",
 		"vitest": "catalog:"
 	},
 	"peerDependenciesMeta": {
+		"@shivaedev/test-story": {
+			"optional": true
+		},
 		"vitest": {
 			"optional": true
 		}

@@ -1,11 +1,11 @@
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { writes } from "@shivaedev/quality/testing/adapters/hookRepository.ts";
+import { linkWorkspace } from "@shivaedev/quality/testing/adapters/imports.ts";
+import { qualityTree } from "@shivaedev/quality/testing/adapters/qualityTree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runQuality } from "#quality-fixtures/cli.ts";
-import { writes } from "#quality-fixtures/hookRepository.ts";
-import { linkWorkspace } from "#quality-fixtures/imports.ts";
-import { qualityTree } from "#quality-fixtures/qualityTree.ts";
 
 function repository() {
 	return qualityTree([

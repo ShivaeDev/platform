@@ -2,10 +2,10 @@ import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { formatTree, qualityTree } from "@shivaedev/quality/testing/adapters/qualityTree.ts";
+import type { SeedFile } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runQuality } from "#quality-fixtures/cli.ts";
-import { formatTree, qualityTree } from "#quality-fixtures/qualityTree.ts";
-import type { SeedFile } from "#quality-fixtures/tree.ts";
 
 function repository(): string {
 	const root = qualityTree([

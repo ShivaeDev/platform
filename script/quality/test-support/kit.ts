@@ -4,9 +4,9 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
+import { runQuality } from "@shivaedev/quality/testing/adapters/cli.ts";
+import { defaultTree } from "@shivaedev/quality/testing/adapters/tree.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { runQuality } from "#quality-fixtures/cli.ts";
-import { defaultTree } from "#quality-fixtures/tree.ts";
 
 const biome = createRequire(import.meta.url).resolve("@biomejs/biome/bin/biome");
 

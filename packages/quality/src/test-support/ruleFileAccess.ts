@@ -7,7 +7,7 @@ import { services } from "#cli/runMain.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { Findings } from "#rule.ts";
 import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
-import { seedTree } from "./tree.ts";
+import { seedTree } from "#testing/adapters/tree.ts";
 
 interface RuleRun {
 	fiber: Fiber.Fiber<unknown, unknown> | undefined;
