@@ -1,11 +1,11 @@
-import { expect } from "@effect/vitest";
-import { it } from "@shivaedev/test/it.ts";
+import { expect, it } from "@effect/vitest";
+import { Effect } from "effect";
 import { parseOptions } from "#options.ts";
 
-it.effect("arguments after -- reach Vitest unchanged, including wrapper option names and another separator", function* () {
+it.effect("arguments after -- reach Vitest unchanged, including wrapper option names and another separator", () => {
 	const forwarded = ["--reruns", "--output-dir=", "--", "a test.spec.ts", "--silent=invalid"];
 
-	const options = yield* parseOptions(["--", ...forwarded], "/project");
-
-	expect(options.vitestArgs).toEqual(forwarded);
+	return Effect.map(parseOptions(["--", ...forwarded], "/project"), (options) => {
+		expect(options.vitestArgs).toEqual(forwarded);
+	});
 });
