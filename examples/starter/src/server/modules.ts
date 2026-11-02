@@ -17,5 +17,6 @@ export const serverModules = {
 	group: RpcGroup.make().merge(...modules.map((module) => module.group)),
 	handlers: admin.handlers,
 	migrations: modules.map((module) => module.migrations),
-	services: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.services)),
+	services: <R, E, TRequirements>(replacements: Layer.Layer<R, E, TRequirements>) =>
+		Layer.mergeAll(Layer.empty, ...modules.map((module) => module.services(replacements))),
 };

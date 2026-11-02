@@ -47,7 +47,7 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 			const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
 			const database = databaseOptions(databaseUrl, "check", config?.poolSizes?.sql);
 			const replacements = config?.replacements ?? Layer.empty;
-			const producers = Layer.merge(serverModules.services, AuthEmailQueue.producerLayer);
+			const producers = Layer.merge(serverModules.services(replacements), AuthEmailQueue.producerLayer);
 			const services = producers
 				.pipe(Layer.provide(jobsLayer(databaseUrl, config?.poolSizes?.jobs)))
 				.pipe(Layer.provideMerge(Layer.merge(JobsClientFactory.layer, replacements)), Layer.merge(replacements));
