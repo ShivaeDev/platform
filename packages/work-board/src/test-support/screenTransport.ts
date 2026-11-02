@@ -18,8 +18,8 @@ export const screenTransport = Effect.fn("Test.screenTransport")(function* (opti
 				return read;
 			}
 			return Effect.suspend(() => options?.beforeRequest?.(workspace.paths()) ?? Effect.void).pipe(
-				Effect.andThen(workspace.synchronize),
 				Effect.andThen(url ? (options?.beforeRead?.("document", url) ?? Effect.void) : Effect.void),
+				Effect.andThen(workspace.synchronize),
 				Effect.andThen(read),
 				Effect.tap(() => (url ? (options?.afterRead?.(url) ?? Effect.void) : Effect.void)),
 			);

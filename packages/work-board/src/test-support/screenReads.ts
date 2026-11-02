@@ -52,6 +52,7 @@ export function screenOptions(engine: ScreenEngine, options?: BoardFixtureOption
 					}),
 				),
 				Effect.andThen(Deferred.succeed(read.startedSignal, undefined)),
+				Effect.andThen(PubSub.publish(engine.transportEvents, undefined)),
 				Effect.andThen(Deferred.await(read.gate)),
 			);
 		},
