@@ -13,54 +13,60 @@ import { sources } from "#adoption/webhooks/feature.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
 
-const signing = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "GITHUB_WEBHOOK_SECRET": "adoption-signing-secret" } }));
+const signing = ConfigProvider.layer(ConfigProvider.fromEnv({ env: { GITHUB_WEBHOOK_SECRET: "adoption-signing-secret" } }));
 
 export const webhooksStory = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
-	layer: postgres,
-	name: "generated app webhooks",
-	stages: [],
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		yield* Effect.scoped(migrateDatabase(database.url));
-		const context = yield* Layer.build(applicationHost({
-			databaseUrl: database.url,
-			port: 0,
-			poolSizes: testPoolSizes,
-			secret: Redacted.make("adoption-auth-secret-with-at-least-32-characters"),
-		}).pipe(Layer.provide(signing)));
+		const context = yield* Layer.build(
+			applicationHost({
+				databaseUrl: database.url,
+				poolSizes: testPoolSizes,
+				port: 0,
+				secret: Redacted.make("adoption-auth-secret-with-at-least-32-characters"),
+			}).pipe(Layer.provide(signing)),
+		);
 		const baseUrl = HttpServer.formatAddress(Context.get(context, HttpServer.HttpServer).address);
 		const testing = makePgBossTesting();
-		yield* Layer.build(applicationWorker({
-			databaseUrl: database.url,
-			poolSizes: testPoolSizes,
-			replacements: Layer.succeed(JobsClientFactory, testing.clientFactory),
-		}));
-		return { baseUrl, testing, answer: { status: 0, body: "" } };
+		yield* Layer.build(
+			applicationWorker({
+				databaseUrl: database.url,
+				poolSizes: testPoolSizes,
+				replacements: Layer.succeed(JobsClientFactory, testing.clientFactory),
+			}),
+		);
+		return { answer: { body: "", status: 0 }, baseUrl, testing };
 	},
+	layer: postgres,
+	name: "generated app webhooks",
+	stages: [],
 	verbs: (engine, story) => ({
-		deliver: (signature: "valid" | "invalid" = "valid") => Effect.gen(function* () {
-			story.tell(`github sends issue 42 with a ${signature} signature and the same delivery ID`);
-			const response = yield* deliverWebhook({
-				url: `${engine.baseUrl}/webhooks/github`,
-				source: sources.github,
-				body: JSON.stringify({ issue: { number: 42 } }),
-				headers: {
-					"x-github-delivery": "issue-42",
-					"x-github-event": "issues",
-					...(signature === "invalid" ? { "x-hub-signature-256": `sha256=${"0".repeat(64)}` } : {}),
-				},
-			});
-			engine.answer = { status: response.status, body: yield* response.text };
-		}).pipe(Effect.provide(FetchHttpClient.layer), Effect.provide(signing)),
 		answer: () => Effect.sync(() => engine.answer),
-		indexedIssues: () => Effect.gen(function* () {
-			yield* engine.testing.waitForIdle;
-			const client = yield* HttpClient.HttpClient;
-			const response = yield* client.get(`${engine.baseUrl}/indexed-issues`);
-			const rows = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ number: Schema.Number })))(yield* response.json);
-			return rows.map(({ number }) => number);
-		}).pipe(Effect.provide(FetchHttpClient.layer)),
+		deliver: (signature: "valid" | "invalid" = "valid") =>
+			Effect.gen(function* () {
+				story.tell(`github sends issue 42 with a ${signature} signature and the same delivery ID`);
+				const response = yield* deliverWebhook({
+					body: JSON.stringify({ issue: { number: 42 } }),
+					headers: {
+						"x-github-delivery": "issue-42",
+						"x-github-event": "issues",
+						...(signature === "invalid" ? { "x-hub-signature-256": `sha256=${"0".repeat(64)}` } : {}),
+					},
+					source: sources.github,
+					url: `${engine.baseUrl}/webhooks/github`,
+				});
+				engine.answer = { body: yield* response.text, status: response.status };
+			}).pipe(Effect.provide(FetchHttpClient.layer), Effect.provide(signing)),
+		indexedIssues: () =>
+			Effect.gen(function* () {
+				yield* engine.testing.waitForIdle;
+				const client = yield* HttpClient.HttpClient;
+				const response = yield* client.get(`${engine.baseUrl}/indexed-issues`);
+				const rows = yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ number: Schema.Number })))(yield* response.json);
+				return rows.map(({ number }) => number);
+			}).pipe(Effect.provide(FetchHttpClient.layer)),
 	}),
 });

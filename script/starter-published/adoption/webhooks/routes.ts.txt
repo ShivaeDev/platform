@@ -14,9 +14,7 @@ export const webhookRoutes = Layer.unwrap(
 				Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
 			),
 			HttpRouter.add("GET", "/indexed-issues", () =>
-				Effect.map(sql`select number from indexed_issues order by number`, (rows) =>
-					HttpServerResponse.jsonUnsafe(rows),
-				),
+				Effect.map(sql`select number from indexed_issues order by number`, (rows) => HttpServerResponse.jsonUnsafe(rows)),
 			),
 		);
 	}),

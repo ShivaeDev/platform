@@ -19,12 +19,12 @@ const IndexIssue = defineQueue({
 });
 export const sources = {
 	github: githubSource({
-		key: Config.Redacted("GITHUB_WEBHOOK_SECRET"),
 		events: {
 			issues: webhookEvent(Schema.Struct({ issue: Schema.Struct({ number: Schema.Number }) }), ({ issue }) => [
 				webhookJob(IndexIssue, { number: issue.number }),
 			]),
 		},
+		key: Config.Redacted("GITHUB_WEBHOOK_SECRET"),
 	}),
 };
 const worker = jobModule(WebhookJobs.layer, {
@@ -38,21 +38,21 @@ const indexedIssuesMigrations = {
 	table: "indexed_issues_migrations",
 } as const;
 const indexedIssues = {
-	name: "indexed-issues",
 	apply: migratePostgres(indexedIssuesMigrations),
+	name: "indexed-issues",
 	pending: Effect.map(pendingPostgresMigrations(indexedIssuesMigrations), ({ migrations }) =>
 		migrations.length === 0 ? undefined : "indexed issue migrations are pending",
 	),
 };
 
 export const webhooksRegistration = {
-	name: "webhooks",
 	group: RpcGroup.make(),
 	handlers: Layer.empty,
 	migrations: {
 		components: [webhookReceipts, indexedIssues],
 		loader: Migrator.fromRecord({}),
 	},
+	name: "webhooks",
 	queues: worker.queues,
 	services: WebhookJobs.layer({ jobs: [IndexIssue] }),
 	workers: worker.workers,
