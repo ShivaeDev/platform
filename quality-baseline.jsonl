@@ -74,8 +74,8 @@
 {"path":"script/ci/shardCount.ts","rule":"effect/boundary","count":5}
 {"path":"script/ci/summary.ts","rule":"effect/boundary","count":3}
 {"path":"script/ci/testPackages.ts","rule":"effect/boundary","count":6}
-{"path":"script/ci/timings.ts","rule":"effect/boundary","count":14}
-{"path":"script/ci/timings.unit.test.ts","rule":"effect/boundary","count":5}
+{"path":"script/ci/timings.ts","rule":"effect/boundary","count":12}
+{"path":"script/ci/timings.unit.test.ts","rule":"effect/boundary","count":3}
 {"path":"script/package-check.ts","rule":"effect/boundary","count":3}
 {"path":"script/package-check/archive.ts","rule":"effect/service-parameters","count":2}
 {"path":"script/package-check/archives.test.ts","rule":"tests/grouped-outcomes","count":3}

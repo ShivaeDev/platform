@@ -84,31 +84,31 @@ export function durationEstimates(snapshot: TimingSnapshot): Readonly<Record<str
 	return Object.fromEntries(snapshot.timings.map((item) => [item.name, item.durationMs]));
 }
 
-export function decodeVitestTimingReport(report: string): Timing[] {
-	const cache: unknown = JSON.parse(report);
-	if (!record(cache) || cache.version !== 1 || !record(cache.projects)) {
-		throw new Error("Invalid Vitest timing report");
+const XML_ENTITIES: Readonly<Record<string, string>> = { "&amp;": "&", "&apos;": "'", "&gt;": ">", "&lt;": "<", "&quot;": '"' };
+
+function xmlAttributes(text: string): Record<string, string> {
+	return Object.fromEntries(
+		[...text.matchAll(/(?<key>\w+)="(?<value>[^"]*)"/gu)].map((match) => [
+			match.groups?.key,
+			(match.groups?.value ?? "").replace(/&(?:amp|apos|gt|lt|quot);/gu, (entity) => XML_ENTITIES[entity] ?? entity),
+		]),
+	);
+}
+
+export function decodeJunitTimingReport(report: string): Timing[] {
+	const suites = [...report.matchAll(/<testsuite\s(?<attributes>[^>]*)>(?<body>[\s\S]*?)<\/testsuite>/gu)];
+	if (suites.length === 0) {
+		throw new Error("Invalid test timing report");
 	}
-	const results = Object.entries(cache.projects).flatMap(([project, value]) => {
-		if (!(record(value) && record(value.files))) {
-			throw new Error("Invalid Vitest timing report");
+	return suites.map((suite) => {
+		const attributes = xmlAttributes(suite.groups?.attributes ?? "");
+		const testcase = /<testcase\s(?<attributes>[^>]*)>/u.exec(suite.groups?.body ?? "");
+		const classname = xmlAttributes(testcase?.groups?.attributes ?? "").classname ?? "";
+		const identity = /^\|(?<project>[^|]+)\| (?<path>.+)$/u.exec(classname);
+		const durationMs = Number(attributes.time) * 1000;
+		if (identity === null || attributes.time === undefined || attributes.time === "" || !Number.isFinite(durationMs) || durationMs < 0) {
+			throw new Error("Invalid test timing");
 		}
-		return Object.entries(value.files).map(([file, result]) => {
-			if (
-				!record(result)
-				|| typeof result.failed !== "boolean"
-				|| typeof result.duration !== "number"
-				|| !Number.isFinite(result.duration)
-				|| result.duration < 0
-			) {
-				throw new Error("Invalid test timing");
-			}
-			return { durationMs: Math.max(1, result.duration), failed: result.failed, name: `${project}:${file}` };
-		});
+		return { durationMs: Math.max(1, durationMs), name: `${identity.groups?.project}:${identity.groups?.path}` };
 	});
-	if (results.length === 0) {
-		throw new Error("Invalid Vitest timing report");
-	}
-	// Timings merge only after every shard passed, so a failed file was recovered by the rerun and its failed first attempt is no timing.
-	return results.flatMap(({ durationMs, failed, name }) => (failed ? [] : [{ durationMs, name }]));
 }
