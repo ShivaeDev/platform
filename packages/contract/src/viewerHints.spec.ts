@@ -56,19 +56,19 @@ viewerStory.it(
 );
 
 viewerStory.it(
-	"losing note 1 ends alice's subscription to notes 1 and 3 with read denied and stops further hints even if access returns",
+	"losing note 1 denies alice's whole subscription until access returns",
 	[listening("alice", "note 1", "note 3")],
-	function* ({ announce, changesHeard, handOver, rename, subscriptionEnd }) {
+	function* ({ announce, changesHeard, handOver, heard, rename, subscriptionDenial }) {
 		yield* handOver(1, "bob");
 		expect(yield* changesHeard("alice")).toEqual([]);
 
 		yield* announce("alice", 1);
 
-		expect(yield* subscriptionEnd("alice")).toBe("failed with read denied");
+		expect(yield* subscriptionDenial("alice")).toBe("read denied");
 
 		yield* handOver(1, "alice");
 		yield* rename("alice", 3, "After denial");
 
-		expect(yield* changesHeard("alice")).toEqual([]);
+		expect(yield* heard("alice", [notes.item(3)])).toBe("heard");
 	},
 );

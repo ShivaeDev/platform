@@ -2,14 +2,14 @@ import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { readPostgresRelease } from "@shivaedev/sql/postgresRelease.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { assertModelColumns } from "#assertModelColumns.ts";
 import { PostgresTestDatabase } from "#database.ts";
 import { migrationUpgrade, type PostgresColumn } from "#migrationUpgrade.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { withTestTransaction } from "#withTestTransaction.ts";
-import { Item, layer, migrations, types } from "./migrationUpgrade.ts";
-import { attempt, failureOf, timesOf } from "./outcome.ts";
+import { layer, migrations } from "./migrationUpgrade.ts";
+import { attempt } from "./outcome.ts";
 import { configured, secondClient } from "./postgres.ts";
+import { upgradeReadouts } from "./upgradeReadouts.ts";
 
 export interface UpgradeEngine {
 	columns: readonly PostgresColumn[];
@@ -63,31 +63,7 @@ export const upgrade = storyKit({
 			return Effect.flatMap(SqlClient.SqlClient, (sql) => sql.unsafe(statement));
 		}
 		return {
-			appliedMigrations: () =>
-				Effect.flatMap(SqlClient.SqlClient, (sql) =>
-					Effect.map(sql<{ id: number }>`select migration_id as id from ${sql(engine.ledger)} order by migration_id`, (rows) =>
-						rows.map(({ id }) => id),
-					),
-				),
-			columns: () => Effect.sync(() => engine.columns),
-			columnsSeenByLaterMigration: () => Effect.sync(() => engine.columnsSeenByLaterMigration),
-			currentItemNames: () =>
-				Effect.flatMap(SqlClient.SqlClient, (sql) =>
-					Effect.map(sql<{ name: string }>`select name from current_items order by id`, (rows) => rows.map(({ name }) => name)),
-				),
-			itemNamesInOldColumn: () =>
-				Effect.flatMap(SqlClient.SqlClient, (sql) =>
-					Effect.map(sql<{ name: string }>`select old_name as name from items`, (rows) => rows.map(({ name }) => name)),
-				),
-			loaderResolutions: () => Effect.sync(() => timesOf(engine.loads)),
-			modelCheck: () =>
-				assertModelColumns(engine.columns, Item, types).pipe(
-					Effect.as("matches the model"),
-					Effect.catch((mismatch) => Effect.succeed(failureOf(mismatch))),
-				),
-			recordedRelease: () => Effect.map(readPostgresRelease(engine.ledger), (release) => release?.release ?? "none"),
-			releaseSeenByLaterMigration: () => Effect.sync(() => engine.releaseSeenByLaterMigration),
-			rowsSeenByLaterMigration: () => Effect.sync(() => engine.seenByLaterMigration),
+			...upgradeReadouts(engine, story),
 			runUpgrade: () => {
 				story.tell("the upgrade commits migration 1 and then applies the rest");
 				return run(counted(engine.drift === undefined ? [] : [[4, "drift", Effect.succeed(sqlRun(engine.drift))]]));
@@ -102,7 +78,6 @@ export const upgrade = storyKit({
 					engine.upgrade = yield* attempt(withTestTransaction(migrationUpgrade({ migrations, table: "items", upTo: 1 })));
 				});
 			},
-			upgradeOutcome: () => Effect.sync(() => engine.upgrade),
 			upgradeWatchedByLaterMigration: () =>
 				Effect.gen(function* () {
 					story.tell("the upgrade runs with a migration 2 that reads the items through another connection");

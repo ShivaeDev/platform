@@ -1,9 +1,7 @@
 import { chmodSync } from "node:fs";
 import { relative } from "node:path";
 import { Deferred, Effect, PlatformError, Stream, Tracer } from "effect";
-import { vi } from "vitest";
 import type { DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
-import * as records from "#server/responses/records.ts";
 import { boardStory, deferredServing } from "./boardStory.ts";
 import { codexResponse, githubObservations, health } from "./diagnostics.ts";
 import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
@@ -126,31 +124,6 @@ export const watcherRecovered = boardStory.trait("reader", "the failed watcher w
 		// The watcher change comes before its resync; any change between them is part of the recovery.
 	}
 });
-
-export const recordParsingObserved = boardStory.trait(
-	"project",
-	"the reader can see which question and response records the board parses",
-	function* (engine) {
-		const parsed: { questions: string[]; responses: string[] } = { questions: [], responses: [] };
-		liveState(engine).parsed = parsed;
-		const questionFrom = records.questionFrom;
-		const responseFrom = records.responseFrom;
-		const questions = vi.spyOn(records, "questionFrom").mockImplementation((document) => {
-			parsed.questions.push(document.file);
-			return questionFrom(document);
-		});
-		const responses = vi.spyOn(records, "responseFrom").mockImplementation((document) => {
-			parsed.responses.push(document.file);
-			return responseFrom(document);
-		});
-		yield* Effect.addFinalizer(() =>
-			Effect.sync(() => {
-				questions.mockRestore();
-				responses.mockRestore();
-			}),
-		);
-	},
-);
 
 export const mountedInApplication = boardStory.traits(
 	deferredServing,

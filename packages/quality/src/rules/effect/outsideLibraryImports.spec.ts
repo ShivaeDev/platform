@@ -37,7 +37,9 @@ for (const path of ["src/adapters/core.ts", "src/nested/adapters/core.ts", "src/
 			),
 		],
 		function* ({ check }) {
-			expect(yield* check(adapterImports)).toEqual([]);
+			const findings = yield* check(adapterImports);
+
+			expect(findings).toEqual([]);
 		},
 	);
 }
@@ -53,7 +55,7 @@ ruleStory.it(
 			},
 			{
 				content:
-					'import { Effect } from "effect";\nimport { NodeRuntime } from "@effect/platform-node";\nimport { NodeFileSystem } from "@effect/platform-node/NodeFileSystem";\nimport type YAML from "yaml";\nimport { type Document } from "yaml";\nexport { type Document } from "yaml";\nimport { test } from "@effect/vitest";',
+					'import { Effect } from "effect";\nimport { NodeRuntime } from "@effect/platform-node";\nimport { NodeFileSystem } from "@effect/platform-node/NodeFileSystem";\nimport type YAML from "yaml";\nimport { type Document } from "yaml";\nexport { type Document } from "yaml";\nimport { test } from "vitest";',
 				path: "src/core.ts",
 			},
 			{ content: 'import { useState } from "react";\nimport { createRoot } from "react-dom/client";', path: "src/client/ui.tsx" },
@@ -61,12 +63,14 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(adapterImports)).toEqual([]);
+		const findings = yield* check(adapterImports);
+
+		expect(findings).toEqual([]);
 	},
 );
 
 ruleStory.it(
-	"effect/adapter-imports checks Node, React outside client folders, optional dependencies and every runtime loading form",
+	"effect/adapter-imports reports Node, non-client React, optional dependencies, re-exports and literal loaders",
 	[
 		repositoryHas(
 			{ content: '{"dependencies":{"react":"*"},"optionalDependencies":{"yaml":"*"}}', path: "package.json" },
@@ -118,13 +122,15 @@ ruleStory.it(
 	"effect/adapter-imports accepts installed native Effect framework packages in consumers",
 	[
 		repositoryHas(
-			{ content: '{"dependencies":{"@shivaedev/platform":"*"}}', path: "package.json" },
-			{ content: 'import { errors } from "@shivaedev/platform";', path: "src/core.ts" },
-			{ content: '{"name":"@shivaedev/platform","main":"index.js"}', path: "node_modules/@shivaedev/platform/package.json" },
-			{ content: "export const errors = {};", path: "node_modules/@shivaedev/platform/index.js" },
+			{ content: '{"dependencies":{"@shivaedev/errors":"*"}}', path: "package.json" },
+			{ content: 'import { redact } from "@shivaedev/errors/redact.ts";', path: "src/core.ts" },
+			{ content: '{"name":"@shivaedev/errors","exports":{"./redact.ts":"./redact.js"}}', path: "node_modules/@shivaedev/errors/package.json" },
+			{ content: "export const redact = (value) => value;", path: "node_modules/@shivaedev/errors/redact.js" },
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(adapterImports)).toEqual([]);
+		const findings = yield* check(adapterImports);
+
+		expect(findings).toEqual([]);
 	},
 );

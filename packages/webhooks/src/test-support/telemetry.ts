@@ -12,7 +12,12 @@ function spans(state: InboxState) {
 }
 
 export function secretsSeenIn(state: InboxState) {
-	const places = { "logs": JSON.stringify(state.logs), "spans": JSON.stringify(spans(state)), "the answer": JSON.stringify(state.answers) };
+	const places = {
+		"exported telemetry": state.receiver?.requests.map(({ body }) => body.toString()).join("\n") ?? "",
+		"logs": JSON.stringify(state.logs),
+		"spans": JSON.stringify(spans(state)),
+		"the answer": JSON.stringify(state.answers),
+	};
 	const secrets: ReadonlyArray<readonly [string, string]> = [
 		["the signing key", WEBHOOK_SECRET],
 		["a private body field", PRIVATE_FIELD],
@@ -21,11 +26,11 @@ export function secretsSeenIn(state: InboxState) {
 			...(signature === null ? [] : [["the signature", signature] as const]),
 		]),
 	];
-	const seen: Record<string, string[]> = {};
+	const seen: Array<{ readonly data: string; readonly where: readonly string[] }> = [];
 	for (const [secret, value] of secrets) {
 		const where = Object.entries(places).flatMap(([place, captured]) => (captured.includes(value) ? [place] : []));
 		if (where.length > 0) {
-			seen[secret] = where;
+			seen.push({ data: secret, where });
 		}
 	}
 	return seen;

@@ -77,7 +77,7 @@ rerunStory.it(
 );
 
 rerunStory.it(
-	"in a file that runs in two projects, only the failed project's test is rerun and listed as flaky under that project's classname",
+	"a two-project run records two executions per test name and lists only the failed project's test as flaky under its classname",
 	[inProjects("first", "second"), failsTimes(1, { steadyProject: "second" })],
 	function* ({ flakyTests, run, timesRan }) {
 		yield* run();

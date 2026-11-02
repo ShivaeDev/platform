@@ -39,18 +39,29 @@ export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[])
 				return connection.query;
 			}
 			return {
-				close: () => Scope.close(scope, Exit.void),
+				close: () => {
+					story.tell("the story closes the PostgreSQL proxy");
+					return Scope.close(scope, Exit.void);
+				},
 				disconnect: () => {
 					story.tell("the proxy disconnects the PostgreSQL connection");
 					return Effect.sync(peer.disconnect);
 				},
-				query: () => query,
-				queryAnswer: () => Fiber.join(pending()),
-				queryBeforeDeadline: () =>
-					Fiber.await(pending()).pipe(
+				query: () => {
+					story.tell("the story queries PostgreSQL through the proxy");
+					return query;
+				},
+				queryAnswer: () => {
+					story.tell("the story waits for the in-flight query’s answer");
+					return Fiber.join(pending());
+				},
+				queryBeforeDeadline: () => {
+					story.tell("the story gives the in-flight query 200 milliseconds to answer");
+					return Fiber.await(pending()).pipe(
 						Effect.timeoutOption("200 millis"),
 						Effect.map((answer) => (Option.isNone(answer) ? "waiting" : "answered")),
-					),
+					);
+				},
 				refuse: () => {
 					story.tell("the proxy refuses new PostgreSQL connections");
 					return Effect.sync(() => peer.setReachable(false));
@@ -63,10 +74,12 @@ export function proxyWithUrlParameters(parameters: readonly ("host" | "port")[])
 					story.tell("the proxy stalls PostgreSQL traffic");
 					return Effect.sync(() => peer.setResponsive(false));
 				},
-				startQuery: () =>
-					Effect.map(Effect.forkScoped(query), (fiber) => {
+				startQuery: () => {
+					story.tell("the story starts a PostgreSQL query through the proxy");
+					return Effect.map(Effect.forkScoped(query), (fiber) => {
 						connection.query = fiber;
-					}),
+					});
+				},
 			};
 		},
 	});

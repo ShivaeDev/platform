@@ -2,8 +2,7 @@ import { Effect, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { LiveHint } from "#live.ts";
-import type { QueryUpdate } from "#queryUpdate.ts";
+import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
 
 export function queryDelivery<A, E>(
 	atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
@@ -11,7 +10,7 @@ export function queryDelivery<A, E>(
 	paused: Atom.Atom<boolean>,
 ) {
 	const pushed = Atom.make<AsyncResult.AsyncResult<A, E>>(AsyncResult.initial());
-	const deliver = Effect.fnUntraced(function* (update: QueryUpdate): Effect.fn.Return<LiveHint, never, AtomRegistry.AtomRegistry> {
+	const deliver = Effect.fnUntraced(function* (update: QueryUpdate): Effect.fn.Return<SubscriptionHint, never, AtomRegistry.AtomRegistry> {
 		if (update._tag !== "Result") {
 			return update;
 		}

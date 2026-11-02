@@ -60,15 +60,22 @@ export const observation = storyKit({
 	runIf: configured,
 	stages: ["sessions"],
 	verbs: (engine, story) => ({
-		failureMessage: () => Effect.sync(() => engine.failure),
-		readsAtTheEnd: () =>
-			Effect.sync(() => {
+		failureMessage: () => {
+			story.tell("the story reads the observation failure message");
+			return Effect.sync(() => engine.failure);
+		},
+		readsAtTheEnd: () => {
+			story.tell("the story reads how many final observations agreed");
+			return Effect.sync(() => {
 				const last = engine.counts.at(-1);
 				const differs = engine.counts.findLastIndex((count) => count !== last);
 				return `${engine.counts.length - differs - 1} reads of ${last === undefined ? "nothing" : sessionCount(last)}`;
-			}),
-		sessionCountsSeen: () =>
-			Effect.sync(() => engine.counts.filter((count, index) => index === 0 || count !== engine.counts[index - 1]).map(sessionCount)),
+			});
+		},
+		sessionCountsSeen: () => {
+			story.tell("the story reads the observed session count changes");
+			return Effect.sync(() => engine.counts.filter((count, index) => index === 0 || count !== engine.counts[index - 1]).map(sessionCount));
+		},
 		waitForNoSessions: (options: ObserveOptions & { readonly during?: DuringTheWait } = {}) => {
 			const { during, ...observe } = options;
 			story.tell(`the story waits until no story session is open${during === undefined ? "" : `, and ${during}`}`);
@@ -94,7 +101,10 @@ export const observation = storyKit({
 				),
 			);
 		},
-		waitOutcome: () => Effect.sync(() => engine.outcome),
+		waitOutcome: () => {
+			story.tell("the story reads the wait outcome");
+			return Effect.sync(() => engine.outcome);
+		},
 	}),
 });
 

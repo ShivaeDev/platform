@@ -5,5 +5,6 @@
 {"path":"packages/vitest-rerun/src/internal/refuseDeclaredRetries.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/vitest-rerun/src/internal/reportPaths.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/vitest-rerun/src/internal/snapshot.ts","rule":"effect/adapter-imports","count":1}
+{"path":"packages/vitest-rerun/src/nonRerunnable.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/vitest-rerun/src/options.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/vitest-rerun/src/rerun.ts","rule":"effect/adapter-imports","count":3}

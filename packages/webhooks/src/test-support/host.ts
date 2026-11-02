@@ -7,6 +7,7 @@ import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting, type PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import type { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { webhookRoute } from "#server/route.ts";
 import { webhookReceipts } from "#server/webhookReceipts.ts";
 import { auditQueue, issueQueue, Jobs, MAX_BODY_BYTES, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
@@ -33,6 +34,7 @@ export interface InboxState {
 	host: Fiber.Fiber<void, unknown> | undefined;
 	readonly logs: Array<{ readonly annotations: unknown; readonly cause: string; readonly level: string; readonly message: unknown }>;
 	mode: "check" | "wait" | undefined;
+	receiver?: Effect.Success<ReturnType<typeof otlpReceiver>>;
 	readonly resources: ReturnType<typeof mappingResources>;
 	readonly sent: Sent[];
 	signingKey: string | undefined;
@@ -91,6 +93,9 @@ export function hostLayer(state: InboxState) {
 				timestamped: timestampedSource,
 			};
 			const signingEnvironment = {
+				...(state.receiver === undefined
+					? {}
+					: { "OTEL_BSP_SCHEDULE_DELAY": "10", "OTEL_EXPORTER_OTLP_ENDPOINT": state.receiver.url, "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" }),
 				...(state.signingKey === undefined ? {} : { "WEBHOOK_SECRET": state.signingKey }),
 				"TIMESTAMPED_WEBHOOK_SECRET": TIMESTAMPED_SECRET,
 			};

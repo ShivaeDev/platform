@@ -114,11 +114,26 @@ const issues = webhookEvent(IssueEvent, ({ issue }) =>
 
 Refused requests create no receipt and no jobs. Signatures are checked before decoding; unlisted events are verified and recorded without decoding. The signing key, signature and raw body stay out of responses, logs and spans.
 
-Mapping, database and enqueue failures log their redacted cause and `errorTag` at error level before the empty 503 response. The HTTP request span records the redacted failure with its original tag. Receiving a delivery runs under the `Webhooks.receive` span.
+Mapping, database and enqueue failures log `Webhook receipt failed` and `errorTag` at error level before the empty 503 response. The HTTP request span records the failure with its original tag. Receiving a delivery runs under the `Webhooks.receive` span.
 
 `webhookEvent` wraps payload decoding failures in `WebhookPayloadError` from `@shivaedev/webhooks/server/WebhookPayloadError.ts`, retaining the original `SchemaError` in `cause`. Direct callers catch `WebhookPayloadError` for invalid payloads. Custom `WebhookEvent.decode` implementations wrap only payload schema failures in `new WebhookPayloadError({ cause })`; application failures keep their original types. An application `SchemaError` receives a logged 503, and frozen tagged failures retain their tag in diagnostics without being mutated.
 
 The receipt insert and every enqueue use one SQL transaction. Concurrent copies wait on the receipt's unique key: a committed first copy makes the second a duplicate; a rolled-back first copy lets the second receive the delivery itself. If any enqueue fails, earlier enqueues and the receipt roll back, and the sender's retry can succeed. Receipts for ignored events are deduplicated too.
+
+### Payload privacy
+
+The inbox keeps raw request bytes in memory for signature verification and decoding. It does not store the raw body or a copy of the decoded event. Its persistence and diagnostic boundary is:
+
+| Destination        | Data retained                                                                                                                                                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `webhook_receipts` | Source name, delivery ID and event from headers, received time, outcome and queued job IDs. No payload fields.                                                                                                                                                             |
+| Job storage        | The encoded payloads your mapping explicitly passes to `webhookJob`, plus job metadata and trace context. Schema selection alone does not choose what is persisted; the mapping does.                                                                                      |
+| Logs               | Receipt failure message and error tag (`Unknown` for untagged failures), alongside host request diagnostics. No body, payload fields, original error messages, stacks, custom properties or nested causes from receiving work.                                             |
+| Exported telemetry | HTTP, receive, SQL and job spans with request, database, queue and trace metadata, status and error tags. Receiving failures are reduced to their tags before transaction and receive spans finish; payload values in their messages, properties and causes are discarded. |
+
+The signing key and signature stay out of these diagnostics and receipts. Payload fields omitted from job mappings stay out of storage, logs and exported telemetry, including fields rejected by a schema and fields copied into a mapping's failure or defect. Responses contain only the status bodies listed above.
+
+Use stable error tags defined by application code; never derive `_tag`, source names, delivery IDs, event headers or queue names from private payload data. Applications own what they put in mapped jobs and any logs or spans they emit themselves, including inside mappings, custom strategies, schema transformations and workers. The inbox cannot remove data those callbacks export directly. It does not apply a retention policy to receipts or queued jobs; applications manage their database retention.
 
 ### Other senders
 
