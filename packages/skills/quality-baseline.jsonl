@@ -1,2 +1,2 @@
-{"path":"packages/skills/src/hashSkill.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/skills/src/layout.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/skills/src/hashSkill.ts","rule":"effect/adapter-imports","count":1}
