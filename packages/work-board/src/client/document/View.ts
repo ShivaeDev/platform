@@ -1,5 +1,5 @@
 import { createElement, Fragment, type ReactNode, useMemo } from "react";
-import type { Components } from "react-markdown";
+import type { markdownElement } from "#adapters/markdownElement.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { DetailStatesContext, DocumentDetails } from "./Details.ts";
 import { LayoutContext, layoutElements } from "./layoutElements.ts";
@@ -94,3 +94,5 @@ export function DocumentView({
 		first === undefined ? null : context,
 	);
 }
+
+type Components = NonNullable<Parameters<typeof markdownElement>[1]["components"]>;
