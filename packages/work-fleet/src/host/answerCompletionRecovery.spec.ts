@@ -10,7 +10,8 @@ answers.it("a pending answer resumes after completion writes recover without res
 	yield* completion.attempted;
 	expect((yield* host.status()).waiting.automation).toMatchObject([{ blocker: ANSWER_RECORDED, workId: "one" }]);
 	yield* completion.release;
-	const applied = yield* host.applied();
+	yield* host.applied();
+	const applied = yield* host.awaitWorkerReceipt();
 	expect(applied.responses?.map((response) => response.decisionId)).toEqual([decision.id]);
 	expect(applied.pendingAnswers).toBeUndefined();
 	expect(host.providerReceipts()).toEqual(applied.attempts.map((attempt) => attempt.receipt));
@@ -28,7 +29,8 @@ answers.it("a completion retry leaves an answer that Fleet is still resolving to
 	yield* completion.release;
 	yield* host.requestsFinished();
 	yield* resolution.release;
-	const applied = yield* host.applied();
+	yield* host.applied();
+	const applied = yield* host.awaitWorkerReceipt();
 	expect(applied.responses?.map((response) => response.decisionId)).toEqual([decision.id]);
 	expect(applied.pendingAnswers).toBeUndefined();
 	expect(host.providerReceipts()).toEqual(applied.attempts.map((attempt) => attempt.receipt));
