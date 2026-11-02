@@ -2,11 +2,12 @@ import type { Effect, Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { form } from "@shivaedev/form/form.ts";
 import type { PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
-import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
+import type { Config, Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/form/shape.ts";
 import { actionTrace } from "#actionTrace.ts";
 import { type AtomServices, type RejectField, rejecting } from "./fieldRejection.ts";
 
-export interface SubmissionConfig<TFields extends Fields, A, E, R, TRuntimeError> {
+export interface SubmissionConfig<TFields extends Fields, A, E, R, TRuntimeError>
+	extends Pick<Config<TFields, A, E, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys"> {
 	readonly fields: Schema.Struct<TFields>;
 	readonly initialValues: Encoded<TFields>;
 	readonly persistedDraft?: PersistedDraftConfig | undefined;
@@ -28,6 +29,10 @@ export function submission<TFields extends Fields, A, E, R, TRuntimeError>(
 	const save = rejecting(fields, config.save, config.rejectField);
 	let submitted: Encoded<TFields> | undefined;
 	const currentForm: Form<TFields, A, E | FieldFailure, TRuntimeError> = form(fields, {
+		...(config.arrayKeys === undefined ? {} : { arrayKeys: config.arrayKeys }),
+		...(config.checks === undefined ? {} : { checks: config.checks }),
+		...(config.debounce === undefined ? {} : { debounce: config.debounce }),
+		...(config.requiredMessages === undefined ? {} : { requiredMessages: config.requiredMessages }),
 		initialValues,
 		onSubmit: (values, submitter, snapshot) => {
 			submitted = snapshot;

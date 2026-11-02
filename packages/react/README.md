@@ -875,7 +875,9 @@ These rules apply to each component and test you write.
 
 Changing the `fields` schema or `runtime` by reference replaces either hook's form and discards its in-memory draft and submission state. A changed editor `query` also starts a new form. Keep schemas, runtimes and query atoms outside components or memoize them; constructing a schema on every render continually replaces the form.
 
-`initialValues` (create), `values` (editor) and `persistedDraft` are setup options, captured when the hook first creates a form and again when `fields`, `runtime` or editor `query` changes. Successful creates reuse the captured initial values and persistence options for the next entry. Changing setup options alone does not replace an existing form; remount the component with a different React `key` to apply them. An editor's `loaded` value remains a fallback for query data, as with `useLoaderQuery`.
+`useEditor`, `useCreate` and the lower-level `submission` accept form’s `requiredMessages`, `checks`, `debounce` and `arrayKeys`. Required wording and checks use encoded field names and values; check services come from the supplied runtime, and array key selectors receive encoded elements. Form owns check scheduling, stale feedback and keyed rejection tracking.
+
+`initialValues` (create), `values` (editor), `persistedDraft`, `requiredMessages`, `checks`, `debounce` and `arrayKeys` are setup options, captured when the hook first creates a form and again when `fields`, `runtime` or editor `query` changes. Successful creates reuse the captured setup options for the next entry. Changing setup options alone does not replace an existing form; remount the component with a different React `key` to apply them. An editor's `loaded` value remains a fallback for query data, as with `useLoaderQuery`.
 
 #### Resume and refresh policy
 

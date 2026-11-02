@@ -8,7 +8,7 @@ import type { AtomServices, FieldRejectionMapping } from "#fieldRejection.ts";
 import { loadedQuery } from "#internal/loadedQuery.ts";
 import { useSubmissionCallbacks } from "#internal/useSubmissionCallbacks.ts";
 import type { NoticeFeedback } from "#notices.ts";
-import { submission } from "#submission.ts";
+import { type SubmissionConfig, submission } from "#submission.ts";
 import { type QueryOptions, type QueryState, useQuery } from "./resultState.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";
 import type { LoadedQueryState } from "./useLoaderQuery.ts";
@@ -21,7 +21,8 @@ export type EditorConfig<TFields extends Fields, TRow, TQueryError, TSaveError, 
 	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
 	readonly notices?: NoticeFeedback<Decoded<TFields>, TRow, TSaveError, Services<TFields, R>>;
 	readonly queryNotice?: QueryOptions<TQueryError>["notice"];
-} & FieldRejectionMapping<TFields, TSaveError>;
+} & FieldRejectionMapping<TFields, TSaveError> &
+	Pick<SubmissionConfig<TFields, TRow, TSaveError, R, TRuntimeError>, "requiredMessages" | "checks" | "debounce" | "arrayKeys">;
 export interface Editor<TFields extends Fields, TRow, TQueryError, TSaveError, TRuntimeError> extends SaveState<TSaveError | TRuntimeError> {
 	readonly form: Form<TFields, TRow, TSaveError | FieldFailure, TRuntimeError> | undefined;
 	readonly query: QueryState<TRow, TQueryError>;
@@ -57,6 +58,7 @@ export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError,
 		current = {
 			fields: config.fields,
 			form: submission({
+				...config,
 				...callbacks,
 				fields: config.fields,
 				initialValues: config.values(row.value),
