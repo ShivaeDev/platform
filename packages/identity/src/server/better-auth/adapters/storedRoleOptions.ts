@@ -1,5 +1,5 @@
 import type { BetterAuthOptions } from "better-auth";
-import { tables } from "#server/better-auth/tables.ts";
+import { tables } from "#server/better-auth/adapters/tables.ts";
 
 export interface StoredRoleOptions {
 	readonly defaultRole: string;

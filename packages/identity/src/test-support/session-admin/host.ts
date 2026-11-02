@@ -14,7 +14,7 @@ import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { SessionUser, SessionUserSchema } from "#identity.ts";
 import { AuthenticatedUser } from "#middleware.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { sessionsHandlers } from "#server/better-auth/sessionsHandlers.ts";
 import { permissionLayer } from "#server/permissions.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";

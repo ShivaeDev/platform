@@ -1,6 +1,6 @@
 import { type Cause, Effect } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
-import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/bearerSessions.ts";
+import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/adapters/bearerSessions.ts";
 import { sessionPermissions } from "#server/better-auth/sessionPermissions.ts";
 
 export interface MountedAuth {

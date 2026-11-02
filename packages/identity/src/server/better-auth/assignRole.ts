@@ -5,7 +5,7 @@ import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AssignRoles, LastRoleAssigner } from "@shivaedev/access/roles.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { type AuthTableOptions, tables } from "./tables.ts";
+import { type AuthTableOptions, tables } from "#server/better-auth/adapters/tables.ts";
 
 function unavailable() {
 	return new AuthUnavailable({ message: "Could not access app users" });
