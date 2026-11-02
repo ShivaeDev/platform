@@ -23,9 +23,11 @@ const UNRUNNABLE = [
 	[
 		"a local rule whose check throws",
 		[
-			config(
-				'{ local: [{ id: "local/boom", description: "Throws.", configure: async () => ({ _tag: "Ready", check: () => { throw new Error("boom"); } }) }] }',
-			),
+			{
+				content:
+					'import { defineRule } from "@shivaedev/quality/rule.ts";\nexport default { local: [defineRule({ check: () => { throw new Error("boom"); }, description: "Throws.", id: "local/boom" })] };\n',
+				path: "quality.config.ts",
+			},
 		],
 		"rule local/boom failed: boom",
 	],
