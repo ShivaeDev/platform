@@ -51,13 +51,13 @@ github.it(
 	"a 304 without a next Link stops the list at the cached first page and reports it untruncated",
 	[repositoryHasPullRequests(5)],
 	function* ({ changeNextPage, listPullsBounded, pagesRequested }) {
-		expect(yield* listPullsBounded(1)).toEqual({ items: pullRequests(1, 2), truncated: true });
+		expect(yield* listPullsBounded(1)).toEqual({ items: pullRequests(1, 2), skipped: 0, truncated: true });
 		yield* changeNextPage(1, undefined);
 
 		const pulls = yield* listPullsBounded(3);
 
 		yield* outcomes([
-			["bounded pull requests", () => Effect.succeed(pulls), { items: pullRequests(1, 2), truncated: false }],
+			["bounded pull requests", () => Effect.succeed(pulls), { items: pullRequests(1, 2), skipped: 0, truncated: false }],
 			["pages requested", () => pagesRequested(), [1, 1]],
 		]);
 	},
