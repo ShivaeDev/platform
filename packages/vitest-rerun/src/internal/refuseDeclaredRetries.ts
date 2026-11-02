@@ -1,9 +1,9 @@
 import { relative } from "node:path";
 import { Effect } from "effect";
+import type { Files } from "#adapters/tasks.ts";
 import { VitestRerunError } from "#error.ts";
 import { testcases } from "#flakyTests.ts";
-import { junitClassname } from "#internal/junit.ts";
-import type { Files } from "#internal/snapshot.ts";
+import { junitClassname } from "#internal/junitClassname.ts";
 
 export const refuseDeclaredRetries = Effect.fn("VitestRerun.refuseDeclaredRetries")(function* (files: Files, root: string) {
 	const offenders = files.flatMap((file) =>

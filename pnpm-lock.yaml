@@ -1743,6 +1743,10 @@ importers:
         version: 7.0.2
 
   packages/vitest-rerun:
+    dependencies:
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
