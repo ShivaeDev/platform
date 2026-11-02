@@ -4,6 +4,7 @@ import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 import { directoryReadsCanFail, unreadableDirectory } from "#test/incompleteInventory.ts";
 import { directoryNotificationsDelivered } from "#test/servingStoryTraits.ts";
+import { fleetAcceptsEveryBrief } from "#test/workspaceBoardTraits.ts";
 
 const project = projectFiles({
 	"hidden/duplicate.md": "---\nid: task.one\nkind: task\nstatus: draft\n---\n# Hidden duplicate",
@@ -13,7 +14,7 @@ const project = projectFiles({
 
 boardStory.it(
 	"a hidden duplicate prevents unique identity and a hidden open question keeps membership incomplete until the directory recovers",
-	[project, unreadableDirectory("hidden")],
+	[project, unreadableDirectory("hidden"), fleetAcceptsEveryBrief],
 	function* ({ documentFacts, documentRead, inboxQuestions, restoreDirectory, rpc, searchUnavailable }) {
 		yield* outcomes([
 			["unreadable path", () => searchUnavailable("task"), ["hidden"]],
