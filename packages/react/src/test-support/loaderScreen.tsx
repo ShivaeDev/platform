@@ -6,7 +6,7 @@ import { act } from "react";
 import { expectNoReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { loadQuery } from "#adapters/loadQuery.ts";
-import { screenPending } from "#client/screenPending.ts";
+import { screenPending } from "#adapters/screenPending.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
 import { loaderHost } from "./loaderHost.ts";
@@ -217,6 +217,13 @@ export function noteShown(title: string) {
 	return loaderScreen.trait("screen", `the note route loaded and shows ${title}`, function* (engine) {
 		yield* openNote(engine);
 		yield* respond(engine, title, () => undefined);
+	});
+}
+
+export function noteLoadWaiting() {
+	return loaderScreen.trait("screen", "the note's loader waits for its server response", function* (engine) {
+		yield* openNote(engine);
+		yield* engine.host.started;
 	});
 }
 

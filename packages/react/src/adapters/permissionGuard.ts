@@ -1,8 +1,8 @@
 import { notFound, redirect } from "@tanstack/react-router";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { forbidden } from "@shivaedev/access/refusal.ts";
-import { can, type PermissionSession } from "./permissions.ts";
-import { type SignInLocation, signInSearch } from "./signInSearch.ts";
+import { can, type PermissionSession } from "#permissions.ts";
+import { type SignInLocation, signInSearch } from "#signInSearch.ts";
 
 declare module "@tanstack/react-router" {
 	interface StaticDataRouteOption {

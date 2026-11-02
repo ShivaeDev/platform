@@ -1,8 +1,8 @@
 import { createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
 import { expectTypeOf } from "vitest";
 import { permission } from "@shivaedev/access/permission.ts";
+import type { PermissionSession } from "#permissions.ts";
 import { permissionGuard } from "./permissionGuard.ts";
-import type { PermissionSession } from "./permissions.ts";
 
 const root = createRootRouteWithContext<{ readonly session: () => PermissionSession | null }>()({
 	beforeLoad: ({ context, ...route }) => permissionGuard({ session: context.session, signIn: "/login" })(route),

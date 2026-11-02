@@ -50,7 +50,7 @@ Export `{ migrations: resolve(import.meta.dirname, "migrations"), group: Bookmar
 
 Create `src/modules/bookmarks/client/make.ts` following [the notes client](../../examples/starter/src/modules/notes/client/make.ts): call `makeClient(Bookmarks, { url })` from `@shivaedev/contract/bind.ts` and return its `api` and `runtime`.
 
-Create `client/registration.tsx` following [the notes client registration](../../examples/starter/src/modules/notes/client/registration.tsx). It returns the module's `api` and its routes. Add a `/bookmarks` route with TanStack's `createRoute`, spreading `queryRoute(() => client.api.list.query())` from `@shivaedev/react/queryRoute.ts` so the loader reads the list in the session's registry, and give it an error component. Add the registration to the `modules` list in [`src/client/modules.ts`](../../examples/starter/src/client/modules.ts). The session boundary mounts the module's bound live connection, so the list also refreshes after another session writes.
+Create `client/registration.tsx` following [the notes client registration](../../examples/starter/src/modules/notes/client/registration.tsx). It returns the module's `api` and its routes. Add a `/bookmarks` route with TanStack's `createRoute`, spreading `queryRoute(() => client.api.list.query())` from `@shivaedev/react/adapters/queryRoute.ts` so the loader reads the list in the session's registry, and give it an error component. Add the registration to the `modules` list in [`src/client/modules.ts`](../../examples/starter/src/client/modules.ts). The session boundary mounts the module's bound live connection, so the list also refreshes after another session writes.
 
 ## 8. Build the form and screen
 

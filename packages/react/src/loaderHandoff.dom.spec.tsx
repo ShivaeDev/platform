@@ -1,7 +1,23 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { loaderScreen, noteLoadedButNotMounted, noteMountedAfterIdleWindow, noteShown } from "#test/loaderScreen.tsx";
+import { loaderScreen, noteLoadedButNotMounted, noteLoadWaiting, noteMountedAfterIdleWindow, noteShown } from "#test/loaderScreen.tsx";
+
+loaderScreen.it(
+	"leaving a route whose loader is waiting shows the other screen and releases the query source after the idle window",
+	[noteLoadWaiting()],
+	function* ({ idleWindowPasses, leave, loaderSource, shownTitle }) {
+		expect(yield* loaderSource()).toBe("held");
+
+		yield* leave();
+		yield* idleWindowPasses();
+
+		yield* outcomes([
+			["shown title", () => shownTitle(), "Other screen"],
+			["loader source", () => loaderSource(), "released"],
+		]);
+	},
+);
 
 loaderScreen.it(
 	"a route that mounts after the idle window passed renders its loader's value first, with one server read",

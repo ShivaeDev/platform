@@ -571,7 +571,7 @@ With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the bro
 
 #### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/adapters/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A `NotFound` instance from `@shivaedev/errors/taxonomy.ts` or a `QueryReadDenied` refusal enters TanStack's not-found handling with the original rejection in the not-found component's `data` prop, preserving its message. One root `notFoundComponent` can show that message for all query routes; a route's own `notFoundComponent` takes precedence. Other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React. The factory receives `{ context, params, search }`: `context` is the loader’s router context, including parent `beforeLoad` contributions. Annotate it with `typeof root.types.allContext` (or the parent route’s `types.allContext`) to keep client and viewer access checked against the route’s declaration.
 
 This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
@@ -583,7 +583,7 @@ import { Effect, Option, Predicate, Schema } from "effect";
 import type { ReactNode } from "react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
-import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import { api } from "./notes-client.ts";
 
@@ -668,7 +668,7 @@ For redirects, supply `redirects.signedOut` and `redirects.refused` in the optio
 
 ```ts
 import { redirect } from "@tanstack/react-router";
-import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import { signInSearch } from "@shivaedev/react/signInSearch.ts";
 
 const noteQuery = queryRoute(buildQuery, {
@@ -705,12 +705,12 @@ import { createRootRouteWithContext, createRoute, createRouter, Link, RouterProv
 import type { ReactNode } from "react";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { permission } from "@shivaedev/access/permission.ts";
-import { Forbidden } from "@shivaedev/react/client/Forbidden.ts";
-import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/client/permissionBoundary.ts";
+import { Forbidden } from "@shivaedev/react/adapters/Forbidden.ts";
+import { PermissionBoundary, PermissionBoundaryError, useCan } from "@shivaedev/react/adapters/permissionBoundary.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
-import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
+import { permissionGuard } from "@shivaedev/react/adapters/permissionGuard.ts";
 import { can, type PermissionSession } from "@shivaedev/react/permissions.ts";
-import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/adapters/queryRoute.ts";
 import { api, registry } from "./notes-client.ts";
 import { auth, SignIn } from "./auth.tsx";
 
@@ -794,7 +794,7 @@ const showNotes = can(auth.session, ReadNotes);
 
 `InnerWrap` puts `PermissionBoundary` inside the router. Its fallback can render `Link` and read route context. Set `defaultErrorComponent: PermissionBoundaryError` so route and loader failures reach the boundary's fallback while TanStack keeps its navigation controller mounted. This lets a refused viewer follow the fallback link without reloading the page. Keep `disableGlobalCatchBoundary: true`; other errors propagate to an enclosing application boundary. A route-specific `errorComponent` owns any failures it consumes.
 
-`Forbidden` from `@shivaedev/react/client/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
+`Forbidden` from `@shivaedev/react/adapters/Forbidden.ts` supplies the no-access heading, explanation and a router link. Set `to` to a route the viewer may open. Optional `title`, `children`, `backLabel` and `className` let the application choose wording and layout. The default heading is “Permission denied” and the link says “Go back”.
 
 `PermissionBoundary` also catches component query failures containing the shared `Forbidden` class. Without a boundary, query failures keep their normal typed state. TanStack resets route failures when the viewer navigates away; remount a boundary to clear a failure it catches outside the route error path.
 
@@ -863,7 +863,7 @@ The example uses `Option` from `effect` and the application's Better Auth client
 
 For other Better Auth reads, `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family. Call `authQuery((input, signal) => authClient.getSession({ query: input, fetchOptions: { signal } }))` with an explicitly typed input, then render its atom with `useQuery`. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
-For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
+For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/adapters/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
 ### 3. Every day
 
@@ -1021,7 +1021,7 @@ screenStories.it("shows the route failure", [], async () => {
 
 Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
 
-A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/client/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
+A screen kit tells its screen driver when the screen has finished its work with `screenPending({ router })` from `@shivaedev/react/adapters/screenPending.ts`. The Effect reads the `AtomRegistry` from its environment and returns a function that reports `true` while a native `AsyncResult` that something still reads is waiting, or while the optional TanStack router loads a route, and `false` otherwise. A result left waiting by a component that has unmounted does not count, even while the registry's idle window keeps its atom. Each call reads the registry and router at that moment, so pass it as the driver's `pending` option instead of listing the screen's queries by hand:
 
 ```ts
 const pending = yield* screenPending({ router }).pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));

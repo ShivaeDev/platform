@@ -2,9 +2,9 @@ import { createRootRouteWithContext, createRoute } from "@tanstack/react-router"
 import { Schema } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expectTypeOf } from "vitest";
-import { queryRoute } from "#queryRoute.ts";
 import { RouterSearch } from "#test/routerApp.ts";
 import type { routerClient } from "#test/routerClient.ts";
+import { queryRoute } from "./queryRoute.ts";
 
 export function typedQueryRoute() {
 	const root = createRootRouteWithContext<{
