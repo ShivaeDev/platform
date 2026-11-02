@@ -7,7 +7,7 @@ import { workspace } from "#test/workspace.ts";
 const fixForBoth = changeset(
 	"z-last",
 	{ [CORE]: "patch", "@test/api": "patch" },
-	"### Fixed\n\n- A fix for both packages.\n\n### Changed\n\n- Changed behavior.\n",
+	"### Fixed\n\n- `@test/core`: Fix core behavior.\n- `@test/api`: Fix API behavior.\n\n### Changed\n\n- `@test/core`: Change core behavior.\n- `@test/api`: Change API behavior.\n",
 );
 const breakingFirst = changeset("a-first", { [CORE]: "minor" }, "### Breaking\n\n- Breaking behavior.\n\n### Added\n\n- First alphabetically.\n");
 
@@ -20,7 +20,7 @@ workspace.it(
 		yield* apply();
 
 		expect(yield* changelog(CORE)).toBe(
-			`# Changelog\n\n## 0.3.0 - ${yield* todayInUtc()}\n\n### Added\n\n- First alphabetically.\n- A new feature.\n\n### Changed\n\n- Changed behavior.\n\n### Fixed\n\n- A fix for both packages.\n\n### Breaking\n\n- Breaking behavior.\n\n${RELEASED_HISTORY}`,
+			`# Changelog\n\n## 0.3.0 - ${yield* todayInUtc()}\n\n### Added\n\n- First alphabetically.\n- A new feature.\n\n### Changed\n\n- Change core behavior.\n\n### Fixed\n\n- Fix core behavior.\n\n### Breaking\n\n- Breaking behavior.\n\n${RELEASED_HISTORY}`,
 		);
 	},
 );
@@ -34,7 +34,7 @@ workspace.it(
 		yield* apply();
 
 		expect(yield* changelog("@test/api")).toBe(
-			`# Changelog\n\n## 0.5.1 - ${yield* todayInUtc()}\n\n### Changed\n\n- Changed behavior.\n\n### Fixed\n\n- A fix for both packages.\n\n${RELEASED_HISTORY}`,
+			`# Changelog\n\n## 0.5.1 - ${yield* todayInUtc()}\n\n### Changed\n\n- Change API behavior.\n\n### Fixed\n\n- Fix API behavior.\n\n${RELEASED_HISTORY}`,
 		);
 	},
 );

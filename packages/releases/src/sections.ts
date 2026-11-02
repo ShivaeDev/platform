@@ -53,11 +53,12 @@ const appendEntry = Effect.fn("Changesets.appendEntry")(function* (
 	entries[entries.length - 1] = { ...previous, text: `${previous.text}${blankLines}\n${line}` };
 });
 
-export function renderEntries(entries: readonly Entry[]): string {
+export function renderEntries(entries: readonly Entry[], sectionHeadings = true): string {
 	return sections
 		.flatMap((section) => {
 			const selected = entries.filter((entry) => entry.section === section);
-			return selected.length === 0 ? [] : [`### ${section}\n\n${selected.map((entry) => entry.text).join("\n")}\n`];
+			const bullets = selected.map((entry) => entry.text).join("\n");
+			return selected.length === 0 ? [] : [sectionHeadings ? `### ${section}\n\n${bullets}\n` : bullets];
 		})
 		.join("\n");
 }

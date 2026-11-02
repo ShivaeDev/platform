@@ -17,7 +17,8 @@ repository.it(
 );
 
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
-const LATER = '---\n"@shivaedev/create-app": minor\n"@shivaedev/pending": minor\n---\n\n### Added\n\n- Choose an app name.\n';
+const LATER =
+	'---\n"@shivaedev/create-app": minor\n"@shivaedev/pending": minor\n---\n\n### Added\n\n- `@shivaedev/create-app`: Choose an app name.\n- `@shivaedev/pending`: Choose an app name.\n';
 
 releasePullRequest.it(
 	"a frozen release passes the merge queue and squash publishing gates, leaving later inputs for a new PR",

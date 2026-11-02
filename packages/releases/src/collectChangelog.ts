@@ -1,8 +1,7 @@
 import { Effect } from "effect";
+import { collectPackageNotes } from "#collectPackageNotes.ts";
 import { ChangesetError } from "#error.ts";
 import type { Release, ReleasePlan } from "#model.ts";
-import { parseChangeset } from "#parser.ts";
-import { renderEntries } from "#sections.ts";
 
 export const collectChangelog = Effect.fn("Changesets.collectChangelog")(function* (
 	previous: string,
@@ -23,16 +22,7 @@ export const collectChangelog = Effect.fn("Changesets.collectChangelog")(functio
 			message: `${release.name}: version ${release.to} already has notes; restore the package version and rerun releases apply.`,
 		});
 	}
-	const changesets = yield* Effect.forEach(plan.changesets, parseChangeset);
-	const entries = changesets.flatMap((changeset) => (Object.hasOwn(changeset.packages, release.name) ? changeset.entries : []));
-	const moved = plan.releases.filter((candidate) => dependencies.includes(candidate.name));
-	const dependencyNotes =
-		moved.length === 0
-			? [{ section: "Changed" as const, text: "- Release with updated workspace dependencies." }]
-			: moved.map((dependency) => ({
-					section: "Changed" as const,
-					text: `- Update \`${dependency.name}\` from ${dependency.from} to ${dependency.to}.`,
-				}));
+	const notes = yield* collectPackageNotes(release, plan, dependencies);
 	const history = previous.slice("# Changelog\n".length).trimStart();
-	return `# Changelog\n\n## ${release.to} - ${date}\n\n${renderEntries(entries.length === 0 ? dependencyNotes : entries)}${history === "" ? "" : `\n${history}`}`;
+	return `# Changelog\n\n## ${release.to} - ${date}\n\n${notes}${history === "" ? "" : `\n${history}`}`;
 });
