@@ -11,7 +11,7 @@ for (const [description, reply] of [
 		`a two-page cap returns the first four pull requests as truncated and never reads page 3, which holds ${description}`,
 		[repositoryHasPullRequests(5), pullRequestPageAnswers(3, description, reply)],
 		function* ({ listPullsBounded }) {
-			expect(yield* listPullsBounded(2)).toEqual({ items: pullRequests(1, 2, 3, 4), truncated: true });
+			expect(yield* listPullsBounded(2)).toEqual({ items: pullRequests(1, 2, 3, 4), skipped: 0, truncated: true });
 		},
 	);
 }
@@ -20,7 +20,7 @@ github.it(
 	"a two-page cap over three pull requests that end on page 2 returns all three untruncated",
 	[repositoryHasPullRequests(3)],
 	function* ({ listPullsBounded }) {
-		expect(yield* listPullsBounded(2)).toEqual({ items: pullRequests(1, 2, 3), truncated: false });
+		expect(yield* listPullsBounded(2)).toEqual({ items: pullRequests(1, 2, 3), skipped: 0, truncated: false });
 	},
 );
 

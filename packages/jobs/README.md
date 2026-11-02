@@ -35,6 +35,19 @@ Use a distinct literal identifier for each jobs service. The service and its Lay
 
 The work separates naturally: declare the application services once, define a queue and its worker for each feature, provide the complete registration list at the runtime boundary, and enqueue from ordinary application Effects.
 
+### Contribute workers to application modules
+
+`jobModule` from `@shivaedev/jobs/server/jobModule.ts` returns `queues` and `workers` fields for an `AppModule` in `@shivaedev/server`. Its queue declarations come from the same registrations its worker Layer runs:
+
+```ts
+import { jobModule } from "@shivaedev/jobs/server/jobModule.ts";
+import { Jobs, SendEmail, Mail } from "./app.ts";
+
+const jobs = jobModule(Jobs.layer, { jobs: [SendEmail.handle(({ userId }) => Mail.send(userId))] });
+```
+
+Spread these fields into the owning module. Keep the producer's jobs Layer in its services or ports. The application builds `appModules` once and passes its result to `appHost` or `workerHost`; both hosts provide the module's services and ports to their work. Queue definitions without handlers and scheduled workers can also appear in the registration list.
+
 ### Share queue names with the browser
 
 Keep names and payload Schemas in a browser-safe module such as `queues.ts`:
@@ -126,6 +139,8 @@ export const MailLive = Mail.layer;
 ```
 
 `Jobs` is the service that callers yield. `Mail` is a separate domain service that workers use. The example implementation logs calls so the wiring is complete; an application supplies its own implementation of those methods. The jobs package does not need a provider-specific interface.
+
+Registration collections retain their workers' handler, payload-decoding and scheduled-effect service requirements in `Jobs.layer`. Use `satisfies readonly JobRegistration[]` to check a reusable collection while preserving its inferred requirements, or annotate it as `readonly JobRegistration<Services>[]` with the union of services it needs. A plain `JobRegistration[]` leaves requirements `unknown`. Queue workers require both their queue and handler; scheduled workers require both their schedule and effect. Incomplete registrations are TypeScript errors. Producer-only queue definitions need no handler or decoding services at startup.
 
 ### Once per feature: the payload and handler
 
@@ -485,6 +500,8 @@ Include every target queue in `jobs`, as either a worker or a producer-only defi
 
 ### Test through the queue contract
 
+`linkedWorkerSpans(sender, spans)` from `@shivaedev/jobs/server/testing.ts` reads native recorded Effect spans and returns the pg-boss consumer spans whose links match both the sender's `traceId` and `spanId`. It returns every matching attempt, including retries, and no matches before a worker runs. An untraced job has no sender link. Settle the workers before reading their completed attempts; this readout does not wait or read queue storage.
+
 `testing.ts` gives story kits a controller for one real pg-boss client. Create a fresh controller per runtime, pass its `clientFactory` to `pgBossLayer`, and keep that Layer scoped as usual. `jobs(queue, options?)` returns native job metadata with `data` decoded through the queue's Schema, including traced payloads. Invalid durable data fails with `PgBossPayloadError`; decoding services remain in the Effect's requirements.
 
 This producer story uses the `SendEmail` definition and `Jobs` service from above. `databaseUrl` points to the story's PostgreSQL database:
@@ -566,6 +583,8 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/jobs/server/defaultClientFactory.ts` | `defaultClientFactory`                                                                                                                                                                                                                                                           |
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
+
+Queue and scheduled workers reject `perJobResults: true` and `transactional: true` during Layer acquisition with a registration `PgBossError`; its redacted `original` names the unsupported options. Omit these options or set them to `false`. The adapter settles each job itself and does not expose pg-boss's transaction client to handlers.
 
 `Jobs.layer(options)` accepts pg-boss `ConstructorOptions` plus the adapter's own options. Custom clients must supply native `complete` and `fail` capabilities to register queue or schedule workers; missing settlement capabilities fail Layer acquisition with a registration `PgBossError`. Workers also require `getDb()` to read the PostgreSQL clock when a batch arrives. Producer-only clients do not need these capabilities. Custom clients can also supply the optional native capabilities `findJobs`, `retry`, `update`, `getDb` and `updateQueue` for lookup, retry, live counts and listings, deferral and reconciliation; a requested operation fails with `PgBossError` if its required capability is absent.
 

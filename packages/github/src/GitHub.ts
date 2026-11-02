@@ -5,7 +5,9 @@ import { artifacts } from "#artifacts.ts";
 import { checkRuns } from "#checkRuns.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { decodedPages, type ListOptions } from "#pagedLists.ts";
 import { rateLimits } from "#rateLimits.ts";
+import { repositoryReads } from "#repositoryReads.ts";
 import { representations } from "#representations.ts";
 import { requests } from "#requests.ts";
 import { stickyComments } from "#stickyComments.ts";
@@ -35,6 +37,7 @@ export const GitHub = defineService({
 			...archive,
 			...stickyComments(client),
 			...checkRuns(client),
+			...repositoryReads(client),
 			observations: () => Effect.sync(() => [...rates.observations.values()]),
 			resource: (path: string) => Effect.sync(() => rates.resource(new URL(path, apiUrl).pathname)),
 			text: (path: string, accept: string, limit: number) =>
@@ -48,19 +51,23 @@ export function read<TSchema extends Schema.Constraint>(path: string, schema: TS
 	return Effect.flatMap(GitHub, (github) => Effect.flatMap(github.read(path, responseByteLimit), (response) => response.decode(schema)));
 }
 
-export function list<TSchema extends Schema.Constraint>(path: string, schema: TSchema, responseByteLimit?: number) {
-	return Stream.unwrap(Effect.flatMap(GitHub, (github) => github.list(path, undefined, responseByteLimit))).pipe(
-		Stream.mapEffect((response) => response.decode(Schema.Array(schema))),
-		Stream.flatMap(Stream.fromIterable),
-	);
+export function listPages<TSchema extends Schema.Constraint>(path: string, schema: TSchema, options?: ListOptions | number) {
+	return Stream.unwrap(Effect.map(GitHub, (github) => decodedPages(github, path, schema, options)));
 }
 
-export function listBounded<TSchema extends Schema.Constraint>(path: string, schema: TSchema, pageCap: number, responseByteLimit?: number) {
-	return Stream.unwrap(Effect.flatMap(GitHub, (github) => github.list(path, undefined, responseByteLimit))).pipe(
+export function list<TSchema extends Schema.Constraint>(path: string, schema: TSchema, options?: ListOptions | number) {
+	return listPages(path, schema, options).pipe(Stream.flatMap((page) => Stream.fromIterable(page.items)));
+}
+
+export function listBounded<TSchema extends Schema.Constraint>(path: string, schema: TSchema, pageCap: number, options?: ListOptions | number) {
+	return listPages(path, schema, options).pipe(
 		Stream.take(pageCap),
-		Stream.mapEffect((page) => Effect.map(page.decode(Schema.Array(schema)), (items) => ({ items, truncated: page.hasNext }))),
 		Stream.runCollect,
-		Effect.map((pages) => ({ items: pages.flatMap((page) => page.items), truncated: pages.at(-1)?.truncated ?? false })),
+		Effect.map((pages) => ({
+			items: pages.flatMap((page) => page.items),
+			skipped: pages.reduce((count, page) => count + page.skipped, 0),
+			truncated: pages.at(-1)?.hasNext ?? false,
+		})),
 	);
 }
 

@@ -27,18 +27,35 @@ export const vitestConsumer = storyKit({
 	layer: setup().layer,
 	name: "database consumer",
 	stages: [],
-	verbs: (engine) => ({
-		harnessSaw: () => engine.harness,
-		inIsolatedBlock: withIsolatedDatabase,
-		items: () => itemValues,
-		otherConnectionItems: () =>
-			Effect.gen(function* () {
+	verbs: (engine, story) => ({
+		harnessSaw: () => {
+			story.tell("the story reads the items seen during harness setup");
+			return engine.harness;
+		},
+		inIsolatedBlock: <A, E, R>(effect: Effect.Effect<A, E, R>) => {
+			story.tell("the story opens an isolated database block");
+			return withIsolatedDatabase(effect);
+		},
+		items: () => {
+			story.tell("the story reads its items");
+			return itemValues;
+		},
+		otherConnectionItems: () => {
+			story.tell("another connection reads the isolated block’s items");
+			return Effect.gen(function* () {
 				const database = yield* PostgresTestDatabase;
 				const sql = yield* secondClient(database.url);
 				return (yield* sql<{ value: string }>`select value from items order by id`).map(({ value }) => value);
-			}),
-		transaction: () => Effect.flatMap(SqlClient.SqlClient, (sql) => Effect.map(Effect.serviceOption(sql.transactionService), transactionState)),
-		writeItem: (value: string) => Effect.flatMap(SqlClient.SqlClient, (sql) => sql`update items set value = ${value} where id = 1`),
+			});
+		},
+		transaction: () => {
+			story.tell("the story checks whether its SQL client has a transaction");
+			return Effect.flatMap(SqlClient.SqlClient, (sql) => Effect.map(Effect.serviceOption(sql.transactionService), transactionState));
+		},
+		writeItem: (value: string) => {
+			story.tell(`the story writes the item "${value}"`);
+			return Effect.flatMap(SqlClient.SqlClient, (sql) => sql`update items set value = ${value} where id = 1`);
+		},
 	}),
 });
 

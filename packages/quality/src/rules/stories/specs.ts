@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import ts from "typescript";
 import { importGraph } from "#imports/graph.ts";
 import { packageOf } from "#imports/workspace.ts";
@@ -57,9 +58,9 @@ function uncoveredRegistration(call: ts.CallExpression, originOf: OriginOf): boo
 }
 
 export const storySpecs = defineRule({
-	check: async (inputs) => {
-		const graph = await importGraph(inputs);
-		const exempt = await storyPrerequisites(inputs, graph.packages);
+	check: Effect.fn("Stories.check")(function* (inputs) {
+		const graph = yield* importGraph(inputs);
+		const exempt = yield* Effect.promise(() => storyPrerequisites(inputs, graph.packages));
 		const origins = storyOrigins(inputs, graph);
 		const unit = unitTests(graph, inputs.sources);
 		return inputs.sources.flatMap((file) => {
@@ -93,7 +94,7 @@ export const storySpecs = defineRule({
 				},
 			];
 		});
-	},
+	}),
 	description:
 		"Every package tests its real engine through its own test-story kit, and a plain test lives only in a .unit file that reaches no engine and mocks nothing. Typecheck tests and the test-story, test and types packages need no kit.",
 	id: "tests/story-specs",

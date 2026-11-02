@@ -46,13 +46,13 @@ for (const explicit of [false, true]) {
 }
 
 isolatedEngine.it(
-	"a rejected host answer logs the work and cause and displays that cause in status",
+	"a refused host answer settles with its cause and logs the failure",
 	[markdownWork(), mainMovedPastPreparation("scoped context")],
 	function* (fleet) {
 		yield* fleet.prepare({ cwd: "/synthetic", preparation: prepared({ contextComplete: false }), prompt: "Implement one", workId: "one" });
 		yield* fleet.dispatch("one");
 		const failed = yield* fleet.answerFromHost("one", "retry");
-		expect(failed?.blocker).toBe("Answer failed: This decision only permits release; choose release to stop and hand back");
+		expect(failed).toBe("This decision only permits release; choose release to stop and hand back");
 		const logs = fleet.recordedSchedulerLogs();
 		expect(logs).toMatchObject([{ level: "Error", message: ["Failed to apply answer for one"] }]);
 		expect(logs[0]?.cause).toContain("This decision only permits release");

@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { CheckCircle2 } from "lucide-react";
-import { useEffect } from "react";
+import { type SubmitEvent, useEffect } from "react";
 import type { Document, DocumentRequest } from "#browser/document/schema.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
 import { Button } from "#client/react/components/ui/button.tsx";
@@ -36,6 +36,27 @@ function AnswerSession({ document: data, onDraft, request, preview }: AnswerProp
 	const focus = useFormFocus(state.draft.key);
 	const form = state.form;
 	const offline = useAnswerOffline();
+	function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+		event.preventDefault();
+		const target = event.currentTarget;
+		state.attempt(
+			() => {
+				if (!state.created.saving) {
+					state.created.save();
+				}
+			},
+			() => {
+				requestAnimationFrame(() => {
+					const invalid = target.querySelector<HTMLElement>('[aria-invalid="true"]');
+					const more = invalid?.closest("details");
+					if (more) {
+						more.open = true;
+					}
+					invalid?.focus();
+				});
+			},
+		);
+	}
 	useEffect(() => onDraft?.(state.text), [onDraft, state.text]);
 	const body = (
 		<FormField
@@ -61,24 +82,7 @@ function AnswerSession({ document: data, onDraft, request, preview }: AnswerProp
 			noValidate
 			onChange={state.edit}
 			onInput={state.edit}
-			onSubmit={(event) => {
-				event.preventDefault();
-				const valid = state.attempt();
-				if (!valid) {
-					const target = event.currentTarget;
-					requestAnimationFrame(() => {
-						const invalid = target.querySelector<HTMLElement>('[aria-invalid="true"]');
-						const more = invalid?.closest("details");
-						if (more) {
-							more.open = true;
-						}
-						invalid?.focus();
-					});
-				}
-				if (valid && !state.created.saving) {
-					state.created.save();
-				}
-			}}
+			onSubmit={handleSubmit}
 		>
 			<fieldset className="m-0 min-w-0 space-y-4 border-0 p-0" disabled={Boolean(offline)}>
 				<AnswerPrompts

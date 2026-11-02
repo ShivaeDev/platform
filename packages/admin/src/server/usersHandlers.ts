@@ -3,7 +3,7 @@ import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AssignRoles } from "@shivaedev/access/roles.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
-import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/tables.ts";
+import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/adapters/tables.ts";
 import { changeUserRole, listUsers } from "#server/users.ts";
 import type { usersPage } from "#users/page.ts";
 

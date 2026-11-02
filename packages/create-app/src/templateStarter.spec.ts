@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
 
-const WORKSPACE_PIECES = ["@shivaedev/platform", "@shivaedev/quality", "@shivaedev/test-story"];
+const WORKSPACE_PIECES = ["@shivaedev/platform", "@shivaedev/quality", "@shivaedev/skills", "@shivaedev/test-story"];
 const LAUNCHERS = ["src/test-support/admin/command.ts", "src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"];
 const CONDITION_CONFIGS = ["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"];
 const RENAMED = [

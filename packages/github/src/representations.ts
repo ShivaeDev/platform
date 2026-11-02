@@ -3,6 +3,7 @@ import { HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/h
 import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { nextLink } from "@shivaedev/http/nextLink.ts";
 import { paginate } from "@shivaedev/http/paginate.ts";
+import { resolveApiUrl } from "#adapters/resolveApiUrl.ts";
 import type { CachedResponse } from "#cache.ts";
 import { jsonResponse } from "#json.ts";
 import type { requests } from "#requests.ts";
@@ -14,7 +15,7 @@ export function representations(
 	responseByteLimit = 1024 * 1024,
 ) {
 	function get(path: string, accept = "application/vnd.github+json") {
-		return HttpClientRequest.get(new URL(path, apiUrl).href, { headers: { Accept: accept } });
+		return HttpClientRequest.get(resolveApiUrl(apiUrl, path), { headers: { Accept: accept } });
 	}
 	function readRepresentation(path: string, byteLimit = responseByteLimit) {
 		return Effect.map(request(get(path), byteLimit), jsonResponse);
@@ -46,7 +47,7 @@ export function representations(
 		);
 	}
 	function writeRepresentation(method: "POST" | "PATCH" | "PUT" | "DELETE", path: string, body?: unknown, byteLimit = responseByteLimit) {
-		return HttpClientRequest.make(method)(new URL(path, apiUrl).href, { headers: { Accept: "application/vnd.github+json" } }).pipe(
+		return HttpClientRequest.make(method)(resolveApiUrl(apiUrl, path), { headers: { Accept: "application/vnd.github+json" } }).pipe(
 			(input) => (body === undefined ? Effect.succeed(input) : HttpClientRequest.bodyJson(input, body)),
 			Effect.flatMap((input) => request(input, byteLimit)),
 			Effect.map(jsonResponse),

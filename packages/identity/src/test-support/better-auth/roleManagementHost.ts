@@ -11,10 +11,11 @@ import { ReadUsers, UsersPermission } from "@shivaedev/admin/permissions.ts";
 import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
 import { usersPage } from "@shivaedev/admin/users/page.ts";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { betterAuthDatabase } from "#server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import { assignRole } from "#server/better-auth/assignRole.ts";
-import { betterAuthMount } from "#server/better-auth/mount.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { permissionLayer } from "#server/permissions.ts";
 import { SessionPolicy } from "#server/SessionPolicy.ts";
@@ -40,7 +41,9 @@ export const roleManagementHost = Effect.fnUntraced(function* () {
 			session: { cookieCache: { enabled: false } },
 		},
 		{ defaultRole: "user", roles: Access },
-	).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
+	)
+		.pipe(Effect.provide(memoryStore))
+		.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))));
 	const context = yield* Effect.promise(() => mounted.auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
 	// Minted sessions start the story after registration and sign-in.

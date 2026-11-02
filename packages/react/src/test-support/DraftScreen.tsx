@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Option } from "effect";
 import { useContext } from "react";
-import { useField } from "@shivaedev/form/client/react.ts";
+import { useField } from "@shivaedev/form/adapters/react.ts";
 import { useEditor } from "#client/editor.ts";
 import { DraftFields, draftRuntime, type ScreenProps, type ViewEditor } from "./draftFields.ts";
 

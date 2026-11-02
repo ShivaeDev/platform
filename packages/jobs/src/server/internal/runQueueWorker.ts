@@ -3,11 +3,17 @@ import type { Job } from "pg-boss";
 import { deferralCount } from "#adapters/deferralCount.ts";
 import { workerDiagnostics } from "#adapters/workerDiagnostics.ts";
 import type { PgBossClient } from "#client.ts";
-import { jobContext, type QueueWorker } from "#definition.ts";
+import { type JobPayloadSchema, jobContext, type QueueWorker } from "#definition.ts";
 import { PgBossPayloadError } from "#error.ts";
 import { payloadOf } from "#internal/tracing.ts";
 
-export function runQueueWorker(worker: QueueWorker, job: Job<unknown>, deadline: number, client: PgBossClient, schema: string) {
+export function runQueueWorker<R>(
+	worker: QueueWorker<JobPayloadSchema & { readonly DecodingServices: R }, R>,
+	job: Job<unknown>,
+	deadline: number,
+	client: PgBossClient,
+	schema: string,
+) {
 	return Schema.decodeUnknownEffect(Schema.toCodecJson(worker.queue.schema))(payloadOf(job.data)).pipe(
 		Effect.mapError(
 			(error) =>

@@ -3,7 +3,7 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failsTimes, inProjects, passes, rerunStory, STALE_REPORTS, staleReports, withCoverage } from "#test/kit.ts";
 
 rerunStory.it(
-	"the final JUnit report shows the recovered test, the test beside it and the passing file's test as passed, though the rerun ran only the first",
+	"the final JUnit report shows the recovered test, the test beside it and the passing file's test as passed",
 	[failsTimes(1), passes()],
 	function* ({ junitResults, run }) {
 		yield* run();
@@ -17,7 +17,7 @@ rerunStory.it(
 );
 
 rerunStory.it(
-	"the final JSON report shows the recovered test, the test beside it and the passing file's test as passed, though the rerun ran only the first",
+	"the final JSON report shows the recovered test, the test beside it and the passing file's test as passed",
 	[failsTimes(1), passes()],
 	function* ({ jsonResults, run }) {
 		yield* run();

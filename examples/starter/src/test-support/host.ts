@@ -1,7 +1,7 @@
 import { ConfigProvider, Effect, Layer, Logger, Redacted, References } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
+import { makePgBossTesting, type PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { applicationHost } from "#server/applicationHost.ts";
@@ -14,6 +14,7 @@ export const PUBLIC_URL = "https://app.example";
 
 export interface HostOptions {
 	readonly deployed?: boolean;
+	readonly jobsTesting?: PgBossTesting;
 	readonly ownerAccounts?: string;
 	readonly publicUrl?: "unset";
 	readonly replacements?: Layer.Layer<never>;
@@ -21,8 +22,8 @@ export interface HostOptions {
 }
 
 export const startHost = Effect.fn("AppStory.startHost")(function* (options: HostOptions = {}) {
-	const deployed = options.deployed ?? false;
-	const jobsTesting = makePgBossTesting();
+	const deployed = options.deployed === true;
+	const jobsTesting = options.jobsTesting ?? makePgBossTesting();
 	const database = yield* PostgresTestDatabase;
 	yield* Effect.scoped(migrateDatabase(database.url));
 	const env: Record<string, string> = deployed ? { "HOST": "0.0.0.0", "PORT": "0" } : {};

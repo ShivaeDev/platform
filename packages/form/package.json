@@ -48,6 +48,9 @@
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@shivaedev/errors": "workspace:*"
+	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
 		"@effect/vitest": "catalog:",

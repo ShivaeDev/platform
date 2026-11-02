@@ -129,27 +129,24 @@ const createdAt = Model.Field({
 
 This field is absent from insert and update. A PostgreSQL `timestamptz` default supplies a `Date` on the database boundary, while the JSON codec encodes a string. Choose each field's schema for the values its driver or transport actually returns.
 
-For a PostgreSQL `int4[]` column, give the native driver an explicit element OID so an empty array has a type too:
+For PostgreSQL `int8` and one-dimensional `int4[]` columns, wrap the field's value schema with a storage codec:
 
 ```ts
-import * as PgTypes from "@effect/sql-pg/PgTypes";
-import { Result, SchemaGetter, SchemaParser } from "effect";
+import { int8 } from "@shivaedev/sql/int8.ts";
+import { int4Array } from "@shivaedev/sql/int4Array.ts";
 
 const Integers = Schema.Array(Schema.Int);
-const StoredIntegers = Schema.Unknown.pipe(
-	Schema.decodeTo(Integers, {
-		decode: SchemaGetter.transformEffect((value) => SchemaParser.decodeUnknownEffect(Integers)(PgTypes.isParameter(value) ? value.value : value)),
-		encode: SchemaGetter.transform((values) => Result.getOrThrow(PgTypes.array(values, PgTypes.OID.int4))),
-	}),
-);
+const StoredIntegers = int4Array(Integers);
 
 class Sample extends Model.Class<Sample>("Sample")({
-	id: Schema.Int,
+	id: int8(Schema.BigInt),
 	values: Model.Field({ insert: StoredIntegers, select: StoredIntegers, update: StoredIntegers, json: Integers }),
 }) {}
 ```
 
-The decoded value is an integer array in every variant. The database variants encode a native typed `int4[]` parameter; JSON retains the ordinary array. The same storage codec on `select` lets equality filters encode empty arrays too. `PgTypes.array` resolves the built-in `int4` array OID; `getOrThrow` unwraps that known constructor result. PostgreSQL still enforces its integer range on writes.
+`int8(field)` keeps bigint values exact beyond `Number.MAX_SAFE_INTEGER` and encodes native `PgTypes.int8` parameters. The native driver returns `bigint`; no conversion through a JS number occurs. `int4Array(field)` encodes a native array parameter with the `int4` element OID, including for an empty array. Both take the field schema, preserve its validation, and unwrap their native parameters when repository writes decode returned rows. PostgreSQL still enforces its integer ranges.
+
+Use the array storage codec on select, insert and update so equality filters encode empty arrays too. Keep an ordinary array schema for JSON. A bigint field transported as JSON likewise needs an explicit transport codec in its JSON variant; these helpers describe database storage.
 
 For a PostgreSQL `jsonb` column, wrap the value schema with `jsonb`:
 
@@ -345,6 +342,29 @@ const copied = yield* archive.insertFromSelect(
 Here `archive` is another unversioned `InvoiceLine` repository with its own table. `select` takes the same query options as `findMany` and prepares an Effect SQL fragment without reading rows into the application. `insertFromSelect(source, columns)` executes one `INSERT ... SELECT ... RETURNING` statement and returns Schema-decoded target model instances, including generated fields. The mapping requires all required target insert fields, allows optional insert fields, and checks source projection names plus decoded and encoded field types. Values move within SQL, so source decoding and target input encoding do not run; compatible schemas must describe compatible database storage.
 
 A repository configured with `conflictColumns` also exposes `insertFromSelectOrIgnore(source, columns)`. It uses the same conflict columns and optional `conflictWhere` predicate as `insertOrIgnore`, skips existing keys, and returns only inserted rows. An empty source returns `[]`. Both writes join `transact` and roll back with it. Source filter encoding services and target result decoding services remain in the write's Effect environment.
+
+### Native SQL list predicates
+
+`inValues(column, values)` from `@shivaedev/sql/inValues.ts` returns an Effect requiring the native `SqlClient`. It builds a native SQL fragment: an empty list matches nothing, and a non-empty list binds each value as a parameter. Pass a column name or a native fragment for a qualified column. Keep request encoding, result decoding and the SQL itself in native `SqlSchema`:
+
+```ts
+import { SqlClient, SqlSchema } from "effect/sql";
+import { inValues } from "@shivaedev/sql/inValues.ts";
+
+const sql = yield* SqlClient.SqlClient;
+const paymentsBySequence = SqlSchema.findAll({
+	Request: Schema.Array(Payment.fields.sequence),
+	Result: Schema.Struct({ sequence: Payment.fields.sequence }),
+	execute: (sequences) => Effect.gen(function* () {
+		const predicate = yield* inValues(sql`p.${sql("sequence")}`, sequences);
+		return yield* sql`select p.sequence from payments p where ${predicate}`;
+	}),
+});
+
+const rows = yield* paymentsBySequence([]);
+```
+
+`rows` is empty even when the table contains payments. The helper takes its column explicitly and leaves native `SqlSchema` visible. Use native SQL with composed schemas for joins; this helper adds no query layer or typed join.
 
 ### Composite keys and idempotent writes
 
@@ -682,7 +702,7 @@ const delivery = postgresChanges({
 
 `pg` is the application's `@effect/sql-pg` client; the binding accepts its native SQL and `listen` methods without creating another pool. Optional `listenerClient` supplies a different native client for LISTEN; the application client still owns write notifications and heartbeat publication. Both clients must reach the same database. LISTEN requires a direct or session-mode connection. With one shared client, reserve one session connection for LISTEN and another for writes and heartbeats; use a pool client with at least two connections. With separate clients, the listener needs one connection of its own. Compose `delivery` into the Layer that provides feature services using `transact`, alongside the existing SQL and Reactivity services. The [reference server](https://github.com/ShivaeDev/platform/blob/main/packages/react/src/test-support/postgres-example/server.ts) shows the complete composition. The binding sends `select pg_notify(...)` through the writing transaction's `SqlClient`, so a rollback wakes no process. Its transaction sink leaves delivery to the listener, including in the writing process. Unframed `invalidateOnCommit` calls retain local invalidation; cross-process writes must use `transact`.
 
-`PostgresChangesOptions` takes `channel`, `client`, `resync`, optional `listenerClient` and `connectionSetting` (a diagnostic label, default `"client"`), and optional `heartbeatInterval`, `heartbeatTimeout` and `retryDelay` Effect durations. The defaults are 5 seconds, 10 seconds and 1 second. Acquisition waits for LISTEN and then a heartbeat received through it, each within `heartbeatTimeout`. A deadline without a heartbeat fails startup with `PostgresListenerError` from `@shivaedev/sql/PostgresListenerError.ts`, whose `connectionSetting` and message identify the connection to fix. Native SQL failures still fail startup with `SqlError`. Established listeners reconnect after a loss. Loss and reconnect failures log their causes. A missing heartbeat or a stream failure resyncs streams before listener cleanup; a successful reconnection resyncs again. Listener cleanup runs in a parallel sub-scope bounded by `heartbeatTimeout`, so stalled listener cleanup cannot delay native connection release, a fresh subscription or scope shutdown. The heartbeat detects a listener that stops delivering without failing. `resync` is an infallible `Effect.Effect<number>` returning the number of open live streams it marked for reconciliation. `makeLiveServer.resync` provides this count and stops counting a stream when its scope closes. Direct bindings with another stream owner must return that owner's count. Provide the Layer for the process lifetime so scope release closes the listener.
+`PostgresChangesOptions` takes `channel`, `client`, `resync`, optional `listenerClient` and `connectionSetting` (a diagnostic label, default `"client"`), and optional `heartbeatInterval`, `heartbeatTimeout` and `retryDelay` Effect durations. The defaults are 5 seconds, 10 seconds and 1 second. Acquisition waits for LISTEN and then a heartbeat received through it, each within `heartbeatTimeout`. A deadline without a heartbeat fails startup with `PostgresListenerError` from `@shivaedev/sql/PostgresListenerError.ts`, whose `connectionSetting` and message identify the connection to fix. Native SQL failures still fail startup with `SqlError`. Established listeners reconnect after a loss. Loss warnings and reconnect debug logs omit database causes. A missing heartbeat or a stream failure resyncs streams before listener cleanup; a successful reconnection resyncs again. Listener cleanup runs in a parallel sub-scope bounded by `heartbeatTimeout`, so stalled listener cleanup cannot delay native connection release, a fresh subscription or scope shutdown. The heartbeat detects a listener that stops delivering without failing. `resync` is an infallible `Effect.Effect<number>` returning the number of open live streams it marked for reconciliation. `makeLiveServer.resync` provides this count and stops counting a stream when its scope closes. Direct bindings with another stream owner must return that owner's count. Provide the Layer for the process lifetime so scope release closes the listener.
 
 NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only string or finite-number invalidation keys, with no row values. PostgreSQL requires each payload to be smaller than 8,000 bytes in the default configuration. The binding splits JSON arrays by their UTF-8 byte length; one key that cannot fit, or a nonserializable key type, fails with `SqlError` before commit and rolls back the write. Heartbeats use a separate control payload on the same channel. Applications choose a channel shared only by their cooperating processes. LISTEN requires a session connection; PgBouncer transaction pooling needs another delivery adapter. Missed notifications are reconciled by querying again on resync, with no replay guarantee.
 
@@ -690,6 +710,9 @@ NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only
 
 Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
+- `@shivaedev/sql/inValues.ts`: `inValues(column, values)` — Native list predicate with match-nothing semantics for an empty list; requires `SqlClient`.
+- `@shivaedev/sql/int8.ts`: `int8(field)` — PostgreSQL bigint storage codec using the supplied field schema.
+- `@shivaedev/sql/int4Array.ts`: `int4Array(field)` — PostgreSQL integer-array storage codec, including typed empty arrays.
 - `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`, and `collection` required for bucket models; requires native `SqlClient`.
 - `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
 - `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples, types)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
@@ -761,7 +784,7 @@ The mapper handles named unique violations and PostgreSQL foreign-key and check 
 
 Recover outside `transact` so earlier writes roll back before handling a mapped domain error. A losing unique-key insert can then catch `NameTaken` and read the winner's row without a private transaction error. See the [constraint-failures guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/constraint-errors.md).
 
-For the native PostgreSQL driver's default representations, use precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `Schema.BigInt`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
+For the native PostgreSQL driver's default representations, use precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `int8(Schema.BigInt)`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
 
 JSON and JSONB columns are not supported. A repository write of a plain object to one fails with `SqlError` and writes nothing. Give structured data its own columns, or its own table when it repeats, so PostgreSQL constraints and the model both describe it.
 

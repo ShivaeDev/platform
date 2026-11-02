@@ -42,12 +42,14 @@ export function limitVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>)
 			story.tell(`${count} clones each ask for ${each} connections at once and hold the ones they get`);
 			return demand(count, each);
 		},
-		connectionsPerClone: () =>
-			Effect.map(
+		connectionsPerClone: () => {
+			story.tell("the story counts the PostgreSQL connections held by each clone");
+			return Effect.map(
 				engine.admin<{ total: number }>`select count(*)::int as total from pg_stat_activity
 					where ${engine.admin.in("datname", clones)} group by datname`,
 				(rows) => rows.map(({ total }) => total),
-			),
+			);
+		},
 		divideByZeroIn: (wrapper: Wrapper) => {
 			story.tell(`a query in ${wrapper} divides by zero`);
 			return wrapper === "a rollback test"

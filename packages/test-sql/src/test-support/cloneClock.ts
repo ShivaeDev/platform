@@ -25,7 +25,10 @@ export const cloneClock = storyKit({
 	runIf: configured,
 	stages: [],
 	verbs: (state, story) => ({
-		elapsedMilliseconds: () => Effect.sync(() => state.elapsed),
+		elapsedMilliseconds: () => {
+			story.tell("the story reads the elapsed wall clock time");
+			return Effect.sync(() => state.elapsed);
+		},
 		hundredDaysPass: () =>
 			Effect.gen(function* () {
 				story.tell("100 days pass while the cloned database stays open");
@@ -34,8 +37,17 @@ export const cloneClock = storyKit({
 				yield* TestClock.adjust("100 days");
 				state.elapsed = Duration.toMillis(Duration.nanos(live.monotonicTimeNanosUnsafe() - started));
 			}),
-		items: () => state.clone.run(values),
-		storyTime: () => state.clone.run(Clock.currentTimeMillis),
-		testClockSleeps: () => Effect.sync(() => state.sleeps),
+		items: () => {
+			story.tell("the story reads the cloned database’s items");
+			return state.clone.run(values);
+		},
+		storyTime: () => {
+			story.tell("the story reads the cloned database’s clock");
+			return state.clone.run(Clock.currentTimeMillis);
+		},
+		testClockSleeps: () => {
+			story.tell("the story reads how many sleeps the test clock observed");
+			return Effect.sync(() => state.sleeps);
+		},
 	}),
 });

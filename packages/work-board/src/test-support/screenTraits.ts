@@ -2,8 +2,8 @@ import { Deferred, Effect } from "effect";
 import { act } from "react";
 import { render } from "@shivaedev/test-story/client/react.ts";
 import { ANSWER_SOURCE, answerDraft, answerFiles, answerPreview } from "./answerDraft.tsx";
+import type { BoardFixtureOptions } from "./BoardFixtureOptions.ts";
 import { mountDocument } from "./documentRendering.ts";
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
 import { renderBoard } from "./react.tsx";
 import { renderRouter } from "./renderRouter.tsx";
 import { screenData } from "./screenData.ts";
@@ -107,7 +107,7 @@ export function readingScreen(kind: string) {
 export function pausedDocument(url: string) {
 	return screenStory.trait("workspace", `the document read for ${url} waits`, function* (engine) {
 		const gate = yield* Deferred.make<void>();
-		engine.heldRead = { gate, started: false, url };
+		engine.heldRead = { gate, started: false, startedSignal: yield* Deferred.make<void>(), url };
 		yield* Effect.addFinalizer(() => Deferred.succeed(gate, undefined));
 	});
 }

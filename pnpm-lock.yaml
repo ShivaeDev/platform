@@ -445,6 +445,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../../packages/quality
+      '@shivaedev/skills':
+        specifier: workspace:*
+        version: link:../../packages/skills
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../../packages/test-story
@@ -537,6 +540,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
@@ -804,6 +810,10 @@ importers:
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.4(patch_hash=dc0b222e3d5e9b87e514afd158e172ebaae0b5577abd0b518518940b0801cad7))(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/form:
+    dependencies:
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
@@ -950,10 +960,16 @@ importers:
       '@shivaedev/errors':
         specifier: workspace:*
         version: link:../errors
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
     devDependencies:
+      '@better-auth/oauth-provider':
+        specifier: 'catalog:'
+        version: 1.7.12(@better-auth/core@1.7.12(@better-auth/utils@0.5.0)(@better-fetch/fetch@1.3.2)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.0)(@better-fetch/fetch@1.3.2)(better-auth@1.7.12(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5))
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
@@ -1073,9 +1089,6 @@ importers:
         specifier: workspace:*
         version: link:../identity
     devDependencies:
-      '@better-auth/oauth-provider':
-        specifier: 'catalog:'
-        version: 1.7.12(@better-auth/core@1.7.12(@better-auth/utils@0.5.0)(@better-fetch/fetch@1.3.2)(@opentelemetry/api@1.9.1)(better-call@1.4.4(zod@4.6.5))(jose@6.2.4)(kysely@0.29.4)(nanostores@1.4.1))(@better-auth/utils@0.5.0)(@better-fetch/fetch@1.3.2)(better-auth@1.7.12(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.1)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5))(better-call@1.4.4(zod@4.6.5))
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)(redis@6.2.1(@opentelemetry/api@1.9.1))
@@ -1085,6 +1098,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
@@ -1254,9 +1270,9 @@ importers:
       '@shivaedev/heavy-lock':
         specifier: workspace:*
         version: link:../heavy-lock
-      '@shivaedev/types':
+      '@shivaedev/service':
         specifier: workspace:*
-        version: link:../types
+        version: link:../service
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.5(vitest@5.0.5)
@@ -1495,6 +1511,9 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/rate-limit':
+        specifier: workspace:*
+        version: link:../rate-limit
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
@@ -1805,9 +1824,6 @@ importers:
 
   packages/webhooks:
     dependencies:
-      '@shivaedev/errors':
-        specifier: workspace:*
-        version: link:../errors
       '@shivaedev/github':
         specifier: workspace:*
         version: link:../github

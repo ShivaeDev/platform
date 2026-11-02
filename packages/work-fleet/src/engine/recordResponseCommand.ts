@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, PubSub } from "effect";
 import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -23,6 +23,17 @@ export function recordResponseCommand(state: EngineState) {
 			Effect.flatMap(makeHuman(state)),
 			Effect.flatMap(cleanupSessions(state)),
 			Effect.catch((error) => recordFailure(state, workId, error)),
+			Effect.tap(({ value }) => {
+				const applied = [...(value.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(value.responses ?? [])].some(
+					(receipt) => receipt.decisionId === decisionId && receipt.responseId === responseId,
+				);
+				return PubSub.publish(
+					state.answerEvents,
+					applied
+						? { _tag: "Applied", decisionId, record: value, responseId, workId }
+						: { _tag: "Refused", decisionId, reason: value.blocker ?? value.decision?.reason ?? "Decision changed", workId },
+				);
+			}),
 			Effect.catchCause(Effect.logError),
 			Effect.forkIn(state.launchScope),
 		);

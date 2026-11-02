@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Config, Effect } from "effect";
+import { processText } from "#test/processText.ts";
 
 interface FollowRun {
 	readonly code: number | null;
@@ -17,6 +18,7 @@ export interface Follower {
 	readonly output: () => string;
 	readonly ready: Promise<void>;
 	readonly stop: () => Promise<FollowRun>;
+	readonly text: (channel: "stdout" | "stderr", text: string, offset?: number) => Effect.Effect<void>;
 }
 
 export interface FollowOptions {
@@ -61,6 +63,7 @@ export function followerProcess(
 			);
 			let stdout = "";
 			let stderr = "";
+			let closed = false;
 			child.stdout.on("data", (chunk: Buffer) => {
 				stdout += chunk.toString();
 			});
@@ -70,6 +73,7 @@ export function followerProcess(
 			const done = new Promise<FollowRun>((resolve, reject) => {
 				child.on("error", reject);
 				function finish(code: number | null) {
+					closed = true;
 					if (code === 97) {
 						reject(new Error("Fleet client attempted a direct PostgreSQL connection"));
 					} else {
@@ -89,6 +93,15 @@ export function followerProcess(
 					child.kill();
 					return done;
 				},
+				text: (channel: "stdout" | "stderr", text: string, offset = 0) =>
+					processText(
+						child,
+						child[channel],
+						() => (channel === "stdout" ? stdout : stderr),
+						text,
+						offset,
+						() => closed,
+					),
 			};
 		}),
 		({ child, done }) =>

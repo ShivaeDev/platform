@@ -10,7 +10,7 @@ export function previousPackage(before: Workspace, declarations: readonly Change
 			return declarations.some(
 				(changeset) =>
 					Object.hasOwn(changeset.packages, pkg.manifest.name)
-					&& changeset.entries.some((entry) => entry.section === "Breaking" && rename.test(entry.text)),
+					&& changeset.entries.some((entry) => entry.package === pkg.manifest.name && entry.section === "Breaking" && rename.test(entry.text)),
 			);
 		})
 	);

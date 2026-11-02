@@ -50,8 +50,9 @@ processes.it(
 processes.it(
 	"a rolled-back write publishes no hint",
 	[twoServersAndWorker()],
-	function* ({ answers, hintsSinceAction, rejectWrite }) {
+	function* ({ answers, hintsSinceAction, rejectWrite, saveFromServer }) {
 		yield* rejectWrite();
+		yield* saveFromServer("b", "after rollback");
 
 		yield* outcomes([
 			["a hints", () => hintsSinceAction("a"), ["changed orders 1"]],

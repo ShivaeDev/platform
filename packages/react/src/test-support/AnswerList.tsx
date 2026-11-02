@@ -1,5 +1,5 @@
 import { useAtomValue } from "@effect/atom-react";
-import { useField, useSubmit } from "@shivaedev/form/client/react.ts";
+import { useField, useSubmit } from "@shivaedev/form/adapters/react.ts";
 import { answerValues, type makeAnswerForm } from "./answerForm.ts";
 
 type AnswerForm = ReturnType<typeof makeAnswerForm>;

@@ -20,9 +20,14 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 			story.tell("the story awaits the run's cleanup");
 			return engine.run(Effect.flatMap(PostgresTestDatabase, (database) => database.awaitCleanup));
 		},
-		cloneDatabase: () => exists(state.clone),
-		cloneDatabaseOnceDrained: () =>
-			Effect.andThen(engine.run(Effect.flatMap(PostgresTestDatabase, (database) => database.awaitCleanup)), exists(state.clone)),
+		cloneDatabase: () => {
+			story.tell("the story checks whether its clone still exists");
+			return exists(state.clone);
+		},
+		cloneDatabaseOnceDrained: () => {
+			story.tell("the story awaits cleanup and checks whether its clone still exists");
+			return Effect.andThen(engine.run(Effect.flatMap(PostgresTestDatabase, (database) => database.awaitCleanup)), exists(state.clone));
+		},
 		closeClone: () => {
 			story.tell("the story closes its clone's scope");
 			return Scope.close(state.cloneScope, Exit.void);
@@ -37,18 +42,32 @@ export function cleanupVerbs(state: CleanupEngine, story: Story<CleanupEngine>) 
 			story.tell("the run's role may open 2 connections again");
 			return admin`alter role ${admin(cleanupRole(state))} connection limit 2`;
 		},
-		crashedWorkerDatabases: () =>
-			Effect.gen(function* () {
+		crashedWorkerDatabases: () => {
+			story.tell("the story checks which databases remain from the crashed worker");
+			return Effect.gen(function* () {
 				const remaining = new Set(yield* engine.databaseNames());
 				return state.crashed.all
 					.filter((name) => remaining.has(name))
 					.map((name) => (name === state.crashed.shared ? "its shared database" : "its empty template"))
 					.sort();
-			}),
-		firstDropAttempt: () => Deferred.await(state.firstDropAttempt),
-		leftover: () => exists(state.leftover),
-		otherHostsDatabase: () => exists(state.otherHost),
-		runClosing: () => Effect.sync(() => closing),
+			});
+		},
+		firstDropAttempt: () => {
+			story.tell("the story waits for the first clone drop attempt");
+			return Deferred.await(state.firstDropAttempt);
+		},
+		leftover: () => {
+			story.tell("the story checks whether the leftover database exists");
+			return exists(state.leftover);
+		},
+		otherHostsDatabase: () => {
+			story.tell("the story checks whether the other host’s database exists");
+			return exists(state.otherHost);
+		},
+		runClosing: () => {
+			story.tell("the story reads the run closing outcome");
+			return Effect.sync(() => closing);
+		},
 		startAnotherRun: () => {
 			story.tell("another run starts on this host");
 			return Effect.scoped(Layer.build(engine.fixture.layer));

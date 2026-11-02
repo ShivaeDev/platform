@@ -24,7 +24,7 @@ export function answerPullRequestVerbs(engine: AnswerHostEngine, tell: (line: st
 		pullRequestBase: () => engine.pullRequest.github.state.base,
 		pullRequestHead: () => engine.pullRequest.github.state.head,
 		pullRequestUrl: () => engine.pullRequest.PR,
-		readyPullRequest: () => engine.pullRequest.ready(engine.running.client),
+		readyPullRequest: () => engine.pullRequest.ready(engine.running.client, engine.running.context),
 		reconcileScanned: () => {
 			tell("reconcile within the existing Board scan");
 			return engine.spans.trace(engine.fleet.reconcile("one"));
@@ -41,6 +41,6 @@ export function answerPullRequestVerbs(engine: AnswerHostEngine, tell: (line: st
 		setMergeable: (mergeable: "CONFLICTING" | "MERGEABLE" | "UNKNOWN") => {
 			engine.pullRequest.github.state.mergeable = mergeable;
 		},
-		workerStarted: (role: "worker" | "repair") => engine.pullRequest.started(engine.running.client, role),
+		workerStarted: (role: "worker" | "repair") => engine.pullRequest.started(engine.running.client, role, engine.running.context),
 	};
 }

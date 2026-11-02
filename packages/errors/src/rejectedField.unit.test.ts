@@ -1,6 +1,11 @@
 import { Option } from "effect";
 import { expect, it } from "vitest";
+import { Conflict } from "#taxonomy.ts";
 import { rejectedField } from "./rejectedField.ts";
+
+it("extracts a field rejection from an error instance", () => {
+	expect(rejectedField(new Conflict({ field: "name", message: "Name is taken" }))).toEqual(Option.some({ field: "name", message: "Name is taken" }));
+});
 
 it("extracts a field rejection from tagged JSON", () => {
 	expect(rejectedField({ _tag: "Conflict", field: "name", message: "Encoded" })).toEqual(Option.some({ field: "name", message: "Encoded" }));

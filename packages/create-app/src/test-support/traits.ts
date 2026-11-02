@@ -33,9 +33,13 @@ export const realSetup = application.trait("installation", "pnpm run setup insta
 	engine.options = { ...engine.options, realSetup: true };
 });
 
-export const linkedPackageScripts = application.trait("installation", "package scripts run with linked workspace dependencies", (engine) => {
-	engine.options = { ...engine.options, linkedPackageScripts: true };
-});
+export const linkedPackageScripts = application.trait(
+	"installation",
+	"package scripts start with linked workspace dependencies and synced skills",
+	(engine) => {
+		engine.options = { ...engine.options, linkedPackageScripts: true };
+	},
+);
 
 export const installedPackageManager = application.trait(
 	"workspace",
@@ -85,7 +89,7 @@ export function customTemplate(files: Readonly<Record<string, string | Uint8Arra
 
 export const localArtifacts = application.trait(
 	"template",
-	"the template folder holds app.ts and .env.example beside node_modules, dist, coverage, .browser-check, .git, .env.local, .env, .env.production and pnpm-lock.yaml from local work",
+	"the template folder holds app.ts and .env.example beside node_modules, dist, coverage, .browser-check, .git, .agents, .claude, .env.local, .env, .env.production and pnpm-lock.yaml from local work",
 	(engine) => {
 		engine.source = templateSource(dirname(dirname(engine.cli)), { localArtifacts: true });
 		engine.source.files({ "app.ts": "export const app = true;\n" });

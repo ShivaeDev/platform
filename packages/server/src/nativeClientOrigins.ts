@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { Headers, HttpMiddleware, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { localTransport } from "@shivaedev/identity/server/local.ts";
+import { localTransport } from "@shivaedev/identity/server/adapters/local.ts";
 
 export const NativeOrigins = Schema.Array(
 	Schema.String.check(

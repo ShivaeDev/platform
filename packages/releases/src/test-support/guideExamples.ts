@@ -10,7 +10,7 @@ export function copiedGuideExample(index: number, text: string) {
 		"pending",
 		`example ${index + 1} is copied verbatim from the release guide into a workspace with its named packages`,
 		function* ({ root }) {
-			for (const name of ["react", "new-name"]) {
+			for (const name of ["react", "releases", "new-name"]) {
 				yield* write(root, `packages/${name}/package.json`, JSON.stringify({ name: `@shivaedev/${name}`, version: "0.0.0" }));
 			}
 			yield* write(root, `.changeset/guide-${index + 1}.md`, `${text}\n`);

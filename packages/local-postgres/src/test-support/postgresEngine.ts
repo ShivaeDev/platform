@@ -1,6 +1,6 @@
 import { Effect, PlatformError } from "effect";
 import { type ChildProcess, ChildProcessSpawner } from "effect/process";
-import { LOCAL_SERVER, localPostgres } from "#localPostgres.ts";
+import { LOCAL_SERVER, localPostgres, type ReadinessOptions } from "#localPostgres.ts";
 import { dockerScript } from "#test/dockerScript.ts";
 import { scriptedProcess } from "#test/scriptedProcess.ts";
 
@@ -13,7 +13,6 @@ export const SERVER = databaseUrl("postgres");
 export interface PostgresEngine {
 	appDatabase: string | undefined;
 	calls: (readonly string[])[];
-	contextEndpoint: string;
 	environment: { "DOCKER_CONTEXT"?: string | undefined; "DOCKER_HOST"?: string | undefined };
 	failure: unknown;
 	hostClient?: (command: ChildProcess.StandardCommand) => ChildProcess.StandardCommand;
@@ -34,7 +33,6 @@ export const createPostgres = Effect.gen(function* () {
 	const engine: PostgresEngine = {
 		appDatabase: undefined,
 		calls: [],
-		contextEndpoint: "unix:///var/run/docker.sock",
 		environment,
 		failure: undefined,
 		hostPsql: false,
@@ -75,14 +73,17 @@ export function connectCli(engine: PostgresEngine) {
 				return yield* engine.realSpawner.spawn(file === "psql" && engine.hostClient ? engine.hostClient(command) : command);
 			}
 			engine.tell?.(`Docker ${args.join(" ")}`);
-			const result = yield* Effect.try(() => (args[0] === "context" ? engine.contextEndpoint : script.run(args))).pipe(
-				Effect.catch((error) => Effect.succeed(new Error(String(error.cause instanceof Error ? error.cause.message : error.cause)))),
-			);
+			const result = yield* Effect.sync(() => {
+				if (file !== "docker") {
+					throw new Error(`Unexpected executable: ${file}`);
+				}
+				return script.run(args);
+			});
 			return scriptedProcess(result);
 		}),
 	);
 }
 
-export function configureReadiness(engine: PostgresEngine, attempts: number) {
-	engine.manager = localPostgres(engine.environment, { attempts, delayMillis: 0 });
+export function configureReadiness(engine: PostgresEngine, options: ReadinessOptions) {
+	engine.manager = localPostgres(engine.environment, options);
 }

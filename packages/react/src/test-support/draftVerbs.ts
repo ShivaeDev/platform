@@ -1,15 +1,17 @@
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, Layer } from "effect";
 import { TestClock } from "effect/testing";
 import type { vi } from "vitest";
-import type { BrowserDraftConfig } from "@shivaedev/form/client/react.ts";
+import { draftPersistence } from "@shivaedev/form/adapters/draftPersistence.ts";
+import { DraftStorageProvider, type PersistedDraftConfig } from "@shivaedev/form/persistence.ts";
 import type { Row, Save, ViewEditor } from "./draftFields.ts";
+import { browserPersistence } from "./draftStorage.ts";
 import { persistedDraftView } from "./persistedDraftView.tsx";
 import { clickButton, type Screen } from "./Screen.ts";
 import { settleScreen } from "./settleScreen.ts";
 
 export type Field = "name" | "quantity";
 export type SaveMode = "immediate" | "held" | "rejected";
-export type Config = Omit<BrowserDraftConfig, "now">;
+export type Config = Omit<PersistedDraftConfig, "now" | "storage"> & { readonly storage?: PersistedDraftConfig["storage"] };
 
 const remote: Row = { name: "Remote", quantity: "350" };
 
@@ -50,7 +52,7 @@ function saveRow(state: State): Save {
 	};
 }
 
-export function draftVerbs(state: State, screen: Screen, now: () => number) {
+export function draftVerbs(state: State, screen: Screen) {
 	function mount(line: string, session = "first", config: Config = state.config) {
 		return Effect.gen(function* () {
 			screen.tell(line);
@@ -59,7 +61,10 @@ export function draftVerbs(state: State, screen: Screen, now: () => number) {
 			}
 			const view = yield* screen.open();
 			state.config = config;
-			state.view = yield* Effect.promise(() => persistedDraftView(view, { ...config, now }, saveRow(state), session));
+			const persistence = yield* config.storage
+				? draftPersistence.pipe(Effect.provide(Layer.succeed(DraftStorageProvider, config.storage)))
+				: browserPersistence;
+			state.view = yield* Effect.promise(() => persistedDraftView(view, { ...config, ...persistence }, saveRow(state), session));
 			state.firstForm ??= state.view.editor().form;
 		});
 	}
@@ -74,7 +79,13 @@ export function draftVerbs(state: State, screen: Screen, now: () => number) {
 				})
 				.pipe(Effect.andThen(settle(state, screen))),
 		firstFormEdits: (value: string) =>
-			screen.act(`the first session's form edits the name to ${JSON.stringify(value)}`, () => state.firstForm?.change("name", value)),
+			screen.act(`the first session's form edits the name to ${JSON.stringify(value)}`, () => {
+				const form = state.firstForm;
+				if (!form) {
+					throw new Error("Missing first session form");
+				}
+				form.change("name", value);
+			}),
 		hideForm: () => screen.act("hide the form in the first session", () => current(state).show("first", false)),
 		open: (session = "first") => mount(`open the draft editor in the ${session} session`, session),
 		refresh: () => screen.act("the query refreshes to Remote / 350", () => current(state).refresh(remote)),

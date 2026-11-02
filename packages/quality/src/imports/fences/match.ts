@@ -1,5 +1,5 @@
+import type { Endpoint } from "#imports/Endpoint.ts";
 import { builtinName, packageNameOf } from "#imports/packageName.ts";
-import type { Endpoint } from "#imports/resolve.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import type { Selector } from "./model.ts";
 

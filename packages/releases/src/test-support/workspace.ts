@@ -3,6 +3,8 @@ import { NodeServices } from "@effect/platform-node";
 import { Clock, Effect, FileSystem, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { ReleasePlan } from "#model.ts";
+import { planRelease } from "#planner.ts";
+import { collectReleaseNotes } from "#releaseNotes.ts";
 import { makeFixture, runCli } from "./fixture.ts";
 import { manifestOf, rangeOn } from "./manifests.ts";
 
@@ -71,6 +73,7 @@ export const workspace = storyKit({
 			}),
 			plan: () => releases(["plan"], printedLines),
 			planJson: () => releases(["plan", "--json"], decodePlan),
+			releaseNotes: () => planRelease(root).pipe(Effect.flatMap(collectReleaseNotes)),
 			todayInUtc: () => Effect.map(Clock.currentTimeMillis, (millis) => new Date(millis).toISOString().slice(0, 10)),
 			version: Effect.fn("ReleasesStory.version")(function* (name: string) {
 				return (yield* manifestOf(root, name)).manifest.version;

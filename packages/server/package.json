@@ -67,6 +67,7 @@
 		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
@@ -81,6 +82,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
+		"@shivaedev/admin": "workspace:*",
 		"better-auth": "catalog:",
 		"effect": "catalog:"
 	},
@@ -92,6 +94,9 @@
 			"optional": true
 		},
 		"@effect/vitest": {
+			"optional": true
+		},
+		"@shivaedev/admin": {
 			"optional": true
 		},
 		"better-auth": {

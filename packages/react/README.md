@@ -30,7 +30,7 @@ An **editor** joins a query atom, a form field schema and a save Effect. The que
 
 A **session generation** is the string returned by `identify(session)`. `SessionBoundary` owns its client, registry and React subtree. Your auth owner supplies the session and decides when to replace or end it. The boundary automatically mounts live connections on bound contract APIs returned by `connect`, directly or as client properties such as `api`. Use a Platform database host and the default shared WebSocket client; the application needs no subscribe handler or `live()` call. Live changed hints coalesce over 20 ms by default. Set `liveCoalesceWindow` on `SessionBoundary` to a native Duration to choose the window for that session, or `0` for immediate per-hint refreshes. A bound query can override that default with `useQuery(atom, { coalesceWindow: "2 seconds" })`. Changing this option applies to subsequent windows without reconnecting or refetching any query; a window already started keeps its deadline. A refetch in flight runs once more after settling when further hints arrive. Cache policy, RPC declarations and transport stay with native Effect and the application; this package supplies their React state and lifecycle boundary.
 
-`useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key, now }`. Choose a stable key for the record or create request, independent of its server revision. Supply `now: () => clock.currentTimeMillisUnsafe()` using `Clock.Clock` captured in the application’s Effect setup; draft timestamps and expiry use that clock. The adapters use form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/form#persist-input-across-reloads) for direct form hooks and limits.
+`useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key, ...persistence }`. Choose a stable key for the record or create request, independent of its server revision. Acquire `persistence` with `draftPersistence` from `@shivaedev/form/adapters/draftPersistence.ts`, provided with `browserDraftStorage` from `@shivaedev/form/adapters/browserDraftStorage.ts`. The setup reads the storage provider and Clock from the Effect environment; timestamps and expiry use that captured clock. The hooks inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Supply `DraftStorageProvider` for custom storage; optional `maxBytes` and `maxAgeMs` customize the bounds, which default to 256 KiB of UTF-8 JSON and seven days. See [form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/form#persist-input-across-reloads) for direct form hooks and limits.
 
 ### 1. Once per application
 
@@ -255,7 +255,7 @@ The next module assumes `./invoice-lines-client.ts` exports a contract-bound `ap
 import { useCreate } from "@shivaedev/react/client/create.ts";
 import { useEditor } from "@shivaedev/react/client/editor.ts";
 import { QueryView } from "@shivaedev/react/client/QueryView.ts";
-import { useField } from "@shivaedev/form/client/react.ts";
+import { useField } from "@shivaedev/form/adapters/react.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import { Option, Schema } from "effect";
 import { api, InvoiceLinesClient } from "./invoice-lines-client.ts";
@@ -926,80 +926,111 @@ pnpm add @shivaedev/changes @shivaedev/contract
 pnpm add -D @shivaedev/test-story @effect/platform-node @effect/vitest vitest happy-dom react-dom @types/react-dom
 ```
 
-Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
+Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. Keep the engine, rendering and verbs in a story kit under `src/test-support/notesScreen.tsx`. This kit runs the declared query and command against native RPC test handlers and gives the screen driver the registry's pending signal:
 
 ```tsx
 import { Effect, Layer, Option, Ref, Schema, Stream } from "effect";
 import { act, createElement } from "react";
-import { expect } from "vitest";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { layerMemoryProtocol } from "@shivaedev/contract/testing.ts";
+import { screenPending } from "@shivaedev/react/adapters/screenPending.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
-import { eventually, expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
-import { it } from "@shivaedev/test/it.ts";
-
-Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-expectNoReactWarnings();
+import { render } from "@shivaedev/test-story/client/react.ts";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 
 const notes = collection("notes", Schema.Number);
 const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
 const Add = command("add", { invalidates: () => [notes.list], payload: { title: Schema.String } });
 const Notes = contract("notes", { commands: [Add], queries: [List] });
 
-const handlers = Notes.toLayer(
-	Effect.gen(function* () {
-		const stored = yield* Ref.make<readonly string[]>([]);
-		return Notes.of({
-			"notes.$changes": () => Stream.never,
-			"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
-			"notes.list": () => Ref.get(stored).pipe(Effect.delay("20 millis")),
+export const notesScreen = storyKit({
+	clock: "live",
+	*create() {
+		const handlers = Notes.toLayer(
+			Effect.gen(function* () {
+				const stored = yield* Ref.make<readonly string[]>([]);
+				return Notes.of({
+					"notes.$changes": () => Stream.never,
+					"notes.add": ({ title }) => Ref.update(stored, (all) => [...all, title]),
+					"notes.list": () => Ref.get(stored),
+				});
+			}),
+		);
+		const { api, Client } = makeClient(Notes, {
+			live: false,
+			protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
+			url: "memory://notes",
 		});
-	}),
-);
-const { api, Client } = makeClient(Notes, {
-	live: false,
-	protocol: layerMemoryProtocol(Notes).pipe(Layer.provide(handlers)),
-	url: "memory://notes",
-});
-const add = Client.runtime.fn(api.add.run);
-function NotesView() {
-	const list = useQuery(api.list.query());
-	const action = useAction(add);
-	return createElement(
-		"section",
-		null,
-		createElement("output", null, Option.getOrElse(list.data, () => []).join(", ")),
-		createElement(
-			"button",
-			{
-				disabled: list.pending || action.pending,
-				onClick: () => action.dispatch({ title: "Morning walk" }),
-				type: "button",
+		const add = Client.runtime.fn(api.add.run);
+		function NotesView() {
+			const list = useQuery(api.list.query());
+			const action = useAction(add);
+			return createElement(
+				"section",
+				null,
+				createElement("output", null, Option.getOrElse(list.data, () => []).join(", ")),
+				createElement(
+					"button",
+					{
+						disabled: list.pending || action.pending,
+						onClick: () => action.dispatch({ title: "Morning walk" }),
+						type: "button",
+					},
+					"Add",
+				),
+			);
+		}
+		const view = yield* Effect.acquireRelease(
+			Effect.promise(() => render(createElement(NotesView))),
+			(mounted) => Effect.promise(mounted.unmount),
+		);
+		const pending = yield* screenPending().pipe(Effect.provideService(AtomRegistry.AtomRegistry, view.registry));
+		return { pending, view };
+	},
+	inspect: ({ view }) => ({ screen: view.container.textContent }),
+	name: "notes screen",
+	stages: ["screen"],
+	verbs: ({ pending, view }, story) =>
+		screenDriver({
+			act: async (action) => {
+				await act(action);
 			},
-			"Add",
-		),
-	);
-}
-
-it.live("renders a query and refetches it after a command through a test RPC layer", function* () {
-	const view = yield* Effect.acquireRelease(
-		Effect.promise(() => render(createElement(NotesView))),
-		(view) => Effect.promise(view.unmount),
-	);
-	yield* eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
-	expect(view.container.querySelector("output")?.textContent).toBe("");
-	yield* Effect.promise(() => act(async () => view.container.querySelector("button")?.click()));
-	yield* eventually(() => {
-		expect(view.container.querySelector("output")?.textContent).toBe("Morning walk");
-		expect(view.container.querySelector("button")?.disabled).toBe(false);
-	});
+			pending,
+			root: view.container,
+			tell: story.tell,
+		}),
 });
 ```
 
-`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. In Effect tests, acquire the view with `Effect.acquireRelease` so its scope releases it on success, failure or interruption. In async tests, unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` returns an Effect: yield it directly in a story or Effect test, keeping the expectation in the spec. It retries for up to three seconds in live time, allowing pending responses to settle inside `act` between attempts without advancing the story’s TestClock. A timeout fails with an Error whose message includes the elapsed milliseconds and last assertion message, and whose `cause` is that assertion error. In an async test, use `await Effect.runPromise(eventually(assert))`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+The spec drives one action and states what the screen shows. With `#test/*` mapped to `src/test-support/*` in your package's imports, `notesScreen.dom.spec.tsx` is:
+
+```tsx
+import { expect } from "vitest";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
+import { notesScreen } from "#test/notesScreen.tsx";
+
+Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
+expectNoReactWarnings();
+
+notesScreen.it("a command refetches the rendered notes through native RPC", [], function* ({ click, settle, text }) {
+	yield* settle();
+	expect(text("output")).toBe("");
+
+	yield* click({ name: "Add", role: "button" });
+	yield* settle();
+
+	expect(text("output")).toBe("Morning walk");
+});
+```
+
+`settle()` waits for the engine's pending work and flushes the resulting React render. Release held server responses with a Deferred or another engine completion signal, then settle the screen before reading it. Keep each verb to one action and let a missing target fail; the driver's `click` and `enter` require a rendered control. Keep expectations in the spec.
+
+`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Acquire the view with `Effect.acquireRelease` so its scope releases it on success, failure or interruption. The screen driver's `act` adapter keeps component interactions and settling inside React's `act`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
 The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
 
@@ -1044,7 +1075,7 @@ const screen = screenDriver({ act, pending, root: view.container, tell: story.te
 
 Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
 
-Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback.
+Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `@shivaedev/form/fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback. Field-rejection mapping types and `fieldRejectionOf` also belong to `@shivaedev/form/fieldRejection.ts`; `AtomServices` belongs to `AtomServices.ts`.
 
 ### Install, setup and limits
 

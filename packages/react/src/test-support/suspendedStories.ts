@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { ViewEditor } from "./draftFields.ts";
-import { draftStorage } from "./draftStorage.ts";
+import { browserPersistence, draftStorage } from "./draftStorage.ts";
 import { type Screen, typeInput } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { suspendedDraftView } from "./suspendedDraftView.tsx";
@@ -23,7 +23,13 @@ function current(state: State) {
 function suspendedVerbs(state: State, screen: Screen) {
 	return {
 		firstFormEdits: (value: string) =>
-			screen.act(`the first session's form edits the name to ${JSON.stringify(value)}`, () => state.firstForm?.change("name", value)),
+			screen.act(`the first session's form edits the name to ${JSON.stringify(value)}`, () => {
+				const form = state.firstForm;
+				if (!form) {
+					throw new Error("Missing first session form");
+				}
+				form.change("name", value);
+			}),
 		hiddenSession: (session: string) =>
 			screen.act(`render the ${session} session inside hidden Activity`, () => current(state).show(session, false, false, "hidden")),
 		session: (session: string) => screen.act(`show the ${session} session`, () => current(state).show(session)),
@@ -69,9 +75,10 @@ const order: readonly Step[] = ["typed", "transition canceled", "returned", "con
 const hiddenOrder: readonly Step[] = ["typed", "hidden", "replaced while hidden", "revealed"];
 
 export function suspendedDraft(step: Step = "typed") {
-	return suspended.trait("screen", described[step], function* ({ now, screen, state }) {
+	return suspended.trait("screen", described[step], function* ({ screen, state }) {
 		const view = yield* screen.open();
-		state.view = yield* Effect.promise(() => suspendedDraftView(view, now));
+		const persistence = yield* browserPersistence;
+		state.view = yield* Effect.promise(() => suspendedDraftView(view, persistence));
 		state.firstForm = state.view.editor().form;
 		const verbs = suspendedVerbs(state, screen);
 		const steps = order.includes(step) ? order : hiddenOrder;

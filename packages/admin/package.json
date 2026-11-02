@@ -59,6 +59,7 @@
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/rate-limit": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",

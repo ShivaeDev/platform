@@ -6,6 +6,7 @@ import { Receipt } from "#server/internal/Receipt.ts";
 import { auditQueue } from "#test/fixture.ts";
 import { type HandledJob, type InboxState, inboxState, startHost } from "#test/host.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
+import { collectTelemetry, privacyVerbs } from "#test/privacy.ts";
 import { raceVerbs } from "#test/raceVerbs.ts";
 import { type Delivery, deliver } from "#test/requests.ts";
 import { resourceVerbs } from "#test/resourceVerbs.ts";
@@ -38,6 +39,7 @@ export const inbox = storyKit({
 	name: "webhook inbox",
 	stages: ["host", "inbox"],
 	verbs: (state, story) => ({
+		...privacyVerbs(state),
 		...raceVerbs(state, story.tell),
 		...resourceVerbs(state, story.tell),
 		answer: () => Effect.sync(() => state.answers.at(-1) ?? "no answer yet"),
@@ -67,6 +69,8 @@ export const inbox = storyKit({
 			}),
 	}),
 });
+
+export const telemetryCollector = inbox.trait("host", "an OTLP collector receives exported host telemetry", collectTelemetry);
 
 export function delivered(delivery: Delivery) {
 	return inbox.trait("inbox", `github has already sent ${delivery}`, (state) => deliver(state, delivery));

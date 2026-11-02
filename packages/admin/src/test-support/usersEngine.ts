@@ -6,10 +6,11 @@ import { SqlClient } from "effect/sql";
 import { LiveServer } from "@shivaedev/contract/LiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
-import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/tables.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
+import type { AuthTableOptions } from "@shivaedev/identity/server/better-auth/adapters/tables.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { UsersPermission } from "#permissions.ts";
 import { usersHandlers } from "#server/usersHandlers.ts";
@@ -37,7 +38,7 @@ export const makeUsersEngine = Effect.fnUntraced(function* (mapping: AuthTableOp
 			additionalFields: { role: { ...mapping.user?.additionalFields?.role, defaultValue: "user", input: false, type: "string" as const } },
 		},
 	};
-	const { auth } = yield* betterAuthMount(authOptions);
+	const { auth } = yield* betterAuthMount(authOptions).pipe(Effect.provide(memoryStore));
 	const context = yield* Effect.promise(() => auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
 	function register(id: string, role: typeof Access.Role.Type, createdAt?: Date) {

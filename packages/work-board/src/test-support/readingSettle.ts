@@ -1,4 +1,4 @@
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, PubSub } from "effect";
 import { act } from "react";
 import { vi } from "vitest";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -31,10 +31,10 @@ export function followFrames(engine: ScreenEngine) {
 	pendingFrames.set(engine, pending);
 }
 
-function gateStarts(read: { readonly gate: Deferred.Deferred<void>; started: boolean }) {
+function gateStarts(engine: ScreenEngine, read: { readonly gate: Deferred.Deferred<void>; started: boolean }) {
 	return Effect.suspend(() => {
 		read.started = true;
-		return Deferred.await(read.gate);
+		return PubSub.publish(engine.transportEvents, undefined).pipe(Effect.andThen(Deferred.await(read.gate)));
 	});
 }
 
@@ -46,7 +46,7 @@ export const holdLaterRead = Effect.fn("ReadingSettle.holdLaterRead")(function* 
 	engine.options = {
 		...options,
 		beforeRead: (kind, requested) =>
-			(options?.beforeRead?.(kind, requested) ?? Effect.void).pipe(Effect.andThen(requested === url ? gateStarts(read) : Effect.void)),
+			(options?.beforeRead?.(kind, requested) ?? Effect.void).pipe(Effect.andThen(requested === url ? gateStarts(engine, read) : Effect.void)),
 	};
 	yield* Effect.addFinalizer(() =>
 		Effect.promise(() =>
@@ -71,10 +71,11 @@ function open(gate: Deferred.Deferred<void> | undefined) {
 }
 
 function held(engine: ScreenEngine) {
-	return (
-		engine.chunkResponse?.held === true
-		|| [engine.heldRead?.gate, engine.heldRefresh?.gate, engine.heldAnswerRefresh?.gate, engine.indexGate, engine.startupGate].some(open)
-	);
+	const location = engine.router?.state.location;
+	const current = location ? location.pathname + location.searchStr : engine.path;
+	const page = engine.heldRead?.url === current ? engine.heldRead.gate : undefined;
+	const refresh = engine.heldRefresh?.url === current ? engine.heldRefresh.gate : undefined;
+	return engine.chunkResponse?.held === true || [page, refresh, engine.heldAnswerRefresh?.gate, engine.indexGate, engine.startupGate].some(open);
 }
 
 function routeRendered(engine: ScreenEngine) {

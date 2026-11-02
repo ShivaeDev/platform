@@ -1,7 +1,9 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { containerReady } from "#test/containerReady.ts";
 import { type ConnectionEngine, createConnectionEngine } from "#test/createConnectionEngine.ts";
+import { environmentGate } from "#test/environmentGate.ts";
 import { attempt, recorded } from "#test/setupOutcome.ts";
 
 const containerChange = Effect.fn("Connections.containerChange")(function* ({ before, state }: ConnectionEngine) {
@@ -29,6 +31,7 @@ export const connections = storyKit({
 	inspect: ({ before, name, outcome }) => ({ before, name, outcome }),
 	layer: NodeServices.layer,
 	name: "shared PostgreSQL connections",
+	runIf: environmentGate("a local Docker daemon", "docker", ["--host=unix:///var/run/docker.sock", "info"]),
 	stages: ["container"],
 	verbs: (engine, story) => ({
 		container: () => containerChange(engine),
@@ -70,7 +73,7 @@ export function stockContainer({ allowing }: { readonly allowing?: number } = {}
 			if (allowing !== undefined) {
 				yield* engine.sql(`ALTER SYSTEM SET max_connections = ${allowing}`);
 				yield* engine.docker(["restart", engine.name]);
-				yield* engine.wait();
+				yield* containerReady(engine.name);
 			}
 		},
 	);

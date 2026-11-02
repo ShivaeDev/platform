@@ -34,6 +34,7 @@ export const HandoffsService = defineService({
 				if (
 					(record && data.model.ids.get(record.id)?.length !== 1)
 					|| (document.parsed.fields.handoff !== undefined && !record)
+					|| document.parsed.diagnostics.some((problem) => problem.field === "handoff")
 					|| (document.file.startsWith("handoffs/") && document.parsed.diagnostics.some((problem) => problem.field === undefined))
 				) {
 					unknown.push(document.file);

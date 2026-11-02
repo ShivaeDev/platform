@@ -76,13 +76,62 @@ const diff = Effect.gen(function* () {
 
 The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. These methods accept the same trailing byte limit: `read(path, byteLimit)`, `write(method, path, body, byteLimit)` and `list(path, beforeRequest, byteLimit)`; pass `undefined` for `beforeRequest` when no pacing callback is needed. Prefer the exported functions for Schema-decoded items. Each page representation exposes `hasNext`, which reports whether its Link header names a next page without fetching it. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
 
-Use `listBounded(path, itemSchema, pageCap, byteLimit?)` to collect a prefix within a positive page cap. It returns `{ items, truncated }`; `truncated` is true exactly when the last fetched page names a next page. It never requests or decodes a page beyond the cap, and uses the same pagination and per-page byte limits as `list`.
+Use `listBounded(path, itemSchema, pageCap, options?)` to collect a prefix within a positive page cap. It returns `{ items, skipped, truncated }`; `truncated` is true exactly when the last fetched page names a next page. It never requests or decodes a page beyond the cap, and uses the same pagination and per-page byte limits as `list`.
 
 ```ts
 import { listBounded } from "@shivaedev/github/GitHub.ts";
 
 const issues = listBounded("/repos/acme/widgets/issues", Issue, 2);
 ```
+
+### Enveloped lists and partial decoding
+
+`list`, `listPages` and `listBounded` accept either the existing numeric byte cap or a `ListOptions` object (from `@shivaedev/github/pagedLists.ts`) as their last argument. Set `arrayKey` to read an array inside an envelope, such as `check_runs` or `artifacts`. The options also accept `responseByteLimit` and the service's `beforeRequest` pacing callback. Item Schemas retain their decoding service requirements.
+
+```ts
+const checks = listBounded("/repos/acme/widgets/commits/main/check-runs", CheckRun, 2, {
+	arrayKey: "check_runs",
+	onDecodeError: "skip",
+	responseByteLimit: 2 * 1024 * 1024,
+});
+```
+
+Import `CheckRun` from `@shivaedev/github/checkRuns.ts`. Decoding fails at the first invalid item by default. With `onDecodeError: "skip"`, valid items keep their order and `skipped` counts rejected items across the fetched pages. Invalid JSON, a missing envelope key, a non-array value, HTTP failures and byte-limit failures still fail the read. A page containing only rejected items still follows its next Link. The page cap counts fetched pages, including empty pages, and never counts pages beyond the cap.
+
+`listPages(path, itemSchema, options?)` returns a Stream of `{ items, skipped, hasNext }` pages for consumers that need streaming counts. `list` flattens those pages into items. Both fetch only while consumed.
+
+### Daily repository reads
+
+The `GitHub` service includes Schema-decoded reads for common repository work:
+
+| Method                                                         | Result                                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `getIssue(owner, repo, number, byteLimit?)`                    | `Issue`                                                            |
+| `getUser(username, byteLimit?)`                                | `User`                                                             |
+| `getCollaboratorPermission(owner, repo, username, byteLimit?)` | `CollaboratorPermission`                                           |
+| `getCommit(owner, repo, ref, byteLimit?)`                      | `CommitDetail`, including stats and optional files                 |
+| `compareCommits(owner, repo, base, head, byteLimit?)`          | `Comparison`, including commits, optional files and `totalCommits` |
+| `getTree(owner, repo, ref, options?)`                          | `GitTree`, including GitHub's `truncated` flag                     |
+| `listIssues(owner, repo, options?)`                            | Effect containing a Stream of decoded issue pages                  |
+| `listPullRequestFiles(owner, repo, number, options?)`          | Effect containing a Stream of decoded file pages                   |
+| `listCommits(owner, repo, options?)`                           | Effect containing a Stream of decoded commit pages                 |
+
+The Schemas live in `@shivaedev/github/repositorySchemas.ts` and `@shivaedev/github/gitSchemas.ts`. Results use camelCase field names. Commit authors can be null, file patches can be absent for binary files, and renamed files expose `previousFilename`.
+
+```ts
+const review = Effect.gen(function* () {
+	const github = yield* GitHub;
+	const issue = yield* github.getIssue("acme", "widgets", 3);
+	const pages = yield* github.listPullRequestFiles("acme", "widgets", 3, { responseByteLimit: 2 * 1024 * 1024 });
+	const files = yield* pages.pipe(
+		Stream.flatMap((page) => Stream.fromIterable(page.items)),
+		Stream.runCollect,
+	);
+	return { issue, files };
+});
+```
+
+These reads share the client's authentication, conditional representations and body caps. List options accept `query` for GitHub filters such as issue `state` or commit `sha`, along with the decoding and pacing options above. Lists request `per_page=100` unless overridden in `query`. Tree options accept `recursive` and `responseByteLimit`. Refs containing slashes are encoded as path segments. Compare and single-commit reads return one GitHub response; use `totalCommits` and GitHub's endpoint limits when choosing whether the response is sufficient for your application.
 
 ### Acting as a GitHub App
 
@@ -134,6 +183,24 @@ const bothInstallations = Effect.all([withInstallation(7, repositories), withIns
 Provide `app(privateKey)` once around `bothInstallations` or the application. Each installation has its own full-access token, conditional representations and rate-limit state. A 401 refreshes only that installation's rejected token; a rate limit blocks only that installation's resource. Existing scoped single-installation Layers remain available for access checks.
 
 The shared cache holds at most 100 installation clients and evicts the least recently used client when full. Selecting a client renews its 30-minute idle lifetime; a client idle for that interval is replaced on its next selection. Expiry is lazy, with no background timer. Eviction discards the client's token and request state, and its next request exchanges a new token. Keep operations inside `withInstallation` so each selection uses the cache's current client.
+
+### Repositories visible to an account
+
+Pass the GitHub account from your application's session to `GitHubApp.viewerRepositories(account)`. A number is a GitHub account ID; a string is a login. Provide the same `githubApp(credentials)` Layer as above. The package has no dependency on your session or identity service.
+
+```ts
+import { Effect } from "effect";
+import { GitHubApp } from "@shivaedev/github/installationClients.ts";
+
+const access = Effect.gen(function* () {
+	const app = yield* GitHubApp;
+	return yield* app.viewerRepositories(12345);
+});
+```
+
+The result contains `readable` and `administrable` arrays. Each entry has `id`, `name`, `owner.login`, `htmlUrl`, `private` and `installationId`. Only repositories installed for this App are included, across all installation and repository pages. Public repositories are readable even without a collaborator grant. Private repositories require GitHub's `read`, `triage`, `write`, `maintain` or `admin` permission; only `admin` grants administration. A permission lookup returning 404 means no collaborator grant. Other lookup failures fail the operation instead of returning partial access. The App needs repository Metadata read permission for these lookups.
+
+Successful results are cached for 60 seconds, across at most 100 account keys, evicting the least recently used key when full. Login casing shares a key. Reads do not extend the lifetime. After expiry, the next call revalidates installation lists, repository lists and permissions, so revoked access, changed roles and removed repositories remain cached for at most that interval. Failed lookups are immediately eligible for another attempt. These are cached observations of GitHub access; the application chooses its authorization policy.
 
 `scope` accepts `repositoryIds` or `repositories` (repository names), and a `permissions` record of GitHub permission names to `"read"`, `"write"` or `"admin"`. Omit `scope` for the installation's full access. Explicit `{ permissions: { metadata: "read" } }` requests a metadata-only token for access checks. GitHub decides whether the requested scope is allowed.
 

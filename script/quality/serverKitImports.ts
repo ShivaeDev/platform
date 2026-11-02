@@ -6,7 +6,7 @@ import { defineRule } from "@shivaedev/quality/rule.ts";
 export const serverKitImports = defineRule({
 	check: (inputs) =>
 		Effect.gen(function* () {
-			const graph = yield* Effect.promise(() => importGraph(inputs));
+			const graph = yield* importGraph(inputs);
 			const edges = outgoing(graph.edges);
 			return graph.modules
 				.filter((path) => path.startsWith("packages/server/src/test-support/"))

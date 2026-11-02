@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import { bucket } from "@shivaedev/changes/buckets.ts";
+import { makeCapture } from "@shivaedev/changes/capture.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { makeRepository } from "#repository.ts";
 import { ChangeObserver } from "#transact.ts";
@@ -30,22 +31,11 @@ export const counterEngine = Effect.fnUntraced(function* () {
 		tableName,
 	});
 	const returned: unknown[] = [];
-	return { published: new Set<string>(), returned, rows, tableName };
+	return { capture: yield* makeCapture<unknown>(), returned, rows, tableName };
 });
 
 export type CounterEngine = Effect.Success<ReturnType<typeof counterEngine>>;
 
 export function observed<A, E, R>(engine: CounterEngine, effect: Effect.Effect<A, E, R>) {
-	return Effect.flatMap(ChangeObserver, (observer) =>
-		effect.pipe(
-			Effect.provideService(ChangeObserver, (event) => {
-				if (event._tag === "Published") {
-					for (const key of event.changes) {
-						engine.published.add(String(key).replaceAll(engine.tableName, "counters"));
-					}
-				}
-				return observer(event);
-			}),
-		),
-	);
+	return Effect.provide(effect, engine.capture.layer(ChangeObserver));
 }

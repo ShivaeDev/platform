@@ -59,7 +59,10 @@ export const acquisition = storyKit({
 	runIf: configured,
 	stages: [],
 	verbs: (engine, story) => ({
-		callerIsWaiting: engine.pending,
+		callerIsWaiting: () => {
+			story.tell("the story checks whether the caller is still waiting");
+			return engine.pending();
+		},
 		interruptCaller: () => {
 			story.tell("the caller is interrupted while the only PostgreSQL connection stays reserved");
 			return engine.interrupt();

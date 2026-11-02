@@ -1,18 +1,18 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpServerRespondable, HttpStaticServer } from "effect/http";
 import { adminDocuments } from "@shivaedev/admin/server/adminDocuments.ts";
+import { trustedOrigins } from "@shivaedev/identity/server/adapters/trustedOrigins.ts";
 import { accountRoleSeed } from "@shivaedev/identity/server/better-auth/accountRoleSeed.ts";
 import { betterAuthDatabase } from "@shivaedev/identity/server/better-auth/adapters/database.ts";
+import { betterAuthMount } from "@shivaedev/identity/server/better-auth/adapters/mount.ts";
 import { ProviderAccounts } from "@shivaedev/identity/server/better-auth/allowedAccounts.ts";
-import { betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
+import { memoryStore } from "@shivaedev/rate-limit/memoryStore.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { Owner } from "#roles/Owner.ts";
 import { User } from "#roles/User.ts";
-import { AuthEmailQueue } from "#server/AuthEmailQueue.ts";
 import { readyAuth } from "#server/adapters/readyAuth.ts";
 import { authEmailRoutes } from "#server/authEmailRoutes.ts";
 import { authEmails } from "#server/authEmails.ts";
@@ -25,10 +25,10 @@ import type { PoolSizes } from "./PoolSizes.ts";
 
 const ownerSeed = accountRoleSeed(AppAccess, Owner.name, Config.schema(ProviderAccounts, "AUTH_OWNER_ACCOUNTS").pipe(Config.withDefault([])));
 
-function adminDocumentRoutes() {
+function adminDocumentRoutes(admin: Parameters<typeof adminDocuments>[0]) {
 	return Layer.unwrap(
 		Effect.map(HttpStaticServer.make({ root: "dist", spa: true }), (spa) =>
-			adminDocuments(serverModules.admin, () => spa.pipe(Effect.catch(HttpServerRespondable.toResponse))),
+			adminDocuments(admin, () => spa.pipe(Effect.catch(HttpServerRespondable.toResponse))),
 		),
 	);
 }
@@ -45,9 +45,10 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const publicOrigin = yield* Config.URL("PUBLIC_URL").pipe(Config.option, Effect.map(Option.map((url) => url.origin)));
 			const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
-			const database = databaseOptions(databaseUrl, "check", config?.poolSizes?.sql);
 			const replacements = config?.replacements ?? Layer.empty;
-			const producers = Layer.merge(serverModules.services, AuthEmailQueue.producerLayer);
+			const modules = yield* serverModules(replacements);
+			const database = databaseOptions(databaseUrl, modules.migrations, "check", config?.poolSizes?.sql);
+			const producers = modules.services;
 			const services = producers
 				.pipe(Layer.provide(jobsLayer(databaseUrl, config?.poolSizes?.jobs)))
 				.pipe(Layer.provideMerge(Layer.merge(JobsClientFactory.layer, replacements)), Layer.merge(replacements));
@@ -68,7 +69,6 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 							roles: AppAccess,
 						},
 					).pipe(Effect.tap(({ auth }) => readyAuth(auth)));
-					const modules = serverModules;
 					const sessions = {
 						...authSessions,
 						origin: trustedOrigins({
@@ -83,12 +83,12 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 						config: { ...database.config, ...(config?.port === undefined ? {} : { port: config.port }) },
 						group: modules.group,
 						handlers: Layer.merge(modules.handlers, authenticatedUserLayer()),
-						routes: Layer.mergeAll(routes, authEmailRoutes, HttpStaticServer.layer({ root: "dist", spa: true }), adminDocumentRoutes()),
+						routes: Layer.mergeAll(routes, authEmailRoutes, HttpStaticServer.layer({ root: "dist", spa: true }), adminDocumentRoutes(modules.admin)),
 						services: Layer.succeedContext(serviceContext),
 						sessions: Layer.succeed(SessionPolicy, sessions),
 					};
 				}),
-			});
+			}).pipe(Layer.provide(memoryStore));
 		}),
 	);
 }

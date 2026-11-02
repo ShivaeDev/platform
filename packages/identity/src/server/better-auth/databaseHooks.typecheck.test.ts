@@ -1,7 +1,8 @@
 import { Context, Effect, type Scope } from "effect";
 import { expectTypeOf } from "vitest";
+import type { Store } from "@shivaedev/rate-limit/Store.ts";
+import { betterAuthMount } from "#server/better-auth/adapters/mount.ts";
 import type { BetterAuthDatabaseHooks } from "./databaseHooks.ts";
-import { betterAuthMount } from "./mount.ts";
 
 class Application extends Context.Service<Application, { readonly admits: (id: string) => boolean }>()("identity/typecheck/Application") {}
 
@@ -21,14 +22,14 @@ const mounted = betterAuthMount(
 	},
 );
 
-expectTypeOf<Effect.Services<typeof mounted>>().toEqualTypeOf<Application | Scope.Scope>();
+expectTypeOf<Effect.Services<typeof mounted>>().toEqualTypeOf<Application | Scope.Scope | Store>();
 
 const resetMount = betterAuthMount(
 	{ secret: "typecheck-only-secret-at-least-32-characters" },
 	{ onPasswordReset: ({ user }) => Effect.flatMap(Application, (app) => Effect.sync(() => void app.admits(user.id))) },
 );
 
-expectTypeOf<Effect.Services<typeof resetMount>>().toEqualTypeOf<Application | Scope.Scope>();
+expectTypeOf<Effect.Services<typeof resetMount>>().toEqualTypeOf<Application | Scope.Scope | Store>();
 
 const invalidFailure: BetterAuthDatabaseHooks = {
 	user: {

@@ -30,7 +30,7 @@ The work has three parts: connect the repository to the shared tools once; descr
 
 ### Rule lifecycle
 
-`defineRule` accepts synchronous, Promise and Effect checks. Promise checks receive an abort signal as `context.signal`; pass it to cancellable APIs. Effect checks compose filesystem and child-process work in the run's scope. An optional `validate(context)` callback returns inventory-dependent configuration issues before `check`; those issues stop the run as invalid configuration. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
+`defineRule` accepts synchronous, Promise and Effect checks. Its callbacks use the schema's decoded option type, while `configure` and config settings use its input type. Use `RegisteredRule` for a list of rules with different option types; each rule keeps its strict callback types. The adapter validates unknown registry input and bridges checks to Effects. Promise checks receive an abort signal as `context.signal`; pass it to cancellable APIs. Effect checks compose filesystem and child-process work in the run's scope. An optional `validate(context)` callback returns inventory-dependent configuration issues before `check`; those issues stop the run as invalid configuration. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
 
 Interrupting a run stops pending manifest reads and its Biome and knip processes and removes their scoped temporary configs before it ends. Expected filesystem failures in rules become findings that name the affected file. A rule crash is a defect; the CLI prints the rule id and original stack. Expected setup failures retain their underlying cause without including it in enumerable error data.
 
@@ -388,18 +388,18 @@ function List({ items }) {
 
 Import names from their defining module; there is no root entry. The package's `./*.ts` export pattern also exposes the gate's implementation modules; the following table lists the config, tool and extension entry points:
 
-| Module                        | Exports                                                                                              |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `config.ts`                   | `defineConfig`, `QualityConfig`, `Level` (`"error"`), `RuleSetting`, `RuleSettings`, `BuiltInRules`  |
-| `rule.ts`                     | `defineRule`, `Rule`, `Configured`, `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext` |
-| `standardSchema.ts`           | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue`                               |
-| `imports/fence.ts`            | `fence`                                                                                              |
-| `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external`    |
-| `imports/fences/model.ts`     | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External`         |
-| `adapters/testProjects.ts`    | `testProjects`, `TestProjectsOptions`                                                                |
-| `appViteConfig.ts`            | `appViteConfig`                                                                                      |
-| `appTestConfig.ts`            | `appTestConfig`                                                                                      |
-| `naming/testName.ts`          | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName`                 |
+| Module                        | Exports                                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `config.ts`                   | `defineConfig`, `QualityConfig`, `Level` (`"error"`), `RuleSetting`, `RuleSettings`, `BuiltInRules`                    |
+| `rule.ts`                     | `defineRule`, `Rule`, `RegisteredRule`, `Configured`, `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext` |
+| `adapters/standardSchema.ts`  | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue`                                                 |
+| `imports/fence.ts`            | `fence`                                                                                                                |
+| `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external`                      |
+| `imports/fences/model.ts`     | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External`                           |
+| `adapters/testProjects.ts`    | `testProjects`, `TestProjectsOptions`                                                                                  |
+| `appViteConfig.ts`            | `appViteConfig`                                                                                                        |
+| `appTestConfig.ts`            | `appTestConfig`                                                                                                        |
+| `naming/testName.ts`          | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName`                                   |
 
 #### Config
 

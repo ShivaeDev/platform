@@ -1,21 +1,10 @@
-import { Layer } from "effect";
-import { RpcGroup } from "effect/rpc";
-import { mergeAdminRegistrations } from "@shivaedev/admin/server/mergeAdminRegistrations.ts";
-import type { QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
+import type { Layer } from "effect";
+import { appModules } from "@shivaedev/server/appModules.ts";
 import { notesRegistration } from "#modules/notes/server/registration.ts";
-import { foundationRegistration } from "#server/admin/foundationRegistration.ts";
+import { serverRegistration } from "#server/registration.ts";
 
-const features = [notesRegistration] as const;
-const modules = [
-	foundationRegistration(features.flatMap((module: { readonly queues: readonly QueueDefinition[] }) => module.queues)),
-	...features,
-] as const;
-const admin = mergeAdminRegistrations(...modules);
+const modules = [serverRegistration(), notesRegistration] as const;
 
-export const serverModules = {
-	admin,
-	group: RpcGroup.make().merge(...modules.map((module) => module.group)),
-	handlers: admin.handlers,
-	migrations: modules.map((module) => module.migrations),
-	services: Layer.mergeAll(Layer.empty, ...modules.map((module) => module.services)),
-};
+export function serverModules<R = never, E = never, TRequirements = never>(replacements: Layer.Layer<R, E, TRequirements>) {
+	return appModules(modules, { replacements });
+}

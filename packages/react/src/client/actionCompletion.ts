@@ -2,7 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { useContext, useInsertionEffect, useMemo, useRef } from "react";
-import type { AtomServices } from "#fieldRejection.ts";
+import type { AtomServices } from "#AtomServices.ts";
 import { NoticeContext } from "#internal/NoticeContext.ts";
 import { publishNotice } from "#internal/noticeStore.ts";
 import { requestsRecheck } from "#internal/sessionRecheck.ts";

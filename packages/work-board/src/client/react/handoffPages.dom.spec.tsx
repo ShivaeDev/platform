@@ -81,3 +81,18 @@ screenStory.it(
 		]);
 	},
 );
+
+screenStory.it(
+	"the handoff history warns about an invalid handoff field and shows its file path",
+	[
+		routedScreen(
+			{ ...FOCUS_TASK, "handoffs/damaged.md": "---\nid: handoff.damaged\nhandoff: { item: task.focus }\n---\n# Reviewed direction\n" },
+			"/_board/handoff?item=task.focus",
+		),
+	],
+	function* ({ readText }) {
+		expect(yield* readText("#handoff-history [role='alert']")).toBe(
+			"Some handoff files couldn't be readhandoffs/damaged.md. There may be handoffs or receipts that aren't shown here.",
+		);
+	},
+);

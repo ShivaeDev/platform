@@ -1,10 +1,10 @@
-import { Cause, type Config, type Context, Effect, Layer, Predicate, type Redacted } from "effect";
+import { Cause, type Config, type Context, Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, type HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
-import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
+import { diagnosticError } from "#server/internal/diagnostics.ts";
 import { receive } from "#server/internal/receive.ts";
 import type { WebhookSource } from "#server/registration.ts";
 
@@ -26,14 +26,15 @@ function webhookBody(request: HttpServerRequest.HttpServerRequest) {
 
 function receiptFailure(error: unknown) {
 	const response = HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") });
-	const cause = redactDiagnosticCause(Cause.fail(error));
+	const diagnostic = diagnosticError(error);
+	const cause = Cause.fail(diagnostic);
 	const responseCause = Cause.map(cause, (failure) =>
 		Object.assign(new Error("Webhook receipt failed", { cause: failure }), {
 			[HttpServerRespondable.symbol]: () => Effect.succeed(response),
 		}),
 	);
 	return Effect.logError("Webhook receipt failed", cause).pipe(
-		Effect.annotateLogs({ errorTag: Predicate.hasProperty(error, "_tag") ? error._tag : "Unknown" }),
+		Effect.annotateLogs({ errorTag: diagnostic._tag }),
 		Effect.andThen(Effect.failCause(responseCause)),
 	);
 }

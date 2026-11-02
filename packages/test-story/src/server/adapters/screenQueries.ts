@@ -2,6 +2,7 @@ import { isInaccessible } from "dom-accessibility-api";
 import { accessibility, isRendered, targetName } from "#internal/screenAccessibility.ts";
 import { screenText } from "#internal/screenText.ts";
 import type { ScreenTarget } from "#screenDriver.ts";
+import { screenDialogs } from "./screenDialogs.ts";
 
 function matchesText(value: string, expected: string | RegExp) {
 	return typeof expected === "string" ? value === expected : new RegExp(expected.source, expected.flags).test(value);
@@ -11,10 +12,7 @@ export function screenQueries(root: () => HTMLElement, dialogs: boolean) {
 	function query(selector: string) {
 		const current = root();
 		const found = new Set(current.querySelectorAll<HTMLElement>(selector));
-		const portalRoot = current.closest("[data-story-member]") ?? current.ownerDocument;
-		const portals = dialogs
-			? [...portalRoot.querySelectorAll<HTMLElement>('dialog,[role="dialog"],[role="alertdialog"]')].filter((dialog) => !current.contains(dialog))
-			: [];
+		const portals = dialogs ? screenDialogs(current).filter((dialog) => !current.contains(dialog)) : [];
 		for (const dialog of portals) {
 			if (dialog.matches(selector)) {
 				found.add(dialog);
@@ -38,6 +36,35 @@ export function screenQueries(root: () => HTMLElement, dialogs: boolean) {
 		return candidates().filter(({ role, name }) => role === target.role && matchesText(name, target.name));
 	}
 	return {
+		dialogElement: (target: ScreenTarget) => {
+			const matches = screenDialogs(root()).filter((dialog) => {
+				if (!isRendered(dialog) || isInaccessible(dialog)) {
+					return false;
+				}
+				if (typeof target === "string") {
+					return dialog.matches(target);
+				}
+				const { name, role } = accessibility(dialog);
+				return role === target.role && matchesText(name, target.name);
+			});
+			const found = matches[0];
+			if (matches.length !== 1 || found === undefined) {
+				throw new Error(
+					`The screen has ${matches.length} dialogs for ${targetName(target)}.\nhelp: Identify exactly one visible dialog owned by this screen; link body portals from the member's trigger with aria-controls.`,
+				);
+			}
+			return found;
+		},
+		labelledElement: (name: string | RegExp) => {
+			const matches = query("[aria-label],[aria-labelledby],button,input,textarea,select,output,meter,progress").filter(
+				(element) => isRendered(element) && !isInaccessible(element) && matchesText(accessibility(element).name, name),
+			);
+			const found = matches[0];
+			if (matches.length !== 1 || found === undefined) {
+				throw new Error(`The screen has ${matches.length} elements labelled ${String(name)}.\nhelp: Use a label for exactly one visible readout.`);
+			}
+			return found;
+		},
 		matches: (target: ScreenTarget) =>
 			(typeof target === "string" ? query(target).filter(isRendered) : roles(target).map(({ element }) => element)).filter(
 				(element) => element.isConnected,
