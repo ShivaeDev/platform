@@ -110,9 +110,13 @@ function own(key: Key): string {
 }
 
 export function readKeys(keys: readonly Key[], context?: KeyContext): readonly string[] {
-	return [...new Set(keys.flatMap((key) => (key._tag === "Item" ? [own(key), `${key.collection}:*`] : [own(key)])))].map((key) =>
+	return [...new Set(keys.flatMap((key) => (key._tag === "List" ? [own(key)] : [own(key), `${key.collection}:*`])))].map((key) =>
 		contextual(key, context),
 	);
+}
+
+export function collectionInvalidationKeys(name: string, context?: KeyContext): readonly string[] {
+	return [name, `${name}:*`].map((key) => contextual(key, context));
 }
 
 export function invalidationKeys(keys: readonly Key[], context?: KeyContext): readonly string[] {
