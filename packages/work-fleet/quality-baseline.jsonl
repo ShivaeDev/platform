@@ -198,7 +198,6 @@
 {"path":"packages/work-fleet/src/host/appendSupervisorLog.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-fleet/src/host/continuationMessage.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-fleet/src/host/dispatchRequests.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/work-fleet/src/host/followCommands.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/work-fleet/src/host/localOnlyBoardPath.ts","rule":"effect/adapter-imports","count":2}
 {"path":"packages/work-fleet/src/host/reportAttachmentFiles.ts","rule":"effect/adapter-imports","count":3}
 {"path":"packages/work-fleet/src/host/reportFileChanges.ts","rule":"effect/adapter-imports","count":1}

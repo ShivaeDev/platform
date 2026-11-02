@@ -13,13 +13,22 @@ import { checkDocumentation, readDocumentation } from "#starter-published/docume
 import { installDocumentation } from "#starter-published/installDocumentation.ts";
 
 const { values } = parseArgs({
-	options: { archives: { type: "string" }, "create-app-version": { type: "string" }, registry: { default: false, type: "boolean" } },
+	options: {
+		archives: { type: "string" },
+		"create-app-version": { type: "string" },
+		registry: { default: false, type: "boolean" },
+		variant: { type: "string" },
+	},
 });
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const program = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;
 	yield* requireThat(!values.registry || values.archives === undefined, "Registry mode cannot use workspace archives.");
 	yield* requireThat(values.registry || values["create-app-version"] === undefined, "A create-app version requires registry mode.");
+	yield* requireThat(
+		values.variant === undefined || values.variant === "full" || values.variant === "minimal",
+		"The starter variant must be full or minimal.",
+	);
 	const temporary = yield* fs.makeTempDirectoryScoped({ prefix: "platform-published-" });
 	const repository = dirname((yield* command(root, "git", ["rev-parse", "--path-format=absolute", "--git-common-dir"])).trim());
 	for (const workspace of [root, repository]) {
@@ -53,7 +62,8 @@ const program = Effect.gen(function* () {
 		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_SQL_TEST_DATABASE_URL)),
 	);
 	const registryVersion = values.registry ? (values["create-app-version"] ?? "latest") : undefined;
-	yield* checkStarters(root, temporary, tarballs, database, registryVersion);
+	const variants = values.variant === undefined ? [false, true] : [values.variant === "minimal"];
+	yield* checkStarters(root, temporary, tarballs, database, registryVersion, variants);
 	yield* Effect.log("Published starter passed quality lint, typecheck, build and real PostgreSQL/authenticated HTTP round trips.");
 });
 
