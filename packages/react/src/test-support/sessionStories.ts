@@ -7,7 +7,7 @@ import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { hasPostgres, orderDatabase } from "#test/order-example/postgres.ts";
 import { startHost } from "#test/order-example/startHost.ts";
-import { clickButton, type Screen, typeInput } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { type Session, sessions, shell } from "./session.tsx";
 
@@ -61,7 +61,7 @@ function sessionVerbs(state: State, screen: Screen) {
 				return registry.getNodes().size;
 			}),
 		rechecks: () => Effect.sync(() => [...opened(state).rechecks]),
-		refresh: () => screen.act("refresh the order", () => clickButton(opened(state).container, "Refresh")).pipe(Effect.andThen(settle())),
+		refresh: () => screen.driver(opened(state).container).click({ name: "Refresh", role: "button" }).pipe(Effect.andThen(settle())),
 		screenText: () => Effect.sync(() => opened(state).container.textContent),
 		sessionExpires: (user: User) =>
 			Effect.sync(() => {
@@ -88,7 +88,7 @@ function sessionVerbs(state: State, screen: Screen) {
 			return show(`${user} signs in as session ${id}`, { id, token: `${user}-token` }, orders[user]);
 		},
 		signOut: () => show("sign out", undefined, state.current?.order ?? orders.alice),
-		type: (value: string) => screen.act(`type the order name ${value}`, () => typeInput(opened(state).container, "name", value)),
+		type: (value: string) => screen.driver(opened(state).container).enter('input[name="name"]', value),
 	};
 }
 

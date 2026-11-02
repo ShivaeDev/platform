@@ -41,7 +41,8 @@ function dialog() {
 }
 
 export function todayAnswerVerbs(engine: ScreenEngine, tell: (line: string) => void) {
-	const { accessible } = screenDriver({ root: () => document.body, tell: () => undefined });
+	const driver = screenDriver({ act, root: () => document.documentElement, tell });
+	const { accessible } = driver;
 	function settle() {
 		return screenSettles(engine, tell);
 	}
@@ -77,10 +78,7 @@ export function todayAnswerVerbs(engine: ScreenEngine, tell: (line: string) => v
 		answerOnToday: (title: string) =>
 			perform(`the reader presses Answer beside ${title} on Today`, () => named(document, "button", `Answer ${title}`).click()),
 		chooseOnToday: (option: string) => perform(`the reader chooses ${option} in the Today answer`, () => named(dialog(), "button", option).click()),
-		closeTodayAnswer: () =>
-			perform("the reader presses Escape to close the Today answer", () =>
-				(document.activeElement ?? document).dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" })),
-			),
+		closeTodayAnswer: () => driver.pressKey(":focus", "Escape").pipe(Effect.andThen(settle()), Effect.andThen(nextFrame())),
 		expandTodayContext: () =>
 			perform("the reader expands the question's context in the Today answer", () =>
 				required(dialog().querySelector<HTMLElement>("[data-slot='collapsible-trigger']"), "context toggle").click(),

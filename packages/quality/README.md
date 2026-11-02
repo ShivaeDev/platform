@@ -60,6 +60,10 @@ Move the integration into an `adapters/` folder and expose Effect values to the 
 
 The rule refuses config exceptions and inline suppressions. For existing debt, run `quality baseline write --first-adoption --rule effect/adapter-imports`; baseline shards keep one entry per file with its finding count. Run `quality baseline tighten` after moving integrations.
 
+### Shared error classes
+
+`effect/shared-error-classes` reports a tagged error class that reuses a tag exported by `@shivaedev/errors`. Import the shared class from the module named in the finding instead. The rule reads exported class types, including source and declaration exports, and compares literal `_tag` values rather than class names. It uses the repository's installed errors package, or Quality's dependency when the repository does not yet depend on errors. It checks adapters and tests too. Subclasses retaining a shared tag are separate classes and are reported; shared declarations and imports, distinct tags and non-error classes are accepted.
+
 ### Failure honesty
 
 `effect/failure-honesty` checks TypeScript and JavaScript throughout the inventory, including adapters and tests. It reports four failure-hiding shapes:
@@ -520,13 +524,15 @@ export default defineConfig({ test: testProjects() });
 
 `testProjects` selects three projects by default: `unit` runs ordinary Node tests and specs, `pure` runs `.unit.test` and `.unit.spec` files in Node, and `dom` runs `.dom` tests and specs in test-story's DOM environment. The `pure` project always installs an I/O guard: calls to Node's `fs` (including `fs/promises`), `net`, `http`, `https`, `child_process` and `worker_threads` modules and global `fetch` throw an error naming the unit file and call. The guard also patches ESM named imports while preserving Node and Vitest module loading. Keep unit tests pure; test I/O through the package's story kit. Use `--project pure` to run only unit files, or `--project unit` for ordinary Node files. The DOM environment keeps Node's host constructors separate from the happy-dom window, so DOM specs need no project remap. Each test gets 30 seconds instead of Vitest's 5, because tests that start servers, browsers or CLIs take seconds on a busy CI runner. `.slow` tests run only when `--project slow` asks for them. Type tests are excluded from Vitest and belong in the compiler's input. Every project excludes `**/.worktrees/**` so a checkout does not collect specs from its worktrees.
 
-Worker concurrency comes from a configured PostgreSQL connection budget, independent of CPU count: `max(1, floor(connectionBudget / connectionsPerWorker))`. The defaults are 80 usable connections and 14 connections per worker, giving five workers. The budget leaves room on a typical 100-connection server for administration and other clients; the estimate allows for full-app tests with several pools. Set the budget from your server's `SHOW max_connections`, subtracting connections reserved for other clients and concurrent test processes. Quality does not query the server. If even one worker exceeds the budget, it still runs one worker; reduce that test's pool sizes or increase the server capacity.
+`appTestConfig` passes `connectionBudget`, `connectionsPerWorker` and `maxWorkers` to `testProjects`. Worker concurrency comes from a configured PostgreSQL connection budget, independent of CPU count: `max(1, floor(connectionBudget / connectionsPerWorker))`. The defaults are 80 usable connections and 14 connections per worker, giving five workers. The budget leaves room on a typical 100-connection server for administration and other clients; the estimate allows for full-app tests with several pools. Set the budget from your server's `SHOW max_connections`, subtracting connections reserved for other clients and concurrent test processes. Quality does not query the server. If even one worker exceeds the budget, it still runs one worker; reduce that test's pool sizes or increase the server capacity.
 
 Set the per-worker estimate to the peak connections held by one test worker, and supply your usable budget or an explicit worker override:
 
 ```ts
 testProjects({ connectionBudget: 84, connectionsPerWorker: 14 });
 testProjects({ maxWorkers: 4 });
+appTestConfig([], { connectionBudget: 84, connectionsPerWorker: 14 });
+appTestConfig([], { maxWorkers: 4 });
 ```
 
 The first configuration allows six workers, including on a two-CPU runner. `maxWorkers` takes precedence over the connection calculation. Counts and estimates must be positive safe integers. Vitest's native `--maxWorkers` CLI option can also override the returned configuration for a single run.

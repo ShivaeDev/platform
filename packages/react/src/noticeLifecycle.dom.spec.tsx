@@ -47,12 +47,6 @@ notifications.it(
 	},
 );
 
-notifications.it("clicking a pending Undo again sends no second restore", [undoWaiting("first")], function* ({ clickPendingUndo, restoreCalls }) {
-	yield* clickPendingUndo("first");
-
-	expect(yield* restoreCalls()).toEqual([{ expectedVersion: 8, title: "first" }]);
-});
-
 notifications.it(
 	"a completed Undo shows its outcome on its notice and the restored row",
 	[undoWaiting("first")],

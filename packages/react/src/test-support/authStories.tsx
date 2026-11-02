@@ -8,7 +8,6 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AuthFailure, authAction, authCall } from "#client/authAction.ts";
 import { AuthActionControl, AuthFormControl } from "./authControls.tsx";
-import { clickButton, submitForm } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 
 type Attempt = "wrong password" | "rate limited" | "unknown code" | "missing code" | "offline" | "success" | "invalid email";
@@ -59,9 +58,9 @@ export const authStories = storyKit(
 				screen.act("submit the sign-in attempt", async () => {
 					const { view, submit, mode } = current(state);
 					if (mode === "atom") {
-						clickButton(view.container, "Sign in");
+						await Effect.runPromise(screen.driver(view.container).click({ name: "Sign in", role: "button" }));
 					} else {
-						submitForm(view.container);
+						await Effect.runPromise(screen.driver(view.container).submit());
 					}
 					await Effect.runPromise(AtomRegistry.getResult(view.registry, submit, { suspendOnWaiting: true }).pipe(Effect.result));
 				}),

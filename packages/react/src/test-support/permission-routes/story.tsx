@@ -3,7 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { isForbidden, isServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { clickButton, type Screen, screenWarnings } from "#test/Screen.ts";
+import { type Screen, screenWarnings } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { settleScreen } from "#test/settleScreen.ts";
 import { permissionApp } from "./app.tsx";
@@ -67,9 +67,10 @@ function expectedFailure(state: State, path: string) {
 
 function routeVerbs(state: State, screen: Screen) {
 	function clickAndNavigate(label: string, line: string) {
+		screen.tell(line);
 		return Effect.gen(function* () {
 			const navigation = navigated(state);
-			yield* screen.act(line, () => clickButton(current(state).view.container, label));
+			yield* screen.driver(current(state).view.container).click({ name: label, role: "button" });
 			yield* screen.act("the navigation resolves", () => navigation);
 			yield* settle(state, screen);
 		});

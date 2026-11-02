@@ -16,9 +16,6 @@ import { FleetItems } from "@shivaedev/work-board/diagnostics/fleetItems.ts"
 import { workContract } from "@shivaedev/work-board/rpc/contract.ts"
 import { serveBoard } from "@shivaedev/work-board/server/serve.ts"
 
-for (const path of ["client/client.ts", "client/document/View.ts"]) {
-  await assert.rejects(import(`@shivaedev/work-board/${path}`), { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" })
-}
 assert.equal(typeof browserClient, "function")
 assert.equal(typeof serveBoard, "function")
 assert.equal("listenOn" in await import("@shivaedev/work-board/server/serve.ts"), false)

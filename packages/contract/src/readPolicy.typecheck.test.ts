@@ -1,20 +1,23 @@
 import { Context, Effect, type Layer, Option, Schema, type Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { contract } from "#contract.ts";
 import type { LiveServer } from "#LiveServer.ts";
 import type { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
-import { querySubscription } from "#querySubscription.ts";
+import { type QueryRerun, querySubscription } from "#querySubscription.ts";
+import type { QueryUpdate, SubscriptionHint } from "#queryUpdate.ts";
 import { authorizeReads, type QueryReadPolicy } from "#readPolicy.ts";
 import type { MissingReadPolicies, MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { validateReadPolicies } from "#validateReadPolicies.ts";
 import type { WebSocketRequired } from "#WebSocketRequired.ts";
 
 class Database extends Context.Service<Database, boolean>()("test/PolicyDatabase") {}
-class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", {}) {}
 const policy: QueryReadPolicy<void, ServiceUnavailable, Database> = () =>
-	Effect.flatMap(Database, (available) => (available ? Effect.succeed(true) : Effect.fail(new ServiceUnavailable())));
+	Effect.flatMap(Database, (available) =>
+		available ? Effect.succeed(true) : Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })),
+	);
 const Read = query("read", { readPolicy: policy, reads: () => [], rejections: { ServiceUnavailable } });
 const Reads = contract("reads", { queries: [Read] });
 const handlers = Reads.application.toLayer({ "reads.read": () => Effect.void });
@@ -46,11 +49,28 @@ const pushed = live.subscribe(subscription, undefined, () => Effect.asVoid(Datab
 expectTypeOf<Stream.Services<typeof pushed>>().toEqualTypeOf<Database>();
 expectTypeOf<Stream.Error<typeof pushed>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired>();
 declare const sharedLive: Context.Service.Shape<typeof LiveServer>;
+const sharedHints = sharedLive.subscribe(subscription);
+expectTypeOf(sharedHints).toEqualTypeOf<
+	Effect.Effect<Stream.Stream<SubscriptionHint, ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired, Database>>
+>();
+expectTypeOf(sharedLive.subscribe(subscription, { scope: "viewer" }, undefined)).toEqualTypeOf<typeof sharedHints>();
 const sharedPushed = sharedLive.subscribe(subscription, undefined, () => Effect.asVoid(Database));
+const explicitPushed = sharedLive.subscribe<Effect.Error<typeof pending>, Database, QueryRerun<ServiceUnavailable, Database>>(
+	subscription,
+	undefined,
+	() => Effect.asVoid(Database),
+);
+expectTypeOf(explicitPushed).toEqualTypeOf<typeof sharedPushed>();
+expectTypeOf<Stream.Success<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<QueryUpdate>();
 expectTypeOf<Effect.Services<typeof sharedPushed>>().toEqualTypeOf<never>();
 expectTypeOf<Stream.Services<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<Database>();
 expectTypeOf<Stream.Error<Effect.Success<typeof sharedPushed>>>().toEqualTypeOf<
 	ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired
+>();
+declare const optionalRerun: QueryRerun<ServiceUnavailable, Database> | undefined;
+const optionalPushed = sharedLive.subscribe(subscription, undefined, optionalRerun);
+expectTypeOf(optionalPushed).toEqualTypeOf<
+	Effect.Effect<Stream.Stream<QueryUpdate, ServiceUnavailable | QueryReadDenied | MissingReadPolicy | WebSocketRequired, Database>>
 >();
 expectTypeOf<Rpc.ExtractRequires<PushedChanges, "pushed.$changes">>().toEqualTypeOf<Database>();
 
@@ -67,11 +87,17 @@ const Derived = query("derived", {
 	serverReads: ({ scope }, viewer) => {
 		expectTypeOf(scope).toEqualTypeOf<string>();
 		expectTypeOf(viewer).toEqualTypeOf<Option.Option<{ readonly id: string }>>();
-		return Effect.flatMap(Database, (available) => (available ? Effect.succeed([]) : Effect.fail(new ServiceUnavailable())));
+		return Effect.flatMap(Database, (available) =>
+			available ? Effect.succeed([]) : Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })),
+		);
 	},
 });
 const DerivedReads = contract("derivedReads", { queries: [Derived] });
 const derivedHandlers = DerivedReads.application.toLayer({ "derivedReads.derived": () => Effect.void });
 expectTypeOf<Layer.Services<typeof derivedHandlers>>().toEqualTypeOf<Database>();
-// @ts-expect-error Server read-key failures must be declared rejections.
-query("undeclaredKeys", { readPolicy: () => Effect.succeed(true), reads: () => [], serverReads: () => Effect.fail(new ServiceUnavailable()) });
+query("undeclaredKeys", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [],
+	// @ts-expect-error Server read-key failures must be declared rejections.
+	serverReads: () => Effect.fail(new ServiceUnavailable({ message: "Database unavailable" })),
+});

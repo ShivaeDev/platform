@@ -28,7 +28,7 @@ export const databaseCleanup = Effect.fn("PostgresTest.databaseCleanup")(functio
 	yield* Effect.addFinalizer(() => awaitCleanup);
 	const leftovers = yield* administer(url, (admin) => admin<{ datname: string }>`select datname from pg_database`, options);
 	for (const { datname } of leftovers) {
-		if (abandonedDatabase(datname)) {
+		if (yield* abandonedDatabase(datname)) {
 			yield* drop(datname);
 		}
 	}

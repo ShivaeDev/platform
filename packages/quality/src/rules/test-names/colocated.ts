@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { Schema } from "effect";
-import ignore from "ignore";
+import { ignorePatterns } from "#adapters/ignore.ts";
 import { GlobDeclarations, globPatterns, validateGlobs } from "#config/globs.ts";
 import { isTestCode, testName } from "#naming/testName.ts";
 import { defineRule, type Finding } from "#rule.ts";
@@ -32,7 +32,7 @@ function findingOf(path: string, sourceFolders: ReadonlySet<string>): readonly F
 
 export const testsColocated = defineRule({
 	check: ({ files, options }) => {
-		const suites = ignore().add([...globPatterns(options.suites)]);
+		const suites = ignorePatterns([...globPatterns(options.suites)]);
 		const sourceFolders = new Set(files.filter((path) => !isTestCode(path)).map((path) => posix.dirname(path)));
 		return files.filter((path) => !suites.ignores(path)).flatMap((path) => findingOf(path, sourceFolders));
 	},

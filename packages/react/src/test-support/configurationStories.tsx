@@ -4,7 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { ConfigurationView } from "./ConfigurationView.tsx";
 import { type ConfigurationProps, type Current, firstRuntime, Name, NormalizedName, secondRuntime } from "./configurationModel.ts";
 import { draftStorage } from "./draftStorage.ts";
-import { clickButton, type Screen, typeInput } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { settleScreen } from "./settleScreen.ts";
 
@@ -45,8 +45,8 @@ function configurationVerbs(state: State, screen: Screen) {
 				};
 				await view(state).render(<ConfigurationView {...state.props} />);
 			}),
-		save: () => screen.act("save the draft", () => clickButton(view(state).container, "Save")),
-		type: (value: string) => screen.act(`type ${JSON.stringify(value)}`, () => typeInput(view(state).container, "name", value)),
+		save: () => screen.driver(view(state).container).click({ name: "Save", role: "button" }),
+		type: (value: string) => screen.driver(view(state).container).enter('input[name="name"]', value),
 	};
 }
 
@@ -74,7 +74,7 @@ export const configurations = storyKit(
 			finishSave: () => screen.act("the save responds", () => state.props.completion.resolve()).pipe(Effect.andThen(settle(state, screen))),
 			form: () => Effect.sync(() => (state.props.held.current?.form === state.original ? "original form" : "replaced form")),
 			input: () => Effect.sync(() => view(state).container.querySelector("input")?.value),
-			revert: () => screen.act("revert the draft", () => clickButton(view(state).container, "Revert")),
+			revert: () => screen.driver(view(state).container).click({ name: "Revert", role: "button" }),
 			savedWith: () => Effect.sync(() => [...state.props.saved]),
 			storedDraft: (revision: "before" | "after") =>
 				Effect.sync(() => {

@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
@@ -38,10 +39,19 @@ function matched(imports: unknown, specifier: string): readonly string[] {
 	return targetsIn(best.value).map((target) => target.replaceAll("*", star));
 }
 
-export async function packageImports({ files, readText }: Pick<RuleInputs, "files" | "readText">): Promise<PackageImports> {
+export const packageImports = Effect.fn("Files.packageImports")(function* ({
+	files,
+	readText,
+}: Pick<RuleInputs, "files" | "readText">): Effect.fn.Return<PackageImports> {
 	const directories = files.filter((path) => posix.basename(path) === MANIFEST).map((path) => posix.dirname(path));
-	const manifests = await Promise.all(
-		directories.map(async (directory) => ({ directory, imports: (await readPackageManifest(readText, posix.join(directory, MANIFEST)))?.imports })),
+	const manifests = yield* Effect.forEach(
+		directories,
+		(directory) =>
+			Effect.map(
+				Effect.promise(() => readPackageManifest(readText, posix.join(directory, MANIFEST))),
+				(manifest) => ({ directory, imports: manifest?.imports }),
+			),
+		{ concurrency: "unbounded" },
 	);
 	const deepestFirst = manifests.toSorted((left, right) => right.directory.length - left.directory.length);
 	const present = new Set(files);
@@ -54,4 +64,4 @@ export async function packageImports({ files, readText }: Pick<RuleInputs, "file
 			.map((target) => posix.normalize(posix.join(owner.directory, target)))
 			.find((path) => present.has(path));
 	};
-}
+});

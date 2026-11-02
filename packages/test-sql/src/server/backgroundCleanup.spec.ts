@@ -1,19 +1,15 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { cleanup } from "#test/cleanup.ts";
 import {
-	cleanup,
 	cloneClosed,
 	cloneOpen,
 	cloneOpenUnderPausedClock,
-	crashedRun,
 	dropRefusedForLackOfConnections,
 	dropsBlocked,
-	limitedCleanupRole,
-	namedCleanupPools,
-	otherHostDatabase,
 	runStarted,
-	unownedLeftover,
-} from "#test/cleanup.ts";
+} from "#test/cleanupActivity.ts";
+import { crashedRun, limitedCleanupRole, namedCleanupPools, otherHostDatabase, unownedLeftover } from "#test/cleanupOwnership.ts";
 
 cleanup.it(
 	"closing a clone's scope returns while its drop is blocked, and the clone's database still exists",

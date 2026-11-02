@@ -6,7 +6,7 @@ import type { ScreenEngine } from "./screenEngine.ts";
 import { screenSettles } from "./screenSettle.ts";
 import { searchResultContent } from "./searchResultContent.tsx";
 import { setNativeValue } from "./setNativeValue.ts";
-import { accessibleOf, pressKey, shellActs, shellElement } from "./shellScreenAct.ts";
+import { accessibleOf, shellActs, shellElement } from "./shellScreenAct.ts";
 
 const DIALOG = "#search-dialog";
 const FIELD = `${DIALOG} [role="combobox"]`;
@@ -54,7 +54,7 @@ function type(query: string) {
 }
 
 export function shellSearchVerbs(engine: ScreenEngine, tell: (line: string) => void) {
-	const { acting, reading } = shellActs(engine, tell);
+	const { acting, controls, reading } = shellActs(engine, tell);
 	return {
 		chooseResult: (title: string) =>
 			acting(`the reader chooses the result ${JSON.stringify(title)}`, () => {
@@ -68,24 +68,16 @@ export function shellSearchVerbs(engine: ScreenEngine, tell: (line: string) => v
 		firstResult: () => reading("the reader reads the first result", () => options()[0]?.querySelector("strong")?.textContent),
 		includeFleetFiles: () =>
 			acting("the reader toggles Include files Fleet writes", () => shellElement(`${DIALOG} [role="checkbox"]`, "Fleet files toggle").click()),
-		openSearch: () =>
-			acting("the reader clicks Search in the header", () => {
-				const button = shellElement("#search-open", "Search button");
-				button.focus();
-				button.click();
-			}),
+		openSearch: () => acting("the reader clicks Search in the header", () => Effect.runPromise(controls.click("#search-open"))),
 		openSearchWithShortcut: (modifier: "Ctrl" | "Cmd" = "Ctrl") =>
-			acting(`the reader presses ${modifier}+K`, () => {
-				pressKey(document.activeElement ?? document, "k", modifier === "Ctrl" ? { ctrlKey: true } : { metaKey: true });
-			}),
+			acting(`the reader presses ${modifier}+K`, () =>
+				Effect.runPromise(controls.pressKey(":focus", "k", modifier === "Ctrl" ? { ctrlKey: true } : { metaKey: true })),
+			),
 		pressInFleetFilesToggle: (key: string) =>
-			acting(`the reader presses ${key} on Include files Fleet writes`, () => {
-				pressKey(shellElement(`${DIALOG} [role="checkbox"]`, "Fleet files toggle"), key);
-			}),
-		pressInSearch: (key: string) =>
-			acting(`the reader presses ${key} in the search field`, () => {
-				pressKey(field(), key);
-			}),
+			acting(`the reader presses ${key} on Include files Fleet writes`, () =>
+				Effect.runPromise(controls.pressKey(`${DIALOG} [role="checkbox"]`, key)),
+			),
+		pressInSearch: (key: string) => acting(`the reader presses ${key} in the search field`, () => Effect.runPromise(controls.pressKey(FIELD, key))),
 		resultGroups: () =>
 			reading("the reader reads the result groups and their titles", () =>
 				[...document.querySelectorAll('[cmdk-list] [role="group"]')].map((group) => ({

@@ -36,21 +36,22 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 	const resourceMetadataUrl = new URL(metadataPath, url).href;
 	const authorizationMetadataPath = `/.well-known/oauth-authorization-server${new URL(config.issuer).pathname.replace(/\/$/u, "")}` as const;
 	const verify = bearer(options.jwks ?? config.jwks_uri ?? new URL("/api/auth/jwks", url).href, resource, config.issuer);
+	const authenticate = Effect.fn("Mcp.authenticate")(function* (token: string | undefined) {
+		const claims = yield* verify(token);
+		if (Option.isNone(claims)) {
+			return Option.none();
+		}
+		const subject = yield* grants.resolveSubject(claims.value.sub, claims.value.client_id);
+		return Option.map(subject, (user) => ({ user }));
+	});
 	const sessions = Layer.succeed(SessionPolicy, {
 		origin: options.origin,
 		...(options.roles === undefined ? {} : { roles: options.roles }),
 		provider: {
 			get: (headers) =>
-				Effect.gen(function* () {
-					const authorization = headers.authorization;
-					const token = authorization?.match(/^Bearer (?<token>.+)$/iu)?.groups?.token;
-					const claims = yield* verify(token);
-					if (Option.isNone(claims) || typeof claims.value.sub !== "string" || typeof claims.value.client_id !== "string") {
-						return Option.none();
-					}
-					const subject = yield* grants.resolveSubject(claims.value.sub, claims.value.client_id);
-					return Option.map(subject, (user) => ({ user }));
-				}),
+				authenticate(headers.authorization?.match(/^Bearer (?<token>.+)$/iu)?.groups?.token).pipe(
+					Effect.catchTag("InvalidTokenClaim", () => Effect.succeed(Option.none())),
+				),
 		},
 	});
 	const authorizationMetadata = Effect.fn("Mcp.authorizationMetadata")(function* (request: HttpServerRequest.HttpServerRequest) {
@@ -67,5 +68,5 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 			yield* router.add("GET", authorizationMetadataPath, authorizationMetadata);
 		}),
 	);
-	return { resourceMetadataUrl, routes, sessions };
+	return { authenticate, resourceMetadataUrl, routes, sessions };
 });

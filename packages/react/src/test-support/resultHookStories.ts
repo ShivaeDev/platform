@@ -5,7 +5,7 @@ import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resultEngine } from "./resultEngine.ts";
 import { QueryValue, ResultView } from "./resultViews.tsx";
-import { clickButton, type Screen } from "./Screen.ts";
+import type { Screen } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 
 type Mode = "query" | "action" | "overlap" | "shared";
@@ -27,9 +27,9 @@ function answer(screen: Screen, state: State, result: Exit.Exit<number, string>)
 	return screen.act(line, () => Effect.runPromise(Deferred.done(state.engine.gate, result)));
 }
 function run(screen: Screen, state: State) {
-	return screen.act("click Run", () => {
+	return screen.act("click Run", async () => {
 		state.engine.gate = Effect.runSync(Deferred.make<number, string>());
-		clickButton(root(state).container, "Run");
+		await Effect.runPromise(screen.driver(root(state).container).click({ name: "Run", role: "button" }));
 	});
 }
 function dispatch(state: State, nth: number) {

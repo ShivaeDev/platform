@@ -5,7 +5,6 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SignOutRegistryContext } from "#internal/SignOutRegistryContext.ts";
-import { clickButton } from "./Screen.ts";
 import { SignOutControls } from "./SignOutControls.tsx";
 import { screenKit } from "./screenKit.ts";
 
@@ -34,7 +33,7 @@ export const signOuts = storyKit(
 					}
 					state.owner.registry.set(state.owner.action, undefined);
 				}),
-			clickSignOut: () => screen.act("click Sign out", () => clickButton(view(state).container, "Sign out")),
+			clickSignOut: () => screen.driver(view(state).container).click({ name: "Sign out", role: "button" }),
 			destinations: () => Effect.sync(() => [...state.destinations]),
 			leave: () => screen.act("the sign-out component unmounts", () => view(state).render(null)),
 			phase: () => Effect.sync(() => view(state).container.querySelector("output")?.textContent),

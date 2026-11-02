@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import process from "node:process";
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { withExceptionConfig } from "#biome/exceptionConfig.ts";
+import { withExceptionConfig } from "#adapters/biome/withExceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { shadcnFiles } from "#inventory/shadcnFiles.ts";
 

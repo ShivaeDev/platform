@@ -1,41 +1,15 @@
 import process from "node:process";
 import { type Context, Deferred, Effect, Exit, Fiber, Layer, Queue, type Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
-import type { PostgresTestDatabase, PostgresTestServices } from "#database.ts";
 import { databaseId } from "#internal/databaseOwner.ts";
 import { makePostgresTestLayer, type PostgresTestOptions } from "#postgres.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { withTestTransaction } from "#withTestTransaction.ts";
+import { type Block, type Command, currentDatabase, endedBefore, type Services, serve } from "./databaseBlocks.ts";
 import { outcomeOf } from "./outcome.ts";
 import { setup } from "./postgres.ts";
 
-export type Services = PostgresTestServices | PostgresTestDatabase;
-type Command = Effect.Effect<boolean, unknown, Services | Scope.Scope>;
-
-export interface Block {
-	readonly commands: Queue.Queue<Command>;
-	database: string;
-	readonly fiber: Fiber.Fiber<unknown, unknown>;
-}
-
 const ownDatabase = new RegExp(`^effect_test_[a-f0-9]{8}_${process.pid}_[a-f0-9]{32}$`, "u");
-
-export const currentDatabase = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const [row] = yield* sql<{ name: string }>`select current_database() as name`;
-	return row?.name ?? "";
-});
-
-const serve = Effect.fnUntraced(function* (commands: Queue.Queue<Command>) {
-	let done = false;
-	while (!done) {
-		done = yield* Effect.flatten(Queue.take(commands));
-	}
-});
-
-function endedBefore(name: string, exit: Exit.Exit<unknown, unknown>) {
-	return Effect.die(new Error(`${name} ended before it ran the step: ${outcomeOf(exit)}.`));
-}
 
 export class DatabaseEngine {
 	readonly fixture = setup();
