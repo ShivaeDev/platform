@@ -106,3 +106,43 @@ for (const [body, status, tag] of [
 		},
 	);
 }
+
+releasePullRequest.it("a failed branch switch reaches the caller as a typed GitError", [], function* ({ git, failedRun }) {
+	yield* git("update-ref", "-d", "refs/remotes/origin/main");
+
+	const failure = yield* failedRun();
+
+	expect(failure).toBe("GitError");
+});
+
+releasePullRequest.it("a failed standing release lookup reaches the caller as a typed GitError", [], function* ({ failedComparison }) {
+	const failure = yield* failedComparison("missing-release");
+
+	expect(failure).toBe("GitError");
+});
+
+releasePullRequest.it("an undated standing changelog reaches the caller as a typed ChangesetError", [], function* ({ pushMain, failedComparison }) {
+	yield* pushMain("packages/platform/CHANGELOG.md", "# Changelog\n\n## Undated release\n");
+
+	const failure = yield* failedComparison("HEAD");
+
+	expect(failure).toBe("ChangesetError");
+});
+
+releasePullRequest.it(
+	"a release waiting in Git can be interrupted before it publishes",
+	[],
+	function* ({ pushMain, blockCommit, startRun, waitForCommit, readGitHub }) {
+		yield* pushMain(".changeset/draft.md", PENDING);
+		yield* blockCommit();
+		const running = yield* startRun();
+		yield* waitForCommit();
+
+		yield* running.interrupt();
+
+		yield* outcomes([
+			["release result", () => running.result(), "interrupted"],
+			["pull requests created", () => readGitHub(), { created: 0 }],
+		]);
+	},
+);
