@@ -6,11 +6,19 @@ const IDENTITY_OPTIONAL_PEERS = Object.entries(identityManifest.peerDependencies
 	.filter(([, meta]) => meta.optional)
 	.map(([name]) => name);
 
-const browserCode = files("packages/identity/src/identity.ts", "packages/identity/src/middleware.ts", "packages/identity/src/permission.ts");
+const browserCode = files(
+	"packages/identity/src/identity.ts",
+	"packages/identity/src/middleware.ts",
+	"packages/identity/src/permission.ts",
+	"packages/identity/src/roles.ts",
+	"packages/identity/src/users.ts",
+);
 
 export default [
 	fence("identity-client-stays-browser-safe")
-		.because("The identity, middleware and permission modules ship to browsers inside shared RPC declarations and reach only browser-safe code.")
+		.because(
+			"Shared identity declarations, including directory schemas, change keys and role permissions, ship to browsers and reach only browser-safe code.",
+		)
 		.from(browserCode)
 		.mayNotReach(
 			anything.except(
