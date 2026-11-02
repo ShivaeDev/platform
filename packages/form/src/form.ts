@@ -4,24 +4,14 @@ import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
 import { checkFeedback } from "./checkFeedback.ts";
 import { draft } from "./draft.ts";
-import { literalChoices, messageAt, messageAtPath, messagesByField, schemaFeedback } from "./messages.ts";
+import { literalChoices, messageAt, schemaFeedback } from "./messages.ts";
 import { pathMessageAt } from "./paths.ts";
 import { persistence } from "./persistence.ts";
 import { fromRef, propertyRef } from "./refs.ts";
-import {
-	type Config,
-	type Decoded,
-	type Encoded,
-	FieldFailure,
-	type Fields,
-	type Form,
-	Invalid,
-	type Name,
-	type Services,
-	type Submitter,
-} from "./shape.ts";
+import { type Config, type Decoded, type Encoded, FieldFailure, type Fields, type Form, type Name, type Services, type Submitter } from "./shape.ts";
 import { statusOf } from "./statusOf.ts";
 import { trackRejections } from "./trackRejections.ts";
+import { validation } from "./validation.ts";
 
 const emptyRuntime = Atom.runtime(Layer.empty);
 
@@ -42,7 +32,7 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 	const checks: ReadonlyMap<string, (value: Encoded<TFields>[Name<TFields>]) => Effect.Effect<string | undefined, never, TServices>> = new Map(
 		Object.entries(config.checks ?? {}),
 	);
-	const decode = SchemaParser.decodeUnknownEffect(schema, { errors: "all" });
+	const { decode, snapshot } = validation(schema, config.requiredMessages);
 
 	const editing = draft(initialValues, config.persistedDraft ? persistence(schema, config.persistedDraft) : undefined);
 	const { values } = editing;
@@ -87,14 +77,17 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 		fail: (path, message) => Effect.fail(new FieldFailure(typeof path === "string" ? { message, path } : { message, path: path[0], segments: path })),
 	};
 
+	const validate = runtime.fn<void>()(() => {
+		status.attempt();
+		return snapshot(values.value);
+	});
+
 	const submit = runtime.fn<void>()(() =>
 		Effect.gen(function* () {
 			status.attempt();
 			const submission = editing.submission();
 			const submitted = submission.values;
-			const value = yield* decode(submitted).pipe(
-				Effect.mapError((issue) => new Invalid({ formMessage: messageAtPath(issue, []), messages: messagesByField(issue, config.requiredMessages) })),
-			);
+			const { decoded: value } = yield* snapshot(submitted);
 			return yield* onSubmit(value, submitter, submitted).pipe(
 				Effect.tapError(noted(submitted)),
 				Effect.tap((saved) => Effect.sync(() => submission.accept(config.savedValues?.(saved)))),
@@ -130,6 +123,7 @@ export function form<TFields extends Fields, TValue, TError, TServices = never, 
 		revert: editing.revert,
 		submit,
 		submitting: Atom.map(submit, AsyncResult.isWaiting),
+		validate,
 		values,
 	};
 }

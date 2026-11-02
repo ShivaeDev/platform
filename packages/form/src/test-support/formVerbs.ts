@@ -126,5 +126,19 @@ export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError, TSuppo
 		storedDraft: () => Effect.sync(() => storedValues(engine.storage)),
 		submit: driver.submit,
 		unsavedChanges: () => Effect.sync(() => read(current().dirty)),
+		validate: () => {
+			tell("validate without saving");
+			engine.registry.set(current().validate, undefined);
+			return Effect.asVoid(Effect.exit(AtomRegistry.getResult(engine.registry, current().validate, { suspendOnWaiting: true })));
+		},
+		validatedSnapshot: () => AtomRegistry.getResult(engine.registry, current().validate, { suspendOnWaiting: true }),
+		validationFeedback: () =>
+			AtomRegistry.getResult(engine.registry, current().validate, { suspendOnWaiting: true }).pipe(
+				Effect.as(undefined),
+				Effect.catchIf(
+					(error): error is Invalid => error instanceof Invalid,
+					(invalid) => Effect.succeed({ formMessage: invalid.formMessage, messages: invalid.messages }),
+				),
+			),
 	};
 }

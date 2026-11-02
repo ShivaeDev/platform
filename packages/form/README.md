@@ -81,6 +81,17 @@ An empty name shows that message after blur or submission, including through `er
 
 The handler has three arguments: decoded values, the submitter, and the submitted encoded snapshot. Use the third argument when coordinating work against what was submitted, rather than reading live fields after an asynchronous decode. The `react` create adapter uses that snapshot to preserve input typed while decoding.
 
+### Validate without saving
+
+Write the `validate` atom to reveal validation for every field and whole-form refinement without calling `onSubmit`:
+
+```ts
+registry.set(order.validate, undefined);
+const snapshot = await Effect.runPromise(AtomRegistry.getResult(registry, order.validate, { suspendOnWaiting: true }));
+```
+
+The result is a `Snapshot<F>` with `encoded` input captured before decoding and `decoded` domain values. Validation uses the form's runtime, including asynchronous and service-based decoding. Invalid input fails with `Invalid`, carrying the same field and whole-form feedback as submit. Validation leaves the input, dirty baseline and persisted draft intact; it does not save or accept changes.
+
 ### In the UI: bind the same form
 
 ```tsx
@@ -324,11 +335,12 @@ The returned form exposes:
 | `blur(name)`               | Field blur operation, supplied as `useField(...).onBlur`                                      |
 | `error(name)`              | Atom of `string \| undefined`                                                                 |
 | `errorAt([name, ...path])` | Atom of nested Schema feedback and handler rejections; visibility follows the top-level field |
-| `errorAt([])`              | Atom of whole-form Schema feedback, visible after submission                                  |
+| `errorAt([])`              | Atom of whole-form Schema feedback, visible after validation or submission                    |
 | `choices(name)`            | Encoded choices or `undefined`                                                                |
 | `dirty`                    | Atom of `boolean`                                                                             |
 | `receive(values)`          | Merge received encoded values                                                                 |
 | `revert()`                 | Restore the baseline                                                                          |
+| `validate`                 | `AtomResultFn<void, Snapshot<F>, ER \| Invalid>`; reveal feedback and decode without saving   |
 | `submit`                   | `AtomResultFn<void, A, E \| ER \| FieldFailure \| Invalid>`                                   |
 | `submitting`               | Atom of `boolean` for submission waiting state                                                |
 
