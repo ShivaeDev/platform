@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { outcomes } from "#outcomes.ts";
-import { rerun as rerunCommand } from "#test/failureReport.ts";
+import { BLOCKED_SNAPSHOT_STORIES, rerun as rerunCommand } from "#test/failureReport.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
 storyRunner.it("a snapshot write failure preserves the assertion, story, location and rerun command", [], function* ({ outcome, runStory }) {
@@ -16,7 +16,7 @@ storyRunner.it("a snapshot write failure preserves the assertion, story, locatio
 	expect(failure).toContain("blockedSnapshotStories.ts:21:");
 	expect(failure).toContain("The bakery when the test failed could not be written to");
 	expect(failure).toContain("EISDIR");
-	expect(failure).toContain(rerunCommand(name, "src/test-support/blockedSnapshotStories.ts"));
+	expect(failure).toContain(rerunCommand(name, BLOCKED_SNAPSHOT_STORIES));
 });
 
 storyRunner.it(
