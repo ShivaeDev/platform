@@ -26,7 +26,7 @@ export function causeWords(cause: Cause.Cause<unknown>, explain: (error: unknown
 		return "interrupted";
 	}
 	const failure = Cause.findErrorOption(cause);
-	return Option.isSome(failure) ? `failed with ${explain(failure.value)}` : `died with ${errorWords(Cause.squash(cause))}`;
+	return Option.isSome(failure) ? `failed with ${explain(failure.value)}` : `died with ${explain(Cause.squash(cause))}`;
 }
 
 export function answerOf<A>(exit: Exit.Exit<A, unknown>, explain: (error: unknown) => string = errorWords): A | string {

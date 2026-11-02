@@ -1,6 +1,7 @@
-import { Cause, Effect, Exit, Option, Predicate, Result } from "effect";
+import { Effect, Exit, Predicate } from "effect";
 import { Migrator } from "effect/sql";
 import { isSqlError } from "effect/sql/SqlError";
+import { answered, answerOf } from "@shivaedev/test/answers.ts";
 import { ModelColumnMismatch } from "#assertModelColumns.ts";
 
 function sqlState(error: unknown) {
@@ -26,18 +27,10 @@ export function failureOf(error: unknown): string {
 }
 
 export function outcomeOf(exit: Exit.Exit<unknown, unknown>): string {
-	if (Exit.isSuccess(exit)) {
-		return "succeeded";
-	}
-	const failure = Cause.findErrorOption(exit.cause);
-	if (Option.isSome(failure)) {
-		return `failed with ${failureOf(failure.value)}`;
-	}
-	const defect = Cause.findDefect(exit.cause);
-	if (Result.isSuccess(defect)) {
-		return `died with ${failureOf(defect.success)}`;
-	}
-	return Cause.hasInterrupts(exit.cause) ? "interrupted" : "ended without a reason";
+	return answerOf(
+		Exit.map(exit, () => "succeeded"),
+		failureOf,
+	);
 }
 
 export function timesOf(count: number) {
@@ -48,5 +41,5 @@ export function timesOf(count: number) {
 }
 
 export function attempt<A, E, R>(effect: Effect.Effect<A, E, R>) {
-	return Effect.map(Effect.exit(effect), outcomeOf);
+	return answered(Effect.as(effect, "succeeded"), failureOf);
 }
