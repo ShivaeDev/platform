@@ -71,10 +71,11 @@ function open(gate: Deferred.Deferred<void> | undefined) {
 }
 
 function held(engine: ScreenEngine) {
-	return (
-		engine.chunkResponse?.held === true
-		|| [engine.heldRead?.gate, engine.heldRefresh?.gate, engine.heldAnswerRefresh?.gate, engine.indexGate, engine.startupGate].some(open)
-	);
+	const location = engine.router?.state.location;
+	const current = location ? location.pathname + location.searchStr : engine.path;
+	const page = engine.heldRead?.url === current ? engine.heldRead.gate : undefined;
+	const refresh = engine.heldRefresh?.url === current ? engine.heldRefresh.gate : undefined;
+	return engine.chunkResponse?.held === true || [page, refresh, engine.heldAnswerRefresh?.gate, engine.indexGate, engine.startupGate].some(open);
 }
 
 function routeRendered(engine: ScreenEngine) {
