@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
+import { makeCapture } from "@shivaedev/changes/capture.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeRepository } from "#repository.ts";
@@ -30,8 +31,7 @@ const partialWriteEngine = Effect.fnUntraced(function* () {
 		spanPrefix: "OwnedProfile",
 		tableName,
 	});
-	const publications: string[][] = [];
-	return { byOwner, log: statementLog(), profiles, publications, records: records(), sql, tableName };
+	return { byOwner, capture: yield* makeCapture<unknown>(), log: statementLog(), profiles, records: records(), sql, tableName };
 });
 
 export type PartialWriteEngine = Effect.Success<ReturnType<typeof partialWriteEngine>>;

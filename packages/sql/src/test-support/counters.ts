@@ -50,7 +50,10 @@ export const counters = storyKit({
 					});
 					return yield* Effect.forEach(results, (result) => Result.match(result, { onFailure: Effect.fail, onSuccess: Effect.succeed }));
 				}),
-			publishedKeys: () => Effect.sync(() => [...engine.published].toSorted(Order.String)),
+			publishedKeys: () =>
+				Effect.map(engine.capture.attempted, (batches) =>
+					[...new Set(batches.flat().map((key) => String(key).replaceAll(engine.tableName, "counters")))].toSorted(Order.String),
+				),
 			returned: () => Effect.sync(() => [...engine.returned]),
 			upsertCounter: (operation: CounterWrite, count: number, label: string | null, allowed = true) =>
 				Effect.suspend(() => {
