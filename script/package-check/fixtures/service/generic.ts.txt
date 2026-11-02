@@ -1,0 +1,35 @@
+import { Context, Effect } from "effect"
+import { defineService } from "@shivaedev/service/defineService.ts"
+import { genericMethod } from "@shivaedev/service/genericMethod.ts"
+
+class NumberCaller extends Context.Service<NumberCaller, number>()("consumer/NumberCaller") {}
+class StringCaller extends Context.Service<StringCaller, string>()("consumer/StringCaller") {}
+interface Denied { readonly reason: "denied" }
+
+const Generic = defineService({
+  id: "consumer/Generic",
+  requires: [],
+  initialize: Effect.void,
+  methods: () => ({
+    preserve: genericMethod(<A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<{ readonly value: A }, E, R> =>
+      Effect.map(effect, value => ({ value }))),
+  }),
+})
+
+declare const service: Context.Service.Shape<typeof Generic>
+declare const numberInput: Effect.Effect<number, Denied, NumberCaller>
+declare const stringInput: Effect.Effect<string, "missing", StringCaller>
+const numberCall = service.preserve(numberInput)
+const stringCall = service.preserve(stringInput)
+
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
+type Assert<T extends true> = T
+export type Correlations = [
+  Assert<Equal<typeof numberCall, Effect.Effect<{ readonly value: number }, Denied, NumberCaller>>>,
+  Assert<Equal<typeof stringCall, Effect.Effect<{ readonly value: string }, "missing", StringCaller>>>,
+]
+
+// @ts-expect-error Generic caller requirements must be supplied before execution.
+Effect.runPromise(numberCall)
+const runnable: Effect.Effect<{ readonly value: number }, Denied> = numberCall.pipe(Effect.provideService(NumberCaller, 42))
+void runnable
