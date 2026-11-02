@@ -4,11 +4,12 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc, RpcSchema } from "effect/rpc";
-import { invalidationKeys, type Key, readKeys } from "@shivaedev/changes/keys.ts";
+import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#adapters/bindingOwner.ts";
 import { clientId } from "#adapters/clientId.ts";
 import type { automaticLive } from "#automaticLive.ts";
 import type { QueryOptions } from "#bind.ts";
+import { clientInvalidationKeys, clientReadKeys } from "#clientKeys.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import { shareQuerySignals } from "#querySignals.ts";
 import { clientActivities } from "./clientActivity.ts";
@@ -42,7 +43,7 @@ function boundQuery(service: ErasedClient, tag: string, query: QueryShape, autom
 				local.length === 0 ? [...keys, { _tag: "List" as const, collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` }] : keys;
 			const reference = { payload, query: query.name };
 			const result = automatic.query(
-				reactive(atom, readKeys(dependencies, owner?.context), owner?.registry),
+				reactive(atom, clientReadKeys(dependencies, owner?.context), owner?.registry),
 				reference,
 				keys,
 				Schema.toEquivalence(query.success),
@@ -69,7 +70,7 @@ function boundCommand(service: ErasedClient, tag: string, command: CommandShape,
 			...command.invalidates(payload, result),
 			{ _tag: "List", collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` },
 		];
-		return Reactivity.invalidate(invalidationKeys(keys, owner?.context));
+		return Reactivity.invalidate(clientInvalidationKeys(keys, owner?.context));
 	}
 	return {
 		run: (payload: unknown) =>

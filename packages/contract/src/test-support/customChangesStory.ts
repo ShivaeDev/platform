@@ -43,7 +43,7 @@ const customChangesEngine = Effect.gen(function* () {
 					Stream.unwrap(
 						Effect.gen(function* () {
 							const subscription = yield* querySubscription(rpc, queries, Option.none());
-							return live.subscribe(subscription, undefined, () => read);
+							return live.subscribe(subscription, () => read);
 						}),
 					),
 		),

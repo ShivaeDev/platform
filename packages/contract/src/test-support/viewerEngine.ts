@@ -68,7 +68,7 @@ export const viewerEngine = Effect.gen(function* () {
 				Effect.gen(function* () {
 					const viewer = yield* CurrentViewer;
 					const subscription = yield* querySubscription(rpc, queries, viewer);
-					return live.subscribe(subscription, Option.isSome(viewer) ? { scope: viewer.value.id } : undefined);
+					return live.subscribe(subscription);
 				}),
 			),
 		"notes.get": ({ id }) => Ref.get(stored).pipe(Effect.map((rows) => rows.get(id) ?? new Row({ id, owner: "", title: "Missing" }))),
@@ -88,7 +88,7 @@ export const viewerEngine = Effect.gen(function* () {
 					throw new Error(`Missing note ${id}`);
 				}
 				yield* Ref.update(stored, (rows) => new Map([...rows, [id, new Row({ ...row, title })]]));
-				yield* reactivity.invalidate(invalidationKeys([notes.item(id), notes.bucket.userId(row.owner)], { scope: row.owner }));
+				yield* reactivity.invalidate(invalidationKeys([notes.item(id), notes.bucket.userId(row.owner)]));
 			}),
 	});
 	const services = Layer.merge(Layer.succeed(Rows, stored), Layer.succeed(PolicyChecks, checks));

@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makeChannel } from "#channel.ts";
-import { collection, collectionInvalidationKeys, invalidationKeys, type Key, type KeyContext, readKeys } from "#keys.ts";
+import { collection, collectionInvalidationKeys, invalidationKeys, type Key, readKeys } from "#keys.ts";
 
 export const rows = collection("rows", Schema.Number, { listId: Schema.Number, userId: Schema.String });
 export const keyStory = storyKit({
@@ -22,9 +22,9 @@ export const keyStory = storyKit({
 	name: "record and bucket changes",
 	stages: [],
 	verbs: (engine, story) => ({
-		invalidateCollection: (name: string, context?: KeyContext) => {
+		invalidateCollection: (name: string) => {
 			story.tell(`a committed bulk write refreshes ${name}`);
-			return engine.reactivity.invalidate(collectionInvalidationKeys(name, context));
+			return engine.reactivity.invalidate(collectionInvalidationKeys(name));
 		},
 		opensTransaction: () =>
 			Effect.map(engine.channel.open, (frame) => ({
@@ -40,11 +40,11 @@ export const keyStory = storyKit({
 					}),
 			})),
 		refreshed: () => engine.refreshed,
-		watch: (label: string, keys: readonly Key[], context?: KeyContext) =>
+		watch: (label: string, keys: readonly Key[]) =>
 			Effect.acquireRelease(
 				Effect.sync(() => {
 					story.tell(`${label} watches ${keys.map((key) => JSON.stringify(key)).join(", ")}`);
-					return engine.reactivity.registerUnsafe(readKeys(keys, context), () => engine.refreshed.push(label));
+					return engine.reactivity.registerUnsafe(readKeys(keys), () => engine.refreshed.push(label));
 				}),
 				(release) => Effect.sync(release),
 			),

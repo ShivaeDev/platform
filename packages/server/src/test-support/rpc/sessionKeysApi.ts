@@ -61,7 +61,7 @@ const write = Effect.fnUntraced(function* ({ id, value, announce, reject }: type
 		yield* sql`insert into preferences (owner, id, value) values (${identity.id}, ${id}, ${value})
 			on conflict (owner, id) do update set value = excluded.value`;
 		if (announce) {
-			yield* invalidateOnCommit(invalidationKeys([Preferences.item(id)], { scope: identity.id }));
+			yield* invalidateOnCommit(invalidationKeys([Preferences.item(id)]));
 		}
 		if (reject) {
 			return yield* new Conflict({ message: "Write rejected" });

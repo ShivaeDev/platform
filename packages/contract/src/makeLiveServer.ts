@@ -1,6 +1,6 @@
 import { Effect, Queue, Random, Scheduler, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { type Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
+import { type Key, readKeys } from "@shivaedev/changes/keys.ts";
 import { compareQueries } from "#internal/compareQueries.ts";
 import { liveHintQueue } from "#internal/liveHintQueue.ts";
 import type { LiveHint } from "#live.ts";
@@ -13,7 +13,7 @@ export const makeLiveServer = Effect.gen(function* () {
 	const dispatcher = (yield* Scheduler.Scheduler).makeDispatcher();
 	let openStreams = 0;
 	const resyncKey = `@shivaedev/contract/resync/${yield* Random.nextInt}`;
-	function open(keys: readonly Key[], context?: KeyContext, globalKeys: readonly Key[] = []): Stream.Stream<LiveHint> {
+	function open(keys: readonly Key[]): Stream.Stream<LiveHint> {
 		return Stream.unwrap(
 			Effect.gen(function* () {
 				const { offer, queue } = yield* liveHintQueue;
@@ -21,7 +21,6 @@ export const makeLiveServer = Effect.gen(function* () {
 				let scheduled = false;
 				let resync = false;
 				let active = true;
-				const global = new Set(readKeys(globalKeys));
 				function flush() {
 					if (scheduled) {
 						return;
@@ -37,8 +36,7 @@ export const makeLiveServer = Effect.gen(function* () {
 					}, 0);
 				}
 				const cancel = keys.map((key) => {
-					const bare = readKeys([key]);
-					const own = global.has(bare[0] ?? "") ? bare : readKeys([key], context);
+					const own = readKeys([key]);
 					return reactivity.registerUnsafe(own, () => {
 						pending.set(own[0] ?? "", key);
 						flush();
@@ -69,13 +67,9 @@ export const makeLiveServer = Effect.gen(function* () {
 		reactivity.invalidateUnsafe([resyncKey]);
 		return openStreams;
 	});
-	function subscribe<E, R>(subscription: QuerySubscription<E, R>, context?: KeyContext): Stream.Stream<SubscriptionHint, E | QueryReadDenied, R>;
-	function subscribe<E, R>(
-		subscription: QuerySubscription<E, R>,
-		context: KeyContext | undefined,
-		read: QueryRerun<E, R>,
-	): Stream.Stream<QueryUpdate, E | QueryReadDenied, R>;
-	function subscribe<E, R>(subscription: QuerySubscription<E, R>, context?: KeyContext, read?: QueryRerun<E, R>) {
+	function subscribe<E, R>(subscription: QuerySubscription<E, R>): Stream.Stream<SubscriptionHint, E | QueryReadDenied, R>;
+	function subscribe<E, R>(subscription: QuerySubscription<E, R>, read: QueryRerun<E, R>): Stream.Stream<QueryUpdate, E | QueryReadDenied, R>;
+	function subscribe<E, R>(subscription: QuerySubscription<E, R>, read?: QueryRerun<E, R>) {
 		return Stream.unwrap(
 			Effect.sync(() => {
 				let compare = compareQueries(subscription, read);
@@ -86,7 +80,7 @@ export const makeLiveServer = Effect.gen(function* () {
 					}
 					return yield* compare(hint);
 				});
-				return open(subscription.keys, context, subscription.globalKeys).pipe(
+				return open(subscription.keys).pipe(
 					Stream.mapEffect((hint) =>
 						Effect.flatMap(subscription.refresh ?? Effect.context<never>(), (current) => Effect.provideContext(next(hint), current)),
 					),

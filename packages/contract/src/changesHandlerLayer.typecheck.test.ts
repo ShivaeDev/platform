@@ -38,7 +38,7 @@ const handlers = changesHandlerLayer(Api, (rpc) => {
 			Effect.gen(function* () {
 				const subscription = yield* querySubscription(rpc, queries, Option.none());
 				const value = yield* Reader;
-				return live.subscribe(subscription, undefined, () => Effect.succeed(value));
+				return live.subscribe(subscription, () => Effect.succeed(value));
 			}),
 		);
 	};

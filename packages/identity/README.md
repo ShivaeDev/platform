@@ -602,11 +602,11 @@ An operation on one record reads that record's owner and uses the application's 
 
 ### Session-scoped contract keys
 
-For self-only features, declare `contract("preferences", { keyScope: "session", queries, commands }).middleware(Authenticated)`. `List` and `Item` remain the dependency shapes; the account scope is an additional dimension derived from request-local `Identity.id`. Handlers continue to read their owner from `Identity`, and payloads need no owner field just to key reads or invalidations. Other sessions of that account receive its changes; other accounts receive no invalidation hint for those writes.
+For self-only features, declare `contract("preferences", { keyScope: "session", queries, commands }).middleware(Authenticated)`. The client registry owns cache isolation. Server subscriptions use the same plain record, list and bucket keys as repository writes. Handlers read their owner from `Identity`, and queries need no additional session keys. Matching keys trigger each subscriber's read policy before it can receive a hint or result; shared dependencies can cause authorized rechecks across accounts.
 
-The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }`, resolves the declared query dependencies during that subscription invocation, and passes the authenticated scope to the change stream. It does not accept physical subscription keys or a caller-selected scope. Missing request-local `Identity` on a session-scoped subscription is a configuration defect, with no unscoped fallback.
+The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }` and resolves the declared query dependencies during that subscription invocation. It accepts no physical subscription keys or caller-selected scope.
 
-`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer` and `permissionLayer` run scoped command invalidation inside the authenticated invocation. Successful commands publish their scoped keys after the handler returns and omit keys the handler's transactions already published. Keys that must commit atomically with a write come from the stored model's `bucket()` fields and the repository, rather than command `invalidates`. A rejected transaction publishes no keys.
+`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer` and `permissionLayer` run command invalidation inside the authenticated invocation. Successful commands publish plain keys after the handler returns and omit keys the handler's transactions already published. Keys that must commit atomically with a write come from the stored model's `bucket()` fields and the repository, rather than command `invalidates`. A rejected transaction publishes no keys.
 
 Declared-key publication retries twice, after 50 ms and 100 ms, without rerunning the handler. Exhausted retries preserve the committed result. On a database-backed host, they mark local live streams for Resync and attempt a broadcast Resync on the PostgreSQL change channel. If that broadcast also fails, the server logs that other hosts may remain stale. There is no durable replay: a remote host whose listener remains healthy cannot discover a notification that never reached PostgreSQL. Reconnect or listener recovery reconciles its streams.
 
@@ -614,20 +614,20 @@ Hosted applications use `Api.application.toLayer(...)` and let `appHost` own `$c
 
 ```ts
 import { Effect, Stream } from "effect";
-import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
+import { resolveChanges } from "@shivaedev/identity/server/resolveChanges.ts";
 
 const changesRpc = Api.requests.get("preferences.$changes")!;
 const handlers = Api.toLayer({
 	"preferences.$changes": ({ queries }) =>
-		Stream.unwrap(Effect.map(resolveChanges(changesRpc, queries), ({ subscription, context }) => changes.subscribe(subscription, context))),
+		Stream.unwrap(Effect.map(resolveChanges(changesRpc, queries), (subscription) => changes.subscribe(subscription))),
 	"preferences.get": getPreference,
 	"preferences.save": savePreference,
 });
 ```
 
-Here `changes` is the application's `makeLiveServer` service. Pass the native RPC definition to `resolveChanges` so its typed failures and required services follow the policies declared by that contract. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
+Here `changes` is the application's `makeLiveServer` service. Pass the native RPC definition to `resolveChanges` so its typed failures and required services follow the policies declared by that contract. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
 
-Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `commandChanges` before providing `Identity`:
+Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping commands with `commandChanges` before providing `Identity`:
 
 ```ts
 import { Effect, Layer, Option } from "effect";
@@ -645,7 +645,7 @@ const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, 
 );
 ```
 
-`MyAuthentication` declares `provides: Identity`, its authentication errors and `MissingReadPolicy` and `QueryReadDenied` from `@shivaedev/contract/readPolicyErrors.ts`. Query policies receive the session viewer through `authorizeReads`. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` publishes only unscoped contract invalidations; custom auth middleware must apply `commandChanges` for scoped commands. If a transaction explicitly announces scoped dependencies, use `invalidationKeys(keys, { scope: identity.id })` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
+`MyAuthentication` declares `provides: Identity`, its authentication errors and `MissingReadPolicy` and `QueryReadDenied` from `@shivaedev/contract/readPolicyErrors.ts`. Query policies receive the session viewer through `authorizeReads`. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` handles commands outside session middleware; custom auth middleware applies `commandChanges` inside its authenticated invocation. If a raw SQL transaction explicitly announces dependencies, use `invalidationKeys(keys)` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
 
 ### Session freshness in streams
 
@@ -816,8 +816,8 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/adapters/proxyRanges.ts`             | `proxyRanges(value)`: parse configured proxy ranges.                                                                                                                                                                                                                             |
 | `server/transportHeaders.ts`                 | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                                                                 |
 | `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                                                             |
-| `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                                                                                |
-| `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware.                                                                                                                                                                        |
+| `server/resolveChanges.ts`                   | `resolveChanges`: authorized change subscriptions for custom change handlers.                                                                                                                                                                                                    |
+| `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: command invalidation for custom authentication middleware.                                                                                                                                                                               |
 | `server/better-auth/adapters/mount.ts`       | `betterAuthMount(options, { preset?, enabledPaths?, emails?, onPasswordReset?, signIn?, bearerSessions?, roles?, defaultRole?, roleSeed? })`, returning `{ auth, routes, sessions, admittedSessions, admitsUser, revokeUnadmitted }`: native auth routes and the sign-in policy. |
 | `server/better-auth/adapters/database.ts`    | `betterAuthDatabase()`: Better Auth storage on the application PostgreSQL client.                                                                                                                                                                                                |
 | `server/better-auth/emails.ts`               | `AuthEmail`, `BetterAuthEmails`: typed delivery messages, app routes and per-account delivery windows for the mount.                                                                                                                                                             |
