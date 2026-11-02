@@ -63,9 +63,16 @@ In production (`NODE_ENV=production`), the worker sends auth emails through Rese
 | `EMAIL_FROM`     | A sender on your verified Resend domain, such as `Accounts <accounts@example.com>`.                   |
 | `PUBLIC_URL`     | The same public app URL as web, such as `https://app.example`. Web uses it when queueing email links. |
 
-Production worker startup fails with a typed configuration error naming `RESEND_API_KEY` or `EMAIL_FROM` when either is missing. Development logs rendered emails without Resend credentials. `.railway/railway.ts` connects the worker's email settings to shared variables; create `RESEND_API_KEY`, `EMAIL_FROM` and `PUBLIC_URL` in Railway before the first plan/apply.
+Production worker startup fails with a typed configuration error naming `RESEND_API_KEY` or `EMAIL_FROM` when either is missing. Development logs rendered emails without Resend credentials. `.railway/railway.ts` composes `@shivaedev/deploy` for web migrations, proxy settings and worker draining. The database supplies `DATABASE_URL`; web listens on `HOST=0.0.0.0`, and Railway supplies `PORT`. Create these required shared variables before the first plan/apply:
 
-Railway works out of the box: `.railway/railway.ts` supplies `TRUSTED_PROXY=100.64.0.0/10` and `AUTH_CLIENT_IP_HEADER=x-real-ip` from `.railway/proxy.json`. `TRUSTED_PROXY` selects the peers allowed to supply forwarded client IPs and the HTTPS authority used by RPC origin checks; an HTTPS `PUBLIC_URL` selects secure session cookies. On other hosts, set `TRUSTED_PROXY` to your proxy's peer IP addresses or CIDR ranges, or use `config.trustedProxy`. A session host bound to a non-loopback address refuses to boot without this setting, with a typed `TrustedProxyRequired` error explaining how to set it. Local loopback development keeps working without it.
+| Shared variable      | Used by     | Value                                                                   |
+| -------------------- | ----------- | ----------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET` | web         | At least 32 random characters; generate with `openssl rand -base64 32`. |
+| `EMAIL_FROM`         | worker      | A sender on your verified Resend domain.                                |
+| `PUBLIC_URL`         | web, worker | Your public HTTPS app URL.                                              |
+| `RESEND_API_KEY`     | worker      | Your Resend API key.                                                    |
+
+Railway works out of the box: `.railway/railway.ts` supplies `TRUSTED_PROXY=100.64.0.0/10` and `AUTH_CLIENT_IP_HEADER=x-real-ip` through `@shivaedev/deploy`. `TRUSTED_PROXY` selects the peers allowed to supply forwarded client IPs and the HTTPS authority used by RPC origin checks; an HTTPS `PUBLIC_URL` selects secure session cookies. On other hosts, set `TRUSTED_PROXY` to your proxy's peer IP addresses or CIDR ranges, or use `config.trustedProxy`. A session host bound to a non-loopback address refuses to boot without this setting, with a typed `TrustedProxyRequired` error explaining how to set it. Local loopback development keeps working without it.
 
 `.railway/railway.ts` defines the PostgreSQL, web and worker services for Railway. The [deployment guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy) explains the rollout and worker drain, trace export, Railway setup, the server environment, database connection security, health checks and migration modes; follow it before the first deploy and after each change to `.railway/railway.ts`. The [framework docs](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md) explain the design boundaries.
 

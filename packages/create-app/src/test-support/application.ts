@@ -14,6 +14,7 @@ import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "./enviro
 import { createAppIn } from "./generate.ts";
 import { generatedReadouts } from "./generatedReadouts.ts";
 import { moduleChecks } from "./moduleChecks.ts";
+import { railwayReadouts } from "./railwayReadouts.ts";
 import { runAdminStories } from "./runAdminStories.ts";
 import { templateReadouts } from "./templateReadouts.ts";
 
@@ -48,6 +49,7 @@ export const application = storyKit({
 		}
 		return {
 			...appReadouts(target),
+			...railwayReadouts(target),
 			...moduleChecks(target, engine.source.starter, story),
 			...generatedReadouts(engine, target),
 			...templateReadouts(engine),

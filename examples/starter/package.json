@@ -34,6 +34,7 @@
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
+		"@shivaedev/deploy": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@tanstack/react-router": "catalog:",
 		"@tanstack/react-table": "catalog:",
