@@ -2,20 +2,18 @@ import { Effect } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import { readBoundedBody } from "@shivaedev/http/body.ts";
 import { ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
-import { authenticatedRequest } from "./authenticatedRequest.ts";
-import { type CachedResponse, responseCache, revalidatedResponse } from "./cache.ts";
-import { GitHubTransportError } from "./errors.ts";
-import type { GitHubToken } from "./GitHubToken.ts";
-import type { RateLimits } from "./rateLimits.ts";
-import { isUnchanged } from "./status.ts";
-import type { TokenRefresh } from "./TokenRefresh.ts";
+import { authenticatedRequest } from "#authenticatedRequest.ts";
+import { type CachedResponse, responseCache, revalidatedResponse } from "#cache.ts";
+import { GitHubTransportError } from "#errors.ts";
+import { GitHubToken } from "#GitHubToken.ts";
+import type { RateLimits } from "#rateLimits.ts";
+import { isUnchanged } from "#status.ts";
+import { TokenRefresh } from "#TokenRefresh.ts";
 
-export function requests(
-	client: HttpClient.HttpClient,
-	token: GitHubToken["Service"],
-	rates: RateLimits,
-	refresh: typeof TokenRefresh.Service = undefined,
-) {
+export const requests = Effect.fnUntraced(function* (rates: RateLimits) {
+	const client = yield* HttpClient.HttpClient;
+	const token = yield* GitHubToken;
+	const refresh = yield* TokenRefresh;
 	const cache = responseCache();
 	const send = authenticatedRequest(HttpClient.withScope(client), token, rates, refresh);
 	return Effect.fn("GitHub.request")(function* (input: HttpClientRequest.HttpClientRequest, limit: number) {
@@ -43,4 +41,4 @@ export function requests(
 		}
 		return entry;
 	}, Effect.scoped);
-}
+});
