@@ -136,5 +136,9 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 					add column "releaseWindow__observedAt" double precision`;
 			}
 		}),
+		"36_answerable_conflict_questions": sql`update ${sql(`${namespace}_records`)}
+			set step = 'waiting', stage = 'waiting', blocker = null,
+				"attentionOwner" = coalesce("decision__attentionOwner", 'orchestrator'), version = version + 1
+			where step = 'reviewing' and "decision__code" = 'pr-conflicting'`,
 	});
 });
