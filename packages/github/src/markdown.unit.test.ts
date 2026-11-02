@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { codeSpan, plainText, tableCell } from "./markdown.ts";
+import { codeSpan, details, plainText, tableCell } from "./markdown.ts";
 
 it("uses a fence longer than every hostile backtick run", () => {
 	expect(codeSpan("a`b``c``` @team <script> 😀")).toBe("````a`b``c``` @team <script> 😀````");
@@ -24,4 +24,17 @@ it("keeps pipes and line endings inside one table cell in text and code", () => 
 	expect(tableCell(text)).toBe("a&#124;b &#64;&#8203;team &#60;script&#62; &#96;x&#96; 😀");
 	expect(tableCell(text, "code")).toBe("``a\\|b @team <script> `x` 😀``");
 	expect(tableCell("\\|\u2028x\u2029y", "code")).toBe("`\\\\| x y`");
+});
+
+it("escapes closing tags, injected HTML and entities in both details text inputs", () => {
+	expect(details('</summary></details><img src=x onerror="alert(1)">', '</details><script>alert("x")</script> &lt;b&gt;')).toBe(
+		"<details>\n<summary>&#60;&#47;summary&#62;&#60;&#47;details&#62;&#60;img src&#61;x onerror&#61;&#34;alert&#40;1&#41;&#34;&#62;</summary>\n\n&#60;&#47;details&#62;&#60;script&#62;alert&#40;&#34;x&#34;&#41;&#60;&#47;script&#62; &#38;lt&#59;b&#38;gt&#59;\n\n</details>",
+	);
+});
+
+it("preserves Unicode and line endings while escaping Markdown in details", () => {
+	expect(details("😀 @team", "first\n\n#123 `code` [link](url)\r\n終")).toBe(
+		"<details>\n<summary>😀 &#64;&#8203;team</summary>\n\nfirst\n\n&#35;&#8203;123 &#96;code&#96; &#91;link&#93;&#40;url&#41;\r\n終\n\n</details>",
+	);
+	expect(details("", "")).toBe("<details>\n<summary></summary>\n\n\n\n</details>");
 });
