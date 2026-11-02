@@ -18,8 +18,6 @@ export const driverScreen = storyKit({
 		const pending = Atom.make(false);
 		const title = Atom.make("Ready");
 		const response = Promise.withResolvers<string>();
-		let delivery: ReturnType<typeof setTimeout> | undefined;
-		yield* Effect.addFinalizer(() => Effect.sync(() => clearTimeout(delivery)));
 		function handleClick() {
 			view.registry.set(pending, true);
 			void response.promise.then((next) => {
@@ -45,7 +43,7 @@ export const driverScreen = storyKit({
 		yield* Effect.promise(() => view.render(<Screen />));
 		return {
 			deliver: (text: string) => {
-				delivery = setTimeout(() => response.resolve(text), 20);
+				response.resolve(text);
 			},
 			pending,
 			view,
@@ -65,9 +63,9 @@ export const driverScreen = storyKit({
 		}),
 		fieldValue: () => Effect.sync(() => view.container.querySelector("input")?.value),
 		renderedDraft: () => Effect.sync(() => view.container.querySelector("output")?.textContent),
-		responseArrivesLater: (title: string) =>
+		respond: (title: string) =>
 			Effect.sync(() => {
-				story.tell(`the response with ${title} arrives after the click returns`);
+				story.tell(`the response with ${title} releases the waiting request`);
 				deliver(title);
 			}),
 	}),
