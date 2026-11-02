@@ -127,6 +127,8 @@ export const MailLive = Mail.layer;
 
 `Jobs` is the service that callers yield. `Mail` is a separate domain service that workers use. The example implementation logs calls so the wiring is complete; an application supplies its own implementation of those methods. The jobs package does not need a provider-specific interface.
 
+Registration collections retain their workers' handler, payload-decoding and scheduled-effect service requirements in `Jobs.layer`. Use `satisfies readonly JobRegistration[]` to check a reusable collection while preserving its inferred requirements, or annotate it as `readonly JobRegistration<Services>[]` with the union of services it needs. A plain `JobRegistration[]` leaves requirements `unknown`. Queue workers require both their queue and handler; scheduled workers require both their schedule and effect. Incomplete registrations are TypeScript errors. Producer-only queue definitions need no handler or decoding services at startup.
+
 ### Once per feature: the payload and handler
 
 Define the feature's registrations in `jobs.ts`:

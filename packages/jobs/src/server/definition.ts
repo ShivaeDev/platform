@@ -48,9 +48,10 @@ export interface QueueWorker<TPayload extends JobPayloadSchema = JobPayloadSchem
 	readonly queue: QueueDefinition<string, TPayload>;
 }
 
-export interface JobRegistration {
-	readonly _tag: "QueueDefinition" | "QueueWorker" | "ScheduledWorker";
-}
+export type JobRegistration<TRequirements = unknown> =
+	| QueueDefinition
+	| QueueWorker<JobPayloadSchema & { readonly DecodingServices: TRequirements }, TRequirements>
+	| ScheduledWorker<TRequirements>;
 
 export interface ScheduleDefinition<TName extends string = string> {
 	readonly _tag: "ScheduleDefinition";
