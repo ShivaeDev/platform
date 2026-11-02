@@ -5,6 +5,7 @@ import {
 	draftTyped,
 	firstSessionDraft,
 	invalidInputTyped,
+	persistedDraft,
 	restoredAfterReload,
 	typedThenRefreshed,
 	unavailableStorage,
@@ -140,4 +141,12 @@ drafts.it("a reload restores input the Schema cannot decode", [invalidInputTyped
 	yield* reload();
 
 	expect(yield* fields()).toEqual({ name: "", quantity: "-" });
+});
+
+drafts.it("draft timestamps follow the setup's controlled clock", [persistedDraft()], function* ({ ageBy, type, updatedAt }) {
+	const elapsed = 3456;
+	yield* ageBy(elapsed);
+	yield* type("name", "Timed answer");
+
+	expect(yield* updatedAt()).toBe(elapsed);
 });

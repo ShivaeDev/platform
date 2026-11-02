@@ -1,4 +1,5 @@
 import type { Effect } from "effect";
+import type { draftPersistence } from "@shivaedev/form/adapters/draftPersistence.ts";
 import type { Form } from "@shivaedev/form/shape.ts";
 import type { Create } from "#client/create.ts";
 import type { DraftFields } from "./draftFields.ts";
@@ -12,5 +13,5 @@ export interface CreateHeld {
 export interface ProbeProps {
 	readonly create: CreateEffect;
 	readonly held: CreateHeld;
-	readonly now: () => number;
+	readonly persistence: Effect.Success<typeof draftPersistence>;
 }

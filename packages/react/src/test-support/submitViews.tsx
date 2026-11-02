@@ -2,7 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useMemo } from "react";
-import { useField, useSubmit } from "@shivaedev/form/client/react.ts";
+import { useField, useSubmit } from "@shivaedev/form/adapters/react.ts";
 import { useCreate } from "#client/create.ts";
 import { type Editor, useEditor } from "#client/editor.ts";
 

@@ -2,13 +2,14 @@ import { Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { Activity, act, StrictMode, Suspense, startTransition } from "react";
+import type { draftPersistence } from "@shivaedev/form/adapters/draftPersistence.ts";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { DraftScreen } from "./DraftScreen.tsx";
 import { DraftSuspender } from "./DraftSuspender.tsx";
 import { draftInitial, type Held, type Row } from "./draftFields.ts";
 
-export async function suspendedDraftView(view: Rendered, now: () => number) {
+export async function suspendedDraftView(view: Rendered, persistence: Effect.Success<typeof draftPersistence>) {
 	const query = Atom.make<AsyncResult.AsyncResult<Row>>(AsyncResult.success(draftInitial));
 	const held = new Map<string, Held>();
 	const pending = Promise.withResolvers<void>();
@@ -28,7 +29,7 @@ export async function suspendedDraftView(view: Rendered, now: () => number) {
 			<>
 				<DraftScreen
 					held={record}
-					persistedDraft={{ key: "transition-draft", now }}
+					persistedDraft={{ key: "transition-draft", ...persistence }}
 					query={query}
 					save={(values) => Effect.succeed({ ...values, quantity: String(values.quantity) })}
 				/>
