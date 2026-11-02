@@ -184,6 +184,24 @@ Provide `app(privateKey)` once around `bothInstallations` or the application. Ea
 
 The shared cache holds at most 100 installation clients and evicts the least recently used client when full. Selecting a client renews its 30-minute idle lifetime; a client idle for that interval is replaced on its next selection. Expiry is lazy, with no background timer. Eviction discards the client's token and request state, and its next request exchanges a new token. Keep operations inside `withInstallation` so each selection uses the cache's current client.
 
+### Repositories visible to an account
+
+Pass the GitHub account from your application's session to `GitHubApp.viewerRepositories(account)`. A number is a GitHub account ID; a string is a login. Provide the same `githubApp(credentials)` Layer as above. The package has no dependency on your session or identity service.
+
+```ts
+import { Effect } from "effect";
+import { GitHubApp } from "@shivaedev/github/installationClients.ts";
+
+const access = Effect.gen(function* () {
+	const app = yield* GitHubApp;
+	return yield* app.viewerRepositories(12345);
+});
+```
+
+The result contains `readable` and `administrable` arrays. Each entry has `id`, `name`, `owner.login`, `htmlUrl`, `private` and `installationId`. Only repositories installed for this App are included, across all installation and repository pages. Public repositories are readable even without a collaborator grant. Private repositories require GitHub's `read`, `triage`, `write`, `maintain` or `admin` permission; only `admin` grants administration. A permission lookup returning 404 means no collaborator grant. Other lookup failures fail the operation instead of returning partial access. The App needs repository Metadata read permission for these lookups.
+
+Successful results are cached for 60 seconds, across at most 100 account keys, evicting the least recently used key when full. Login casing shares a key. Reads do not extend the lifetime. After expiry, the next call revalidates installation lists, repository lists and permissions, so revoked access, changed roles and removed repositories remain cached for at most that interval. Failed lookups are immediately eligible for another attempt. These are cached observations of GitHub access; the application chooses its authorization policy.
+
 `scope` accepts `repositoryIds` or `repositories` (repository names), and a `permissions` record of GitHub permission names to `"read"`, `"write"` or `"admin"`. Omit `scope` for the installation's full access. Explicit `{ permissions: { metadata: "read" } }` requests a metadata-only token for access checks. GitHub decides whether the requested scope is allowed.
 
 Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets", scope? }`. The Layer resolves the installation through `GET /repos/{owner}/{repo}/installation` before exchanging the App JWT for an installation token. Signing uses Node's built-in crypto. The RS256 JWT carries the App ID as `iss`, `iat` 60 seconds before the current time, and `exp` ten minutes ahead.
