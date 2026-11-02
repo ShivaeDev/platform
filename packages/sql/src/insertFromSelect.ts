@@ -29,7 +29,7 @@ export function makeInsertFromSelect<TServices = never>(
 	sql: SqlClient.SqlClient,
 	options: { readonly tableName: string; readonly spanPrefix: string; readonly changes: RepositoryChanges },
 	operation: string,
-	prepare: (columns: readonly string[]) => Effect.Effect<Fragment, Schema.SchemaError, TServices> = () => Effect.succeed(sql``),
+	prepare: (columns: readonly string[]) => Effect.Effect<Fragment, SqlError | Schema.SchemaError, TServices> = () => Effect.succeed(sql``),
 ) {
 	const decode = Schema.decodeUnknownEffect(Schema.Array(model));
 	return (source: RepositorySelect<Schema.Struct.Fields, unknown>, columns: Readonly<Record<string, string>>) =>

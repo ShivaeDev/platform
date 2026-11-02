@@ -419,7 +419,7 @@ const entries = yield* makeRepository(Entry, {
 const inserted = yield* entries.insertManyOrIgnore(inputs);
 ```
 
-All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = $n` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses typed equality entries like `findMany.where`: decoded field values pass through their field codecs and remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
+All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = 'x'` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses typed equality entries like `findMany.where`: decoded field values pass through their field codecs. PostgreSQL quotes the encoded target values in one preliminary query so the conflict target contains constants and matches the partial index under both default and generic plans. Insert values and `updateWhere` operands remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
 
 Declare conflict behavior per field in the same `updateColumns` list:
 
