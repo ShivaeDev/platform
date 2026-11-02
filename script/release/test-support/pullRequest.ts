@@ -1,6 +1,7 @@
 import { NodeServices } from "@effect/platform-node";
 import { Clock, Effect, Exit, Fiber, Layer, Option } from "effect";
 import { FetchHttpClient } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
@@ -9,6 +10,7 @@ import { checkPlatform } from "#release/check.ts";
 import { compareRelease } from "#release/compare.ts";
 import { releaseGitHub } from "#release/gitHub.ts";
 import { maintainPullRequest } from "#release/maintainPullRequest.ts";
+import { preparePublish } from "#release/preparePublish.ts";
 import { publishNotes } from "#release/publishNotes.ts";
 import { publishPackages } from "#release/publishPackages.ts";
 import { commitHook } from "./commitHook.ts";
@@ -69,15 +71,22 @@ export const releasePullRequest = storyKit({
 					Effect.map((failure) => failure._tag),
 				),
 			git: (...args: readonly string[]) => Effect.sync(() => git(...args)),
+			publish: (before: string) =>
+				Effect.gen(function* () {
+					const { base, head } = yield* preparePublish(root, "example/workspace", git("rev-parse", "HEAD"), before);
+					yield* publishPackages(root, base);
+					yield* publishNotes(root, "example/workspace", base, head);
+				}).pipe(Effect.provide(context), Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined })),
+			publishedFile: (name: string, path: string) => registry.file(name, path),
 			publishedPackages: () => Effect.sync(registry.publications),
 			publishNotes: (base: string) => publishNotes(root, "example/workspace", base, git("rev-parse", "HEAD")).pipe(Effect.provide(context)),
-			publishPackages: (base: string) => publishPackages(root, base),
 			pushMain,
 			queue: () =>
 				Effect.sync(() => {
 					api.state.queued = true;
 				}),
 			readGitHub: () => Effect.sync(() => structuredClone(api.state)),
+			replyToMergedPulls: (body: unknown) => server.scriptFault("runs", { kind: "status", reply: { body, status: HttpStatus.fromLiteral("OK") } }),
 			replyToSnapshot: (body: unknown, status: number) => server.scriptFault("graphql", { kind: "status", reply: { body, status } }),
 			run,
 			setCiRun: (status: string, conclusion: string | null = null) =>

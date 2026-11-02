@@ -32,7 +32,7 @@ if (import.meta.main) {
 				process.cwd(),
 				yield* Config.String("GITHUB_REPOSITORY"),
 				yield* Config.String("CHANGELOG_BASE_REF"),
-				yield* Config.String("GITHUB_SHA"),
+				yield* Config.String("RELEASE_HEAD_SHA"),
 			);
 		}).pipe(Effect.provide(githubLayer), Effect.provide(NodeServices.layer)),
 	);
