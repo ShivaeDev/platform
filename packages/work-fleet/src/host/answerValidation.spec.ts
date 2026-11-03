@@ -40,7 +40,10 @@ for (const worker of [false, true]) {
 				});
 				expect(daemon.receiptFiles().map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
 				if (worker && !release) {
-					expect(answered.attempts.at(-1)).toMatchObject({ prompt: text, receipt: { sessionId: started.attempts[0]?.receipt?.sessionId } });
+					expect(answered.attempts.at(-1)).toMatchObject({
+						prompt: expect.stringContaining(text),
+						receipt: { sessionId: started.attempts[0]?.receipt?.sessionId },
+					});
 				}
 			},
 		);

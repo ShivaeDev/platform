@@ -10,10 +10,11 @@ import type { EngineState } from "#engine/makeState.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { saveLaunch } from "#engine/saveLaunch.ts";
 import { submitLaunch } from "#engine/submitLaunch.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
 import { policyGuidance } from "#policyGuidance.ts";
-import { reportPrompt, withWorkerGuidance } from "#prompt/worker.ts";
+import { reportPrompt, resultPrompt, withWorkerGuidance } from "#prompt/worker.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeLaunch(state: EngineState) {
 	const { store, board, sessions, load } = state;
@@ -56,7 +57,7 @@ export function makeLaunch(state: EngineState) {
 			sessionId,
 			settings: retrySettings,
 		} = yield* launchInput(stored.value, role, continuation?.sessionId);
-		const workerPrompt = answeredPrompt(stored.value, prompt, retryPrompt, yield* policyGuidance(policy, "worker"));
+		const workerPrompt = answeredPrompt(stored.value, prompt, retryPrompt, yield* policyGuidance(policy, "worker"), policy.repository);
 		const quota = yield* policy.refreshQuota === undefined ? Effect.succeed(policy.quota) : policy.refreshQuota();
 		yield* admit(
 			work,
@@ -92,15 +93,31 @@ export function makeLaunch(state: EngineState) {
 	});
 }
 
-export function launchPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string): string {
-	const queuedPrompt = retryPrompt ?? prompt;
-	return withWorkerGuidance(
-		record.deliverable === "report" && retryPrompt === undefined ? reportPrompt(queuedPrompt, record.preparation.baseRevision) : queuedPrompt,
-		guidance,
-	);
+export function launchPrompt(
+	record: FleetRecord,
+	prompt: string,
+	retryPrompt: string | undefined,
+	guidance?: string,
+	repository?: FleetConfiguration["repository"],
+): string {
+	let queuedPrompt = retryPrompt ?? prompt;
+	if (record.deliverable === "report") {
+		if (retryPrompt === undefined) {
+			queuedPrompt = reportPrompt(queuedPrompt, record.preparation.baseRevision, repository);
+		}
+	} else {
+		queuedPrompt = resultPrompt(queuedPrompt, repository?.branch);
+	}
+	return withWorkerGuidance(queuedPrompt, guidance);
 }
 
-function answeredPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string) {
+function answeredPrompt(
+	record: FleetRecord,
+	prompt: string,
+	retryPrompt: string | undefined,
+	guidance?: string,
+	repository?: FleetConfiguration["repository"],
+) {
 	const queuedPrompt = [retryPrompt ?? prompt, ...(record.pendingAnswers ?? [])].join("\n\n");
-	return launchPrompt(record, queuedPrompt, retryPrompt === undefined ? undefined : queuedPrompt, guidance);
+	return launchPrompt(record, queuedPrompt, retryPrompt === undefined ? undefined : queuedPrompt, guidance, repository);
 }

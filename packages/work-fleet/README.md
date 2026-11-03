@@ -91,7 +91,7 @@ Put `fleet.config.json` in the Board folder. For `up` or `serve`, `--config <fil
 
 Replace the placeholders with trusted host settings. Missing or invalid configuration fails.
 
-`cloud.environmentId` identifies the Codex Cloud environment configuration, and `cloud.cwd` identifies its workspace. The Cloud transport confirms the returned environment before starting a turn. It rejects work prepared for a different workspace and rejects an echoed service tier that differs from the requested tier. `worker` supplies the branch prefix and environment script path used in the generated worker instructions.
+`cloud.environmentId` identifies the Codex Cloud environment configuration, and `cloud.cwd` identifies its workspace. The Cloud transport confirms the returned environment before starting a turn. It rejects work prepared for a different workspace and rejects an echoed service tier that differs from the requested tier. `worker` supplies the branch prefix and environment script path used in the generated worker instructions. Optional `worker.setupCommand` sets the setup command in Cloud worker instructions; it defaults to `./script/update`.
 
 The hosted Codex transport sends the configured environment and launch fields, then reads the final answer from a terminal turn. It authenticates from a Codex login file and can run a configured refresh command for an expired login; a failed refresh leaves the provider unavailable. `cloud.authFile` names the login file, which defaults to `auth.json` under `CODEX_HOME` or `~/.codex`, and `cloud.refreshCommand` (`{ "command": ..., "args": [...] }`) replaces the default `codex app-server --listen stdio://` refresh.
 
@@ -99,7 +99,7 @@ Cloud host configuration also accepts `cloud.threadNamePrefix` (default `Fleet: 
 
 `"provider": "local"` runs workers through a local Codex app-server instead and needs `local.endpoint`, a loopback `ws://` address, with optional `local.requestTimeoutMs` (default 30 seconds).
 
-`repository` names the Git remote and base branch Fleet observes, `{ "remote": "origin", "branch": "main" }` by default. `"result": "github"` adopts worker results from GitHub pull requests, as described under [After launch: adoption](#after-launch-adoption).
+`repository` names the Git remote and base branch Fleet observes and includes in Cloud worker instructions, `{ "remote": "origin", "branch": "main" }` by default. `"result": "github"` adopts worker results from GitHub pull requests, as described under [After launch: adoption](#after-launch-adoption).
 
 Each task can override `launch` per field, as described under [Approve a task](#approve-a-task).
 

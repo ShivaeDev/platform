@@ -1,5 +1,4 @@
 import { expect } from "@effect/vitest";
-import { withWorkerGuidance } from "#prompt/worker.ts";
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 import { queuedHostLaunch } from "#test/queuedHostLaunch.ts";
@@ -19,7 +18,8 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				throw new Error("Missing pending retry");
 			}
 			expect(retry).toEqual({ rejectedAt: 100, rejections: 1, retryAt: 30_100 });
-			expect(failed?.prompt).toBe(withWorkerGuidance(source, WORKER_GUIDANCE));
+			expect(failed?.prompt).toContain(source);
+			expect(failed?.prompt).toContain(WORKER_GUIDANCE);
 			const current = task("one", "approved", "New criteria.");
 			daemon.writeBoard("one.md", current);
 			daemon.acceptQueuedLaunches();
@@ -40,10 +40,11 @@ for (const rejectedCall of ["session", "turn"] as const) {
 			const accepted = yield* daemon.get("one");
 			expect(accepted.step).toBe("working");
 			expect(accepted.attempts[0]).toEqual(failed);
-			expect(accepted.attempts.at(-1)).toMatchObject({ prompt: withWorkerGuidance(current, WORKER_GUIDANCE), settings: failed?.settings });
-			expect(daemon.queuedProvider().observations.get(accepted.attempts.at(-1)?.receipt?.turnId ?? "")?.output).toBe(
-				withWorkerGuidance(current, WORKER_GUIDANCE),
-			);
+			expect(accepted.attempts.at(-1)).toMatchObject({ prompt: expect.stringContaining(current), settings: failed?.settings });
+			const received = daemon.queuedProvider().submittedTurns.at(-1)?.prompt;
+			expect(received).toContain(current);
+			expect(received).toContain(WORKER_GUIDANCE);
+			expect(received).not.toContain("Original criteria.");
 			expect(accepted.history ?? []).toEqual([]);
 			if (rejectedCall === "turn") {
 				expect(accepted.attempts.at(-1)?.receipt?.sessionId).toBe(failed?.sessionId);

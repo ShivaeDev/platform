@@ -20,7 +20,7 @@ host.it("an answer reaches its waiting worker when another publisher registers t
 	expect(resumed.responses).toMatchObject([{ action: "continue", boardAcknowledged: true, questionId: published.questionId }]);
 	const continued = yield* daemon.reconcile("one");
 	expect(continued.step).toBe("working");
-	expect(continued.attempts.at(-1)?.prompt).toBe(text);
+	expect(continued.attempts.at(-1)?.prompt).toContain(text);
 	expect(continued.attempts.at(-1)?.receipt?.sessionId).toBe(started.attempts.at(-1)?.receipt?.sessionId);
 	expect(daemon.providerCalls().map((call) => call.call)).toEqual(["session", "turn", "turn"]);
 });

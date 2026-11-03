@@ -40,7 +40,11 @@ isolatedEngine.it(
 		expect(pendingAnswerAttempt()?.receipt).toBeUndefined();
 		expect(continued.step).toBe("working");
 		expect(continued.decision).toBeUndefined();
-		expect(continued.attempts.at(-1)).toMatchObject({ prompt: answer.body, receipt: { sessionId: decision.worker?.sessionId }, status: "running" });
+		expect(continued.attempts.at(-1)).toMatchObject({
+			prompt: expect.stringContaining(answer.body),
+			receipt: { sessionId: decision.worker?.sessionId },
+			status: "running",
+		});
 		expect(answerRecoveries()).toBe(0);
 		expect(launches()).toEqual(["operation-1"]);
 		expect(

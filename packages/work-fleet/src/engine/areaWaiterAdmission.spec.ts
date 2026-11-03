@@ -21,7 +21,7 @@ isolatedEngine.it(
 			["two", () => blockerOf("two"), "waiting for area docs/framework/quickstart held by one"],
 			["attempts on two", () => attemptsOf("two"), 0],
 			["stages", () => workStages(["two", "later"]), { later: "working", two: "queued" }],
-			["launched prompts", () => launchedPrompts(), ["Implement one", "Implement later"]],
+			["launched prompts", () => launchedPrompts(), [expect.stringContaining("Implement one"), expect.stringContaining("Implement later")]],
 		]);
 	},
 );
@@ -50,7 +50,7 @@ isolatedEngine.it(
 		yield* schedule();
 		yield* outcomes([
 			["later", () => workStages(["later"]), { later: "working" }],
-			["launched prompts", () => launchedPrompts(), ["Implement two", "Implement later"]],
+			["launched prompts", () => launchedPrompts(), [expect.stringContaining("Implement two"), expect.stringContaining("Implement later")]],
 		]);
 	},
 );
@@ -99,7 +99,7 @@ for (const priority of ["urgent", "high"] as const) {
 
 			yield* outcomes([
 				["stages", () => workStages(["waiter", "two", "later"]), { later: "queued", two: "queued", waiter: "working" }],
-				["launched prompts", () => launchedPrompts(), ["Implement one", "Implement waiter"]],
+				["launched prompts", () => launchedPrompts(), [expect.stringContaining("Implement one"), expect.stringContaining("Implement waiter")]],
 			]);
 		},
 	);

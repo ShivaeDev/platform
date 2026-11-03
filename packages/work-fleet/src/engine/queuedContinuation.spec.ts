@@ -47,7 +47,7 @@ for (const step of ["waiting", "done"] as const) {
 			expect(resumed.pendingContinuation).toBeUndefined();
 			expect(resumed.attempts).toMatchObject([
 				{
-					prompt: "Fix the remaining case",
+					prompt: expect.stringContaining("Fix the remaining case"),
 					receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
 					role: "repair",
 				},
@@ -81,7 +81,7 @@ isolatedEngine.it("additional instructions join the queued continuation on the s
 	yield* fleet.reconcile("two");
 	yield* fleet.schedule();
 	expect((yield* fleet.get("one")).value.attempts[0]).toMatchObject({
-		prompt: "Fix the remaining case\n\nAlso cover empty inputs",
+		prompt: expect.stringContaining("Fix the remaining case\n\nAlso cover empty inputs"),
 		receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
 	});
 });

@@ -1,7 +1,8 @@
 import { Effect, Layer } from "effect";
 import { FleetRepository, fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import { Fleet } from "#fleet.ts";
-import { BoardFailure, type BoardGateway, type FleetConfiguration, FleetPolicy, type Priority } from "#policy.ts";
+import { BoardFailure, type BoardGateway, FleetPolicy, type Priority } from "#policy.ts";
 import { SessionJournal, SessionService } from "#session/service.ts";
 import { attentionStorage } from "#test/attentionStorage.ts";
 import { boardWork } from "#test/boardWork.ts";

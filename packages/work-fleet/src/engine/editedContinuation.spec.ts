@@ -80,7 +80,7 @@ isolatedEngine.it("continue retries a daemon save made during provider observati
 	const continued = yield* Fiber.join(continuing);
 	expect(continued.value.step).toBe("working");
 	expect(continued.value.history?.[0]?.blocker).toBe("Human requested clarification: response.defer");
-	expect(continued.value.attempts).toEqual([expect.objectContaining({ prompt: "Use PostgreSQL", role: "repair" })]);
+	expect(continued.value.attempts).toEqual([expect.objectContaining({ prompt: expect.stringContaining("Use PostgreSQL"), role: "repair" })]);
 });
 
 isolatedEngine.it("unchanged waiting reconciliation leaves storage untouched", [markdownWork()], function* (fleet) {

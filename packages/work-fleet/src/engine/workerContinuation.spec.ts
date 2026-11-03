@@ -20,7 +20,7 @@ isolatedEngine.it(
 		yield* Fiber.interrupt(resolving);
 		const intent = (yield* fleet.get("one")).value;
 		expect(intent.responses).toMatchObject([{ decisionId: decision.id, responseId: answer.id }]);
-		expect(intent.attempts.at(-1)?.prompt).toBe(answer.body);
+		expect(intent.attempts.at(-1)?.prompt).toContain(answer.body);
 		expect(intent.attempts.at(-1)?.sessionId).toBe(decision.worker?.sessionId);
 		expect(intent.attempts.at(-1)?.receipt).toBeUndefined();
 		yield* afterRestart(
@@ -83,6 +83,6 @@ isolatedEngine.it(
 		const continued = (yield* fleet.reconcile("one")).value;
 		expect(continued.step).toBe("working");
 		expect(continued.responses).toMatchObject([{ responseId: answer.id }]);
-		expect(continued.attempts.at(-1)?.prompt).toBe(answer.body);
+		expect(continued.attempts.at(-1)?.prompt).toContain(answer.body);
 	},
 );

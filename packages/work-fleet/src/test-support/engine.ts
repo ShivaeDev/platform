@@ -1,8 +1,9 @@
 import { Effect, type Layer } from "effect";
 import type { BoardDecisionAcknowledgement } from "#board/schema.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
-import type { BoardGateway, BoardWork, FleetConfiguration, Priority } from "#policy.ts";
+import type { BoardGateway, BoardWork, Priority } from "#policy.ts";
 import type { ForeignReservation } from "#storage/model.ts";
 import { createEngine } from "#test/createEngine.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";

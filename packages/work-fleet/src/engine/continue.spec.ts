@@ -14,7 +14,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 	isolatedEngine.it(
 		"continues waiting work through native RPC and replaces the old result with the new output",
 		[failedChecksWithWorkerEvidence],
-		function* ({ acknowledgements, rpcDispatch, rpcReconcileRequest, rpcContinue, rpcViews, finishWorkers, prepareWork }) {
+		function* ({ acknowledgements, rpcDispatch, rpcReconcileRequest, rpcContinue, rpcViews, finishWorkers, workerReports, prepareWork }) {
 			yield* prepareWork("one");
 			const first = yield* rpcDispatch("one");
 			finishWorkers();
@@ -24,7 +24,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 			const continued = yield* rpcContinue({ message: "Fix the remaining criterion", workId: "one" });
 			expect(continued.step).toBe("working");
 			expect(continued.attempts[0]).toMatchObject({
-				prompt: "Fix the remaining criterion",
+				prompt: expect.stringContaining("Fix the remaining criterion"),
 				receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
 				role: "repair",
 			});
@@ -35,12 +35,12 @@ describe("Fleet continuation against PostgreSQL", () => {
 			const active = yield* rpcViews();
 			expect(active.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
 			expect(active.active[0]?.blocker).toBeUndefined();
-			finishWorkers();
+			workerReports("Implemented the remaining criterion.");
 			const completed = yield* rpcReconcileRequest({ workId: "one" });
 			expect(completed.step).toBe("done");
-			expect(completed.result).toMatchObject({ evidence: ["Fix the remaining criterion"] });
-			expect(settled("one", completed)?.summary).toBe("one done: Fix the remaining criterion");
-			expect(views([completed]).completed[0]?.outcome).toEqual({ evidence: ["Fix the remaining criterion"] });
+			expect(completed.result).toMatchObject({ evidence: ["Implemented the remaining criterion."] });
+			expect(settled("one", completed)?.summary).toBe("one done: Implemented the remaining criterion.");
+			expect(views([completed]).completed[0]?.outcome).toEqual({ evidence: ["Implemented the remaining criterion."] });
 			expect(acknowledgements()).toContainEqual(expect.objectContaining({ disposition: "superseded" }));
 		},
 	);
@@ -56,7 +56,11 @@ describe("Fleet continuation against PostgreSQL", () => {
 			loseAcknowledgement();
 			const continued = yield* fleet.continue("one", "Check one more case");
 			expect(continued.value.step).toBe("working");
-			expect(continued.value.attempts[0]).toMatchObject({ prompt: "Check one more case", sessionId: "session-operation-1", status: "submitting" });
+			expect(continued.value.attempts[0]).toMatchObject({
+				prompt: expect.stringContaining("Check one more case"),
+				sessionId: "session-operation-1",
+				status: "submitting",
+			});
 			expect(continued.value.attempts[0]?.receipt).toBeUndefined();
 			expect(yield* refusal(fleet.continue("one", "Do not replay"))).toMatch(/^forbidden: /u);
 			yield* restart();
@@ -107,7 +111,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 
 			expect(results.filter((outcome) => outcome === "accepted")).toEqual(["accepted"]);
 			const continued = (yield* fleet.get("one")).value;
-			expect(continued.attempts).toMatchObject([{ prompt: expect.stringMatching(/^(?:First|Second)$/u), role: "repair" }]);
+			expect(continued.attempts).toMatchObject([{ prompt: expect.stringMatching(/^(?:First|Second)\n\n/u), role: "repair" }]);
 			expect(providerOperations()).toEqual([...previousOperations, ...continued.attempts.map(({ operationId }) => operationId)]);
 		},
 	);

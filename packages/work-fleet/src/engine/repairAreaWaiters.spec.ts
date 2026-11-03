@@ -84,7 +84,7 @@ isolatedEngine.it("a new launch starts immediately when no item waits for its ar
 	fleet.setAreas("one", ["shared"]);
 	yield* fleet.prepareWork("one");
 	expect((yield* fleet.dispatch("one")).value).toMatchObject({ step: "working" });
-	expect(fleet.providerStarts()).toMatchObject([{ prompt: "Implement one" }]);
+	expect(fleet.providerStarts()).toMatchObject([{ prompt: expect.stringContaining("Implement one") }]);
 });
 
 isolatedEngine.it("a revised queued brief rejoins behind existing equal-priority area waiters", [], function* (fleet) {

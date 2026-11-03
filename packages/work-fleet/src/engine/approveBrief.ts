@@ -9,6 +9,7 @@ import { launchPrompt } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { revisedPrompt } from "#engine/revisedPrompt.ts";
 import { briefSteerIntent, steerBrief } from "#engine/steerBrief.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
 import type { BoardWork, DecisionResponse } from "#policy.ts";
 import { briefEditPrompt } from "#prompt/briefEdit.ts";
@@ -43,7 +44,7 @@ export function approveBrief(state: EngineState) {
 			boardRevision: work.revision,
 			boardSourcePath: work.sourcePath,
 			checks: undefined,
-			launchRetry: revisedRetry(record, approvedPrompt, state.policy.workerGuidance),
+			launchRetry: revisedRetry(record, approvedPrompt, state.policy.workerGuidance, state.policy.repository),
 			mergeAreasReleased: undefined,
 			mergeReadyAt: undefined,
 			mergeReadyHead: undefined,
@@ -88,12 +89,12 @@ export function approveDispatchedBrief(state: EngineState, stored: Versioned<Fle
 		: Effect.succeed(stored);
 }
 
-function revisedRetry(record: FleetRecord, prompt: string, guidance?: string) {
+function revisedRetry(record: FleetRecord, prompt: string, guidance?: string, repository?: FleetConfiguration["repository"]) {
 	return record.launchRetry === undefined
 		? undefined
 		: {
 				...record.launchRetry,
-				prompt: launchPrompt(record, prompt, undefined, guidance),
+				prompt: launchPrompt(record, prompt, undefined, guidance, repository),
 			};
 }
 

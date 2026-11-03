@@ -25,8 +25,11 @@ for (const release of [false, true]) {
 		const applied = yield* daemon.reconcile("one");
 		expect(applied.responses).toMatchObject([{ boardAcknowledged: true, responseId }]);
 		if (!release) {
-			expect(applied.attempts.at(-1)?.prompt).toBe("Use PostgreSQL.");
-			expect(applied.attempts).toMatchObject([{ operationId: started.attempts[0]?.operationId }, { prompt: "Use PostgreSQL.", role: "worker" }]);
+			expect(applied.attempts.at(-1)?.prompt).toContain("Use PostgreSQL.");
+			expect(applied.attempts).toMatchObject([
+				{ operationId: started.attempts[0]?.operationId },
+				{ prompt: expect.stringContaining("Use PostgreSQL."), role: "worker" },
+			]);
 			daemon.finishTurn(applied, "FLEET_QUESTION: Which storage should I use?");
 			yield* daemon.reconcile("one");
 		}

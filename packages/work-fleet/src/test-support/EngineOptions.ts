@@ -2,6 +2,7 @@ import type { Effect, Layer } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
 import type { BoardAcknowledgementStale, BoardDecisionAcknowledgement } from "#board/schema.ts";
 import type { FleetError } from "#errors.ts";
+import type { FleetConfiguration } from "#FleetConfiguration.ts";
 import type { FleetRecord } from "#model.ts";
 import type {
 	BoardFailure,
@@ -10,7 +11,6 @@ import type {
 	ChangeResult,
 	Checks,
 	Delivery,
-	FleetConfiguration,
 	FleetIntegrations,
 	WorkPublication,
 	WorkResult,
