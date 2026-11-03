@@ -13,7 +13,7 @@ const Installed = defineQueue({ name: "installed", schema: Schema.Struct({ value
 schemaKit.it(
 	"a runtime on a clone of the installed template runs a deferred job without migrating",
 	[installedTemplate],
-	function* ({ attempts, enqueue, job, start, storedRows, untilJob }) {
+	function* ({ attempts, enqueue, job, start, storedRows, untilJob, pollNow }) {
 		yield* outcomes([
 			["instances", () => storedRows("jobs_test", "instance"), 0],
 			["queues", () => storedRows("jobs_test", "queue"), 0],
@@ -22,6 +22,7 @@ schemaKit.it(
 
 		yield* start("app", [worker(Installed, { defers: "Next fetch", until: "now" }, "succeeds")], { migrate: false, schema: "jobs_test" });
 		yield* enqueue("app", Installed, { value: 42 }, { as: "job" });
+		yield* pollNow("app", Installed);
 		yield* untilJob("job", "completed");
 
 		yield* outcomes([

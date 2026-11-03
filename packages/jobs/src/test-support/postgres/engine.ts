@@ -96,7 +96,7 @@ export const startRuntime = Effect.fnUntraced(function* (
 		connectionString: engine.url,
 		...layerOptions,
 		clientFactory: (construct) => {
-			const created = observeStops(engine, observeWakes(engine, name, factory(construct)));
+			const created = observeStops(engine, observeWakes(engine, name, factory({ ...construct, clock: engine.clock })));
 			client = handsBatchesOver === undefined ? created : sortBatches(created);
 			if (changeNotificationsWaitFor !== undefined) {
 				pauseChangeNotifications(engine, client, changeNotificationsWaitFor);
@@ -182,7 +182,7 @@ export const admin = Effect.fnUntraced(function* (engine: DatabaseEngine, schema
 	if (existing !== undefined) {
 		return existing;
 	}
-	const client = new PgBoss({ connectionString: Redacted.value(engine.url), schedule: false, schema, supervise: false });
+	const client = new PgBoss({ clock: engine.clock, connectionString: Redacted.value(engine.url), schedule: false, schema, supervise: false });
 	client.on("error", (error) =>
 		engine.logs.push({ annotations: {}, level: "Error", message: error.message, runtime: "administrator", spanId: undefined }),
 	);

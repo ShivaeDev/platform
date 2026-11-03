@@ -25,10 +25,11 @@ const chained = running(
 database.it(
 	"a handler's follow-up job runs on its own queue and enqueues a producer job that decodes",
 	[chained],
-	function* ({ enqueue, handled, storedPayloads, untilFinished }) {
+	function* ({ enqueue, handled, storedPayloads, untilFinished, pollNow }) {
 		expect(yield* storedPayloads(Producer)).toEqual([]);
 
 		yield* enqueue("app", Source, { id: 42 }, { as: "job 42" });
+		yield* pollNow("app", Source);
 		yield* untilFinished(FollowUp, 1);
 
 		yield* outcomes([
@@ -49,10 +50,13 @@ database.it(
 			schedule: false,
 		}),
 	],
-	function* ({ askTesting, handled, untilFinished }) {
+	function* ({ askTesting, handled, untilFinished, pollNow }) {
 		expect(yield* handled(Message)).toEqual([]);
 
 		yield* askTesting("app", "trigger the hourly schedule", (testing) => testing.trigger(Hourly));
+		yield* pollNow("app", Hourly);
+		yield* untilFinished(Hourly, 1);
+		yield* pollNow("app", Message);
 		yield* untilFinished(Message, 1);
 
 		expect(yield* handled(Message)).toEqual([{ message: SCHEDULED_MESSAGE }]);

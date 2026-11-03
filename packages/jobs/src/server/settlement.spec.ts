@@ -103,8 +103,10 @@ for (const reads of [
 	runtime.it(
 		`when claim reads ${reads.how} after an interruption, the batch gives up a second past its deadline with a logged settle error`,
 		[...reads.given, running("app", [worker(Reports, "hangs")])],
-		function* ({ batchAnswer, batchFailureMessage, deliver, deliveryReturned, logged }) {
-			yield* deliver("reports", [{ data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 }]);
+		function* ({ batchAnswer, batchFailureMessage, clockPasses, deliveryFinishes, deliveryReturned, logged, startsDelivering }) {
+			yield* startsDelivering("reports", { data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 });
+			yield* clockPasses(1100);
+			yield* deliveryFinishes();
 
 			yield* outcomes([
 				["batch", () => batchAnswer(), expect.stringMatching(/^rejected with settle reports failed with Operation timed out/u)],
@@ -123,8 +125,10 @@ for (const reads of [
 runtime.it(
 	"while an interrupted claim stays active, the batch reads it back off to at most ten reads before giving up",
 	[storedJob(stored("reports", "job-1", { id: 1 }, "active")), running("app", [worker(Reports, "hangs")])],
-	function* ({ claimReads, deliver }) {
-		yield* deliver("reports", [{ data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 }]);
+	function* ({ claimReads, clockPasses, deliveryFinishes, startsDelivering }) {
+		yield* startsDelivering("reports", { data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 });
+		yield* clockPasses(1100);
+		yield* deliveryFinishes();
 
 		expect(yield* claimReads()).toBeLessThanOrEqual(10);
 	},

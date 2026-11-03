@@ -4,24 +4,30 @@ import { database } from "./database.ts";
 import { type StartOptions, startRuntime } from "./engine.ts";
 
 export function runningWithClockOffset(name: string, jobs: readonly Registration[], offset: number, options: StartOptions) {
-	return database.trait("runtime", `${name} runs with its clock ${offset} ms from PostgreSQL`, (engine) => {
-		const live = Clock.Clock.defaultValue();
+	return database.trait("runtime", `${name} runs with its clock ${offset} ms from PostgreSQL`, function* (engine) {
+		const clock = yield* Clock.Clock;
 		function currentTimeMillisUnsafe() {
-			return live.currentTimeMillisUnsafe() + offset;
+			return clock.currentTimeMillisUnsafe() + offset;
 		}
 		function currentTimeNanosUnsafe() {
-			return live.currentTimeNanosUnsafe() + BigInt(offset) * 1_000_000n;
+			return clock.currentTimeNanosUnsafe() + BigInt(offset) * 1_000_000n;
 		}
-		return startRuntime(engine, name, jobs, options).pipe(
+		return yield* startRuntime(engine, name, jobs, options).pipe(
 			Effect.provideService(Clock.Clock, {
 				currentTimeMillis: Effect.sync(currentTimeMillisUnsafe),
 				currentTimeMillisUnsafe,
 				currentTimeNanos: Effect.sync(currentTimeNanosUnsafe),
 				currentTimeNanosUnsafe,
-				monotonicTimeNanos: live.monotonicTimeNanos,
-				monotonicTimeNanosUnsafe: () => live.monotonicTimeNanosUnsafe(),
-				sleep: (duration) => live.sleep(duration),
+				monotonicTimeNanos: clock.monotonicTimeNanos,
+				monotonicTimeNanosUnsafe: () => clock.monotonicTimeNanosUnsafe(),
+				sleep: (duration) => clock.sleep(duration),
 			}),
 		);
 	});
+}
+
+export function databaseTimeAt(date: string) {
+	return database.trait("database", `PostgreSQL's jobs clock is at ${date}`, (engine) =>
+		Effect.promise(() => engine.clock.setTime(Date.parse(date))),
+	);
 }

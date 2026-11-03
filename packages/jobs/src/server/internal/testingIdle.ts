@@ -1,4 +1,4 @@
-import { Clock, Effect } from "effect";
+import { Effect } from "effect";
 import type { PgBossTestingError } from "#server/error.ts";
 import type { PgBossInspectionService } from "#server/inspection.ts";
 import { testingInspection } from "#server/internal/testingOperation.ts";
@@ -32,5 +32,5 @@ export function testingIdle(
 			yield* wake;
 			yield* signal.waitForChange(revision);
 		}
-	}).pipe(Effect.provideService(Clock.Clock, Clock.Clock.defaultValue()));
+	});
 }

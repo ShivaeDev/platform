@@ -1,4 +1,4 @@
-import { Clock, Duration, Effect, Option, Redacted, type Schema } from "effect";
+import { Duration, Effect, Option, Redacted, type Schema } from "effect";
 import type { JobPayloadSchema, QueueDefinition } from "#server/definition.ts";
 import { type PgBossPayloadError, PgBossTestingError, PgBossWaitError } from "#server/error.ts";
 import type { PgBossInspectionService } from "#server/inspection.ts";
@@ -37,11 +37,7 @@ function waitUntil<A, E, R>(
 				yield* signal.waitForChange(revision);
 			}
 		});
-		return wait.pipe(
-			Effect.timeoutOrElse({ duration: within, orElse: () => Effect.fail(new PgBossWaitError({ lastSeen, waitingFor, within })) }),
-			// The budget is wall time, so a story's TestClock neither ends the wait early nor holds it open.
-			Effect.provideService(Clock.Clock, Clock.Clock.defaultValue()),
-		);
+		return wait.pipe(Effect.timeoutOrElse({ duration: within, orElse: () => Effect.fail(new PgBossWaitError({ lastSeen, waitingFor, within })) }));
 	});
 }
 

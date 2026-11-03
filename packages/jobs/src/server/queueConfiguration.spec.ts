@@ -53,8 +53,10 @@ const Contended = defineQueue({ name: "contended", queue: { partition: true }, s
 runtime.it(
 	"queue creation that PostgreSQL rolls back as a deadlock victim is tried again until it succeeds",
 	[queueCreationFails("PostgreSQL picks queue creation as a deadlock victim twice", deadlock(), deadlock())],
-	function* ({ createdQueues, queueCreationAttempts, start, startup }) {
-		yield* start("app", [Contended]);
+	function* ({ clockPasses, createdQueues, queueCreationAttempts, startsInBackground, startup, startupFinishes }) {
+		yield* startsInBackground("app", [Contended]);
+		yield* clockPasses(75);
+		yield* startupFinishes("app");
 
 		yield* outcomes([
 			["app runtime", () => startup("app"), "started"],
@@ -101,8 +103,10 @@ runtime.it(
 runtime.it(
 	"queue creation gives up after six deadlocks and fails registration with the last one",
 	[queueCreationFails("PostgreSQL picks queue creation as a deadlock victim seven times", ...Array.from({ length: 7 }, deadlock))],
-	function* ({ queueCreationAttempts, start, startup }) {
-		yield* start("app", [Contended]);
+	function* ({ clockPasses, queueCreationAttempts, startsInBackground, startup, startupFinishes }) {
+		yield* startsInBackground("app", [Contended]);
+		yield* clockPasses(775);
+		yield* startupFinishes("app");
 
 		yield* outcomes([
 			["app runtime", () => startup("app"), "register contended failed with deadlock detected"],

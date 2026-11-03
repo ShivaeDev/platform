@@ -19,8 +19,9 @@ const deferNow: Attempt = { defers: "Still limited", until: "now" };
 database.it(
 	"a job defers ten times by default before a further deferral spends an ordinary retry",
 	[running("app", [worker(Limited, ...Array.from({ length: DEFAULT_LIMIT + 1 }, () => deferNow), "succeeds")])],
-	function* ({ attemptCounts, enqueue, job, untilJob }) {
+	function* ({ attemptCounts, enqueue, job, untilJob, pollNow }) {
 		yield* enqueue("app", Limited, {}, { as: "job" });
+		yield* pollNow("app", Limited);
 		yield* untilJob("job", "completed");
 
 		yield* outcomes([

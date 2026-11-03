@@ -16,10 +16,13 @@ const Ruled = defineQueue({
 database.it(
 	"the idle wait returns once pg-boss's native timeout fails a stuck attempt",
 	[running("app", [worker(Ruled, "hangs")], { controller: "test retries" })],
-	function* ({ attempts, enqueue, job, untilIdle }) {
+	function* ({ attempts, enqueue, job, timePasses, untilAttempts, untilIdle, pollNow }) {
 		expect(yield* attempts(Ruled)).toEqual([]);
 
 		yield* enqueue("app", Ruled, { id: 14 }, { as: "job", expireInSeconds: 1, retryLimit: 0 });
+		yield* pollNow("app", Ruled);
+		yield* untilAttempts(Ruled, 1);
+		yield* timePasses("1 second");
 		yield* untilIdle("app");
 
 		yield* outcomes([
@@ -44,10 +47,11 @@ database.it(
 		enqueued(Ruled, { id: 13 }, { as: "third-claim job" }),
 		controlled((testing) => testing.expireAfter(Ruled, 1), "expire the first ruled attempt"),
 	],
-	function* ({ attemptCounts, enqueue, job, untilIdle }) {
+	function* ({ attemptCounts, enqueue, job, untilIdle, pollNow }) {
 		expect(yield* job("third-claim job")).toMatchObject({ retryLimit: 2 });
 
 		yield* enqueue("app", Ruled, { id: 13 }, { as: "third-claim job again", sameIdAs: "third-claim job" });
+		yield* pollNow("app", Ruled);
 		yield* untilIdle("app");
 
 		yield* outcomes([

@@ -560,16 +560,17 @@ Include every target queue in `jobs`, as either a worker or a producer-only defi
 This producer story uses the `SendEmail` definition and `Jobs` service from above. `databaseUrl` points to the story's PostgreSQL database:
 
 ```ts
-import { Context, Layer, Option } from "effect";
+import { Context, Effect, Layer, Option } from "effect";
+import { TestClock } from "effect/testing";
 import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts";
 
 const emailStories = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
-		const testing = makePgBossTesting({ retryPolicy: testRetryPolicy });
+		const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect.succeed), retryPolicy: testRetryPolicy });
 		const context = yield* Layer.build(
 			Jobs.layer({ jobs: [SendEmail] }).pipe(Layer.provide(pgBossLayer({ connectionString: databaseUrl, clientFactory: testing.clientFactory }))),
 		);
@@ -591,7 +592,7 @@ emailStories.it("decodes the queued email", [], function* ({ enqueue, testing })
 
 Set `retryPolicy: testRetryPolicy` through the controller to override queue and send settings with `retryDelay: 0` and `retryBackoff: false`. A failing worker can then exhaust its native retries without production backoff. The policy applies to subsequently sent jobs; it does not rewrite jobs already stored.
 
-For stories that pass time, give the controller the native story `TestClock` and use its `timePasses` verb:
+To pass time, use the controller's `timePasses` verb with the same native story `TestClock`:
 
 ```ts
 import { Effect } from "effect";
@@ -602,7 +603,7 @@ const testing = makePgBossTesting({ clock: yield* TestClock.testClockWith(Effect
 yield* testing.timePasses("1 day");
 ```
 
-The controller advances the application clock and pg-boss's PostgreSQL clock together, wakes due workers and waits for their settlement. A `RetryAt` later than the new time remains deferred. Provide `testing.clientFactory` to the jobs Layer as above, and use an isolated database for each story. Passing time first waits for existing work to settle; release a held handler before advancing this controller. Omit `clock` to keep the normal live pg-boss clock.
+The controller advances the application clock and pg-boss's PostgreSQL clock together, wakes due workers and waits for their settlement. A `RetryAt` later than the new time remains deferred. Provide `testing.clientFactory` to the jobs Layer as above, and use an isolated database for each story. Passing time first waits for existing work to settle; release a held handler before advancing this controller. Supply the story clock so both the application and pg-boss stay under the kit's control.
 
 `schedules()` lists registered schedules as `{ name, cron, timezone }` entries from PostgreSQL. `trigger(schedule)` takes a schedule definition, such as `Cleanup`, and enqueues one run now using its stored schedule data and options. It returns the run ID, or null when pg-boss suppresses the send. Register `Cleanup.run(effect)` in the testing Layer first, then yield `testing.trigger(Cleanup)` and `testing.waitForIdle` before observing the Effect's result. An unregistered schedule fails with `PgBossTestingError` (`operation: "trigger"`).
 
@@ -622,11 +623,11 @@ The controller advances the application clock and pg-boss's PostgreSQL clock tog
 
 `snapshot(queues)` reads the unfinished jobs of several queues in one query, so the result is one consistent PostgreSQL snapshot. It returns jobs in the `created`, `retry`, `active` and `failed` states, never completed ones, oldest first by creation. A waiting `RetryAt` job reads as `deferred` while its `startAfter` is in the future; once due, it reads as `retry` until claimed. A retry after a handler failure reads as `retry` even when its next attempt is in the future. Each entry has the job's `id`, `queue` (the definition's name), `state`, `startAfter` as a UTC `DateTime` and `data` decoded by that queue's Schema. Only unfinished rows are decoded, so a completed job whose stored data the Schema no longer accepts does not fail the read; invalid unfinished data fails with `PgBossPayloadError`.
 
-`waitForIdle` discovers queues from the jobs registered in the controller's Layer, including producer-only definitions and schedules; it takes no queue list. It completes when none of those queues has an active job or an unblocked job ready to fetch, including work claimed by another client. Ready jobs keep the wait open even when no local worker runs them. A terminal native worker timeout lets the wait complete after pg-boss fails the job. Jobs whose `startAfter` is in the future do not hold the wait open. While a local fetched batch has no settlement yet, the wait reads nothing and waits for the next local change; otherwise it checks PostgreSQL on local changes and at 50 ms intervals to observe other clients. These intervals use wall time even on a story's `TestClock`. A kit settles by yielding `waitForIdle` and then reading jobs once. As with any idle snapshot, a producer can enqueue more work after the wait returns.
+`waitForIdle` discovers queues from the jobs registered in the controller's Layer, including producer-only definitions and schedules; it takes no queue list. It completes when none of those queues has an active job or an unblocked job ready to fetch, including work claimed by another client. Ready jobs keep the wait open even when no local worker runs them. A terminal native worker timeout lets the wait complete after pg-boss fails the job. Jobs whose `startAfter` is in the future do not hold the wait open. While a local fetched batch has no settlement yet, the wait reads nothing and waits for the next local change; otherwise it checks PostgreSQL on local changes and committed job-change notifications from other clients. A kit settles by yielding `waitForIdle` and then reading jobs once. As with any idle snapshot, a producer can enqueue more work after the wait returns.
 
 A kit can also capture `revision` before reading jobs and yield `waitForChange(revision)` when its condition is unmet. The wait resumes after a local send, settlement or worker fetch, and when a local worker returns to idle as `waitForIdle` defines it, including terminal native worker timeouts. It also resumes immediately if a change occurred between the read and the wait. This signal observes the controller's client; external clients, future scheduled work and external database writes need their own wake source. Stories should retain a bounded test timeout.
 
-`untilJob(queue, id, state)` waits that way for one job: it reads the job, waits for the next change when the job is in another state, and returns the job with `data` decoded through the queue's Schema once it reaches `state`. It also accepts `{ name, schema: Schema.Null }` for a triggered schedule's run. `fetchesPass(queue, n)` completes once `n` worker fetches on the queue that began after the wait started have finished, whether or not they claimed anything, so a story can show that a job stayed untaken by fetches that could have claimed it. Each fetch also counts as a change for `waitForChange`. Both waits give up after `within` (default 20 seconds) of wall time, which a story's `TestClock` does not move, and fail with `PgBossWaitError`, whose message names what the wait expected and what it last saw:
+`untilJob(queue, id, state)` waits that way for one job: it reads the job, waits for the next change when the job is in another state, and returns the job with `data` decoded through the queue's Schema once it reaches `state`. It also accepts `{ name, schema: Schema.Null }` for a triggered schedule's run. `fetchesPass(queue, n)` completes once `n` worker fetches on the queue that began after the wait started have finished, whether or not they claimed anything, so a story can show that a job stayed untaken by fetches that could have claimed it. Each fetch also counts as a change for `waitForChange`. Both waits give up after `within` (default 20 seconds) on the caller's Effect clock, so a story forks the wait and advances its `TestClock` to exercise a timeout, and fail with `PgBossWaitError`, whose message names what the wait expected and what it last saw:
 
 ```ts
 yield* testing.untilJob(SendEmail, id, "completed", { within: "5 seconds" });

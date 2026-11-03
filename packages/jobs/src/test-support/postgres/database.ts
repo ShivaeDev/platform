@@ -1,3 +1,4 @@
+import { Clock } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -14,15 +15,17 @@ import { readouts } from "./readouts.ts";
 import { releaseVerbs } from "./releaseVerbs.ts";
 import { scheduleVerbs } from "./scheduleVerbs.ts";
 import { teardownVerbs } from "./teardownVerbs.ts";
+import { timeVerbs } from "./timeVerbs.ts";
 import { traceReadouts } from "./traceReadouts.ts";
-import { runtimeVerbs, waitingVerbs } from "./verbs.ts";
+import { runtimeVerbs } from "./verbs.ts";
+import { waitingVerbs } from "./waitingVerbs.ts";
 
 export const database = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const { url } = yield* PostgresTestDatabase;
-		return databaseEngine(url, yield* SqlClient.SqlClient);
+		return databaseEngine(url, yield* SqlClient.SqlClient, yield* Clock.currentTimeMillis);
 	},
 	inspect: (engine) => ({ logs: engine.logs, startups: [...engine.startups], timeline: engine.timeline }),
 	layer: postgresLayer,
@@ -40,8 +43,9 @@ export const database = storyKit({
 		...releaseVerbs(engine, story.tell),
 		...scheduleVerbs(engine, story.tell),
 		...teardownVerbs(engine, story.tell),
+		...timeVerbs(engine, story.tell),
 		...waitingVerbs(engine, story.tell),
 		...readouts(engine),
-		...traceReadouts(engine),
+		...traceReadouts(engine, story.tell),
 	}),
 });
