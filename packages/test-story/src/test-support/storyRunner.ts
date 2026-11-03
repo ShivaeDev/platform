@@ -30,11 +30,13 @@ export type Fixture =
 	| "outcomeStories"
 	| "quotedStories"
 	| "refusingStories"
+	| "restartedStories"
 	| "scopedStories"
 	| "screenWaitStories"
 	| "timerStories"
 	| "tracingStories"
 	| "unlocatedStories"
+	| "uninspectedStories"
 	| "unroutedDomStories"
 	| "unroutedNodeStories";
 
