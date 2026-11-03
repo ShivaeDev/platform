@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import type { Job } from "pg-boss";
 import type { PgBossClient } from "#server/client.ts";
+import type { WorkerJob } from "#server/job.ts";
 
 export const deferredAttempt = Symbol("deferredAttempt");
 export const deferralObservers = new WeakMap<PgBossClient, () => void>();
@@ -13,7 +13,7 @@ export const Deferral = Schema.Struct({
 
 const Output = Schema.Struct({ jobDeferral: Deferral });
 
-export function deferralOf(job: Job<unknown>) {
+export function deferralOf(job: WorkerJob<unknown>) {
 	const output: unknown = Reflect.get(job, "output");
 	return Schema.is(Output)(output) ? output.jobDeferral : undefined;
 }

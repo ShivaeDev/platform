@@ -1,6 +1,6 @@
-import type { PgBoss } from "pg-boss";
+import type { EngineClient } from "#server/engineClient.ts";
 
-export function observeTestingSettlements(client: PgBoss, settled: (name: string) => void) {
+export function observeTestingSettlements(client: EngineClient, settled: (name: string) => void) {
 	const observers = new Map<string, () => void>();
 	return {
 		close() {

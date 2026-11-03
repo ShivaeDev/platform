@@ -1,11 +1,11 @@
 import { isDeepStrictEqual } from "node:util";
-import type { ConstructorOptions } from "pg-boss";
+import type { ClientOptions } from "#server/clientOptions.ts";
 import { PgBossClientOptionsError } from "#server/error.ts";
 import type { StartingClient } from "./lifecycle.ts";
 
 interface CachedClient {
 	readonly client: StartingClient;
-	readonly constructorOptions: ConstructorOptions;
+	readonly constructorOptions: ClientOptions;
 	references: number;
 }
 
@@ -29,7 +29,7 @@ function isCachedClient(value: unknown): value is CachedClient {
 	);
 }
 
-export function acquireCachedClient(key: string | symbol, constructorOptions: ConstructorOptions, start: () => StartingClient) {
+export function acquireCachedClient(key: string | symbol, constructorOptions: ClientOptions, start: () => StartingClient) {
 	const existing = entryFor(key);
 	if (existing !== undefined) {
 		const options = [...new Set([...Object.keys(existing.constructorOptions), ...Object.keys(constructorOptions)])]

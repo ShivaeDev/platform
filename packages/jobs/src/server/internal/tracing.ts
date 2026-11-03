@@ -1,5 +1,5 @@
 import { Effect, Option, Schema, Tracer } from "effect";
-import type { Job } from "pg-boss";
+import type { WorkerJob } from "#server/job.ts";
 
 const TracedPayload = Schema.Struct({
 	_tag: Schema.Literal("@shivaedev/jobs/TracedPayload"),
@@ -25,7 +25,7 @@ export function payloadOf(data: unknown): unknown {
 	return isTracedPayload(data) ? data.payload : data;
 }
 
-export function traceJob<A, E, R>(effect: Effect.Effect<A, E, R>, job: Job<unknown>, queue: string) {
+export function traceJob<A, E, R>(effect: Effect.Effect<A, E, R>, job: WorkerJob<unknown>, queue: string) {
 	return Effect.withSpan(effect, queue, {
 		attributes: {
 			"job.attempt": job.retryCount + 1,

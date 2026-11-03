@@ -1,5 +1,4 @@
 import { Cause, Clock, Effect, Exit } from "effect";
-import type { Job } from "pg-boss";
 import { batchClockOffset } from "#server/adapters/batchClockOffset.ts";
 import type { PgBossClient } from "#server/client.ts";
 import { toPgBossError } from "#server/error.ts";
@@ -7,12 +6,13 @@ import { deadlineOf } from "#server/internal/deadlineOf.ts";
 import { deferredAttempt } from "#server/internal/deferral.ts";
 import { failureOutput } from "#server/internal/failureOutput.ts";
 import { waitForBatchExpiry } from "#server/internal/waitForBatchExpiry.ts";
+import type { WorkerJob } from "#server/job.ts";
 
 function settleAttempt(
 	complete: NonNullable<PgBossClient["complete"]>,
 	fail: NonNullable<PgBossClient["fail"]>,
 	name: string,
-	job: Job<unknown>,
+	job: WorkerJob<unknown>,
 	exit: Exit.Exit<unknown, unknown>,
 ) {
 	if (Exit.isSuccess(exit) && exit.value === deferredAttempt) {
@@ -51,15 +51,15 @@ export function batchHandler<R>(
 	client: PgBossClient,
 	name: string,
 	schema: string,
-	run: (job: Job<unknown>, deadline: number) => Effect.Effect<unknown, unknown, R>,
-	afterRetry: (job: Job<unknown>) => Effect.Effect<void, unknown> = () => Effect.void,
+	run: (job: WorkerJob<unknown>, deadline: number) => Effect.Effect<unknown, unknown, R>,
+	afterRetry: (job: WorkerJob<unknown>) => Effect.Effect<void, unknown> = () => Effect.void,
 ) {
 	const complete = client.complete?.bind(client);
 	const fail = client.fail?.bind(client);
 	if (complete === undefined || fail === undefined) {
 		throw new TypeError("This pg-boss client does not support complete and fail");
 	}
-	const handle = Effect.fnUntraced(function* (job: Job<unknown>, offset: number) {
+	const handle = Effect.fnUntraced(function* (job: WorkerJob<unknown>, offset: number) {
 		if (job.signal.aborted) {
 			return "interrupted";
 		}
@@ -78,7 +78,7 @@ export function batchHandler<R>(
 		}
 		return "settled";
 	});
-	return (jobs: readonly Job<unknown>[]) =>
+	return (jobs: readonly WorkerJob<unknown>[]) =>
 		Effect.gen(function* () {
 			const offset = yield* batchClockOffset(client, schema, name);
 			const deadline = Math.max(...jobs.map((job) => deadlineOf(job) + offset));

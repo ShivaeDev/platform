@@ -1,5 +1,8 @@
 import { Effect, Layer, Redacted, Schema } from "effect";
+import { expectTypeOf } from "vitest";
+import type { QueueOptions } from "@shivaedev/jobs/server/queueOptions.ts";
 import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
+import type { WorkerOptions } from "@shivaedev/jobs/server/workerOptions.ts";
 import { defineEmailQueue } from "./defineEmailQueue.ts";
 
 const Message = Schema.Union([
@@ -16,6 +19,8 @@ function render(message: typeof Message.Type) {
 	});
 }
 const Default = defineEmailQueue(Message, render);
+expectTypeOf(Default.queue.workerOptions).toEqualTypeOf<WorkerOptions>();
+expectTypeOf(Default.queue.queueOptions).toEqualTypeOf<Omit<QueueOptions, "maxDeferrals">>();
 const Named = defineEmailQueue(Message, render, { name: "auth-emails" });
 const client = pgBossLayer({ connectionString: Redacted.make("postgresql://compile-only") });
 const namedProducer = Named.producerLayer.pipe(Layer.provide(client));

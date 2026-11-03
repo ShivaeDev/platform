@@ -1,8 +1,8 @@
 import { Context, Effect, Schema, SchemaGetter } from "effect";
-import type { JobWithMetadata } from "pg-boss";
 import { expectTypeOf } from "vitest";
 import { defineQueue } from "#server/definition.ts";
 import type { PgBossPayloadError, PgBossTestingError } from "#server/error.ts";
+import type { Job } from "#server/job.ts";
 import { makePgBossTesting } from "#server/testing.ts";
 
 class DecodeDependency extends Context.Service<DecodeDependency, number>()("@shivaedev/jobs/test/DecodeDependency") {}
@@ -22,7 +22,7 @@ const queue = defineQueue({
 const readout = makePgBossTesting().jobs(queue);
 expectTypeOf<Effect.Services<typeof readout>>().toEqualTypeOf<DecodeDependency>();
 expectTypeOf<Effect.Error<typeof readout>>().toEqualTypeOf<PgBossTestingError | PgBossPayloadError>();
-expectTypeOf<Effect.Success<typeof readout>>().toEqualTypeOf<JobWithMetadata<{ readonly id: number; readonly label: string }>[]>();
+expectTypeOf<Effect.Success<typeof readout>>().toEqualTypeOf<Job<{ readonly id: number; readonly label: string }>[]>();
 
 const notes = defineQueue({ name: "snapshot-notes", schema: Schema.Struct({ note: Schema.String }) });
 const snapshot = makePgBossTesting().snapshot([queue, notes]);

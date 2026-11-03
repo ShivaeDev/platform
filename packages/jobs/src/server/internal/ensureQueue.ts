@@ -1,6 +1,5 @@
 import { Effect, Schedule } from "effect";
-import type { Queue } from "pg-boss";
-import type { PgBossClient } from "#server/client.ts";
+import type { ClientQueueOptions, PgBossClient } from "#server/client.ts";
 import { PgBossQueueOptionsError } from "#server/error.ts";
 import { deadLetterQueueName } from "#server/health.ts";
 
@@ -9,7 +8,7 @@ const CREATE_QUEUE_ATTEMPTS = 6;
 
 // A partitioned queue attaches its table to pg-boss's job table, which can deadlock with job traffic on other queues.
 // PostgreSQL rolls the whole creation back, so trying it again is safe.
-function createQueue(client: PgBossClient, name: string, options?: Omit<Queue, "name">) {
+function createQueue(client: PgBossClient, name: string, options?: ClientQueueOptions) {
 	return Effect.tryPromise({ catch: (error) => error, try: () => client.createQueue(name, options) }).pipe(
 		Effect.retry({
 			schedule: Schedule.exponential(25).pipe(Schedule.upTo({ times: CREATE_QUEUE_ATTEMPTS - 1 })),
@@ -18,7 +17,7 @@ function createQueue(client: PgBossClient, name: string, options?: Omit<Queue, "
 	);
 }
 
-export const ensureQueue = Effect.fnUntraced(function* (client: PgBossClient, name: string, options: Omit<Queue, "name" | "deadLetter">) {
+export const ensureQueue = Effect.fnUntraced(function* (client: PgBossClient, name: string, options: Omit<ClientQueueOptions, "deadLetter">) {
 	const deadLetter = deadLetterQueueName(name);
 	const desired = { retryBackoff: true, retryLimit: 3, ...options, deadLetter };
 	yield* createQueue(client, deadLetter);

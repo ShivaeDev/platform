@@ -1,9 +1,10 @@
 import { Context, Effect, Layer, Redacted, Schema, SchemaGetter } from "effect";
-import type { SendOptions } from "pg-boss";
 import { expectTypeOf } from "vitest";
 import { defineSchedule } from "#server/defineSchedule.ts";
-import { defineQueue, type JobRegistration, type QueuePolicy, type RegistrationRequirements } from "#server/definition.ts";
+import { defineQueue, type JobRegistration, type RegistrationRequirements } from "#server/definition.ts";
+import type { EnqueueOptions } from "#server/enqueueOptions.ts";
 import type { PgBoss } from "#server/PgBoss.ts";
+import type { QueuePolicy } from "#server/queueOptions.ts";
 import { makePgBoss, pgBossLayer } from "#server/service.ts";
 import { PullRequestJob } from "#test/singletonQueueOptions.ts";
 
@@ -29,7 +30,7 @@ const program = Effect.gen(function* () {
 	yield* jobs.enqueue(Queue, { _tag: "Reconcile", pullRequestId: 42 });
 	// @ts-expect-error The definition owns the singleton key.
 	yield* jobs.enqueue(Queue, { _tag: "Refresh", pullRequestId: 42 }, { singletonKey: "wrong" });
-	const conflicting: SendOptions = { singletonKey: "wrong" };
+	const conflicting: EnqueueOptions = { singletonKey: "wrong" };
 	// @ts-expect-error Non-literal options cannot override the key either.
 	yield* jobs.enqueue(Queue, { _tag: "Refresh", pullRequestId: 42 }, conflicting);
 	// @ts-expect-error Producers supply decoded payloads.

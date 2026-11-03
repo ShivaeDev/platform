@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import type { PgBoss } from "pg-boss";
+import type { EngineClient } from "#server/engineClient.ts";
 import type { PgBossPayloadError, PgBossTestingError } from "#server/error.ts";
 import { decodeStoredData, quotedSchema } from "#server/internal/storedRows.ts";
 import { testingOperation } from "#server/internal/testingReadout.ts";
@@ -15,7 +15,7 @@ const Rows = Schema.Array(
 	}),
 );
 
-export function testingSnapshot(client: () => PgBoss, schema: () => string) {
+export function testingSnapshot(client: () => EngineClient, schema: () => string) {
 	return <const TQueues extends readonly SnapshotQueue[]>(
 		queues: TQueues,
 	): Effect.Effect<

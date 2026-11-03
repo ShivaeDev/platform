@@ -1,17 +1,14 @@
 import { Clock, Duration, Effect, Schema } from "effect";
-import type { Job, policies, Queue, ScheduleOptions, WorkOptions } from "pg-boss";
+import type { ScheduleOptions } from "#server/enqueueOptions.ts";
 import { maxDeferrals, nativeQueueOptions } from "#server/internal/definitionOptions.ts";
+import type { WorkerJob } from "#server/job.ts";
+import type { QueueOptions, QueuePolicy } from "#server/queueOptions.ts";
+import type { WorkerOptions } from "#server/workerOptions.ts";
 
 export class RetryAt extends Schema.TaggedError<RetryAt>()("RetryAt", {
 	at: Schema.DateTimeUtc,
 	reason: Schema.String,
 }) {}
-
-export type QueuePolicy = (typeof policies)[keyof typeof policies];
-export type QueueOptions = Omit<Queue, "name" | "deadLetter" | "policy"> & {
-	readonly maxDeferrals?: number;
-	readonly policy?: QueuePolicy;
-};
 
 export interface JobPayloadSchema extends Schema.Top {
 	readonly Encoded: object;
@@ -37,9 +34,9 @@ export interface QueueDefinition<TName extends string = string, TPayload extends
 	readonly key?: ((payload: Schema.Schema.Type<TPayload>) => string) | undefined;
 	readonly maxDeferrals: number;
 	readonly name: TName;
-	readonly queueOptions: Omit<Queue, "name" | "deadLetter">;
+	readonly queueOptions: Omit<QueueOptions, "maxDeferrals">;
 	readonly schema: TPayload;
-	readonly workerOptions: WorkOptions;
+	readonly workerOptions: WorkerOptions;
 }
 
 export interface QueueWorker<TPayload extends JobPayloadSchema = JobPayloadSchema, TRequirements = unknown> {
@@ -58,10 +55,10 @@ export interface ScheduleDefinition<TName extends string = string> {
 	readonly cron: string;
 	readonly maxDeferrals: number;
 	readonly name: TName;
-	readonly queueOptions: Omit<Queue, "name" | "deadLetter">;
+	readonly queueOptions: Omit<QueueOptions, "maxDeferrals">;
 	readonly run: <E, R>(effect: Effect.Effect<unknown, E, R>) => ScheduledWorker<R>;
 	readonly scheduleOptions: ScheduleOptions;
-	readonly workerOptions: WorkOptions;
+	readonly workerOptions: WorkerOptions;
 }
 
 export interface ScheduledWorker<TRequirements = unknown> {
@@ -81,7 +78,7 @@ export type RegistrationRequirements<TRegistrations extends readonly JobRegistra
 export type DefineQueueOptions<TName extends string, TPayload extends JobPayloadSchema> = {
 	readonly name: TName;
 	readonly schema: TPayload;
-	readonly worker?: WorkOptions;
+	readonly worker?: WorkerOptions;
 } & (
 	| { readonly key: (payload: Schema.Schema.Type<TPayload>) => string; readonly queue: QueueOptions & { readonly policy: "singleton" } }
 	| { readonly key?: never; readonly queue?: QueueOptions & { readonly policy?: Exclude<QueuePolicy, "singleton"> } }
@@ -122,10 +119,10 @@ export interface DefineScheduleOptions<TName extends string> {
 	readonly name: TName;
 	readonly queue?: QueueOptions;
 	readonly schedule?: ScheduleOptions;
-	readonly worker?: WorkOptions;
+	readonly worker?: WorkerOptions;
 }
 
-export function jobContext(job: Job<unknown>, deadline: number, deferralCount = 0): JobContext {
+export function jobContext(job: WorkerJob<unknown>, deadline: number, deferralCount = 0): JobContext {
 	return {
 		deferralCount,
 		expireInSeconds: job.expireInSeconds,

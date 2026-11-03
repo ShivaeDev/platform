@@ -1,12 +1,12 @@
 import { Effect, Schema } from "effect";
-import type { Job } from "pg-boss";
 import type { PgBossClient } from "#server/client.ts";
 import { toPgBossError } from "#server/error.ts";
 import { quotedSchema } from "#server/internal/storedRows.ts";
+import type { WorkerJob } from "#server/job.ts";
 
 const Count = Schema.Struct({ count: Schema.NumberFromString });
 
-export const deferralCount = Effect.fnUntraced(function* (client: PgBossClient, schema: string, job: Job<unknown>) {
+export const deferralCount = Effect.fnUntraced(function* (client: PgBossClient, schema: string, job: WorkerJob<unknown>) {
 	const quoted = quotedSchema(schema);
 	return yield* Effect.tryPromise({
 		catch: (error) => toPgBossError("settle", error, job.name),

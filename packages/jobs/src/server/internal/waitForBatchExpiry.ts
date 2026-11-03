@@ -1,12 +1,12 @@
 import { Clock, Effect } from "effect";
-import type { Job } from "pg-boss";
 import type { PgBossClient } from "#server/client.ts";
 import { type PgBossError, toPgBossError } from "#server/error.ts";
+import type { WorkerJob } from "#server/job.ts";
 
 export function waitForBatchExpiry(
 	client: PgBossClient,
 	name: string,
-	jobs: readonly Job<unknown>[],
+	jobs: readonly WorkerJob<unknown>[],
 	deadline: number,
 ): Effect.Effect<void, PgBossError> {
 	return Effect.gen(function* () {

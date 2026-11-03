@@ -1,5 +1,5 @@
 import { Clock, Effect, Schema } from "effect";
-import type { PgBoss } from "pg-boss";
+import type { EngineClient } from "#server/engineClient.ts";
 import type { PgBossTestingError } from "#server/error.ts";
 import { quotedSchema } from "#server/internal/storedRows.ts";
 import { testingOperation } from "#server/internal/testingReadout.ts";
@@ -17,7 +17,7 @@ export interface TestingWork {
 const Busy = Schema.Struct({ busy: Schema.Boolean });
 
 export function testingIdle(
-	client: () => PgBoss,
+	client: () => EngineClient,
 	schema: () => string,
 	work: TestingWork,
 	signal: { readonly revision: Effect.Effect<number>; readonly waitForChange: (after: number) => Effect.Effect<number> },

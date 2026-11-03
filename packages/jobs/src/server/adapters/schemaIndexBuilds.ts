@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import type { PgBoss } from "pg-boss";
+import type { EngineClient } from "#server/engineClient.ts";
 
 const IndexBuilds = Schema.Array(Schema.Struct({ command: Schema.String, id: Schema.String }));
 const IndexValidity = Schema.Array(Schema.Struct({ invalid: Schema.Boolean }));
@@ -28,7 +28,7 @@ export function pendingIndexInserts(schema: string, version: number, commands: r
 		.join("\n");
 }
 
-export async function resumeSchemaIndexes(client: PgBoss, schema: string): Promise<void> {
+export async function resumeSchemaIndexes(client: EngineClient, schema: string): Promise<void> {
 	const db = client.getDb();
 	const { rows } = await db.executeSql(
 		`SELECT id, command FROM ${schema}.bam WHERE starts_with(name, $1) AND status <> 'completed' ORDER BY created_on, name`,

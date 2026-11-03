@@ -1,22 +1,24 @@
 import { Effect } from "effect";
-import type { Job, PgBoss, SendOptions, UpdateOptions, UpdateRequest, UpdateResponse } from "pg-boss";
 import { testingEngine } from "#server/adapters/testingEngine.ts";
 import { testingExpirations } from "#server/adapters/testingExpirations.ts";
-import type { PgBossClient } from "#server/client.ts";
+import type { ClientUpdateOptions, ClientUpdateRequest, ClientUpdateResult, PgBossClient } from "#server/client.ts";
+import type { EngineClient } from "#server/engineClient.ts";
+import type { EnqueueOptions } from "#server/enqueueOptions.ts";
 import { deferralObservers } from "#server/internal/deferral.ts";
 import type { TestingBatch, TestingWork } from "#server/internal/testingIdle.ts";
 import { testingRegistration } from "#server/internal/testingRegistrations.ts";
+import type { WorkerJob } from "#server/job.ts";
 
 export interface TestingControls {
 	readonly changed: () => void;
 	readonly expirations: Map<string, number>;
 	readonly expirySeconds: Map<string, number>;
 	readonly failures: Set<string>;
-	readonly retryPolicy: Pick<SendOptions, "retryBackoff" | "retryDelay">;
+	readonly retryPolicy: Pick<EnqueueOptions, "retryBackoff" | "retryDelay">;
 	readonly work: TestingWork;
 }
 
-export function testingClient(client: PgBoss, schema: string, controls: TestingControls): PgBossClient {
+export function testingClient(client: EngineClient, schema: string, controls: TestingControls): PgBossClient {
 	const engine = testingEngine(client, schema);
 	const settlements = Effect.runSync(
 		engine.observeSettlements((name) => {
@@ -29,9 +31,9 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 		}),
 	);
 	const expirations = testingExpirations(client);
-	function update(request: UpdateRequest): Promise<UpdateResponse>;
-	function update(name: string, data: object | null | undefined, options?: UpdateOptions): Promise<UpdateResponse>;
-	async function update(request: string | UpdateRequest, data?: object | null, options?: UpdateOptions): Promise<UpdateResponse> {
+	function update(request: ClientUpdateRequest): Promise<ClientUpdateResult>;
+	function update(name: string, data: object | null | undefined, options?: ClientUpdateOptions): Promise<ClientUpdateResult>;
+	async function update(request: string | ClientUpdateRequest, data?: object | null, options?: ClientUpdateOptions): Promise<ClientUpdateResult> {
 		const result = typeof request === "string" ? await client.update(request, data, options) : await client.update(request);
 		controls.changed();
 		return result;
@@ -98,12 +100,12 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 			}),
 		work: async (name, options, handler) => {
 			await Effect.runPromise(settlements.watch(name));
-			return client.work(name, options, async (jobs: Job<unknown>[]) => {
+			return client.work(name, options, async (jobs: readonly WorkerJob<unknown>[]) => {
 				const batch: TestingBatch = { name, settled: false };
 				controls.work.batches.add(batch);
 				controls.changed();
 				try {
-					const ready: Job<unknown>[] = [];
+					const ready: WorkerJob<unknown>[] = [];
 					for (const job of jobs) {
 						const attempts = await expirations.attemptsFor(job);
 						if (attempts !== undefined && job.retryCount + 1 >= attempts) {
