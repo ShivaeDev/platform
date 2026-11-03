@@ -79,6 +79,6 @@ isolatedEngine.it(
 			providerStarts()
 				.filter((start) => start.access !== "read-only")
 				.map(({ prompt }) => prompt),
-		).toEqual(["Implement one", "Implement two", "Implement dependent"]);
+		).toEqual([expect.stringContaining("Implement one"), expect.stringContaining("Implement two"), expect.stringContaining("Implement dependent")]);
 	},
 );

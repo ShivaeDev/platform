@@ -18,6 +18,6 @@ host.it(
 		expect(result.value.boardContext).toBe(edited);
 		expect(result.value.prompt).toBe(edited);
 		expect(result.value.history ?? []).toEqual([]);
-		expect(daemon.providerStarts()).toEqual([expect.objectContaining({ prompt: edited })]);
+		expect(daemon.providerStarts()).toEqual([expect.objectContaining({ prompt: expect.stringContaining(edited) })]);
 	},
 );

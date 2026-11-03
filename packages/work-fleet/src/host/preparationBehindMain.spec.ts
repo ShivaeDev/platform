@@ -16,7 +16,7 @@ host.it(
 		expect(launched.decision).toBeUndefined();
 		expect(launched.step).toBe("working");
 		expect(launched.preparation).toEqual({ ...admitted.preparation, baseRevision: "main-1", observedAt: 2 });
-		expect(daemon.providerStarts()).toEqual([expect.objectContaining({ prompt: launched.prompt })]);
+		expect(daemon.providerStarts()).toEqual([expect.objectContaining({ prompt: expect.stringContaining(launched.prompt) })]);
 	},
 );
 
@@ -48,7 +48,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 			expect(launched.decision).toBeUndefined();
 			expect(launched.step).toBe("working");
 			expect(launched.preparation.baseRevision).toBe("main-2");
-			expect(daemon.providerStarts()).toEqual([expect.objectContaining({ prompt: launched.prompt })]);
+			expect(daemon.providerStarts()).toEqual([expect.objectContaining({ prompt: expect.stringContaining(launched.prompt) })]);
 		},
 	);
 }

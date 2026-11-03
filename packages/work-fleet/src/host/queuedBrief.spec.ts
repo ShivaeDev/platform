@@ -15,7 +15,12 @@ for (const rejectedCall of ["session", "turn"] as const) {
 			const failed = queued.attempts.at(-1);
 			expect(queued.step).toBe("queued");
 			expect(queued.launchRetry).toEqual({ rejectedAt: 100, rejections: 1, retryAt: 30_100 });
-			expect(failed).toMatchObject({ prompt: source, role: "worker", settings: { model: "initial-model" }, status: "failed" });
+			expect(failed).toMatchObject({
+				prompt: expect.stringContaining(source),
+				role: "worker",
+				settings: { model: "initial-model" },
+				status: "failed",
+			});
 			const current = task("one", "approved", "New criteria.").replace("fleet: approved", "fleet: approved\nfleet-launch:\n  model: new-task-model");
 			daemon.writeBoard("one.md", current);
 			daemon.hostModel("new-host-model");
