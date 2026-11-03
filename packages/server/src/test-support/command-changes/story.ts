@@ -1,6 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Effect, Layer, Redacted } from "effect";
-import { RpcTest } from "effect/rpc";
+import { Context, Effect, Layer, Logger, Redacted } from "effect";
+import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effect/http";
+import * as NetAddress from "effect/net/NetAddress";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { BeforeCommit, ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { postgresTestUrl } from "@shivaedev/test-sql/server/adapters/postgresTestUrl.ts";
@@ -8,8 +10,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { requestTracingLayer } from "#server/tracing.ts";
-import { recorder } from "#test/rpc/harness.ts";
+import { appHost } from "#appHost.ts";
 import { host } from "./host.ts";
 import { viewerFixture } from "./viewerFixture.ts";
 
@@ -49,7 +50,14 @@ export const commandChanges = storyKit({
 				yield* notify(keys);
 			}),
 		);
-		const recorded = recorder();
+		const logs: string[] = [];
+		const logger = Logger.layer([
+			Logger.make((entry) => {
+				if (entry.logLevel === "Error") {
+					logs.push(String(Array.isArray(entry.message) ? entry.message[0] : entry.message));
+				}
+			}),
+		]);
 		const fixture = viewerFixture();
 		const publications: Array<readonly unknown[]> = [];
 		const observer = yield* ChangeObserver;
@@ -62,14 +70,28 @@ export const commandChanges = storyKit({
 			}),
 		);
 		const application = yield* Layer.build(
-			fixture.application.pipe(
-				Layer.provideMerge(requestTracingLayer()),
-				Layer.provideMerge(recorded.layer),
-				Layer.provide(Layer.succeedContext(observed)),
-			),
+			appHost({
+				config: { port: 0 },
+				group: fixture.api,
+				handlers: fixture.application,
+				services: Layer.succeedContext(observed),
+				sessions: fixture.sessions,
+			}).pipe(Layer.provide(logger)),
 		);
-		const client = yield* RpcTest.makeClient(fixture.api).pipe(Effect.provide(application));
-		return { client, local, logs: recorded.logs, publications, remote, services: observed, state, viewers: fixture.viewers };
+		const server = Context.get(application, HttpServer.HttpServer);
+		if (!NetAddress.isInetAddress(server.address)) {
+			return yield* Effect.die("Expected a TCP server");
+		}
+		const address = `http://127.0.0.1:${server.address.port}/rpc`;
+		function protocol(caller?: string) {
+			return RpcClient.layerProtocolHttp({
+				transformClient: (http) => (caller === undefined ? http : HttpClient.mapRequest(http, HttpClientRequest.setHeader("authorization", caller))),
+				url: address,
+			}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
+		}
+		const client = yield* RpcClient.make(fixture.api).pipe(Effect.provide(protocol()));
+		const alice = yield* RpcClient.make(fixture.api).pipe(Effect.provide(protocol("alice")));
+		return { alice, client, local, logs, publications, remote, services: observed, state, viewers: fixture.viewers };
 	},
 	inspect: (engine) => ({ publicationAttempts: engine.state.attempts, publications: engine.publications, viewers: engine.viewers }),
 	layer: postgres,
@@ -77,26 +99,26 @@ export const commandChanges = storyKit({
 	runIf: url !== undefined,
 	stages: ["publication"],
 	verbs: (engine, story) => ({
-		errorMessages: () =>
-			Effect.sync(() => engine.logs.filter((log) => log.level === "Error").map((log) => (Array.isArray(log.message) ? log.message[0] : log.message))),
+		errorMessages: () => Effect.sync(() => engine.logs),
 		initialHint: (location: "local" | "remote") => Effect.succeed(engine[location].initial),
 		invalidationViewers: () => Effect.sync(() => engine.viewers),
 		nextHint: (location: "local" | "remote") => engine[location].next,
 		publicationSaw: () => Effect.sync(() => engine.state.attempts),
 		publishedChanges: () => Effect.sync(() => engine.publications),
-		read: () => engine.client["notes.list"](undefined).pipe(Effect.provide(engine.services)),
+		read: () => engine.client["notes.list"](undefined),
+		reject: () =>
+			engine.client["notes.reject"]({ title: "Rejected note" }).pipe(
+				Effect.as("saved"),
+				Effect.catchTag("Conflict", (error) => Effect.succeed(error.message)),
+			),
 		save: (title: string) => {
 			story.tell(`save the note "${title}" through the command`);
-			return engine.client["notes.save"]({ title }).pipe(Effect.provide(engine.services));
+			return engine.client["notes.save"]({ title });
 		},
+		saveAnnounced: () => engine.client["notes.announce"]({ title: "Announced note" }),
 		saveAs: (auth: "required" | "optional" | "user" | "accounts", caller: "alice" | "anonymous" = "alice") => {
 			story.tell(`${caller} saves a note through the ${auth}-auth command with a pre-resolved session`);
-			return engine.client[`${auth}.save`](
-				{ title: "Alice's note" },
-				{
-					headers: caller === "anonymous" ? {} : { authorization: caller },
-				},
-			).pipe(Effect.provide(engine.services));
+			return engine[caller === "alice" ? "alice" : "client"][`${auth}.save`]({ title: "Alice's note" });
 		},
 	}),
 });

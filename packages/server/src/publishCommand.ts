@@ -1,10 +1,6 @@
-import { Context, Effect, Option, Schedule } from "effect";
+import { Effect, Option, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import type { Rpc } from "effect/rpc";
 import { CommandPublication, type CommandPublicationError } from "@shivaedev/changes/commandPublication.ts";
-import { invalidationKeys } from "@shivaedev/changes/keys.ts";
-import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
-import { CommandInvalidation } from "@shivaedev/contract/serverMetadata.ts";
 import { ChangeObserver } from "@shivaedev/sql/transact.ts";
 
 const recoverPublication = Effect.fnUntraced(function* (cause: CommandPublicationError) {
@@ -15,12 +11,7 @@ const recoverPublication = Effect.fnUntraced(function* (cause: CommandPublicatio
 	);
 });
 
-export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc.AnyWithProps, payload: unknown) {
-	const invalidates = Context.getOption(rpc.annotations, CommandInvalidation);
-	if (Option.isNone(invalidates)) {
-		return effect;
-	}
-	const declared = invalidates.value.invalidates;
+export function publishCommand<A, E, R>(effect: Effect.Effect<A, E, R>, declaredKeys: (result: A) => readonly unknown[]) {
 	return Effect.uninterruptibleMask((restore) =>
 		Effect.gen(function* () {
 			const reactivity = yield* Effect.serviceOption(Reactivity.Reactivity);
@@ -39,8 +30,7 @@ export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc
 					return observer(event);
 				}),
 			);
-			const viewer = yield* CurrentViewer;
-			const keys = invalidationKeys(declared(payload, result, viewer)).filter((key) => !published.has(key));
+			const keys = declaredKeys(result).filter((key) => !published.has(key));
 			if (keys.length > 0) {
 				const publication = yield* CommandPublication;
 				yield* publication

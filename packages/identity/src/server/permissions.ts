@@ -9,7 +9,6 @@ import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors
 import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
 import { hasPermission } from "#permission.ts";
-import { commandChanges } from "#server/commandChanges.ts";
 import { recheckSession } from "./recheckSession.ts";
 import { revalidateStream } from "./revalidateStream.ts";
 import { SessionPolicy } from "./SessionPolicy.ts";
@@ -24,11 +23,11 @@ export function permissionLayer<TMiddleware>(
 	return Layer.effect(
 		middleware,
 		Effect.map(SessionPolicy, (policy) => {
-			const guard: RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never> = (effect, { headers, rpc, payload }) => {
+			const guard: RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never> = (effect, { headers, rpc }) => {
 				const lookup = Effect.tap(recheckSession(headers, rpc._tag), (session) =>
 					Option.isSome(session) && !hasPermission(session.value.user, permission) ? Effect.fail(forbidden(permission)) : Effect.void,
 				);
-				return commandChanges(effect, rpc, payload).pipe(
+				return effect.pipe(
 					(invocation) => Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(rpc, id, lookup))),
 					(invocation) =>
 						Effect.andThen(

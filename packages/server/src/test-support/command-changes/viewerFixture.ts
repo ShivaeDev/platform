@@ -1,9 +1,15 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command } from "@shivaedev/contract/operation.ts";
-import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated, RequestTracing } from "#middleware.ts";
-import { SessionPolicy } from "#server/SessionPolicy.ts";
-import { authenticatedLayer, authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer, maybeAuthenticatedLayer } from "#server/session.ts";
+import {
+	Authenticated,
+	AuthenticatedUser,
+	AuthenticatedUserWithProviderAccounts,
+	MaybeAuthenticated,
+	RequestTracing,
+} from "@shivaedev/identity/middleware.ts";
+import { SessionPolicy } from "@shivaedev/identity/server/SessionPolicy.ts";
+import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { Api, handlers, Note, notes, saveNote } from "./fixture.ts";
 
 function signedInSession(id: string) {
@@ -33,20 +39,16 @@ export function viewerFixture() {
 	const api = Api.merge(required, optional, user, accounts);
 	const application = Layer.mergeAll(
 		handlers,
-		required.toLayer({ "required.save": saveNote }),
-		optional.toLayer({ "optional.save": saveNote }),
-		user.toLayer({ "user.save": saveNote }),
-		accounts.toLayer({ "accounts.save": saveNote }),
-	).pipe(
-		Layer.provideMerge([authenticatedLayer(), maybeAuthenticatedLayer(), authenticatedUserLayer(), authenticatedUserWithProviderAccountsLayer()]),
-		Layer.provide(
-			Layer.succeed(SessionPolicy, {
-				origin: () => true,
-				provider: {
-					get: (headers) => Effect.succeed(Option.map(Option.fromUndefinedOr(headers.authorization), signedInSession)),
-				},
-			}),
-		),
-	);
-	return { api, application, viewers };
+		required.toLayer({ "required.save": (input) => saveNote(input).pipe(Effect.catchTag("Conflict", Effect.die)) }),
+		optional.toLayer({ "optional.save": (input) => saveNote(input).pipe(Effect.catchTag("Conflict", Effect.die)) }),
+		user.toLayer({ "user.save": (input) => saveNote(input).pipe(Effect.catchTag("Conflict", Effect.die)) }),
+		accounts.toLayer({ "accounts.save": (input) => saveNote(input).pipe(Effect.catchTag("Conflict", Effect.die)) }),
+	).pipe(Layer.provideMerge([authenticatedUserLayer(), authenticatedUserWithProviderAccountsLayer()]));
+	const sessions = Layer.succeed(SessionPolicy, {
+		origin: () => true,
+		provider: {
+			get: (headers) => Effect.succeed(Option.map(Option.fromUndefinedOr(headers.authorization), signedInSession)),
+		},
+	});
+	return { api, application, sessions, viewers };
 }
