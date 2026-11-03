@@ -109,7 +109,7 @@ isolatedStorage.it(
 			fleet.replace(POPULATED.value.workId, saved.version, { ...saved.value, attempts: [rejected], prompt: "new prompt" }),
 		);
 
-		expect(write).toMatch(/^database failure/u);
+		expect(write).toMatch(/^unexpected failure: database failure/u);
 		expect(yield* fleet.reload(POPULATED.value.workId)).toEqual(saved);
 	},
 );
