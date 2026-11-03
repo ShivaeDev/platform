@@ -10,9 +10,6 @@
 {"path":"packages/quality/src/baseline/legacy.unit.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/mergeCleanup.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/migration.spec.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/baseline/packageDebt.heavy.spec.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/baseline/parallelMerges.spec.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/baseline/prune.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/rewrite.unit.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/shards.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"effect/adapter-imports","count":1}
@@ -144,7 +141,6 @@
 {"path":"packages/quality/src/naming/packageLayout.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/naming/testName.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/naming/words.unit.test.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/recordedDebt.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/report/render.unit.test.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/ruleDefinition.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/aliasExports.spec.ts","rule":"effect/adapter-imports","count":1}
@@ -170,10 +166,8 @@
 {"path":"packages/quality/src/rules/effect/boundaryExceptions.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/effect/boundaryRunners.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/effect/effectBoundaries.spec.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/rules/effect/environmentServices.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/effect/failureHonesty.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/effect/program.ts","rule":"effect/adapter-imports","count":1}
-{"path":"packages/quality/src/rules/effect/referenceOptions.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/effect/serviceFindings.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/effect/serviceParameterPrecision.spec.ts","rule":"effect/adapter-imports","count":1}
 {"path":"packages/quality/src/rules/effect/serviceParameters.ts","rule":"effect/adapter-imports","count":1}

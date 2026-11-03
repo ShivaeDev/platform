@@ -11,7 +11,7 @@ application.it(
 	[
 		linkedPackageScripts,
 		installedPackageManager,
-		generated("my-app"),
+		generated("my-app", "--minimal"),
 		appAdds(DEBT, "// TODO: finish the feature\nexport function debt() {\n\treturn 1;\n}\n"),
 		appStaged(DEBT),
 	],
