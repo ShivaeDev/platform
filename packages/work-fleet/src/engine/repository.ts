@@ -3,6 +3,7 @@ import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { acknowledgedAttempt } from "#engine/acknowledgedAttempt.ts";
 import { operationRecord } from "#engine/operationRecord.ts";
+import { schedulingChanged } from "#engine/schedulingChanged.ts";
 import { threadName } from "#engine/threadNames.ts";
 import { allAttempts, backlog, executing, FleetRecord } from "#model.ts";
 import { checkLaunchAdmission, needsLaunchRecords } from "#scheduling/admission.ts";
@@ -18,6 +19,7 @@ const fleetStoreOptions = {
 	backlog,
 	executing,
 	requeue,
+	schedulingChanged,
 	submissions: (record, since) => allAttempts(record).filter((attempt) => attempt.submittedAt >= since).length,
 } satisfies FleetStoreOptions<FleetRecord>;
 

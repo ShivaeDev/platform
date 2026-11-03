@@ -1,6 +1,5 @@
-import { Clock, Context, Duration, Effect, Stream, SubscriptionRef } from "effect";
+import { Clock, Duration, Effect } from "effect";
 import { withBoardReadPass } from "#board/readPass.ts";
-import { SchedulerPasses } from "#engine/health.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
@@ -112,16 +111,6 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			tell(`main moves to ${snapshot.revision}`);
 			engine.main = snapshot;
 		},
-		passesComplete: (count: number) =>
-			Effect.gen(function* () {
-				tell(`wait for ${count} more scheduler ${count === 1 ? "pass" : "passes"} to complete`);
-				const passes = Context.get(engine.running.context, SchedulerPasses);
-				const target = (yield* SubscriptionRef.get(passes)) + count;
-				yield* SubscriptionRef.changes(passes).pipe(
-					Stream.takeUntil((completed) => completed >= target),
-					Stream.runDrain,
-				);
-			}),
 		port: () => engine.running.port,
 		quietFor: (duration: Duration.Input) => {
 			tell(`nothing else happens for ${Duration.format(Duration.fromInputUnsafe(duration))}`);

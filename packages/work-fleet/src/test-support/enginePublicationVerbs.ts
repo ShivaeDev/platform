@@ -7,7 +7,8 @@ import { fleetHealth } from "@shivaedev/work-board/server/adapters/fleetHealth.t
 import { withBoardReadPass } from "#board/readPass.ts";
 import * as statusPublication from "#board/writeStatus.ts";
 import { capacityRejected, HealthSnapshot } from "#engine/health.ts";
-import { cycle, run } from "#engine/scheduler.ts";
+import { run } from "#engine/runScheduler.ts";
+import { cycle } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { boardHttp } from "#test/boardHttp.ts";
 import { prepareWork } from "#test/engine.ts";
@@ -110,7 +111,10 @@ export function enginePublicationVerbs(state: EngineStory, tell: (line: string) 
 				if (entered === undefined) {
 					return yield* Effect.die("Configure suspended validation first");
 				}
-				const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.provideContext(context()), Effect.forkChild);
+				const scheduler = yield* Effect.scoped(run(Effect.succeed({ github: 5, provider: 5 }))).pipe(
+					Effect.provideContext(context()),
+					Effect.forkChild,
+				);
 				yield* Deferred.await(entered);
 				yield* fileCondition(state.root, Effect.sync(status), (source) => source.includes("Stage: reviewing"));
 				yield* Fiber.interrupt(scheduler);

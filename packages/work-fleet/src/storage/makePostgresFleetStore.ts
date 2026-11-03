@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/sql/repository.ts";
-import { fleetRecords } from "#fleetRecords.ts";
+import { fleetRecords, fleetScheduling } from "#fleetRecords.ts";
 import { checkRecordAdmission } from "#storage/admission.ts";
 import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { admissionReads } from "#storage/admissionReads.ts";
@@ -93,7 +93,7 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 			return yield* Effect.fail(new StorageConflict({ actualVersion: null, expectedVersion, workId }));
 		}
 		return yield* commit(
-			[fleetRecords.item(workId), fleetRecords.list],
+			({ scheduling }) => [fleetRecords.item(workId), fleetRecords.list, ...(scheduling ? [fleetScheduling.item(workId), fleetScheduling.list] : [])],
 			Effect.gen(function* () {
 				yield* lock;
 				const entry = yield* loadEntry(workId);
@@ -107,9 +107,13 @@ export const makePostgresFleetStore = Effect.fn("FleetStore.makePostgresFleetSto
 				const external = reads.foreign ? yield* foreign.foreignReservations() : [];
 				yield* checkRecordAdmission(options, record, previous?.value, entries, external, limits);
 				const timed = yield* withRecordTimes(schema, encoded, previous?.value);
-				return yield* persist(workId, expectedVersion, timed.value, timed.encoded, entry);
+				return {
+					record: yield* persist(workId, expectedVersion, timed.value, timed.encoded, entry),
+					scheduling: previous === undefined || options.schedulingChanged?.(record, previous.value) !== false,
+				};
 			}),
 		).pipe(
+			Effect.map(({ record: saved }) => saved),
 			Effect.catchIf(
 				(error) => error instanceof OptimisticConcurrencyError,
 				() =>

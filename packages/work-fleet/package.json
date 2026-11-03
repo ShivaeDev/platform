@@ -55,6 +55,7 @@
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/github": "workspace:*",
 		"@shivaedev/pr-watch": "workspace:*",
+		"@shivaedev/reconciler": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
