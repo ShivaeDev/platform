@@ -1,0 +1,31 @@
+import { Effect, Layer, Stream } from "effect";
+import { requireFeatures } from "@shivaedev/agent/agent.ts";
+import { Backend, type ConfiguredBackend } from "@shivaedev/agent/backend.ts";
+
+const unsupported = { support: "unsupported", reason: "not installed" } as const;
+const backend: ConfiguredBackend = {
+  backend: "consumer",
+  features: {
+    sessions: unsupported,
+    queuedInput: unsupported,
+    steering: unsupported,
+    interruption: unsupported,
+    transcript: unsupported,
+    imageInput: unsupported,
+    models: unsupported,
+  },
+  start: (request) => Effect.succeed({ backend: "consumer", operationId: request.operationId, reference: { version: 1, value: "opaque" } }),
+  inspect: () => Effect.succeed({ type: "missing", reason: "not recorded" }),
+  reconcile: (operationId) => Effect.succeed({ type: "uncertain", operationId, reason: "no evidence" }),
+  events: () => Stream.empty,
+};
+await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
+  const agent = yield* requireFeatures([]);
+  const result = yield* agent.reconcile("consumer-operation");
+  if (result.type !== "uncertain") return yield* Effect.die("reconciliation fabricated acceptance");
+  const refused = yield* requireFeatures(["transcript"]).pipe(Effect.match({
+    onSuccess: () => false,
+    onFailure: (error) => error.requirement === "transcript" && error.backend === "consumer",
+  }));
+  if (!refused) return yield* Effect.die("transcript requirement was not refused");
+})).pipe(Effect.provide(Layer.succeed(Backend)(backend))));

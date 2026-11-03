@@ -89,6 +89,33 @@ export function sendHostReady(url: string) {
 	return sendHostMessage({ pid: process.pid, type: "host-ready", url });
 }
 
+export function waitForHostStart(signal: AbortSignal) {
+	return new Promise<void>((resolve, reject) => {
+		function cleanup() {
+			process.off("SIGUSR2", start);
+			signal.removeEventListener("abort", aborted);
+		}
+		function failed(cause: unknown) {
+			cleanup();
+			reject(cause);
+		}
+		function start() {
+			cleanup();
+			resolve();
+		}
+		function aborted() {
+			failed(signal.reason);
+		}
+		process.once("SIGUSR2", start);
+		signal.addEventListener("abort", aborted, { once: true });
+		if (signal.aborted) {
+			aborted();
+		} else {
+			void sendHostMessage({ type: "host-prepared" }).catch(failed);
+		}
+	});
+}
+
 export async function hostResponse(url: string, path: string, signal: AbortSignal) {
 	const response = await fetch(new URL(path, url), { redirect: "manual", signal });
 	return { body: await response.text(), headers: Object.fromEntries(response.headers), status: response.status };
