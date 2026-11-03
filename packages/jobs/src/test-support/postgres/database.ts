@@ -6,6 +6,7 @@ import { connectionVerbs } from "./connections.ts";
 import { controllerVerbs } from "./controller.ts";
 import { databaseEngine } from "./databaseEngine.ts";
 import { deferralVerbs } from "./deferralVerbs.ts";
+import { engineVerbs } from "./engineVerbs.ts";
 import { postgresConfigured, postgresLayer } from "./layer.ts";
 import { listingVerbs } from "./listingVerbs.ts";
 import { readouts } from "./readouts.ts";
@@ -30,6 +31,7 @@ export const database = storyKit({
 		...runtimeVerbs(engine, story.tell),
 		...connectionVerbs(engine, story.tell),
 		...controllerVerbs(engine, story.tell),
+		...engineVerbs(engine, story.tell),
 		...deferralVerbs(engine, story.tell),
 		...listingVerbs(engine, story.tell),
 		...releaseVerbs(engine, story.tell),

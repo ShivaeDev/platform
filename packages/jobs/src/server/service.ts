@@ -4,12 +4,14 @@ import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import { clientErrorLogger } from "#server/adapters/clientErrorLogger.ts";
 import { clientErrorReporter } from "#server/adapters/clientErrorReporter.ts";
+import { jobEngine } from "#server/adapters/jobEngine.ts";
 import { clientEngine } from "#server/adapters/lifecycle.ts";
 import type { PgBossClientFactory } from "#server/client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#server/definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueNamesError, PgBossQueueOptionsError } from "#server/error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#server/health.ts";
 import { logClientError, subscribeClientErrors } from "#server/internal/clientErrors.ts";
+import { JobEngine } from "#server/internal/engine.ts";
 import { ClientEngine } from "#server/internal/lifecycle.ts";
 import { makeService } from "#server/internal/makeService.ts";
 import { registrationName } from "#server/internal/register.ts";
@@ -103,7 +105,9 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 				yield* validateQueueNames(options.jobs, queueNames);
 				const acquired = yield* PgBoss;
 				const workerScope = yield* Scope.make();
-				const service = makeService(acquired.client, options.jobs.map(registrationName), acquired.schema);
+				const service = yield* makeService(acquired.client, options.jobs.map(registrationName), acquired.schema).pipe(
+					Effect.provideService(JobEngine, jobEngine(acquired.client, acquired.schema)),
+				);
 				yield* Effect.gen(function* () {
 					const context = yield* Effect.context<R | E>();
 					const reportError = options.onError ?? logClientError;

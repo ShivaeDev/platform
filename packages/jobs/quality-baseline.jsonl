@@ -8,16 +8,11 @@
 {"path":"packages/jobs/src/server/internal/countsFor.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/deadlineOf.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/definitionOptions.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/internal/expireAttempt.ts","rule":"effect/boundary","count":6}
 {"path":"packages/jobs/src/server/internal/healthFor.ts","rule":"effect/boundary","count":2}
-{"path":"packages/jobs/src/server/internal/jobControl.ts","rule":"effect/boundary","count":8}
-{"path":"packages/jobs/src/server/internal/listJobs.ts","rule":"effect/boundary","count":3}
-{"path":"packages/jobs/src/server/internal/observeTestingSettlements.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/internal/registerReleasedJobs.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/internal/retryWake.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/internal/settleDeferral.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/testingDeferrals.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/testingIdle.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/testingReadout.ts","rule":"effect/boundary","count":1}

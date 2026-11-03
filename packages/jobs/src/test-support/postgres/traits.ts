@@ -1,8 +1,8 @@
 import { Effect, Redacted, type Schema } from "effect";
 import type { JobInsert } from "pg-boss";
 import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
+import { testingEngine } from "#server/adapters/testingEngine.ts";
 import type { QueueDefinition } from "#server/definition.ts";
-import { expireAttempt } from "#server/internal/expireAttempt.ts";
 import type { PgBossTesting } from "#server/testing.ts";
 import type { Registration } from "#test/workers.ts";
 import { serverTlsAbsent } from "./connections.ts";
@@ -211,7 +211,7 @@ export function claimedAndExpired(as: string, cause: "expiry" | "heartbeat") {
 				if (claim?.id !== id) {
 					throw new Error(`${as} was not available to claim`);
 				}
-				await expireAttempt(client, "pgboss", claim, cause);
+				await Effect.runPromise(testingEngine(client, "pgboss").expireAttempt(claim, cause));
 			});
 		},
 	);
@@ -281,4 +281,11 @@ export function runningBehindGate(name: string, options: StartOptions) {
 			}),
 		),
 	);
+}
+
+export function engineUnavailable() {
+	return database.trait("jobs", "the testing engine has stopped", function* (engine) {
+		const client = yield* admin(engine);
+		yield* Effect.promise(() => client.stop());
+	});
 }
