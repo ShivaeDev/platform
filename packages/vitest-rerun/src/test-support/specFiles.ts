@@ -8,12 +8,13 @@ export const BESIDE = "checkout > passes beside it";
 
 export interface SuiteConfig {
 	coverage: boolean;
+	execArgv?: readonly string[];
 	globalSetup?: string;
 	projects: readonly string[];
 	threshold?: number;
 }
 
-export function vitestConfig(root: string, { coverage, globalSetup, projects, threshold }: SuiteConfig): string {
+export function vitestConfig(root: string, { coverage, execArgv, globalSetup, projects, threshold }: SuiteConfig): string {
 	const include = "include: ['*.spec.ts']";
 	const tests =
 		projects.length === 0
@@ -24,7 +25,8 @@ export function vitestConfig(root: string, { coverage, globalSetup, projects, th
 		? `, coverage: { enabled: true, provider: 'v8', include: ['covered.ts'], reporter: ['lcov'], reportOnFailure: true, reportsDirectory: 'coverage'${thresholds} }`
 		: "";
 	const setup = globalSetup === undefined ? "" : `, globalSetup: ${JSON.stringify(globalSetup)}`;
-	return `export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions}${setup} } };\n`;
+	const workerArguments = execArgv === undefined ? "" : `, execArgv: ${JSON.stringify(execArgv)}`;
+	return `export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions}${setup}${workerArguments} } };\n`;
 }
 
 const recordsRuns = `const ran = (name) => appendFileSync(${JSON.stringify(RAN)}, name + '\\n');`;

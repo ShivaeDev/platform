@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { rerunStory } from "./kit.ts";
 import { perAttempt } from "./specFiles.ts";
@@ -10,7 +11,17 @@ export function timesOutOnce() {
 	return rerunStory.trait(
 		"tests",
 		'in timeout.spec.ts, "recovers after a timeout" times out after 50ms on its first attempt and passes on rerun',
-		(suite) =>
+		(suite) => {
+			suite.config.execArgv = ["--import", join(suite.directory, "clock.mjs")];
+			writeFile(
+				suite,
+				"clock.mjs",
+				`import { mock } from 'node:test';
+
+// Vitest captures performance.now before collecting the fixture.
+mock.method(performance, 'now', () => Date.now());
+`,
+			);
 			writeFile(
 				suite,
 				"timeout.spec.ts",
@@ -20,7 +31,7 @@ import { afterAll } from ${vitest};
 import { getSafeTimers, setSafeTimers } from ${browser};
 
 const { setTimeout, clearTimeout } = getSafeTimers();
-mock.timers.enable({ apis: ['setTimeout'] });
+mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.now() });
 setSafeTimers();
 // Vitest's deadline uses the controlled timer; process I/O keeps its native timers.
 Object.assign(globalThis, { setTimeout, clearTimeout });
@@ -36,6 +47,7 @@ it('recovers after a timeout', async () => {
 	}
 }, 50);
 `),
-			),
+			);
+		},
 	);
 }
