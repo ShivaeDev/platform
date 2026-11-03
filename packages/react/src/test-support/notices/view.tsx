@@ -31,14 +31,15 @@ export function NoticeCard(notice: Notice) {
 	} else if (result && AsyncResult.isSuccess(result)) {
 		outcome = String(result.value);
 	}
+	const actionButton = action !== undefined && (
+		<button disabled={action.pending} onClick={action.run} type="button">
+			{action.label}
+		</button>
+	);
 	return (
 		<article data-notice={notice.message}>
 			<p>{notice.message}</p>
-			{action !== undefined && (
-				<button disabled={action.pending} onClick={action.run} type="button">
-					{action.label}
-				</button>
-			)}
+			{actionButton}
 			<output>{outcome}</output>
 			<button onClick={notice.dismiss} type="button">
 				Dismiss {notice.message}

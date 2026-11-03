@@ -62,6 +62,7 @@ function EditorView({ config, held, revision, save }: ViewProps) {
 }
 function Controls({ current }: { readonly current: Current }) {
 	const name = useField(current.form, "name");
+	const created = "created" in current ? Option.getOrNull(current.created) : undefined;
 	return (
 		<section>
 			<input name="name" onChange={(event) => name.onChange(event.target.value)} value={name.value} />
@@ -71,9 +72,7 @@ function Controls({ current }: { readonly current: Current }) {
 			<button onClick={current.revert} type="button">
 				Revert
 			</button>
-			<output data-saving={current.saving}>
-				{JSON.stringify({ created: "created" in current ? Option.getOrNull(current.created) : undefined, error: name.error })}
-			</output>
+			<output data-saving={current.saving}>{JSON.stringify({ created, error: name.error })}</output>
 		</section>
 	);
 }

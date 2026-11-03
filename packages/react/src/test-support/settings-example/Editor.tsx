@@ -54,6 +54,8 @@ export function Editor({ client }: { readonly client: ReturnType<typeof makeClie
 	const row = Option.getOrUndefined(editor.query.data);
 	const draftStatus = editor.dirty ? "Unsaved changes" : "Saved";
 	const status = editor.saving ? "Saving" : draftStatus;
+	const shown = row !== undefined && `${row.title} / ${row.pageSize}`;
+	const fields = editor.form !== undefined && <Fields form={editor.form} />;
 	return (
 		<form
 			onSubmit={(event) => {
@@ -61,8 +63,8 @@ export function Editor({ client }: { readonly client: ReturnType<typeof makeClie
 				editor.save();
 			}}
 		>
-			<output>{row !== undefined && `${row.title} / ${row.pageSize}`}</output>
-			{editor.form !== undefined && <Fields form={editor.form} />}
+			<output>{shown}</output>
+			{fields}
 			<button disabled={!editor.form || editor.saving} type="submit">
 				Save
 			</button>

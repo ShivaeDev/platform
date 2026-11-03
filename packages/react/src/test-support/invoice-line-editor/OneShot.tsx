@@ -34,14 +34,15 @@ export function InvoiceLineOneShot({
 
 export function OneShotScreen({ opening, server }: { readonly opening: InvoiceLine; readonly server: ReturnType<typeof makeInvoiceLineServer> }) {
 	const [saved, setSaved] = useState<InvoiceLine>();
+	const completed = saved ? (
+		<output>
+			Completed {saved.id}: {saved.name} / {saved.quantity} (version {saved.version})
+		</output>
+	) : null;
 	return (
 		<>
 			<InvoiceLineOneShot onSaved={setSaved} opening={opening} server={server} />
-			{saved ? (
-				<output>
-					Completed {saved.id}: {saved.name} / {saved.quantity} (version {saved.version})
-				</output>
-			) : null}
+			{completed}
 		</>
 	);
 }

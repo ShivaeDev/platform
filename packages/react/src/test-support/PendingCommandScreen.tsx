@@ -11,14 +11,13 @@ function ToggleRow({ client, enabled, id }: { readonly client: PendingClient; re
 		wanted: (input) => input.enabled,
 	});
 	const failure = AsyncResult.error(toggle.result);
+	const message = Option.isSome(failure) && failure.value._tag === "ToggleRejected" ? `${failure.value._tag}: ${failure.value.reason}` : "";
 	return (
 		<li data-row={id}>
 			<button aria-pressed={toggle.value} disabled={toggle.pending} onClick={() => toggle.dispatch({ enabled: !toggle.value })} type="button">
 				Enabled
 			</button>
-			<output data-command={toggle.result._tag}>
-				{Option.isSome(failure) && failure.value._tag === "ToggleRejected" ? `${failure.value._tag}: ${failure.value.reason}` : ""}
-			</output>
+			<output data-command={toggle.result._tag}>{message}</output>
 		</li>
 	);
 }

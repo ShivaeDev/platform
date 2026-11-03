@@ -14,6 +14,7 @@ export function Form({ client }: { readonly client: NoticeClient }) {
 	const title = useField(save.form, "title");
 	const settledStatus = save.dirty ? "Unsaved" : "Saved";
 	const status = save.saving ? "Saving" : settledStatus;
+	const error = title.error !== undefined && <p role="alert">{title.error}</p>;
 	return (
 		<form
 			onSubmit={(event) => {
@@ -25,7 +26,7 @@ export function Form({ client }: { readonly client: NoticeClient }) {
 				Title
 				<input aria-invalid={title.error !== undefined} name="title" onChange={(event) => title.onChange(event.target.value)} value={title.value} />
 			</label>
-			{title.error !== undefined && <p role="alert">{title.error}</p>}
+			{error}
 			<button disabled={save.saving} type="submit">
 				Save note
 			</button>
