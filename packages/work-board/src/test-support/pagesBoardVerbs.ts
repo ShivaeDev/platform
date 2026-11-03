@@ -1,17 +1,10 @@
 import { Effect } from "effect";
 import { openPage } from "./browser.ts";
 import { metadataScreen } from "./metadataScreen.tsx";
-import { pageSettlesOn, pageTrafficScripts } from "./pageSignals.ts";
+import { pageSettlesOn, pageTrafficScripts } from "./pageSettle.ts";
 import { type BoardEngine, connected, rememberReader } from "./storyEngine.ts";
 
 const GOAL_CHART = /\/GoalChart-[\w-]+\.js$/u;
-
-function progress(value: unknown) {
-	if (typeof value !== "object" || value === null || !("read" in value)) {
-		return "none";
-	}
-	return `${value.read} of ${"total" in value ? value.total : undefined}`;
-}
 
 export function pagesBoardVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	function page() {
@@ -30,8 +23,10 @@ export function pagesBoardVerbs(engine: BoardEngine, tell: (line: string) => voi
 			pageSettlesOn(
 				engine,
 				tell,
-				`the page receives indexing progress of ${read} ${total === undefined ? "files of an unknown total" : `of ${total} files`} and settles`,
-				(answers) => answers.some(({ tag, value }) => tag === "work-board.indexing" && progress(value) === `${read} of ${total}`),
+				`the page renders indexing progress of ${read} ${total === undefined ? "files of an unknown total" : `of ${total} files`} and settles`,
+				() =>
+					page().document.querySelector('#doc [data-indexing] [data-slot="progress-label"]')?.textContent
+					=== (total === undefined ? "Reading the workspace…" : `Reading ${read.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} files…`),
 			),
 		pageReceives: (method: string) =>
 			pageSettlesOn(engine, tell, `the page receives a new ${method} answer and settles`, (answers, since) =>

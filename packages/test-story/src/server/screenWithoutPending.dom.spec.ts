@@ -10,8 +10,8 @@ screenApp.it("refuses to settle at once without a pending signal while a request
 
 	expect(yield* attempt(withoutPending.settle({ timeoutMs: 60_000 }))).toBe(
 		[
-			"failed with MissingScreenPending: Cannot settle the screen without the pending option.",
-			"help: Supply pending: () => boolean that reads the application's pending work and stays true until its resulting screen work is ready to render.",
+			"failed with MissingScreenPending: Cannot settle the screen without a completion signal.",
+			"help: Supply pending, activity or transport that stays busy until the resulting screen work is ready to render.",
 		].join("\n"),
 	);
 });

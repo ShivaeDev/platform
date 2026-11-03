@@ -40,3 +40,18 @@ it("keeps settlement infallible with a native pending stream", () => {
 	expectTypeOf<ReturnType<typeof forPending>>().toEqualTypeOf<ScreenDriver>();
 	expectTypeOf<ReturnType<ReturnType<typeof forPending>["settle"]>>().toEqualTypeOf<Effect.Effect<void>>();
 });
+
+it("keeps settlement and live hints typed with activity and combined completion sources", () => {
+	function combined(activity: ScreenSignal, pending: Stream.Stream<boolean>, transport: Stream.Stream<boolean>) {
+		return screenDriver({ ...options, activity, pending, transport });
+	}
+	function activityOnly(activity: ScreenSignal) {
+		return screenDriver({ ...options, activity });
+	}
+	function transportOnly(transport: Stream.Stream<boolean>) {
+		return screenDriver({ ...options, transport });
+	}
+	expectTypeOf<ReturnType<typeof combined>>().toEqualTypeOf<ScreenDriver<never, SignalNotReceived>>();
+	expectTypeOf<ReturnType<typeof activityOnly>>().toEqualTypeOf<ScreenDriver<never, SignalNotReceived>>();
+	expectTypeOf<ReturnType<typeof transportOnly>>().toEqualTypeOf<ScreenDriver>();
+});
