@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const TODO = { content: "// TODO\nexport function value(): number {\n\treturn 1;\n}\n", path: "src/value.ts" };
@@ -12,7 +12,7 @@ repositoryStory.it(
 	function* ({ spawns }) {
 		const answer = yield* spawns("fix");
 
-		expect(answer.outcome).toBe("passed");
+		yield* assertThat(answer.outcome, (actual) => actual.toBe("passed"));
 	},
 	CLI_TIMEOUT,
 );
@@ -23,10 +23,12 @@ repositoryStory.it(
 	function* ({ outcome, spawns, stdout }) {
 		yield* spawns();
 
-		yield* outcomes([
-			["exit", () => outcome(), "passed"],
-			["report", () => stdout(), expect.stringContaining("quality: passed.")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "passed"],
+				["report", () => stdout(), expect.stringContaining("quality: passed.")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -37,10 +39,12 @@ repositoryStory.it(
 	function* ({ outcome, spawns, stdout }) {
 		yield* spawns("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["report", () => stdout(), expect.stringContaining("comments/no-todo")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining("comments/no-todo")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -49,11 +53,11 @@ repositoryStory.it(
 	"quality without a config passes lint once baseline write records the existing finding",
 	[qualityInstalled(), repositoryHas(TODO)],
 	function* ({ spawns }) {
-		expect((yield* spawns("lint")).outcome).toBe("rejected");
+		yield* assertThat((yield* spawns("lint")).outcome, (actual) => actual.toBe("rejected"));
 
 		yield* spawns("baseline", "write");
 
-		expect((yield* spawns("lint")).outcome).toBe("passed");
+		yield* assertThat((yield* spawns("lint")).outcome, (actual) => actual.toBe("passed"));
 	},
 	CLI_TIMEOUT,
 );
@@ -81,10 +85,12 @@ repositoryStory.it(
 	function* ({ outcome, spawns, stderr }) {
 		yield* spawns("lint", "--config", "missing.ts");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("Check the --config path")],
-			["exit", () => outcome(), "invalid"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringContaining("Check the --config path")],
+				["exit", () => outcome(), "invalid"],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { generatedApplication } from "#test/applicationFiles.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const BROUGHT = [
 	{ content: 'import { repository } from "@shivaedev/sql/repository.ts";\n\nexport const app = repository;\n', path: "src/app.ts" },
@@ -20,7 +20,7 @@ biomeStory.it(
 	function* ({ checks, reported }) {
 		yield* checks();
 
-		expect(yield* reported("lint/correctness/noUndeclaredDependencies")).toEqual([]);
+		yield* assertThat(yield* reported("lint/correctness/noUndeclaredDependencies"), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -30,6 +30,8 @@ biomeStory.it(
 	function* ({ checks, reported }) {
 		yield* checks();
 
-		expect(yield* reported("lint/correctness/noUndeclaredDependencies")).toEqual(["src/admin.ts:1", "src/shipped.ts:1"]);
+		yield* assertThat(yield* reported("lint/correctness/noUndeclaredDependencies"), (actual) =>
+			actual.toEqual(["src/admin.ts:1", "src/shipped.ts:1"]),
+		);
 	},
 );

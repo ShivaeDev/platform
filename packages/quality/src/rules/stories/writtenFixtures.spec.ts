@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { storySetup } from "#rules/stories/setup.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const TEST = "src/cart/cart.test.ts";
 
@@ -29,7 +29,9 @@ for (const write of [
 		function* ({ check }) {
 			const findings = yield* check(storySetup);
 
-			expect(findings).toEqual([{ file: TEST, line: 2, message: `Writes a fixture with ${write}. ${STORY_KIT}`, subject: write }]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([{ file: TEST, line: 2, message: `Writes a fixture with ${write}. ${STORY_KIT}`, subject: write }]),
+			);
 		},
 	);
 }
@@ -47,7 +49,9 @@ for (const [route, imports, call, write] of [
 		function* ({ check }) {
 			const findings = yield* check(storySetup);
 
-			expect(findings).toEqual([{ file: TEST, line: 2, message: `Writes a fixture with ${write}. ${STORY_KIT}`, subject: write }]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([{ file: TEST, line: 2, message: `Writes a fixture with ${write}. ${STORY_KIT}`, subject: write }]),
+			);
 		},
 	);
 }
@@ -57,6 +61,6 @@ for (const [lookalike, content] of [
 	["a writeFileSync of another module", 'import { writeFileSync } from "./disk.ts";\nwriteFileSync("a.json");\n'],
 ] as const) {
 	ruleStory.it(`tests/story-setup leaves ${lookalike} alone`, [repositoryHas({ content, path: TEST })], function* ({ check }) {
-		expect(yield* check(storySetup)).toEqual([]);
+		yield* assertThat(yield* check(storySetup), (actual) => actual.toEqual([]));
 	});
 }

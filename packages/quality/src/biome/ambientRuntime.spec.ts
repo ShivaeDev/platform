@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { AMBIENT_RUNTIME_CASES, ambientFiles } from "#test/ambientRuntimeFiles.ts";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const [shape, expression] of AMBIENT_RUNTIME_CASES) {
 	biomeStory.it(
@@ -9,7 +9,7 @@ for (const [shape, expression] of AMBIENT_RUNTIME_CASES) {
 		function* ({ checks, reported }) {
 			yield* checks();
 
-			expect(yield* reported("plugin")).toEqual(["src/client.ts:3", "src/core.ts:3"]);
+			yield* assertThat(yield* reported("plugin"), (actual) => actual.toEqual(["src/client.ts:3", "src/core.ts:3"]));
 		},
 	);
 }
@@ -39,7 +39,7 @@ biomeStory.it(
 	function* ({ checks, reported }) {
 		yield* checks();
 
-		expect(yield* reported("plugin")).toEqual([]);
+		yield* assertThat(yield* reported("plugin"), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -57,19 +57,21 @@ biomeStory.it(
 	function* ({ checks, reported }) {
 		yield* checks();
 
-		expect(yield* reported("plugin")).toEqual([
-			"src/cli.ts:1",
-			"src/cli.ts:2",
-			"src/cli.ts:3",
-			"src/cli.ts:4",
-			"src/cli.ts:5",
-			"src/cli.ts:6",
-			"src/core.ts:1",
-			"src/core.ts:2",
-			"src/core.ts:3",
-			"src/core.ts:4",
-			"src/core.ts:5",
-			"src/core.ts:6",
-		]);
+		yield* assertThat(yield* reported("plugin"), (actual) =>
+			actual.toEqual([
+				"src/cli.ts:1",
+				"src/cli.ts:2",
+				"src/cli.ts:3",
+				"src/cli.ts:4",
+				"src/cli.ts:5",
+				"src/cli.ts:6",
+				"src/core.ts:1",
+				"src/core.ts:2",
+				"src/core.ts:3",
+				"src/core.ts:4",
+				"src/core.ts:5",
+				"src/core.ts:6",
+			]),
+		);
 	},
 );

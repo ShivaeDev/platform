@@ -1,5 +1,5 @@
-import { expect } from "vitest";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { failureHonesty } from "./failureHonesty.ts";
 
 const EFFECT_IMPORT = 'import { Effect as E, FileSystem } from "effect";';
@@ -42,7 +42,7 @@ for (const { name, rejected, accepted, message } of [
 		function* ({ check }) {
 			const findings = yield* check(failureHonesty);
 
-			expect(findings).toEqual([{ file: "src/work.ts", line: 2, message }]);
+			yield* assertThat(findings, (actual) => actual.toEqual([{ file: "src/work.ts", line: 2, message }]));
 		},
 	);
 }
@@ -69,7 +69,10 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(failureHonesty);
 
-		expect(findings.map(({ line }) => line)).toEqual([5, 6, 7, 8, 9, 10]);
+		yield* assertThat(
+			findings.map(({ line }) => line),
+			(actual) => actual.toEqual([5, 6, 7, 8, 9, 10]),
+		);
 	},
 );
 
@@ -93,6 +96,6 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(failureHonesty);
 
-		expect(findings).toEqual([]);
+		yield* assertThat(findings, (actual) => actual.toEqual([]));
 	},
 );

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { malformedBiomeVcs, qualityLifecycle } from "#test/qualityLifecycle.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const [setting, value] of [
@@ -13,10 +13,12 @@ for (const [setting, value] of [
 		function* ({ outcome, runs, stderr }) {
 			yield* runs("lint");
 
-			yield* outcomes([
-				["exit", () => outcome(), "invalid"],
-				["rule failure", () => stderr(), expect.stringContaining("rule biome failed")],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "invalid"],
+					["rule failure", () => stderr(), expect.stringContaining("rule biome failed")],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);

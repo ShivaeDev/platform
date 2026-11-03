@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { kitFiles, spec } from "#testing/adapters/storySpecFiles.ts";
 
 for (const loop of [
@@ -25,11 +25,11 @@ for (const loop of [
 			),
 		],
 		function* ({ check, locations }) {
-			expect(yield* check(storySpecs)).toEqual([]);
+			yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 
 			yield* check(waitOnEvents);
 
-			expect(yield* locations()).toEqual(["src/orders.test.ts:2"]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/orders.test.ts:2"]));
 		},
 	);
 }
@@ -45,6 +45,6 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(storySpecs);
 
-		expect(yield* locations()).toEqual(["src/orders.spec.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/orders.spec.ts:1"]));
 	},
 );

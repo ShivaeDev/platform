@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { unusedCode } from "#rules/unusedCode.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const UNLISTED = "Missing package dependency. Declare it in the importing package's manifest:";
 
@@ -19,7 +19,7 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(unusedCode);
 
-		expect(yield* messages()).toEqual([`${UNLISTED} missing-runtime.`]);
+		yield* assertThat(yield* messages(), (actual) => actual.toEqual([`${UNLISTED} missing-runtime.`]));
 	},
 );
 
@@ -29,6 +29,6 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(unusedCode);
 
-		expect((yield* messages()).toSorted()).toEqual([`${UNLISTED} host-runtime.`, `${UNLISTED} missing-runtime.`]);
+		yield* assertThat((yield* messages()).toSorted(), (actual) => actual.toEqual([`${UNLISTED} host-runtime.`, `${UNLISTED} missing-runtime.`]));
 	},
 );

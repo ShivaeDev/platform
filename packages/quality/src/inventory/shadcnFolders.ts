@@ -1,5 +1,5 @@
-import { basename, dirname, relative } from "node:path";
-import { Effect, Schema } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Effect, Path, Schema } from "effect";
 import type { SetupFailure } from "#failure.ts";
 import type { RuleServices } from "#rule.ts";
 import { FilesystemFailure, readRequiredText } from "./filesystem.ts";
@@ -12,9 +12,13 @@ const Components = Schema.fromJsonString(Schema.Struct({ aliases: Schema.Struct(
 export const shadcnFolders = Effect.fn("Inventory.shadcnFolders")(function* (
 	root: string,
 ): Effect.fn.Return<readonly string[], FilesystemFailure | SetupFailure, RuleServices> {
+	const { basename } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const paths = (yield* walk(root)).filter((path) => basename(path) === "components.json");
 	return yield* Effect.forEach(paths, (path) =>
 		Effect.gen(function* () {
+			const { dirname, relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 			const text = yield* readRequiredText(path);
 			return yield* Effect.try({
 				catch: (cause) => new FilesystemFailure({ message: `cannot resolve ${path}: ${String(cause)}`, path }),

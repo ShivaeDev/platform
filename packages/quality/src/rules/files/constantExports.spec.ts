@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const named = [
 	["src/liveQueryWindow.ts", "export const liveQueryWindow = 30;\n"],
@@ -12,7 +12,7 @@ const named = [
 
 for (const [path, content] of named) {
 	ruleStory.it(`files/named-after-export accepts ${path} holding ${content.trim()}`, [repositoryHas({ content, path })], function* ({ check }) {
-		expect(yield* check(namedAfterExport)).toEqual([]);
+		yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -32,7 +32,7 @@ for (const [path, content, reason] of misnamed) {
 	ruleStory.it(`files/named-after-export refuses ${path}: ${reason}`, [repositoryHas({ content, path })], function* ({ check, messages }) {
 		yield* check(namedAfterExport);
 
-		expect(yield* messages()).toEqual([expect.stringContaining(reason)]);
+		yield* assertThat(yield* messages(), (actual, expect) => actual.toEqual([expect.stringContaining(reason)]));
 	});
 }
 
@@ -41,11 +41,11 @@ for (const otherExport of ["", "export function available() { return MAX_ITEMS; 
 		`files/named-after-export keeps a constant's filename when it becomes private ${otherExport === "" ? "with no remaining export" : "beside a remaining function export"}`,
 		[repositoryHas({ content: `export const MAX_ITEMS = 10;\n${otherExport}`, path: "src/MaxItems.ts" })],
 		function* ({ check, writes }) {
-			expect(yield* check(namedAfterExport)).toEqual([]);
+			yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
 
 			yield* writes({ content: `const MAX_ITEMS = 10;\n${otherExport}`, path: "src/MaxItems.ts" });
 
-			expect(yield* check(namedAfterExport)).toEqual([]);
+			yield* assertThat(yield* check(namedAfterExport), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -56,6 +56,6 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(namedAfterExport);
 
-		expect(yield* locations()).toEqual(["src/Limits.ts"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/Limits.ts"]));
 	},
 );

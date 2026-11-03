@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { inStory } from "#testing/adapters/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
@@ -22,10 +22,12 @@ for (const [shape, imports, line] of [
 		function* ({ check, locations, messages }) {
 			yield* check(domainOutcomes);
 
-			yield* outcomes([
-				["advice", () => messages(), [expect.stringContaining("return the outcome in the domain's words")]],
-				["locations", () => locations(), [`${SPEC}:3`]],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["advice", () => messages(), [expect.stringContaining("return the outcome in the domain's words")]],
+					["locations", () => locations(), [`${SPEC}:3`]],
+				]),
+			);
 		},
 	);
 }
@@ -34,6 +36,6 @@ ruleStory.it(
 	"tests/domain-outcomes accepts a domain tagged value such as Resync in a story",
 	[repositoryHas({ content: `${VITEST}\n${inStory('expect(yield* nextMessage()).toEqual({ _tag: "Resync" });')}`, path: SPEC })],
 	function* ({ check }) {
-		expect(yield* check(domainOutcomes)).toEqual([]);
+		yield* assertThat(yield* check(domainOutcomes), (actual) => actual.toEqual([]));
 	},
 );

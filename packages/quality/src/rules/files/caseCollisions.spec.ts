@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { distinctCase } from "#rules/files/distinctCase.ts";
 import { checkoutLists, listedCheckout } from "#test/listedCheckout.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 listedCheckout.it(
 	"files/distinct-case reports a component and a topic module whose built files differ only by case, each naming the other",
@@ -8,18 +8,20 @@ listedCheckout.it(
 	function* ({ check }) {
 		const findings = yield* check(distinctCase);
 
-		expect(findings).toEqual([
-			{
-				file: "src/react/ReadingHistory.tsx",
-				message:
-					'"ReadingHistory.tsx" and "readingHistory.ts" differ only by case, in their names or in the files they build to, so they are one path on a case-insensitive filesystem such as macOS or Windows. Rename one of them.',
-			},
-			{
-				file: "src/react/readingHistory.ts",
-				message:
-					'"readingHistory.ts" and "ReadingHistory.tsx" differ only by case, in their names or in the files they build to, so they are one path on a case-insensitive filesystem such as macOS or Windows. Rename one of them.',
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "src/react/ReadingHistory.tsx",
+					message:
+						'"ReadingHistory.tsx" and "readingHistory.ts" differ only by case, in their names or in the files they build to, so they are one path on a case-insensitive filesystem such as macOS or Windows. Rename one of them.',
+				},
+				{
+					file: "src/react/readingHistory.ts",
+					message:
+						'"readingHistory.ts" and "ReadingHistory.tsx" differ only by case, in their names or in the files they build to, so they are one path on a case-insensitive filesystem such as macOS or Windows. Rename one of them.',
+				},
+			]),
+		);
 	},
 );
 
@@ -29,7 +31,7 @@ listedCheckout.it(
 	function* ({ check, locations }) {
 		yield* check(distinctCase);
 
-		expect(yield* locations()).toEqual(["docs/README.md", "docs/readme.md"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["docs/README.md", "docs/readme.md"]));
 	},
 );
 
@@ -39,7 +41,7 @@ listedCheckout.it(
 	function* ({ check, locations }) {
 		yield* check(distinctCase);
 
-		expect(yield* locations()).toEqual(["src/Dialog", "src/dialog"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/Dialog", "src/dialog"]));
 	},
 );
 
@@ -51,6 +53,6 @@ const distinct = [
 
 for (const [pair, paths] of distinct) {
 	listedCheckout.it(`files/distinct-case accepts ${pair}`, [checkoutLists(...paths)], function* ({ check }) {
-		expect(yield* check(distinctCase)).toEqual([]);
+		yield* assertThat(yield* check(distinctCase), (actual) => actual.toEqual([]));
 	});
 }

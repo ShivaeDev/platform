@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const directory of ["", "packages/app/"]) {
 	ruleStory.it(
@@ -18,15 +18,17 @@ for (const directory of ["", "packages/app/"]) {
 		function* ({ check, locations }) {
 			yield* check(namedAfterExport);
 
-			expect(yield* locations()).toEqual([
-				`${directory}src/modules/admin/area/users/client/migrations/0001_accounts.ts`,
-				`${directory}src/modules/admin/area/users/server/migrations/0001_accounts.ts`,
-				`${directory}src/modules/admin/area/users/server/migrations/nested/0001_accounts.ts`,
-				`${directory}src/modules/admin/users/client/migrations/0001_accounts.ts`,
-				`${directory}src/modules/admin/users/server/migrations/nested/0001_accounts.ts`,
-				`${directory}src/modules/users/client/migrations/0001_accounts.ts`,
-				`${directory}src/modules/users/server/migrations/nested/0001_accounts.ts`,
-			]);
+			yield* assertThat(yield* locations(), (actual) =>
+				actual.toEqual([
+					`${directory}src/modules/admin/area/users/client/migrations/0001_accounts.ts`,
+					`${directory}src/modules/admin/area/users/server/migrations/0001_accounts.ts`,
+					`${directory}src/modules/admin/area/users/server/migrations/nested/0001_accounts.ts`,
+					`${directory}src/modules/admin/users/client/migrations/0001_accounts.ts`,
+					`${directory}src/modules/admin/users/server/migrations/nested/0001_accounts.ts`,
+					`${directory}src/modules/users/client/migrations/0001_accounts.ts`,
+					`${directory}src/modules/users/server/migrations/nested/0001_accounts.ts`,
+				]),
+			);
 		},
 	);
 }

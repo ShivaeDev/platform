@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { storySetup } from "#rules/stories/setup.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const TEST = "src/cart/cart.test.ts";
 
@@ -13,14 +13,16 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(storySetup);
 
-		expect(findings).toEqual([
-			{
-				file: "src/orders/checkout.spec.ts",
-				line: 3,
-				message: `Declares the setup helper "setupPaidOrder". ${STORY_KIT}`,
-				subject: "setupPaidOrder",
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "src/orders/checkout.spec.ts",
+					line: 3,
+					message: `Declares the setup helper "setupPaidOrder". ${STORY_KIT}`,
+					subject: "setupPaidOrder",
+				},
+			]),
+		);
 	},
 );
 
@@ -38,7 +40,7 @@ for (const [declaration, helper] of [
 		function* ({ check, messages }) {
 			yield* check(storySetup);
 
-			expect(yield* messages()).toEqual([`Declares the setup helper "${helper}". ${STORY_KIT}`]);
+			yield* assertThat(yield* messages(), (actual) => actual.toEqual([`Declares the setup helper "${helper}". ${STORY_KIT}`]));
 		},
 	);
 }
@@ -50,7 +52,7 @@ for (const [lookalike, content] of [
 	["a helper inside a function", "function cartOf() {\n\tfunction seedCart() {}\n\treturn seedCart;\n}\n"],
 ] as const) {
 	ruleStory.it(`tests/story-setup leaves ${lookalike} alone`, [repositoryHas({ content, path: TEST })], function* ({ check }) {
-		expect(yield* check(storySetup)).toEqual([]);
+		yield* assertThat(yield* check(storySetup), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -69,7 +71,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(storySetup);
 
-		expect(yield* locations()).toEqual([`${TEST}:3`]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual([`${TEST}:3`]));
 	},
 );
 
@@ -77,7 +79,7 @@ ruleStory.it(
 	"tests/story-setup leaves a declared setup function without a body alone",
 	[repositoryHas({ content: "declare function setupOrder(): void;", path: TEST })],
 	function* ({ check }) {
-		expect(yield* check(storySetup)).toEqual([]);
+		yield* assertThat(yield* check(storySetup), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -88,7 +90,7 @@ for (const path of ["src/tree.ts", "src/test-support/tree.test.ts"]) {
 		`tests/story-setup leaves ${path} alone, as it is no test`,
 		[repositoryHas({ content: HELPER_AND_WRITE, path })],
 		function* ({ check }) {
-			expect(yield* check(storySetup)).toEqual([]);
+			yield* assertThat(yield* check(storySetup), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -99,6 +101,6 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(storySetup);
 
-		expect(yield* locations()).toEqual(["src/tree.dom.test.tsx:2", "src/tree.dom.test.tsx:3"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/tree.dom.test.tsx:2", "src/tree.dom.test.tsx:3"]));
 	},
 );

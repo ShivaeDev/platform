@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { importsAliased } from "#rules/imports/aliased.ts";
 import { aliasRepository } from "#test/aliasRepository.ts";
 import { importStory, repositoryHolds } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const REPAIRS = [
 	[
@@ -27,26 +27,28 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsAliased);
 
-		expect(yield* sites()).toEqual([
-			"packages/app/src/feature/described.js:1 ../lib/format.ts",
-			"packages/app/src/feature/documented.ts:1 ../lib/format.ts",
-			"packages/app/src/feature/escaped.ts:1 ../lib/format.ts",
-			"packages/app/src/feature/escaped.ts:2 ../lib/side.ts",
-			"packages/app/src/feature/forms.ts:1 ../lib/format.ts",
-			"packages/app/src/feature/forms.ts:2 ../lib/side.ts",
-			"packages/app/src/feature/forms.ts:4 ./parts/deeper.ts",
-			"packages/app/src/feature/forms.ts:5 ../lib/format.ts",
-			"packages/app/src/feature/forms.ts:6 ../lib/format.ts",
-			"packages/app/src/feature/forms.ts:7 ../lib/side.ts",
-			"packages/app/src/feature/forms.ts:8 ../lib/format.ts",
-			"packages/app/src/feature/forms.ts:9 ../lib/format.ts",
-			"packages/app/src/feature/prose.ts:3 ../lib/format.ts",
-			"packages/app/src/kit-user.ts:1 ../../kit/src/button.ts",
-			"packages/app/src/lib/uses.ts:1 ./widgets",
-			"packages/app/src/lib/uses.ts:2 ../ghost.ts",
-			"packages/app/src/vendor-user.ts:1 ../../../node_modules/left-pad/index.js",
-			"script/tasks/run.ts:1 ../lib/tool.ts",
-		]);
+		yield* assertThat(yield* sites(), (actual) =>
+			actual.toEqual([
+				"packages/app/src/feature/described.js:1 ../lib/format.ts",
+				"packages/app/src/feature/documented.ts:1 ../lib/format.ts",
+				"packages/app/src/feature/escaped.ts:1 ../lib/format.ts",
+				"packages/app/src/feature/escaped.ts:2 ../lib/side.ts",
+				"packages/app/src/feature/forms.ts:1 ../lib/format.ts",
+				"packages/app/src/feature/forms.ts:2 ../lib/side.ts",
+				"packages/app/src/feature/forms.ts:4 ./parts/deeper.ts",
+				"packages/app/src/feature/forms.ts:5 ../lib/format.ts",
+				"packages/app/src/feature/forms.ts:6 ../lib/format.ts",
+				"packages/app/src/feature/forms.ts:7 ../lib/side.ts",
+				"packages/app/src/feature/forms.ts:8 ../lib/format.ts",
+				"packages/app/src/feature/forms.ts:9 ../lib/format.ts",
+				"packages/app/src/feature/prose.ts:3 ../lib/format.ts",
+				"packages/app/src/kit-user.ts:1 ../../kit/src/button.ts",
+				"packages/app/src/lib/uses.ts:1 ./widgets",
+				"packages/app/src/lib/uses.ts:2 ../ghost.ts",
+				"packages/app/src/vendor-user.ts:1 ../../../node_modules/left-pad/index.js",
+				"script/tasks/run.ts:1 ../lib/tool.ts",
+			]),
+		);
 	},
 );
 
@@ -57,7 +59,7 @@ for (const [repair, file, message] of REPAIRS) {
 		function* ({ check, findings }) {
 			yield* check(importsAliased);
 
-			expect(yield* findings()).toContainEqual(expect.objectContaining({ file, line: 1, message }));
+			yield* assertThat(yield* findings(), (actual, expect) => actual.toContainEqual(expect.objectContaining({ file, line: 1, message })));
 		},
 	);
 }

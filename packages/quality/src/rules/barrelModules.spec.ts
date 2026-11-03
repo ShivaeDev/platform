@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { noBarrel } from "#rules/noBarrel.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const path of ["src/index.ts", "src/nested/index.tsx"]) {
 	ruleStory.it(
@@ -9,13 +9,15 @@ for (const path of ["src/index.ts", "src/nested/index.tsx"]) {
 		function* ({ check }) {
 			const findings = yield* check(noBarrel);
 
-			expect(findings).toEqual([{ file: path, message: expect.stringContaining("Name the module after its purpose") }]);
+			yield* assertThat(findings, (actual, expect) =>
+				actual.toEqual([{ file: path, message: expect.stringContaining("Name the module after its purpose") }]),
+			);
 		},
 	);
 }
 
 for (const path of ["src/indexed.tsx", "src/index.d.ts"]) {
 	ruleStory.it(`structure/no-barrel accepts ${path}`, [repositoryHas({ content: "", path })], function* ({ check }) {
-		expect(yield* check(noBarrel)).toEqual([]);
+		yield* assertThat(yield* check(noBarrel), (actual) => actual.toEqual([]));
 	});
 }

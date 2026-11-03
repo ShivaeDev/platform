@@ -1,5 +1,5 @@
-import { expect } from "vitest";
 import { importStory, repositoryHas } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { adminPaths } from "./adminPaths.ts";
 
 for (const directory of ["", "packages/app/"]) {
@@ -19,16 +19,18 @@ for (const directory of ["", "packages/app/"]) {
 		function* ({ check, findings }) {
 			yield* check(adminPaths);
 
-			expect(yield* findings()).toEqual([
-				{
-					file: `${directory}src/modules/notes/server/adminRegistration.ts`,
-					message: `Only admin permissions or registrations reach this file. Move it to ${directory}src/modules/notes/server/admin/.`,
-				},
-				{
-					file: `${directory}src/modules/notes/server/queries/read.ts`,
-					message: `Only admin permissions or registrations reach this file. Move it to ${directory}src/modules/notes/server/admin/queries/.`,
-				},
-			]);
+			yield* assertThat(yield* findings(), (actual) =>
+				actual.toEqual([
+					{
+						file: `${directory}src/modules/notes/server/adminRegistration.ts`,
+						message: `Only admin permissions or registrations reach this file. Move it to ${directory}src/modules/notes/server/admin/.`,
+					},
+					{
+						file: `${directory}src/modules/notes/server/queries/read.ts`,
+						message: `Only admin permissions or registrations reach this file. Move it to ${directory}src/modules/notes/server/admin/queries/.`,
+					},
+				]),
+			);
 		},
 	);
 }
@@ -48,7 +50,9 @@ importStory.it(
 	function* ({ check, messages }) {
 		yield* check(adminPaths);
 
-		expect(yield* messages()).toEqual(["Only admin permissions or registrations reach this file. Move it to src/modules/notes/server/admin/."]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual(["Only admin permissions or registrations reach this file. Move it to src/modules/notes/server/admin/."]),
+		);
 	},
 );
 
@@ -64,9 +68,11 @@ importStory.it(
 	function* ({ check, findings }) {
 		yield* check(adminPaths);
 
-		expect(yield* findings()).toEqual([
-			{ file: "src/modules/notes/client/admin/View.ts", message: "Member code reaches this admin/ file. Move it to src/modules/notes/client/." },
-		]);
+		yield* assertThat(yield* findings(), (actual) =>
+			actual.toEqual([
+				{ file: "src/modules/notes/client/admin/View.ts", message: "Member code reaches this admin/ file. Move it to src/modules/notes/client/." },
+			]),
+		);
 	},
 );
 
@@ -89,7 +95,7 @@ importStory.it(
 	function* ({ check, findings }) {
 		yield* check(adminPaths);
 
-		expect(yield* findings()).toEqual([]);
+		yield* assertThat(yield* findings(), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -105,7 +111,7 @@ importStory.it(
 	function* ({ check, files }) {
 		yield* check(adminPaths);
 
-		expect(yield* files()).toEqual(["src/modules/users/client/View.ts", "src/modules/users/client/helper.ts"]);
+		yield* assertThat(yield* files(), (actual) => actual.toEqual(["src/modules/users/client/View.ts", "src/modules/users/client/helper.ts"]));
 	},
 );
 
@@ -120,7 +126,9 @@ importStory.it(
 	function* ({ check, findings }) {
 		yield* check(adminPaths);
 
-		expect(yield* findings()).toEqual([{ file: "src/admin/page.ts", message: "Member code reaches this admin/ file. Move it to src/." }]);
+		yield* assertThat(yield* findings(), (actual) =>
+			actual.toEqual([{ file: "src/admin/page.ts", message: "Member code reaches this admin/ file. Move it to src/." }]),
+		);
 	},
 );
 
@@ -135,7 +143,7 @@ importStory.it(
 	function* ({ check, findings }) {
 		yield* check(adminPaths);
 
-		expect(yield* findings()).toEqual([]);
+		yield* assertThat(yield* findings(), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -150,7 +158,7 @@ importStory.it(
 	function* ({ check, messages }) {
 		yield* check(adminPaths);
 
-		expect(yield* messages()).toEqual(["Member code reaches this admin/ file. Move it to src/modules/notes/client/."]);
+		yield* assertThat(yield* messages(), (actual) => actual.toEqual(["Member code reaches this admin/ file. Move it to src/modules/notes/client/."]));
 	},
 );
 
@@ -170,10 +178,12 @@ importStory.it(
 	function* ({ check, messages }) {
 		yield* check(adminPaths);
 
-		expect(yield* messages()).toEqual([
-			"Only admin permissions or registrations reach this file. Move it to src/modules/notes/admin/.",
-			"Only admin permissions or registrations reach this file. Move it to src/modules/notes/admin/.",
-		]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual([
+				"Only admin permissions or registrations reach this file. Move it to src/modules/notes/admin/.",
+				"Only admin permissions or registrations reach this file. Move it to src/modules/notes/admin/.",
+			]),
+		);
 	},
 );
 
@@ -192,7 +202,9 @@ importStory.it(
 	function* ({ check, messages }) {
 		yield* check(adminPaths);
 
-		expect(yield* messages()).toEqual(["Only admin permissions or registrations reach this file. Move it to src/modules/notes/admin/."]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual(["Only admin permissions or registrations reach this file. Move it to src/modules/notes/admin/."]),
+		);
 	},
 );
 
@@ -207,6 +219,6 @@ importStory.it(
 	function* ({ check, messages }) {
 		yield* check(adminPaths);
 
-		expect(yield* messages()).toEqual(["Member code reaches this admin/ file. Move it to src/modules/users/client/."]);
+		yield* assertThat(yield* messages(), (actual) => actual.toEqual(["Member code reaches this admin/ file. Move it to src/modules/users/client/."]));
 	},
 );

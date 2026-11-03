@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { Console, Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, FileSystem, Path } from "effect";
 import { loadConfig } from "#config/load.ts";
 import { validOrFail } from "#decoded.ts";
 import { readInput } from "#engine/baselineFile.ts";
@@ -38,6 +38,8 @@ export const migrateExceptions = Effect.fnUntraced(function* (
 	configPath: string | undefined,
 	from: string | undefined,
 ): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem> {
+	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const config = yield* loadConfig(cwd, configPath);
 	const registryPath = from ?? config.registry;
 	const raw = yield* readInput(config.root, registryPath);

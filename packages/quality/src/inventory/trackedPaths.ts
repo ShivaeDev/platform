@@ -1,9 +1,11 @@
-import { join, resolve } from "node:path";
-import { Effect } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Effect, Path } from "effect";
 import { SetupFailure } from "#failure.ts";
 import { run } from "#git/command.ts";
 
 const listedPaths = Effect.fn("Inventory.listedPaths")(function* (directory: string, options: readonly string[], path = ".") {
+	const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const result = yield* run(directory, ["ls-files", "-z", ...options, "--", path]);
 	if (result.code !== 0) {
 		if (result.stderr.includes("not a git repository")) {
@@ -26,6 +28,8 @@ export const ignoredTrackedPaths = Effect.fn("Inventory.ignoredTrackedPaths")(fu
 });
 
 export const ignoredPaths = Effect.fn("Inventory.ignoredPaths")(function* (directory: string) {
+	const { resolve } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const paths = yield* listedPaths(directory, ["--others", "--ignored", "--exclude-standard", "--directory"]);
 	return paths?.map((path) => resolve(path));
 });

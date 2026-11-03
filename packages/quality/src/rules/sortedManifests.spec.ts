@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { manifestStory, repositoryHas } from "#test/manifestStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const UNSORTED = '{\n\t"version": "1.0.0",\n\t"name": "sample",\n\t"scripts": {\n\t\t"sample": "node src/limits.ts"\n\t}\n}\n';
@@ -44,15 +44,17 @@ manifestStory.it(
 		),
 	],
 	function* ({ reads, runs, stdout }) {
-		expect(yield* reads("packages/c/package.json")).toBe(UNSORTED);
+		yield* assertThat(yield* reads("packages/c/package.json"), (actual) => actual.toBe(UNSORTED));
 
 		yield* runs("fix");
 
-		yield* outcomes([
-			["package.json", () => reads("package.json"), SORTED],
-			["packages/c/package.json", () => reads("packages/c/package.json"), SORTED],
-			["report", () => stdout(), expect.stringContaining("quality: sort-package-json rewrote 2 manifests.")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["package.json", () => reads("package.json"), SORTED],
+				["packages/c/package.json", () => reads("packages/c/package.json"), SORTED],
+				["report", () => stdout(), expect.stringContaining("quality: sort-package-json rewrote 2 manifests.")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

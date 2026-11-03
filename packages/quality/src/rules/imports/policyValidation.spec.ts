@@ -1,10 +1,10 @@
-import { expect } from "vitest";
 import { fence } from "#imports/fence.ts";
 import { anyOf, anything, external, files, folders, modules, packages, scopes, workspace } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { gameFences } from "#test/gameFences.ts";
 import { importStory, repositoryHas, repositoryHolds } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const GAME = repositoryHolds(fixtureTree("fence"));
 
@@ -37,7 +37,7 @@ importStory.it(
 	"imports/fences refuses an empty import graph even when no fences are configured",
 	[repositoryHas({ content: '{"name":"demo"}', path: "package.json" })],
 	function* ({ refusal }) {
-		expect(yield* refusal(importFences, { fences: [] })).toContain("the import graph covers no modules");
+		yield* assertThat(yield* refusal(importFences, { fences: [] }), (actual) => actual.toContain("the import graph covers no modules"));
 	},
 );
 
@@ -48,21 +48,23 @@ for (const [name, reason, problem] of [
 	importStory.it(`imports/fences refuses a fence named "${name}" with the reason "${reason}"`, [GAME], function* ({ refusal }) {
 		const policy = fence(name).because(reason).from(packages("game")).mayNotImport(packages("cms")).demonstratedBy(examples);
 
-		expect(yield* refusal(importFences, { fences: [policy] })).toContain(problem);
+		yield* assertThat(yield* refusal(importFences, { fences: [policy] }), (actual) => actual.toContain(problem));
 	});
 }
 
 importStory.it("imports/fences refuses two fences with the same name, whose findings would be ambiguous", [GAME], function* ({ refusal }) {
 	const policy = fence("game").because("A reason.").from(packages("game")).mayNotImport(packages("cms")).demonstratedBy(examples);
 
-	expect(yield* refusal(importFences, { fences: [policy, policy] })).toContain('fence "game": an earlier fence has this name');
+	yield* assertThat(yield* refusal(importFences, { fences: [policy, policy] }), (actual) =>
+		actual.toContain('fence "game": an earlier fence has this name'),
+	);
 });
 
 for (const [target, problem] of EMPTY_SELECTORS) {
 	importStory.it(`imports/fences refuses a selector that would silently protect nothing: ${problem}`, [GAME], function* ({ refusal }) {
 		const policy = fence("game").because("A reason.").from(packages("game")).mayNotImport(target).demonstratedBy(examples);
 
-		expect(yield* refusal(importFences, { fences: [policy] })).toContain(problem);
+		yield* assertThat(yield* refusal(importFences, { fences: [policy] }), (actual) => actual.toContain(problem));
 	});
 }
 
@@ -72,8 +74,10 @@ importStory.it(
 	function* ({ refusal }) {
 		const policy = fence("game").because("A reason.").from(workspace).mayNotImport(modules("node:fs")).demonstratedBy(examples);
 
-		expect(yield* refusal(importFences, { fences: [policy] })).toContain(
-			"workspace selects nothing, since no named package.json among the sources is a member of the workspace that pnpm-workspace.yaml or the root package.json declares",
+		yield* assertThat(yield* refusal(importFences, { fences: [policy] }), (actual) =>
+			actual.toContain(
+				"workspace selects nothing, since no named package.json among the sources is a member of the workspace that pnpm-workspace.yaml or the root package.json declares",
+			),
 		);
 	},
 );
@@ -92,7 +96,9 @@ importStory.it(
 	function* ({ refusal }) {
 		const policy = fence("cms").because("A reason.").from(packages("cms")).mayNotImport(modules("node:fs")).demonstratedBy(examples);
 
-		expect(yield* refusal(importFences, { fences: [policy] })).toContain('more than one workspace package is named "cms"');
+		yield* assertThat(yield* refusal(importFences, { fences: [policy] }), (actual) =>
+			actual.toContain('more than one workspace package is named "cms"'),
+		);
 	},
 );
 
@@ -103,8 +109,8 @@ importStory.it("imports/fences refuses an example that imports from an external 
 		.mayNotReach(modules("effect"))
 		.demonstratedBy({ illegal: ["packages/game/src/play.ts", external("bridge"), external("effect")], legal: examples.legal });
 
-	expect(yield* refusal(importFences, { fences: [policy] })).toContain(
-		'fence "game": an example imports from an external module; only its last step may be external()',
+	yield* assertThat(yield* refusal(importFences, { fences: [policy] }), (actual) =>
+		actual.toContain('fence "game": an example imports from an external module; only its last step may be external()'),
 	);
 });
 
@@ -115,12 +121,14 @@ importStory.it("imports/fences refuses a package and a folder the repository doe
 		.mayNotImport(packages("cmss"))
 		.demonstratedBy({ illegal: ["packages/gaem/src/a.ts", "packages/cmss/src/b.ts"], legal: ["packages/gaem/src/a.ts", external("effect")] });
 
-	expect(yield* refusal(importFences, { fences: [typo] })).toBe(
-		[
-			"the fence policy is invalid:",
-			'  - fence "typo".from: folders("packages/gaem/src") holds no checked file',
-			'  - fence "typo".to: no workspace package is named "cmss"',
-		].join("\n"),
+	yield* assertThat(yield* refusal(importFences, { fences: [typo] }), (actual) =>
+		actual.toBe(
+			[
+				"the fence policy is invalid:",
+				'  - fence "typo".from: folders("packages/gaem/src") holds no checked file',
+				'  - fence "typo".to: no workspace package is named "cmss"',
+			].join("\n"),
+		),
 	);
 });
 
@@ -137,8 +145,10 @@ importStory.it(
 				legal: ["packages/game/src/play.ts", external("effect")],
 			});
 
-		expect(yield* refusal(importFences, { fences: [gameFences.gameKeepsOutOfCms, overlapping] })).toContain(
-			'fence "game-keeps-out-of-workspace": the illegal example packages/game/src/play.ts -> packages/cms/src/edit.ts must cross this fence alone, and crosses game-keeps-out-of-cms, game-keeps-out-of-workspace',
+		yield* assertThat(yield* refusal(importFences, { fences: [gameFences.gameKeepsOutOfCms, overlapping] }), (actual) =>
+			actual.toContain(
+				'fence "game-keeps-out-of-workspace": the illegal example packages/game/src/play.ts -> packages/cms/src/edit.ts must cross this fence alone, and crosses game-keeps-out-of-cms, game-keeps-out-of-workspace',
+			),
 		);
 	},
 );
@@ -152,7 +162,7 @@ for (const [unit, subjects, problem] of UNUSABLE_VOCABULARIES) {
 			.of(unit)
 			.demonstratedBy(examples);
 
-		expect(yield* refusal(importFences, { fences: [policy] })).toContain(problem);
+		yield* assertThat(yield* refusal(importFences, { fences: [policy] }), (actual) => actual.toContain(problem));
 	});
 }
 
@@ -167,8 +177,8 @@ importStory.it("imports/fences refuses a vocabulary that names a subject its fol
 			legal: ["packages/game/src/play.ts", "packages/vocabulary/src/voyage/route.ts"],
 		});
 
-	expect(yield* refusal(importFences, { fences: [wrong] })).toContain(
-		'fence "wrong".of: "stories" is no module or folder directly in packages/vocabulary/src',
+	yield* assertThat(yield* refusal(importFences, { fences: [wrong] }), (actual) =>
+		actual.toContain('fence "wrong".of: "stories" is no module or folder directly in packages/vocabulary/src'),
 	);
 });
 
@@ -186,11 +196,13 @@ importStory.it(
 				legal: ["packages/game/src/play.ts", "packages/vocabulary/src/voyage/route.ts"],
 			});
 
-		expect(yield* refusal(importFences, { fences: [wrong] })).toContain(
-			[
-				'  - fence "wrong": the illegal example packages/game/src/play.ts -> packages/vocabulary/src/session.ts must cross this fence alone, and crosses none',
-				'  - fence "wrong": the legal example packages/game/src/play.ts -> packages/vocabulary/src/voyage/route.ts crosses wrong',
-			].join("\n"),
+		yield* assertThat(yield* refusal(importFences, { fences: [wrong] }), (actual) =>
+			actual.toContain(
+				[
+					'  - fence "wrong": the illegal example packages/game/src/play.ts -> packages/vocabulary/src/session.ts must cross this fence alone, and crosses none',
+					'  - fence "wrong": the legal example packages/game/src/play.ts -> packages/vocabulary/src/voyage/route.ts crosses wrong',
+				].join("\n"),
+			),
 		);
 	},
 );

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
 
@@ -30,10 +30,12 @@ for (const [rule, option, glob] of RULE_OPTIONS) {
 			function* ({ outcome, runs, stderr }) {
 				yield* runs("lint");
 
-				yield* outcomes([
-					["exit", () => outcome(), "invalid"],
-					["problem", () => stderr(), expect.stringContaining(problem)],
-				]);
+				yield* withMatchers((expect) =>
+					outcomes([
+						["exit", () => outcome(), "invalid"],
+						["problem", () => stderr(), expect.stringContaining(problem)],
+					]),
+				);
 			},
 			CLI_TIMEOUT,
 		);
@@ -53,10 +55,12 @@ exceptionStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "invalid"],
-			["problem", () => stderr(), expect.stringContaining('toolOwned.1.glob: "gone/" matches no current file')],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "invalid"],
+				["problem", () => stderr(), expect.stringContaining('toolOwned.1.glob: "gone/" matches no current file')],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
 import { hookInstalled, linkedWorktree, projectIn, withoutConfig } from "#test/linkedWorktree.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const MESSY = {
@@ -25,11 +25,13 @@ for (const [where, layout] of [
 		function* ({ outcome, runsIn, stdout }) {
 			yield* runsIn("feature", "lint");
 
-			yield* outcomes([
-				["exit", () => outcome(), "rejected"],
-				["format finding", () => stdout(), expect.stringContaining(UNFORMATTED)],
-				["import order finding", () => stdout(), expect.stringContaining("error biome/assist/source/organizeImports (1)")],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "rejected"],
+					["format finding", () => stdout(), expect.stringContaining(UNFORMATTED)],
+					["import order finding", () => stdout(), expect.stringContaining("error biome/assist/source/organizeImports (1)")],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -41,10 +43,12 @@ checkoutStory.it(
 	function* ({ commitErrors, commitOutcome, commitsIn }) {
 		yield* commitsIn("feature", "Messy");
 
-		yield* outcomes([
-			["commit", () => commitOutcome(), "rejected"],
-			["finding", () => commitErrors(), expect.stringContaining(UNFORMATTED)],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["commit", () => commitOutcome(), "rejected"],
+				["finding", () => commitErrors(), expect.stringContaining(UNFORMATTED)],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -53,7 +57,7 @@ checkoutStory.it(
 	"quality fix in a linked worktree under .worktrees formats a file and sorts its imports",
 	[withoutConfig(), linkedWorktree("feature", { files: [MESSY] })],
 	function* ({ outcome, readsIn, runsIn }) {
-		expect(yield* readsIn("feature", MESSY.path)).toBe(MESSY.content);
+		yield* assertThat(yield* readsIn("feature", MESSY.path), (actual) => actual.toBe(MESSY.content));
 
 		yield* runsIn("feature", "fix");
 
@@ -71,7 +75,7 @@ checkoutStory.it(
 	function* ({ runs }) {
 		const answer = yield* runs("lint");
 
-		expect(answer.outcome).toBe("passed");
+		yield* assertThat(answer.outcome, (actual) => actual.toBe("passed"));
 	},
 	CLI_TIMEOUT,
 );
@@ -97,11 +101,13 @@ for (const command of ["lint", "fix"]) {
 		function* ({ outcome, runsIn, stderr }) {
 			yield* runsIn("feature", command);
 
-			yield* outcomes([
-				["exit", () => outcome(), "invalid"],
-				["explanation", () => stderr(), expect.stringContaining("processed no files.")],
-				["repair", () => stderr(), expect.stringContaining("Check files.includes in biome.json or biome.jsonc so Quality has files to check.")],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "invalid"],
+					["explanation", () => stderr(), expect.stringContaining("processed no files.")],
+					["repair", () => stderr(), expect.stringContaining("Check files.includes in biome.json or biome.jsonc so Quality has files to check.")],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);

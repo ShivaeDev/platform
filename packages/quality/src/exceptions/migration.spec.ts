@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { exceptionStory, exceptionsMigrated, repositoryHas } from "#test/exceptionStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
 
@@ -30,12 +30,14 @@ exceptionStory.it(
 	function* ({ config: exported, outcome, reads, runs }) {
 		yield* runs("exceptions", "migrate");
 
-		yield* outcomes([
-			["biome.json", () => reads("biome.json"), expect.not.stringContaining("overrides")],
-			["config", () => exported(), { exceptions: [MERGED], sources: ["src"] }],
-			["exit", () => outcome(), "passed"],
-			["registry", () => reads(REGISTRY.path), undefined],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["biome.json", () => reads("biome.json"), expect.not.stringContaining("overrides")],
+				["config", () => exported(), { exceptions: [MERGED], sources: ["src"] }],
+				["exit", () => outcome(), "passed"],
+				["registry", () => reads(REGISTRY.path), undefined],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -44,7 +46,7 @@ exceptionStory.it(
 	"quality exceptions migrate --from a legacy registry creates quality.config.ts with its exception and subject and deletes that registry",
 	[repositoryHas(PARSER, { content: JSON.stringify([{ ...REGISTRY_ENTRY, subject: "external-format" }]), path: "old-exceptions.json" })],
 	function* ({ config: exported, outcome, reads, runs }) {
-		expect(yield* reads("quality.config.ts")).toBeUndefined();
+		yield* assertThat(yield* reads("quality.config.ts"), (actual) => actual.toBeUndefined());
 
 		yield* runs("exceptions", "migrate", "--from", "old-exceptions.json");
 
@@ -91,11 +93,13 @@ for (const [shape, property] of [
 
 			yield* runs("exceptions", "migrate");
 
-			yield* outcomes([
-				["error", () => stderr(), expect.stringContaining("Inline the rules object")],
-				["exit", () => outcome(), "invalid"],
-				["files", () => files(), before],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["error", () => stderr(), expect.stringContaining("Inline the rules object")],
+					["exit", () => outcome(), "invalid"],
+					["files", () => files(), before],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -115,11 +119,13 @@ exceptionStory.it(
 
 		yield* runs("exceptions", "migrate", "--from", "typo.json");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("typo.json does not exist")],
-			["exit", () => outcome(), "invalid"],
-			["files", () => files(), before],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringContaining("typo.json does not exist")],
+				["exit", () => outcome(), "invalid"],
+				["files", () => files(), before],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -132,11 +138,13 @@ exceptionStory.it(
 
 		yield* runs("exceptions", "migrate", "--config", "custom.config.ts");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("Cannot migrate")],
-			["exit", () => outcome(), "invalid"],
-			["files", () => files(), before],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringContaining("Cannot migrate")],
+				["exit", () => outcome(), "invalid"],
+				["files", () => files(), before],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

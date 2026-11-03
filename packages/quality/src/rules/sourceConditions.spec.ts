@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { manifestsSourceFirst } from "#rules/manifestsSourceFirst.ts";
 import { conditionManifest } from "#test/manifestStory.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const SOURCE_FIRST = '{ "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" }';
 
@@ -47,6 +47,6 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(manifestsSourceFirst)).toEqual([]);
+		yield* assertThat(yield* check(manifestsSourceFirst), (actual) => actual.toEqual([]));
 	},
 );

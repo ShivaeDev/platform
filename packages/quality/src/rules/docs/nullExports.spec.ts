@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsWorkspace, markdown, noModule } from "#test/docsRepository.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const OPEN_MANIFEST = {
 	content: JSON.stringify({ exports: { "./*.ts": { source: "./src/*.ts" } }, name: "@acme/lib" }),
@@ -23,11 +23,11 @@ for (const path of ["./internal/*", "./internal/secret.ts"]) {
 		],
 		function* ({ check, messages, writes }) {
 			yield* check(docsReferences);
-			expect(yield* messages()).toEqual([noModule("@acme/lib/internal/secret.ts", "@acme/lib")]);
+			yield* assertThat(yield* messages(), (actual) => actual.toEqual([noModule("@acme/lib/internal/secret.ts", "@acme/lib")]));
 
 			yield* writes(OPEN_MANIFEST);
 
-			expect(yield* check(docsReferences)).toEqual([]);
+			yield* assertThat(yield* check(docsReferences), (actual) => actual.toEqual([]));
 		},
 	);
 }

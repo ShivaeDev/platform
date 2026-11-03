@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { manifestsApplication } from "#rules/manifestsApplication.ts";
 import { application, entryPointWorkspace, HOIST_WORKSPACE, PLAIN_WORKSPACE, platformApp } from "#test/applicationFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const APP = application("modules/app/package.json", platformApp);
 
@@ -21,11 +21,11 @@ ruleStory.it(
 	"manifests/application asks an application on platform to hoist @shivaedev/* until its pnpm workspace does",
 	[repositoryHas(...entryPointWorkspace, PLAIN_WORKSPACE, APP)],
 	function* ({ check, writes }) {
-		expect(yield* check(manifestsApplication)).toEqual([UNHOISTED]);
+		yield* assertThat(yield* check(manifestsApplication), (actual) => actual.toEqual([UNHOISTED]));
 
 		yield* writes(HOIST_WORKSPACE);
 
-		expect(yield* check(manifestsApplication)).toEqual([]);
+		yield* assertThat(yield* check(manifestsApplication), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -38,7 +38,7 @@ ruleStory.it(
 		}),
 	],
 	function* ({ check }) {
-		expect(yield* check(manifestsApplication)).toEqual([UNHOISTED]);
+		yield* assertThat(yield* check(manifestsApplication), (actual) => actual.toEqual([UNHOISTED]));
 	},
 );
 
@@ -55,13 +55,15 @@ for (const { entry, field, piece } of REPEATED_PIECES) {
 		function* ({ check }) {
 			const findings = yield* check(manifestsApplication);
 
-			expect(findings).toEqual([
-				{
-					file: "modules/app/package.json",
-					message: `Lists "${piece}" in ${field} beside "${entry}", which already brings it. Remove "${piece}" from ${field} and keep importing it by its own name.`,
-					subject: piece,
-				},
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					{
+						file: "modules/app/package.json",
+						message: `Lists "${piece}" in ${field} beside "${entry}", which already brings it. Remove "${piece}" from ${field} and keep importing it by its own name.`,
+						subject: piece,
+					},
+				]),
+			);
 		},
 	);
 }
@@ -75,6 +77,6 @@ ruleStory.it(
 		}),
 	],
 	function* ({ check }) {
-		expect(yield* check(manifestsApplication)).toEqual([]);
+		yield* assertThat(yield* check(manifestsApplication), (actual) => actual.toEqual([]));
 	},
 );

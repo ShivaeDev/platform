@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { acmePreset, consumer, off } from "#test/biomeConfigFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const REASON = "Tools load their config files through the default export.";
 
@@ -20,7 +20,7 @@ ruleStory.it(
 	"suppressions/biome-overrides takes a weakening that the preset declares beside itself as declared",
 	[repositoryHas(...acmePreset({ overrides: [CONFIG_FILES] }, SHIPPED), EXTENDS_ACME)],
 	function* ({ check }) {
-		expect(yield* check(biomeOverrides)).toEqual([]);
+		yield* assertThat(yield* check(biomeOverrides), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -43,7 +43,9 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(biomeOverrides);
 
-		expect(yield* messages()).toEqual([`Extends "@acme/lint/biome", which weakens "lint/style/noDefaultExport" for "**/*.config.ts" ${PRESET_FIX}`]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual([`Extends "@acme/lint/biome", which weakens "lint/style/noDefaultExport" for "**/*.config.ts" ${PRESET_FIX}`]),
+		);
 	},
 );
 
@@ -58,10 +60,12 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes([
-			["locations", () => locations(), ["biome.json:13"]],
-			["messages", () => messages(), [expect.stringContaining(`Weakens "lint/style/noDefaultExport" for "scripts/**" ${CONSUMER_FIX}`)]],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["locations", () => locations(), ["biome.json:13"]],
+				["messages", () => messages(), [expect.stringContaining(`Weakens "lint/style/noDefaultExport" for "scripts/**" ${CONSUMER_FIX}`)]],
+			]),
+		);
 	},
 );
 
@@ -71,10 +75,12 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes([
-			["locations", () => locations(), ["biome.json:8"]],
-			["messages", () => messages(), [expect.stringContaining(`Weakens "lint/suspicious/noConsole" for "**" ${CONSUMER_FIX}`)]],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["locations", () => locations(), ["biome.json:8"]],
+				["messages", () => messages(), [expect.stringContaining(`Weakens "lint/suspicious/noConsole" for "**" ${CONSUMER_FIX}`)]],
+			]),
+		);
 	},
 );
 
@@ -89,7 +95,7 @@ for (const [what, preset, config] of [
 		`suppressions/biome-overrides accepts a consumer that turns ${what} the preset turned off back on`,
 		[repositoryHas(...acmePreset(preset, []), consumer(config))],
 		function* ({ check }) {
-			expect(yield* check(biomeOverrides)).toEqual([]);
+			yield* assertThat(yield* check(biomeOverrides), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -125,10 +131,12 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes([
-			["locations", () => locations(), ["biome.json:6"]],
-			["messages", () => messages(), [expect.stringContaining(`Weakens "files/includes" for "**", "!vendor" ${CONSUMER_FIX}`)]],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["locations", () => locations(), ["biome.json:6"]],
+				["messages", () => messages(), [expect.stringContaining(`Weakens "files/includes" for "**", "!vendor" ${CONSUMER_FIX}`)]],
+			]),
+		);
 	},
 );
 
@@ -142,7 +150,7 @@ for (const [what, preset, config, weakening] of [
 		function* ({ check, messages }) {
 			yield* check(biomeOverrides);
 
-			expect(yield* messages()).toEqual([`Extends "@acme/lint/biome", which weakens ${weakening} ${PRESET_FIX}`]);
+			yield* assertThat(yield* messages(), (actual) => actual.toEqual([`Extends "@acme/lint/biome", which weakens ${weakening} ${PRESET_FIX}`]));
 		},
 	);
 }
@@ -160,9 +168,11 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(biomeOverrides, { declared: [{ includes: ["src/config.ts"], reason: REASON, rule: "lint/style/noDefaultExport" }] });
 
-		expect(yield* messages()).toEqual([
-			'Declares "lint/style/noDefaultExport" for "src/config.ts", which "@acme/lint/biome" already declares. Remove the declaration.',
-		]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual([
+				'Declares "lint/style/noDefaultExport" for "src/config.ts", which "@acme/lint/biome" already declares. Remove the declaration.',
+			]),
+		);
 	},
 );
 
@@ -175,7 +185,7 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(biomeOverrides)).toEqual([]);
+		yield* assertThat(yield* check(biomeOverrides), (actual) => actual.toEqual([]));
 	},
 );
 

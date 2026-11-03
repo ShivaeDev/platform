@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
 import { markdown } from "#test/docsRepository.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const PINNED_INSTALLS = [
 	{
@@ -33,21 +33,23 @@ for (const { line, lines, name, owner, token } of PINNED_INSTALLS) {
 		function* ({ check }) {
 			const findings = yield* check(docsUnversionedInstalls);
 
-			expect(findings).toEqual([
-				{
-					file: "README.md",
-					line,
-					message: `"${token}" pins a version in an install command. Name the package alone, ${owner}: its manifest's version ranges decide what installs, and a version written in documentation goes stale with the next release.`,
-					subject: token,
-				},
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					{
+						file: "README.md",
+						line,
+						message: `"${token}" pins a version in an install command. Name the package alone, ${owner}: its manifest's version ranges decide what installs, and a version written in documentation goes stale with the next release.`,
+						subject: token,
+					},
+				]),
+			);
 		},
 	);
 }
 
 for (const { lines, name } of UNPINNED_INSTALLS) {
 	ruleStory.it(`docs/unversioned-installs accepts ${name}`, [repositoryHas(markdown("README.md", "# Tools", "", ...lines))], function* ({ check }) {
-		expect(yield* check(docsUnversionedInstalls)).toEqual([]);
+		yield* assertThat(yield* check(docsUnversionedInstalls), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -55,6 +57,6 @@ ruleStory.it(
 	"docs/unversioned-installs leaves CHANGELOG.md unchecked, because a released entry keeps the commands of its release",
 	[repositoryHas(markdown("CHANGELOG.md", "# Changelog", "", "- Install with `pnpm add effect@4.0.4`."))],
 	function* ({ check }) {
-		expect(yield* check(docsUnversionedInstalls)).toEqual([]);
+		yield* assertThat(yield* check(docsUnversionedInstalls), (actual) => actual.toEqual([]));
 	},
 );

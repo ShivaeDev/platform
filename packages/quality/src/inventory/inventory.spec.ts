@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { folderBlocked, inventoryStory, repositoryHas, repositoryLinks, runsAsRoot } from "#test/inventoryStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const APP = { content: "a\nb\n", path: "src/app.ts" };
 const VIEW = { content: "<p/>\n", path: "src/view.tsx" };
@@ -30,7 +30,7 @@ inventoryStory.it(
 	function* ({ collects, files }) {
 		yield* collects({ sources: ["src", "scripts/tool.ts", "src", "src/app.ts"] });
 
-		expect(yield* files()).toEqual(["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);
+		yield* assertThat(yield* files(), (actual) => actual.toEqual(["scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]));
 	},
 );
 
@@ -54,26 +54,28 @@ inventoryStory.it(
 	function* ({ collects, files }) {
 		yield* collects();
 
-		expect(yield* files()).toEqual([
-			"src/B.ts",
-			"src/Z.ts",
-			"src/a.ts",
-			"src/a10.ts",
-			"src/a2.ts",
-			"src/aa.ts",
-			"src/é.ts",
-			"src/á.ts",
-			"src/𐀀.ts",
-			"src/😀.ts",
-			"src/.ts",
-		]);
+		yield* assertThat(yield* files(), (actual) =>
+			actual.toEqual([
+				"src/B.ts",
+				"src/Z.ts",
+				"src/a.ts",
+				"src/a10.ts",
+				"src/a2.ts",
+				"src/aa.ts",
+				"src/é.ts",
+				"src/á.ts",
+				"src/𐀀.ts",
+				"src/😀.ts",
+				"src/.ts",
+			]),
+		);
 	},
 );
 
 inventoryStory.it("the inventory leaves out excluded paths written in .gitignore syntax", [repository], function* ({ collects, files }) {
 	yield* collects({ exclude: ["*.gen.ts", "docs/"] });
 
-	expect(yield* files()).toEqual(["scripts/tool.ts", "src/app.ts", "src/view.tsx"]);
+	yield* assertThat(yield* files(), (actual) => actual.toEqual(["scripts/tool.ts", "src/app.ts", "src/view.tsx"]));
 });
 
 const refusedSources = [
@@ -85,19 +87,19 @@ for (const [configured, reason] of refusedSources) {
 	inventoryStory.it(`the inventory fails because the configured ${reason}`, [repository], function* ({ collects, failure }) {
 		yield* collects({ sources: [configured] });
 
-		expect(yield* failure()).toContain(reason);
+		yield* assertThat(yield* failure(), (actual) => actual.toContain(reason));
 	});
 }
 
 inventoryStory.it("the walk finds nothing in a folder that does not exist", [], function* ({ walks }) {
-	expect(yield* walks("missing")).toEqual([]);
+	yield* assertThat(yield* walks("missing"), (actual) => actual.toEqual([]));
 });
 
 inventoryStory.it(
 	"the walk passes a link to a missing file and collects the files that remain",
 	[repositoryHas({ content: "export const value = 1;", path: "present.ts" }), repositoryLinks("dangling.ts", "missing-target")],
 	function* ({ walks }) {
-		expect(yield* walks(".")).toEqual(["present.ts"]);
+		yield* assertThat(yield* walks("."), (actual) => actual.toEqual(["present.ts"]));
 	},
 );
 
@@ -107,6 +109,6 @@ inventoryStory.it.skipIf(runsAsRoot)(
 	function* ({ failure, walks }) {
 		yield* walks("packages");
 
-		expect(yield* failure()).toMatch(/^cannot run git in packages: /u);
+		yield* assertThat(yield* failure(), (actual) => actual.toMatch(/^cannot run git in packages: /u));
 	},
 );

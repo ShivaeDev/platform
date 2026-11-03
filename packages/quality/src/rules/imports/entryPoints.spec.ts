@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { importsManifest } from "#rules/imports/manifest.ts";
 import { application, entryPointWorkspace, HOIST_WORKSPACE, pieceImports, platformApp } from "#test/applicationFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const WORKSPACE = repositoryHas(...entryPointWorkspace, HOIST_WORKSPACE);
 
@@ -9,7 +9,7 @@ ruleStory.it(
 	"imports/manifest lets an application import the pieces its platform and test-story entry points bring by their own names",
 	[WORKSPACE, repositoryHas(application("modules/app/package.json", platformApp), ...pieceImports)],
 	function* ({ check }) {
-		expect(yield* check(importsManifest)).toEqual([]);
+		yield* assertThat(yield* check(importsManifest), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -25,7 +25,9 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(importsManifest);
 
-		expect(findings).toEqual([expect.objectContaining({ file: "modules/app/src/app.ts", subject: "@shivaedev/test" })]);
+		yield* assertThat(findings, (actual, expect) =>
+			actual.toEqual([expect.objectContaining({ file: "modules/app/src/app.ts", subject: "@shivaedev/test" })]),
+		);
 	},
 );
 
@@ -44,7 +46,7 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(importsManifest);
 
-		expect(findings.map((finding) => finding.subject).toSorted()).toEqual(["@shivaedev/sql", "@shivaedev/test"]);
+		yield* assertThat(findings.map((finding) => finding.subject).toSorted(), (actual) => actual.toEqual(["@shivaedev/sql", "@shivaedev/test"]));
 	},
 );
 
@@ -54,11 +56,13 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(importsManifest);
 
-		expect(findings).toEqual([
-			expect.objectContaining({
-				message: expect.stringContaining('An application can instead add "@shivaedev/test-story" to devDependencies, which brings it.'),
-				subject: "@shivaedev/test",
-			}),
-		]);
+		yield* assertThat(findings, (actual, expect) =>
+			actual.toEqual([
+				expect.objectContaining({
+					message: expect.stringContaining('An application can instead add "@shivaedev/test-story" to devDependencies, which brings it.'),
+					subject: "@shivaedev/test",
+				}),
+			]),
+		);
 	},
 );

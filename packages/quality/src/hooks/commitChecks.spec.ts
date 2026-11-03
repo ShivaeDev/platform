@@ -1,4 +1,3 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
 import {
@@ -11,6 +10,7 @@ import {
 	projectIn,
 	withoutConfig,
 } from "#test/linkedWorktree.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { logs } from "#testing/adapters/hookRepository.ts";
 
@@ -83,10 +83,12 @@ checkoutStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("hooks", "pre-commit");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("package.json is invalid")],
-			["exit", () => outcome(), "invalid"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringContaining("package.json is invalid")],
+				["exit", () => outcome(), "invalid"],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -116,12 +118,14 @@ checkoutStory.it(
 	function* ({ commitErrors, commitOutcome, commits, history }) {
 		yield* commits("Too long");
 
-		yield* outcomes([
-			["commit", () => commitOutcome(), "rejected"],
-			["finding", () => commitErrors(), expect.stringContaining("src/full.ts  4 lines exceeds the 3-line limit.")],
-			["history", () => history(), ["Base"]],
-			["verdict", () => commitErrors(), expect.stringContaining(`quality: pre-commit failed: quality lint.\n${COMMIT_AGAIN}\n`)],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["commit", () => commitOutcome(), "rejected"],
+				["finding", () => commitErrors(), expect.stringContaining("src/full.ts  4 lines exceeds the 3-line limit.")],
+				["history", () => history(), ["Base"]],
+				["verdict", () => commitErrors(), expect.stringContaining(`quality: pre-commit failed: quality lint.\n${COMMIT_AGAIN}\n`)],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -130,7 +134,7 @@ checkoutStory.it(
 	"the pre-commit hook that quality hooks install wrote into a repository without a config runs the typecheck script on commit",
 	[withoutConfig(), packageScripts({ typecheck: logs("typechecked") }), hookInstalled()],
 	function* ({ commitOutcome, commits, scriptLog }) {
-		expect(yield* scriptLog()).toEqual([]);
+		yield* assertThat(yield* scriptLog(), (actual) => actual.toEqual([]));
 
 		yield* commits("Checked");
 
@@ -146,7 +150,7 @@ checkoutStory.it(
 	"the pre-commit hook of a project below the repository root runs its checks from the project's folder",
 	[projectIn("app"), packageScripts({ "quality:commit": logs("checked from app") }), hookInstalled()],
 	function* ({ commitOutcome, commits, scriptLog }) {
-		expect(yield* scriptLog()).toEqual([]);
+		yield* assertThat(yield* scriptLog(), (actual) => actual.toEqual([]));
 
 		yield* commits("Checked from app");
 
@@ -164,10 +168,12 @@ checkoutStory.it(
 	function* ({ commitErrors, commitOutcome, commitsIn }) {
 		yield* commitsIn("stricter", "Stricter");
 
-		yield* outcomes([
-			["commit", () => commitOutcome(), "rejected"],
-			["verdict", () => commitErrors(), expect.stringContaining("quality: pre-commit failed: `npm run quality:commit` (exit code 4).")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["commit", () => commitOutcome(), "rejected"],
+				["verdict", () => commitErrors(), expect.stringContaining("quality: pre-commit failed: `npm run quality:commit` (exit code 4).")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

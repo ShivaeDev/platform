@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { emptyFolders, importStory, repositoryHas } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const DIRECT = [
 	"window",
@@ -99,7 +99,7 @@ for (const name of DIRECT) {
 		function* ({ check, subjects }) {
 			yield* check(importsRuntime);
 
-			expect(yield* subjects()).toEqual([name]);
+			yield* assertThat(yield* subjects(), (actual) => actual.toEqual([name]));
 		},
 	);
 }
@@ -111,7 +111,7 @@ for (const [form, content, globals] of REPORTED) {
 		function* ({ check, subjects }) {
 			yield* check(importsRuntime);
 
-			expect(yield* subjects()).toEqual(globals);
+			yield* assertThat(yield* subjects(), (actual) => actual.toEqual(globals));
 		},
 	);
 }
@@ -121,7 +121,7 @@ for (const [form, content] of IGNORED) {
 		`imports/runtime takes no browser global from ${form} in shared code`,
 		[emptyFolders("src/server"), repositoryHas({ content, path: "src/value.ts" })],
 		function* ({ check }) {
-			expect(yield* check(importsRuntime)).toEqual([]);
+			yield* assertThat(yield* check(importsRuntime), (actual) => actual.toEqual([]));
 		},
 	);
 }

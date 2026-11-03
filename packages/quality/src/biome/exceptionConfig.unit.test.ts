@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe } from "@effect/vitest";
+import { it } from "@shivaedev/test/adapters/it.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { exceptionConfig } from "./exceptionConfig.ts";
 
 const REASON = "The external format requires it.";
 
 describe("exceptionConfig", () => {
-	it("turns each declared Biome lint rule and assist action off for its files and ignores quality's own rules", () => {
+	it.effect("turns each declared Biome lint rule and assist action off for its files and ignores quality's own rules", function* () {
 		const config = exceptionConfig([
 			{
 				files: ["src/parse.ts"],
@@ -13,21 +15,23 @@ describe("exceptionConfig", () => {
 			},
 		]);
 
-		expect(config).toEqual({
-			includes: [],
-			overrides: [
-				{ includes: ["src/parse.ts"], linter: { rules: { suspicious: { noExplicitAny: "off" } } } },
-				{ assist: { actions: { source: { useSortedKeys: "off" } } }, includes: ["src/parse.ts"] },
-			],
-		});
+		yield* assertThat(config, (actual) =>
+			actual.toEqual({
+				includes: [],
+				overrides: [
+					{ includes: ["src/parse.ts"], linter: { rules: { suspicious: { noExplicitAny: "off" } } } },
+					{ assist: { actions: { source: { useSortedKeys: "off" } } }, includes: ["src/parse.ts"] },
+				],
+			}),
+		);
 	});
 
-	it("joins the directory exclusions of several declarations behind one leading **", () => {
+	it.effect("joins the directory exclusions of several declarations behind one leading **", function* () {
 		const config = exceptionConfig([
 			{ files: ["**", "!**/generated"], reason: REASON, rules: ["biome/files/includes"] },
 			{ files: ["**", "!**/fixtures"], reason: REASON, rules: ["biome/files/includes"] },
 		]);
 
-		expect(config).toEqual({ includes: ["**", "!**/generated", "!**/fixtures"], overrides: [] });
+		yield* assertThat(config, (actual) => actual.toEqual({ includes: ["**", "!**/generated", "!**/fixtures"], overrides: [] }));
 	});
 });

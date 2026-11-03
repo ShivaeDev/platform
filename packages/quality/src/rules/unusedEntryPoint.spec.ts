@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { unusedCode } from "#rules/unusedCode.ts";
 import { ruleStory } from "#test/ruleStory.ts";
 import { unusedEntryPoint } from "#test/unusedEntryPoint.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const abandoned of [false, true]) {
 	ruleStory.it(
@@ -10,9 +10,10 @@ for (const abandoned of [false, true]) {
 		function* ({ check }) {
 			const findings = yield* check(unusedCode);
 
-			expect(findings.filter(({ subject }) => subject?.startsWith("dependencies:")).map(({ file, subject }) => ({ file, subject }))).toEqual([
-				{ file: "packages/platform/package.json", subject: "dependencies:@shivaedev/unused-piece" },
-			]);
+			yield* assertThat(
+				findings.filter(({ subject }) => subject?.startsWith("dependencies:")).map(({ file, subject }) => ({ file, subject })),
+				(actual) => actual.toEqual([{ file: "packages/platform/package.json", subject: "dependencies:@shivaedev/unused-piece" }]),
+			);
 		},
 	);
 }

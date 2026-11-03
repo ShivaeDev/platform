@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { importStory, repositoryHas, repositoryHolds, workspaceInstalled } from "#test/importStory.ts";
 import { workerMember } from "#test/workerMember.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const MEMBERS = { content: '{"workspaces":["modules/*"]}', path: "package.json" };
 
@@ -20,7 +20,7 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsRuntime);
 
-		expect(yield* sites()).toEqual(["modules/app/src/client/app.ts:1 host/appHost.ts"]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["modules/app/src/client/app.ts:1 host/appHost.ts"]));
 	},
 );
 
@@ -35,7 +35,7 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsRuntime);
 
-		expect(yield* sites()).toEqual(["src/view.ts:1 node:fs"]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual(["src/view.ts:1 node:fs"]));
 	},
 );
 
@@ -51,13 +51,15 @@ importStory.it(
 	function* ({ check }) {
 		const findings = yield* check(importsRuntime);
 
-		expect(findings).toEqual([
-			expect.objectContaining({
-				file: "modules/mixed/package.json",
-				message: expect.stringContaining("also has src/client/"),
-				subject: "quality.runtime",
-			}),
-		]);
+		yield* assertThat(findings, (actual, expect) =>
+			actual.toEqual([
+				expect.objectContaining({
+					file: "modules/mixed/package.json",
+					message: expect.stringContaining("also has src/client/"),
+					subject: "quality.runtime",
+				}),
+			]),
+		);
 	},
 );
 
@@ -73,13 +75,15 @@ importStory.it(
 	function* ({ check }) {
 		const findings = yield* check(importsRuntime);
 
-		expect(findings).toEqual([
-			expect.objectContaining({
-				file: "modules/odd/package.json",
-				message: expect.stringContaining('Declare "client" or "server"'),
-				subject: "quality.runtime",
-			}),
-		]);
+		yield* assertThat(findings, (actual, expect) =>
+			actual.toEqual([
+				expect.objectContaining({
+					file: "modules/odd/package.json",
+					message: expect.stringContaining('Declare "client" or "server"'),
+					subject: "quality.runtime",
+				}),
+			]),
+		);
 	},
 );
 
@@ -90,11 +94,13 @@ for (const bin of ["./src/cli.ts", { worker: "./src/cli.ts" }]) {
 		function* ({ checkOnly, sites }) {
 			yield* checkOnly(importsRuntime, "modules/app/");
 
-			expect(yield* sites()).toEqual([
-				"modules/app/src/client/app.ts:1 worker/api.ts",
-				"modules/app/src/client/app.ts:2 ../../../worker/src/cli.ts",
-				"modules/app/src/shared.ts:1 worker/api.ts",
-			]);
+			yield* assertThat(yield* sites(), (actual) =>
+				actual.toEqual([
+					"modules/app/src/client/app.ts:1 worker/api.ts",
+					"modules/app/src/client/app.ts:2 ../../../worker/src/cli.ts",
+					"modules/app/src/shared.ts:1 worker/api.ts",
+				]),
+			);
 		},
 	);
 }
@@ -112,7 +118,9 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsRuntime);
 
-		expect(yield* sites()).toEqual(["src/client/app.ts:2 ../server/cli.ts", "src/shared.ts:1 ./server/cli.ts", "src/shared.ts:2 window"]);
+		yield* assertThat(yield* sites(), (actual) =>
+			actual.toEqual(["src/client/app.ts:2 ../server/cli.ts", "src/shared.ts:1 ./server/cli.ts", "src/shared.ts:2 window"]),
+		);
 	},
 );
 
@@ -137,7 +145,9 @@ importStory.it(
 	function* ({ check, subjects }) {
 		yield* check(importsRuntime);
 
-		expect(yield* subjects()).toEqual(["../../../script/task.ts", "../vitest.config.ts", "../../scripts/task.ts", "../../tooling/task.ts"]);
+		yield* assertThat(yield* subjects(), (actual) =>
+			actual.toEqual(["../../../script/task.ts", "../vitest.config.ts", "../../scripts/task.ts", "../../tooling/task.ts"]),
+		);
 	},
 );
 
@@ -146,7 +156,7 @@ for (const bin of [undefined, "", {}, { worker: "" }]) {
 		`imports/runtime takes a member with engines.node and the empty bin ${JSON.stringify(bin)} for no runtime, so client code may import it`,
 		[repositoryHolds(workerMember(bin)), workspaceInstalled("worker", "modules/worker")],
 		function* ({ checkOnly }) {
-			expect(yield* checkOnly(importsRuntime, "modules/app/")).toEqual([]);
+			yield* assertThat(yield* checkOnly(importsRuntime, "modules/app/"), (actual) => actual.toEqual([]));
 		},
 	);
 }

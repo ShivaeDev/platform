@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { manifestsExportsShape } from "#rules/manifestsExportsShape.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { exportsShapeMessage, exportsWorkspace, FILE_PATH_EXPORTS, LIBRARY_MANIFEST, packageExports } from "#testing/adapters/packageExports.ts";
 
 const SERVER_WILDCARD = { "./server/*.ts": { default: "./dist/server/*.js", source: "./src/server/*.ts", types: "./dist/server/*.d.ts" } };
@@ -22,24 +22,28 @@ for (const path of ["./private.ts", "./internal/*", ".", "./preset.json"]) {
 		`manifests/exports-shape asks to remove a null export at ${path} until it is removed`,
 		[repositoryHas(exportsWorkspace, packageExports({ ...FILE_PATH_EXPORTS, [path]: null }))],
 		function* ({ check, writes }) {
-			expect(yield* check(manifestsExportsShape)).toEqual([
-				{
-					file: LIBRARY_MANIFEST,
-					message: exportsShapeMessage(`Export "${path}" blocks module imports with null. Remove the null entry so callers can import each module.`),
-					subject: path,
-				},
-			]);
+			yield* assertThat(yield* check(manifestsExportsShape), (actual) =>
+				actual.toEqual([
+					{
+						file: LIBRARY_MANIFEST,
+						message: exportsShapeMessage(
+							`Export "${path}" blocks module imports with null. Remove the null entry so callers can import each module.`,
+						),
+						subject: path,
+					},
+				]),
+			);
 
 			yield* writes(packageExports(FILE_PATH_EXPORTS));
 
-			expect(yield* check(manifestsExportsShape)).toEqual([]);
+			yield* assertThat(yield* check(manifestsExportsShape), (actual) => actual.toEqual([]));
 		},
 	);
 }
 
 for (const { exports, name } of ACCEPTED_EXPORTS) {
 	ruleStory.it(`manifests/exports-shape accepts ${name}`, [repositoryHas(exportsWorkspace, packageExports(exports))], function* ({ check }) {
-		expect(yield* check(manifestsExportsShape)).toEqual([]);
+		yield* assertThat(yield* check(manifestsExportsShape), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -49,9 +53,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(manifestsExportsShape);
 
-		expect(findings).toEqual([
-			{ file: LIBRARY_MANIFEST, message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 2."), subject: "exports" },
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: LIBRARY_MANIFEST,
+					message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 2."),
+					subject: "exports",
+				},
+			]),
+		);
 	},
 );
 
@@ -61,9 +71,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(manifestsExportsShape);
 
-		expect(findings).toEqual([
-			{ file: LIBRARY_MANIFEST, message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 0."), subject: "exports" },
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: LIBRARY_MANIFEST,
+					message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 0."),
+					subject: "exports",
+				},
+			]),
+		);
 	},
 );
 
@@ -73,9 +89,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(manifestsExportsShape);
 
-		expect(findings).toEqual([
-			{ file: "package.json", message: exportsShapeMessage('Export "./alias.ts" does not preserve the module\'s file path.'), subject: "./alias.ts" },
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "package.json",
+					message: exportsShapeMessage('Export "./alias.ts" does not preserve the module\'s file path.'),
+					subject: "./alias.ts",
+				},
+			]),
+		);
 	},
 );
 
@@ -85,13 +107,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(manifestsExportsShape);
 
-		expect(findings).toEqual([
-			{ file: "package.json", message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 0."), subject: "exports" },
-			{
-				file: "package.json",
-				message: exportsShapeMessage('Export "./client.ts" does not preserve the module\'s file path.'),
-				subject: "./client.ts",
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{ file: "package.json", message: exportsShapeMessage("The exports field needs exactly one non-null wildcard; found 0."), subject: "exports" },
+				{
+					file: "package.json",
+					message: exportsShapeMessage('Export "./client.ts" does not preserve the module\'s file path.'),
+					subject: "./client.ts",
+				},
+			]),
+		);
 	},
 );

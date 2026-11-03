@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { heavyLint } from "#test/heavyLint.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 heavyLint.it(
@@ -39,9 +39,9 @@ heavyLint.it(
 	[],
 	function* ({ finishes, interrupts, lockExists, nextEvent, starts }) {
 		yield* starts("first");
-		expect(yield* nextEvent("first")).toBe("Biome started");
+		yield* assertThat(yield* nextEvent("first"), (actual) => actual.toBe("Biome started"));
 		yield* starts("second");
-		expect(yield* nextEvent("second")).toBe("Waiting for lock");
+		yield* assertThat(yield* nextEvent("second"), (actual) => actual.toBe("Waiting for lock"));
 
 		yield* interrupts("first");
 		yield* outcomes([

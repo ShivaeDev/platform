@@ -1,5 +1,5 @@
-import { dirname } from "node:path";
-import { Console, Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, FileSystem, Path } from "effect";
 import { SetupFailure } from "#failure.ts";
 import { gitOrFail, run } from "#git/command.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
@@ -8,6 +8,8 @@ import { hookLocation } from "./location.ts";
 import { isHookShim } from "./shim.ts";
 
 export const uninstallHook = Effect.fn("Hooks.uninstallHook")(function* (cwd: string) {
+	const { dirname } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const fs = yield* FileSystem.FileSystem;
 	const { file } = yield* hookLocation(cwd);
 	const existing = yield* Effect.mapError(readOptionalText(file), (failure) => new SetupFailure({ cause: failure, message: failure.message }));

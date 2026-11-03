@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const MESSAGE =
 	'Sets "ignoreDeprecations", which silences TypeScript\'s errors for deprecated options. Remove it and replace the deprecated option it hides.';
@@ -22,11 +22,13 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(noIgnoreDeprecations);
 
-		expect(findings).toEqual([
-			{ file: "packages/web/tsconfig.build.json", line: 4, message: MESSAGE, subject: "ignoreDeprecations" },
-			{ file: "tsconfig.json", line: 4, message: MESSAGE, subject: "ignoreDeprecations" },
-			{ file: "tsconfig/browser.json", line: 5, message: MESSAGE, subject: "ignoreDeprecations" },
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{ file: "packages/web/tsconfig.build.json", line: 4, message: MESSAGE, subject: "ignoreDeprecations" },
+				{ file: "tsconfig.json", line: 4, message: MESSAGE, subject: "ignoreDeprecations" },
+				{ file: "tsconfig/browser.json", line: 5, message: MESSAGE, subject: "ignoreDeprecations" },
+			]),
+		);
 	},
 );
 
@@ -34,6 +36,6 @@ ruleStory.it(
 	"suppressions/no-ignore-deprecations accepts ignoreDeprecations outside compilerOptions",
 	[repositoryHas({ content: '{ "compilerOptions": { "strict": true }, "ignoreDeprecations": "6.0" }\n', path: "tsconfig.json" })],
 	function* ({ check }) {
-		expect(yield* check(noIgnoreDeprecations)).toEqual([]);
+		yield* assertThat(yield* check(noIgnoreDeprecations), (actual) => actual.toEqual([]));
 	},
 );

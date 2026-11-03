@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { noInline } from "#rules/suppressions/noInline.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const EXPECT_ERROR = "// @ts-expect-error The types reject it.\n";
 
@@ -61,7 +61,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(noInline);
 
-		expect(yield* locations()).toEqual(["src/view.tsx:1", "src/view.tsx:4"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/view.tsx:1", "src/view.tsx:4"]));
 	},
 );
 
@@ -71,7 +71,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(noInline);
 
-		expect(yield* locations()).toEqual(["src/a.d.ts:1"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/a.d.ts:1"]));
 	},
 );
 
@@ -121,7 +121,7 @@ for (const [what, lines] of [
 		`suppressions/no-inline ignores directive words ${what}`,
 		[repositoryHas({ content: lines.join("\n"), path: "src/a.ts" })],
 		function* ({ check }) {
-			expect(yield* check(noInline)).toEqual([]);
+			yield* assertThat(yield* check(noInline), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -130,7 +130,7 @@ ruleStory.it(
 	"suppressions/no-inline reads no line comment in plain CSS, which has none",
 	[repositoryHas({ content: "a {\n\tbackground: url(http://example.com/x.png); // biome-ignore lint: x\n}\n", path: "src/a.css" })],
 	function* ({ check }) {
-		expect(yield* check(noInline)).toEqual([]);
+		yield* assertThat(yield* check(noInline), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -153,13 +153,15 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(noInline);
 
-		expect(yield* locations()).toEqual([
-			"test/api.spec.ts:1",
-			"test/api.test.ts:1",
-			"test/api.typecheck.ts:1",
-			"test/mytypecheck.spec.ts:1",
-			"test/mytypecheck.test.ts:1",
-		]);
+		yield* assertThat(yield* locations(), (actual) =>
+			actual.toEqual([
+				"test/api.spec.ts:1",
+				"test/api.test.ts:1",
+				"test/api.typecheck.ts:1",
+				"test/mytypecheck.spec.ts:1",
+				"test/mytypecheck.test.ts:1",
+			]),
+		);
 	},
 );
 

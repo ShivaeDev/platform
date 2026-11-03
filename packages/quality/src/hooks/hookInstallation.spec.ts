@@ -1,8 +1,8 @@
 import { dirname } from "node:path";
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { checkoutStory } from "#test/checkoutStory.ts";
 import { hookInstalled, linkedWorktree, outsideGit, ownHook, qualityFileAt } from "#test/linkedWorktree.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const OWN_HOOK = "#!/bin/sh\nmake check\n";
@@ -36,8 +36,10 @@ checkoutStory.it(
 
 		yield* runs("hooks", "install");
 
-		expect(yield* stdout()).toBe(
-			`quality: the pre-commit hook at ${hook} is up to date.\nquality: set repository-local core.hooksPath to ${dirname(hook)}.\nquality: no executable global pre-commit hook to chain.\n`,
+		yield* assertThat(yield* stdout(), (actual) =>
+			actual.toBe(
+				`quality: the pre-commit hook at ${hook} is up to date.\nquality: set repository-local core.hooksPath to ${dirname(hook)}.\nquality: no executable global pre-commit hook to chain.\n`,
+			),
 		);
 	},
 	CLI_TIMEOUT,
@@ -69,14 +71,16 @@ checkoutStory.it(
 	[ownHook(OWN_HOOK)],
 	function* ({ hook, hookFile, runs, stdout }) {
 		const path = yield* hookFile();
-		expect(yield* hook()).toBe("another");
+		yield* assertThat(yield* hook(), (actual) => actual.toBe("another"));
 
 		yield* runs("hooks", "install", "--force");
 
-		yield* outcomes([
-			["hook", () => hook(), "quality's"],
-			["report", () => stdout(), expect.stringContaining(`quality: replaced ${path}, which was not quality's hook;`)],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["hook", () => hook(), "quality's"],
+				["report", () => stdout(), expect.stringContaining(`quality: replaced ${path}, which was not quality's hook;`)],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -85,7 +89,7 @@ checkoutStory.it(
 	"quality hooks install in a linked worktree writes quality's hook into the hooks every worktree shares",
 	[linkedWorktree("feature")],
 	function* ({ hook, outcome, runsIn }) {
-		expect(yield* hook()).toBe("none");
+		yield* assertThat(yield* hook(), (actual) => actual.toBe("none"));
 
 		yield* runsIn("feature", "hooks", "install");
 
@@ -103,14 +107,16 @@ checkoutStory.it(
 	function* ({ hookLines, outcome, runsOwnQuality }) {
 		yield* runsOwnQuality("hooks", "install");
 
-		yield* outcomes([
-			["exit", () => outcome(), "passed"],
-			[
-				"hook",
-				() => hookLines(),
-				expect.arrayContaining(["quality=tools/quality.ts", 'node --conditions=source "$quality" hooks pre-commit || status=$?']),
-			],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "passed"],
+				[
+					"hook",
+					() => hookLines(),
+					expect.arrayContaining(["quality=tools/quality.ts", 'node --conditions=source "$quality" hooks pre-commit || status=$?']),
+				],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -136,7 +142,7 @@ checkoutStory.it(
 	[hookInstalled()],
 	function* ({ hook, hookFile, runs, stdout }) {
 		const path = yield* hookFile();
-		expect(yield* hook()).toBe("quality's");
+		yield* assertThat(yield* hook(), (actual) => actual.toBe("quality's"));
 
 		yield* runs("hooks", "uninstall");
 

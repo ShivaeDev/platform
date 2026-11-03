@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { docsReferences } from "#rules/docs/references.ts";
 import { docsWorkspace, guide, markdown } from "#test/docsRepository.ts";
 import { repositoryHas, repositoryLinks, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const GONE = "Link to the file's current path, or remove the link.";
 
@@ -61,13 +61,13 @@ for (const { link, message, name, subject } of BROKEN_LINKS) {
 	ruleStory.it(`docs/references reports ${name} at its line`, [repositoryHas(...docsWorkspace, LIBRARY_README, guide(link))], function* ({ check }) {
 		const findings = yield* check(docsReferences);
 
-		expect(findings).toEqual([{ file: "docs/guide.md", line: 5, message, subject }]);
+		yield* assertThat(findings, (actual) => actual.toEqual([{ file: "docs/guide.md", line: 5, message, subject }]));
 	});
 }
 
 for (const { lines, name } of UNCHECKED_LINKS) {
 	ruleStory.it(`docs/references accepts ${name}`, [repositoryHas(...docsWorkspace, LIBRARY_README, guide(...lines))], function* ({ check }) {
-		expect(yield* check(docsReferences)).toEqual([]);
+		yield* assertThat(yield* check(docsReferences), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -75,7 +75,7 @@ ruleStory.it(
 	"docs/references leaves the links of CHANGELOG.md unchecked, because a released entry keeps the links of its release",
 	[repositoryHas(...docsWorkspace, markdown("CHANGELOG.md", "# Changelog", "", "- Moved [the guide](docs/old.md)."))],
 	function* ({ check }) {
-		expect(yield* check(docsReferences)).toEqual([]);
+		yield* assertThat(yield* check(docsReferences), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -91,15 +91,17 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(docsReferences);
 
-		expect(findings).toEqual([
-			{
-				file: "packages/lib/README.md",
-				line: 3,
-				message:
-					'"../../docs/guide.md#guide" leaves its package, and npm shows packages/lib/README.md without the repository around it. Use an absolute URL, such as https://github.com/acme/tools/blob/HEAD/docs/guide.md#guide.',
-				subject: "../../docs/guide.md#guide",
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "packages/lib/README.md",
+					line: 3,
+					message:
+						'"../../docs/guide.md#guide" leaves its package, and npm shows packages/lib/README.md without the repository around it. Use an absolute URL, such as https://github.com/acme/tools/blob/HEAD/docs/guide.md#guide.',
+					subject: "../../docs/guide.md#guide",
+				},
+			]),
+		);
 	},
 );
 
@@ -107,7 +109,7 @@ ruleStory.it(
 	"docs/references accepts a published package README that links to a file inside its package",
 	[repositoryHas(...docsWorkspace, markdown("packages/lib/README.md", "# @acme/lib", "", "Read [the source](src/repository.ts)."))],
 	function* ({ check }) {
-		expect(yield* check(docsReferences)).toEqual([]);
+		yield* assertThat(yield* check(docsReferences), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -121,7 +123,7 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(docsReferences)).toEqual([]);
+		yield* assertThat(yield* check(docsReferences), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -131,6 +133,6 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(docsReferences);
 
-		expect(yield* locations()).toEqual(["AGENTS.md:3"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["AGENTS.md:3"]));
 	},
 );

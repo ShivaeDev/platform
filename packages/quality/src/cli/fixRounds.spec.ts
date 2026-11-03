@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { MAX_FIX_ROUNDS } from "#cli/fix.ts";
 import { fixPassKeepsRewriting, fixPassReports, fixPassWrites, fixRounds, formatPassRestores, repositoryHas } from "#test/fixRounds.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const FLIP = { content: "export const flip = 1;\n", path: "src/flip.ts" };
 const STILL = { content: "export const still = 1;\n", path: "src/still.ts" };
@@ -61,13 +61,15 @@ fixRounds.it(
 	function* ({ failure, fixes }) {
 		yield* fixes();
 
-		expect(yield* failure()).toBe(
-			[
-				`${STOPPED} These ranges changed in the last round (before each pass):`,
-				"  src/flip.ts:2:1-2:1 (with fixes)",
-				"  src/flip.ts:2:1-2:11 (with the format pass)",
-				REPAIR,
-			].join("\n"),
+		yield* assertThat(yield* failure(), (actual) =>
+			actual.toBe(
+				[
+					`${STOPPED} These ranges changed in the last round (before each pass):`,
+					"  src/flip.ts:2:1-2:1 (with fixes)",
+					"  src/flip.ts:2:1-2:11 (with the format pass)",
+					REPAIR,
+				].join("\n"),
+			),
 		);
 	},
 );
@@ -78,8 +80,8 @@ fixRounds.it(
 	function* ({ failure, fixes }) {
 		yield* fixes();
 
-		expect(yield* failure()).toBe(
-			[`${STOPPED} These ranges changed in the last round (before each pass):`, "  src/flip.ts:2:1-2:1 (with fixes)", REPAIR].join("\n"),
+		yield* assertThat(yield* failure(), (actual) =>
+			actual.toBe([`${STOPPED} These ranges changed in the last round (before each pass):`, "  src/flip.ts:2:1-2:1 (with fixes)", REPAIR].join("\n")),
 		);
 	},
 );
@@ -90,12 +92,14 @@ fixRounds.it(
 	function* ({ failure, fixes }) {
 		yield* fixes();
 
-		expect(yield* failure()).toBe(
-			[
-				`${STOPPED} The files it changed in the last round are ones quality fix does not read, such as files .gitignore lists.`,
-				"Run `biome check --write --unsafe --verbose` to name them.",
-				REPAIR,
-			].join("\n"),
+		yield* assertThat(yield* failure(), (actual) =>
+			actual.toBe(
+				[
+					`${STOPPED} The files it changed in the last round are ones quality fix does not read, such as files .gitignore lists.`,
+					"Run `biome check --write --unsafe --verbose` to name them.",
+					REPAIR,
+				].join("\n"),
+			),
 		);
 	},
 );
@@ -110,13 +114,15 @@ fixRounds.it(
 	function* ({ failure, fixes }) {
 		yield* fixes();
 
-		expect(yield* failure()).toBe(
-			[
-				`${STOPPED} These ranges changed in the last round (before each pass):`,
-				"  README.md:3:3-3:3 (with the format pass)",
-				"  README.md:3:3-3:5 (with fixes)",
-				REPAIR,
-			].join("\n"),
+		yield* assertThat(yield* failure(), (actual) =>
+			actual.toBe(
+				[
+					`${STOPPED} These ranges changed in the last round (before each pass):`,
+					"  README.md:3:3-3:3 (with the format pass)",
+					"  README.md:3:3-3:5 (with fixes)",
+					REPAIR,
+				].join("\n"),
+			),
 		);
 	},
 );

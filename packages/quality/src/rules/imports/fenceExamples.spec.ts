@@ -1,9 +1,9 @@
-import { expect } from "vitest";
 import { fence } from "#imports/fence.ts";
 import { files, folders, packages } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { gameFences, gameRepository } from "#test/gameFences.ts";
 import { importStory } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const path of ["packages/game/src/play.ts", "packages/simulation/src/step.ts", "packages/cms/src/edit.ts"]) {
 	importStory.it(`imports/fences refuses a demonstration after its file ${path} is deleted`, [gameRepository], function* ({ removes, refusal }) {
@@ -11,9 +11,9 @@ for (const path of ["packages/game/src/play.ts", "packages/simulation/src/step.t
 
 		const problem = yield* refusal(importFences, { fences: [gameFences.gameNeverReachesCms] });
 
-		expect(problem).toContain(`the illegal example names "${path}", which is no checked file`);
+		yield* assertThat(problem, (actual) => actual.toContain(`the illegal example names "${path}", which is no checked file`));
 		if (path !== "packages/cms/src/edit.ts") {
-			expect(problem).toContain(`the legal example names "${path}", which is no checked file`);
+			yield* assertThat(problem, (actual) => actual.toContain(`the legal example names "${path}", which is no checked file`));
 		}
 	});
 }
@@ -33,14 +33,16 @@ importStory.it(
 
 		const findings = yield* check(importFences, { fences: [policy] });
 
-		expect(findings).toEqual([
-			{
-				file: "packages/game/src/run.ts",
-				line: 1,
-				message:
-					'Reaches packages/cms/src/edit.ts through packages/game/src/run.ts -> packages/simulation/src/step.ts -> packages/cms/src/edit.ts across the fence "game": Only the editor entry may reach the CMS.',
-				subject: "game",
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "packages/game/src/run.ts",
+					line: 1,
+					message:
+						'Reaches packages/cms/src/edit.ts through packages/game/src/run.ts -> packages/simulation/src/step.ts -> packages/cms/src/edit.ts across the fence "game": Only the editor entry may reach the CMS.',
+					subject: "game",
+				},
+			]),
+		);
 	},
 );

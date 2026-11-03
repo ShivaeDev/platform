@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
+import { withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
 
@@ -30,11 +30,13 @@ exceptionStory.it(
 
 		yield* runs("lint");
 
-		yield* outcomes([
-			["biome.json", () => reads("biome.json"), biome],
-			["exit", () => outcome(), "passed"],
-			["report", () => stdout(), expect.stringContaining("1 registered violation not shown")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["biome.json", () => reads("biome.json"), biome],
+				["exit", () => outcome(), "passed"],
+				["report", () => stdout(), expect.stringContaining("1 registered violation not shown")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -45,10 +47,12 @@ exceptionStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["error", () => stderr(), expect.stringContaining("exceptions.0.reason")],
-			["exit", () => outcome(), "invalid"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["error", () => stderr(), expect.stringContaining("exceptions.0.reason")],
+				["exit", () => outcome(), "invalid"],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -59,10 +63,12 @@ exceptionStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["report", () => stdout(), expect.stringContaining('Weakens "lint/suspicious/noExplicitAny"')],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining('Weakens "lint/suspicious/noExplicitAny"')],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -75,10 +81,12 @@ for (const rule of DECLARATION.rules) {
 		function* ({ outcome, runs, stdout }) {
 			yield* runs("lint", "--config", "custom.config.ts");
 
-			yield* outcomes([
-				["exit", () => outcome(), "rejected"],
-				["report", () => stdout(), expect.stringContaining(`add to exceptions in custom.config.ts: ${JSON.stringify(suggested)}`)],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "rejected"],
+					["report", () => stdout(), expect.stringContaining(`add to exceptions in custom.config.ts: ${JSON.stringify(suggested)}`)],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -97,10 +105,12 @@ exceptionStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["report", () => stdout(), expect.stringContaining("This Biome exception names a missing file")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining("This Biome exception names a missing file")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -116,10 +126,12 @@ exceptionStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["report", () => stdout(), expect.stringContaining("comments/no-jsdoc src/missing.ts matches no violation")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining("comments/no-jsdoc src/missing.ts matches no violation")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -143,10 +155,12 @@ for (const [registry, selectedConfig] of [
 		function* ({ outcome, runs, stderr }) {
 			yield* runs("lint", ...(selectedConfig === undefined ? [] : ["--config", selectedConfig]));
 
-			yield* outcomes([
-				["exit", () => outcome(), "invalid"],
-				["repair", () => stderr(), expect.stringContaining(repair)],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "invalid"],
+					["repair", () => stderr(), expect.stringContaining(repair)],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);

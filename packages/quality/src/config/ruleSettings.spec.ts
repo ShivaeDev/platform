@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { builtInRules } from "#rules/builtIn.ts";
 import { configFile, configLoading } from "#test/configLoading.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const TODO_RULE =
 	'import { defineRule } from "@shivaedev/quality/rule.ts";\nconst todo = defineRule({ check: () => [], description: "Resolve TODOs.", id: "local/no-todo" });\n';
@@ -13,7 +13,7 @@ configLoading.it(
 	function* ({ activeRules, loads }) {
 		yield* loads();
 
-		expect(yield* activeRules()).toEqual([...BUILT_IN, "local/no-todo"]);
+		yield* assertThat(yield* activeRules(), (actual) => actual.toEqual([...BUILT_IN, "local/no-todo"]));
 	},
 );
 
@@ -27,7 +27,7 @@ configLoading.it(
 	function* ({ activeRules, loads }) {
 		yield* loads();
 
-		expect(yield* activeRules()).toEqual([...BUILT_IN, "local/no-todo"]);
+		yield* assertThat(yield* activeRules(), (actual) => actual.toEqual([...BUILT_IN, "local/no-todo"]));
 	},
 );
 
@@ -42,7 +42,7 @@ for (const level of ["warn", "off"]) {
 			function* ({ issues, loads }) {
 				yield* loads();
 
-				expect(yield* issues()).toEqual([expect.stringMatching(/^rules\.structure\/max-lines/u)]);
+				yield* assertThat(yield* issues(), (actual, expect) => actual.toEqual([expect.stringMatching(/^rules\.structure\/max-lines/u)]));
 			},
 		);
 	}
@@ -54,7 +54,7 @@ configLoading.it(
 	function* ({ issues, loads }) {
 		yield* loads();
 
-		expect(yield* issues()).toEqual([expect.stringMatching(/^source: /u)]);
+		yield* assertThat(yield* issues(), (actual, expect) => actual.toEqual([expect.stringMatching(/^source: /u)]));
 	},
 );
 
@@ -64,7 +64,9 @@ configLoading.it(
 	function* ({ issues, loads }) {
 		yield* loads();
 
-		expect(yield* issues()).toEqual([expect.stringMatching(/^rules\.structure\/max-lines\.options: source: /u)]);
+		yield* assertThat(yield* issues(), (actual, expect) =>
+			actual.toEqual([expect.stringMatching(/^rules\.structure\/max-lines\.options: source: /u)]),
+		);
 	},
 );
 
@@ -74,7 +76,7 @@ configLoading.it(
 	function* ({ issues, loads }) {
 		yield* loads();
 
-		expect(yield* issues()).toEqual([expect.stringContaining("a rule made with defineRule")]);
+		yield* assertThat(yield* issues(), (actual, expect) => actual.toEqual([expect.stringContaining("a rule made with defineRule")]));
 	},
 );
 
@@ -88,7 +90,9 @@ configLoading.it(
 	function* ({ issues, loads }) {
 		yield* loads();
 
-		expect(yield* issues()).toEqual(['local: rule id "local/no-todo" is already defined', 'local: rule id "structure/max-lines" is already defined']);
+		yield* assertThat(yield* issues(), (actual) =>
+			actual.toEqual(['local: rule id "local/no-todo" is already defined', 'local: rule id "structure/max-lines" is already defined']),
+		);
 	},
 );
 
@@ -102,6 +106,6 @@ configLoading.it(
 	function* ({ issues, loads }) {
 		yield* loads();
 
-		expect(yield* issues()).toEqual(["rules.local/throwing.options: validation threw: schema exploded"]);
+		yield* assertThat(yield* issues(), (actual) => actual.toEqual(["rules.local/throwing.options: validation threw: schema exploded"]));
 	},
 );

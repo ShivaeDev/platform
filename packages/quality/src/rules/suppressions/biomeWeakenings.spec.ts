@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { biomeJson } from "#test/biomeConfigFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 
 const FIX = "without a declaration. Repair the code and remove the weakening setting.";
 
@@ -34,10 +34,12 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes([
-			["locations", () => locations(), ["biome.json:4"]],
-			["messages", () => messages(), [expect.stringContaining(`Weakens "lint/complexity/useLiteralKeys" for "**" ${FIX}`)]],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["locations", () => locations(), ["biome.json:4"]],
+				["messages", () => messages(), [expect.stringContaining(`Weakens "lint/complexity/useLiteralKeys" for "**" ${FIX}`)]],
+			]),
+		);
 	},
 );
 
@@ -55,17 +57,19 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes([
-			["locations", () => locations(), ["biome.json:1", "biome.json:1"]],
-			[
-				"messages",
-				() => messages(),
+		yield* withMatchers((expect) =>
+			outcomes([
+				["locations", () => locations(), ["biome.json:1", "biome.json:1"]],
 				[
-					expect.stringContaining(`Weakens "lint/suspicious/noExplicitAny" for "src/a.ts", "src/b.ts" ${FIX}`),
-					expect.stringContaining(`Weakens "lint/suspicious/noThenProperty" for "src/a.ts", "src/b.ts" ${FIX}`),
+					"messages",
+					() => messages(),
+					[
+						expect.stringContaining(`Weakens "lint/suspicious/noExplicitAny" for "src/a.ts", "src/b.ts" ${FIX}`),
+						expect.stringContaining(`Weakens "lint/suspicious/noThenProperty" for "src/a.ts", "src/b.ts" ${FIX}`),
+					],
 				],
-			],
-		]);
+			]),
+		);
 	},
 );
 
@@ -74,7 +78,7 @@ for (const [what, config, weakened] of SWITCHES) {
 		`suppressions/biome-overrides reports ${what} switched off at the top level as weakening "${weakened}"`,
 		[repositoryHas(biomeJson(config))],
 		function* ({ check }) {
-			expect(yield* check(biomeOverrides)).toEqual([expect.objectContaining({ subject: weakened })]);
+			yield* assertThat(yield* check(biomeOverrides), (actual, expect) => actual.toEqual([expect.objectContaining({ subject: weakened })]));
 		},
 	);
 
@@ -82,7 +86,7 @@ for (const [what, config, weakened] of SWITCHES) {
 		`suppressions/biome-overrides reports ${what} switched off in an override as weakening "${weakened}"`,
 		[repositoryHas(biomeJson({ overrides: [{ includes: ["src/**"], ...config }] }))],
 		function* ({ check }) {
-			expect(yield* check(biomeOverrides)).toEqual([expect.objectContaining({ subject: weakened })]);
+			yield* assertThat(yield* check(biomeOverrides), (actual, expect) => actual.toEqual([expect.objectContaining({ subject: weakened })]));
 		},
 	);
 }
@@ -99,7 +103,7 @@ for (const [what, config, weakening] of [
 		function* ({ check, messages }) {
 			yield* check(biomeOverrides);
 
-			expect(yield* messages()).toEqual([expect.stringContaining(`${weakening} ${FIX}`)]);
+			yield* assertThat(yield* messages(), (actual, expect) => actual.toEqual([expect.stringContaining(`${weakening} ${FIX}`)]));
 		},
 	);
 }
@@ -108,7 +112,7 @@ ruleStory.it(
 	"suppressions/biome-overrides accepts includes lists that keep every file",
 	[repositoryHas(biomeJson({ files: { includes: ["**"] }, linter: { includes: ["**"] } }))],
 	function* ({ check }) {
-		expect(yield* check(biomeOverrides)).toEqual([]);
+		yield* assertThat(yield* check(biomeOverrides), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -124,7 +128,7 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(biomeOverrides)).toEqual([]);
+		yield* assertThat(yield* check(biomeOverrides), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -139,10 +143,12 @@ ruleStory.it(
 	function* ({ check, locations, messages }) {
 		yield* check(biomeOverrides);
 
-		yield* outcomes([
-			["locations", () => locations(), ["biome.base.json:1"]],
-			["messages", () => messages(), [expect.stringContaining(`Weakens "lint/style/noNonNullAssertion" for "**/*.test.ts" ${FIX}`)]],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["locations", () => locations(), ["biome.base.json:1"]],
+				["messages", () => messages(), [expect.stringContaining(`Weakens "lint/style/noNonNullAssertion" for "**/*.test.ts" ${FIX}`)]],
+			]),
+		);
 	},
 );
 

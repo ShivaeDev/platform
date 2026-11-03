@@ -1,5 +1,5 @@
-import { basename, dirname, join, relative } from "node:path";
-import { Console, Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, FileSystem, Path } from "effect";
 import { CONFIG_FILE } from "#config/constants.ts";
 import { loadConfig } from "#config/load.ts";
 import { SetupFailure } from "#failure.ts";
@@ -28,6 +28,8 @@ const realPath = Effect.fnUntraced(function* (path: string) {
 });
 
 const write = Effect.fnUntraced(function* (file: string, text: string) {
+	const { dirname } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const fs = yield* FileSystem.FileSystem;
 	yield* fs.makeDirectory(dirname(file), { recursive: true }).pipe(
 		Effect.andThen(fs.writeFileString(file, text)),
@@ -37,6 +39,8 @@ const write = Effect.fnUntraced(function* (file: string, text: string) {
 });
 
 export const installHook = Effect.fn("Hooks.installHook")(function* (install: HookInstall) {
+	const { basename, dirname, join, relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const config = yield* loadConfig(install.cwd, install.config);
 	const location = yield* hookLocation(config.root);
 	const root = yield* realPath(config.root);

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { testsColocated } from "#rules/test-names/colocated.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const SUITES = { suites: [{ glob: "tests/smoke/", reason: "This suite covers several modules." }] };
 
@@ -10,13 +10,15 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(testsColocated);
 
-		expect(findings).toEqual([
-			{
-				file: "packages/cart/test/cart.test.ts",
-				message:
-					'Sits in the test folder "test/". A test, tests or spec folder is test-only when its directly contained checked files are all tests or test support; __tests__ is always a test folder. A test sits beside the file it covers, as cart.test.ts beside cart.ts, or as a <behaviour>.spec.ts at the module root or directly beside the module folder. Shared test support belongs in test-support/. A folder of tests that cover several packages is a suite in the "suites" option.',
-			},
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				{
+					file: "packages/cart/test/cart.test.ts",
+					message:
+						'Sits in the test folder "test/". A test, tests or spec folder is test-only when its directly contained checked files are all tests or test support; __tests__ is always a test folder. A test sits beside the file it covers, as cart.test.ts beside cart.ts, or as a <behaviour>.spec.ts at the module root or directly beside the module folder. Shared test support belongs in test-support/. A folder of tests that cover several packages is a suite in the "suites" option.',
+				},
+			]),
+		);
 	},
 );
 
@@ -26,9 +28,11 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(testsColocated);
 
-		expect(yield* messages()).toEqual([
-			'Sits in the test folder "tests/". A test, tests or spec folder is test-only when its directly contained checked files are all tests or test support; __tests__ is always a test folder. A test sits beside the file it covers, as cart.unit.test.ts beside cart.ts, or as a <behaviour>.unit.spec.ts at the module root or directly beside the module folder. Shared test support belongs in test-support/. A folder of tests that cover several packages is a suite in the "suites" option.',
-		]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual([
+				'Sits in the test folder "tests/". A test, tests or spec folder is test-only when its directly contained checked files are all tests or test support; __tests__ is always a test folder. A test sits beside the file it covers, as cart.unit.test.ts beside cart.ts, or as a <behaviour>.unit.spec.ts at the module root or directly beside the module folder. Shared test support belongs in test-support/. A folder of tests that cover several packages is a suite in the "suites" option.',
+			]),
+		);
 	},
 );
 
@@ -49,7 +53,7 @@ for (const [test, path, beside] of misplaced) {
 		function* ({ check, locations }) {
 			yield* check(testsColocated, SUITES);
 
-			expect(yield* locations()).toEqual([path]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual([path]));
 		},
 	);
 }
@@ -62,6 +66,6 @@ const placed = [
 
 for (const [test, paths, options] of placed) {
 	ruleStory.it(`tests/colocated accepts ${test}`, [repositoryHas(...paths.map((path) => ({ content: "", path })))], function* ({ check }) {
-		expect(yield* check(testsColocated, options)).toEqual([]);
+		yield* assertThat(yield* check(testsColocated, options), (actual) => actual.toEqual([]));
 	});
 }

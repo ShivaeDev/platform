@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { Effect, FileSystem } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Effect, FileSystem, Path } from "effect";
 import { runBiome } from "#adapters/biome/run.ts";
 
 const RECOMMENDED_ONLY = '{ "linter": { "rules": { "preset": "recommended" } } }\n';
@@ -9,6 +9,8 @@ const ENABLED_RULE = /^ {4}(?<rule>[a-z0-9]+\/\w+)$/gimu;
 export const recommendedRules = Effect.fn("Biome.recommendedRules")(function* () {
 	return yield* Effect.scoped(
 		Effect.gen(function* () {
+			const { join } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 			const fs = yield* FileSystem.FileSystem;
 			const directory = yield* fs.makeTempDirectoryScoped({ prefix: "quality-biome-recommended-" });
 			yield* fs.writeFileString(join(directory, "biome.json"), RECOMMENDED_ONLY);

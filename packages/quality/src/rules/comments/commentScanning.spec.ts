@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { noTodo } from "#rules/comments/noTodo.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const scanned = [
 	["ignores comment markers inside strings", "src/a.ts", ['const a = "// TODO";', "const b = '/* TODO */';"], []],
@@ -29,7 +29,7 @@ for (const [claim, path, lines, expected] of scanned) {
 	ruleStory.it(`comments/no-todo ${claim}`, [repositoryHas({ content: lines.join("\n"), path })], function* ({ check, locations }) {
 		yield* check(noTodo);
 
-		expect(yield* locations()).toEqual(expected);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(expected));
 	});
 }
 
@@ -40,7 +40,7 @@ for (const extension of ["js", "mjs", "cjs", "jsx", "mts", "cts"]) {
 		function* ({ check, locations }) {
 			yield* check(noTodo);
 
-			expect(yield* locations()).toEqual([`src/a.${extension}:1`]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual([`src/a.${extension}:1`]));
 		},
 	);
 }
@@ -50,7 +50,7 @@ for (const extension of ["ts", "mts", "cts"]) {
 		`comments/no-todo skips the comments of a .d.${extension} declaration file`,
 		[repositoryHas({ content: "/** TODO */\n// TODO\n", path: `src/a.d.${extension}` })],
 		function* ({ check }) {
-			expect(yield* check(noTodo)).toEqual([]);
+			yield* assertThat(yield* check(noTodo), (actual) => actual.toEqual([]));
 		},
 	);
 }

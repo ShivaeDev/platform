@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { importsManifest } from "#rules/imports/manifest.ts";
 import { blocked, bundleManifest } from "#test/bundleManifest.ts";
 import { importStory, repositoryHas, repositoryHolds } from "#test/importStory.ts";
 import { manifestTree } from "#test/manifestTree.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const INPUT = { content: 'import "plain-kit";', path: "modules/app/src/bundle/input.ts" };
 
@@ -24,7 +24,7 @@ importStory.it(
 	"imports/manifest accepts a declared development dependency in an export-blocked bundle input",
 	[WORKSPACE, repositoryHas(bundleManifest(), INPUT)],
 	function* ({ check }) {
-		expect(yield* check(importsManifest)).toEqual([]);
+		yield* assertThat(yield* check(importsManifest), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -34,7 +34,7 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsManifest);
 
-		expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual([`${INPUT.path}:1 plain-kit`]));
 	},
 );
 
@@ -45,7 +45,7 @@ for (const [form, content] of REACHES) {
 		function* ({ check, sites }) {
 			yield* check(importsManifest);
 
-			expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+			yield* assertThat(yield* sites(), (actual) => actual.toEqual([`${INPUT.path}:1 plain-kit`]));
 		},
 	);
 }
@@ -64,7 +64,7 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsManifest);
 
-		expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual([`${INPUT.path}:1 plain-kit`]));
 	},
 );
 
@@ -79,7 +79,7 @@ importStory.it(
 	function* ({ check, sites }) {
 		yield* check(importsManifest);
 
-		expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+		yield* assertThat(yield* sites(), (actual) => actual.toEqual([`${INPUT.path}:1 plain-kit`]));
 	},
 );
 
@@ -87,7 +87,7 @@ importStory.it(
 	"imports/manifest accepts a blocked bundle input that only another member's test reaches",
 	[WORKSPACE, CONSUMER, repositoryHas({ content: 'import "../../app/src/bundle/input.ts";', path: "modules/consumer/src/consumer.test.ts" })],
 	function* ({ check }) {
-		expect(yield* check(importsManifest)).toEqual([]);
+		yield* assertThat(yield* check(importsManifest), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -104,7 +104,7 @@ for (const [bin, path] of [
 		function* ({ check, sites }) {
 			yield* check(importsManifest);
 
-			expect(yield* sites()).toEqual([`${path}:1 plain-kit`]);
+			yield* assertThat(yield* sites(), (actual) => actual.toEqual([`${path}:1 plain-kit`]));
 		},
 	);
 }
@@ -116,7 +116,7 @@ for (const [form, exports] of PUBLIC_EXPORTS) {
 		function* ({ check, sites }) {
 			yield* check(importsManifest);
 
-			expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+			yield* assertThat(yield* sites(), (actual) => actual.toEqual([`${INPUT.path}:1 plain-kit`]));
 		},
 	);
 }
@@ -128,7 +128,7 @@ for (const target of ["./src/bundle/input.ts", "./dist/bundle/input.js", "./dist
 		function* ({ check, sites }) {
 			yield* check(importsManifest);
 
-			expect(yield* sites()).toEqual([`${INPUT.path}:1 plain-kit`]);
+			yield* assertThat(yield* sites(), (actual) => actual.toEqual([`${INPUT.path}:1 plain-kit`]));
 		},
 	);
 }

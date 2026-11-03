@@ -1,7 +1,7 @@
-import { expect } from "vitest";
 import { otherNames } from "#rules/files/otherNames.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
 import { stylesheetImports } from "#test/stylesheetImports.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const { importing, manifest, stylesheet } = stylesheetImports;
 
@@ -11,7 +11,9 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(otherNames);
 
-		expect(yield* messages()).toEqual(['"panel-styles" is styling for OrderPanel.tsx alone, so it is named OrderPanel.css.']);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual(['"panel-styles" is styling for OrderPanel.tsx alone, so it is named OrderPanel.css.']),
+		);
 	},
 );
 
@@ -27,7 +29,9 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(otherNames);
 
-		expect(yield* messages()).toEqual(['"FormControls" is a shared stylesheet, so it is named in kebab-case, such as form-controls.css.']);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual(['"FormControls" is a shared stylesheet, so it is named in kebab-case, such as form-controls.css.']),
+		);
 	},
 );
 
@@ -43,7 +47,7 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(otherNames)).toEqual([]);
+		yield* assertThat(yield* check(otherNames), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -54,7 +58,7 @@ for (const rule of ['@import "./Card.css";', '@import url("./Card.css");', '@imp
 		function* ({ check, locations }) {
 			yield* check(otherNames);
 
-			expect(yield* locations()).toEqual(["src/Card.css"]);
+			yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/Card.css"]));
 		},
 	);
 }
@@ -63,7 +67,7 @@ ruleStory.it(
 	"files/other-names does not count an @import inside a CSS comment",
 	[repositoryHas(importing("src/Card.tsx", "./Card.css"), stylesheet("src/Card.css"), stylesheet("src/theme.css", '/* @import "./Card.css"; */\n'))],
 	function* ({ check }) {
-		expect(yield* check(otherNames)).toEqual([]);
+		yield* assertThat(yield* check(otherNames), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -73,7 +77,7 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(otherNames);
 
-		expect(yield* messages()).toEqual(['"theme" is styling for Main.tsx alone, so it is named Main.scss.']);
+		yield* assertThat(yield* messages(), (actual) => actual.toEqual(['"theme" is styling for Main.tsx alone, so it is named Main.scss.']));
 	},
 );
 
@@ -88,7 +92,7 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(otherNames);
 
-		expect(yield* messages()).toEqual(['"panel" is styling for Panel.tsx alone, so it is named Panel.css.']);
+		yield* assertThat(yield* messages(), (actual) => actual.toEqual(['"panel" is styling for Panel.tsx alone, so it is named Panel.css.']));
 	},
 );
 
@@ -104,7 +108,7 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(otherNames);
 
-		expect(yield* messages()).toEqual(['"dialog-sheet" is styling for Dialog.tsx alone, so it is named Dialog.css.']);
+		yield* assertThat(yield* messages(), (actual) => actual.toEqual(['"dialog-sheet" is styling for Dialog.tsx alone, so it is named Dialog.css.']));
 	},
 );
 
@@ -124,7 +128,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(otherNames);
 
-		expect(yield* locations()).toEqual(["src/theme.scss"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/theme.scss"]));
 	},
 );
 
@@ -142,7 +146,7 @@ ruleStory.it(
 	function* ({ check, locations }) {
 		yield* check(otherNames);
 
-		expect(yield* locations()).toEqual(["packages/web/theme.scss"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["packages/web/theme.scss"]));
 	},
 );
 
@@ -157,7 +161,7 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(otherNames)).toEqual([]);
+		yield* assertThat(yield* check(otherNames), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -174,7 +178,7 @@ ruleStory.it.fails(
 	function* ({ check, locations }) {
 		yield* check(otherNames);
 
-		expect(yield* locations()).toEqual(["styles/card.scss"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["styles/card.scss"]));
 	},
 );
 
@@ -184,6 +188,6 @@ ruleStory.it.fails(
 	function* ({ check, locations }) {
 		yield* check(otherNames);
 
-		expect(yield* locations()).toEqual(["src/theme.scss"]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual(["src/theme.scss"]));
 	},
 );

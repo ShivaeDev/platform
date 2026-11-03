@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { boundaryShapes } from "#test/boundaryShapes.ts";
 import { usesAt } from "#test/effectPolicyFiles.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 for (const { code, found, name } of boundaryShapes) {
@@ -13,7 +13,9 @@ for (const { code, found, name } of boundaryShapes) {
 			function* ({ check }) {
 				const findings = yield* check(effectBoundary);
 
-				expect(findings).toEqual(path.includes("adapters/") ? [] : found.map(([line, construct]) => usesAt(path, line, construct)));
+				yield* assertThat(findings, (actual) =>
+					actual.toEqual(path.includes("adapters/") ? [] : found.map(([line, construct]) => usesAt(path, line, construct))),
+				);
 			},
 			CLI_TIMEOUT,
 		);
@@ -35,7 +37,7 @@ for (const path of [
 		function* ({ check }) {
 			const findings = yield* check(effectBoundary);
 
-			expect(findings).toEqual([]);
+			yield* assertThat(findings, (actual) => actual.toEqual([]));
 		},
 		CLI_TIMEOUT,
 	);
@@ -62,10 +64,12 @@ for (const path of ["src/work.ts", "src/adapters/work.ts"]) {
 		function* ({ check }) {
 			const findings = yield* check(effectBoundary);
 
-			expect(findings).toEqual([
-				usesAt("src/guard.ts", 2, "throw statement"),
-				...(path.includes("adapters/") ? [] : Array.from({ length: 31 }, (_, index) => usesAt(path, index + 2, "throwing helper call (check)"))),
-			]);
+			yield* assertThat(findings, (actual) =>
+				actual.toEqual([
+					usesAt("src/guard.ts", 2, "throw statement"),
+					...(path.includes("adapters/") ? [] : Array.from({ length: 31 }, (_, index) => usesAt(path, index + 2, "throwing helper call (check)"))),
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -82,11 +86,13 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(effectBoundary);
 
-		expect(findings).toEqual([
-			usesAt("src/work.ts", 2, "throw statement"),
-			usesAt("src/work.ts", 3, "Effect.sync with a throwing body"),
-			usesAt("src/work.ts", 3, "throwing helper call (guard)"),
-		]);
+		yield* assertThat(findings, (actual) =>
+			actual.toEqual([
+				usesAt("src/work.ts", 2, "throw statement"),
+				usesAt("src/work.ts", 3, "Effect.sync with a throwing body"),
+				usesAt("src/work.ts", 3, "throwing helper call (guard)"),
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -103,7 +109,7 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(effectBoundary);
 
-		expect(findings).toEqual([usesAt("src/work.ts", 3, "throw statement")]);
+		yield* assertThat(findings, (actual) => actual.toEqual([usesAt("src/work.ts", 3, "throw statement")]));
 	},
 	CLI_TIMEOUT,
 );

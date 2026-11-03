@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, exceptionStory, repositoryHas } from "#test/exceptionStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 import { config } from "#testing/adapters/tree.ts";
 
@@ -19,10 +19,12 @@ exceptionStory.it(
 		yield* runs("baseline", "write");
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["stale exception", () => stdout(), expect.stringContaining(`${ANY} src/parse.ts matches no finding.`)],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["stale exception", () => stdout(), expect.stringContaining(`${ANY} src/parse.ts matches no finding.`)],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -35,15 +37,17 @@ exceptionStory.it(
 	],
 	function* ({ outcome, runs, stdout, writes }) {
 		yield* runs("lint");
-		expect(yield* outcome()).toBe("passed");
+		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
 
 		yield* writes(TYPED);
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["repair", () => stdout(), expect.stringContaining(`${ANY} src/parse.ts matches no finding.`)],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["repair", () => stdout(), expect.stringContaining(`${ANY} src/parse.ts matches no finding.`)],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -65,7 +69,7 @@ exceptionStory.it(
 	function* ({ outcome, runs }) {
 		yield* runs("lint");
 
-		expect(yield* outcome()).toBe("passed");
+		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
 	},
 	CLI_TIMEOUT,
 );
@@ -86,14 +90,16 @@ for (const rule of [ANY, "biome/assist/source/organizeImports"]) {
 		function* ({ outcome, runs, stdout }) {
 			yield* runs("lint", "--config", "custom.config.ts");
 
-			yield* outcomes([
-				["exit", () => outcome(), "rejected"],
-				[
-					"repair",
-					() => stdout(),
-					expect.stringContaining(`${rule} src/parse.ts matches no finding. Remove this file/rule pair from exceptions in custom.config.ts.`),
-				],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "rejected"],
+					[
+						"repair",
+						() => stdout(),
+						expect.stringContaining(`${rule} src/parse.ts matches no finding. Remove this file/rule pair from exceptions in custom.config.ts.`),
+					],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);
@@ -115,10 +121,12 @@ for (const [label, files, rules, staleFile, staleRule] of [
 		function* ({ outcome, runs, stdout }) {
 			yield* runs("lint");
 
-			yield* outcomes([
-				["exit", () => outcome(), "rejected"],
-				["stale pair", () => stdout(), expect.stringContaining(`${staleRule} ${staleFile} matches no finding.`)],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "rejected"],
+					["stale pair", () => stdout(), expect.stringContaining(`${staleRule} ${staleFile} matches no finding.`)],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);

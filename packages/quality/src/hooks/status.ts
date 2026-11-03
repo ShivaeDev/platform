@@ -1,7 +1,6 @@
-import { constants } from "node:fs";
-import { access, realpath } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { Console, Effect } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Console, Effect, Path } from "effect";
+import { executable } from "#adapters/executable.ts";
 import { GateFailed, SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
@@ -9,18 +8,9 @@ import { forwardingPath, globalHooksPath } from "./forwarding.ts";
 import { type HookLocation, hookLocation } from "./location.ts";
 import { isHookShim } from "./shim.ts";
 
-function executable(file: string) {
-	return Effect.promise(async () => {
-		try {
-			await access(file, constants.X_OK);
-			return await realpath(file);
-		} catch {
-			return undefined;
-		}
-	});
-}
-
 export const globalHookStatus = Effect.fn("Hooks.globalHookStatus")(function* (location: HookLocation) {
+	const { resolve } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const path = yield* globalHooksPath(location.toplevel);
 	const hook = resolve(location.toplevel, path, "pre-commit");
 	const target = path === "" ? undefined : yield* executable(hook);
@@ -33,6 +23,8 @@ export const globalHookStatus = Effect.fn("Hooks.globalHookStatus")(function* (l
 });
 
 export const hookStatus = Effect.fn("Hooks.hookStatus")(function* (cwd: string) {
+	const { dirname, resolve } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 	const location = yield* hookLocation(cwd);
 	const path = (yield* gitOrFail(cwd, ["rev-parse", "--path-format=absolute", "--git-path", "hooks/pre-commit"])).trim();
 	const text = yield* readOptionalText(path).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: error.message })));

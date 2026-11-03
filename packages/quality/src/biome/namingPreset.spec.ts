@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { expectedPlugins, type Line, namingSource } from "#test/namingFindings.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 const IMPORTS: Line = ['import { Effect, Layer, Schema } from "effect";'];
 
@@ -196,7 +196,7 @@ for (const [path, lines] of Object.entries(fixtures)) {
 		function* ({ checks, plugins }) {
 			yield* checks();
 
-			expect(yield* plugins(path)).toEqual(expectedPlugins(lines));
+			yield* assertThat(yield* plugins(path), (actual) => actual.toEqual(expectedPlugins(lines)));
 		},
 	);
 }

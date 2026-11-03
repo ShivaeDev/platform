@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 import { kitFiles, spec } from "#testing/adapters/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
@@ -9,7 +9,7 @@ ruleStory.it(
 	"tests/story-specs accepts a story declared through the package's re-exported kit",
 	[repositoryHas(...kitFiles, spec('import { app as orders } from "#test/index.ts"; orders.it("saves an order", []);'))],
 	function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -19,7 +19,9 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(storySpecs);
 
-		expect(findings).toEqual([{ file: SPEC, line: 2, message: expect.stringContaining("declare every test through the kit's it") }]);
+		yield* assertThat(findings, (actual, expect) =>
+			actual.toEqual([{ file: SPEC, line: 2, message: expect.stringContaining("declare every test through the kit's it") }]),
+		);
 	},
 );
 
@@ -29,9 +31,11 @@ ruleStory.it(
 	function* ({ check, messages }) {
 		yield* check(storySpecs);
 
-		expect(yield* messages()).toEqual([
-			"Declares tests without a test-story story kit. Drive the engine through the package's story kit: build it with storyKit from @shivaedev/test-story/server/storyKit.ts in src/test-support, and declare every test through the kit's it. If the code under test is pure, move the test to checkoutFlow.unit.spec.tsx, which reaches no engine and mocks nothing. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.",
-		]);
+		yield* assertThat(yield* messages(), (actual) =>
+			actual.toEqual([
+				"Declares tests without a test-story story kit. Drive the engine through the package's story kit: build it with storyKit from @shivaedev/test-story/server/storyKit.ts in src/test-support, and declare every test through the kit's it. If the code under test is pure, move the test to checkoutFlow.unit.spec.tsx, which reaches no engine and mocks nothing. See https://github.com/ShivaeDev/platform/tree/main/packages/quality#story-tests.",
+			]),
+		);
 	},
 );
 
@@ -81,7 +85,7 @@ for (const [registration, content, line] of [
 	ruleStory.it(`tests/story-specs reports ${registration}`, [repositoryHas(...kitFiles, spec(content))], function* ({ check, locations }) {
 		yield* check(storySpecs);
 
-		expect(yield* locations()).toEqual([`${SPEC}:${line}`]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual([`${SPEC}:${line}`]));
 	});
 }
 
@@ -105,7 +109,7 @@ for (const [registration, path, content] of [
 	ruleStory.it(`tests/story-specs reports ${registration}`, [repositoryHas(spec(content, path))], function* ({ check, locations }) {
 		yield* check(storySpecs);
 
-		expect(yield* locations()).toEqual([`${path}:1`]);
+		yield* assertThat(yield* locations(), (actual) => actual.toEqual([`${path}:1`]));
 	});
 }
 
@@ -128,7 +132,7 @@ for (const [story, content] of [
 	],
 ] as const) {
 	ruleStory.it(`tests/story-specs accepts ${story}`, [repositoryHas(...kitFiles, spec(content))], function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 	});
 }
 
@@ -145,7 +149,7 @@ ruleStory.it(
 		),
 	],
 	function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 	},
 );
 
@@ -157,7 +161,7 @@ for (const [file, path] of [
 		`tests/story-specs leaves the plain test in ${file} alone`,
 		[repositoryHas(spec('import { test } from "vitest"; test("type only", () => {});', path))],
 		function* ({ check }) {
-			expect(yield* check(storySpecs)).toEqual([]);
+			yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 		},
 	);
 }

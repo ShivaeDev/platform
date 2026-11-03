@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 const UNTYPED_PARSER = { content: "export function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n", path: "src/parse.ts" };
@@ -30,14 +30,16 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			[
-				"report",
-				() => stdout(),
-				expect.stringContaining("error biome/lint/suspicious/noExplicitAny (1)\n  src/parse.ts:1  Unexpected any. Specify a different type."),
-			],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				[
+					"report",
+					() => stdout(),
+					expect.stringContaining("error biome/lint/suspicious/noExplicitAny (1)\n  src/parse.ts:1  Unexpected any. Specify a different type."),
+				],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -48,10 +50,12 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["report", () => stdout(), expect.stringContaining("error biome/format (1)\n  src/b.ts  Is not formatted. Run `quality fix`.")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining("error biome/format (1)\n  src/b.ts  Is not formatted. Run `quality fix`.")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -75,15 +79,17 @@ repositoryStory.it(
 	[qualityInstalled(), repositoryHas(UNTYPED_PARSER)],
 	function* ({ outcome, runs, stdout, writes }) {
 		yield* runs("baseline", "write");
-		expect((yield* runs("lint")).outcome).toBe("passed");
+		yield* assertThat((yield* runs("lint")).outcome, (actual) => actual.toBe("passed"));
 
 		yield* writes(SECOND_UNTYPED_FUNCTION);
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			["report", () => stdout(), expect.stringContaining("src/parse.ts is over its baseline: 2 against 1 baselined.")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				["report", () => stdout(), expect.stringContaining("src/parse.ts is over its baseline: 2 against 1 baselined.")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -94,7 +100,9 @@ repositoryStory.it(
 	function* ({ reads, runs }) {
 		yield* runs("baseline", "write", "--rule", "biome");
 
-		expect(yield* reads("quality-baseline.jsonl")).toBe('{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n');
+		yield* assertThat(yield* reads("quality-baseline.jsonl"), (actual) =>
+			actual.toBe('{"path":"src/parse.ts","rule":"biome/lint/suspicious/noExplicitAny","count":1}\n'),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -105,14 +113,16 @@ repositoryStory.it(
 	function* ({ outcome, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["exit", () => outcome(), "rejected"],
-			[
-				"report",
-				() => stdout(),
-				expect.stringContaining('error biome/preset (1)\n  biome.json  Extend "@shivaedev/quality/biome/preset.json" from the root Biome config.'),
-			],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["exit", () => outcome(), "rejected"],
+				[
+					"report",
+					() => stdout(),
+					expect.stringContaining('error biome/preset (1)\n  biome.json  Extend "@shivaedev/quality/biome/preset.json" from the root Biome config.'),
+				],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -123,7 +133,7 @@ repositoryStory.it(
 	function* ({ outcome, runs }) {
 		yield* runs("lint");
 
-		expect(yield* outcome()).toBe("passed");
+		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
 	},
 	CLI_TIMEOUT,
 );
@@ -140,11 +150,13 @@ repositoryStory.it(
 	function* ({ outcome, runs, stderr }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["Biome's message", () => stderr(), expect.stringContaining("Found an unknown key `unknownKey`.")],
-			["exit", () => outcome(), "invalid"],
-			["failing rule", () => stderr(), expect.stringContaining("rule biome failed: biome check")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["Biome's message", () => stderr(), expect.stringContaining("Found an unknown key `unknownKey`.")],
+				["exit", () => outcome(), "invalid"],
+				["failing rule", () => stderr(), expect.stringContaining("rule biome failed: biome check")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

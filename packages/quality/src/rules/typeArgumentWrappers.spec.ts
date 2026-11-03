@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { noBarrel } from "#rules/noBarrel.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const wrapper of [
 	"export const columns = () => createColumnHelper<Feature>();",
@@ -14,7 +14,7 @@ for (const wrapper of [
 		function* ({ check }) {
 			const findings = yield* check(noBarrel);
 
-			expect(findings).toEqual([]);
+			yield* assertThat(findings, (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -30,6 +30,8 @@ ruleStory.it(
 	function* ({ check }) {
 		const findings = yield* check(noBarrel);
 
-		expect(findings).toEqual([expect.objectContaining({ file: "src/columns.ts", line: 2, message: expect.stringContaining('"library"') })]);
+		yield* assertThat(findings, (actual, expect) =>
+			actual.toEqual([expect.objectContaining({ file: "src/columns.ts", line: 2, message: expect.stringContaining('"library"') })]),
+		);
 	},
 );

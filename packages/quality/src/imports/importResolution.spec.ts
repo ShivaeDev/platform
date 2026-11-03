@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { conditionalWorkspace, legacyWorkspace } from "#test/compilerResolution.ts";
 import { fixtureTree } from "#test/fixtureTree.ts";
 import { importStory, repositoryHas, repositoryHolds, workspaceInstalled } from "#test/importStory.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 importStory.it(
 	"the import graph resolves a tsconfig path, a package.json import, a workspace package's source export, a JSON file and require",
@@ -48,7 +48,7 @@ importStory.it(
 	function* ({ importsOf, mapsImports }) {
 		yield* mapsImports();
 
-		expect(yield* importsOf("src/main.mts")).toEqual(["src/aliased.ts", "packages/shared/src/imported.mts"]);
+		yield* assertThat(yield* importsOf("src/main.mts"), (actual) => actual.toEqual(["src/aliased.ts", "packages/shared/src/imported.mts"]));
 	},
 );
 

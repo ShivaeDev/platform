@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { biomeFormatted, committed, qualityInstalled, repositoryHas, repositoryStory } from "#test/repositoryStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 repositoryStory.it(
@@ -22,10 +22,12 @@ repositoryStory.it(
 	function* ({ outcome, reads, runs, stdout }) {
 		yield* runs("lint");
 
-		yield* outcomes([
-			["finding", () => stdout(), expect.stringContaining("Uses synchronous IO (node:fs.readFileSync)")],
-			["gate", () => outcome(), "rejected"],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["finding", () => stdout(), expect.stringContaining("Uses synchronous IO (node:fs.readFileSync)")],
+				["gate", () => outcome(), "rejected"],
+			]),
+		);
 
 		yield* runs("baseline", "write", "--rule", "effect/boundary", "--first-adoption");
 
@@ -40,7 +42,7 @@ repositoryStory.it(
 
 		yield* runs("lint");
 
-		expect(yield* outcome()).toBe("passed");
+		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
 	},
 	CLI_TIMEOUT,
 );
@@ -52,10 +54,12 @@ for (const rules of [[], ["--rule", "structure/max-lines"]]) {
 		function* ({ outcome, runs, stderr }) {
 			yield* runs("baseline", "write", "--first-adoption", ...rules);
 
-			yield* outcomes([
-				["exit", () => outcome(), "invalid"],
-				["reason", () => stderr(), expect.stringContaining("--first-adoption requires explicit --rule ids that refuse config exceptions")],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["exit", () => outcome(), "invalid"],
+					["reason", () => stderr(), expect.stringContaining("--first-adoption requires explicit --rule ids that refuse config exceptions")],
+				]),
+			);
 		},
 		CLI_TIMEOUT,
 	);

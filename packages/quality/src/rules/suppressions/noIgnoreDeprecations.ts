@@ -1,5 +1,5 @@
-import { join, relative } from "node:path";
-import { Effect } from "effect";
+import * as NodePath from "@effect/platform-node/NodePath";
+import { Effect, Path } from "effect";
 import { readRequiredText } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { walk } from "#inventory/walk.ts";
@@ -19,6 +19,8 @@ function settingIn(path: string, text: string): readonly Finding[] {
 export const noIgnoreDeprecations = defineRule({
 	check: ({ root }) =>
 		Effect.gen(function* () {
+			const { join, relative } = yield* Path.Path.pipe(Effect.provide(NodePath.layer));
+
 			const paths = yield* walk(root);
 			const configs = paths.map((path) => posix(relative(root, path))).filter((path) => path.endsWith(".json"));
 			const findings = yield* Effect.forEach(configs.toSorted(), (path) =>

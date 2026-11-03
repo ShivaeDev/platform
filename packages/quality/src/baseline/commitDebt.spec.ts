@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { baselineStory } from "#test/baselineStory.ts";
 import { boundaryDebt, THROW } from "#test/boundaryDebt.ts";
 import { branchedFromMain, debtRecorded, shortened, staged } from "#test/debtRecorded.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { CLI_TIMEOUT } from "#testing/adapters/cli.ts";
 
 baselineStory.it(
@@ -12,27 +12,31 @@ baselineStory.it(
 		yield* writes("src/work.ts", "String(0);\n");
 		yield* stages("src/work.ts");
 		yield* runs("hooks", "pre-commit");
-		yield* outcomes([
-			["commit", () => outcome(), "rejected"],
-			["reason", () => stdout(), expect.stringContaining("effect/boundary src/work.ts has no violations left")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["commit", () => outcome(), "rejected"],
+				["reason", () => stdout(), expect.stringContaining("effect/boundary src/work.ts has no violations left")],
+			]),
+		);
 
 		yield* runs("baseline", "tighten", "--staged");
-		expect(yield* recorded()).toBe("no baseline file");
+		yield* assertThat(yield* recorded(), (actual) => actual.toBe("no baseline file"));
 		yield* runs("hooks", "pre-commit");
-		expect(yield* outcome()).toBe("rejected");
+		yield* assertThat(yield* outcome(), (actual) => actual.toBe("rejected"));
 
 		yield* stages("quality-baseline.jsonl");
 		yield* runs("hooks", "pre-commit");
-		expect(yield* outcome()).toBe("passed");
+		yield* assertThat(yield* outcome(), (actual) => actual.toBe("passed"));
 
 		yield* writes("src/work.ts", THROW);
 		yield* stages("src/work.ts");
 		yield* runs("hooks", "pre-commit");
-		yield* outcomes([
-			["commit", () => outcome(), "rejected"],
-			["reason", () => stdout(), expect.stringContaining("throw")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["commit", () => outcome(), "rejected"],
+				["reason", () => stdout(), expect.stringContaining("throw")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );
@@ -64,10 +68,12 @@ baselineStory.it(
 		yield* stages("quality-baseline.jsonl");
 		yield* runs("hooks", "pre-commit");
 
-		yield* outcomes([
-			["commit", () => outcome(), "rejected"],
-			["reason", () => stdout(), expect.stringContaining("src/longer.ts allows more than is left: 3 against 4 baselined")],
-		]);
+		yield* withMatchers((expect) =>
+			outcomes([
+				["commit", () => outcome(), "rejected"],
+				["reason", () => stdout(), expect.stringContaining("src/longer.ts allows more than is left: 3 against 4 baselined")],
+			]),
+		);
 	},
 	CLI_TIMEOUT,
 );

@@ -1,6 +1,6 @@
-import { expect } from "vitest";
 import { biomeStory, presetInstalled, repositoryHas } from "#test/biomeStory.ts";
 import { helperNamed, invalidTestTitle } from "#test/titleInputs.ts";
+import { assertThat } from "#testing/adapters/assertThat.ts";
 
 for (const name of ["describe", "it", "test"]) {
 	biomeStory.it(
@@ -9,7 +9,7 @@ for (const name of ["describe", "it", "test"]) {
 		function* ({ checks, reported }) {
 			yield* checks();
 
-			expect(yield* reported("lint/nursery/useValidTestTitle")).toEqual([]);
+			yield* assertThat(yield* reported("lint/nursery/useValidTestTitle"), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -21,7 +21,7 @@ for (const path of ["src/titles.spec.ts", "src/titles.test.ts", "src/test-suppor
 		function* ({ checks, reported }) {
 			yield* checks();
 
-			expect(yield* reported("lint/nursery/useValidTestTitle")).toEqual([`${path}:3`]);
+			yield* assertThat(yield* reported("lint/nursery/useValidTestTitle"), (actual) => actual.toEqual([`${path}:3`]));
 		},
 	);
 }

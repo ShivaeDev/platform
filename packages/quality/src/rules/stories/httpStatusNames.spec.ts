@@ -1,8 +1,8 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
 import { repositoryHas, ruleStory } from "#test/ruleStory.ts";
+import { assertThat, withMatchers } from "#testing/adapters/assertThat.ts";
 import { inStory } from "#testing/adapters/storySpecFiles.ts";
 
 const SPEC = "src/orders.spec.ts";
@@ -20,10 +20,12 @@ for (const assertion of [
 		function* ({ check, locations, messages }) {
 			yield* check(namedValues);
 
-			yield* outcomes([
-				["advice", () => messages(), [expect.stringContaining(STATUS_NAMES)]],
-				["locations", () => locations(), [`${SPEC}:2`]],
-			]);
+			yield* withMatchers((expect) =>
+				outcomes([
+					["advice", () => messages(), [expect.stringContaining(STATUS_NAMES)]],
+					["locations", () => locations(), [`${SPEC}:2`]],
+				]),
+			);
 		},
 	);
 }
@@ -33,7 +35,7 @@ for (const assertion of ["expect(exitCode).toBe(1);", 'expect.soft(process["exit
 		`tests/named-values accepts the process exit code literal in ${assertion}`,
 		[repositoryHas({ content: inStory(assertion), path: SPEC })],
 		function* ({ check }) {
-			expect(yield* check(namedValues)).toEqual([]);
+			yield* assertThat(yield* check(namedValues), (actual) => actual.toEqual([]));
 		},
 	);
 }
@@ -49,6 +51,6 @@ for (const [route, files] of [
 	],
 ] as const) {
 	ruleStory.it(`tests/story-specs lets a unit test import Effect's HttpStatus names ${route}`, [repositoryHas(...files)], function* ({ check }) {
-		expect(yield* check(storySpecs)).toEqual([]);
+		yield* assertThat(yield* check(storySpecs), (actual) => actual.toEqual([]));
 	});
 }

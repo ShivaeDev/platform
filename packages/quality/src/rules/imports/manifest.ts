@@ -33,26 +33,26 @@ interface ManifestDependencies {
 	readonly shipped: ReadonlySet<string>;
 }
 
-async function manifestDependencies(
+const manifestDependencies = Effect.fn("Imports.manifestDependencies")(function* (
 	inputs: RuleInputs,
 	owner: WorkspacePackage,
 	graph: ImportGraph,
 	workspace: ReadonlyMap<string, string>,
-): Promise<ManifestDependencies> {
+): Effect.fn.Return<ManifestDependencies> {
 	const path = posix.join(owner.directory, "package.json");
-	const manifest = await readPackageManifest(inputs.readText, path);
+	const manifest = yield* Effect.promise(() => readPackageManifest(inputs.readText, path));
 	if (manifest === undefined) {
-		throw new Error("the manifest is missing");
+		return yield* Effect.die(new Error("the manifest is missing"));
 	}
 	return {
 		...bundleInputs(graph, owner, manifest, (candidate) => developmentFile(owner, candidate)),
 		application: isApplication(manifest),
 		development: new Set(dependencyNames(manifest, "devDependencies")),
-		entryPoints: await entryPointsOf(inputs, owner.directory, manifest, workspace),
+		entryPoints: yield* Effect.promise(() => entryPointsOf(inputs, owner.directory, manifest, workspace)),
 		private: Reflect.get(manifest, "private") === true,
 		shipped: new Set(SHIPPED_FIELDS.flatMap((field) => dependencyNames(manifest, field))),
 	};
-}
+});
 
 function developmentFile(owner: WorkspacePackage, path: string): boolean {
 	return isTestCode(path) || isTooling(owner.directory, path);
@@ -93,8 +93,14 @@ export const importsManifest = defineRule({
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
 		const workspace = new Map(graph.packages.map((owner) => [owner.name, owner.directory]));
 		const policies = new Map(
-			yield* Effect.promise(() =>
-				Promise.all(owners.map(async (owner) => [owner, await manifestDependencies(inputs, owner, graph, workspace)] as const)),
+			yield* Effect.forEach(
+				owners,
+				(owner) =>
+					Effect.map(manifestDependencies(inputs, owner, graph, workspace), (policy): readonly [WorkspacePackage, ManifestDependencies] => [
+						owner,
+						policy,
+					]),
+				{ concurrency: "unbounded" },
 			),
 		);
 		const runtime = new Set([...policies.values()].flatMap((policy) => [...policy.runtime]));
