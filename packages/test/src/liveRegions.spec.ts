@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { atLeast } from "@shivaedev/test-story/server/adapters/outcomeMatchers.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { liveRegion } from "#test/liveRegion.ts";
+import { liveRegion, withoutTestClock } from "#test/liveRegion.ts";
 
 liveRegion.it("under the test clock, a live region runs on the live clock", [], function* ({ clockInRegion, runsLiveRegion }) {
 	yield* runsLiveRegion("succeeds");
@@ -27,27 +27,23 @@ for (const [ending, answer] of [
 	);
 }
 
-liveRegion.it(
-	"under the live clock, a live region runs as it is",
-	[],
-	function* ({ answer, clockInRegion, runsLiveRegion }) {
-		yield* runsLiveRegion("succeeds");
-
-		yield* outcomes([
-			["answer", () => answer(), "ready"],
-			["clock in the region", () => clockInRegion(), "the live clock"],
-		]);
-	},
-	{ clock: "live" },
-);
-
-liveRegion.it("a real wait in withLive leaves virtual time unchanged", [], function* ({ clock, realWaitMillis, waitsInLiveTime }) {
-	expect(yield* clock()).toBe("the test clock at 0 ms");
-
-	yield* waitsInLiveTime();
+liveRegion.it("without TestClock's controls, a live region runs as it is", [withoutTestClock], function* ({ answer, clockInRegion, runsLiveRegion }) {
+	yield* runsLiveRegion("succeeds");
 
 	yield* outcomes([
-		["real milliseconds spent waiting", () => realWaitMillis(), atLeast(20)],
+		["answer", () => answer(), "ready"],
+		["clock in the region", () => clockInRegion(), "the live clock"],
+	]);
+});
+
+liveRegion.it("a sleep in withLive leaves the story's virtual time unchanged", [], function* ({ clock, waitMillis, waitsInRegion }) {
+	expect(yield* clock()).toBe("the test clock at 0 ms");
+
+	yield* waitsInRegion();
+
+	yield* outcomes([
+		["region milliseconds spent waiting", () => waitMillis(), atLeast(20)],
+		["exact region milliseconds spent waiting", () => waitMillis(), 30],
 		["virtual clock after waiting", () => clock(), "the test clock at 0 ms"],
 	]);
 });

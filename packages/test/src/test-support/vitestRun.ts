@@ -20,7 +20,6 @@ function outcomeOf({ errors, state }: VitestTest): string {
 }
 
 export const vitestRun = storyKit({
-	clock: "live",
 	*create() {
 		const directory = yield* Effect.acquireRelease(
 			Effect.sync(() => mkdtempSync(join(tmpdir(), "test-vitest-run-"))),

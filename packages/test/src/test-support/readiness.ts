@@ -2,6 +2,7 @@ import { Clock, Duration, Effect } from "effect";
 import { answered } from "@shivaedev/test-story/server/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type EventuallyOptions, eventually } from "#eventually.ts";
+import { driveClock } from "./driveClock.ts";
 
 function notReady(message: string) {
 	return Effect.fail(new Error(message));
@@ -13,10 +14,16 @@ interface ReadinessEngine {
 	answer: unknown;
 	readonly attempts: number[];
 	check: Check;
+	withoutTestClock: boolean;
 }
 
 function readinessEngine(): ReadinessEngine {
-	return { answer: undefined, attempts: [], check: () => Effect.die(new Error("Give the check a trait before waiting for it")) };
+	return {
+		answer: undefined,
+		attempts: [],
+		check: () => Effect.die(new Error("Give the check a trait before waiting for it")),
+		withoutTestClock: false,
+	};
 }
 
 function budgetOf(options: EventuallyOptions = {}) {
@@ -32,7 +39,7 @@ export const readiness = storyKit({
 	create: readinessEngine,
 	inspect: ({ answer, attempts }) => ({ answer, attempts }),
 	name: "readiness check",
-	stages: ["check"],
+	stages: ["clock", "check"],
 	verbs: (engine, story) => ({
 		answer: () => Effect.sync(() => engine.answer),
 		attempts: () => Effect.sync(() => engine.attempts.length),
@@ -49,11 +56,16 @@ export const readiness = storyKit({
 				engine.attempts.push(now);
 				return yield* engine.check(engine.attempts.length, now);
 			});
-			return Effect.map(answered(eventually(attempt, options)), (answer) => {
+			const waiting = eventually(attempt, options);
+			return Effect.map(answered(engine.withoutTestClock ? driveClock(waiting) : waiting), (answer) => {
 				engine.answer = answer;
 			});
 		},
 	}),
+});
+
+export const withoutTestClock = readiness.trait("clock", "the check uses a controlled Clock without TestClock's controls", (engine) => {
+	engine.withoutTestClock = true;
 });
 
 function check(line: string, next: Check) {
