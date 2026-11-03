@@ -1,0 +1,39 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { Effect } from "effect";
+import { Backend } from "@shivaedev/agent/backend.ts";
+import { requireFeatures } from "@shivaedev/agent/agent.ts";
+import { makeClaudeBackend } from "@shivaedev/agent-claude-code/claudeCode.ts";
+import { ClaudeProvider } from "@shivaedev/agent-claude-code/adapters/ClaudeProvider.ts";
+
+const end = Promise.withResolvers<void>();
+let closed = false;
+const peer: ClaudeProvider["Service"] = {
+  query: ({ prompt, options }) => ({
+    async *[Symbol.asyncIterator]() {
+      const input = await prompt[Symbol.asyncIterator]().next();
+      assert.equal(input.value?.message.content, "Build search");
+      assert.equal(options.cwd, "/project");
+      yield {
+        type: "system", subtype: "init", "session_id": "native-claude-session", uuid: "00000000-0000-4000-8000-000000000001",
+        apiKeySource: "user", "claude_code_version": "scripted", cwd: "/project", tools: [], "mcp_servers": [], model: "sonnet", permissionMode: "auto",
+        "slash_commands": [], "output_style": "default", skills: [], plugins: [], agents: [], "fast_mode_state": "off",
+      };
+      await end.promise;
+    },
+    interrupt: () => Promise.resolve(undefined),
+    close: () => { closed = true; end.resolve(); },
+  }),
+  listSubagents: () => Promise.resolve([]),
+  getSubagentMessages: () => Promise.resolve([]),
+};
+await Effect.runPromise(Effect.gen(function* () {
+  const backend = yield* makeClaudeBackend().pipe(Effect.provideService(ClaudeProvider, peer));
+  const agent = yield* requireFeatures(["sessions", "steering", "transcript"]).pipe(Effect.provideService(Backend, backend));
+  const receipt = yield* agent.start({ operationId: "search", cwd: "/project", input: { parts: [{ type: "text", text: "Build search" }] } });
+  assert.deepEqual(receipt.session, { value: "native-claude-session", version: 1 });
+  assert.equal((yield* agent.reconcile("search")).type, "accepted");
+}).pipe(Effect.scoped));
+assert.equal(closed, true);
+const lock = readFileSync("pnpm-lock.yaml", "utf8");
+assert.doesNotMatch(lock, /@openai\/codex-sdk|@opencode-ai\/sdk|@mariozechner\/pi-coding-agent|@earendil-works\/pi-coding-agent/u);
