@@ -7,7 +7,8 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import { answered } from "#test/answers.ts";
 import { watchHints } from "#testing.ts";
-import { derivedDatabase, derivedReadsEngine } from "./derivedReadsEngine.ts";
+import { derivedDatabase } from "./derivedReadsData.ts";
+import { derivedReadsEngine } from "./derivedReadsEngine.ts";
 
 export const derivedReadsStory = storyKit({
 	around: withIsolatedDatabase,

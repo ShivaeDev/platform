@@ -13,55 +13,60 @@ export const makeLiveServer = Effect.gen(function* () {
 	const dispatcher = (yield* Scheduler.Scheduler).makeDispatcher();
 	let openStreams = 0;
 	const resyncKey = `@shivaedev/contract/resync/${yield* Random.nextInt}`;
-	function open(keys: readonly Key[]): Stream.Stream<LiveHint> {
-		return Stream.unwrap(
-			Effect.gen(function* () {
-				const { offer, queue } = yield* liveHintQueue;
-				const pending = new Map<string, Key>();
-				let scheduled = false;
-				let resync = false;
-				let active = true;
-				function flush() {
-					if (scheduled) {
-						return;
-					}
-					scheduled = true;
-					dispatcher.scheduleTask(() => {
-						scheduled = false;
-						if (active) {
-							offer(resync ? { _tag: "Resync" } : { _tag: "Changed", keys: [...pending.values()] });
-						}
-						pending.clear();
-						resync = false;
-					}, 0);
+	function open(keys: readonly Key[]) {
+		return Effect.gen(function* () {
+			const { offer, queue } = yield* liveHintQueue;
+			const pending = new Map<string, Key>();
+			let scheduled = false;
+			let resync = false;
+			let active = true;
+			function flush() {
+				if (scheduled) {
+					return;
 				}
-				const cancel = keys.map((key) => {
+				scheduled = true;
+				dispatcher.scheduleTask(() => {
+					scheduled = false;
+					if (active) {
+						offer(resync ? { _tag: "Resync" } : { _tag: "Changed", keys: [...pending.values()] });
+					}
+					pending.clear();
+					resync = false;
+				}, 0);
+			}
+			let cancelKeys: (() => void)[] = [];
+			function replaceKeys(current: readonly Key[]) {
+				for (const stop of cancelKeys) {
+					stop();
+				}
+				cancelKeys = current.map((key) => {
 					const own = readKeys([key]);
 					return reactivity.registerUnsafe(own, () => {
 						pending.set(own[0] ?? "", key);
 						flush();
 					});
 				});
-				cancel.push(
-					reactivity.registerUnsafe([resyncKey], () => {
-						resync = true;
-						flush();
-					}),
-				);
-				openStreams += 1;
-				yield* Effect.addFinalizer(() =>
-					Effect.sync(() => {
-						active = false;
-						openStreams -= 1;
-						for (const stop of cancel) {
-							stop();
-						}
-					}),
-				);
-				yield* Queue.offer(queue, { _tag: "Resync" });
-				return Stream.fromQueue(queue);
-			}),
-		);
+			}
+			replaceKeys(keys);
+			const cancel = [
+				reactivity.registerUnsafe([resyncKey], () => {
+					resync = true;
+					flush();
+				}),
+			];
+			openStreams += 1;
+			yield* Effect.addFinalizer(() =>
+				Effect.sync(() => {
+					active = false;
+					openStreams -= 1;
+					for (const stop of [...cancelKeys, ...cancel]) {
+						stop();
+					}
+				}),
+			);
+			yield* Queue.offer(queue, { _tag: "Resync" });
+			return { replaceKeys, stream: Stream.fromQueue(queue) };
+		});
 	}
 	const resync = Effect.sync(() => {
 		reactivity.invalidateUnsafe([resyncKey]);
@@ -71,16 +76,23 @@ export const makeLiveServer = Effect.gen(function* () {
 	function subscribe<E, R>(subscription: QuerySubscription<E, R>, read: QueryRerun<E, R>): Stream.Stream<QueryUpdate, E | QueryReadDenied, R>;
 	function subscribe<E, R>(subscription: QuerySubscription<E, R>, read?: QueryRerun<E, R>) {
 		return Stream.unwrap(
-			Effect.sync(() => {
+			Effect.gen(function* () {
+				const registration = yield* open(subscription.keys);
+				let scopes = subscription.scopes;
 				let compare = compareQueries(subscription, read);
 				const next = Effect.fnUntraced(function* (hint: LiveHint) {
 					if (!(yield* subscription.authorized)) {
 						compare = compareQueries(subscription, read);
 						return [new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })];
 					}
-					return yield* compare(hint);
+					const updates = yield* compare(hint, scopes);
+					if (subscription.readScopes !== undefined) {
+						scopes = yield* subscription.readScopes;
+						registration.replaceKeys(scopes.flat());
+					}
+					return updates;
 				});
-				return open(subscription.keys).pipe(
+				return registration.stream.pipe(
 					Stream.mapEffect((hint) =>
 						Effect.flatMap(subscription.refresh ?? Effect.context<never>(), (current) => Effect.provideContext(next(hint), current)),
 					),
@@ -89,5 +101,5 @@ export const makeLiveServer = Effect.gen(function* () {
 			}),
 		);
 	}
-	return { resync, stream: open, subscribe };
+	return { resync, stream: (keys: readonly Key[]) => Stream.unwrap(Effect.map(open(keys), ({ stream }) => stream)), subscribe };
 });
