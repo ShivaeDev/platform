@@ -2,7 +2,7 @@ import type { ResourceNames } from "./names.ts";
 
 export function resourceKit({ name, pascal, table }: ResourceNames) {
 	return `import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
-import { Effect } from "effect";
+import { DateTime, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -15,6 +15,7 @@ type Client = Effect.Success<ReturnType<typeof make${pascal}Client>["client"]>;
 
 export const app = storyKit({
 	around: withIsolatedDatabase,
+	clock: Effect.runSync(DateTime.now),
 	*create() {
 		const host = yield* startHost();
 		return { accounts: new Map<string, Client>(), host };

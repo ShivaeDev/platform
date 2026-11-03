@@ -4,4 +4,4 @@
 
 ### Fixed
 
-- Generated resource stories use the story kit's controlled clock. Generator and starter-update stories also use the controlled clock and observe child-process completion.
+- Generated resource stories use a controlled clock seeded at the current date so minted sessions remain valid for Better Auth. Generator and starter-update stories also use the controlled clock and observe child-process completion.
