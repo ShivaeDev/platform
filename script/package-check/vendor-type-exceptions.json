@@ -164,5 +164,12 @@
 		"name": "native-board-route-tree",
 		"package": "@shivaedev/work-board",
 		"reason": "The native TanStack React router returns its route tree through router-core types, preserving typed navigation for the browser entry."
+	},
+	{
+		"dependency": "react",
+		"files": ["dist/server/mountApp.d.ts"],
+		"name": "native-browser-story-rendering",
+		"package": "@shivaedev/test-story",
+		"reason": "Browser stories mount application React trees, so the public render callback accepts native ReactNode values."
 	}
 ]
