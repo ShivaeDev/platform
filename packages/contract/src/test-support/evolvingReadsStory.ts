@@ -26,7 +26,7 @@ const renderDelivery = Match.type<QueryUpdate>().pipe(
 
 export const evolvingReadsStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	*create() {
 		const engine = yield* evolvingReadsEngine;
 		const marked: { mark: Mark | undefined } = { mark: undefined };

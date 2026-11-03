@@ -12,7 +12,7 @@ import { answered } from "./answers.ts";
 
 function policyStory(host: "native" | "application") {
 	return storyKit({
-		clock: "live",
+		clock: "test",
 		*create() {
 			const policy = { allowed: false, checks: 0, handlerCalls: 0 };
 			const check = Effect.sync(() => {

@@ -9,7 +9,7 @@ import { syntheticNative, syntheticWindow } from "./resumeSources.ts";
 import { settled } from "./settled.ts";
 
 export const clientResumeStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const native = syntheticNative();
 		const browser = syntheticWindow();

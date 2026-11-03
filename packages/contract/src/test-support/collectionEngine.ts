@@ -15,6 +15,7 @@ import { LiveServer } from "#LiveServer.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { CurrentViewer } from "#readPolicy.ts";
 import { collectionContract, Guard, ManageWorkspaces, Permissions, Workspace, workspaces } from "./collectionContract.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 const migrations = {
 	loader: Migrator.fromRecord({
@@ -74,10 +75,12 @@ export const collectionEngine = Effect.gen(function* () {
 			),
 		);
 	}
+	const runtime = yield* storyRuntime;
 	class Client extends AtomRpc.Service<Client>()("test/CollectionClient", {
 		group: Workspaces,
 		makeEffect: RpcTest.makeClient(Workspaces, { flatten: true }),
 		protocol: protocol("admin"),
+		runtime,
 	}) {}
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),

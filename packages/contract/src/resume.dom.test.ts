@@ -81,11 +81,12 @@ for (const event of ["visibilitychange", "online"] as const) {
 resumeStory.it(
 	"after its streams drop, automatic live reconnects them and re-reads note 1 changed while disconnected",
 	[automaticLive("native"), watching(1)],
-	function* ({ changeQuietly, openStreams, shown, streamsDrop, untilReRead }) {
+	function* ({ changeQuietly, openStreams, reconnectionIntervalPasses, shown, streamsDrop, untilReRead }) {
 		yield* streamsDrop();
 		yield* changeQuietly(1, "Changed while disconnected");
 		expect(yield* openStreams()).toBe("no streams open");
 
+		yield* reconnectionIntervalPasses();
 		yield* untilReRead(1);
 
 		yield* outcomes([

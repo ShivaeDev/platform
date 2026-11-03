@@ -1,4 +1,4 @@
-import { Effect, type Exit, type Fiber, Option, Ref, type Stream, SubscriptionRef } from "effect";
+import { type Clock, Effect, type Exit, type Fiber, Option, Ref, type Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -7,7 +7,7 @@ import type * as Reactivity from "effect/reactivity/Reactivity";
 import { TestClock } from "effect/testing";
 import { until } from "@shivaedev/test-story/server/until.ts";
 import type { LiveHint, LiveStatus } from "#live.ts";
-import { type HandledHints, type LiveClientSettings, liveClient } from "#test/live/client.ts";
+import { type HandledHints, liveClient } from "#test/live/client.ts";
 import type { liveServer, ReadHold, ServedRead } from "#test/live/server.ts";
 import { failure, times } from "./answers.ts";
 import { Note } from "./notes.ts";
@@ -28,8 +28,8 @@ export interface LiveSubscription {
 
 export interface LiveEngine {
 	client: ReturnType<typeof liveClient>;
+	readonly clock: Clock.Clock;
 	connected: boolean;
-	readonly controlledTime: boolean;
 	readonly mounted: Map<LiveView, () => void>;
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly server: LiveServer;
@@ -37,11 +37,11 @@ export interface LiveEngine {
 	readonly watched: LiveView[];
 }
 
-export function makeLiveEngine(server: LiveServer, registry: AtomRegistry.AtomRegistry, settings: LiveClientSettings = {}): LiveEngine {
+export function makeLiveEngine(server: LiveServer, registry: AtomRegistry.AtomRegistry, clock: Clock.Clock): LiveEngine {
 	return {
-		client: liveClient(server.url, {}, settings),
+		client: liveClient(server.url, {}, { clock, nextEvent: server.nextEvent }),
+		clock,
 		connected: false,
-		controlledTime: settings.clock !== undefined && "adjust" in settings.clock,
 		mounted: new Map(),
 		registry,
 		server,
@@ -124,21 +124,16 @@ export const untilChangeHandled = Effect.fnUntraced(function* (engine: LiveEngin
 });
 
 const readAfterLastHint = Effect.fnUntraced(function* (engine: LiveEngine, view: LiveView) {
-	const { at } = yield* SubscriptionRef.get(engine.client.handled);
-	yield* until(SubscriptionRef.changes(engine.server.served), (served) => readsOf(served, view).some((read) => read.at > at), {
+	const { order } = yield* SubscriptionRef.get(engine.client.handled);
+	yield* until(SubscriptionRef.changes(engine.server.served), (served) => readsOf(served, view).some((read) => read.order > order), {
 		name: "served query",
 	});
 });
 
 export function untilReadAfterLastHint(engine: LiveEngine, views: readonly LiveView[]) {
-	return Effect.andThen(
-		closeWindow(engine),
-		Effect.forEach(views, (view) => Effect.andThen(readAfterLastHint(engine, view), shownOf(engine, view)), { discard: true }),
+	return TestClock.adjust(engine.registry.get(engine.client.coalesceWindow)).pipe(
+		Effect.andThen(Effect.forEach(views, (view) => Effect.andThen(readAfterLastHint(engine, view), shownOf(engine, view)), { discard: true })),
 	);
-}
-
-function closeWindow(engine: LiveEngine) {
-	return engine.controlledTime ? TestClock.adjust(engine.registry.get(engine.client.coalesceWindow)) : Effect.void;
 }
 
 export const watch = Effect.fnUntraced(function* (engine: LiveEngine, views: readonly LiveView[]) {
@@ -168,13 +163,17 @@ export const holdReReadOfNoteOne = Effect.fnUntraced(function* (engine: LiveEngi
 		engine,
 		Effect.promise(() => engine.server.edit(1, "In flight")),
 	);
-	yield* closeWindow(engine);
+	yield* TestClock.adjust(engine.registry.get(engine.client.coalesceWindow));
 	yield* until(SubscriptionRef.changes(engine.server.held), (count) => count > 0, { name: "held request" });
 });
 
 export const dropWhileRefused = Effect.fnUntraced(function* (engine: LiveEngine) {
 	yield* Ref.set(engine.server.streamUnavailable, true);
 	yield* Effect.promise(engine.server.disconnect);
+	yield* until(AtomRegistry.toStream(engine.registry, engine.client.status), (status) => status.connection === "reconnecting", {
+		name: "reconnecting live stream",
+	});
+	yield* TestClock.adjust("200 millis");
 	yield* until(AtomRegistry.toStream(engine.registry, engine.client.status), (status) => Option.isSome(status.failure), {
 		name: "live connection status",
 	});

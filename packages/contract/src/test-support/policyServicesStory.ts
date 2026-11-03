@@ -8,7 +8,7 @@ import { documents } from "./policyServicesContract.ts";
 import { type Person, policyServicesEngine } from "./policyServicesEngine.ts";
 
 export const policyServicesStory = storyKit({
-	clock: "live",
+	clock: "test",
 	*create() {
 		const engine = yield* policyServicesEngine;
 		return { ...engine, listeners: new Map<Person, HintViewer<unknown>>() };

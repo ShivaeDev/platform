@@ -23,7 +23,7 @@ function write<A, E, R>(current: Engine, effect: Effect.Effect<A, E, R>) {
 
 export const collectionStory = storyKit({
 	around: withIsolatedDatabase,
-	clock: "live",
+	clock: "test",
 	create: () => engine,
 	layer: collectionDatabase,
 	name: "permission-gated PostgreSQL collection reads",

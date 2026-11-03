@@ -1,6 +1,6 @@
 import { Effect, Layer, Stream, SubscriptionRef } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
-import * as Atom from "effect/reactivity/Atom";
+import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -13,6 +13,7 @@ import { queryKeys } from "#queryKeys.ts";
 import type { QueryReference } from "#serverMetadata.ts";
 import { Guard, Preferences, preferences, Save, Session } from "#test/sessionContract.ts";
 import type { Mark } from "./reRead.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 export type Person = "alice" | "bob";
 export type PreferenceView = "preferences" | "list" | "preference 1";
@@ -31,7 +32,7 @@ export const sessionEngine = Effect.gen(function* () {
 	const subscriptions = yield* SubscriptionRef.make<readonly OpenSubscription[]>([]);
 	const reactivity = yield* Reactivity.make;
 	const server = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
-	const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
+	const runtime = yield* storyRuntime;
 	function read(label: string) {
 		return Effect.flatMap(Session, (person) =>
 			Effect.as(

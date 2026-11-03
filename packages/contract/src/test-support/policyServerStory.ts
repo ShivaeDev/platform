@@ -8,7 +8,7 @@ import { contract } from "#contract.ts";
 import { query } from "#operation.ts";
 
 export const policyServerStory = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () =>
 		Effect.sync(() => {
 			const get = query("get", { readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String });

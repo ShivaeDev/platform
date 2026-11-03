@@ -11,11 +11,13 @@ import { makeClient } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { LiveServer } from "#LiveServer.ts";
 import { query } from "#operation.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 export class ReadFailed extends Schema.TaggedError<ReadFailed>()("ReadFailed", {}) {}
 export const records = collection("completion-records", Schema.Number);
 
 export const completionEngine = Effect.gen(function* () {
+	const runtime = yield* storyRuntime;
 	const state = { allowed: true, failed: false, held: false, value: "First" };
 	const received = yield* Deferred.make<void>();
 	const answer = yield* Deferred.make<void>();
@@ -53,10 +55,15 @@ export const completionEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const connection = makeClient(Records, { url: `http://127.0.0.1:${server.address.port}/rpc`, webSocketConstructor: layerWebSocketConstructor });
+	const connection = makeClient(Records, {
+		runtime,
+		url: `http://127.0.0.1:${server.address.port}/rpc`,
+		webSocketConstructor: layerWebSocketConstructor,
+	});
 	registry.set(connection.api[LiveConnection].coalesceWindow, 0);
 	const ordinary = makeClient(Records, {
 		live: false,
+		runtime,
 		url: `http://127.0.0.1:${server.address.port}/rpc`,
 		webSocketConstructor: layerWebSocketConstructor,
 	});

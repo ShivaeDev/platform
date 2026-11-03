@@ -13,6 +13,7 @@ import type { ClientOptions } from "#clientOptions.ts";
 import { contract } from "#contract.ts";
 import { LiveServer } from "#LiveServer.ts";
 import { query } from "#operation.ts";
+import { storyRuntime } from "./storyRuntime.ts";
 
 export const records = collection("header-records", Schema.Number);
 class Incoming extends RpcMiddleware.Service<Incoming>()("@shivaedev/contract/test/QueryHeaders") {}
@@ -22,6 +23,7 @@ const Records = contract("header-records", {
 }).middleware(Incoming);
 
 export const queryHeadersEngine = Effect.fnUntraced(function* (options: Pick<ClientOptions, "resume" | "resumeWindow"> = {}) {
+	const runtime = yield* storyRuntime;
 	const stored = { value: "First" };
 	const subscriptions: string[] = [];
 	const reads: { readonly reader: string; readonly value: string }[] = [];
@@ -55,6 +57,7 @@ export const queryHeadersEngine = Effect.fnUntraced(function* (options: Pick<Cli
 		return yield* Effect.die("Expected a TCP listener");
 	}
 	const client = makeClient(Records, {
+		runtime,
 		...options,
 		url: `http://127.0.0.1:${server.address.port}/rpc`,
 		webSocketConstructor: layerWebSocketConstructor,
