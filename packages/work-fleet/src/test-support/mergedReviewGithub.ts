@@ -11,7 +11,7 @@ import { httpGithubApi } from "#test/githubApi.ts";
 import { BASE, HEAD, resultFixture } from "#test/githubResult.ts";
 import { type GithubState, githubFilePage, githubResponses } from "#test/mergedReviewResponses.ts";
 
-export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function* () {
+export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function* (boardDir?: string) {
 	const state: GithubState = {
 		base: BASE,
 		failed: false,
@@ -65,7 +65,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 	const api = yield* httpGithubApi(origin);
 	const { host } = resultFixture();
 	const github = { get: api.get, pages: api.get };
-	const adopt = githubResult(host, api, Effect.succeed("example/repository"));
+	const adopt = githubResult({ ...host, boardDir: boardDir ?? host.boardDir }, api, Effect.succeed("example/repository"));
 	return {
 		checksQuery: makeGithubChecks(github.pages),
 		conditionalHits,
