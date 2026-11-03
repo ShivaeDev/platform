@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { Effect } from "effect";
 import ts from "typescript";
+import { packageOf, type WorkspacePackage, workspacePackages } from "#imports/workspace.ts";
 import type { Finding, RuleInputs } from "#rule.ts";
 import { boundaryReference } from "#rules/effect/boundaryReference.ts";
 
@@ -64,17 +65,19 @@ function checkPackage(inputs: RuleInputs, prefix: string): readonly Finding[] {
 	});
 }
 
-export const serviceIdFindings = Effect.fn("ServiceIds.serviceIdFindings")((inputs: RuleInputs) =>
-	Effect.sync(() => {
-		const groups = new Map<string, RuleInputs["sources"][number][]>();
-		for (const source of inputs.sources) {
-			const name = /^packages\/(?<name>[^/]+)\/.+\.[cm]?[jt]sx?$/u.exec(source.path)?.groups?.name;
-			if (name !== undefined) {
-				const files = groups.get(name) ?? [];
-				files.push(source);
-				groups.set(name, files);
-			}
+export const serviceIdFindings = Effect.fn("ServiceIds.serviceIdFindings")(function* (inputs: RuleInputs) {
+	const packages = yield* Effect.promise(() => workspacePackages(inputs));
+	const groups = new Map<WorkspacePackage, RuleInputs["sources"][number][]>();
+	for (const source of inputs.sources) {
+		if (!source.path.startsWith("packages/")) {
+			continue;
 		}
-		return [...groups].flatMap(([name, sources]) => checkPackage({ ...inputs, sources }, `@shivaedev/${name}/`));
-	}),
-);
+		const owner = packageOf(packages, source.path);
+		if (owner !== undefined) {
+			const files = groups.get(owner) ?? [];
+			files.push(source);
+			groups.set(owner, files);
+		}
+	}
+	return [...groups].flatMap(([owner, sources]) => checkPackage({ ...inputs, sources }, `${owner.name}/`));
+});

@@ -1,8 +1,10 @@
 import ts from "typescript";
+import servicePackage from "@shivaedev/service/package.json" with { type: "json" };
 import { serviceOrigin } from "#rules/effect/serviceOrigin.ts";
 import { serviceTypes } from "#rules/effect/serviceTypes.ts";
 
-export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker) {
+export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker, packages: readonly string[] = []) {
+	const prefixes = [servicePackage.name, ...packages].map((name) => `${name.startsWith("@") ? name.split("/")[0] : name}/`);
 	const services = serviceTypes(checker);
 	function imported(node: ts.ImportSpecifier | ts.NamespaceImport): void {
 		const symbol = checker.getSymbolAtLocation(node.name);
@@ -49,7 +51,7 @@ export function serviceCatalog(program: ts.Program, checker: ts.TypeChecker) {
 		ts.forEachChild(node, discover);
 	}
 	for (const source of program.getSourceFiles()) {
-		if (!source.fileName.includes("/node_modules/") || source.fileName.includes("/@shivaedev/")) {
+		if (!source.fileName.includes("/node_modules/") || prefixes.some((prefix) => source.fileName.includes(`/${prefix}`))) {
 			discover(source);
 		}
 	}
