@@ -93,8 +93,9 @@ export const MarkdownBoard = defineService({
 					Effect.provideService(Workspace, workspace),
 				),
 			complete: Effect.fn("FleetBoard.complete")(function* (workId, sourcePath, nextAction) {
+				const expected = yield* get(workId);
 				const work = yield* get(workId, { fresh: true });
-				if (work.sourcePath !== sourcePath) {
+				if (work.sourcePath !== sourcePath || work.revision !== expected.revision) {
 					return;
 				}
 				yield* completeBoard(realRoot, work, nextAction).pipe(Effect.provideService(Workspace, workspace), Effect.provideService(Path.Path, path));

@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired, independentReviewFailsOnce, markdownWork, noChangeReported, requiredChecksFailOnce } from "#test/engineTraits.ts";
 
@@ -57,9 +58,9 @@ engine.it(
 		expect(resolved.value.step).toBe("done");
 		expect((yield* fleet.get("one")).value.responses?.[0]?.questionRevision).toBe(published.revision);
 		expect(launches()).toEqual(["operation-1", "operation-2"]);
-		expect(readBoardWork()).toBe(
-			boardBrief().replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; no change needed."\n'),
-		);
+		const completed = metadataParse(readBoardWork());
+		expect(completed.fields).toMatchObject({ id: "one", nextAction: "Done; no change needed.", status: "done" });
+		expect(completed.body).toBe(metadataParse(boardBrief()).body);
 	},
 );
 engine.it(

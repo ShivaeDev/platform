@@ -3,7 +3,6 @@ import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { markdownBoard } from "#board/markdown.ts";
 import type { BoardReport } from "#board/schema.ts";
 import { reportBoard } from "#host/reportBoard.ts";
 import { makeReportPublication } from "#host/reportPublication.ts";
@@ -11,6 +10,7 @@ import { codexReportAttachments } from "#providers/codexReportAttachments.ts";
 import { REPORT_ATTACHMENT_DIRECTORY } from "#reportAttachments.ts";
 import { codexServer, type Handshake, requestCursor, WireRejection, type WireRequest } from "#test/codex.ts";
 import { authFolder, FUTURE_EXPIRY, syntheticToken } from "#test/codexCloud.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 
 export const TEXT_FILE = "Evidence from the workspace.\n";
 export const BINARY_FILE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 255, 128, 0]);
@@ -81,7 +81,7 @@ export function attachmentBoard(
 		return Effect.fail(new ServiceUnavailable({ message: "Unexpected GitHub read" }));
 	});
 	const board = reportBoard(root, (work) => check("example/project", `synthetic/${work.workId}`), download.read).pipe(
-		Layer.provide(markdownBoard(root)),
+		Layer.provide(liveBoard(root)),
 		Layer.provide(NodeServices.layer),
 	);
 	return { board, requests };

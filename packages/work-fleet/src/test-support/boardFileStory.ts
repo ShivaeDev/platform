@@ -5,7 +5,6 @@ import { Context, Effect, FileSystem, Layer, Ref } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { boardOf } from "@shivaedev/work-board/server/render/board.ts";
-import { markdownBoard } from "#board/markdown.ts";
 import { publishReportAttachments } from "#board/publishReportAttachments.ts";
 import { reportFileName } from "#board/reportLinks.ts";
 import { reportPayload } from "#board/reportPayload.ts";
@@ -20,6 +19,7 @@ import { BoardGateway } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
 import { completionFolder } from "#test/completionFolder.ts";
 import { healthFolder } from "#test/health.ts";
+import { liveBoard } from "#test/liveBoard.ts";
 import { refusal } from "#test/refusal.ts";
 import { reportBoard } from "#test/report.ts";
 import { reportPublicationVerbs } from "#test/reportPublicationVerbs.ts";
@@ -90,7 +90,7 @@ export const boardFileStory = storyKit({
 				work: (id: string) =>
 					Effect.gen(function* () {
 						story.tell(`read report work ${id}`);
-						const board = Context.get(yield* Layer.build(markdownBoard(state.reportRoot)), BoardGateway);
+						const board = Context.get(yield* Layer.build(liveBoard(state.reportRoot)), BoardGateway);
 						return yield* board.get(id);
 					}),
 				writePayload: (id: string, content: string) => {
@@ -154,7 +154,7 @@ export const boardFileStory = storyKit({
 	},
 });
 const completeWork = Effect.fn("Story.completeWork")(function* (root: string, id: string, file: string, summary: string) {
-	const board = Context.get(yield* Layer.build(markdownBoard(root)), BoardGateway);
+	const board = Context.get(yield* Layer.build(liveBoard(root)), BoardGateway);
 	if (board.complete === undefined) {
 		return yield* Effect.die("Board completion capability is missing");
 	}

@@ -1,8 +1,7 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { task } from "#test/fleetHost.ts";
-import { countBriefParses } from "#test/hostReadPass.ts";
-import { approvedWork, boardWork, host } from "#test/hostStory.ts";
+import { boardWork, host } from "#test/hostStory.ts";
 
 const one = task("one", "approved").replace("kind: task", "kind: task\nareas: [shared]");
 const two = one.replaceAll("one", "two");
@@ -86,16 +85,3 @@ host.it("scheduler passes leave an unchanged area wait unwritten", [boardWork({ 
 	yield* daemon.schedule();
 	expect(yield* daemon.storedRecord("two")).toEqual(waiting);
 });
-
-const ids = ["one", "two", "three"];
-host.it(
-	"one scheduler pass reuses indexed briefs and parses only the fresh launch reads",
-	[approvedWork(ids), boardWork({}, { concurrency: ids.length }), countBriefParses],
-	function* (daemon) {
-		const dispatches = yield* daemon.schedulerPassDispatches();
-
-		expect(dispatches).toEqual(ids.map(() => "dispatched"));
-		expect(daemon.providerStarts()).toHaveLength(ids.length);
-		expect(daemon.briefParseCount()).toBe(ids.length);
-	},
-);

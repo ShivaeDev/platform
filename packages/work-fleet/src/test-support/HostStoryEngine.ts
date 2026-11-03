@@ -37,7 +37,6 @@ export class HostStoryEngine extends HostStoryScenario {
 	beforeFixture: Effect.Effect<void, unknown, Scope.Scope> = Effect.void;
 	parts: Partial<HostFixture["parts"]> = {};
 	repositoryRoot: string | undefined;
-	briefParseCount: (() => number) | undefined;
 	questionRegistrationClock: Clock.Clock | undefined;
 	signals: AnswerSignals | undefined;
 	readonly followers = new Map<string, Follower>();

@@ -49,7 +49,7 @@ export const readSnapshot = Effect.fn("FleetBoard.readSnapshot")(function* (
 	const services = yield* Effect.context<FileSystem.FileSystem | Path.Path>();
 	const watched = yield* Effect.serviceOption(BoardIndex);
 	const refresh =
-		pass?.active && pass.fresh && watched._tag === "Some"
+		(pass?.active !== true || pass.fresh) && watched._tag === "Some"
 			? watched.value.index.reconcile.pipe(Effect.mapError((error) => new BoardFailure({ message: error.message })))
 			: Effect.void;
 	const shared = Effect.andThen(refresh, read).pipe(

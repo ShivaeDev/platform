@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { metadataParse } from "@shivaedev/work-board/metadata/adapters/parse.ts";
 import { NO_CHANGE } from "#test/githubResult.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
 import { noChangeMainHistory, pendingNoChangeReview } from "#test/noChangeCompletion.ts";
@@ -27,7 +28,7 @@ host.it(
 		expect(status.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
 		expect(status.completed).toMatchObject([{ stage: "done", workId: "one" }]);
 		expect(yield* work.boardProgress()).toEqual([]);
-		expect(work.readBoard("one.md")).toContain('status: done\nnext_action: "Done; no change needed."');
+		expect(metadataParse(work.readBoard("one.md")).fields).toMatchObject({ nextAction: "Done; no change needed.", status: "done" });
 	},
 );
 
