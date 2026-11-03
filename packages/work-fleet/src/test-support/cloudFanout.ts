@@ -5,6 +5,7 @@ import { cloudThread } from "#test/codexCloud.ts";
 const TurnParams = Schema.Struct({ clientUserMessageId: Schema.String, threadId: Schema.String });
 const ThreadParams = Schema.Struct({ threadId: Schema.String });
 export function cloudFanout() {
+	let visible = false;
 	const sessions: string[] = [];
 	const operations = new Map<string, string>();
 	const mutations: string[] = [];
@@ -26,6 +27,9 @@ export function cloudFanout() {
 					return undefined;
 				}
 				case "thread/turns/list": {
+					if (!visible) {
+						return undefined;
+					}
 					const { threadId } = Schema.decodeUnknownSync(ThreadParams)(request.params);
 					return {
 						data: [
@@ -42,6 +46,9 @@ export function cloudFanout() {
 		},
 		mutations,
 		operations,
+		revealTurns: () => {
+			visible = true;
+		},
 		sessions,
 	};
 }

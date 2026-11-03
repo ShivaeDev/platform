@@ -10,5 +10,5 @@
 
 ### Breaking
 
-- Import the scheduler's `run` from `@shivaedev/work-fleet/engine/runScheduler.ts` and replace its pause Effect with an Effect returning `{ github, provider }` observation intervals in milliseconds. The host's `schedulerPause` is replaced by `schedulerCadence` in `host/commands.ts`.
+- Import the scheduler's `run` from `@shivaedev/work-fleet/engine/runScheduler.ts` and replace its pause Effect with an Effect returning `{ github, provider }` observation intervals in milliseconds. Provide the same native Reactivity to the store and scheduler; the app database layer already supplies it. The host's `schedulerPause` is replaced by `schedulerCadence` in `host/commands.ts`.
 - The polling `host/providerReadPause.ts` module is removed. Let `run` schedule provider observations and persisted read-retry deadlines.
