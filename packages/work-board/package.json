@@ -107,6 +107,7 @@
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/form": "workspace:*",
+		"@shivaedev/github": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/react": "workspace:*",
 		"@shivaedev/server": "workspace:*",

@@ -14,6 +14,7 @@ for (const [name, files, expected] of [
 		{ "package.json": JSON.stringify({ repository: { type: "git", url: "git+https://github.com/example/project.git" } }) },
 		PULLS,
 	],
+	["a package.json repository shorthand with a .git suffix", { "package.json": JSON.stringify({ repository: "github:example/project.git" }) }, PULLS],
 	["a package.json repository shorthand", { "package.json": JSON.stringify({ name: "notes", repository: "example/project" }) }, PULLS],
 	["the origin remote of a git checkout", { ".git/config": SSH_ORIGIN }, PULLS],
 	[

@@ -1,5 +1,6 @@
-import { Effect, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
 import type { GithubRead } from "#host/github.ts";
@@ -22,10 +23,8 @@ export function makeGithubChecks<R>(
 		if (result.kind !== "change") {
 			return yield* failure("GitHub checks need an adopted pull request");
 		}
-		const match = /^https:\/\/github\.com\/(?<owner>[A-Za-z0-9-]+)\/(?<repository>[A-Za-z0-9_.-]+)\/pull\/[1-9][0-9]*$/u.exec(result.pr);
-		const owner = match?.groups?.owner;
-		const repository = match?.groups?.repository;
-		if (owner === undefined || repository === undefined || [".", ".."].includes(repository) || /^[0-9a-f]{40}$/u.exec(result.head) === null) {
+		const parsed = parseRepositoryAddress(result.pr);
+		if (Result.isFailure(parsed) || parsed.success.number === undefined || /^[0-9a-f]{40}$/u.exec(result.head) === null) {
 			return yield* withFailureContext(
 				new ServiceUnavailable({
 					message: "GitHub checks need a GitHub pull request URL and an exact commit SHA",
@@ -33,7 +32,8 @@ export function makeGithubChecks<R>(
 				{ code: "checks-result-invalid" },
 			);
 		}
-		const commit = `repos/${owner}/${repository}/commits/${result.head}`;
+		const { repository } = parsed.success;
+		const commit = `repos/${repository}/commits/${result.head}`;
 		const checks = yield* read(`${commit}/check-runs?per_page=100&filter=latest`).pipe(
 			Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(CheckPages))),
 			Effect.mapError(githubFailure("GitHub check runs are unavailable or invalid")),
@@ -49,12 +49,12 @@ export function makeGithubChecks<R>(
 		) {
 			return yield* failure("GitHub checks returned evidence for a different commit SHA");
 		}
-		const required = yield* githubRequiredChecks(read, `${owner}/${repository}`, branch);
+		const required = yield* githubRequiredChecks(read, repository, branch);
 		const state = githubCheckState(result.head, result.pr, checks, statuses, required);
 		if (state.repairPrompt === undefined) {
 			return state;
 		}
-		const digest = yield* githubFailureLogs(`${owner}/${repository}`, checks, state.failedChecks ?? [], readLog);
+		const digest = yield* githubFailureLogs(repository, checks, state.failedChecks ?? [], readLog);
 		return { ...state, repairPrompt: `${state.repairPrompt}\n\n${digest}` };
 	});
 }

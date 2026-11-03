@@ -16,6 +16,8 @@ const repository = read("/repos/acme/widgets", Repository);
 
 ## Using the client
 
+`parseRepositoryAddress` from `@shivaedev/github/repositoryAddress.ts` parses repository shorthand (`owner/name` or `github:owner/name`), GitHub HTTP(S), Git, SCP-style SSH and `ssh://git@github.com/` remotes, including `git+` prefixes and `.git` suffixes. It trims surrounding whitespace and returns an Effect `Result` containing `{ kind, owner, name, repository, number }`. `kind` distinguishes `remote`, `shorthand` and `pull-request`, so a Git remote reader can reject shorthand that Git treats as a local path. `repository` is `owner/name`; `number` is undefined for repositories and a positive safe integer for canonical `https://github.com/owner/name/pull/number` addresses. Unsupported hosts, malformed addresses and invalid PR numbers return the string-tagged `GitHubAddressInvalid` error from `@shivaedev/github/errors.ts`. PR subpages, queries and fragments are rejected.
+
 `GitHub` is a native Context service declared with `defineService`. Its Layer owns the conditional response cache and resource observations. Provide an Effect `HttpClient` and a `GitHubToken` once, then use the Schema-aware `read`, `list` and `write` functions. Schema decoding services remain visible in their requirements.
 
 ```ts

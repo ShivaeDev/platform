@@ -1,5 +1,6 @@
-import { Effect, FileSystem, Schema } from "effect";
+import { Effect, FileSystem, Result, Schema } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
 import { boardSnapshot } from "#board/documents.ts";
 import { fleetBranch, fleetPullRequest } from "#board/fleetField.ts";
 import { FleetRepository } from "#engine/repository.ts";
@@ -14,10 +15,11 @@ const ForeignPullRequest = Schema.Struct({
 }).pipe(Schema.encodeKeys({ htmlUrl: "html_url" }));
 
 const readForeignPr = Effect.fn("FleetHost.readForeignPr")(function* (url: string) {
-	const match = /^https:\/\/github\.com\/(?<repository>[^/]+\/[^/]+)\/pull\/(?<number>[1-9]\d*)$/u.exec(url)?.groups;
-	if (match === undefined) {
+	const parsed = parseRepositoryAddress(url);
+	if (Result.isFailure(parsed) || parsed.success.number === undefined) {
 		return yield* new BadRequest({ message: "Foreign reservations require a GitHub PR URL" });
 	}
+	const match = parsed.success;
 	return yield* githubJson(ForeignPullRequest, (yield* GithubApi).get(`repos/${match.repository}/pulls/${match.number}`));
 });
 

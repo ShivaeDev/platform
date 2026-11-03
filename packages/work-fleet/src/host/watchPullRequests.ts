@@ -1,6 +1,7 @@
 import { join } from "node:path";
-import { Deferred, Effect, Layer } from "effect";
+import { Deferred, Effect, Layer, Result } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
 import type { Options } from "@shivaedev/pr-watch/model.ts";
 import type { WatchEvent } from "@shivaedev/pr-watch/outputEvent.ts";
 import { watch } from "@shivaedev/pr-watch/program.ts";
@@ -76,26 +77,21 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 			if (state.stage === "done") {
 				continue;
 			}
-			const target = pullTarget(state.result?.pr);
-			if (target === undefined) {
+			const parsed = parseRepositoryAddress(state.result?.pr ?? "");
+			if (Result.isFailure(parsed) || parsed.success.number === undefined) {
 				continue;
 			}
+			const target = parsed.success;
+			const number = parsed.success.number;
 			const existing = repositories.get(target.repository);
 			if (existing) {
-				existing.set(target.number, state.workId);
+				existing.set(number, state.workId);
 				continue;
 			}
-			const work = new Map([[target.number, state.workId]]);
+			const work = new Map([[number, state.workId]]);
 			repositories.set(target.repository, work);
 			yield* start(target.repository, work);
 		}
 	});
 	return { failed: Deferred.await(failed), update };
 });
-
-function pullTarget(pr: string | undefined) {
-	const match = pr?.match(/^https:\/\/[^/]+\/(?<repository>[^/]+\/[^/]+)\/pull\/(?<number>\d+)$/u);
-	const repository = match?.groups?.repository;
-	const number = match?.groups?.number;
-	return repository === undefined || number === undefined ? undefined : { number: Number(number), repository };
-}
