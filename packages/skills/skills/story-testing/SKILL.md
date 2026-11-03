@@ -113,6 +113,8 @@ Do not test behaviour a framework or library owns. Those tests belong to the pac
 
 An owned persistence port is not an outside service just because it is supplied as a Layer. Exercise the owned implementation through the real engine and database when its persistence or wiring is part of the claim; substituting a fake would remove the behaviour the story needs to prove.
 
+Tests may fake repository code only under an `adapters/` folder, the edge to outside systems. This applies to module mocks (`vi.mock` and `vi.doMock`), spies with replacement implementations, and Layers that stand in for owned services. Outside libraries and platform globals may be faked; a spy that only observes and calls through is fine. Keep owned modules and services running for real. A failure that can only be shown by faking internals gets no test: delete that test instead of manufacturing the failure.
+
 Good: check which repository receives the app's PR comment. Bad: reproduce the queue library's retry contract in an app story, or time a form's debounce when Effect's `Atom.debounce` provides it.
 
 Score edge cases as likelihood (1–10) × severity (1–10). Leave cases below about 5 alone and list the skipped cases with their scores in the PR, so the coverage boundary is reviewable.

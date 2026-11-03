@@ -104,10 +104,6 @@ export function originVerbs(host: Host, tell: (line: string) => void) {
 			return Effect.map(openServerStreams(host), (count) => countWords(count, "open stream"));
 		},
 		lastCors: () => Effect.sync(() => (last === undefined ? "no response yet" : corsOf(last.headers))),
-		nativeStreamIsInterrupted: () => {
-			tell("the native client interrupts its subscription");
-			return stream === undefined ? Effect.void : stream.interrupt;
-		},
 		nativeStreamOpens: (origin: string) =>
 			Effect.gen(function* () {
 				tell(`a native WebSocket client at ${origin} subscribes to changes with its bearer and receives the first update`);
@@ -116,7 +112,6 @@ export function originVerbs(host: Host, tell: (line: string) => void) {
 				return yield* stream.next;
 			}),
 		nextUpdate: () => (stream === undefined ? Effect.succeed("no stream") : stream.next),
-		openServerStreams: () => Effect.map(openServerStreams(host), (count) => countWords(count, "open stream")),
 		preflight: (path: string, origin: string) =>
 			Effect.gen(function* () {
 				tell(`${origin} sends a CORS preflight for POST ${path}`);

@@ -1,7 +1,7 @@
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { admin, testUtils } from "better-auth/plugins";
-import { ConfigProvider, Effect, Exit, Layer, Logger, Scope, Stream } from "effect";
+import { ConfigProvider, Effect, Exit, Layer, Logger, Scope } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -54,13 +54,6 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	};
 	const logs: unknown[] = [];
 	const changes = yield* LiveServer.pipe(Effect.provide(LiveServer.layer.pipe(Layer.provide(Reactivity.layer))));
-	const streams = { released: 0, waiters: new Set<() => void>() };
-	function streamReleased() {
-		streams.released += 1;
-		for (const waiter of streams.waiters) {
-			waiter();
-		}
-	}
 	const receiver = yield* otlpReceiver({});
 	const hostScope = yield* Scope.make();
 	const stop = Scope.close(hostScope, Exit.void);
@@ -76,10 +69,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 				HttpRouter.add("GET", "/diagnostic", diagnostic.pipe(Effect.map(HttpServerResponse.text))),
 				HttpRouter.add("POST", "/resync", changes.resync().pipe(Effect.map(HttpServerResponse.jsonUnsafe))),
 			),
-			services: Layer.succeed(LiveServer, {
-				...changes,
-				subscribe: (subscription, read) => changes.subscribe(subscription, read).pipe(Effect.map(Stream.ensuring(Effect.sync(streamReleased)))),
-			}),
+			services: Layer.succeed(LiveServer, changes),
 			sessions: Layer.succeed(SessionPolicy, sessions),
 		}).pipe(
 			Layer.provide(
@@ -105,6 +95,6 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("The native session host needs a TCP listener");
 	}
-	return { activity, auth: mounted.auth, baseUrl: `http://127.0.0.1:${server.address.port}`, logs, pool, receiver, stop, streams };
+	return { activity, auth: mounted.auth, baseUrl: `http://127.0.0.1:${server.address.port}`, logs, pool, receiver, stop };
 });
 export type Host = Effect.Success<ReturnType<typeof startHost>>;

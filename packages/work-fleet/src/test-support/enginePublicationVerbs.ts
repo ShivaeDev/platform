@@ -28,18 +28,6 @@ export function enginePublicationVerbs(state: EngineStory, tell: (line: string) 
 	function status() {
 		return readFileSync(join(state.root, "fleet/status.md"), "utf8");
 	}
-	function idlePassLists() {
-		return Effect.gen(function* () {
-			tell("run an idle scheduler pass while recording its Fleet lists");
-			const fleet = running(state).fleet;
-			const lists: string[][] = [];
-			function list() {
-				return fleet.list().pipe(Effect.tap((records) => Effect.sync(() => lists.push(records.map(({ value }) => value.workId)))));
-			}
-			yield* cycle.pipe(Effect.provideService(Fleet, { ...fleet, list }), Effect.provideContext(context()));
-			return lists;
-		});
-	}
 	return {
 		awaitPage: (board: StatusPage, step: string) =>
 			Effect.gen(function* () {
@@ -82,8 +70,10 @@ export function enginePublicationVerbs(state: EngineStory, tell: (line: string) 
 				return { client, page };
 			}),
 		health: () => fleetHealth(state.root),
-		idlePass: () => idlePassLists().pipe(Effect.map((lists) => lists.length)),
-		idlePassLists,
+		idlePass: () => {
+			tell("run an idle scheduler pass");
+			return cycle.pipe(Effect.provideContext(context()));
+		},
 		observeWrites: () =>
 			Effect.gen(function* () {
 				tell("observe the real status publisher's writes");
