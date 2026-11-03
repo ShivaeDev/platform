@@ -1,7 +1,8 @@
 import { Schema } from "effect";
+import type { QueueDisplay } from "@shivaedev/jobs/display.ts";
 import type { JobsQueue } from "./schemas.ts";
 
-export type JobsEntry = JobsQueue | { readonly name: string };
+export type JobsEntry = (JobsQueue | { readonly name: string }) & QueueDisplay;
 
 export type JobsPayload<TEntry extends JobsEntry> = [TEntry] extends [never]
 	? typeof Schema.Never

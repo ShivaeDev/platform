@@ -77,6 +77,21 @@ With the second argument, every `Jobs.layer({ jobs })` checks its registrations 
 
 Declare names per jobs service, so producer and worker Layers share a declaration when they register the same queues. Keep worker-only schedules in their own service when producers do not register them. Import only the browser-safe declaration module from client code; `defineQueue`, `defineSchedule` and `makePgBoss` stay on the server.
 
+### Label queues and identify jobs
+
+Queue and schedule definitions accept an optional `label`. A queue's `subject` declares display columns by naming fields in its decoded payload Schema:
+
+```ts
+const SendEmail = defineQueue({
+	name: "send-email",
+	label: "Email delivery",
+	schema: Schema.Struct({ userId: Schema.NumberFromString }),
+	subject: [{ field: "userId", label: "Recipient" }],
+});
+```
+
+`subject` fields are checked against the Schema's decoded keys. Keep labels and columns beside the name and Schema in the browser-safe declaration when using the admin Jobs view, then spread that declaration into `defineQueue`. The browser-safe types `QueueDisplay` and `SubjectColumn<PayloadSchema>` come from `@shivaedev/jobs/display.ts`. Pass the declarations to the admin page and view to show their labels and subjects. Subject columns read the masked inspection payload, so native `Redacted` values and sensitive keys stay masked in failed and dead-letter lists. Dead-letter copies stay with the source queue and use its columns. Definitions without labels display their internal names.
+
 ### Once per database: install the schema
 
 For an application on the app host of `@shivaedev/server`, register `pgBossSchema` beside the migration loader. The host's `migrate` mode installs or upgrades it after committing the application ledger. Its `check` and `wait` modes include pg-boss readiness in the same check as the numbered migrations.
@@ -579,6 +594,7 @@ Import the module that defines the name; the package has no root entry.
 
 | Module                                                    | Public names                                                                                                                                                                                                                                      |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/jobs/display.ts`                              | `QueueDisplay`, `SubjectColumn`                                                                                                                                                                                                                   |
 | `@shivaedev/jobs/server/definition.ts`                    | `defineQueue`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/jobs/server/service.ts`                       | `makePgBoss`, `pgBossLayer`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossOptions`, `PgBossService`                                                                                                                                           |
 | `@shivaedev/jobs/server/PgBoss.ts`                        | `PgBoss`: the shared client Context service.                                                                                                                                                                                                      |

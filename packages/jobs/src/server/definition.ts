@@ -1,4 +1,5 @@
 import { Clock, Duration, Effect, Schema } from "effect";
+import type { QueueDisplay, SubjectColumn } from "#display.ts";
 import type { ScheduleOptions } from "#server/enqueueOptions.ts";
 import { maxDeferrals, nativeQueueOptions } from "#server/internal/definitionOptions.ts";
 import type { WorkerJob } from "#server/job.ts";
@@ -26,7 +27,7 @@ export interface JobContext {
 	readonly signal: AbortSignal;
 }
 
-export interface QueueDefinition<TName extends string = string, TPayload extends JobPayloadSchema = JobPayloadSchema> {
+export interface QueueDefinition<TName extends string = string, TPayload extends JobPayloadSchema = JobPayloadSchema> extends QueueDisplay {
 	readonly _tag: "QueueDefinition";
 	readonly handle: <E, R>(
 		handler: (payload: Schema.Schema.Type<TPayload>, job: JobContext) => Effect.Effect<unknown, E, R>,
@@ -50,7 +51,7 @@ export type JobRegistration<TRequirements = unknown> =
 	| QueueWorker<JobPayloadSchema & { readonly DecodingServices: TRequirements }, TRequirements>
 	| ScheduledWorker<TRequirements>;
 
-export interface ScheduleDefinition<TName extends string = string> {
+export interface ScheduleDefinition<TName extends string = string> extends QueueDisplay {
 	readonly _tag: "ScheduleDefinition";
 	readonly cron: string;
 	readonly maxDeferrals: number;
@@ -76,8 +77,10 @@ export type RegistrationRequirements<TRegistrations extends readonly JobRegistra
 	: never;
 
 export type DefineQueueOptions<TName extends string, TPayload extends JobPayloadSchema> = {
+	readonly label?: string;
 	readonly name: TName;
 	readonly schema: TPayload;
+	readonly subject?: readonly SubjectColumn<NoInfer<TPayload>>[];
 	readonly worker?: WorkerOptions;
 } & (
 	| { readonly key: (payload: Schema.Schema.Type<TPayload>) => string; readonly queue: QueueOptions & { readonly policy: "singleton" } }
@@ -99,6 +102,8 @@ export function defineQueue<const TName extends string, const TPayload extends J
 	const definition: QueueDefinition<TName, TPayload> = {
 		_tag: "QueueDefinition",
 		...(options.key === undefined ? {} : { key: options.key }),
+		...(options.label === undefined ? {} : { label: options.label }),
+		...(options.subject === undefined ? {} : { subject: Object.freeze(options.subject.map((column) => Object.freeze({ ...column }))) }),
 		handle: (handler) =>
 			Object.freeze({
 				_tag: "QueueWorker" as const,
@@ -116,6 +121,7 @@ export function defineQueue<const TName extends string, const TPayload extends J
 
 export interface DefineScheduleOptions<TName extends string> {
 	readonly cron: string;
+	readonly label?: string;
 	readonly name: TName;
 	readonly queue?: QueueOptions;
 	readonly schedule?: ScheduleOptions;

@@ -4,6 +4,7 @@ import { maxDeferrals, nativeQueueOptions } from "#server/internal/definitionOpt
 export function defineSchedule<const TName extends string>(options: DefineScheduleOptions<TName>): ScheduleDefinition<TName> {
 	const definition: ScheduleDefinition<TName> = {
 		_tag: "ScheduleDefinition",
+		...(options.label === undefined ? {} : { label: options.label }),
 		cron: options.cron,
 		maxDeferrals: maxDeferrals(options.queue),
 		name: options.name,

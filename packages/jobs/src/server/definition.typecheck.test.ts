@@ -21,6 +21,9 @@ const Queue = defineQueue({
 	schema: PullRequestJob,
 });
 const Ordinary = defineQueue({ name: "ordinary", schema: Schema.Struct({}) });
+defineQueue({ name: "subjects", schema: Schema.Struct({ id: Schema.NumberFromString }), subject: [{ field: "id", label: "Message" }] });
+// @ts-expect-error Subject columns must name fields in the decoded payload schema.
+defineQueue({ name: "subjects", schema: Schema.Struct({ id: Schema.NumberFromString }), subject: [{ field: "missing", label: "Missing" }] });
 const Jobs = makePgBoss("@test/SingletonJobs");
 const program = Effect.gen(function* () {
 	const jobs = yield* Jobs;
