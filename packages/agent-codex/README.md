@@ -19,7 +19,6 @@ const program = Effect.gen(function* () {
 	});
 	return yield* agent.inspect(receipt);
 });
-
 ```
 
 ## Using the adapter
@@ -36,7 +35,6 @@ import { codexLayer } from "@shivaedev/agent-codex/codex.ts";
 const live = codexLayer.pipe(Layer.provide(Layer.succeed(CodexConfig)({})));
 await Effect.runPromise(program.pipe(Effect.scoped, Effect.provide(live)));
 ```
-
 
 The backend declares sessions, queued input, steering, interruption, transcripts, native image input and model discovery as supported. Queued input waits locally for the active turn to complete. Steering includes the receipt's expected turn ID; an old receipt never redirects input to a newer turn. Interruption waits for the matching completion notification before queued delivery starts, including Codex's residual-draining rejection.
 
