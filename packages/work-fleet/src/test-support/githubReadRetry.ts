@@ -9,5 +9,13 @@ export function githubReadRetry(state: EngineStory, tell: (line: string) => void
 			state.github.state.unavailableReads = count;
 			tell(`GitHub fails its next ${count} reads`);
 		},
+		omitLastChangedFile: () => {
+			const pages = state.github?.state.filePages;
+			if (state.github === undefined || pages === undefined || pages.length === 0) {
+				throw new Error("No paginated GitHub file listing is configured");
+			}
+			state.github.state.filePages = pages.map((page, index) => (index === pages.length - 1 ? page.slice(0, -1) : page));
+			tell("GitHub omits the last changed file while still reporting the full count");
+		},
 	};
 }

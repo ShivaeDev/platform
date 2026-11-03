@@ -62,6 +62,7 @@ export function githubResponses(state: GithubState): Readonly<Record<string, unk
 			mergeable: state.mergeable === "UNKNOWN" ? null : state.mergeable === "MERGEABLE",
 			merged,
 			"merged_at": merged ? "2026-01-01T00:00:00Z" : null,
+			"node_id": "pull-7",
 			number: 7,
 			state: state.status === "OPEN" ? "open" : "closed",
 		},
