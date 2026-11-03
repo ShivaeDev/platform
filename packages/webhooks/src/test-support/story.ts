@@ -57,9 +57,11 @@ export const inbox = storyKit({
 		storedReceipts: () =>
 			Effect.gen(function* () {
 				yield* workersIdle(state);
-				const rows = yield* SqlClient.SqlClient.use((sql) => sql`select * from webhook_receipts order by source, delivery_id`.withoutTransform).pipe(
-					Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Receipt))),
-				);
+				const rows = yield* SqlClient.SqlClient.use(
+					(sql) =>
+						sql`select * from ${sql(state.receiptsSchema === undefined ? "webhook_receipts" : `${state.receiptsSchema}.webhook_receipts`)} order by source, delivery_id`
+							.withoutTransform,
+				).pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Receipt))));
 				return rows.map((row) => ({
 					delivery: row.deliveryId,
 					event: row.event,
@@ -68,6 +70,14 @@ export const inbox = storyKit({
 					source: row.source,
 				}));
 			}),
+		storedReceiptTables: () =>
+			SqlClient.SqlClient.use((sql) =>
+				sql<{ name: string }>`select n.nspname || '.' || c.relname as name from pg_class c
+				join pg_namespace n on n.oid = c.relnamespace
+				where c.relname in ('webhook_receipts', 'webhook_receipts_migrations') order by name`.pipe(
+					Effect.map((rows) => rows.map(({ name }) => name)),
+				),
+			),
 	}),
 });
 
@@ -108,3 +118,9 @@ export const mappingWaitsForResource = inbox.trait("inbox", "the mapping must wa
 export const mappingRefusesDelivery = inbox.trait("inbox", "the mapping refuses the delivery after acquiring a resource", (state) => {
 	state.resources.refused = true;
 });
+
+export function receiptsInSchema(schema: string) {
+	return inbox.trait("host", `receipts belong to schema ${schema}`, (state) => {
+		state.receiptsSchema = schema;
+	});
+}

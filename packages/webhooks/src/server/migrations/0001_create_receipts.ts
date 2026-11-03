@@ -1,9 +1,11 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 
-export default Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	yield* sql`create table if not exists webhook_receipts (
+export default (schema?: string) =>
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const table = sql(schema === undefined ? "webhook_receipts" : `${schema}.webhook_receipts`);
+		yield* sql`create table if not exists ${table} (
 		source text not null,
 		delivery_id text not null,
 		event text not null,
@@ -12,4 +14,4 @@ export default Effect.gen(function* () {
 		job_ids jsonb not null,
 		primary key (source, delivery_id)
 	)`;
-});
+	});

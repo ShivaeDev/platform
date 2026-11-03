@@ -12,6 +12,7 @@ import { WebhookEnqueue } from "#server/WebhookEnqueue.ts";
 export interface WebhookRouteOptions<TJobs, R, E = never> {
 	readonly basePath: `/${string}`;
 	readonly jobs: Context.Key<TJobs, Pick<PgBossService, "enqueue">>;
+	readonly receiptsSchema?: string | undefined;
 	readonly sources: Readonly<Record<string, WebhookSource<R, E>>>;
 }
 
@@ -42,7 +43,7 @@ function receiptFailure(error: unknown) {
 
 export function webhookRoute<TJobs, R = never, E = never>(options: WebhookRouteOptions<TJobs, R, E>): RouteLayer<TJobs, R>;
 export function webhookRoute<TJobs, const TSources extends Readonly<Record<string, WebhookSource<unknown, unknown>>>>(
-	options: Pick<WebhookRouteOptions<TJobs, never>, "basePath" | "jobs"> & { readonly sources: TSources },
+	options: Pick<WebhookRouteOptions<TJobs, never>, "basePath" | "jobs" | "receiptsSchema"> & { readonly sources: TSources },
 ): RouteLayer<TJobs, SourceServices<TSources[keyof TSources]>>;
 export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<TJobs, R, E>) {
 	return Layer.unwrap(
@@ -67,7 +68,10 @@ export function webhookRoute<TJobs, R, E = never>(options: WebhookRouteOptions<T
 					if (HttpServerResponse.isHttpServerResponse(body)) {
 						return body;
 					}
-					return yield* receive(name, source, key, body, request.headers).pipe(Effect.scoped, Effect.provideContext(receiving));
+					return yield* receive(name, source, key, body, request.headers, options.receiptsSchema).pipe(
+						Effect.scoped,
+						Effect.provideContext(receiving),
+					);
 				}).pipe(Effect.catch(receiptFailure)),
 			);
 		}),

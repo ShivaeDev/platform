@@ -11,6 +11,7 @@ export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 	key: Redacted.Redacted<string>,
 	body: Uint8Array,
 	headers: Readonly<Record<string, string>>,
+	receiptsSchema?: string,
 ) {
 	const verified = yield* source.strategy.verify(body, headers, key).pipe(Effect.result);
 	if (Result.isFailure(verified)) {
@@ -22,10 +23,11 @@ export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 	}
 	const definition = Object.hasOwn(source.events, event) ? source.events[event] : undefined;
 	const sql = yield* SqlClient.SqlClient;
+	const table = sql(receiptsSchema === undefined ? "webhook_receipts" : `${receiptsSchema}.webhook_receipts`);
 	return yield* sql
 		.withTransaction(
 			Effect.gen(function* () {
-				const inserted = yield* sql`insert into webhook_receipts (source, delivery_id, event, outcome, job_ids)
+				const inserted = yield* sql`insert into ${table} (source, delivery_id, event, outcome, job_ids)
 				values (${name}, ${id}, ${event}, 'ignored', array[]::text[])
 				on conflict (source, delivery_id) do nothing returning delivery_id`;
 				if (inserted.length === 0) {
@@ -33,7 +35,7 @@ export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 				}
 				const requests = definition === undefined ? [] : yield* definition.decode(body, { event, id, source: name });
 				const ids = (yield* enqueueWebhookJobs(requests)).flatMap(Option.toArray);
-				yield* sql`update webhook_receipts set job_ids = array[${sql.csv(ids.map((jobId) => sql`${jobId}`))}]::text[], outcome = ${requests.length === 0 ? "ignored" : "queued"} where source = ${name} and delivery_id = ${id}`;
+				yield* sql`update ${table} set job_ids = array[${sql.csv(ids.map((jobId) => sql`${jobId}`))}]::text[], outcome = ${requests.length === 0 ? "ignored" : "queued"} where source = ${name} and delivery_id = ${id}`;
 				return HttpServerResponse.text(requests.length === 0 ? "ignored" : "queued", {
 					status: requests.length === 0 ? HttpStatus.fromLiteral("OK") : HttpStatus.fromLiteral("Accepted"),
 				});
