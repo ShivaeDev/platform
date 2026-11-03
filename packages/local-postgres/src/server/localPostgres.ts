@@ -1,12 +1,13 @@
 import { Effect, Schedule } from "effect";
+import { docker } from "#server/adapters/docker.ts";
+import { ensureConnections } from "#server/adapters/ensureConnections.ts";
+import { startContainer } from "#server/adapters/localContainer.ts";
+import { localSql } from "#server/adapters/localSql.ts";
+import type { CommandOptions } from "#server/adapters/runCommand.ts";
 import { assertLocalDatabase } from "#server/assertLocalDatabase.ts";
-import { clientConnection } from "#server/clientConnection.ts";
+import type { DockerEnvironment } from "#server/dockerEnvironment.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
-import { ensureConnections } from "#server/localConnections.ts";
-import { sqlInContainer, startContainer } from "#server/localContainer.ts";
-import { type DockerEnvironment, docker } from "#server/localDocker.ts";
 import { PostgresVersionMismatch } from "#server/PostgresVersionMismatch.ts";
-import { type CommandOptions, missingCommand, runCommand } from "#server/runCommand.ts";
 
 export const LOCAL_SERVER = "postgresql://postgres:postgres@127.0.0.1:55432";
 
@@ -70,17 +71,4 @@ export function localPostgres(environment: DockerEnvironment, { attempts = 30, d
 		}
 	});
 	return { prepareDatabases, sql, startPostgres };
-}
-
-function localSql(localDocker: (args: readonly string[], options?: CommandOptions) => ReturnType<typeof docker>) {
-	return Effect.fn("LocalPostgres.sql")(function* (value: string | URL, query: string) {
-		const parsed = yield* Effect.try({ catch: () => new LocalPostgresError({ message: "Invalid local database URL." }), try: () => new URL(value) });
-		const { url, options } = yield* clientConnection(yield* assertLocalDatabase(parsed.toString(), [parsed.pathname.slice(1)]));
-		const args = ["-X", "--set", "ON_ERROR_STOP=1", "-At", "-c", query];
-		return yield* runCommand("psql", [...args, "--dbname", url.toString()], options).pipe(
-			Effect.catchTag("PostgresCommandError", (error) =>
-				missingCommand(error) ? sqlInContainer(localDocker, url, args, options) : Effect.fail(error),
-			),
-		);
-	});
 }

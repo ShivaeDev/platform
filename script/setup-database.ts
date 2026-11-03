@@ -2,6 +2,7 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Config, Effect } from "effect";
 import { assertLocalDatabase } from "@shivaedev/local-postgres/server/assertLocalDatabase.ts";
+import { dockerEnvironment } from "@shivaedev/local-postgres/server/dockerEnvironment.ts";
 import { LocalPostgresError } from "@shivaedev/local-postgres/server/LocalPostgresError.ts";
 import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
@@ -10,10 +11,7 @@ const setup = Effect.gen(function* () {
 	if ((yield* Config.String("NODE_ENV").pipe(Config.withDefault(""))) === "production") {
 		return yield* new LocalPostgresError({ message: "Local setup must not run in production." });
 	}
-	const environment = yield* Config.all({
-		"DOCKER_CONTEXT": Config.String("DOCKER_CONTEXT").pipe(Config.withDefault("")),
-		"DOCKER_HOST": Config.String("DOCKER_HOST").pipe(Config.withDefault("")),
-	});
+	const environment = yield* dockerEnvironment;
 	const development = yield* Config.String("DATABASE_URL").pipe(Config.withDefault(`${LOCAL_SERVER}/platform_dev`));
 	const tests = yield* postgresTestEnvironment;
 	yield* assertLocalDatabase(development, ["platform_dev"]);

@@ -1,6 +1,24 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { conflictingDockerEnvironment, dockerEndpoint, matchingDockerEnvironment } from "#test/dockerEndpoint.ts";
+import { configuredDockerEndpoint, conflictingDockerEnvironment, dockerEndpoint, matchingDockerEnvironment } from "#test/dockerEndpoint.ts";
+
+for (const [source, title, lookups] of [
+	["host", "a configured host reaches the approved Docker daemon without inspecting a context", []],
+	[
+		"active context",
+		"missing Docker settings inspect the active context and reach its approved daemon",
+		[["context", "inspect", "--format", "{{.Endpoints.docker.Host}}"]],
+	],
+] as const) {
+	dockerEndpoint.it(title, [configuredDockerEndpoint(source)], function* ({ contextLookups, outcome, run }) {
+		yield* run(["info", "--format", "{{.ID}}"]);
+
+		yield* outcomes([
+			["daemon answer", () => outcome(), "approved-daemon"],
+			["context lookups", () => contextLookups(), lookups],
+		]);
+	});
+}
 
 for (const [operation, args, request] of [
 	["daemon checks", ["info", "--format", "{{.ID}}"], "GET /v1.47/info"],

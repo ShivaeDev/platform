@@ -1,8 +1,7 @@
 import { Effect } from "effect";
+import type { DockerEnvironment } from "#server/dockerEnvironment.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
-import { type CommandOptions, runCommand } from "#server/runCommand.ts";
-
-export type DockerEnvironment = Readonly<{ "DOCKER_CONTEXT"?: string | undefined; "DOCKER_HOST"?: string | undefined }>;
+import { type CommandOptions, runCommand } from "./runCommand.ts";
 
 export const docker = Effect.fn("LocalPostgres.docker")(function* (
 	environment: DockerEnvironment,
