@@ -22,6 +22,8 @@ Next steps:
 
 The package contains a snapshot of the starter made when it is packed. Platform dependencies use exact versions from the starter's `published-versions.json`; its self-contained pnpm catalog pins the remaining dependencies.
 
+The generated starter keeps the signed-in screen during unreachable session checks, retries authentication rechecks automatically, and unmounts signed-in routes during sign-out until the session refetch answers.
+
 ### Create an app
 
 The folder argument may include a parent path. Its final folder name becomes the package name and must be a lowercase npm name. The destination must be absent or empty, including hidden files. The command runs `pnpm run setup` in the generated app to install dependencies and Quality's pre-commit hook, and reports setup failure with a nonzero exit status. Setup installs the hook only when the app has its own `.git`; it leaves an enclosing repository's hooks alone.

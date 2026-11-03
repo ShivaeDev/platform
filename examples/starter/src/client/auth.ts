@@ -1,7 +1,6 @@
 import { createAuthClient } from "better-auth/react";
-import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { AuthFailure } from "@shivaedev/identity/client/AuthFailure.ts";
+import type { AuthFailure } from "@shivaedev/identity/client/AuthFailure.ts";
 import { authCall } from "@shivaedev/identity/client/adapters/authCall.ts";
 import { authSession as readSession } from "@shivaedev/identity/client/adapters/authSession.ts";
 import type { PermissionSession } from "@shivaedev/identity/PermissionSession.ts";
@@ -25,11 +24,7 @@ export function makeAuth(options: {
 	const session = authSession(readSession((signal) => client.getSession({ fetchOptions: { signal }, query: { disableCookieCache: true } })));
 	const actions: AuthActions = {
 		resetPassword: authAction(authCall((body, signal) => client.resetPassword({ ...body, fetchOptions: { signal } }))),
-		signOut: Atom.fn<void>()(() =>
-			authCall((_: undefined, signal) => client.signOut({ fetchOptions: { signal } }))(undefined).pipe(
-				Effect.tap(() => session.refresh.pipe(Effect.mapError((cause) => new AuthFailure({ cause, code: "FAILED_TO_GET_SESSION" })))),
-			),
-		),
+		signOut: Atom.fn<void>()(() => authCall((_: undefined, signal) => client.signOut({ fetchOptions: { signal } }))(undefined)),
 		submit: authAction(
 			authCall(({ mode, credentials }, signal) =>
 				mode === "sign-up" ? client.signUp.email(credentials, { signal }) : client.signIn.email(credentials, { signal }),
