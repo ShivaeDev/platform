@@ -1,37 +1,78 @@
 import type { AuthContext } from "better-auth";
 import type { testUtils } from "better-auth/plugins";
 import { Clock, Effect } from "effect";
+import { signedSessionToken, testUserEmail } from "#server/better-auth/adapters/testingCredentials.ts";
 
 type TestContext = ReturnType<ReturnType<typeof testUtils>["init"]>["context"];
+type UserFields = NonNullable<Parameters<TestContext["test"]["createUser"]>[0]>;
+type Login = Awaited<ReturnType<TestContext["test"]["login"]>>;
 type AccountContext = Pick<AuthContext, "internalAdapter">;
+type SessionContext = AccountContext & Pick<AuthContext, "sessionConfig" | "secret" | "authCookies" | "baseURL">;
+
+function saveUser(context: AccountContext, fields: UserFields) {
+	return Effect.flatMap(testUserEmail, (email) =>
+		Effect.promise(() =>
+			context.internalAdapter.createUser({ email, emailVerified: true, image: null, name: "Test User", ...fields }, { method: "test" }),
+		),
+	);
+}
+
+function cookieSameSite(value: string | undefined) {
+	switch (value?.toLowerCase()) {
+		case "strict":
+			return "Strict";
+		case "none":
+			return "None";
+		default:
+			return "Lax";
+	}
+}
 
 export const signedInUser = Effect.fnUntraced(function* (
-	auth: { readonly $context: Promise<TestContext & AccountContext & Pick<AuthContext, "sessionConfig">> },
+	auth: { readonly $context: Promise<SessionContext> },
 	{
 		providerAccounts = [],
 		...fields
-	}: Parameters<TestContext["test"]["createUser"]>[0] & {
+	}: UserFields & {
 		readonly providerAccounts?: readonly { readonly providerId: string; readonly accountId: string }[];
 	},
-) {
-	const { test, internalAdapter } = yield* Effect.promise(() => auth.$context);
-	const user = yield* Effect.promise(() => test.saveUser(test.createUser(fields)));
+): Effect.fn.Return<Login> {
+	const context = yield* Effect.promise(() => auth.$context);
+	const user = yield* saveUser(context, fields);
 	for (const { providerId, accountId } of providerAccounts) {
-		yield* Effect.promise(() => internalAdapter.createAccount({ accountId, providerId, userId: user.id }));
+		yield* Effect.promise(() => context.internalAdapter.createAccount({ accountId, providerId, userId: user.id }));
 	}
 	return yield* signInAgain(auth, user.id);
 });
 
 export const signInAgain = Effect.fnUntraced(function* (
-	auth: { readonly $context: Promise<TestContext & AccountContext & Pick<AuthContext, "sessionConfig">> },
+	auth: { readonly $context: Promise<SessionContext> },
 	userId: string,
-) {
-	const { test, internalAdapter, sessionConfig } = yield* Effect.promise(() => auth.$context);
+): Effect.fn.Return<Login> {
+	const { internalAdapter, sessionConfig, authCookies, secret, baseURL } = yield* Effect.promise(() => auth.$context);
 	const now = yield* Clock.currentTimeMillis;
-	const login = yield* Effect.promise(() => test.login({ userId }));
+	const session = yield* Effect.promise(() => internalAdapter.createSession(userId, false, {}, true));
 	const expiresAt = new Date(now + sessionConfig.expiresIn * 1000);
-	yield* Effect.promise(() => internalAdapter.updateSession(login.token, { expiresAt }));
-	return { ...login, session: { ...login.session, expiresAt } };
+	yield* Effect.promise(() => internalAdapter.updateSession(session.token, { expiresAt }));
+	const user = yield* Effect.promise(() => internalAdapter.findUserById(userId));
+	if (user === null) {
+		return yield* Effect.die(`User not found: ${userId}`);
+	}
+	const value = yield* signedSessionToken(session.token, secret);
+	const { name, attributes } = authCookies.sessionToken;
+	const cookies: Login["cookies"] = [
+		{
+			domain: URL.canParse(baseURL) ? new URL(baseURL).hostname : "localhost",
+			httpOnly: attributes.httpOnly ?? true,
+			name,
+			path: attributes.path || "/",
+			sameSite: cookieSameSite(attributes.sameSite),
+			secure: attributes.secure ?? false,
+			value,
+			...(attributes.maxAge ? { expires: Math.floor(now / 1000) + attributes.maxAge } : {}),
+		},
+	];
+	return { cookies, headers: new Headers({ cookie: `${name}=${value}` }), session: { ...session, expiresAt }, token: session.token, user };
 });
 
 export async function storedProviderAccounts(auth: { readonly $context: Promise<AccountContext> }, userId: string) {
@@ -48,12 +89,21 @@ export async function storedProviderAccounts(auth: { readonly $context: Promise<
 }
 
 export const passwordUser = Effect.fnUntraced(function* (
-	auth: { readonly $context: Promise<TestContext & AccountContext & { readonly password: Pick<AuthContext["password"], "hash"> }> },
-	{ password, ...fields }: Parameters<TestContext["test"]["createUser"]>[0] & { readonly email: string; readonly password: string },
+	auth: { readonly $context: Promise<AccountContext & { readonly password: Pick<AuthContext["password"], "hash"> }> },
+	{
+		password,
+		passwordHash,
+		...fields
+	}: UserFields & { readonly email: string } & (
+			| { readonly password: string; readonly passwordHash?: never }
+			| { readonly passwordHash: string; readonly password?: never }
+		),
 ) {
-	const { test, internalAdapter, password: credential } = yield* Effect.promise(() => auth.$context);
-	const user = yield* Effect.promise(() => test.saveUser(test.createUser(fields)));
-	const hash = yield* Effect.promise(() => credential.hash(password));
-	yield* Effect.promise(() => internalAdapter.createAccount({ accountId: user.id, password: hash, providerId: "credential", userId: user.id }));
+	const context = yield* Effect.promise(() => auth.$context);
+	const user = yield* saveUser(context, fields);
+	const hash = passwordHash ?? (yield* Effect.promise(() => context.password.hash(password)));
+	yield* Effect.promise(() =>
+		context.internalAdapter.createAccount({ accountId: user.id, password: hash, providerId: "credential", userId: user.id }),
+	);
 	return user;
 });

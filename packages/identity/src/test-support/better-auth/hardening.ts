@@ -3,7 +3,8 @@ import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { BetterAuthHardeningOptions } from "#server/better-auth/adapters/hardening.ts";
-import { authRequest, CURRENT_PASSWORD, type HardeningHost, PASSWORD_HASH, startHardeningHost } from "./hardeningHost.ts";
+import { CURRENT_PASSWORD, PASSWORD_HASH } from "#test/passwordCredential.ts";
+import { authRequest, type HardeningHost, startHardeningHost } from "./hardeningHost.ts";
 
 interface Engine {
 	hardening: BetterAuthHardeningOptions;
