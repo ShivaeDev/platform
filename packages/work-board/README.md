@@ -495,17 +495,17 @@ The Board shell renders this data in its internal `DocumentView`, using the Boar
 
 Work Fleet uses the server entry points below and the portable metadata type entry point under `@shivaedev/work-board/integration/`. The server APIs reuse Board's document, response, attention and diagnostics implementations. They need no browser or HTTP server; filesystem Effects use the native Node services Layer, and watchers retain their native Effect scope.
 
-| Entry point                                 | API object                                                                                                    |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `server/processOwnership.ts`                | `processes`: scoped Board directory ownership shared by the Board CLI and Fleet supervision                   |
-| `server/integration/board.ts`               | `board`: the scoped watched index, metadata parsing and model, Markdown listing and watching                  |
-| `integration/metadata.ts`                   | Portable metadata types                                                                                       |
-| `server/integration/responses.ts`           | `responses`: the workspace and response services, reading, recording and publishing questions and responses   |
-| `server/attention/managedRequestReceipt.ts` | `managedRequestReceipt`: managed request acknowledgements                                                     |
-| `attention/RequestReceipt.ts`               | `RequestReceipt`: the request acknowledgement schema                                                          |
-| `server/attention/projection.ts`            | `attentionProjection`: the attention projection                                                               |
-| `server/integration/diagnostics.ts`         | `diagnostics`: Fleet health, the daemon diagnostics contract and provider limits                              |
-| `server/responses/publicationDirectory.ts`  | `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
+| Entry point                                 | API object                                                                                                  |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `server/processOwnership.ts`                | `processes`: scoped Board directory ownership shared by the Board CLI and Fleet supervision                 |
+| `server/integration/board.ts`               | `board`: the scoped watched index, metadata parsing and model, Markdown listing and watching                |
+| `integration/metadata.ts`                   | Portable metadata types                                                                                     |
+| `server/integration/responses.ts`           | `responses`: the workspace and response services, reading, recording and publishing questions and responses |
+| `server/attention/managedRequestReceipt.ts` | `managedRequestReceipt`: managed request acknowledgements                                                   |
+| `attention/RequestReceipt.ts`               | `RequestReceipt`: the request acknowledgement schema                                                        |
+| `server/attention/projection.ts`            | `attentionProjection`: the attention projection                                                             |
+| `server/integration/diagnostics.ts`         | `diagnostics`: Fleet health, the daemon diagnostics contract and provider limits                            |
+| `server/publication.ts`                     | `Publication`, `publishOnce`, `replaceIfUnchanged`: Effect publication for addon-owned files                |
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
@@ -526,7 +526,11 @@ Other processes read the same listing, parsed metadata, diagnostics and unavaila
 
 Provide `responses.Workspace.layer` to `responses.Responses.layer`, then supply `responses.WorkspaceConfig` with that typed index, the same watcher, workspace `root`, optional `home` and explicit `writable` choice. The workspace service exposes `settings()` (root, real root, changes, home and write choice), `index()` (with `PlatformError` failures) and `document(url)`; the Board runtime and its in-memory harness compose the same service and RPC Layer. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attentionProjection(snapshot)` returns the typed attention projection: `you`, `answered`, `agents`, `resolved`, `parked`, `later`, `issues` and `complete`, with `items` retaining the same rows as `you` for existing clients. `managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
 
-`pnpm lint` fences Fleet's production imports to these entry points; its test fixtures may use Board modules directly.
+Publish addon-owned text or bytes with `publishOnce({ root, realRoot, path, content })`, providing `Publication.layer`. Here `realRoot` is the canonical workspace root and `path` is workspace-relative, such as `fleet/reports/review.md`. Missing parent directories are created. Publishing the same identity and bytes again succeeds; different bytes fail with `Conflict`.
+
+Use `replaceIfUnchanged({ root, realRoot, path, expectedSource, content })` to replace an existing file against exact source text. A mismatch fails with `PreconditionFailed` and preserves the current file. The source is checked before staging and again before rename; an outside edit between the last comparison and rename remains a best-effort boundary. Interruption during staging waits for native IO and removes the temporary file before the Effect finishes. `PublicationFailure` in `server/PublicationFailure.ts` describes the typed failures, including `ServiceUnavailable` for IO failures and `PublicationUncertain` when publication may already have completed. Both operations retain the filesystem limits below.
+
+Fleet's existing handle-based writers use the native `directoryPath` and `validateDirectory` bridge at `server/adapters/publicationDirectory.ts`. New writers use the publication Effects. `pnpm lint` fences Fleet's production imports to the documented entry points; its test fixtures may use Board modules directly.
 
 #### Read the running board through MCP
 
