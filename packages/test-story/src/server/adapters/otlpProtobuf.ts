@@ -1,4 +1,4 @@
-import { type WireValue, wireFields } from "#server/internal/otlpWire.ts";
+import { type WireValue, wireFields } from "#server/adapters/otlpWire.ts";
 
 type Scalar = "string" | "hex" | "base64" | "number" | "integer" | "boolean" | "double" | "fixed64";
 type Field = readonly [name: string, type: Scalar | (() => Descriptor), repeated?: boolean];

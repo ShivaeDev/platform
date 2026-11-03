@@ -1,7 +1,6 @@
-import { createServer } from "node:http";
 import * as Effect from "effect/Effect";
-import { makeForwardingProxy } from "#server/adapters/makeForwardingProxy.ts";
-import { loopbackServer } from "#server/internal/loopback.ts";
+import { loopbackServer } from "#server/adapters/loopback.ts";
+import { checkLocalAddress, makeForwardingProxy } from "#server/adapters/makeForwardingProxy.ts";
 
 export interface ForwardingProxyOptions {
 	readonly forwardedHops?: readonly string[];
@@ -11,7 +10,7 @@ export interface ForwardingProxyOptions {
 
 export const forwardingProxy = Effect.fnUntraced(function* (upstream: string, options: ForwardingProxyOptions = {}) {
 	if (options.localAddress !== undefined) {
-		yield* Effect.scoped(loopbackServer(createServer(), { host: options.localAddress })).pipe(
+		yield* checkLocalAddress(options.localAddress).pipe(
 			Effect.mapError((cause) => new Error(`Cannot acquire forwarding proxy with local address ${options.localAddress}`, { cause })),
 		);
 	}

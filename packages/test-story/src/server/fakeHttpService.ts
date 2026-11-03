@@ -1,10 +1,6 @@
-import { createServer, type IncomingHttpHeaders } from "node:http";
-import * as Clock from "effect/Clock";
+import type { IncomingHttpHeaders } from "node:http";
 import * as Effect from "effect/Effect";
-import { fakeHttpControls } from "#server/internal/fakeHttpControls.ts";
-import { fakeHttpReceive } from "#server/internal/fakeHttpReceive.ts";
-import { fakeHttpSignals } from "#server/internal/fakeHttpSignals.ts";
-import { loopbackServer } from "#server/internal/loopback.ts";
+import { fakeHttpRuntime } from "#server/adapters/fakeHttpRuntime.ts";
 import { type UntilOptions, until } from "#server/until.ts";
 
 export interface FakeHttpRequest {
@@ -69,45 +65,38 @@ export interface FakeHttpHold {
 }
 
 export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpServiceOptions) {
-	const clock = yield* Clock.Clock;
-	const requests: FakeHttpRequestRecord[] = [];
 	let narrate = options.tell;
 	function tell(line: string) {
 		narrate?.(line);
 	}
-	const controls = fakeHttpControls(tell, () => clock.currentTimeMillisUnsafe());
-	const signals = fakeHttpSignals();
-	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell, signals.record));
-	const url = yield* loopbackServer(server);
-
-	yield* Effect.addFinalizer(() => Effect.sync(signals.close));
-	yield* Effect.addFinalizer(controls.close);
-	function checkRoute(route: string) {
+	const { controls, signals, requests, url } = yield* fakeHttpRuntime(options, tell);
+	const checkRoute = Effect.fnUntraced(function* (route: string) {
 		if (!Object.hasOwn(options.routes, route)) {
-			throw new Error(`Unknown fake HTTP route "${route}".\nhelp: Use a name from fakeHttpService's routes when scripting a reply or hold.`);
+			return yield* Effect.die(
+				new Error(`Unknown fake HTTP route "${route}".\nhelp: Use a name from fakeHttpService's routes when scripting a reply or hold.`),
+			);
 		}
-	}
+	});
 	return {
 		completed: signals.completed,
 		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
-			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.fault(route, fault, scope))),
-		hold: (route: string, holdOptions?: FakeHttpHoldOptions) =>
-			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.hold(route, holdOptions))),
+			checkRoute(route).pipe(Effect.andThen(controls.fault(route, fault, scope))),
+		hold: (route: string, holdOptions?: FakeHttpHoldOptions) => checkRoute(route).pipe(Effect.andThen(controls.hold(route, holdOptions))),
 		narrate: (sink: (line: string) => void) => {
 			narrate = sink;
 		},
 		received: signals.received,
 		releaseOnArrival: (route: string, arrival: string, scope?: FakeHttpScope) =>
-			Effect.sync(() => {
-				checkRoute(route);
-				checkRoute(arrival);
+			Effect.gen(function* () {
+				yield* checkRoute(route);
+				yield* checkRoute(arrival);
 			}).pipe(Effect.andThen(controls.releaseOnArrival(route, arrival, scope))),
 		get requests(): readonly FakeHttpRequestRecord[] {
 			return requests.slice();
 		},
 		scriptFault: (route: string, fault: FakeHttpFault, scriptOptions?: FakeHttpScriptOptions) =>
-			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.scriptFault(route, fault, scriptOptions))),
-		stall: (route: string, scope?: FakeHttpScope) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.stall(route, scope))),
+			checkRoute(route).pipe(Effect.andThen(controls.scriptFault(route, fault, scriptOptions))),
+		stall: (route: string, scope?: FakeHttpScope) => checkRoute(route).pipe(Effect.andThen(controls.stall(route, scope))),
 		untilAbandoned: (matches: (request: FakeHttpRequestRecord) => boolean, wait: UntilOptions) => until(signals.abandoned, matches, wait),
 		url,
 	};

@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { fakeHttpAnswer } from "#server/adapters/fakeHttpAnswer.ts";
+import { fakeHttpSend } from "#server/adapters/fakeHttpSend.ts";
 import type { FakeHttpRequestRecord, FakeHttpRoute, FakeHttpServiceOptions } from "#server/fakeHttpService.ts";
-import { fakeHttpAnswer } from "#server/internal/fakeHttpAnswer.ts";
 import type { fakeHttpControls } from "#server/internal/fakeHttpControls.ts";
-import { fakeHttpSend } from "#server/internal/fakeHttpSend.ts";
 
 function match(route: FakeHttpRoute, method: string, pathname: string) {
 	if ((route.method ?? "GET").toUpperCase() !== method) {

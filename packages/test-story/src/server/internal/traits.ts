@@ -1,4 +1,4 @@
-import { callSite } from "#server/internal/callSite.ts";
+import { callSite } from "#server/adapters/callSite.ts";
 
 export interface TraitPart<TStage extends string, TApply> {
 	readonly apply: TApply;

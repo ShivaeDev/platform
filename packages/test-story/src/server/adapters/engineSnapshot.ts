@@ -1,5 +1,5 @@
+import type { FailedTest } from "#server/adapters/failureReport.ts";
 import { writeSnapshot } from "#server/adapters/writeSnapshot.ts";
-import type { FailedTest } from "#server/internal/failureReport.ts";
 import type { Subject } from "#server/internal/narration.ts";
 import { describeValue, toJson } from "#server/internal/render.ts";
 import { WIDTH, wrap, wrapJson } from "#server/internal/wrap.ts";

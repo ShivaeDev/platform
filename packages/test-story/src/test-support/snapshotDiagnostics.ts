@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
-import { engineSnapshot } from "#server/internal/engineSnapshot.ts";
+import { engineSnapshot } from "#server/adapters/engineSnapshot.ts";
 import { storyKit } from "#server/storyKit.ts";
 
 interface Printer {

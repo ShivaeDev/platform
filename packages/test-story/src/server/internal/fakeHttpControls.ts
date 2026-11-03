@@ -1,5 +1,6 @@
 import type { ServerResponse } from "node:http";
 import * as Effect from "effect/Effect";
+import { fakeHttpPause, fakeHttpSend } from "#server/adapters/fakeHttpSend.ts";
 import type {
 	FakeHttpFault,
 	FakeHttpHoldOptions,
@@ -11,7 +12,6 @@ import type {
 import { fakeHttpGates } from "#server/internal/fakeHttpGates.ts";
 import { fakeHttpScripts } from "#server/internal/fakeHttpScripts.ts";
 import { fakeHttpSelection } from "#server/internal/fakeHttpSelection.ts";
-import { fakeHttpConnection, fakeHttpSend } from "#server/internal/fakeHttpSend.ts";
 import { describeValue } from "#server/internal/render.ts";
 import { explained } from "#server/internal/wrap.ts";
 
@@ -50,8 +50,8 @@ export function fakeHttpControls(tell: (line: string) => void, now: () => number
 				cause,
 			});
 		},
-		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
-			Effect.promise(async () => {
+		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope): Effect.Effect<void> =>
+			Effect.gen(function* () {
 				const selection = fakeHttpSelection(route, scope);
 				const found = [...active].find(
 					([candidate, entry]) =>
@@ -60,28 +60,29 @@ export function fakeHttpControls(tell: (line: string) => void, now: () => number
 						&& candidate.headersSent === (fault.kind === "reset"),
 				);
 				if (!found) {
-					throw new Error(
-						`Fake HTTP route "${route}" has no request ready for a ${fault.kind} fault.\nhelp: Wait for a hold before a status or drop fault, or for response headers before a reset fault.`,
+					return yield* Effect.die(
+						new Error(
+							`Fake HTTP route "${route}" has no request ready for a ${fault.kind} fault.\nhelp: Wait for a hold before a status or drop fault, or for response headers before a reset fault.`,
+						),
 					);
 				}
 				const [response, { request }] = found;
 				tell(`fake HTTP ${selection.label} fault ${fault.kind}`);
 				if (fault.kind === "status") {
-					await fakeHttpSend(response, typeof fault.reply === "function" ? fault.reply(request, now()) : fault.reply);
+					yield* Effect.promise(() => fakeHttpSend(response, typeof fault.reply === "function" ? fault.reply(request, now()) : fault.reply));
 				} else {
 					response.destroy();
 				}
 			}),
-		hold: (route: string, options?: FakeHttpHoldOptions) => Effect.sync(() => holds.make(route, options, options?.once)),
-		pause: async (route: string, request: FakeHttpRequest, response: ServerResponse) => {
-			await fakeHttpConnection(response).pause(holds.get(route, request)?.enter());
-			return !(response.destroyed || response.writableEnded || response.headersSent);
-		},
-		releaseOnArrival: (route: string, arrival: string, scope?: FakeHttpScope) =>
-			Effect.sync(() => {
+		hold: (route: string, options?: FakeHttpHoldOptions) => holds.make(route, options, options?.once),
+		pause: (route: string, request: FakeHttpRequest, response: ServerResponse) => fakeHttpPause(response, () => holds.get(route, request)?.enter()),
+		releaseOnArrival: (route: string, arrival: string, scope?: FakeHttpScope): Effect.Effect<void> =>
+			Effect.gen(function* () {
 				const hold = holds.at(route, scope);
 				if (!hold) {
-					throw new Error(`Fake HTTP route "${route}" has no hold.\nhelp: Hold the route before scripting its release on arrival.`);
+					return yield* Effect.die(
+						new Error(`Fake HTTP route "${route}" has no hold.\nhelp: Hold the route before scripting its release on arrival.`),
+					);
 				}
 				const releases = arrivals.get(arrival) ?? new Set<() => void>();
 				releases.add(hold.release);
@@ -90,7 +91,7 @@ export function fakeHttpControls(tell: (line: string) => void, now: () => number
 			}),
 		reply: (source: FakeHttpReplySource, request: FakeHttpRequest) => (typeof source === "function" ? source(request, now()) : source),
 		scriptFault: (route: string, fault: FakeHttpFault, options?: FakeHttpScriptOptions) => Effect.sync(() => scripts.make(route, fault, options)),
-		stall: (route: string, scope?: FakeHttpScope) => Effect.sync(() => stalls.make(route, scope)),
+		stall: (route: string, scope?: FakeHttpScope) => stalls.make(route, scope),
 		stallBody: (route: string, request: FakeHttpRequest) => {
 			const stall = stalls.get(route, request);
 			return stall ? () => stall.enter() : undefined;
