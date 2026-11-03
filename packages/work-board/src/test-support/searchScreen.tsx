@@ -5,6 +5,7 @@ import { SearchHarness } from "./SearchHarness.tsx";
 import { trackScreen } from "./screenEngine.ts";
 import { screenClient } from "./screenFeatures.tsx";
 import { screenOptions } from "./screenReads.ts";
+import { screenSettles } from "./screenSettle.ts";
 import { screenStory } from "./screenStory.ts";
 import { screenFiles } from "./screenWorkspaceTraits.ts";
 export function searchScreen(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions) {
@@ -22,6 +23,7 @@ export function searchScreen(files: Readonly<Record<string, string>>, options?: 
 				),
 			);
 			trackScreen(engine, view, (line) => engine.tell?.(line));
+			yield* screenSettles(engine);
 		}),
 	);
 }

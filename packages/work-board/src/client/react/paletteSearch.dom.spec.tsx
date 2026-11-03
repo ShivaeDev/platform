@@ -3,7 +3,7 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/rea
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { paletteFixture } from "#test/paletteFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { searchOpened } from "#test/shellTraits.tsx";
+import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
 
@@ -16,7 +16,7 @@ const DUPLICATED = {
 
 screenStory.it(
 	"searching inbox ranks the matching task first and shows its ID, kind and status",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ firstResult, searchFor, searchResult }) {
 		yield* searchFor("inbox");
 
@@ -29,7 +29,7 @@ screenStory.it(
 
 screenStory.it(
 	"a search leaves out files Fleet writes until the query starts with records:",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ firstResult, results, searchFor }) {
 		yield* searchFor("inbox");
 		expect((yield* results("id")).filter(({ id }) => id?.startsWith("decision.delivery."))).toEqual([]);
@@ -49,7 +49,7 @@ screenStory.it(
 
 screenStory.it(
 	"a Fleet record found through records: shows its prose as the snippet instead of its metadata",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ searchFor, searchResult }) {
 		yield* searchFor("records: inbox");
 
@@ -59,7 +59,7 @@ screenStory.it(
 
 screenStory.it(
 	"Include files Fleet writes adds Fleet's records below the matching work",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ firstResult, includeFleetFiles, resultTitles, searchFor }) {
 		yield* searchFor("inbox");
 		expect(yield* resultTitles()).not.toContain("Inbox decision 9");
@@ -75,7 +75,7 @@ screenStory.it(
 
 screenStory.it(
 	"Enter on Include files Fleet writes leaves Search open",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ pressInFleetFilesToggle, searchDialog, searchFor }) {
 		yield* searchFor("inbox");
 
@@ -87,7 +87,7 @@ screenStory.it(
 
 screenStory.it(
 	"a search groups matching work under Work and other documents under Documents",
-	[searchOpened(paletteFixture())],
+	[searchScreen(paletteFixture())],
 	function* ({ resultGroups, searchFor }) {
 		yield* searchFor("inbox");
 
@@ -101,7 +101,7 @@ screenStory.it(
 for (const query of ["scale tests", "pooling"]) {
 	screenStory.it(
 		`searching ${JSON.stringify(query)} lists each item once although its title and opening passage both match`,
-		[searchOpened(DUPLICATED)],
+		[searchScreen(DUPLICATED)],
 		function* ({ resultTitles, searchFor, searchStatus }) {
 			yield* searchFor(query);
 
@@ -119,7 +119,7 @@ for (const query of ["scale tests", "pooling"]) {
 
 screenStory.it(
 	"a row whose title and passage both match shows the matching passage as its snippet, not its title",
-	[searchOpened(DUPLICATED)],
+	[searchScreen(DUPLICATED)],
 	function* ({ results, searchFor }) {
 		yield* searchFor("pooling design");
 
@@ -135,7 +135,7 @@ screenStory.it(
 
 screenStory.it(
 	"a document whose title matches but whose passage does not shows no snippet",
-	[searchOpened({ ...DUPLICATED, "notes/connection-budget.md": "# Connection budget\n\nShared limits live elsewhere.\n" })],
+	[searchScreen({ ...DUPLICATED, "notes/connection-budget.md": "# Connection budget\n\nShared limits live elsewhere.\n" })],
 	function* ({ results, searchFor }) {
 		yield* searchFor("connection budget");
 
@@ -143,7 +143,7 @@ screenStory.it(
 	},
 );
 
-screenStory.it("a search marks the searched words in each snippet", [searchOpened(DUPLICATED)], function* ({ results, searchFor }) {
+screenStory.it("a search marks the searched words in each snippet", [searchScreen(DUPLICATED)], function* ({ results, searchFor }) {
 	yield* searchFor("Pooling design");
 
 	expect(yield* results("marks")).toEqual([{ marks: ["pooling", "design"] }, { marks: ["pooling", "design"] }]);
@@ -151,7 +151,7 @@ screenStory.it("a search marks the searched words in each snippet", [searchOpene
 
 screenStory.it(
 	"a search cut short at 40 of 45 matches tells the reader how to narrow it",
-	[searchOpened(Object.fromEntries(Array.from({ length: 45 }, (_, index) => [`notes/${index}.md`, `# Note ${index}\n\nA shared needle.\n`])))],
+	[searchScreen(Object.fromEntries(Array.from({ length: 45 }, (_, index) => [`notes/${index}.md`, `# Note ${index}\n\nA shared needle.\n`])))],
 	function* ({ searchFor, searchStatus }) {
 		yield* searchFor("needle");
 

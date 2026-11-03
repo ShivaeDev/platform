@@ -3,7 +3,7 @@ import { expectNoReactWarnings } from "@shivaedev/test-story/client/adapters/rea
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { unavailableWorkspace, unreadableHome } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { searchOpened } from "#test/shellTraits.tsx";
+import { searchScreen } from "#test/searchScreen.tsx";
 
 expectNoReactWarnings();
 
@@ -15,7 +15,7 @@ const threeNotes = {
 
 screenStory.it(
 	"Typing again cancels the earlier Search pause and waits for the new query",
-	[searchOpened(threeNotes)],
+	[searchScreen(threeNotes)],
 	function* ({ advanceClock, resultTitles, typeBeforeSearchPause }) {
 		yield* typeBeforeSearchPause("Shared");
 		yield* advanceClock(100);
@@ -32,7 +32,7 @@ screenStory.it(
 
 screenStory.it(
 	"Search waits 150 ms after typing before it shows matching documents",
-	[searchOpened(threeNotes)],
+	[searchScreen(threeNotes)],
 	function* ({ advanceClock, resultTitles, typeBeforeSearchPause }) {
 		yield* typeBeforeSearchPause("Shared phrase");
 
@@ -47,7 +47,7 @@ screenStory.it(
 
 screenStory.it(
 	"when a refresh drops the selected third result, the remaining first result becomes selected and announced",
-	[searchOpened(threeNotes)],
+	[searchScreen(threeNotes)],
 	function* ({ editFile, pressInSearch, refreshSearch, resultTitles, searchFor, selectedResult }) {
 		yield* searchFor("Shared phrase");
 		yield* pressInSearch("ArrowDown");
@@ -67,7 +67,7 @@ screenStory.it(
 
 screenStory.it(
 	"Enter opens the selected result and closes Search",
-	[searchOpened(threeNotes)],
+	[searchScreen(threeNotes)],
 	function* ({ browserPath, pressInSearch, searchDialog, searchFor }) {
 		yield* searchFor("Shared phrase");
 		yield* pressInSearch("ArrowDown");
@@ -87,7 +87,7 @@ for (const { previous, typed } of [
 ]) {
 	screenStory.it(
 		`Enter pressed before the search pause ends searches for the new words instead of opening ${previous}`,
-		[searchOpened({ "notes/first.md": "# First\n\nFirst phrase.", "notes/second.md": "# Second\n\nSecond phrase." })],
+		[searchScreen({ "notes/first.md": "# First\n\nFirst phrase.", "notes/second.md": "# Second\n\nSecond phrase." })],
 		function* ({ pressInSearch, resultTitles, searchDialog, searchFor, selectedResult, typeBeforeSearchPause }) {
 			if (typed) {
 				yield* searchFor(typed);
@@ -108,7 +108,7 @@ for (const { previous, typed } of [
 
 screenStory.it(
 	"Retry search runs a failed search again once the workspace can be read",
-	[searchOpened({ "notes/first.md": "# First\n\nShared phrase one." }), unavailableWorkspace()],
+	[searchScreen({ "notes/first.md": "# First\n\nShared phrase one." }), unavailableWorkspace()],
 	function* ({ recoverWorkspace, resultTitles, retrySearch, searchFor, searchStatus }) {
 		yield* searchFor("Shared phrase");
 		yield* recoverWorkspace();
@@ -129,7 +129,7 @@ for (const { key, moves, selected } of [
 ]) {
 	screenStory.it(
 		`${key} moves the caret in the search field without moving the selection off ${selected}`,
-		[searchOpened({ "notes/first.md": "# First\n\nShared phrase one.", "notes/second.md": "# Second\n\nShared phrase two." })],
+		[searchScreen({ "notes/first.md": "# First\n\nShared phrase one.", "notes/second.md": "# Second\n\nShared phrase two." })],
 		function* ({ pressInSearch, searchFor, selectedResult }) {
 			yield* searchFor("Shared phrase");
 			for (const move of moves) {
@@ -146,7 +146,7 @@ for (const { key, moves, selected } of [
 
 screenStory.it(
 	"a search says its results are incomplete when a workspace file cannot be read",
-	[searchOpened({ "home.md": "# Home\n", "notes/first.md": "# First\n\nShared phrase one." }, { home: "home.md" }), unreadableHome()],
+	[searchScreen({ "home.md": "# Home\n", "notes/first.md": "# First\n\nShared phrase one." }, { home: "home.md" }), unreadableHome()],
 	function* ({ searchFor, searchStatus }) {
 		yield* searchFor("Shared phrase");
 
