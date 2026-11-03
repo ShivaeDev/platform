@@ -1,12 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { format } from "node:util";
 import { Config, ConfigProvider, Console, Effect, Option } from "effect";
 import { program } from "#cli/program.ts";
 import { exitCode, explained, services } from "#cli/runMain.ts";
-import { ISOLATED_ENV } from "#testing/adapters/git.ts";
+import { ISOLATED_ENV, isolatedEnvironment } from "#testing/adapters/git.ts";
 
 export interface Run {
 	readonly status: number | null;
@@ -91,7 +90,7 @@ export function runQuality(root: string, ...args: readonly string[]): Effect.Eff
 			const output: Output = { stderr: "", stdout: "" };
 			const command = program(args, { cwd: realpathSync(root), launch: { options: OPTIONS, script: CLI } });
 			const environment = ConfigProvider.orElse(
-				ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": join(root, "heavy.lock") } }),
+				ConfigProvider.fromEnv({ env: { "HEAVY_PROCESS_LOCK": isolatedEnvironment(root).HEAVY_PROCESS_LOCK } }),
 				yield* ConfigProvider.ConfigProvider,
 			);
 			yield* Effect.acquireRelease(Effect.promise(isolateGit), (restore) => Effect.sync(restore));
@@ -107,7 +106,7 @@ export function runQuality(root: string, ...args: readonly string[]): Effect.Eff
 }
 
 export function quality(root: string, ...args: readonly string[]): Run {
-	const result = spawnSync("node", qualityArgs(args), { cwd: root, encoding: "utf8", env: ISOLATED_ENV });
+	const result = spawnSync("node", qualityArgs(args), { cwd: root, encoding: "utf8", env: isolatedEnvironment(root) });
 	return { status: result.status, stderr: result.stderr, stdout: result.stdout };
 }
 

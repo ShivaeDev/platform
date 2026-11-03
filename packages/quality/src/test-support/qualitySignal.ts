@@ -1,11 +1,10 @@
-import { join } from "node:path";
 import process from "node:process";
 import { Deferred, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { services } from "#cli/runMain.ts";
 import { qualityArgs } from "#testing/adapters/cli.ts";
-import { ISOLATED_ENV } from "#testing/adapters/git.ts";
+import { isolatedEnvironment } from "#testing/adapters/git.ts";
 import { defaultTree, removeSeededTrees } from "#testing/adapters/tree.ts";
 
 export const qualitySignal = storyKit({
@@ -37,7 +36,7 @@ local: [defineRule({
 		const child = yield* spawner.spawn(
 			ChildProcess.make(process.execPath, qualityArgs(["lint"]), {
 				cwd: root,
-				env: { ...ISOLATED_ENV, "HEAVY_PROCESS_LOCK": join(root, "heavy.lock") },
+				env: isolatedEnvironment(root),
 				extendEnv: false,
 				stdin: "ignore",
 			}),
