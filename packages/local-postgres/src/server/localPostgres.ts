@@ -1,11 +1,11 @@
 import { Effect, Schedule } from "effect";
 import { docker } from "#server/adapters/docker.ts";
+import { ensureConnections } from "#server/adapters/ensureConnections.ts";
 import { startContainer } from "#server/adapters/localContainer.ts";
 import { localSql } from "#server/adapters/localSql.ts";
 import type { CommandOptions } from "#server/adapters/runCommand.ts";
 import { assertLocalDatabase } from "#server/assertLocalDatabase.ts";
 import type { DockerEnvironment } from "#server/dockerEnvironment.ts";
-import { ensureConnections } from "#server/ensureConnections.ts";
 import { LocalPostgresError } from "#server/LocalPostgresError.ts";
 import { PostgresVersionMismatch } from "#server/PostgresVersionMismatch.ts";
 
