@@ -6,7 +6,7 @@ import { importedChangeKeys } from "./importedChangeKeys.ts";
 
 const packages = [effectResolves(), changeKeysResolve()];
 
-for (const { name, code } of [
+const LITERAL_KEYS = [
 	{ code: 'commit(["orders"]);', name: "a SQL announcement array" },
 	{ code: '(commit)(["orders"]);', name: "a wrapped announcement API" },
 	{ code: 'const announce = (commit); announce(["orders"]);', name: "a wrapped announcement alias" },
@@ -37,26 +37,32 @@ for (const { name, code } of [
 	{ code: 'readKeys([{ _tag: "Bucket", collection: orders.name, field: "owner", value: "alice" }]);', name: "a typed bucket name" },
 	{ code: "commit(([`orders`] as const));", name: "a wrapped static template" },
 	{ code: 'commit(true ? ["orders"] : [orders.name]);', name: "a conditional key" },
-]) {
-	ruleStory.it(
-		`boundaries/imported-change-keys reports ${name} with its repair and location`,
-		[...packages, repositoryHas(orderKeys, changeKeyConsumer(code))],
-		function* ({ check }) {
-			const findings = yield* check(importedChangeKeys);
+];
 
-			expect(findings).toEqual([
-				{
-					file: "src/consumer.ts",
-					line: 8,
-					message:
-						"Names a change collection or bucket with a literal. Import its owner's declaration and use its name, list, item or bucket key instead.",
-				},
-			]);
-		},
-	);
-}
+ruleStory.it(
+	"boundaries/imported-change-keys reports literal keys across announcement, invalidation and encoder forms with their repair and location",
+	[
+		...packages,
+		repositoryHas(
+			orderKeys,
+			...LITERAL_KEYS.map(({ code }, index) => ({ ...changeKeyConsumer(code), path: `src/literal-${String(index).padStart(2, "0")}.ts` })),
+		),
+	],
+	function* ({ check }) {
+		const findings = yield* check(importedChangeKeys);
 
-for (const { name, code } of [
+		expect(findings).toEqual(
+			LITERAL_KEYS.map((_, index) => ({
+				file: `src/literal-${String(index).padStart(2, "0")}.ts`,
+				line: 8,
+				message:
+					"Names a change collection or bucket with a literal. Import its owner's declaration and use its name, list, item or bucket key instead.",
+			})),
+		);
+	},
+);
+
+const OWNED_KEYS = [
 	{
 		code: 'Reactivity.Reactivity.use((r) => r.invalidate([{ topic: "orders" }, { _tag: "Cache", field: "orders" }, 42]));',
 		name: "opaque object and numeric keys without collection names",
@@ -76,14 +82,18 @@ for (const { name, code } of [
 	},
 	{ code: 'const router = { invalidate: (_: unknown) => Effect.void }; router.invalidate(["orders"]);', name: "an unrelated invalidate method" },
 	{ code: 'function action(commit: (keys: unknown) => void) { commit(["orders"]); }', name: "a shadowed API name" },
-]) {
-	ruleStory.it(
-		`boundaries/imported-change-keys accepts ${name}`,
-		[...packages, repositoryHas(orderKeys, changeKeyConsumer(code))],
-		function* ({ check }) {
-			const findings = yield* check(importedChangeKeys);
+];
 
-			expect(findings).toEqual([]);
-		},
-	);
-}
+ruleStory.it(
+	"boundaries/imported-change-keys accepts owned declarations, opaque keys, record IDs and unrelated APIs",
+	[
+		...packages,
+		repositoryHas(
+			orderKeys,
+			...OWNED_KEYS.map(({ code }, index) => ({ ...changeKeyConsumer(code), path: `src/owned-${String(index).padStart(2, "0")}.ts` })),
+		),
+	],
+	function* ({ check }) {
+		expect(yield* check(importedChangeKeys)).toEqual([]);
+	},
+);

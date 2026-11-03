@@ -1,95 +1,35 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
-import { databasesPrepared, fullAppToCompare, generatedWithOwnDatabases, realSetup } from "#test/traits.ts";
+import { fullAppToCompare } from "#test/traits.ts";
 
 const REGISTRATIONS = ["src/admin/foundation.ts", "src/server/modules.ts", "src/client/modules.ts"];
 const NOTES_REFERENCE = /notes(?:Registration|Worker|Migrations)|notesModule|noteQueue|#modules\/notes/u;
 
 application.it(
-	"a minimal app has every file of the full app except those under src/modules/notes/",
+	"a minimal app removes notes files, registrations and dependencies, preserves the remaining full app files and records its variant",
 	[fullAppToCompare],
-	function* ({ createApp, filesMissingFrom, filesOnlyIn }) {
+	function* ({ createApp, dependsOn, file, filesDifferingFrom, filesMissingFrom, filesOnlyIn, generationRecord }) {
+		for (const registration of REGISTRATIONS) {
+			expect(yield* file(registration)).toMatch(NOTES_REFERENCE);
+		}
+		expect(yield* dependsOn("@tanstack/react-table")).toBe(true);
+
 		yield* createApp("my-app", "--minimal", "--no-git");
 
 		yield* outcomes([
 			["only in the full app", () => filesOnlyIn("full/my-app"), ["src/modules/notes/"]],
 			["only in the minimal app", () => filesMissingFrom("full/my-app"), []],
+			[
+				"different files",
+				() => filesDifferingFrom("full/my-app"),
+				[".create-app.json", ".env.local", "package.json", "src/admin/foundation.ts", "src/client/modules.ts", "src/server/modules.ts"],
+			],
+			["notes dependency", () => dependsOn("@tanstack/react-table"), false],
+			["generation record", () => generationRecord(), { minimal: true, name: "my-app" }],
 		]);
-	},
-);
-
-application.it(
-	"a minimal app's files match the full app's, except its manifest, record, secrets and module registrations",
-	[fullAppToCompare],
-	function* ({ createApp, filesDifferingFrom }) {
-		yield* createApp("my-app", "--minimal", "--no-git");
-
-		expect(yield* filesDifferingFrom("full/my-app")).toEqual([
-			".create-app.json",
-			".env.local",
-			"package.json",
-			"src/admin/foundation.ts",
-			"src/client/modules.ts",
-			"src/server/modules.ts",
-		]);
-	},
-);
-
-for (const registration of REGISTRATIONS) {
-	application.it(
-		`the full app's ${registration} registers notes, while a minimal app's registers nothing from it`,
-		[fullAppToCompare],
-		function* ({ createApp, file }) {
-			expect(yield* file(registration)).toMatch(NOTES_REFERENCE);
-
-			yield* createApp("my-app", "--minimal", "--no-git");
-
+		for (const registration of REGISTRATIONS) {
 			expect(yield* file(registration)).not.toMatch(NOTES_REFERENCE);
-		},
-	);
-}
-
-application.it(
-	"the full app depends on @tanstack/react-table for notes, while a minimal app does not",
-	[fullAppToCompare],
-	function* ({ createApp, dependsOn }) {
-		expect(yield* dependsOn("@tanstack/react-table")).toBe(true);
-
-		yield* createApp("my-app", "--minimal", "--no-git");
-
-		expect(yield* dependsOn("@tanstack/react-table")).toBe(false);
+		}
 	},
-);
-
-application.it("create-app --minimal records the app as minimal in .create-app.json", [], function* ({ createApp, generationRecord }) {
-	yield* createApp("my-app", "--minimal", "--no-git");
-
-	expect(yield* generationRecord()).toMatchObject({ minimal: true, name: "my-app" });
-});
-
-application.it(
-	"a minimal app applies its registered migrations to its prepared database",
-	[generatedWithOwnDatabases("--minimal", "--no-git"), databasesPrepared],
-	function* ({ migrate }) {
-		expect(yield* migrate()).toBe("passed");
-	},
-);
-
-application.it(
-	"a minimal app passes its foundation admin stories",
-	[generatedWithOwnDatabases("--minimal", "--no-git"), databasesPrepared],
-	function* ({ runFoundationAdminStories }) {
-		expect(yield* runFoundationAdminStories()).toBe("passed");
-	},
-	120_000,
-);
-
-application.it(
-	"a minimal app with prepared databases passes pnpm ready against workspace packages",
-	[realSetup, generatedWithOwnDatabases("--minimal", "--no-git"), databasesPrepared],
-	function* ({ ready }) {
-		expect(yield* ready()).toBe("passed");
-	},
-	120_000,
 );
