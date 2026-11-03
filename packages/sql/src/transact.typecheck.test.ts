@@ -15,5 +15,7 @@ type Transacted = Effect.Effect<string, Rejected | Unavailable, Orders | SqlClie
 
 expectTypeOf(transact(body, { onSqlError: () => new Unavailable() })).toEqualTypeOf<Transacted>();
 expectTypeOf(body.pipe(transact({ onSqlError: () => new Unavailable() }))).toEqualTypeOf<Transacted>();
-expectTypeOf(invalidateOnCommit).parameters.toEqualTypeOf<[keys: InvalidationKeys]>();
 expectTypeOf(invalidateOnCommit(keys)).toEqualTypeOf<Effect.Effect<void, never, SqlClient.SqlClient | Reactivity.Reactivity>>();
+expectTypeOf(invalidateOnCommit(keys, { publication: "local" })).toEqualTypeOf<
+	Effect.Effect<void, never, SqlClient.SqlClient | Reactivity.Reactivity>
+>();

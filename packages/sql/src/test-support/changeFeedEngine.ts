@@ -1,7 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Deferred, type Duration, Effect, Exit, Layer, Scope } from "effect";
+import { Context, Deferred, type Duration, Effect, Exit, Layer, type Queue, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { type ListenerControls, type ListenerEvents, listenerEvents } from "./changeFeedListener.ts";
 import type { copiesTables, documentsTable, generatedTable, readingsTable, rowsTable } from "./changeFeedTables.ts";
 import { liveStreams } from "./liveStreams.ts";
@@ -34,6 +35,7 @@ export interface ChangeFeedEngine {
 	readonly events: ListenerEvents;
 	readonly feedScope: Scope.Closeable;
 	readonly ledger: string;
+	liveRows: Queue.Dequeue<number[], SqlError> | undefined;
 	readonly logs: RecordedLogs["Service"];
 	readonly other: SqlClient.SqlClient;
 	readonly reactivity: Reactivity.Reactivity;
@@ -69,6 +71,7 @@ export const changeFeedEngine = Effect.fnUntraced(function* () {
 		events: yield* listenerEvents,
 		feedScope,
 		ledger,
+		liveRows: undefined,
 		logs: yield* RecordedLogs,
 		other: Context.get(yield* Layer.build(Layer.fresh(postgresLayer)), SqlClient.SqlClient),
 		reactivity: yield* Reactivity.Reactivity,

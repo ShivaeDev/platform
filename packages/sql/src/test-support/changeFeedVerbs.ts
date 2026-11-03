@@ -29,8 +29,8 @@ function aliasOf(engine: ChangeFeedEngine) {
 	const names = Object.entries(engine.tables).map(([alias, tables]) => [alias, tables.name] as const);
 	return (key: unknown) => {
 		const text = String(key);
-		const found = names.find(([, name]) => text === name || text.startsWith(`${name}:`));
-		return found === undefined ? text : `${found[0]}${text.slice(found[1].length)}`;
+		const found = names.find(([, name]) => text === name || text.startsWith(`${name}:`) || text.includes(JSON.stringify(name)));
+		return found === undefined ? text : text.replace(found[1], found[0]);
 	};
 }
 

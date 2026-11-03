@@ -646,6 +646,23 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 
 Arrays also accept typed keys from `collection`: a list key refreshes list subscribers, an item key refreshes that item and its list, and a bucket key refreshes that bucket. Subscribers register these keys through `readKeys` from `@shivaedev/changes/keys.ts`. Typed keys may share an array with raw Reactivity keys; raw keys keep their native identity.
 
+For a raw SQL writer, declare affected records and buckets once with `changes` from `@shivaedev/sql/changes.ts`, grouped by their SQL table name. The returned declaration's `record()` action uses the same transaction boundary as repository writes:
+
+```ts
+import { changes } from "@shivaedev/sql/changes.ts";
+
+const moved = changes({
+  notes: [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList), notes.bucket.owner(owner)],
+});
+
+yield* Effect.gen(function* () {
+  yield* sql`update notes set "listId" = ${newList} where id = ${id}`;
+  yield* moved.record();
+}).pipe(transact({ onSqlError: (error) => error }));
+```
+
+Use `moved.record({ publication: "local" })` to refresh local readers after commit without cross-process publication. `invalidateOnCommit(keys, { publication: "local" })` accepts the same typed option. The default is `"shared"`. Local and shared keys can coexist in one transaction; a key recorded both ways publishes once. Rollback discards both kinds. The option applies to that recording, so other writers in the transaction can still publish shared keys.
+
 Mark bucket fields on the model with `bucket` from `@shivaedev/changes/buckets.ts`:
 
 ```ts
@@ -793,7 +810,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/conditionalUpsert.ts`: `UpsertFilter`, `UpsertResult` — The `updateWhere` filter shape and the tagged `Inserted`, `Updated` or `Unchanged` result of a conditional upsert.
 - `@shivaedev/sql/mapSqlError.ts`: `mapSqlError({ constraints, fallback })` — Mapper from named constraint violations to application errors, with a fallback for every other `SqlError`.
 - `@shivaedev/sql/transact.ts`: `transact(effect, options)` or `effect.pipe(transact(options))` — Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`.
-- `@shivaedev/sql/transact.ts`: `invalidateOnCommit(keys)` — Records keys for its client, or invalidates immediately outside a transaction.
+- `@shivaedev/sql/transact.ts`: `invalidateOnCommit(keys, options?)` — Records keys for its client, or invalidates immediately outside a transaction.
 - `@shivaedev/sql/advisoryXactLock.ts`: `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` — PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`.
 - `@shivaedev/sql/migrationConvention.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.
 - `@shivaedev/sql/migrationsFromDirectory.ts`: `migrationsFromDirectory(root)` — Discover migrations under the application root with native `FileSystem` and `Path`.
@@ -803,6 +820,7 @@ Import the module that defines the name; there is no root entry.
 - `@shivaedev/sql/postgresRelease.ts`: `postgresRelease(release, table?)`, `readPostgresRelease(table?)` — Release marker schema component and its reader.
 - `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
 - `@shivaedev/sql/repositoryCollection.ts`: `BucketRegistrationError` — Registration failure with table, collection and bucket field names.
+- `@shivaedev/sql/changes.ts`: `changes(covers)`, `ChangeDeclaration` — Declares a raw writer's table, record and bucket keys once, with a `record(options?)` action.
 - `@shivaedev/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
 
 ### Install and database setup
@@ -865,17 +883,19 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 
 The package's PostgreSQL tests use a disposable database through `PLATFORM_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
 
-The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit and requires every declared record and bucket key to be recorded. Repository writes supply these declarations automatically. Raw writes must declare their affected keys through `covers` and record them through the same after-commit path; a table key alone covers nothing. Missing announcements fail with `UnannouncedWrites` and roll back the transaction.
+The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit and requires every declared record and bucket key to be recorded. Repository writes supply these declarations automatically. Raw writers can pass the declaration returned by `changes` directly to `withChangeCoverage` and record it through `record()`; a table key alone covers nothing. Local recordings satisfy coverage too. Missing announcements fail with `UnannouncedWrites` and roll back the transaction.
 
 ```ts
-const changed = [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList), notes.bucket.owner(owner)];
+const changed = changes({
+  notes: [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList), notes.bucket.owner(owner)],
+});
 
 yield* withChangeCoverage(
   Effect.gen(function* () {
     yield* sql`update notes set "listId" = ${newList} where id = ${id}`;
-    yield* invalidateOnCommit(invalidationKeys(changed));
+    yield* changed.record();
   }),
-  { covers: { notes: changed } },
+  changed,
 );
 ```
 
