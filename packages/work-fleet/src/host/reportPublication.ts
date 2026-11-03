@@ -1,5 +1,6 @@
-import { Effect, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
 import type { FleetError } from "#errors.ts";
 import type { GithubRead } from "#host/github.ts";
 import { githubFailure } from "#host/githubRateLimit.ts";
@@ -29,10 +30,9 @@ export function reportPublication(read: GithubRead) {
 
 export const reportRepository = Effect.fn("Fleet.reportRepository")(function* (cwd: string, remote: string) {
 	const url = (yield* readCommand("git", ["remote", "get-url", remote], cwd)).trim();
-	const repository = /^(?:https:\/\/github\.com\/|git@github\.com:)(?<repository>[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+?)(?:\.git)?$/u.exec(url)?.groups
-		?.repository;
-	if (repository === undefined) {
+	const parsed = parseRepositoryAddress(url);
+	if (Result.isFailure(parsed) || parsed.success.kind !== "remote") {
 		return yield* Effect.fail(new ServiceUnavailable({ message: "Report publication checks need a GitHub remote" }));
 	}
-	return repository;
+	return parsed.success.repository;
 });

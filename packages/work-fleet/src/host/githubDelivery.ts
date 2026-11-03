@@ -1,5 +1,6 @@
-import { Effect, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 import { BadRequest, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
 import { conflictingPr, movedPrHead } from "#engine/deliveryFailure.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";
@@ -48,9 +49,13 @@ function deliveryState(observed: typeof RestPullRequest.Type) {
 }
 
 export function readPullRequest(read: GithubRead["get"]) {
-	return (pr: string) => {
-		const match = /^https:\/\/github\.com\/(?<repository>[^/]+\/[^/]+)\/pull\/(?<number>[1-9]\d*)$/u.exec(pr)?.groups;
-		return read(`repos/${match?.repository}/pulls/${match?.number}`).pipe(
+	return Effect.fn("FleetHost.readPullRequest")(function* (pr: string) {
+		const parsed = parseRepositoryAddress(pr);
+		if (Result.isFailure(parsed) || parsed.success.number === undefined) {
+			return yield* new BadRequest({ message: "Delivery requires the adopted GitHub PR URL" });
+		}
+		const target = parsed.success;
+		return yield* read(`repos/${target.repository}/pulls/${target.number}`).pipe(
 			Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(RestPullRequest))),
 			Effect.map((observed): typeof PullRequest.Encoded => ({
 				baseRefOid: observed.base.sha,
@@ -63,12 +68,13 @@ export function readPullRequest(read: GithubRead["get"]) {
 			})),
 			Effect.mapError(githubFailure("PR delivery observation failed; check GitHub CLI access and response")),
 		);
-	};
+	});
 }
 
 export function githubDelivery(read: (pr: string) => Effect.Effect<unknown, FleetError>) {
 	return Effect.fn("FleetHost.githubDelivery")(function* (result: typeof ChangeResult.Type) {
-		if (result.pr.match(/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/[1-9]\d*$/u) === null) {
+		const parsed = parseRepositoryAddress(result.pr);
+		if (Result.isFailure(parsed) || parsed.success.number === undefined) {
 			return yield* withFailureContext(new BadRequest({ message: "Delivery requires the adopted GitHub PR URL" }), { code: "delivery-pr-required" });
 		}
 		const pr = yield* Schema.decodeUnknownEffect(PullRequest)(yield* read(result.pr)).pipe(

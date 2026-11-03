@@ -1,5 +1,6 @@
-import { Effect, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 import { Conflict, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
 import { FilePages, githubJson } from "#host/github.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { readQueueState } from "#host/githubQueueStatus.ts";
@@ -13,10 +14,11 @@ const Pull = Schema.Struct({
 }).pipe(Schema.encodeKeys({ changedFiles: "changed_files", nodeId: "node_id" }));
 
 export const githubCiHold = Effect.fn("FleetHost.githubCiHold")(function* (result: typeof ChangeResult.Type, approvedHead?: string) {
-	const target = /^https:\/\/github\.com\/(?<repository>[^/]+\/[^/]+)\/pull\/(?<number>[1-9]\d*)$/u.exec(result.pr)?.groups;
-	if (target === undefined) {
+	const parsed = parseRepositoryAddress(result.pr);
+	if (Result.isFailure(parsed) || parsed.success.number === undefined) {
 		return undefined;
 	}
+	const target = parsed.success;
 	const github = yield* GithubApi;
 	const endpoint = `repos/${target.repository}/pulls/${target.number}`;
 	const before = yield* githubJson(Pull, github.get(endpoint));

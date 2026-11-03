@@ -1,5 +1,6 @@
-import { Effect, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
 import { conflictingPr, movedPrHead } from "#engine/deliveryFailure.ts";
 import type { FleetHost } from "#host/config.ts";
 import { githubJson } from "#host/github.ts";
@@ -39,14 +40,15 @@ export function githubMergeQueue(host: FleetHost) {
 		queuedAt?: number,
 		approvedHead?: string,
 	) {
-		const target = /^https:\/\/github\.com\/(?<repository>[^/]+\/[^/]+)\/pull\/(?<number>[1-9]\d*)$/u.exec(result.pr)?.groups;
-		if (host.worker === undefined || target === undefined) {
+		const parsed = parseRepositoryAddress(result.pr);
+		if (host.worker === undefined || Result.isFailure(parsed) || parsed.success.number === undefined) {
 			return "manual" as const;
 		}
+		const target = parsed.success;
 		yield* requireCiApproval(result, approvedHead);
 		const github = yield* GithubApi;
 		const pr = yield* githubJson(PullRequest, github.get(`repos/${target.repository}/pulls/${target.number}`));
-		if (humanMerge(pr, host, work.workId, target.repository ?? "")) {
+		if (humanMerge(pr, host, work.workId, target.repository)) {
 			return "manual" as const;
 		}
 		if (pr.head.sha !== result.head) {

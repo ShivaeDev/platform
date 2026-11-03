@@ -1900,6 +1900,9 @@ importers:
       '@shivaedev/form':
         specifier: workspace:*
         version: link:../form
+      '@shivaedev/github':
+        specifier: workspace:*
+        version: link:../github
       '@shivaedev/identity':
         specifier: workspace:*
         version: link:../identity

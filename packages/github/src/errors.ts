@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+export class GitHubAddressInvalid extends Schema.TaggedError<GitHubAddressInvalid>()("GitHubAddressInvalid", {}) {}
+
 export class MarkdownBudgetTooSmall extends Schema.TaggedError<MarkdownBudgetTooSmall>()("MarkdownBudgetTooSmall", {
 	byteLimit: Schema.Number,
 }) {}

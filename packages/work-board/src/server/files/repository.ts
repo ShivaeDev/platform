@@ -1,16 +1,14 @@
-import { Effect, FileSystem, Option, Path, Schema } from "effect";
+import { Effect, FileSystem, Option, Path, Result, Schema } from "effect";
+import { parseRepositoryAddress } from "@shivaedev/github/repositoryAddress.ts";
 
-const GITHUB = /^(?:git\+)?(?:https?:\/\/|ssh:\/\/git@|git:\/\/|git@)github\.com[/:](?<owner>[\w.-]+)\/(?<name>[\w.-]+?)(?:\.git)?\/?$/u;
-const SHORTHAND = /^(?:github:)?(?<owner>[\w.-]+)\/(?<name>[\w.-]+)$/u;
 const ORIGIN = /\[remote "origin"\][^[]*?^\s*url\s*=\s*(?<url>\S+)/mu;
 const Manifest = Schema.Struct({
 	repository: Schema.optional(Schema.Union([Schema.String, Schema.Struct({ url: Schema.String })])),
 });
 
 export function pullRequestBase(repository: string): string | undefined {
-	const match = GITHUB.exec(repository.trim()) ?? SHORTHAND.exec(repository.trim());
-	const { owner, name } = match?.groups ?? {};
-	return owner && name ? `https://github.com/${owner}/${name}/pull/` : undefined;
+	const parsed = parseRepositoryAddress(repository);
+	return Result.isSuccess(parsed) && parsed.success.number === undefined ? `https://github.com/${parsed.success.repository}/pull/` : undefined;
 }
 
 // The nearest package.json repository wins, then the enclosing git checkout's origin remote; only GitHub has a known pull request URL.
