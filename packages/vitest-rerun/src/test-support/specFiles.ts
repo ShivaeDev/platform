@@ -94,10 +94,10 @@ it('passes once collected', () => {
 export const unhandledError = `import { it } from ${vitest};
 
 it('leaves an unhandled error', async () => {
-	setTimeout(() => {
+	queueMicrotask(() => {
 		throw new Error('Unhandled fixture error');
-	}, 0);
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	});
+	await new Promise((resolve) => queueMicrotask(resolve));
 });
 `;
 
