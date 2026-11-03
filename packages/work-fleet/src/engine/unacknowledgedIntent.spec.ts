@@ -24,6 +24,7 @@ for (const action of ["retry", "release"] as const) {
 			expect(resolved.value.attempts[0]).toMatchObject({ status: "failed" });
 			yield* releaseGate("session");
 			yield* Effect.yieldNow;
+			const beforeAcknowledgement = yield* fleet.get("one");
 			const lateAcknowledgementOutcome = yield* refusal(acknowledgeProviderTurn("operation-1", { sessionId: "session-operation-1", turnId: "late" }));
 			yield* outcomes([
 				[
@@ -31,7 +32,7 @@ for (const action of ["retry", "release"] as const) {
 					() => Effect.succeed(lateAcknowledgementOutcome),
 					"session persistence: Independent review or submission acknowledgement conflicts with the persisted exact receipt",
 				],
-				["execution record", () => fleet.get("one"), resolved],
+				["execution record", () => fleet.get("one"), beforeAcknowledgement],
 				["session", () => fleet.get("one").pipe(Effect.map((current) => current.value.attempts[0]?.sessionId)), undefined],
 				["provider operations", () => Effect.sync(providerOperations), []],
 			]);

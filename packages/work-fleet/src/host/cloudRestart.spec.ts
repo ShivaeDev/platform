@@ -79,7 +79,7 @@ for (const boundary of [
 					expect(after.decision?.code).toBe("approval-required");
 				}
 				expect(after.attempts[0]?.status).toBe("submitting");
-				const beforeRenewal = yield* daemon.cloudRecords();
+				const beforeRenewal = yield* daemon.cloudOwnership();
 				const renewal = yield* daemon.renewCloudWork(after);
 
 				yield* outcomes([
@@ -90,7 +90,7 @@ for (const boundary of [
 							? "forbidden: Current Board revision needs maintainer approval"
 							: "forbidden: Reconcile and confirm terminal execution before renewing preparation",
 					],
-					["execution records", () => daemon.cloudRecords(), beforeRenewal],
+					["execution ownership", () => daemon.cloudOwnership(), beforeRenewal],
 				]);
 			}
 			if (recoverable) {

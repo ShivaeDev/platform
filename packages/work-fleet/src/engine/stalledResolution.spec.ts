@@ -53,6 +53,7 @@ for (const scenario of [
 				status: "failed",
 			});
 			expect(providerInterruptions()).toEqual([receipt.turnId]);
+			const beforeAcknowledgement = yield* fleet.get("one");
 			const late = yield* refusal(acknowledgeProviderTurn(attempt.operationId, receipt));
 
 			yield* outcomes([
@@ -61,7 +62,7 @@ for (const scenario of [
 					() => Effect.succeed(late),
 					"session persistence: Independent review or submission acknowledgement conflicts with the persisted exact receipt",
 				],
-				["execution record", () => fleet.get("one"), resolved],
+				["execution record", () => fleet.get("one"), beforeAcknowledgement],
 			]);
 			setTurnExecution(receipt, "completed", "Late abandoned output");
 			if (action === "retry") {

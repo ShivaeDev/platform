@@ -51,6 +51,7 @@ for (const action of ["retry", "dispatch", "release"] as const) {
 				sessionUnusable: true,
 				status: "failed",
 			});
+			const beforeAcknowledgement = yield* fleet.get("one");
 			const late = yield* refusal(acknowledgeProviderTurn(attempt.operationId, receipt));
 
 			yield* outcomes([
@@ -59,7 +60,7 @@ for (const action of ["retry", "dispatch", "release"] as const) {
 					() => Effect.succeed(late),
 					"session persistence: Independent review or submission acknowledgement conflicts with the persisted exact receipt",
 				],
-				["execution record", () => fleet.get("one"), resolved],
+				["execution record", () => fleet.get("one"), beforeAcknowledgement],
 			]);
 			setTurnExecution(receipt, "completed", "Late abandoned output");
 			if (action === "release") {
